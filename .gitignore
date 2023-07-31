@@ -1,0 +1,48 @@
+## Xcode
+.ruby-version
+.DS_Store
+
+## Build generated
+build/
+DerivedData/
+Output/
+Embrace.framework/
+embrace_*.*.*
+embrace_support.zip
+
+## Swift Package build generated
+.build
+.swiftpm
+
+## Test results
+*.xcresult
+
+## fastlane generated
+html/
+fastlane/report.xml
+fastlane/test_output/
+
+## Various settings
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+
+## Other
+*.moved-aside
+*.xcuserstate
+
+## Obj-C/Swift specific
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+## Sonar
+.scannerwork
+sonar-output
