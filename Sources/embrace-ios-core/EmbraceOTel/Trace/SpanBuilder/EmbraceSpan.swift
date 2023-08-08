@@ -11,9 +11,11 @@ import OpenTelemetryApi
 
 class EmbraceSpan: Span {
 
-    private(set) var kind: OpenTelemetryApi.SpanKind
+    private(set) var kind: SpanKind
 
-    private(set) var context: OpenTelemetryApi.SpanContext
+    private(set) var context: SpanContext
+
+    private(set) var parentContext: SpanContext?
 
     var status: OpenTelemetryApi.Status = .unset
 
@@ -25,12 +27,29 @@ class EmbraceSpan: Span {
 
     private(set) var attributes = [String: AttributeValue]()
 
-    var isRecording: Bool { return endTime == nil && status == .unset }
+    private(set) var links: [EmbraceSpanData.Link]
+    private(set) var events = [EmbraceSpanData.Event]()
 
-    init(context: OpenTelemetryApi.SpanContext, name: String, startTime: Date) {
+    var isRecording: Bool { return endTime == nil }
+
+    init(
+        context: SpanContext,
+        name: String,
+        kind: SpanKind,
+        startTime: Date,
+        parentContext: SpanContext? = nil,
+        attributes: [String : AttributeValue]=[:],
+        links: [EmbraceSpanData.Link] = []
+    ) {
+
         self.kind = .client
         self.context = context
+        self.parentContext = parentContext
         self.name = name
+        self.kind = kind
+
+        self.attributes = attributes
+        self.links = links
         self.startTime = startTime
     }
 
@@ -77,9 +96,9 @@ extension EmbraceSpan {
             spanId: context.spanId,
             name: name,
             kind: kind,
-            startTime: Date(),
+            startTime: startTime,
             attributes: attributes,
-            status: .unset,
+            status: status,
             endTime: Date(),
             hasRemoteParent: false,
             hasEnded: true,

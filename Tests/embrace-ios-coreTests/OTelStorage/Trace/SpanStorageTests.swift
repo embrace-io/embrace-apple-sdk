@@ -25,7 +25,7 @@ final class SpanStorageTests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
-        try! FileManager.default.removeItem(at: tmpURL)
+//        try! FileManager.default.removeItem(at: tmpURL)
     }
 
     func test_insertEmbraceSpanData() throws {
@@ -41,6 +41,7 @@ final class SpanStorageTests: XCTestCase {
                 traceFlags: .init(),
                 traceState: .init()),
             name: "example.hello",
+            kind: .internal,
             startTime: Date())
 
         try storage.add(spanData: span.toSpanData())
@@ -50,7 +51,7 @@ final class SpanStorageTests: XCTestCase {
         XCTAssertEqual(spans.first?.spanId, spanId)
         XCTAssertEqual(spans.first?.traceId, traceId)
         XCTAssertEqual(spans.first?.name, "example.hello")
-        XCTAssertEqual(spans.first?.kind, .client)
+        XCTAssertEqual(spans.first?.kind, .internal)
     }
 
     func test_insertEmbraceSpanData_withAttributes() throws {
@@ -66,6 +67,7 @@ final class SpanStorageTests: XCTestCase {
                 traceFlags: .init(),
                 traceState: .init()),
             name: "example.hello",
+            kind: .internal,
             startTime: Date()
         )
 
@@ -101,11 +103,16 @@ final class SpanStorageTests: XCTestCase {
                     traceFlags: .init(),
                     traceState: .init()),
                 name: "example.hello",
+                kind: .internal,
                 startTime: Date())
             .toSpanData()
         }
 
         try! storage.add(entries: spanDataEntries)
+    }
+
+    func test_performance_writeJSON_toFiles() throws {
+
     }
 
 }

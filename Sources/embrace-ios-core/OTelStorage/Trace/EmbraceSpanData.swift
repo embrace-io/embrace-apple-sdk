@@ -16,10 +16,10 @@ public struct EmbraceSpanData: Equatable {
     public private(set) var spanId: SpanId
 
     /// The trace flags for this span.
-//    public private(set) var traceFlags = TraceFlags()
+    public private(set) var traceFlags = TraceFlags()
 
     /// The TraceState for this span.
-//    public private(set) var traceState = TraceState()
+    public private(set) var traceState = TraceState()
 
     /// The parent SpanId. If the  Span is a root Span, the SpanId
     /// returned will be nil.
@@ -47,13 +47,13 @@ public struct EmbraceSpanData: Equatable {
     public private(set) var attributes = [String: AttributeValue]()
 
     /// The timed events recorded for this Span.
-//    public private(set) var events = [Event]()
+    public private(set) var events = [Event]()
 
     /// The links recorded for this Span.
-//    public private(set) var links = [Link]()
+    public private(set) var links = [Link]()
 
     /// The Status.
-//    public private(set) var status: Status = .unset
+    public private(set) var status: Status = .unset
 
     /// True if the parent is on a different process, false if this is a root span.
 //    public private(set) var hasRemoteParent: Bool = false
@@ -101,19 +101,19 @@ public struct EmbraceSpanData: Equatable {
     public static func == (lhs: EmbraceSpanData, rhs: EmbraceSpanData) -> Bool {
         return lhs.traceId == rhs.traceId &&
             lhs.spanId == rhs.spanId &&
-//            lhs.traceFlags == rhs.traceFlags &&
-//            lhs.traceState == rhs.traceState &&
+            lhs.traceFlags == rhs.traceFlags &&
+            lhs.traceState == rhs.traceState &&
             lhs.parentSpanId == rhs.parentSpanId &&
             lhs.name == rhs.name &&
             lhs.kind == rhs.kind &&
-//            lhs.status == rhs.status &&
+            lhs.status == rhs.status &&
             lhs.endTime == rhs.endTime &&
             lhs.startTime == rhs.startTime &&
 //            lhs.hasRemoteParent == rhs.hasRemoteParent &&
 //            lhs.resource == rhs.resource &&       // TODO: Add resource
-//            lhs.attributes == rhs.attributes &&
-//            lhs.events == rhs.events &&
-//            lhs.links == rhs.links &&
+            lhs.attributes == rhs.attributes &&
+            lhs.events == rhs.events &&
+            lhs.links == rhs.links &&
 //            lhs.hasEnded == rhs.hasEnded &&
 //            lhs.totalRecordedEvents == rhs.totalRecordedEvents &&
 //            lhs.totalRecordedLinks == rhs.totalRecordedLinks &&
