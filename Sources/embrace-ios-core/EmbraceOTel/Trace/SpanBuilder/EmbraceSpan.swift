@@ -38,7 +38,7 @@ class EmbraceSpan: Span {
         kind: SpanKind,
         startTime: Date,
         parentContext: SpanContext? = nil,
-        attributes: [String : AttributeValue]=[:],
+        attributes: [String: AttributeValue]=[:],
         links: [EmbraceSpanData.Link] = []
     ) {
 
@@ -60,27 +60,26 @@ class EmbraceSpan: Span {
     func addEvent(name: String) {
 
     }
-    
+
     func addEvent(name: String, timestamp: Date) {
 
     }
-    
-    func addEvent(name: String, attributes: [String : OpenTelemetryApi.AttributeValue]) {
+
+    func addEvent(name: String, attributes: [String: OpenTelemetryApi.AttributeValue]) {
 
     }
-    
-    func addEvent(name: String, attributes: [String : OpenTelemetryApi.AttributeValue], timestamp: Date) {
+
+    func addEvent(name: String, attributes: [String: OpenTelemetryApi.AttributeValue], timestamp: Date) {
 
     }
 
     func end() {
         end(time: Date())
     }
-    
+
     func end(time: Date) {
         self.endTime = time
 
-        
     }
 
 }
@@ -109,5 +108,3 @@ extension EmbraceSpan {
             totalAttributeCount: 0)
     }
 }
-
-

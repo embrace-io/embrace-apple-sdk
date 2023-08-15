@@ -1,4 +1,3 @@
-
 import OpenTelemetryApi
 import Foundation
 
@@ -44,7 +43,7 @@ class EmbraceSpanBuilder: SpanBuilder {
         parentType = .explicitParent
         return self
     }
-    
+
     @discardableResult func setParent(_ parent: OpenTelemetryApi.SpanContext) -> Self {
         remoteParent = parent
         self.parent = nil
@@ -56,8 +55,8 @@ class EmbraceSpanBuilder: SpanBuilder {
         addLink(EmbraceSpanData.Link(context: spanContext))
         return self
     }
-    
-    @discardableResult func addLink(spanContext: OpenTelemetryApi.SpanContext, attributes: [String : OpenTelemetryApi.AttributeValue]) -> Self {
+
+    @discardableResult func addLink(spanContext: OpenTelemetryApi.SpanContext, attributes: [String: OpenTelemetryApi.AttributeValue]) -> Self {
         addLink(EmbraceSpanData.Link(context: spanContext, attributes: attributes))
         return self
     }
@@ -75,7 +74,7 @@ class EmbraceSpanBuilder: SpanBuilder {
         self.spanKind = spanKind
         return self
     }
-    
+
     @discardableResult func setStartTime(time: Date) -> Self {
         self.startTime = time
         return self
@@ -90,7 +89,7 @@ class EmbraceSpanBuilder: SpanBuilder {
         self.startAsActive = active
         return self
     }
-    
+
     func startSpan() -> OpenTelemetryApi.Span {
 
         var parentContext = getParentContext(
@@ -116,7 +115,6 @@ class EmbraceSpanBuilder: SpanBuilder {
             traceFlags: TraceFlags(),
             traceState: traceState )
 
-
         let createdSpan = EmbraceSpan(
             context: spanContext,
             name: spanName,
@@ -135,7 +133,6 @@ class EmbraceSpanBuilder: SpanBuilder {
     }
 
 }
-
 
 private extension EmbraceSpanBuilder {
 

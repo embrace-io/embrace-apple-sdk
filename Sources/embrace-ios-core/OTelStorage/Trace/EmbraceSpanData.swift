@@ -76,8 +76,8 @@ public struct EmbraceSpanData: Equatable {
     /// greater than the configured maximum value. See SpanLimits.maxNumberOfAttributes
 //    public private(set) var totalAttributeCount: Int = 0
 
-    init(traceId: TraceId, spanId: SpanId, traceFlags: TraceFlags = TraceFlags(), traceState: TraceState = TraceState(), parentSpanId: SpanId? = nil, name: String, kind: SpanKind, startTime: Date, attributes: [String : AttributeValue] = [String: AttributeValue](), events: [Event] = [Event](), links: [Link] = [Link](), status: Status, endTime: Date, hasRemoteParent: Bool, hasEnded: Bool, totalRecordedEvents: Int, totalRecordedLinks: Int, totalAttributeCount: Int) {
-        
+    init(traceId: TraceId, spanId: SpanId, traceFlags: TraceFlags = TraceFlags(), traceState: TraceState = TraceState(), parentSpanId: SpanId? = nil, name: String, kind: SpanKind, startTime: Date, attributes: [String: AttributeValue] = [String: AttributeValue](), events: [Event] = [Event](), links: [Link] = [Link](), status: Status, endTime: Date, hasRemoteParent: Bool, hasEnded: Bool, totalRecordedEvents: Int, totalRecordedLinks: Int, totalAttributeCount: Int) {
+
         self.traceId = traceId
         self.spanId = spanId
 //        self.traceFlags = traceFlags
@@ -265,7 +265,6 @@ public func == (lhs: [EmbraceSpanData.Link], rhs: [EmbraceSpanData.Link]) -> Boo
     return lhs.elementsEqual(rhs) { $0.context == $1.context && $0.attributes == $1.attributes }
 }
 
-
 extension EmbraceSpanData: TableRecord {
     public static let databaseTableName: String = "otel_spans"
 }
@@ -308,7 +307,7 @@ extension EmbraceSpanData: Codable {
         kind = try container.decode(SpanKind.self, forKey: .kind)
         startTime = try container.decode(Date.self, forKey: .startTime)
         endTime = try container.decode(Date.self, forKey: .endTime)
-        attributes = try container.decodeIfPresent([String : AttributeValue].self, forKey: .attributes) ?? [:]
+        attributes = try container.decodeIfPresent([String: AttributeValue].self, forKey: .attributes) ?? [:]
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -322,10 +321,9 @@ extension EmbraceSpanData: Codable {
         try container.encode(kind, forKey: .kind)
         try container.encode(startTime, forKey: .startTime)
         try container.encodeIfPresent(endTime, forKey: .endTime)
-        
+
         try container.encode(attributes, forKey: .attributes)
     }
-
 
 }
 

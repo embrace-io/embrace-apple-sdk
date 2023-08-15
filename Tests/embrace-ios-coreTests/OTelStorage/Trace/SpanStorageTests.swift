@@ -84,9 +84,9 @@ final class SpanStorageTests: XCTestCase {
         XCTAssertEqual(spans.first?.name, "example.hello")
         XCTAssertEqual(spans.first?.kind, .internal)
         XCTAssertEqual(spans.first?.attributes, [
-            "a" : .string("hello"),
-            "b" : .int(42),
-            "c" : .double(23.2)
+            "a": .string("hello"),
+            "b": .int(42),
+            "c": .double(23.2)
         ])
     }
 

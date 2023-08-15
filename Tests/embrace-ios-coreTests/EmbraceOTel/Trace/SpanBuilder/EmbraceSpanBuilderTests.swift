@@ -47,8 +47,8 @@ final class EmbraceSpanBuilderTests: XCTestCase {
 
         XCTAssertEqual(
             span.attributes, [
-                "test_bool" : .bool(true),
-                "test_string" : .string("hello")
+                "test_bool": .bool(true),
+                "test_string": .string("hello")
             ] )
     }
 

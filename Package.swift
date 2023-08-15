@@ -8,7 +8,7 @@ let package = Package(
     products: [
         .library(
             name: "EmbraceIO",
-            targets: ["embrace-ios-core"]),
+            targets: ["embrace-ios-core"])
     ],
     dependencies: [
         .package(
@@ -20,7 +20,7 @@ let package = Package(
         .package(
             url: "https://github.com/groue/GRDB.swift",
             from: "6.16.0"
-        ),
+        )
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -32,6 +32,6 @@ let package = Package(
             ]),
         .testTarget(
             name: "embrace-ios-coreTests",
-            dependencies: ["embrace-ios-core"]),
+            dependencies: ["embrace-ios-core"])
     ]
 )

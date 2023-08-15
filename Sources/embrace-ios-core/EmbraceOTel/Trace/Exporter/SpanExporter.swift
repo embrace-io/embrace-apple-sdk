@@ -1,4 +1,3 @@
-
 import Foundation
 import OpenTelemetrySdk
 
@@ -23,8 +22,6 @@ public class SpanExporter: OpenTelemetrySdk.SpanExporter {
         for span in spans {
             // save to db
             print("span name: \(span.name)")
-
-            
 
         }
 

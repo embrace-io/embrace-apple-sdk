@@ -1,4 +1,3 @@
-
 protocol SpanReader {
     func fetchAll() throws -> [EmbraceSpanData]
 }
@@ -10,4 +9,4 @@ protocol SpanWriter {
 
 }
 
-protocol SpanStorage : SpanReader, SpanWriter { }
+protocol SpanStorage: SpanReader, SpanWriter { }

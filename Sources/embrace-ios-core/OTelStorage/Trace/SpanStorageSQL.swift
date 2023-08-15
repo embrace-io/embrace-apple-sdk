@@ -8,7 +8,6 @@
 import Foundation
 import GRDB
 
-
 class SpanStorageSQL: SpanStorage {
 
     let dbQueue: DatabaseQueue

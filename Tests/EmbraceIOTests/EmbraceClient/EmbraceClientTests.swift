@@ -1,10 +1,8 @@
-
 import XCTest
 
 @testable import EmbraceIO
 
 final class EmbraceClientTests: XCTestCase {
-
 
     func test_init() throws {
         let a = EmbraceClient(appId: "myApp")
@@ -14,5 +12,5 @@ final class EmbraceClientTests: XCTestCase {
         let c = EmbraceClient(appId: "myApp", appGroupIdentifier: "com.appgroup.identifier", instruments: .default)
 
     }
-    
+
 }

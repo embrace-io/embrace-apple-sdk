@@ -1,4 +1,3 @@
-
 import OpenTelemetryApi
 
 public class EmbraceTracer: Tracer {
