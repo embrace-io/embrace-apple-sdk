@@ -7,7 +7,7 @@
 
 import Foundation
 import OpenTelemetryApi
-
+import OpenTelemetrySdk
 
 class EmbraceSpan: Span {
 
@@ -79,6 +79,8 @@ class EmbraceSpan: Span {
     
     func end(time: Date) {
         self.endTime = time
+
+        
     }
 
 }

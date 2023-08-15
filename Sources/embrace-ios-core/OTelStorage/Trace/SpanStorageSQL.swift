@@ -9,7 +9,7 @@ import Foundation
 import GRDB
 
 
-class SpanStorage {
+class SpanStorageSQL: SpanStorage {
 
     let dbQueue: DatabaseQueue
 
@@ -21,7 +21,7 @@ class SpanStorage {
         self.dbQueue = try! DatabaseQueue(path: fileURL.path)
     }
 
-    func createIfNecessary() throws  {
+    func createIfNecessary() throws {
         try dbQueue.write { db in
             try db.create(table: EmbraceSpanData.databaseTableName, options: .ifNotExists) { t in
 
@@ -49,8 +49,8 @@ class SpanStorage {
         }
     }
 
-    func add(spanData: EmbraceSpanData) throws {
-        try add(entries: [spanData])
+    func add(entry: EmbraceSpanData) throws {
+        try add(entries: [entry])
     }
 
     func add(entries: [EmbraceSpanData]) throws {
@@ -61,7 +61,7 @@ class SpanStorage {
         }
     }
 
-    func fetch() throws -> [EmbraceSpanData] {
+    func fetchAll() throws -> [EmbraceSpanData] {
         try dbQueue.read { db in
             return try EmbraceSpanData.fetchAll(db)
         }

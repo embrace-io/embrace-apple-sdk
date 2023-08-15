@@ -29,7 +29,7 @@ final class SpanStorageTests: XCTestCase {
     }
 
     func test_insertEmbraceSpanData() throws {
-        let storage = try SpanStorage(fileURL: dbURL)
+        let storage = try SpanStorageSQL(fileURL: dbURL)
         try storage.createIfNecessary()
 
         let spanId = SpanId.random()
@@ -44,9 +44,9 @@ final class SpanStorageTests: XCTestCase {
             kind: .internal,
             startTime: Date())
 
-        try storage.add(spanData: span.toSpanData())
+        try storage.add(entry: span.toSpanData())
 
-        let spans = try storage.fetch()
+        let spans = try storage.fetchAll()
         XCTAssertEqual(spans.count, 1)
         XCTAssertEqual(spans.first?.spanId, spanId)
         XCTAssertEqual(spans.first?.traceId, traceId)
@@ -55,7 +55,7 @@ final class SpanStorageTests: XCTestCase {
     }
 
     func test_insertEmbraceSpanData_withAttributes() throws {
-        let storage = try SpanStorage(fileURL: dbURL)
+        let storage = try SpanStorageSQL(fileURL: dbURL)
         try storage.createIfNecessary()
 
         let spanId = SpanId.random()
@@ -75,14 +75,14 @@ final class SpanStorageTests: XCTestCase {
         span.setAttribute(key: "b", value: .int(42))
         span.setAttribute(key: "c", value: .double(23.2))
 
-        try storage.add(spanData: span.toSpanData())
+        try storage.add(entry: span.toSpanData())
 
-        let spans = try storage.fetch()
+        let spans = try storage.fetchAll()
         XCTAssertEqual(spans.count, 1)
         XCTAssertEqual(spans.first?.spanId, spanId)
         XCTAssertEqual(spans.first?.traceId, traceId)
         XCTAssertEqual(spans.first?.name, "example.hello")
-        XCTAssertEqual(spans.first?.kind, .client)
+        XCTAssertEqual(spans.first?.kind, .internal)
         XCTAssertEqual(spans.first?.attributes, [
             "a" : .string("hello"),
             "b" : .int(42),
@@ -92,7 +92,7 @@ final class SpanStorageTests: XCTestCase {
 
     @available(iOS 13.0, *)
     func test_performance_insertEmbraceSpanData() throws {
-        let storage = try SpanStorage(fileURL: dbURL)
+        let storage = try SpanStorageSQL(fileURL: dbURL)
         try storage.createIfNecessary()
 
         let spanDataEntries = (0..<1000).map { _ in

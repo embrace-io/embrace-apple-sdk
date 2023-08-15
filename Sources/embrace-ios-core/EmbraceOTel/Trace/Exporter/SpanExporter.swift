@@ -14,10 +14,17 @@ public class SpanExporter: OpenTelemetrySdk.SpanExporter {
 
     @discardableResult public func export(spans: [SpanData]) -> SpanExporterResultCode {
 //        let dataStore = configuration.dataStoreForCurrentSession
+        let storage = configuration.storage
+
+//        l
+
+//        storage.add(entries: spans)
+
         for span in spans {
             // save to db
             print("span name: \(span.name)")
 
+            
 
         }
 
