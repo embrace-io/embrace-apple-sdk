@@ -42,7 +42,8 @@ final class SpanStorageTests: XCTestCase {
                 traceState: .init()),
             name: "example.hello",
             kind: .internal,
-            startTime: Date())
+            startTime: Date(),
+            spanProcessor: NoopSpanProcessor())
 
         try storage.add(entry: span.toSpanData())
 
@@ -68,7 +69,8 @@ final class SpanStorageTests: XCTestCase {
                 traceState: .init()),
             name: "example.hello",
             kind: .internal,
-            startTime: Date()
+            startTime: Date(),
+            spanProcessor: NoopSpanProcessor()
         )
 
         span.setAttribute(key: "a", value: .string("hello"))
@@ -104,7 +106,8 @@ final class SpanStorageTests: XCTestCase {
                     traceState: .init()),
                 name: "example.hello",
                 kind: .internal,
-                startTime: Date())
+                startTime: Date(),
+                spanProcessor: NoopSpanProcessor())
             .toSpanData()
         }
 

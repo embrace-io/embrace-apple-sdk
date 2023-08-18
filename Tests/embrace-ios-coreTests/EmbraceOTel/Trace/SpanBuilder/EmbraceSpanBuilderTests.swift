@@ -7,11 +7,14 @@
 
 import XCTest
 import OpenTelemetryApi
+import OpenTelemetrySdk
 @testable import embrace_ios_core
 
 final class EmbraceSpanBuilderTests: XCTestCase {
 
-    let builder = EmbraceSpanBuilder(spanName: "example")
+    let builder = EmbraceSpanBuilder(
+        spanName: "example",
+        sharedState: EmbraceTracer.SharedState(idGenerator: RandomIdGenerator(), spanProcessor: NoopSpanProcessor()))
 
     func test_startSpan_returnsEmbraceSpan() throws {
         let span = builder
@@ -25,7 +28,7 @@ final class EmbraceSpanBuilderTests: XCTestCase {
     }
 
     func test_startSpan_withParent_returnsEmbraceSpan_withParent() throws {
-        let parentBuilder = EmbraceSpanBuilder(spanName: "example_parent")
+        let parentBuilder = EmbraceSpanBuilder(spanName: "example_parent", sharedState: builder.tracerSharedState)
         let parentSpan = parentBuilder.startSpan()
 
         builder.setParent(parentSpan)

@@ -10,6 +10,8 @@ class EmbraceSpanBuilder: SpanBuilder {
         case noParent
     }
 
+    let tracerSharedState: EmbraceTracer.SharedState
+
     private var spanName: String
     private var spanKind = SpanKind.internal
 
@@ -26,8 +28,9 @@ class EmbraceSpanBuilder: SpanBuilder {
 
     private var startTime: Date?
 
-    init(spanName: String) {
+    init(spanName: String, sharedState: EmbraceTracer.SharedState) {
         self.spanName = spanName
+        self.tracerSharedState = sharedState
     }
 
     @discardableResult func setNoParent() -> Self {
@@ -122,7 +125,8 @@ class EmbraceSpanBuilder: SpanBuilder {
             startTime: startTime ?? Date(),
             parentContext: parentContext,
             attributes: attributes,
-            links: links
+            links: links,
+            spanProcessor: tracerSharedState.spanProcessor
         )
 
         if startAsActive {

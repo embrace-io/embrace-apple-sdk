@@ -21,6 +21,8 @@ class EmbraceSpan: Span {
 
     var name: String
 
+    private(set) var spanProcessor: SpanProcessor
+
     private(set) var startTime: Date
 
     private(set) var endTime: Date?
@@ -39,7 +41,8 @@ class EmbraceSpan: Span {
         startTime: Date,
         parentContext: SpanContext? = nil,
         attributes: [String: AttributeValue]=[:],
-        links: [EmbraceSpanData.Link] = []
+        links: [EmbraceSpanData.Link] = [],
+        spanProcessor: SpanProcessor
     ) {
 
         self.kind = .client
@@ -51,6 +54,7 @@ class EmbraceSpan: Span {
         self.attributes = attributes
         self.links = links
         self.startTime = startTime
+        self.spanProcessor = spanProcessor
     }
 
     func setAttribute(key: String, value: OpenTelemetryApi.AttributeValue?) {
@@ -80,6 +84,8 @@ class EmbraceSpan: Span {
     func end(time: Date) {
         self.endTime = time
 
+        // TODO: SpanProcessor protocol might be broken?
+//        spanProcessor.onEnd(span: self)
     }
 
 }
@@ -108,3 +114,40 @@ extension EmbraceSpan {
             totalAttributeCount: 0)
     }
 }
+
+
+//extension EmbraceSpan: ReadableSpan {
+//    var instrumentationScopeInfo: OpenTelemetrySdk.InstrumentationScopeInfo {
+//        // TODO: Pass through InstrumentationScopeInfo
+//        return InstrumentationScopeInfo()
+//    }
+//    
+//    func toSpanData() -> OpenTelemetrySdk.SpanData {
+//        // TODO: Return `SpanData` instead
+//        return EmbraceSpanData(
+//            traceId: context.traceId,
+//            spanId: context.spanId,
+//            name: name,
+//            kind: kind,
+//            startTime: startTime,
+//            attributes: attributes,
+//            status: status,
+//            endTime: Date(),
+//            hasRemoteParent: false,
+//            hasEnded: true,
+//            totalRecordedEvents: 0,
+//            totalRecordedLinks: 0,
+//            totalAttributeCount: 0) as! SpanData
+//    }
+//    
+//    var hasEnded: Bool {
+//        return endTime != nil
+//    }
+//    
+//    /// Returns the latency of the Span in seconds. If still active then returns now() - start time.
+//    public var latency: TimeInterval {
+//        return endTime?.timeIntervalSince(startTime) ?? -startTime.timeIntervalSinceNow
+//    }
+//
+//
+//}
