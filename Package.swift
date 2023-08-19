@@ -32,6 +32,46 @@ let package = Package(
             ]),
         .testTarget(
             name: "embrace-ios-coreTests",
-            dependencies: ["embrace-ios-core"])
+            dependencies: ["embrace-ios-core"]),
+
+
+        /* ######################################################################## */
+        /* ######################################################################## */
+        /* ######################################################################## */
+
+        .target(
+            name: "EmbraceOTel",
+            dependencies: [
+                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift"),
+                "Storage"
+            ]),
+        .testTarget(
+            name: "EmbraceOTelTests",
+            dependencies: ["EmbraceOTel", "TestSupport"]),
+
+
+        /* ######################################################################## */
+        /* ######################################################################## */
+        /* ######################################################################## */
+
+        .target(name: "Storage",
+               dependencies: [
+                    .product(name: "GRDB", package: "GRDB.swift"),
+                    .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
+               ]),
+
+            .testTarget(
+                name: "StorageTests",
+                dependencies: ["Storage", "EmbraceOTel", "TestSupport"]),
+
+        /* ######################################################################## */
+        /* ######################################################################## */
+        /* ######################################################################## */
+
+            .target(
+                name: "TestSupport",
+                dependencies: [.product(name: "OpenTelemetrySdk", package: "opentelemetry-swift"),],
+                path: "Tests/TestSupport")
+
     ]
 )

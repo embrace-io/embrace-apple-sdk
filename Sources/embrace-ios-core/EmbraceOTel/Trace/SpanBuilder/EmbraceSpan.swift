@@ -29,8 +29,8 @@ class EmbraceSpan: Span {
 
     private(set) var attributes = [String: AttributeValue]()
 
-    private(set) var links: [EmbraceSpanData.Link]
-    private(set) var events = [EmbraceSpanData.Event]()
+    private(set) var links: [SpanData.Link]
+    private(set) var events = [SpanData.Event]()
 
     var isRecording: Bool { return endTime == nil }
 
@@ -41,7 +41,7 @@ class EmbraceSpan: Span {
         startTime: Date,
         parentContext: SpanContext? = nil,
         attributes: [String: AttributeValue]=[:],
-        links: [EmbraceSpanData.Link] = [],
+        links: [SpanData.Link] = [],
         spanProcessor: SpanProcessor
     ) {
 
@@ -96,23 +96,23 @@ extension EmbraceSpan {
         "<EmbraceSpan name=\(name)>"
     }
 
-    func toSpanData() -> EmbraceSpanData {
-        // TODO: Implement everything after `kind`
-        return EmbraceSpanData(
-            traceId: context.traceId,
-            spanId: context.spanId,
-            name: name,
-            kind: kind,
-            startTime: startTime,
-            attributes: attributes,
-            status: status,
-            endTime: Date(),
-            hasRemoteParent: false,
-            hasEnded: true,
-            totalRecordedEvents: 0,
-            totalRecordedLinks: 0,
-            totalAttributeCount: 0)
-    }
+//    func toSpanData() -> SpanData {
+//        // TODO: Implement everything after `kind`
+//        return SpanData(
+//            traceId: context.traceId,
+//            spanId: context.spanId,
+//            name: name,
+//            kind: kind,
+//            startTime: startTime,
+//            attributes: attributes,
+//            status: status,
+//            endTime: Date(),
+//            hasRemoteParent: false,
+//            hasEnded: true,
+//            totalRecordedEvents: 0,
+//            totalRecordedLinks: 0,
+//            totalAttributeCount: 0)
+//    }
 }
 
 

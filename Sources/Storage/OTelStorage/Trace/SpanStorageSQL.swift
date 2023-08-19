@@ -1,18 +1,12 @@
-//
-//  SpanStorage.swift
-//  
-//
-//  Created by Austin Emmons on 7/30/23.
-//
-
 import Foundation
 import GRDB
+import OpenTelemetrySdk
 
-class SpanStorageSQL: SpanStorage {
+public class SpanStorageSQL: SpanStorage {
 
-    let dbQueue: DatabaseQueue
+    private let dbQueue: DatabaseQueue
 
-    init(fileURL: URL) throws {
+    public init(fileURL: URL) throws {
         guard fileURL.isFileURL else {
             fatalError("fileURL must have a scheme of file://")
         }
@@ -20,9 +14,9 @@ class SpanStorageSQL: SpanStorage {
         self.dbQueue = try! DatabaseQueue(path: fileURL.path)
     }
 
-    func createIfNecessary() throws {
+    public func createIfNecessary() throws {
         try dbQueue.write { db in
-            try db.create(table: EmbraceSpanData.databaseTableName, options: .ifNotExists) { t in
+            try db.create(table: SpanData.databaseTableName, options: .ifNotExists) { t in
 
                 // Span Context
                 t.column("trace_id", .text).notNull()
@@ -48,11 +42,11 @@ class SpanStorageSQL: SpanStorage {
         }
     }
 
-    func add(entry: EmbraceSpanData) throws {
+    public func add(entry: SpanData) throws {
         try add(entries: [entry])
     }
 
-    func add(entries: [EmbraceSpanData]) throws {
+    public func add(entries: [SpanData]) throws {
         try dbQueue.write { db in
             for spanData in entries {
                 try spanData.insert(db)
@@ -60,9 +54,9 @@ class SpanStorageSQL: SpanStorage {
         }
     }
 
-    func fetchAll() throws -> [EmbraceSpanData] {
+    public func fetchAll() throws -> [SpanData] {
         try dbQueue.read { db in
-            return try EmbraceSpanData.fetchAll(db)
+            return try SpanData.fetchAll(db)
         }
     }
 

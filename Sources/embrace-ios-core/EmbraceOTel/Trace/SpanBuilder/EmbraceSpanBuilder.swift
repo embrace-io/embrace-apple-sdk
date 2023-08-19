@@ -1,5 +1,6 @@
-import OpenTelemetryApi
 import Foundation
+import OpenTelemetryApi
+import OpenTelemetrySdk
 
 class EmbraceSpanBuilder: SpanBuilder {
 
@@ -21,7 +22,7 @@ class EmbraceSpanBuilder: SpanBuilder {
 
     private var attributes = [String: AttributeValue]()
 
-    private var links = [EmbraceSpanData.Link]()
+    private var links = [SpanData.Link]()
     private var totalNumberOfLinksAdded: Int = 0
 
     private var startAsActive: Bool = false
@@ -55,16 +56,16 @@ class EmbraceSpanBuilder: SpanBuilder {
     }
 
     @discardableResult func addLink(spanContext: OpenTelemetryApi.SpanContext) -> Self {
-        addLink(EmbraceSpanData.Link(context: spanContext))
+        addLink(SpanData.Link(context: spanContext))
         return self
     }
 
     @discardableResult func addLink(spanContext: OpenTelemetryApi.SpanContext, attributes: [String: OpenTelemetryApi.AttributeValue]) -> Self {
-        addLink(EmbraceSpanData.Link(context: spanContext, attributes: attributes))
+        addLink(SpanData.Link(context: spanContext, attributes: attributes))
         return self
     }
 
-    @discardableResult func addLink(_ link: EmbraceSpanData.Link) -> Self {
+    @discardableResult func addLink(_ link: SpanData.Link) -> Self {
         totalNumberOfLinksAdded += 1
 //        if links.count >= spanLimits.linkCountLimit {
 //            return self

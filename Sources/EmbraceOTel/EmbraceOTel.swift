@@ -13,8 +13,8 @@ import OpenTelemetrySdk
         fatalError("This init is not available")
     }
 
-    public static func createEmbraceBatchProcessor(configuration: ExporterConfiguration) -> SpanProcessor {
-        let exporter = EmbraceSpanExporter(configuration: configuration)
+    public static func createEmbraceBatchProcessor(configuration: SpanExporter.ExporterConfiguration) -> SpanProcessor {
+        let exporter = SpanExporter(configuration: configuration)
         return BatchSpanProcessor(spanExporter: exporter)
     }
 
@@ -42,8 +42,8 @@ import OpenTelemetrySdk
         attributes: [String: String] = [:],
         spanOperation: () -> T
     ) -> T {
-        let builder = buildSpan(name: name, type: type, attributes: attributes)
-        let span = builder.startSpan()
+        let span = buildSpan(name: name, type: type, attributes: attributes)
+                        .startSpan()
         let result = spanOperation()
         span.end()
 

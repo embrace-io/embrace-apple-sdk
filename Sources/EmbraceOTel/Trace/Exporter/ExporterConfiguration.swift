@@ -1,5 +1,7 @@
 import Foundation
 
+import Storage
+
 public extension SpanExporter {
     class ExporterConfiguration {
 

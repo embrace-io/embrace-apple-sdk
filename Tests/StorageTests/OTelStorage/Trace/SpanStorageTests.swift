@@ -7,13 +7,20 @@
 
 import XCTest
 
-@testable import embrace_ios_core
+@testable import Storage
+import EmbraceOTel
+
 import OpenTelemetryApi
+import OpenTelemetrySdk
+
+import TestSupport
 
 final class SpanStorageTests: XCTestCase {
 
     let tmpURL = URL(fileURLWithPath: NSTemporaryDirectory())
     var dbURL: URL { tmpURL.appendingPathComponent("span_storage_tests.sqlite") }
+
+    let otel = EmbraceOTel(spanProcessor: NoopSpanProcessor())
 
     override func setUpWithError() throws {
         if FileManager.default.fileExists(atPath: dbURL.path) {
@@ -32,25 +39,14 @@ final class SpanStorageTests: XCTestCase {
         let storage = try SpanStorageSQL(fileURL: dbURL)
         try storage.createIfNecessary()
 
-        let spanId = SpanId.random()
-        let traceId = TraceId.random()
-        let span = EmbraceSpan(
-            context: .create(
-                traceId: traceId,
-                spanId: spanId,
-                traceFlags: .init(),
-                traceState: .init()),
-            name: "example.hello",
-            kind: .internal,
-            startTime: Date(),
-            spanProcessor: NoopSpanProcessor())
-
+        let span = otel.buildSpan(name: "example.hello", type: EmbraceSemantics.SpanType.performance).startSpan() as! ReadableSpan
+        let context = span.context
         try storage.add(entry: span.toSpanData())
 
         let spans = try storage.fetchAll()
         XCTAssertEqual(spans.count, 1)
-        XCTAssertEqual(spans.first?.spanId, spanId)
-        XCTAssertEqual(spans.first?.traceId, traceId)
+        XCTAssertEqual(spans.first?.spanId, context.spanId)
+        XCTAssertEqual(spans.first?.traceId, context.traceId)
         XCTAssertEqual(spans.first?.name, "example.hello")
         XCTAssertEqual(spans.first?.kind, .internal)
     }
@@ -59,30 +55,18 @@ final class SpanStorageTests: XCTestCase {
         let storage = try SpanStorageSQL(fileURL: dbURL)
         try storage.createIfNecessary()
 
-        let spanId = SpanId.random()
-        let traceId = TraceId.random()
-        let span = EmbraceSpan(
-            context: .create(
-                traceId: traceId,
-                spanId: spanId,
-                traceFlags: .init(),
-                traceState: .init()),
-            name: "example.hello",
-            kind: .internal,
-            startTime: Date(),
-            spanProcessor: NoopSpanProcessor()
-        )
+        let span = otel.buildSpan(name: "example.hello", type: EmbraceSemantics.SpanType.performance)
+            .setAttribute(key: "a", value: .string("hello"))
+            .setAttribute(key: "b", value: .int(42))
+            .setAttribute(key: "c", value: .double(23.2))
+            .startSpan() as! ReadableSpan
+        let context = span.context
 
-        span.setAttribute(key: "a", value: .string("hello"))
-        span.setAttribute(key: "b", value: .int(42))
-        span.setAttribute(key: "c", value: .double(23.2))
-
-        try storage.add(entry: span.toSpanData())
-
+        // Then
         let spans = try storage.fetchAll()
         XCTAssertEqual(spans.count, 1)
-        XCTAssertEqual(spans.first?.spanId, spanId)
-        XCTAssertEqual(spans.first?.traceId, traceId)
+        XCTAssertEqual(spans.first?.spanId, context.spanId)
+        XCTAssertEqual(spans.first?.traceId, context.traceId)
         XCTAssertEqual(spans.first?.name, "example.hello")
         XCTAssertEqual(spans.first?.kind, .internal)
         XCTAssertEqual(spans.first?.attributes, [
@@ -98,24 +82,16 @@ final class SpanStorageTests: XCTestCase {
         try storage.createIfNecessary()
 
         let spanDataEntries = (0..<1000).map { _ in
-            EmbraceSpan(
-                context: .create(
-                    traceId: .random(),
-                    spanId: .random(),
-                    traceFlags: .init(),
-                    traceState: .init()),
-                name: "example.hello",
-                kind: .internal,
-                startTime: Date(),
-                spanProcessor: NoopSpanProcessor())
-            .toSpanData()
+            let span = otel.buildSpan(name: "example.hello", type: EmbraceSemantics.SpanType.performance)
+                .setAttribute(key: "a", value: .string("hello"))
+                .setAttribute(key: "b", value: .int(42))
+                .setAttribute(key: "c", value: .double(23.2))
+                .startSpan() as! ReadableSpan
+
+            return span.toSpanData()
         }
 
         try! storage.add(entries: spanDataEntries)
-    }
-
-    func test_performance_writeJSON_toFiles() throws {
-
     }
 
 }
