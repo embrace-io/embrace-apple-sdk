@@ -1,4 +1,4 @@
-protocol Collector { }
+public protocol Collector { }
 
 protocol InstalledCollector: Collector {
 

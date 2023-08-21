@@ -3,14 +3,14 @@ public enum CollectorDefinition {
     case uiTap
     case pushNotifications
 
-    case custom(_ provider: CollectorProvider)
+    case custom(_ provider: CollectionProvider)
 }
 
-public extension Collection where Element is CollectorDefinition {
+public extension Collection where Element == CollectorDefinition {
 
-    static var none : Self { [] }
+    static var none : [CollectorDefinition] { [] }
 
-    static var `default`: Self {
+    static var `default`: [CollectorDefinition] {
         return [
             .network,
             .uiTap,

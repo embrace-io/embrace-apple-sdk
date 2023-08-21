@@ -9,7 +9,9 @@ final class EmbraceClientTests: XCTestCase {
 
         let b = EmbraceClient(appId: "myApp", appGroupIdentifier: "com.appgroup.identifier")
 
-        let c = EmbraceClient(appId: "myApp", appGroupIdentifier: "com.appgroup.identifier", instruments: .default)
+        let c = EmbraceClient(appId: "myApp", appGroupIdentifier: "com.appgroup.identifier", collectors: .default)
+
+        let d = EmbraceClient(appId: "myApp", collectors: [.custom(UIEventTapSwizzlerProvider())])
 
     }
 

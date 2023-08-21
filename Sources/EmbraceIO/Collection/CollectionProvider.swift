@@ -1,5 +1,5 @@
-protocol CollectionProvider {
+public protocol CollectionProvider {
 
-    var collector: Collector
+    var collector: Collector { get }
 
 }

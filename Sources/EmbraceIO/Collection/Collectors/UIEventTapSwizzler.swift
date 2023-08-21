@@ -1,4 +1,4 @@
-struct UIEventTapSwizzlerProvider: CollectorProvider {
+struct UIEventTapSwizzlerProvider: CollectionProvider {
 
     let minimumTapCount: UInt = 1
 
@@ -7,6 +7,6 @@ struct UIEventTapSwizzlerProvider: CollectorProvider {
     }
 }
 
-class UIEventTapSwizzler {
+class UIEventTapSwizzler: Collector {
 
 }

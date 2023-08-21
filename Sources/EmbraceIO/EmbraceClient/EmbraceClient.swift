@@ -1,6 +1,6 @@
 import Foundation
 
-@objc public struct EmbraceClient {
+@objc public class EmbraceClient: NSObject {
 
     let appId: String
     let appGroupIdentifier: String?
