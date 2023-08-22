@@ -49,6 +49,9 @@ final class SpanStorageTests: XCTestCase {
         XCTAssertEqual(spans.first?.traceId, context.traceId)
         XCTAssertEqual(spans.first?.name, "example.hello")
         XCTAssertEqual(spans.first?.kind, .internal)
+        XCTAssertEqual(spans.first?.attributes, [
+            "emb.type" : .string("performance")
+        ])
     }
 
     func test_insertEmbraceSpanData_withAttributes() throws {
@@ -61,6 +64,7 @@ final class SpanStorageTests: XCTestCase {
             .setAttribute(key: "c", value: .double(23.2))
             .startSpan() as! ReadableSpan
         let context = span.context
+        try storage.add(entry: span.toSpanData())
 
         // Then
         let spans = try storage.fetchAll()
@@ -72,7 +76,8 @@ final class SpanStorageTests: XCTestCase {
         XCTAssertEqual(spans.first?.attributes, [
             "a": .string("hello"),
             "b": .int(42),
-            "c": .double(23.2)
+            "c": .double(23.2),
+            "emb.type" : .string("performance")
         ])
     }
 
