@@ -1,8 +1,6 @@
-
 import Foundation
 import OpenTelemetrySdk
 import GRDB
-
 
 extension SpanData: TableRecord {
     public static let databaseTableName: String = "otel_spans"

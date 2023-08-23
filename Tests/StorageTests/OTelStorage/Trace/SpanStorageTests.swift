@@ -50,7 +50,7 @@ final class SpanStorageTests: XCTestCase {
         XCTAssertEqual(spans.first?.name, "example.hello")
         XCTAssertEqual(spans.first?.kind, .internal)
         XCTAssertEqual(spans.first?.attributes, [
-            "emb.type" : .string("performance")
+            "emb.type": .string("performance")
         ])
     }
 
@@ -77,7 +77,7 @@ final class SpanStorageTests: XCTestCase {
             "a": .string("hello"),
             "b": .int(42),
             "c": .double(23.2),
-            "emb.type" : .string("performance")
+            "emb.type": .string("performance")
         ])
     }
 

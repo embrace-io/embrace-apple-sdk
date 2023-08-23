@@ -115,8 +115,7 @@ extension EmbraceSpan {
 //    }
 }
 
-
-//extension EmbraceSpan: ReadableSpan {
+// extension EmbraceSpan: ReadableSpan {
 //    var instrumentationScopeInfo: OpenTelemetrySdk.InstrumentationScopeInfo {
 //        // TODO: Pass through InstrumentationScopeInfo
 //        return InstrumentationScopeInfo()
@@ -150,4 +149,4 @@ extension EmbraceSpan {
 //    }
 //
 //
-//}
+// }

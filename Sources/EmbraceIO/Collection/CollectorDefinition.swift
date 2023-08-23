@@ -8,7 +8,7 @@ public enum CollectorDefinition {
 
 public extension Collection where Element == CollectorDefinition {
 
-    static var none : [CollectorDefinition] { [] }
+    static var none: [CollectorDefinition] { [] }
 
     static var `default`: [CollectorDefinition] {
         return [

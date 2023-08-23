@@ -34,7 +34,6 @@ let package = Package(
             name: "embrace-ios-coreTests",
             dependencies: ["embrace-ios-core"]),
 
-
         /* ######################################################################## */
         /* ######################################################################## */
         /* ######################################################################## */
@@ -59,7 +58,6 @@ let package = Package(
             name: "EmbraceOTelTests",
             dependencies: ["EmbraceOTel", "TestSupport"]),
 
-
         /* ######################################################################## */
         /* ######################################################################## */
         /* ######################################################################## */
@@ -80,7 +78,7 @@ let package = Package(
 
             .target(
                 name: "TestSupport",
-                dependencies: [.product(name: "OpenTelemetrySdk", package: "opentelemetry-swift"),],
+                dependencies: [.product(name: "OpenTelemetrySdk", package: "opentelemetry-swift") ],
                 path: "Tests/TestSupport")
 
     ]

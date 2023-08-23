@@ -4,7 +4,6 @@ import XCTest
 import OpenTelemetryApi
 import OpenTelemetrySdk
 
-
 final class EmbraceOTelTests: XCTestCase {
 
     let tmpURL = URL(fileURLWithPath: NSTemporaryDirectory())
@@ -34,7 +33,7 @@ final class EmbraceOTelTests: XCTestCase {
 //        XCTAssertNotNil(otel)
 //    }
 //
-//// MARK: addSpan with block
+// MARK: addSpan with block
 //
 //    func test_addSpan_returnsGenericResult_whenInt() throws {
 //        let otel = createSubject()
@@ -138,6 +137,5 @@ final class EmbraceOTelTests: XCTestCase {
 //            XCTFail("`example` Span is not an EmbraceOTelSpan")
 //        }
 //    }
-
 
 }

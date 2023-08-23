@@ -6,7 +6,7 @@ extension EmbraceSemantics {
 
         /// Span to map the existing Embrace "session" object.
         case session
-        
+
         case performance
         case ux
     }
