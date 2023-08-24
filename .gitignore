@@ -12,7 +12,7 @@ embrace_support.zip
 
 ## Swift Package build generated
 .build
-.swiftpm
+# .swiftpm
 
 ## Test results
 *.xcresult
