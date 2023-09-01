@@ -1,0 +1,11 @@
+#!/bin/sh
+
+rm -rf ../docs/
+
+# build doc for static hosting in github
+swift package --allow-writing-to-directory ../docs/ \
+    generate-documentation --target embrace-ios-core \
+    --disable-indexing \
+    --transform-for-static-hosting \
+    --hosting-base-path embrace-apple-core-internal \
+    --output-path ../docs/

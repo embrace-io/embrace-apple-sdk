@@ -11,7 +11,7 @@ public class SpanStorageSQL: SpanStorage {
             fatalError("fileURL must have a scheme of file://")
         }
 
-        self.dbQueue = try! DatabaseQueue(path: fileURL.path)
+        self.dbQueue = try DatabaseQueue(path: fileURL.path)
     }
 
     public func createIfNecessary() throws {

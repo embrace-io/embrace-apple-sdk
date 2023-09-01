@@ -1,6 +1,10 @@
 # Embrace
 
 
+## Documentation
+
+[API Reference Docs](https://embrace-io.github.io/embrace-apple-core-internal/documentation/embrace_ios_core).
+
 ## Linting and Guidelines
 
 All source files must follow our guidelines described [here](https://www.notion.so/embraceio/iOS-Developer-Guidelines-078360496fff4379b033e67c377d42e7).

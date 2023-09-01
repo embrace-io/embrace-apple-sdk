@@ -5,6 +5,9 @@ import PackageDescription
 
 let package = Package(
     name: "embrace-ios-core",
+    platforms: [
+        .iOS(.v12), .tvOS(.v12), .macOS(.v12)
+    ],
     products: [
         .library(
             name: "EmbraceIO",
@@ -24,7 +27,10 @@ let package = Package(
         .package(
             url: "https://github.com/realm/SwiftLint",
             from: "0.52.4"
-        )
+        ),
+        .package(url: "https://github.com/apple/swift-docc-plugin",
+                 branch: "main"
+        ),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.

@@ -13,11 +13,11 @@ final class EmbraceOTelTests: XCTestCase {
 //    let storage = SpanStor
 //    let configuration: SpanExporter.ExporterConfiguration(storage: )
 
-    override func setUp() async throws {
+    override func setUp() {
 
     }
 
-    override func tearDown() async throws {
+    override func tearDown() {
         try? FileManager.default.removeItem(at: tmpURL)
     }
 

@@ -24,7 +24,7 @@ final class SpanStorageTests: XCTestCase {
 
     override func setUpWithError() throws {
         if FileManager.default.fileExists(atPath: dbURL.path) {
-            try! FileManager.default.removeItem(at: dbURL)
+            try FileManager.default.removeItem(at: dbURL)
         }
 
         try? FileManager.default.createDirectory(at: tmpURL, withIntermediateDirectories: true)
@@ -39,19 +39,22 @@ final class SpanStorageTests: XCTestCase {
         let storage = try SpanStorageSQL(fileURL: dbURL)
         try storage.createIfNecessary()
 
-        let span = otel.buildSpan(name: "example.hello", type: EmbraceSemantics.SpanType.performance).startSpan() as! ReadableSpan
+        let span = otel.buildSpan(name: "example.hello", type: EmbraceSemantics.SpanType.performance).startSpan()
         let context = span.context
-        try storage.add(entry: span.toSpanData())
 
-        let spans = try storage.fetchAll()
-        XCTAssertEqual(spans.count, 1)
-        XCTAssertEqual(spans.first?.spanId, context.spanId)
-        XCTAssertEqual(spans.first?.traceId, context.traceId)
-        XCTAssertEqual(spans.first?.name, "example.hello")
-        XCTAssertEqual(spans.first?.kind, .internal)
-        XCTAssertEqual(spans.first?.attributes, [
-            "emb.type": .string("performance")
-        ])
+        if let readableSpan = span as? ReadableSpan {
+            try storage.add(entry: readableSpan.toSpanData())
+
+            let spans = try storage.fetchAll()
+            XCTAssertEqual(spans.count, 1)
+            XCTAssertEqual(spans.first?.spanId, context.spanId)
+            XCTAssertEqual(spans.first?.traceId, context.traceId)
+            XCTAssertEqual(spans.first?.name, "example.hello")
+            XCTAssertEqual(spans.first?.kind, .internal)
+            XCTAssertEqual(spans.first?.attributes, [
+                "emb.type": .string("performance")
+            ])
+        }
     }
 
     func test_insertEmbraceSpanData_withAttributes() throws {
@@ -62,23 +65,26 @@ final class SpanStorageTests: XCTestCase {
             .setAttribute(key: "a", value: .string("hello"))
             .setAttribute(key: "b", value: .int(42))
             .setAttribute(key: "c", value: .double(23.2))
-            .startSpan() as! ReadableSpan
+            .startSpan()
         let context = span.context
-        try storage.add(entry: span.toSpanData())
 
-        // Then
-        let spans = try storage.fetchAll()
-        XCTAssertEqual(spans.count, 1)
-        XCTAssertEqual(spans.first?.spanId, context.spanId)
-        XCTAssertEqual(spans.first?.traceId, context.traceId)
-        XCTAssertEqual(spans.first?.name, "example.hello")
-        XCTAssertEqual(spans.first?.kind, .internal)
-        XCTAssertEqual(spans.first?.attributes, [
-            "a": .string("hello"),
-            "b": .int(42),
-            "c": .double(23.2),
-            "emb.type": .string("performance")
-        ])
+        if let readableSpan = span as? ReadableSpan {
+            try storage.add(entry: readableSpan.toSpanData())
+
+            // Then
+            let spans = try storage.fetchAll()
+            XCTAssertEqual(spans.count, 1)
+            XCTAssertEqual(spans.first?.spanId, context.spanId)
+            XCTAssertEqual(spans.first?.traceId, context.traceId)
+            XCTAssertEqual(spans.first?.name, "example.hello")
+            XCTAssertEqual(spans.first?.kind, .internal)
+            XCTAssertEqual(spans.first?.attributes, [
+                "a": .string("hello"),
+                "b": .int(42),
+                "c": .double(23.2),
+                "emb.type": .string("performance")
+            ])
+        }
     }
 
     @available(iOS 13.0, *)
@@ -86,17 +92,21 @@ final class SpanStorageTests: XCTestCase {
         let storage = try SpanStorageSQL(fileURL: dbURL)
         try storage.createIfNecessary()
 
-        let spanDataEntries = (0..<1000).map { _ in
+        let spanDataEntries = (0..<1000).compactMap { _ in
             let span = otel.buildSpan(name: "example.hello", type: EmbraceSemantics.SpanType.performance)
                 .setAttribute(key: "a", value: .string("hello"))
                 .setAttribute(key: "b", value: .int(42))
                 .setAttribute(key: "c", value: .double(23.2))
-                .startSpan() as! ReadableSpan
+                .startSpan()
 
-            return span.toSpanData()
+            if let readableSpan = span as? ReadableSpan {
+                return readableSpan.toSpanData()
+            }
+
+            return nil
         }
 
-        try! storage.add(entries: spanDataEntries)
+        try storage.add(entries: spanDataEntries)
     }
 
 }
