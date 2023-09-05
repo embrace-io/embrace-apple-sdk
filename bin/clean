@@ -1,0 +1,26 @@
+#!/bin/bash
+
+BUILD_DIR=".build"
+DERIVED_DATA_PATH="$BUILD_DIR/DerivedData"
+
+# if --help or -h is a parameter, print usage and exit
+if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
+    echo "Usage: clean [--force]"
+    echo "  --force: Delete the build directory ($BUILD_DIR) entirely"
+    echo "  --help: Show this message"
+    exit 0
+fi
+
+# check if --force flag is set
+if [ "$1" == "--force" ] || [ "$1" == "-f" ]; then
+    rm -rf $BUILD_DIR
+    exit 0
+fi
+
+# Build the scheme for all platforms that we plan to support
+for PLATFORM in "iOS" "iOS Simulator"; do
+    xcodebuild clean -workspace . \
+        -scheme Embrace \
+        -derivedDataPath $DERIVED_DATA_PATH \
+        -destination "generic/platform=$PLATFORM"
+done
