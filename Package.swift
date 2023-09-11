@@ -4,14 +4,14 @@
 import PackageDescription
 
 let package = Package(
-    name: "embrace-ios-core",
+    name: "EmbraceIO",
     platforms: [
         .iOS(.v12), .tvOS(.v12), .macOS(.v12)
     ],
     products: [
         .library(
             name: "EmbraceIO",
-            targets: ["embrace-ios-core"])
+            targets: ["EmbraceIO"])
     ],
     dependencies: [
         .package(
@@ -35,29 +35,6 @@ let package = Package(
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
-        .target(
-            name: "embrace-ios-core",
-            dependencies: [
-                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift"),
-                .product(name: "GRDB", package: "GRDB.swift")
-            ],
-            plugins: [
-                .plugin(name: "SwiftLintPlugin", package: "SwiftLint")
-            ]
-        ),
-        .testTarget(
-            name: "embrace-ios-coreTests",
-            dependencies: ["embrace-ios-core"]
-            ,
-            plugins: [
-                .plugin(name: "SwiftLintPlugin", package: "SwiftLint")
-            ]
-        ),
-
-        /* ######################################################################## */
-        /* ######################################################################## */
-        /* ######################################################################## */
-
         .target(
             name: "EmbraceIO",
             plugins: [

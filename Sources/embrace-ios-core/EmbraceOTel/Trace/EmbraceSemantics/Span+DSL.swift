@@ -1,5 +1,0 @@
-import OpenTelemetryApi
-
-extension Span {
-
-}
