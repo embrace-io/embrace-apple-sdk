@@ -37,6 +37,7 @@ let package = Package(
         // core ----------------------------------------------------------------------
         .target(
             name: "EmbraceIO",
+            dependencies: ["EmbraceOTel"],
             plugins: [
                 .plugin(name: "SwiftLintPlugin", package: "SwiftLint")
             ]

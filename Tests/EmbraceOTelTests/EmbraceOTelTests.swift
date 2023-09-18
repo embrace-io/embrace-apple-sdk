@@ -7,89 +7,67 @@ import OpenTelemetrySdk
 final class EmbraceOTelTests: XCTestCase {
 
     let tmpURL = URL(fileURLWithPath: NSTemporaryDirectory())
-    let queue = DispatchQueue(label: "io.embrace.persistence")
-    var spanProcessor: SimpleSpanProcessor!
 
 //    let storage = SpanStor
 //    let configuration: SpanExporter.ExporterConfiguration(storage: )
 
     override func setUp() {
-
+        EmbraceOTel.setup()
     }
 
     override func tearDown() {
         try? FileManager.default.removeItem(at: tmpURL)
     }
 
-//    func createSubject() -> EmbraceOTel {
-//        let exporter = SpanExporter(configuration: self)
-//        spanProcessor = SimpleSpanProcessor(spanExporter: exporter)
-//        return EmbraceOTel(spanProcessor: spanProcessor)
-//    }
+// MARK: registerTracer
 
-//    func test_init() throws {
-//        let processor = EmbraceOTel.createEmbraceBatchProcessor(configuration: self)
-//        let otel = EmbraceOTel(spanProcessor: processor)
-//        XCTAssertNotNil(otel)
-//    }
-//
+    func test_setup_setsNonDefaultTracer() {
+        // DEV: test "setUp" calls EmbraceOTel.setup method
+        XCTAssertFalse(OpenTelemetry.instance.tracerProvider is DefaultTracer)
+    }
+
+// MARK: init
+
+    func test_init() {
+        let otel = EmbraceOTel()
+
+        XCTAssertEqual(otel.instrumentationName, "EmbraceTracer")
+    }
+
 // MARK: addSpan with block
-//
-//    func test_addSpan_returnsGenericResult_whenInt() throws {
-//        let otel = createSubject()
-//
-//        let spanResult = otel.addSpan(name: "math_test", type: .performance) {
-//            var result = 0
-//            for i in 0...10 {
-//                // 1 + 4 + 9 + 16 + 25 + 36 + 49 + 64 + 81 + 100
-//                result += i * i
-//            }
-//
-//            XCTAssertEqual(result, 385)
-//            return result
-//        }
-//
-//        XCTAssertEqual(spanResult, 385)
-//    }
-//
-//    func test_addSpan_returnsGenericResult_whenString() throws {
-//        let otel = createSubject()
-//
-//        let spanResult = otel.addSpan(name: "math_test", type: .performance) {
-//            for i in 0...10 {
-//                // 1 + 4 + 9 + 16 + 25 + 36 + 49 + 64 + 81 + 100
-//                let _ = i * i
-//            }
-//
-//            return "example_result"
-//        }
-//
-//        XCTAssertEqual(spanResult, "example_result")
-//    }
-//
-//    func test_addSpan_withAttributes_appendsAttributesToSpan() throws {
-//        createSubject().addSpan(name: "example", type: .performance, attributes: ["foo":"bar"]) {
-//            for i in 0...10 {
-//                // 1 + 4 + 9 + 16 + 25 + 36 + 49 + 64 + 81 + 100
-//                let _ = i * i
-//            }
-//        }
-//        spanProcessor.shutdown()
-//
-//        let spans = dataStoreForCurrentSession.recentClosedSpansNamed("example", withLimit: 5, andType: EmbraceOTelSpan.self)
-//        XCTAssertEqual(spans.count, 1)
-//
-//        if let span = spans.first as? EmbraceOTelSpan {
-//            XCTAssertEqual(
-//                span.endProperties as? [String:String],
-//                [
-//                    "foo":"bar",
-//                    "emb.type" : "performance"
-//                ] )
-//        } else {
-//            XCTFail("`example` Span is not an EmbraceOTelSpan ")
-//        }
-//    }
+
+    func test_addSpan_returnsGenericResult_whenInt() throws {
+        let otel = EmbraceOTel()
+
+        let spanResult = otel.addSpan(name: "math_test", type: .performance) {
+            var result = 0
+            for i in 0...10 {
+                // 1 + 4 + 9 + 16 + 25 + 36 + 49 + 64 + 81 + 100
+                result += i * i
+            }
+
+            XCTAssertEqual(result, 385)
+            return result
+        }
+
+        XCTAssertEqual(spanResult, 385)
+    }
+
+    func test_addSpan_returnsGenericResult_whenString() throws {
+        let otel = EmbraceOTel()
+
+        let spanResult = otel.addSpan(name: "math_test", type: .performance) {
+            for i in 0...10 {
+                // 1 + 4 + 9 + 16 + 25 + 36 + 49 + 64 + 81 + 100
+                _ = i * i
+            }
+
+            return "example_result"
+        }
+
+        XCTAssertEqual(spanResult, "example_result")
+    }
+
 //
 //    // MARK: buildSpan
 //

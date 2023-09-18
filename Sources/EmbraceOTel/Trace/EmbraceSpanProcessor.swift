@@ -3,29 +3,28 @@ import OpenTelemetryApi
 import OpenTelemetrySdk
 
 /// A really simple implementation of the SpanProcessor that converts the ReadableSpan SpanData
-/// and passes it to the configured exporter.
-/// For production environment BatchSpanProcessor is configurable and is preferred.
+/// and passes it to the configured exporter in both `onStart` and `onEnd`
 public struct EmbraceSpanProcessor: SpanProcessor {
     private let spanExporter: SpanExporter
-    private let processorQueue = DispatchQueue(label: "io.embrace.spanprocessor")
+    private let processorQueue = DispatchQueue(label: "io.embrace.spanprocessor", qos: .utility)
 
     public let isStartRequired = true
     public let isEndRequired = true
 
     public func onStart(parentContext: SpanContext?, span: ReadableSpan) {
         let span = span.toSpanData()
-        let spanExporterAux = self.spanExporter
+        let exporter = self.spanExporter
         processorQueue.async {
             // TODO: Do we need to call a different method to specify the "start" of the span?
-            spanExporterAux.export(spans: [span])
+            exporter.export(spans: [span])
         }
     }
 
     public mutating func onEnd(span: ReadableSpan) {
         let span = span.toSpanData()
-        let spanExporterAux = self.spanExporter
+        let exporter = self.spanExporter
         processorQueue.async {
-            spanExporterAux.export(spans: [span])
+            exporter.export(spans: [span])
         }
     }
 

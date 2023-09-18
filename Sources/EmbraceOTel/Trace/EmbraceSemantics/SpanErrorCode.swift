@@ -1,4 +1,6 @@
-import Foundation
+//
+//  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
+//
 
 extension EmbraceSemantics {
     enum ErrorCode: String {

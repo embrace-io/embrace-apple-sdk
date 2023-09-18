@@ -6,25 +6,18 @@ import OpenTelemetrySdk
 // https://github.com/embrace-io/embrace-android-sdk3/blob/561fd6b24de0e889f08d154478be132302daa0d0/embrace-android-sdk/src/main/java/io/embrace/android/embracesdk/internal/spans/SpansServiceImpl.kt
 @objc public final class EmbraceOTel: NSObject {
 
-    let instrumentationName = "Embrace"
+    let instrumentationName = "EmbraceTracer"
     let instrumentationVersion = "semver:0.0.1"
 
-    private override init() {
-        fatalError("This init is not available")
-    }
+    /// Initial setup of the OpenTelemetry integration
+    public static func setup() {
+        let exporter = SpanExporter(configuration: .init())
+        let spanProcessor = EmbraceSpanProcessor(spanExporter: exporter)
 
-    public static func createEmbraceBatchProcessor(configuration: SpanExporter.ExporterConfiguration) -> SpanProcessor {
-        let exporter = SpanExporter(configuration: configuration)
-        return BatchSpanProcessor(spanExporter: exporter)
-    }
-
-    public init(spanProcessor: SpanProcessor) {
         OpenTelemetry.registerTracerProvider(tracerProvider:
                                                 TracerProviderBuilder()
                                                     .add(spanProcessor: spanProcessor)
                                                     .build() )
-
-        super.init()
     }
 
     // tracer
