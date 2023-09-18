@@ -1,15 +1,15 @@
 import Foundation
 
-import Storage
+// import Storage
 
 public extension SpanExporter {
     class ExporterConfiguration {
 
-        let storage: SpanStorage
-
-        init(storage: SpanStorage) {
-            self.storage = storage
-        }
+//        let storage: SpanStorage
+//
+//        init(storage: SpanStorage) {
+//            self.storage = storage
+//        }
 
     }
 }

@@ -33,8 +33,8 @@ let package = Package(
         ),
     ],
     targets: [
-        // Targets are the basic building blocks of a package, defining a module or a test suite.
-        // Targets can depend on other targets in this package and products from dependencies.
+        
+        // core ----------------------------------------------------------------------
         .target(
             name: "EmbraceIO",
             plugins: [
@@ -50,15 +50,11 @@ let package = Package(
             ]
         ),
 
-        /* ######################################################################## */
-        /* ######################################################################## */
-        /* ######################################################################## */
-
+        // OTel ----------------------------------------------------------------------
         .target(
             name: "EmbraceOTel",
             dependencies: [
-                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift"),
-                "Storage"
+                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
             ],
             plugins: [
                 .plugin(name: "SwiftLintPlugin", package: "SwiftLint")
@@ -71,12 +67,10 @@ let package = Package(
                 .plugin(name: "SwiftLintPlugin", package: "SwiftLint")
             ]
         ),
-
-        /* ######################################################################## */
-        /* ######################################################################## */
-        /* ######################################################################## */
-
-        .target(name: "Storage",
+        
+        // storage ----------------------------------------------------------------------
+        .target(
+            name: "EmbraceStorage",
             dependencies: [
                 .product(name: "GRDB", package: "GRDB.swift"),
                 .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
@@ -85,19 +79,15 @@ let package = Package(
                 .plugin(name: "SwiftLintPlugin", package: "SwiftLint")
             ]
         ),
-
         .testTarget(
-            name: "StorageTests",
-            dependencies: ["Storage", "EmbraceOTel", "TestSupport"],
+            name: "EmbraceStorageTests",
+            dependencies: ["EmbraceStorage", "TestSupport"],
             plugins: [
                 .plugin(name: "SwiftLintPlugin", package: "SwiftLint")
             ]
         ),
 
-        /* ######################################################################## */
-        /* ######################################################################## */
-        /* ######################################################################## */
-
+        // test support ----------------------------------------------------------------------
         .target(
             name: "TestSupport",
             dependencies: [.product(name: "OpenTelemetrySdk", package: "opentelemetry-swift") ],

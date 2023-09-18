@@ -13,7 +13,7 @@ public class SpanExporter: OpenTelemetrySdk.SpanExporter {
 
     @discardableResult public func export(spans: [SpanData]) -> SpanExporterResultCode {
 //        let dataStore = configuration.dataStoreForCurrentSession
-        let storage = configuration.storage
+//        let storage = configuration.storage
 
 //        l
 
