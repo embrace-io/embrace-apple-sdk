@@ -1,4 +1,52 @@
-- name: Upload coverage reports to Codecov
-  uses: codecov/codecov-action@v3
-  env:
-    CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+name: Run Swift Tests
+
+on:
+  pull_request: {}
+  workflow_call: {}
+  workflow_dispatch: {}
+
+jobs:
+  run-tests:
+    timeout-minutes: 20
+    runs-on: macos-13
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+        timeout-minutes: 2
+
+      - name: Cache Swift Package Dependencies
+        uses: actions/cache@v2
+        with:
+          path: .build/checkouts
+          key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+      - name: Cache Swift Package Artifacts
+        uses: actions/cache@v2
+        with:
+          path: .build/artifacts
+          key: ${{ runner.os }}-built-spm-artifacts-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-built-spm-artifacts
+
+      - name: Run Tests
+        run: bin/test
+        timeout-minutes: 10
+      
+      - name: Convert llvm-cov to lcov
+        # See this blog for info:
+        # https://learningswift.brightdigit.com/tutorials/swift-package-continuous-integration-guide/#testing
+        run: |
+          xcrun llvm-cov export -format="lcov" $(find .build -name EmbraceIOPackageTests) -instr-profile $(find .build -name default.profdata) > info.lcov
+      
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        with:
+          file: info.lcov
+          flags: unittests
+          fail_ci_if_error: true

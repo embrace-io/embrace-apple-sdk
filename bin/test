@@ -1,21 +1,3 @@
 #!/bin/bash
 
-#
-#   TODO: Embrace scheme is setup to run all test targets
-#           Figure out way to accept variadic list of test targets (or preferably module names) to run
-#   TODO: Add controls for parallel tests, see `man xcodebuild` for correct args
-#
-
-DERIVED_DATA_PATH=".build/DerivedData"
-XCRESULT_PATH=".build/test/output.xcresult"
-
-if [ -d "$XCRESULT_PATH" ]; then
-    rm -rf $XCRESULT_PATH
-fi
-
-xcodebuild test -workspace . -scheme Embrace \
-    -sdk "iphonesimulator" \
-    -destination "name=iPhone 14 Pro,OS=16.2" \
-    -enableCodeCoverage NO \
-    -derivedDataPath $DERIVED_DATA_PATH \
-    -resultBundlePath $XCRESULT_PATH
+swift test --enable-code-coverage
