@@ -3,7 +3,8 @@
 //
 
 import Foundation
- import EmbraceOTel
+import EmbraceOTel
+import EmbraceStorage
 
 @objc public class Embrace: NSObject {
 
@@ -18,7 +19,8 @@ import Foundation
         self.options = options
         super.init()
 
-        EmbraceOTel.setup()
+        let storage: EmbraceStorage? = nil // TO DO: Need to get correct storage
+        EmbraceOTel.setup(storage: storage!)
     }
 
     @objc public class func setup(options: EmbraceOptions) {

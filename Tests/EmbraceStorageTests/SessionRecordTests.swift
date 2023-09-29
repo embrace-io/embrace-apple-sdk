@@ -8,11 +8,11 @@ import TestSupport
 
 class SessionRecordTests: XCTestCase {
 
-    let testOptions = EmbraceStorageOptions(baseUrl: URL(fileURLWithPath: NSTemporaryDirectory()), fileName: "test.sqlite")!
+    let testOptions = EmbraceStorageOptions(baseUrl: URL(fileURLWithPath: NSTemporaryDirectory()), fileName: "test.sqlite")
 
     override func setUpWithError() throws {
-        if FileManager.default.fileExists(atPath: testOptions.filePath) {
-            try FileManager.default.removeItem(atPath: testOptions.filePath)
+        if FileManager.default.fileExists(atPath: testOptions.filePath!) {
+            try FileManager.default.removeItem(atPath: testOptions.filePath!)
         }
     }
 

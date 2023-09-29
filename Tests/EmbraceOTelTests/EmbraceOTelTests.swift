@@ -1,22 +1,16 @@
 import XCTest
 
 @testable import EmbraceOTel
+import EmbraceStorage
 import OpenTelemetryApi
 import OpenTelemetrySdk
 
 final class EmbraceOTelTests: XCTestCase {
 
-    let tmpURL = URL(fileURLWithPath: NSTemporaryDirectory())
-
-//    let storage = SpanStor
-//    let configuration: SpanExporter.ExporterConfiguration(storage: )
-
-    override func setUp() {
-        EmbraceOTel.setup()
-    }
-
-    override func tearDown() {
-        try? FileManager.default.removeItem(at: tmpURL)
+    override func setUpWithError() throws {
+        let storageOptions = EmbraceStorageOptions(named: "span-storage")
+        let storage = try EmbraceStorage(options: storageOptions)
+        EmbraceOTel.setup(storage: storage)
     }
 
 // MARK: registerTracer

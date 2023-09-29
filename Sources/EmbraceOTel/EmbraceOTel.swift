@@ -2,6 +2,8 @@ import Foundation
 import OpenTelemetryApi
 import OpenTelemetrySdk
 
+import EmbraceStorage
+
 // Android implementation
 // https://github.com/embrace-io/embrace-android-sdk3/blob/561fd6b24de0e889f08d154478be132302daa0d0/embrace-android-sdk/src/main/java/io/embrace/android/embracesdk/internal/spans/SpansServiceImpl.kt
 @objc public final class EmbraceOTel: NSObject {
@@ -10,14 +12,12 @@ import OpenTelemetrySdk
     let instrumentationVersion = "semver:0.0.1"
 
     /// Initial setup of the OpenTelemetry integration
-    public static func setup() {
-        let exporter = SpanExporter(configuration: .init())
+    public static func setup(storage: EmbraceStorage) {
+        let exporter = SpanExporter(configuration: .init(storage: storage))
         let spanProcessor = EmbraceSpanProcessor(spanExporter: exporter)
 
-        OpenTelemetry.registerTracerProvider(tracerProvider:
-                                                TracerProviderBuilder()
-                                                    .add(spanProcessor: spanProcessor)
-                                                    .build() )
+        OpenTelemetry.registerTracerProvider(
+            tracerProvider: TracerProviderBuilder().add(spanProcessor: spanProcessor).build() )
     }
 
     // tracer
@@ -51,7 +51,7 @@ import OpenTelemetrySdk
 
         let builder = tracer.spanBuilder(spanName: name)
                         .setAttribute(
-                            key: EmbraceSemantics.spanTypeAttributeKey,
+                            key: EmbraceSemantics.AttributeKey.isKey,
                             value: type.rawValue )
 
         for (key, value) in attributes {

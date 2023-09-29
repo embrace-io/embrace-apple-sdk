@@ -5,7 +5,7 @@
 import Foundation
 import GRDB
 
-/// Class in charge of storing all the data colected by the Embrace SDK.
+/// Class in charge of storing all the data collected by the Embrace SDK.
 /// It provides an abstraction layer over a GRDB SQLite database.
 public class EmbraceStorage {
 
@@ -15,15 +15,23 @@ public class EmbraceStorage {
     /// Returns an EmbraceStorage instance initialized on the given path.
     /// - Parameters:
     ///   - baseUrl: URL containing the path when the database will be stored.
-    init(options: EmbraceStorageOptions) throws {
+    public init(options: EmbraceStorageOptions) throws {
 
         self.options = options
 
-        // create base directory if necessary
-        try FileManager.default.createDirectory(at: options.baseUrl, withIntermediateDirectories: true)
+        if case let .inMemory(name) = options.storageMechanism {
+            dbQueue = try DatabaseQueue(named: name)
 
-        // create sqlite file
-        dbQueue = try DatabaseQueue(path: options.filePath)
+        } else if case let .onDisk(baseURL, fileName) = options.storageMechanism {
+            // create base directory if necessary
+            try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true)
+
+            // create sqlite file
+            let filepath = baseURL.appendingPathComponent(fileName).path
+            dbQueue = try DatabaseQueue(path: filepath)
+        } else {
+            fatalError("Unsupported storage mechansim added")
+        }
 
         // define tables
         try dbQueue.write { db in

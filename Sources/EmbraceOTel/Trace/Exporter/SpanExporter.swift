@@ -1,24 +1,34 @@
 import Foundation
 import OpenTelemetrySdk
 
-import OSLog
+import EmbraceStorage
 
 public class SpanExporter: OpenTelemetrySdk.SpanExporter {
 
-    public let configuration: ExporterConfiguration
+    public let options: Options
 
-    public init(configuration: ExporterConfiguration) {
-        self.configuration = configuration
+    var storage: EmbraceStorage { options.storage }
+
+    public init(configuration: Options) {
+        self.options = configuration
     }
 
     @discardableResult public func export(spans: [SpanData]) -> SpanExporterResultCode {
-        for span in spans {
-            // save to db
-            print("span name: \(span.name)")
+        var result = SpanExporterResultCode.success
 
+        for spanData in spans {
+            if let record = buildRecord(from: spanData) {
+                do {
+                    try storage.upsertSpan(record)
+                } catch {
+                    result = .failure
+                }
+            } else {
+                result = .failure
+            }
         }
 
-        return .success
+        return result
     }
 
     public func flush() -> SpanExporterResultCode {
@@ -29,4 +39,20 @@ public class SpanExporter: OpenTelemetrySdk.SpanExporter {
         _ = flush()
     }
 
+}
+
+extension SpanExporter {
+    private func buildRecord(from spanData: SpanData) -> SpanRecord? {
+        guard let data = try? spanData.toJSON() else {
+            return nil
+        }
+
+        return SpanRecord(
+            id: spanData.spanId.hexString,
+            traceId: spanData.traceId.hexString,
+            type: spanData.embType.rawValue,
+            data: data,
+            startTime: spanData.startTime,
+            endTime: spanData.endTime )
+    }
 }

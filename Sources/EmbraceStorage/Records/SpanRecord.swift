@@ -7,12 +7,21 @@ import GRDB
 
 /// Represents a span in the storage
 public struct SpanRecord: Codable {
-    var id: String
-    var traceId: String
-    var type: String
-    var data: Data
-    var startTime: Date
-    var endTime: Date?
+    public var id: String
+    public var traceId: String
+    public var type: String
+    public var data: Data
+    public var startTime: Date
+    public var endTime: Date?
+
+    public init(id: String, traceId: String, type: String, data: Data, startTime: Date, endTime: Date? = nil) {
+        self.id = id
+        self.traceId = traceId
+        self.type = type
+        self.data = data
+        self.startTime = startTime
+        self.endTime = endTime
+    }
 }
 
 extension SpanRecord: FetchableRecord, PersistableRecord, MutablePersistableRecord {

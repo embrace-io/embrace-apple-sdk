@@ -33,7 +33,7 @@ jobs:
             ${{ runner.os }}-built-spm-artifacts
 
       - name: Run Tests
-        run: bin/test
+        run: bin/test | xcpretty
         timeout-minutes: 10
       
       - name: Convert llvm-cov to lcov

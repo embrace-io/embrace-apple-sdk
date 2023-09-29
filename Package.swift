@@ -19,21 +19,21 @@ let package = Package(
             revision: "76e29fc61bc1446eb80720682ce88c617e95f65e" ),
         .package(
             url: "https://github.com/open-telemetry/opentelemetry-swift",
-            from: "1.5.0" ),
+            exact: "1.5.1" ),
         .package(
             url: "https://github.com/groue/GRDB.swift",
-            from: "6.16.0"
+            exact: "6.16.0"
         ),
         .package(
             url: "https://github.com/realm/SwiftLint",
-            from: "0.52.4"
+            exact: "0.52.4"
         ),
         .package(url: "https://github.com/apple/swift-docc-plugin",
                  branch: "main"
-        ),
+        )
     ],
     targets: [
-        
+
         // core ----------------------------------------------------------------------
         .target(
             name: "EmbraceIO",
@@ -55,6 +55,7 @@ let package = Package(
         .target(
             name: "EmbraceOTel",
             dependencies: [
+                "EmbraceStorage",
                 .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
             ],
             plugins: [
@@ -68,7 +69,7 @@ let package = Package(
                 .plugin(name: "SwiftLintPlugin", package: "SwiftLint")
             ]
         ),
-        
+
         // storage ----------------------------------------------------------------------
         .target(
             name: "EmbraceStorage",

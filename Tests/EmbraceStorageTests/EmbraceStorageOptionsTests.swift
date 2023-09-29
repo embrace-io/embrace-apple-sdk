@@ -7,18 +7,22 @@ import XCTest
 
 class EmbraceStorageOptionsTests: XCTestCase {
 
-    func test_validBaseUrl() {
+    func test_init_withBaseURLAndFileName() {
         let url = URL(fileURLWithPath: NSTemporaryDirectory())
         let options = EmbraceStorageOptions(baseUrl: url, fileName: "test.sqlite")
 
-        XCTAssertNotNil(options)
+        XCTAssertNil(options.name)
+        XCTAssertEqual(options.baseUrl, url)
+        XCTAssertEqual(options.fileName, "test.sqlite")
+        XCTAssertEqual(options.filePath, url.appendingPathComponent("test.sqlite").path)
     }
 
-    func test_invalidBaseUrl() {
-        if let url = URL(string: "https://embrace.io/") {
-            let options = EmbraceStorageOptions(baseUrl: url, fileName: "test.sqlite")
+    func test_init_withName() {
+        let options = EmbraceStorageOptions(named: "example")
 
-            XCTAssertNil(options)
-        }
+        XCTAssertEqual(options.name, "example")
+        XCTAssertNil(options.baseUrl)
+        XCTAssertNil(options.fileName)
+        XCTAssertNil(options.filePath)
     }
 }
