@@ -89,6 +89,24 @@ let package = Package(
             ]
         ),
 
+        // upload ----------------------------------------------------------------------
+        .target(
+            name: "EmbraceUpload",
+            dependencies: [
+                .product(name: "GRDB", package: "GRDB.swift")
+            ],
+            plugins: [
+                .plugin(name: "SwiftLintPlugin", package: "SwiftLint")
+            ]
+        ),
+        .testTarget(
+            name: "EmbraceUploadTests",
+            dependencies: ["EmbraceUpload", "TestSupport"],
+            plugins: [
+                .plugin(name: "SwiftLintPlugin", package: "SwiftLint")
+            ]
+        ),
+
         // test support ----------------------------------------------------------------------
         .target(
             name: "TestSupport",

@@ -47,6 +47,10 @@ extension EmbraceStorage {
     /// - Returns: The updated `SessionRecord`, if any
     public func updateSessionEndTime(id: SessionId, endTime: Date) throws -> SessionRecord? {
         var session = try fetchSession(id: id)
+        guard session != nil else {
+            return nil
+        }
+
         try dbQueue.write { [weak self] db in
             session = try self?.updateSessionEndtime(db: db, session: session, endTime: endTime)
         }
