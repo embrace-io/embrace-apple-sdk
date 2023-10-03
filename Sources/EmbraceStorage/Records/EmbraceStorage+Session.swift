@@ -11,11 +11,12 @@ extension EmbraceStorage {
     /// Adds a session to the storage.
     /// - Parameters:
     ///   - id: Identifier of the session
+    ///   - state: State of the session
     ///   - startTime: Date of when the session started
     ///   - endTime: Date of when the session ended (optional)
     /// - Returns: The newly stored `SessionRecord`
-    public func addSession(id: SessionId, startTime: Date, endTime: Date? = nil) throws -> SessionRecord {
-        let session = SessionRecord(id: id, startTime: startTime, endTime: endTime)
+    public func addSession(id: SessionId, state: SessionState, startTime: Date, endTime: Date? = nil) throws -> SessionRecord {
+        let session = SessionRecord(id: id, state: state, startTime: startTime, endTime: endTime)
         try upsertSession(session)
 
         return session
@@ -93,16 +94,18 @@ extension EmbraceStorage {
     /// Adds a session to the storage.
     /// - Parameters:
     ///   - id: Identifier of the session
+    ///   - state: State of the session
     ///   - startTime: Date of when the session started
     ///   - endTime: Date of when the session ended (optional)
     ///   - completion: Completion block called with the newly added `SessionRecord` on success; or an `Error` on failure
     public func addSessionAsync(
         id: SessionId,
+        state: SessionState,
         startTime: Date,
         endTime: Date?,
         completion: ((Result<SessionRecord, Error>) -> Void)?) {
 
-        let session = SessionRecord(id: id, startTime: startTime, endTime: endTime)
+        let session = SessionRecord(id: id, state: state, startTime: startTime, endTime: endTime)
         upsertSessionAsync(session, completion: completion)
     }
 
@@ -187,16 +190,16 @@ extension EmbraceStorage {
 }
 
 // MARK: - Database operations
-extension EmbraceStorage {
-    fileprivate func upsertSession(db: Database, session: SessionRecord) throws {
+fileprivate extension EmbraceStorage {
+    func upsertSession(db: Database, session: SessionRecord) throws {
         try session.insert(db)
     }
 
-    fileprivate func fetchSession(db: Database, id: String) throws -> SessionRecord? {
+    func fetchSession(db: Database, id: String) throws -> SessionRecord? {
         return try SessionRecord.fetchOne(db, key: id)
     }
 
-    fileprivate func updateSessionEndtime(db: Database, session: SessionRecord?, endTime: Date) throws -> SessionRecord? {
+    func updateSessionEndtime(db: Database, session: SessionRecord?, endTime: Date) throws -> SessionRecord? {
         guard var session = session else {
             return nil
         }
@@ -207,19 +210,19 @@ extension EmbraceStorage {
         return session
     }
 
-    fileprivate func finishedSessionsRequest() -> QueryInterfaceRequest<SessionRecord> {
+    func finishedSessionsRequest() -> QueryInterfaceRequest<SessionRecord> {
         return SessionRecord.filter(Column("end_time") != nil)
     }
 
-    fileprivate func finishedSessionsCount(db: Database) throws -> Int {
+    func finishedSessionsCount(db: Database) throws -> Int {
         return try finishedSessionsRequest().fetchCount(db)
     }
 
-    fileprivate func fetchFinishedSessions(db: Database) throws -> [SessionRecord] {
+    func fetchFinishedSessions(db: Database) throws -> [SessionRecord] {
         return try finishedSessionsRequest().fetchAll(db)
     }
 
-    fileprivate func fetchLatestSessions(db: Database) throws -> SessionRecord? {
+    func fetchLatestSessions(db: Database) throws -> SessionRecord? {
         return try SessionRecord
             .order(Column("start_time").desc)
             .fetchOne(db)

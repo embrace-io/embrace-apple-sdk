@@ -9,13 +9,13 @@ import GRDB
 /// It provides an abstraction layer over a GRDB SQLite database.
 public class EmbraceStorage {
 
-    public private(set) var options: EmbraceStorageOptions
+    public private(set) var options: Options
     public private(set) var dbQueue: DatabaseQueue
 
     /// Returns an EmbraceStorage instance initialized on the given path.
     /// - Parameters:
     ///   - baseUrl: URL containing the path when the database will be stored.
-    public init(options: EmbraceStorageOptions) throws {
+    public init(options: Options) throws {
 
         self.options = options
 
@@ -39,7 +39,6 @@ public class EmbraceStorage {
             try SpanRecord.defineTable(db: db)
         }
     }
-
 }
 
 // MARK: - Sync operations

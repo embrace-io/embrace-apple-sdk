@@ -8,7 +8,7 @@ import OpenTelemetrySdk
 final class EmbraceOTelTests: XCTestCase {
 
     override func setUpWithError() throws {
-        let storageOptions = EmbraceStorageOptions(named: "span-storage")
+        let storageOptions = EmbraceStorage.Options(named: "span-storage")
         let storage = try EmbraceStorage(options: storageOptions)
         EmbraceOTel.setup(storage: storage)
     }

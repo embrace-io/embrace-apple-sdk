@@ -281,8 +281,8 @@ extension EmbraceStorage {
 }
 
 // MARK: - Database operations
-extension EmbraceStorage {
-    fileprivate func upsertSpan(db: Database, span: SpanRecord) throws {
+fileprivate extension EmbraceStorage {
+    func upsertSpan(db: Database, span: SpanRecord) throws {
         // update if its already stored
         if try span.exists(db) {
             try span.update(db)
@@ -305,18 +305,18 @@ extension EmbraceStorage {
         try span.insert(db)
     }
 
-    fileprivate func fetchSpan(db: Database, id: String, traceId: String) throws -> SpanRecord? {
+    func fetchSpan(db: Database, id: String, traceId: String) throws -> SpanRecord? {
         return try SpanRecord.fetchOne(db, key: ["trace_id": traceId, "id": id])
     }
 
-    fileprivate func fetchSpans(db: Database, traceId: String) throws -> [SpanRecord] {
+    func fetchSpans(db: Database, traceId: String) throws -> [SpanRecord] {
         return try SpanRecord
             .filter(Column("trace_id") == traceId)
             .order(Column("start_time"))
             .fetchAll(db)
     }
 
-    fileprivate func fetchOpenSpans(db: Database, traceId: String, type: String? = nil) throws -> [SpanRecord] {
+    func fetchOpenSpans(db: Database, traceId: String, type: String? = nil) throws -> [SpanRecord] {
         if let type = type {
             return try SpanRecord
                 .filter(Column("trace_id") == traceId && Column("end_time") == nil && Column("type") == type)
@@ -330,15 +330,15 @@ extension EmbraceStorage {
             .fetchAll(db)
     }
 
-    fileprivate func spanInTraceByTypeRequest(traceId: String, type: String) -> QueryInterfaceRequest<SpanRecord> {
+    func spanInTraceByTypeRequest(traceId: String, type: String) -> QueryInterfaceRequest<SpanRecord> {
         return SpanRecord.filter(Column("trace_id") == traceId && Column("type") == type)
     }
 
-    fileprivate func spanCount(db: Database, traceId: String, type: String) throws -> Int {
+    func spanCount(db: Database, traceId: String, type: String) throws -> Int {
         return try spanInTraceByTypeRequest(traceId: traceId, type: type).fetchCount(db)
     }
 
-    fileprivate func fetchSpans(db: Database, traceId: String, type: String, limit: Int?) throws -> [SpanRecord] {
+    func fetchSpans(db: Database, traceId: String, type: String, limit: Int?) throws -> [SpanRecord] {
         var request = spanInTraceByTypeRequest(traceId: traceId, type: type).order(Column("start_time"))
 
         if let limit = limit {
@@ -348,15 +348,15 @@ extension EmbraceStorage {
         return try request.fetchAll(db)
     }
 
-    fileprivate func spanAfterTimeByTypeRequest(startTime: Date, type: String) -> QueryInterfaceRequest<SpanRecord> {
+    func spanAfterTimeByTypeRequest(startTime: Date, type: String) -> QueryInterfaceRequest<SpanRecord> {
         return SpanRecord.filter(Column("start_time") >= startTime && Column("type") == type)
     }
 
-    fileprivate func spanCount(db: Database, startTime: Date, type: String) throws -> Int {
+    func spanCount(db: Database, startTime: Date, type: String) throws -> Int {
         return try spanAfterTimeByTypeRequest(startTime: startTime, type: type).fetchCount(db)
     }
 
-    fileprivate func fetchSpans(db: Database, startTime: Date, type: String, limit: Int?) throws -> [SpanRecord] {
+    func fetchSpans(db: Database, startTime: Date, type: String, limit: Int?) throws -> [SpanRecord] {
         var request = spanAfterTimeByTypeRequest(startTime: startTime, type: type).order(Column("start_time"))
 
         if let limit = limit {

@@ -15,7 +15,7 @@ final class SpanStorageTests: XCTestCase {
     var storage: EmbraceStorage!
 
     override func setUpWithError() throws {
-        let storageOptions = EmbraceStorageOptions(named: "span-storage")
+        let storageOptions = EmbraceStorage.Options(named: "span-storage")
         storage = try EmbraceStorage(options: storageOptions)
 
         EmbraceOTel.setup(storage: storage)
