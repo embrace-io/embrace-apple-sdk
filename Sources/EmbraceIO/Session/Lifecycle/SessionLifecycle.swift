@@ -2,6 +2,8 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceCommon
+
 typealias SessionLifecycle = SessionLifecycleBase & SessionLifecycleProtocol
 
 protocol SessionLifecycleProtocol {

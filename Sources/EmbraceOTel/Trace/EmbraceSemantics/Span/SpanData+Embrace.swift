@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import EmbraceCommon
 import OpenTelemetrySdk
 
 extension SpanData {

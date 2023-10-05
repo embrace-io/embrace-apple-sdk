@@ -51,10 +51,18 @@ let package = Package(
             ]
         ),
 
+        .target(
+            name: "EmbraceCommon",
+            plugins: [
+                .plugin(name: "SwiftLintPlugin", package: "SwiftLint")
+            ]
+        ),
+
         // OTel ----------------------------------------------------------------------
         .target(
             name: "EmbraceOTel",
             dependencies: [
+                "EmbraceCommon",
                 "EmbraceStorage",
                 .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
             ],
@@ -74,6 +82,7 @@ let package = Package(
         .target(
             name: "EmbraceStorage",
             dependencies: [
+                "EmbraceCommon",
                 .product(name: "GRDB", package: "GRDB.swift"),
                 .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
             ],

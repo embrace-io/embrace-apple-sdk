@@ -4,6 +4,7 @@
 
 import XCTest
 import TestSupport
+import EmbraceCommon
 @testable import EmbraceStorage
 
 class SessionRecordTests: XCTestCase {
@@ -42,6 +43,15 @@ class SessionRecordTests: XCTestCase {
                 XCTAssert(false, "id column not found!")
             }
 
+            // raw_state
+            let stateTimeColumn = columns.first(where: { $0.name == "raw_state" })
+            if let stateTimeColumn = stateTimeColumn {
+                XCTAssertEqual(stateTimeColumn.type, "INTEGER")
+                XCTAssert(stateTimeColumn.isNotNull)
+            } else {
+                XCTAssert(false, "raw_state column not found!")
+            }
+
             // start_time
             let startTimeColumn = columns.first(where: { $0.name == "start_time" })
             if let startTimeColumn = startTimeColumn {
@@ -69,7 +79,7 @@ class SessionRecordTests: XCTestCase {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given inserted session
-        let session = try storage.addSession(id: "id", state: 0, startTime: Date(), endTime: nil)
+        let session = try storage.addSession(id: "id", state: .foreground, startTime: Date(), endTime: nil)
         XCTAssertNotNil(session)
 
         // then session should exist in storage
@@ -86,7 +96,7 @@ class SessionRecordTests: XCTestCase {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given inserted session
-        let session = SessionRecord(id: "id", state: 0, startTime: Date())
+        let session = SessionRecord(id: "id", state: .foreground, startTime: Date())
         try storage.upsertSession(session)
 
         // then session should exist in storage
@@ -103,7 +113,7 @@ class SessionRecordTests: XCTestCase {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given inserted session
-        let original = try storage.addSession(id: "id", state: 0, startTime: Date(), endTime: nil)
+        let original = try storage.addSession(id: "id", state: .foreground, startTime: Date(), endTime: nil)
 
         // when fetching the session
         let session = try storage.fetchSession(id: "id")
@@ -117,7 +127,7 @@ class SessionRecordTests: XCTestCase {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given inserted session with nil endTime
-        let original = try storage.addSession(id: "id", state: 0, startTime: Date(), endTime: nil)
+        let original = try storage.addSession(id: "id", state: .foreground, startTime: Date(), endTime: nil)
         XCTAssertNil(original.endTime)
 
         // when updating the session endtime
@@ -142,9 +152,9 @@ class SessionRecordTests: XCTestCase {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given inserted sessions
-        _ = try storage.addSession(id: "id1", state: 0, startTime: Date(), endTime: nil)
-        _ = try storage.addSession(id: "id2", state: 0, startTime: Date(), endTime: Date(timeIntervalSinceNow: 10))
-        _ = try storage.addSession(id: "id3", state: 0, startTime: Date(), endTime: Date(timeIntervalSinceNow: 10))
+        _ = try storage.addSession(id: "id1", state: .foreground, startTime: Date(), endTime: nil)
+        _ = try storage.addSession(id: "id2", state: .foreground, startTime: Date(), endTime: Date(timeIntervalSinceNow: 10))
+        _ = try storage.addSession(id: "id3", state: .foreground, startTime: Date(), endTime: Date(timeIntervalSinceNow: 10))
 
         // then the finished session count should be correct
         let count = try storage.finishedSessionsCount()
@@ -155,9 +165,9 @@ class SessionRecordTests: XCTestCase {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given inserted sessions
-        let session1 = try storage.addSession(id: "id1", state: 0, startTime: Date(), endTime: nil)
-        let session2 = try storage.addSession(id: "id2", state: 0, startTime: Date(), endTime: Date(timeIntervalSinceNow: 10))
-        let session3 = try storage.addSession(id: "id3", state: 0, startTime: Date(), endTime: Date(timeIntervalSinceNow: 10))
+        let session1 = try storage.addSession(id: "id1", state: .foreground, startTime: Date(), endTime: nil)
+        let session2 = try storage.addSession(id: "id2", state: .foreground, startTime: Date(), endTime: Date(timeIntervalSinceNow: 10))
+        let session3 = try storage.addSession(id: "id3", state: .foreground, startTime: Date(), endTime: Date(timeIntervalSinceNow: 10))
 
         // when fetching the finished sessions
         let sessions = try storage.fetchFinishedSessions()
@@ -172,9 +182,9 @@ class SessionRecordTests: XCTestCase {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given inserted sessions
-        _ = try storage.addSession(id: "id1", state: 0, startTime: Date(), endTime: nil)
-        _ = try storage.addSession(id: "id2", state: 0, startTime: Date(timeIntervalSinceNow: 10), endTime: nil)
-        let session3 = try storage.addSession(id: "id3", state: 0, startTime: Date(timeIntervalSinceNow: 20), endTime: nil)
+        _ = try storage.addSession(id: "id1", state: .foreground, startTime: Date(), endTime: nil)
+        _ = try storage.addSession(id: "id2", state: .foreground, startTime: Date(timeIntervalSinceNow: 10), endTime: nil)
+        let session3 = try storage.addSession(id: "id3", state: .foreground, startTime: Date(timeIntervalSinceNow: 20), endTime: nil)
 
         // when fetching the latest session
         let session = try storage.fetchLatestSesssion()

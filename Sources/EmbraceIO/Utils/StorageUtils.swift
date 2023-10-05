@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import EmbraceCommon
 import EmbraceStorage
 
 class StorageUtils {

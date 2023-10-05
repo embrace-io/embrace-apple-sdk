@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import EmbraceCommon
 import GRDB
 
 // MARK: - Sync session operations
@@ -15,7 +16,7 @@ extension EmbraceStorage {
     ///   - startTime: Date of when the session started
     ///   - endTime: Date of when the session ended (optional)
     /// - Returns: The newly stored `SessionRecord`
-    public func addSession(id: SessionId, state: SessionState, startTime: Date, endTime: Date? = nil) throws -> SessionRecord {
+    public func addSession(id: SessionId, state: EmbraceSemantics.SessionState, startTime: Date, endTime: Date? = nil) throws -> SessionRecord {
         let session = SessionRecord(id: id, state: state, startTime: startTime, endTime: endTime)
         try upsertSession(session)
 
@@ -104,7 +105,7 @@ extension EmbraceStorage {
     ///   - completion: Completion block called with the newly added `SessionRecord` on success; or an `Error` on failure
     public func addSessionAsync(
         id: SessionId,
-        state: SessionState,
+        state: EmbraceSemantics.SessionState,
         startTime: Date,
         endTime: Date?,
         completion: ((Result<SessionRecord, Error>) -> Void)?) {

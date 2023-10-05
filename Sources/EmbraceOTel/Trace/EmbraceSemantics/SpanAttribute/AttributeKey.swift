@@ -2,6 +2,8 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceCommon
+
 extension EmbraceSemantics {
 
     enum AttributeKey: String {

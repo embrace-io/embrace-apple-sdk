@@ -1,7 +1,7 @@
 import Foundation
+import EmbraceCommon
 import OpenTelemetryApi
 import OpenTelemetrySdk
-
 import EmbraceStorage
 
 // Android implementation
@@ -60,5 +60,4 @@ import EmbraceStorage
 
         return builder
     }
-
 }

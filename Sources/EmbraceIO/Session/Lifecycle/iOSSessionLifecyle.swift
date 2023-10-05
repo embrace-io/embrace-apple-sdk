@@ -4,6 +4,7 @@
 
 import Foundation
 import UIKit
+import EmbraceCommon
 
 class iOSSessionLifecyle: SessionLifecycle {
 
@@ -15,7 +16,7 @@ class iOSSessionLifecyle: SessionLifecycle {
         }
     }
 
-    var currentState: SessionState = .background
+    var currentState: EmbraceSemantics.SessionState = .background
 
     override init(storageInterface: SessionStorageInterface) {
         super.init(storageInterface: storageInterface)
@@ -77,7 +78,7 @@ class iOSSessionLifecyle: SessionLifecycle {
         startNewSession()
     }
 
-    private func onStateChange(from: SessionState, to: SessionState) {
+    private func onStateChange(from: EmbraceSemantics.SessionState, to: EmbraceSemantics.SessionState) {
         guard isEnabled == true, from != to else {
             return
         }
@@ -86,7 +87,7 @@ class iOSSessionLifecyle: SessionLifecycle {
     }
 
     private func fetchInitialAppState() {
-        var initialState: SessionState = .background
+        var initialState: EmbraceSemantics.SessionState = .background
 
         if #available(iOS 13.0, tvOS 13.0, *) {
             if let scene = UIApplication.shared.windows.last?.windowScene {

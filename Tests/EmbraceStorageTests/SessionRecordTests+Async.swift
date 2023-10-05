@@ -4,6 +4,7 @@
 
 import XCTest
 import TestSupport
+import EmbraceCommon
 @testable import EmbraceStorage
 
 extension SessionRecordTests {
@@ -15,7 +16,7 @@ extension SessionRecordTests {
         let expectation1 = XCTestExpectation()
         var session: SessionRecord?
 
-        storage.addSessionAsync(id: "id", state: 0, startTime: Date(), endTime: nil) { result in
+        storage.addSessionAsync(id: "id", state: .foreground, startTime: Date(), endTime: nil) { result in
             switch result {
             case .success(let s):
                 session = s
@@ -46,7 +47,7 @@ extension SessionRecordTests {
 
         // given inserted session
         let expectation1 = XCTestExpectation()
-        let session = SessionRecord(id: "id", state: 0, startTime: Date())
+        let session = SessionRecord(id: "id", state: .foreground, startTime: Date())
 
         storage.upsertSessionAsync(session) { result in
             switch result {
@@ -73,7 +74,7 @@ extension SessionRecordTests {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given inserted session
-        let original = try storage.addSession(id: "id", state: 0, startTime: Date(), endTime: nil)
+        let original = try storage.addSession(id: "id", state: .foreground, startTime: Date(), endTime: nil)
 
         // when fetching the session
         let expectation = XCTestExpectation()
@@ -99,7 +100,7 @@ extension SessionRecordTests {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given inserted session with nil endTime
-        let original = try storage.addSession(id: "id", state: 0, startTime: Date(), endTime: nil)
+        let original = try storage.addSession(id: "id", state: .foreground, startTime: Date(), endTime: nil)
         XCTAssertNil(original.endTime)
 
         // when updating the session endtime
@@ -137,9 +138,9 @@ extension SessionRecordTests {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given inserted sessions
-        _ = try storage.addSession(id: "id1", state: 0, startTime: Date(), endTime: nil)
-        _ = try storage.addSession(id: "id2", state: 0, startTime: Date(), endTime: Date(timeIntervalSinceNow: 10))
-        _ = try storage.addSession(id: "id3", state: 0, startTime: Date(), endTime: Date(timeIntervalSinceNow: 10))
+        _ = try storage.addSession(id: "id1", state: .foreground, startTime: Date(), endTime: nil)
+        _ = try storage.addSession(id: "id2", state: .foreground, startTime: Date(), endTime: Date(timeIntervalSinceNow: 10))
+        _ = try storage.addSession(id: "id3", state: .foreground, startTime: Date(), endTime: Date(timeIntervalSinceNow: 10))
 
         // then the finished session count should be correct
         let expectation = XCTestExpectation()
@@ -164,9 +165,9 @@ extension SessionRecordTests {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given inserted sessions
-        let session1 = try storage.addSession(id: "id1", state: 0, startTime: Date(), endTime: nil)
-        let session2 = try storage.addSession(id: "id2", state: 0, startTime: Date(), endTime: Date(timeIntervalSinceNow: 10))
-        let session3 = try storage.addSession(id: "id3", state: 0, startTime: Date(), endTime: Date(timeIntervalSinceNow: 10))
+        let session1 = try storage.addSession(id: "id1", state: .foreground, startTime: Date(), endTime: nil)
+        let session2 = try storage.addSession(id: "id2", state: .foreground, startTime: Date(), endTime: Date(timeIntervalSinceNow: 10))
+        let session3 = try storage.addSession(id: "id3", state: .foreground, startTime: Date(), endTime: Date(timeIntervalSinceNow: 10))
 
         // when fetching the finished sessions
         let expectation = XCTestExpectation()
@@ -192,9 +193,9 @@ extension SessionRecordTests {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given inserted sessions
-        _ = try storage.addSession(id: "id1", state: 0, startTime: Date(), endTime: nil)
-        _ = try storage.addSession(id: "id2", state: 0, startTime: Date(timeIntervalSinceNow: 10), endTime: nil)
-        let session3 = try storage.addSession(id: "id3", state: 0, startTime: Date(timeIntervalSinceNow: 20), endTime: nil)
+        _ = try storage.addSession(id: "id1", state: .foreground, startTime: Date(), endTime: nil)
+        _ = try storage.addSession(id: "id2", state: .foreground, startTime: Date(timeIntervalSinceNow: 10), endTime: nil)
+        let session3 = try storage.addSession(id: "id3", state: .foreground, startTime: Date(timeIntervalSinceNow: 20), endTime: nil)
 
         // when fetching the latest session
         let expectation = XCTestExpectation()

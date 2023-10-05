@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import EmbraceCommon
 import EmbraceStorage
 
 class SessionStorageInterface {
@@ -13,11 +14,11 @@ class SessionStorageInterface {
         self.storage = storage
     }
 
-    func startSession(state: SessionState) {
+    func startSession(state: EmbraceSemantics.SessionState) {
         currentSessionId = UUID().uuidString
 
         if let newSessionId = currentSessionId {
-            storage?.addSessionAsync(id: newSessionId, state: state.rawValue, startTime: Date(), endTime: nil) { result in
+            storage?.addSessionAsync(id: newSessionId, state: state, startTime: Date(), endTime: nil) { result in
                 switch result {
                 case .success(let session):
                     // TODO: send session start message

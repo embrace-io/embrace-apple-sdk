@@ -3,17 +3,26 @@
 //
 
 import Foundation
+import EmbraceCommon
 import GRDB
-
-public typealias SessionId = String
-public typealias SessionState = Int
 
 /// Represents a session in the storage
 public struct SessionRecord: Codable {
     public var id: SessionId
-    public var state: SessionState
+    public var rawState: Int
     public var startTime: Date
     public var endTime: Date?
+
+    public var state: EmbraceSemantics.SessionState {
+        return EmbraceSemantics.SessionState(rawValue: rawState) ?? .foreground
+    }
+
+    internal init(id: SessionId, state: EmbraceSemantics.SessionState, startTime: Date, endTime: Date? = nil) {
+        self.id = id
+        self.rawState = state.rawValue
+        self.startTime = startTime
+        self.endTime = endTime
+    }
 }
 
 extension SessionRecord: FetchableRecord, PersistableRecord, MutablePersistableRecord {
@@ -30,7 +39,7 @@ extension SessionRecord: TableRecord {
 
             t.primaryKey("id", .text).notNull()
 
-            t.column("state", .integer).notNull()
+            t.column("raw_state", .integer).notNull()
 
             t.column("start_time", .datetime).notNull()
             t.column("end_time", .datetime)

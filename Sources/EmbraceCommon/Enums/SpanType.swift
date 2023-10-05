@@ -3,7 +3,6 @@
 //
 
 extension EmbraceSemantics {
-
     /// These are the expected values for the `emb.type` attribute
     public enum SpanType: String {
 

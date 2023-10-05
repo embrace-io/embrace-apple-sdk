@@ -3,10 +3,9 @@
 //
 
 import Foundation
+import EmbraceCommon
 import EmbraceOTel
 import EmbraceStorage
-
-public typealias SessionId = String
 
 @objc public class Embrace: NSObject {
 
@@ -48,7 +47,7 @@ public typealias SessionId = String
         sessionLifecycle.isEnabled = true
     }
 
-    @objc public func currentSessionId() -> SessionId? {
+    @objc public func currentSessionId() -> String? {
         // TODO: Discuss concurrency
         return sessionLifecycle.currentSessionId
     }
