@@ -11,7 +11,7 @@ import Foundation
 
     @objc public var endpointsConfig: EmbraceEndpoints = EmbraceEndpoints()
 
-    init?(appId: String, appGroupId: String?, platform: EmbracePlatform) {
+    public init?(appId: String, appGroupId: String?, platform: EmbracePlatform) {
 
         if EmbraceOptions.validateAppId(appId: appId) == false {
             print("Invalid Embrace appId: \(appId)")

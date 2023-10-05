@@ -1,4 +1,4 @@
-public enum CollectorDefinition {
+public enum CollectorDefinition: CaseIterable {
     case network
     case uiTap
     case pushNotifications
