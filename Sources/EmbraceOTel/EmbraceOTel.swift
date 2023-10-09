@@ -31,7 +31,7 @@ import EmbraceStorage
 
     public func addSpan<T>(
         name: String,
-        type: EmbraceSemantics.SpanType,
+        type: SpanType,
         attributes: [String: String] = [:],
         spanOperation: () -> T
     ) -> T {
@@ -45,13 +45,13 @@ import EmbraceStorage
 
     public func buildSpan(
         name: String,
-        type: EmbraceSemantics.SpanType,
+        type: SpanType,
         attributes: [String: String] = [:]
     ) -> SpanBuilder {
 
         let builder = tracer.spanBuilder(spanName: name)
                         .setAttribute(
-                            key: EmbraceSemantics.AttributeKey.isKey,
+                            key: SpanAttributeKey.isKey,
                             value: type.rawValue )
 
         for (key, value) in attributes {

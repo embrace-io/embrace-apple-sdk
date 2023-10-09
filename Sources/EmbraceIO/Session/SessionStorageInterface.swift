@@ -14,7 +14,7 @@ class SessionStorageInterface {
         self.storage = storage
     }
 
-    func startSession(state: EmbraceSemantics.SessionState) {
+    func startSession(state: SessionState) {
         currentSessionId = UUID().uuidString
 
         if let newSessionId = currentSessionId {
@@ -22,10 +22,10 @@ class SessionStorageInterface {
                 switch result {
                 case .success(let session):
                     // TODO: send session start message
-                    print("Session \(session.id) finished!")
+                    print("Session \(session.id) started!")
                 case .failure(let error):
                     // TODO: decide what to do here
-                    print("Session \(newSessionId) finish failed: \(error.localizedDescription)")
+                    print("Session \(newSessionId) start failed: \(error.localizedDescription)")
                 }
             }
         }

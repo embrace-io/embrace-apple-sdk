@@ -16,7 +16,7 @@ class iOSSessionLifecyle: SessionLifecycle {
         }
     }
 
-    var currentState: EmbraceSemantics.SessionState = .background
+    var currentState: SessionState = .background
 
     override init(storageInterface: SessionStorageInterface) {
         super.init(storageInterface: storageInterface)
@@ -42,8 +42,12 @@ class iOSSessionLifecyle: SessionLifecycle {
             object: nil
         )
 
-        DispatchQueue.main.sync { [weak self] in
-            self?.fetchInitialAppState()
+        if Thread.isMainThread {
+            fetchInitialAppState()
+        } else {
+            DispatchQueue.main.async { [weak self] in
+                self?.fetchInitialAppState()
+            }
         }
     }
 
@@ -64,6 +68,7 @@ class iOSSessionLifecyle: SessionLifecycle {
         // TODO: Check if currentState is enabled in config
 
         storageInterface.startSession(state: currentState)
+        onNewSession?(currentSessionId)
     }
 
     /// Stops current session and immediately starts a new one if able
@@ -72,13 +77,15 @@ class iOSSessionLifecyle: SessionLifecycle {
             return
         }
 
+        let sessionId = currentSessionId
         storageInterface.stopSession()
+        onSessionEnded?(sessionId)
 
         // we always have a session
         startNewSession()
     }
 
-    private func onStateChange(from: EmbraceSemantics.SessionState, to: EmbraceSemantics.SessionState) {
+    private func onStateChange(from: SessionState, to: SessionState) {
         guard isEnabled == true, from != to else {
             return
         }
@@ -87,7 +94,7 @@ class iOSSessionLifecyle: SessionLifecycle {
     }
 
     private func fetchInitialAppState() {
-        var initialState: EmbraceSemantics.SessionState = .background
+        var initialState: SessionState = .background
 
         if #available(iOS 13.0, tvOS 13.0, *) {
             if let scene = UIApplication.shared.windows.last?.windowScene {

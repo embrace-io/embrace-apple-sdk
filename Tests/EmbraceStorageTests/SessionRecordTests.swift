@@ -43,13 +43,13 @@ class SessionRecordTests: XCTestCase {
                 XCTAssert(false, "id column not found!")
             }
 
-            // raw_state
-            let stateTimeColumn = columns.first(where: { $0.name == "raw_state" })
+            // state
+            let stateTimeColumn = columns.first(where: { $0.name == "state" })
             if let stateTimeColumn = stateTimeColumn {
-                XCTAssertEqual(stateTimeColumn.type, "INTEGER")
+                XCTAssertEqual(stateTimeColumn.type, "TEXT")
                 XCTAssert(stateTimeColumn.isNotNull)
             } else {
-                XCTAssert(false, "raw_state column not found!")
+                XCTAssert(false, "state column not found!")
             }
 
             // start_time

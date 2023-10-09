@@ -10,6 +10,9 @@ protocol SessionLifecycleProtocol {
     var isEnabled: Bool { get set }
     var currentSessionId: SessionId? { get }
 
+    var onNewSession: ((SessionId?) -> Void)? { get set }
+    var onSessionEnded: ((SessionId?) -> Void)? { get set }
+
     func startNewSession()
     func stopCurrentSession()
 }
@@ -22,6 +25,9 @@ class SessionLifecycleBase {
     var currentSessionId: SessionId? {
         return storageInterface.currentSessionId
     }
+
+    var onNewSession: ((SessionId?) -> Void)?
+    var onSessionEnded: ((SessionId?) -> Void)?
 
     init(storageInterface: SessionStorageInterface) {
         self.storageInterface = storageInterface

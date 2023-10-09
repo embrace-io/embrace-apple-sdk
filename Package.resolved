@@ -41,7 +41,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/embrace-io/KSCrash.git",
       "state" : {
-        "revision" : "76e29fc61bc1446eb80720682ce88c617e95f65e"
+        "branch" : "master",
+        "revision" : "25b75a12fc0068aa02bfb4c7bc5e4259b0578eac"
       }
     },
     {

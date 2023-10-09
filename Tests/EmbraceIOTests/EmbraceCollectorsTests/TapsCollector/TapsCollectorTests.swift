@@ -14,11 +14,11 @@ final class TapsCollectorTests: XCTestCase {
         let collector = TapsCollector(handler: spy)
         collector.install()
         collector.start()
-        
-        //When
+
+        // When
         UIWindow().sendEvent(expectedEvent)
 
-        //Then
+        // Then
         XCTAssertEqual(spy.collectedEvent, expectedEvent)
     }
 }

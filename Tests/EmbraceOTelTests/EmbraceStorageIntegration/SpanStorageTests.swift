@@ -40,7 +40,7 @@ final class SpanStorageTests: XCTestCase {
 
         let records: [SpanRecord] = try storage.fetchAll()
         XCTAssertEqual(records.count, 1)
-        XCTAssertEqual(records.first?.type, "performance")
+        XCTAssertEqual(records.first?.type, .performance)
 
         cancellable.cancel()
     }

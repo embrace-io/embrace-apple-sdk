@@ -3,13 +3,12 @@
 //
 
 import UIKit
+import EmbraceCommon
 
 final class TapsCollector: SwizzleCollector {
     private static var listening = false
     private static var handler: TapCollectorHandlerType?
     private static var installed = false
-
-    static var platformAvailability: [EmbracePlatform] = [.iOS]
 
     required init() {
         if TapsCollector.handler == nil {
@@ -20,6 +19,10 @@ final class TapsCollector: SwizzleCollector {
     convenience init(handler: TapCollectorHandlerType? = TapCollectorHandler()) {
         TapsCollector.handler = handler
         self.init()
+    }
+
+    func isAvailable() -> Bool {
+        return true
     }
 
     func install() {
@@ -34,7 +37,7 @@ final class TapsCollector: SwizzleCollector {
         TapsCollector.listening = true
     }
 
-    func pause() {
+    func stop() {
         TapsCollector.listening = false
     }
 

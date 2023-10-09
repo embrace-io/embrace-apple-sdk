@@ -9,17 +9,13 @@ import GRDB
 /// Represents a session in the storage
 public struct SessionRecord: Codable {
     public var id: SessionId
-    public var rawState: Int
+    public var state: String
     public var startTime: Date
     public var endTime: Date?
 
-    public var state: EmbraceSemantics.SessionState {
-        return EmbraceSemantics.SessionState(rawValue: rawState) ?? .foreground
-    }
-
-    internal init(id: SessionId, state: EmbraceSemantics.SessionState, startTime: Date, endTime: Date? = nil) {
+    internal init(id: SessionId, state: SessionState, startTime: Date, endTime: Date? = nil) {
         self.id = id
-        self.rawState = state.rawValue
+        self.state = state.rawValue
         self.startTime = startTime
         self.endTime = endTime
     }
@@ -39,7 +35,7 @@ extension SessionRecord: TableRecord {
 
             t.primaryKey("id", .text).notNull()
 
-            t.column("raw_state", .integer).notNull()
+            t.column("state", .text).notNull()
 
             t.column("start_time", .datetime).notNull()
             t.column("end_time", .datetime)

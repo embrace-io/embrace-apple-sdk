@@ -74,7 +74,7 @@ class EmbraceUploadCache {
     ///   - type: Type of the data
     ///   - data: Data to cache
     /// - Returns: The newly cached `UploadDataRecord`
-    func saveUploadData(id: String, type: EmbraceUploadType, data: Data) throws -> UploadDataRecord {
+    @discardableResult func saveUploadData(id: String, type: EmbraceUploadType, data: Data) throws -> UploadDataRecord {
         let record = UploadDataRecord(id: id, type: type.rawValue, data: data, attemptCount: 0, date: Date())
         try saveUploadData(record)
 
@@ -117,7 +117,7 @@ class EmbraceUploadCache {
     ///   - id: Identifiar of the data
     ///   - type: Type of the data
     /// - Returns: Boolean indicating if the data was successfuly deleted
-    func deleteUploadData(id: String, type: EmbraceUploadType) throws -> Bool {
+    @discardableResult func deleteUploadData(id: String, type: EmbraceUploadType) throws -> Bool {
         guard let uploadData = try fetchUploadData(id: id, type: type) else {
             return false
         }
@@ -140,7 +140,7 @@ class EmbraceUploadCache {
     ///   - type: Type of the data
     ///   - attemptCount: New attempt count
     /// - Returns: Returns the updated `UploadDataRecord`, if any
-    func updateAttemptCount(id: String, type: EmbraceUploadType, attemptCount: Int) throws -> UploadDataRecord? {
+    @discardableResult func updateAttemptCount(id: String, type: EmbraceUploadType, attemptCount: Int) throws -> UploadDataRecord? {
         guard let uploadData = try fetchUploadData(id: id, type: type) else {
             return nil
         }

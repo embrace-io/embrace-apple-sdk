@@ -3,18 +3,19 @@
 //
 
 import Foundation
+import EmbraceCommon
 import GRDB
 
 /// Represents a span in the storage
 public struct SpanRecord: Codable {
     public var id: String
     public var traceId: String
-    public var type: String
+    public var type: SpanType
     public var data: Data
     public var startTime: Date
     public var endTime: Date?
 
-    public init(id: String, traceId: String, type: String, data: Data, startTime: Date, endTime: Date? = nil) {
+    public init(id: String, traceId: String, type: SpanType, data: Data, startTime: Date, endTime: Date? = nil) {
         self.id = id
         self.traceId = traceId
         self.type = type

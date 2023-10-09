@@ -13,4 +13,6 @@ public struct TestConstants {
     public static let domain = "com.test.embrace"
     public static let url = URL(string: "https://embrace.test.com/path")!
     public static let data = "test".data(using: .utf8)!
+
+    public static let appId = "appId"
 }

@@ -9,17 +9,18 @@ let package = Package(
         .iOS(.v12), .tvOS(.v12), .macOS(.v12)
     ],
     products: [
-        .library(
-            name: "EmbraceIO",
-            targets: ["EmbraceIO"])
+        .library(name: "EmbraceIO", targets: ["EmbraceIO"]),
+        .library(name: "EmbraceCrash", targets: ["EmbraceCrash"])
     ],
     dependencies: [
         .package(
             url: "https://github.com/embrace-io/KSCrash.git",
-            revision: "76e29fc61bc1446eb80720682ce88c617e95f65e" ),
+            branch: "master"
+        ),
         .package(
             url: "https://github.com/open-telemetry/opentelemetry-swift",
-            exact: "1.5.1" ),
+            exact: "1.5.1"
+        ),
         .package(
             url: "https://github.com/groue/GRDB.swift",
             exact: "6.16.0"
@@ -28,8 +29,9 @@ let package = Package(
             url: "https://github.com/realm/SwiftLint",
             exact: "0.52.4"
         ),
-        .package(url: "https://github.com/apple/swift-docc-plugin",
-                 branch: "main"
+        .package(
+            url: "https://github.com/apple/swift-docc-plugin",
+            branch: "main"
         )
     ],
     targets: [
@@ -111,6 +113,28 @@ let package = Package(
         .testTarget(
             name: "EmbraceUploadTests",
             dependencies: ["EmbraceUpload", "TestSupport"],
+            plugins: [
+                .plugin(name: "SwiftLintPlugin", package: "SwiftLint")
+            ]
+        ),
+
+        // crashes ----------------------------------------------------------------------
+        .target(
+            name: "EmbraceCrash",
+            dependencies: [
+                "EmbraceCommon",
+                .product(name: "KSCrash", package: "KSCrash")
+            ],
+            plugins: [
+                .plugin(name: "SwiftLintPlugin", package: "SwiftLint")
+            ]
+        ),
+        .testTarget(
+            name: "EmbraceCrashTests",
+            dependencies: ["EmbraceCrash", "TestSupport"],
+            resources: [
+                .process("report.json"),
+            ],
             plugins: [
                 .plugin(name: "SwiftLintPlugin", package: "SwiftLint")
             ]

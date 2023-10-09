@@ -115,7 +115,7 @@ public class EmbraceUpload {
         // cache operation
         let cacheOperation = BlockOperation { [weak self] in
             do {
-                _ = try self?.cache.saveUploadData(id: id, type: type, data: data)
+                try self?.cache.saveUploadData(id: id, type: type, data: data)
             } catch {
                 print("Error caching upload data: \(error.localizedDescription)")
             }
@@ -155,7 +155,7 @@ public class EmbraceUpload {
             // update attempt count in cache
             operationQueue.addOperation { [weak self] in
                 do {
-                    _ = try self?.cache.updateAttemptCount(id: id, type: type, attemptCount: attemptCount)
+                    try self?.cache.updateAttemptCount(id: id, type: type, attemptCount: attemptCount)
                 } catch {
                     print("Error updating cache: \(error.localizedDescription)")
                 }
@@ -170,7 +170,7 @@ public class EmbraceUpload {
         // success -> clear cache
         operationQueue.addOperation { [weak self] in
             do {
-                _ = try self?.cache.deleteUploadData(id: id, type: type)
+                try self?.cache.deleteUploadData(id: id, type: type)
             } catch {
                 print("Error deleting cache: \(error.localizedDescription)")
             }

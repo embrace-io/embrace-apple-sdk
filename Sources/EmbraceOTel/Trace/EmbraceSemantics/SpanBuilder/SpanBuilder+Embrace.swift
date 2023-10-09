@@ -6,7 +6,7 @@ import EmbraceCommon
 import OpenTelemetryApi
 
 extension SpanBuilder {
-    func setAttribute(key: EmbraceSemantics.AttributeKey, value: String) -> Self {
+    func setAttribute(key: SpanAttributeKey, value: String) -> Self {
         setAttribute(key: key.rawValue, value: value)
         return self
     }

@@ -50,7 +50,7 @@ extension SpanExporter {
         return SpanRecord(
             id: spanData.spanId.hexString,
             traceId: spanData.traceId.hexString,
-            type: spanData.embType.rawValue,
+            type: spanData.embType,
             data: data,
             startTime: spanData.startTime,
             endTime: spanData.endTime )

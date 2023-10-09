@@ -4,16 +4,6 @@
 
 import Foundation
 
-extension EmbraceSemantics {
-    public enum SessionState: Int {
-        case foreground = 0
-        case background
-
-        var rawStringValue: String {
-            switch self {
-            case .foreground: return "foreground"
-            case .background: return "background"
-            }
-        }
-    }
+public enum SessionState: String {
+    case foreground, background
 }

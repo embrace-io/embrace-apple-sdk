@@ -15,7 +15,7 @@ extension SpanRecordTests {
         let expectation1 = XCTestExpectation()
         var span: SpanRecord?
 
-        storage.addSpanAsync(id: "id", traceId: "traceId", type: "type", data: Data(), startTime: Date(), endTime: nil) { result in
+        storage.addSpanAsync(id: "id", traceId: "traceId", type: .performance, data: Data(), startTime: Date(), endTime: nil) { result in
             switch result {
             case .success(let s):
                 span = s
@@ -46,7 +46,7 @@ extension SpanRecordTests {
 
         // given inserted span
         let expectation1 = XCTestExpectation()
-        let span = SpanRecord(id: "id", traceId: "traceId", type: "type", data: Data(), startTime: Date())
+        let span = SpanRecord(id: "id", traceId: "traceId", type: .performance, data: Data(), startTime: Date())
 
         storage.upsertSpanAsync(span) { result in
             switch result {
@@ -73,7 +73,7 @@ extension SpanRecordTests {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given inserted span
-        let original = try storage.addSpan(id: "id", traceId: "traceId", type: "type", data: Data(), startTime: Date())
+        let original = try storage.addSpan(id: "id", traceId: "traceId", type: .performance, data: Data(), startTime: Date())
 
         // when fetching the span
         let expectation = XCTestExpectation()
@@ -99,9 +99,9 @@ extension SpanRecordTests {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given inserted spans
-        let span1 = try storage.addSpan(id: "id1", traceId: "traceId", type: "type", data: Data(), startTime: Date(), endTime: nil)
-        let span2 = try storage.addSpan(id: "id2", traceId: "traceId", type: "type", data: Data(), startTime: Date(), endTime: nil)
-        let span3 = try storage.addSpan(id: "id3", traceId: "traceId", type: "type", data: Data(), startTime: Date(), endTime: nil)
+        let span1 = try storage.addSpan(id: "id1", traceId: "traceId", type: .performance, data: Data(), startTime: Date(), endTime: nil)
+        let span2 = try storage.addSpan(id: "id2", traceId: "traceId", type: .performance, data: Data(), startTime: Date(), endTime: nil)
+        let span3 = try storage.addSpan(id: "id3", traceId: "traceId", type: .performance, data: Data(), startTime: Date(), endTime: nil)
 
         // when fetching the spans
         let expectation = XCTestExpectation()
@@ -127,9 +127,9 @@ extension SpanRecordTests {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given inserted spans
-        let span1 = try storage.addSpan(id: "id1", traceId: "traceId", type: "type", data: Data(), startTime: Date(), endTime: nil)
-        let span2 = try storage.addSpan(id: "id2", traceId: "traceId", type: "type", data: Data(), startTime: Date(), endTime: Date(timeIntervalSinceNow: 10))
-        let span3 = try storage.addSpan(id: "id3", traceId: "traceId", type: "type", data: Data(), startTime: Date(), endTime: Date(timeIntervalSinceNow: 10))
+        let span1 = try storage.addSpan(id: "id1", traceId: "traceId", type: .performance, data: Data(), startTime: Date(), endTime: nil)
+        let span2 = try storage.addSpan(id: "id2", traceId: "traceId", type: .performance, data: Data(), startTime: Date(), endTime: Date(timeIntervalSinceNow: 10))
+        let span3 = try storage.addSpan(id: "id3", traceId: "traceId", type: .performance, data: Data(), startTime: Date(), endTime: Date(timeIntervalSinceNow: 10))
 
         // when fetching the open spans
         let expectation = XCTestExpectation()
@@ -155,14 +155,14 @@ extension SpanRecordTests {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given inserted spans
-        let span1 = try storage.addSpan(id: "id1", traceId: "traceId", type: "type1", data: Data(), startTime: Date(), endTime: nil)
-        let span2 = try storage.addSpan(id: "id2", traceId: "traceId", type: "type1", data: Data(), startTime: Date(), endTime: nil)
-        let span3 = try storage.addSpan(id: "id3", traceId: "traceId", type: "type2", data: Data(), startTime: Date(), endTime: nil)
+        let span1 = try storage.addSpan(id: "id1", traceId: "traceId", type: .performance, data: Data(), startTime: Date(), endTime: nil)
+        let span2 = try storage.addSpan(id: "id2", traceId: "traceId", type: .performance, data: Data(), startTime: Date(), endTime: nil)
+        let span3 = try storage.addSpan(id: "id3", traceId: "traceId", type: .ux, data: Data(), startTime: Date(), endTime: nil)
 
         // when fetching the open spans
         let expectation = XCTestExpectation()
 
-        storage.fetchOpenSpansAsync(traceId: "traceId", type: "type1") { result in
+        storage.fetchOpenSpansAsync(traceId: "traceId", type: .performance) { result in
             switch result {
             case .success(let spans):
                 // then the fetched spans are valid
@@ -183,14 +183,14 @@ extension SpanRecordTests {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given inserted spans
-        _ = try storage.addSpan(id: "id1", traceId: "traceId", type: "type1", data: Data(), startTime: Date(), endTime: nil)
-        _ = try storage.addSpan(id: "id2", traceId: "traceId", type: "type1", data: Data(), startTime: Date(), endTime: nil)
-        _ = try storage.addSpan(id: "id3", traceId: "traceId", type: "type2", data: Data(), startTime: Date(), endTime: nil)
+        _ = try storage.addSpan(id: "id1", traceId: "traceId", type: .performance, data: Data(), startTime: Date(), endTime: nil)
+        _ = try storage.addSpan(id: "id2", traceId: "traceId", type: .performance, data: Data(), startTime: Date(), endTime: nil)
+        _ = try storage.addSpan(id: "id3", traceId: "traceId", type: .ux, data: Data(), startTime: Date(), endTime: nil)
 
         // when fetching the span count
         let expectation = XCTestExpectation()
 
-        storage.spanCountAsync(traceId: "traceId", type: "type1") { result in
+        storage.spanCountAsync(traceId: "traceId", type: .performance) { result in
             switch result {
             case .success(let count):
                 // then the count is correct
@@ -209,14 +209,14 @@ extension SpanRecordTests {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given inserted spans
-        let span1 = try storage.addSpan(id: "id1", traceId: "traceId", type: "type1", data: Data(), startTime: Date(), endTime: nil)
-        let span2 = try storage.addSpan(id: "id2", traceId: "traceId", type: "type1", data: Data(), startTime: Date(), endTime: nil)
-        let span3 = try storage.addSpan(id: "id3", traceId: "traceId", type: "type2", data: Data(), startTime: Date(), endTime: nil)
+        let span1 = try storage.addSpan(id: "id1", traceId: "traceId", type: .performance, data: Data(), startTime: Date(), endTime: nil)
+        let span2 = try storage.addSpan(id: "id2", traceId: "traceId", type: .performance, data: Data(), startTime: Date(), endTime: nil)
+        let span3 = try storage.addSpan(id: "id3", traceId: "traceId", type: .ux, data: Data(), startTime: Date(), endTime: nil)
 
         // when fetching the spans
         let expectation = XCTestExpectation()
 
-        storage.fetchOpenSpansAsync(traceId: "traceId", type: "type1") { result in
+        storage.fetchOpenSpansAsync(traceId: "traceId", type: .performance) { result in
             switch result {
             case .success(let spans):
                 // then the fetched spans are valid
@@ -237,14 +237,14 @@ extension SpanRecordTests {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given inserted spans
-        let span1 = try storage.addSpan(id: "id1", traceId: "traceId", type: "type", data: Data(), startTime: Date(timeIntervalSinceNow: 10), endTime: nil)
-        let span2 = try storage.addSpan(id: "id2", traceId: "traceId", type: "type", data: Data(), startTime: Date(), endTime: nil)
-        let span3 = try storage.addSpan(id: "id3", traceId: "traceId", type: "type", data: Data(), startTime: Date(timeIntervalSinceNow: 20), endTime: nil)
+        let span1 = try storage.addSpan(id: "id1", traceId: "traceId", type: .performance, data: Data(), startTime: Date(timeIntervalSinceNow: 10), endTime: nil)
+        let span2 = try storage.addSpan(id: "id2", traceId: "traceId", type: .performance, data: Data(), startTime: Date(), endTime: nil)
+        let span3 = try storage.addSpan(id: "id3", traceId: "traceId", type: .performance, data: Data(), startTime: Date(timeIntervalSinceNow: 20), endTime: nil)
 
         // when fetching the spans
         let expectation = XCTestExpectation()
 
-        storage.fetchSpansAsync(traceId: "traceId", type: "type", limit: 1) { result in
+        storage.fetchSpansAsync(traceId: "traceId", type: .performance, limit: 1) { result in
             switch result {
             case .success(let spans):
                 // then the fetched spans are valid
@@ -267,14 +267,14 @@ extension SpanRecordTests {
 
         // given inserted spans
         let now = Date()
-        _ = try storage.addSpan(id: "id1", traceId: "traceId", type: "type1", data: Data(), startTime: now, endTime: nil)
-        _ = try storage.addSpan(id: "id2", traceId: "traceId", type: "type1", data: Data(), startTime: now.addingTimeInterval(10), endTime: nil)
-        _ = try storage.addSpan(id: "id3", traceId: "traceId", type: "type2", data: Data(), startTime: now.addingTimeInterval(15), endTime: nil)
+        _ = try storage.addSpan(id: "id1", traceId: "traceId", type: .performance, data: Data(), startTime: now, endTime: nil)
+        _ = try storage.addSpan(id: "id2", traceId: "traceId", type: .performance, data: Data(), startTime: now.addingTimeInterval(10), endTime: nil)
+        _ = try storage.addSpan(id: "id3", traceId: "traceId", type: .ux, data: Data(), startTime: now.addingTimeInterval(15), endTime: nil)
 
         // when fetching the span count
         let expectation = XCTestExpectation()
 
-        storage.spanCountAsync(startTime: now.addingTimeInterval(5), type: "type1") { result in
+        storage.spanCountAsync(startTime: now.addingTimeInterval(5), type: .performance) { result in
             switch result {
             case .success(let count):
                 // then the count is correct
@@ -294,14 +294,14 @@ extension SpanRecordTests {
 
         // given inserted spans
         let now = Date()
-        let span1 = try storage.addSpan(id: "id1", traceId: "traceId", type: "type", data: Data(), startTime: now, endTime: nil)
-        let span2 = try storage.addSpan(id: "id2", traceId: "traceId", type: "type", data: Data(), startTime: now.addingTimeInterval(10), endTime: nil)
-        let span3 = try storage.addSpan(id: "id3", traceId: "traceId", type: "type", data: Data(), startTime: now.addingTimeInterval(15), endTime: nil)
+        let span1 = try storage.addSpan(id: "id1", traceId: "traceId", type: .performance, data: Data(), startTime: now, endTime: nil)
+        let span2 = try storage.addSpan(id: "id2", traceId: "traceId", type: .performance, data: Data(), startTime: now.addingTimeInterval(10), endTime: nil)
+        let span3 = try storage.addSpan(id: "id3", traceId: "traceId", type: .performance, data: Data(), startTime: now.addingTimeInterval(15), endTime: nil)
 
         // when fetching the spans
         let expectation = XCTestExpectation()
 
-        storage.fetchSpansAsync(startTime: now.addingTimeInterval(5), type: "type") { result in
+        storage.fetchSpansAsync(startTime: now.addingTimeInterval(5), type: .performance) { result in
             switch result {
             case .success(let spans):
                 // then the fetched spans are valid
@@ -323,14 +323,14 @@ extension SpanRecordTests {
 
         // given inserted spans
         let now = Date()
-        let span1 = try storage.addSpan(id: "id1", traceId: "traceId", type: "type", data: Data(), startTime: now, endTime: nil)
-        let span2 = try storage.addSpan(id: "id2", traceId: "traceId", type: "type", data: Data(), startTime: now.addingTimeInterval(10), endTime: nil)
-        let span3 = try storage.addSpan(id: "id3", traceId: "traceId", type: "type", data: Data(), startTime: now.addingTimeInterval(15), endTime: nil)
+        let span1 = try storage.addSpan(id: "id1", traceId: "traceId", type: .performance, data: Data(), startTime: now, endTime: nil)
+        let span2 = try storage.addSpan(id: "id2", traceId: "traceId", type: .performance, data: Data(), startTime: now.addingTimeInterval(10), endTime: nil)
+        let span3 = try storage.addSpan(id: "id3", traceId: "traceId", type: .performance, data: Data(), startTime: now.addingTimeInterval(15), endTime: nil)
 
         // when fetching the spans
         let expectation = XCTestExpectation()
 
-        storage.fetchSpansAsync(startTime: now.addingTimeInterval(5), type: "type", limit: 1) { result in
+        storage.fetchSpansAsync(startTime: now.addingTimeInterval(5), type: .performance, limit: 1) { result in
             switch result {
             case .success(let spans):
                 // then the fetched spans are valid
