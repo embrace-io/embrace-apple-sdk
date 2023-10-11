@@ -4,7 +4,7 @@
 //
 //  Created by Fernando Draghi on 22/09/2023.
 //
-
+#if canImport(UIKit)
 import UIKit
 
 protocol TapCollectorHandlerType {
@@ -45,3 +45,4 @@ final class TapCollectorHandler: TapCollectorHandlerType {
         return !(target.isKind(of: keyboardViewClass) || target.isKind(of: keyboardWindowClass))
     }
 }
+#endif

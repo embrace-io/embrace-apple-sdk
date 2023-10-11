@@ -8,8 +8,10 @@ import EmbraceStorage
 
 class SessionStorageInterface {
     let storage: EmbraceStorage?
+    var sessionRecord: SessionRecord?
     private(set) var currentSessionId: SessionId?
 
+    
     init(storage: EmbraceStorage?) {
         self.storage = storage
     }
@@ -18,7 +20,8 @@ class SessionStorageInterface {
         currentSessionId = UUID().uuidString
 
         if let newSessionId = currentSessionId {
-            storage?.addSessionAsync(id: newSessionId, state: state, startTime: Date(), endTime: nil) { result in
+            sessionRecord = SessionRecord(id: newSessionId, state: state, startTime: Date())
+            storage?.upsertSessionAsync(sessionRecord!) { result in
                 switch result {
                 case .success(let session):
                     // TODO: send session start message
@@ -33,13 +36,13 @@ class SessionStorageInterface {
 
     func stopSession() {
         if let endedSessionId = currentSessionId {
-            storage?.updateSessionEndTimeAsync(id: endedSessionId, endTime: Date()) { result in
+            sessionRecord?.endTime = Date()
+            storage?.upsertSessionAsync(sessionRecord!) { result in
                 switch result {
                 case .success(let session):
-                    if let session = session {
-                        // TODO: send finished session
-                        print("Session \(session.id) finished!")
-                    }
+                    // TODO: send finished session
+                    print("Session \(session.id) finished!")
+                    
                 case .failure(let error):
                     // TODO: decide what to do here
                     print("Session \(endedSessionId) finish failed: \(error.localizedDescription)")

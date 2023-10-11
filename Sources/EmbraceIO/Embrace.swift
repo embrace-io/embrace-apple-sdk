@@ -13,7 +13,7 @@ import EmbraceStorage
     @objc public private(set) var options: EmbraceOptions
     @objc public private(set) var started: Bool
 
-    private var sessionLifecycle: SessionLifecycle
+    private var sessionLifecycle: SessionLifecycle?
     private var storage: EmbraceStorage?
     private var collectors: CollectorsManager
     private var crashReporter: CrashReporter?
@@ -30,8 +30,9 @@ import EmbraceStorage
 
         // sessions lifecycle
         let sessionStorageInterface = SessionStorageInterface(storage: storage)
+        #if os(iOS)
         sessionLifecycle = iOSSessionLifecyle(storageInterface: sessionStorageInterface)
-
+        #endif
         super.init()
 
         initializeSessionHandlers()
@@ -73,12 +74,12 @@ import EmbraceStorage
 
     private func initializeSessionHandlers() {
         // on new session handler
-        sessionLifecycle.onNewSession = { [weak self] sessionId in
+        sessionLifecycle?.onNewSession = { [weak self] sessionId in
             self?.crashReporter?.currentSessionId = sessionId
         }
 
         // on session ended handler
-        sessionLifecycle.onSessionEnded = { [weak self] _ in
+        sessionLifecycle?.onSessionEnded = { [weak self] _ in
             self?.crashReporter?.currentSessionId = nil
         }
     }
@@ -115,20 +116,20 @@ import EmbraceStorage
         }
         
         started = true
-        sessionLifecycle.isEnabled = true
+        sessionLifecycle?.isEnabled = true
         collectors.start()
     }
 
     @objc public func currentSessionId() -> String? {
         // TODO: Discuss concurrency
-        return sessionLifecycle.currentSessionId
+        return sessionLifecycle?.currentSessionId
     }
 
     @objc public func startNewSession() {
-        sessionLifecycle.startNewSession()
+        sessionLifecycle?.startNewSession()
     }
 
     @objc public func stopCurrentSession() {
-        sessionLifecycle.stopCurrentSession()
+        sessionLifecycle?.stopCurrentSession()
     }
 }
