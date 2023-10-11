@@ -15,7 +15,7 @@ if ProcessInfo.processInfo.environment["IS_XCTEST"] != nil {
 let package = Package(
     name: "EmbraceIO",
     platforms: [
-        .iOS(.v12), .tvOS(.v12), .macOS(.v12)
+        .iOS(.v13), .tvOS(.v13), .macOS(.v13)
     ],
     products: [
         .library(name: "EmbraceIO", targets: ["EmbraceIO"]),

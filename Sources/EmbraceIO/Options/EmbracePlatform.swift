@@ -3,5 +3,10 @@
 //
 
 @objc public enum EmbracePlatform: Int {
-    case iOS, iOSExtension, tvOS, Unity, ReactNative
+    case iOS
+    case iOSExtension
+    case tvOS
+    case unity
+    case reactNative
+    case flutter
 }
