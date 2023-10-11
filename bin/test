@@ -1,3 +1,28 @@
 #!/bin/bash
 
-swift test --enable-code-coverage
+#
+#   TODO: Embrace scheme is setup to run all test targets
+#           Figure out way to accept variadic list of test targets (or preferably module names) to run
+#   TODO: Add controls for parallel tests, see `man xcodebuild` for correct args
+#
+
+DERIVED_DATA_PATH=".build/DerivedData"
+XCRESULT_PATH=".build/test/output.xcresult"
+
+if [ -d "$XCRESULT_PATH" ]; then
+    rm -rf $XCRESULT_PATH
+fi
+
+# `IS_XCTEST` envvar is work-around for plugin dependency being included in iOS target when using `xcodebuild test`
+# (See Package.swift `targetPlugins`)
+# https://forums.swift.org/t/xcode-attempts-to-build-plugins-for-ios-is-there-a-workaround/57029
+IS_XCTEST=1 \
+xcodebuild test \
+    -workspace . \
+    -scheme EmbraceIO \
+    -skipPackagePluginValidation \
+    -sdk "iphonesimulator" \
+    -destination "platform=iOS Simulator,name=iPhone 15,OS=latest" \
+    -enableCodeCoverage YES \
+    -derivedDataPath $DERIVED_DATA_PATH \
+    -resultBundlePath $XCRESULT_PATH

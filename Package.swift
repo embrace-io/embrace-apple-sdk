@@ -1,7 +1,16 @@
 // swift-tools-version: 5.8
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
+import Foundation
 import PackageDescription
+
+var targetPlugins: [Target.PluginUsage] = [.plugin(name: "SwiftLintPlugin", package: "SwiftLint")]
+// Work around for plugin dependency being included in iOS target when using `xcodebuild test`
+// (See bin/xctest)
+// https://forums.swift.org/t/xcode-attempts-to-build-plugins-for-ios-is-there-a-workaround/57029
+if ProcessInfo.processInfo.environment["IS_XCTEST"] != nil {
+    targetPlugins.removeAll()
+}
 
 let package = Package(
     name: "EmbraceIO",
@@ -27,7 +36,7 @@ let package = Package(
         ),
         .package(
             url: "https://github.com/realm/SwiftLint",
-            exact: "0.52.4"
+            exact: "0.53.0"
         ),
         .package(
             url: "https://github.com/apple/swift-docc-plugin",
@@ -40,24 +49,18 @@ let package = Package(
         .target(
             name: "EmbraceIO",
             dependencies: ["EmbraceOTel", "EmbraceStorage"],
-            plugins: [
-                .plugin(name: "SwiftLintPlugin", package: "SwiftLint")
-            ]
+            plugins: targetPlugins
         ),
 
         .testTarget(
             name: "EmbraceIOTests",
             dependencies: ["EmbraceIO"],
-            plugins: [
-                .plugin(name: "SwiftLintPlugin", package: "SwiftLint")
-            ]
+            plugins: targetPlugins
         ),
 
         .target(
             name: "EmbraceCommon",
-            plugins: [
-                .plugin(name: "SwiftLintPlugin", package: "SwiftLint")
-            ]
+            plugins: targetPlugins
         ),
 
         // OTel ----------------------------------------------------------------------
@@ -68,16 +71,12 @@ let package = Package(
                 "EmbraceStorage",
                 .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
             ],
-            plugins: [
-                .plugin(name: "SwiftLintPlugin", package: "SwiftLint")
-            ]
+            plugins: targetPlugins
         ),
         .testTarget(
             name: "EmbraceOTelTests",
             dependencies: ["EmbraceOTel", "TestSupport"],
-            plugins: [
-                .plugin(name: "SwiftLintPlugin", package: "SwiftLint")
-            ]
+            plugins: targetPlugins
         ),
 
         // storage ----------------------------------------------------------------------
@@ -88,16 +87,12 @@ let package = Package(
                 .product(name: "GRDB", package: "GRDB.swift"),
                 .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
             ],
-            plugins: [
-                .plugin(name: "SwiftLintPlugin", package: "SwiftLint")
-            ]
+            plugins: targetPlugins
         ),
         .testTarget(
             name: "EmbraceStorageTests",
             dependencies: ["EmbraceStorage", "TestSupport"],
-            plugins: [
-                .plugin(name: "SwiftLintPlugin", package: "SwiftLint")
-            ]
+            plugins: targetPlugins
         ),
 
         // upload ----------------------------------------------------------------------
@@ -106,16 +101,12 @@ let package = Package(
             dependencies: [
                 .product(name: "GRDB", package: "GRDB.swift")
             ],
-            plugins: [
-                .plugin(name: "SwiftLintPlugin", package: "SwiftLint")
-            ]
+            plugins: targetPlugins
         ),
         .testTarget(
             name: "EmbraceUploadTests",
             dependencies: ["EmbraceUpload", "TestSupport"],
-            plugins: [
-                .plugin(name: "SwiftLintPlugin", package: "SwiftLint")
-            ]
+            plugins: targetPlugins
         ),
 
         // crashes ----------------------------------------------------------------------
@@ -133,7 +124,7 @@ let package = Package(
             name: "EmbraceCrashTests",
             dependencies: ["EmbraceCrash", "TestSupport"],
             resources: [
-                .process("report.json"),
+                .process("report.json")
             ],
             plugins: [
                 .plugin(name: "SwiftLintPlugin", package: "SwiftLint")
@@ -145,9 +136,7 @@ let package = Package(
             name: "TestSupport",
             dependencies: [.product(name: "OpenTelemetrySdk", package: "opentelemetry-swift") ],
             path: "Tests/TestSupport",
-            plugins: [
-                .plugin(name: "SwiftLintPlugin", package: "SwiftLint")
-            ]
+            plugins: targetPlugins
         )
 
     ]

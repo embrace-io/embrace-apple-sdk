@@ -20,7 +20,7 @@ fi
 # Build the scheme for all platforms that we plan to support
 for PLATFORM in "iOS" "iOS Simulator"; do
     xcodebuild clean -workspace . \
-        -scheme Embrace \
+        -scheme EmbraceIO \
         -derivedDataPath $DERIVED_DATA_PATH \
         -destination "generic/platform=$PLATFORM"
 done
