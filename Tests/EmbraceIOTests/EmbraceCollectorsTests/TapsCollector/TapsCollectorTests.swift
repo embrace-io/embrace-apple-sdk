@@ -1,7 +1,7 @@
 //
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
-
+#if canImport(UIKit)
 import XCTest
 import UIKit
 @testable import EmbraceIO
@@ -30,3 +30,4 @@ final class TapsCollectorHandlerSpy: TapCollectorHandlerType {
         collectedEvent = event
     }
 }
+#endif

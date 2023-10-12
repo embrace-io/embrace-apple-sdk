@@ -30,8 +30,11 @@ import EmbraceStorage
 
         // sessions lifecycle
         let sessionStorageInterface = SessionStorageInterface(storage: storage)
-        sessionLifecycle = iOSSessionLifecyle(storageInterface: sessionStorageInterface)
-
+        #if os(iOS)
+            sessionLifecycle = iOSSessionLifecyle(storageInterface: sessionStorageInterface)
+        #else
+            sessionLifecycle = ManualSessionLifecyle(storageInterface: sessionStorageInterface)
+        #endif
         super.init()
 
         initializeSessionHandlers()

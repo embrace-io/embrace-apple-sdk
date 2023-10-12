@@ -1,9 +1,10 @@
 //
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
+#if os(iOS)
+import UIKit
 
 import Foundation
-import UIKit
 import EmbraceCommon
 
 class iOSSessionLifecyle: SessionLifecycle {
@@ -132,3 +133,5 @@ class iOSSessionLifecyle: SessionLifecycle {
         storageInterface.stopSession()
     }
 }
+
+#endif

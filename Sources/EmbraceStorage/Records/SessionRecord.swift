@@ -13,7 +13,7 @@ public struct SessionRecord: Codable {
     public var startTime: Date
     public var endTime: Date?
 
-    internal init(id: SessionId, state: SessionState, startTime: Date, endTime: Date? = nil) {
+    public init(id: SessionId, state: SessionState, startTime: Date, endTime: Date? = nil) {
         self.id = id
         self.state = state.rawValue
         self.startTime = startTime
