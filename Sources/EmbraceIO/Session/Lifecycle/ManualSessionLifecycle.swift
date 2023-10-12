@@ -6,8 +6,6 @@ import UIKit
 #endif
 
 import Foundation
-
-import Foundation
 import EmbraceCommon
 
 class ManualSessionLifecyle: SessionLifecycle {
