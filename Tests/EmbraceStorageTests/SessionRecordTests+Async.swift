@@ -16,7 +16,7 @@ extension SessionRecordTests {
         let expectation1 = XCTestExpectation()
         var session: SessionRecord?
 
-        storage.addSessionAsync(id: "id", state: .foreground, startTime: Date(), endTime: nil) { result in
+        storage.addSessionAsync(id: "id", state: .foreground, startTime: Date(), endTime: nil, crashReportId: nil) { result in
             switch result {
             case .success(let s):
                 session = s
@@ -26,7 +26,7 @@ extension SessionRecordTests {
             }
         }
 
-        wait(for: [expectation1], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation1], timeout: .defaultTimeout)
 
         // then session should exist in storage
         let expectation2 = XCTestExpectation()
@@ -39,7 +39,7 @@ extension SessionRecordTests {
             XCTAssert(false, "session is invalid!")
         }
 
-        wait(for: [expectation2], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation2], timeout: .defaultTimeout)
     }
 
     func test_upsertSessionAsync() throws {
@@ -58,7 +58,7 @@ extension SessionRecordTests {
             }
         }
 
-        wait(for: [expectation1], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation1], timeout: .defaultTimeout)
 
         // then session should exist in storage
         let expectation = XCTestExpectation()
@@ -67,7 +67,7 @@ extension SessionRecordTests {
             expectation.fulfill()
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_fetchSessionAsync() throws {
@@ -90,7 +90,7 @@ extension SessionRecordTests {
             }
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
 
         // then session should be valid
         XCTAssertEqual(original, session)
@@ -107,7 +107,7 @@ extension SessionRecordTests {
         let expectation1 = XCTestExpectation()
         var session: SessionRecord?
 
-        storage.updateSessionEndTimeAsync(id: "id", endTime: Date(timeIntervalSinceNow: 10)) { result in
+        storage.updateSessionAsync(id: "id", endTime: Date(timeIntervalSinceNow: 10)) { result in
             switch result {
             case .success(let s):
                 session = s
@@ -117,7 +117,7 @@ extension SessionRecordTests {
             }
         }
 
-        wait(for: [expectation1], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation1], timeout: .defaultTimeout)
 
         // then the session should be valid and be updated in storage
         let expectation2 = XCTestExpectation()
@@ -131,7 +131,45 @@ extension SessionRecordTests {
             XCTAssert(false, "session not found in storage!")
         }
 
-        wait(for: [expectation2], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation2], timeout: .defaultTimeout)
+    }
+
+    func test_updateSessionCrashReportIdAsync() throws {
+        let storage = try EmbraceStorage(options: testOptions)
+
+        // given inserted session with nil endTime
+        let original = try storage.addSession(id: "id", state: .foreground, startTime: Date(), endTime: nil)
+        XCTAssertNil(original.endTime)
+
+        // when updating the session endtime
+        let expectation1 = XCTestExpectation()
+        var session: SessionRecord?
+
+        storage.updateSessionAsync(id: "id", crashReportId: "crashReportId") { result in
+            switch result {
+            case .success(let s):
+                session = s
+                expectation1.fulfill()
+            case .failure(let error):
+                XCTAssert(false, error.localizedDescription)
+            }
+        }
+
+        wait(for: [expectation1], timeout: .defaultTimeout)
+
+        // then the session should be valid and be updated in storage
+        let expectation2 = XCTestExpectation()
+        if let session = session {
+            try storage.dbQueue.read { db in
+                XCTAssert(try session.exists(db))
+                XCTAssertEqual(session.crashReportId, "crashReportId")
+                expectation2.fulfill()
+            }
+        } else {
+            XCTAssert(false, "session not found in storage!")
+        }
+
+        wait(for: [expectation2], timeout: .defaultTimeout)
     }
 
     func test_finishedSessionsCountAsync() throws {
@@ -158,7 +196,7 @@ extension SessionRecordTests {
             }
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_fetchFinishedSessionsAsync() throws {
@@ -186,7 +224,7 @@ extension SessionRecordTests {
             }
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_fetchLatestSesssionAsync() throws {
@@ -212,6 +250,6 @@ extension SessionRecordTests {
             }
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 }

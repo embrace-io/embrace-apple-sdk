@@ -48,13 +48,21 @@ let package = Package(
         // core ----------------------------------------------------------------------
         .target(
             name: "EmbraceIO",
-            dependencies: ["EmbraceOTel", "EmbraceStorage"],
+            dependencies: ["EmbraceOTel", "EmbraceStorage", "EmbraceUpload"],
             plugins: targetPlugins
         ),
 
         .testTarget(
             name: "EmbraceIOTests",
-            dependencies: ["EmbraceIO"],
+            dependencies: [
+                "EmbraceIO",
+                "EmbraceCrash",
+                "TestSupport",
+                .product(name: "GRDB", package: "GRDB.swift"),
+            ],
+            resources: [
+                .copy("Mocks/"),
+            ],
             plugins: targetPlugins
         ),
 
@@ -116,19 +124,15 @@ let package = Package(
                 "EmbraceCommon",
                 .product(name: "KSCrash", package: "KSCrash")
             ],
-            plugins: [
-                .plugin(name: "SwiftLintPlugin", package: "SwiftLint")
-            ]
+            plugins: targetPlugins
         ),
         .testTarget(
             name: "EmbraceCrashTests",
             dependencies: ["EmbraceCrash", "TestSupport"],
             resources: [
-                .process("report.json")
+                .copy("Mocks/"),
             ],
-            plugins: [
-                .plugin(name: "SwiftLintPlugin", package: "SwiftLint")
-            ]
+            plugins: targetPlugins
         ),
 
         // test support ----------------------------------------------------------------------

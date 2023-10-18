@@ -14,7 +14,7 @@ protocol SessionLifecycleProtocol {
     var onSessionEnded: ((SessionId?) -> Void)? { get set }
 
     func startNewSession()
-    func stopCurrentSession()
+    func endCurrentSession()
 }
 
 class SessionLifecycleBase {

@@ -12,12 +12,14 @@ public struct SessionRecord: Codable {
     public var state: String
     public var startTime: Date
     public var endTime: Date?
+    public var crashReportId: String?
 
-    public init(id: SessionId, state: SessionState, startTime: Date, endTime: Date? = nil) {
+    public init(id: SessionId, state: SessionState, startTime: Date, endTime: Date? = nil, crashReportId: String? = nil) {
         self.id = id
         self.state = state.rawValue
         self.startTime = startTime
         self.endTime = endTime
+        self.crashReportId = crashReportId
     }
 }
 
@@ -39,6 +41,8 @@ extension SessionRecord: TableRecord {
 
             t.column("start_time", .datetime).notNull()
             t.column("end_time", .datetime)
+
+            t.column("crash_report_id", .text)
         }
     }
 }

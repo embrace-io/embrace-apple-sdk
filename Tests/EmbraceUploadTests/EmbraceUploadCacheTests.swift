@@ -82,7 +82,7 @@ class EmbraceUploadCacheTests: XCTestCase {
             expectation.fulfill()
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_fetchUploadData() throws {
@@ -157,7 +157,7 @@ class EmbraceUploadCacheTests: XCTestCase {
             expectation.fulfill()
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_saveUploadData() throws {
@@ -173,7 +173,7 @@ class EmbraceUploadCacheTests: XCTestCase {
             expectation.fulfill()
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_saveUploadData_limit() throws {
@@ -196,7 +196,7 @@ class EmbraceUploadCacheTests: XCTestCase {
             expectation.fulfill()
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_deleteUploadData() throws {
@@ -219,7 +219,7 @@ class EmbraceUploadCacheTests: XCTestCase {
             expectation.fulfill()
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_updateAttemptCount() throws {
@@ -246,6 +246,6 @@ class EmbraceUploadCacheTests: XCTestCase {
             }
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 }

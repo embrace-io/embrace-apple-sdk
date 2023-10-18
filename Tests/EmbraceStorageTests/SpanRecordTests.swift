@@ -91,7 +91,7 @@ class SpanRecordTests: XCTestCase {
             expectation.fulfill()
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_addSpan() throws {
@@ -108,7 +108,7 @@ class SpanRecordTests: XCTestCase {
             expectation.fulfill()
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_upsertSpan() throws {
@@ -125,7 +125,7 @@ class SpanRecordTests: XCTestCase {
             expectation.fulfill()
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_fetchSpan() throws {

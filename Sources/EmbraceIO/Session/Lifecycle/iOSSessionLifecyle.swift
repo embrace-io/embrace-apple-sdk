@@ -73,13 +73,13 @@ class iOSSessionLifecyle: SessionLifecycle {
     }
 
     /// Stops current session and immediately starts a new one if able
-    func stopCurrentSession() {
+    func endCurrentSession() {
         guard isEnabled == true else {
             return
         }
 
         let sessionId = currentSessionId
-        storageInterface.stopSession()
+        storageInterface.endSession()
         onSessionEnded?(sessionId)
 
         // we always have a session
@@ -91,7 +91,7 @@ class iOSSessionLifecyle: SessionLifecycle {
             return
         }
 
-        stopCurrentSession()
+        endCurrentSession()
     }
 
     private func fetchInitialAppState() {
@@ -130,7 +130,7 @@ class iOSSessionLifecyle: SessionLifecycle {
 
     @objc func appWillTerminate() {
         // TODO: Flag session as terminated
-        storageInterface.stopSession()
+        storageInterface.endSession()
     }
 }
 

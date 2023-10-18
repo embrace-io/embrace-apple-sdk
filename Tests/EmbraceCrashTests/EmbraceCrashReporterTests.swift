@@ -6,7 +6,7 @@ import XCTest
 import TestSupport
 @testable import EmbraceCrash
 
-class EmbraceUploadCacheOptionsTests: XCTestCase {
+class EmbraceCrashReporterTests: XCTestCase {
 
     var path: String {
         let path = NSSearchPathForDirectoriesInDomains(
@@ -37,7 +37,7 @@ class EmbraceUploadCacheOptionsTests: XCTestCase {
         crashReporter.currentSessionId = "test"
 
         // then KSCrash's user info is properly set
-        let key = EmbraceCrashReporter.UserInfoKey.sessionId.rawValue
+        let key = EmbraceCrashReporter.UserInfoKey.sessionId
         XCTAssertEqual(crashReporter.ksCrash?.userInfo[key] as? String, "test")
     }
 
@@ -51,7 +51,7 @@ class EmbraceUploadCacheOptionsTests: XCTestCase {
         crashReporter.sdkVersion = "test"
 
         // then KSCrash's user info is properly set
-        let key = EmbraceCrashReporter.UserInfoKey.sdkVersion.rawValue
+        let key = EmbraceCrashReporter.UserInfoKey.sdkVersion
         XCTAssertEqual(crashReporter.ksCrash?.userInfo[key] as? String, "test")
     }
 
@@ -65,7 +65,7 @@ class EmbraceUploadCacheOptionsTests: XCTestCase {
         crashReporter.appVersion = "test"
 
         // then KSCrash's user info is properly set
-        let key = EmbraceCrashReporter.UserInfoKey.appVersion.rawValue
+        let key = EmbraceCrashReporter.UserInfoKey.appVersion
         XCTAssertEqual(crashReporter.ksCrash?.userInfo[key] as? String, "test")
     }
 
@@ -78,7 +78,7 @@ class EmbraceUploadCacheOptionsTests: XCTestCase {
 
         // given some fake crash report
         try FileManager.default.createDirectory(atPath: path + "Reports/", withIntermediateDirectories: true)
-        let report = Bundle.module.path(forResource: "report", ofType: "json")!
+        let report = Bundle.module.path(forResource: "crash_report", ofType: "json", inDirectory: "Mocks")!
         let finalPath = path + "Reports/appId-report-0000000000000001.json"
         try FileManager.default.copyItem(atPath: report, toPath: finalPath)
 
@@ -86,7 +86,7 @@ class EmbraceUploadCacheOptionsTests: XCTestCase {
         let expectation = XCTestExpectation()
         crashReporter.fetchUnsentCrashReports { reports in
             XCTAssertEqual(reports.count, 1)
-            XCTAssertEqual(reports[0].sessionId, "18EDB6CE-90C2-456B-97CB-91E0F5941CCA")
+            XCTAssertEqual(reports[0].sessionId, TestConstants.sessionId)
             XCTAssertEqual(reports[0].sdkVersion, "6.0.0")
             XCTAssertEqual(reports[0].appVersion, "1.0.0")
             XCTAssertNotNil(reports[0].timestamp)
@@ -94,7 +94,7 @@ class EmbraceUploadCacheOptionsTests: XCTestCase {
             expectation.fulfill()
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_fetchCrashReports_count() throws {
@@ -106,7 +106,7 @@ class EmbraceUploadCacheOptionsTests: XCTestCase {
 
         // given some fake crash report
         try FileManager.default.createDirectory(atPath: path + "Reports/", withIntermediateDirectories: true)
-        let report = Bundle.module.path(forResource: "report", ofType: "json")!
+        let report = Bundle.module.path(forResource: "crash_report", ofType: "json", inDirectory: "Mocks")!
 
         for i in 1...9 {
             let finalPath = path + "Reports/appId-report-000000000000000\(i).json"
@@ -121,6 +121,6 @@ class EmbraceUploadCacheOptionsTests: XCTestCase {
             expectation.fulfill()
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 }

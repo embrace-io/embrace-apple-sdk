@@ -40,6 +40,11 @@ public class EmbraceHTTPMock: URLProtocol {
         return requests[url] ?? []
     }
 
+    /// Returns the total amount of requests that were executed.
+    public class func totalRequestCount() -> Int {
+        return requests.values.reduce(0) { $0 + $1.count }
+    }
+
     // MARK: - Internal
     public override class func canInit(with request: URLRequest) -> Bool {
         return true

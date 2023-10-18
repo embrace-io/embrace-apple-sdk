@@ -6,6 +6,7 @@ import Foundation
 import EmbraceCommon
 import EmbraceOTel
 import EmbraceStorage
+import EmbraceUpload
 
 @objc public class Embrace: NSObject {
 
@@ -13,10 +14,14 @@ import EmbraceStorage
     @objc public private(set) var options: EmbraceOptions
     @objc public private(set) var started: Bool
 
-    private var sessionLifecycle: SessionLifecycle
-    private var storage: EmbraceStorage?
-    private var collectors: CollectorsManager
+    private let sessionLifecycle: SessionLifecycle
+    private let storage: EmbraceStorage?
+    private let upload: EmbraceUpload?
+    private let collectors: CollectorsManager
     private var crashReporter: CrashReporter?
+
+    private let processingQueue: DispatchQueue
+    private static let synchronizationQueue: DispatchQueue = DispatchQueue(label: "com.embrace.synchronization", qos: .utility)
 
     private override init() {
         fatalError("Use init(options:) instead")
@@ -27,6 +32,9 @@ import EmbraceStorage
         self.options = options
         self.collectors = CollectorsManager(collectors: collectors)
         self.storage = Embrace.createStorage(options: options)
+        self.upload = Embrace.createUpload(options: options)
+
+        self.processingQueue = DispatchQueue(label: "com.embrace.processing", qos: .background, attributes: .concurrent)
 
         // sessions lifecycle
         let sessionStorageInterface = SessionStorageInterface(storage: storage)
@@ -44,16 +52,52 @@ import EmbraceStorage
     }
 
     @objc public class func setup(options: EmbraceOptions, collectors: [Collector]) {
-        // TODO: Concurrency handling!
-        
-        if client != nil {
-            print("Embrace was already initialized!")
-            return
-        }
+        Embrace.synchronizationQueue.sync {
+            if client != nil {
+                print("Embrace was already initialized!")
+                return
+            }
 
-        client = Embrace(options: options, collectors: collectors)
+            client = Embrace(options: options, collectors: collectors)
+        }
     }
 
+    @objc public func start() {
+        Embrace.synchronizationQueue.sync {
+            guard started == false else {
+                print("Embrace was already started!")
+                return
+            }
+
+            started = true
+            sessionLifecycle.isEnabled = true
+            collectors.start()
+
+            // send unsent sessions and crash reports
+            processingQueue.async { [weak self] in
+                UnsentDataHandler.sendUnsentData(
+                    storage: self?.storage,
+                    upload: self?.upload,
+                    crashReporter: self?.crashReporter
+                )
+            }
+        }
+    }
+
+    @objc public func currentSessionId() -> String? {
+        // TODO: Discuss concurrency
+        return sessionLifecycle.currentSessionId
+    }
+
+    @objc public func startNewSession() {
+        sessionLifecycle.startNewSession()
+    }
+
+    @objc public func endCurrentSession() {
+        sessionLifecycle.endCurrentSession()
+    }
+
+    // MARK: - Private
     private static func createStorage(options: EmbraceOptions) -> EmbraceStorage? {
         if let storageUrl = EmbraceFileSystem.storageDirectoryURL(
             appId: options.appId,
@@ -71,6 +115,47 @@ import EmbraceStorage
         }
 
         // TODO: Discuss what to do if the storage fails to initialize!
+        return nil
+    }
+
+    private static func createUpload(options: EmbraceOptions) -> EmbraceUpload? {
+        // endpoints
+        guard let sessionsURL = URL.sessionsEndpoint(basePath: options.endpointsConfig.dataBaseUrlPath),
+              let blobsURL = URL.blobsEndpoint(basePath: options.endpointsConfig.dataBaseUrlPath) else {
+            print("Failed to initialize endpoints!")
+            return nil
+        }
+
+        let endpoints = EmbraceUpload.EndpointOptions(sessionsURL: sessionsURL, blobsURL: blobsURL)
+
+        // cache
+        guard let cacheUrl = EmbraceFileSystem.uploadsDirectoryPath(
+            appId: options.appId,
+            appGroupId: options.appGroupId,
+            forceCachesDirectory: options.platform == .tvOS // TODO: Check if this is really needed
+        ),
+              let cache = EmbraceUpload.CacheOptions(cacheBaseUrl: cacheUrl)
+        else {
+            print("Failed to initialize upload cache!")
+            return nil
+        }
+
+        // metadata
+        let metadata = EmbraceUpload.MetadataOptions(
+            apiKey: options.appId,
+            userAgent: "Embrace/i/6.0.0", // TODO: Do this properly!
+            deviceId: "0123456789ABCDEF0123456789ABCDEF"  // TODO: Do this properly!
+        )
+
+        do {
+            let options = EmbraceUpload.Options(endpoints: endpoints, cache: cache, metadata: metadata)
+            let queue = DispatchQueue(label: "com.embrace.upload", attributes: .concurrent)
+
+            return try EmbraceUpload(options: options, queue: queue)
+        } catch {
+            print("Error initializing Embrace Upload: " + error.localizedDescription)
+        }
+
         return nil
     }
 
@@ -109,29 +194,5 @@ import EmbraceStorage
 
         crashReporter?.sdkVersion = "6.0.0" // TODO: Do this properly!
         crashReporter?.appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
-    }
-
-    @objc public func start() {
-        guard started == false else {
-            print("Embrace was already started!")
-            return
-        }
-        
-        started = true
-        sessionLifecycle.isEnabled = true
-        collectors.start()
-    }
-
-    @objc public func currentSessionId() -> String? {
-        // TODO: Discuss concurrency
-        return sessionLifecycle.currentSessionId
-    }
-
-    @objc public func startNewSession() {
-        sessionLifecycle.startNewSession()
-    }
-
-    @objc public func stopCurrentSession() {
-        sessionLifecycle.stopCurrentSession()
     }
 }

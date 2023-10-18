@@ -22,15 +22,17 @@ public protocol CrashReporter {
 }
 
 public struct CrashReport {
-    public private(set) var id: Int
+    public private(set) var id: UUID
+    public private(set) var ksCrashId: Int
     public private(set) var sessionId: SessionId?
     public private(set) var sdkVersion: String?
     public private(set) var appVersion: String?
     public private(set) var timestamp: Date?
     public private(set) var data: Data
 
-    public init(id: Int, sessionId: SessionId?, sdkVersion: String?, appVersion: String?, timestamp: Date?, data: Data) {
-        self.id = id
+    public init(ksCrashId: Int, sessionId: SessionId?, sdkVersion: String?, appVersion: String?, timestamp: Date?, data: Data) {
+        self.id = UUID()
+        self.ksCrashId = ksCrashId
         self.sessionId = sessionId
         self.sdkVersion = sdkVersion
         self.appVersion = appVersion

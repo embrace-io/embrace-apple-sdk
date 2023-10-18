@@ -9,7 +9,7 @@ import Foundation
 import EmbraceCommon
 
 class ManualSessionLifecyle: SessionLifecycle {
-    
+
     override var isEnabled: Bool {
         didSet {
             if isEnabled == true {
@@ -17,7 +17,7 @@ class ManualSessionLifecyle: SessionLifecycle {
             }
         }
     }
-    
+
     func startNewSession() {
         guard isEnabled == true else {
             return
@@ -33,20 +33,20 @@ class ManualSessionLifecyle: SessionLifecycle {
         onNewSession?(currentSessionId)
 #endif
     }
-    
-    func stopCurrentSession() {
+
+    func endCurrentSession() {
         guard isEnabled == true else {
             return
         }
 
         let sessionId = currentSessionId
-        storageInterface.stopSession()
+        storageInterface.endSession()
         onSessionEnded?(sessionId)
 
         // we always have a session
         startNewSession()
     }
-    
+
     func onEnabled() {
         startNewSession()
     }

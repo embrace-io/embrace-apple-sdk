@@ -9,10 +9,10 @@ import KSCrash_Recording
 /// Class used to interact with KSCrash
 @objc public class EmbraceCrashReporter: NSObject, InstalledCollector, CrashReporter {
 
-    internal enum UserInfoKey: String {
-        case sessionId = "emb-sid"
-        case sdkVersion = "emb-sdk"
-        case appVersion = "emb-app"
+    enum UserInfoKey {
+        static let sessionId = "emb-sid"
+        static let sdkVersion = "emb-sdk"
+        static let appVersion = "emb-app"
     }
 
     var ksCrash: KSCrash?
@@ -38,36 +38,36 @@ import KSCrash_Recording
     /// Sets the current session identifier that will be included in a crash report.
     public var currentSessionId: SessionId? {
         get {
-            return userInfo[UserInfoKey.sessionId.rawValue]
+            return userInfo[UserInfoKey.sessionId]
         }
         set {
-            setUserInfoValue(newValue, key: .sessionId)
+            setUserInfoValue(newValue, key: UserInfoKey.sessionId)
         }
     }
 
     /// Adds the SDK version to the crash reports.
     public var sdkVersion: String? {
         get {
-            return userInfo[UserInfoKey.sdkVersion.rawValue]
+            return userInfo[UserInfoKey.sdkVersion]
         }
         set {
-            setUserInfoValue(newValue, key: .sdkVersion)
+            setUserInfoValue(newValue, key: UserInfoKey.sdkVersion)
         }
     }
 
     /// Adds the app version to the crash reports.
     public var appVersion: String? {
         get {
-            return userInfo[UserInfoKey.appVersion.rawValue]
+            return userInfo[UserInfoKey.appVersion]
         }
         set {
-            setUserInfoValue(newValue, key: .appVersion)
+            setUserInfoValue(newValue, key: UserInfoKey.appVersion)
         }
     }
 
-    private func setUserInfoValue(_ value: String?, key: UserInfoKey) {
+    private func setUserInfoValue(_ value: String?, key: String) {
         // TODO: Concurrency handling
-        userInfo[key.rawValue] = value
+        userInfo[key] = value
         ksCrash?.userInfo = userInfo
     }
 
@@ -136,9 +136,9 @@ import KSCrash_Recording
                 var timestamp: Date?
 
                 if let userDict = report["user"] as? [AnyHashable: Any] {
-                    sessionId = userDict[UserInfoKey.sessionId.rawValue] as? SessionId
-                    sdkVersion = userDict[UserInfoKey.sdkVersion.rawValue] as? String
-                    appVersion = userDict[UserInfoKey.appVersion.rawValue] as? String
+                    sessionId = userDict[UserInfoKey.sessionId] as? SessionId
+                    sdkVersion = userDict[UserInfoKey.sdkVersion] as? String
+                    appVersion = userDict[UserInfoKey.appVersion] as? String
                 }
 
                 if let reportDict = report["report"] as? [AnyHashable: Any],
@@ -148,7 +148,7 @@ import KSCrash_Recording
 
                 // add report
                 let crashReport = CrashReport(
-                    id: id.intValue,
+                    ksCrashId: id.intValue,
                     sessionId: sessionId,
                     sdkVersion: sdkVersion,
                     appVersion: appVersion,

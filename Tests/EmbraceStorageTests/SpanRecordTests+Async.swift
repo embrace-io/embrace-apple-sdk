@@ -25,7 +25,7 @@ extension SpanRecordTests {
             }
         }
 
-        wait(for: [expectation1], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation1], timeout: .defaultTimeout)
 
         // then span should exist in storage
         let expectation2 = XCTestExpectation()
@@ -38,7 +38,7 @@ extension SpanRecordTests {
             XCTAssert(false, "span is invalid!")
         }
 
-        wait(for: [expectation2], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation2], timeout: .defaultTimeout)
     }
 
     func test_upsertSpanAsync() throws {
@@ -57,7 +57,7 @@ extension SpanRecordTests {
             }
         }
 
-        wait(for: [expectation1], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation1], timeout: .defaultTimeout)
 
         // then span should exist in storage
         let expectation = XCTestExpectation()
@@ -66,7 +66,7 @@ extension SpanRecordTests {
             expectation.fulfill()
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_fetchSpanAsync() throws {
@@ -89,7 +89,7 @@ extension SpanRecordTests {
             }
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
 
         // then span should be valid
         XCTAssertEqual(original, span)
@@ -120,7 +120,7 @@ extension SpanRecordTests {
             }
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_fetchOpenSpansAsync() throws {
@@ -148,7 +148,7 @@ extension SpanRecordTests {
             }
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_fetchOpenSpansAsync_type() throws {
@@ -176,7 +176,7 @@ extension SpanRecordTests {
             }
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_spanCountAsync_traceId() throws {
@@ -202,7 +202,7 @@ extension SpanRecordTests {
             }
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_fetchSpansAsync_traceId_type() throws {
@@ -230,7 +230,7 @@ extension SpanRecordTests {
             }
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_fetchSpansAsync_traceId_type_limit() throws {
@@ -259,7 +259,7 @@ extension SpanRecordTests {
             }
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_spanCountAsync_date() throws {
@@ -286,7 +286,7 @@ extension SpanRecordTests {
             }
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_fetchSpansAsync_date_type() throws {
@@ -315,7 +315,7 @@ extension SpanRecordTests {
             }
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_fetchSpansAsync_date_type_limit() throws {
@@ -345,6 +345,6 @@ extension SpanRecordTests {
             }
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 }

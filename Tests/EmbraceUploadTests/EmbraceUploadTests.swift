@@ -65,7 +65,7 @@ class EmbraceUploadTests: XCTestCase {
             }
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_invalidData() throws {
@@ -85,7 +85,7 @@ class EmbraceUploadTests: XCTestCase {
             }
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_successCompletion() throws {
@@ -105,7 +105,7 @@ class EmbraceUploadTests: XCTestCase {
             }
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_cacheFlowOnSuccess() throws {
@@ -149,7 +149,7 @@ class EmbraceUploadTests: XCTestCase {
             }
         }
 
-        wait(for: [expectation1, expectation2, expectation3], timeout: TestConstants.veryLongTimeout, enforceOrder: true)
+        wait(for: [expectation1, expectation2, expectation3], timeout: .veryLongTimeout, enforceOrder: true)
 
         // clean up
         cancellable.cancel()
@@ -188,7 +188,7 @@ class EmbraceUploadTests: XCTestCase {
             }
         }
 
-        wait(for: [expectation1, expectation2], timeout: TestConstants.veryLongTimeout, enforceOrder: true)
+        wait(for: [expectation1, expectation2], timeout: .veryLongTimeout, enforceOrder: true)
 
         // data should remain cached
         let record = try module.cache.fetchUploadData(id: "id", type: .session)
@@ -208,7 +208,7 @@ class EmbraceUploadTests: XCTestCase {
         // when retrying to upload all cached data
         module.retryCachedData()
 
-        _ = XCTWaiter.wait(for: [XCTestExpectation()], timeout: TestConstants.defaultTimeout)
+        _ = XCTWaiter.wait(for: [XCTestExpectation()], timeout: .defaultTimeout)
 
         // then requests are made
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(EmbraceUploadTests.testSessionsUrl).count, 1)
@@ -222,7 +222,7 @@ class EmbraceUploadTests: XCTestCase {
         // when retrying to upload all cached data
         module.retryCachedData()
 
-        _ = XCTWaiter.wait(for: [XCTestExpectation()], timeout: TestConstants.defaultTimeout)
+        _ = XCTWaiter.wait(for: [XCTestExpectation()], timeout: .defaultTimeout)
 
         // then no requests are made
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(EmbraceUploadTests.testSessionsUrl).count, 0)
@@ -235,7 +235,7 @@ class EmbraceUploadTests: XCTestCase {
         // when uploading session data
         module.uploadSession(id: "id", data: TestConstants.data, completion: nil)
 
-        _ = XCTWaiter.wait(for: [XCTestExpectation()], timeout: TestConstants.defaultTimeout)
+        wait(delay: .defaultTimeout)
 
         // then a request to the right endpoint is made
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(EmbraceUploadTests.testSessionsUrl).count, 1)
@@ -248,7 +248,7 @@ class EmbraceUploadTests: XCTestCase {
         // when uploading blob data
         module.uploadBlob(id: "id", data: TestConstants.data, completion: nil)
 
-        _ = XCTWaiter.wait(for: [XCTestExpectation()], timeout: TestConstants.defaultTimeout)
+        wait(delay: .defaultTimeout)
 
         // then a request to the right endpoint is made
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(EmbraceUploadTests.testSessionsUrl).count, 0)

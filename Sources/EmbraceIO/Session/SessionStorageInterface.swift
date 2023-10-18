@@ -11,7 +11,6 @@ class SessionStorageInterface {
     var sessionRecord: SessionRecord?
     private(set) var currentSessionId: SessionId?
 
-    
     init(storage: EmbraceStorage?) {
         self.storage = storage
     }
@@ -34,7 +33,7 @@ class SessionStorageInterface {
         }
     }
 
-    func stopSession() {
+    func endSession() {
         if let endedSessionId = currentSessionId {
             sessionRecord?.endTime = Date()
             storage?.upsertSessionAsync(sessionRecord!) { result in
@@ -42,7 +41,7 @@ class SessionStorageInterface {
                 case .success(let session):
                     // TODO: send finished session
                     print("Session \(session.id) finished!")
-                    
+
                 case .failure(let error):
                     // TODO: decide what to do here
                     print("Session \(endedSessionId) finish failed: \(error.localizedDescription)")

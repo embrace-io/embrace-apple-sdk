@@ -24,7 +24,7 @@ extension EmbraceStorageTests {
             expectation1.fulfill()
         }
 
-        wait(for: [expectation1], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation1], timeout: .defaultTimeout)
 
         // when updating record
         let endTime = Date(timeInterval: 10, since: span.startTime)
@@ -40,7 +40,7 @@ extension EmbraceStorageTests {
             }
         })
 
-        wait(for: [expectation2], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation2], timeout: .defaultTimeout)
 
         // the record should update successfuly
         try storage.dbQueue.read { db in
@@ -66,7 +66,7 @@ extension EmbraceStorageTests {
             expectation1.fulfill()
         }
 
-        wait(for: [expectation1], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation1], timeout: .defaultTimeout)
 
         // when deleting record
         let expectation2 = XCTestExpectation()
@@ -79,7 +79,7 @@ extension EmbraceStorageTests {
             }
         }
 
-        wait(for: [expectation2], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation2], timeout: .defaultTimeout)
 
         // the record should update successfuly
         try storage.dbQueue.read { db in
@@ -106,7 +106,7 @@ extension EmbraceStorageTests {
             expectation1.fulfill()
         }
 
-        wait(for: [expectation1], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation1], timeout: .defaultTimeout)
 
         // when fetching all records
         storage.fetchAllAsync { (result: Result<[SpanRecord], Error>) in
@@ -139,7 +139,7 @@ extension EmbraceStorageTests {
             expectation1.fulfill()
         }
 
-        wait(for: [expectation1], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation1], timeout: .defaultTimeout)
 
         // when executing custom query to delete record
         let expectation2 = XCTestExpectation()
@@ -153,7 +153,7 @@ extension EmbraceStorageTests {
             }
         }
 
-        wait(for: [expectation2], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation2], timeout: .defaultTimeout)
 
         // then record should not exist in storage
         let expectation3 = XCTestExpectation()
@@ -162,6 +162,6 @@ extension EmbraceStorageTests {
             expectation3.fulfill()
         }
 
-        wait(for: [expectation3], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation3], timeout: .defaultTimeout)
     }
 }

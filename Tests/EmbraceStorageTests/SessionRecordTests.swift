@@ -69,10 +69,18 @@ class SessionRecordTests: XCTestCase {
                 XCTAssert(false, "end_time column not found!")
             }
 
+            // crash_report_id
+            let crashReportIdColumn = columns.first(where: { $0.name == "crash_report_id" })
+            if let crashReportIdColumn = crashReportIdColumn {
+                XCTAssertEqual(crashReportIdColumn.type, "TEXT")
+            } else {
+                XCTAssert(false, "crash_report_id column not found!")
+            }
+
             expectation.fulfill()
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_addSession() throws {
@@ -89,7 +97,7 @@ class SessionRecordTests: XCTestCase {
             expectation.fulfill()
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_upsertSession() throws {
@@ -106,7 +114,7 @@ class SessionRecordTests: XCTestCase {
             expectation.fulfill()
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_fetchSession() throws {
@@ -131,7 +139,7 @@ class SessionRecordTests: XCTestCase {
         XCTAssertNil(original.endTime)
 
         // when updating the session endtime
-        let session = try storage.updateSessionEndTime(id: "id", endTime: Date(timeIntervalSinceNow: 10))
+        let session = try storage.updateSession(id: "id", endTime: Date(timeIntervalSinceNow: 10))
 
         // then the session should be valid and be updated in storage
         let expectation = XCTestExpectation()
@@ -145,7 +153,32 @@ class SessionRecordTests: XCTestCase {
             XCTAssert(false, "session not found in storage!")
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
+    }
+
+    func test_updateSessionCrashReportId() throws {
+        let storage = try EmbraceStorage(options: testOptions)
+
+        // given inserted session with nil endTime
+        let original = try storage.addSession(id: "id", state: .foreground, startTime: Date(), endTime: nil)
+        XCTAssertNil(original.endTime)
+
+        // when updating the session endtime
+        let session = try storage.updateSession(id: "id", crashReportId: "crashReportId")
+
+        // then the session should be valid and be updated in storage
+        let expectation = XCTestExpectation()
+        if let session = session {
+            try storage.dbQueue.read { db in
+                XCTAssert(try session.exists(db))
+                XCTAssertEqual(session.crashReportId, "crashReportId")
+                expectation.fulfill()
+            }
+        } else {
+            XCTAssert(false, "session not found in storage!")
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_finishedSessionsCount() throws {

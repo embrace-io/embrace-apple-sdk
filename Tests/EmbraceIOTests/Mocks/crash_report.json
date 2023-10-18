@@ -1,0 +1,19 @@
+{
+    "report": {
+        "version": "3.3.0",
+        "id": "709AFD1D-EE0B-4DA9-A591-E6ABEF30B648",
+        "process_name": "",
+        "timestamp": 1696619964760585,
+        "type": "standard"
+    },
+    "user": {
+        "emb-app": "1.0.0",
+        "emb-sdk": "6.0.0",
+        "emb-sid": "18EDB6CE-90C2-456B-97CB-91E0F5941CCA"
+    },
+    "binary_images": [],
+    "process": {},
+    "system": {},
+    "crash": {},
+    "debug": {}
+}

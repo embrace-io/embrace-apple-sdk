@@ -34,7 +34,7 @@ class EmbraceStorageTests: XCTestCase {
             expectation.fulfill()
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_update() throws {
@@ -53,7 +53,7 @@ class EmbraceStorageTests: XCTestCase {
             expectation1.fulfill()
         }
 
-        wait(for: [expectation1], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation1], timeout: .defaultTimeout)
 
         // when updating record
         let endTime = Date(timeInterval: 10, since: span.startTime)
@@ -71,7 +71,7 @@ class EmbraceStorageTests: XCTestCase {
             expectation2.fulfill()
         }
 
-        wait(for: [expectation2], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation2], timeout: .defaultTimeout)
     }
 
     func test_delete() throws {
@@ -90,7 +90,7 @@ class EmbraceStorageTests: XCTestCase {
             expectation1.fulfill()
         }
 
-        wait(for: [expectation1], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation1], timeout: .defaultTimeout)
 
         // when deleting record
         let success = try storage.delete(record: span)
@@ -103,7 +103,7 @@ class EmbraceStorageTests: XCTestCase {
             expectation2.fulfill()
         }
 
-        wait(for: [expectation2], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation2], timeout: .defaultTimeout)
     }
 
     func test_fetchAll() throws {
@@ -125,7 +125,7 @@ class EmbraceStorageTests: XCTestCase {
             expectation.fulfill()
         }
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
 
         // when fetching all records
         let records: [SpanRecord] = try storage.fetchAll()
@@ -152,7 +152,7 @@ class EmbraceStorageTests: XCTestCase {
             expectation1.fulfill()
         }
 
-        wait(for: [expectation1], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation1], timeout: .defaultTimeout)
 
         // when executing custom query to delete record
         try storage.executeQuery("DELETE FROM \(SpanRecord.databaseTableName) WHERE id='id' AND trace_id='traceId'", arguments: nil)
@@ -164,6 +164,6 @@ class EmbraceStorageTests: XCTestCase {
             expectation2.fulfill()
         }
 
-        wait(for: [expectation2], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation2], timeout: .defaultTimeout)
     }
 }

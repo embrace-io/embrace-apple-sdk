@@ -26,4 +26,16 @@ extension XCTestCase {
         wait(for: [expectation], timeout: timeout)
         timer.invalidate()
     }
+
+    /// Waits the given amount of seconds
+    /// - Parameter delay: Seconds to wait
+    public func wait(delay: TimeInterval) {
+        let expectation = XCTestExpectation()
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation])
+    }
 }

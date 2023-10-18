@@ -45,7 +45,7 @@ class EmbraceUploadOperationTests: XCTestCase {
 
         operation.start()
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
 
         // then the request should have the correct headers
         guard let request = EmbraceHTTPMock.requestsForUrl(TestConstants.url).first else {
@@ -96,7 +96,7 @@ class EmbraceUploadOperationTests: XCTestCase {
 
         operation.start()
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_cancelledOperation() {
@@ -126,7 +126,7 @@ class EmbraceUploadOperationTests: XCTestCase {
 
         operation.cancel()
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_failedOperation() {
@@ -156,7 +156,7 @@ class EmbraceUploadOperationTests: XCTestCase {
 
         operation.start()
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_retryCount() {
@@ -186,7 +186,7 @@ class EmbraceUploadOperationTests: XCTestCase {
 
         operation.start()
 
-        wait(for: [expectation], timeout: TestConstants.defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
 
         // then the request should have the correct headers
         guard let request = EmbraceHTTPMock.requestsForUrl(TestConstants.url).last else {

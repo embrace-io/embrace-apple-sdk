@@ -9,7 +9,7 @@ import GRDB
 // MARK: - Sync span operations
 extension EmbraceStorage {
 
-    /// Adds a span to the storage.
+    /// Adds a span to the storage synchronously.
     /// - Parameters:
     ///   - id: Identifier of the span
     ///   - traceId: Identifier of the trace containing this span
@@ -25,7 +25,7 @@ extension EmbraceStorage {
         return span
     }
 
-    /// Adds or updates a `SpanRecord` to the storage.
+    /// Adds or updates a `SpanRecord` to the storage synchronously.
     /// - Parameter record: `SpanRecord` to upsert
     public func upsertSpan(_ span: SpanRecord) throws {
         try dbQueue.write { [weak self] db in
@@ -33,7 +33,7 @@ extension EmbraceStorage {
         }
     }
 
-    /// Fetches the stored `SpanRecord` with the given identifiers, if any.
+    /// Fetches the stored `SpanRecord` synchronously with the given identifiers, if any.
     /// - Parameters:
     ///   - id: Identifier of the span
     ///   - traceId: Identifier of the trace containing this span
@@ -47,7 +47,7 @@ extension EmbraceStorage {
         return span
     }
 
-    /// Fetches all the stored spans with a given trace identifier.
+    /// Fetches all the stored spans synchronously with a given trace identifier.
     /// - Parameters:
     ///   - traceId: Identifier of the trace containing this span
     /// - Returns: Array containing the stored `SpanRecords`
@@ -60,7 +60,7 @@ extension EmbraceStorage {
         return spans
     }
 
-    /// Fetches all the stored open spans with a given trace identifier. An open span is a span without an `endTime`.
+    /// Fetches all the stored open spans synchronously with a given trace identifier. An open span is a span without an `endTime`.
     /// - Parameters:
     ///   - traceId: Identifier of the trace containing this span
     ///   - type: Type of span to fetch (optional)
@@ -74,7 +74,7 @@ extension EmbraceStorage {
         return spans
     }
 
-    /// Returns how many spans with a given trace identifier and type are stored.
+    /// Synchronously returns how many spans with a given trace identifier and type are stored.
     /// - Parameters:
     ///   - traceId: Identifier of the trace containing this span
     ///   - type: SpanType of the span
@@ -88,7 +88,7 @@ extension EmbraceStorage {
         return count
     }
 
-    /// Fetches all the stored spans with a given trace identifier and type.
+    /// Fetches all the stored spans synchronously with a given trace identifier and type.
     /// - Parameters:
     ///   - traceId: Identifier of the trace containing this span
     ///   - type: SpanType of the span
@@ -103,7 +103,7 @@ extension EmbraceStorage {
         return spans
     }
 
-    /// Returns how many spans of the given type that started atfter a certain time are stored.
+    /// Synchronously returns how many spans of the given type that started atfter a certain time are stored.
     /// - Parameters:
     ///   - traceId: Identifier of the trace containing this span
     ///   - type: SpanType of the span
@@ -117,7 +117,7 @@ extension EmbraceStorage {
         return count
     }
 
-    /// Fetches all the stored spans that started after a certain time.
+    /// Fetches all the stored spans synchronously that started after a certain time.
     /// - Parameters:
     ///   - startTime: Date to be used as `startTime` for the fetch
     ///   - type: SpanType of the span
@@ -136,7 +136,7 @@ extension EmbraceStorage {
 // MARK: - Async span operations
 extension EmbraceStorage {
 
-    /// Adds a span to the storage.
+    /// Adds a span to the storage asynchronously.
     /// - Parameters:
     ///   - id: Identifier of the span
     ///   - traceId: Identifier of the trace containing this span
@@ -158,7 +158,7 @@ extension EmbraceStorage {
         upsertSpanAsync(span, completion: completion)
     }
 
-    /// Adds or updates a `SpanRecord` to the storage.
+    /// Adds or updates a `SpanRecord` to the storage asynchronously.
     /// - Parameters:
     ///   - span: `SpanRecord` to insert
     ///   - completion: Completion block called with the newly added `SpanRecord` on success; or an `Error` on failure
@@ -172,7 +172,7 @@ extension EmbraceStorage {
         }, completion: completion)
     }
 
-    /// Fetches the stored `SpanRecord` with the given identifiers, if any.
+    /// Fetches the stored `SpanRecord` asynchronously with the given identifiers, if any.
     /// - Parameters:
     ///   - id: Identifier of the span
     ///   - traceId: Identifier of the trace containing this span
@@ -188,7 +188,7 @@ extension EmbraceStorage {
         }, completion: completion)
     }
 
-    /// Fetches all the stored spans with a given trace identifier.
+    /// Fetches all the stored spans asynchronously with a given trace identifier.
     /// - Parameters:
     ///   - traceId: Identifier of the trace containing this span
     ///   - completion: Completion block called with the fetched `[SpanRecord]` on success; or an `Error` on failure
@@ -201,7 +201,7 @@ extension EmbraceStorage {
         }, completion: completion)
     }
 
-    /// Fetches all the stored open spans with a given trace identifier. An open span is a span without an `endTime`.
+    /// Fetches all the stored open spans asynchronously with a given trace identifier. An open span is a span without an `endTime`.
     /// - Parameters:
     ///   - traceId: Identifier of the trace containing this span
     ///   - type: SpanType of span to fetch (optional)
@@ -216,7 +216,7 @@ extension EmbraceStorage {
         }, completion: completion)
     }
 
-    /// Returns how many spans with a given trace identifier and type are stored.
+    /// Asynchronously returns how many spans with a given trace identifier and type are stored.
     /// - Parameters:
     ///   - traceId: Identifier of the trace containing this span
     ///   - type: SpanType of the span
@@ -231,7 +231,7 @@ extension EmbraceStorage {
         }, completion: completion)
     }
 
-    /// Fetches all the stored spans with a given trace identifier and type.
+    /// Fetches all the stored spans asynchronously with a given trace identifier and type.
     /// - Parameters:
     ///   - traceId: Identifier of the trace containing this span
     ///   - type: SpanType of the span
@@ -248,7 +248,7 @@ extension EmbraceStorage {
         }, completion: completion)
     }
 
-    /// Returns how many spans of the given type that started atfter a certain time are stored.
+    /// Asynchronously returns how many spans of the given type that started atfter a certain time are stored.
     /// - Parameters:
     ///   - traceId: Identifier of the trace containing this span
     ///   - type: SpanType of the span
@@ -263,7 +263,7 @@ extension EmbraceStorage {
         }, completion: completion)
     }
 
-    /// Fetches all the stored spans that started after a certain time.
+    /// Fetches all the stored spans asynchronously that started after a certain time.
     /// - Parameters:
     ///   - startTime: Date to be used as `startTime` for the fetch
     ///   - type: SpanType of the span

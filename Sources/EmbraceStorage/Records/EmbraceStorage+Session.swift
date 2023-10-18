@@ -9,21 +9,22 @@ import GRDB
 // MARK: - Sync session operations
 extension EmbraceStorage {
 
-    /// Adds a session to the storage.
+    /// Adds a session to the storage synchronously.
     /// - Parameters:
     ///   - id: Identifier of the session
     ///   - state: State of the session
     ///   - startTime: Date of when the session started
     ///   - endTime: Date of when the session ended (optional)
+    ///   - crashReportId: Identifier of the crash report linked with this session
     /// - Returns: The newly stored `SessionRecord`
-    public func addSession(id: SessionId, state: SessionState, startTime: Date, endTime: Date? = nil) throws -> SessionRecord {
+    @discardableResult public func addSession(id: SessionId, state: SessionState, startTime: Date, endTime: Date? = nil, crashReportId: String? = nil) throws -> SessionRecord {
         let session = SessionRecord(id: id, state: state, startTime: startTime, endTime: endTime)
         try upsertSession(session)
 
         return session
     }
 
-    /// Adds or updates a `SessionRecord` to the storage.
+    /// Adds or updates a `SessionRecord` to the storage synchronously.
     /// - Parameter record: `SessionRecord` to insert
     public func upsertSession(_ session: SessionRecord) throws {
         try dbQueue.write { [weak self] db in
@@ -31,7 +32,7 @@ extension EmbraceStorage {
         }
     }
 
-    /// Fetches the stored `SessionRecord` with the given identifier, if any.
+    /// Fetches the stored `SessionRecord` synchronously with the given identifier, if any.
     /// - Parameters:
     ///   - id: Identifier of the session
     /// - Returns: The stored `SessionRecord`, if any
@@ -41,25 +42,43 @@ extension EmbraceStorage {
         }
     }
 
-    /// Updates the `endTime` of a stored session.
+    /// Updates the `endTime` of a stored session synchronously.
     /// - Parameters:
     ///   - id: Identifier of the session
     ///   - endTime: Date of when the session ended
     /// - Returns: The updated `SessionRecord`, if any
-    public func updateSessionEndTime(id: SessionId, endTime: Date) throws -> SessionRecord? {
+    @discardableResult public func updateSession(id: SessionId, endTime: Date) throws -> SessionRecord? {
         var session = try fetchSession(id: id)
         guard session != nil else {
             return nil
         }
 
         try dbQueue.write { [weak self] db in
-            session = try self?.updateSessionEndtime(db: db, session: session, endTime: endTime)
+            session = try self?.updateSession(db: db, session: session, endTime: endTime)
         }
 
         return session
     }
 
-    /// Returns how many finished sessions are stored. A finished session is a session with a valid `endTime`.
+    /// Updates the `crashReportId` of a stored session synchronously.
+    /// - Parameters:
+    ///   - id: Identifier of the session
+    ///   - crashReportId: Identifier of the crash report linked with this session
+    /// - Returns: The updated `SessionRecord`, if any
+    @discardableResult public func updateSession(id: SessionId, crashReportId: String) throws -> SessionRecord? {
+        var session = try fetchSession(id: id)
+        guard session != nil else {
+            return nil
+        }
+
+        try dbQueue.write { [weak self] db in
+            session = try self?.updateSession(db: db, session: session, crashReportId: crashReportId)
+        }
+
+        return session
+    }
+
+    /// Returns how many finished sessions are stored synchronously. A finished session is a session with a valid `endTime`.
     /// - Returns: Int containing the amount of finished sessions in the storage
     public func finishedSessionsCount() throws -> Int {
         var count = 0
@@ -70,7 +89,7 @@ extension EmbraceStorage {
         return count
     }
 
-    /// Returns all the finished sessions in the storage. A finished session is a session with a valid `endTime`.
+    /// Returns all the finished sessions in the storage synchronously. A finished session is a session with a valid `endTime`.
     /// - Returns: Array containing the finished `SessionRecords`
     public func fetchFinishedSessions() throws -> [SessionRecord] {
         var sessions: [SessionRecord] = []
@@ -81,7 +100,7 @@ extension EmbraceStorage {
         return sessions
     }
 
-    /// Returns the newest session in the storage, if any.
+    /// Synchronously returns the newest session in the storage, if any.
     /// - Returns: The newest stored `SessionRecord`, if any
     public func fetchLatestSesssion() throws -> SessionRecord? {
         var session: SessionRecord?
@@ -96,25 +115,27 @@ extension EmbraceStorage {
 // MARK: - Async session operations
 extension EmbraceStorage {
 
-    /// Adds a session to the storage.
+    /// Adds a session to the storage asynchronously.
     /// - Parameters:
     ///   - id: Identifier of the session
     ///   - state: State of the session
     ///   - startTime: Date of when the session started
     ///   - endTime: Date of when the session ended (optional)
+    ///   - crashReportId: Identifier of the crash report linked with this session
     ///   - completion: Completion block called with the newly added `SessionRecord` on success; or an `Error` on failure
     public func addSessionAsync(
         id: SessionId,
         state: SessionState,
         startTime: Date,
-        endTime: Date?,
+        endTime: Date? = nil,
+        crashReportId: String? = nil,
         completion: ((Result<SessionRecord, Error>) -> Void)?) {
 
-        let session = SessionRecord(id: id, state: state, startTime: startTime, endTime: endTime)
+        let session = SessionRecord(id: id, state: state, startTime: startTime, endTime: endTime, crashReportId: crashReportId)
         upsertSessionAsync(session, completion: completion)
     }
 
-    /// Adds or updates a `SessionRecord` to the storage
+    /// Adds or updates a `SessionRecord` to the storage asynchronously.
     /// - Parameters:
     ///   - session: `SessionRecord` to insert
     ///   - completion: Completion block called with the newly added `SessionRecord` on success; or an `Error` on failure
@@ -128,7 +149,7 @@ extension EmbraceStorage {
         }, completion: completion)
     }
 
-    /// Fetches the stored session with the given identifier, if any.
+    /// Fetches the stored session asynchronously with the given identifier, if any.
     /// - Parameters:
     ///   - id: Identifier of the session
     ///   - completion: Completion block called with the fetched `SessionRecord?` on success; or an `Error` on failure
@@ -141,12 +162,12 @@ extension EmbraceStorage {
         }, completion: completion)
     }
 
-    /// Updates the endTime of a stored session.
+    /// Updates the `endTime` of a stored session asynchronously.
     /// - Parameters:
     ///   - id: Identifier of the session
     ///   - endTime: Date of when the session ended
     ///   - completion: Completion block called with the updated `SessionRecord?` on success; or an `Error` on failure
-    public func updateSessionEndTimeAsync(
+    public func updateSessionAsync(
         id: SessionId,
         endTime: Date,
         completion: @escaping (Result<SessionRecord?, Error>) -> Void) {
@@ -160,7 +181,7 @@ extension EmbraceStorage {
                 }
 
                 self?.dbWriteAsync(block: { [weak self] db in
-                    return try self?.updateSessionEndtime(db: db, session: session, endTime: endTime)
+                    return try self?.updateSession(db: db, session: session, endTime: endTime)
                 }, completion: completion)
 
             case .failure(let error):
@@ -169,7 +190,35 @@ extension EmbraceStorage {
         }
     }
 
-    /// Returns how many finished sessions are stored. A finished session is a session with a valid endTime.
+    /// Updates the `crashReportId` of a stored session asynchronously.
+    /// - Parameters:
+    ///   - id: Identifier of the session
+    ///   - crashReportId: Identifier of the crash report linked with this session
+    ///   - completion: Completion block called with the updated `SessionRecord?` on success; or an `Error` on failure
+    public func updateSessionAsync(
+        id: SessionId,
+        crashReportId: String,
+        completion: @escaping (Result<SessionRecord?, Error>) -> Void) {
+
+        fetchSessionAsync(id: id) { [weak self] result in
+            switch result {
+            case .success(let session):
+                guard let session = session else {
+                    completion(.success(nil))
+                    return
+                }
+
+                self?.dbWriteAsync(block: { [weak self] db in
+                    return try self?.updateSession(db: db, session: session, crashReportId: crashReportId)
+                }, completion: completion)
+
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    /// Returns how many finished sessions are stored asynchronously. A finished session is a session with a valid endTime.
     /// - Parameter completion: Completion block called with the count on success; or an `Error` on failure
     public func finishedSessionsCountAsync(completion: @escaping (Result<Int, Error>) -> Void) {
         dbFetchCountAsync(block: { [weak self] db in
@@ -177,7 +226,7 @@ extension EmbraceStorage {
         }, completion: completion)
     }
 
-    /// Returns all the finished sessions in the storage. A finished session is a session with a valid endTime.
+    /// Returns all the finished sessions in the storage asynchronously. A finished session is a session with a valid endTime.
     /// - Parameter completion: Completion block called with the fetched `[SessionRecord]` on success; or an `Error` on failure
     public func fetchFinishedSessionsAsync(completion: @escaping (Result<[SessionRecord], Error>) -> Void) {
         dbFetchAsync(block: { [weak self] db in
@@ -185,7 +234,7 @@ extension EmbraceStorage {
         }, completion: completion)
     }
 
-    /// Returns the newest session in the storage, if any.
+    /// Asynchronously returns the newest session in the storage, if any.
     /// - Parameter completion: Completion block called with the newest stored `SessionRecord?` on success; or an `Error` on failure
     public func fetchLatestSesssionAsync(completion: @escaping (Result<SessionRecord?, Error>) -> Void) {
         dbFetchOneAsync(block: { [weak self] db in
@@ -204,12 +253,23 @@ fileprivate extension EmbraceStorage {
         return try SessionRecord.fetchOne(db, key: id)
     }
 
-    func updateSessionEndtime(db: Database, session: SessionRecord?, endTime: Date) throws -> SessionRecord? {
+    func updateSession(db: Database, session: SessionRecord?, endTime: Date) throws -> SessionRecord? {
         guard var session = session else {
             return nil
         }
 
         session.endTime = endTime
+        try session.update(db)
+
+        return session
+    }
+
+    func updateSession(db: Database, session: SessionRecord?, crashReportId: String) throws -> SessionRecord? {
+        guard var session = session else {
+            return nil
+        }
+
+        session.crashReportId = crashReportId
         try session.update(db)
 
         return session

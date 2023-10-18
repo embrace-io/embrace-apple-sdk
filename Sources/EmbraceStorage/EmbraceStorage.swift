@@ -54,7 +54,7 @@ extension EmbraceStorage {
     /// Deletes a record from the storage synchronously.
     /// - Parameter record: `PersistableRecord` to delete
     /// - Returns: Boolean indicating if the record was successfuly deleted
-    public func delete(record: PersistableRecord) throws -> Bool {
+    @discardableResult public func delete(record: PersistableRecord) throws -> Bool {
         try dbQueue.write { db in
             return try record.delete(db)
         }
