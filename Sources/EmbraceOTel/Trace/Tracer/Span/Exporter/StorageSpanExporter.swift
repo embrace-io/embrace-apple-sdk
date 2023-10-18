@@ -1,16 +1,17 @@
-import Foundation
-import OpenTelemetrySdk
+//
+//  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
+//
 
 import EmbraceStorage
 
-public class SpanExporter: OpenTelemetrySdk.SpanExporter {
+public class StorageSpanExporter: EmbraceSpanExporter {
 
     public let options: Options
 
     var storage: EmbraceStorage { options.storage }
 
-    public init(configuration: Options) {
-        self.options = configuration
+    public init(options: Options) {
+        self.options = options
     }
 
     @discardableResult public func export(spans: [SpanData]) -> SpanExporterResultCode {
@@ -32,6 +33,7 @@ public class SpanExporter: OpenTelemetrySdk.SpanExporter {
     }
 
     public func flush() -> SpanExporterResultCode {
+        // TODO: do we need to make sure storage writes are finished?
         return .success
     }
 
@@ -41,7 +43,7 @@ public class SpanExporter: OpenTelemetrySdk.SpanExporter {
 
 }
 
-extension SpanExporter {
+extension StorageSpanExporter {
     private func buildRecord(from spanData: SpanData) -> SpanRecord? {
         guard let data = try? spanData.toJSON() else {
             return nil

@@ -19,7 +19,7 @@ fi
 IS_XCTEST=1 \
 xcodebuild test \
     -workspace . \
-    -scheme EmbraceIO \
+    -scheme "EmbraceIO-Package" \
     -skipPackagePluginValidation \
     -sdk "iphonesimulator" \
     -destination "platform=iOS Simulator,name=iPhone 15,OS=latest" \

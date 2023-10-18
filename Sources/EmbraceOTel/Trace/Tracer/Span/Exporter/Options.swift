@@ -1,8 +1,10 @@
-import Foundation
+//
+//  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
+//
 
- import EmbraceStorage
+import EmbraceStorage
 
-public extension SpanExporter {
+public extension StorageSpanExporter {
     class Options {
 
         let storage: EmbraceStorage
@@ -10,6 +12,5 @@ public extension SpanExporter {
         init(storage: EmbraceStorage) {
             self.storage = storage
         }
-
     }
 }

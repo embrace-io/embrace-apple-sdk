@@ -15,16 +15,15 @@ final class EmbraceOTelTests: XCTestCase {
 
 // MARK: registerTracer
 
-    func test_setup_setsNonDefaultTracer() {
-        // DEV: test "setUp" calls EmbraceOTel.setup method
-        XCTAssertFalse(OpenTelemetry.instance.tracerProvider is DefaultTracer)
+    func test_setup_setsEmbraceTracerProvider() {
+        // DEV: test "setUpWithError" calls EmbraceOTel.setup method
+        XCTAssertTrue(OpenTelemetry.instance.tracerProvider is EmbraceTracerProvider)
     }
 
 // MARK: init
 
     func test_init() {
         let otel = EmbraceOTel()
-
         XCTAssertEqual(otel.instrumentationName, "EmbraceTracer")
     }
 
@@ -62,52 +61,34 @@ final class EmbraceOTelTests: XCTestCase {
         XCTAssertEqual(spanResult, "example_result")
     }
 
-//
-//    // MARK: buildSpan
-//
-//    func test_buildSpan_returnsSpanBuilder() throws {
-//        let builder = createSubject().buildSpan(name: "example", type: .performance)
-//        XCTAssertTrue(builder is SpanBuilder)
-//    }
-//
-//    func test_buildSpan_withAttributes_appendsAttributes() throws {
-//        let builder = createSubject()
-//                        .buildSpan(
-//                            name: "example",
-//                            type: .performance,
-//                            attributes: ["foo" : "bar"]
-//                        )
-//
-//        let span = builder.startSpan()
-//        span.end()
-//        spanProcessor.shutdown()
-//
-//        // check the in memory object gets created correctly
-//        if let readableSpan = span as? ReadableSpan {
-//            let spanData = readableSpan.toSpanData()
-//            XCTAssertEqual(
-//                spanData.attributes,
-//                [
-//                    "foo" : AttributeValue.string("bar"),
-//                    "emb.type" : AttributeValue.string("performance")
-//                ] )
-//        } else {
-//            XCTFail("Span is not a ReadableSpan or does not produce SpanData correctly")
-//        }
-//
-//        // check it gets exported to persistence correctly
-//        let spans = dataStoreForCurrentSession.recentClosedSpansNamed("example", withLimit: 5, andType: EmbraceOTelSpan.self)
-//        XCTAssertEqual(spans.count, 1)
-//        if let span = spans.first as? EmbraceOTelSpan {
-//            XCTAssertEqual(
-//                span.endProperties as? [String:String],
-//                [
-//                    "foo":"bar",
-//                    "emb.type" : "performance"
-//                ] )
-//        } else {
-//            XCTFail("`example` Span is not an EmbraceOTelSpan")
-//        }
-//    }
+    // MARK: buildSpan
+
+    func test_buildSpan_startsCorrectSpanType() throws {
+        let otel = EmbraceOTel()
+        let builder = otel.buildSpan(name: "example", type: .performance)
+
+        let span = builder.startSpan()
+        XCTAssertTrue(span is RecordingSpan)
+    }
+
+    func test_buildSpan_withAttributes_appendsAttributes() throws {
+        let otel = EmbraceOTel()
+        let builder = otel
+                        .buildSpan(
+                            name: "example",
+                            type: .performance,
+                            attributes: ["foo": "bar"]
+                        )
+
+        if let span = builder.startSpan() as? RecordingSpan {
+            XCTAssertEqual(span.attributes, [
+                "foo": .string("bar"),
+                "emb.type": .string("performance")
+            ])
+
+        } else {
+            XCTFail("Builder did not return a RecordingSpan")
+        }
+    }
 
 }
