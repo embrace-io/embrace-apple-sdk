@@ -12,7 +12,6 @@ import KSCrash_Recording
     enum UserInfoKey {
         static let sessionId = "emb-sid"
         static let sdkVersion = "emb-sdk"
-        static let appVersion = "emb-app"
     }
 
     var ksCrash: KSCrash?
@@ -52,16 +51,6 @@ import KSCrash_Recording
         }
         set {
             setUserInfoValue(newValue, key: UserInfoKey.sdkVersion)
-        }
-    }
-
-    /// Adds the app version to the crash reports.
-    public var appVersion: String? {
-        get {
-            return userInfo[UserInfoKey.appVersion]
-        }
-        set {
-            setUserInfoValue(newValue, key: UserInfoKey.appVersion)
         }
     }
 
@@ -124,21 +113,16 @@ import KSCrash_Recording
                 }
 
                 // fetch report
-                guard let report = self?.ksCrash?.report(withID: id),
-                      let data = self?.getEncodedReport(report) else {
-                        continue
+                guard let report = self?.ksCrash?.report(withID: id) as? [String: Any] else {
+                    continue
                 }
 
                 // get custom data from report
                 var sessionId: SessionId?
-                var sdkVersion: String?
-                var appVersion: String?
                 var timestamp: Date?
 
                 if let userDict = report["user"] as? [AnyHashable: Any] {
                     sessionId = userDict[UserInfoKey.sessionId] as? SessionId
-                    sdkVersion = userDict[UserInfoKey.sdkVersion] as? String
-                    appVersion = userDict[UserInfoKey.appVersion] as? String
                 }
 
                 if let reportDict = report["report"] as? [AnyHashable: Any],
@@ -150,25 +134,14 @@ import KSCrash_Recording
                 let crashReport = CrashReport(
                     ksCrashId: id.intValue,
                     sessionId: sessionId,
-                    sdkVersion: sdkVersion,
-                    appVersion: appVersion,
                     timestamp: timestamp,
-                    data: data
+                    dictionary: report
                 )
 
                 crashReports.append(crashReport)
             }
 
             completion(crashReports)
-        }
-    }
-
-    private func getEncodedReport(_ report: [AnyHashable: Any]) -> Data? {
-        do {
-            return try KSJSONCodec.encode(report, options: KSJSONEncodeOptionSorted)
-        } catch {
-            print("Error enconding crash: " + error.localizedDescription)
-            return nil
         }
     }
 

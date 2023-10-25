@@ -6,6 +6,7 @@ import Foundation
 import EmbraceCommon
 import EmbraceStorage
 import EmbraceUpload
+import Gzip
 
 class UnsentDataHandler {
     static func sendUnsentData(storage: EmbraceStorage?, upload: EmbraceUpload?, crashReporter: CrashReporter?) {
@@ -49,16 +50,23 @@ class UnsentDataHandler {
             }
 
             // upload crash report
-            upload.uploadBlob(id: report.id.uuidString, data: report.data) { result in
-                switch result {
-                case .success: print("Successfully uploaded crash report \(report.id)!")
-                case .failure(let error): print("Error trying to upload crash report \(report.id):\n\(error.localizedDescription)")
-                }
-            }
+            do {
+                let payload = CrashReportPayload(from: report)
+                let payloadData = try JSONEncoder().encode(payload).gzipped()
 
-            // remove crash report
-            // we can remove this immediately because the upload module will cache it until the upload succeeds
-            crashReporter.deleteCrashReport(id: report.ksCrashId)
+                upload.uploadBlob(id: report.id.uuidString, data: payloadData) { result in
+                    switch result {
+                    case .success: print("Successfully uploaded crash report \(report.id)!")
+                    case .failure(let error): print("Error trying to upload crash report \(report.id):\n\(error.localizedDescription)")
+                    }
+                }
+
+                // remove crash report
+                // we can remove this immediately because the upload module will cache it until the upload succeeds
+                crashReporter.deleteCrashReport(id: report.ksCrashId)
+            } catch {
+                print("Error encoding crash report \(report.id) for session \(String(describing: report.sessionId)):\n" + error.localizedDescription)
+            }
         }
 
         // send sessions

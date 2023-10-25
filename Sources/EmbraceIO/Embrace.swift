@@ -193,6 +193,5 @@ import EmbraceUpload
         crashReporter?.configure(appId: options.appId, path: crashesPath)
 
         crashReporter?.sdkVersion = "6.0.0" // TODO: Do this properly!
-        crashReporter?.appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
     }
 }

@@ -15,7 +15,7 @@ import Foundation
         self.init(dataBaseUrlPath: nil, dataDevBaseUrlPath: nil, configBaseUrlPath: nil, imagesBaseUrlPath: nil)
     }
 
-    init(dataBaseUrlPath: String?, dataDevBaseUrlPath: String?, configBaseUrlPath: String?, imagesBaseUrlPath: String?) {
+    @objc public init(dataBaseUrlPath: String?, dataDevBaseUrlPath: String?, configBaseUrlPath: String?, imagesBaseUrlPath: String?) {
         self.dataBaseUrlPath = dataBaseUrlPath ?? "data.emb-api.com"
         self.dataDevBaseUrlPath = dataDevBaseUrlPath ?? "data-dev.emb-api.com"
         self.configBaseUrlPath = configBaseUrlPath ?? "config.emb-api.com"

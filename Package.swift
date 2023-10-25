@@ -41,6 +41,10 @@ let package = Package(
         .package(
             url: "https://github.com/apple/swift-docc-plugin",
             branch: "main"
+        ),
+        .package(
+            url: "https://github.com/1024jp/GzipSwift",
+            exact: "6.0.1"
         )
     ],
     targets: [
@@ -48,7 +52,12 @@ let package = Package(
         // core ----------------------------------------------------------------------
         .target(
             name: "EmbraceIO",
-            dependencies: ["EmbraceOTel", "EmbraceStorage", "EmbraceUpload"],
+            dependencies: [
+                "EmbraceOTel",
+                "EmbraceStorage",
+                "EmbraceUpload",
+                .product(name: "Gzip", package: "GzipSwift")
+            ],
             plugins: targetPlugins
         ),
 

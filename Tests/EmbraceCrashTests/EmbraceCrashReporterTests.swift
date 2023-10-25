@@ -55,20 +55,6 @@ class EmbraceCrashReporterTests: XCTestCase {
         XCTAssertEqual(crashReporter.ksCrash?.userInfo[key] as? String, "test")
     }
 
-    func test_appVersion() {
-        // given a crash reporter
-        let crashReporter = EmbraceCrashReporter()
-        crashReporter.configure(appId: TestConstants.appId, path: path)
-        crashReporter.install()
-
-        // when setting the current session id
-        crashReporter.appVersion = "test"
-
-        // then KSCrash's user info is properly set
-        let key = EmbraceCrashReporter.UserInfoKey.appVersion
-        XCTAssertEqual(crashReporter.ksCrash?.userInfo[key] as? String, "test")
-    }
-
     func test_fetchCrashReports() throws {
         // given a crash reporter
         let crashReporter = EmbraceCrashReporter()
@@ -87,8 +73,6 @@ class EmbraceCrashReporterTests: XCTestCase {
         crashReporter.fetchUnsentCrashReports { reports in
             XCTAssertEqual(reports.count, 1)
             XCTAssertEqual(reports[0].sessionId, TestConstants.sessionId)
-            XCTAssertEqual(reports[0].sdkVersion, "6.0.0")
-            XCTAssertEqual(reports[0].appVersion, "1.0.0")
             XCTAssertNotNil(reports[0].timestamp)
 
             expectation.fulfill()
