@@ -14,9 +14,9 @@ struct CrashPayload: Encodable {
         case json = "ks"
     }
 
-    init(from: CrashReport) {
-        id = from.id.uuidString
-        json = from.dictionary
+    init(from crashReport: CrashReport) {
+        id = crashReport.id.uuidString
+        json = crashReport.dictionary
     }
 
     func encode(to encoder: Encoder) throws {
@@ -39,10 +39,10 @@ struct CrashReportPayload: Encodable {
         case crashPayload = "cr"
     }
 
-    init(from: CrashReport) {
+    init(from crashReport: CrashReport) {
         appInfo = AppInfoPayload()
         deviceInfo = DeviceInfoPayload()
         userInfo = UserInfoPayload()
-        crashPayload = CrashPayload(from: from)
+        crashPayload = CrashPayload(from: crashReport)
     }
 }

@@ -7,6 +7,7 @@ import EmbraceCommon
 import EmbraceStorage
 import EmbraceUpload
 import Gzip
+import GRDB
 
 class UnsentDataHandler {
     static func sendUnsentData(storage: EmbraceStorage?, upload: EmbraceUpload?, crashReporter: CrashReporter?) {
@@ -79,22 +80,27 @@ class UnsentDataHandler {
             let sessions = try storage.fetchFinishedSessions()
 
             for session in sessions {
-                let data = "test".data(using: .utf8)! // TODO: Build session payload
 
-                // upload session
-                upload.uploadSession(id: session.id, data: data) { result in
-                    switch result {
-                    case .success: print("Successfully uploaded session \(session.id)!")
-                    case .failure(let error): print("Error trying to upload session \(session.id):\n\(error.localizedDescription)")
-                    }
-                }
-
-                // remove session from storage
-                // we can remove this immediately because the upload module will cache it until the upload succeeds
                 do {
+                    let payload = SessionPayload(from: session)
+                    let payloadData = try JSONEncoder().encode(payload).gzipped()
+
+                    // upload session
+                    upload.uploadSession(id: session.id, data: payloadData) { result in
+                        switch result {
+                        case .success: print("Successfully uploaded session \(session.id)!")
+                        case .failure(let error): print("Error trying to upload session \(session.id):\n\(error.localizedDescription)")
+                        }
+                    }
+
+                    // remove session from storage
+                    // we can remove this immediately because the upload module will cache it until the upload succeeds
                     try storage.delete(record: session)
-                } catch {
+
+                } catch let error as DatabaseError {
                     print("Error trying to remove session \(session.id):\n\(error.localizedDescription)")
+                } catch {
+                    print("Error encoding session \(session.id):\n" + error.localizedDescription)
                 }
             }
 

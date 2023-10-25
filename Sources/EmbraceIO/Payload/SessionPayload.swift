@@ -22,9 +22,9 @@ struct SessionPayload: Codable {
         case spans = "spans"
     }
 
-    init(with sessioinRecord: SessionRecord) {
+    init(from sessionRecord: SessionRecord) {
         self.messageFormatVersion = 15
-        self.sessionInfo = SessionInfoPayload(from: sessioinRecord)
+        self.sessionInfo = SessionInfoPayload(from: sessionRecord)
         self.appInfo = AppInfoPayload()
         self.deviceInfo = DeviceInfoPayload()
         self.userInfo = UserInfoPayload()
