@@ -8,7 +8,6 @@ import GRDB
 
 // MARK: - Sync session operations
 extension EmbraceStorage {
-
     /// Adds a session to the storage synchronously.
     /// - Parameters:
     ///   - id: Identifier of the session
@@ -17,8 +16,8 @@ extension EmbraceStorage {
     ///   - endTime: Date of when the session ended (optional)
     ///   - crashReportId: Identifier of the crash report linked with this session
     /// - Returns: The newly stored `SessionRecord`
-    @discardableResult public func addSession(id: SessionId, state: SessionState, startTime: Date, endTime: Date? = nil, crashReportId: String? = nil) throws -> SessionRecord {
-        let session = SessionRecord(id: id, state: state, startTime: startTime, endTime: endTime)
+    @discardableResult public func addSession(id: SessionId, state: SessionState, processId: UUID, startTime: Date, endTime: Date? = nil, crashReportId: String? = nil) throws -> SessionRecord {
+        let session = SessionRecord(id: id, state: state, processId: processId, startTime: startTime, endTime: endTime)
         try upsertSession(session)
 
         return session
@@ -126,12 +125,13 @@ extension EmbraceStorage {
     public func addSessionAsync(
         id: SessionId,
         state: SessionState,
+        processId: UUID,
         startTime: Date,
         endTime: Date? = nil,
         crashReportId: String? = nil,
         completion: ((Result<SessionRecord, Error>) -> Void)?) {
 
-        let session = SessionRecord(id: id, state: state, startTime: startTime, endTime: endTime, crashReportId: crashReportId)
+            let session = SessionRecord(id: id, state: state, processId: processId, startTime: startTime, endTime: endTime, crashReportId: crashReportId)
         upsertSessionAsync(session, completion: completion)
     }
 

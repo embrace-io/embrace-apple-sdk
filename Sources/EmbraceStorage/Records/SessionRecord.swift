@@ -9,14 +9,16 @@ import GRDB
 /// Represents a session in the storage
 public struct SessionRecord: Codable {
     public var id: SessionId
+    public var processId: String
     public var state: String
     public var startTime: Date
     public var endTime: Date?
     public var crashReportId: String?
 
-    public init(id: SessionId, state: SessionState, startTime: Date, endTime: Date? = nil, crashReportId: String? = nil) {
+    public init(id: SessionId, state: SessionState, processId: UUID, startTime: Date, endTime: Date? = nil, crashReportId: String? = nil) {
         self.id = id
         self.state = state.rawValue
+        self.processId = processId.uuidString
         self.startTime = startTime
         self.endTime = endTime
         self.crashReportId = crashReportId
@@ -38,7 +40,7 @@ extension SessionRecord: TableRecord {
             t.primaryKey("id", .text).notNull()
 
             t.column("state", .text).notNull()
-
+            t.column("process_id", .text).notNull()
             t.column("start_time", .datetime).notNull()
             t.column("end_time", .datetime)
 

@@ -7,6 +7,7 @@ import EmbraceCommon
 import EmbraceStorage
 
 class SessionStorageInterface {
+    let processId = UUID()
     let storage: EmbraceStorage?
     var sessionRecord: SessionRecord?
     private(set) var currentSessionId: SessionId?
@@ -19,7 +20,7 @@ class SessionStorageInterface {
         currentSessionId = UUID().uuidString
 
         if let newSessionId = currentSessionId {
-            sessionRecord = SessionRecord(id: newSessionId, state: state, startTime: Date())
+            sessionRecord = SessionRecord(id: newSessionId, state: state, processId: processId, startTime: Date())
             storage?.upsertSessionAsync(sessionRecord!) { result in
                 switch result {
                 case .success(let session):

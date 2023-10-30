@@ -5,6 +5,7 @@
 //  Created by Jonathon Copeland on 10/19/23.
 //
 @import EmbraceIO;
+
 #import "AppDelegate.h"
 
 @interface AppDelegate ()
@@ -15,8 +16,8 @@
 
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    EmbraceOptions *Options = [[EmbraceOptions alloc]initWithAppId:@"VZSfE" appGroupId:@"" platform:EmbracePlatformIOS];
-    NSArray<id<Collector>>* Collectors = @[];
+    EmbraceOptions *Options = [[EmbraceOptions alloc]initWithAppId:@"VZSfE" appGroupId:nil platform:EmbracePlatformIOS];
+    NSArray<id<Collector>>* Collectors = @[[AppInfoCollector new], [DeviceInfoCollector new]];
     [Embrace setupWithOptions:Options collectors:Collectors];
     [[Embrace client]start];
     

@@ -7,6 +7,7 @@ import EmbraceCommon
 import EmbraceOTel
 import EmbraceStorage
 import EmbraceUpload
+import EmbraceObjCUtils
 
 @objc public class Embrace: NSObject {
 
@@ -49,6 +50,9 @@ import EmbraceUpload
         initializeCrashReporter(options: options, collectors: collectors)
 
         EmbraceOTel.setup(storage: storage!)
+    }
+
+    private func getMetaData() {
     }
 
     @objc public class func setup(options: EmbraceOptions, collectors: [Collector]) {
@@ -95,6 +99,20 @@ import EmbraceUpload
 
     @objc public func endCurrentSession() {
         sessionLifecycle.endCurrentSession()
+    }
+
+    // this is temp just so we can test collecting and storing resources into the database
+    // TODO: Replace this with intended otel way of collecting resources
+    public func addResource(key: String, value: String) throws {
+        try storage?.addResource(key: key, value: value, resourceType: .process, resourceTypeId: sessionLifecycle.storageInterface.processId.uuidString)
+    }
+
+    public func addResource(key: String, value: Int) throws {
+        try storage?.addResource(key: key, value: value, resourceType: .process, resourceTypeId: sessionLifecycle.storageInterface.processId.uuidString)
+    }
+
+    public func addResource(key: String, value: Double) throws {
+        try storage?.addResource(key: key, value: value, resourceType: .process, resourceTypeId: sessionLifecycle.storageInterface.processId.uuidString)
     }
 
     // MARK: - Private

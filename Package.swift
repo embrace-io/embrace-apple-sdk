@@ -56,6 +56,7 @@ let package = Package(
                 "EmbraceOTel",
                 "EmbraceStorage",
                 "EmbraceUpload",
+                "EmbraceObjCUtils",
                 .product(name: "Gzip", package: "GzipSwift")
             ],
             plugins: targetPlugins
@@ -150,7 +151,10 @@ let package = Package(
             dependencies: [.product(name: "OpenTelemetrySdk", package: "opentelemetry-swift") ],
             path: "Tests/TestSupport",
             plugins: targetPlugins
-        )
-
+        ),
+        
+        // Utilities
+        .target(name: "EmbraceObjCUtils",
+                plugins: targetPlugins)
     ]
 )

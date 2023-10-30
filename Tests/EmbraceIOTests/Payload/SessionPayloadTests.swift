@@ -3,7 +3,6 @@
 //
 
 import XCTest
-import UIKit
 @testable import EmbraceIO
 @testable import EmbraceStorage
 
@@ -12,7 +11,7 @@ import UIKit
 final class SessionPayloadTests: XCTestCase {
 
     var mockSessionRecord: SessionRecord {
-        .init(id: "1234", state: .foreground, startTime: Date(timeIntervalSince1970: 10), endTime: Date(timeIntervalSince1970: 40))
+        .init(id: "1234", state: .foreground, processId: UUID(), startTime: Date(timeIntervalSince1970: 10), endTime: Date(timeIntervalSince1970: 40))
     }
 
     func test_properties() {
