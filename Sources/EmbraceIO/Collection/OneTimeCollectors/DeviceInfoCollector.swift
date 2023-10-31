@@ -7,6 +7,7 @@ import EmbraceCommon
 import EmbraceObjCUtils
 
 @objc public class DeviceInfoCollector: NSObject, Collector {
+    typealias Keys = DeviceResourceKeys
 
     public func start() {
         let isJailbroken = EMBDevice.isJailbroken
@@ -17,12 +18,12 @@ import EmbraceObjCUtils
         let operatingSystemBuild = EMBDevice.operatingSystemBuild
 
         do {
-            try Embrace.client?.addResource(key: "device.isJailbroken", value: String(isJailbroken))
-            try Embrace.client?.addResource(key: "device.locale", value: locale)
-            try Embrace.client?.addResource(key: "device.timezoneDescription", value: timezoneDescription)
-            try Embrace.client?.addResource(key: "device.totalDiskSpace", value: totalDiskSpace.intValue)
-            try Embrace.client?.addResource(key: "device.operatingSystemVersion", value: operatingSystemVersion)
-            try Embrace.client?.addResource(key: "device.operatingSystemBuild", value: operatingSystemBuild)
+            try Embrace.client?.addResource(key: Keys.isJailbroken.rawValue, value: String(isJailbroken))
+            try Embrace.client?.addResource(key: Keys.locale.rawValue, value: locale)
+            try Embrace.client?.addResource(key: Keys.timezone.rawValue, value: timezoneDescription)
+            try Embrace.client?.addResource(key: Keys.totalDiskSpace.rawValue, value: totalDiskSpace.intValue)
+            try Embrace.client?.addResource(key: Keys.OSVersion.rawValue, value: operatingSystemVersion)
+            try Embrace.client?.addResource(key: Keys.OSBuild.rawValue, value: operatingSystemBuild)
 
         } catch let e {
             print("Failed to collect device info metadata \(e.localizedDescription)")

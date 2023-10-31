@@ -28,10 +28,8 @@ struct SessionPayload: Codable {
         self.messageFormatVersion = 15
         self.sessionInfo = SessionInfoPayload(from: sessionRecord)
         self.appInfo = AppInfoPayload(with: resources)
-        self.deviceInfo = DeviceInfoPayload()
+        self.deviceInfo = DeviceInfoPayload(with: resources)
         self.userInfo = UserInfoPayload()
         self.spans = SpansPayload()
     }
-
-    
 }

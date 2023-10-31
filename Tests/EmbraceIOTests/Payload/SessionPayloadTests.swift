@@ -27,7 +27,7 @@ final class SessionPayloadTests: XCTestCase {
     func test_properties() {
         // given a session record
         let sessionRecord = mockSessionRecord
-        let fetcher = MockResourceFetcher(resources: mockResources)
+        let fetcher = MockResourceFetcher(resources: [])
 
         // when creating a payload
         let payload = SessionPayload(from: sessionRecord, resourceFetcher: fetcher)
@@ -43,7 +43,7 @@ final class SessionPayloadTests: XCTestCase {
     func test_highLevelKeys() throws {
         // given a session record
         let sessionRecord = mockSessionRecord
-        let fetcher = MockResourceFetcher(resources: mockResources)
+        let fetcher = MockResourceFetcher(resources: [])
 
         // when serializing
         let payload = SessionPayload(from: sessionRecord, resourceFetcher: fetcher)
@@ -63,7 +63,7 @@ final class SessionPayloadTests: XCTestCase {
     func test_sessionInfoKeys() throws {
         // given a session record
         let sessionRecord = mockSessionRecord
-        let fetcher = MockResourceFetcher(resources: mockResources)
+        let fetcher = MockResourceFetcher(resources: [])
 
         // when serializing
         let payload = SessionPayload(from: sessionRecord, resourceFetcher: fetcher)
@@ -81,6 +81,14 @@ final class SessionPayloadTests: XCTestCase {
     func test_appInfoKeys() throws {
         // given a session record
         let sessionRecord = mockSessionRecord
+        let mockResources: [ResourceRecord] = [.init(key: AppResourceKeys.buildUUID.rawValue, value: "fake_uuid", resourceType: .process),
+                                               .init(key: AppResourceKeys.bundleVersion.rawValue, value: "fake_bundle_version", resourceType: .process),
+                                               .init(key: AppResourceKeys.environment.rawValue, value: "fake_environment", resourceType: .process),
+                                               .init(key: AppResourceKeys.detailedEnvironment.rawValue, value: "fake_detailed_environment", resourceType: .process),
+                                               .init(key: AppResourceKeys.framework.rawValue, value: 1, resourceType: .process),
+                                               .init(key: AppResourceKeys.launchCount.rawValue, value: 2, resourceType: .process),
+                                               .init(key: AppResourceKeys.sdkVersion.rawValue, value: "fake_sdk_version", resourceType: .process),
+                                               .init(key: AppResourceKeys.appVersion.rawValue, value: "fake_app_version", resourceType: .process)]
         let fetcher = MockResourceFetcher(resources: mockResources)
 
         // when serializing
@@ -98,6 +106,32 @@ final class SessionPayloadTests: XCTestCase {
         XCTAssertEqual(appInfo["lc"] as! Int, 2)
         XCTAssertEqual(appInfo["sdk"] as! String, "fake_sdk_version")
         XCTAssertEqual(appInfo["v"] as! String, "fake_app_version")
+    }
+
+    func test_deviceInfoKeys() throws {
+        // given a session record
+        let sessionRecord = mockSessionRecord
+        let mockResources: [ResourceRecord] = [.init(key: DeviceResourceKeys.isJailbroken.rawValue, value: String(false), resourceType: .process),
+                                               .init(key: DeviceResourceKeys.locale.rawValue, value: "fake_locale", resourceType: .process),
+                                               .init(key: DeviceResourceKeys.timezone.rawValue, value: "fake_timezone", resourceType: .process),
+                                               .init(key: DeviceResourceKeys.totalDiskSpace.rawValue, value: 123456, resourceType: .process),
+                                               .init(key: DeviceResourceKeys.OSVersion.rawValue, value: "fake_os_version", resourceType: .process),
+                                               .init(key: DeviceResourceKeys.OSBuild.rawValue, value: "fake_os_build", resourceType: .process)]
+        let fetcher = MockResourceFetcher(resources: mockResources)
+
+        // when serializing
+        let payload = SessionPayload(from: sessionRecord, resourceFetcher: fetcher)
+        let data = try JSONEncoder().encode(payload)
+        let json = try JSONSerialization.jsonObject(with: data, options: []) as! [String: Any]
+
+        // then the session payload contains the necessary keys
+        let deviceInfo = json["d"] as! [String: Any]
+        XCTAssertEqual(deviceInfo["jb"] as! Bool, false)
+        XCTAssertEqual(deviceInfo["lc"] as! String, "fake_locale")
+        XCTAssertEqual(deviceInfo["tz"] as! String, "fake_timezone")
+        XCTAssertEqual(deviceInfo["ms"] as! Int, 123456)
+        XCTAssertEqual(deviceInfo["ov"] as! String, "fake_os_version")
+        XCTAssertEqual(deviceInfo["ob"] as! String, "fake_os_build")
     }
 }
 // swiftlint:enable force_try force_cast

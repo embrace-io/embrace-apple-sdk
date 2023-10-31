@@ -44,7 +44,7 @@ struct CrashReportPayload: Encodable {
         let resources = PayloadUtils.fetchResources(from: resourceFetcher, sessionId: crashReport.sessionId)
 
         appInfo = AppInfoPayload(with: resources)
-        deviceInfo = DeviceInfoPayload()
+        deviceInfo = DeviceInfoPayload(with: resources)
         userInfo = UserInfoPayload()
         crashPayload = CrashPayload(from: crashReport)
     }
