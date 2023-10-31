@@ -79,7 +79,7 @@ public class EmbraceUpload {
     /// - Parameters:
     ///   - id: Identifier of the session
     ///   - data: Data of the session's payload
-    ///   - completion: Completion block called with an `Error` on failure
+    ///   - completion: Completion block called when the data is succesfully cached, or when an `Error` occurs
     public func uploadSession(id: String, data: Data, completion: ((Result<(), Error>) -> Void)?) {
         queue.async { [weak self] in
             self?.uploadData(id: id, data: data, type: .session, completion: completion)
@@ -90,7 +90,7 @@ public class EmbraceUpload {
     /// - Parameters:
     ///   - id: Identifier of the blob
     ///   - data: Data of the blob's payload
-    ///   - completion: Completion block called with an `Error` on failure
+    ///   - completion: Completion block called when the data is succesfully cached, or when an `Error` occurs
     public func uploadBlob(id: String, data: Data, completion: ((Result<(), Error>) -> Void)?) {
         queue.async { [weak self] in
             self?.uploadData(id: id, data: data, type: .blob, completion: completion)
@@ -98,7 +98,12 @@ public class EmbraceUpload {
     }
 
     // MARK: - Internal
-    private func uploadData(id: String, data: Data, type: EmbraceUploadType, attemptCount: Int = 0, completion: ((Result<(), Error>) -> Void)?) {
+    private func uploadData(
+        id: String,
+        data: Data,
+        type: EmbraceUploadType,
+        attemptCount: Int = 0,
+        completion: ((Result<(), Error>) -> Void)?) {
 
         // validate identifier
         guard id.isEmpty == false else {
@@ -116,8 +121,10 @@ public class EmbraceUpload {
         let cacheOperation = BlockOperation { [weak self] in
             do {
                 try self?.cache.saveUploadData(id: id, type: type, data: data)
+                completion?(.success(()))
             } catch {
                 print("Error caching upload data: \(error.localizedDescription)")
+                completion?(.failure(error))
             }
         }
 
@@ -132,7 +139,7 @@ public class EmbraceUpload {
             attemptCount: attemptCount) { [weak self] (cancelled, count, error) in
 
                 self?.queue.async { [weak self] in
-                    self?.handleOperationFinished(id: id, type: type, cancelled: cancelled, attemptCount: count, error: error, completion: completion)
+                    self?.handleOperationFinished(id: id, type: type, cancelled: cancelled, attemptCount: count, error: error)
                 }
             }
 
@@ -147,8 +154,7 @@ public class EmbraceUpload {
         type: EmbraceUploadType,
         cancelled: Bool,
         attemptCount: Int,
-        error: Error?,
-        completion: ((Result<(), Error>) -> Void)?) {
+        error: Error?) {
 
         // error?
         if cancelled == true || error != nil {
@@ -160,10 +166,6 @@ public class EmbraceUpload {
                     print("Error updating cache: \(error.localizedDescription)")
                 }
             }
-
-            let e: Error = error ?? internalError(code: .operationCancelled)
-            completion?(.failure(e))
-
             return
         }
 
@@ -175,8 +177,6 @@ public class EmbraceUpload {
                 print("Error deleting cache: \(error.localizedDescription)")
             }
         }
-
-        completion?(.success(()))
     }
 
     private func endpointForType(_ type: EmbraceUploadType) -> URL {

@@ -22,6 +22,7 @@ class EmbraceUploadTests: XCTestCase {
 
     var testOptions: EmbraceUpload.Options!
     var queue: DispatchQueue!
+    var module: EmbraceUpload!
 
     override func setUpWithError() throws {
         if FileManager.default.fileExists(atPath: EmbraceUploadTests.testCacheOptions.cacheFilePath) {
@@ -42,15 +43,16 @@ class EmbraceUploadTests: XCTestCase {
         EmbraceHTTPMock.setUp()
 
         self.queue = DispatchQueue(label: "com.test.embrace.queue", attributes: .concurrent)
+        module = try EmbraceUpload(options: testOptions, queue: queue)
+
     }
 
     override func tearDownWithError() throws {
-
+        // prevents inconsistent errors due to the cache database being forcefully deleted on each test
+        module.operationQueue.waitUntilAllOperationsAreFinished()
     }
 
     func test_invalidId() throws {
-        let module = try EmbraceUpload(options: testOptions, queue: queue)
-
         // given an invalid identifier
         let expectation = XCTestExpectation()
 
@@ -69,8 +71,6 @@ class EmbraceUploadTests: XCTestCase {
     }
 
     func test_invalidData() throws {
-        let module = try EmbraceUpload(options: testOptions, queue: queue)
-
         // given an invalid data
         let expectation = XCTestExpectation()
 
@@ -88,17 +88,16 @@ class EmbraceUploadTests: XCTestCase {
         wait(for: [expectation], timeout: .defaultTimeout)
     }
 
-    func test_successCompletion() throws {
+    func test_success() throws {
         EmbraceHTTPMock.mock(url: EmbraceUploadTests.testSessionsUrl)
-
-        let module = try EmbraceUpload(options: testOptions, queue: queue)
 
         // given valid values
         let expectation = XCTestExpectation()
+
         module.uploadSession(id: "id", data: TestConstants.data) { result in
             switch result {
             case .success:
-                // then the upload should succeed
+                // then the success completion callback is called without
                 expectation.fulfill()
             default:
                 XCTAssert(false, "Upload should've succeeded!")
@@ -111,12 +110,10 @@ class EmbraceUploadTests: XCTestCase {
     func test_cacheFlowOnSuccess() throws {
         EmbraceHTTPMock.mock(url: EmbraceUploadTests.testSessionsUrl)
 
-        let module = try EmbraceUpload(options: testOptions, queue: queue)
-
         // given valid values
-        let expectation1 = XCTestExpectation(description: "1. Data should be cached")
-        let expectation2 = XCTestExpectation(description: "2. Upload should succeed")
-        let expectation3 = XCTestExpectation(description: "3. Cache should be removed")
+        let expectation1 = XCTestExpectation(description: "1. Data should be cached in the database")
+        let expectation2 = XCTestExpectation(description: "2. Success completion callback should be called")
+        let expectation3 = XCTestExpectation(description: "4. Cache should be removed")
         var dataCached = false
 
         // then the data should be cached
@@ -142,25 +139,26 @@ class EmbraceUploadTests: XCTestCase {
         module.uploadSession(id: "id", data: TestConstants.data) { result in
             switch result {
             case .success:
-                // then the upload should succeed
+                // then the cache step succeeds
                 expectation2.fulfill()
             default:
                 XCTAssert(false, "Upload should've succeeded!")
             }
         }
 
-        wait(for: [expectation1, expectation2, expectation3], timeout: .veryLongTimeout, enforceOrder: true)
+        // Note: we would like to enforce order for these but
+        // the observability on the database seems to be inconsistent timing wise
+        // so the first 2 steps are not always in the same order
+        wait(for: [expectation1, expectation2, expectation3], timeout: .veryLongTimeout)
 
         // clean up
         cancellable.cancel()
     }
 
     func test_cacheFlowOnError() throws {
-        let module = try EmbraceUpload(options: testOptions, queue: queue)
-
         // given valid values
-        let expectation1 = XCTestExpectation(description: "1. Data should be cached")
-        let expectation2 = XCTestExpectation(description: "2. Upload should fail")
+        let expectation1 = XCTestExpectation(description: "1. Data should be cached in the database")
+        let expectation2 = XCTestExpectation(description: "2. Sucess completion callback should be called")
 
         // then the data should be cached
         let observation = ValueObservation.tracking(UploadDataRecord.fetchAll)
@@ -179,18 +177,17 @@ class EmbraceUploadTests: XCTestCase {
         // when uploading data
         module.uploadSession(id: "id", data: TestConstants.data) { result in
             switch result {
-            case .failure(let error):
-                // then the upload should fail
-                XCTAssertNotNil(error)
+            case .success:
+                // then the cache step succeeds
                 expectation2.fulfill()
             default:
-                XCTAssert(false, "Upload should've failed!")
+                XCTAssert(false, "Upload should've succeeded!")
             }
         }
 
-        wait(for: [expectation1, expectation2], timeout: .veryLongTimeout, enforceOrder: true)
+        wait(for: [expectation1, expectation2], timeout: .veryLongTimeout)
 
-        // data should remain cached
+        // the ndata should remain cached
         let record = try module.cache.fetchUploadData(id: "id", type: .session)
         XCTAssertNotNil(record)
 
@@ -199,8 +196,6 @@ class EmbraceUploadTests: XCTestCase {
     }
 
     func test_retryCachedData() throws {
-        let module = try EmbraceUpload(options: testOptions, queue: queue)
-
         // given cached data
         _ = try module.cache.saveUploadData(id: "id1", type: .session, data: TestConstants.data)
         _ = try module.cache.saveUploadData(id: "id2", type: .blob, data: TestConstants.data)
@@ -217,7 +212,6 @@ class EmbraceUploadTests: XCTestCase {
 
     func test_retryCachedData_emptyCache() throws {
         // given an empty cache
-        let module = try EmbraceUpload(options: testOptions, queue: queue)
 
         // when retrying to upload all cached data
         module.retryCachedData()
@@ -230,8 +224,6 @@ class EmbraceUploadTests: XCTestCase {
     }
 
     func test_sessionsEndpoint() throws {
-        let module = try EmbraceUpload(options: testOptions, queue: queue)
-
         // when uploading session data
         module.uploadSession(id: "id", data: TestConstants.data, completion: nil)
 
@@ -243,8 +235,6 @@ class EmbraceUploadTests: XCTestCase {
     }
 
     func test_blobsEndpoint() throws {
-        let module = try EmbraceUpload(options: testOptions, queue: queue)
-
         // when uploading blob data
         module.uploadBlob(id: "id", data: TestConstants.data, completion: nil)
 
