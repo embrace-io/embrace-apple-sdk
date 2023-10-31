@@ -4,6 +4,7 @@
 
 import Foundation
 import EmbraceCommon
+import EmbraceStorage
 
 struct CrashPayload: Encodable {
     var id: String
@@ -39,8 +40,10 @@ struct CrashReportPayload: Encodable {
         case crashPayload = "cr"
     }
 
-    init(from crashReport: CrashReport) {
-        appInfo = AppInfoPayload()
+    init(from crashReport: CrashReport, resourceFetcher: EmbraceStorageResourceFetcher) {
+        let resources = PayloadUtils.fetchResources(from: resourceFetcher, sessionId: crashReport.sessionId)
+
+        appInfo = AppInfoPayload(with: resources)
         deviceInfo = DeviceInfoPayload()
         userInfo = UserInfoPayload()
         crashPayload = CrashPayload(from: crashReport)

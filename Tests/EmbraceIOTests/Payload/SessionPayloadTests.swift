@@ -5,21 +5,32 @@
 import XCTest
 @testable import EmbraceIO
 @testable import EmbraceStorage
+@testable import EmbraceCommon
 
 // swiftlint:disable force_try force_cast
-
 final class SessionPayloadTests: XCTestCase {
+    let options = EmbraceStorage.Options(baseUrl: URL(fileURLWithPath: NSTemporaryDirectory()), fileName: "test.sqlite")
 
     var mockSessionRecord: SessionRecord {
         .init(id: "1234", state: .foreground, processId: UUID(), startTime: Date(timeIntervalSince1970: 10), endTime: Date(timeIntervalSince1970: 40))
     }
 
+    var mockResources: [ResourceRecord] = [.init(key: AppResourceKeys.buildUUID.rawValue, value: "fake_uuid", resourceType: .process),
+                                           .init(key: AppResourceKeys.bundleVersion.rawValue, value: "fake_bundle_version", resourceType: .process),
+                                           .init(key: AppResourceKeys.environment.rawValue, value: "fake_environment", resourceType: .process),
+                                           .init(key: AppResourceKeys.detailedEnvironment.rawValue, value: "fake_detailed_environment", resourceType: .process),
+                                           .init(key: AppResourceKeys.framework.rawValue, value: 1, resourceType: .process),
+                                           .init(key: AppResourceKeys.launchCount.rawValue, value: 2, resourceType: .process),
+                                           .init(key: AppResourceKeys.sdkVersion.rawValue, value: "fake_sdk_version", resourceType: .process),
+                                           .init(key: AppResourceKeys.appVersion.rawValue, value: "fake_app_version", resourceType: .process)]
+
     func test_properties() {
         // given a session record
         let sessionRecord = mockSessionRecord
+        let fetcher = MockResourceFetcher(resources: mockResources)
 
         // when creating a payload
-        let payload = SessionPayload(from: sessionRecord)
+        let payload = SessionPayload(from: sessionRecord, resourceFetcher: fetcher)
 
         // then the properties are correctly set
         XCTAssertEqual(payload.messageFormatVersion, 15)
@@ -32,11 +43,12 @@ final class SessionPayloadTests: XCTestCase {
     func test_highLevelKeys() throws {
         // given a session record
         let sessionRecord = mockSessionRecord
+        let fetcher = MockResourceFetcher(resources: mockResources)
 
         // when serializing
-        let payload = SessionPayload(from: sessionRecord)
-        let data = try! JSONEncoder().encode(payload)
-        let json = try! JSONSerialization.jsonObject(with: data, options: []) as! [String: Any]
+        let payload = SessionPayload(from: sessionRecord, resourceFetcher: fetcher)
+        let data = try JSONEncoder().encode(payload)
+        let json = try JSONSerialization.jsonObject(with: data, options: []) as! [String: Any]
 
         // then the payload has all the necessary high level keys
         XCTAssertNotNil(json["v"])
@@ -51,11 +63,12 @@ final class SessionPayloadTests: XCTestCase {
     func test_sessionInfoKeys() throws {
         // given a session record
         let sessionRecord = mockSessionRecord
+        let fetcher = MockResourceFetcher(resources: mockResources)
 
         // when serializing
-        let payload = SessionPayload(from: sessionRecord)
-        let data = try! JSONEncoder().encode(payload)
-        let json = try! JSONSerialization.jsonObject(with: data, options: []) as! [String: Any]
+        let payload = SessionPayload(from: sessionRecord, resourceFetcher: fetcher)
+        let data = try JSONEncoder().encode(payload)
+        let json = try JSONSerialization.jsonObject(with: data, options: []) as! [String: Any]
 
         // then the session payload contains the necessary keys
         let sessionInfo = json["s"] as! [String: Any]
@@ -64,6 +77,27 @@ final class SessionPayloadTests: XCTestCase {
         XCTAssertEqual(sessionInfo["et"] as? Int, sessionRecord.endTime?.millisecondsSince1970Truncated)
         XCTAssertEqual(sessionInfo["as"] as! String, sessionRecord.state)
     }
-}
 
+    func test_appInfoKeys() throws {
+        // given a session record
+        let sessionRecord = mockSessionRecord
+        let fetcher = MockResourceFetcher(resources: mockResources)
+
+        // when serializing
+        let payload = SessionPayload(from: sessionRecord, resourceFetcher: fetcher)
+        let data = try JSONEncoder().encode(payload)
+        let json = try JSONSerialization.jsonObject(with: data, options: []) as! [String: Any]
+
+        // then the session payload contains the necessary keys
+        let appInfo = json["a"] as! [String: Any]
+        XCTAssertEqual(appInfo["bi"] as! String, "fake_uuid")
+        XCTAssertEqual(appInfo["bv"] as! String, "fake_bundle_version")
+        XCTAssertEqual(appInfo["e"] as! String, "fake_environment")
+        XCTAssertEqual(appInfo["ed"] as! String, "fake_detailed_environment")
+        XCTAssertEqual(appInfo["f"] as! Int, 1)
+        XCTAssertEqual(appInfo["lc"] as! Int, 2)
+        XCTAssertEqual(appInfo["sdk"] as! String, "fake_sdk_version")
+        XCTAssertEqual(appInfo["v"] as! String, "fake_app_version")
+    }
+}
 // swiftlint:enable force_try force_cast

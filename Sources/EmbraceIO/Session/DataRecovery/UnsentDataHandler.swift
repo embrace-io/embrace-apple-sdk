@@ -52,7 +52,7 @@ class UnsentDataHandler {
 
             // upload crash report
             do {
-                let payload = CrashReportPayload(from: report)
+                let payload = CrashReportPayload(from: report, resourceFetcher: storage)
                 let payloadData = try JSONEncoder().encode(payload).gzipped()
 
                 upload.uploadBlob(id: report.id.uuidString, data: payloadData) { result in
@@ -82,7 +82,7 @@ class UnsentDataHandler {
             for session in sessions {
 
                 do {
-                    let payload = SessionPayload(from: session)
+                    let payload = SessionPayload(from: session, resourceFetcher: storage)
                     let payloadData = try JSONEncoder().encode(payload).gzipped()
 
                     // upload session

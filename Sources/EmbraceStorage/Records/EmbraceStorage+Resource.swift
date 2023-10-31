@@ -5,8 +5,13 @@
 import Foundation
 import GRDB
 
+public protocol EmbraceStorageResourceFetcher {
+    func fetchAllResourceForSession(sessionId: String) throws -> [ResourceRecord]?
+    func fetchAllResources()throws -> [ResourceRecord]?
+}
+
 // MARK: - Sync resource operations
-extension EmbraceStorage {
+extension EmbraceStorage: EmbraceStorageResourceFetcher {
 
     @discardableResult public func addResource(key: String, value: String, resourceType: ResourceType, resourceTypeId: String = "N/A") throws -> ResourceRecord {
         let resource = ResourceRecord(key: key, value: value, resourceType: resourceType, resourceTypeId: resourceTypeId)
