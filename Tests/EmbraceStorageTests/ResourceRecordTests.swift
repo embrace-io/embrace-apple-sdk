@@ -33,12 +33,13 @@ class ResourceRecordTests: XCTestCase {
 
             let columns = try db.columns(in: ResourceRecord.databaseTableName)
 
+            XCTAssert(try db.table(ResourceRecord.databaseTableName, hasUniqueKey: ["key", "resource_type", "resource_type_id"]))
+
             // id
             let keyColumn = columns.first(where: { $0.name == "key" })
             if let keyColumn = keyColumn {
                 XCTAssertEqual(keyColumn.type, "TEXT")
                 XCTAssert(keyColumn.isNotNull)
-                XCTAssert(try db.table(ResourceRecord.databaseTableName, hasUniqueKey: ["key"]))
             } else {
                 XCTAssert(false, "key column not found!")
             }

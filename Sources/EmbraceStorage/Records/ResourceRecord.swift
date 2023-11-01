@@ -56,11 +56,13 @@ extension ResourceRecord: TableRecord {
     internal static func defineTable(db: Database) throws {
         try db.create(table: ResourceRecord.databaseTableName, options: .ifNotExists) { t in
 
-            t.primaryKey("key", .text).notNull()
+            t.column("key", .text).notNull()
             t.column("resource_type", .text).notNull()
             t.column("resource_type_id", .text).notNull()
             t.column("value", .text).notNull()
             t.column("collected_at", .datetime).notNull()
+
+            t.primaryKey(["key", "resource_type", "resource_type_id"])
         }
     }
 }
