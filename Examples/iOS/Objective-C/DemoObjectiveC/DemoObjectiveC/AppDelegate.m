@@ -16,11 +16,13 @@
 
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    EmbraceOptions *Options = [[EmbraceOptions alloc]initWithAppId:@"VZSfE" appGroupId:nil platform:EmbracePlatformIOS];
-    NSArray<id<Collector>>* Collectors = @[[AppInfoCollector new], [DeviceInfoCollector new]];
-    [Embrace setupWithOptions:Options collectors:Collectors];
-    [[Embrace client]start];
+    NSArray<id<Collector>>* collectors = @[[AppInfoCollector new], [DeviceInfoCollector new]];
+    [Embrace setupWithOptions: options collectors: collectors];
+    [[Embrace client] start];
     
+    [Embrace setupWithOptions:options collectors:collectors];
+    [[Embrace client] start];
+
     return YES;
 }
 

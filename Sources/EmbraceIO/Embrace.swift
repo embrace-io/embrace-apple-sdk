@@ -12,23 +12,34 @@ import EmbraceObjCUtils
 @objc public class Embrace: NSObject {
 
     @objc public private(set) static var client: Embrace?
-    @objc public private(set) var options: EmbraceOptions
+    @objc public private(set) var options: Embrace.Options
     @objc public private(set) var started: Bool
 
-    private let sessionLifecycle: SessionLifecycle
-    private let storage: EmbraceStorage?
-    private let upload: EmbraceUpload?
-    private let collectors: CollectorsManager
-    private var crashReporter: CrashReporter?
+    let sessionLifecycle: SessionLifecycle
+    let storage: EmbraceStorage?
+    let upload: EmbraceUpload?
+    let collectors: CollectorsManager
+    var crashReporter: CrashReporter?
 
     private let processingQueue: DispatchQueue
     private static let synchronizationQueue: DispatchQueue = DispatchQueue(label: "com.embrace.synchronization", qos: .utility)
+
+    @objc public static func setup(options: Embrace.Options, collectors: [Collector]) {
+        Embrace.synchronizationQueue.sync {
+            if client != nil {
+                print("Embrace was already initialized!")
+                return
+            }
+
+            client = Embrace(options: options, collectors: collectors)
+        }
+    }
 
     private override init() {
         fatalError("Use init(options:) instead")
     }
 
-    private init(options: EmbraceOptions, collectors: [Collector]) {
+    private init(options: Embrace.Options, collectors: [Collector]) {
         self.started = false
         self.options = options
         self.collectors = CollectorsManager(collectors: collectors)
@@ -50,20 +61,6 @@ import EmbraceObjCUtils
         initializeCrashReporter(options: options, collectors: collectors)
 
         EmbraceOTel.setup(storage: storage!)
-    }
-
-    private func getMetaData() {
-    }
-
-    @objc public class func setup(options: EmbraceOptions, collectors: [Collector]) {
-        Embrace.synchronizationQueue.sync {
-            if client != nil {
-                print("Embrace was already initialized!")
-                return
-            }
-
-            client = Embrace(options: options, collectors: collectors)
-        }
     }
 
     @objc public func start() {
@@ -113,103 +110,5 @@ import EmbraceObjCUtils
 
     public func addResource(key: String, value: Double) throws {
         try storage?.addResource(key: key, value: value, resourceType: .process, resourceTypeId: sessionLifecycle.storageInterface.processId.uuidString)
-    }
-
-    // MARK: - Private
-    private static func createStorage(options: EmbraceOptions) -> EmbraceStorage? {
-        if let storageUrl = EmbraceFileSystem.storageDirectoryURL(
-            appId: options.appId,
-            appGroupId: options.appGroupId,
-            forceCachesDirectory: options.platform == .tvOS // TODO: Check if this is really needed
-        ) {
-            do {
-                let storageOptions = EmbraceStorage.Options(baseUrl: storageUrl, fileName: "db.sqlite")
-                return try EmbraceStorage(options: storageOptions)
-            } catch {
-                print("Error initializing Embrace Storage: " + error.localizedDescription)
-            }
-        } else {
-            print("Error initializing Embrace Storage!")
-        }
-
-        // TODO: Discuss what to do if the storage fails to initialize!
-        return nil
-    }
-
-    private static func createUpload(options: EmbraceOptions) -> EmbraceUpload? {
-        // endpoints
-        guard let sessionsURL = URL.sessionsEndpoint(basePath: options.endpointsConfig.dataBaseUrlPath),
-              let blobsURL = URL.blobsEndpoint(basePath: options.endpointsConfig.dataBaseUrlPath) else {
-            print("Failed to initialize endpoints!")
-            return nil
-        }
-
-        let endpoints = EmbraceUpload.EndpointOptions(sessionsURL: sessionsURL, blobsURL: blobsURL)
-
-        // cache
-        guard let cacheUrl = EmbraceFileSystem.uploadsDirectoryPath(
-            appId: options.appId,
-            appGroupId: options.appGroupId,
-            forceCachesDirectory: options.platform == .tvOS // TODO: Check if this is really needed
-        ),
-              let cache = EmbraceUpload.CacheOptions(cacheBaseUrl: cacheUrl)
-        else {
-            print("Failed to initialize upload cache!")
-            return nil
-        }
-
-        // metadata
-        let metadata = EmbraceUpload.MetadataOptions(
-            apiKey: options.appId,
-            userAgent: "Embrace/i/6.0.0", // TODO: Do this properly!
-            deviceId: "0123456789ABCDEF0123456789ABCDEF"  // TODO: Do this properly!
-        )
-
-        do {
-            let options = EmbraceUpload.Options(endpoints: endpoints, cache: cache, metadata: metadata)
-            let queue = DispatchQueue(label: "com.embrace.upload", attributes: .concurrent)
-
-            return try EmbraceUpload(options: options, queue: queue)
-        } catch {
-            print("Error initializing Embrace Upload: " + error.localizedDescription)
-        }
-
-        return nil
-    }
-
-    private func initializeSessionHandlers() {
-        // on new session handler
-        sessionLifecycle.onNewSession = { [weak self] sessionId in
-            self?.crashReporter?.currentSessionId = sessionId
-        }
-
-        // on session ended handler
-        sessionLifecycle.onSessionEnded = { [weak self] _ in
-            self?.crashReporter?.currentSessionId = nil
-        }
-    }
-
-    private func initializeCrashReporter(options: EmbraceOptions, collectors: [Collector]) {
-        // TODO: Handle multiple crash reporters!
-
-        // find crash reporter and set folder path for crashes
-        crashReporter = collectors.first(where: { $0 is CrashReporter }) as? any CrashReporter
-
-        if crashReporter == nil {
-            print("Not using Embrace's crash reporter")
-            return
-        }
-
-        print("Using Embrace's crash reporter.")
-
-        let crashesPath = EmbraceFileSystem.crashesDirectoryPath(
-            appId: options.appId,
-            appGroupId: options.appGroupId,
-            forceCachesDirectory: options.platform == .tvOS // TODO: Check if this is really needed
-        )?.path
-
-        crashReporter?.configure(appId: options.appId, path: crashesPath)
-
-        crashReporter?.sdkVersion = "6.0.0" // TODO: Do this properly!
     }
 }

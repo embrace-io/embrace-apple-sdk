@@ -25,13 +25,13 @@ jobs:
         uses: actions/cache@v2
         with:
           path: .build/DerivedData/SourcePackages
-          key: ${{ runner.os }}-spm-xctest-${{ hashFiles('**/Package.resolved') }}
+          key: ${{ runner.os }}-spm-xctest-${{ hashFiles('Package.resolved') }}
           restore-keys: |
             ${{ runner.os }}-spm-xctest-
 
       - name: Run Tests
         run: bin/test | xcpretty && exit ${PIPESTATUS[0]}
-        timeout-minutes: 20
+        timeout-minutes: 30
 
       - uses: embrace-io/xcresulttool@v1
         with:

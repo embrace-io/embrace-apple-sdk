@@ -2,7 +2,8 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-@objc public enum EmbracePlatform: Int {
+@objc(EMBPlatform)
+public enum Platform: Int {
     case iOS
     case iOSExtension
     case tvOS

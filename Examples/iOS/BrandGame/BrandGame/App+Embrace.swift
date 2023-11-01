@@ -6,7 +6,7 @@ import EmbraceIO
 
 extension BrandGameApp {
 #if DEBUG
-    var embraceOptions: EmbraceOptions {
+    var embraceOptions: Embrace.Options {
         return .init(
             appId: "stage",
             appGroupId: nil,
@@ -14,7 +14,7 @@ extension BrandGameApp {
         )!
     }
 #else
-    var embraceOptions: EmbraceOptions {
+    var embraceOptions: Embrace.Options {
 
         return .init(
             appId: "myApp",
