@@ -1,4 +1,4 @@
-// swift-tools-version: 5.8
+// swift-tools-version: 5.7
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import Foundation
@@ -68,10 +68,10 @@ let package = Package(
                 "EmbraceIO",
                 "EmbraceCrash",
                 "TestSupport",
-                .product(name: "GRDB", package: "GRDB.swift"),
+                .product(name: "GRDB", package: "GRDB.swift")
             ],
             resources: [
-                .copy("Mocks/"),
+                .copy("Mocks/")
             ],
             plugins: targetPlugins
         ),
@@ -140,7 +140,7 @@ let package = Package(
             name: "EmbraceCrashTests",
             dependencies: ["EmbraceCrash", "TestSupport"],
             resources: [
-                .copy("Mocks/"),
+                .copy("Mocks/")
             ],
             plugins: targetPlugins
         ),
@@ -152,7 +152,7 @@ let package = Package(
             path: "Tests/TestSupport",
             plugins: targetPlugins
         ),
-        
+
         // Utilities
         .target(name: "EmbraceObjCUtils",
                 plugins: targetPlugins)

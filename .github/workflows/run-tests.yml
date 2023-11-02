@@ -14,6 +14,7 @@ jobs:
       fail-fast: false
     steps:
       - name: Select Xcode
+        # See https://github.com/actions/runner-images/blob/main/images/macos/macos-12-Readme.md
         run: |
           sudo xcode-select -s /Applications/Xcode_15.0.app
           xcodebuild -version
@@ -22,16 +23,28 @@ jobs:
         timeout-minutes: 2
 
       - name: Cache Swift Package Dependencies
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: .build/DerivedData/SourcePackages
           key: ${{ runner.os }}-spm-xctest-${{ hashFiles('Package.resolved') }}
           restore-keys: |
             ${{ runner.os }}-spm-xctest-
 
+      - name: Display Available SDKs
+        run: xcodebuild -showsdks -json
+        timeout-minutes: 1
+        continue-on-error: true
+
+      - name: Display Available Simulators
+        run: |
+          xcrun simctl list -j devices available
+        timeout-minutes: 2
+        continue-on-error: true
+
       - name: Run Tests
         run: bin/test | xcpretty && exit ${PIPESTATUS[0]}
         timeout-minutes: 30
+        continue-on-error: true
 
       - uses: embrace-io/xcresulttool@v1
         with:
@@ -40,7 +53,6 @@ jobs:
           show-passed-tests: true
           show-code-coverage: true
           upload-bundles: true
-        if: success() || failure()
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
