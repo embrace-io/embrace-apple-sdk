@@ -41,6 +41,8 @@ NSString *const EMBEnvUnknownDueToErrorScanningBinaryValue = @"u2";
 NSString *const EMBEnvUnknownDueToErrorParsingPlistValue = @"u3";
 NSString *const EMBEnvUnknownMissingInfoValue = @"u4";
 
+NSString *const signerIdentityString = @"signeridentity";
+
 typedef NS_ENUM(NSInteger, EMBReleaseMode) {
     EMBReleaseUnknownDueToErrorGettingBinary,
     EMBReleaseUnknownDueToErrorScanningBinary,
