@@ -1,3 +1,5 @@
+ignore:
+  - "**/bin"
 coverage:
   status:
     project:
@@ -5,12 +7,12 @@ coverage:
         # basic
         target: 60%
         threshold: 0%
-        paths: 
+        paths:
           - "Sources"
     patch:
       default:
         # basic
         target: 85%
         threshold: 0%
-        paths: 
+        paths:
           - "Sources"
