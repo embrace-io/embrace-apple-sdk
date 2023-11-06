@@ -80,6 +80,11 @@ let package = Package(
             name: "EmbraceCommon",
             plugins: targetPlugins
         ),
+        .testTarget(
+            name: "EmbraceCommonTests",
+            dependencies: ["EmbraceCommon", "TestSupport"],
+            plugins: targetPlugins
+        ),
 
         // OTel ----------------------------------------------------------------------
         .target(

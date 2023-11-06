@@ -7,7 +7,7 @@ public enum SpanType: String, Codable {
 
     /// Span to map the existing Embrace "session" object.
     case session
-
+    case network
     case performance
     case ux
 }

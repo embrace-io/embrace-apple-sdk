@@ -13,6 +13,10 @@ extension Date {
         Int(trunc(self.millisecondsSince1970))
     }
 
+    public var serializedInterval: Int {
+        Int(millisecondsSince1970.rounded(.down))
+    }
+
     init(_ millisSince1970: Int) {
         self.init(Double(millisSince1970))
     }
