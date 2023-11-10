@@ -14,6 +14,7 @@ import EmbraceObjCUtils
     @objc public private(set) static var client: Embrace?
     @objc public private(set) var options: Embrace.Options
     @objc public private(set) var started: Bool
+    @objc public private(set) var deviceId: UUID?
 
     let sessionLifecycle: SessionLifecycle
     let storage: EmbraceStorage?
@@ -44,6 +45,8 @@ import EmbraceObjCUtils
         self.options = options
         self.collectors = CollectorsManager(collectors: collectors)
         self.storage = Embrace.createStorage(options: options)
+        self.deviceId = EmbraceDeviceId.retrieve(from: self.storage)
+
         self.upload = Embrace.createUpload(options: options)
 
         self.processingQueue = DispatchQueue(label: "com.embrace.processing", qos: .background, attributes: .concurrent)

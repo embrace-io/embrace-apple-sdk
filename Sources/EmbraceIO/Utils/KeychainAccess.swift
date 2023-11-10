@@ -14,10 +14,13 @@ class KeychainAccess {
 
     static var keychain: KeychainInterface = DefaultKeychainInterface()
 
-    static var deviceId: UUID? {
+    static var deviceId: UUID {
         let pair = keychain.valueFor(service: kEmbraceKeychainService as CFString, account: kEmbraceDeviceId as CFString)
         if let _deviceId = pair.value {
-            return UUID(uuidString: _deviceId)
+            if let uuid = UUID(uuidString: _deviceId) {
+                return uuid
+            }
+            print("Failed to construct device id from keychain")
         }
 
         let newId = UUID()

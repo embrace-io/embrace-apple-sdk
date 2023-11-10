@@ -377,7 +377,7 @@ struct UploadTaskWithRequestFromFileSwizzler: URLSessionSwizzler {
         self.handler = handler
         self.baseClass = baseClass
     }
-    
+
     func install() throws {
         try swizzleInstanceMethod { originalImplementation -> BlockImplementationType in
             return { [weak handler = self.handler] urlSession, urlRequest, url -> URLSessionUploadTask in
