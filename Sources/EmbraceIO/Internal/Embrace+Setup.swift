@@ -71,12 +71,12 @@ extension Embrace {
     func initializeSessionHandlers() {
         // on new session handler
         sessionLifecycle.onNewSession = { [weak self] sessionId in
-            self?.crashReporter?.currentSessionId = sessionId
+            self?.collection.crashReporter?.currentSessionId = sessionId
         }
 
         // on session ended handler
         sessionLifecycle.onSessionEnded = { [weak self] _ in
-            self?.crashReporter?.currentSessionId = nil
+            self?.collection.crashReporter?.currentSessionId = nil
         }
     }
 }

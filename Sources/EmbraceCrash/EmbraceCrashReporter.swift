@@ -7,7 +7,7 @@ import EmbraceCommon
 import KSCrash_Recording
 
 /// Class used to interact with KSCrash
-@objc public class EmbraceCrashReporter: NSObject, InstalledCollector, CrashReporter {
+@objc public final class EmbraceCrashReporter: NSObject, CrashReporter {
 
     enum UserInfoKey {
         static let sessionId = "emb-sid"

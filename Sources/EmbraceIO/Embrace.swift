@@ -19,20 +19,19 @@ import EmbraceObjCUtils
     let sessionLifecycle: SessionLifecycle
     let storage: EmbraceStorage?
     let upload: EmbraceUpload?
-    let collectors: CollectorsManager
-    var crashReporter: CrashReporter?
+    let collection: DataCollection
 
     private let processingQueue: DispatchQueue
     private static let synchronizationQueue: DispatchQueue = DispatchQueue(label: "com.embrace.synchronization", qos: .utility)
 
-    @objc public static func setup(options: Embrace.Options, collectors: [Collector]) {
+    @objc public static func setup(options: Embrace.Options) {
         Embrace.synchronizationQueue.sync {
             if client != nil {
                 print("Embrace was already initialized!")
                 return
             }
 
-            client = Embrace(options: options, collectors: collectors)
+            client = Embrace(options: options)
         }
     }
 
@@ -40,10 +39,10 @@ import EmbraceObjCUtils
         fatalError("Use init(options:) instead")
     }
 
-    private init(options: Embrace.Options, collectors: [Collector]) {
+    private init(options: Embrace.Options) {
         self.started = false
         self.options = options
-        self.collectors = CollectorsManager(collectors: collectors)
+        self.collection = DataCollection(options: options)
         self.storage = Embrace.createStorage(options: options)
         self.deviceId = EmbraceDeviceId.retrieve(from: self.storage)
 
@@ -61,7 +60,7 @@ import EmbraceObjCUtils
         super.init()
 
         initializeSessionHandlers()
-        initializeCrashReporter(options: options, collectors: collectors)
+        initializeCrashReporter(options: options)
 
         EmbraceOTel.setup(storage: storage!)
     }
@@ -75,14 +74,14 @@ import EmbraceObjCUtils
 
             started = true
             sessionLifecycle.isEnabled = true
-            collectors.start()
+            collection.start()
 
             // send unsent sessions and crash reports
             processingQueue.async { [weak self] in
                 UnsentDataHandler.sendUnsentData(
                     storage: self?.storage,
                     upload: self?.upload,
-                    crashReporter: self?.crashReporter
+                    crashReporter: self?.collection.crashReporter
                 )
             }
         }

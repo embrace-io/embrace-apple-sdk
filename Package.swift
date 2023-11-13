@@ -57,6 +57,7 @@ let package = Package(
                 "EmbraceStorage",
                 "EmbraceUpload",
                 "EmbraceObjCUtils",
+                "EmbraceCrash",
                 .product(name: "Gzip", package: "GzipSwift")
             ],
             plugins: targetPlugins

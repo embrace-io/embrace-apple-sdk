@@ -8,7 +8,7 @@ public enum LastRunState {
     case invalid, crash, cleanExit
 }
 
-public protocol CrashReporter {
+public protocol CrashReporter: InstalledCollector {
     var currentSessionId: SessionId? { get set }
     var sdkVersion: String? { get set }
 

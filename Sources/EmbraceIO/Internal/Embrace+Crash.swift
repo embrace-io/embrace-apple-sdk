@@ -6,11 +6,13 @@ import Foundation
 import EmbraceCommon
 
 extension Embrace {
-    func initializeCrashReporter(options: Embrace.Options, collectors: [Collector]) {
+    func initializeCrashReporter(options: Embrace.Options) {
         // TODO: Handle multiple crash reporters!
 
+        let collectors = options.collectors
+
         // find crash reporter and set folder path for crashes
-        crashReporter = collectors.first(where: { $0 is CrashReporter }) as? any CrashReporter
+        let crashReporter = collection.crashReporter
 
         if crashReporter == nil {
             print("Not using Embrace's crash reporter")

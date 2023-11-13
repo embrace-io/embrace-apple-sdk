@@ -14,9 +14,9 @@ import UIKit
 public extension SessionState {
     init?(appState: UIApplication.State) {
         if appState == .background {
-            self.init(rawValue: "background")
+            self = .background
         } else {
-            self.init(rawValue: "foreground")
+            self = .foreground
         }
     }
 }
