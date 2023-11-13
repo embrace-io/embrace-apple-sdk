@@ -99,6 +99,36 @@ class EmbraceUploadOperationTests: XCTestCase {
         wait(for: [expectation], timeout: .defaultTimeout)
     }
 
+    func test_successfulOperation_wrongStatusCode() {
+        // mock successful response
+        EmbraceHTTPMock.mock(url: TestConstants.url, statusCode: 300)
+
+        // given an upload operation
+        let expectation = XCTestExpectation()
+
+        let operation = EmbraceUploadOperation(
+            urlSession: urlSession,
+            metadataOptions: testMetadataOptions,
+            endpoint: TestConstants.url,
+            identifier: "id",
+            data: Data(),
+            retryCount: 0,
+            attemptCount: 0
+        ) { cancelled, attemptCount, error in
+
+            // then the operation should be successful
+            XCTAssertFalse(cancelled)
+            XCTAssertEqual(attemptCount, 1)
+            XCTAssertNotNil(error)
+
+            expectation.fulfill()
+        }
+
+        operation.start()
+
+        wait(for: [expectation], timeout: .defaultTimeout)
+    }
+
     func test_cancelledOperation() {
         // mock successful response
         EmbraceHTTPMock.mock(url: TestConstants.url)

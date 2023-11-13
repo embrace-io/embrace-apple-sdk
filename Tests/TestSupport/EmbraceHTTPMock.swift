@@ -21,8 +21,8 @@ public class EmbraceHTTPMock: URLProtocol {
     }
 
     /// Adds a succesful mocked response for the given url
-    public class func mock(url: URL, data: Data? = nil) {
-        mockedResponses[url] = MockResponse.withData(data ?? Data())
+    public class func mock(url: URL, data: Data? = nil, statusCode: Int = 200) {
+        mockedResponses[url] = MockResponse.withData(data ?? Data(), statusCode: statusCode)
     }
 
     /// Adds a mocked reponse with the given error, for the given url
@@ -64,6 +64,10 @@ public class EmbraceHTTPMock: URLProtocol {
             if let response = EmbraceHTTPMock.mockedResponses[url] {
                 if let data = response.data {
                     client?.urlProtocol(self, didLoad: data)
+
+                    if let httpResponse = HTTPURLResponse(url: url, statusCode: response.statusCode, httpVersion: nil, headerFields: nil) {
+                        client?.urlProtocol(self, didReceive: httpResponse, cacheStoragePolicy: .allowed)
+                    }
                 } else {
                     let error = response.error ?? genericServerError
                     client?.urlProtocol(self, didFailWithError: error)
@@ -88,10 +92,12 @@ public class EmbraceHTTPMock: URLProtocol {
 public struct MockResponse {
     private(set) var data: Data?
     private(set) var error: Error?
+    private(set) var statusCode: Int = -1
 
-    public static func withData(_ data: Data) -> MockResponse {
+    public static func withData(_ data: Data, statusCode: Int) -> MockResponse {
         var response = MockResponse()
         response.data = data
+        response.statusCode = statusCode
 
         return response
     }
@@ -99,6 +105,7 @@ public struct MockResponse {
     public static func withError(_ error: NSError) -> MockResponse {
         var response = MockResponse()
         response.error = error
+        response.statusCode = error.code
 
         return response
     }
@@ -106,6 +113,7 @@ public struct MockResponse {
     public static func withErrorCode(_ code: Int) -> MockResponse {
         var response = MockResponse()
         response.error = NSError(domain: TestConstants.domain, code: code)
+        response.statusCode = code
 
         return response
     }

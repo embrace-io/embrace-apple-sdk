@@ -63,9 +63,7 @@ class EmbraceUploadOperation: AsyncOperation {
         // update request's attempt count header
         request = updateRequest(request, attemptCount: attemptCount)
 
-        task = urlSession.dataTask(with: request, completionHandler: { [weak self] _, _, error in
-
-            // TODO: Handle error code 429
+        task = urlSession.dataTask(with: request, completionHandler: { [weak self] _, response, error in
 
             // retry?
             if error != nil && retryCount > 0 {
@@ -73,13 +71,28 @@ class EmbraceUploadOperation: AsyncOperation {
                 return
             }
 
+            // check success
+            if let response = response as? HTTPURLResponse {
+                if response.statusCode >= 200 && response.statusCode < 300 {
+                    self?.completion?(false, self?.attemptCount ?? 0, nil)
+                } else {
+                    self?.completion?(false, self?.attemptCount ?? 0, self?.incorrectStatusCodeError(response.statusCode))
+                }
+
+
             // no retries left, send completion
-            self?.completion?(false, self?.attemptCount ?? 0, error)
+            } else {
+                self?.completion?(false, self?.attemptCount ?? 0, error)
+            }
 
             self?.finish()
         })
 
         task?.resume()
+    }
+
+    private func incorrectStatusCodeError(_ code: Int) -> Error {
+        return NSError(domain: "com.embrace", code: code, userInfo: [NSLocalizedDescriptionKey: "Invalid status code received!"])
     }
 
     private func createRequest() -> URLRequest {
