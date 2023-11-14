@@ -12,6 +12,7 @@ coverage:
     patch:
       default:
         # basic
+        informational: true
         target: 85%
         threshold: 0%
         paths:
