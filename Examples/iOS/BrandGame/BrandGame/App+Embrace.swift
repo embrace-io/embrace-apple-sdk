@@ -11,7 +11,7 @@ extension BrandGameApp {
             appId: "stage",
             appGroupId: nil,
             platform: .iOS
-        )!
+        )
     }
 #else
     var embraceOptions: Embrace.Options {

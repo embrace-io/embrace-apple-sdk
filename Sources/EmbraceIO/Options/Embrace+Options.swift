@@ -39,3 +39,20 @@ extension Embrace.Options: ExpressibleByStringLiteral {
     }
 
 }
+
+internal extension Embrace.Options {
+    func validateAppId() throws {
+        // this also covers if it's empty
+        if self.appId.count != 5 {
+            throw EmbraceSetupError.invalidAppId("App Id must be 5 characters in length")
+        }
+    }
+
+    func validateGroupId() throws {
+        if let groupId = self.appGroupId {
+            if groupId.isEmpty {
+                throw EmbraceSetupError.invalidAppGroupId("group id must not be empty if provided")
+            }
+        }
+    }
+}

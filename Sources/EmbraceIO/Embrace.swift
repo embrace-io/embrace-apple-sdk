@@ -24,12 +24,20 @@ import EmbraceObjCUtils
     private let processingQueue: DispatchQueue
     private static let synchronizationQueue: DispatchQueue = DispatchQueue(label: "com.embrace.synchronization", qos: .utility)
 
-    @objc public static func setup(options: Embrace.Options) {
-        Embrace.synchronizationQueue.sync {
+    @objc public static func setup(options: Embrace.Options) throws {
+
+        if !Thread.isMainThread {
+            throw EmbraceSetupError.invalidThread("Embrace must be setup on the main thread")
+        }
+
+        try Embrace.synchronizationQueue.sync {
             if client != nil {
                 print("Embrace was already initialized!")
                 return
             }
+
+            try options.validateAppId()
+            try options.validateGroupId()
 
             client = Embrace(options: options)
         }
@@ -65,7 +73,11 @@ import EmbraceObjCUtils
         EmbraceOTel.setup(storage: storage!)
     }
 
-    @objc public func start() {
+    @objc public func start() throws {
+        if !Thread.isMainThread {
+            throw EmbraceSetupError.invalidThread("Embrace must be started on the main thread")
+        }
+
         Embrace.synchronizationQueue.sync {
             guard started == false else {
                 print("Embrace was already started!")

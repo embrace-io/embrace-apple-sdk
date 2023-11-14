@@ -16,13 +16,24 @@
 
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    NSArray<id<Collector>>* collectors = @[[AppInfoCollector new], [DeviceInfoCollector new]];
-    [Embrace setupWithOptions: options collectors: collectors];
-    [[Embrace client] start];
-    
-    [Embrace setupWithOptions:options collectors:collectors];
-    [[Embrace client] start];
 
+    EMBEndpoints* endpoint = [[EMBEndpoints alloc] init];
+    
+    EMBOptions* options = [[EMBOptions alloc] initWithAppId:@"" appGroupId:nil platform:EMBPlatformIOS endpoints:endpoint collectors:@[[AppInfoCollector new], [DeviceInfoCollector new]]];
+    NSError* error = nil;
+    
+    [Embrace setupWithOptions:options error:&error];
+    if(error != nil){
+        NSLog(@"Failed to setup embrace %@", error.localizedDescription);
+        return NO;
+    }
+    
+    [[Embrace client] startAndReturnError:&error];
+    if(error != nil){
+        NSLog(@"Failed to start embrace %@", error.localizedDescription);
+        return NO;
+    }
+    
     return YES;
 }
 

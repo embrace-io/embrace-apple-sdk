@@ -79,7 +79,6 @@ class EmbraceUploadOperation: AsyncOperation {
                     self?.completion?(false, self?.attemptCount ?? 0, self?.incorrectStatusCodeError(response.statusCode))
                 }
 
-
             // no retries left, send completion
             } else {
                 self?.completion?(false, self?.attemptCount ?? 0, error)

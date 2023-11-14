@@ -10,10 +10,13 @@ import EmbraceIO
 struct BrandGameApp: App {
 
     init() {
-        Embrace.setup(
-            options: embraceOptions,
-            collectors: [])
-        Embrace.client?.start()
+        do{
+            try Embrace.setup(
+                options: embraceOptions)
+            try Embrace.client?.start()
+        }catch let e{
+            print("Error starting embrace \(e.localizedDescription)")
+        }
     }
 
     var body: some Scene {
