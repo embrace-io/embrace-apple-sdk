@@ -25,7 +25,6 @@ extension Embrace {
         )?.path
 
         crashReporter?.configure(appId: options.appId, path: crashesPath)
-
-        crashReporter?.sdkVersion = "6.0.0" // TODO: Do this properly!
+        crashReporter?.sdkVersion = EmbraceMeta.sdkVersion
     }
 }

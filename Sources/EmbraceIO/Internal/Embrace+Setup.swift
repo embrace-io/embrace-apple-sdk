@@ -3,7 +3,6 @@
 //
 
 import Foundation
-
 import EmbraceOTel
 import EmbraceStorage
 import EmbraceUpload
@@ -28,7 +27,7 @@ extension Embrace {
         return nil
     }
 
-    static func createUpload(options: Embrace.Options) -> EmbraceUpload? {
+    static func createUpload(options: Embrace.Options, deviceId: String) -> EmbraceUpload? {
         // endpoints
         guard let sessionsURL = URL.sessionsEndpoint(basePath: options.endpoints.baseURL),
               let blobsURL = URL.blobsEndpoint(basePath: options.endpoints.baseURL) else {
@@ -52,8 +51,8 @@ extension Embrace {
         // metadata
         let metadata = EmbraceUpload.MetadataOptions(
             apiKey: options.appId,
-            userAgent: "Embrace/i/6.0.0", // TODO: Do this properly!
-            deviceId: "0123456789ABCDEF0123456789ABCDEF"  // TODO: Do this properly!
+            userAgent: EmbraceMeta.userAgent,
+            deviceId: deviceId
         )
 
         do {

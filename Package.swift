@@ -53,6 +53,7 @@ let package = Package(
         .target(
             name: "EmbraceIO",
             dependencies: [
+                "EmbraceConfig",
                 "EmbraceOTel",
                 "EmbraceStorage",
                 "EmbraceUpload",
@@ -83,7 +84,31 @@ let package = Package(
         ),
         .testTarget(
             name: "EmbraceCommonTests",
-            dependencies: ["EmbraceCommon", "TestSupport"],
+            dependencies: [
+                "EmbraceCommon",
+                "TestSupport"
+            ],
+            plugins: targetPlugins
+        ),
+
+        // config ----------------------------------------------------------------------
+        .target(
+            name: "EmbraceConfig",
+            dependencies: [
+                "EmbraceCommon"
+            ],
+            plugins: targetPlugins
+        ),
+
+        .testTarget(
+            name: "EmbraceConfigTests",
+            dependencies: [
+                "EmbraceConfig",
+                "TestSupport"
+            ],
+            resources: [
+                .copy("Mocks/")
+            ],
             plugins: targetPlugins
         ),
 
@@ -99,7 +124,10 @@ let package = Package(
         ),
         .testTarget(
             name: "EmbraceOTelTests",
-            dependencies: ["EmbraceOTel", "TestSupport"],
+            dependencies: [
+                "EmbraceOTel",
+                "TestSupport"
+            ],
             plugins: targetPlugins
         ),
 
@@ -129,7 +157,10 @@ let package = Package(
         ),
         .testTarget(
             name: "EmbraceUploadTests",
-            dependencies: ["EmbraceUpload", "TestSupport"],
+            dependencies: [
+                "EmbraceUpload",
+                "TestSupport"
+            ],
             plugins: targetPlugins
         ),
 
@@ -154,7 +185,9 @@ let package = Package(
         // test support ----------------------------------------------------------------------
         .target(
             name: "TestSupport",
-            dependencies: [.product(name: "OpenTelemetrySdk", package: "opentelemetry-swift") ],
+            dependencies: [
+                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
+            ],
             path: "Tests/TestSupport",
             plugins: targetPlugins
         ),

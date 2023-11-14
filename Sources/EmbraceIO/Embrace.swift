@@ -4,6 +4,7 @@
 
 import Foundation
 import EmbraceCommon
+import EmbraceConfig
 import EmbraceOTel
 import EmbraceStorage
 import EmbraceUpload
@@ -17,6 +18,7 @@ import EmbraceObjCUtils
     @objc public private(set) var deviceId: UUID?
 
     let sessionLifecycle: SessionLifecycle
+    let config: EmbraceConfig
     let storage: EmbraceStorage?
     let upload: EmbraceUpload?
     let collection: DataCollection
@@ -50,11 +52,12 @@ import EmbraceObjCUtils
     private init(options: Embrace.Options) {
         self.started = false
         self.options = options
-        self.collection = DataCollection(options: options)
+
         self.storage = Embrace.createStorage(options: options)
         self.deviceId = EmbraceDeviceId.retrieve(from: self.storage)
-
-        self.upload = Embrace.createUpload(options: options)
+        self.collection = DataCollection(options: options)
+        self.upload = Embrace.createUpload(options: options, deviceId: KeychainAccess.deviceId.uuidString)
+        self.config = Embrace.createConfig(options: options, deviceId: KeychainAccess.deviceId.uuidString)
 
         self.processingQueue = DispatchQueue(label: "com.embrace.processing", qos: .background, attributes: .concurrent)
 
@@ -84,6 +87,11 @@ import EmbraceObjCUtils
                 return
             }
 
+            guard config.isSDKEnabled else {
+                print("Embrace can't start when disabled!")
+                return
+            }
+
             started = true
             sessionLifecycle.isEnabled = true
             collection.start()
@@ -100,6 +108,10 @@ import EmbraceObjCUtils
     }
 
     @objc public func currentSessionId() -> String? {
+        guard config.isSDKEnabled else {
+            return nil
+        }
+
         // TODO: Discuss concurrency
         return sessionLifecycle.currentSessionId
     }
