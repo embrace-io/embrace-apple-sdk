@@ -9,6 +9,7 @@ struct MenuList: View {
         List {
             Section("Stress Tests") {
                 NavigationLink("Network Requests", destination: NetworkStressTest())
+                NavigationLink("Crash Examples", destination: CrashExampleTest())
             }
         }.background(.black)
     }
