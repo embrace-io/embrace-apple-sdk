@@ -45,7 +45,7 @@ public final class URLSessionCollector: InstalledCollector {
                 try $0.install()
             } catch let exception {
                 // TODO: See what to do when this kind of issues arises
-                print("Collector couldn't be installed: \(exception.localizedDescription)")
+                ConsoleLog.error("Collector couldn't be installed: \(exception.localizedDescription)")
             }
         }
     }

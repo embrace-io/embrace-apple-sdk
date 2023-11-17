@@ -4,6 +4,7 @@
 
 import Foundation
 import Security
+import EmbraceCommon
 
 class KeychainAccess {
 
@@ -21,7 +22,7 @@ class KeychainAccess {
             if let uuid = UUID(uuidString: _deviceId) {
                 return uuid
             }
-            print("Failed to construct device id from keychain")
+            ConsoleLog.error("Failed to construct device id from keychain")
         }
 
         // generate new id
@@ -30,7 +31,7 @@ class KeychainAccess {
 
         if status != errSecSuccess {
             if let err = SecCopyErrorMessageString(status, nil) {
-                print("Write failed: \(err)")
+                ConsoleLog.error("Write failed: \(err)")
             }
         }
 

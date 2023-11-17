@@ -17,6 +17,12 @@ import EmbraceObjCUtils
     @objc public private(set) var started: Bool
     @objc public private(set) var deviceId: UUID?
 
+    @objc public var logLevel: LogLevel = .error {
+        didSet {
+            ConsoleLog.shared.level = logLevel
+        }
+    }
+
     let sessionLifecycle: SessionLifecycle
     let config: EmbraceConfig
     let storage: EmbraceStorage?
@@ -34,7 +40,7 @@ import EmbraceObjCUtils
 
         try Embrace.synchronizationQueue.sync {
             if client != nil {
-                print("Embrace was already initialized!")
+                ConsoleLog.warning("Embrace was already initialized!")
                 return
             }
 
@@ -83,12 +89,12 @@ import EmbraceObjCUtils
 
         Embrace.synchronizationQueue.sync {
             guard started == false else {
-                print("Embrace was already started!")
+                ConsoleLog.warning("Embrace was already started!")
                 return
             }
 
             guard config.isSDKEnabled else {
-                print("Embrace can't start when disabled!")
+                ConsoleLog.warning("Embrace can't start when disabled!")
                 return
             }
 

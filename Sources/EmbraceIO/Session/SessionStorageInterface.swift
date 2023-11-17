@@ -25,10 +25,10 @@ class SessionStorageInterface {
                 switch result {
                 case .success(let session):
                     // TODO: send session start message
-                    print("Session \(session.id) started!")
+                    ConsoleLog.trace("Session \(session.id) started!")
                 case .failure(let error):
                     // TODO: decide what to do here
-                    print("Session \(newSessionId) start failed: \(error.localizedDescription)")
+                    ConsoleLog.trace("Session \(newSessionId) start failed: \(error.localizedDescription)")
                 }
             }
         }
@@ -41,11 +41,11 @@ class SessionStorageInterface {
                 switch result {
                 case .success(let session):
                     // TODO: send finished session
-                    print("Session \(session.id) finished!")
+                    ConsoleLog.trace("Session \(session.id) finished!")
 
                 case .failure(let error):
                     // TODO: decide what to do here
-                    print("Session \(endedSessionId) finish failed: \(error.localizedDescription)")
+                    ConsoleLog.trace("Session \(endedSessionId) finish failed: \(error.localizedDescription)")
                 }
             }
         }

@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import EmbraceCommon
 
 class RemoteConfigFetcher {
 
@@ -28,19 +29,19 @@ class RemoteConfigFetcher {
         let dataTask = session.dataTask(with: request) { data, response, error in
 
             guard let data = data, error == nil else {
-                print("Error fetching remote config:\n\(String(describing: error?.localizedDescription))")
+                ConsoleLog.error("Error fetching remote config:\n\(String(describing: error?.localizedDescription))")
                 completion(nil)
                 return
             }
 
             guard let httpResponse = response as? HTTPURLResponse else {
-                print("Error fetching remote config - Invalid response:\n\(String(describing: response?.description))")
+                ConsoleLog.error("Error fetching remote config - Invalid response:\n\(String(describing: response?.description))")
                 completion(nil)
                 return
             }
 
             guard httpResponse.statusCode >= 200 && httpResponse.statusCode < 300 else {
-                print("Error fetching remote config - Invalid response:\n\(httpResponse.description))")
+                ConsoleLog.error("Error fetching remote config - Invalid response:\n\(httpResponse.description))")
                 completion(nil)
                 return
             }
@@ -49,10 +50,10 @@ class RemoteConfigFetcher {
             do {
                 let payload = try JSONDecoder().decode(RemoteConfigPayload.self, from: data)
 
-                print("Succesfully fetched remote config")
+                ConsoleLog.info("Succesfully fetched remote config")
                 completion(payload)
             } catch {
-                print("Error decoding remote config:\n\(error.localizedDescription)")
+                ConsoleLog.error("Error decoding remote config:\n\(error.localizedDescription)")
                 completion(nil)
             }
         }

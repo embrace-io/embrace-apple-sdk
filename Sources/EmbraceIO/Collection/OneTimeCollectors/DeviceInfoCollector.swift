@@ -26,7 +26,7 @@ import EmbraceObjCUtils
             try Embrace.client?.addResource(key: Keys.OSBuild.rawValue, value: operatingSystemBuild)
 
         } catch let e {
-            print("Failed to collect device info metadata \(e.localizedDescription)")
+            ConsoleLog.error("Failed to collect device info metadata \(e.localizedDescription)")
         }
     }
 

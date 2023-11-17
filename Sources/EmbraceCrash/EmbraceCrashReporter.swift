@@ -72,13 +72,13 @@ import KSCrash_Recording
 
     public func install() {
         guard ksCrash == nil else {
-            print("EmbraceCrashReporter already started!")
+            ConsoleLog.debug("EmbraceCrashReporter already started!")
             return
         }
 
         guard let basePath = basePath,
               let appId = appId else {
-            print("EmbraceCrashReported failed to initialize!")
+            ConsoleLog.error("EmbraceCrashReported failed to initialize!")
             return
         }
 

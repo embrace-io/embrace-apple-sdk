@@ -45,7 +45,7 @@ class UnsentDataHandler {
                         try storage.update(record: session)
                     }
                 } catch {
-                    print("Error updating session \(sessionId) with crashReportId \(report.id)!")
+                    ConsoleLog.warning("Error updating session \(sessionId) with crashReportId \(report.id)!")
                 }
             }
 
@@ -61,12 +61,12 @@ class UnsentDataHandler {
                         // we can remove this immediately because the upload module will cache it until the upload succeeds
                         crashReporter.deleteCrashReport(id: report.ksCrashId)
 
-                    case .failure(let error): print("Error trying to upload crash report \(report.id):\n\(error.localizedDescription)")
+                    case .failure(let error): ConsoleLog.warning("Error trying to upload crash report \(report.id):\n\(error.localizedDescription)")
                     }
                 }
 
             } catch {
-                print("Error encoding crash report \(report.id) for session \(String(describing: report.sessionId)):\n" + error.localizedDescription)
+                ConsoleLog.warning("Error encoding crash report \(report.id) for session \(String(describing: report.sessionId)):\n" + error.localizedDescription)
             }
         }
 
@@ -94,19 +94,19 @@ class UnsentDataHandler {
                                 // we can remove this immediately because the upload module will cache it until the upload succeeds
                                 try storage.delete(record: session)
                             } catch {
-                                print("Error trying to remove session \(session.id):\n\(error.localizedDescription)")
+                                ConsoleLog.debug("Error trying to remove session \(session.id):\n\(error.localizedDescription)")
                             }
 
-                        case .failure(let error): print("Error trying to upload session \(session.id):\n\(error.localizedDescription)")
+                        case .failure(let error): ConsoleLog.warning("Error trying to upload session \(session.id):\n\(error.localizedDescription)")
                         }
                     }
                 } catch {
-                    print("Error encoding session \(session.id):\n" + error.localizedDescription)
+                    ConsoleLog.warning("Error encoding session \(session.id):\n" + error.localizedDescription)
                 }
             }
 
         } catch {
-            print("Error fetching unsent sessions:\n\(error.localizedDescription)")
+            ConsoleLog.warning("Error fetching unsent sessions:\n\(error.localizedDescription)")
         }
     }
 }

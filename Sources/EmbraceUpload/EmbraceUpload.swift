@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import EmbraceCommon
 
 /// Enum containing possible error codes
 public enum EmbraceUploadErrorCode: Int {
@@ -70,7 +71,7 @@ public class EmbraceUpload {
                         completion: nil)
                 }
             } catch {
-                print("Error retrying cached upload data: \(error.localizedDescription)")
+                ConsoleLog.debug("Error retrying cached upload data: \(error.localizedDescription)")
             }
         }
     }
@@ -123,7 +124,7 @@ public class EmbraceUpload {
                 try self?.cache.saveUploadData(id: id, type: type, data: data)
                 completion?(.success(()))
             } catch {
-                print("Error caching upload data: \(error.localizedDescription)")
+                ConsoleLog.debug("Error caching upload data: \(error.localizedDescription)")
                 completion?(.failure(error))
             }
         }
@@ -163,7 +164,7 @@ public class EmbraceUpload {
                 do {
                     try self?.cache.updateAttemptCount(id: id, type: type, attemptCount: attemptCount)
                 } catch {
-                    print("Error updating cache: \(error.localizedDescription)")
+                    ConsoleLog.debug("Error updating cache: \(error.localizedDescription)")
                 }
             }
             return
@@ -174,7 +175,7 @@ public class EmbraceUpload {
             do {
                 try self?.cache.deleteUploadData(id: id, type: type)
             } catch {
-                print("Error deleting cache: \(error.localizedDescription)")
+                ConsoleLog.debug("Error deleting cache: \(error.localizedDescription)")
             }
         }
     }

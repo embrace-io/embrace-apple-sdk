@@ -24,7 +24,7 @@ import EmbraceObjCUtils
             try Embrace.client?.addResource(key: Keys.appVersion.rawValue, value: appVersion ?? "N/A")
 
         } catch let e {
-            print("Failed to collect app info metadata \(e.localizedDescription)")
+            ConsoleLog.error("Failed to collect app info metadata \(e.localizedDescription)")
         }
     }
 

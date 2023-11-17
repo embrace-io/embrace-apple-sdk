@@ -6,6 +6,7 @@
 //
 #if canImport(UIKit)
 import UIKit
+import EmbraceCommon
 
 protocol TapCollectorHandlerType {
     func handleCollectedEvent(_ event: UIEvent)
@@ -29,7 +30,7 @@ final class TapCollectorHandler: TapCollectorHandlerType {
 
                 let viewName = accessibilityIdentifier ?? NSStringFromClass(targetClass)
 
-                print("Captured tap at \(point) on: \(viewName)")
+                ConsoleLog.trace("Captured tap at \(point) on: \(viewName)")
             }
         }
     }

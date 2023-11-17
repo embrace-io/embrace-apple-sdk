@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import EmbraceCommon
 import EmbraceOTel
 import EmbraceStorage
 import EmbraceUpload
@@ -17,10 +18,10 @@ extension Embrace {
                 let storageOptions = EmbraceStorage.Options(baseUrl: storageUrl, fileName: "db.sqlite")
                 return try EmbraceStorage(options: storageOptions)
             } catch {
-                print("Error initializing Embrace Storage: " + error.localizedDescription)
+                ConsoleLog.error("Error initializing Embrace Storage: " + error.localizedDescription)
             }
         } else {
-            print("Error initializing Embrace Storage!")
+            ConsoleLog.error("Error initializing Embrace Storage!")
         }
 
         // TODO: Discuss what to do if the storage fails to initialize!
@@ -31,7 +32,7 @@ extension Embrace {
         // endpoints
         guard let sessionsURL = URL.sessionsEndpoint(basePath: options.endpoints.baseURL),
               let blobsURL = URL.blobsEndpoint(basePath: options.endpoints.baseURL) else {
-            print("Failed to initialize endpoints!")
+            ConsoleLog.error("Failed to initialize endpoints!")
             return nil
         }
 
@@ -44,7 +45,7 @@ extension Embrace {
         ),
               let cache = EmbraceUpload.CacheOptions(cacheBaseUrl: cacheUrl)
         else {
-            print("Failed to initialize upload cache!")
+            ConsoleLog.error("Failed to initialize upload cache!")
             return nil
         }
 
@@ -61,7 +62,7 @@ extension Embrace {
 
             return try EmbraceUpload(options: options, queue: queue)
         } catch {
-            print("Error initializing Embrace Upload: " + error.localizedDescription)
+            ConsoleLog.error("Error initializing Embrace Upload: " + error.localizedDescription)
         }
 
         return nil

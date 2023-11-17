@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import EmbraceCommon
 import EmbraceStorage
 
 class EmbraceDeviceId {
@@ -18,10 +19,10 @@ class EmbraceDeviceId {
                         return deviceId
                     }
 
-                    print("failed to convert device.id back into a UUID. Possibly corrupted!")
+                    ConsoleLog.warning("Failed to convert device.id back into a UUID. Possibly corrupted!")
                 }
             } catch let e {
-                print("Failed to fetch device id from database \(e.localizedDescription)")
+                ConsoleLog.error("Failed to fetch device id from database \(e.localizedDescription)")
             }
         }
 
@@ -31,7 +32,7 @@ class EmbraceDeviceId {
             do {
                 try storage.addResource(key: "device.id", value: deviceId.uuidString, resourceType: .permanent)
             } catch let e {
-                print("failed to add device id to database \(e.localizedDescription)")
+                ConsoleLog.error("Failed to add device id to database \(e.localizedDescription)")
             }
         }
 

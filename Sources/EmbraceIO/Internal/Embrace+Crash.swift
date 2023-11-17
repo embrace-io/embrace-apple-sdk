@@ -15,7 +15,7 @@ extension Embrace {
         let crashReporter = collection.crashReporter
 
         if crashReporter == nil {
-            print("Not using Embrace's crash reporter")
+            ConsoleLog.info("Not using Embrace's crash reporter")
             return
         }
 

@@ -151,6 +151,7 @@ let package = Package(
         .target(
             name: "EmbraceUpload",
             dependencies: [
+                "EmbraceCommon",
                 .product(name: "GRDB", package: "GRDB.swift")
             ],
             plugins: targetPlugins
