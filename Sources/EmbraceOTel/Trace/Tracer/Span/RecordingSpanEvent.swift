@@ -5,7 +5,7 @@
 import Foundation
 import OpenTelemetryApi
 
-public struct RecordingSpanEvent: Codable, Equatable {
+public struct RecordingSpanEvent: SpanEvent, Codable, Equatable {
     public let name: String
     public let timestamp: Date
     public let attributes: [String: AttributeValue]
