@@ -9,7 +9,7 @@ import EmbraceStorage
 import EmbraceUpload
 
 extension Embrace {
-    static func createStorage(options: Embrace.Options) -> EmbraceStorage? {
+    static func createStorage(options: Embrace.Options) throws -> EmbraceStorage {
         if let storageUrl = EmbraceFileSystem.storageDirectoryURL(
             appId: options.appId,
             appGroupId: options.appGroupId
@@ -18,14 +18,13 @@ extension Embrace {
                 let storageOptions = EmbraceStorage.Options(baseUrl: storageUrl, fileName: "db.sqlite")
                 return try EmbraceStorage(options: storageOptions)
             } catch {
-                ConsoleLog.error("Error initializing Embrace Storage: " + error.localizedDescription)
+                // TODO: Create better error
+                throw NSError(domain: "EmbraceStorageSetup", code: 1)
             }
         } else {
-            ConsoleLog.error("Error initializing Embrace Storage!")
+            // TODO: Create better error
+            throw NSError(domain: "EmbraceStorageSetup", code: 2)
         }
-
-        // TODO: Discuss what to do if the storage fails to initialize!
-        return nil
     }
 
     static func createUpload(options: Embrace.Options, deviceId: String) -> EmbraceUpload? {
@@ -66,17 +65,5 @@ extension Embrace {
         }
 
         return nil
-    }
-
-    func initializeSessionHandlers() {
-        // on new session handler
-        sessionLifecycle.onNewSession = { [weak self] sessionId in
-            self?.collection.crashReporter?.currentSessionId = sessionId
-        }
-
-        // on session ended handler
-        sessionLifecycle.onSessionEnded = { [weak self] _ in
-            self?.collection.crashReporter?.currentSessionId = nil
-        }
     }
 }

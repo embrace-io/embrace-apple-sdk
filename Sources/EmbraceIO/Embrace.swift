@@ -16,24 +16,24 @@ import EmbraceObjCUtils
     @objc public private(set) var options: Embrace.Options
     @objc public private(set) var started: Bool
     @objc public private(set) var deviceId: UUID?
-
     @objc public var logLevel: LogLevel = .error {
         didSet {
             ConsoleLog.shared.level = logLevel
         }
     }
 
-    let sessionLifecycle: SessionLifecycle
     let config: EmbraceConfig
-    let storage: EmbraceStorage?
+    let storage: EmbraceStorage
     let upload: EmbraceUpload?
     let collection: DataCollection
 
-    private let processingQueue: DispatchQueue
+    private let sessionController: SessionController
+    let sessionListener: SessionListener
+
+    private let processingQueue: DispatchQueue = DispatchQueue(label: "com.embrace.processing", qos: .background, attributes: .concurrent)
     private static let synchronizationQueue: DispatchQueue = DispatchQueue(label: "com.embrace.synchronization", qos: .utility)
 
     @objc public static func setup(options: Embrace.Options) throws {
-
         if !Thread.isMainThread {
             throw EmbraceSetupError.invalidThread("Embrace must be setup on the main thread")
         }
@@ -47,7 +47,7 @@ import EmbraceObjCUtils
             try options.validateAppId()
             try options.validateGroupId()
 
-            client = Embrace(options: options)
+            client = try Embrace(options: options)
         }
     }
 
@@ -55,31 +55,23 @@ import EmbraceObjCUtils
         fatalError("Use init(options:) instead")
     }
 
-    private init(options: Embrace.Options) {
+    private init(options: Embrace.Options) throws {
         self.started = false
         self.options = options
 
-        self.storage = Embrace.createStorage(options: options)
+        self.storage = try Embrace.createStorage(options: options)
         self.deviceId = EmbraceDeviceId.retrieve(from: self.storage)
         self.collection = DataCollection(options: options)
         self.upload = Embrace.createUpload(options: options, deviceId: KeychainAccess.deviceId.uuidString)
         self.config = Embrace.createConfig(options: options, deviceId: KeychainAccess.deviceId.uuidString)
-
-        self.processingQueue = DispatchQueue(label: "com.embrace.processing", qos: .background, attributes: .concurrent)
-
-        // sessions lifecycle
-        let sessionStorageInterface = SessionStorageInterface(storage: storage)
-        #if os(iOS)
-            sessionLifecycle = iOSSessionLifecyle(storageInterface: sessionStorageInterface)
-        #else
-            sessionLifecycle = ManualSessionLifecyle(storageInterface: sessionStorageInterface)
-        #endif
+        self.sessionController = SessionController(storage: self.storage)
+        self.sessionListener = SessionListenerFactory.determineForPlatform(controller: sessionController)
+        
         super.init()
 
-        initializeSessionHandlers()
         initializeCrashReporter(options: options)
 
-        EmbraceOTel.setup(storage: storage!)
+        EmbraceOTel.setup(storage: storage)
     }
 
     @objc public func start() throws {
@@ -99,7 +91,7 @@ import EmbraceObjCUtils
             }
 
             started = true
-            sessionLifecycle.isEnabled = true
+
             collection.start()
 
             // send unsent sessions and crash reports
@@ -119,28 +111,28 @@ import EmbraceObjCUtils
         }
 
         // TODO: Discuss concurrency
-        return sessionLifecycle.currentSessionId
+        return sessionController.currentSession?.id.toString
     }
 
     @objc public func startNewSession() {
-        sessionLifecycle.startNewSession()
+        sessionListener.startSession()
     }
 
     @objc public func endCurrentSession() {
-        sessionLifecycle.endCurrentSession()
+        sessionListener.endSession()
     }
 
     // this is temp just so we can test collecting and storing resources into the database
     // TODO: Replace this with intended otel way of collecting resources
     public func addResource(key: String, value: String) throws {
-        try storage?.addResource(key: key, value: value, resourceType: .process, resourceTypeId: sessionLifecycle.storageInterface.processId.uuidString)
+        try storage.addResource(key: key, value: value, resourceType: .process, resourceTypeId: ProcessIdentifier.current.hex)
     }
 
     public func addResource(key: String, value: Int) throws {
-        try storage?.addResource(key: key, value: value, resourceType: .process, resourceTypeId: sessionLifecycle.storageInterface.processId.uuidString)
+        try storage.addResource(key: key, value: value, resourceType: .process, resourceTypeId: ProcessIdentifier.current.hex)
     }
 
     public func addResource(key: String, value: Double) throws {
-        try storage?.addResource(key: key, value: value, resourceType: .process, resourceTypeId: sessionLifecycle.storageInterface.processId.uuidString)
+        try storage.addResource(key: key, value: value, resourceType: .process, resourceTypeId: ProcessIdentifier.current.hex)
     }
 }

@@ -58,7 +58,6 @@ final class EmbraceSetupDataCollectionTests: XCTestCase {
     }
 
     func test_EmbraceSetup_passesCollectorsToDataCollection() throws {
-
         try Embrace.setup(options: .init(appId: "myAPP", collectors: [
             ExampleCollector(),
             ExampleInstalledCollector()

@@ -15,13 +15,26 @@ public struct SessionRecord: Codable {
     public var endTime: Date?
     public var crashReportId: String?
 
-    public init(id: SessionId, state: SessionState, processId: UUID, startTime: Date, endTime: Date? = nil, crashReportId: String? = nil) {
+    /// Used to mark if the session is the first to occur during this process
+    public var coldStart: Bool
+
+    /// Used to mark the session ended in an expected manner
+    public var cleanExit: Bool
+
+    /// Used to mark the session that is active when the application was explicitly terminated by the user and/or system
+    public var appTerminated: Bool
+
+    public init(id: SessionId, state: SessionState, processId: UUID, startTime: Date, endTime: Date? = nil, crashReportId: String? = nil, coldStart: Bool = false, cleanExit: Bool = false, appTerminated: Bool = false) {
+
         self.id = id
         self.state = state.rawValue
         self.processId = processId.uuidString
         self.startTime = startTime
         self.endTime = endTime
         self.crashReportId = crashReportId
+        self.coldStart = coldStart
+        self.cleanExit = cleanExit
+        self.appTerminated = appTerminated
     }
 }
 
@@ -43,6 +56,18 @@ extension SessionRecord: TableRecord {
             t.column("process_id", .text).notNull()
             t.column("start_time", .datetime).notNull()
             t.column("end_time", .datetime)
+
+            t.column("cold_start", .boolean)
+                .notNull()
+                .defaults(to: false)
+
+            t.column("clean_exit", .boolean)
+                .notNull()
+                .defaults(to: false)
+
+            t.column("app_terminated", .boolean)
+                .notNull()
+                .defaults(to: false)
 
             t.column("crash_report_id", .text)
         }

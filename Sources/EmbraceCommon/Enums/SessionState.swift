@@ -5,7 +5,8 @@
 import Foundation
 
 public enum SessionState: String {
-    case foreground, background
+    case foreground
+    case background
 }
 
 #if canImport(UIKit)

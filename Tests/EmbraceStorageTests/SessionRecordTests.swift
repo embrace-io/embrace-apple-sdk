@@ -32,6 +32,7 @@ class SessionRecordTests: XCTestCase {
             XCTAssert(try db.tableExists(SessionRecord.databaseTableName))
 
             let columns = try db.columns(in: SessionRecord.databaseTableName)
+            XCTAssertEqual(columns.count, 9, "Column count does not match expectation. Did you add/remove a column?")
 
             // id
             let idColumn = columns.first(where: { $0.name == "id" })
@@ -50,6 +51,15 @@ class SessionRecordTests: XCTestCase {
                 XCTAssert(stateTimeColumn.isNotNull)
             } else {
                 XCTAssert(false, "state column not found!")
+            }
+
+            // process_id
+            let processIdColumn = columns.first(where: { $0.name == "process_id" })
+            if let processIdColumn = processIdColumn {
+                XCTAssertEqual(processIdColumn.type, "TEXT")
+                XCTAssert(processIdColumn.isNotNull)
+            } else {
+                XCTAssert(false, "process_id column not found!")
             }
 
             // start_time
@@ -75,6 +85,36 @@ class SessionRecordTests: XCTestCase {
                 XCTAssertEqual(crashReportIdColumn.type, "TEXT")
             } else {
                 XCTAssert(false, "crash_report_id column not found!")
+            }
+
+            // cold_start
+            let coldStartColumn = columns.first(where: { $0.name == "cold_start" })
+            if let coldStartColumn = coldStartColumn {
+                XCTAssertEqual(coldStartColumn.type, "BOOLEAN")
+                XCTAssertTrue(coldStartColumn.isNotNull)
+                XCTAssertEqual(coldStartColumn.defaultValueSQL, "0")
+            } else {
+                XCTAssert(false, "cold_start column not found!")
+            }
+
+            // clean_exit
+            let cleanExitColumn = columns.first(where: { $0.name == "clean_exit" })
+            if let cleanExitColumn = cleanExitColumn {
+                XCTAssertEqual(cleanExitColumn.type, "BOOLEAN")
+                XCTAssertTrue(cleanExitColumn.isNotNull)
+                XCTAssertEqual(cleanExitColumn.defaultValueSQL, "0")
+            } else {
+                XCTAssert(false, "clean_exit column not found!")
+            }
+
+            // app_terminated
+            let appTerminatedColumn = columns.first(where: { $0.name == "app_terminated" })
+            if let appTerminatedColumn = appTerminatedColumn {
+                XCTAssertEqual(appTerminatedColumn.type, "BOOLEAN")
+                XCTAssertTrue(appTerminatedColumn.isNotNull)
+                XCTAssertEqual(appTerminatedColumn.defaultValueSQL, "0")
+            } else {
+                XCTAssert(false, "app_terminated column not found!")
             }
 
             expectation.fulfill()
