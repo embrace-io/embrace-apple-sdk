@@ -19,8 +19,8 @@ final class SessionPayloadTests: XCTestCase {
                                            .init(key: AppResourceKeys.bundleVersion.rawValue, value: "fake_bundle_version", resourceType: .process),
                                            .init(key: AppResourceKeys.environment.rawValue, value: "fake_environment", resourceType: .process),
                                            .init(key: AppResourceKeys.detailedEnvironment.rawValue, value: "fake_detailed_environment", resourceType: .process),
-                                           .init(key: AppResourceKeys.framework.rawValue, value: 1, resourceType: .process),
-                                           .init(key: AppResourceKeys.launchCount.rawValue, value: 2, resourceType: .process),
+                                           .init(key: AppResourceKeys.framework.rawValue, value: String(1), resourceType: .process),
+                                           .init(key: AppResourceKeys.launchCount.rawValue, value: String(2), resourceType: .process),
                                            .init(key: AppResourceKeys.sdkVersion.rawValue, value: "fake_sdk_version", resourceType: .process),
                                            .init(key: AppResourceKeys.appVersion.rawValue, value: "fake_app_version", resourceType: .process)]
 
@@ -85,8 +85,8 @@ final class SessionPayloadTests: XCTestCase {
                                                .init(key: AppResourceKeys.bundleVersion.rawValue, value: "fake_bundle_version", resourceType: .process),
                                                .init(key: AppResourceKeys.environment.rawValue, value: "fake_environment", resourceType: .process),
                                                .init(key: AppResourceKeys.detailedEnvironment.rawValue, value: "fake_detailed_environment", resourceType: .process),
-                                               .init(key: AppResourceKeys.framework.rawValue, value: 1, resourceType: .process),
-                                               .init(key: AppResourceKeys.launchCount.rawValue, value: 2, resourceType: .process),
+                                               .init(key: AppResourceKeys.framework.rawValue, value: String(1), resourceType: .process),
+                                               .init(key: AppResourceKeys.launchCount.rawValue, value: String(2), resourceType: .process),
                                                .init(key: AppResourceKeys.sdkVersion.rawValue, value: "fake_sdk_version", resourceType: .process),
                                                .init(key: AppResourceKeys.appVersion.rawValue, value: "fake_app_version", resourceType: .process)]
         let fetcher = MockResourceFetcher(resources: mockResources)
@@ -114,7 +114,7 @@ final class SessionPayloadTests: XCTestCase {
         let mockResources: [ResourceRecord] = [.init(key: DeviceResourceKeys.isJailbroken.rawValue, value: String(false), resourceType: .process),
                                                .init(key: DeviceResourceKeys.locale.rawValue, value: "fake_locale", resourceType: .process),
                                                .init(key: DeviceResourceKeys.timezone.rawValue, value: "fake_timezone", resourceType: .process),
-                                               .init(key: DeviceResourceKeys.totalDiskSpace.rawValue, value: 123456, resourceType: .process),
+                                               .init(key: DeviceResourceKeys.totalDiskSpace.rawValue, value: String(123456), resourceType: .process),
                                                .init(key: DeviceResourceKeys.OSVersion.rawValue, value: "fake_os_version", resourceType: .process),
                                                .init(key: DeviceResourceKeys.OSBuild.rawValue, value: "fake_os_build", resourceType: .process)]
         let fetcher = MockResourceFetcher(resources: mockResources)

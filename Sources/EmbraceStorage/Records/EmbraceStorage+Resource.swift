@@ -19,16 +19,12 @@ extension EmbraceStorage: EmbraceStorageResourceFetcher {
         return resource
     }
 
-    @discardableResult public func addResource(key: String, value: Int, resourceType: ResourceType, resourceTypeId: String = "N/A") throws -> ResourceRecord {
-        let resource = ResourceRecord(key: key, value: value, resourceType: resourceType, resourceTypeId: resourceTypeId)
-        try self.upsertResource(resource)
-        return resource
-    }
-
-    @discardableResult public func addResource(key: String, value: Double, resourceType: ResourceType, resourceTypeId: String = "N/A") throws -> ResourceRecord {
-        let resource = ResourceRecord(key: key, value: value, resourceType: resourceType, resourceTypeId: resourceTypeId)
-        try self.upsertResource(resource)
-        return resource
+    public func upsertResources(_ resources: [ResourceRecord]) throws {
+        try dbQueue.write { db in
+            for resource in resources {
+                try resource.insert(db)
+            }
+        }
     }
 
     public func upsertResource(_ resource: ResourceRecord) throws {

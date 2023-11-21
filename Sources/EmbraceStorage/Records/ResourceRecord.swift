@@ -7,9 +7,9 @@ import EmbraceCommon
 import GRDB
 
 public enum ResourceType: String, Codable {
-    case process = "process"
-    case session = "session"
-    case permanent = "permanent"
+    case process
+    case session
+    case permanent
 }
 
 public struct ResourceRecord: Codable {
@@ -24,23 +24,17 @@ public struct ResourceRecord: Codable {
         self.value = value
         self.resourceType = resourceType
         self.resourceTypeId = resourceTypeId
-        self.collectedAt = Date()
-    }
-
-    public init(key: String, value: Int, resourceType: ResourceType, resourceTypeId: String = "N/A", collectedAt: Date = Date()) {
-        self.key = key
-        self.value = String(value)
-        self.resourceType = resourceType
-        self.resourceTypeId = resourceTypeId
         self.collectedAt = collectedAt
     }
 
-    public init(key: String, value: Double, resourceType: ResourceType, resourceTypeId: String = "N/A", collectedAt: Date = Date()) {
-        self.key = key
-        self.value = String(value)
-        self.resourceType = resourceType
-        self.resourceTypeId = resourceTypeId
-        self.collectedAt = collectedAt
+    /// Initialize a permanent resource
+    /// A permanent resource does not need a resourceTypeId as it is implicit
+    /// - Parameters:
+    ///     - key: The unique identifier of the permanent resource
+    ///     - value: The value of the resource, encoded as a String
+    ///     - collectedAt: The date the resource item was collected
+    public init(key: String, value: String, collectedAt: Date = Date()) {
+        self.init(key: key, value: value, resourceType: .permanent, collectedAt: collectedAt)
     }
 }
 
