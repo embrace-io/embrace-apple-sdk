@@ -27,7 +27,7 @@ import EmbraceObjCUtils
     let upload: EmbraceUpload?
     let collection: DataCollection
 
-    private let sessionController: SessionController
+    let sessionController: SessionController
     let sessionListener: SessionListener
 
     private let processingQueue: DispatchQueue = DispatchQueue(label: "com.embrace.processing", qos: .background, attributes: .concurrent)
@@ -66,7 +66,7 @@ import EmbraceObjCUtils
         self.config = Embrace.createConfig(options: options, deviceId: KeychainAccess.deviceId.uuidString)
         self.sessionController = SessionController(storage: self.storage)
         self.sessionListener = SessionListenerFactory.determineForPlatform(controller: sessionController)
-        
+
         super.init()
 
         initializeCrashReporter(options: options)

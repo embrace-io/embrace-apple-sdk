@@ -36,7 +36,14 @@ extension Span {
         } else {
             end()
         }
-
     }
 
+}
+
+extension Span {
+    public func add(events: [SpanEvent]) {
+        events.forEach { event in
+            addEvent(name: event.name, attributes: event.attributes, timestamp: event.timestamp)
+        }
+    }
 }
