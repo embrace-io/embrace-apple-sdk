@@ -202,7 +202,7 @@ struct DataTaskWithURLRequestSwizzler: URLSessionSwizzler {
     func install() throws {
         try swizzleInstanceMethod { originalImplementation -> BlockImplementationType in
             return { [weak handler = self.handler] urlSession, urlRequest -> URLSessionDataTask in
-                var request = urlRequest.addEmbraceHeaders()
+                let request = urlRequest.addEmbraceHeaders()
                 // TODO: For this cases, we'll need to have the `URLSessionDelegate` swizzled/proxied.
                 let dataTask = originalImplementation(urlSession, Self.selector, request)
                 handler?.create(task: dataTask)

@@ -7,7 +7,7 @@ import TestSupport
 @testable import EmbraceIO
 @testable import EmbraceCommon
 
-class DataTaskSwizzlerTests: XCTestCase {
+class DataTaskWithURLSwizzlerTests: XCTestCase {
     private var session: URLSession!
     private var dataTaskSwizzler: DataTaskWithURLSwizzler!
     private var handler: MockURLSessionTaskHandler!
@@ -33,7 +33,7 @@ class DataTaskSwizzlerTests: XCTestCase {
     }
 }
 
-private extension DataTaskSwizzlerTests {
+private extension DataTaskWithURLSwizzlerTests {
     func givenDataTaskWithURLSwizzler() {
         handler = MockURLSessionTaskHandler()
         dataTaskSwizzler = DataTaskWithURLSwizzler(handler: handler)
