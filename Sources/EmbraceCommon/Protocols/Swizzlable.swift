@@ -51,56 +51,19 @@ public extension Swizzlable {
 
     private func swizzle(method: Method, withBlock block: (ImplementationType) -> BlockImplementationType) {
         let originalImplementation = method_getImplementation(method)
-        #if EMBRACE_TESTING
-        SwizzleCache.shared.addMethodImplementation(originalImplementation, forMethod: method, inClass: baseClass)
-        #endif
+        saveInCache(originalImplementation: originalImplementation, forMethod: method)
         let originalTypifiedImplmentation = unsafeBitCast(originalImplementation,
                                                           to: ImplementationType.self)
         let newImplementationBlock: BlockImplementationType = block(originalTypifiedImplmentation)
         let newImplementation = imp_implementationWithBlock(newImplementationBlock)
         method_setImplementation(method, newImplementation)
     }
-}
 
-#if EMBRACE_TESTING
-public class SwizzleCache {
-    struct OriginalMethod: Hashable {
-        let method: Method
-        let baseClass: AnyClass
-
-        fileprivate init(method: Method, baseClass: AnyClass) {
-            self.method = method
-            self.baseClass = baseClass
-        }
-
-        static func == (lhs: OriginalMethod, rhs: OriginalMethod) -> Bool {
-            let methodParity = lhs.method == rhs.method
-            let classParity = NSStringFromClass(lhs.baseClass) == NSStringFromClass(rhs.baseClass)
-            return methodParity && classParity
-        }
-
-        func hash(into hasher: inout Hasher) {
-            let methodName = NSStringFromSelector(method_getName(method))
-            let className = NSStringFromClass(baseClass)
-            let identifier = "\(className)-\(methodName)"
-            hasher.combine(identifier)
-        }
-    }
-
-    public static let shared: SwizzleCache = {
-        return SwizzleCache()
-    }()
-
-    private var originalImplementations: [OriginalMethod: IMP] = [:]
-
-    private init() { }
-
-    func addMethodImplementation(_ imp: IMP, forMethod method: Method, inClass baseClass: AnyClass) {
-        originalImplementations[OriginalMethod(method: method, baseClass: baseClass)] = imp
-    }
-
-    public func getOriginalMethodImplementation(forMethod method: Method, inClass baseClass: AnyClass) -> IMP? {
-        originalImplementations[OriginalMethod(method: method, baseClass: baseClass)]
+    private func saveInCache(originalImplementation: IMP, forMethod method: Method) {
+        #if DEBUG
+        SwizzleCache.shared.addMethodImplementation(originalImplementation,
+                                                    forMethod: method,
+                                                    inClass: baseClass)
+        #endif
     }
 }
-#endif

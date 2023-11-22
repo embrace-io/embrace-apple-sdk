@@ -43,7 +43,6 @@ private extension DataTaskSwizzlerTests {
         try dataTaskSwizzler.install()
     }
 
-    // Note: remember to call this method _after_ doing the swizzling.
     func givenProxiedUrlSession() {
         session = ProxiedURLSessionProvider.default()
     }
