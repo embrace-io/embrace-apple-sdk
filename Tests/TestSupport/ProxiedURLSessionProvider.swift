@@ -22,7 +22,7 @@ class URLTestProxy: URLProtocol {
 
     override func startLoading() {
         guard let client = client else { fatalError("There's something going on with the URL Loading System. This shouldn't happen") }
-        let possibleMockResponse = request.url?.mockResponse ?? request.mockResponse
+        let possibleMockResponse = request.url?.mockResponse
         if let mockResponse = possibleMockResponse {
             if let response = mockResponse.response {
                 client.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
@@ -43,24 +43,28 @@ class URLTestProxy: URLProtocol {
     }
 }
 
-public struct URLTestProxiedResponse {
+public class URLTestProxiedResponse {
     public let data: Data?
     public let response: URLResponse?
     public let error: Error?
 
-    public init(data: Data?, response: URLResponse?, error: Error?) {
+    public required init(data: Data?, response: URLResponse?, error: Error?) {
         self.data = data
         self.response = response
         self.error = error
     }
 
-    public init(data: Data?, response: URLResponse?) {
+    public static func sucessful(withData data: Data, response: URLResponse) -> URLTestProxiedResponse {
         self.init(data: data, response: response, error: nil)
+    }
+
+    public static func failure(withError error: Error, response: URLResponse, data: Data? = nil) -> URLTestProxiedResponse {
+        self.init(data: data, response: response, error: error)
     }
 }
 
 public extension URL {
-    private static var mockResponseKey: UInt8 = .random(in: 0...UInt8.max)
+    private static var mockResponseKey: UInt8 = 2
 
     var mockResponse: URLTestProxiedResponse? {
         get {
@@ -68,19 +72,6 @@ public extension URL {
         }
         set {
             objc_setAssociatedObject(self, &URL.mockResponseKey, newValue, objc_AssociationPolicy.OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-        }
-    }
-}
-
-public extension URLRequest {
-    private static var mockResponseKey: UInt8 = .random(in: 0...UInt8.max)
-
-    var mockResponse: URLTestProxiedResponse? {
-        get {
-            return objc_getAssociatedObject(self, &URLRequest.mockResponseKey) as? URLTestProxiedResponse
-        }
-        set {
-            objc_setAssociatedObject(self, &URLRequest.mockResponseKey, newValue, objc_AssociationPolicy.OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         }
     }
 }

@@ -9,12 +9,12 @@ import TestSupport
 
 class DataTaskWithURLSwizzlerTests: XCTestCase {
     private var session: URLSession!
-    private var dataTaskSwizzler: DataTaskWithURLSwizzler!
+    private var sut: DataTaskWithURLSwizzler!
     private var handler: MockURLSessionTaskHandler!
     private var dataTask: URLSessionDataTask!
 
     override func tearDownWithError() throws {
-        try? dataTaskSwizzler.unswizzleInstanceMethod()
+        try? sut.unswizzleInstanceMethod()
     }
 
     func test_afterInstall_taskWillBeCreatedInHandler() throws {
@@ -36,11 +36,11 @@ class DataTaskWithURLSwizzlerTests: XCTestCase {
 private extension DataTaskWithURLSwizzlerTests {
     func givenDataTaskWithURLSwizzler() {
         handler = MockURLSessionTaskHandler()
-        dataTaskSwizzler = DataTaskWithURLSwizzler(handler: handler)
+        sut = DataTaskWithURLSwizzler(handler: handler)
     }
 
     func givenSwizzledWasDone() throws {
-        try dataTaskSwizzler.install()
+        try sut.install()
     }
 
     func givenProxiedUrlSession() {
@@ -48,10 +48,10 @@ private extension DataTaskWithURLSwizzlerTests {
     }
 
     func whenInvokingDataTaskWithUrl() {
-        var url = URL(string: "https://example.com")!
-        let mockData = "Mock Data".data(using: .utf8)
+        var url = URL(string: "https://embrace.io")!
+        let mockData = "Mock Data".data(using: .utf8)!
         let mockResponse = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil)!
-        url.mockResponse = .init(data: mockData, response: mockResponse)
+        url.mockResponse = .sucessful(withData: mockData, response: mockResponse)
         dataTask = session.dataTask(with: url)
         dataTask.resume()
     }

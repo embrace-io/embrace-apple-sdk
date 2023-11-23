@@ -1,7 +1,6 @@
 //
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
-    
 
 import Foundation
 @testable import EmbraceIO
@@ -16,8 +15,10 @@ class MockURLSessionTaskHandler: URLSessionTaskHandler {
     }
 
     var didInvokeFinish = false
+    var finishReceivedParameters: (URLSessionTask, Data?, Error?)? = nil
     func finish(task: URLSessionTask, data: Data?, error: (Error)?) {
         didInvokeFinish = true
+        finishReceivedParameters = (task, data, error)
     }
 
     var didInvokeChangedState = false

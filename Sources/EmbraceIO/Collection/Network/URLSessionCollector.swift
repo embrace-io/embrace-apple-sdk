@@ -283,9 +283,10 @@ struct DataTaskWithURLRequestAndCompletionSwizzler: URLSessionSwizzler {
                 var originalTask: URLSessionDataTask?
                 let request = urlRequest.addEmbraceHeaders()
                 let dataTask = originalImplementation(urlSession, Self.selector, request) { data, response, error in
+                    if let task = originalTask {
+                        handler?.finish(task: task, data: data, error: error)
+                    }
                     completion(data, response, error)
-                    guard let task = originalTask else { return }
-                    handler?.finish(task: task, data: data, error: error)
                 }
                 originalTask = dataTask
                 handler?.create(task: dataTask)
