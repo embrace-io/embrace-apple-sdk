@@ -240,9 +240,10 @@ struct DataTaskWithURLAndCompletionSwizzler: URLSessionSwizzler {
                 var originalTask: URLSessionDataTask?
 
                 let dataTask = originalImplementation(urlSession, Self.selector, url) { data, response, error in
+                    if let task = originalTask {
+                        handler?.finish(task: task, data: data, error: error)
+                    }
                     completion(data, response, error)
-                    guard let task = originalTask else { return }
-                    handler?.finish(task: task, data: data, error: error)
                 }
 
                 originalTask = dataTask
