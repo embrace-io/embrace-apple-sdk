@@ -66,7 +66,7 @@ import EmbraceObjCUtils
         self.config = Embrace.createConfig(options: options, deviceId: KeychainAccess.deviceId.uuidString)
         self.sessionController = SessionController(storage: self.storage)
         self.sessionListener = SessionListenerFactory.determineForPlatform(controller: sessionController)
-        
+
         super.init()
 
         initializeCrashReporter(options: options)

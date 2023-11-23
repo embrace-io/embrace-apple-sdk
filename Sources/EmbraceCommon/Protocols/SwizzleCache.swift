@@ -1,7 +1,6 @@
 //
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
-    
 
 import Foundation
 
@@ -36,7 +35,7 @@ public class SwizzleCache {
             hasher.combine(identifier)
         }
     }
-    
+
     public static let shared: SwizzleCache = {
         return SwizzleCache()
     }()

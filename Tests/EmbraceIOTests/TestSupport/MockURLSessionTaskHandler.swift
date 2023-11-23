@@ -15,7 +15,7 @@ class MockURLSessionTaskHandler: URLSessionTaskHandler {
     }
 
     var didInvokeFinish = false
-    var finishReceivedParameters: (URLSessionTask, Data?, Error?)? = nil
+    var finishReceivedParameters: (URLSessionTask, Data?, Error?)?
     func finish(task: URLSessionTask, data: Data?, error: (Error)?) {
         didInvokeFinish = true
         finishReceivedParameters = (task, data, error)
