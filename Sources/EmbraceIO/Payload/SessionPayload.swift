@@ -22,11 +22,11 @@ struct SessionPayload: Codable {
         case spans = "spans"
     }
 
-    init(from sessionRecord: SessionRecord, resourceFetcher: EmbraceStorageResourceFetcher) {
+    init(from sessionRecord: SessionRecord, resourceFetcher: EmbraceStorageResourceFetcher, counter: Int = -1) {
         let resources = PayloadUtils.fetchResources(from: resourceFetcher, sessionId: sessionRecord.id)
 
         self.messageFormatVersion = 15
-        self.sessionInfo = SessionInfoPayload(from: sessionRecord)
+        self.sessionInfo = SessionInfoPayload(from: sessionRecord, counter: counter)
         self.appInfo = AppInfoPayload(with: resources)
         self.deviceInfo = DeviceInfoPayload(with: resources)
         self.userInfo = UserInfoPayload()

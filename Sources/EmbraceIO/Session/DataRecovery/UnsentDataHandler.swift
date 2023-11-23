@@ -82,7 +82,7 @@ class UnsentDataHandler {
             for session in sessions {
 
                 do {
-                    let payload = SessionPayload(from: session, resourceFetcher: storage)
+                    let payload = try SessionPayloadBuilder.build(for: session, storage: storage)
                     let payloadData = try JSONEncoder().encode(payload).gzipped()
 
                     // upload session

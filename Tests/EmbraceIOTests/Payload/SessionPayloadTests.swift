@@ -7,7 +7,8 @@ import XCTest
 @testable import EmbraceStorage
 @testable import EmbraceCommon
 
-// swiftlint:disable force_try force_cast
+// swiftlint:disable force_cast
+
 final class SessionPayloadTests: XCTestCase {
     let options = EmbraceStorage.Options(baseUrl: URL(fileURLWithPath: NSTemporaryDirectory()), fileName: "test.sqlite")
 
@@ -30,7 +31,7 @@ final class SessionPayloadTests: XCTestCase {
         let fetcher = MockResourceFetcher(resources: [])
 
         // when creating a payload
-        let payload = SessionPayload(from: sessionRecord, resourceFetcher: fetcher)
+        let payload = SessionPayload(from: sessionRecord, resourceFetcher: fetcher, counter: 10)
 
         // then the properties are correctly set
         XCTAssertEqual(payload.messageFormatVersion, 15)
@@ -38,6 +39,7 @@ final class SessionPayloadTests: XCTestCase {
         XCTAssertEqual(payload.sessionInfo.startTime, sessionRecord.startTime.millisecondsSince1970Truncated)
         XCTAssertEqual(payload.sessionInfo.endTime, sessionRecord.endTime?.millisecondsSince1970Truncated)
         XCTAssertEqual(payload.sessionInfo.appState, sessionRecord.state)
+        XCTAssertEqual(payload.sessionInfo.counter, 10)
     }
 
     func test_highLevelKeys() throws {
@@ -66,7 +68,7 @@ final class SessionPayloadTests: XCTestCase {
         let fetcher = MockResourceFetcher(resources: [])
 
         // when serializing
-        let payload = SessionPayload(from: sessionRecord, resourceFetcher: fetcher)
+        let payload = SessionPayload(from: sessionRecord, resourceFetcher: fetcher, counter: 10)
         let data = try JSONEncoder().encode(payload)
         let json = try JSONSerialization.jsonObject(with: data, options: []) as! [String: Any]
 
@@ -76,6 +78,7 @@ final class SessionPayloadTests: XCTestCase {
         XCTAssertEqual(sessionInfo["st"] as! Int, sessionRecord.startTime.millisecondsSince1970Truncated)
         XCTAssertEqual(sessionInfo["et"] as? Int, sessionRecord.endTime?.millisecondsSince1970Truncated)
         XCTAssertEqual(sessionInfo["as"] as! String, sessionRecord.state)
+        XCTAssertEqual(sessionInfo["sn"] as! Int, 10)
     }
 
     func test_appInfoKeys() throws {
@@ -134,4 +137,5 @@ final class SessionPayloadTests: XCTestCase {
         XCTAssertEqual(deviceInfo["ob"] as! String, "fake_os_build")
     }
 }
-// swiftlint:enable force_try force_cast
+
+// swiftlint:enable force_cast
