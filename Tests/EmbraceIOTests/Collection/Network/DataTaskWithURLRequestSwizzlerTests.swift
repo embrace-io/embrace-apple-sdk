@@ -19,7 +19,7 @@ class DataTaskWithURLRequestSwizzlerTests: XCTestCase {
 
     func test_afterInstall_taskWillBeCreatedInHandler() throws {
         givenDataTaskWithURLRequestSwizzler()
-        try givenSwizzledWasDone()
+        try givenSwizzlingWasDone()
         givenProxiedUrlSession()
         whenInvokingDataTaskWithUrl()
         thenHandlerShouldHaveInvokedCreateWithTask()
@@ -27,7 +27,7 @@ class DataTaskWithURLRequestSwizzlerTests: XCTestCase {
 
     func test_afterInstall_taskShouldHaveEmbraceHeaders() throws {
         givenDataTaskWithURLRequestSwizzler()
-        try givenSwizzledWasDone()
+        try givenSwizzlingWasDone()
         givenProxiedUrlSession()
         whenInvokingDataTaskWithUrl()
         try thenDataTaskShouldHaveEmbraceHeaders()
@@ -47,7 +47,7 @@ private extension DataTaskWithURLRequestSwizzlerTests {
         sut = DataTaskWithURLRequestSwizzler(handler: handler)
     }
 
-    func givenSwizzledWasDone() throws {
+    func givenSwizzlingWasDone() throws {
         try sut.install()
     }
 

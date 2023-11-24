@@ -13,11 +13,7 @@ class DataTaskWithURLAndCompletionSwizzlerTests: XCTestCase {
     private var handler: MockURLSessionTaskHandler!
     private var url: URL!
 
-    // To-Assert variables
     private var dataTask: URLSessionDataTask!
-    private var resultData: Data!
-    private var resultResponse: URLResponse!
-    private var resultError: Error!
 
     override func tearDownWithError() throws {
         try? sut.unswizzleInstanceMethod()
@@ -26,7 +22,7 @@ class DataTaskWithURLAndCompletionSwizzlerTests: XCTestCase {
     func testAfterInstall_onExecutingRequest_taskWillBeCreatedInHandler() throws {
         let expectation = expectation(description: #function)
         givenDataTaskWithURLAndCompletionSwizzler()
-        try givenSwizzledWasDone()
+        try givenSwizzlingWasDone()
         givenSuccessfulRequest()
         givenProxiedUrlSession()
         whenInvokingDataTaskWithUrl(completionHandler: { _, _, _ in
@@ -39,7 +35,7 @@ class DataTaskWithURLAndCompletionSwizzlerTests: XCTestCase {
     func testAfterInstall_onFinishingRequest_taskWillBeFinishedInHandler() throws {
         let expectation = expectation(description: #function)
         givenDataTaskWithURLAndCompletionSwizzler()
-        try givenSwizzledWasDone()
+        try givenSwizzlingWasDone()
         givenSuccessfulRequest()
         givenProxiedUrlSession()
         whenInvokingDataTaskWithUrl(completionHandler: { _, _, _ in
@@ -52,7 +48,7 @@ class DataTaskWithURLAndCompletionSwizzlerTests: XCTestCase {
     func testAfterInstall_onFailedRequest_taskWillBeFinishedInHandler() throws {
         let expectation = expectation(description: #function)
         givenDataTaskWithURLAndCompletionSwizzler()
-        try givenSwizzledWasDone()
+        try givenSwizzlingWasDone()
         givenFailedRequest()
         givenProxiedUrlSession()
         whenInvokingDataTaskWithUrl(completionHandler: { _, _, _ in
@@ -65,7 +61,7 @@ class DataTaskWithURLAndCompletionSwizzlerTests: XCTestCase {
     func test_afterInstall_taskShouldHaveEmbraceHeaders() throws {
         let expectation = expectation(description: #function)
         givenDataTaskWithURLAndCompletionSwizzler()
-        try givenSwizzledWasDone()
+        try givenSwizzlingWasDone()
         givenProxiedUrlSession()
         givenSuccessfulRequest()
         whenInvokingDataTaskWithUrl(completionHandler: { _, _, _ in
@@ -96,7 +92,7 @@ private extension DataTaskWithURLAndCompletionSwizzlerTests {
         sut = DataTaskWithURLAndCompletionSwizzler(handler: handler)
     }
 
-    func givenSwizzledWasDone() throws {
+    func givenSwizzlingWasDone() throws {
         try sut.install()
     }
 

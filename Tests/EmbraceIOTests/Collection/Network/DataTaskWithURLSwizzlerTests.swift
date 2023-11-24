@@ -19,7 +19,7 @@ class DataTaskWithURLSwizzlerTests: XCTestCase {
 
     func test_afterInstall_taskWillBeCreatedInHandler() throws {
         givenDataTaskWithURLSwizzler()
-        try givenSwizzledWasDone()
+        try givenSwizzlingWasDone()
         givenProxiedUrlSession()
         whenInvokingDataTaskWithUrl()
         thenHandlerShouldHaveInvokedCreateWithTask()
@@ -39,7 +39,7 @@ private extension DataTaskWithURLSwizzlerTests {
         sut = DataTaskWithURLSwizzler(handler: handler)
     }
 
-    func givenSwizzledWasDone() throws {
+    func givenSwizzlingWasDone() throws {
         try sut.install()
     }
 
