@@ -376,7 +376,7 @@ struct UploadTaskWithRequestFromFileSwizzler: URLSessionSwizzler {
     private let handler: URLSessionTaskHandler
     var baseClass: AnyClass
 
-    init(handler: URLSessionTaskHandler, baseClass: AnyClass) {
+    init(handler: URLSessionTaskHandler, baseClass: AnyClass = URLSession.self) {
         self.handler = handler
         self.baseClass = baseClass
     }
