@@ -403,7 +403,7 @@ struct UploadTaskWithRequestFromFileWithCompletionSwizzler: URLSessionSwizzler {
     private let handler: URLSessionTaskHandler
     var baseClass: AnyClass
 
-    init(handler: URLSessionTaskHandler, baseClass: AnyClass) {
+    init(handler: URLSessionTaskHandler, baseClass: AnyClass = URLSession.self) {
         self.handler = handler
         self.baseClass = baseClass
     }
@@ -420,9 +420,10 @@ struct UploadTaskWithRequestFromFileWithCompletionSwizzler: URLSessionSwizzler {
                 let request = urlRequest.addEmbraceHeaders()
                 var originalTask: URLSessionUploadTask?
                 let uploadTask = originalImplementation(urlSession, Self.selector, request, url) { data, response, error in
+                    if let task = originalTask {
+                        handler?.finish(task: task, data: data, error: error)
+                    }
                     completion(data, response, error)
-                    guard let task = originalTask else { return }
-                    handler?.finish(task: task, data: data, error: error)
                 }
                 originalTask = uploadTask
                 handler?.create(task: uploadTask)

@@ -6,94 +6,57 @@ import XCTest
 import TestSupport
 @testable import EmbraceIO
 
-class UploadTaskWithRequestFromDataAndCompletionSwizzlerTests: XCTestCase {
+class UploadTaskWithRequestFromDataSwizzlerTests: XCTestCase {
     private var handler: MockURLSessionTaskHandler!
-    private var sut: UploadTaskWithRequestFromDataWithCompletionSwizzler!
+    private var sut: UploadTaskWithRequestFromDataSwizzler!
     private var session: URLSession!
     private var request: URLRequest!
 
-    // To-Assert variables
     private var uploadTask: URLSessionDataTask!
 
     override func tearDownWithError() throws {
         try? sut.unswizzleInstanceMethod()
     }
 
-    func testAfterInstall_onExecutingRequest_taskWillBeCreatedInHandler() throws {
-        let expectation = expectation(description: #function)
+    func test_afterInstall_taskWillBeCreatedInHandler() throws {
         givenUploadTaskWithURLRequestAndCompletionSwizzler()
         try givenSwizzlingWasDone()
         givenSuccessfulRequest()
         givenProxiedUrlSession()
-        whenInvokingUploadTaskWithURLRequest(completionHandler: { _, _, _ in
-            self.thenHandlerShouldHaveInvokedCreateWithTask()
-            expectation.fulfill()
-        })
-        wait(for: [expectation])
-    }
-
-    func testAfterInstall_onFinishingRequest_taskWillBeFinishedInHandler() throws {
-        let expectation = expectation(description: #function)
-        givenUploadTaskWithURLRequestAndCompletionSwizzler()
-        try givenSwizzlingWasDone()
-        givenSuccessfulRequest()
-        givenProxiedUrlSession()
-        whenInvokingUploadTaskWithURLRequest(completionHandler: { _, _, _ in
-            self.thenHandlerShouldHaveInvokedFinishTask()
-            expectation.fulfill()
-        })
-        wait(for: [expectation])
-    }
-
-    func testAfterInstall_onFailedRequest_taskWillBeFinishedInHandler() throws {
-        let expectation = expectation(description: #function)
-        givenUploadTaskWithURLRequestAndCompletionSwizzler()
-        try givenSwizzlingWasDone()
-        givenFailedRequest()
-        givenProxiedUrlSession()
-        whenInvokingUploadTaskWithURLRequest(completionHandler: { _, _, _ in
-            self.thenHandlerShouldHaveInvokedFinishTaskWithError()
-            expectation.fulfill()
-        })
-        wait(for: [expectation])
+        whenInvokingUploadTaskWithRequestFromData()
+        thenHandlerShouldHaveInvokedCreateWithTask()
     }
 
     func test_afterInstall_taskShouldHaveEmbraceHeaders() throws {
-        let expectation = expectation(description: #function)
         givenUploadTaskWithURLRequestAndCompletionSwizzler()
         try givenSwizzlingWasDone()
-        givenProxiedUrlSession()
         givenSuccessfulRequest()
-        whenInvokingUploadTaskWithURLRequest(completionHandler: { _, _, _ in
-            // swiftlint:disable force_try
-            try! self.thenDataTaskShouldHaveEmbraceHeaders()
-            // swiftlint:enable force_try
-            expectation.fulfill()
-        })
-        wait(for: [expectation])
+        givenProxiedUrlSession()
+        whenInvokingUploadTaskWithRequestFromData()
+        try thenTaskShouldHaveEmbraceHeaders()
     }
 
-    func test_withoutInstall_taskWontBeCreatedInHandler() throws {
-        let expectation = expectation(description: #function)
+    func test_withoutInstall_taskWontBeCreatedInHandler() {
         givenUploadTaskWithURLRequestAndCompletionSwizzler()
-        givenProxiedUrlSession()
         givenSuccessfulRequest()
-        whenInvokingUploadTaskWithURLRequest(completionHandler: { _, _, _ in
-            self.thenHandlerShouldntHaveInvokedCreate()
-            expectation.fulfill()
-        })
-        wait(for: [expectation])
+        givenProxiedUrlSession()
+        whenInvokingUploadTaskWithRequestFromData()
+        thenHandlerShouldntHaveInvokedCreate()
     }
 }
 
-private extension UploadTaskWithRequestFromDataAndCompletionSwizzlerTests {
+private extension UploadTaskWithRequestFromDataSwizzlerTests {
     func givenUploadTaskWithURLRequestAndCompletionSwizzler() {
         handler = MockURLSessionTaskHandler()
-        sut = UploadTaskWithRequestFromDataWithCompletionSwizzler(handler: handler)
+        sut = UploadTaskWithRequestFromDataSwizzler(handler: handler)
     }
 
     func givenSwizzlingWasDone() throws {
         try sut.install()
+    }
+
+    func givenProxiedUrlSession() {
+        session = ProxiedURLSessionProvider.default()
     }
 
     func givenSuccessfulRequest() {
@@ -114,14 +77,8 @@ private extension UploadTaskWithRequestFromDataAndCompletionSwizzlerTests {
         request.httpMethod = "POST"
     }
 
-    func givenProxiedUrlSession() {
-        session = ProxiedURLSessionProvider.default()
-    }
-
-    func whenInvokingUploadTaskWithURLRequest(completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void) {
-        uploadTask = session.uploadTask(with: request, from: Data()) { data, response, error in
-            completionHandler(data, response, error)
-        }
+    func whenInvokingUploadTaskWithRequestFromData() {
+        uploadTask = session.uploadTask(with: request, from: Data())
         uploadTask.resume()
     }
 
@@ -134,17 +91,7 @@ private extension UploadTaskWithRequestFromDataAndCompletionSwizzlerTests {
         XCTAssertFalse(handler.didInvokeCreate)
     }
 
-    func thenHandlerShouldHaveInvokedFinishTask() {
-        XCTAssertTrue(handler.didInvokeFinish)
-        XCTAssertNotNil(handler.finishReceivedParameters?.1)
-    }
-
-    func thenHandlerShouldHaveInvokedFinishTaskWithError() {
-        XCTAssertTrue(handler.didInvokeFinish)
-        XCTAssertNotNil(handler.finishReceivedParameters?.2)
-    }
-
-    func thenDataTaskShouldHaveEmbraceHeaders() throws {
+    func thenTaskShouldHaveEmbraceHeaders() throws {
         let headers = try XCTUnwrap(uploadTask.originalRequest?.allHTTPHeaderFields)
         XCTAssertNotNil(headers["x-emb-id"])
         XCTAssertNotNil(headers["x-emb-st"])
