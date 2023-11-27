@@ -10,7 +10,7 @@ import TestSupport
 
 class DownloadTaskWithURLWithCompletionSwizzlerTests: XCTestCase {
     private var handler: MockURLSessionTaskHandler!
-    private var sut: DownloadTaskWithURLWithCompletionSwizzler!
+    private var sut: DownloadTaskWithURLRequestWithCompletionSwizzler!
     private var session: URLSession!
     private var request: URLRequest!
 
@@ -90,7 +90,7 @@ class DownloadTaskWithURLWithCompletionSwizzlerTests: XCTestCase {
 private extension DownloadTaskWithURLWithCompletionSwizzlerTests {
     func givenDownloadTaskWithURLRequestAndCompletionSwizzler() {
         handler = MockURLSessionTaskHandler()
-        sut = DownloadTaskWithURLWithCompletionSwizzler(handler: handler)
+        sut = DownloadTaskWithURLRequestWithCompletionSwizzler(handler: handler)
     }
 
     func givenSwizzlingWasDone() throws {

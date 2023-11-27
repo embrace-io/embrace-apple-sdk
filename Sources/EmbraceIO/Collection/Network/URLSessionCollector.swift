@@ -84,7 +84,7 @@ private extension URLSessionCollector {
 
             // Download Tasks
             DownloadTaskWithURLSwizzler.self,
-            DownloadTaskWithURLWithCompletionSwizzler.self,
+            DownloadTaskWithURLRequestWithCompletionSwizzler.self,
 
             // Upload Streaming Tasks
             UploadTaskWithStreamedRequestSwizzler.self
@@ -461,7 +461,7 @@ struct DownloadTaskWithURLSwizzler: URLSessionSwizzler {
     }
 }
 
-struct DownloadTaskWithURLWithCompletionSwizzler: URLSessionSwizzler {
+struct DownloadTaskWithURLRequestWithCompletionSwizzler: URLSessionSwizzler {
     typealias ImplementationType = @convention(c) (URLSession, Selector, URLRequest, DownloadTaskCompletion?) -> URLSessionDownloadTask
     typealias BlockImplementationType = @convention(block) (URLSession, URLRequest, DownloadTaskCompletion?) -> URLSessionDownloadTask
 
