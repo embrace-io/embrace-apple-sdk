@@ -51,11 +51,19 @@ public extension Swizzlable {
 
     private func swizzle(method: Method, withBlock block: (ImplementationType) -> BlockImplementationType) {
         let originalImplementation = method_getImplementation(method)
-
+        saveInCache(originalImplementation: originalImplementation, forMethod: method)
         let originalTypifiedImplmentation = unsafeBitCast(originalImplementation,
                                                           to: ImplementationType.self)
         let newImplementationBlock: BlockImplementationType = block(originalTypifiedImplmentation)
         let newImplementation = imp_implementationWithBlock(newImplementationBlock)
         method_setImplementation(method, newImplementation)
+    }
+
+    private func saveInCache(originalImplementation: IMP, forMethod method: Method) {
+        #if DEBUG
+        SwizzleCache.shared.addMethodImplementation(originalImplementation,
+                                                    forMethod: method,
+                                                    inClass: baseClass)
+        #endif
     }
 }
