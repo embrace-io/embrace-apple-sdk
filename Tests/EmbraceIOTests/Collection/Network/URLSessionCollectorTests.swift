@@ -189,13 +189,15 @@ private extension URLSessionCollectorTests {
 
     func thenEachSwizzlerShouldHaveBeenInstalled() {
         provider.swizzlers.forEach {
-            XCTAssertTrue(($0 as! SpyURLSessionSwizzler).didInstall)
+            guard let swizzler = $0 as? SpyURLSessionSwizzler else { XCTFail("Swizzler should be a spy"); return }
+            XCTAssertTrue(swizzler.didInstall)
         }
     }
 
     func thenEachSwizzlerShoudHaveBeenInstalledOnce() {
         provider.swizzlers.forEach {
-            XCTAssertEqual(1, ($0 as! SpyURLSessionSwizzler).installInvokationCount)
+            guard let swizzler = $0 as? SpyURLSessionSwizzler else { XCTFail("Swizzler should be a spy"); return }
+            XCTAssertEqual(1, swizzler.installInvokationCount)
         }
     }
 }
