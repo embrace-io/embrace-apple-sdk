@@ -5,6 +5,11 @@
 import Foundation
 import EmbraceCommon
 
+/*
+ We decided that in order to improve readeability, we'll leave all the class that Swizzle Methods from URLSession
+ all together. That's why we disable the file_length warning in this case.
+ */
+// swiftlint:disable file_length
 typealias URLSessionCompletion = (Data?, URLResponse?, Error?) -> Void
 typealias DownloadTaskCompletion = (URL?, URLResponse?, Error?) -> Void
 
@@ -83,7 +88,7 @@ private extension URLSessionCollector {
             UploadTaskWithRequestFromFileWithCompletionSwizzler.self,
 
             // Download Tasks
-            DownloadTaskWithURLSwizzler.self,
+            DownloadTaskWithURLRequestSwizzler.self,
             DownloadTaskWithURLRequestWithCompletionSwizzler.self,
 
             // Upload Streaming Tasks
@@ -433,7 +438,7 @@ struct UploadTaskWithRequestFromFileWithCompletionSwizzler: URLSessionSwizzler {
     }
 }
 
-struct DownloadTaskWithURLSwizzler: URLSessionSwizzler {
+struct DownloadTaskWithURLRequestSwizzler: URLSessionSwizzler {
     typealias ImplementationType = @convention(c) (URLSession, Selector, URLRequest) -> URLSessionDownloadTask
     typealias BlockImplementationType = @convention(block) (URLSession, URLRequest) -> URLSessionDownloadTask
 
@@ -444,7 +449,7 @@ struct DownloadTaskWithURLSwizzler: URLSessionSwizzler {
     private let handler: URLSessionTaskHandler
     var baseClass: AnyClass
 
-    init(handler: URLSessionTaskHandler, baseClass: AnyClass) {
+    init(handler: URLSessionTaskHandler, baseClass: AnyClass = URLSession.self) {
         self.handler = handler
         self.baseClass = baseClass
     }
