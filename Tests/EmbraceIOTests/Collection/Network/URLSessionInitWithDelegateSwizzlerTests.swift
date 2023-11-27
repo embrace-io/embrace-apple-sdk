@@ -14,7 +14,7 @@ class URLSessionInitWithDelegateSwizzlerTests: XCTestCase {
 
     func testAfterInstall_onCreateURLSessionWithDelegate_originalShouldBeWrapped() throws {
         givenDataTaskWithURLRequestSwizzler()
-        try givenSwizzledWasDone()
+        try givenSwizzlingWasDone()
         whenInitializingURLSessionWithDummyDelegate()
         thenSessionsDelegateShouldntBeDummyDelegate()
         thenSessionsDelegateShouldBeEmbracesProxy()
@@ -24,7 +24,7 @@ class URLSessionInitWithDelegateSwizzlerTests: XCTestCase {
     /// a delegate when there's none.
     func testAfterInstall_onCreateURLSessionWithoutDelegate_delegateShouldBeNil() throws {
         givenDataTaskWithURLRequestSwizzler()
-        try givenSwizzledWasDone()
+        try givenSwizzlingWasDone()
         whenInitializingURLSessionWithoutDelegate()
         thenSessionsDelegateShouldBeNil()
     }
@@ -41,7 +41,7 @@ private extension URLSessionInitWithDelegateSwizzlerTests {
         sut = URLSessionInitWithDelegateSwizzler(handler: handler)
     }
 
-    func givenSwizzledWasDone() throws {
+    func givenSwizzlingWasDone() throws {
         try sut.install()
     }
 

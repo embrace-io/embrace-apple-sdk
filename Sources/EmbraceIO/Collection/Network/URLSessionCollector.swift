@@ -5,6 +5,11 @@
 import Foundation
 import EmbraceCommon
 
+/*
+ We decided that, to improve readability, we'll keep all the classes that swizzle methods
+ from `URLSession` together. That's why we've disabled the file_length warning in this case.
+ */
+// swiftlint:disable file_length
 typealias URLSessionCompletion = (Data?, URLResponse?, Error?) -> Void
 typealias DownloadTaskCompletion = (URL?, URLResponse?, Error?) -> Void
 
@@ -83,8 +88,8 @@ private extension URLSessionCollector {
             UploadTaskWithRequestFromFileWithCompletionSwizzler.self,
 
             // Download Tasks
-            DownloadTaskWithURLSwizzler.self,
-            DownloadTaskWithURLWithCompletionSwizzler.self,
+            DownloadTaskWithURLRequestSwizzler.self,
+            DownloadTaskWithURLRequestWithCompletionSwizzler.self,
 
             // Upload Streaming Tasks
             UploadTaskWithStreamedRequestSwizzler.self
@@ -307,7 +312,7 @@ struct UploadTaskWithRequestFromDataSwizzler: URLSessionSwizzler {
     private let handler: URLSessionTaskHandler
     var baseClass: AnyClass
 
-    init(handler: URLSessionTaskHandler, baseClass: AnyClass) {
+    init(handler: URLSessionTaskHandler, baseClass: AnyClass = URLSession.self) {
         self.handler = handler
         self.baseClass = baseClass
     }
@@ -335,7 +340,7 @@ struct UploadTaskWithRequestFromDataWithCompletionSwizzler: URLSessionSwizzler {
     private let handler: URLSessionTaskHandler
     var baseClass: AnyClass
 
-    init(handler: URLSessionTaskHandler, baseClass: AnyClass) {
+    init(handler: URLSessionTaskHandler, baseClass: AnyClass = URLSession.self) {
         self.handler = handler
         self.baseClass = baseClass
     }
@@ -352,9 +357,10 @@ struct UploadTaskWithRequestFromDataWithCompletionSwizzler: URLSessionSwizzler {
                 let request = urlRequest.addEmbraceHeaders()
                 var originalTask: URLSessionUploadTask?
                 let uploadTask = originalImplementation(urlSession, Self.selector, request, uploadData) { data, response, error in
+                    if let task = originalTask {
+                        handler?.finish(task: task, data: data, error: error)
+                    }
                     completion(data, response, error)
-                    guard let task = originalTask else { return }
-                    handler?.finish(task: task, data: data, error: error)
                 }
 
                 originalTask = uploadTask
@@ -375,7 +381,7 @@ struct UploadTaskWithRequestFromFileSwizzler: URLSessionSwizzler {
     private let handler: URLSessionTaskHandler
     var baseClass: AnyClass
 
-    init(handler: URLSessionTaskHandler, baseClass: AnyClass) {
+    init(handler: URLSessionTaskHandler, baseClass: AnyClass = URLSession.self) {
         self.handler = handler
         self.baseClass = baseClass
     }
@@ -402,7 +408,7 @@ struct UploadTaskWithRequestFromFileWithCompletionSwizzler: URLSessionSwizzler {
     private let handler: URLSessionTaskHandler
     var baseClass: AnyClass
 
-    init(handler: URLSessionTaskHandler, baseClass: AnyClass) {
+    init(handler: URLSessionTaskHandler, baseClass: AnyClass = URLSession.self) {
         self.handler = handler
         self.baseClass = baseClass
     }
@@ -419,9 +425,10 @@ struct UploadTaskWithRequestFromFileWithCompletionSwizzler: URLSessionSwizzler {
                 let request = urlRequest.addEmbraceHeaders()
                 var originalTask: URLSessionUploadTask?
                 let uploadTask = originalImplementation(urlSession, Self.selector, request, url) { data, response, error in
+                    if let task = originalTask {
+                        handler?.finish(task: task, data: data, error: error)
+                    }
                     completion(data, response, error)
-                    guard let task = originalTask else { return }
-                    handler?.finish(task: task, data: data, error: error)
                 }
                 originalTask = uploadTask
                 handler?.create(task: uploadTask)
@@ -431,7 +438,7 @@ struct UploadTaskWithRequestFromFileWithCompletionSwizzler: URLSessionSwizzler {
     }
 }
 
-struct DownloadTaskWithURLSwizzler: URLSessionSwizzler {
+struct DownloadTaskWithURLRequestSwizzler: URLSessionSwizzler {
     typealias ImplementationType = @convention(c) (URLSession, Selector, URLRequest) -> URLSessionDownloadTask
     typealias BlockImplementationType = @convention(block) (URLSession, URLRequest) -> URLSessionDownloadTask
 
@@ -442,7 +449,7 @@ struct DownloadTaskWithURLSwizzler: URLSessionSwizzler {
     private let handler: URLSessionTaskHandler
     var baseClass: AnyClass
 
-    init(handler: URLSessionTaskHandler, baseClass: AnyClass) {
+    init(handler: URLSessionTaskHandler, baseClass: AnyClass = URLSession.self) {
         self.handler = handler
         self.baseClass = baseClass
     }
@@ -459,7 +466,7 @@ struct DownloadTaskWithURLSwizzler: URLSessionSwizzler {
     }
 }
 
-struct DownloadTaskWithURLWithCompletionSwizzler: URLSessionSwizzler {
+struct DownloadTaskWithURLRequestWithCompletionSwizzler: URLSessionSwizzler {
     typealias ImplementationType = @convention(c) (URLSession, Selector, URLRequest, DownloadTaskCompletion?) -> URLSessionDownloadTask
     typealias BlockImplementationType = @convention(block) (URLSession, URLRequest, DownloadTaskCompletion?) -> URLSessionDownloadTask
 
@@ -470,7 +477,7 @@ struct DownloadTaskWithURLWithCompletionSwizzler: URLSessionSwizzler {
     private let handler: URLSessionTaskHandler
     var baseClass: AnyClass
 
-    init(handler: URLSessionTaskHandler, baseClass: AnyClass) {
+    init(handler: URLSessionTaskHandler, baseClass: AnyClass = URLSession.self) {
         self.handler = handler
         self.baseClass = baseClass
     }
@@ -488,15 +495,16 @@ struct DownloadTaskWithURLWithCompletionSwizzler: URLSessionSwizzler {
 
                 var originalTask: URLSessionDownloadTask?
                 let downloadTask = originalImplementation(urlSession, Self.selector, request) { url, response, error in
-                    completion(url, response, error)
-                    guard let task = originalTask else { return }
-                    var data: Data?
-                    if let url = url, let dataFromURL = try? Data(contentsOf: url) {
-                        data = dataFromURL
+                    if let task = originalTask {
+                        var data: Data?
+                        if let url = url, let dataFromURL = try? Data(contentsOf: url) {
+                            data = dataFromURL
+                        }
+                        handler?.finish(task: task, data: data, error: error)
                     }
-
-                    handler?.finish(task: task, data: data, error: error)
+                    completion(url, response, error)
                 }
+                originalTask = downloadTask
                 handler?.create(task: downloadTask)
                 return downloadTask
             }
@@ -515,7 +523,7 @@ struct UploadTaskWithStreamedRequestSwizzler: URLSessionSwizzler {
     private let handler: URLSessionTaskHandler
     var baseClass: AnyClass
 
-    init(handler: URLSessionTaskHandler, baseClass: AnyClass) {
+    init(handler: URLSessionTaskHandler, baseClass: AnyClass = URLSession.self) {
         self.handler = handler
         self.baseClass = baseClass
     }

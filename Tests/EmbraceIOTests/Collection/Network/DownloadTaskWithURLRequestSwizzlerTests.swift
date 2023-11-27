@@ -1,24 +1,27 @@
 //
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
+    
 
 import XCTest
 import TestSupport
-@testable import EmbraceIO
-@testable import EmbraceCommon
 
-class DataTaskWithURLRequestSwizzlerTests: XCTestCase {
-    private var session: URLSession!
-    private var sut: DataTaskWithURLRequestSwizzler!
+@testable import EmbraceIO
+
+class DownloadTaskWithURLRequestSwizzlerTests: XCTestCase {
     private var handler: MockURLSessionTaskHandler!
-    private var dataTask: URLSessionDataTask!
+    private var sut: DownloadTaskWithURLRequestSwizzler!
+    private var session: URLSession!
+    private var request: URLRequest!
+
+    private var downloadTask: URLSessionDownloadTask!
 
     override func tearDownWithError() throws {
         try? sut.unswizzleInstanceMethod()
     }
 
     func test_afterInstall_taskWillBeCreatedInHandler() throws {
-        givenDataTaskWithURLRequestSwizzler()
+        givenDownloadTaskWithURLRequestSwizzler()
         try givenSwizzlingWasDone()
         givenProxiedUrlSession()
         whenInvokingDataTaskWithUrl()
@@ -26,7 +29,7 @@ class DataTaskWithURLRequestSwizzlerTests: XCTestCase {
     }
 
     func test_afterInstall_taskShouldHaveEmbraceHeaders() throws {
-        givenDataTaskWithURLRequestSwizzler()
+        givenDownloadTaskWithURLRequestSwizzler()
         try givenSwizzlingWasDone()
         givenProxiedUrlSession()
         whenInvokingDataTaskWithUrl()
@@ -34,17 +37,17 @@ class DataTaskWithURLRequestSwizzlerTests: XCTestCase {
     }
 
     func test_withoutInstall_taskWontBeCreatedInHandler() throws {
-        givenDataTaskWithURLRequestSwizzler()
+        givenDownloadTaskWithURLRequestSwizzler()
         givenProxiedUrlSession()
         whenInvokingDataTaskWithUrl()
         thenHandlerShouldntHaveInvokedCreate()
     }
 }
 
-private extension DataTaskWithURLRequestSwizzlerTests {
-    func givenDataTaskWithURLRequestSwizzler() {
+private extension DownloadTaskWithURLRequestSwizzlerTests  {
+    func givenDownloadTaskWithURLRequestSwizzler() {
         handler = MockURLSessionTaskHandler()
-        sut = DataTaskWithURLRequestSwizzler(handler: handler)
+        sut = DownloadTaskWithURLRequestSwizzler(handler: handler)
     }
 
     func givenSwizzlingWasDone() throws {
@@ -61,13 +64,13 @@ private extension DataTaskWithURLRequestSwizzlerTests {
         let mockData = "Mock Data".data(using: .utf8)!
         let mockResponse = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil)!
         url.mockResponse = .sucessful(withData: mockData, response: mockResponse)
-        dataTask = session.dataTask(with: request)
-        dataTask.resume()
+        downloadTask = session.downloadTask(with: request)
+        downloadTask.resume()
     }
 
     func thenHandlerShouldHaveInvokedCreateWithTask() {
         XCTAssertTrue(handler.didInvokeCreate)
-        XCTAssertEqual(handler.createReceivedTask, dataTask)
+        XCTAssertEqual(handler.createReceivedTask, downloadTask)
     }
 
     func thenHandlerShouldntHaveInvokedCreate() {
@@ -75,7 +78,7 @@ private extension DataTaskWithURLRequestSwizzlerTests {
     }
 
     func thenDataTaskShouldHaveEmbraceHeaders() throws {
-        let headers = try XCTUnwrap(dataTask.originalRequest?.allHTTPHeaderFields)
+        let headers = try XCTUnwrap(downloadTask.originalRequest?.allHTTPHeaderFields)
         XCTAssertNotNil(headers["x-emb-id"])
         XCTAssertNotNil(headers["x-emb-st"])
     }
