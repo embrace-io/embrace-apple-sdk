@@ -14,6 +14,7 @@ class DefaultURLSessionSwizzlerProviderTests: XCTestCase {
     }
 
     func test_onInit_shouldProvideAllTheCorrectSwizzlerClasses() {
+        // Given
         let expectedTypes: [any URLSessionSwizzler.Type] = [
             DataTaskWithURLSwizzler.self,
             DataTaskWithURLRequestSwizzler.self,
@@ -28,7 +29,11 @@ class DefaultURLSessionSwizzlerProviderTests: XCTestCase {
             UploadTaskWithStreamedRequestSwizzler.self,
             URLSessionInitWithDelegateSwizzler.self
         ]
+
+        // When
         let swizzlers = sut.getAll(usingHandler: MockURLSessionTaskHandler())
+
+        // Then
         XCTAssertGreaterThanOrEqual(swizzlers.count, expectedTypes.count)
         for swizzler in swizzlers {
             XCTAssertTrue(expectedTypes.contains(where: { $0 == type(of: swizzler) }))
