@@ -5,6 +5,7 @@
 import Foundation
 import EmbraceCommon
 import EmbraceStorage
+import EmbraceOTel
 
 extension Notification.Name {
     static let embraceSessionDidStart = Notification.Name("embrace.session.did_start")
@@ -23,9 +24,12 @@ class SessionController: SessionControllable {
     @ThreadSafe
     private(set) var currentSession: EmbraceSession?
 
+    @ThreadSafe
+    private(set) var currentSessionSpan: Span?
+
     private let saveLock = UnfairLock()
 
-    weak var storage: EmbraceStorage?   // TODO: could this be an unowned var instead?
+    weak var storage: EmbraceStorage?
 
     internal var notificationCenter = NotificationCenter.default
 
@@ -47,6 +51,7 @@ class SessionController: SessionControllable {
             // TODO: unable to start session
         }
         currentSession = session
+        currentSessionSpan = createSpan(sessionId: session.id, startAt: startAt)
 
         // post notification
         notificationCenter.post(name: .embraceSessionDidStart, object: session)
@@ -56,8 +61,11 @@ class SessionController: SessionControllable {
     /// Will set the session's `endAt` to the specific Date
     /// Will also set the session's `cleanExit` property to `true`
     func end(session: EmbraceSession, at endAt: Date = Date()) {
+
+        // post notification
         notificationCenter.post(name: .embraceSessionWillEnd, object: session)
 
+        currentSessionSpan?.end(time: endAt)
         session.endAt = endAt
         session.cleanExit = true
         do {
@@ -67,6 +75,7 @@ class SessionController: SessionControllable {
         }
 
         currentSession = nil
+        currentSessionSpan = nil
     }
 
     func update(session: EmbraceSession, state: SessionState? = nil, appTerminated: Bool? = nil) {
@@ -120,4 +129,15 @@ extension SessionController {
             try storage.upsertSession(record)
         }
     }
+}
+
+extension SessionController {
+
+    func createSpan(sessionId: SessionIdentifier, startAt: Date) -> Span {
+        EmbraceOTel().buildSpan(name: "emb-session", type: .session)
+            .setStartTime(time: startAt)
+            .setAttribute(key: "emb.session_id", value: sessionId.toString)
+            .startSpan()
+    }
+
 }

@@ -7,6 +7,8 @@ import XCTest
 @testable import EmbraceIO
 import EmbraceStorage
 import EmbraceCommon
+import EmbraceOTel
+import TestSupport
 
 final class SessionControllerTests: XCTestCase {
 
@@ -54,6 +56,7 @@ final class SessionControllerTests: XCTestCase {
         controller.start(session: session)
 
         XCTAssertNotNil(session.startAt)
+        XCTAssertNotNil(controller.currentSessionSpan)
         XCTAssertEqual(controller.currentSession?.id, session.id)
         wait(for: [notificationExpectation])
     }
@@ -119,11 +122,27 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertEqual(sessions.first?.state, "background")
     }
 
+    func test_startSession_startsSessionSpan() throws {
+        let spanProcessor = MockSpanProcessor()
+        EmbraceOTel.setup(spanProcessor: spanProcessor)
+
+        let session = controller.createSession(state: .foreground)
+
+        // Call Start
+        controller.start(session: session)
+
+        if let spanData = spanProcessor.startedSpans.first {
+            XCTAssertEqual(spanData.startTime.timeIntervalSince1970, session.startAt!.timeIntervalSince1970, accuracy: 0.001)
+            XCTAssertNil(spanData.endTime)
+        }
+    }
+
     // MARK: end(session:at:)
 
     func test_endSession_setsCurrentSessionToNil_andPostsWillEndNotification() throws {
         let session = controller.createSession(state: .foreground)
         controller.start(session: session)
+        XCTAssertNotNil(controller.currentSessionSpan)
         XCTAssertNil(session.endAt)
         let notificationExpectation = expectation(forNotification: .embraceSessionWillEnd, object: session)
 
@@ -131,6 +150,7 @@ final class SessionControllerTests: XCTestCase {
 
         XCTAssertNotNil(session.endAt)
         XCTAssertNil(controller.currentSession)
+        XCTAssertNil(controller.currentSessionSpan)
         wait(for: [notificationExpectation])
     }
 
@@ -147,6 +167,22 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertEqual(sessions.first?.id, session.id.toString)
         XCTAssertEqual(sessions.first?.state, "foreground")
         XCTAssertEqual(sessions.first!.endTime!.timeIntervalSince1970, endAt.timeIntervalSince1970, accuracy: 0.001)
+    }
+
+    func test_endSession_saves_endsSessionSpan() throws {
+        let spanProcessor = MockSpanProcessor()
+        EmbraceOTel.setup(spanProcessor: spanProcessor)
+
+        let session = controller.createSession(state: .foreground)
+        controller.start(session: session)
+
+        // Call Start
+        let endAt = Date(timeIntervalSinceNow: 5.0)
+        controller.end(session: session, at: endAt)
+
+        if let spanData = spanProcessor.endedSpans.first {
+            XCTAssertEqual(spanData.endTime!.timeIntervalSince1970, endAt.timeIntervalSince1970, accuracy: 0.001)
+        }
     }
 
     // MARK: update(session:)

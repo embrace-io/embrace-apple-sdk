@@ -15,6 +15,10 @@ import EmbraceStorage
         let exporter = StorageSpanExporter(options: .init(storage: storage))
         let spanProcessor = SingleSpanProcessor(spanExporter: exporter)
 
+        setup(spanProcessor: spanProcessor)
+    }
+
+    public static func setup(spanProcessor: EmbraceSpanProcessor) {
         OpenTelemetry.registerTracerProvider(
             tracerProvider: EmbraceTracerProvider(spanProcessor: spanProcessor) )
     }

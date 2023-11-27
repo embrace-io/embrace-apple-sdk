@@ -83,6 +83,14 @@ class ResourceRecordTests: XCTestCase {
         wait(for: [expectation], timeout: .defaultTimeout)
     }
 
+    func test_init_permanent_convenience() throws {
+        let resource = ResourceRecord(key: "foo", value: "bar")
+
+        XCTAssertEqual(resource.resourceType, .permanent)
+        XCTAssertEqual(resource.key, "foo")
+        XCTAssertEqual(resource.value, "bar")
+    }
+
     func test_addResource() throws {
         let storage = try EmbraceStorage(options: testOptions)
 
@@ -90,7 +98,7 @@ class ResourceRecordTests: XCTestCase {
         let resource = try storage.addResource(key: "test", value: "test", resourceType: .permanent)
         XCTAssertNotNil(resource)
 
-        // then session should exist in storage
+        // then record should exist in storage
         let expectation = XCTestExpectation()
         try storage.dbQueue.read { db in
             XCTAssert(try resource.exists(db))
@@ -103,30 +111,61 @@ class ResourceRecordTests: XCTestCase {
     func test_upsertResource() throws {
         let storage = try EmbraceStorage(options: testOptions)
 
-        // given inserted session
+        // given inserted record
         let resource = ResourceRecord(key: "test", value: "test", resourceType: .permanent)
         try storage.upsertResource(resource)
 
-        // then session should exist in storage
+        let change = ResourceRecord(key: "test", value: "change", resourceType: .permanent)
+        try storage.upsertResource(change)
+
+        // then record should exist in storage
         let expectation = XCTestExpectation()
         try storage.dbQueue.read { db in
+            XCTAssertEqual(try ResourceRecord.fetchCount(db), 1)
             XCTAssert(try resource.exists(db))
+            XCTAssert(try change.exists(db))
             expectation.fulfill()
         }
 
         wait(for: [expectation], timeout: .defaultTimeout)
     }
 
+    func test_upsertResources() throws {
+        let storage = try EmbraceStorage(options: testOptions)
+
+        // given inserted records
+        try storage.upsertResources([
+            ResourceRecord(key: "cat.name", value: "Chet", resourceType: .permanent),
+            ResourceRecord(key: "dog.name", value: "Spunky", resourceType: .permanent),
+            ResourceRecord(key: "pig.name", value: "Delilah", resourceType: .permanent),
+            ResourceRecord(key: "horse.name", value: "Frank", resourceType: .permanent)
+        ])
+
+        try storage.upsertResources([
+            ResourceRecord(key: "dog.name", value: "Spot", resourceType: .permanent),
+            ResourceRecord(key: "frog.name", value: "Steven", resourceType: .permanent)
+        ])
+
+        // then record should exist in storage
+        try storage.dbQueue.read { db in
+            XCTAssertEqual(try ResourceRecord.fetchCount(db), 5)
+            XCTAssertEqual(
+                try ResourceRecord.fetchAll(db).map(\.value).sorted(), // sort value alphabetically to assert known order
+                ["Chet", "Delilah", "Frank", "Spot", "Steven"]
+            )
+        }
+    }
+
     func test_fetchResource() throws {
         let storage = try EmbraceStorage(options: testOptions)
 
-        // given inserted session
+        // given inserted record
         let original = try storage.addResource(key: "test", value: "test", resourceType: .permanent)
 
-        // when fetching the session
+        // when fetching the record
         let resource = try storage.fetchResource(key: "test")
 
-        // then the session should be valid
+        // then the record should be valid
         XCTAssertNotNil(resource)
         XCTAssertEqual(original, resource)
     }

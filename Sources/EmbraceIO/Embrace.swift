@@ -27,7 +27,7 @@ import EmbraceObjCUtils
     let upload: EmbraceUpload?
     let collection: DataCollection
 
-    private let sessionController: SessionController
+    let sessionController: SessionController
     let sessionListener: SessionListener
 
     private let processingQueue: DispatchQueue = DispatchQueue(label: "com.embrace.processing", qos: .background, attributes: .concurrent)
@@ -120,19 +120,5 @@ import EmbraceObjCUtils
 
     @objc public func endCurrentSession() {
         sessionListener.endSession()
-    }
-
-    // this is temp just so we can test collecting and storing resources into the database
-    // TODO: Replace this with intended otel way of collecting resources
-    public func addResource(key: String, value: String) throws {
-        try storage.addResource(key: key, value: value, resourceType: .process, resourceTypeId: ProcessIdentifier.current.hex)
-    }
-
-    public func addResource(key: String, value: Int) throws {
-        try storage.addResource(key: key, value: value, resourceType: .process, resourceTypeId: ProcessIdentifier.current.hex)
-    }
-
-    public func addResource(key: String, value: Double) throws {
-        try storage.addResource(key: key, value: value, resourceType: .process, resourceTypeId: ProcessIdentifier.current.hex)
     }
 }

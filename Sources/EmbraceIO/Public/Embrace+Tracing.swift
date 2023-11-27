@@ -5,7 +5,6 @@
 import Foundation
 import EmbraceCommon
 import EmbraceOTel
-import OpenTelemetryApi
 
 extension Embrace: EmbraceOpenTelemetry {
 
@@ -17,7 +16,7 @@ extension Embrace: EmbraceOpenTelemetry {
     ///     - type: The type of the span. Will be set as the `emb.type` attribute
     ///     - attributes: A dictionary of attributes to set on the span
     /// - Returns: An OpenTelemetry SpanBuilder
-    public func buildSpan(name: String, type: SpanType, attributes: [String: String] = [:]) -> OpenTelemetryApi.SpanBuilder {
+    public func buildSpan(name: String, type: SpanType, attributes: [String: String] = [:]) -> SpanBuilder {
         otel.buildSpan(name: name, type: type, attributes: attributes)
     }
 
@@ -65,14 +64,14 @@ extension Embrace: EmbraceOpenTelemetry {
     }
 
     /// Adds a list of SpanEvent objects to the current session span
-    /// If there is no current session, this span will be dropped
+    /// If there is no current session, this event will be dropped
     /// - Parameter events: An array of SpanEvent objects
     public func add(events: [SpanEvent]) {
-        // TODO: implement session span
+        sessionController.currentSessionSpan?.add(events: events)
     }
 
     /// Adds a single SpanEvent object to the current session span
-    /// If there is no current session, this span will be dropped
+    /// If there is no current session, this event will be dropped
     /// - Parameter event: A SpanEvent object
     public func add(event: SpanEvent) {
         add(events: [event])

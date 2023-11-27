@@ -7,7 +7,8 @@ import XCTest
 @testable import EmbraceStorage
 @testable import EmbraceCommon
 
-// swiftlint:disable force_try force_cast
+// swiftlint:disable force_cast
+
 final class SessionPayloadTests: XCTestCase {
     let options = EmbraceStorage.Options(baseUrl: URL(fileURLWithPath: NSTemporaryDirectory()), fileName: "test.sqlite")
 
@@ -19,8 +20,8 @@ final class SessionPayloadTests: XCTestCase {
                                            .init(key: AppResourceKeys.bundleVersion.rawValue, value: "fake_bundle_version", resourceType: .process),
                                            .init(key: AppResourceKeys.environment.rawValue, value: "fake_environment", resourceType: .process),
                                            .init(key: AppResourceKeys.detailedEnvironment.rawValue, value: "fake_detailed_environment", resourceType: .process),
-                                           .init(key: AppResourceKeys.framework.rawValue, value: 1, resourceType: .process),
-                                           .init(key: AppResourceKeys.launchCount.rawValue, value: 2, resourceType: .process),
+                                           .init(key: AppResourceKeys.framework.rawValue, value: String(1), resourceType: .process),
+                                           .init(key: AppResourceKeys.launchCount.rawValue, value: String(2), resourceType: .process),
                                            .init(key: AppResourceKeys.sdkVersion.rawValue, value: "fake_sdk_version", resourceType: .process),
                                            .init(key: AppResourceKeys.appVersion.rawValue, value: "fake_app_version", resourceType: .process)]
 
@@ -30,7 +31,7 @@ final class SessionPayloadTests: XCTestCase {
         let fetcher = MockResourceFetcher(resources: [])
 
         // when creating a payload
-        let payload = SessionPayload(from: sessionRecord, resourceFetcher: fetcher)
+        let payload = SessionPayload(from: sessionRecord, resourceFetcher: fetcher, counter: 10)
 
         // then the properties are correctly set
         XCTAssertEqual(payload.messageFormatVersion, 15)
@@ -38,6 +39,7 @@ final class SessionPayloadTests: XCTestCase {
         XCTAssertEqual(payload.sessionInfo.startTime, sessionRecord.startTime.millisecondsSince1970Truncated)
         XCTAssertEqual(payload.sessionInfo.endTime, sessionRecord.endTime?.millisecondsSince1970Truncated)
         XCTAssertEqual(payload.sessionInfo.appState, sessionRecord.state)
+        XCTAssertEqual(payload.sessionInfo.counter, 10)
     }
 
     func test_highLevelKeys() throws {
@@ -66,7 +68,7 @@ final class SessionPayloadTests: XCTestCase {
         let fetcher = MockResourceFetcher(resources: [])
 
         // when serializing
-        let payload = SessionPayload(from: sessionRecord, resourceFetcher: fetcher)
+        let payload = SessionPayload(from: sessionRecord, resourceFetcher: fetcher, counter: 10)
         let data = try JSONEncoder().encode(payload)
         let json = try JSONSerialization.jsonObject(with: data, options: []) as! [String: Any]
 
@@ -76,6 +78,7 @@ final class SessionPayloadTests: XCTestCase {
         XCTAssertEqual(sessionInfo["st"] as! Int, sessionRecord.startTime.millisecondsSince1970Truncated)
         XCTAssertEqual(sessionInfo["et"] as? Int, sessionRecord.endTime?.millisecondsSince1970Truncated)
         XCTAssertEqual(sessionInfo["as"] as! String, sessionRecord.state)
+        XCTAssertEqual(sessionInfo["sn"] as! Int, 10)
     }
 
     func test_appInfoKeys() throws {
@@ -85,8 +88,8 @@ final class SessionPayloadTests: XCTestCase {
                                                .init(key: AppResourceKeys.bundleVersion.rawValue, value: "fake_bundle_version", resourceType: .process),
                                                .init(key: AppResourceKeys.environment.rawValue, value: "fake_environment", resourceType: .process),
                                                .init(key: AppResourceKeys.detailedEnvironment.rawValue, value: "fake_detailed_environment", resourceType: .process),
-                                               .init(key: AppResourceKeys.framework.rawValue, value: 1, resourceType: .process),
-                                               .init(key: AppResourceKeys.launchCount.rawValue, value: 2, resourceType: .process),
+                                               .init(key: AppResourceKeys.framework.rawValue, value: String(1), resourceType: .process),
+                                               .init(key: AppResourceKeys.launchCount.rawValue, value: String(2), resourceType: .process),
                                                .init(key: AppResourceKeys.sdkVersion.rawValue, value: "fake_sdk_version", resourceType: .process),
                                                .init(key: AppResourceKeys.appVersion.rawValue, value: "fake_app_version", resourceType: .process)]
         let fetcher = MockResourceFetcher(resources: mockResources)
@@ -114,7 +117,7 @@ final class SessionPayloadTests: XCTestCase {
         let mockResources: [ResourceRecord] = [.init(key: DeviceResourceKeys.isJailbroken.rawValue, value: String(false), resourceType: .process),
                                                .init(key: DeviceResourceKeys.locale.rawValue, value: "fake_locale", resourceType: .process),
                                                .init(key: DeviceResourceKeys.timezone.rawValue, value: "fake_timezone", resourceType: .process),
-                                               .init(key: DeviceResourceKeys.totalDiskSpace.rawValue, value: 123456, resourceType: .process),
+                                               .init(key: DeviceResourceKeys.totalDiskSpace.rawValue, value: String(123456), resourceType: .process),
                                                .init(key: DeviceResourceKeys.OSVersion.rawValue, value: "fake_os_version", resourceType: .process),
                                                .init(key: DeviceResourceKeys.OSBuild.rawValue, value: "fake_os_build", resourceType: .process)]
         let fetcher = MockResourceFetcher(resources: mockResources)
@@ -134,4 +137,5 @@ final class SessionPayloadTests: XCTestCase {
         XCTAssertEqual(deviceInfo["ob"] as! String, "fake_os_build")
     }
 }
-// swiftlint:enable force_try force_cast
+
+// swiftlint:enable force_cast
