@@ -6,8 +6,8 @@ import Foundation
 import EmbraceCommon
 
 /*
- We decided that in order to improve readeability, we'll leave all the class that Swizzle Methods from URLSession
- all together. That's why we disable the file_length warning in this case.
+ We decided that, to improve readability, we'll keep all the classes that swizzle methods
+ from `URLSession` together. That's why we've disabled the file_length warning in this case.
  */
 // swiftlint:disable file_length
 typealias URLSessionCompletion = (Data?, URLResponse?, Error?) -> Void
