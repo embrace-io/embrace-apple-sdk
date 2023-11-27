@@ -33,10 +33,11 @@ public final class URLSessionCollector: InstalledCollector {
     }
 
     init(lock: NSLock = NSLock(),
+         swizzlerProvider: URLSessionSwizzlerProvider = DefaultURLSessionSwizzlerProvider(),
          handler: URLSessionTaskHandler = DefaultURLSessionTaskHandler()) {
         self.lock = lock
         self.handler = handler
-        self.swizzlers = URLSessionCollector.defaultSwizzlers(handler: handler)
+        self.swizzlers = swizzlerProvider.getAll(usingHandler: handler)
     }
 
     public func install() {
