@@ -1,7 +1,7 @@
 //
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
-    
+
 import XCTest
 import TestSupport
 @testable import EmbraceIO
@@ -112,7 +112,7 @@ private extension UploadTaskWithRequestFromFileWithCompletionSwizzlerTests {
         request = URLRequest(url: url)
         request.httpMethod = "POST"
     }
-    
+
     func givenProxiedUrlSession() {
         session = ProxiedURLSessionProvider.default()
     }
@@ -145,7 +145,7 @@ private extension UploadTaskWithRequestFromFileWithCompletionSwizzlerTests {
         XCTAssertNotNil(headers["x-emb-id"])
         XCTAssertNotNil(headers["x-emb-st"])
     }
-    
+
     func thenHandlerShouldntHaveInvokedCreate() {
         XCTAssertFalse(handler.didInvokeCreate)
     }

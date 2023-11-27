@@ -1,7 +1,6 @@
 //
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
-    
 
 import XCTest
 import TestSupport
@@ -44,7 +43,7 @@ class DownloadTaskWithURLRequestSwizzlerTests: XCTestCase {
     }
 }
 
-private extension DownloadTaskWithURLRequestSwizzlerTests  {
+private extension DownloadTaskWithURLRequestSwizzlerTests {
     func givenDownloadTaskWithURLRequestSwizzler() {
         handler = MockURLSessionTaskHandler()
         sut = DownloadTaskWithURLRequestSwizzler(handler: handler)
