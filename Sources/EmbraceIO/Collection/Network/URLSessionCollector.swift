@@ -19,7 +19,7 @@ protocol URLSessionSwizzler: Swizzlable {
 }
 
 public final class URLSessionCollector: InstalledCollector {
-    private let lock: NSLock
+    private let lock: NSLocking
     private let swizzlers: [any URLSessionSwizzler]
     private let handler: URLSessionTaskHandler
     private(set) var status: CollectorState = .uninstalled {
@@ -29,10 +29,10 @@ public final class URLSessionCollector: InstalledCollector {
     }
 
     public convenience init() {
-        self.init(lock: NSLock(), handler: DefaultURLSessionTaskHandler())
+        self.init(lock: NSLock(), swizzlerProvider: DefaultURLSessionSwizzlerProvider(), handler: DefaultURLSessionTaskHandler())
     }
 
-    init(lock: NSLock = NSLock(),
+    init(lock: NSLocking = NSLock(),
          swizzlerProvider: URLSessionSwizzlerProvider = DefaultURLSessionSwizzlerProvider(),
          handler: URLSessionTaskHandler = DefaultURLSessionTaskHandler()) {
         self.lock = lock
@@ -41,6 +41,7 @@ public final class URLSessionCollector: InstalledCollector {
     }
 
     public func install() {
+        guard status == .uninstalled else { return }
         lock.lock()
         defer {
             status = .installed
