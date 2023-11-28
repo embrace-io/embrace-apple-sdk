@@ -68,6 +68,26 @@ class EmbraceUploadCache {
         }
     }
 
+    /// Removes stale data based on size or date, if they're limited in options.
+    @discardableResult public func clearStaleDataIfNeeded() throws -> UInt {
+        let limitDays = options.cacheDaysLimit
+        let limitSize = options.cacheSizeLimit
+        let recordsBasedOnDate = limitDays > 0 ? try fetchRecordsToDeleteBasedOnDate(maxDays: limitDays) : []
+        let recordsBasedOnSize = limitSize > 0 ? try fetchRecordsToDeleteBasedOnSize(maxSize: limitSize) : []
+
+        let recordsToDelete = Array(Set(recordsBasedOnDate + recordsBasedOnSize))
+
+        let deleteCount = recordsToDelete.count
+
+        if deleteCount > 0 {
+            try deleteRecords(recordIDs: recordsToDelete)
+            try dbQueue.vacuum()
+            return UInt(deleteCount)
+        }
+
+        return 0
+    }
+
     /// Saves the given upload data to the cache.
     /// - Parameters:
     ///   - id: Identifier of the data
@@ -162,6 +182,54 @@ class EmbraceUploadCache {
             if try record.exists(db) {
                 try record.update(db)
             }
+        }
+    }
+
+    /// Sorts Upload Cache by descending order and goes through it adding the space taken by each record.
+    /// Once the __maxSize__ has been reached, all the following record IDs will be returned indicating those need to be deleted.
+    /// - Parameter maxSize: The maximum allowed size in bytes for the Database.
+    /// - Returns: An array of IDs of the oldest records which are making the DB go above the target maximum size.
+    func fetchRecordsToDeleteBasedOnSize(maxSize: UInt) throws -> [String] {
+        let sqlQuery = """
+        WITH t AS (SELECT id, date, SUM(LENGTH(data)) OVER (ORDER BY date DESC,id) total_size FROM uploads)
+        SELECT id FROM t WHERE total_size>=\(maxSize) ORDER BY date DESC;
+        """
+
+        var result: [String] = []
+
+        try dbQueue.read { db in
+            result = try String.fetchAll(db, sql: sqlQuery)
+        }
+
+        return result
+    }
+
+    /// Fetches all records that should be deleted based on them being older than __maxDays__ days
+    /// - Parameter db: The database where to pull the data from, assumes the records to be UploadDataRecord.
+    /// - Parameter maxDays: The maximum allowed days old a record is allowed to be cached.
+    /// - Returns: An array of IDs from records that should be deleted.
+    func fetchRecordsToDeleteBasedOnDate(maxDays: UInt) throws -> [String] {
+        let sqlQuery = """
+        SELECT id, date FROM uploads WHERE date <= DATE(DATE(), '-\(maxDays) day')
+        """
+        
+        var result: [String] = []
+
+        try dbQueue.read { db in
+            result = try String.fetchAll(db, sql: sqlQuery)
+        }
+
+        return result
+    }
+
+    /// Deletes requested records from the database based on their IDs
+    /// Assumes the records to be of type __UploadDataRecord__
+    /// - Parameter recordIDs: The IDs array to delete
+    func deleteRecords(recordIDs: [String]) throws {
+        let questionMarks = "\(databaseQuestionMarks(count: recordIDs.count))"
+        let sqlQuery = "DELETE FROM uploads WHERE id IN (\(questionMarks))"
+        try dbQueue.write { db in
+            try db.execute(sql: sqlQuery, arguments: .init(recordIDs))
         }
     }
 }

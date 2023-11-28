@@ -23,8 +23,10 @@ public extension EmbraceUpload {
         /// Determines the maximum amount of days a request will be cached. Use 0 to disable.
         public var cacheDaysLimit: UInt
 
-        public init?(cacheBaseUrl: URL, cacheFileName: String = "db.sqlite", cacheLimit: UInt = 0, cacheDaysLimit: UInt = 0) {
+        /// Determines the maximum cache size in bytes. Use 0 to disable.
+        public var cacheSizeLimit: UInt
 
+        public init?(cacheBaseUrl: URL, cacheFileName: String = "db.sqlite", cacheLimit: UInt = 0, cacheDaysLimit: UInt = 0, cacheSizeLimit: UInt = 0) {
             if !cacheBaseUrl.isFileURL {
                 return nil
             }
@@ -33,6 +35,7 @@ public extension EmbraceUpload {
             self.cacheFileName = cacheFileName
             self.cacheLimit = cacheLimit
             self.cacheDaysLimit = cacheDaysLimit
+            self.cacheSizeLimit = cacheSizeLimit
         }
     }
 }

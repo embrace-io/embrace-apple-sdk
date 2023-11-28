@@ -7,7 +7,6 @@ import TestSupport
 @testable import EmbraceUpload
 
 class EmbraceUploadCacheTests: XCTestCase {
-
     let testOptions = EmbraceUpload.CacheOptions(cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory()))!
 
     override func setUpWithError() throws {
