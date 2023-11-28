@@ -9,6 +9,8 @@ import EmbraceIO
 @main
 struct BrandGameApp: App {
 
+    @State var settings: AppSettings = AppSettings()
+
     init() {
         do{
             try Embrace.setup(
@@ -22,6 +24,7 @@ struct BrandGameApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environment(\.settings, settings)
         }
     }
 }

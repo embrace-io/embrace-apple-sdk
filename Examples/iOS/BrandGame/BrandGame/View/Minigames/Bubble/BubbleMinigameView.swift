@@ -13,7 +13,7 @@ struct PointBubble: Identifiable {
     let radius = 12.0
 }
 
-struct InteractiveBracketLogo: View {
+struct BubbleMinigameView: View {
 
     @State var bubbles: [PointBubble] = []
 
@@ -42,5 +42,5 @@ struct InteractiveBracketLogo: View {
 }
 
 #Preview {
-    InteractiveBracketLogo()
+    BubbleMinigameView()
 }

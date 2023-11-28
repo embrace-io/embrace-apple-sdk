@@ -19,6 +19,7 @@ extension Notification.Name {
 ///     Just after a session starts. See ``Notification.Name.embraceSessionDidStart``
 ///     Just before a session will end. See ``Notification.Name.embraceSessionWillEnd``
 ///
+
 class SessionController: SessionControllable {
 
     @ThreadSafe
@@ -50,6 +51,7 @@ class SessionController: SessionControllable {
         } catch {
             // TODO: unable to start session
         }
+
         currentSession = session
         currentSessionSpan = createSpan(sessionId: session.id, startAt: startAt)
 

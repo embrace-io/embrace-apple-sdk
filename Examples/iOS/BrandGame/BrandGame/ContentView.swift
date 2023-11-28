@@ -12,15 +12,14 @@ struct ContentView: View {
         ZStack {
             Color.embraceLead
 
-            InteractiveBracketLogo()
-                .padding()
+            MinigameView()
         }
         .gesture(
             TapGesture(count: 3)
                 .onEnded { _ in
-                    print("tap \(Date())")
                     isShowingMenu = true
-                })
+                }
+        )
         .ignoresSafeArea(.all)
         .sheet(isPresented: $isShowingMenu) {
             MainMenu()

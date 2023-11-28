@@ -47,7 +47,6 @@ extension iOSAppListener {
     /// This
     /// - Returns: The current SessionState at the current moment in time
     private func determineSessionState() -> SessionState {
-
         let applicationState: UIApplication.State
         if Thread.isMainThread {
             applicationState = UIApplication.shared.applicationState
