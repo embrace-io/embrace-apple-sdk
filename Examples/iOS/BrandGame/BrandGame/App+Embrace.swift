@@ -8,7 +8,7 @@ extension BrandGameApp {
 #if DEBUG
     var embraceOptions: Embrace.Options {
         return .init(
-            appId: "stage",
+            appId: "AK5HV",
             appGroupId: nil,
             platform: .iOS
         )
@@ -17,7 +17,7 @@ extension BrandGameApp {
     var embraceOptions: Embrace.Options {
 
         return .init(
-            appId: "myApp",
+            appId: "kj9hd",
             appGroupId: nil,
             platform: .iOS
         )
