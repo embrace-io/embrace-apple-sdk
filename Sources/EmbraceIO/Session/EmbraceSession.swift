@@ -40,7 +40,7 @@ public final class EmbraceSession {
     @ThreadSafe
     var appTerminated: Bool = false
 
-    init(id: SessionIdentifier, state: SessionState, startAt: Date? = nil, endAt: Date? = nil) {
+    init(id: SessionIdentifier, state: SessionState, processId: ProcessIdentifier = ProcessIdentifier.current, startAt: Date? = nil, endAt: Date? = nil) {
         self.id = id
         self.state = state
         self.processId = ProcessIdentifier.current

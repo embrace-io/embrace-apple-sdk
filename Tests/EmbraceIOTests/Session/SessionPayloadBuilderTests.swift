@@ -19,7 +19,7 @@ final class SessionPayloadBuilderTests: XCTestCase {
         sessionRecord = SessionRecord(
             id: TestConstants.sessionId,
             state: .foreground,
-            processId: UUID(),
+            processId: ProcessIdentifier.current,
             startTime: Date(timeIntervalSince1970: 0),
             endTime: Date(timeIntervalSince1970: 60)
         )

@@ -5,8 +5,20 @@
 import Foundation
 
 /// The unique identifier for this process that has a higher cardinality than the system PID
-public struct ProcessIdentifier {
-    let value: UInt32
+public struct ProcessIdentifier: Equatable {
+    public let value: UInt32
+
+    init?(hex: String) {
+        if let value = UInt32(hex, radix: 16) {
+            self.value = value
+        } else {
+            return nil
+        }
+    }
+
+    init(value: UInt32) {
+        self.value = value
+    }
 
     ///  Returns the base16 encoding of this SpanId.
     public var hex: String {

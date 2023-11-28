@@ -13,7 +13,7 @@ public protocol EmbraceStorageResourceFetcher {
 // MARK: - Sync resource operations
 extension EmbraceStorage: EmbraceStorageResourceFetcher {
 
-    @discardableResult public func addResource(key: String, value: String, resourceType: ResourceType, resourceTypeId: String = "N/A") throws -> ResourceRecord {
+    @discardableResult public func addResource(key: String, value: String, resourceType: ResourceType, resourceTypeId: String = "") throws -> ResourceRecord {
         let resource = ResourceRecord(key: key, value: value, resourceType: resourceType, resourceTypeId: resourceTypeId)
         try self.upsertResource(resource)
         return resource

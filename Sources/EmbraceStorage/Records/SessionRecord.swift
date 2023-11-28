@@ -9,7 +9,7 @@ import GRDB
 /// Represents a session in the storage
 public struct SessionRecord: Codable {
     public var id: SessionId
-    public var processId: String
+    public var processId: ProcessIdentifier
     public var state: String
     public var startTime: Date
     public var endTime: Date?
@@ -24,11 +24,11 @@ public struct SessionRecord: Codable {
     /// Used to mark the session that is active when the application was explicitly terminated by the user and/or system
     public var appTerminated: Bool
 
-    public init(id: SessionId, state: SessionState, processId: UUID, startTime: Date, endTime: Date? = nil, crashReportId: String? = nil, coldStart: Bool = false, cleanExit: Bool = false, appTerminated: Bool = false) {
+    public init(id: SessionId, state: SessionState, processId: ProcessIdentifier, startTime: Date, endTime: Date? = nil, crashReportId: String? = nil, coldStart: Bool = false, cleanExit: Bool = false, appTerminated: Bool = false) {
 
         self.id = id
         self.state = state.rawValue
-        self.processId = processId.uuidString
+        self.processId = processId
         self.startTime = startTime
         self.endTime = endTime
         self.crashReportId = crashReportId

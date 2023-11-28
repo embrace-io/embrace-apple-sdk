@@ -9,12 +9,10 @@ import EmbraceCommon
 
 class ResourceRecordTests: XCTestCase {
 
-    let testOptions = EmbraceStorage.Options(baseUrl: URL(fileURLWithPath: NSTemporaryDirectory()), fileName: "test.sqlite")
+    let testOptions = EmbraceStorage.Options(named: #file)
 
     override func setUpWithError() throws {
-        if FileManager.default.fileExists(atPath: testOptions.filePath!) {
-            try FileManager.default.removeItem(atPath: testOptions.filePath!)
-        }
+
     }
 
     override func tearDownWithError() throws {
@@ -83,10 +81,31 @@ class ResourceRecordTests: XCTestCase {
         wait(for: [expectation], timeout: .defaultTimeout)
     }
 
+    func test_init_session_convenience() throws {
+        let sessionId = SessionIdentifier.random
+        let resource = ResourceRecord(key: "foo", value: "bar", sessionId: sessionId)
+
+        XCTAssertEqual(resource.resourceType, .session)
+        XCTAssertEqual(resource.resourceTypeId, sessionId.toString)
+        XCTAssertEqual(resource.key, "foo")
+        XCTAssertEqual(resource.value, "bar")
+    }
+
+    func test_init_process_convenience() throws {
+        let processId = ProcessIdentifier.random
+        let resource = ResourceRecord(key: "foo", value: "bar", processIdentifier: processId)
+
+        XCTAssertEqual(resource.resourceType, .process)
+        XCTAssertEqual(resource.resourceTypeId, processId.hex)
+        XCTAssertEqual(resource.key, "foo")
+        XCTAssertEqual(resource.value, "bar")
+    }
+
     func test_init_permanent_convenience() throws {
         let resource = ResourceRecord(key: "foo", value: "bar")
 
         XCTAssertEqual(resource.resourceType, .permanent)
+        XCTAssertEqual(resource.resourceTypeId, "")
         XCTAssertEqual(resource.key, "foo")
         XCTAssertEqual(resource.value, "bar")
     }
@@ -112,10 +131,10 @@ class ResourceRecordTests: XCTestCase {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given inserted record
-        let resource = ResourceRecord(key: "test", value: "test", resourceType: .permanent)
+        let resource = ResourceRecord(key: "test", value: "test")
         try storage.upsertResource(resource)
 
-        let change = ResourceRecord(key: "test", value: "change", resourceType: .permanent)
+        let change = ResourceRecord(key: "test", value: "change")
         try storage.upsertResource(change)
 
         // then record should exist in storage
@@ -135,15 +154,15 @@ class ResourceRecordTests: XCTestCase {
 
         // given inserted records
         try storage.upsertResources([
-            ResourceRecord(key: "cat.name", value: "Chet", resourceType: .permanent),
-            ResourceRecord(key: "dog.name", value: "Spunky", resourceType: .permanent),
-            ResourceRecord(key: "pig.name", value: "Delilah", resourceType: .permanent),
-            ResourceRecord(key: "horse.name", value: "Frank", resourceType: .permanent)
+            ResourceRecord(key: "cat.name", value: "Chet"),
+            ResourceRecord(key: "dog.name", value: "Spunky"),
+            ResourceRecord(key: "pig.name", value: "Delilah"),
+            ResourceRecord(key: "horse.name", value: "Frank")
         ])
 
         try storage.upsertResources([
-            ResourceRecord(key: "dog.name", value: "Spot", resourceType: .permanent),
-            ResourceRecord(key: "frog.name", value: "Steven", resourceType: .permanent)
+            ResourceRecord(key: "dog.name", value: "Spot"),
+            ResourceRecord(key: "frog.name", value: "Steven")
         ])
 
         // then record should exist in storage
@@ -240,20 +259,21 @@ class ResourceRecordTests: XCTestCase {
         let storage = try EmbraceStorage(options: testOptions)
 
         let testSessionId = UUID()
-        let testProcessId = UUID()
+        let testProcessId = ProcessIdentifier.random
 
         try storage.addSession(id: testSessionId.uuidString, state: .foreground, processId: testProcessId, startTime: Date())
 
         try storage.addResource(key: "test", value: "test", resourceType: .session, resourceTypeId: "123654852")
         try storage.addResource(key: "test", value: "test", resourceType: .process, resourceTypeId: "1236s4852")
 
-        var originals = [ResourceRecord]()
-        // given inserted session
-        originals.append(try storage.addResource(key: "test1", value: "test1", resourceType: .process, resourceTypeId: testProcessId.uuidString))
-        originals.append(try storage.addResource(key: "test2", value: "test2", resourceType: .process, resourceTypeId: testProcessId.uuidString))
-        originals.append(try storage.addResource(key: "test3", value: "test3", resourceType: .session, resourceTypeId: testSessionId.uuidString))
-        originals.append(try storage.addResource(key: "test4", value: "test4", resourceType: .session, resourceTypeId: testSessionId.uuidString))
-        originals.append(try storage.addResource(key: "test5", value: "test5", resourceType: .permanent))
+        var originals = [
+            // given inserted session
+            try storage.addResource(key: "test1", value: "test1", resourceType: .process, resourceTypeId: String(testProcessId.value)),
+            try storage.addResource(key: "test2", value: "test2", resourceType: .process, resourceTypeId: String(testProcessId.value)),
+            try storage.addResource(key: "test3", value: "test3", resourceType: .session, resourceTypeId: testSessionId.uuidString),
+            try storage.addResource(key: "test4", value: "test4", resourceType: .session, resourceTypeId: testSessionId.uuidString),
+            try storage.addResource(key: "test5", value: "test5", resourceType: .permanent)
+        ]
 
         // when fetching the session
         let resources = try storage.fetchAllResourceForSession(sessionId: testSessionId.uuidString)

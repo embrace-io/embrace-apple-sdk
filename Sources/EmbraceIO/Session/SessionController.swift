@@ -120,7 +120,7 @@ extension SessionController {
             let record = SessionRecord(
                 id: session.id.toString,
                 state: session.state,
-                processId: UUID(), // session.processId, TODO: FIXME, interface should use ProcessIdentifier
+                processId: session.processId,
                 startTime: startAt,
                 endTime: session.endAt,
                 coldStart: session.coldStart,

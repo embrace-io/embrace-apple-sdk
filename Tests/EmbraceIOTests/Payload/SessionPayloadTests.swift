@@ -13,17 +13,22 @@ final class SessionPayloadTests: XCTestCase {
     let options = EmbraceStorage.Options(baseUrl: URL(fileURLWithPath: NSTemporaryDirectory()), fileName: "test.sqlite")
 
     var mockSessionRecord: SessionRecord {
-        .init(id: "1234", state: .foreground, processId: UUID(), startTime: Date(timeIntervalSince1970: 10), endTime: Date(timeIntervalSince1970: 40))
+        .init(
+            id: "1234",
+            state: .foreground,
+            processId: ProcessIdentifier.current,
+            startTime: Date(timeIntervalSince1970: 10),
+            endTime: Date(timeIntervalSince1970: 40))
     }
 
-    var mockResources: [ResourceRecord] = [.init(key: AppResourceKeys.buildUUID.rawValue, value: "fake_uuid", resourceType: .process),
-                                           .init(key: AppResourceKeys.bundleVersion.rawValue, value: "fake_bundle_version", resourceType: .process),
-                                           .init(key: AppResourceKeys.environment.rawValue, value: "fake_environment", resourceType: .process),
-                                           .init(key: AppResourceKeys.detailedEnvironment.rawValue, value: "fake_detailed_environment", resourceType: .process),
-                                           .init(key: AppResourceKeys.framework.rawValue, value: String(1), resourceType: .process),
-                                           .init(key: AppResourceKeys.launchCount.rawValue, value: String(2), resourceType: .process),
-                                           .init(key: AppResourceKeys.sdkVersion.rawValue, value: "fake_sdk_version", resourceType: .process),
-                                           .init(key: AppResourceKeys.appVersion.rawValue, value: "fake_app_version", resourceType: .process)]
+    var mockResources: [ResourceRecord] = [.init(key: AppResourceKeys.buildUUID.rawValue, value: "fake_uuid", processIdentifier: .current),
+                                           .init(key: AppResourceKeys.bundleVersion.rawValue, value: "fake_bundle_version", processIdentifier: .current),
+                                           .init(key: AppResourceKeys.environment.rawValue, value: "fake_environment", processIdentifier: .current),
+                                           .init(key: AppResourceKeys.detailedEnvironment.rawValue, value: "fake_detailed_environment", processIdentifier: .current),
+                                           .init(key: AppResourceKeys.framework.rawValue, value: String(1), processIdentifier: .current),
+                                           .init(key: AppResourceKeys.launchCount.rawValue, value: String(2), processIdentifier: .current),
+                                           .init(key: AppResourceKeys.sdkVersion.rawValue, value: "fake_sdk_version", processIdentifier: .current),
+                                           .init(key: AppResourceKeys.appVersion.rawValue, value: "fake_app_version", processIdentifier: .current)]
 
     func test_properties() {
         // given a session record
@@ -84,14 +89,14 @@ final class SessionPayloadTests: XCTestCase {
     func test_appInfoKeys() throws {
         // given a session record
         let sessionRecord = mockSessionRecord
-        let mockResources: [ResourceRecord] = [.init(key: AppResourceKeys.buildUUID.rawValue, value: "fake_uuid", resourceType: .process),
-                                               .init(key: AppResourceKeys.bundleVersion.rawValue, value: "fake_bundle_version", resourceType: .process),
-                                               .init(key: AppResourceKeys.environment.rawValue, value: "fake_environment", resourceType: .process),
-                                               .init(key: AppResourceKeys.detailedEnvironment.rawValue, value: "fake_detailed_environment", resourceType: .process),
-                                               .init(key: AppResourceKeys.framework.rawValue, value: String(1), resourceType: .process),
-                                               .init(key: AppResourceKeys.launchCount.rawValue, value: String(2), resourceType: .process),
-                                               .init(key: AppResourceKeys.sdkVersion.rawValue, value: "fake_sdk_version", resourceType: .process),
-                                               .init(key: AppResourceKeys.appVersion.rawValue, value: "fake_app_version", resourceType: .process)]
+        let mockResources: [ResourceRecord] = [.init(key: AppResourceKeys.buildUUID.rawValue, value: "fake_uuid", processIdentifier: .current),
+                                               .init(key: AppResourceKeys.bundleVersion.rawValue, value: "fake_bundle_version", processIdentifier: .current),
+                                               .init(key: AppResourceKeys.environment.rawValue, value: "fake_environment", processIdentifier: .current),
+                                               .init(key: AppResourceKeys.detailedEnvironment.rawValue, value: "fake_detailed_environment", processIdentifier: .current),
+                                               .init(key: AppResourceKeys.framework.rawValue, value: String(1), processIdentifier: .current),
+                                               .init(key: AppResourceKeys.launchCount.rawValue, value: String(2), processIdentifier: .current),
+                                               .init(key: AppResourceKeys.sdkVersion.rawValue, value: "fake_sdk_version", processIdentifier: .current),
+                                               .init(key: AppResourceKeys.appVersion.rawValue, value: "fake_app_version", processIdentifier: .current)]
         let fetcher = MockResourceFetcher(resources: mockResources)
 
         // when serializing
@@ -114,12 +119,12 @@ final class SessionPayloadTests: XCTestCase {
     func test_deviceInfoKeys() throws {
         // given a session record
         let sessionRecord = mockSessionRecord
-        let mockResources: [ResourceRecord] = [.init(key: DeviceResourceKeys.isJailbroken.rawValue, value: String(false), resourceType: .process),
-                                               .init(key: DeviceResourceKeys.locale.rawValue, value: "fake_locale", resourceType: .process),
-                                               .init(key: DeviceResourceKeys.timezone.rawValue, value: "fake_timezone", resourceType: .process),
-                                               .init(key: DeviceResourceKeys.totalDiskSpace.rawValue, value: String(123456), resourceType: .process),
-                                               .init(key: DeviceResourceKeys.OSVersion.rawValue, value: "fake_os_version", resourceType: .process),
-                                               .init(key: DeviceResourceKeys.OSBuild.rawValue, value: "fake_os_build", resourceType: .process)]
+        let mockResources: [ResourceRecord] = [.init(key: DeviceResourceKeys.isJailbroken.rawValue, value: String(false), processIdentifier: .current),
+                                               .init(key: DeviceResourceKeys.locale.rawValue, value: "fake_locale", processIdentifier: .current),
+                                               .init(key: DeviceResourceKeys.timezone.rawValue, value: "fake_timezone", processIdentifier: .current),
+                                               .init(key: DeviceResourceKeys.totalDiskSpace.rawValue, value: String(123456), processIdentifier: .current),
+                                               .init(key: DeviceResourceKeys.OSVersion.rawValue, value: "fake_os_version", processIdentifier: .current),
+                                               .init(key: DeviceResourceKeys.OSBuild.rawValue, value: "fake_os_build", processIdentifier: .current)]
         let fetcher = MockResourceFetcher(resources: mockResources)
 
         // when serializing

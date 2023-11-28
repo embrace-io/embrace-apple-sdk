@@ -10,7 +10,7 @@ import XCTest
 final class PayloadUtilTests: XCTestCase {
     func test_fetchResources() throws {
         // given
-        let mockResources: [ResourceRecord] = [.init(key: "fake_res", value: "fake_value", resourceType: .process)]
+        let mockResources: [ResourceRecord] = [.init(key: "fake_res", value: "fake_value", processIdentifier: .random)]
         let fetcher = MockResourceFetcher(resources: mockResources)
 
         // when

@@ -4,14 +4,14 @@
 
 import Foundation
 
-struct SessionIdentifier: Equatable {
+public struct SessionIdentifier: Equatable {
     let value: UUID
 
-    init(value: UUID) {
+    public init(value: UUID) {
         self.value = value
     }
 
-    init?(value: String) {
+    public init?(value: String) {
         guard let uuid = UUID(uuidString: value) else {
             return nil
         }
@@ -19,15 +19,15 @@ struct SessionIdentifier: Equatable {
         self.value = uuid
     }
 
-    var toString: String { value.uuidString }
+    public var toString: String { value.uuidString }
 }
 
 extension SessionIdentifier {
-    static var random: SessionIdentifier {
+    public static var random: SessionIdentifier {
         .init(value: UUID())
     }
 }
 
 extension SessionIdentifier: CustomStringConvertible {
-    var description: String { value.uuidString }
+    public var description: String { value.uuidString }
 }

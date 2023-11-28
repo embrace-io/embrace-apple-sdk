@@ -16,7 +16,7 @@ extension EmbraceStorage {
     ///   - endTime: Date of when the session ended (optional)
     ///   - crashReportId: Identifier of the crash report linked with this session
     /// - Returns: The newly stored `SessionRecord`
-    @discardableResult public func addSession(id: SessionId, state: SessionState, processId: UUID, startTime: Date, endTime: Date? = nil, crashReportId: String? = nil) throws -> SessionRecord {
+    @discardableResult public func addSession(id: SessionId, state: SessionState, processId: ProcessIdentifier, startTime: Date, endTime: Date? = nil, crashReportId: String? = nil) throws -> SessionRecord {
         let session = SessionRecord(id: id, state: state, processId: processId, startTime: startTime, endTime: endTime)
         try upsertSession(session)
 
@@ -125,7 +125,7 @@ extension EmbraceStorage {
     public func addSessionAsync(
         id: SessionId,
         state: SessionState,
-        processId: UUID,
+        processId: ProcessIdentifier,
         startTime: Date,
         endTime: Date? = nil,
         crashReportId: String? = nil,
