@@ -99,6 +99,7 @@ import EmbraceObjCUtils
                 UnsentDataHandler.sendUnsentData(
                     storage: self?.storage,
                     upload: self?.upload,
+                    currentSessionId: self?.sessionController.currentSession?.id,
                     crashReporter: self?.collection.crashReporter
                 )
             }

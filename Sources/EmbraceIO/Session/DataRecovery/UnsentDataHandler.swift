@@ -9,7 +9,12 @@ import EmbraceUpload
 import Gzip
 
 class UnsentDataHandler {
-    static func sendUnsentData(storage: EmbraceStorage?, upload: EmbraceUpload?, crashReporter: CrashReporter?) {
+    static func sendUnsentData(
+        storage: EmbraceStorage?,
+        upload: EmbraceUpload?,
+        currentSessionId: SessionIdentifier? = nil,
+        crashReporter: CrashReporter? = nil) {
+
         guard let storage = storage,
               let upload = upload else {
             return
@@ -21,14 +26,26 @@ class UnsentDataHandler {
         // TODO: Check that crash reports are fetched in chronological order!
         if let crashReporter = crashReporter {
             crashReporter.fetchUnsentCrashReports { reports in
-                sendCrashReports(storage: storage, upload: upload, crashReporter: crashReporter, crashReports: reports)
+                sendCrashReports(
+                    storage: storage,
+                    upload: upload,
+                    currentSessionId: currentSessionId,
+                    crashReporter: crashReporter,
+                    crashReports: reports
+                )
             }
         } else {
-            sendSessions(storage: storage, upload: upload)
+            sendSessions(storage: storage, upload: upload, currentSessionId: currentSessionId)
         }
     }
 
-    static private func sendCrashReports(storage: EmbraceStorage, upload: EmbraceUpload, crashReporter: CrashReporter, crashReports: [CrashReport]) {
+    static private func sendCrashReports(
+        storage: EmbraceStorage,
+        upload: EmbraceUpload,
+        currentSessionId: SessionIdentifier?,
+        crashReporter: CrashReporter,
+        crashReports: [CrashReport]) {
+
         // send crash reports
         for report in crashReports {
 
@@ -71,42 +88,58 @@ class UnsentDataHandler {
         }
 
         // send sessions
-        sendSessions(storage: storage, upload: upload)
+            sendSessions(storage: storage, upload: upload, currentSessionId: currentSessionId)
     }
 
-    static private func sendSessions(storage: EmbraceStorage, upload: EmbraceUpload) {
+    static private func sendSessions(
+        storage: EmbraceStorage,
+        upload: EmbraceUpload,
+        currentSessionId: SessionIdentifier?
+    ) {
+
         // fetch finished sessions
+        var sessions: [SessionRecord]
         do {
-            let sessions = try storage.fetchFinishedSessions()
-
-            for session in sessions {
-
-                do {
-                    let payload = try SessionPayloadBuilder.build(for: session, storage: storage)
-                    let payloadData = try JSONEncoder().encode(payload).gzipped()
-
-                    // upload session
-                    upload.uploadSession(id: session.id, data: payloadData) { result in
-                        switch result {
-                        case .success:
-                            do {
-                                // remove session from storage
-                                // we can remove this immediately because the upload module will cache it until the upload succeeds
-                                try storage.delete(record: session)
-                            } catch {
-                                ConsoleLog.debug("Error trying to remove session \(session.id):\n\(error.localizedDescription)")
-                            }
-
-                        case .failure(let error): ConsoleLog.warning("Error trying to upload session \(session.id):\n\(error.localizedDescription)")
-                        }
-                    }
-                } catch {
-                    ConsoleLog.warning("Error encoding session \(session.id):\n" + error.localizedDescription)
-                }
-            }
-
+            sessions = try storage.fetchAll()
         } catch {
             ConsoleLog.warning("Error fetching unsent sessions:\n\(error.localizedDescription)")
+            return
+        }
+
+        for var session in sessions {
+            do {
+                // ignore current session
+                if let currentSessionId = currentSessionId,
+                   currentSessionId.toString == session.id {
+                    continue
+                }
+
+                // TODO: Use heartbeat to set endTime!
+                if session.endTime == nil {
+                    session.endTime = Date()
+                }
+
+                let payload = try SessionPayloadBuilder.build(for: session, storage: storage)
+                let payloadData = try JSONEncoder().encode(payload).gzipped()
+
+                // upload session
+                upload.uploadSession(id: session.id, data: payloadData) { result in
+                    switch result {
+                    case .success:
+                        do {
+                            // remove session from storage
+                            // we can remove this immediately because the upload module will cache it until the upload succeeds
+                            try storage.delete(record: session)
+                        } catch {
+                            ConsoleLog.debug("Error trying to remove session \(session.id):\n\(error.localizedDescription)")
+                        }
+
+                    case .failure(let error): ConsoleLog.warning("Error trying to upload session \(session.id):\n\(error.localizedDescription)")
+                    }
+                }
+            } catch {
+                ConsoleLog.warning("Error encoding session \(session.id):\n" + error.localizedDescription)
+            }
         }
     }
 }
