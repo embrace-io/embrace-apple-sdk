@@ -36,9 +36,9 @@ enum UnswizzleError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .noMethodForSelector(let value, let baseClass):
-            "No method for selector \(value) in class \(type(of: baseClass))"
+            return "No method for selector \(value) in class \(type(of: baseClass))"
         case .implementationInCacheNotFound(let method):
-            "No original implmentation of method \(method_getName(method)) was found"
+            return "No original implmentation of method \(method_getName(method)) was found"
         }
     }
 }

@@ -23,7 +23,7 @@ class LowMemoryWarningCollectorTests: XCTestCase {
 
     func test_started() {
         // given a started collector
-        let collector = LowMemoryWarningCollector(otel: EmbraceOTel())
+        let collector = LowMemoryWarningCollector()
         collector.install()
         collector.start()
 
@@ -36,7 +36,7 @@ class LowMemoryWarningCollectorTests: XCTestCase {
 
     func test_notStarted() {
         // given a collector that is not started
-        let collector = LowMemoryWarningCollector(otel: EmbraceOTel())
+        let collector = LowMemoryWarningCollector()
         collector.install()
 
         // when a memory warning notification is received
@@ -48,7 +48,7 @@ class LowMemoryWarningCollectorTests: XCTestCase {
 
     func test_stopped() {
         // given a collector that is started
-        let collector = LowMemoryWarningCollector(otel: EmbraceOTel())
+        let collector = LowMemoryWarningCollector()
         collector.install()
         collector.start()
 
