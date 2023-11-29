@@ -47,6 +47,18 @@ final class SessionPayloadTests: XCTestCase {
         XCTAssertEqual(payload.sessionInfo.counter, 10)
     }
 
+    func test_heartbeatEndTime() {
+        // given a session record without endTime
+        let sessionRecord = SessionRecord(id: "1234", state: .foreground, processId: ProcessIdentifier.current, startTime: Date(timeIntervalSince1970: 10))
+        let fetcher = MockResourceFetcher(resources: [])
+
+        // when creating a payload
+        let payload = SessionPayload(from: sessionRecord, resourceFetcher: fetcher, counter: 10)
+
+        // then the endTime uses the lastHeartbeatTime
+        XCTAssertEqual(payload.sessionInfo.endTime, sessionRecord.lastHeartbeatTime.millisecondsSince1970Truncated)
+    }
+
     func test_highLevelKeys() throws {
         // given a session record
         let sessionRecord = mockSessionRecord

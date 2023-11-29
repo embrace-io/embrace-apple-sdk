@@ -13,6 +13,7 @@ public struct SessionRecord: Codable {
     public var state: String
     public var startTime: Date
     public var endTime: Date?
+    public var lastHeartbeatTime: Date
     public var crashReportId: String?
 
     /// Used to mark if the session is the first to occur during this process
@@ -24,13 +25,14 @@ public struct SessionRecord: Codable {
     /// Used to mark the session that is active when the application was explicitly terminated by the user and/or system
     public var appTerminated: Bool
 
-    public init(id: SessionId, state: SessionState, processId: ProcessIdentifier, startTime: Date, endTime: Date? = nil, crashReportId: String? = nil, coldStart: Bool = false, cleanExit: Bool = false, appTerminated: Bool = false) {
+    public init(id: SessionId, state: SessionState, processId: ProcessIdentifier, startTime: Date, endTime: Date? = nil, lastHeartbeatTime: Date? = nil, crashReportId: String? = nil, coldStart: Bool = false, cleanExit: Bool = false, appTerminated: Bool = false) {
 
         self.id = id
         self.state = state.rawValue
         self.processId = processId
         self.startTime = startTime
         self.endTime = endTime
+        self.lastHeartbeatTime = lastHeartbeatTime ?? startTime
         self.crashReportId = crashReportId
         self.coldStart = coldStart
         self.cleanExit = cleanExit
@@ -56,6 +58,7 @@ extension SessionRecord: TableRecord {
             t.column("process_id", .text).notNull()
             t.column("start_time", .datetime).notNull()
             t.column("end_time", .datetime)
+            t.column("last_heartbeat_time", .datetime).notNull()
 
             t.column("cold_start", .boolean)
                 .notNull()

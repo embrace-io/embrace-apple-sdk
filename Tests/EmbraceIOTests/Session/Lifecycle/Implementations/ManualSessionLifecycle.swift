@@ -6,58 +6,56 @@ import XCTest
 
 @testable import EmbraceIO
 
-final class ExplicitSessionListenerTests: XCTestCase {
+final class ManualSessionLifecycleTests: XCTestCase {
 
     var mockController = MockSessionController()
-    var listener: ExplicitSessionListener!
+    var lifecycle: ManualSessionLifecycle!
 
     override func setUpWithError() throws {
-        listener = ExplicitSessionListener(controller: mockController)
+        lifecycle = ManualSessionLifecycle(controller: mockController)
     }
 
     override func tearDownWithError() throws {
-        listener = nil
+        lifecycle = nil
     }
 
     // MARK: startSession
 
     func test_startSession_callsControllerStartSession() throws {
-        listener.startSession()
+        lifecycle.startSession()
 
         XCTAssertTrue(mockController.didCallStartSession)
     }
 
     func test_startSession_ifControllerIsNil_doesNothing() throws {
         var controller: MockSessionController? = MockSessionController()
-        listener = ExplicitSessionListener(controller: controller!)
+        lifecycle = ManualSessionLifecycle(controller: controller!)
         controller = nil
 
-        listener.startSession()
+        lifecycle.startSession()
 
-        XCTAssertNil(listener.controller)
+        XCTAssertNil(lifecycle.controller)
     }
 
     // MARK: endSession
 
     func test_endSession_ifControllerIsNil_doesNothing() throws {
         var controller: MockSessionController? = MockSessionController()
-        listener = ExplicitSessionListener(controller: controller!)
+        lifecycle = ManualSessionLifecycle(controller: controller!)
         controller = nil
 
-        listener.endSession()
+        lifecycle.endSession()
 
-        XCTAssertNil(listener.controller)
+        XCTAssertNil(lifecycle.controller)
     }
 
     func test_endSession_withCurrentSession_callsControllerEndSession() throws {
-        let session = mockController.createSession(state: .foreground)
-        mockController.start(session: session)
+        let session = mockController.startSession(state: .foreground)
         XCTAssertNotNil(mockController.currentSession)
 
-        listener.endSession()
+        lifecycle.endSession()
 
         XCTAssertTrue(mockController.didCallEndSession)
         XCTAssertNil(mockController.currentSession)
     }
-
 }

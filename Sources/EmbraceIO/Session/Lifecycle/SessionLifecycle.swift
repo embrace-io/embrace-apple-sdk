@@ -4,7 +4,7 @@
 
 import Foundation
 
-protocol SessionListener {
+protocol SessionLifecycle {
 
     /// The underlying SessionController.
     /// It is recommended to use a weak reference when storing this property to prevent retain cycles
@@ -15,8 +15,4 @@ protocol SessionListener {
 
     /// Allow for an explicit
     func endSession()
-}
-
-extension SessionListener {
-
 }

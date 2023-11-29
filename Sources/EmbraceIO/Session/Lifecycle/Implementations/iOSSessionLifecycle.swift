@@ -7,7 +7,7 @@ import Foundation
 import EmbraceCommon
 import UIKit
 
-final class iOSAppListener: SessionListener {
+final class iOSSessionLifecycle: SessionLifecycle {
 
     weak var controller: SessionControllable?
 
@@ -17,23 +17,13 @@ final class iOSAppListener: SessionListener {
     }
 
     func startSession() {
-        guard let controller = controller else { return }
-
-        if let currentSession = controller.currentSession {
-            controller.end(session: currentSession)
-        }
-
-        let newSession = controller.createSession(state: determineSessionState())
-        controller.start(session: newSession)
+        controller?.startSession(state: determineSessionState())
     }
 
     func endSession() {
-        guard let controller = controller else { return }
-        guard let currentSession = controller.currentSession else {
-            return
-        }
-
-        controller.end(session: currentSession)
+        // there's always an active session!
+        // starting a new session will end the current one (if any)
+        controller?.startSession(state: determineSessionState())
     }
 
     deinit {
@@ -41,7 +31,7 @@ final class iOSAppListener: SessionListener {
     }
 }
 
-extension iOSAppListener {
+extension iOSSessionLifecycle {
 
     /// This method will retrieve a SessionState by checking the current UIApplication.applicationState
     /// This
@@ -106,16 +96,12 @@ extension iOSAppListener {
             } else {
                 // if not cold start, end current background session
                 // start a new foreground session
-                controller.end(session: currentSession)
-
-                let newSession = controller.createSession(state: .foreground)
-                controller.start(session: newSession)
+                controller.startSession(state: .foreground)
             }
 
         } else {
             // create initial session marked as foreground
-            let initialSession = controller.createSession(state: .foreground)
-            controller.start(session: initialSession)
+            controller.startSession(state: .foreground)
         }
     }
 
@@ -123,23 +109,14 @@ extension iOSAppListener {
     @objc func appDidEnterBackground() {
         guard let controller = controller else { return }
 
-        if let currentSession = controller.currentSession {
-            if currentSession.state == .background {
-                // if current session is already background, do nothing
-                return
-            }
-
-            // end current foreground session
-            // start a new background session
-            controller.end(session: currentSession)
-
-            let newSession = controller.createSession(state: .background)
-            controller.start(session: newSession)
-        } else {
-            // create initial session marked as background
-            let initialSession = controller.createSession(state: .background)
-            controller.start(session: initialSession)
+        // if current session is already background, do nothing
+        if let currentSession = controller.currentSession,
+           currentSession.state == .background {
+            return
         }
+
+        // start new background session
+        controller.startSession(state: .background)
     }
 
     /// User has terminated the app. This will not end the current session as the app

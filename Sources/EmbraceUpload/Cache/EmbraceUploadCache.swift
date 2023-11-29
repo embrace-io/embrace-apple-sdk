@@ -212,7 +212,7 @@ class EmbraceUploadCache {
         let sqlQuery = """
         SELECT id, date FROM uploads WHERE date <= DATE(DATE(), '-\(maxDays) day')
         """
-        
+
         var result: [String] = []
 
         try dbQueue.read { db in

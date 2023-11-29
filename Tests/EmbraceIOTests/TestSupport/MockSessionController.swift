@@ -21,22 +21,36 @@ class MockSessionController: SessionControllable {
 
     var currentSession: EmbraceSession?
 
-    func createSession(state: SessionState) -> EmbraceSession {
-        return EmbraceSession(id: nextSessionId ?? .random, state: state)
+    @discardableResult
+    func startSession(state: SessionState) -> EmbraceSession {
+        return startSession(state: state, startTime: Date())
     }
 
-    func start(session: EmbraceSession, at startAt: Date) {
+    @discardableResult
+    func startSession(state: SessionState, startTime: Date = Date()) -> EmbraceSession {
+        if currentSession != nil {
+            endSession()
+        }
+
+        var session = EmbraceSession(id: nextSessionId ?? .random, state: state, startTime: startTime)
+
         didCallStartSession = true
         currentSession = session
 
-        startSessionCallback?(session, startAt)
+        startSessionCallback?(session, startTime)
+
+        return session
     }
 
-    func end(session: EmbraceSession, at endAt: Date) {
+    func endSession() {
+        guard let session = currentSession else {
+            return
+        }
+
         didCallEndSession = true
         currentSession = nil
 
-        endSessionCallback?(session, endAt)
+        endSessionCallback?(session, Date())
     }
 
     func update(session: EmbraceIO.EmbraceSession, state: SessionState?, appTerminated: Bool?) {

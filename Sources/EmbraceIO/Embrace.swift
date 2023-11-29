@@ -28,7 +28,7 @@ import EmbraceObjCUtils
     let collection: DataCollection
 
     let sessionController: SessionController
-    let sessionListener: SessionListener
+    let sessionLifecycle: SessionLifecycle
 
     private let processingQueue: DispatchQueue = DispatchQueue(label: "com.embrace.processing", qos: .background, attributes: .concurrent)
     private static let synchronizationQueue: DispatchQueue = DispatchQueue(label: "com.embrace.synchronization", qos: .utility)
@@ -65,7 +65,7 @@ import EmbraceObjCUtils
         self.upload = Embrace.createUpload(options: options, deviceId: KeychainAccess.deviceId.uuidString)
         self.config = Embrace.createConfig(options: options, deviceId: KeychainAccess.deviceId.uuidString)
         self.sessionController = SessionController(storage: self.storage)
-        self.sessionListener = SessionListenerFactory.determineForPlatform(controller: sessionController)
+        self.sessionLifecycle = Embrace.createSessionLifecycle(platform: options.platform, controller: sessionController)
 
         super.init()
 
@@ -116,10 +116,10 @@ import EmbraceObjCUtils
     }
 
     @objc public func startNewSession() {
-        sessionListener.startSession()
+        sessionLifecycle.startSession()
     }
 
     @objc public func endCurrentSession() {
-        sessionListener.endSession()
+        sessionLifecycle.endSession()
     }
 }

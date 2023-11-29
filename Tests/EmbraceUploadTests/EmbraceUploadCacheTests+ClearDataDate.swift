@@ -180,4 +180,3 @@ extension EmbraceUploadCacheTests {
         XCTAssert(records.contains(record6))
     }
 }
-

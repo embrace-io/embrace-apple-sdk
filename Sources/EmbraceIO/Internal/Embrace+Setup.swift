@@ -66,4 +66,11 @@ extension Embrace {
 
         return nil
     }
+
+    static func createSessionLifecycle(platform: Platform, controller: SessionControllable) -> SessionLifecycle {
+        switch platform {
+        case .iOS: return iOSSessionLifecycle(controller: controller)
+        default: return ManualSessionLifecycle(controller: controller)
+        }
+    }
 }

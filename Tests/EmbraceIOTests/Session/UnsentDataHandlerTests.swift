@@ -296,7 +296,7 @@ class UnsentDataHandlerTests: XCTestCase {
         let finalPath = crashesPath + "Reports/appId-report-0000000000000001.json"
         try FileManager.default.copyItem(atPath: report, toPath: finalPath)
 
-        // given am unfinished session in the storage
+        // given an unfinished session in the storage
         try storage.addSession(id: TestConstants.sessionId, state: .foreground, processId: ProcessIdentifier.current, startTime: Date(timeIntervalSinceNow: -60))
 
         // when sending unsent sessions

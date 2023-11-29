@@ -11,13 +11,9 @@ protocol SessionControllable: AnyObject {
 
     var currentSession: EmbraceSession? { get }
 
-    func createSession(state: SessionState) -> EmbraceSession
-
-    func start(session: EmbraceSession, at startAt: Date)
-    func start(session: EmbraceSession)
-
-    func end(session: EmbraceSession, at endAt: Date)
-    func end(session: EmbraceSession)
+    @discardableResult
+    func startSession(state: SessionState) -> EmbraceSession
+    func endSession()
 
     func update(session: EmbraceSession, state: SessionState?, appTerminated: Bool?)
     func update(session: EmbraceSession, state: SessionState?)
@@ -26,14 +22,6 @@ protocol SessionControllable: AnyObject {
 
 extension SessionControllable {
 
-    func start(session: EmbraceSession) {
-        start(session: session, at: Date())
-    }
-
-    func end(session: EmbraceSession) {
-        end(session: session, at: Date())
-    }
-
     func update(session: EmbraceSession, state: SessionState?) {
         update(session: session, state: state, appTerminated: nil)
     }
@@ -41,5 +29,4 @@ extension SessionControllable {
     func update(session: EmbraceSession, appTerminated: Bool?) {
         update(session: session, state: nil, appTerminated: appTerminated)
     }
-
 }

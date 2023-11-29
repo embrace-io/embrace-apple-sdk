@@ -24,7 +24,7 @@ struct SessionInfoPayload: Codable {
     init(from sessionRecord: SessionRecord, counter: Int) {
         self.sessionId = sessionRecord.id
         self.startTime = sessionRecord.startTime.millisecondsSince1970Truncated
-        self.endTime = sessionRecord.endTime?.millisecondsSince1970Truncated
+        self.endTime = (sessionRecord.endTime ?? sessionRecord.lastHeartbeatTime).millisecondsSince1970Truncated
         self.appState = sessionRecord.state
         self.counter = counter
     }

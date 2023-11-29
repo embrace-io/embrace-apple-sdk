@@ -32,7 +32,7 @@ class SessionRecordTests: XCTestCase {
             XCTAssert(try db.tableExists(SessionRecord.databaseTableName))
 
             let columns = try db.columns(in: SessionRecord.databaseTableName)
-            XCTAssertEqual(columns.count, 9, "Column count does not match expectation. Did you add/remove a column?")
+            XCTAssertEqual(columns.count, 10, "Column count does not match expectation. Did you add/remove a column?")
 
             // id
             let idColumn = columns.first(where: { $0.name == "id" })
@@ -77,6 +77,15 @@ class SessionRecordTests: XCTestCase {
                 XCTAssertEqual(endTimeColumn.type, "DATETIME")
             } else {
                 XCTAssert(false, "end_time column not found!")
+            }
+
+            // last_heartbeat_time
+            let lastHeartbeatTimeColumn = columns.first(where: { $0.name == "last_heartbeat_time" })
+            if let lastHeartbeatTimeColumn = lastHeartbeatTimeColumn {
+                XCTAssertEqual(lastHeartbeatTimeColumn.type, "DATETIME")
+                XCTAssert(lastHeartbeatTimeColumn.isNotNull)
+            } else {
+                XCTAssert(false, "last_heartbeat_time column not found!")
             }
 
             // crash_report_id

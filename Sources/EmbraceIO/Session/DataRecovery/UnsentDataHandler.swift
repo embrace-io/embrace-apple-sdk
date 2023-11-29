@@ -88,7 +88,7 @@ class UnsentDataHandler {
         }
 
         // send sessions
-            sendSessions(storage: storage, upload: upload, currentSessionId: currentSessionId)
+        sendSessions(storage: storage, upload: upload, currentSessionId: currentSessionId)
     }
 
     static private func sendSessions(
@@ -114,12 +114,7 @@ class UnsentDataHandler {
                     continue
                 }
 
-                // TODO: Use heartbeat to set endTime!
-                if session.endTime == nil {
-                    session.endTime = Date()
-                }
-
-                let payload = try SessionPayloadBuilder.build(for: session, storage: storage)
+                let payload = SessionPayloadBuilder.build(for: session, storage: storage)
                 let payloadData = try JSONEncoder().encode(payload).gzipped()
 
                 // upload session

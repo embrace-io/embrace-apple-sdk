@@ -10,7 +10,7 @@ public struct RecordingSpanEvent: SpanEvent, Codable, Equatable {
     public let timestamp: Date
     public let attributes: [String: AttributeValue]
 
-    public init(name: String, timestamp: Date, attributes: [String : AttributeValue] = [:]) {
+    public init(name: String, timestamp: Date, attributes: [String: AttributeValue] = [:]) {
         self.name = name
         self.timestamp = timestamp
         self.attributes = attributes

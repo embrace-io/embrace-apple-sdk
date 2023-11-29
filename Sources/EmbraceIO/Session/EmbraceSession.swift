@@ -22,11 +22,15 @@ public final class EmbraceSession {
 
     /// The time at which the session begins
     @ThreadSafe
-    var startAt: Date?
+    var startTime: Date
 
     /// The time at which the session ends
     @ThreadSafe
-    var endAt: Date?
+    var endTime: Date?
+
+    /// The last heartbeat time of the session
+    @ThreadSafe
+    var lastHeartbeatTime: Date
 
     /// Used to mark if the session is the first to occur during this process
     @ThreadSafe
@@ -40,11 +44,12 @@ public final class EmbraceSession {
     @ThreadSafe
     var appTerminated: Bool = false
 
-    init(id: SessionIdentifier, state: SessionState, processId: ProcessIdentifier = ProcessIdentifier.current, startAt: Date? = nil, endAt: Date? = nil) {
+    init(id: SessionIdentifier, state: SessionState, processId: ProcessIdentifier = ProcessIdentifier.current, startTime: Date, endTime: Date? = nil, lastHeartbeatTime: Date? = nil) {
         self.id = id
         self.state = state
-        self.processId = ProcessIdentifier.current
-        self.startAt = startAt
-        self.endAt = endAt
+        self.processId = processId
+        self.startTime = startTime
+        self.endTime = endTime
+        self.lastHeartbeatTime = lastHeartbeatTime ?? startTime
     }
 }
