@@ -46,11 +46,13 @@ final class EmbraceSpanBuilderTests: XCTestCase {
         if let span = span as? RecordingSpan {
             XCTAssertEqual(span.links.count, 2)
             let linkWithAttributes = span.links.first
-            XCTAssertEqual(linkWithAttributes?.context, linkedSpanContextWithAttributes)
+            XCTAssertEqual(linkWithAttributes?.traceId, linkedSpanContextWithAttributes.traceId)
+            XCTAssertEqual(linkWithAttributes?.spanId, linkedSpanContextWithAttributes.spanId)
             XCTAssertEqual(linkWithAttributes?.attributes, ["example": .string("test")])
 
             let linkNoAttributes = span.links.last
-            XCTAssertEqual(linkNoAttributes?.context, linkedSpanContextNoAttributes)
+            XCTAssertEqual(linkNoAttributes?.traceId, linkedSpanContextNoAttributes.traceId)
+            XCTAssertEqual(linkNoAttributes?.spanId, linkedSpanContextNoAttributes.spanId)
             XCTAssertEqual(linkNoAttributes?.attributes, [:])
 
         } else {

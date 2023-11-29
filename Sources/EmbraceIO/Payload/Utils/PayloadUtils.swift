@@ -4,9 +4,10 @@
 
 import EmbraceCommon
 import EmbraceStorage
+import OpenTelemetryApi
 
 class PayloadUtils {
-    public static func fetchResources(from fetcher: EmbraceStorageResourceFetcher, sessionId: String?) -> [ResourceRecord] {
+    static func fetchResources(from fetcher: EmbraceStorageResourceFetcher, sessionId: String?) -> [ResourceRecord] {
         guard let sessionId = sessionId else { return [] }
 
         do {
@@ -17,5 +18,21 @@ class PayloadUtils {
         }
 
         return []
+    }
+
+    static func convertSpanAttributes(_ attributes: [String: AttributeValue]) -> [String: Any] {
+        var result: [String: Any] = [:]
+
+        for (key, value) in attributes {
+            switch value {
+            case .bool(let boolValue): result[key] = boolValue
+            case .double(let doubleValue): result[key] = doubleValue
+            case .int(let intValue): result[key] = intValue
+            case .string(let stringValue): result[key] = stringValue
+            default: continue
+            }
+        }
+
+        return result
     }
 }

@@ -274,7 +274,13 @@ extension SpanRecordTests {
         // when fetching the span count
         let expectation = XCTestExpectation()
 
-        storage.spanCountAsync(startTime: now.addingTimeInterval(5), type: .performance) { result in
+        storage.spanCountAsync(
+            startTime: now.addingTimeInterval(5),
+            endTime: now.addingTimeInterval(30),
+            includeOlder: false,
+            type: .performance
+        ) { result in
+
             switch result {
             case .success(let count):
                 // then the count is correct
@@ -301,7 +307,12 @@ extension SpanRecordTests {
         // when fetching the spans
         let expectation = XCTestExpectation()
 
-        storage.fetchSpansAsync(startTime: now.addingTimeInterval(5), type: .performance) { result in
+        storage.fetchSpansAsync(
+            startTime: now.addingTimeInterval(5),
+            endTime: now.addingTimeInterval(30),
+            includeOlder: false,
+            type: .performance
+        ) { result in
             switch result {
             case .success(let spans):
                 // then the fetched spans are valid
@@ -330,7 +341,14 @@ extension SpanRecordTests {
         // when fetching the spans
         let expectation = XCTestExpectation()
 
-        storage.fetchSpansAsync(startTime: now.addingTimeInterval(5), type: .performance, limit: 1) { result in
+        storage.fetchSpansAsync(
+            startTime: now.addingTimeInterval(5),
+            endTime: now.addingTimeInterval(30),
+            includeOlder: false,
+            type: .performance,
+            limit: 1
+        ) { result in
+
             switch result {
             case .success(let spans):
                 // then the fetched spans are valid

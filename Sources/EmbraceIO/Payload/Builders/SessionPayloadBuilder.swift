@@ -36,7 +36,10 @@ class SessionPayloadBuilder {
             ConsoleLog.debug("Error updating \(resourceName) resource!")
         }
 
+        // build spans
+        let (spans, spanSnapshots) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
+
         // build payload
-        return SessionPayload(from: sessionRecord, resourceFetcher: storage, counter: counter)
+        return SessionPayload(from: sessionRecord, resourceFetcher: storage, spans: spans, spanSnapshots: spanSnapshots, counter: counter)
     }
 }

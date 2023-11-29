@@ -94,7 +94,7 @@ extension EmbraceStorage {
     ///   - type: SpanType of the span
     ///   - limit: Limit the amount of spans fetched (optional)
     /// - Returns: Array containing the stored `SpanRecords`
-    public func fetchSpans(traceId: String, type: SpanType, limit: Int? = nil) throws -> [SpanRecord] {
+    public func fetchSpans(traceId: String, type: SpanType? = nil, limit: Int? = nil) throws -> [SpanRecord] {
         var spans: [SpanRecord] = []
         try dbQueue.read { [weak self] db in
             spans = try self?.fetchSpans(db: db, traceId: traceId, type: type, limit: limit) ?? []
@@ -103,30 +103,43 @@ extension EmbraceStorage {
         return spans
     }
 
-    /// Synchronously returns how many spans of the given type that started atfter a certain time are stored.
+    /// Synchronously returns how many spans of the given type that started in a given time frame.
     /// - Parameters:
-    ///   - traceId: Identifier of the trace containing this span
+    ///   - startTime: Date to be used as `startTime` for the fetch
+    ///   - endTime: Date to be used as `endTime` for the fetch
+    ///   - includeOlder: Defines if spans that were started before the given `startTime` should be included.
     ///   - type: SpanType of the span
     /// - Returns: Int containing the amount of spans
-    public func spanCount(startTime: Date, type: SpanType) throws -> Int {
+    public func spanCount(
+        startTime: Date,
+        endTime: Date,
+        includeOlder: Bool = true,
+        type: SpanType? = nil) throws -> Int {
         var count = 0
         try dbQueue.read { [weak self] db in
-            count = try self?.spanCount(db: db, startTime: startTime, type: type) ?? 0
+            count = try self?.spanCount(db: db, startTime: startTime, endTime: endTime, includeOlder: includeOlder, type: type) ?? 0
         }
 
         return count
     }
 
-    /// Fetches all the stored spans synchronously that started after a certain time.
+    /// Fetches all the stored spans synchronously that started in a given time frame.
     /// - Parameters:
     ///   - startTime: Date to be used as `startTime` for the fetch
+    ///   - endTime: Date to be used as `endTime` for the fetch
+    ///   - includeOlder: Defines if spans that were started before the given `startTime` should be included.
     ///   - type: SpanType of the span
     ///   - limit: Limit the amount of spans fetched (optional)
     /// - Returns: Array containing the stored `SpanRecords`
-    public func fetchSpans(startTime: Date, type: SpanType, limit: Int? = nil) throws -> [SpanRecord] {
+    public func fetchSpans(
+        startTime: Date,
+        endTime: Date,
+        includeOlder: Bool = true,
+        type: SpanType? = nil,
+        limit: Int? = nil) throws -> [SpanRecord] {
         var spans: [SpanRecord] = []
         try dbQueue.read { [weak self] db in
-            spans = try self?.fetchSpans(db: db, startTime: startTime, type: type, limit: limit) ?? []
+            spans = try self?.fetchSpans(db: db, startTime: startTime, endTime: endTime, includeOlder: includeOlder, type: type, limit: limit) ?? []
         }
 
         return spans
@@ -223,7 +236,7 @@ extension EmbraceStorage {
     ///   - completion: Completion block called with the count on success; or an `Error` on failure
     public func spanCountAsync(
         traceId: String,
-        type: SpanType,
+        type: SpanType? = nil,
         completion: @escaping (Result<Int, Error>) -> Void) {
 
         dbFetchCountAsync(block: { [weak self] db in
@@ -239,7 +252,7 @@ extension EmbraceStorage {
     ///   - completion: Completion block called with the fetched `[SpanRecord]` on success; or an `Error` on failure
     public func fetchSpansAsync(
         traceId: String,
-        type: SpanType,
+        type: SpanType? = nil,
         limit: Int? = nil,
         completion: @escaping (Result<[SpanRecord], Error>) -> Void) {
 
@@ -248,35 +261,43 @@ extension EmbraceStorage {
         }, completion: completion)
     }
 
-    /// Asynchronously returns how many spans of the given type that started atfter a certain time are stored.
+    /// Asynchronously returns the stored span count for a given type and a given time frame.
     /// - Parameters:
-    ///   - traceId: Identifier of the trace containing this span
+    ///   - startTime: Date to be used as `startTime` for the fetch
+    ///   - endTime: Date to be used as `endTime` for the fetch
+    ///   - includeOlder: Defines if spans that were started before the given `startTime` should be included.
     ///   - type: SpanType of the span
     ///   - completion: Completion block called with the count on success; or an `Error` on failure
     public func spanCountAsync(
         startTime: Date,
-        type: SpanType,
+        endTime: Date,
+        includeOlder: Bool = true,
+        type: SpanType? = nil,
         completion: @escaping (Result<Int, Error>) -> Void) {
 
         dbFetchCountAsync(block: { [weak self] db in
-            return try self?.spanCount(db: db, startTime: startTime, type: type) ?? 0
+            return try self?.spanCount(db: db, startTime: startTime, endTime: endTime, includeOlder: includeOlder, type: type) ?? 0
         }, completion: completion)
     }
 
-    /// Fetches all the stored spans asynchronously that started after a certain time.
+    /// Fetches all the stored spans asynchronously that started in a given time frame.
     /// - Parameters:
     ///   - startTime: Date to be used as `startTime` for the fetch
+    ///   - endTime: Date to be used as `endTime` for the fetch
+    ///   - includeOlder: Defines if spans that were started before the given `startTime` should be included.
     ///   - type: SpanType of the span
     ///   - limit: Limit the amount of spans fetched (optional)
     ///   - completion: Completion block called with the fetched `[SpanRecord]` on success; or an `Error` on failure
     public func fetchSpansAsync(
         startTime: Date,
-        type: SpanType,
+        endTime: Date,
+        includeOlder: Bool = true,
+        type: SpanType? = nil,
         limit: Int? = nil,
         completion: @escaping (Result<[SpanRecord], Error>) -> Void) {
 
         dbFetchAsync(block: { [weak self] db in
-            return try self?.fetchSpans(db: db, startTime: startTime, type: type, limit: limit) ?? []
+            return try self?.fetchSpans(db: db, startTime: startTime, endTime: endTime, includeOlder: includeOlder, type: type, limit: limit) ?? []
         }, completion: completion)
     }
 }
@@ -331,15 +352,19 @@ fileprivate extension EmbraceStorage {
             .fetchAll(db)
     }
 
-    func spanInTraceByTypeRequest(traceId: String, type: SpanType) -> QueryInterfaceRequest<SpanRecord> {
-        return SpanRecord.filter(Column("trace_id") == traceId && Column("type") == type.rawValue)
+    func spanInTraceByTypeRequest(traceId: String, type: SpanType?) -> QueryInterfaceRequest<SpanRecord> {
+        if let type = type {
+            return SpanRecord.filter(Column("trace_id") == traceId && Column("type") == type.rawValue)
+        }
+
+        return SpanRecord.filter(Column("trace_id") == traceId)
     }
 
-    func spanCount(db: Database, traceId: String, type: SpanType) throws -> Int {
+    func spanCount(db: Database, traceId: String, type: SpanType?) throws -> Int {
         return try spanInTraceByTypeRequest(traceId: traceId, type: type).fetchCount(db)
     }
 
-    func fetchSpans(db: Database, traceId: String, type: SpanType, limit: Int?) throws -> [SpanRecord] {
+    func fetchSpans(db: Database, traceId: String, type: SpanType?, limit: Int?) throws -> [SpanRecord] {
         var request = spanInTraceByTypeRequest(traceId: traceId, type: type).order(Column("start_time"))
 
         if let limit = limit {
@@ -349,16 +374,37 @@ fileprivate extension EmbraceStorage {
         return try request.fetchAll(db)
     }
 
-    func spanAfterTimeByTypeRequest(startTime: Date, type: SpanType) -> QueryInterfaceRequest<SpanRecord> {
-        return SpanRecord.filter(Column("start_time") >= startTime && Column("type") == type.rawValue)
+    func spanInTimeFrameByTypeRequest(startTime: Date, endTime: Date, includeOlder: Bool, type: SpanType?) -> QueryInterfaceRequest<SpanRecord> {
+
+        var filter = SpanRecord.filter(Column("end_time") == nil || (Column("end_time") <= endTime && Column("end_time") >= startTime))
+
+        if includeOlder == false {
+            filter = filter.filter(Column("start_time") >= startTime)
+        }
+
+        if let type = type {
+            filter = filter.filter(Column("type") == type.rawValue)
+        }
+
+        return filter
     }
 
-    func spanCount(db: Database, startTime: Date, type: SpanType) throws -> Int {
-        return try spanAfterTimeByTypeRequest(startTime: startTime, type: type).fetchCount(db)
+    func spanCount(db: Database, startTime: Date, endTime: Date, includeOlder: Bool, type: SpanType?) throws -> Int {
+        return try spanInTimeFrameByTypeRequest(
+            startTime: startTime,
+            endTime: endTime,
+            includeOlder: includeOlder,
+            type: type
+        ).fetchCount(db)
     }
 
-    func fetchSpans(db: Database, startTime: Date, type: SpanType, limit: Int?) throws -> [SpanRecord] {
-        var request = spanAfterTimeByTypeRequest(startTime: startTime, type: type).order(Column("start_time"))
+    func fetchSpans(db: Database, startTime: Date, endTime: Date, includeOlder: Bool, type: SpanType?, limit: Int?) throws -> [SpanRecord] {
+        var request = spanInTimeFrameByTypeRequest(
+            startTime: startTime,
+            endTime: endTime,
+            includeOlder: includeOlder,
+            type: type
+        ).order(Column("start_time"))
 
         if let limit = limit {
             request = request.limit(limit)

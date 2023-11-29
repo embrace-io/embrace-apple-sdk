@@ -251,7 +251,13 @@ class SpanRecordTests: XCTestCase {
         _ = try storage.addSpan(id: "id3", traceId: "traceId", type: .ux, data: Data(), startTime: now.addingTimeInterval(15), endTime: nil)
 
         // then the span count should be correct
-        let count = try storage.spanCount(startTime: now.addingTimeInterval(5), type: .performance)
+        let count = try storage.spanCount(
+            startTime: now.addingTimeInterval(5),
+            endTime: now.addingTimeInterval(30),
+            includeOlder: false,
+            type: .performance
+        )
+
         XCTAssertEqual(count, 1)
     }
 
@@ -265,7 +271,12 @@ class SpanRecordTests: XCTestCase {
         let span3 = try storage.addSpan(id: "id3", traceId: "traceId", type: .performance, data: Data(), startTime: now.addingTimeInterval(15), endTime: nil)
 
         // when fetching the spans
-        let spans = try storage.fetchSpans(startTime: now.addingTimeInterval(5), type: .performance)
+        let spans = try storage.fetchSpans(
+            startTime: now.addingTimeInterval(5),
+            endTime: now.addingTimeInterval(30),
+            includeOlder: false,
+            type: .performance
+        )
 
         // then the fetched spans are valid
         XCTAssertFalse(spans.contains(span1))
@@ -283,7 +294,12 @@ class SpanRecordTests: XCTestCase {
         let span3 = try storage.addSpan(id: "id3", traceId: "traceId", type: .performance, data: Data(), startTime: now.addingTimeInterval(15), endTime: nil)
 
         // when fetching the spans
-        let spans = try storage.fetchSpans(startTime: now.addingTimeInterval(5), type: .performance, limit: 1)
+        let spans = try storage.fetchSpans(
+            startTime: now.addingTimeInterval(5),
+            endTime: now.addingTimeInterval(30),
+            includeOlder: false,
+            type: .performance, limit: 1
+        )
 
         // then the fetched spans are valid
         XCTAssertEqual(spans.count, 1)
