@@ -10,14 +10,8 @@ import EmbraceStorage
     let instrumentationName = "EmbraceTracer"
     let instrumentationVersion = "semver:0.0.1"
 
-    /// Initial setup of the OpenTelemetry integration
-    public static func setup(storage: EmbraceStorage) {
-        let exporter = StorageSpanExporter(options: .init(storage: storage))
-        let spanProcessor = SingleSpanProcessor(spanExporter: exporter)
-
-        setup(spanProcessor: spanProcessor)
-    }
-
+    /// Setup the OpenTelemetryApi
+    /// - Parameter: spanProcessor The processor in which to run during the lifetime of each Span
     public static func setup(spanProcessor: EmbraceSpanProcessor) {
         OpenTelemetry.registerTracerProvider(
             tracerProvider: EmbraceTracerProvider(spanProcessor: spanProcessor) )

@@ -15,10 +15,10 @@ final class SpanStorageIntegrationTests: XCTestCase {
     var storage: EmbraceStorage!
 
     override func setUpWithError() throws {
-        let storageOptions = EmbraceStorage.Options(named: String(describing: self))
-        storage = try EmbraceStorage(options: storageOptions)
+        storage = try EmbraceStorage(options: .init(named: #file))
+        let exporter = StorageSpanExporter(options: .init(storage: storage))
 
-        EmbraceOTel.setup(storage: storage)
+        EmbraceOTel.setup(spanProcessor: SingleSpanProcessor(spanExporter: exporter))
     }
 
     override func tearDownWithError() throws {

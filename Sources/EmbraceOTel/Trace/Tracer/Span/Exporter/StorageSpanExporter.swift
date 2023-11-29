@@ -6,17 +6,18 @@ import EmbraceStorage
 
 public class StorageSpanExporter: EmbraceSpanExporter {
 
-    public let options: Options
-
-    var storage: EmbraceStorage { options.storage }
+    private(set) weak var storage: EmbraceStorage?
 
     public init(options: Options) {
-        self.options = options
+        self.storage = options.storage
     }
 
     @discardableResult public func export(spans: [SpanData]) -> SpanExporterResultCode {
-        var result = SpanExporterResultCode.success
+        guard let storage = storage else {
+            return .failure
+        }
 
+        var result = SpanExporterResultCode.success
         for spanData in spans {
             if let record = buildRecord(from: spanData) {
                 do {

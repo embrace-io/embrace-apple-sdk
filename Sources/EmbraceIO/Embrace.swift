@@ -71,7 +71,7 @@ import EmbraceObjCUtils
 
         initializeCrashReporter(options: options)
 
-        EmbraceOTel.setup(storage: storage)
+        EmbraceOTel.setup(spanProcessor: .with(storage: storage))
     }
 
     @objc public func start() throws {

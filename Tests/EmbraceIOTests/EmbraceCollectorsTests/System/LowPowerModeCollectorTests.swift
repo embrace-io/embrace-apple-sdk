@@ -26,9 +26,8 @@ class LowPowerModeCollectorTests: XCTestCase {
     override func setUpWithError() throws {
         provider.isLowPowerModeEnabled = false
 
-        let storageOptions = EmbraceStorage.Options(named: "span-storage")
-        let storage = try EmbraceStorage(options: storageOptions)
-        EmbraceOTel.setup(storage: storage)
+        let storage = try EmbraceStorage(options: .init(named: #file))
+        EmbraceOTel.setup(spanProcessor: .with(storage: storage))
     }
 
     func test_fetchOnStart_modeEnabled() {

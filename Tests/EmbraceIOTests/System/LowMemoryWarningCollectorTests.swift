@@ -16,9 +16,9 @@ import UIKit
 class LowMemoryWarningCollectorTests: XCTestCase {
 
     override func setUpWithError() throws {
-        let storageOptions = EmbraceStorage.Options(named: "span-storage")
+        let storageOptions = EmbraceStorage.Options(named: #file)
         let storage = try EmbraceStorage(options: storageOptions)
-        EmbraceOTel.setup(storage: storage)
+        EmbraceOTel.setup(spanProcessor: .with(storage: storage))
     }
 
     func test_started() {

@@ -9,7 +9,7 @@ public extension StorageSpanExporter {
 
         let storage: EmbraceStorage
 
-        init(storage: EmbraceStorage) {
+        public init(storage: EmbraceStorage) {
             self.storage = storage
         }
     }

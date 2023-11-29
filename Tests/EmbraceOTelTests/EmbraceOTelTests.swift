@@ -9,7 +9,9 @@ final class EmbraceOTelTests: XCTestCase {
 
     override func setUpWithError() throws {
         let storage = try EmbraceStorage(options: .init(named: #file))
-        EmbraceOTel.setup(storage: storage)
+        let exporter = StorageSpanExporter(options: .init(storage: storage))
+
+        EmbraceOTel.setup(spanProcessor: SingleSpanProcessor(spanExporter: exporter))
     }
 
 // MARK: registerTracer
