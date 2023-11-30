@@ -89,14 +89,14 @@ class SpanPayloadTests: XCTestCase {
         testAttributes(payload.links[0].attributes)
     }
 
-    func test_jsonKeys() {
+    func test_jsonKeys() throws {
         // given a span data
         let span = testSpan
 
         // when serializing
         let payload = SpanPayload(from: span)
-        let data = try! JSONEncoder().encode(payload)
-        let json = try! JSONSerialization.jsonObject(with: data, options: []) as! [String: Any]
+        let data = try JSONEncoder().encode(payload)
+        let json = try JSONSerialization.jsonObject(with: data, options: []) as! [String: Any]
 
         // then the payload has all the necessary keys
         XCTAssertNotNil(json["trace_id"])

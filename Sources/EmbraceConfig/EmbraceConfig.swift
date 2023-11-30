@@ -29,6 +29,17 @@ public class EmbraceConfig {
             let scanner = Scanner(string: hexString)
             scanner.scanHexInt64(&deviceIdHexValue)
         }
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(appDidBecomeActive),
+            name: NSNotification.Name("UIApplicationDidBecomeActiveNotification"), // to avoid reference to UIApplication reference
+            object: nil
+        )
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 
     // MARK: - Configs
@@ -78,5 +89,10 @@ public class EmbraceConfig {
         let result = (Float(hexValue) / space) * 100
 
         return result < threshold
+    }
+
+    // MARK: - Notifications
+    @objc func appDidBecomeActive() {
+        self.updateIfNeeded()
     }
 }
