@@ -21,7 +21,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
         sessionRecord = SessionRecord(
             id: TestConstants.sessionId,
             state: .foreground,
-            processId: UUID(),
+            processId: .random,
             startTime: Date(timeIntervalSince1970: 50),
             endTime: Date(timeIntervalSince1970: 100)
         )

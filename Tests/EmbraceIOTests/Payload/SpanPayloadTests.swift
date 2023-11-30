@@ -9,6 +9,7 @@ import XCTest
 import OpenTelemetryApi
 
 // swiftlint:disable force_cast
+// swiftlint:disable force_try
 
 class SpanPayloadTests: XCTestCase {
 
@@ -62,7 +63,7 @@ class SpanPayloadTests: XCTestCase {
 
         // when creating a payload
         let payload = SpanPayload(from: span)
-        
+
         // then the properties are correctly set
         XCTAssertEqual(payload.traceId, span.traceId.hexString)
         XCTAssertEqual(payload.spanId, span.spanId.hexString)
@@ -117,7 +118,7 @@ class SpanPayloadTests: XCTestCase {
         let events = json["events"] as! [[String: Any]]
         XCTAssertEqual(events.count, 1)
         XCTAssertNotNil(events[0]["name"])
-        XCTAssertNotNil(events[0]["timestamp"])
+        XCTAssertNotNil(events[0]["time_unix_nano"])
         testAttributes(events[0]["attributes"] as! [String: Any])
 
         // links
@@ -130,3 +131,4 @@ class SpanPayloadTests: XCTestCase {
 }
 
 // swiftlint:enable force_cast
+// swiftlint:enable force_try

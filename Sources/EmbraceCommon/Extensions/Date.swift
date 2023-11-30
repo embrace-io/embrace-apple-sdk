@@ -14,7 +14,7 @@ extension Date {
     }
 
     public var nanosecondsSince1970: Double {
-        Double(self.timeIntervalSince1970 * NSEC_PER_SEC)
+        self.timeIntervalSince1970 * Double(NSEC_PER_SEC)
     }
 
     public var nanosecondsSince1970Truncated: Int {
