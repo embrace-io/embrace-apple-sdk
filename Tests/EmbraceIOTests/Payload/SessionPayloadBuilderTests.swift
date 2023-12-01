@@ -20,6 +20,8 @@ final class SessionPayloadBuilderTests: XCTestCase {
             id: TestConstants.sessionId,
             state: .foreground,
             processId: ProcessIdentifier.current,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSince1970: 0),
             endTime: Date(timeIntervalSince1970: 60)
         )

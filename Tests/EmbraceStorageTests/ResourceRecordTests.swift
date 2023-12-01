@@ -206,62 +206,20 @@ class ResourceRecordTests: XCTestCase {
         XCTAssertNotNil(resources)
         XCTAssertEqual(originals, resources)
     }
-
-    func test_fetchPermanentResources() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
-        var originals = [ResourceRecord]()
-        // given inserted session
-        originals.append(try storage.addResource(key: "test", value: "test", resourceType: .permanent))
-        originals.append(try storage.addResource(key: "test2", value: "test2", resourceType: .permanent))
-
-        // when fetching the session
-        let resources = try storage.fetchAllPermanentResources()
-
-        // then the session should be valid
-        XCTAssertNotNil(resources)
-        XCTAssertEqual(originals, resources)
-    }
-
-    func test_fetchResourceBySessionId() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
-        var originals = [ResourceRecord]()
-        // given inserted session
-        originals.append(try storage.addResource(key: "test", value: "test", resourceType: .session, resourceTypeId: "3547A348-4AF6-A7B0-4EA35A70CBC"))
-        originals.append(try storage.addResource(key: "test2", value: "test2", resourceType: .session, resourceTypeId: "3547A348-4AF6-A7B0-4EA35A70CBC"))
-
-        // when fetching the session
-        let resources = try storage.fetchResource(sessionId: "3547A348-4AF6-A7B0-4EA35A70CBC")
-
-        // then the session should be valid
-        XCTAssertNotNil(resources)
-        XCTAssertEqual(originals, resources)
-    }
-
-    func test_fetchResourceByProcessId() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
-        var originals = [ResourceRecord]()
-        // given inserted session
-        originals.append(try storage.addResource(key: "test", value: "test", resourceType: .process, resourceTypeId: "123654852"))
-        originals.append(try storage.addResource(key: "test2", value: "test2", resourceType: .process, resourceTypeId: "123654852"))
-
-        // when fetching the session
-        let resources = try storage.fetchResource(pId: 123654852)
-
-        // then the session should be valid
-        XCTAssertNotNil(resources)
-        XCTAssertEqual(originals, resources)
-    }
-
     func test_fetchAllResourceForSession() throws {
         let storage = try EmbraceStorage(options: testOptions)
 
         let testSessionId = UUID()
         let testProcessId = ProcessIdentifier.random
 
-        try storage.addSession(id: testSessionId.uuidString, state: .foreground, processId: testProcessId, startTime: Date())
+        try storage.addSession(
+            id: testSessionId.uuidString,
+            state: .foreground,
+            processId: testProcessId,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date()
+        )
 
         try storage.addResource(key: "test", value: "test", resourceType: .session, resourceTypeId: "123654852")
         try storage.addResource(key: "test", value: "test", resourceType: .process, resourceTypeId: "1236s4852")

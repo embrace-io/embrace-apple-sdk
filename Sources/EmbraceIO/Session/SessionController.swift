@@ -45,7 +45,7 @@ class SessionController: SessionControllable {
             if let session = self?.currentSession {
                 session.lastHeartbeatTime = Date()
                 do {
-                    try self?.save(session)
+                    try self?.save()
                 } catch {
                     ConsoleLog.warning("Error trying to update session heartbeat!:\n\(error.localizedDescription)")
                 }
@@ -74,14 +74,14 @@ class SessionController: SessionControllable {
         session.coldStart = withinColdStartInterval(startTime: startTime)
         currentSession = session
 
+        // create session span
+        currentSessionSpan = createSpan(sessionId: session.id, startTime: startTime)
+
         do {
-            try save(session)
+            try save()
         } catch {
             // TODO: unable to start session
         }
-
-        // create session span
-        currentSessionSpan = createSpan(sessionId: session.id, startTime: startTime)
 
         // start heartbeat
         heartbeat.start()
@@ -110,7 +110,7 @@ class SessionController: SessionControllable {
         session.endTime = now
         session.cleanExit = true
         do {
-            try save(session)
+            try save()
         } catch {
             // TODO: unable to end session
         }
@@ -130,7 +130,7 @@ class SessionController: SessionControllable {
 
         // save session record
         do {
-            try save(session)
+            try save()
         } catch {
             // TODO: unable to update session
         }
@@ -149,14 +149,23 @@ extension SessionController {
         return uptime <= Self.allowedColdStartInterval
     }
 
-    private func save(_ session: EmbraceSession) throws {
-        guard let storage = storage else { return }
+    private func save() throws {
+        guard let storage = storage,
+              let session = currentSession,
+              let span = currentSessionSpan else {
+            return
+        }
+
+        let traceId = span.context.traceId.hexString
+        let spanId = span.context.spanId.hexString
 
         try saveLock.locked {
             let record = SessionRecord(
                 id: session.id.toString,
                 state: session.state,
                 processId: session.processId,
+                traceId: traceId,
+                spanId: spanId,
                 startTime: session.startTime,
                 endTime: session.endTime,
                 lastHeartbeatTime: session.lastHeartbeatTime,

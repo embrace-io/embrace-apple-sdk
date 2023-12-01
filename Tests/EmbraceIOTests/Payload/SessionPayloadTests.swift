@@ -6,6 +6,7 @@ import XCTest
 @testable import EmbraceIO
 @testable import EmbraceStorage
 @testable import EmbraceCommon
+import TestSupport
 
 // swiftlint:disable force_cast
 
@@ -17,6 +18,8 @@ final class SessionPayloadTests: XCTestCase {
             id: "1234",
             state: .foreground,
             processId: ProcessIdentifier.current,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSince1970: 10),
             endTime: Date(timeIntervalSince1970: 40))
     }
@@ -49,7 +52,14 @@ final class SessionPayloadTests: XCTestCase {
 
     func test_heartbeatEndTime() {
         // given a session record without endTime
-        let sessionRecord = SessionRecord(id: "1234", state: .foreground, processId: ProcessIdentifier.current, startTime: Date(timeIntervalSince1970: 10))
+        let sessionRecord = SessionRecord(
+            id: "1234",
+            state: .foreground,
+            processId: ProcessIdentifier.current,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date(timeIntervalSince1970: 10)
+        )
         let fetcher = MockResourceFetcher(resources: [])
 
         // when creating a payload

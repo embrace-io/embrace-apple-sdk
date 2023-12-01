@@ -10,6 +10,8 @@ public struct TestConstants {
     public static let data = "test".data(using: .utf8)!
 
     public static let sessionId = "18EDB6CE-90C2-456B-97CB-91E0F5941CCA"
+    public static let traceId = "traceId"
+    public static let spanId = "spanId"
 
     public static let appId = "appId"
     public static let deviceId = "18EDB6CE90C2456B97CB91E0F5941CCA"

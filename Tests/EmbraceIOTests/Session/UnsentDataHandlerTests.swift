@@ -85,7 +85,15 @@ class UnsentDataHandlerTests: XCTestCase {
         let upload = try EmbraceUpload(options: uploadOptions, queue: queue)
 
         // given a finished session in the storage
-        try storage.addSession(id: TestConstants.sessionId, state: .foreground, processId: ProcessIdentifier.current, startTime: Date(timeIntervalSinceNow: -60), endTime: Date())
+        try storage.addSession(
+            id: TestConstants.sessionId,
+            state: .foreground,
+            processId: ProcessIdentifier.current,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date(timeIntervalSinceNow: -60),
+            endTime: Date()
+        )
 
         // when sending unsent sessions
         UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, crashReporter: nil)
@@ -112,7 +120,15 @@ class UnsentDataHandlerTests: XCTestCase {
         let upload = try EmbraceUpload(options: uploadOptions, queue: queue)
 
         // given a finished session in the storage
-        try storage.addSession(id: TestConstants.sessionId, state: .foreground, processId: ProcessIdentifier.current, startTime: Date(timeIntervalSinceNow: -60), endTime: Date())
+        try storage.addSession(
+            id: TestConstants.sessionId,
+            state: .foreground,
+            processId: ProcessIdentifier.current,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date(timeIntervalSinceNow: -60),
+            endTime: Date()
+        )
 
         // when failing to send unsent sessions
         UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, crashReporter: nil)
@@ -155,7 +171,15 @@ class UnsentDataHandlerTests: XCTestCase {
         try FileManager.default.copyItem(atPath: report, toPath: finalPath)
 
         // given a finished session in the storage
-        try storage.addSession(id: TestConstants.sessionId, state: .foreground, processId: ProcessIdentifier.current, startTime: Date(timeIntervalSinceNow: -60), endTime: Date())
+        try storage.addSession(
+            id: TestConstants.sessionId,
+            state: .foreground,
+            processId: ProcessIdentifier.current,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date(timeIntervalSinceNow: -60),
+            endTime: Date()
+        )
 
         // when sending unsent sessions
         UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, crashReporter: crashReporter)
@@ -226,7 +250,15 @@ class UnsentDataHandlerTests: XCTestCase {
         try FileManager.default.copyItem(atPath: report, toPath: finalPath)
 
         // given a finished session in the storage
-        try storage.addSession(id: TestConstants.sessionId, state: .foreground, processId: ProcessIdentifier.current, startTime: Date(timeIntervalSinceNow: -60), endTime: Date())
+        try storage.addSession(
+            id: TestConstants.sessionId,
+            state: .foreground,
+            processId: ProcessIdentifier.current,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date(timeIntervalSinceNow: -60),
+            endTime: Date()
+        )
 
         // when failing to send unsent sessions
         UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, crashReporter: crashReporter)
@@ -297,7 +329,14 @@ class UnsentDataHandlerTests: XCTestCase {
         try FileManager.default.copyItem(atPath: report, toPath: finalPath)
 
         // given an unfinished session in the storage
-        try storage.addSession(id: TestConstants.sessionId, state: .foreground, processId: ProcessIdentifier.current, startTime: Date(timeIntervalSinceNow: -60))
+        try storage.addSession(
+            id: TestConstants.sessionId,
+            state: .foreground,
+            processId: ProcessIdentifier.current,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date(timeIntervalSinceNow: -60)
+        )
 
         // when sending unsent sessions
         UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, crashReporter: crashReporter)

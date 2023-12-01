@@ -22,6 +22,8 @@ final class SpansPayloadBuilderTests: XCTestCase {
             id: TestConstants.sessionId,
             state: .foreground,
             processId: .random,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSince1970: 50),
             endTime: Date(timeIntervalSince1970: 100)
         )

@@ -11,6 +11,8 @@ public struct SessionRecord: Codable {
     public var id: SessionId
     public var processId: ProcessIdentifier
     public var state: String
+    public var traceId: String
+    public var spanId: String
     public var startTime: Date
     public var endTime: Date?
     public var lastHeartbeatTime: Date
@@ -25,11 +27,25 @@ public struct SessionRecord: Codable {
     /// Used to mark the session that is active when the application was explicitly terminated by the user and/or system
     public var appTerminated: Bool
 
-    public init(id: SessionId, state: SessionState, processId: ProcessIdentifier, startTime: Date, endTime: Date? = nil, lastHeartbeatTime: Date? = nil, crashReportId: String? = nil, coldStart: Bool = false, cleanExit: Bool = false, appTerminated: Bool = false) {
+    public init(
+        id: SessionId,
+        state: SessionState,
+        processId: ProcessIdentifier,
+        traceId: String,
+        spanId: String,
+        startTime: Date,
+        endTime: Date? = nil,
+        lastHeartbeatTime: Date? = nil,
+        crashReportId: String? = nil,
+        coldStart: Bool = false,
+        cleanExit: Bool = false,
+        appTerminated: Bool = false) {
 
         self.id = id
         self.state = state.rawValue
         self.processId = processId
+        self.traceId = traceId
+        self.spanId = spanId
         self.startTime = startTime
         self.endTime = endTime
         self.lastHeartbeatTime = lastHeartbeatTime ?? startTime
@@ -56,6 +72,9 @@ extension SessionRecord: TableRecord {
 
             t.column("state", .text).notNull()
             t.column("process_id", .text).notNull()
+            t.column("trace_id", .text).notNull()
+            t.column("span_id", .text).notNull()
+
             t.column("start_time", .datetime).notNull()
             t.column("end_time", .datetime)
             t.column("last_heartbeat_time", .datetime).notNull()

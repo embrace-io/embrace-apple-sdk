@@ -32,7 +32,7 @@ class SessionRecordTests: XCTestCase {
             XCTAssert(try db.tableExists(SessionRecord.databaseTableName))
 
             let columns = try db.columns(in: SessionRecord.databaseTableName)
-            XCTAssertEqual(columns.count, 10, "Column count does not match expectation. Did you add/remove a column?")
+            XCTAssertEqual(columns.count, 12, "Column count does not match expectation. Did you add/remove a column?")
 
             // id
             let idColumn = columns.first(where: { $0.name == "id" })
@@ -60,6 +60,24 @@ class SessionRecordTests: XCTestCase {
                 XCTAssert(processIdColumn.isNotNull)
             } else {
                 XCTAssert(false, "process_id column not found!")
+            }
+
+            // trace_id
+            let traceIdColumn = columns.first(where: { $0.name == "trace_id" })
+            if let traceIdColumn = traceIdColumn {
+                XCTAssertEqual(traceIdColumn.type, "TEXT")
+                XCTAssert(traceIdColumn.isNotNull)
+            } else {
+                XCTAssert(false, "trace_id column not found!")
+            }
+
+            // span_id
+            let spanIdColumn = columns.first(where: { $0.name == "span_id" })
+            if let spanIdColumn = spanIdColumn {
+                XCTAssertEqual(spanIdColumn.type, "TEXT")
+                XCTAssert(spanIdColumn.isNotNull)
+            } else {
+                XCTAssert(false, "span_id column not found!")
             }
 
             // start_time
@@ -136,7 +154,14 @@ class SessionRecordTests: XCTestCase {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given inserted session
-        let session = try storage.addSession(id: "id", state: .foreground, processId: ProcessIdentifier.current, startTime: Date(), endTime: nil)
+        let session = try storage.addSession(
+            id: "id",
+            state: .foreground,
+            processId: ProcessIdentifier.current,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date()
+        )
         XCTAssertNotNil(session)
 
         // then session should exist in storage
@@ -153,7 +178,14 @@ class SessionRecordTests: XCTestCase {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given inserted session
-        let session = SessionRecord(id: "id", state: .foreground, processId: ProcessIdentifier.current, startTime: Date())
+        let session = try storage.addSession(
+            id: "id",
+            state: .foreground,
+            processId: ProcessIdentifier.current,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date()
+        )
         try storage.upsertSession(session)
 
         // then session should exist in storage
@@ -170,7 +202,14 @@ class SessionRecordTests: XCTestCase {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given inserted session
-        let original = try storage.addSession(id: "id", state: .foreground, processId: ProcessIdentifier.current, startTime: Date(), endTime: nil)
+        let original = try storage.addSession(
+            id: "id",
+            state: .foreground,
+            processId: ProcessIdentifier.current,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date()
+        )
 
         // when fetching the session
         let session = try storage.fetchSession(id: "id")
@@ -180,93 +219,34 @@ class SessionRecordTests: XCTestCase {
         XCTAssertEqual(original, session)
     }
 
-    func test_updateSessionEndTime() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
-        // given inserted session with nil endTime
-        let original = try storage.addSession(id: "id", state: .foreground, processId: ProcessIdentifier.current, startTime: Date(), endTime: nil)
-        XCTAssertNil(original.endTime)
-
-        // when updating the session endtime
-        let session = try storage.updateSession(id: "id", endTime: Date(timeIntervalSinceNow: 10))
-
-        // then the session should be valid and be updated in storage
-        let expectation = XCTestExpectation()
-        if let session = session {
-            try storage.dbQueue.read { db in
-                XCTAssert(try session.exists(db))
-                XCTAssertNotNil(session.endTime)
-                expectation.fulfill()
-            }
-        } else {
-            XCTAssert(false, "session not found in storage!")
-        }
-
-        wait(for: [expectation], timeout: .defaultTimeout)
-    }
-
-    func test_updateSessionCrashReportId() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
-        // given inserted session with nil endTime
-        let original = try storage.addSession(id: "id", state: .foreground, processId: ProcessIdentifier.current, startTime: Date(), endTime: nil)
-        XCTAssertNil(original.endTime)
-
-        // when updating the session endtime
-        let session = try storage.updateSession(id: "id", crashReportId: "crashReportId")
-
-        // then the session should be valid and be updated in storage
-        let expectation = XCTestExpectation()
-        if let session = session {
-            try storage.dbQueue.read { db in
-                XCTAssert(try session.exists(db))
-                XCTAssertEqual(session.crashReportId, "crashReportId")
-                expectation.fulfill()
-            }
-        } else {
-            XCTAssert(false, "session not found in storage!")
-        }
-
-        wait(for: [expectation], timeout: .defaultTimeout)
-    }
-
-    func test_finishedSessionsCount() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
-        // given inserted sessions
-        _ = try storage.addSession(id: "id1", state: .foreground, processId: ProcessIdentifier.current, startTime: Date(), endTime: nil)
-        _ = try storage.addSession(id: "id2", state: .foreground, processId: ProcessIdentifier.current, startTime: Date(), endTime: Date(timeIntervalSinceNow: 10))
-        _ = try storage.addSession(id: "id3", state: .foreground, processId: ProcessIdentifier.current, startTime: Date(), endTime: Date(timeIntervalSinceNow: 10))
-
-        // then the finished session count should be correct
-        let count = try storage.finishedSessionsCount()
-        XCTAssertEqual(count, 2)
-    }
-
-    func test_fetchFinishedSessions() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
-        // given inserted sessions
-        let session1 = try storage.addSession(id: "id1", state: .foreground, processId: ProcessIdentifier.current, startTime: Date(), endTime: nil)
-        let session2 = try storage.addSession(id: "id2", state: .foreground, processId: ProcessIdentifier.current, startTime: Date(), endTime: Date(timeIntervalSinceNow: 10))
-        let session3 = try storage.addSession(id: "id3", state: .foreground, processId: ProcessIdentifier.current, startTime: Date(), endTime: Date(timeIntervalSinceNow: 10))
-
-        // when fetching the finished sessions
-        let sessions = try storage.fetchFinishedSessions()
-
-        // then the fetched sessions are valid
-        XCTAssertFalse(sessions.contains(session1))
-        XCTAssert(sessions.contains(session2))
-        XCTAssert(sessions.contains(session3))
-    }
-
     func test_fetchLatestSesssion() throws {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given inserted sessions
-        _ = try storage.addSession(id: "id1", state: .foreground, processId: ProcessIdentifier.current, startTime: Date(), endTime: nil)
-        _ = try storage.addSession(id: "id2", state: .foreground, processId: ProcessIdentifier.current, startTime: Date(timeIntervalSinceNow: 10), endTime: nil)
-        let session3 = try storage.addSession(id: "id3", state: .foreground, processId: ProcessIdentifier.current, startTime: Date(timeIntervalSinceNow: 20), endTime: nil)
+        _ = try storage.addSession(
+            id: "id1",
+            state: .foreground,
+            processId: ProcessIdentifier.current,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date()
+        )
+        _ = try storage.addSession(
+            id: "id2",
+            state: .foreground,
+            processId: ProcessIdentifier.current,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date(timeIntervalSinceNow: 10)
+        )
+        let session3 = try storage.addSession(
+            id: "id3",
+            state: .foreground,
+            processId: ProcessIdentifier.current,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date(timeIntervalSinceNow: 20)
+        )
 
         // when fetching the latest session
         let session = try storage.fetchLatestSesssion()

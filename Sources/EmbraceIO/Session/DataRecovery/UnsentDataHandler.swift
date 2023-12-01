@@ -97,6 +97,16 @@ class UnsentDataHandler {
         currentSessionId: SessionIdentifier?
     ) {
 
+        // close all open spans
+        do {
+            let lastSession = try storage.fetchLatestSesssion()
+            let endTime = (lastSession?.endTime ?? lastSession?.lastHeartbeatTime) ?? Date()
+
+            try storage.closeOpenSpans(endTime: endTime)
+        } catch {
+            ConsoleLog.warning("Error closing open spans:\n\(error.localizedDescription)")
+        }
+
         // fetch finished sessions
         var sessions: [SessionRecord]
         do {
@@ -106,7 +116,7 @@ class UnsentDataHandler {
             return
         }
 
-        for var session in sessions {
+        for session in sessions {
             do {
                 // ignore current session
                 if let currentSessionId = currentSessionId,
