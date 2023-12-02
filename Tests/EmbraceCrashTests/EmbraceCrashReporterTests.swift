@@ -5,6 +5,7 @@
 import XCTest
 import TestSupport
 @testable import EmbraceCrash
+import EmbraceCommon
 
 class EmbraceCrashReporterTests: XCTestCase {
 
@@ -34,11 +35,12 @@ class EmbraceCrashReporterTests: XCTestCase {
         crashReporter.install()
 
         // when setting the current session id
-        crashReporter.currentSessionId = "test"
+        let sessionId = SessionIdentifier.random
+        crashReporter.currentSessionId = sessionId
 
         // then KSCrash's user info is properly set
         let key = EmbraceCrashReporter.UserInfoKey.sessionId
-        XCTAssertEqual(crashReporter.ksCrash?.userInfo[key] as? String, "test")
+        XCTAssertEqual(crashReporter.ksCrash?.userInfo[key] as? String, sessionId.toString)
     }
 
     func test_sdkVersion() {

@@ -7,7 +7,7 @@ import EmbraceStorage
 import EmbraceCommon
 
 struct SessionInfoPayload: Codable {
-    let sessionId: SessionId
+    let sessionId: SessionIdentifier
     let startTime: Int
     let endTime: Int?
     let appState: String

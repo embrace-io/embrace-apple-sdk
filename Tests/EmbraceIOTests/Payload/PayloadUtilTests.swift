@@ -17,7 +17,7 @@ final class PayloadUtilTests: XCTestCase {
         let fetcher = MockResourceFetcher(resources: mockResources)
 
         // when
-        let fetchedResources = PayloadUtils.fetchResources(from: fetcher, sessionId: "fake_session")
+        let fetchedResources = PayloadUtils.fetchResources(from: fetcher, sessionId: .random)
 
         // then the session payload contains the necessary keys
         XCTAssertEqual(mockResources, fetchedResources)

@@ -11,8 +11,8 @@ public struct SessionIdentifier: Equatable {
         self.value = value
     }
 
-    public init?(value: String) {
-        guard let uuid = UUID(uuidString: value) else {
+    public init?(string: String) {
+        guard let uuid = UUID(uuidString: string) else {
             return nil
         }
 
@@ -20,6 +20,18 @@ public struct SessionIdentifier: Equatable {
     }
 
     public var toString: String { value.uuidString }
+}
+
+extension SessionIdentifier: Codable {
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        value = try container.decode(UUID.self)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(value)
+    }
 }
 
 extension SessionIdentifier {

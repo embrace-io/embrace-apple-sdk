@@ -4,6 +4,7 @@
 import XCTest
 @testable import EmbraceIO
 @testable import EmbraceStorage
+import EmbraceCommon
 
 class MockResourceFetcher: EmbraceStorageResourceFetcher {
     var resources: [ResourceRecord]?
@@ -12,7 +13,7 @@ class MockResourceFetcher: EmbraceStorageResourceFetcher {
         self.resources = resources
     }
 
-    func fetchAllResourceForSession(sessionId: String) throws -> [ResourceRecord]? {
+    func fetchAllResourceForSession(sessionId: SessionIdentifier) throws -> [ResourceRecord]? {
         return resources
     }
 

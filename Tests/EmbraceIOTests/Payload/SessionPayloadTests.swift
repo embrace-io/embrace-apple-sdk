@@ -15,7 +15,7 @@ final class SessionPayloadTests: XCTestCase {
 
     var mockSessionRecord: SessionRecord {
         .init(
-            id: "1234",
+            id: .random,
             state: .foreground,
             processId: ProcessIdentifier.current,
             traceId: TestConstants.traceId,
@@ -53,13 +53,14 @@ final class SessionPayloadTests: XCTestCase {
     func test_heartbeatEndTime() {
         // given a session record without endTime
         let sessionRecord = SessionRecord(
-            id: "1234",
+            id: .random,
             state: .foreground,
             processId: ProcessIdentifier.current,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSince1970: 10)
         )
+
         let fetcher = MockResourceFetcher(resources: [])
 
         // when creating a payload
@@ -101,7 +102,7 @@ final class SessionPayloadTests: XCTestCase {
 
         // then the session payload contains the necessary keys
         let sessionInfo = json["s"] as! [String: Any]
-        XCTAssertEqual(sessionInfo["id"] as! String, sessionRecord.id)
+        XCTAssertEqual(sessionInfo["id"] as! String, sessionRecord.id.toString)
         XCTAssertEqual(sessionInfo["st"] as! Int, sessionRecord.startTime.millisecondsSince1970Truncated)
         XCTAssertEqual(sessionInfo["et"] as? Int, sessionRecord.endTime?.millisecondsSince1970Truncated)
         XCTAssertEqual(sessionInfo["as"] as! String, sessionRecord.state)

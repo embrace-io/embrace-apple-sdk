@@ -7,7 +7,7 @@ import EmbraceStorage
 import OpenTelemetryApi
 
 class PayloadUtils {
-    static func fetchResources(from fetcher: EmbraceStorageResourceFetcher, sessionId: String?) -> [ResourceRecord] {
+    static func fetchResources(from fetcher: EmbraceStorageResourceFetcher, sessionId: SessionIdentifier?) -> [ResourceRecord] {
         guard let sessionId = sessionId else { return [] }
 
         do {

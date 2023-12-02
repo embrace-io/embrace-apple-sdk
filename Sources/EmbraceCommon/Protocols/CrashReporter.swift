@@ -9,7 +9,7 @@ public enum LastRunState {
 }
 
 public protocol CrashReporter: InstalledCollector {
-    var currentSessionId: SessionId? { get set }
+    var currentSessionId: SessionIdentifier? { get set }
     var sdkVersion: String? { get set }
 
     func configure(appId: String?, path: String?)
@@ -23,11 +23,11 @@ public protocol CrashReporter: InstalledCollector {
 public struct CrashReport {
     public private(set) var id: UUID
     public private(set) var ksCrashId: Int
-    public private(set) var sessionId: SessionId?
+    public private(set) var sessionId: SessionIdentifier?
     public private(set) var timestamp: Date?
     public private(set) var dictionary: [String: Any]
 
-    public init(ksCrashId: Int, sessionId: SessionId?, timestamp: Date?, dictionary: [String: Any]) {
+    public init(ksCrashId: Int, sessionId: SessionIdentifier?, timestamp: Date?, dictionary: [String: Any]) {
         self.id = UUID()
         self.ksCrashId = ksCrashId
         self.sessionId = sessionId

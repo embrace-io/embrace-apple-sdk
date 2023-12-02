@@ -161,7 +161,7 @@ extension SessionController {
 
         try saveLock.locked {
             let record = SessionRecord(
-                id: session.id.toString,
+                id: session.id,
                 state: session.state,
                 processId: session.processId,
                 traceId: traceId,

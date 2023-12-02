@@ -155,13 +155,14 @@ class SessionRecordTests: XCTestCase {
 
         // given inserted session
         let session = try storage.addSession(
-            id: "id",
+            id: .random,
             state: .foreground,
             processId: ProcessIdentifier.current,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: Date()
         )
+
         XCTAssertNotNil(session)
 
         // then session should exist in storage
@@ -179,13 +180,14 @@ class SessionRecordTests: XCTestCase {
 
         // given inserted session
         let session = try storage.addSession(
-            id: "id",
+            id: .random,
             state: .foreground,
             processId: ProcessIdentifier.current,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: Date()
         )
+
         try storage.upsertSession(session)
 
         // then session should exist in storage
@@ -202,8 +204,9 @@ class SessionRecordTests: XCTestCase {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given inserted session
+        let sessionId = SessionIdentifier.random
         let original = try storage.addSession(
-            id: "id",
+            id: sessionId,
             state: .foreground,
             processId: ProcessIdentifier.current,
             traceId: TestConstants.traceId,
@@ -212,7 +215,7 @@ class SessionRecordTests: XCTestCase {
         )
 
         // when fetching the session
-        let session = try storage.fetchSession(id: "id")
+        let session = try storage.fetchSession(id: sessionId)
 
         // then the session should be valid
         XCTAssertNotNil(session)
@@ -224,7 +227,7 @@ class SessionRecordTests: XCTestCase {
 
         // given inserted sessions
         _ = try storage.addSession(
-            id: "id1",
+            id: .random,
             state: .foreground,
             processId: ProcessIdentifier.current,
             traceId: TestConstants.traceId,
@@ -232,7 +235,7 @@ class SessionRecordTests: XCTestCase {
             startTime: Date()
         )
         _ = try storage.addSession(
-            id: "id2",
+            id: .random,
             state: .foreground,
             processId: ProcessIdentifier.current,
             traceId: TestConstants.traceId,
@@ -240,7 +243,7 @@ class SessionRecordTests: XCTestCase {
             startTime: Date(timeIntervalSinceNow: 10)
         )
         let session3 = try storage.addSession(
-            id: "id3",
+            id: .random,
             state: .foreground,
             processId: ProcessIdentifier.current,
             traceId: TestConstants.traceId,

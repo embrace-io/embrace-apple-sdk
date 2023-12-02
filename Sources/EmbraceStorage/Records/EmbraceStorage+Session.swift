@@ -21,7 +21,7 @@ extension EmbraceStorage {
     ///   - crashReportId: Identifier of the crash report linked with this session
     /// - Returns: The newly stored `SessionRecord`
     @discardableResult public func addSession(
-        id: SessionId,
+        id: SessionIdentifier,
         state: SessionState,
         processId: ProcessIdentifier,
         traceId: String,
@@ -31,7 +31,6 @@ extension EmbraceStorage {
         lastHeartbeatTime: Date? = nil,
         crashReportId: String? = nil
     ) throws -> SessionRecord {
-
         let session = SessionRecord(
             id: id,
             state: state,
@@ -60,7 +59,8 @@ extension EmbraceStorage {
     /// - Parameters:
     ///   - id: Identifier of the session
     /// - Returns: The stored `SessionRecord`, if any
-    public func fetchSession(id: SessionId) throws -> SessionRecord? {
+
+    public func fetchSession(id: SessionIdentifier) throws -> SessionRecord? {
         try dbQueue.read { db in
             return try SessionRecord.fetchOne(db, key: id)
         }

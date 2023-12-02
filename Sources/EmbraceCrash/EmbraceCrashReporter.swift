@@ -35,12 +35,17 @@ import KSCrash_Recording
     }
 
     /// Sets the current session identifier that will be included in a crash report.
-    public var currentSessionId: SessionId? {
+    public var currentSessionId: SessionIdentifier? {
         get {
-            return userInfo[UserInfoKey.sessionId]
+
+            if let rawValue = userInfo[UserInfoKey.sessionId], let uuid = UUID(uuidString: rawValue) {
+                return SessionIdentifier(value: uuid)
+            } else {
+                return nil
+            }
         }
         set {
-            setUserInfoValue(newValue, key: UserInfoKey.sessionId)
+            setUserInfoValue(newValue?.toString, key: UserInfoKey.sessionId)
         }
     }
 
@@ -118,11 +123,13 @@ import KSCrash_Recording
                 }
 
                 // get custom data from report
-                var sessionId: SessionId?
+                var sessionId: SessionIdentifier?
                 var timestamp: Date?
 
                 if let userDict = report["user"] as? [AnyHashable: Any] {
-                    sessionId = userDict[UserInfoKey.sessionId] as? SessionId
+                    if let value = userDict[UserInfoKey.sessionId] as? String {
+                        sessionId = SessionIdentifier(string: value)
+                    }
                 }
 
                 if let reportDict = report["report"] as? [AnyHashable: Any],

@@ -8,14 +8,14 @@ import EmbraceStorage
 
 class SessionPayloadBuilder {
 
-    static var resourceName = "session.upload_index"
+    static var resourceName = "emb.session.upload_index"
 
     class func build(for sessionRecord: SessionRecord, storage: EmbraceStorage) -> SessionPayload {
         var resource: ResourceRecord?
 
         do {
             // fetch resource
-            resource = try storage.fetchResource(key: resourceName)
+            resource = try storage.fetchPermanentResource(key: resourceName)
         } catch {
             ConsoleLog.debug("Error fetching \(resourceName) resource!")
         }

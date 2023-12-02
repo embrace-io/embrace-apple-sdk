@@ -92,7 +92,7 @@ final class SessionControllerTests: XCTestCase {
 
         let sessions: [SessionRecord] = try storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
-        XCTAssertEqual(sessions.first?.id, session.id.toString)
+        XCTAssertEqual(sessions.first?.id, session.id)
         XCTAssertEqual(sessions.first?.state, "foreground")
     }
 
@@ -101,7 +101,7 @@ final class SessionControllerTests: XCTestCase {
 
         let sessions: [SessionRecord] = try storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
-        XCTAssertEqual(sessions.first?.id, session.id.toString)
+        XCTAssertEqual(sessions.first?.id, session.id)
         XCTAssertEqual(sessions.first?.state, "background")
     }
 
@@ -142,7 +142,7 @@ final class SessionControllerTests: XCTestCase {
 
         let sessions: [SessionRecord] = try storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
-        XCTAssertEqual(sessions.first?.id, session.id.toString)
+        XCTAssertEqual(sessions.first?.id, session.id)
         XCTAssertEqual(sessions.first?.state, "foreground")
         XCTAssertEqual(sessions.first!.endTime!.timeIntervalSince1970, session.endTime!.timeIntervalSince1970, accuracy: 0.001)
     }
@@ -218,7 +218,7 @@ final class SessionControllerTests: XCTestCase {
 
         let sessions: [SessionRecord] = try storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
-        XCTAssertEqual(sessions.first?.id, session.id.toString)
+        XCTAssertEqual(sessions.first?.id, session.id)
         XCTAssertEqual(sessions.first?.state, "foreground")
         XCTAssertEqual(sessions.first?.appTerminated, true)
     }
@@ -231,7 +231,7 @@ final class SessionControllerTests: XCTestCase {
 
         let sessions: [SessionRecord] = try storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
-        XCTAssertEqual(sessions.first?.id, session.id.toString)
+        XCTAssertEqual(sessions.first?.id, session.id)
         XCTAssertEqual(sessions.first?.state, "background")
         XCTAssertEqual(sessions.first?.appTerminated, false)
     }

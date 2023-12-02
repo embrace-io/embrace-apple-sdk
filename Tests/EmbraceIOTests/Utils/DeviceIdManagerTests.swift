@@ -20,7 +20,7 @@ class DeviceIdManagerTests: XCTestCase {
         }
 
         // delete the resource if we already have it
-        if let resource = try storage.fetchResource(key: "device.id") {
+        if let resource = try storage.fetchPermanentResource(key: "device.id") {
             try storage.delete(record: resource)
         }
     }
@@ -35,7 +35,7 @@ class DeviceIdManagerTests: XCTestCase {
 
         let deviceId = EmbraceDeviceId.retrieve(from: storage)
 
-        let resourceRecord = try storage.fetchResource(key: "device.id")
+        let resourceRecord = try storage.fetchPermanentResource(key: "device.id")
         XCTAssertNotNil(resourceRecord)
         let storedDeviceId = UUID(uuidString: resourceRecord!.value)
 
@@ -49,7 +49,7 @@ class DeviceIdManagerTests: XCTestCase {
 
         // because of our setup we could assume there is no database entry but lets make sure
         // delete the resource if we already have it
-        if let resource = try storage.fetchResource(key: "device.id") {
+        if let resource = try storage.fetchPermanentResource(key: "device.id") {
             try storage.delete(record: resource)
         }
 

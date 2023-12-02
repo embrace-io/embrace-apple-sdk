@@ -8,15 +8,13 @@ import Foundation
 public struct ProcessIdentifier: Equatable {
     public let value: UInt32
 
-    init?(hex: String) {
-        if let value = UInt32(hex, radix: 16) {
-            self.value = value
-        } else {
-            return nil
-        }
+   public init?(hex: String) {
+       guard let value = UInt32(hex, radix: 16) else { return nil }
+
+       self.value = value
     }
 
-    init(value: UInt32) {
+    public init(value: UInt32) {
         self.value = value
     }
 
@@ -40,11 +38,17 @@ extension ProcessIdentifier: Codable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
-        value = try container.decode(UInt32.self)
+        let hex = try container.decode(String.self)
+
+        guard let value = UInt32(hex, radix: 16) else {
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Encoded value is not a valid hex string")
+        }
+
+        self.init(value: value)
     }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
-        try container.encode(value)
+        try container.encode(hex)
     }
 }

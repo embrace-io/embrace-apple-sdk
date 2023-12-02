@@ -120,7 +120,7 @@ class UnsentDataHandler {
             do {
                 // ignore current session
                 if let currentSessionId = currentSessionId,
-                   currentSessionId.toString == session.id {
+                   currentSessionId == session.id {
                     continue
                 }
 
@@ -128,7 +128,7 @@ class UnsentDataHandler {
                 let payloadData = try JSONEncoder().encode(payload).gzipped()
 
                 // upload session
-                upload.uploadSession(id: session.id, data: payloadData) { result in
+                upload.uploadSession(id: session.id.toString, data: payloadData) { result in
                     switch result {
                     case .success:
                         do {

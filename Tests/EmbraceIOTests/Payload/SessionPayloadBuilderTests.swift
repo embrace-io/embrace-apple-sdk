@@ -38,14 +38,14 @@ final class SessionPayloadBuilderTests: XCTestCase {
 
     func test_counterMissing() throws {
         // given no existing counter in storage
-        var resource = try storage.fetchResource(key: SessionPayloadBuilder.resourceName)
+        var resource = try storage.fetchPermanentResource(key: SessionPayloadBuilder.resourceName)
         XCTAssertNil(resource)
 
         // when building a session payload
         let payload = SessionPayloadBuilder.build(for: sessionRecord, storage: storage)
 
         // then a resource is created with the correct value
-        resource = try storage.fetchResource(key: SessionPayloadBuilder.resourceName)
+        resource = try storage.fetchPermanentResource(key: SessionPayloadBuilder.resourceName)
         XCTAssertEqual(resource!.value, "1")
         XCTAssertEqual(payload.sessionInfo.counter, 1)
     }
@@ -53,14 +53,14 @@ final class SessionPayloadBuilderTests: XCTestCase {
     func test_existingCounter() throws {
         // given existing counter in storage
         try storage.addResource(key: SessionPayloadBuilder.resourceName, value: "10", resourceType: .permanent)
-        var resource = try storage.fetchResource(key: SessionPayloadBuilder.resourceName)
+        var resource = try storage.fetchPermanentResource(key: SessionPayloadBuilder.resourceName)
         XCTAssertNotNil(resource)
 
         // when building a session payload
         let payload = SessionPayloadBuilder.build(for: sessionRecord, storage: storage)
 
         // then the counter is updated correctly
-        resource = try storage.fetchResource(key: SessionPayloadBuilder.resourceName)
+        resource = try storage.fetchPermanentResource(key: SessionPayloadBuilder.resourceName)
         XCTAssertEqual(resource!.value, "11")
         XCTAssertEqual(payload.sessionInfo.counter, 11)
     }

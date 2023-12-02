@@ -16,7 +16,7 @@ class ResourceRecordTests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
-
+        UIApplication.didReceiveMemoryWarningNotification
     }
 
     func test_tableSchema() throws {
@@ -175,20 +175,6 @@ class ResourceRecordTests: XCTestCase {
         }
     }
 
-    func test_fetchResource() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
-        // given inserted record
-        let original = try storage.addResource(key: "test", value: "test", resourceType: .permanent)
-
-        // when fetching the record
-        let resource = try storage.fetchResource(key: "test")
-
-        // then the record should be valid
-        XCTAssertNotNil(resource)
-        XCTAssertEqual(original, resource)
-    }
-
     func test_fetchAllResources() throws {
         let storage = try EmbraceStorage(options: testOptions)
 
@@ -206,14 +192,15 @@ class ResourceRecordTests: XCTestCase {
         XCTAssertNotNil(resources)
         XCTAssertEqual(originals, resources)
     }
+
     func test_fetchAllResourceForSession() throws {
         let storage = try EmbraceStorage(options: testOptions)
 
-        let testSessionId = UUID()
+        let testSessionId = SessionIdentifier(string: "4DF21070-D774-4282-9AFC-2D0D9D223255")!
         let testProcessId = ProcessIdentifier.random
 
         try storage.addSession(
-            id: testSessionId.uuidString,
+            id: testSessionId,
             state: .foreground,
             processId: testProcessId,
             traceId: TestConstants.traceId,
@@ -226,15 +213,15 @@ class ResourceRecordTests: XCTestCase {
 
         var originals = [
             // given inserted session
-            try storage.addResource(key: "test1", value: "test1", resourceType: .process, resourceTypeId: String(testProcessId.value)),
-            try storage.addResource(key: "test2", value: "test2", resourceType: .process, resourceTypeId: String(testProcessId.value)),
-            try storage.addResource(key: "test3", value: "test3", resourceType: .session, resourceTypeId: testSessionId.uuidString),
-            try storage.addResource(key: "test4", value: "test4", resourceType: .session, resourceTypeId: testSessionId.uuidString),
+            try storage.addResource(key: "test1", value: "test1", resourceType: .process, resourceTypeId: testProcessId.hex),
+            try storage.addResource(key: "test2", value: "test2", resourceType: .process, resourceTypeId: testProcessId.hex),
+            try storage.addResource(key: "test3", value: "test3", resourceType: .session, resourceTypeId: testSessionId.toString),
+            try storage.addResource(key: "test4", value: "test4", resourceType: .session, resourceTypeId: testSessionId.toString),
             try storage.addResource(key: "test5", value: "test5", resourceType: .permanent)
         ]
 
         // when fetching the session
-        let resources = try storage.fetchAllResourceForSession(sessionId: testSessionId.uuidString)
+        let resources = try storage.fetchAllResourceForSession(sessionId: testSessionId)
 
         // then the session should be valid
         XCTAssertNotNil(resources)

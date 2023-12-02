@@ -8,7 +8,7 @@ import GRDB
 
 /// Represents a session in the storage
 public struct SessionRecord: Codable {
-    public var id: SessionId
+    public var id: SessionIdentifier
     public var processId: ProcessIdentifier
     public var state: String
     public var traceId: String
@@ -28,7 +28,7 @@ public struct SessionRecord: Codable {
     public var appTerminated: Bool
 
     public init(
-        id: SessionId,
+        id: SessionIdentifier,
         state: SessionState,
         processId: ProcessIdentifier,
         traceId: String,
