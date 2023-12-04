@@ -6,6 +6,7 @@ import XCTest
 
 @testable import EmbraceIO
 import EmbraceStorage
+@testable import EmbraceUpload
 import EmbraceCommon
 import EmbraceOTel
 import TestSupport
@@ -15,14 +16,51 @@ final class SessionControllerTests: XCTestCase {
     var storage: EmbraceStorage!
     var controller: SessionController!
 
+    var upload: EmbraceUpload!
+    static let testSessionsUrl = URL(string: "https://embrace.test.com/sessions")!
+    static let testBlobsUrl = URL(string: "https://embrace.test.com/blobs")!
+
+    static let testEndpointOptions = EmbraceUpload.EndpointOptions(
+        sessionsURL: SessionControllerTests.testSessionsUrl,
+        blobsURL: SessionControllerTests.testBlobsUrl
+    )
+    static let testCacheOptions = EmbraceUpload.CacheOptions(cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory()))!
+    static let testMetadataOptions = EmbraceUpload.MetadataOptions(apiKey: "apiKey", userAgent: "userAgent", deviceId: "12345678")
+    static let testRedundancyOptions = EmbraceUpload.RedundancyOptions(automaticRetryCount: 0)
+
+    var testOptions: EmbraceUpload.Options!
+    var queue: DispatchQueue!
+    var module: EmbraceUpload!
+
     override func setUpWithError() throws {
+        if FileManager.default.fileExists(atPath: Self.testCacheOptions.cacheFilePath) {
+            try FileManager.default.removeItem(atPath: Self.testCacheOptions.cacheFilePath)
+        }
+
+        let urlSessionconfig = URLSessionConfiguration.ephemeral
+        urlSessionconfig.protocolClasses = [EmbraceHTTPMock.self]
+
+        testOptions = EmbraceUpload.Options(
+            endpoints: Self.testEndpointOptions,
+            cache: Self.testCacheOptions,
+            metadata: Self.testMetadataOptions,
+            redundancy: Self.testRedundancyOptions,
+            urlSessionConfiguration: urlSessionconfig
+        )
+
+        EmbraceHTTPMock.setUp()
+
+        self.queue = DispatchQueue(label: "com.test.embrace.queue", attributes: .concurrent)
+        upload = try EmbraceUpload(options: testOptions, queue: queue)
         storage = try EmbraceStorage(options: .init(named: #file))
-        controller = SessionController(storage: storage)
+
+        // we pass nil so we only use the upload module in the relevant tests
+        controller = SessionController(storage: storage, upload: nil)
     }
 
     override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
         storage = nil
+        upload = nil
         controller = nil
     }
 
@@ -163,6 +201,57 @@ final class SessionControllerTests: XCTestCase {
         }
     }
 
+    func test_endSession_uploadsSession() throws {
+        // mock successful requests
+        EmbraceHTTPMock.mock(url: Self.testSessionsUrl)
+
+        // given a started session
+        let controller = SessionController(storage: storage, upload: upload)
+        controller.startSession(state: .foreground)
+
+        // when ending the session
+        controller.endSession()
+        wait(delay: .longTimeout)
+
+        // then a session request was sent
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(UnsentDataHandlerTests.testSessionsUrl).count, 1)
+
+        // then the session is no longer on storage
+        let session = try storage.fetchSession(id: TestConstants.sessionId)
+        XCTAssertNil(session)
+
+        // then the session upload data is no longer cached
+        let uploadData = try upload.cache.fetchAllUploadData()
+        XCTAssertEqual(uploadData.count, 0)
+    }
+
+    func test_endSession_uploadsSession_error() throws {
+        // mock error requests
+        EmbraceHTTPMock.mock(url: Self.testSessionsUrl, errorCode: 500)
+
+        // given a started session
+        let controller = SessionController(storage: storage, upload: upload)
+        controller.startSession(state: .foreground)
+
+        // when ending the session and the upload fails
+        controller.endSession()
+        wait(delay: .longTimeout)
+
+        // then a session request was attempted
+        XCTAssertGreaterThan(EmbraceHTTPMock.requestsForUrl(UnsentDataHandlerTests.testSessionsUrl).count, 0)
+
+        // then the total amount of requests is correct
+        XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 1)
+
+        // then the session is no longer on storage
+        let session = try storage.fetchSession(id: TestConstants.sessionId)
+        XCTAssertNil(session)
+
+        // then the session upload data cached
+        let uploadData = try upload.cache.fetchAllUploadData()
+        XCTAssertEqual(uploadData.count, 1)
+    }
+
     // MARK: update
 
     func test_update_assignsState_toBackground_whenPresent() throws {
@@ -227,7 +316,7 @@ final class SessionControllerTests: XCTestCase {
 
     func test_heartbeat() throws {
         // given a session controller with a 1 second heartbeat invertal
-        let controller = SessionController(storage: storage, heartbeatInterval: 1)
+        let controller = SessionController(storage: storage, upload: nil, heartbeatInterval: 1)
 
         // when starting a session
         let session = controller.startSession(state: .foreground)

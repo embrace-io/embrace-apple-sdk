@@ -15,6 +15,7 @@ final class iOSSessionLifecycleTests: XCTestCase {
 
     override func setUpWithError() throws {
         lifecycle = iOSSessionLifecycle(controller: mockController)
+        lifecycle.setup()
     }
 
     override func tearDownWithError() throws {
@@ -264,6 +265,32 @@ final class iOSSessionLifecycleTests: XCTestCase {
         XCTAssertFalse(mockController.didCallStartSession)
         XCTAssertFalse(mockController.didCallEndSession)
         XCTAssertTrue(mockController.didCallUpdateSession)
+    }
+
+    // MARK: currentState
+    func test_currentState_defaultValue() {
+        let lifecycle = iOSSessionLifecycle(controller: mockController)
+
+        XCTAssertEqual(lifecycle.currentState, .background)
+    }
+
+    func test_currentState_initialFetch() {
+        let lifecycle = iOSSessionLifecycle(controller: mockController)
+        lifecycle.setup()
+
+        XCTAssertEqual(lifecycle.currentState, .foreground)
+    }
+
+    func test_currentState_appDidBecomeActive() {
+        lifecycle.appDidBecomeActive()
+
+        XCTAssertEqual(lifecycle.currentState, .foreground)
+    }
+
+    func test_currentState_appDidEnterBackground() {
+        lifecycle.appDidEnterBackground()
+
+        XCTAssertEqual(lifecycle.currentState, .background)
     }
 }
 

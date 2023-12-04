@@ -5,6 +5,7 @@
 import Foundation
 import EmbraceCommon
 import EmbraceStorage
+import EmbraceUpload
 import EmbraceOTel
 
 extension Notification.Name {
@@ -28,13 +29,15 @@ class SessionController: SessionControllable {
     @ThreadSafe
     private(set) var currentSessionSpan: Span?
 
-    let heartbeat: SessionHeartbeat
     weak var storage: EmbraceStorage?
+    weak var upload: EmbraceUpload?
+    let heartbeat: SessionHeartbeat
 
     internal var notificationCenter = NotificationCenter.default
 
-    init(storage: EmbraceStorage, heartbeatInterval: TimeInterval = SessionHeartbeat.defaultInterval) {
+    init(storage: EmbraceStorage, upload: EmbraceUpload?, heartbeatInterval: TimeInterval = SessionHeartbeat.defaultInterval) {
         self.storage = storage
+        self.upload = upload
 
         let heartbeatQueue = DispatchQueue(label: "com.embrace.session_heartbeat")
         self.heartbeat = SessionHeartbeat(queue: heartbeatQueue, interval: heartbeatInterval)
@@ -110,6 +113,9 @@ class SessionController: SessionControllable {
         // save session record
         save()
 
+        // upload session
+        uploadSession()
+
         currentSession = nil
         currentSessionSpan = nil
 
@@ -124,6 +130,16 @@ class SessionController: SessionControllable {
     func update(appTerminated: Bool) {
         currentSession?.appTerminated = appTerminated
         save()
+    }
+
+    func uploadSession() {
+        guard let storage = storage,
+              let upload = upload,
+              let session = currentSession else {
+            return
+        }
+
+        UnsentDataHandler.uploadSession(session, storage: storage, upload: upload)
     }
 }
 

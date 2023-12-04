@@ -10,20 +10,31 @@ import UIKit
 final class iOSSessionLifecycle: SessionLifecycle {
 
     weak var controller: SessionControllable?
+    var currentState: SessionState = .background
 
     init(controller: SessionControllable) {
         self.controller = controller
         listenForUIApplication()
     }
 
+    func setup() {
+        // only fetch the app state once during setup
+        // MUST BE DONE ON THE MAIN THREAD!!!
+        guard Thread.isMainThread else {
+            return
+        }
+
+        currentState = UIApplication.shared.applicationState == .background ? SessionState.background : SessionState.foreground
+    }
+
     func startSession() {
-        controller?.startSession(state: determineSessionState())
+        controller?.startSession(state: currentState)
     }
 
     func endSession() {
         // there's always an active session!
         // starting a new session will end the current one (if any)
-        controller?.startSession(state: determineSessionState())
+        controller?.startSession(state: currentState)
     }
 
     deinit {
@@ -32,29 +43,6 @@ final class iOSSessionLifecycle: SessionLifecycle {
 }
 
 extension iOSSessionLifecycle {
-
-    /// This method will retrieve a SessionState by checking the current UIApplication.applicationState
-    /// This
-    /// - Returns: The current SessionState at the current moment in time
-    private func determineSessionState() -> SessionState {
-        let applicationState: UIApplication.State
-        if Thread.isMainThread {
-            applicationState = UIApplication.shared.applicationState
-        } else {
-            applicationState = DispatchQueue.main.sync {
-                UIApplication.shared.applicationState
-            }
-        }
-
-        switch applicationState {
-        case .active, .inactive:
-            return .foreground
-        case .background:
-            return .background
-        @unknown default:
-            return .foreground
-        }
-    }
 
     private func listenForUIApplication() {
         NotificationCenter.default.addObserver(
@@ -81,6 +69,8 @@ extension iOSSessionLifecycle {
 
     /// Application state is now in foreground
     @objc func appDidBecomeActive() {
+        currentState = .foreground
+
         guard let controller = controller else { return }
 
         if let currentSession = controller.currentSession,
@@ -109,6 +99,8 @@ extension iOSSessionLifecycle {
 
     /// Application state is now in the background
     @objc func appDidEnterBackground() {
+        currentState = .background
+
         guard let controller = controller else { return }
 
         // if current session is already background, do nothing
@@ -125,11 +117,7 @@ extension iOSSessionLifecycle {
     /// will continue to run until the system kills it.
     /// This session will not be marked as a "clean exit".
     @objc func appWillTerminate() {
-        guard let controller = controller else { return }
-
-        if let currentSession = controller.currentSession {
-            controller.update(appTerminated: true)
-        }
+        controller?.update(appTerminated: true)
     }
 }
 

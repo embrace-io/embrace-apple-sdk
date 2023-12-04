@@ -64,7 +64,7 @@ import EmbraceObjCUtils
         self.collection = DataCollection(options: options)
         self.upload = Embrace.createUpload(options: options, deviceId: KeychainAccess.deviceId.uuidString)
         self.config = Embrace.createConfig(options: options, deviceId: KeychainAccess.deviceId.uuidString)
-        self.sessionController = SessionController(storage: self.storage)
+        self.sessionController = SessionController(storage: self.storage, upload: self.upload)
         self.sessionLifecycle = Embrace.createSessionLifecycle(platform: options.platform, controller: sessionController)
 
         super.init()
@@ -90,6 +90,7 @@ import EmbraceObjCUtils
 
             started = true
 
+            sessionLifecycle.setup()
             collection.start()
 
             // send unsent sessions and crash reports

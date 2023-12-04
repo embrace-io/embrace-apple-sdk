@@ -12,6 +12,10 @@ class ManualSessionLifecycle: SessionLifecycle {
         self.controller = controller
     }
 
+    func setup() {
+        
+    }
+
     func startSession() {
         controller?.startSession(state: .foreground)
     }

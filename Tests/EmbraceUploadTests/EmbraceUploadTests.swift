@@ -44,7 +44,6 @@ class EmbraceUploadTests: XCTestCase {
 
         self.queue = DispatchQueue(label: "com.test.embrace.queue", attributes: .concurrent)
         module = try EmbraceUpload(options: testOptions, queue: queue)
-
     }
 
     override func tearDownWithError() throws {

@@ -110,33 +110,50 @@ class UnsentDataHandler {
         }
 
         for session in sessions {
-            do {
-                // ignore current session
-                if let currentSessionId = currentSessionId,
-                   currentSessionId == session.id {
-                    continue
+            // ignore current session
+            if let currentSessionId = currentSessionId,
+               currentSessionId == session.id {
+                continue
+            }
+
+            uploadSession(session, storage: storage, upload: upload)
+        }
+    }
+
+    static public func uploadSession(
+        _ session: SessionRecord,
+        storage: EmbraceStorage,
+        upload: EmbraceUpload
+    ) {
+        // create payload
+        let payload = SessionPayloadBuilder.build(for: session, storage: storage)
+        var payloadData: Data?
+
+        do {
+            payloadData = try JSONEncoder().encode(payload).gzipped()
+        } catch {
+            ConsoleLog.warning("Error encoding session \(session.id.toString):\n" + error.localizedDescription)
+            return
+        }
+
+        guard let payloadData = payloadData else {
+            return
+        }
+
+        // upload session
+        upload.uploadSession(id: session.id.toString, data: payloadData) { result in
+            switch result {
+            case .success:
+                do {
+                    // remove session from storage
+                    // we can remove this immediately because the upload module will cache it until the upload succeeds
+                    try storage.delete(record: session)
+                } catch {
+                    ConsoleLog.debug("Error trying to remove session \(session.id):\n\(error.localizedDescription)")
                 }
 
-                let payload = SessionPayloadBuilder.build(for: session, storage: storage)
-                let payloadData = try JSONEncoder().encode(payload).gzipped()
-
-                // upload session
-                upload.uploadSession(id: session.id.toString, data: payloadData) { result in
-                    switch result {
-                    case .success:
-                        do {
-                            // remove session from storage
-                            // we can remove this immediately because the upload module will cache it until the upload succeeds
-                            try storage.delete(record: session)
-                        } catch {
-                            ConsoleLog.debug("Error trying to remove session \(session.id):\n\(error.localizedDescription)")
-                        }
-
-                    case .failure(let error): ConsoleLog.warning("Error trying to upload session \(session.id):\n\(error.localizedDescription)")
-                    }
-                }
-            } catch {
-                ConsoleLog.warning("Error encoding session \(session.id):\n" + error.localizedDescription)
+            case .failure(let error):
+                ConsoleLog.warning("Error trying to upload session \(session.id):\n\(error.localizedDescription)")
             }
         }
     }
