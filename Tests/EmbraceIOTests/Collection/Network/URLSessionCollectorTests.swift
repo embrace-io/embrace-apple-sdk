@@ -48,11 +48,6 @@ class URLSessionCollectorTests: XCTestCase {
         thenHandlerShouldChangeState(to: .uninstalled)
     }
 
-    func test_collectorIsAlwaysAvailable() {
-        givenURLSessionCollector()
-        thenCollectorIsAvailable()
-    }
-
     func test_onInstall_shouldInvokeInstallOnEverySwizzler() {
         givenURLSessionSwizzlerProvider(withSwizzlers: [MockURLSessionSwizzler(),
                                                         MockURLSessionSwizzler(),
@@ -105,11 +100,11 @@ private extension URLSessionCollectorTests {
     }
 
     func whenInvokingShutdown() {
-        sut.shutdown()
+        sut.uninstall()
     }
 
     func whenInvokingInstall() {
-        sut.install()
+        sut.install(context: .init(appId: "myApp", sdkVersion: "0.0.0", filePathProvider: EmbraceFilePathProvider(appId: "myApp", appGroupIdentifier: "com.example.app-group")))
     }
 
     func thenProviderShouldGetAllSwizzlers() {
@@ -123,10 +118,6 @@ private extension URLSessionCollectorTests {
     func thenHandlerShouldChangeState(to status: CollectorState) {
         XCTAssertTrue(handler.didInvokeChangedState)
         XCTAssertEqual(handler.changedStateReceivedParameter, status)
-    }
-
-    func thenCollectorIsAvailable() {
-        XCTAssertTrue(sut.isAvailable())
     }
 
     func thenEachSwizzlerShouldHaveBeenInstalled() {

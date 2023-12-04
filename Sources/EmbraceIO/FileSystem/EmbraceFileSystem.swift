@@ -5,12 +5,19 @@
 import Foundation
 
 public struct EmbraceFileSystem {
-    static let rootFolderName = "io.embrace.data"
-    static let versionFolderName = "v6"
-    static let storageFolderName = "storage"
-    static let uploadsFolderName = "uploads"
-    static let crashesFolderName = "crashes"
+    static let rootDirectoryName = "io.embrace.data"
+    static let versionDirectoryName = "v6"
+    static let storageDirectoryName = "storage"
+    static let uploadsDirectoryName = "uploads"
+    static let crashesDirectoryName = "crashes"
+    static let collectionDirectoryName = "collection"
 
+    /// Returns the path to the system directory that is the root directory for storage.
+    /// When `appGroupId` is present, will be a URL to an app group container
+    /// If not present, will be a path to the user's applicaton support directory.
+    ///
+    /// - Note: On tvOS, if `appGroupId` is not present this will be a path to the user's Cache directory.
+    ///                tvOS is an always connected system an long term persistented data is not permitted
     private static func systemDirectory(appGroupId: String? = nil) -> URL? {
         // if the app group identifier is set, we use the shared container provided by the OS
         if let appGroupId = appGroupId {
@@ -36,34 +43,47 @@ public struct EmbraceFileSystem {
     }
 
     static func dataURL(appGroupId: String? = nil) -> URL? {
-        return systemDirectory(appGroupId: appGroupId)?.appendingPathComponent(rootFolderName)
+        return systemDirectory(appGroupId: appGroupId)?.appendingPathComponent(rootDirectoryName)
     }
 
-    /// Returns the path to the root directory of the Embrace SDK.
+    /// Returns a subpath within the root directory of the Embrace SDK.
+    /// ```
+    /// io.embrace.data/<version>/<app-id>/<name>
+    /// ```
     static func directoryURL(name: String, appId: String, appGroupId: String? = nil) -> URL? {
         guard let baseURL = systemDirectory(appGroupId: appGroupId) else {
             return nil
         }
 
-        let components = [rootFolderName, versionFolderName, appId, name]
+        let components = [rootDirectoryName, versionDirectoryName, appId, name]
         return baseURL.appendingPathComponent(components.joined(separator: "/"))
     }
 
+    /// Returns the subdirectory for data collection
+    /// ```
+    /// io.embrace.data/<version>/<app-id>/storage
+    /// ```
     static func storageDirectoryURL(
         appId: String,
         appGroupId: String? = nil) -> URL? {
-        return directoryURL(name: storageFolderName, appId: appId, appGroupId: appGroupId)
+        return directoryURL(name: storageDirectoryName, appId: appId, appGroupId: appGroupId)
     }
 
+    /// Returns the subdirectory for data collection
+    /// ```
+    /// io.embrace.data/<version>/<app-id>/uploads
+    /// ```
     static func uploadsDirectoryPath(
         appId: String,
         appGroupId: String? = nil) -> URL? {
-        return directoryURL(name: uploadsFolderName, appId: appId, appGroupId: appGroupId)
+        return directoryURL(name: uploadsDirectoryName, appId: appId, appGroupId: appGroupId)
     }
 
-    static func crashesDirectoryPath(
-        appId: String,
-        appGroupId: String? = nil) -> URL? {
-        return directoryURL(name: crashesFolderName, appId: appId, appGroupId: appGroupId)
+    /// Returns the subdirectory for data collection
+    /// ```
+    /// io.embrace.data/<version>/<app-id>/collection
+    /// ```
+    static func collectionDirectoryURL(appId: String, appGroupId: String? = nil) -> URL? {
+        return directoryURL(name: collectionDirectoryName, appId: appId, appGroupId: appGroupId)
     }
 }

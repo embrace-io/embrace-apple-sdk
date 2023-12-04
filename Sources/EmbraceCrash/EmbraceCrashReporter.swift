@@ -15,54 +15,34 @@ import KSCrash_Recording
     }
 
     var ksCrash: KSCrash?
-    private var userInfo: [String: String] = [:]
     private var queue: DispatchQueue = DispatchQueue(label: "com.embrace.crashreporter")
 
     private var appId: String?
-    private var basePath: String?
-
-    public func isAvailable() -> Bool {
-        return true
-    }
-
-    /// Used to setup the path where crashes are saved.
-    /// - Parameters:
-    ///   - appId: The current appId used by Embrace
-    ///   - path: The path where crashes should be stored
-    public func configure(appId: String?, path: String?) {
-        self.appId = appId
-        self.basePath = path
-    }
+    public private(set) var basePath: String?
 
     /// Sets the current session identifier that will be included in a crash report.
     public var currentSessionId: SessionIdentifier? {
-        get {
-
-            if let rawValue = userInfo[UserInfoKey.sessionId], let uuid = UUID(uuidString: rawValue) {
-                return SessionIdentifier(value: uuid)
-            } else {
-                return nil
-            }
-        }
-        set {
-            setUserInfoValue(newValue?.toString, key: UserInfoKey.sessionId)
+        didSet {
+            updateKSCrashInfo()
         }
     }
 
     /// Adds the SDK version to the crash reports.
-    public var sdkVersion: String? {
-        get {
-            return userInfo[UserInfoKey.sdkVersion]
-        }
-        set {
-            setUserInfoValue(newValue, key: UserInfoKey.sdkVersion)
+    private(set) var sdkVersion: String? {
+        didSet {
+            updateKSCrashInfo()
         }
     }
 
-    private func setUserInfoValue(_ value: String?, key: String) {
-        // TODO: Concurrency handling
-        userInfo[key] = value
-        ksCrash?.userInfo = userInfo
+    private func updateKSCrashInfo() {
+        guard let ksCrash = ksCrash else {
+            return
+        }
+
+        ksCrash.userInfo = [
+            UserInfoKey.sdkVersion: sdkVersion ?? NSNull(),
+            UserInfoKey.sessionId: currentSessionId?.toString ?? NSNull()
+        ]
     }
 
     /// Used to determine if the last session ended cleanly or in a crash.
@@ -75,20 +55,18 @@ import KSCrash_Recording
         return ksCrash.crashedLastLaunch ? .crash : .cleanExit
     }
 
-    public func install() {
+    public func install(context: EmbraceCommon.CollectorContext) {
         guard ksCrash == nil else {
-            ConsoleLog.debug("EmbraceCrashReporter already started!")
+            ConsoleLog.debug("EmbraceCrashReporter already installed!")
             return
         }
 
-        guard let basePath = basePath,
-              let appId = appId else {
-            ConsoleLog.error("EmbraceCrashReported failed to initialize!")
-            return
-        }
+        sdkVersion = context.sdkVersion
+        appId = context.appId
+        basePath = context.filePathProvider.directoryURL(for: "embrace_crash_reporter")?.path
 
         ksCrash = KSCrash.sharedInstance(withBasePath: basePath, andBundleName: appId)
-        ksCrash?.userInfo = userInfo
+        updateKSCrashInfo()
     }
 
     public func start() {
@@ -169,7 +147,7 @@ import KSCrash_Recording
     }
 
     // MARK: - Unused
-    public func shutdown() {
+    public func uninstall() {
 
     }
 

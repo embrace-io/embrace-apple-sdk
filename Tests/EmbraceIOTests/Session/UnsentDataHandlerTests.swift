@@ -16,14 +16,8 @@ class UnsentDataHandlerTests: XCTestCase {
 
     let storageOptions = EmbraceStorage.Options(baseUrl: URL(fileURLWithPath: NSTemporaryDirectory()), fileName: "test.sqlite")
 
-    var crashesPath: String {
-        let path = NSSearchPathForDirectoriesInDomains(
-            FileManager.SearchPathDirectory.cachesDirectory,
-            FileManager.SearchPathDomainMask.userDomainMask,
-            true
-        ).first!
-        return path + "/crashes_test/"
-    }
+    let filePathProvider = TemporaryFilepathProvider()
+    var context: CollectorContext!
 
     static let testSessionsUrl = URL(string: "https://embrace.test.com/sessions")!
     static let testBlobsUrl = URL(string: "https://embrace.test.com/blobs")!
@@ -40,20 +34,13 @@ class UnsentDataHandlerTests: XCTestCase {
     var queue: DispatchQueue!
 
     override func setUpWithError() throws {
-        // delete storage
-        if FileManager.default.fileExists(atPath: storageOptions.filePath!) {
-            try FileManager.default.removeItem(atPath: storageOptions.filePath!)
-        }
+        // delete tmpdir
+        try? FileManager.default.removeItem(at: filePathProvider.tmpDirectory)
 
-        // delete crashes
-        if FileManager.default.fileExists(atPath: crashesPath) {
-            try FileManager.default.removeItem(atPath: crashesPath)
-        }
-
-        // delete upload cache
-        if FileManager.default.fileExists(atPath: UnsentDataHandlerTests.testCacheOptions.cacheFilePath) {
-            try FileManager.default.removeItem(atPath: UnsentDataHandlerTests.testCacheOptions.cacheFilePath)
-        }
+        context = CollectorContext(
+            appId: TestConstants.appId,
+            sdkVersion: TestConstants.sdkVersion,
+            filePathProvider: filePathProvider )
 
         // create upload options
         let urlSessionconfig = URLSessionConfiguration.ephemeral
@@ -73,7 +60,8 @@ class UnsentDataHandlerTests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
-
+        // delete tmpdir
+        try? FileManager.default.removeItem(at: filePathProvider.tmpDirectory)
     }
 
     func test_withoutCrashReporter() throws {
@@ -160,14 +148,13 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // given a crash reporter
         let crashReporter = EmbraceCrashReporter()
-        crashReporter.configure(appId: TestConstants.appId, path: crashesPath)
-        crashReporter.install()
+        crashReporter.install(context: .testContext)
         crashReporter.start()
 
         // given some fake crash report
-        try FileManager.default.createDirectory(atPath: crashesPath + "Reports/", withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(atPath: crashReporter.basePath! + "/Reports", withIntermediateDirectories: true)
         let report = Bundle.module.path(forResource: "crash_report", ofType: "json", inDirectory: "Mocks")!
-        let finalPath = crashesPath + "Reports/appId-report-0000000000000001.json"
+        let finalPath = crashReporter.basePath! + "/Reports/appId-report-0000000000000001.json"
         try FileManager.default.copyItem(atPath: report, toPath: finalPath)
 
         // given a finished session in the storage
@@ -239,14 +226,13 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // given a crash reporter
         let crashReporter = EmbraceCrashReporter()
-        crashReporter.configure(appId: TestConstants.appId, path: crashesPath)
-        crashReporter.install()
+        crashReporter.install(context: .testContext)
         crashReporter.start()
 
         // given some fake crash report
-        try FileManager.default.createDirectory(atPath: crashesPath + "Reports/", withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(atPath: crashReporter.basePath! + "/Reports", withIntermediateDirectories: true)
         let report = Bundle.module.path(forResource: "crash_report", ofType: "json", inDirectory: "Mocks")!
-        let finalPath = crashesPath + "Reports/appId-report-0000000000000001.json"
+        let finalPath = crashReporter.basePath! + "/Reports/appId-report-0000000000000001.json"
         try FileManager.default.copyItem(atPath: report, toPath: finalPath)
 
         // given a finished session in the storage
@@ -318,14 +304,13 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // given a crash reporter
         let crashReporter = EmbraceCrashReporter()
-        crashReporter.configure(appId: TestConstants.appId, path: crashesPath)
-        crashReporter.install()
+        crashReporter.install(context: .testContext)
         crashReporter.start()
 
         // given some fake crash report
-        try FileManager.default.createDirectory(atPath: crashesPath + "Reports/", withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(atPath: crashReporter.basePath! + "/Reports", withIntermediateDirectories: true)
         let report = Bundle.module.path(forResource: "crash_report", ofType: "json", inDirectory: "Mocks")!
-        let finalPath = crashesPath + "Reports/appId-report-0000000000000001.json"
+        let finalPath = crashReporter.basePath! + "/Reports/appId-report-0000000000000001.json"
         try FileManager.default.copyItem(atPath: report, toPath: finalPath)
 
         // given an unfinished session in the storage

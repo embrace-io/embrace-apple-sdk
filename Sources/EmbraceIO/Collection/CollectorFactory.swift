@@ -9,14 +9,14 @@ enum CollectorFactory { }
 
 extension CollectorFactory {
 
-    static var requiredCollectors: [any Collector] {
+    static var requiredCollectors: [Collector] {
         return [
             AppInfoCollector(),
             DeviceInfoCollector()
         ]
     }
 
-    static func addRequiredCollectors(to collectors: [any Collector]) -> [any Collector] {
+    static func addRequiredCollectors(to collectors: [Collector]) -> [Collector] {
         return collectors + requiredCollectors
     }
 }
@@ -24,15 +24,15 @@ extension CollectorFactory {
 extension CollectorFactory {
 
     #if os(iOS)
-    static var platformCollectors: [any Collector] {
+    static var platformCollectors: [Collector] {
         return [EmbraceCrashReporter()]
     }
     #elseif os(tvOS)
-    static var platformCollectors: [any Collector] {
+    static var platformCollectors: [Collector] {
         return [EmbraceCrashReporter()]
     }
     #else
-    static var platformCollectors: [any Collector] {
+    static var platformCollectors: [Collector] {
         return []
     }
     #endif

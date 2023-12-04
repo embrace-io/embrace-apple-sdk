@@ -9,6 +9,8 @@ import EmbraceObjCUtils
 @objc public class DeviceInfoCollector: NSObject, Collector {
     typealias Keys = DeviceResourceKeys
 
+    public func setup(context: EmbraceCommon.CollectorContext) { }
+
     public func start() {
         let isJailbroken = EMBDevice.isJailbroken
         let locale = EMBDevice.locale
@@ -31,9 +33,5 @@ import EmbraceObjCUtils
     }
 
     public func stop() {}
-
-    public func isAvailable() -> Bool {
-        return true
-    }
 
 }

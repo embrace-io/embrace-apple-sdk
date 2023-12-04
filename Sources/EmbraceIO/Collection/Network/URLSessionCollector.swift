@@ -40,7 +40,7 @@ public final class URLSessionCollector: InstalledCollector {
         self.swizzlers = swizzlerProvider.getAll(usingHandler: handler)
     }
 
-    public func install() {
+    public func install(context: EmbraceCommon.CollectorContext) {
         guard status == .uninstalled else { return }
         lock.lock()
         defer {
@@ -57,7 +57,7 @@ public final class URLSessionCollector: InstalledCollector {
         }
     }
 
-    public func shutdown() {
+    public func uninstall() {
         status = .uninstalled
     }
 
@@ -68,8 +68,6 @@ public final class URLSessionCollector: InstalledCollector {
     public func stop() {
         status = .paused
     }
-
-    public func isAvailable() -> Bool { true }
 }
 
 struct URLSessionInitWithDelegateSwizzler: URLSessionSwizzler {

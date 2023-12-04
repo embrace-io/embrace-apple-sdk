@@ -36,8 +36,4 @@ import EmbraceObjCUtils
     }
 
     public func stop() {}
-
-    public func isAvailable() -> Bool {
-        return true
-    }
 }

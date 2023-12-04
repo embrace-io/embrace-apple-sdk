@@ -4,35 +4,26 @@
 
 import XCTest
 import TestSupport
+import EmbraceCommon
 @testable import EmbraceCrash
 import EmbraceCommon
 
 class EmbraceCrashReporterTests: XCTestCase {
 
-    var path: String {
-        let path = NSSearchPathForDirectoriesInDomains(
-            FileManager.SearchPathDirectory.cachesDirectory,
-            FileManager.SearchPathDomainMask.userDomainMask,
-            true
-        ).first!
-        return path + "/crashes_test/"
-    }
+    var context: CollectorContext = .testContext
 
     override func setUpWithError() throws {
-        if FileManager.default.fileExists(atPath: path) {
-            try FileManager.default.removeItem(atPath: path)
-        }
+        try? FileManager.default.removeItem(at: context.filePathProvider.directoryURL(for: "")!)
     }
 
     override func tearDownWithError() throws {
-
+        try? FileManager.default.removeItem(at: context.filePathProvider.directoryURL(for: "")!)
     }
 
     func test_currentSessionId() {
         // given a crash reporter
         let crashReporter = EmbraceCrashReporter()
-        crashReporter.configure(appId: TestConstants.appId, path: path)
-        crashReporter.install()
+        crashReporter.install(context: context)
 
         // when setting the current session id
         let sessionId = SessionIdentifier.random
@@ -46,28 +37,25 @@ class EmbraceCrashReporterTests: XCTestCase {
     func test_sdkVersion() {
         // given a crash reporter
         let crashReporter = EmbraceCrashReporter()
-        crashReporter.configure(appId: TestConstants.appId, path: path)
-        crashReporter.install()
 
-        // when setting the current session id
-        crashReporter.sdkVersion = "test"
+        // sdkversion set via context
+        crashReporter.install(context: context)
 
         // then KSCrash's user info is properly set
         let key = EmbraceCrashReporter.UserInfoKey.sdkVersion
-        XCTAssertEqual(crashReporter.ksCrash?.userInfo[key] as? String, "test")
+        XCTAssertEqual(crashReporter.ksCrash?.userInfo[key] as? String, TestConstants.sdkVersion)
     }
 
     func test_fetchCrashReports() throws {
         // given a crash reporter
         let crashReporter = EmbraceCrashReporter()
-        crashReporter.configure(appId: TestConstants.appId, path: path)
-        crashReporter.install()
+        crashReporter.install(context: context)
         crashReporter.start()
 
         // given some fake crash report
-        try FileManager.default.createDirectory(atPath: path + "Reports/", withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(atPath: crashReporter.basePath! + "/Reports", withIntermediateDirectories: true)
         let report = Bundle.module.path(forResource: "crash_report", ofType: "json", inDirectory: "Mocks")!
-        let finalPath = path + "Reports/appId-report-0000000000000001.json"
+        let finalPath = crashReporter.basePath! + "/Reports/appId-report-0000000000000001.json"
         try FileManager.default.copyItem(atPath: report, toPath: finalPath)
 
         // then the report is fetched
@@ -86,16 +74,15 @@ class EmbraceCrashReporterTests: XCTestCase {
     func test_fetchCrashReports_count() throws {
         // given a crash reporter
         let crashReporter = EmbraceCrashReporter()
-        crashReporter.configure(appId: TestConstants.appId, path: path)
-        crashReporter.install()
+        crashReporter.install(context: context)
         crashReporter.start()
 
         // given some fake crash report
-        try FileManager.default.createDirectory(atPath: path + "Reports/", withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(atPath: crashReporter.basePath! + "/Reports", withIntermediateDirectories: true)
         let report = Bundle.module.path(forResource: "crash_report", ofType: "json", inDirectory: "Mocks")!
 
         for i in 1...9 {
-            let finalPath = path + "Reports/appId-report-000000000000000\(i).json"
+            let finalPath = crashReporter.basePath! + "/Reports/appId-report-000000000000000\(i).json"
             try FileManager.default.copyItem(atPath: report, toPath: finalPath)
         }
 

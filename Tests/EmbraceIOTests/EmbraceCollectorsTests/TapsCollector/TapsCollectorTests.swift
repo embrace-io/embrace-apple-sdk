@@ -5,6 +5,7 @@
 import XCTest
 import UIKit
 @testable import EmbraceIO
+import TestSupport
 
 final class TapsCollectorTests: XCTestCase {
     func testInstall() {
@@ -12,7 +13,7 @@ final class TapsCollectorTests: XCTestCase {
         let spy = TapsCollectorHandlerSpy()
         let expectedEvent = UIEvent()
         let collector = TapsCollector(handler: spy)
-        collector.install()
+        collector.install(context: .testContext)
         collector.start()
 
         // When

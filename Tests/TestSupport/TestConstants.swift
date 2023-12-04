@@ -17,7 +17,7 @@ public struct TestConstants {
     public static let appId = "appId"
     public static let deviceId = "18EDB6CE90C2456B97CB91E0F5941CCA"
     public static let osVersion = "16.0"
-    public static let sdkVersion = "6.0.0"
+    public static let sdkVersion = "00.1.00"
     public static let appVersion = "1.0"
-    public static let userAgent = "Embrace/i/6.0.0"
+    public static let userAgent = "Embrace/i/00.1.00"
 }

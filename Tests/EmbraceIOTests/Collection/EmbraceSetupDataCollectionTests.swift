@@ -15,16 +15,14 @@ final class EmbraceSetupDataCollectionTests: XCTestCase {
         var didStop = false
         var available = true
 
+        func setup(context: EmbraceCommon.CollectorContext) { }
+
         func start() {
             didStart = true
         }
 
         func stop() {
             didStop = true
-        }
-
-        func isAvailable() -> Bool {
-            return available
         }
     }
 
@@ -44,15 +42,11 @@ final class EmbraceSetupDataCollectionTests: XCTestCase {
             didStop = true
         }
 
-        func isAvailable() -> Bool {
-            return available
-        }
-
-        func install() {
+        func install(context: EmbraceCommon.CollectorContext) {
             didInstall = true
         }
 
-        func shutdown() {
+        func uninstall() {
             didShutdown = true
         }
     }

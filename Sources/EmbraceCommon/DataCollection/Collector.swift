@@ -5,13 +5,16 @@
 import Foundation
 
 @objc public protocol Collector {
+    /// Called when the SDK starts. Use to
     func start()
-    func stop()
 
-    func isAvailable() -> Bool
+    /// 
+    func stop()
 }
 
 @objc public protocol InstalledCollector: Collector {
-    func install()
-    func shutdown()
+
+    func install(context: CollectorContext)
+
+    func uninstall()
 }

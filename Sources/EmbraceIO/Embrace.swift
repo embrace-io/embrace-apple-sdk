@@ -69,8 +69,6 @@ import EmbraceObjCUtils
 
         super.init()
 
-        initializeCrashReporter(options: options)
-
         EmbraceOTel.setup(spanProcessor: .with(storage: storage))
     }
 

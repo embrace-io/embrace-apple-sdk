@@ -10,9 +10,6 @@ public enum LastRunState {
 
 public protocol CrashReporter: InstalledCollector {
     var currentSessionId: SessionIdentifier? { get set }
-    var sdkVersion: String? { get set }
-
-    func configure(appId: String?, path: String?)
 
     func getLastRunState() -> LastRunState
 

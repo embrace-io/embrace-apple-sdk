@@ -23,6 +23,7 @@ class MockPowerModeProvider: PowerModeProvider {
 class LowPowerModeCollectorTests: XCTestCase {
 
     let provider = MockPowerModeProvider()
+
     override func setUpWithError() throws {
         provider.isLowPowerModeEnabled = false
 
@@ -36,7 +37,7 @@ class LowPowerModeCollectorTests: XCTestCase {
 
         // when starting a collector
         let collector = LowPowerModeCollector(provider: provider)
-        collector.install()
+        collector.install(context: .testContext)
         collector.start()
 
         // then a span is started correctly
@@ -54,7 +55,7 @@ class LowPowerModeCollectorTests: XCTestCase {
 
         // when starting a collector
         let collector = LowPowerModeCollector(provider: provider)
-        collector.install()
+        collector.install(context: .testContext)
         collector.start()
 
         // then a span is not started
@@ -66,7 +67,7 @@ class LowPowerModeCollectorTests: XCTestCase {
 
         // when installing a collector
         let collector = LowPowerModeCollector(provider: provider)
-        collector.install()
+        collector.install(context: .testContext)
 
         // then its not started
         XCTAssertFalse(collector.started)
@@ -95,7 +96,7 @@ class LowPowerModeCollectorTests: XCTestCase {
 
         // when starting a collector
         let collector = LowPowerModeCollector(provider: provider)
-        collector.install()
+        collector.install(context: .testContext)
         collector.start()
 
         // then it correctly starts
@@ -120,7 +121,7 @@ class LowPowerModeCollectorTests: XCTestCase {
 
         // when starting a collector
         let collector = LowPowerModeCollector(provider: provider)
-        collector.install()
+        collector.install(context: .testContext)
         collector.start()
 
         // then a span is not started
@@ -144,7 +145,7 @@ class LowPowerModeCollectorTests: XCTestCase {
 
         // when starting a collector
         let collector = LowPowerModeCollector(provider: provider)
-        collector.install()
+        collector.install(context: .testContext)
         collector.start()
 
         // then a span is started
@@ -165,7 +166,7 @@ class LowPowerModeCollectorTests: XCTestCase {
 
         // when starting a collector
         let collector = LowPowerModeCollector(provider: provider)
-        collector.install()
+        collector.install(context: .testContext)
         collector.start()
 
         // then a span is started
@@ -186,7 +187,7 @@ class LowPowerModeCollectorTests: XCTestCase {
 
         // when starting a collector
         let collector = LowPowerModeCollector(provider: provider)
-        collector.install()
+        collector.install(context: .testContext)
         collector.start()
 
         // then a span is started
@@ -194,7 +195,7 @@ class LowPowerModeCollectorTests: XCTestCase {
         XCTAssertNotNil(span)
 
         // when the collector is stoped
-        collector.shutdown()
+        collector.uninstall()
 
         // then the span is ended
         XCTAssertNotNil((span as! RecordingSpan).endTime)

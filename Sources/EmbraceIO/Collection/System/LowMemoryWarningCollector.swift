@@ -17,7 +17,7 @@ import OpenTelemetryApi
         NotificationCenter.default.removeObserver(self)
     }
 
-    public func install() {
+    public func install(context: EmbraceCommon.CollectorContext) {
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(didReceiveMemoryWarning),
@@ -26,7 +26,7 @@ import OpenTelemetryApi
         )
     }
 
-    public func shutdown() {
+    public func uninstall() {
         NotificationCenter.default.removeObserver(self)
         started = false
     }
@@ -37,10 +37,6 @@ import OpenTelemetryApi
 
     public func stop() {
         started = false
-    }
-
-    public func isAvailable() -> Bool {
-        return true
     }
 
     @objc func didReceiveMemoryWarning(notification: Notification) {

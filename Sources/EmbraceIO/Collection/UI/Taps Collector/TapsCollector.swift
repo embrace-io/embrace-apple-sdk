@@ -21,11 +21,7 @@ final class TapsCollector: SwizzleCollector {
         self.init()
     }
 
-    func isAvailable() -> Bool {
-        return true
-    }
-
-    func install() {
+    func install(context: EmbraceCommon.CollectorContext) {
         guard TapsCollector.installed == false else { return }
 
         TapsCollector.installed = true
@@ -41,7 +37,7 @@ final class TapsCollector: SwizzleCollector {
         TapsCollector.listening = false
     }
 
-    func shutdown() {
+    func uninstall() {
         TapsCollector.listening = false
     }
 

@@ -25,7 +25,9 @@ import OpenTelemetryApi
         NotificationCenter.default.removeObserver(self)
     }
 
-    public func install() {
+    public func setup(context: EmbraceCommon.CollectorContext) { }
+
+    public func install(context: EmbraceCommon.CollectorContext) {
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(didChangePowerMode),
@@ -34,7 +36,7 @@ import OpenTelemetryApi
         )
     }
 
-    public func shutdown() {
+    public func uninstall() {
         NotificationCenter.default.removeObserver(self)
         started = false
 
@@ -55,10 +57,6 @@ import OpenTelemetryApi
         started = false
 
         endSpan()
-    }
-
-    public func isAvailable() -> Bool {
-        true
     }
 
     @objc func didChangePowerMode(notification: Notification) {
