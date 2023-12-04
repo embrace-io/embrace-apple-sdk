@@ -12,7 +12,7 @@ import EmbraceObjCUtils
 
 @objc public class Embrace: NSObject {
 
-    @objc public private(set) static var client: Embrace?
+    @objc public internal(set) static var client: Embrace?
     @objc public private(set) var options: Embrace.Options
     @objc public private(set) var started: Bool
     @objc public private(set) var deviceId: UUID?
