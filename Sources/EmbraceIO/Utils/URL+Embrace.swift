@@ -5,7 +5,7 @@
 import Foundation
 
 extension URL {
-    static let apiVersion = "v2"
+    static let apiVersion = "v1"
 
     static func endpoint(basePath: String, apiPath: String) -> URL? {
         return URL(string: String(format: "%@/\(apiVersion)/%@", basePath, apiPath))

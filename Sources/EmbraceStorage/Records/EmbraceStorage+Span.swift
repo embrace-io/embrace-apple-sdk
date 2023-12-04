@@ -55,10 +55,24 @@ extension EmbraceStorage {
         return span
     }
 
+    /// Synchonously removes all the closed spans older than the given date.
+    /// If no date is provided, all closed spans will be removed.
+    /// - Parameter date: Date used to determine which spans to remove
+    public func cleanUpSpans(date: Date? = nil) throws {
+        _ = try dbQueue.write { db in
+            var filter = SpanRecord.filter(Column("end_time") != nil)
+
+            if let date = date {
+                filter = filter.filter(Column("end_time") < date)
+            }
+
+            try filter.deleteAll(db)
+        }
+    }
+
     /// Synchronously closes all open spans with the given `endTime`.
     /// - Parameters:
     ///   - endtime: Identifier of the trace containing this span
-    /// - Returns: Array containing the stored `SpanRecords`
     public func closeOpenSpans(endTime: Date) throws {
         _ = try dbQueue.write { db in
             try SpanRecord
@@ -72,20 +86,26 @@ extension EmbraceStorage {
     ///   - startTime: Date to be used as `startTime` for the fetch
     ///   - endTime: Date to be used as `endTime` for the fetch
     ///   - includeOlder: Defines if spans that were started before the given `startTime` should be included.
-    ///   - type: SpanType of the span
     ///   - limit: Limit the amount of spans fetched (optional)
     /// - Returns: Array containing the stored `SpanRecords`
     public func fetchSpans(
         startTime: Date,
         endTime: Date,
         includeOlder: Bool = true,
-        type: SpanType? = nil,
+        ignoreSessionSpans: Bool = true,
         limit: Int? = nil
     ) throws -> [SpanRecord] {
 
         var spans: [SpanRecord] = []
         try dbQueue.read { [weak self] db in
-            spans = try self?.fetchSpans(db: db, startTime: startTime, endTime: endTime, includeOlder: includeOlder, type: type, limit: limit) ?? []
+            spans = try self?.fetchSpans(
+                db: db,
+                startTime: startTime,
+                endTime: endTime,
+                includeOlder: includeOlder,
+                ignoreSessionSpans: ignoreSessionSpans,
+                limit: limit
+            ) ?? []
         }
 
         return spans
@@ -143,7 +163,7 @@ fileprivate extension EmbraceStorage {
         return try request.fetchAll(db)
     }
 
-    func spanInTimeFrameByTypeRequest(startTime: Date, endTime: Date, includeOlder: Bool, type: SpanType?) -> QueryInterfaceRequest<SpanRecord> {
+    func spanInTimeFrameByTypeRequest(startTime: Date, endTime: Date, includeOlder: Bool, ignoreSessionSpans: Bool) -> QueryInterfaceRequest<SpanRecord> {
 
         var filter = SpanRecord.filter(Column("end_time") == nil || (Column("end_time") <= endTime && Column("end_time") >= startTime))
 
@@ -151,19 +171,19 @@ fileprivate extension EmbraceStorage {
             filter = filter.filter(Column("start_time") >= startTime)
         }
 
-        if let type = type {
-            filter = filter.filter(Column("type") == type.rawValue)
+        if includeOlder == true {
+            filter = filter.filter(Column("type") != "session")
         }
 
         return filter
     }
 
-    func fetchSpans(db: Database, startTime: Date, endTime: Date, includeOlder: Bool, type: SpanType?, limit: Int?) throws -> [SpanRecord] {
+    func fetchSpans(db: Database, startTime: Date, endTime: Date, includeOlder: Bool, ignoreSessionSpans: Bool, limit: Int?) throws -> [SpanRecord] {
         var request = spanInTimeFrameByTypeRequest(
             startTime: startTime,
             endTime: endTime,
             includeOlder: includeOlder,
-            type: type
+            ignoreSessionSpans: ignoreSessionSpans
         ).order(Column("start_time"))
 
         if let limit = limit {

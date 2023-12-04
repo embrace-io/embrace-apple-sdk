@@ -257,4 +257,40 @@ class SessionRecordTests: XCTestCase {
         // then the fetched session is valid
         XCTAssertEqual(session, session3)
     }
+
+    func test_fetchOldestSesssion() throws {
+        let storage = try EmbraceStorage(options: testOptions)
+
+        // given inserted sessions
+        let session1 = try storage.addSession(
+            id: .random,
+            state: .foreground,
+            processId: ProcessIdentifier.current,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date()
+        )
+        _ = try storage.addSession(
+            id: .random,
+            state: .foreground,
+            processId: ProcessIdentifier.current,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date(timeIntervalSinceNow: 10)
+        )
+        _ = try storage.addSession(
+            id: .random,
+            state: .foreground,
+            processId: ProcessIdentifier.current,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date(timeIntervalSinceNow: 20)
+        )
+
+        // when fetching the oldest session
+        let session = try storage.fetchOldestSesssion()
+
+        // then the fetched session is valid
+        XCTAssertEqual(session, session1)
+    }
 }

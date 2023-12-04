@@ -37,7 +37,7 @@ final class iOSSessionLifecycleTests: XCTestCase {
         lifecycle.startSession()
 
         XCTAssertTrue(mockController.didCallStartSession)
-        XCTAssertEqual(mockController.currentSession?.state, .foreground)
+        XCTAssertEqual(mockController.currentSession?.state, "foreground")
     }
 
     func test_startSession_whenControllerHasCurrentSession_callsEndSession_andThenStartSession() {
@@ -48,7 +48,7 @@ final class iOSSessionLifecycleTests: XCTestCase {
         XCTAssertTrue(mockController.didCallEndSession)
         XCTAssertTrue(mockController.didCallStartSession)
         XCTAssertNotNil(mockController.currentSession?.state)
-        XCTAssertEqual(mockController.currentSession?.state, .foreground)
+        XCTAssertEqual(mockController.currentSession?.state, "foreground")
     }
 
     func test_startSession_fromBackgroundQueue_callsControllerStartSession_andSetsSessionState() {
@@ -61,7 +61,7 @@ final class iOSSessionLifecycleTests: XCTestCase {
         waitForExpectations(timeout: 0.1, handler: nil)
 
         XCTAssertTrue(mockController.didCallStartSession)
-        XCTAssertEqual(mockController.currentSession?.state, .foreground)
+        XCTAssertEqual(mockController.currentSession?.state, "foreground")
     }
 
     // MARK: endSession
@@ -111,7 +111,7 @@ final class iOSSessionLifecycleTests: XCTestCase {
 
         XCTAssertTrue(mockController.didCallStartSession)
         XCTAssertNotNil(mockController.currentSession)
-        XCTAssertEqual(mockController.currentSession?.state, .foreground)
+        XCTAssertEqual(mockController.currentSession?.state, "foreground")
     }
 
     func test_appDidBecomeActive_whenControllerHasCurrentSession_withStateForeground_doesNothing() {
@@ -123,7 +123,7 @@ final class iOSSessionLifecycleTests: XCTestCase {
 
         XCTAssertFalse(mockController.didCallStartSession)
         XCTAssertEqual(session!.id, mockController.currentSession!.id)
-        XCTAssertEqual(mockController.currentSession?.state, .foreground)
+        XCTAssertEqual(mockController.currentSession?.state, "foreground")
     }
 
     func test_appDidBecomeActive_whenControllerHasCurrentSession_withColdStartTrue_callsUpdateToForegroundState_andKeepsSameSessionCurrent() {
@@ -133,7 +133,7 @@ final class iOSSessionLifecycleTests: XCTestCase {
         mockController.didCallStartSession = false
 
         mockController.onUpdateSession { session, state, appTerminated in
-            XCTAssertEqual(session.id, self.mockController.currentSession?.id)
+            XCTAssertEqual(session?.id, self.mockController.currentSession?.id)
             XCTAssertEqual(state, .foreground)
             XCTAssertNil(appTerminated)
         }
@@ -156,7 +156,7 @@ final class iOSSessionLifecycleTests: XCTestCase {
         XCTAssertTrue(mockController.didCallEndSession)
         XCTAssertTrue(mockController.didCallStartSession)
         XCTAssertNotEqual(session!.id, mockController.currentSession!.id)
-        XCTAssertEqual(mockController.currentSession?.state, .foreground)
+        XCTAssertEqual(mockController.currentSession?.state, "foreground")
     }
 
     // MARK: appDidEnterBackground
@@ -179,7 +179,7 @@ final class iOSSessionLifecycleTests: XCTestCase {
         XCTAssertNotNil(mockController.currentSession)
         XCTAssertTrue(mockController.didCallStartSession)
         XCTAssertFalse(mockController.didCallEndSession)
-        XCTAssertEqual(mockController.currentSession?.state, .background)
+        XCTAssertEqual(mockController.currentSession?.state, "background")
     }
 
     func test_appDidEnterBackground_whenControllerHasCurrentSession_withStateBackground_doesNothing() {
@@ -192,7 +192,7 @@ final class iOSSessionLifecycleTests: XCTestCase {
         XCTAssertFalse(mockController.didCallStartSession)
         XCTAssertFalse(mockController.didCallEndSession)
         XCTAssertEqual(session!.id, mockController.currentSession!.id)
-        XCTAssertEqual(mockController.currentSession?.state, .background)
+        XCTAssertEqual(mockController.currentSession?.state, "background")
     }
 
     func test_appDidEnterBackground_whenControllerHasCurrentSession_withStateForeground_createsNewBackgroundSession() {
@@ -204,7 +204,7 @@ final class iOSSessionLifecycleTests: XCTestCase {
         XCTAssertTrue(mockController.didCallStartSession)
         XCTAssertTrue(mockController.didCallEndSession)
         XCTAssertNotEqual(session!.id, mockController.currentSession!.id)
-        XCTAssertEqual(mockController.currentSession?.state, .background)
+        XCTAssertEqual(mockController.currentSession?.state, "background")
     }
 
     // MARK: appWillTerminate
@@ -233,7 +233,7 @@ final class iOSSessionLifecycleTests: XCTestCase {
         mockController.currentSession?.appTerminated = false
 
         mockController.onUpdateSession { session, state, appTerminated in
-            XCTAssertEqual(session.id, self.mockController.currentSession?.id)
+            XCTAssertEqual(session?.id, self.mockController.currentSession?.id)
             XCTAssertEqual(appTerminated, true)
             XCTAssertNil(state)
         }
@@ -252,7 +252,7 @@ final class iOSSessionLifecycleTests: XCTestCase {
         mockController.currentSession?.appTerminated = false
 
         mockController.onUpdateSession { session, state, appTerminated in
-            XCTAssertEqual(session.id, self.mockController.currentSession?.id)
+            XCTAssertEqual(session?.id, self.mockController.currentSession?.id)
             XCTAssertEqual(appTerminated, true)
             XCTAssertNil(state)
         }

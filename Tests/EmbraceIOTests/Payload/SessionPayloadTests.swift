@@ -46,28 +46,9 @@ final class SessionPayloadTests: XCTestCase {
         XCTAssertEqual(payload.sessionInfo.sessionId, sessionRecord.id)
         XCTAssertEqual(payload.sessionInfo.startTime, sessionRecord.startTime.millisecondsSince1970Truncated)
         XCTAssertEqual(payload.sessionInfo.endTime, sessionRecord.endTime?.millisecondsSince1970Truncated)
+        XCTAssertEqual(payload.sessionInfo.lastHeartbeatTime, sessionRecord.lastHeartbeatTime.millisecondsSince1970Truncated)
         XCTAssertEqual(payload.sessionInfo.appState, sessionRecord.state)
         XCTAssertEqual(payload.sessionInfo.counter, 10)
-    }
-
-    func test_heartbeatEndTime() {
-        // given a session record without endTime
-        let sessionRecord = SessionRecord(
-            id: .random,
-            state: .foreground,
-            processId: ProcessIdentifier.current,
-            traceId: TestConstants.traceId,
-            spanId: TestConstants.spanId,
-            startTime: Date(timeIntervalSince1970: 10)
-        )
-
-        let fetcher = MockResourceFetcher(resources: [])
-
-        // when creating a payload
-        let payload = SessionPayload(from: sessionRecord, resourceFetcher: fetcher, counter: 10)
-
-        // then the endTime uses the lastHeartbeatTime
-        XCTAssertEqual(payload.sessionInfo.endTime, sessionRecord.lastHeartbeatTime.millisecondsSince1970Truncated)
     }
 
     func test_highLevelKeys() throws {
@@ -105,6 +86,7 @@ final class SessionPayloadTests: XCTestCase {
         XCTAssertEqual(sessionInfo["id"] as! String, sessionRecord.id.toString)
         XCTAssertEqual(sessionInfo["st"] as! Int, sessionRecord.startTime.millisecondsSince1970Truncated)
         XCTAssertEqual(sessionInfo["et"] as? Int, sessionRecord.endTime?.millisecondsSince1970Truncated)
+        XCTAssertEqual(sessionInfo["ht"] as! Int, sessionRecord.lastHeartbeatTime.millisecondsSince1970Truncated)
         XCTAssertEqual(sessionInfo["as"] as! String, sessionRecord.state)
         XCTAssertEqual(sessionInfo["sn"] as! Int, 10)
     }

@@ -10,6 +10,7 @@ struct SessionInfoPayload: Codable {
     let sessionId: SessionIdentifier
     let startTime: Int
     let endTime: Int?
+    let lastHeartbeatTime: Int
     let appState: String
     let counter: Int
 
@@ -17,6 +18,7 @@ struct SessionInfoPayload: Codable {
         case sessionId = "id"
         case startTime = "st"
         case endTime = "et"
+        case lastHeartbeatTime = "ht"
         case appState = "as"
         case counter = "sn"
     }
@@ -24,7 +26,8 @@ struct SessionInfoPayload: Codable {
     init(from sessionRecord: SessionRecord, counter: Int) {
         self.sessionId = sessionRecord.id
         self.startTime = sessionRecord.startTime.millisecondsSince1970Truncated
-        self.endTime = (sessionRecord.endTime ?? sessionRecord.lastHeartbeatTime).millisecondsSince1970Truncated
+        self.endTime = sessionRecord.endTime?.millisecondsSince1970Truncated
+        self.lastHeartbeatTime = sessionRecord.lastHeartbeatTime.millisecondsSince1970Truncated
         self.appState = sessionRecord.state
         self.counter = counter
     }

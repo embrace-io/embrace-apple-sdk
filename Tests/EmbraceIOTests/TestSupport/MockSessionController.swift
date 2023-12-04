@@ -5,6 +5,8 @@
 import Foundation
 @testable import EmbraceIO
 import EmbraceCommon
+import EmbraceStorage
+import TestSupport
 
 class MockSessionController: SessionControllable {
 
@@ -14,60 +16,57 @@ class MockSessionController: SessionControllable {
     var didCallEndSession: Bool = false
     var didCallUpdateSession: Bool = false
 
-    private var startSessionCallback: ((EmbraceSession, Date) -> Void)?
-    private var endSessionCallback: ((EmbraceSession, Date) -> Void)?
+    private var updateSessionCallback: ((SessionRecord?, SessionState?, Bool?) -> Void)?
 
-    private var updateSessionCallback: ((EmbraceSession, SessionState?, Bool?) -> Void)?
-
-    var currentSession: EmbraceSession?
+    var currentSession: SessionRecord?
 
     @discardableResult
-    func startSession(state: SessionState) -> EmbraceSession {
+    func startSession(state: SessionState) -> SessionRecord {
         return startSession(state: state, startTime: Date())
     }
 
     @discardableResult
-    func startSession(state: SessionState, startTime: Date = Date()) -> EmbraceSession {
+    func startSession(state: SessionState, startTime: Date = Date()) -> SessionRecord {
         if currentSession != nil {
             endSession()
         }
 
-        var session = EmbraceSession(id: nextSessionId ?? .random, state: state, startTime: startTime)
+        let session = SessionRecord(
+            id: nextSessionId ?? .random,
+            state: state,
+            processId: ProcessIdentifier.current,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: startTime
+        )
 
         didCallStartSession = true
         currentSession = session
 
-        startSessionCallback?(session, startTime)
-
         return session
     }
 
-    func endSession() {
-        guard let session = currentSession else {
-            return
-        }
-
+    @discardableResult
+    func endSession() -> Date {
         didCallEndSession = true
         currentSession = nil
 
-        endSessionCallback?(session, Date())
+        return Date()
     }
 
-    func update(session: EmbraceIO.EmbraceSession, state: SessionState?, appTerminated: Bool?) {
+    func update(state: SessionState) {
         didCallUpdateSession = true
 
-        updateSessionCallback?(session, state, appTerminated)
+        updateSessionCallback?(currentSession, state, nil)
     }
 
-    func onStartSession(_ callback: @escaping (EmbraceSession, Date) -> Void) {
-        startSessionCallback = callback
+    func update(appTerminated: Bool) {
+        didCallUpdateSession = true
+
+        updateSessionCallback?(currentSession, nil, appTerminated)
     }
 
-    func onEndSession(_ callback: @escaping (EmbraceSession, Date) -> Void) {
-        endSessionCallback = callback
-    }
-
-    func onUpdateSession(_ callback: @escaping ((EmbraceSession, SessionState?, Bool?) -> Void)) {
+    func onUpdateSession(_ callback: @escaping ((SessionRecord?, SessionState?, Bool?) -> Void)) {
         updateSessionCallback = callback
     }
 }

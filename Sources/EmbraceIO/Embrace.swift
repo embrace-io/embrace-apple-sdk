@@ -111,7 +111,6 @@ import EmbraceObjCUtils
             return nil
         }
 
-        // TODO: Discuss concurrency
         return sessionController.currentSession?.id.toString
     }
 

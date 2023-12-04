@@ -4,29 +4,20 @@
 
 import Foundation
 import EmbraceCommon
+import EmbraceStorage
 
 /// Protocol for managing sessions.
 /// See ``SessionController`` for main conformance
 protocol SessionControllable: AnyObject {
 
-    var currentSession: EmbraceSession? { get }
+    var currentSession: SessionRecord? { get }
 
     @discardableResult
-    func startSession(state: SessionState) -> EmbraceSession
-    func endSession()
+    func startSession(state: SessionState) -> SessionRecord
 
-    func update(session: EmbraceSession, state: SessionState?, appTerminated: Bool?)
-    func update(session: EmbraceSession, state: SessionState?)
-    func update(session: EmbraceSession, appTerminated: Bool?)
-}
+    @discardableResult
+    func endSession() -> Date
 
-extension SessionControllable {
-
-    func update(session: EmbraceSession, state: SessionState?) {
-        update(session: session, state: state, appTerminated: nil)
-    }
-
-    func update(session: EmbraceSession, appTerminated: Bool?) {
-        update(session: session, state: nil, appTerminated: appTerminated)
-    }
+    func update(state: SessionState)
+    func update(appTerminated: Bool)
 }

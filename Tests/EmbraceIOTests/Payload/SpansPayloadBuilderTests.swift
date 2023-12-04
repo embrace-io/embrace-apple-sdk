@@ -80,8 +80,9 @@ final class SpansPayloadBuilderTests: XCTestCase {
         let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
 
         // then the spans are retrieved correctly
-        XCTAssertEqual(closed.count, 1)
-        XCTAssertEqual(closed[0], payload)
+        XCTAssertEqual(closed.count, 2)
+        XCTAssertEqual(closed[0].name, SessionSpanUtils.spanName) // session span always first
+        XCTAssertEqual(closed[1], payload)
         XCTAssertEqual(open.count, 0)
     }
 
@@ -97,7 +98,8 @@ final class SpansPayloadBuilderTests: XCTestCase {
         let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
 
         // then the spans are retrieved correctly
-        XCTAssertEqual(closed.count, 0)
+        XCTAssertEqual(closed.count, 1)
+        XCTAssertEqual(closed[0].name, SessionSpanUtils.spanName) // session span always first
         XCTAssertEqual(open.count, 1)
         XCTAssertEqual(open[0], payload)
     }
@@ -114,8 +116,9 @@ final class SpansPayloadBuilderTests: XCTestCase {
         let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
 
         // then the spans are retrieved correctly
-        XCTAssertEqual(closed.count, 1)
-        XCTAssertEqual(closed[0], payload)
+        XCTAssertEqual(closed.count, 2)
+        XCTAssertEqual(closed[0].name, SessionSpanUtils.spanName) // session span always first
+        XCTAssertEqual(closed[1], payload)
         XCTAssertEqual(open.count, 0)
     }
 
@@ -131,14 +134,15 @@ final class SpansPayloadBuilderTests: XCTestCase {
         let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
 
         // then the spans are retrieved correctly
-        XCTAssertEqual(closed.count, 0)
+        XCTAssertEqual(closed.count, 1)
+        XCTAssertEqual(closed[0].name, SessionSpanUtils.spanName) // session span always first
         XCTAssertEqual(open.count, 1)
         XCTAssertEqual(open[0], payload)
     }
 
     func test_closedSpan_outsideSession() throws {
         // given a closed span that started and ended before the session
-        let span = try addSpan(
+        _ = try addSpan(
             startTime: Date(timeIntervalSince1970: 0),
             endTime: Date(timeIntervalSince1970: 10)
         )
@@ -147,7 +151,26 @@ final class SpansPayloadBuilderTests: XCTestCase {
         let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
 
         // then the spans are retrieved correctly
-        XCTAssertEqual(closed.count, 0)
+        XCTAssertEqual(closed.count, 1)
+        XCTAssertEqual(closed[0].name, SessionSpanUtils.spanName) // session span always first
+        XCTAssertEqual(open.count, 0)
+    }
+
+    func test_hardLimit() throws {
+        // given more than 1000 spans
+        for _ in 1...1100 {
+            _ = try addSpan(
+                startTime: Date(timeIntervalSince1970: 55),
+                endTime: Date(timeIntervalSince1970: 60)
+            )
+        }
+
+        // when building the spans payload
+        let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
+
+        // then the spans are retrieved correctly
+        XCTAssertEqual(closed.count, 1001) // 1000 spans + session span
+        XCTAssertEqual(closed[0].name, SessionSpanUtils.spanName) // session span always first
         XCTAssertEqual(open.count, 0)
     }
 }

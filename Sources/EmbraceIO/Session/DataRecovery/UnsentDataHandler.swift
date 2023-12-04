@@ -97,17 +97,10 @@ class UnsentDataHandler {
         currentSessionId: SessionIdentifier?
     ) {
 
-        // close all open spans
-        do {
-            let lastSession = try storage.fetchLatestSesssion()
-            let endTime = (lastSession?.endTime ?? lastSession?.lastHeartbeatTime) ?? Date()
+        // clean up old spans + close open spans
+        prepareSpans(storage: storage)
 
-            try storage.closeOpenSpans(endTime: endTime)
-        } catch {
-            ConsoleLog.warning("Error closing open spans:\n\(error.localizedDescription)")
-        }
-
-        // fetch finished sessions
+        // fetch all sessions in the storage
         var sessions: [SessionRecord]
         do {
             sessions = try storage.fetchAll()
@@ -145,6 +138,29 @@ class UnsentDataHandler {
             } catch {
                 ConsoleLog.warning("Error encoding session \(session.id):\n" + error.localizedDescription)
             }
+        }
+    }
+
+    static private func prepareSpans(storage: EmbraceStorage) {
+
+        do {
+            // first we delete any span record that is closed and its older
+            // than the oldest session we have on storage
+            // since spans are only sent when included in a session
+            // all of these would never be sent anymore, so they can be safely removed
+            // if no session is found, all closed spans can be safely removed as well
+            let oldestSession = try storage.fetchOldestSesssion()
+            try storage.cleanUpSpans(date: oldestSession?.startTime)
+
+            // then we need to close any remaining open spans
+            // we use the latest session on storage to determine the `endTime`
+            // since we need to have a valid `endTime` for these spans, we default
+            // to `Date()` if we don't have a session
+            let latestSession = try storage.fetchLatestSesssion()
+            let endTime = (latestSession?.endTime ?? latestSession?.lastHeartbeatTime) ?? Date()
+            try storage.closeOpenSpans(endTime: endTime)
+        } catch {
+            ConsoleLog.warning("Error closing open spans:\n\(error.localizedDescription)")
         }
     }
 }

@@ -23,12 +23,10 @@ extension Notification.Name {
 class SessionController: SessionControllable {
 
     @ThreadSafe
-    private(set) var currentSession: EmbraceSession?
+    private(set) var currentSession: SessionRecord?
 
     @ThreadSafe
     private(set) var currentSessionSpan: Span?
-
-    private let saveLock = UnfairLock()
 
     let heartbeat: SessionHeartbeat
     weak var storage: EmbraceStorage?
@@ -42,14 +40,8 @@ class SessionController: SessionControllable {
         self.heartbeat = SessionHeartbeat(queue: heartbeatQueue, interval: heartbeatInterval)
 
         self.heartbeat.callback = { [weak self] in
-            if let session = self?.currentSession {
-                session.lastHeartbeatTime = Date()
-                do {
-                    try self?.save()
-                } catch {
-                    ConsoleLog.warning("Error trying to update session heartbeat!:\n\(error.localizedDescription)")
-                }
-            }
+            self?.currentSession?.lastHeartbeatTime = Date()
+            self?.save()
         }
     }
 
@@ -58,30 +50,36 @@ class SessionController: SessionControllable {
     }
 
     @discardableResult
-    func startSession(state: SessionState) -> EmbraceSession {
+    func startSession(state: SessionState) -> SessionRecord {
         return startSession(state: state, startTime: Date())
     }
 
     @discardableResult
-    func startSession(state: SessionState, startTime: Date = Date()) -> EmbraceSession {
+    func startSession(state: SessionState, startTime: Date = Date()) -> SessionRecord {
         // end current session first
         if currentSession != nil {
             endSession()
         }
 
-        // create new session
-        let session = EmbraceSession(id: SessionIdentifier.random, state: state, startTime: startTime)
+        // create session span
+        let newId = SessionIdentifier.random
+        let span = SessionSpanUtils.span(id: newId, startTime: startTime)
+        currentSessionSpan = span
+
+        // create session record
+        var session = SessionRecord(
+            id: newId,
+            state: state,
+            processId: ProcessIdentifier.current,
+            traceId: span.context.traceId.hexString,
+            spanId: span.context.spanId.hexString,
+            startTime: startTime
+        )
         session.coldStart = withinColdStartInterval(startTime: startTime)
         currentSession = session
 
-        // create session span
-        currentSessionSpan = createSpan(sessionId: session.id, startTime: startTime)
-
-        do {
-            try save()
-        } catch {
-            // TODO: unable to start session
-        }
+        // save session record
+        save()
 
         // start heartbeat
         heartbeat.start()
@@ -94,46 +92,38 @@ class SessionController: SessionControllable {
 
     /// Ends the session
     /// Will also set the session's `cleanExit` property to `true`
-    func endSession() {
-        guard let session = currentSession else {
-            return
-        }
+    /// - Returns: The `endTime` of the session
+    @discardableResult
+    func endSession() -> Date {
 
         // stop heartbeat
         heartbeat.stop()
 
         // post notification
-        notificationCenter.post(name: .embraceSessionWillEnd, object: session)
+        notificationCenter.post(name: .embraceSessionWillEnd, object: currentSession)
 
         let now = Date()
         currentSessionSpan?.end(time: now)
-        session.endTime = now
-        session.cleanExit = true
-        do {
-            try save()
-        } catch {
-            // TODO: unable to end session
-        }
+        currentSession?.endTime = now
+        currentSession?.cleanExit = true
+
+        // save session record
+        save()
 
         currentSession = nil
         currentSessionSpan = nil
+
+        return now
     }
 
-    func update(session: EmbraceSession, state: SessionState? = nil, appTerminated: Bool? = nil) {
-        if let state = state {
-            session.state = state
-        }
+    func update(state: SessionState) {
+        currentSession?.state = state.rawValue
+        save()
+    }
 
-        if let appTerminated = appTerminated {
-            session.appTerminated = appTerminated
-        }
-
-        // save session record
-        do {
-            try save()
-        } catch {
-            // TODO: unable to update session
-        }
+    func update(appTerminated: Bool) {
+        currentSession?.appTerminated = appTerminated
+        save()
     }
 }
 
@@ -149,42 +139,16 @@ extension SessionController {
         return uptime <= Self.allowedColdStartInterval
     }
 
-    private func save() throws {
+    private func save() {
         guard let storage = storage,
-              let session = currentSession,
-              let span = currentSessionSpan else {
+              let session = currentSession else {
             return
         }
 
-        let traceId = span.context.traceId.hexString
-        let spanId = span.context.spanId.hexString
-
-        try saveLock.locked {
-            let record = SessionRecord(
-                id: session.id,
-                state: session.state,
-                processId: session.processId,
-                traceId: traceId,
-                spanId: spanId,
-                startTime: session.startTime,
-                endTime: session.endTime,
-                lastHeartbeatTime: session.lastHeartbeatTime,
-                coldStart: session.coldStart,
-                cleanExit: session.cleanExit,
-                appTerminated: session.appTerminated
-            )
-
-            try storage.upsertSession(record)
+        do {
+            try storage.upsertSession(session)
+        } catch {
+            ConsoleLog.warning("Error trying to update session:\n\(error.localizedDescription)")
         }
-    }
-}
-
-extension SessionController {
-
-    func createSpan(sessionId: SessionIdentifier, startTime: Date) -> Span {
-        EmbraceOTel().buildSpan(name: "emb-session", type: .session)
-            .setStartTime(time: startTime)
-            .setAttribute(key: "emb.session_id", value: sessionId.toString)
-            .startSpan()
     }
 }

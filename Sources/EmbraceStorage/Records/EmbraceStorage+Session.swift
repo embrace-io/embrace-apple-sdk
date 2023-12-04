@@ -66,13 +66,26 @@ extension EmbraceStorage {
         }
     }
 
-    /// Synchronously returns the newest session in the storage, if any.
+    /// Synchronously fetches the newest session in the storage, if any.
     /// - Returns: The newest stored `SessionRecord`, if any
     public func fetchLatestSesssion() throws -> SessionRecord? {
         var session: SessionRecord?
         try dbQueue.read { db in
             session = try SessionRecord
                 .order(Column("start_time").desc)
+                .fetchOne(db)
+        }
+
+        return session
+    }
+
+    /// Synchronously fetches the oldest session in the storage, if any.
+    /// - Returns: The oldest stored `SessionRecord`, if any
+    public func fetchOldestSesssion() throws -> SessionRecord? {
+        var session: SessionRecord?
+        try dbQueue.read { db in
+            session = try SessionRecord
+                .order(Column("start_time").asc)
                 .fetchOne(db)
         }
 

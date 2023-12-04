@@ -38,12 +38,12 @@ final class SessionControllerTests: XCTestCase {
 
     func test_startSession_setsForegroundState() throws {
         let a = controller.startSession(state: .foreground)
-        XCTAssertEqual(a.state, .foreground)
+        XCTAssertEqual(a.state, "foreground")
     }
 
     func test_startSession_setsBackgroundState() throws {
         let a = controller.startSession(state: .background)
-        XCTAssertEqual(a.state, .background)
+        XCTAssertEqual(a.state, "background")
     }
 
     // MARK: startSession
@@ -59,32 +59,32 @@ final class SessionControllerTests: XCTestCase {
     }
 
     func test_startSession_ifStartAtIsSoonAfterProcessStart_marksSessionAsColdStartTrue() throws {
-        let session = controller.startSession(state: .foreground, startTime: ProcessMetadata.startTime!)
-        XCTAssertTrue(session.coldStart)
+        controller.startSession(state: .foreground, startTime: ProcessMetadata.startTime!)
+        XCTAssertTrue(controller.currentSession!.coldStart)
     }
 
     func test_startSession_ifStartAtMatchesAllowedColdStartInterval_marksSessionAsColdStartTrue() throws {
         let processStart = ProcessMetadata.startTime!
         let startTime = processStart.addingTimeInterval(SessionController.allowedColdStartInterval)
 
-        let session = controller.startSession(state: .foreground, startTime: startTime)
-        XCTAssertTrue(session.coldStart)
+        controller.startSession(state: .foreground, startTime: startTime)
+        XCTAssertTrue(controller.currentSession!.coldStart)
     }
 
     func test_startSession_ifStartAtIsPassedAllowedColdStartInterval_marksSessionAsColdStartFalse() throws {
         let processStart = ProcessMetadata.startTime!
         let startTime = processStart.addingTimeInterval(SessionController.allowedColdStartInterval + 1)
 
-        let session = controller.startSession(state: .foreground, startTime: startTime)
-        XCTAssertFalse(session.coldStart)
+        controller.startSession(state: .foreground, startTime: startTime)
+        XCTAssertFalse(controller.currentSession!.coldStart)
     }
 
     func test_startSession_ifStartAtIsBeforeProcessStart_marksSessionAsColdStartFalse() throws {
         let processStart = ProcessMetadata.startTime!
         let startTime = processStart.addingTimeInterval(-1)
 
-        let session = controller.startSession(state: .foreground, startTime: startTime)
-        XCTAssertFalse(session.coldStart)
+        controller.startSession(state: .foreground, startTime: startTime)
+        XCTAssertFalse(controller.currentSession!.coldStart)
     }
 
     func test_startSession_saves_foregroundSession() throws {
@@ -126,11 +126,15 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertNotNil(controller.currentSessionSpan)
         XCTAssertNil(session.endTime)
 
-        controller.endSession()
+        let endTime = controller.endSession()
 
-        XCTAssertNotNil(session.endTime)
+        let sessions: [SessionRecord] = try storage.fetchAll()
+        XCTAssertEqual(sessions.count, 1)
+        XCTAssertEqual(sessions.first!.endTime!.timeIntervalSince1970, endTime.timeIntervalSince1970, accuracy: 0.1)
+
         XCTAssertNil(controller.currentSession)
         XCTAssertNil(controller.currentSessionSpan)
+
         wait(for: [notificationExpectation])
     }
 
@@ -138,83 +142,66 @@ final class SessionControllerTests: XCTestCase {
         let session = controller.startSession(state: .foreground)
         XCTAssertNil(session.endTime)
 
-        controller.endSession()
+        let endTime = controller.endSession()
 
         let sessions: [SessionRecord] = try storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
-        XCTAssertEqual(sessions.first?.id, session.id)
-        XCTAssertEqual(sessions.first?.state, "foreground")
-        XCTAssertEqual(sessions.first!.endTime!.timeIntervalSince1970, session.endTime!.timeIntervalSince1970, accuracy: 0.001)
+        XCTAssertEqual(sessions.first!.id, session.id)
+        XCTAssertEqual(sessions.first!.state, "foreground")
+        XCTAssertEqual(sessions.first!.endTime!.timeIntervalSince1970, endTime.timeIntervalSince1970, accuracy: 0.001)
     }
 
     func test_endSession_saves_endsSessionSpan() throws {
         let spanProcessor = MockSpanProcessor()
         EmbraceOTel.setup(spanProcessor: spanProcessor)
 
-        let session = controller.startSession(state: .foreground)
-
-        controller.endSession()
+        controller.startSession(state: .foreground)
+        let endTime = controller.endSession()
 
         if let spanData = spanProcessor.endedSpans.first {
-            XCTAssertEqual(spanData.endTime!.timeIntervalSince1970, session.endTime!.timeIntervalSince1970, accuracy: 0.001)
+            XCTAssertEqual(spanData.endTime!.timeIntervalSince1970, endTime.timeIntervalSince1970, accuracy: 0.001)
         }
     }
 
     // MARK: update
 
     func test_update_assignsState_toBackground_whenPresent() throws {
-        let session = controller.startSession(state: .foreground)
-        XCTAssertEqual(session.state, .foreground)
+        controller.startSession(state: .foreground)
+        XCTAssertEqual(controller.currentSession?.state, "foreground")
 
-        controller.update(session: session, state: .background)
-        XCTAssertEqual(session.state, .background)
+        controller.update(state: .background)
+        XCTAssertEqual(controller.currentSession?.state, "background")
     }
 
     func test_update_assignsState_toForeground_whenPresent() throws {
-        let session = controller.startSession(state: .background)
-        XCTAssertEqual(session.state, .background)
+        controller.startSession(state: .background)
+        XCTAssertEqual(controller.currentSession?.state, "background")
 
-        controller.update(session: session, state: .foreground)
-        XCTAssertEqual(session.state, .foreground)
-    }
-
-    func test_update_doesNot_assignState_whenNotPresent() throws {
-        let session = controller.startSession(state: .background)
-        XCTAssertEqual(session.state, .background)
-
-        controller.update(session: session)
-        XCTAssertEqual(session.state, .background)
+        controller.update(state: .foreground)
+        XCTAssertEqual(controller.currentSession?.state, "foreground")
     }
 
     func test_update_assignsAppTerminated_toFalse_whenPresent() throws {
-        let session = controller.startSession(state: .foreground)
+        var session = controller.startSession(state: .foreground)
         session.appTerminated = true
 
-        controller.update(session: session, appTerminated: false)
-        XCTAssertEqual(session.appTerminated, false)
+        controller.update(appTerminated: false)
+        XCTAssertEqual(controller.currentSession?.appTerminated, false)
     }
 
     func test_update_assignsAppTerminated_toTrue_whenPresent() throws {
-        let session = controller.startSession(state: .foreground)
+        var session = controller.startSession(state: .foreground)
         session.appTerminated = false
 
-        controller.update(session: session, appTerminated: true)
-        XCTAssertEqual(session.appTerminated, true)
-    }
-
-    func test_update_doesNot_assignAppTerminated_whenNotPresent() throws {
-        let session = controller.startSession(state: .foreground)
-        session.appTerminated = true
-
-        controller.update(session: session)
-        XCTAssertEqual(session.appTerminated, true)
+        controller.update(appTerminated: true)
+        XCTAssertEqual(controller.currentSession?.appTerminated, true)
     }
 
     func test_update_changesTo_appTerminated_saveInStorage() throws {
-        let session = controller.startSession(state: .foreground)
+        var session = controller.startSession(state: .foreground)
         session.appTerminated = false
 
-        controller.update(session: session, appTerminated: true)
+        controller.update(appTerminated: true)
 
         let sessions: [SessionRecord] = try storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
@@ -224,10 +211,10 @@ final class SessionControllerTests: XCTestCase {
     }
 
     func test_update_changesTo_sessionState_saveInStorage() throws {
-        let session = controller.startSession(state: .foreground)
+        var session = controller.startSession(state: .foreground)
         session.appTerminated = false
 
-        controller.update(session: session, state: .background)
+        controller.update(state: .background)
 
         let sessions: [SessionRecord] = try storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
@@ -236,7 +223,7 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertEqual(sessions.first?.appTerminated, false)
     }
 
-    // MARK: hearbeat
+    // MARK: heartbeat
 
     func test_heartbeat() throws {
         // given a session controller with a 1 second heartbeat invertal
@@ -249,8 +236,8 @@ final class SessionControllerTests: XCTestCase {
         // then the heartbeat time is updated every second
         for _ in 1...3 {
             wait(delay: 1)
-            XCTAssertNotEqual(lastDate, session.lastHeartbeatTime)
-            lastDate = session.lastHeartbeatTime
+            XCTAssertNotEqual(lastDate, controller.currentSession!.lastHeartbeatTime)
+            lastDate = controller.currentSession!.lastHeartbeatTime
         }
     }
 }

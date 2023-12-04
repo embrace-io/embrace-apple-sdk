@@ -143,6 +143,103 @@ class SpanRecordTests: XCTestCase {
         XCTAssertEqual(original, span)
     }
 
+    func test_cleanUpSpans() throws {
+        let storage = try EmbraceStorage(options: testOptions)
+
+        // given insterted spans
+        _ = try storage.addSpan(
+            id: "id1",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: Date(timeIntervalSince1970: 0),
+            endTime: Date(timeIntervalSince1970: 10)
+        )
+        _ = try storage.addSpan(
+            id: "id2",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: Date(timeIntervalSince1970: 0),
+            endTime: Date(timeIntervalSince1970: 20)
+        )
+        _ = try storage.addSpan(
+            id: "id3",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: Date(timeIntervalSince1970: 0)
+        )
+
+        // when cleaning up spans with a date
+        try storage.cleanUpSpans(date: Date(timeIntervalSince1970: 15))
+
+        // then closed spans older than that date are removed
+        // and open spans remain untouched
+        let expectation = XCTestExpectation()
+        try storage.dbQueue.read { db in
+            let spans = try SpanRecord
+                .order(Column("start_time").asc)
+                .fetchAll(db)
+
+            XCTAssertEqual(spans.count, 2)
+            XCTAssertEqual(spans[0].id, "id2")
+            XCTAssertEqual(spans[1].id, "id3")
+            XCTAssertNil(spans[1].endTime)
+
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
+    }
+
+    func test_cleanUpSpans_noDate() throws {
+        let storage = try EmbraceStorage(options: testOptions)
+
+        // given insterted spans
+        _ = try storage.addSpan(
+            id: "id1",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: Date(timeIntervalSince1970: 0),
+            endTime: Date(timeIntervalSince1970: 10)
+        )
+        _ = try storage.addSpan(
+            id: "id2",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: Date(timeIntervalSince1970: 0),
+            endTime: Date(timeIntervalSince1970: 20)
+        )
+        _ = try storage.addSpan(
+            id: "id3",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: Date(timeIntervalSince1970: 0)
+        )
+
+        // when cleaning up spans without a date
+        try storage.cleanUpSpans(date: nil)
+
+        // then all closed spans are removed
+        // and open spans remain untouched
+        let expectation = XCTestExpectation()
+        try storage.dbQueue.read { db in
+            let spans = try SpanRecord.fetchAll(db)
+
+            XCTAssertEqual(spans.count, 1)
+            XCTAssertEqual(spans[0].id, "id3")
+            XCTAssertNil(spans[0].endTime)
+
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
+    }
+
     func test_closeOpenSpans() throws {
         let storage = try EmbraceStorage(options: testOptions)
 
@@ -187,8 +284,7 @@ class SpanRecordTests: XCTestCase {
         let spans = try storage.fetchSpans(
             startTime: now.addingTimeInterval(5),
             endTime: now.addingTimeInterval(30),
-            includeOlder: false,
-            type: .performance
+            includeOlder: false
         )
 
         // then the fetched spans are valid
@@ -211,7 +307,7 @@ class SpanRecordTests: XCTestCase {
             startTime: now.addingTimeInterval(5),
             endTime: now.addingTimeInterval(30),
             includeOlder: false,
-            type: .performance, limit: 1
+            limit: 1
         )
 
         // then the fetched spans are valid
