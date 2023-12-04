@@ -6,6 +6,7 @@
 #   TODO: Add controls for parallel tests, see `man xcodebuild` for correct args
 #
 
+CLONED_SOURCE_PACKAGES_DIR_PATH=".build"    # This matches spm location `swift run` uses
 DERIVED_DATA_PATH=".build/DerivedData"
 XCRESULT_PATH=".build/test/output.xcresult"
 
@@ -70,6 +71,7 @@ xcodebuild test \
     -sdk $SDK_PATH \
     -configuration "Debug" \
     -scheme "EmbraceIO" \
+    -clonedSourcePackagesDirPath $CLONED_SOURCE_PACKAGES_DIR_PATH \
     -skipPackagePluginValidation \
     -destination "id=$SELECTED_DEVICE_UDID" \
     -enableCodeCoverage YES \
