@@ -13,6 +13,7 @@ public enum AppResourceKeys: String, Codable {
     case launchCount = "app.launch_count"
     case sdkVersion = "app.sdk_version"
     case appVersion = "app.version"
+    case bundleId = "app.bundle_id"
 }
 
 public enum DeviceResourceKeys: String, Codable {

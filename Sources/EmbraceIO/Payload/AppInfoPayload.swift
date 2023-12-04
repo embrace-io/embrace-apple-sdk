@@ -15,6 +15,7 @@ struct AppInfoPayload: Codable {
     var launchCount: Int?
     var sdkVersion: String?
     var appVersion: String?
+    var appBundleId: String?
 
     enum CodingKeys: String, CodingKey {
         case buildID = "bi"
@@ -25,6 +26,7 @@ struct AppInfoPayload: Codable {
         case launchCount = "lc"
         case sdkVersion = "sdk"
         case appVersion = "v"
+        case appBundleId = "bid"
     }
 
     init (with resources: [ResourceRecord]) {
@@ -49,6 +51,8 @@ struct AppInfoPayload: Codable {
                 self.sdkVersion = value
             case .appVersion:
                 self.appVersion = value
+            case .bundleId:
+                self.appBundleId = value
             }
         }
     }
