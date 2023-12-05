@@ -90,7 +90,7 @@ import EmbraceObjCUtils
 
             started = true
 
-            sessionLifecycle.setup()
+            sessionLifecycle.start()
             collection.start()
 
             // send unsent sessions and crash reports

@@ -10,8 +10,8 @@ protocol SessionLifecycle {
     /// It is recommended to use a weak reference when storing this property to prevent retain cycles
     var controller: SessionControllable? { get }
 
-    /// Method called during SDK setup for initialization purposes
-    func setup()
+    /// Method called during ``Embrace.start`` for initialization purposes
+    func start()
 
     /// An explicit method to create a new session
     func startSession()

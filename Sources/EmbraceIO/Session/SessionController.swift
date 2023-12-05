@@ -29,6 +29,9 @@ class SessionController: SessionControllable {
     @ThreadSafe
     private(set) var currentSessionSpan: Span?
 
+    // Lock used for session boundaries. Will be shared at both start/end of session
+    private let lock = UnfairLock()
+
     weak var storage: EmbraceStorage?
     weak var upload: EmbraceUpload?
     let heartbeat: SessionHeartbeat
@@ -64,33 +67,38 @@ class SessionController: SessionControllable {
             endSession()
         }
 
-        // create session span
-        let newId = SessionIdentifier.random
-        let span = SessionSpanUtils.span(id: newId, startTime: startTime)
-        currentSessionSpan = span
+        // we lock after end session to avoid a deadlock
 
-        // create session record
-        var session = SessionRecord(
-            id: newId,
-            state: state,
-            processId: ProcessIdentifier.current,
-            traceId: span.context.traceId.hexString,
-            spanId: span.context.spanId.hexString,
-            startTime: startTime
-        )
-        session.coldStart = withinColdStartInterval(startTime: startTime)
-        currentSession = session
+        return lock.locked {
 
-        // save session record
-        save()
+            // create session span
+            let newId = SessionIdentifier.random
+            let span = SessionSpanUtils.span(id: newId, startTime: startTime)
+            currentSessionSpan = span
 
-        // start heartbeat
-        heartbeat.start()
+            // create session record
+            var session = SessionRecord(
+                id: newId,
+                state: state,
+                processId: ProcessIdentifier.current,
+                traceId: span.context.traceId.hexString,
+                spanId: span.context.spanId.hexString,
+                startTime: startTime
+            )
+            session.coldStart = withinColdStartInterval(startTime: startTime)
+            currentSession = session
 
-        // post notification
-        notificationCenter.post(name: .embraceSessionDidStart, object: session)
+            // save session record
+            save()
 
-        return session
+            // start heartbeat
+            heartbeat.start()
+
+            // post notification
+            notificationCenter.post(name: .embraceSessionDidStart, object: session)
+
+            return session
+        }
     }
 
     /// Ends the session
@@ -98,28 +106,29 @@ class SessionController: SessionControllable {
     /// - Returns: The `endTime` of the session
     @discardableResult
     func endSession() -> Date {
+        return lock.locked {
+            // stop heartbeat
+            heartbeat.stop()
 
-        // stop heartbeat
-        heartbeat.stop()
+            // post notification
+            notificationCenter.post(name: .embraceSessionWillEnd, object: currentSession)
 
-        // post notification
-        notificationCenter.post(name: .embraceSessionWillEnd, object: currentSession)
+            let now = Date()
+            currentSessionSpan?.end(time: now)
+            currentSession?.endTime = now
+            currentSession?.cleanExit = true
 
-        let now = Date()
-        currentSessionSpan?.end(time: now)
-        currentSession?.endTime = now
-        currentSession?.cleanExit = true
+            // save session record
+            save()
 
-        // save session record
-        save()
+            // upload session
+            uploadSession()
 
-        // upload session
-        uploadSession()
+            currentSession = nil
+            currentSessionSpan = nil
 
-        currentSession = nil
-        currentSessionSpan = nil
-
-        return now
+            return now
+        }
     }
 
     func update(state: SessionState) {

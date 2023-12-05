@@ -6,7 +6,6 @@ import XCTest
 import TestSupport
 import EmbraceCommon
 @testable import EmbraceCrash
-import EmbraceCommon
 
 class EmbraceCrashReporterTests: XCTestCase {
 

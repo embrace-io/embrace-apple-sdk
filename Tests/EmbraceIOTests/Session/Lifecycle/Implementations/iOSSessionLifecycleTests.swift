@@ -15,7 +15,7 @@ final class iOSSessionLifecycleTests: XCTestCase {
 
     override func setUpWithError() throws {
         lifecycle = iOSSessionLifecycle(controller: mockController)
-        lifecycle.setup()
+        lifecycle.start()
     }
 
     override func tearDownWithError() throws {
@@ -276,7 +276,7 @@ final class iOSSessionLifecycleTests: XCTestCase {
 
     func test_currentState_initialFetch() {
         let lifecycle = iOSSessionLifecycle(controller: mockController)
-        lifecycle.setup()
+        lifecycle.start()
 
         XCTAssertEqual(lifecycle.currentState, .foreground)
     }

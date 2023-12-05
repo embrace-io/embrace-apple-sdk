@@ -4,8 +4,12 @@
 
 import XCTest
 @testable import EmbraceIO
+import EmbraceCommon
 
 final class EmbraceIOTests: XCTestCase {
+
+    // this is used in the helper function
+    private let lock: UnfairLock = UnfairLock()
 
     func test_ConcurrentCurrentSessionId() throws {
         let embrace = try getLocalEmbrace()
@@ -39,7 +43,6 @@ final class EmbraceIOTests: XCTestCase {
     func test_ConcurrentCurrentSessionIdWhileStartingSession() throws {
         let embrace = try getLocalEmbrace()
         try embrace?.start()
-
         // concurrentPerform performs concurrent operations in a synchronous manner on the called thread.
         // so it seems to be good for testing as it prevents the requried
         // use of expectations
@@ -63,6 +66,11 @@ final class EmbraceIOTests: XCTestCase {
             let cSessionId = embrace?.currentSessionId()
             XCTAssertNotEqual(cSessionId, sessionId)
         }
+
+        // added this for the non ios lifecycle case
+        embrace?.startNewSession()
+        let cSessionId = embrace?.currentSessionId()
+        XCTAssertNotEqual(cSessionId, sessionId)
     }
 
     func test_CuncurrentStartSession() throws {
@@ -90,7 +98,7 @@ final class EmbraceIOTests: XCTestCase {
 
             do {
                 XCTAssertThrowsError(try embrace?.start()) {error in
-                    XCTAssertEqual(error as! EmbraceSetupError, EmbraceSetupError.invalidThread("Embrace must be started on the main thread"))
+                    XCTAssertEqual(error as? EmbraceSetupError, EmbraceSetupError.invalidThread("Embrace must be started on the main thread"))
                 }
             } catch let e {
                 XCTFail("unexpected exception \(e.localizedDescription)")
@@ -115,11 +123,19 @@ final class EmbraceIOTests: XCTestCase {
 
     // MARK: - Helper Methods
     func getLocalEmbrace()throws -> Embrace? {
-        try Embrace.setup(options: .init(appId: "testA"))
-        XCTAssertNotNil(Embrace.client)
-        let embrace = Embrace.client
-        Embrace.client = nil
-        return embrace
+        // to ensure that each test gets it's own instance of embrace.
+        return try lock.locked {
+            // I use random string for group id to ensure a different storage location each time
+            try Embrace.setup(options: .init(appId: "testA", appGroupId: randomString(length: 5)))
+            XCTAssertNotNil(Embrace.client)
+            let embrace = Embrace.client
+            Embrace.client = nil
+            return embrace
+        }
     }
 
+    func randomString(length: Int) -> String {
+      let letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+      return String((0..<length).map { _ in letters.randomElement()! })
+    }
 }
