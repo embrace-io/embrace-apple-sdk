@@ -10,7 +10,7 @@ public struct EmbraceFileSystem {
     static let storageDirectoryName = "storage"
     static let uploadsDirectoryName = "uploads"
     static let crashesDirectoryName = "crashes"
-    static let collectionDirectoryName = "collection"
+    static let captureDirectoryName = "capture"
 
     /// Returns the path to the system directory that is the root directory for storage.
     /// When `appGroupId` is present, will be a URL to an app group container
@@ -59,7 +59,7 @@ public struct EmbraceFileSystem {
         return baseURL.appendingPathComponent(components.joined(separator: "/"))
     }
 
-    /// Returns the subdirectory for data collection
+    /// Returns the subdirectory for the storage
     /// ```
     /// io.embrace.data/<version>/<app-id>/storage
     /// ```
@@ -69,7 +69,7 @@ public struct EmbraceFileSystem {
         return directoryURL(name: storageDirectoryName, appId: appId, appGroupId: appGroupId)
     }
 
-    /// Returns the subdirectory for data collection
+    /// Returns the subdirectory for upload data
     /// ```
     /// io.embrace.data/<version>/<app-id>/uploads
     /// ```
@@ -79,11 +79,11 @@ public struct EmbraceFileSystem {
         return directoryURL(name: uploadsDirectoryName, appId: appId, appGroupId: appGroupId)
     }
 
-    /// Returns the subdirectory for data collection
+    /// Returns the subdirectory for data capture
     /// ```
-    /// io.embrace.data/<version>/<app-id>/collection
+    /// io.embrace.data/<version>/<app-id>/capture
     /// ```
-    static func collectionDirectoryURL(appId: String, appGroupId: String? = nil) -> URL? {
-        return directoryURL(name: collectionDirectoryName, appId: appId, appGroupId: appGroupId)
+    static func captureDirectoryURL(appId: String, appGroupId: String? = nil) -> URL? {
+        return directoryURL(name: captureDirectoryName, appId: appId, appGroupId: appGroupId)
     }
 }

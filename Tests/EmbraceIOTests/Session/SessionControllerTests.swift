@@ -17,8 +17,8 @@ final class SessionControllerTests: XCTestCase {
     var controller: SessionController!
 
     var upload: EmbraceUpload!
-    static let testSessionsUrl = URL(string: "https://embrace.test.com/sessions")!
-    static let testBlobsUrl = URL(string: "https://embrace.test.com/blobs")!
+    static let testSessionsUrl = URL(string: "https://embrace.test.com/session_controller/sessions")!
+    static let testBlobsUrl = URL(string: "https://embrace.test.com/session_controller/blobs")!
 
     static let testEndpointOptions = EmbraceUpload.EndpointOptions(
         sessionsURL: SessionControllerTests.testSessionsUrl,
@@ -214,7 +214,7 @@ final class SessionControllerTests: XCTestCase {
         wait(delay: .longTimeout)
 
         // then a session request was sent
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(UnsentDataHandlerTests.testSessionsUrl).count, 1)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(Self.testSessionsUrl).count, 1)
 
         // then the session is no longer on storage
         let session = try storage.fetchSession(id: TestConstants.sessionId)
@@ -238,7 +238,7 @@ final class SessionControllerTests: XCTestCase {
         wait(delay: .longTimeout)
 
         // then a session request was attempted
-        XCTAssertGreaterThan(EmbraceHTTPMock.requestsForUrl(UnsentDataHandlerTests.testSessionsUrl).count, 0)
+        XCTAssertGreaterThan(EmbraceHTTPMock.requestsForUrl(Self.testSessionsUrl).count, 0)
 
         // then the total amount of requests is correct
         XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 1)

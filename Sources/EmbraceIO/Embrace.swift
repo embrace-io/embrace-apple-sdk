@@ -25,7 +25,7 @@ import EmbraceObjCUtils
     let config: EmbraceConfig
     let storage: EmbraceStorage
     let upload: EmbraceUpload?
-    let collection: DataCollection
+    let captureServices: CaptureServices
 
     let sessionController: SessionController
     let sessionLifecycle: SessionLifecycle
@@ -61,7 +61,7 @@ import EmbraceObjCUtils
 
         self.storage = try Embrace.createStorage(options: options)
         self.deviceId = EmbraceDeviceId.retrieve(from: self.storage)
-        self.collection = DataCollection(options: options)
+        self.captureServices = CaptureServices(options: options)
         self.upload = Embrace.createUpload(options: options, deviceId: KeychainAccess.deviceId.uuidString)
         self.config = Embrace.createConfig(options: options, deviceId: KeychainAccess.deviceId.uuidString)
         self.sessionController = SessionController(storage: self.storage, upload: self.upload)
@@ -91,7 +91,7 @@ import EmbraceObjCUtils
             started = true
 
             sessionLifecycle.start()
-            collection.start()
+            captureServices.start()
 
             // send unsent sessions and crash reports
             processingQueue.async { [weak self] in
@@ -99,7 +99,7 @@ import EmbraceObjCUtils
                     storage: self?.storage,
                     upload: self?.upload,
                     currentSessionId: self?.sessionController.currentSession?.id,
-                    crashReporter: self?.collection.crashReporter
+                    crashReporter: self?.captureServices.crashReporter
                 )
             }
         }

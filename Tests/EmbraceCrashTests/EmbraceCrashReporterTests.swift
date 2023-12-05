@@ -9,7 +9,7 @@ import EmbraceCommon
 
 class EmbraceCrashReporterTests: XCTestCase {
 
-    var context: CollectorContext = .testContext
+    var context: CaptureServiceContext = .testContext
 
     override func setUpWithError() throws {
         try? FileManager.default.removeItem(at: context.filePathProvider.directoryURL(for: "")!)

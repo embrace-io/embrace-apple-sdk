@@ -17,7 +17,7 @@ class UnsentDataHandlerTests: XCTestCase {
     let storageOptions = EmbraceStorage.Options(baseUrl: URL(fileURLWithPath: NSTemporaryDirectory()), fileName: "test.sqlite")
 
     let filePathProvider = TemporaryFilepathProvider()
-    var context: CollectorContext!
+    var context: CaptureServiceContext!
 
     static let testSessionsUrl = URL(string: "https://embrace.test.com/sessions")!
     static let testBlobsUrl = URL(string: "https://embrace.test.com/blobs")!
@@ -37,7 +37,7 @@ class UnsentDataHandlerTests: XCTestCase {
         // delete tmpdir
         try? FileManager.default.removeItem(at: filePathProvider.tmpDirectory)
 
-        context = CollectorContext(
+        context = CaptureServiceContext(
             appId: TestConstants.appId,
             sdkVersion: TestConstants.sdkVersion,
             filePathProvider: filePathProvider )
@@ -66,7 +66,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
     func test_withoutCrashReporter() throws {
         // mock successful requests
-        EmbraceHTTPMock.mock(url: UnsentDataHandlerTests.testSessionsUrl)
+        EmbraceHTTPMock.mock(url: Self.testSessionsUrl)
 
         // given a storage and upload modules
         let storage = try EmbraceStorage(options: storageOptions)
@@ -139,8 +139,8 @@ class UnsentDataHandlerTests: XCTestCase {
 
     func test_withCrashReporter() throws {
         // mock successful requests
-        EmbraceHTTPMock.mock(url: UnsentDataHandlerTests.testSessionsUrl)
-        EmbraceHTTPMock.mock(url: UnsentDataHandlerTests.testBlobsUrl)
+        EmbraceHTTPMock.mock(url: Self.testSessionsUrl)
+        EmbraceHTTPMock.mock(url: Self.testBlobsUrl)
 
         // given a storage and upload modules
         let storage = try EmbraceStorage(options: storageOptions)
@@ -186,10 +186,10 @@ class UnsentDataHandlerTests: XCTestCase {
         wait(delay: .longTimeout)
 
         // then a crash report was sent
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(UnsentDataHandlerTests.testBlobsUrl).count, 1)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(Self.testBlobsUrl).count, 1)
 
         // then a session request was sent
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(UnsentDataHandlerTests.testSessionsUrl).count, 1)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(Self.testSessionsUrl).count, 1)
 
         // then the total amount of requests is correct
         XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 2)
@@ -217,8 +217,8 @@ class UnsentDataHandlerTests: XCTestCase {
 
     func test_withCrashReporter_error() throws {
         // mock error requests
-        EmbraceHTTPMock.mock(url: UnsentDataHandlerTests.testSessionsUrl, errorCode: 500)
-        EmbraceHTTPMock.mock(url: UnsentDataHandlerTests.testBlobsUrl, errorCode: 500)
+        EmbraceHTTPMock.mock(url: Self.testSessionsUrl, errorCode: 500)
+        EmbraceHTTPMock.mock(url: Self.testBlobsUrl, errorCode: 500)
 
         // given a storage and upload modules
         let storage = try EmbraceStorage(options: storageOptions)
@@ -264,10 +264,10 @@ class UnsentDataHandlerTests: XCTestCase {
         wait(delay: .longTimeout)
 
         // then a crash report request was attempted
-        XCTAssertGreaterThan(EmbraceHTTPMock.requestsForUrl(UnsentDataHandlerTests.testBlobsUrl).count, 0)
+        XCTAssertGreaterThan(EmbraceHTTPMock.requestsForUrl(Self.testBlobsUrl).count, 0)
 
         // then a session request was attempted
-        XCTAssertGreaterThan(EmbraceHTTPMock.requestsForUrl(UnsentDataHandlerTests.testSessionsUrl).count, 0)
+        XCTAssertGreaterThan(EmbraceHTTPMock.requestsForUrl(Self.testSessionsUrl).count, 0)
 
         // then the total amount of requests is correct
         XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 2)
@@ -295,8 +295,8 @@ class UnsentDataHandlerTests: XCTestCase {
 
     func test_withCrashReporter_unfinishedSession() throws {
         // mock successful requests
-        EmbraceHTTPMock.mock(url: UnsentDataHandlerTests.testSessionsUrl)
-        EmbraceHTTPMock.mock(url: UnsentDataHandlerTests.testBlobsUrl)
+        EmbraceHTTPMock.mock(url: Self.testSessionsUrl)
+        EmbraceHTTPMock.mock(url: Self.testBlobsUrl)
 
         // given a storage and upload modules
         let storage = try EmbraceStorage(options: storageOptions)
@@ -341,10 +341,10 @@ class UnsentDataHandlerTests: XCTestCase {
         wait(delay: .longTimeout)
 
         // then a crash report was sent
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(UnsentDataHandlerTests.testBlobsUrl).count, 1)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(Self.testBlobsUrl).count, 1)
 
         // then a session request was sent
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(UnsentDataHandlerTests.testSessionsUrl).count, 1)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(Self.testSessionsUrl).count, 1)
 
         // then the total amount of requests is correct
         XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 2)

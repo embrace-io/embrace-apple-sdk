@@ -5,7 +5,7 @@
 import Foundation
 import GRDB
 
-/// Class in charge of storing all the data collected by the Embrace SDK.
+/// Class in charge of storing all the data captured by the Embrace SDK.
 /// It provides an abstraction layer over a GRDB SQLite database.
 public class EmbraceStorage {
 

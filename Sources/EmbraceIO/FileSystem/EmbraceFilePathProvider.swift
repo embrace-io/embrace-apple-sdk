@@ -19,7 +19,7 @@ class EmbraceFilePathProvider: FilePathProvider {
     }
 
     func directoryURL(for scope: String) -> URL? {
-        let collectionURL = EmbraceFileSystem.collectionDirectoryURL(appId: appId, appGroupId: appGroupIdentifier)
-        return collectionURL?.appendingPathComponent(scope)
+        let captureURL = EmbraceFileSystem.captureDirectoryURL(appId: appId, appGroupId: appGroupIdentifier)
+        return captureURL?.appendingPathComponent(scope)
     }
 }

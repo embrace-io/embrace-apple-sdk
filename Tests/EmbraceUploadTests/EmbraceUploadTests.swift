@@ -9,8 +9,8 @@ import GRDB
 
 class EmbraceUploadTests: XCTestCase {
 
-    static let testSessionsUrl = URL(string: "https://embrace.test.com/sessions")!
-    static let testBlobsUrl = URL(string: "https://embrace.test.com/blobs")!
+    static let testSessionsUrl = URL(string: "https://embrace.test.com/upload/sessions")!
+    static let testBlobsUrl = URL(string: "https://embrace.test.com/upload/blobs")!
 
     static let testEndpointOptions = EmbraceUpload.EndpointOptions(
         sessionsURL: EmbraceUploadTests.testSessionsUrl,
@@ -88,7 +88,7 @@ class EmbraceUploadTests: XCTestCase {
     }
 
     func test_success() throws {
-        EmbraceHTTPMock.mock(url: EmbraceUploadTests.testSessionsUrl)
+        EmbraceHTTPMock.mock(url: Self.testSessionsUrl)
 
         // given valid values
         let expectation = XCTestExpectation()
@@ -107,7 +107,7 @@ class EmbraceUploadTests: XCTestCase {
     }
 
     func test_cacheFlowOnSuccess() throws {
-        EmbraceHTTPMock.mock(url: EmbraceUploadTests.testSessionsUrl)
+        EmbraceHTTPMock.mock(url: Self.testSessionsUrl)
 
         // given valid values
         let expectation1 = XCTestExpectation(description: "1. Data should be cached in the database")

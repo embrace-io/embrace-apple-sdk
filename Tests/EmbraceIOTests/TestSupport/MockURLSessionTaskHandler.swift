@@ -22,9 +22,9 @@ class MockURLSessionTaskHandler: URLSessionTaskHandler {
     }
 
     var didInvokeChangedState = false
-    var changedStateReceivedParameter: CollectorState!
-    func changedState(to collectorState: EmbraceCommon.CollectorState) {
+    var changedStateReceivedParameter: CaptureServiceState!
+    func changedState(to captureServiceState: EmbraceCommon.CaptureServiceState) {
         didInvokeChangedState = true
-        changedStateReceivedParameter = collectorState
+        changedStateReceivedParameter = captureServiceState
     }
 }

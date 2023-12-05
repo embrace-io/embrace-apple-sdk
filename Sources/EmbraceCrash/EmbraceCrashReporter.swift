@@ -55,7 +55,7 @@ import KSCrash_Recording
         return ksCrash.crashedLastLaunch ? .crash : .cleanExit
     }
 
-    public func install(context: EmbraceCommon.CollectorContext) {
+    public func install(context: EmbraceCommon.CaptureServiceContext) {
         guard ksCrash == nil else {
             ConsoleLog.debug("EmbraceCrashReporter already installed!")
             return

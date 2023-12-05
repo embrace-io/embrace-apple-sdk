@@ -13,21 +13,21 @@ extension Embrace {
         @objc public let appGroupId: String?
         @objc public let platform: Platform
         @objc public let endpoints: Embrace.Endpoints
-        @objc public let collectors: [Collector]
+        @objc public let services: [CaptureService]
 
         @objc public init(
             appId: String,
             appGroupId: String? = nil,
             platform: Platform = .iOS,
             endpoints: Embrace.Endpoints = .init(),
-            collectors: [Collector] = .automatic
+            captureServices: [CaptureService] = .automatic
 
         ) {
             self.appId = appId
             self.appGroupId = appGroupId
             self.platform = platform
             self.endpoints = endpoints
-            self.collectors = collectors
+            self.services = captureServices
         }
     }
 }
