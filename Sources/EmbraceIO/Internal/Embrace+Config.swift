@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import EmbraceObjCUtils
 import EmbraceConfig
 
 extension Embrace {
@@ -12,9 +13,9 @@ extension Embrace {
             queue: DispatchQueue(label: "com.embrace.config"),
             appId: options.appId,
             deviceId: deviceId,
-            osVersion: "16.0", // TODO: Do this properly!
+            osVersion: EMBDevice.appVersion ?? "",
             sdkVersion: EmbraceMeta.sdkVersion,
-            appVersion: "1.0", // TODO: Do this properly!
+            appVersion: EMBDevice.operatingSystemVersion,
             userAgent: EmbraceMeta.userAgent
         )
 
