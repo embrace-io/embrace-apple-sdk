@@ -70,6 +70,7 @@ import EmbraceObjCUtils
         super.init()
 
         EmbraceOTel.setup(spanProcessor: .with(storage: storage))
+        sessionLifecycle.setup()
     }
 
     @objc public func start() throws {

@@ -126,7 +126,7 @@ final class EmbraceIOTests: XCTestCase {
         // to ensure that each test gets it's own instance of embrace.
         return try lock.locked {
             // I use random string for group id to ensure a different storage location each time
-            try Embrace.setup(options: .init(appId: "testA", appGroupId: randomString(length: 5)))
+            try Embrace.setup(options: .init(appId: "testA", appGroupId: randomString(length: 5), captureServices: []))
             XCTAssertNotNil(Embrace.client)
             let embrace = Embrace.client
             Embrace.client = nil

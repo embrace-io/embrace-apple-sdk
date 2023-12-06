@@ -12,6 +12,9 @@ class ManualSessionLifecycle: SessionLifecycle {
         self.controller = controller
     }
 
+    func setup() {
+    }
+
     func start() {
     }
 

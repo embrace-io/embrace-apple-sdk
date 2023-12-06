@@ -17,7 +17,7 @@ final class iOSSessionLifecycle: SessionLifecycle {
         listenForUIApplication()
     }
 
-    func start() {
+    func setup() {
         // only fetch the app state once during setup
         // MUST BE DONE ON THE MAIN THREAD!!!
         guard Thread.isMainThread else {
@@ -25,7 +25,9 @@ final class iOSSessionLifecycle: SessionLifecycle {
         }
 
         currentState = UIApplication.shared.applicationState == .background ? SessionState.background : SessionState.foreground
+    }
 
+    func start() {
         startSession()
     }
 
