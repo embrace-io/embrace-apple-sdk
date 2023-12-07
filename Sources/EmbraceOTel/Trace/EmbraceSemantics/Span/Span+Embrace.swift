@@ -12,18 +12,17 @@ extension Span {
     }
 
     /// Mark this Span as important  so the backend will create aggregate metrics for it, and the UI will show it as a "top level" span
-    func markAsKeySpan() {
+    public func markAsKeySpan() {
         setAttribute(key: SpanAttributeKey.isKey, value: "true")
     }
 
-    /**
-     * Monotonically increasing ID given to completed span that is expected to sent to the server. Can be used to track data loss on the server.
-     */
-    func setSequenceId(_ sequenceId: UInt64) {
-        setAttribute(key: SpanAttributeKey.sequenceId, value: String(sequenceId))
+    /// Mark this Span as private. This is used for observability of the SDK itself
+    /// When marked as private, a span will not appear in the Embrace dashboard
+    public func markAsPrivate() {
+        setAttribute(key: SpanAttributeKey.isPrivate, value: "true")
     }
 
-    func end(errorCode: SpanErrorCode? = nil, time: Date? = nil) {
+    public func end(errorCode: SpanErrorCode? = nil, time: Date = Date()) {
         if let errorCode = errorCode {
             setAttribute(key: SpanAttributeKey.errorCode, value: errorCode.rawValue)
             status = .error(description: errorCode.rawValue)
@@ -31,11 +30,7 @@ extension Span {
             status = .ok
         }
 
-        if let time = time {
-            end(time: time)
-        } else {
-            end()
-        }
+        end(time: time)
     }
 
 }

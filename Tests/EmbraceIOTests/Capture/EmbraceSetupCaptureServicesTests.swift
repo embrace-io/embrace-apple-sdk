@@ -51,6 +51,10 @@ final class EmbraceSetupCaptureServicesTests: XCTestCase {
         }
     }
 
+    override func tearDown() {
+        Embrace.client = nil
+    }
+
     func test_EmbraceSetup_passesCaptureServices() throws {
         try Embrace.setup(options: .init(appId: "myAPP", captureServices: [
             ExampleCaptureService(),

@@ -77,7 +77,8 @@ let package = Package(
             ],
             plugins: targetPlugins
         ),
-
+        
+        // common ----------------------------------------------------------------------
         .target(
             name: "EmbraceCommon",
             plugins: targetPlugins

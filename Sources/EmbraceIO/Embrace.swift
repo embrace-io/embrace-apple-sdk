@@ -13,9 +13,13 @@ import EmbraceObjCUtils
 @objc public class Embrace: NSObject {
 
     @objc public internal(set) static var client: Embrace?
+
     @objc public private(set) var options: Embrace.Options
+
     @objc public private(set) var started: Bool
-    @objc public private(set) var deviceId: UUID?
+
+    @objc public private(set) var deviceId: UUID
+
     @objc public var logLevel: LogLevel = .error {
         didSet {
             ConsoleLog.shared.level = logLevel
@@ -74,7 +78,7 @@ import EmbraceObjCUtils
     }
 
     @objc public func start() throws {
-        if !Thread.isMainThread {
+        guard Thread.isMainThread else {
             throw EmbraceSetupError.invalidThread("Embrace must be started on the main thread")
         }
 
@@ -89,19 +93,23 @@ import EmbraceObjCUtils
                 return
             }
 
-            started = true
+            let processStartSpan = createProcessStartSpan()
+            defer { processStartSpan.end() }
+            recordSpan(name: "emb-sdk-start", parent: processStartSpan, type: .performance) { _ in
+                started = true
 
-            sessionLifecycle.start()
-            captureServices.start()
+                sessionLifecycle.start()
+                captureServices.start()
 
-            // send unsent sessions and crash reports
-            processingQueue.async { [weak self] in
-                UnsentDataHandler.sendUnsentData(
-                    storage: self?.storage,
-                    upload: self?.upload,
-                    currentSessionId: self?.sessionController.currentSession?.id,
-                    crashReporter: self?.captureServices.crashReporter
-                )
+                // send unsent sessions and crash reports
+                processingQueue.async { [weak self] in
+                    UnsentDataHandler.sendUnsentData(
+                        storage: self?.storage,
+                        upload: self?.upload,
+                        currentSessionId: self?.sessionController.currentSession?.id,
+                        crashReporter: self?.captureServices.crashReporter
+                    )
+                }
             }
         }
     }

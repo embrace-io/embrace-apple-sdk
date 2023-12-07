@@ -74,3 +74,22 @@ extension Embrace {
         }
     }
 }
+
+/// Extension to handle observability of SDK startup
+extension Embrace {
+
+    func createProcessStartSpan() -> Span {
+        let builder = buildSpan(name: "emb-process-launch", type: .performance)
+            .markAsPrivate()
+
+        if let startTime = ProcessMetadata.startTime {
+            builder.setStartTime(time: startTime)
+        } else {
+            // start time will default to "now" but span will be marked with error
+            builder.error(errorCode: .unknown)
+        }
+
+        return builder.startSpan()
+    }
+
+}

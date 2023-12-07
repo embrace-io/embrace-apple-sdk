@@ -42,7 +42,7 @@ public struct EmbraceFileSystem {
         }
     }
 
-    static func dataURL(appGroupId: String? = nil) -> URL? {
+    static func rootURL(appGroupId: String? = nil) -> URL? {
         return systemDirectory(appGroupId: appGroupId)?.appendingPathComponent(rootDirectoryName)
     }
 
