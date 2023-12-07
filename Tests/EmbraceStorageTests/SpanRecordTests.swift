@@ -113,6 +113,7 @@ class SpanRecordTests: XCTestCase {
         // given inserted span
         let span = try storage.addSpan(
             id: "id",
+            name: "a name",
             traceId: TestConstants.traceId,
             type: .performance,
             data: Data(),
@@ -154,6 +155,7 @@ class SpanRecordTests: XCTestCase {
         // given inserted span
         let original = try storage.addSpan(
             id: "id",
+            name: "a name",
             traceId: TestConstants.traceId,
             type: .performance,
             data: Data(),
@@ -278,6 +280,7 @@ class SpanRecordTests: XCTestCase {
         // given insterted spans
         _ = try storage.addSpan(
             id: "id1",
+            name: "a name 1",
             traceId: TestConstants.traceId,
             type: .performance, data: Data(),
             startTime: Date(timeIntervalSince1970: 0),
@@ -285,6 +288,7 @@ class SpanRecordTests: XCTestCase {
         )
         _ = try storage.addSpan(
             id: "id2",
+            name: "a name 2",
             traceId: TestConstants.traceId,
             type: .performance,
             data: Data(),
@@ -292,6 +296,7 @@ class SpanRecordTests: XCTestCase {
         )
         _ = try storage.addSpan(
             id: "id3",
+            name: "a name 3",
             traceId: TestConstants.traceId,
             type: .performance,
             data: Data(),
@@ -328,6 +333,7 @@ class SpanRecordTests: XCTestCase {
         let now = Date()
         let span1 = try storage.addSpan(
             id: "id1",
+            name: "a name 1",
             traceId: TestConstants.traceId,
             type: .performance,
             data: Data(),
@@ -336,6 +342,7 @@ class SpanRecordTests: XCTestCase {
         )
         let span2 = try storage.addSpan(
             id: "id2",
+            name: "a name 2",
             traceId: TestConstants.traceId,
             type: .performance,
             data: Data(),
@@ -344,6 +351,7 @@ class SpanRecordTests: XCTestCase {
         )
         let span3 = try storage.addSpan(
             id: "id3",
+            name: "a name 3",
             traceId: TestConstants.traceId,
             type: .performance,
             data: Data(),
@@ -371,6 +379,7 @@ class SpanRecordTests: XCTestCase {
         let now = Date()
         let span1 = try storage.addSpan(
             id: "id1",
+            name: "a name 1",
             traceId: TestConstants.traceId,
             type: .performance,
             data: Data(),
@@ -379,6 +388,7 @@ class SpanRecordTests: XCTestCase {
         )
         let span2 = try storage.addSpan(
             id: "id2",
+            name: "a name 2",
             traceId: TestConstants.traceId,
             type: .performance,
             data: Data(),
@@ -387,6 +397,7 @@ class SpanRecordTests: XCTestCase {
         )
         let span3 = try storage.addSpan(
             id: "id3",
+            name: "a name 3",
             traceId: TestConstants.traceId,
             type: .performance,
             data: Data(),
