@@ -1,17 +1,14 @@
 import XCTest
 
 @testable import EmbraceOTel
-import EmbraceStorage
 import OpenTelemetryApi
 import OpenTelemetrySdk
+import TestSupport
 
 final class EmbraceOTelTests: XCTestCase {
 
     override func setUpWithError() throws {
-        let storage = try EmbraceStorage(options: .init(named: #file))
-        let exporter = StorageSpanExporter(options: .init(storage: storage))
-
-        EmbraceOTel.setup(spanProcessor: SingleSpanProcessor(spanExporter: exporter))
+        EmbraceOTel.setup(spanProcessor: MockSpanProcessor())
     }
 
 // MARK: registerTracer

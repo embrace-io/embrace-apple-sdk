@@ -7,7 +7,7 @@ import EmbraceCommon
 import OpenTelemetrySdk
 
 extension SpanData {
-    var embType: SpanType {
+    public var embType: SpanType {
         if let raw = attributes[SpanAttributeKey.type.rawValue] {
             switch raw {
             case let .string(val):
@@ -19,7 +19,7 @@ extension SpanData {
         return .performance
     }
 
-    func toJSON() throws -> Data {
+    public func toJSON() throws -> Data {
         let encoder = JSONEncoder()
         return try encoder.encode(self)
     }

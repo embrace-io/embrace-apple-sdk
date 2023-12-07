@@ -77,7 +77,7 @@ let package = Package(
             ],
             plugins: targetPlugins
         ),
-        
+
         // common ----------------------------------------------------------------------
         .target(
             name: "EmbraceCommon",
@@ -118,7 +118,6 @@ let package = Package(
             name: "EmbraceOTel",
             dependencies: [
                 "EmbraceCommon",
-                "EmbraceStorage",
                 .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
             ],
             plugins: targetPlugins
@@ -137,8 +136,7 @@ let package = Package(
             name: "EmbraceStorage",
             dependencies: [
                 "EmbraceCommon",
-                .product(name: "GRDB", package: "GRDB.swift"),
-                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
+                .product(name: "GRDB", package: "GRDB.swift")
             ],
             plugins: targetPlugins
         ),

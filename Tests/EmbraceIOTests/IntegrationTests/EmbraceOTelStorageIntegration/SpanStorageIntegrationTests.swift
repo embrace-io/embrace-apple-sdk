@@ -4,6 +4,7 @@
 
 import XCTest
 
+import EmbraceIO
 import EmbraceOTel
 import EmbraceStorage
 import GRDB

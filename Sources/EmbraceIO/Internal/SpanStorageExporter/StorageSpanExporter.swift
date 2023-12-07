@@ -3,6 +3,7 @@
 //
 
 import EmbraceStorage
+import EmbraceOTel
 
 public class StorageSpanExporter: EmbraceSpanExporter {
 
