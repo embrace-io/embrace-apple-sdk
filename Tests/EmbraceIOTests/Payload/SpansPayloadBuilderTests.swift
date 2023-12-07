@@ -56,6 +56,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
 
         let record = SpanRecord(
             id: span.spanId.hexString,
+            name: span.name,
             traceId: span.traceId.hexString,
             type: .performance,
             data: data,

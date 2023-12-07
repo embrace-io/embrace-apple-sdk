@@ -48,6 +48,15 @@ class SpanRecordTests: XCTestCase {
                 XCTAssert(false, "id column not found!")
             }
 
+            // name
+            let nameColumn = columns.first(where: { $0.name == "name" })
+            if let nameColumn = nameColumn {
+                XCTAssertEqual(nameColumn.type, "TEXT")
+                XCTAssert(nameColumn.isNotNull)
+            } else {
+                XCTAssert(false, "name column not found!")
+            }
+
             // trace_id
             let traceIdColumn = columns.first(where: { $0.name == "trace_id" })
             if let traceIdColumn = traceIdColumn {
@@ -126,7 +135,7 @@ class SpanRecordTests: XCTestCase {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given inserted span
-        let span = SpanRecord(id: "id", traceId: "tradeId", type: .performance, data: Data(), startTime: Date())
+        let span = SpanRecord(id: "id", name: "a name", traceId: "tradeId", type: .performance, data: Data(), startTime: Date())
         try storage.upsertSpan(span)
 
         // then span should exist in storage
@@ -166,6 +175,7 @@ class SpanRecordTests: XCTestCase {
         // given insterted spans
         _ = try storage.addSpan(
             id: "id1",
+            name: "a name 1",
             traceId: TestConstants.traceId,
             type: .performance,
             data: Data(),
@@ -174,6 +184,7 @@ class SpanRecordTests: XCTestCase {
         )
         _ = try storage.addSpan(
             id: "id2",
+            name: "a name 2",
             traceId: TestConstants.traceId,
             type: .performance,
             data: Data(),
@@ -182,6 +193,7 @@ class SpanRecordTests: XCTestCase {
         )
         _ = try storage.addSpan(
             id: "id3",
+            name: "a name 3",
             traceId: TestConstants.traceId,
             type: .performance,
             data: Data(),
@@ -216,6 +228,7 @@ class SpanRecordTests: XCTestCase {
         // given insterted spans
         _ = try storage.addSpan(
             id: "id1",
+            name: "a name 1",
             traceId: TestConstants.traceId,
             type: .performance,
             data: Data(),
@@ -224,6 +237,7 @@ class SpanRecordTests: XCTestCase {
         )
         _ = try storage.addSpan(
             id: "id2",
+            name: "a name 2",
             traceId: TestConstants.traceId,
             type: .performance,
             data: Data(),
@@ -232,6 +246,7 @@ class SpanRecordTests: XCTestCase {
         )
         _ = try storage.addSpan(
             id: "id3",
+            name: "a name 3",
             traceId: TestConstants.traceId,
             type: .performance,
             data: Data(),

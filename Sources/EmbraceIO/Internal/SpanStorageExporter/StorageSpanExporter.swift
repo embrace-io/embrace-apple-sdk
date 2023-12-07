@@ -53,6 +53,7 @@ extension StorageSpanExporter {
 
         return SpanRecord(
             id: spanData.spanId.hexString,
+            name: spanData.name,
             traceId: spanData.traceId.hexString,
             type: spanData.embType,
             data: data,

@@ -44,7 +44,7 @@ class EmbraceStorageTests: XCTestCase {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given inserted record
-        var span = SpanRecord(id: "id", traceId: "traceId", type: .performance, data: Data(), startTime: Date())
+        var span = SpanRecord(id: "id", name: "a name", traceId: "traceId", type: .performance, data: Data(), startTime: Date())
         try storage.dbQueue.write { db in
             try span.insert(db)
         }
@@ -81,7 +81,7 @@ class EmbraceStorageTests: XCTestCase {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given inserted record
-        let span = SpanRecord(id: "id", traceId: "traceId", type: .performance, data: Data(), startTime: Date())
+        let span = SpanRecord(id: "id", name: "a name", traceId: "traceId", type: .performance, data: Data(), startTime: Date())
         try storage.dbQueue.write { db in
             try span.insert(db)
         }
@@ -113,8 +113,8 @@ class EmbraceStorageTests: XCTestCase {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given inserted records
-        let span1 = SpanRecord(id: "id1", traceId: "traceId", type: .performance, data: Data(), startTime: Date())
-        let span2 = SpanRecord(id: "id2", traceId: "traceId", type: .performance, data: Data(), startTime: Date())
+        let span1 = SpanRecord(id: "id1", name: "a name 1", traceId: "traceId", type: .performance, data: Data(), startTime: Date())
+        let span2 = SpanRecord(id: "id2", name: "a name 2", traceId: "traceId", type: .performance, data: Data(), startTime: Date())
         try storage.dbQueue.write { db in
             try span1.insert(db)
             try span2.insert(db)
@@ -143,7 +143,7 @@ class EmbraceStorageTests: XCTestCase {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given inserted record
-        let span = SpanRecord(id: "id", traceId: "traceId", type: .performance, data: Data(), startTime: Date())
+        let span = SpanRecord(id: "id", name: "a name", traceId: "traceId", type: .performance, data: Data(), startTime: Date())
         try storage.dbQueue.write { db in
             try span.insert(db)
         }

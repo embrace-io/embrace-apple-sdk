@@ -12,6 +12,7 @@ extension EmbraceStorage {
     /// Adds a span to the storage synchronously.
     /// - Parameters:
     ///   - id: Identifier of the span
+    ///   - name: name of the span
     ///   - traceId: Identifier of the trace containing this span
     ///   - type: SpanType of the span
     ///   - data: Data of the span
@@ -20,6 +21,7 @@ extension EmbraceStorage {
     /// - Returns: The newly stored `SpanRecord`
     public func addSpan(
         id: String,
+        name: String,
         traceId: String,
         type: SpanType,
         data: Data,
@@ -27,7 +29,7 @@ extension EmbraceStorage {
         endTime: Date? = nil
     ) throws -> SpanRecord {
 
-        let span = SpanRecord(id: id, traceId: traceId, type: type, data: data, startTime: startTime, endTime: endTime)
+        let span = SpanRecord(id: id, name: name, traceId: traceId, type: type, data: data, startTime: startTime, endTime: endTime)
         try upsertSpan(span)
 
         return span
