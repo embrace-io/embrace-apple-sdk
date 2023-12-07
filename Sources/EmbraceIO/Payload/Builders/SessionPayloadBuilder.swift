@@ -40,6 +40,12 @@ class SessionPayloadBuilder {
         let (spans, spanSnapshots) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
 
         // build payload
-        return SessionPayload(from: sessionRecord, resourceFetcher: storage, spans: spans, spanSnapshots: spanSnapshots, counter: counter)
+        return SessionPayload(
+            from: sessionRecord,
+            resourceFetcher: storage,
+            spans: spans,
+            spanSnapshots: spanSnapshots,
+            counter: counter
+        )
     }
 }

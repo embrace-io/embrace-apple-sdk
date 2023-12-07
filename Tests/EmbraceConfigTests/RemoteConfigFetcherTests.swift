@@ -28,7 +28,8 @@ class RemoteConfigFetcherTests: XCTestCase {
     }
 
     override func setUpWithError() throws {
-        RemoteConfigFetcherTests.urlSessionConfig = URLSessionConfiguration.default // can't use ephemeral because we need to test the cache
+        // can't use ephemeral because we need to test the cache
+        RemoteConfigFetcherTests.urlSessionConfig = URLSessionConfiguration.default
         RemoteConfigFetcherTests.urlSessionConfig.protocolClasses = [EmbraceHTTPMock.self]
 
         EmbraceHTTPMock.setUp()

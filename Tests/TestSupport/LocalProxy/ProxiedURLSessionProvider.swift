@@ -9,7 +9,11 @@ public struct ProxiedURLSessionProvider {
         with(configuration: .default)
     }
 
-    public static func with(configuration: URLSessionConfiguration, delegate: URLSessionDelegate? = nil, queue: OperationQueue? = nil) -> URLSession {
+    public static func with(
+        configuration: URLSessionConfiguration,
+        delegate: URLSessionDelegate? = nil,
+        queue: OperationQueue? = nil
+    ) -> URLSession {
         configuration.protocolClasses = [URLTestProxy.self]
         return URLSession(configuration: configuration, delegate: delegate, delegateQueue: queue)
     }

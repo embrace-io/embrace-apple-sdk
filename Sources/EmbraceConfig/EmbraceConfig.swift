@@ -30,10 +30,11 @@ public class EmbraceConfig {
             scanner.scanHexInt64(&deviceIdHexValue)
         }
 
+        // using hardcoded string to avoid reference to UIApplication reference
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(appDidBecomeActive),
-            name: NSNotification.Name("UIApplicationDidBecomeActiveNotification"), // to avoid reference to UIApplication reference
+            name: NSNotification.Name("UIApplicationDidBecomeActiveNotification"),
             object: nil
         )
     }

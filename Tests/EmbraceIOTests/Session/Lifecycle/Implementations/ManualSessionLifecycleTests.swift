@@ -50,7 +50,7 @@ final class ManualSessionLifecycleTests: XCTestCase {
     }
 
     func test_endSession_withCurrentSession_callsControllerEndSession() throws {
-        let session = mockController.startSession(state: .foreground)
+        mockController.startSession(state: .foreground)
         XCTAssertNotNil(mockController.currentSession)
 
         lifecycle.endSession()

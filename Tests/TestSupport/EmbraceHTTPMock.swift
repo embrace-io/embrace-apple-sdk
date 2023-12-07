@@ -65,7 +65,12 @@ public class EmbraceHTTPMock: URLProtocol {
                 if let data = response.data {
                     client?.urlProtocol(self, didLoad: data)
 
-                    if let httpResponse = HTTPURLResponse(url: url, statusCode: response.statusCode, httpVersion: nil, headerFields: nil) {
+                    if let httpResponse = HTTPURLResponse(
+                        url: url,
+                        statusCode: response.statusCode,
+                        httpVersion: nil,
+                        headerFields: nil
+                    ) {
                         client?.urlProtocol(self, didReceive: httpResponse, cacheStoragePolicy: .allowed)
                     }
                 } else {

@@ -5,5 +5,12 @@
 import OpenTelemetryApi
 
 extension SpanContext {
-    static func create() -> Self { create(traceId: TraceId.random(), spanId: SpanId.random(), traceFlags: TraceFlags(), traceState: TraceState()) }
+    static func create() -> Self {
+        create(
+            traceId: TraceId.random(),
+            spanId: SpanId.random(),
+            traceFlags: TraceFlags(),
+            traceState: TraceState()
+        )
+    }
 }

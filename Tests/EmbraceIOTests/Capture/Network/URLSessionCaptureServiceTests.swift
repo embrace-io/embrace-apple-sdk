@@ -104,7 +104,12 @@ private extension URLSessionCaptureServiceTests {
     }
 
     func whenInvokingInstall() {
-        sut.install(context: .init(appId: "myApp", sdkVersion: "0.0.0", filePathProvider: EmbraceFilePathProvider(appId: "myApp", appGroupIdentifier: "com.example.app-group")))
+        let provider = EmbraceFilePathProvider(appId: "myApp", appGroupIdentifier: "com.example.app-group")
+        sut.install(context: .init(
+            appId: "myApp",
+            sdkVersion: "0.0.0",
+            filePathProvider: provider
+        ))
     }
 
     func thenProviderShouldGetAllSwizzlers() {
@@ -122,14 +127,22 @@ private extension URLSessionCaptureServiceTests {
 
     func thenEachSwizzlerShouldHaveBeenInstalled() {
         provider.swizzlers.forEach {
-            guard let swizzler = $0 as? MockURLSessionSwizzler else { XCTFail("Swizzler should be a spy"); return }
+            guard let swizzler = $0 as? MockURLSessionSwizzler else {
+                XCTFail("Swizzler should be a spy")
+                return
+            }
+
             XCTAssertTrue(swizzler.didInstall)
         }
     }
 
     func thenEachSwizzlerShoudHaveBeenInstalledOnce() {
         provider.swizzlers.forEach {
-            guard let swizzler = $0 as? MockURLSessionSwizzler else { XCTFail("Swizzler should be a spy"); return }
+            guard let swizzler = $0 as? MockURLSessionSwizzler else {
+                XCTFail("Swizzler should be a spy")
+                return
+            }
+
             XCTAssertEqual(1, swizzler.installInvokationCount)
         }
     }

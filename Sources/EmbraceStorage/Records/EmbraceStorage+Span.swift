@@ -126,7 +126,12 @@ fileprivate extension EmbraceStorage {
 
             let count = try spanCount(db: db, traceId: span.traceId, type: span.type)
             if count >= limit {
-                let spansToDelete = try fetchSpans(db: db, traceId: span.traceId, type: span.type, limit: count - limit + 1)
+                let spansToDelete = try fetchSpans(
+                    db: db, traceId:
+                        span.traceId,
+                    type: span.type,
+                    limit: count - limit + 1
+                )
 
                 for spanToDelete in spansToDelete {
                     try spanToDelete.delete(db)
@@ -163,9 +168,17 @@ fileprivate extension EmbraceStorage {
         return try request.fetchAll(db)
     }
 
-    func spanInTimeFrameByTypeRequest(startTime: Date, endTime: Date, includeOlder: Bool, ignoreSessionSpans: Bool) -> QueryInterfaceRequest<SpanRecord> {
+    func spanInTimeFrameByTypeRequest(
+        startTime: Date,
+        endTime: Date,
+        includeOlder: Bool,
+        ignoreSessionSpans: Bool
+    ) -> QueryInterfaceRequest<SpanRecord> {
 
-        var filter = SpanRecord.filter(Column("end_time") == nil || (Column("end_time") <= endTime && Column("end_time") >= startTime))
+        var filter = SpanRecord.filter(
+            Column("end_time") == nil ||
+            (Column("end_time") <= endTime && Column("end_time") >= startTime)
+        )
 
         if includeOlder == false {
             filter = filter.filter(Column("start_time") >= startTime)
@@ -178,7 +191,15 @@ fileprivate extension EmbraceStorage {
         return filter
     }
 
-    func fetchSpans(db: Database, startTime: Date, endTime: Date, includeOlder: Bool, ignoreSessionSpans: Bool, limit: Int?) throws -> [SpanRecord] {
+    func fetchSpans(
+        db: Database,
+        startTime: Date,
+        endTime: Date,
+        includeOlder: Bool,
+        ignoreSessionSpans: Bool,
+        limit: Int?
+    ) throws -> [SpanRecord] {
+
         var request = spanInTimeFrameByTypeRequest(
             startTime: startTime,
             endTime: endTime,

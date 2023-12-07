@@ -10,7 +10,7 @@ public enum LastRunState {
 
 public protocol CrashReporter: InstalledCaptureService {
     var currentSessionId: SessionIdentifier? { get set }
-	
+
     func getLastRunState() -> LastRunState
 
     func fetchUnsentCrashReports(completion: @escaping ([CrashReport]) -> Void)

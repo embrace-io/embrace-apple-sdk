@@ -57,8 +57,11 @@ struct DefaultURLSessionSwizzlerProvider: URLSessionSwizzlerProvider {
     ///   - rhs: The second class to compare.
     /// - Returns: `true` if the implementations of the specified selector are the same in both classes; `false` otherwise.
     func hasTheSameImplementation(for selector: Selector, lhs: AnyClass, rhs: AnyClass) -> Bool {
-        guard let leftImplementation = class_getMethodImplementation(lhs, selector) else { return false }
-        guard let rightImplementation = class_getMethodImplementation(rhs, selector) else { return false }
+        guard let leftImplementation = class_getMethodImplementation(lhs, selector),
+              let rightImplementation = class_getMethodImplementation(rhs, selector) else {
+            return false
+        }
+
         return leftImplementation == rightImplementation
     }
 }

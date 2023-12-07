@@ -10,18 +10,19 @@ import OpenTelemetryApi
 @objc public class LowMemoryWarningCaptureService: NSObject, InstalledCaptureService {
 
     public let otel: EmbraceOpenTelemetry = EmbraceOTel()
+    public var onWarningCaptured: (() -> Void)?
 
     @ThreadSafe var started = false
 
     deinit {
         NotificationCenter.default.removeObserver(self)
     }
-
     public func install(context: EmbraceCommon.CaptureServiceContext) {
+        // hardcoded string so we dont have to use UIApplication
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(didReceiveMemoryWarning),
-            name: NSNotification.Name("UIApplicationDidReceiveMemoryWarningNotification"), // hardcoded string so we dont have to use UIApplication
+            name: NSNotification.Name("UIApplicationDidReceiveMemoryWarningNotification"),
             object: nil
         )
     }
@@ -46,5 +47,7 @@ import OpenTelemetryApi
 
         let event = RecordingSpanEvent(name: "emb-device-low-memory", timestamp: Date())
         Embrace.client?.add(event: event)
+
+        onWarningCaptured?()
     }
 }

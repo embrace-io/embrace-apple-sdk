@@ -9,7 +9,6 @@ import XCTest
 import OpenTelemetryApi
 
 // swiftlint:disable force_cast
-// swiftlint:disable force_try
 
 class SpanPayloadTests: XCTestCase {
 
@@ -131,4 +130,3 @@ class SpanPayloadTests: XCTestCase {
 }
 
 // swiftlint:enable force_cast
-// swiftlint:enable force_try

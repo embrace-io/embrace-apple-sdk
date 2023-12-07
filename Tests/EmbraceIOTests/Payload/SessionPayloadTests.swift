@@ -8,7 +8,7 @@ import XCTest
 @testable import EmbraceCommon
 import TestSupport
 
-// swiftlint:disable force_cast
+// swiftlint:disable force_cast line_length
 
 final class SessionPayloadTests: XCTestCase {
     let options = EmbraceStorage.Options(baseUrl: URL(fileURLWithPath: NSTemporaryDirectory()), fileName: "test.sqlite")
@@ -148,4 +148,4 @@ final class SessionPayloadTests: XCTestCase {
     }
 }
 
-// swiftlint:enable force_cast
+// swiftlint:enable force_cast line_length

@@ -39,7 +39,11 @@ class EmbraceConfigTests: XCTestCase {
 
     func test_frequentUpdatesIgnored() {
         // given a config with 1 hour minimum update interval
-        let config = EmbraceConfig(options: testOptions(deviceId: TestConstants.deviceId, minimumUpdateInterval: 60 * 60))
+        let options = testOptions(
+            deviceId: TestConstants.deviceId,
+            minimumUpdateInterval: 60 * 60
+        )
+        let config = EmbraceConfig(options: options)
 
         // when trying to update too soon
         config.updateIfNeeded()
@@ -51,7 +55,11 @@ class EmbraceConfigTests: XCTestCase {
 
     func test_frequentUpdatesNotIgnored() {
         // given a config with 1 second minimum update interval
-        let config = EmbraceConfig(options: testOptions(deviceId: TestConstants.deviceId, minimumUpdateInterval: 1))
+        let options = testOptions(
+            deviceId: TestConstants.deviceId,
+            minimumUpdateInterval: 1
+        )
+        let config = EmbraceConfig(options: options)
 
         // when trying to update after 1 second
         wait(delay: 2)
@@ -64,7 +72,11 @@ class EmbraceConfigTests: XCTestCase {
 
     func test_forcedUpdateNotIgnored() {
         // given a config with 1 hour minimum update interval
-        let config = EmbraceConfig(options: testOptions(deviceId: TestConstants.deviceId, minimumUpdateInterval: 60 * 60))
+        let options = testOptions(
+            deviceId: TestConstants.deviceId,
+            minimumUpdateInterval: 60 * 60
+        )
+        let config = EmbraceConfig(options: options)
 
         // when forcing an update
         wait(delay: 2)

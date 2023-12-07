@@ -6,7 +6,7 @@ import Foundation
 import EmbraceCommon
 import EmbraceObjCUtils
 
-@objc public class DeviceInfoCaptureService: NSObject, CaptureService	 {
+@objc public class DeviceInfoCaptureService: NSObject, CaptureService {
     typealias Keys = DeviceResourceKeys
 
     public func setup(context: EmbraceCommon.CaptureServiceContext) { }

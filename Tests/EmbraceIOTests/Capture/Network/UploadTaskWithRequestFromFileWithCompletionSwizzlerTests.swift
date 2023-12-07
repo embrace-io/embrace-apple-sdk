@@ -117,9 +117,15 @@ private extension UploadTaskWithRequestFromFileWithCompletionSwizzlerTests {
         session = ProxiedURLSessionProvider.default()
     }
 
-    func whenInvokingUploadTaskWithURLRequestFromFile(completionHandler: @escaping ((Data?, URLResponse?, Error?) -> Void)) {
+    func whenInvokingUploadTaskWithURLRequestFromFile(
+        completionHandler: @escaping ((Data?, URLResponse?, Error?) -> Void)
+    ) {
         let dummyFile = Bundle.module.url(forResource: "dummy", withExtension: "json", subdirectory: "Mocks")!
-        uploadTask = session.uploadTask(with: request, fromFile: dummyFile, completionHandler: { data, response, error in
+        uploadTask = session.uploadTask(
+            with: request,
+            fromFile: dummyFile,
+            completionHandler: { data, response, error in
+
             completionHandler(data, response, error)
         })
         uploadTask.resume()

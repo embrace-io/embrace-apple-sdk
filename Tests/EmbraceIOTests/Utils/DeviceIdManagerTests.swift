@@ -25,7 +25,10 @@ class DeviceIdManagerTests: XCTestCase {
         }
     }
 
-    let testOptions = EmbraceStorage.Options(baseUrl: URL(fileURLWithPath: NSTemporaryDirectory()), fileName: "test.sqlite")
+    let testOptions = EmbraceStorage.Options(
+        baseUrl: URL(fileURLWithPath: NSTemporaryDirectory()),
+        fileName: "test.sqlite"
+    )
 
     func test_if_new_deviceId_requested_should_be_in_database() throws {
 

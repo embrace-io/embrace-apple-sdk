@@ -17,9 +17,16 @@ public struct RecordingSpanLink: Codable, Equatable {
 }
 
 public func == (lhs: RecordingSpanLink, rhs: RecordingSpanLink) -> Bool {
-    return lhs.traceId == rhs.traceId && lhs.spanId == rhs.spanId && lhs.attributes == rhs.attributes
+    return
+        lhs.traceId == rhs.traceId &&
+        lhs.spanId == rhs.spanId &&
+        lhs.attributes == rhs.attributes
 }
 
 public func == (lhs: [RecordingSpanLink], rhs: [RecordingSpanLink]) -> Bool {
-    return lhs.elementsEqual(rhs) { $0.traceId == $1.traceId && $0.spanId == $1.spanId && $0.attributes == $1.attributes }
+    return lhs.elementsEqual(rhs) {
+        $0.traceId == $1.traceId &&
+        $0.spanId == $1.spanId &&
+        $0.attributes == $1.attributes
+    }
 }

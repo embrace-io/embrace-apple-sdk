@@ -28,7 +28,13 @@ extension Embrace: EmbraceOpenTelemetry {
     ///     - attributes: A dictionary of attributes to set on the span
     ///     - block: The block to execute
     /// - Returns  The result of the block
-    public func recordSpan<T>(name: String, parent: Span? = nil, type: SpanType, attributes: [String: String] = [:], block: (Span) throws -> T) rethrows -> T {
+    public func recordSpan<T>(
+        name: String,
+        parent: Span? = nil,
+        type: SpanType,
+        attributes: [String: String] = [:],
+        block: (Span) throws -> T
+    ) rethrows -> T {
         let builder = otel.buildSpan(name: name, type: type, attributes: attributes)
         if let parent = parent { builder.setParent(parent) }
         let span = builder.startSpan()
@@ -48,7 +54,15 @@ extension Embrace: EmbraceOpenTelemetry {
     ///     - attributes: A dictionary of attributes to set on the span. Defaults to an empty dictionary
     ///     - events: An array of events to add to the span. Defaults to an empty array
     ///     - errorCode: The error code of the span. Defaults to `noError`
-    public func recordCompletedSpan(name: String, parent: Span? = nil, startTime: Date, endTime: Date, attributes: [String: String] = [:], events: [RecordingSpanEvent] = [], errorCode: ErrorCode? = nil) {
+    public func recordCompletedSpan(
+        name: String,
+        parent: Span? = nil,
+        startTime: Date,
+        endTime: Date,
+        attributes: [String: String] = [:],
+        events: [RecordingSpanEvent] = [],
+        errorCode: ErrorCode? = nil
+    ) {
 
         let builder = otel
             .buildSpan(name: name, type: .performance, attributes: attributes)

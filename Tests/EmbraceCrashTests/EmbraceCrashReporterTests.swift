@@ -52,7 +52,10 @@ class EmbraceCrashReporterTests: XCTestCase {
         crashReporter.start()
 
         // given some fake crash report
-        try FileManager.default.createDirectory(atPath: crashReporter.basePath! + "/Reports", withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(
+            atPath: crashReporter.basePath! + "/Reports",
+            withIntermediateDirectories: true
+        )
         let report = Bundle.module.path(forResource: "crash_report", ofType: "json", inDirectory: "Mocks")!
         let finalPath = crashReporter.basePath! + "/Reports/appId-report-0000000000000001.json"
         try FileManager.default.copyItem(atPath: report, toPath: finalPath)
@@ -77,7 +80,10 @@ class EmbraceCrashReporterTests: XCTestCase {
         crashReporter.start()
 
         // given some fake crash report
-        try FileManager.default.createDirectory(atPath: crashReporter.basePath! + "/Reports", withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(
+            atPath: crashReporter.basePath! + "/Reports",
+            withIntermediateDirectories: true
+        )
         let report = Bundle.module.path(forResource: "crash_report", ofType: "json", inDirectory: "Mocks")!
 
         for i in 1...9 {

@@ -11,8 +11,6 @@ import UIKit
 @testable import EmbraceOTel
 @testable import EmbraceIO
 
-// swiftlint:disable force_cast
-
 class LowMemoryWarningCaptureServiceTests: XCTestCase {
 
     override func setUpWithError() throws {
@@ -27,11 +25,16 @@ class LowMemoryWarningCaptureServiceTests: XCTestCase {
         service.install(context: .testContext)
         service.start()
 
+        let expectation = XCTestExpectation()
+        service.onWarningCaptured = {
+            expectation.fulfill()
+        }
+
         // when a memory warning notification is received
         NotificationCenter.default.post(Notification(name: UIApplication.didReceiveMemoryWarningNotification))
 
         // then a span event is recorded
-        // TODO: Need session span to test this!
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_notStarted() {
@@ -39,11 +42,17 @@ class LowMemoryWarningCaptureServiceTests: XCTestCase {
         let service = LowMemoryWarningCaptureService()
         service.install(context: .testContext)
 
+        let expectation = XCTestExpectation()
+        expectation.isInverted = true
+        service.onWarningCaptured = {
+            expectation.fulfill()
+        }
+
         // when a memory warning notification is received
         NotificationCenter.default.post(Notification(name: UIApplication.didReceiveMemoryWarningNotification))
 
         // then a span event is not recorded
-        // TODO: Need session span to test this!
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_stopped() {
@@ -52,13 +61,17 @@ class LowMemoryWarningCaptureServiceTests: XCTestCase {
         service.install(context: .testContext)
         service.start()
 
+        let expectation = XCTestExpectation()
+        expectation.isInverted = true
+        service.onWarningCaptured = {
+            expectation.fulfill()
+        }
+
         // when the service is stopped and a new notification is received
         service.stop()
         NotificationCenter.default.post(Notification(name: UIApplication.didReceiveMemoryWarningNotification))
 
         // then a span event is not recorded
-        // TODO: Need session span to test this!
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 }
-
-// swiftlint:enable force_cast

@@ -73,7 +73,10 @@ extension KeyedEncodingContainerProtocol where Key == JSONCodingKeys {
                 case Optional<Any>.none:
                     try encodeNil(forKey: key)
                 default:
-                    throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: codingPath + [key], debugDescription: "Invalid JSON value"))
+                    throw EncodingError.invalidValue(
+                        value,
+                        EncodingError.Context(codingPath: codingPath + [key], debugDescription: "Invalid JSON value")
+                    )
                 }
             }
         }
@@ -82,14 +85,18 @@ extension KeyedEncodingContainerProtocol where Key == JSONCodingKeys {
 
 extension KeyedEncodingContainerProtocol {
     mutating func encode(_ value: [String: Any]?, forKey key: Key) throws {
-        guard let value = value else { return }
+        guard let value = value else {
+            return
+        }
 
         var container = nestedContainer(keyedBy: JSONCodingKeys.self, forKey: key)
         try container.encode(value)
     }
 
     mutating func encode(_ value: [Any]?, forKey key: Key) throws {
-        guard let value = value else { return }
+        guard let value = value else {
+            return
+        }
 
         var container = nestedUnkeyedContainer(forKey: key)
         try container.encode(value)
@@ -139,7 +146,10 @@ extension UnkeyedEncodingContainer {
                 try encodeNil()
             default:
                 let keys = JSONCodingKeys(intValue: index).map({ [ $0 ] }) ?? []
-                throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: codingPath + keys, debugDescription: "Invalid JSON value"))
+                throw EncodingError.invalidValue(
+                    value,
+                    EncodingError.Context(codingPath: codingPath + keys, debugDescription: "Invalid JSON value")
+                )
             }
         }
     }

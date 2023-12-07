@@ -41,7 +41,8 @@ public class EmbraceUpload {
 
         // reachability monitor
         if options.redundancy.retryOnInternetConnected {
-            reachabilityMonitor = EmbraceReachabilityMonitor(queue: DispatchQueue(label: "com.embrace.upload.reachability"))
+            let monitorQueue = DispatchQueue(label: "com.embrace.upload.reachability")
+            reachabilityMonitor = EmbraceReachabilityMonitor(queue: monitorQueue)
             reachabilityMonitor?.onConnectionRegained = { [weak self] in
                 self?.retryCachedData()
             }
@@ -140,7 +141,13 @@ public class EmbraceUpload {
             attemptCount: attemptCount) { [weak self] (cancelled, count, error) in
 
                 self?.queue.async { [weak self] in
-                    self?.handleOperationFinished(id: id, type: type, cancelled: cancelled, attemptCount: count, error: error)
+                    self?.handleOperationFinished(
+                        id: id,
+                        type: type,
+                        cancelled: cancelled,
+                        attemptCount: count,
+                        error: error
+                    )
                 }
             }
 

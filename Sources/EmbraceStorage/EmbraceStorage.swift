@@ -117,7 +117,11 @@ extension EmbraceStorage {
     ///   - sql: SQL query to execute
     ///   - arguments: Arguments for the query, if any
     ///   - completion: Completion block called with an `Error` on failure
-    public func executeQueryAsync(_ sql: String, arguments: StatementArguments?, completion: ((Result<Void, Error>) -> Void)?) {
+    public func executeQueryAsync(
+        _ sql: String,
+        arguments: StatementArguments?,
+        completion: ((Result<Void, Error>) -> Void)?
+    ) {
         dbWriteAsync(block: { db in
             try db.execute(sql: sql, arguments: arguments ?? StatementArguments())
         }, completion: completion)

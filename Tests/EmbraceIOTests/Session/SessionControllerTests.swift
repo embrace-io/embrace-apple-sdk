@@ -24,8 +24,14 @@ final class SessionControllerTests: XCTestCase {
         sessionsURL: SessionControllerTests.testSessionsUrl,
         blobsURL: SessionControllerTests.testBlobsUrl
     )
-    static let testCacheOptions = EmbraceUpload.CacheOptions(cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory()))!
-    static let testMetadataOptions = EmbraceUpload.MetadataOptions(apiKey: "apiKey", userAgent: "userAgent", deviceId: "12345678")
+    static let testCacheOptions = EmbraceUpload.CacheOptions(
+        cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory())
+    )!
+    static let testMetadataOptions = EmbraceUpload.MetadataOptions(
+        apiKey: "apiKey",
+        userAgent: "userAgent",
+        deviceId: "12345678"
+    )
     static let testRedundancyOptions = EmbraceUpload.RedundancyOptions(automaticRetryCount: 0)
 
     var testOptions: EmbraceUpload.Options!
@@ -150,7 +156,11 @@ final class SessionControllerTests: XCTestCase {
         let session = controller.startSession(state: .foreground)
 
         if let spanData = spanProcessor.startedSpans.first {
-            XCTAssertEqual(spanData.startTime.timeIntervalSince1970, session.startTime.timeIntervalSince1970, accuracy: 0.001)
+            XCTAssertEqual(
+                spanData.startTime.timeIntervalSince1970,
+                session.startTime.timeIntervalSince1970,
+                accuracy: 0.001
+            )
             XCTAssertNil(spanData.endTime)
         }
     }

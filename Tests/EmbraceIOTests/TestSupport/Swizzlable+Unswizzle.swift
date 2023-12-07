@@ -22,7 +22,10 @@ public extension Swizzlable {
     }
 
     private func unswizzle(method: Method) throws {
-        guard let originalImplementation = SwizzleCache.shared.getOriginalMethodImplementation(forMethod: method, inClass: baseClass) else {
+        guard let originalImplementation = SwizzleCache.shared.getOriginalMethodImplementation(
+            forMethod: method,
+            inClass: baseClass
+        ) else {
             throw UnswizzleError.implementationInCacheNotFound(method: method)
         }
         method_setImplementation(method, originalImplementation)

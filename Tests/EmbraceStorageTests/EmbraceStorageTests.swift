@@ -8,7 +8,10 @@ import TestSupport
 
 class EmbraceStorageTests: XCTestCase {
 
-    let testOptions = EmbraceStorage.Options(baseUrl: URL(fileURLWithPath: NSTemporaryDirectory()), fileName: "test.sqlite")
+    let testOptions = EmbraceStorage.Options(
+        baseUrl: URL(fileURLWithPath: NSTemporaryDirectory()),
+        fileName: "test.sqlite"
+    )
 
     override func setUpWithError() throws {
         if FileManager.default.fileExists(atPath: testOptions.filePath!) {

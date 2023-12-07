@@ -17,12 +17,48 @@ extension EmbraceUploadCacheTests {
         // given some upload cache
         let oldDate = Calendar.current.date(byAdding: .day, value: -16, to: Date())!
         let now = Date()
-        let record1 = UploadDataRecord(id: "id1", type: 0, data: Data(repeating: 3, count: 1), attemptCount: 0, date: Date(timeInterval: -1300, since: now))
-        let record2 = UploadDataRecord(id: "id2", type: 0, data: Data(repeating: 3, count: 1), attemptCount: 0, date: oldDate)
-        let record3 = UploadDataRecord(id: "id3", type: 0, data: Data(repeating: 3, count: 1), attemptCount: 0, date: oldDate)
-        let record4 = UploadDataRecord(id: "id4", type: 0, data: Data(repeating: 3, count: 300), attemptCount: 0, date: Date(timeInterval: -1200, since: now))
-        let record5 = UploadDataRecord(id: "id5", type: 0, data: Data(repeating: 3, count: 400), attemptCount: 0, date: Date(timeInterval: -1100, since: now))
-        let record6 = UploadDataRecord(id: "id6", type: 0, data: Data(repeating: 3, count: 100), attemptCount: 0, date: Date(timeInterval: -1000, since: now))
+        let record1 = UploadDataRecord(
+            id: "id1",
+            type: 0,
+            data: Data(repeating: 3, count: 1),
+            attemptCount: 0,
+            date: Date(timeInterval: -1300, since: now)
+        )
+        let record2 = UploadDataRecord(
+            id: "id2",
+            type: 0,
+            data: Data(repeating: 3, count: 1),
+            attemptCount: 0,
+            date: oldDate
+        )
+        let record3 = UploadDataRecord(
+            id: "id3",
+            type: 0,
+            data: Data(repeating: 3, count: 1),
+            attemptCount: 0,
+            date: oldDate
+        )
+        let record4 = UploadDataRecord(
+            id: "id4",
+            type: 0,
+            data: Data(repeating: 3, count: 300),
+            attemptCount: 0,
+            date: Date(timeInterval: -1200, since: now)
+        )
+        let record5 = UploadDataRecord(
+            id: "id5",
+            type: 0,
+            data: Data(repeating: 3, count: 400),
+            attemptCount: 0,
+            date: Date(timeInterval: -1100, since: now)
+        )
+        let record6 = UploadDataRecord(
+            id: "id6",
+            type: 0,
+            data: Data(repeating: 3, count: 100),
+            attemptCount: 0,
+            date: Date(timeInterval: -1000, since: now)
+        )
 
         try cache.dbQueue.write { db in
             try record1.insert(db)
@@ -57,12 +93,43 @@ extension EmbraceUploadCacheTests {
         // given some upload cache
         let oldDate = Calendar.current.date(byAdding: .day, value: -16, to: Date())!
         let now = Date()
-        let record1 = UploadDataRecord(id: "id1", type: 0, data: Data(repeating: 3, count: 1), attemptCount: 0, date: Date(timeInterval: -1300, since: now))
-        let record2 = UploadDataRecord(id: "id2", type: 0, data: Data(repeating: 3, count: 1), attemptCount: 0, date: oldDate)
-        let record3 = UploadDataRecord(id: "id3", type: 0, data: Data(repeating: 3, count: 1), attemptCount: 0, date: oldDate)
-        let record4 = UploadDataRecord(id: "id4", type: 0, data: Data(repeating: 3, count: 300), attemptCount: 0, date: Date(timeInterval: -1200, since: now))
-        let record5 = UploadDataRecord(id: "id5", type: 0, data: Data(repeating: 3, count: 400), attemptCount: 0, date: Date(timeInterval: -1100, since: now))
-        let record6 = UploadDataRecord(id: "id6", type: 0, data: Data(repeating: 3, count: 100), attemptCount: 0, date: Date(timeInterval: -1000, since: now))
+        let record1 = UploadDataRecord(
+            id: "id1",
+            type: 0,
+            data: Data(repeating: 3, count: 1),
+            attemptCount: 0, date: Date(timeInterval: -1300, since: now)
+        )
+        let record2 = UploadDataRecord(
+            id: "id2",
+            type: 0,
+            data: Data(repeating: 3, count: 1),
+            attemptCount: 0, date: oldDate
+        )
+        let record3 = UploadDataRecord(
+            id: "id3",
+            type: 0,
+            data: Data(repeating: 3, count: 1),
+            attemptCount: 0, date: oldDate
+        )
+        let record4 = UploadDataRecord(
+            id: "id4",
+            type: 0,
+            data: Data(repeating: 3, count: 300),
+            attemptCount: 0, date: Date(timeInterval: -1200, since: now)
+        )
+        let record5 = UploadDataRecord(
+            id: "id5",
+            type: 0,
+            data: Data(repeating: 3, count: 400),
+            attemptCount: 0, date: Date(timeInterval: -1100, since: now)
+        )
+        let record6 = UploadDataRecord(
+            id: "id6",
+            type: 0,
+            data: Data(repeating: 3, count: 100),
+            attemptCount: 0,
+            date: Date(timeInterval: -1000, since: now)
+        )
 
         try cache.dbQueue.write { db in
             try record1.insert(db)
@@ -111,12 +178,48 @@ extension EmbraceUploadCacheTests {
         // given some upload cache
         let oldDate = Calendar.current.date(byAdding: .day, value: -16, to: Date())!
         let now = Date()
-        let record1 = UploadDataRecord(id: "id1", type: 0, data: Data(repeating: 3, count: 1), attemptCount: 0, date: Date(timeInterval: -1300, since: now))
-        let record2 = UploadDataRecord(id: "id2", type: 0, data: Data(repeating: 3, count: 1), attemptCount: 0, date: oldDate)
-        let record3 = UploadDataRecord(id: "id3", type: 0, data: Data(repeating: 3, count: 1), attemptCount: 0, date: oldDate)
-        let record4 = UploadDataRecord(id: "id4", type: 0, data: Data(repeating: 3, count: 300), attemptCount: 0, date: Date(timeInterval: -1200, since: now))
-        let record5 = UploadDataRecord(id: "id5", type: 0, data: Data(repeating: 3, count: 400), attemptCount: 0, date: Date(timeInterval: -1100, since: now))
-        let record6 = UploadDataRecord(id: "id6", type: 0, data: Data(repeating: 3, count: 100), attemptCount: 0, date: Date(timeInterval: -1000, since: now))
+        let record1 = UploadDataRecord(
+            id: "id1",
+            type: 0,
+            data: Data(repeating: 3, count: 1),
+            attemptCount: 0,
+            date: Date(timeInterval: -1300, since: now)
+        )
+        let record2 = UploadDataRecord(
+            id: "id2",
+            type: 0,
+            data: Data(repeating: 3, count: 1),
+            attemptCount: 0,
+            date: oldDate
+        )
+        let record3 = UploadDataRecord(
+            id: "id3",
+            type: 0,
+            data: Data(repeating: 3, count: 1),
+            attemptCount: 0,
+            date: oldDate
+        )
+        let record4 = UploadDataRecord(
+            id: "id4",
+            type: 0,
+            data: Data(repeating: 3, count: 300),
+            attemptCount: 0,
+            date: Date(timeInterval: -1200, since: now)
+        )
+        let record5 = UploadDataRecord(
+            id: "id5",
+            type: 0,
+            data: Data(repeating: 3, count: 400),
+            attemptCount: 0,
+            date: Date(timeInterval: -1100, since: now)
+        )
+        let record6 = UploadDataRecord(
+            id: "id6",
+            type: 0,
+            data: Data(repeating: 3, count: 100),
+            attemptCount: 0,
+            date: Date(timeInterval: -1000, since: now)
+        )
 
         try cache.dbQueue.write { db in
             try record1.insert(db)
@@ -151,12 +254,45 @@ extension EmbraceUploadCacheTests {
         // given some upload cache
         let oldDate = Calendar.current.date(byAdding: .day, value: -16, to: Date())!
         let now = Date()
-        let record1 = UploadDataRecord(id: "id1", type: 0, data: Data(repeating: 3, count: 1), attemptCount: 0, date: Date(timeInterval: -1300, since: now))
-        let record2 = UploadDataRecord(id: "id2", type: 0, data: Data(repeating: 3, count: 10000), attemptCount: 0, date: oldDate)
-        let record3 = UploadDataRecord(id: "id3", type: 0, data: Data(repeating: 3, count: 10000), attemptCount: 0, date: oldDate)
-        let record4 = UploadDataRecord(id: "id4", type: 0, data: Data(repeating: 3, count: 300), attemptCount: 0, date: Date(timeInterval: -1200, since: now))
-        let record5 = UploadDataRecord(id: "id5", type: 0, data: Data(repeating: 3, count: 400), attemptCount: 0, date: Date(timeInterval: -1100, since: now))
-        let record6 = UploadDataRecord(id: "id6", type: 0, data: Data(repeating: 3, count: 300), attemptCount: 0, date: Date(timeInterval: -1000, since: now))
+        let record1 = UploadDataRecord(
+            id: "id1",
+            type: 0,
+            data: Data(repeating: 3, count: 1),
+            attemptCount: 0,
+            date: Date(timeInterval: -1300, since: now)
+        )
+        let record2 = UploadDataRecord(
+            id: "id2",
+            type: 0,
+            data: Data(repeating: 3, count: 10000),
+            attemptCount: 0,
+            date: oldDate
+        )
+        let record3 = UploadDataRecord(
+            id: "id3",
+            type: 0,
+            data: Data(repeating: 3, count: 10000),
+            attemptCount: 0,
+            date: oldDate
+        )
+        let record4 = UploadDataRecord(
+            id: "id4",
+            type: 0,
+            data: Data(repeating: 3, count: 300),
+            attemptCount: 0,
+            date: Date(timeInterval: -1200, since: now)
+        )
+        let record5 = UploadDataRecord(
+            id: "id5",
+            type: 0,
+            data: Data(repeating: 3, count: 400),
+            attemptCount: 0,
+            date: Date(timeInterval: -1100, since: now)
+        )
+        let record6 = UploadDataRecord(
+            id: "id6",
+            type: 0, data: Data(repeating: 3, count: 300), attemptCount: 0, date: Date(timeInterval: -1000, since: now)
+        )
 
         try cache.dbQueue.write { db in
             try record1.insert(db)

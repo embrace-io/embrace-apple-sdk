@@ -7,6 +7,10 @@ import EmbraceCommon
 
 extension CaptureServiceContext {
     public static var testContext: CaptureServiceContext {
-        CaptureServiceContext(appId: TestConstants.appId, sdkVersion: TestConstants.sdkVersion, filePathProvider: TemporaryFilepathProvider())
+        CaptureServiceContext(
+            appId: TestConstants.appId,
+            sdkVersion: TestConstants.sdkVersion,
+            filePathProvider: TemporaryFilepathProvider()
+        )
     }
 }

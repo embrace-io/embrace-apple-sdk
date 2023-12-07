@@ -12,7 +12,12 @@ public extension URL {
             return objc_getAssociatedObject(self, &URL.mockResponseKey) as? URLTestProxiedResponse
         }
         set {
-            objc_setAssociatedObject(self, &URL.mockResponseKey, newValue, objc_AssociationPolicy.OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+            objc_setAssociatedObject(
+                self,
+                &URL.mockResponseKey,
+                newValue,
+                objc_AssociationPolicy.OBJC_ASSOCIATION_RETAIN_NONATOMIC
+            )
         }
     }
 }

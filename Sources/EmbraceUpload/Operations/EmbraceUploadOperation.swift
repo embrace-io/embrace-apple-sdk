@@ -76,7 +76,8 @@ class EmbraceUploadOperation: AsyncOperation {
                 if response.statusCode >= 200 && response.statusCode < 300 {
                     self?.completion?(false, self?.attemptCount ?? 0, nil)
                 } else {
-                    self?.completion?(false, self?.attemptCount ?? 0, self?.incorrectStatusCodeError(response.statusCode))
+                    let returnError = self?.incorrectStatusCodeError(response.statusCode)
+                    self?.completion?(false, self?.attemptCount ?? 0, returnError)
                 }
 
             // no retries left, send completion
@@ -91,7 +92,11 @@ class EmbraceUploadOperation: AsyncOperation {
     }
 
     private func incorrectStatusCodeError(_ code: Int) -> Error {
-        return NSError(domain: "com.embrace", code: code, userInfo: [NSLocalizedDescriptionKey: "Invalid status code received!"])
+        return NSError(
+            domain: "com.embrace",
+            code: code,
+            userInfo: [NSLocalizedDescriptionKey: "Invalid status code received!"]
+        )
     }
 
     private func createRequest() -> URLRequest {

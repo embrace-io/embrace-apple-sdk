@@ -12,7 +12,13 @@ protocol KeychainInterface {
 
 class DefaultKeychainInterface: KeychainInterface {
     func valueFor(service: CFString, account: CFString) -> (value: String?, status: OSStatus) {
-        let keychainQuery: NSMutableDictionary = [kSecClass: kSecClassGenericPassword, kSecAttrService: service, kSecAttrAccount: account, kSecReturnData: true, kSecMatchLimit: kSecMatchLimitOne]
+        let keychainQuery: NSMutableDictionary = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrService: service,
+            kSecAttrAccount: account,
+            kSecReturnData: true,
+            kSecMatchLimit: kSecMatchLimitOne
+        ]
 
         var dataTypeRef: AnyObject?
 
@@ -34,14 +40,23 @@ class DefaultKeychainInterface: KeychainInterface {
             return errSecParam
         }
 
-        let querry: NSMutableDictionary = [kSecClass: kSecClassGenericPassword, kSecAttrService: service, kSecAttrAccount: account, kSecValueData: dataFromString]
+        let querry: NSMutableDictionary = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrService: service,
+            kSecAttrAccount: account,
+            kSecValueData: dataFromString
+        ]
 
         // Add the new keychain item
         return SecItemAdd( querry, nil)
     }
 
     func deleteValue(service: CFString, account: CFString) -> OSStatus {
-        let keychainQuery: NSMutableDictionary =  [kSecClass: kSecClassGenericPassword, kSecAttrService: service, kSecAttrAccount: account]
+        let keychainQuery: NSMutableDictionary = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrService: service,
+            kSecAttrAccount: account
+        ]
 
         return SecItemDelete(keychainQuery)
     }

@@ -57,7 +57,9 @@ public final class UserResource {
     ///
     /// This will clear all user attributes set via the ``username``, ``email``, and ``identifier`` properties
     public func clear() {
-        guard let storage = storage else { return }
+        guard let storage = storage else {
+            return
+        }
 
         do {
             try storage.removePermanentResources(keys: UserResourceKey.allValues)
@@ -72,7 +74,9 @@ extension UserResource {
 
     /// Retrieve value from EmbraceStorage
     private func value(for key: UserResourceKey) -> String? {
-        guard let storage = storage else { return nil }
+        guard let storage = storage else {
+            return nil
+        }
 
         do {
             let record = try storage.fetchPermanentResource(key: key.rawValue)
@@ -85,7 +89,9 @@ extension UserResource {
 
     /// Set value in EmbraceStorage
     private func update(key: UserResourceKey, value: String?) {
-        guard let storage = storage else { return }
+        guard let storage = storage else {
+            return
+        }
 
         if let value = value {
             do {
@@ -101,7 +107,9 @@ extension UserResource {
 
     /// Remove value in EmbraceStorage
     private func remove(_ key: UserResourceKey) {
-        guard let storage = storage else { return }
+        guard let storage = storage else {
+            return
+        }
 
         do {
             try storage.removePermanentResources(keys: [key.rawValue])

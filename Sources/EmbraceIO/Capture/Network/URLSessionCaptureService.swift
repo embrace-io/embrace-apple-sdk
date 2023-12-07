@@ -29,24 +29,34 @@ public final class URLSessionCaptureService: InstalledCaptureService {
     }
 
     public convenience init() {
-        self.init(lock: NSLock(), swizzlerProvider: DefaultURLSessionSwizzlerProvider(), handler: DefaultURLSessionTaskHandler())
+        self.init(
+            lock: NSLock(),
+            swizzlerProvider: DefaultURLSessionSwizzlerProvider(),
+            handler: DefaultURLSessionTaskHandler()
+        )
     }
 
-    init(lock: NSLocking = NSLock(),
-         swizzlerProvider: URLSessionSwizzlerProvider = DefaultURLSessionSwizzlerProvider(),
-         handler: URLSessionTaskHandler = DefaultURLSessionTaskHandler()) {
+    init(
+        lock: NSLocking = NSLock(),
+        swizzlerProvider: URLSessionSwizzlerProvider = DefaultURLSessionSwizzlerProvider(),
+        handler: URLSessionTaskHandler = DefaultURLSessionTaskHandler()
+    ) {
         self.lock = lock
         self.handler = handler
         self.swizzlers = swizzlerProvider.getAll(usingHandler: handler)
     }
 
     public func install(context: EmbraceCommon.CaptureServiceContext) {
-        guard status == .uninstalled else { return }
+        guard status == .uninstalled else {
+            return
+        }
+
         lock.lock()
         defer {
             status = .installed
             lock.unlock()
         }
+
         swizzlers.forEach {
             do {
                 try $0.install()
@@ -69,6 +79,8 @@ public final class URLSessionCaptureService: InstalledCaptureService {
         status = .paused
     }
 }
+
+// swiftlint:disable line_length
 
 struct URLSessionInitWithDelegateSwizzler: URLSessionSwizzler {
     typealias ImplementationType = @convention(c) (URLSession, Selector, URLSessionConfiguration, URLSessionDelegate?, OperationQueue?) -> URLSession
@@ -292,6 +304,7 @@ struct UploadTaskWithRequestFromDataWithCompletionSwizzler: URLSessionSwizzler {
     func install() throws {
         try swizzleInstanceMethod { originalImplementation -> BlockImplementationType in
             return { [weak handler = self.handler] urlSession, urlRequest, uploadData, completion -> URLSessionUploadTask in
+
                 guard let completion = completion else {
                     let task = originalImplementation(urlSession, Self.selector, urlRequest, uploadData, completion)
                     handler?.create(task: task)
@@ -483,3 +496,5 @@ struct UploadTaskWithStreamedRequestSwizzler: URLSessionSwizzler {
         }
     }
 }
+
+// swiftlint:enable line_length

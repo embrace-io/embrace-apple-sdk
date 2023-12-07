@@ -46,11 +46,15 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
     }
 
     func create(task: URLSessionTask) {
-        guard shouldTrack() else { return }
+        guard shouldTrack() else {
+            return
+        }
+
         guard let request = task.originalRequest, let url = request.url else {
             // TODO: Shall we log this as an error instead of only returning?
             return
         }
+
         // Probably this could be moved to a separate class
         var attributes: [String: String] = [:]
         attributes[SpanAttribute.url] = url.absoluteString
@@ -88,8 +92,13 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
     }
 
     func finish(task: URLSessionTask, data: Data?, error: (any Error)?) {
-        guard shouldTrack() else { return }
-        guard let span = spans.removeValue(forKey: task) else { return }
+        guard shouldTrack() else {
+            return
+        }
+
+        guard let span = spans.removeValue(forKey: task) else {
+            return
+        }
 
         if let response = task.response as? HTTPURLResponse {
             span.setAttribute(key: SpanAttribute.statusCode, value: response.statusCode)

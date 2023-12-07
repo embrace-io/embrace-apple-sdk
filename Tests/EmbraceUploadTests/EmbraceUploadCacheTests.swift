@@ -88,7 +88,13 @@ class EmbraceUploadCacheTests: XCTestCase {
         let cache = try EmbraceUploadCache(options: testOptions)
 
         // given inserted upload data
-        let original = UploadDataRecord(id: "id", type: EmbraceUploadType.session.rawValue, data: Data(), attemptCount: 0, date: Date())
+        let original = UploadDataRecord(
+            id: "id",
+            type: EmbraceUploadType.session.rawValue,
+            data: Data(),
+            attemptCount: 0,
+            date: Date()
+        )
         try cache.dbQueue.write { db in
             try original.insert(db)
         }
@@ -126,15 +132,36 @@ class EmbraceUploadCacheTests: XCTestCase {
 
     func test_clearOldData() throws {
         // given cache with 1 day limit
-        let options = EmbraceUpload.CacheOptions(cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory()), cacheDaysLimit: 1)!
+        let options = EmbraceUpload.CacheOptions(
+            cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory()),
+            cacheDaysLimit: 1
+        )!
         let cache = try EmbraceUploadCache(options: options)
 
         // given inserted upload datas
         let secondsPerDay: TimeInterval = 60 * 60 * 24
 
-        let data1 = UploadDataRecord(id: "id1", type: 0, data: Data(), attemptCount: 0, date: Date())
-        let data2 = UploadDataRecord(id: "id2", type: 0, data: Data(), attemptCount: 0, date: Date(timeIntervalSinceNow: -secondsPerDay - 10))
-        let data3 = UploadDataRecord(id: "id3", type: 0, data: Data(), attemptCount: 0, date: Date(timeIntervalSinceNow: -(secondsPerDay * 2)))
+        let data1 = UploadDataRecord(
+            id: "id1",
+            type: 0,
+            data: Data(),
+            attemptCount: 0,
+            date: Date()
+        )
+        let data2 = UploadDataRecord(
+            id: "id2",
+            type: 0,
+            data: Data(),
+            attemptCount: 0,
+            date: Date(timeIntervalSinceNow: -secondsPerDay - 10)
+        )
+        let data3 = UploadDataRecord(
+            id: "id3",
+            type: 0,
+            data: Data(),
+            attemptCount: 0,
+            date: Date(timeIntervalSinceNow: -(secondsPerDay * 2))
+        )
 
         try cache.dbQueue.write { db in
             try data1.insert(db)
@@ -177,7 +204,10 @@ class EmbraceUploadCacheTests: XCTestCase {
 
     func test_saveUploadData_limit() throws {
         // given a cache with a limit of 1
-        let options = EmbraceUpload.CacheOptions(cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory()), cacheLimit: 1)!
+        let options = EmbraceUpload.CacheOptions(
+            cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory()),
+            cacheLimit: 1
+        )!
         let cache = try EmbraceUploadCache(options: options)
 
         // given inserted upload datas
@@ -202,7 +232,13 @@ class EmbraceUploadCacheTests: XCTestCase {
         let cache = try EmbraceUploadCache(options: testOptions)
 
         // given inserted upload data
-        let data = UploadDataRecord(id: "id", type: EmbraceUploadType.session.rawValue, data: Data(), attemptCount: 0, date: Date())
+        let data = UploadDataRecord(
+            id: "id",
+            type: EmbraceUploadType.session.rawValue,
+            data: Data(),
+            attemptCount: 0,
+            date: Date()
+        )
         try cache.dbQueue.write { db in
             try data.insert(db)
         }
@@ -225,7 +261,13 @@ class EmbraceUploadCacheTests: XCTestCase {
         let cache = try EmbraceUploadCache(options: testOptions)
 
         // given inserted upload data
-        let original = UploadDataRecord(id: "id", type: EmbraceUploadType.session.rawValue, data: Data(), attemptCount: 0, date: Date())
+        let original = UploadDataRecord(
+            id: "id",
+            type: EmbraceUploadType.session.rawValue,
+            data: Data(),
+            attemptCount: 0,
+            date: Date()
+        )
         try cache.dbQueue.write { db in
             try original.insert(db)
         }

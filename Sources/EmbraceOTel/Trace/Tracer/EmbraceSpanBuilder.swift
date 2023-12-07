@@ -49,7 +49,10 @@ class EmbraceSpanBuilder: SpanBuilder {
         return self
     }
 
-    @discardableResult func addLink(spanContext: OpenTelemetryApi.SpanContext, attributes: [String: OpenTelemetryApi.AttributeValue]) -> Self {
+    @discardableResult func addLink(
+        spanContext: OpenTelemetryApi.SpanContext,
+        attributes: [String: OpenTelemetryApi.AttributeValue]
+    ) -> Self {
         links.append(.init(traceId: spanContext.traceId, spanId: spanContext.spanId, attributes: attributes))
         return self
     }

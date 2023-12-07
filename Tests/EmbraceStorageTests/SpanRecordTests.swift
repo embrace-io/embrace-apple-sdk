@@ -9,7 +9,10 @@ import GRDB
 
 class SpanRecordTests: XCTestCase {
 
-    let testOptions = EmbraceStorage.Options(baseUrl: URL(fileURLWithPath: NSTemporaryDirectory()), fileName: "test.sqlite")
+    let testOptions = EmbraceStorage.Options(
+        baseUrl: URL(fileURLWithPath: NSTemporaryDirectory()),
+        fileName: "test.sqlite"
+    )
 
     override func setUpWithError() throws {
         if FileManager.default.fileExists(atPath: testOptions.filePath!) {
@@ -99,7 +102,14 @@ class SpanRecordTests: XCTestCase {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given inserted span
-        let span = try storage.addSpan(id: "id", traceId: TestConstants.traceId, type: .performance, data: Data(), startTime: Date(), endTime: nil)
+        let span = try storage.addSpan(
+            id: "id",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: Date(),
+            endTime: nil
+        )
         XCTAssertNotNil(span)
 
         // then span should exist in storage
@@ -133,7 +143,14 @@ class SpanRecordTests: XCTestCase {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given inserted span
-        let original = try storage.addSpan(id: "id", traceId: TestConstants.traceId, type: .performance, data: Data(), startTime: Date(), endTime: nil)
+        let original = try storage.addSpan(
+            id: "id",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: Date(),
+            endTime: nil
+        )
 
         // when fetching the span
         let span = try storage.fetchSpan(id: "id", traceId: TestConstants.traceId)
@@ -244,9 +261,27 @@ class SpanRecordTests: XCTestCase {
         let storage = try EmbraceStorage(options: testOptions)
 
         // given insterted spans
-        _ = try storage.addSpan(id: "id1", traceId: TestConstants.traceId, type: .performance, data: Data(), startTime: Date(timeIntervalSince1970: 0), endTime: Date(timeIntervalSince1970: 10))
-        _ = try storage.addSpan(id: "id2", traceId: TestConstants.traceId, type: .performance, data: Data(), startTime: Date(timeIntervalSince1970: 1))
-        _ = try storage.addSpan(id: "id3", traceId: TestConstants.traceId, type: .performance, data: Data(), startTime: Date(timeIntervalSince1970: 2))
+        _ = try storage.addSpan(
+            id: "id1",
+            traceId: TestConstants.traceId,
+            type: .performance, data: Data(),
+            startTime: Date(timeIntervalSince1970: 0),
+            endTime: Date(timeIntervalSince1970: 10)
+        )
+        _ = try storage.addSpan(
+            id: "id2",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: Date(timeIntervalSince1970: 1)
+        )
+        _ = try storage.addSpan(
+            id: "id3",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: Date(timeIntervalSince1970: 2)
+        )
 
         // when closing the spans
         let now = Date()
@@ -276,9 +311,30 @@ class SpanRecordTests: XCTestCase {
 
         // given inserted spans
         let now = Date()
-        let span1 = try storage.addSpan(id: "id1", traceId: TestConstants.traceId, type: .performance, data: Data(), startTime: now, endTime: nil)
-        let span2 = try storage.addSpan(id: "id2", traceId: TestConstants.traceId, type: .performance, data: Data(), startTime: now.addingTimeInterval(10), endTime: nil)
-        let span3 = try storage.addSpan(id: "id3", traceId: TestConstants.traceId, type: .performance, data: Data(), startTime: now.addingTimeInterval(15), endTime: nil)
+        let span1 = try storage.addSpan(
+            id: "id1",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: now,
+            endTime: nil
+        )
+        let span2 = try storage.addSpan(
+            id: "id2",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: now.addingTimeInterval(10),
+            endTime: nil
+        )
+        let span3 = try storage.addSpan(
+            id: "id3",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: now.addingTimeInterval(15),
+            endTime: nil
+        )
 
         // when fetching the spans
         let spans = try storage.fetchSpans(
@@ -298,9 +354,30 @@ class SpanRecordTests: XCTestCase {
 
         // given inserted spans
         let now = Date()
-        let span1 = try storage.addSpan(id: "id1", traceId: TestConstants.traceId, type: .performance, data: Data(), startTime: now, endTime: nil)
-        let span2 = try storage.addSpan(id: "id2", traceId: TestConstants.traceId, type: .performance, data: Data(), startTime: now.addingTimeInterval(10), endTime: nil)
-        let span3 = try storage.addSpan(id: "id3", traceId: TestConstants.traceId, type: .performance, data: Data(), startTime: now.addingTimeInterval(15), endTime: nil)
+        let span1 = try storage.addSpan(
+            id: "id1",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: now,
+            endTime: nil
+        )
+        let span2 = try storage.addSpan(
+            id: "id2",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: now.addingTimeInterval(10),
+            endTime: nil
+        )
+        let span3 = try storage.addSpan(
+            id: "id3",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: now.addingTimeInterval(15),
+            endTime: nil
+        )
 
         // when fetching the spans
         let spans = try storage.fetchSpans(

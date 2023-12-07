@@ -43,7 +43,13 @@ public struct ResourceRecord: Codable {
     ///     - sessionId: The session identifier of the session the resource is associated with
     ///     - collectedAt: The date the resource item was collected
     public init(key: String, value: String, sessionId: SessionIdentifier, collectedAt: Date = Date()) {
-        self.init(key: key, value: value, resourceType: .session, resourceTypeId: sessionId.toString, collectedAt: collectedAt)
+        self.init(
+            key: key,
+            value: value,
+            resourceType: .session,
+            resourceTypeId: sessionId.toString,
+            collectedAt: collectedAt
+        )
     }
 
     /// Initialize a process resource
@@ -54,7 +60,13 @@ public struct ResourceRecord: Codable {
     ///     - processIdentifier: The process identifier of the process the resource is associated with
     ///     - collectedAt: The date the resource item was collected
     public init(key: String, value: String, processIdentifier: ProcessIdentifier, collectedAt: Date = Date()) {
-        self.init(key: key, value: value, resourceType: .process, resourceTypeId: processIdentifier.hex, collectedAt: collectedAt)
+        self.init(
+            key: key,
+            value: value,
+            resourceType: .process,
+            resourceTypeId: processIdentifier.hex,
+            collectedAt: collectedAt
+        )
     }
 
     /// Initialize a permanent resource
@@ -64,7 +76,13 @@ public struct ResourceRecord: Codable {
     ///     - value: The value of the resource, encoded as a String
     ///     - collectedAt: The date the resource item was collected
     public init(key: String, value: String, collectedAt: Date = Date()) {
-        self.init(key: key, value: value, resourceType: .permanent, resourceTypeId: "", collectedAt: collectedAt)
+        self.init(
+            key: key,
+            value: value,
+            resourceType: .permanent,
+            resourceTypeId: "",
+            collectedAt: collectedAt
+        )
     }
 }
 

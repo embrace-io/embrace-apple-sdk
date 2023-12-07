@@ -14,7 +14,10 @@ import GRDB
 
 class UnsentDataHandlerTests: XCTestCase {
 
-    let storageOptions = EmbraceStorage.Options(baseUrl: URL(fileURLWithPath: NSTemporaryDirectory()), fileName: "test.sqlite")
+    let storageOptions = EmbraceStorage.Options(
+        baseUrl: URL(fileURLWithPath: NSTemporaryDirectory()),
+        fileName: "test.sqlite"
+    )
 
     let filePathProvider = TemporaryFilepathProvider()
     var context: CaptureServiceContext!
@@ -26,8 +29,14 @@ class UnsentDataHandlerTests: XCTestCase {
         sessionsURL: UnsentDataHandlerTests.testSessionsUrl,
         blobsURL: UnsentDataHandlerTests.testBlobsUrl
     )
-    static let testCacheOptions = EmbraceUpload.CacheOptions(cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory()))!
-    static let testMetadataOptions = EmbraceUpload.MetadataOptions(apiKey: "apiKey", userAgent: "userAgent", deviceId: "12345678")
+    static let testCacheOptions = EmbraceUpload.CacheOptions(
+        cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory())
+    )!
+    static let testMetadataOptions = EmbraceUpload.MetadataOptions(
+        apiKey: "apiKey",
+        userAgent: "userAgent",
+        deviceId: "12345678"
+    )
     static let testRedundancyOptions = EmbraceUpload.RedundancyOptions(automaticRetryCount: 0)
 
     var uploadOptions: EmbraceUpload.Options!
@@ -152,7 +161,10 @@ class UnsentDataHandlerTests: XCTestCase {
         crashReporter.start()
 
         // given some fake crash report
-        try FileManager.default.createDirectory(atPath: crashReporter.basePath! + "/Reports", withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(
+            atPath: crashReporter.basePath! + "/Reports",
+            withIntermediateDirectories: true
+        )
         let report = Bundle.module.path(forResource: "crash_report", ofType: "json", inDirectory: "Mocks")!
         let finalPath = crashReporter.basePath! + "/Reports/appId-report-0000000000000001.json"
         try FileManager.default.copyItem(atPath: report, toPath: finalPath)
@@ -230,7 +242,10 @@ class UnsentDataHandlerTests: XCTestCase {
         crashReporter.start()
 
         // given some fake crash report
-        try FileManager.default.createDirectory(atPath: crashReporter.basePath! + "/Reports", withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(
+            atPath: crashReporter.basePath! + "/Reports",
+            withIntermediateDirectories: true
+        )
         let report = Bundle.module.path(forResource: "crash_report", ofType: "json", inDirectory: "Mocks")!
         let finalPath = crashReporter.basePath! + "/Reports/appId-report-0000000000000001.json"
         try FileManager.default.copyItem(atPath: report, toPath: finalPath)
@@ -308,7 +323,10 @@ class UnsentDataHandlerTests: XCTestCase {
         crashReporter.start()
 
         // given some fake crash report
-        try FileManager.default.createDirectory(atPath: crashReporter.basePath! + "/Reports", withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(
+            atPath: crashReporter.basePath! + "/Reports",
+            withIntermediateDirectories: true
+        )
         let report = Bundle.module.path(forResource: "crash_report", ofType: "json", inDirectory: "Mocks")!
         let finalPath = crashReporter.basePath! + "/Reports/appId-report-0000000000000001.json"
         try FileManager.default.copyItem(atPath: report, toPath: finalPath)

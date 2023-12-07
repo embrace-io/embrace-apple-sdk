@@ -97,8 +97,11 @@ final class EmbraceIOTests: XCTestCase {
             // Not sure the correct thing to do here but this works at least for now
 
             do {
-                XCTAssertThrowsError(try embrace?.start()) {error in
-                    XCTAssertEqual(error as? EmbraceSetupError, EmbraceSetupError.invalidThread("Embrace must be started on the main thread"))
+                XCTAssertThrowsError(try embrace?.start()) { error in
+                    XCTAssertEqual(
+                        error as? EmbraceSetupError,
+                        EmbraceSetupError.invalidThread("Embrace must be started on the main thread")
+                    )
                 }
             } catch let e {
                 XCTFail("unexpected exception \(e.localizedDescription)")

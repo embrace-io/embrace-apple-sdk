@@ -9,7 +9,9 @@ public struct ProcessIdentifier: Equatable {
     public let value: UInt32
 
    public init?(hex: String) {
-       guard let value = UInt32(hex, radix: 16) else { return nil }
+       guard let value = UInt32(hex, radix: 16) else {
+           return nil
+       }
 
        self.value = value
     }
@@ -41,7 +43,10 @@ extension ProcessIdentifier: Codable {
         let hex = try container.decode(String.self)
 
         guard let value = UInt32(hex, radix: 16) else {
-            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Encoded value is not a valid hex string")
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Encoded value is not a valid hex string"
+            )
         }
 
         self.init(value: value)

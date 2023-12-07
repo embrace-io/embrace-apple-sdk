@@ -7,7 +7,12 @@ import Foundation
 import EmbraceCommon
 import UIKit
 
+// ignoring linting rule to have a lowercase letter first on the class name
+// since we want to use 'iOS'...
+
+// swiftlint:disable type_name
 final class iOSSessionLifecycle: SessionLifecycle {
+// swiftlint:enable type_name
 
     weak var controller: SessionControllable?
     var currentState: SessionState = .background
@@ -24,7 +29,8 @@ final class iOSSessionLifecycle: SessionLifecycle {
             return
         }
 
-        currentState = UIApplication.shared.applicationState == .background ? SessionState.background : SessionState.foreground
+        let appState = UIApplication.shared.applicationState
+        currentState = appState == .background ? .background : .foreground
     }
 
     func start() {
@@ -75,7 +81,9 @@ extension iOSSessionLifecycle {
     @objc func appDidBecomeActive() {
         currentState = .foreground
 
-        guard let controller = controller else { return }
+        guard let controller = controller else {
+            return
+        }
 
         if let currentSession = controller.currentSession,
            let currentState = SessionState(rawValue: currentSession.state) {
@@ -105,7 +113,9 @@ extension iOSSessionLifecycle {
     @objc func appDidEnterBackground() {
         currentState = .background
 
-        guard let controller = controller else { return }
+        guard let controller = controller else {
+            return
+        }
 
         // if current session is already background, do nothing
         if let currentSession = controller.currentSession,

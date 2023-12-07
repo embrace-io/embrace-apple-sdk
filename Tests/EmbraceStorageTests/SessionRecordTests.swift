@@ -7,9 +7,14 @@ import TestSupport
 import EmbraceCommon
 @testable import EmbraceStorage
 
+// swiftlint:disable cyclomatic_complexity
+
 class SessionRecordTests: XCTestCase {
 
-    let testOptions = EmbraceStorage.Options(baseUrl: URL(fileURLWithPath: NSTemporaryDirectory()), fileName: "test.sqlite")
+    let testOptions = EmbraceStorage.Options(
+        baseUrl: URL(fileURLWithPath: NSTemporaryDirectory()),
+        fileName: "test.sqlite"
+    )
 
     override func setUpWithError() throws {
         if FileManager.default.fileExists(atPath: testOptions.filePath!) {
@@ -294,3 +299,5 @@ class SessionRecordTests: XCTestCase {
         XCTAssertEqual(session, session1)
     }
 }
+
+// swiftlint:enable cyclomatic_complexity

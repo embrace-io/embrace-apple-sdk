@@ -11,7 +11,10 @@ class SpansPayloadBuilder {
 
     static let spanCountLimit = 1000
 
-    class func build(for sessionRecord: SessionRecord, storage: EmbraceStorage) -> (spans: [SpanPayload], spanSnapshots: [SpanPayload]) {
+    class func build(
+        for sessionRecord: SessionRecord,
+        storage: EmbraceStorage
+    ) -> (spans: [SpanPayload], spanSnapshots: [SpanPayload]) {
 
         let endTime = sessionRecord.endTime ?? Date()
         var records: [SpanRecord] = []

@@ -16,7 +16,7 @@ class ResourceRecordTests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
-        UIApplication.didReceiveMemoryWarningNotification
+
     }
 
     func test_tableSchema() throws {
@@ -31,7 +31,10 @@ class ResourceRecordTests: XCTestCase {
 
             let columns = try db.columns(in: ResourceRecord.databaseTableName)
 
-            XCTAssert(try db.table(ResourceRecord.databaseTableName, hasUniqueKey: ["key", "resource_type", "resource_type_id"]))
+            XCTAssert(try db.table(
+                ResourceRecord.databaseTableName,
+                hasUniqueKey: ["key", "resource_type", "resource_type_id"]
+            ))
 
             // id
             let keyColumn = columns.first(where: { $0.name == "key" })
@@ -168,8 +171,10 @@ class ResourceRecordTests: XCTestCase {
         // then record should exist in storage
         try storage.dbQueue.read { db in
             XCTAssertEqual(try ResourceRecord.fetchCount(db), 5)
+
+            // sort value alphabetically to assert known order
             XCTAssertEqual(
-                try ResourceRecord.fetchAll(db).map(\.value).sorted(), // sort value alphabetically to assert known order
+                try ResourceRecord.fetchAll(db).map(\.value).sorted(),
                 ["Chet", "Delilah", "Frank", "Spot", "Steven"]
             )
         }
@@ -211,13 +216,37 @@ class ResourceRecordTests: XCTestCase {
         try storage.addResource(key: "test", value: "test", resourceType: .session, resourceTypeId: "123654852")
         try storage.addResource(key: "test", value: "test", resourceType: .process, resourceTypeId: "1236s4852")
 
-        var originals = [
+        let originals = [
             // given inserted session
-            try storage.addResource(key: "test1", value: "test1", resourceType: .process, resourceTypeId: testProcessId.hex),
-            try storage.addResource(key: "test2", value: "test2", resourceType: .process, resourceTypeId: testProcessId.hex),
-            try storage.addResource(key: "test3", value: "test3", resourceType: .session, resourceTypeId: testSessionId.toString),
-            try storage.addResource(key: "test4", value: "test4", resourceType: .session, resourceTypeId: testSessionId.toString),
-            try storage.addResource(key: "test5", value: "test5", resourceType: .permanent)
+            try storage.addResource(
+                key: "test1",
+                value: "test1",
+                resourceType: .process,
+                resourceTypeId: testProcessId.hex
+            ),
+            try storage.addResource(
+                key: "test2",
+                value: "test2",
+                resourceType: .process,
+                resourceTypeId: testProcessId.hex
+            ),
+            try storage.addResource(
+                key: "test3",
+                value: "test3",
+                resourceType: .session,
+                resourceTypeId: testSessionId.toString
+            ),
+            try storage.addResource(
+                key: "test4",
+                value: "test4",
+                resourceType: .session,
+                resourceTypeId: testSessionId.toString
+            ),
+            try storage.addResource(
+                key: "test5",
+                value: "test5",
+                resourceType: .permanent
+            )
         ]
 
         // when fetching the session

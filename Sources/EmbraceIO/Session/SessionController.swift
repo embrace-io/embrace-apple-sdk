@@ -38,7 +38,11 @@ class SessionController: SessionControllable {
 
     internal var notificationCenter = NotificationCenter.default
 
-    init(storage: EmbraceStorage, upload: EmbraceUpload?, heartbeatInterval: TimeInterval = SessionHeartbeat.defaultInterval) {
+    init(
+        storage: EmbraceStorage,
+        upload: EmbraceUpload?,
+        heartbeatInterval: TimeInterval = SessionHeartbeat.defaultInterval
+    ) {
         self.storage = storage
         self.upload = upload
 

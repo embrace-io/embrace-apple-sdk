@@ -22,11 +22,17 @@ final class TapsCaptureService: SwizzleCaptureService {
     }
 
     func install(context: EmbraceCommon.CaptureServiceContext) {
-        guard TapsCaptureService.installed == false else { return }
+        guard TapsCaptureService.installed == false else {
+            return
+        }
 
         TapsCaptureService.installed = true
 
-        replace(#selector(UIWindow.sendEvent(_:)), with: #selector(UIWindow.EMBSwizzledSendEvent(_:)), from: UIWindow.self)
+        replace(
+            #selector(UIWindow.sendEvent(_:)),
+            with: #selector(UIWindow.EMBSwizzledSendEvent(_:)),
+            from: UIWindow.self
+        )
     }
 
     func start() {
@@ -42,7 +48,10 @@ final class TapsCaptureService: SwizzleCaptureService {
     }
 
     static func capturedEvent(_ event: UIEvent) {
-        guard TapsCaptureService.listening else { return }
+        guard TapsCaptureService.listening else {
+            return
+        }
+
         handler?.handleCapturedEvent(event)
     }
 }

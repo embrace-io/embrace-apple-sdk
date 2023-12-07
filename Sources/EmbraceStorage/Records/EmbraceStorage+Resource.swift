@@ -13,8 +13,18 @@ public protocol EmbraceStorageResourceFetcher {
 
 // MARK: - Sync resource operations
 extension EmbraceStorage: EmbraceStorageResourceFetcher {
-    @discardableResult public func addResource(key: String, value: String, resourceType: ResourceType, resourceTypeId: String = "") throws -> ResourceRecord {
-        let resource = ResourceRecord(key: key, value: value, resourceType: resourceType, resourceTypeId: resourceTypeId)
+    @discardableResult public func addResource(
+        key: String,
+        value: String,
+        resourceType: ResourceType,
+        resourceTypeId: String = ""
+    ) throws -> ResourceRecord {
+        let resource = ResourceRecord(
+            key: key,
+            value: value,
+            resourceType: resourceType,
+            resourceTypeId: resourceTypeId
+        )
         try upsertResource(resource)
         return resource
     }
@@ -40,6 +50,7 @@ extension EmbraceStorage: EmbraceStorageResourceFetcher {
     }
 
     public func fetchAllResourceForSession(sessionId: SessionIdentifier) throws -> [ResourceRecord]? {
+        // swiftlint:disable line_length
         try dbQueue.read { db in
             return try ResourceRecord.fetchAll(
                 db,
@@ -48,9 +59,14 @@ extension EmbraceStorage: EmbraceStorageResourceFetcher {
                 """,
                 arguments: StatementArguments([sessionId]))
         }
+        // swiftlint:enable line_length
     }
 
-    public func fetchAllResourceForSession(sessionId: SessionIdentifier, processId: ProcessIdentifier) throws -> [ResourceRecord]? {
+    public func fetchAllResourceForSession(
+        sessionId: SessionIdentifier,
+        processId: ProcessIdentifier
+    ) throws -> [ResourceRecord]? {
+
         try dbQueue.read { db in
             let sessionResources = (Column("resource_type") == "session" && Column("resource_type_id") == "\(sessionId)")
             let processResource = (Column("resource_type") == "process" && Column("resource_type_id") == "\(processId)")

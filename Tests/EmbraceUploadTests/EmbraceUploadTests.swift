@@ -16,8 +16,14 @@ class EmbraceUploadTests: XCTestCase {
         sessionsURL: EmbraceUploadTests.testSessionsUrl,
         blobsURL: EmbraceUploadTests.testBlobsUrl
     )
-    static let testCacheOptions = EmbraceUpload.CacheOptions(cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory()))!
-    static let testMetadataOptions = EmbraceUpload.MetadataOptions(apiKey: "apiKey", userAgent: "userAgent", deviceId: "12345678")
+    static let testCacheOptions = EmbraceUpload.CacheOptions(
+        cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory())
+    )!
+    static let testMetadataOptions = EmbraceUpload.MetadataOptions(
+        apiKey: "apiKey",
+        userAgent: "userAgent",
+        deviceId: "12345678"
+    )
     static let testRedundancyOptions = EmbraceUpload.RedundancyOptions(automaticRetryCount: 0)
 
     var testOptions: EmbraceUpload.Options!

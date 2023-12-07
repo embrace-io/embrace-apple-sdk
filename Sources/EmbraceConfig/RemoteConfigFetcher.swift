@@ -16,7 +16,11 @@ class RemoteConfigFetcher {
 
         operationQueue = OperationQueue()
         operationQueue.underlyingQueue = options.queue
-        session = URLSession(configuration: options.urlSessionConfiguration, delegate: nil, delegateQueue: operationQueue)
+        session = URLSession(
+            configuration: options.urlSessionConfiguration,
+            delegate: nil,
+            delegateQueue: operationQueue
+        )
     }
 
     public func fetch(completion: @escaping (RemoteConfigPayload?) -> Void) {
@@ -80,7 +84,9 @@ class RemoteConfigFetcher {
         // ETag
         let cache = session.configuration.urlCache
         if let cachedResponse = cache?.cachedResponse(for: request)?.response as? HTTPURLResponse {
-            if let eTag = cachedResponse.allHeaderFields["ETag"] as? String ?? cachedResponse.allHeaderFields["Etag"] as? String {
+            let tag1 = cachedResponse.allHeaderFields["ETag"] as? String
+            let tag2 = cachedResponse.allHeaderFields["Etag"] as? String
+            if let eTag = tag1 ?? tag2 {
                 request.setValue(eTag, forHTTPHeaderField: "If-None-Match")
             }
         }

@@ -34,8 +34,15 @@ import EmbraceObjCUtils
     let sessionController: SessionController
     let sessionLifecycle: SessionLifecycle
 
-    private let processingQueue: DispatchQueue = DispatchQueue(label: "com.embrace.processing", qos: .background, attributes: .concurrent)
-    private static let synchronizationQueue: DispatchQueue = DispatchQueue(label: "com.embrace.synchronization", qos: .utility)
+    private let processingQueue = DispatchQueue(
+        label: "com.embrace.processing",
+        qos: .background,
+        attributes: .concurrent
+    )
+    private static let synchronizationQueue = DispatchQueue(
+        label: "com.embrace.synchronization",
+        qos: .utility
+    )
 
     @objc public static func setup(options: Embrace.Options) throws {
         if !Thread.isMainThread {
@@ -69,7 +76,10 @@ import EmbraceObjCUtils
         self.upload = Embrace.createUpload(options: options, deviceId: KeychainAccess.deviceId.uuidString)
         self.config = Embrace.createConfig(options: options, deviceId: KeychainAccess.deviceId.uuidString)
         self.sessionController = SessionController(storage: self.storage, upload: self.upload)
-        self.sessionLifecycle = Embrace.createSessionLifecycle(platform: options.platform, controller: sessionController)
+        self.sessionLifecycle = Embrace.createSessionLifecycle(
+            platform: options.platform,
+            controller: sessionController
+        )
 
         super.init()
 
