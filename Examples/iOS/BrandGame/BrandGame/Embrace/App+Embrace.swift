@@ -6,16 +6,18 @@ import EmbraceIO
 
 extension BrandGameApp {
 #if DEBUG
+    // https://dash.embrace.io/app/AK5HV
     var embraceOptions: Embrace.Options {
         return .init(
             appId: "AK5HV",
             appGroupId: nil,
-            platform: .iOS
+            platform: .iOS,
+            endpoints: .fromInfoPlist()
         )
     }
 #else
+    // https://dash.embrace.io/app/kj9hd
     var embraceOptions: Embrace.Options {
-
         return .init(
             appId: "kj9hd",
             appGroupId: nil,

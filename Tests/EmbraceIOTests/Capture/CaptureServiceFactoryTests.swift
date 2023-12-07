@@ -20,8 +20,11 @@ final class CaptureServiceFactoryTests: XCTestCase {
     func test_platformCaptureServices_returnsCorrectCaptureServiceTypes() {
         let services = CaptureServiceFactory.platformCaptureServices
 
-        XCTAssertEqual(services.count, 1)
-        XCTAssertTrue(services.first is EmbraceCrashReporter)
+        XCTAssertEqual(services.count, 4)
+        XCTAssertTrue(services.contains { $0 is URLSessionCaptureService })
+        XCTAssertTrue(services.contains { $0 is LowMemoryWarningCaptureService })
+        XCTAssertTrue(services.contains { $0 is LowPowerModeCaptureService })
+        XCTAssertTrue(services.contains { $0 is EmbraceCrashReporter })
     }
     #else
     func test_platformCaptureServices_returnsCorrectCaptureServiceTypes() throws {

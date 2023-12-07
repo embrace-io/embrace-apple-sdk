@@ -22,9 +22,9 @@ extension Embrace {
         }
 
         @objc public init(baseURL: String? = nil, developmentBaseURL: String? = nil, configBaseURL: String? = nil) {
-            self.baseURL = baseURL ?? "data.emb-api.com"
-            self.developmentBaseURL = developmentBaseURL ?? "data-dev.emb-api.com"
-            self.configBaseURL = configBaseURL ?? "config.emb-api.com"
+            self.baseURL = baseURL ?? "https://data.emb-api.com"
+            self.developmentBaseURL = developmentBaseURL ?? "https://data-dev.emb-api.com"
+            self.configBaseURL = configBaseURL ?? "https://config.emb-api.com"
         }
     }
 }

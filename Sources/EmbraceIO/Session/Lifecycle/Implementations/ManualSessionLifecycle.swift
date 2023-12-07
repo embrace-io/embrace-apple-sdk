@@ -16,6 +16,7 @@ class ManualSessionLifecycle: SessionLifecycle {
     }
 
     func start() {
+
     }
 
     func startSession() {

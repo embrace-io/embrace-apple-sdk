@@ -15,6 +15,7 @@
 		7B3143B92AFDC8EC00BA0D2F /* RightBracketShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B3143B82AFDC8EC00BA0D2F /* RightBracketShape.swift */; };
 		7B3143BF2AFDECCF00BA0D2F /* Icon+Meta.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B3143BE2AFDECCE00BA0D2F /* Icon+Meta.swift */; };
 		7B3143C62AFF1E7D00BA0D2F /* ReflexGameModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B3143C52AFF1E7D00BA0D2F /* ReflexGameModel.swift */; };
+		7B4FFC2D2B1E5B7B006239F7 /* Endpoints+InfoPlist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B4FFC2C2B1E5B7B006239F7 /* Endpoints+InfoPlist.swift */; };
 		7B56308E2ABE743400E0DF39 /* BrandGameApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B56308D2ABE743400E0DF39 /* BrandGameApp.swift */; };
 		7B5630902ABE743400E0DF39 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B56308F2ABE743400E0DF39 /* ContentView.swift */; };
 		7B5630922ABE743500E0DF39 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7B5630912ABE743500E0DF39 /* Assets.xcassets */; };
@@ -57,6 +58,10 @@
 		7B3143B82AFDC8EC00BA0D2F /* RightBracketShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RightBracketShape.swift; sourceTree = "<group>"; };
 		7B3143BE2AFDECCE00BA0D2F /* Icon+Meta.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Icon+Meta.swift"; sourceTree = "<group>"; };
 		7B3143C52AFF1E7D00BA0D2F /* ReflexGameModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReflexGameModel.swift; sourceTree = "<group>"; };
+		7B4FFC2C2B1E5B7B006239F7 /* Endpoints+InfoPlist.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Endpoints+InfoPlist.swift"; sourceTree = "<group>"; };
+		7B4FFC2E2B1E5D0F006239F7 /* embrace.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = embrace.xcconfig; sourceTree = "<group>"; };
+		7B4FFC2F2B1E5D68006239F7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		7B4FFC302B1E5DA4006239F7 /* embrace.local.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = embrace.local.xcconfig; sourceTree = "<group>"; };
 		7B56308A2ABE743400E0DF39 /* BrandGame.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BrandGame.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7B56308D2ABE743400E0DF39 /* BrandGameApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandGameApp.swift; sourceTree = "<group>"; };
 		7B56308F2ABE743400E0DF39 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -133,6 +138,17 @@
 			path = ViewModel;
 			sourceTree = "<group>";
 		};
+		7B4FFC2B2B1E5B68006239F7 /* Embrace */ = {
+			isa = PBXGroup;
+			children = (
+				7B005D752AD72E080073CAC4 /* App+Embrace.swift */,
+				7B4FFC2C2B1E5B7B006239F7 /* Endpoints+InfoPlist.swift */,
+				7B4FFC2E2B1E5D0F006239F7 /* embrace.xcconfig */,
+				7B4FFC302B1E5DA4006239F7 /* embrace.local.xcconfig */,
+			);
+			path = Embrace;
+			sourceTree = "<group>";
+		};
 		7B5630812ABE743400E0DF39 = {
 			isa = PBXGroup;
 			children = (
@@ -153,6 +169,8 @@
 		7B56308C2ABE743400E0DF39 /* BrandGame */ = {
 			isa = PBXGroup;
 			children = (
+				7B4FFC2F2B1E5D68006239F7 /* Info.plist */,
+				7B4FFC2B2B1E5B68006239F7 /* Embrace */,
 				7B62AD9C2B0060620087C2AE /* Model */,
 				7B5630A32AC132FC00E0DF39 /* Utils */,
 				7BCB66262AC4726800ABD33A /* View */,
@@ -160,7 +178,6 @@
 				7B56308F2ABE743400E0DF39 /* ContentView.swift */,
 				7B5630912ABE743500E0DF39 /* Assets.xcassets */,
 				7B5630932ABE743500E0DF39 /* Preview Content */,
-				7B005D752AD72E080073CAC4 /* App+Embrace.swift */,
 			);
 			path = BrandGame;
 			sourceTree = "<group>";
@@ -378,6 +395,7 @@
 				7B3143B52AFDC50E00BA0D2F /* LeftDotShape.swift in Sources */,
 				7B62ADA32B0068280087C2AE /* SimonMinigameView.swift in Sources */,
 				7B3143B32AFDC2D300BA0D2F /* LeftBracketShape.swift in Sources */,
+				7B4FFC2D2B1E5B7B006239F7 /* Endpoints+InfoPlist.swift in Sources */,
 				7BC49B0F2AC7864100FF381A /* NetworkRequest.swift in Sources */,
 				7B56308E2ABE743400E0DF39 /* BrandGameApp.swift in Sources */,
 			);
@@ -507,6 +525,7 @@
 		};
 		7B5630992ABE743500E0DF39 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7B4FFC2E2B1E5D0F006239F7 /* embrace.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -516,6 +535,7 @@
 				DEVELOPMENT_TEAM = L5RVT7J8CV;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BrandGame/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -546,6 +566,7 @@
 				DEVELOPMENT_TEAM = L5RVT7J8CV;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BrandGame/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

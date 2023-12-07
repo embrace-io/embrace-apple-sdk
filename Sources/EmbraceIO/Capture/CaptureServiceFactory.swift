@@ -24,7 +24,14 @@ extension CaptureServiceFactory {
 extension CaptureServiceFactory {
     #if os(iOS)
     static var platformCaptureServices: [CaptureService] {
-        return [EmbraceCrashReporter()]
+        return [
+            URLSessionCaptureService(),
+
+            LowMemoryWarningCaptureService(),
+            LowPowerModeCaptureService(),
+
+            EmbraceCrashReporter()
+        ]
     }
     #elseif os(tvOS)
     static var platformCaptureServices: [CaptureService] {

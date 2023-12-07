@@ -1,3 +1,6 @@
+## Local Config
+*.local.xcconfig
+
 ## Xcode
 .ruby-version
 .DS_Store
