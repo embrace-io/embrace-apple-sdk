@@ -37,6 +37,7 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
         static let statusCode = "http.response.status_code"
         static let responseSize = "http.response.body.size"
         static let errorType = "error.type"
+        static let errorCode = "error.code"
         static let errorMessage = "error.message"
     }
 
@@ -110,7 +111,9 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
 
         if let error = error {
             // Should this be something else?
-            span.setAttribute(key: SpanAttribute.errorType, value: (error as NSError).domain)
+            let nsError = error as NSError
+            span.setAttribute(key: SpanAttribute.errorType, value: nsError.domain)
+            span.setAttribute(key: SpanAttribute.errorCode, value: nsError.code)
             span.setAttribute(key: SpanAttribute.errorMessage, value: error.localizedDescription)
         }
 
