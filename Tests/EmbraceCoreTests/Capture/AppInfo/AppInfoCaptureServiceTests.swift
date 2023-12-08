@@ -4,7 +4,6 @@
 
 import XCTest
 @testable import EmbraceCore
-import EmbraceCrash
 import EmbraceCommon
 import EmbraceObjCUtils
 

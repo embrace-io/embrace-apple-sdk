@@ -155,6 +155,7 @@ class UnsentDataHandlerTests: XCTestCase {
         let storage = try EmbraceStorage(options: storageOptions)
         let upload = try EmbraceUpload(options: uploadOptions, queue: queue)
 
+        // TODO: Mock out crash reporter so that we can remove dependency on EmbraceCrash
         // given a crash reporter
         let crashReporter = EmbraceCrashReporter()
         crashReporter.install(context: .testContext)

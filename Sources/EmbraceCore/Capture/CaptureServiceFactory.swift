@@ -3,9 +3,8 @@
 //
 
 import EmbraceCommon
-import EmbraceCrash
 
-enum CaptureServiceFactory { }
+public enum CaptureServiceFactory { }
 
 extension CaptureServiceFactory {
 
@@ -19,27 +18,4 @@ extension CaptureServiceFactory {
     static func addRequiredServices(to services: [CaptureService]) -> [CaptureService] {
         return services + requiredServices
     }
-}
-
-extension CaptureServiceFactory {
-    #if os(iOS)
-    static var platformCaptureServices: [CaptureService] {
-        return [
-            URLSessionCaptureService(),
-
-            LowMemoryWarningCaptureService(),
-            LowPowerModeCaptureService(),
-
-            EmbraceCrashReporter()
-        ]
-    }
-    #elseif os(tvOS)
-    static var platformCaptureServices: [CaptureService] {
-        return [EmbraceCrashReporter()]
-    }
-    #else
-    static var platformCaptureServices: [CaptureService] {
-        return []
-    }
-    #endif
 }

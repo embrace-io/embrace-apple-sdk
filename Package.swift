@@ -18,6 +18,7 @@ let package = Package(
         .iOS(.v13), .tvOS(.v13), .macOS(.v13)
     ],
     products: [
+        .library(name: "EmbraceIO", targets: ["EmbraceIO"]),
         .library(name: "EmbraceCore", targets: ["EmbraceCore"]),
         .library(name: "EmbraceCrash", targets: ["EmbraceCrash"])
     ],
@@ -49,6 +50,29 @@ let package = Package(
     ],
     targets: [
 
+        .target(
+            name: "EmbraceIO",
+            dependencies: [
+            "EmbraceCore",
+            "EmbraceCommon",
+            "EmbraceCrash"
+            ],
+            plugins: targetPlugins
+        ),
+        
+        .testTarget(
+            name: "EmbraceIOTests",
+            dependencies: [
+                "EmbraceIO",
+                "EmbraceCore",
+                "EmbraceCrash",
+                "TestSupport",
+                .product(name: "GRDB", package: "GRDB.swift")
+            ],
+            plugins: targetPlugins
+        ),
+
+        
         // core ----------------------------------------------------------------------
         .target(
             name: "EmbraceCore",
@@ -58,7 +82,6 @@ let package = Package(
                 "EmbraceStorage",
                 "EmbraceUpload",
                 "EmbraceObjCUtils",
-                "EmbraceCrash",
                 .product(name: "Gzip", package: "GzipSwift")
             ],
             plugins: targetPlugins
@@ -68,8 +91,8 @@ let package = Package(
             name: "EmbraceCoreTests",
             dependencies: [
                 "EmbraceCore",
-                "EmbraceCrash",
                 "TestSupport",
+                "EmbraceCrash",
                 .product(name: "GRDB", package: "GRDB.swift")
             ],
             resources: [

@@ -66,13 +66,21 @@ extension Embrace {
 
         return nil
     }
-
+#if os(iOS)
     static func createSessionLifecycle(platform: Platform, controller: SessionControllable) -> SessionLifecycle {
         switch platform {
         case .iOS: return iOSSessionLifecycle(controller: controller)
         default: return ManualSessionLifecycle(controller: controller)
         }
     }
+//#elseif os(macOS)
+#else
+    static func createSessionLifecycle(platform: Platform, controller: SessionControllable) -> SessionLifecycle {
+        switch platform {
+        default: return ManualSessionLifecycle(controller: controller)
+        }
+    }
+#endif
 }
 
 /// Extension to handle observability of SDK startup

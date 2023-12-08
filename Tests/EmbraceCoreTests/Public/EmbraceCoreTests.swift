@@ -6,7 +6,7 @@ import XCTest
 @testable import EmbraceCore
 import EmbraceCommon
 
-final class EmbraceIOTests: XCTestCase {
+final class EmbraceCoreTests: XCTestCase {
 
     // this is used in the helper function
     private let lock: UnfairLock = UnfairLock()

@@ -20,8 +20,7 @@ extension Embrace {
             appGroupId: String? = nil,
             platform: Platform = .iOS,
             endpoints: Embrace.Endpoints = .init(),
-            captureServices: [CaptureService] = .automatic
-
+            captureServices: [CaptureService]
         ) {
             self.appId = appId
             self.appGroupId = appGroupId
@@ -30,14 +29,6 @@ extension Embrace {
             self.services = captureServices
         }
     }
-}
-
-extension Embrace.Options: ExpressibleByStringLiteral {
-
-    public convenience init(stringLiteral value: String) {
-        self.init(appId: value)
-    }
-
 }
 
 internal extension Embrace.Options {
