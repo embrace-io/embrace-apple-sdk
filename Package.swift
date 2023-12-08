@@ -18,7 +18,7 @@ let package = Package(
         .iOS(.v13), .tvOS(.v13), .macOS(.v13)
     ],
     products: [
-        .library(name: "EmbraceIO", targets: ["EmbraceIO"]),
+        .library(name: "EmbraceCore", targets: ["EmbraceCore"]),
         .library(name: "EmbraceCrash", targets: ["EmbraceCrash"])
     ],
     dependencies: [
@@ -51,7 +51,7 @@ let package = Package(
 
         // core ----------------------------------------------------------------------
         .target(
-            name: "EmbraceIO",
+            name: "EmbraceCore",
             dependencies: [
                 "EmbraceConfig",
                 "EmbraceOTel",
@@ -65,9 +65,9 @@ let package = Package(
         ),
 
         .testTarget(
-            name: "EmbraceIOTests",
+            name: "EmbraceCoreTests",
             dependencies: [
-                "EmbraceIO",
+                "EmbraceCore",
                 "EmbraceCrash",
                 "TestSupport",
                 .product(name: "GRDB", package: "GRDB.swift")

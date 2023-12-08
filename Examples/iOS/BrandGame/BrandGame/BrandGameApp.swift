@@ -4,7 +4,7 @@
 
 import SwiftUI
 
-import EmbraceIO
+import EmbraceCore
 
 @main
 struct BrandGameApp: App {

@@ -2,7 +2,7 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import EmbraceIO
+import EmbraceCore
 
 extension BrandGameApp {
 #if DEBUG

@@ -4,7 +4,7 @@
 //
 //  Created by Jonathon Copeland on 10/19/23.
 //
-@import EmbraceIO;
+@import EmbraceCore;
 
 #import "AppDelegate.h"
 

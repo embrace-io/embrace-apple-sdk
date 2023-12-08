@@ -3,7 +3,7 @@
 //
 
 import Foundation
-import EmbraceIO
+import EmbraceCore
 
 extension Embrace.Endpoints {
     static func fromInfoPlist() -> Embrace.Endpoints {
