@@ -87,7 +87,7 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
         */
         let name = httpMethod.isEmpty ? url.path : "\(httpMethod) \(url.path)"
         let networkSpan = otel.buildSpan(name: name,
-                                         type: SpanType.network,
+                                         type: .networkHTTP,
                                          attributes: attributes)
         spans[task] = networkSpan.startSpan()
     }

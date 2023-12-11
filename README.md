@@ -5,7 +5,7 @@
 
 [API Reference Docs](https://embrace-io.github.io/embrace-apple-core-internal/documentation/embrace_ios_core).
 
-## Prerequisities
+## Prerequisites
 
 ### Github
 
@@ -48,7 +48,7 @@ For this first you'll need to install SwiftLint in your local environment. Follo
 ### Setup pre-commit hook
 
 We strongly recommend to use a pre-commit hook to make sure all the modified files follow the guidelines before pushing.
-We have provided an example pre-commit hook in `.gitooks/pre-commit`. Note that depending on your local environment, you might need to edit the pre-commit file to set the path to `swiftlint`.
+We have provided an example pre-commit hook in `.githooks/pre-commit`. Note that depending on your local environment, you might need to edit the pre-commit file to set the path to `swiftlint`.
 
 **Alternatives on how to setup the hook:**
 * Simply copy `.githooks/pre-commit` into `.git/hooks/pre-commit`.
