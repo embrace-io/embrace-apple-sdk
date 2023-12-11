@@ -11,6 +11,10 @@ public class EmbraceHTTPMock: URLProtocol {
 
     /// Call this on the setUp method of your XCTestCase instance
     public class func setUp() {
+        tearDown()
+    }
+
+    public class func tearDown() {
         mockedResponses.removeAll()
         requests.removeAll()
     }

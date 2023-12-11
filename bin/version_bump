@@ -26,15 +26,12 @@ validate_semver() {
     fi
 }
 
-VERSION_FILE_PATH="Sources/EmbraceIO/EmbraceMeta.swift"
+VERSION_FILE_PATH="Sources/EmbraceCore/EmbraceMeta.swift"
 VERSION_NUMBER="$1"
 
 # Validate semantic version of version number, exit if not valid
 # if function returns error, exit with error
 validate_semver "$VERSION_NUMBER"
-
-# Retrieve git sha
-GIT_SHA=$(git rev-parse HEAD)
 
 # Find the root of the repo
 ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )/.."
@@ -53,7 +50,6 @@ FILE_SOURCE=$(cat <<-EOM
 
 class EmbraceMeta {
     static let sdkVersion = "$VERSION_NUMBER"
-    static let gitSHA = "$GIT_SHA"
 }
 EOM
 )

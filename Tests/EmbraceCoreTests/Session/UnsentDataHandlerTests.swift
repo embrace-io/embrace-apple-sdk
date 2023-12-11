@@ -186,7 +186,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // then the crash report id is set on the session
         let expectation1 = XCTestExpectation()
-        let observation = ValueObservation.tracking(SessionRecord.fetchAll).print()
+        let observation = ValueObservation.tracking(SessionRecord.fetchAll)
         let cancellable = observation.start(in: storage.dbQueue) { error in
             XCTAssert(false, error.localizedDescription)
         } onChange: { records in
@@ -267,7 +267,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // then the crash report id is set on the session
         let expectation1 = XCTestExpectation()
-        let observation = ValueObservation.tracking(SessionRecord.fetchAll).print()
+        let observation = ValueObservation.tracking(SessionRecord.fetchAll)
         let cancellable = observation.start(in: storage.dbQueue) { error in
             XCTAssert(false, error.localizedDescription)
         } onChange: { records in

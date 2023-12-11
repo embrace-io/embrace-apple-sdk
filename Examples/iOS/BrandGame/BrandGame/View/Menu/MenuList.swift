@@ -11,6 +11,10 @@ struct MenuList: View {
 
     var body: some View {
         List {
+            Section("Metadata") {
+                NavigationLink("User Information", destination: UserInfo())
+            }
+
             Section("Mini-Games") {
                 ForEach(Minigame.allCases, id: \.self) { game in
                     HStack {
@@ -26,6 +30,7 @@ struct MenuList: View {
                     }
                 }
             }
+
             Section("Stress Tests") {
                 NavigationLink("Network Requests", destination: NetworkStressTest())
                 NavigationLink("Crash Examples", destination: CrashExampleTest())

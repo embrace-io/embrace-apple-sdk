@@ -11,7 +11,7 @@ import GRDB
 
 import TestSupport
 
-final class SpanStorageIntegrationTests: XCTestCase {
+final class SpanStorageIntegrationTests: IntegrationTestCase {
 
     var storage: EmbraceStorage!
 

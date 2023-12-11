@@ -16,6 +16,7 @@
 		7B3143BF2AFDECCF00BA0D2F /* Icon+Meta.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B3143BE2AFDECCE00BA0D2F /* Icon+Meta.swift */; };
 		7B3143C62AFF1E7D00BA0D2F /* ReflexGameModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B3143C52AFF1E7D00BA0D2F /* ReflexGameModel.swift */; };
 		7B4FFC2D2B1E5B7B006239F7 /* Endpoints+InfoPlist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B4FFC2C2B1E5B7B006239F7 /* Endpoints+InfoPlist.swift */; };
+		7B4FFC332B1E811B006239F7 /* UserInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B4FFC322B1E811B006239F7 /* UserInfo.swift */; };
 		7B56308E2ABE743400E0DF39 /* BrandGameApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B56308D2ABE743400E0DF39 /* BrandGameApp.swift */; };
 		7B5630902ABE743400E0DF39 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B56308F2ABE743400E0DF39 /* ContentView.swift */; };
 		7B5630922ABE743500E0DF39 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7B5630912ABE743500E0DF39 /* Assets.xcassets */; };
@@ -62,6 +63,7 @@
 		7B4FFC2E2B1E5D0F006239F7 /* embrace.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = embrace.xcconfig; sourceTree = "<group>"; };
 		7B4FFC2F2B1E5D68006239F7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		7B4FFC302B1E5DA4006239F7 /* embrace.local.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = embrace.local.xcconfig; sourceTree = "<group>"; };
+		7B4FFC322B1E811B006239F7 /* UserInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserInfo.swift; sourceTree = "<group>"; };
 		7B56308A2ABE743400E0DF39 /* BrandGame.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BrandGame.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7B56308D2ABE743400E0DF39 /* BrandGameApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandGameApp.swift; sourceTree = "<group>"; };
 		7B56308F2ABE743400E0DF39 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -147,6 +149,14 @@
 				7B4FFC302B1E5DA4006239F7 /* embrace.local.xcconfig */,
 			);
 			path = Embrace;
+			sourceTree = "<group>";
+		};
+		7B4FFC312B1E8104006239F7 /* UserInfo */ = {
+			isa = PBXGroup;
+			children = (
+				7B4FFC322B1E811B006239F7 /* UserInfo.swift */,
+			);
+			path = UserInfo;
 			sourceTree = "<group>";
 		};
 		7B5630812ABE743400E0DF39 = {
@@ -261,6 +271,7 @@
 		7BCB66252AC4726100ABD33A /* Menu */ = {
 			isa = PBXGroup;
 			children = (
+				7B4FFC312B1E8104006239F7 /* UserInfo */,
 				7BCB662B2AC4769900ABD33A /* StressTests */,
 				7BCB66292AC4767B00ABD33A /* MainMenu.swift */,
 				7BCB66272AC4742800ABD33A /* MenuList.swift */,
@@ -397,6 +408,7 @@
 				7B3143B32AFDC2D300BA0D2F /* LeftBracketShape.swift in Sources */,
 				7B4FFC2D2B1E5B7B006239F7 /* Endpoints+InfoPlist.swift in Sources */,
 				7BC49B0F2AC7864100FF381A /* NetworkRequest.swift in Sources */,
+				7B4FFC332B1E811B006239F7 /* UserInfo.swift in Sources */,
 				7B56308E2ABE743400E0DF39 /* BrandGameApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

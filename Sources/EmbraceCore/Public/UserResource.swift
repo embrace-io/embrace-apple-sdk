@@ -2,8 +2,7 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
-
+import EmbraceCommon
 import EmbraceStorage
 
 public final class UserResource {
@@ -12,7 +11,7 @@ public final class UserResource {
     /// Will be set permanently until explicitly unset via the ``clear`` method
     /// - Note: No validation is done on the username. Be sure it matches or
     ///         can be mapped to a record in your system
-    var username: String? {
+    public var username: String? {
         get {
             value(for: .username)
         }
@@ -25,7 +24,7 @@ public final class UserResource {
     /// Will be set permanently  until explicitly unset via the ``clear`` method
     /// - Note: No validation is done on the email address. Be sure it matches or
     ///         can be mapped to a record in your system
-    var email: String? {
+    public var email: String? {
         get {
             value(for: .email)
         }
@@ -38,7 +37,7 @@ public final class UserResource {
     /// Will be set permanently until explicitly unset via the ``clear`` method
     /// - Note: No validation is done on the identifier. Be sure it matches or
     ///         can be mapped to a record in your system
-    var identifier: String? {
+    public var identifier: String? {
         get {
             value(for: .identifier)
         }
@@ -64,7 +63,7 @@ public final class UserResource {
         do {
             try storage.removePermanentResources(keys: UserResourceKey.allValues)
         } catch {
-            // TODO: log warning
+            ConsoleLog.warning("Unable to clear user metadata")
         }
     }
 
@@ -114,7 +113,7 @@ extension UserResource {
         do {
             try storage.removePermanentResources(keys: [key.rawValue])
         } catch {
-            print("An error occurred when removing this user resource key: \(key)")
+            ConsoleLog.warning("An error occurred when removing this user resource key: \(key)")
         }
     }
 

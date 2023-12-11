@@ -26,6 +26,8 @@ import EmbraceObjCUtils
         }
     }
 
+    public let user: UserResource
+
     let config: EmbraceConfig
     let storage: EmbraceStorage
     let upload: EmbraceUpload?
@@ -80,6 +82,7 @@ import EmbraceObjCUtils
             platform: options.platform,
             controller: sessionController
         )
+        self.user = UserResource(storage: self.storage)
 
         super.init()
 

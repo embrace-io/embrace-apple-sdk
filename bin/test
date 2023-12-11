@@ -70,7 +70,7 @@ xcodebuild test \
     -workspace . \
     -sdk $SDK_PATH \
     -configuration "Debug" \
-    -scheme "EmbraceIO" \
+    -scheme "EmbraceIO-Package" \
     -clonedSourcePackagesDirPath $CLONED_SOURCE_PACKAGES_DIR_PATH \
     -skipPackagePluginValidation \
     -destination "id=$SELECTED_DEVICE_UDID" \

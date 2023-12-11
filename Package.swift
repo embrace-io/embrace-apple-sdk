@@ -209,6 +209,7 @@ let package = Package(
         .target(
             name: "TestSupport",
             dependencies: [
+                "EmbraceCore",
                 "EmbraceOTel",
                 "EmbraceCommon",
                 .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
