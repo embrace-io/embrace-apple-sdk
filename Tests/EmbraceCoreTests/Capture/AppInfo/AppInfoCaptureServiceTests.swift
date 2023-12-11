@@ -8,7 +8,6 @@ import EmbraceCommon
 import EmbraceObjCUtils
 
 final class AppInfoCaptureServiceTests: XCTestCase {
-
     func test_collectingAppInformation() {
         // Given an App Info collector is created.
         let mockHandler = MockCollectedResourceHandler()
@@ -32,23 +31,4 @@ final class AppInfoCaptureServiceTests: XCTestCase {
         XCTAssertNotNil(mockHandler.addedStrings["app.version"])
         XCTAssertNotNil(mockHandler.addedStrings["app.bundle_id"])
     }
-
-}
-
-final class MockCollectedResourceHandler: CaptureServiceResourceHandlerType {
-    func addResource(key: String, value: String) throws {
-        addedStrings[key] = value
-    }
-
-    func addResource(key: String, value: Int) throws {
-        addedInts[key] = value
-    }
-
-    func addResource(key: String, value: Double) throws {
-        addedDoubles[key] = value
-    }
-
-    var addedStrings: [String: String] = [:]
-    var addedInts: [String: Int] = [:]
-    var addedDoubles: [String: Double] = [:]
 }

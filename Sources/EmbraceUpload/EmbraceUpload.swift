@@ -148,6 +148,7 @@ public class EmbraceUpload {
                         attemptCount: count,
                         error: error
                     )
+                    self?.cleanCacheFromStaleData()
                 }
             }
 
@@ -183,6 +184,16 @@ public class EmbraceUpload {
                 try self?.cache.deleteUploadData(id: id, type: type)
             } catch {
                 ConsoleLog.debug("Error deleting cache: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func cleanCacheFromStaleData() {
+        operationQueue.addOperation { [weak self] in
+            do {
+                try self?.cache.clearStaleDataIfNeeded()
+            } catch {
+                ConsoleLog.debug("Error clearing stale date from cache: \(error.localizedDescription)")
             }
         }
     }

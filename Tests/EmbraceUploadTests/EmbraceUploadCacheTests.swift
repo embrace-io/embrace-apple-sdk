@@ -4,12 +4,16 @@
 
 import XCTest
 import TestSupport
+import EmbraceOTel
 @testable import EmbraceUpload
 
 class EmbraceUploadCacheTests: XCTestCase {
     let testOptions = EmbraceUpload.CacheOptions(cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory()))!
+    var spanProcessor: MockSpanProcessor!
 
     override func setUpWithError() throws {
+        spanProcessor = MockSpanProcessor()
+        EmbraceOTel.setup(spanProcessor: spanProcessor)
         if FileManager.default.fileExists(atPath: testOptions.cacheFilePath) {
             try FileManager.default.removeItem(atPath: testOptions.cacheFilePath)
         }
@@ -128,62 +132,6 @@ class EmbraceUploadCacheTests: XCTestCase {
         XCTAssert(datas.contains(data1))
         XCTAssert(datas.contains(data2))
         XCTAssert(datas.contains(data3))
-    }
-
-    func test_clearOldData() throws {
-        // given cache with 1 day limit
-        let options = EmbraceUpload.CacheOptions(
-            cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory()),
-            cacheDaysLimit: 1
-        )!
-        let cache = try EmbraceUploadCache(options: options)
-
-        // given inserted upload datas
-        let secondsPerDay: TimeInterval = 60 * 60 * 24
-
-        let data1 = UploadDataRecord(
-            id: "id1",
-            type: 0,
-            data: Data(),
-            attemptCount: 0,
-            date: Date()
-        )
-        let data2 = UploadDataRecord(
-            id: "id2",
-            type: 0,
-            data: Data(),
-            attemptCount: 0,
-            date: Date(timeIntervalSinceNow: -secondsPerDay - 10)
-        )
-        let data3 = UploadDataRecord(
-            id: "id3",
-            type: 0,
-            data: Data(),
-            attemptCount: 0,
-            date: Date(timeIntervalSinceNow: -(secondsPerDay * 2))
-        )
-
-        try cache.dbQueue.write { db in
-            try data1.insert(db)
-            try data2.insert(db)
-            try data3.insert(db)
-        }
-
-        // when clearing old data
-        try cache.clearOldData()
-
-        // then the invalid datas are deleted
-        let expectation = XCTestExpectation()
-        try cache.dbQueue.read { db in
-            XCTAssertEqual(try UploadDataRecord.fetchCount(db), 1)
-            XCTAssert(try data1.exists(db))
-            XCTAssertFalse(try data2.exists(db))
-            XCTAssertFalse(try data3.exists(db))
-
-            expectation.fulfill()
-        }
-
-        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_saveUploadData() throws {

@@ -9,6 +9,12 @@ import EmbraceObjCUtils
 @objc public class DeviceInfoCaptureService: NSObject, CaptureService {
     typealias Keys = DeviceResourceKeys
 
+    let resourceHandler: CaptureServiceResourceHandlerType
+
+    init(resourceHandler: CaptureServiceResourceHandlerType = CaptureServiceResourceHandler()) {
+        self.resourceHandler = resourceHandler
+    }
+
     public func setup(context: EmbraceCommon.CaptureServiceContext) { }
 
     public func start() {
@@ -20,12 +26,12 @@ import EmbraceObjCUtils
         let operatingSystemBuild = EMBDevice.operatingSystemBuild
 
         do {
-            try Embrace.client?.addResource(key: Keys.isJailbroken.rawValue, value: String(isJailbroken))
-            try Embrace.client?.addResource(key: Keys.locale.rawValue, value: locale)
-            try Embrace.client?.addResource(key: Keys.timezone.rawValue, value: timezoneDescription)
-            try Embrace.client?.addResource(key: Keys.totalDiskSpace.rawValue, value: totalDiskSpace.intValue)
-            try Embrace.client?.addResource(key: Keys.OSVersion.rawValue, value: operatingSystemVersion)
-            try Embrace.client?.addResource(key: Keys.OSBuild.rawValue, value: operatingSystemBuild)
+            try resourceHandler.addResource(key: Keys.isJailbroken.rawValue, value: String(isJailbroken))
+            try resourceHandler.addResource(key: Keys.locale.rawValue, value: locale)
+            try resourceHandler.addResource(key: Keys.timezone.rawValue, value: timezoneDescription)
+            try resourceHandler.addResource(key: Keys.totalDiskSpace.rawValue, value: totalDiskSpace.intValue)
+            try resourceHandler.addResource(key: Keys.OSVersion.rawValue, value: operatingSystemVersion)
+            try resourceHandler.addResource(key: Keys.OSBuild.rawValue, value: operatingSystemBuild)
 
         } catch let e {
             ConsoleLog.error("Failed to capture device info metadata \(e.localizedDescription)")
