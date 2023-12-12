@@ -29,8 +29,6 @@ struct DeviceInfoPayload: Codable {
                 return
             }
 
-            let value = resource.value
-
             switch key {
             case .isJailbroken:
                 self.isJailbroken = resource.boolValue

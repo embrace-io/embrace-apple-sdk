@@ -271,6 +271,7 @@
 		7BCB66252AC4726100ABD33A /* Menu */ = {
 			isa = PBXGroup;
 			children = (
+				7B3143C02AFDECE900BA0D2F /* Minigames */,
 				7B4FFC312B1E8104006239F7 /* UserInfo */,
 				7BCB662B2AC4769900ABD33A /* StressTests */,
 				7BCB66292AC4767B00ABD33A /* MainMenu.swift */,
@@ -282,7 +283,6 @@
 		7BCB66262AC4726800ABD33A /* View */ = {
 			isa = PBXGroup;
 			children = (
-				7B3143C02AFDECE900BA0D2F /* Minigames */,
 				7B56309E2ABF31D800E0DF39 /* BrandIconView */,
 				7BCB66252AC4726100ABD33A /* Menu */,
 			);

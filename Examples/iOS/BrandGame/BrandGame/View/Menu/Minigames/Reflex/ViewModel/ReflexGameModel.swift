@@ -3,6 +3,8 @@
 //
 
 import Foundation
+import EmbraceCore
+import EmbraceOTel
 
 @Observable
 class ReflexGameModel {
@@ -38,6 +40,8 @@ class ReflexGameModel {
 
     /// The time the reflexIcon was pressed
     private var reflexEndAt: Date?
+
+    private var reflexSpan: Span?
 
     var reflexDuration: TimeInterval? {
         if let startAt = reflexStartAt, let endAt = reflexEndAt {
@@ -82,7 +86,9 @@ class ReflexGameModel {
             }
 
             self.reflexIcon = self.determineReflexIcon()
-            self.reflexStartAt = Date()
+            let start = Date()
+            self.reflexStartAt = start
+            self.reflexSpan = self.buildSpan(startTime: start)
             self.gameState = .reflexShown
         }
     }
@@ -93,12 +99,15 @@ class ReflexGameModel {
             return
         }
 
-        reflexEndAt = Date()
+        let endAt = Date()
+        reflexEndAt = endAt
         if icon == reflexIcon {
             gameState = .testComplete
+            reflexSpan?.end(time: endAt)
 
         } else {
             gameState = .testError
+            reflexSpan?.end(errorCode: .failure, time: endAt)
         }
 
         resetTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false, block: { [weak self] _ in
@@ -125,6 +134,20 @@ class ReflexGameModel {
         resetTimer?.invalidate()
         resetTimer = nil
 
+        reflexSpan = nil
+
         gameState = .notStarted
+    }
+}
+
+extension ReflexGameModel {
+    private func buildSpan(startTime: Date) -> Span? {
+        guard let embrace = Embrace.client else {
+            return nil
+        }
+
+        return embrace.buildSpan(name: "reflex-measure", type: .ux)
+            .setStartTime(time: startTime)
+            .startSpan()
     }
 }

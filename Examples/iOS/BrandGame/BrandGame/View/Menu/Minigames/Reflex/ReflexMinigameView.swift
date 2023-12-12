@@ -47,6 +47,8 @@ struct ReflexMinigameView: View {
     }
 
     func gesture(for icon: IconComponent) -> some Gesture {
+        // Using DragGesture to handle touchDown event
+        // Will dismiss in touchUp
         DragGesture(minimumDistance: 0)
             .onChanged { _ in
                 gameModel.select(icon: icon)
