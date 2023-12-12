@@ -134,7 +134,7 @@ public class EmbraceUpload {
         let uploadOperation = EmbraceUploadOperation(
             urlSession: urlSession,
             metadataOptions: options.metadata,
-            endpoint: endpointForType(type),
+            endpoint: endpoint(for: type),
             identifier: id,
             data: data,
             retryCount: options.redundancy.automaticRetryCount,
@@ -198,7 +198,7 @@ public class EmbraceUpload {
         }
     }
 
-    private func endpointForType(_ type: EmbraceUploadType) -> URL {
+    private func endpoint(for type: EmbraceUploadType) -> URL {
         switch type {
         case .session: return options.endpoints.sessionsURL
         case .blob: return options.endpoints.blobsURL

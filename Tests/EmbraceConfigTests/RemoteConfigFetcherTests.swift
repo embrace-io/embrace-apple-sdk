@@ -10,7 +10,7 @@ import TestSupport
 
 class RemoteConfigFetcherTests: XCTestCase {
 
-    static let testUrl = "https://embrace.test.com/config"
+    static let testUrl = "https://embrace.test.com"
     static var urlSessionConfig: URLSessionConfiguration!
 
     var testOptions: EmbraceConfig.Options {
@@ -42,7 +42,7 @@ class RemoteConfigFetcherTests: XCTestCase {
         // then requests created are correct
         let request = fetcher.newRequest()
 
-        let expectedUrl = "\(testOptions.apiBaseUrl)?appId=\(testOptions.appId)&osVersion=\(testOptions.osVersion)&appVersion=\(testOptions.appVersion)&deviceId=\(testOptions.deviceId)"
+        let expectedUrl = "\(testOptions.apiBaseUrl)/v2/config?appId=\(testOptions.appId)&osVersion=\(testOptions.osVersion)&appVersion=\(testOptions.appVersion)&deviceId=\(testOptions.deviceId)"
         XCTAssertEqual(request!.url?.absoluteString, expectedUrl)
         XCTAssertEqual(request!.httpMethod, "GET")
         XCTAssertEqual(request!.allHTTPHeaderFields!["Accept"], "application/json")
@@ -54,7 +54,7 @@ class RemoteConfigFetcherTests: XCTestCase {
         let fetcher = RemoteConfigFetcher(options: testOptions)
 
         // when there's a cached response
-        let url = URL(string: fetcher.fullPath)!
+        let url = fetcher.buildURL()!
         let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: ["ETag": "test"])!
         let firstRequest = fetcher.newRequest()!
 
@@ -74,7 +74,7 @@ class RemoteConfigFetcherTests: XCTestCase {
         let fetcher = RemoteConfigFetcher(options: testOptions)
 
         // and a valid remote config
-        let url = URL(string: fetcher.fullPath)!
+        let url = fetcher.buildURL()!
         let path = Bundle.module.path(forResource: "remote_config", ofType: "json", inDirectory: "Mocks")!
         let data = try! Data(contentsOf: URL(fileURLWithPath: path))
         EmbraceHTTPMock.mock(url: url, data: data)
@@ -97,7 +97,7 @@ class RemoteConfigFetcherTests: XCTestCase {
         let fetcher = RemoteConfigFetcher(options: testOptions)
 
         // and a valid remote config
-        let url = URL(string: fetcher.fullPath)!
+        let url = fetcher.buildURL()!
         let path = Bundle.module.path(forResource: "remote_config", ofType: "json", inDirectory: "Mocks")!
         let data = try! Data(contentsOf: URL(fileURLWithPath: path))
 
@@ -122,7 +122,7 @@ class RemoteConfigFetcherTests: XCTestCase {
         let fetcher = RemoteConfigFetcher(options: testOptions)
 
         // when failing to fetch the config
-        let url = URL(string: fetcher.fullPath)!
+        let url = fetcher.buildURL()!
         EmbraceHTTPMock.mock(url: url, errorCode: 500)
 
         let expectation = XCTestExpectation()

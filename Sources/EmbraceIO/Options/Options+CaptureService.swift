@@ -2,8 +2,8 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import EmbraceCommon
 import EmbraceCore
+import EmbraceCommon
 import Foundation
 
 public extension Array where Element == any CaptureService {
@@ -19,7 +19,12 @@ public extension Embrace.Options {
         platform: Platform = .iOS,
         endpoints: Embrace.Endpoints = .init()
     ) {
-        self.init(appId: appId, appGroupId: appGroupId, platform: platform, endpoints: endpoints, captureServices: .automatic)
+        self.init(
+            appId: appId,
+            appGroupId: appGroupId,
+            platform: platform,
+            endpoints: endpoints,
+            captureServices: .automatic)
     }
 }
 
