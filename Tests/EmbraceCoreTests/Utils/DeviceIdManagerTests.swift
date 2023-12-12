@@ -40,7 +40,7 @@ class DeviceIdManagerTests: XCTestCase {
 
         let resourceRecord = try storage.fetchPermanentResource(key: "device.id")
         XCTAssertNotNil(resourceRecord)
-        let storedDeviceId = UUID(uuidString: resourceRecord!.value)
+        let storedDeviceId = resourceRecord?.uuidValue
 
         XCTAssertEqual(deviceId, storedDeviceId)
     }

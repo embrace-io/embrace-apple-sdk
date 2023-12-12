@@ -19,13 +19,15 @@ extension EmbraceStorage: EmbraceStorageResourceFetcher {
         resourceType: ResourceType,
         resourceTypeId: String = ""
     ) throws -> ResourceRecord {
+
         let resource = ResourceRecord(
             key: key,
-            value: value,
+            value: .string(value),
             resourceType: resourceType,
             resourceTypeId: resourceTypeId
         )
         try upsertResource(resource)
+        
         return resource
     }
 

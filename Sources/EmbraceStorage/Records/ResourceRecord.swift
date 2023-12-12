@@ -5,6 +5,7 @@
 import Foundation
 import EmbraceCommon
 import GRDB
+import OpenTelemetryApi
 
 public enum ResourceType: String, Codable {
     /// value tied to a specific session
@@ -21,13 +22,19 @@ public struct ResourceRecord: Codable {
     public let resourceType: ResourceType
     public let resourceTypeId: String
     public let key: String
-    public var value: String
+    public var value: AttributeValue
     public let collectedAt: Date
 
     /// Main initializer for the ResourceRecord
     ///
     /// - Note: Its recommended to use any of the ResourceType specific initializers listed below
-    init(key: String, value: String, resourceType: ResourceType, resourceTypeId: String, collectedAt: Date = Date()) {
+    init(
+        key: String,
+        value: AttributeValue,
+        resourceType: ResourceType,
+        resourceTypeId: String,
+        collectedAt: Date = Date()
+    ) {
         self.key = key
         self.value = value
         self.resourceType = resourceType
@@ -45,7 +52,7 @@ public struct ResourceRecord: Codable {
     public init(key: String, value: String, sessionId: SessionIdentifier, collectedAt: Date = Date()) {
         self.init(
             key: key,
-            value: value,
+            value: .string(value),
             resourceType: .session,
             resourceTypeId: sessionId.toString,
             collectedAt: collectedAt
@@ -62,7 +69,7 @@ public struct ResourceRecord: Codable {
     public init(key: String, value: String, processIdentifier: ProcessIdentifier, collectedAt: Date = Date()) {
         self.init(
             key: key,
-            value: value,
+            value: .string(value),
             resourceType: .process,
             resourceTypeId: processIdentifier.hex,
             collectedAt: collectedAt
@@ -78,7 +85,7 @@ public struct ResourceRecord: Codable {
     public init(key: String, value: String, collectedAt: Date = Date()) {
         self.init(
             key: key,
-            value: value,
+            value: .string(value),
             resourceType: .permanent,
             resourceTypeId: "",
             collectedAt: collectedAt

@@ -25,8 +25,8 @@ class SessionPayloadBuilder {
 
         do {
             if var resource = resource {
-                counter = (Int(resource.value) ?? 0) + 1
-                resource.value = String(counter)
+                counter = (resource.integerValue ?? 0) + 1
+                resource.value = .string(String(counter))
                 try storage.upsertResource(resource)
             } else {
                 resource = try storage.addResource(key: resourceName, value: "1", resourceType: .permanent)

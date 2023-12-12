@@ -90,7 +90,7 @@ final class UserResourceTests: XCTestCase {
 
         let record = try storage.fetchPermanentResource(key: UserResourceKey.username.rawValue)
         XCTAssertNotNil(record)
-        XCTAssertEqual(record?.value, xUsername)
+        XCTAssertEqual(record?.stringValue, xUsername)
     }
 
     func test_setEmail_createsRecord() throws {
@@ -98,7 +98,7 @@ final class UserResourceTests: XCTestCase {
 
         let record = try storage.fetchPermanentResource(key: UserResourceKey.email.rawValue)
         XCTAssertNotNil(record)
-        XCTAssertEqual(record?.value, xEmail)
+        XCTAssertEqual(record?.stringValue, xEmail)
     }
 
     func test_setIdentifier_createsRecord() throws {
@@ -106,7 +106,7 @@ final class UserResourceTests: XCTestCase {
 
         let record = try storage.fetchPermanentResource(key: UserResourceKey.identifier.rawValue)
         XCTAssertNotNil(record)
-        XCTAssertEqual(record?.value, xIdentifier)
+        XCTAssertEqual(record?.stringValue, xIdentifier)
     }
 
     // MARK: Ill-formatted
@@ -117,7 +117,7 @@ final class UserResourceTests: XCTestCase {
 
         let record = try storage.fetchPermanentResource(key: UserResourceKey.email.rawValue)
         XCTAssertNotNil(record)
-        XCTAssertEqual(record?.value, invalidEmail)
+        XCTAssertEqual(record?.stringValue, invalidEmail)
     }
 
     // MARK: - Removing data

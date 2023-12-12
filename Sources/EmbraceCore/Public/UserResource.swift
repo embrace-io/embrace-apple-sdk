@@ -79,7 +79,7 @@ extension UserResource {
 
         do {
             let record = try storage.fetchPermanentResource(key: key.rawValue)
-            return record?.value
+            return record?.stringValue
         } catch {
             // TODO: log warning
         }

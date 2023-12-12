@@ -15,7 +15,7 @@ class EmbraceDeviceId {
         if let storage = storage {
             do {
                 if let resource = try storage.fetchPermanentResource(key: "device.id") {
-                    if let deviceId = UUID(uuidString: resource.value) {
+                    if let deviceId = resource.uuidValue {
                         return deviceId
                     }
 

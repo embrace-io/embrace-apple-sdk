@@ -11,14 +11,6 @@ class ResourceRecordTests: XCTestCase {
 
     let testOptions = EmbraceStorage.Options(named: #file)
 
-    override func setUpWithError() throws {
-
-    }
-
-    override func tearDownWithError() throws {
-
-    }
-
     func test_tableSchema() throws {
         // given new storage
         let storage = try EmbraceStorage(options: testOptions)
@@ -91,7 +83,7 @@ class ResourceRecordTests: XCTestCase {
         XCTAssertEqual(resource.resourceType, .session)
         XCTAssertEqual(resource.resourceTypeId, sessionId.toString)
         XCTAssertEqual(resource.key, "foo")
-        XCTAssertEqual(resource.value, "bar")
+        XCTAssertEqual(resource.value, .string("bar"))
     }
 
     func test_init_process_convenience() throws {
@@ -101,7 +93,7 @@ class ResourceRecordTests: XCTestCase {
         XCTAssertEqual(resource.resourceType, .process)
         XCTAssertEqual(resource.resourceTypeId, processId.hex)
         XCTAssertEqual(resource.key, "foo")
-        XCTAssertEqual(resource.value, "bar")
+        XCTAssertEqual(resource.value, .string("bar"))
     }
 
     func test_init_permanent_convenience() throws {
@@ -110,7 +102,7 @@ class ResourceRecordTests: XCTestCase {
         XCTAssertEqual(resource.resourceType, .permanent)
         XCTAssertEqual(resource.resourceTypeId, "")
         XCTAssertEqual(resource.key, "foo")
-        XCTAssertEqual(resource.value, "bar")
+        XCTAssertEqual(resource.value, .string("bar"))
     }
 
     func test_addResource() throws {
@@ -174,7 +166,9 @@ class ResourceRecordTests: XCTestCase {
 
             // sort value alphabetically to assert known order
             XCTAssertEqual(
-                try ResourceRecord.fetchAll(db).map(\.value).sorted(),
+                try ResourceRecord.fetchAll(db)
+                    .compactMap { $0.stringValue }
+                    .sorted(),  // sort value alphabetically to assert known order
                 ["Chet", "Delilah", "Frank", "Spot", "Steven"]
             )
         }

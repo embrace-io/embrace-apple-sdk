@@ -31,31 +31,27 @@ struct AppInfoPayload: Codable {
 
     init (with resources: [ResourceRecord]) {
         resources.forEach { resource in
-            guard let key: AppResourceKeys = AppResourceKeys(rawValue: resource.key) else {
-                return
-            }
-
-            let value = resource.value
+            guard let key: AppResourceKeys = AppResourceKeys(rawValue: resource.key) else { return }
 
             switch key {
             case .buildUUID:
-                self.buildID = value
+                self.buildID = resource.stringValue
             case .bundleVersion:
-                self.bundleVersion = value
+                self.bundleVersion = resource.stringValue
             case .environment:
-                self.environment = value
+                self.environment = resource.stringValue
             case .detailedEnvironment:
-                self.detailedEnvironment = value
+                self.detailedEnvironment = resource.stringValue
             case .framework:
-                self.framework = Int(value)
+                self.framework = resource.integerValue
             case .launchCount:
-                self.launchCount = Int(value)
+                self.launchCount = resource.integerValue
             case .sdkVersion:
-                self.sdkVersion = value
+                self.sdkVersion = resource.stringValue
             case .appVersion:
-                self.appVersion = value
+                self.appVersion = resource.stringValue
             case .bundleId:
-                self.appBundleId = value
+                self.appBundleId = resource.stringValue
             }
         }
     }

@@ -46,7 +46,7 @@ final class SessionPayloadBuilderTests: XCTestCase {
 
         // then a resource is created with the correct value
         resource = try storage.fetchPermanentResource(key: SessionPayloadBuilder.resourceName)
-        XCTAssertEqual(resource!.value, "1")
+        XCTAssertEqual(resource!.value, .string("1"))
         XCTAssertEqual(payload.sessionInfo.counter, 1)
     }
 
@@ -61,7 +61,7 @@ final class SessionPayloadBuilderTests: XCTestCase {
 
         // then the counter is updated correctly
         resource = try storage.fetchPermanentResource(key: SessionPayloadBuilder.resourceName)
-        XCTAssertEqual(resource!.value, "11")
+        XCTAssertEqual(resource!.value, .string("11"))
         XCTAssertEqual(payload.sessionInfo.counter, 11)
     }
 }

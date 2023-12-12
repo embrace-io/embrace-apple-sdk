@@ -33,17 +33,17 @@ struct DeviceInfoPayload: Codable {
 
             switch key {
             case .isJailbroken:
-                self.isJailbroken = Bool(value)
+                self.isJailbroken = resource.boolValue
             case .locale:
-                self.locale = value
+                self.locale = resource.stringValue
             case .timezone:
-                self.timeZone = value
+                self.timeZone = resource.stringValue
             case .totalDiskSpace:
-                self.totalDiskSpace = Int(value)
+                self.totalDiskSpace = resource.integerValue
             case .OSVersion:
-                self.osVersion = value
+                self.osVersion = resource.stringValue
             case .OSBuild:
-                self.osBuild = value
+                self.osBuild = resource.stringValue
             }
         }
     }
