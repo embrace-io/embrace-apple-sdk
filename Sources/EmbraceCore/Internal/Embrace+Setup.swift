@@ -52,7 +52,7 @@ extension Embrace {
         let metadata = EmbraceUpload.MetadataOptions(
             apiKey: options.appId,
             userAgent: EmbraceMeta.userAgent,
-            deviceId: deviceId
+            deviceId: deviceId.filter { c in c.isHexDigit }
         )
 
         do {
@@ -73,7 +73,7 @@ extension Embrace {
         default: return ManualSessionLifecycle(controller: controller)
         }
     }
-//#elseif os(macOS)
+// #elseif os(macOS)
 #else
     static func createSessionLifecycle(platform: Platform, controller: SessionControllable) -> SessionLifecycle {
         switch platform {

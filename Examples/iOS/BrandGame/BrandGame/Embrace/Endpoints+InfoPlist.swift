@@ -23,6 +23,7 @@ extension Embrace.Endpoints {
             return nil
         }
 
-        return "http://" + value
+        let scheme = value.contains("localhost") ? "http://" : "https://"
+        return scheme + value
     }
 }

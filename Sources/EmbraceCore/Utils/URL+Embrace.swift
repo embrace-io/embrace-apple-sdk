@@ -5,17 +5,17 @@
 import Foundation
 
 extension URL {
-    static let apiVersion = "v1"
-
     static func endpoint(basePath: String, apiPath: String) -> URL? {
-        return URL(string: String(format: "%@/\(apiVersion)/%@", basePath, apiPath))
+        var components = URLComponents(string: basePath)
+        components?.path.append(apiPath)
+        return components?.url
     }
 
     static func sessionsEndpoint(basePath: String) -> URL? {
-        return endpoint(basePath: basePath, apiPath: "log/sessions")
+        return endpoint(basePath: basePath, apiPath: "/v1/log/sessions")
     }
 
     static func blobsEndpoint(basePath: String) -> URL? {
-        return endpoint(basePath: basePath, apiPath: "log/blobs")
+        return endpoint(basePath: basePath, apiPath: "/v1/log/blobs")
     }
 }

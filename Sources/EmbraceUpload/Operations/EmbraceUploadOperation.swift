@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import EmbraceCommon
 
 typealias EmbraceUploadOperationCompletion = (_ cancelled: Bool, _ attemptCount: Int, _ error: Error?) -> Void
 
@@ -73,6 +74,7 @@ class EmbraceUploadOperation: AsyncOperation {
 
             // check success
             if let response = response as? HTTPURLResponse {
+                ConsoleLog.debug("Upload operation complete. Status: \(response.statusCode) URL: \(String(describing: response.url))")
                 if response.statusCode >= 200 && response.statusCode < 300 {
                     self?.completion?(false, self?.attemptCount ?? 0, nil)
                 } else {

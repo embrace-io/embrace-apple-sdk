@@ -7,6 +7,8 @@ import EmbraceCommon
 
 class RemoteConfigFetcher {
 
+    static let routePath = "/v2/config"
+
     let options: EmbraceConfig.Options
     let session: URLSession
     let operationQueue: OperationQueue
@@ -65,14 +67,22 @@ class RemoteConfigFetcher {
         dataTask.resume()
     }
 
-    var fullPath: String {
-        // TODO: Add sdk version
-        return "\(options.apiBaseUrl)?appId=\(options.appId)&osVersion=\(options.osVersion)&appVersion=\(options.appVersion)&deviceId=\(options.deviceId)"
+    func buildURL() -> URL? {
+        var components = URLComponents(string: options.apiBaseUrl)
+
+        components?.path.append(Self.routePath)
+        components?.queryItems = [
+            URLQueryItem(name: "appId", value: options.appId),
+            URLQueryItem(name: "osVersion", value: options.osVersion),
+            URLQueryItem(name: "appVersion", value: options.appVersion),
+            URLQueryItem(name: "deviceId", value: options.deviceId)
+        ]
+
+        return components?.url
     }
 
     func newRequest() -> URLRequest? {
-
-        guard let url = URL(string: fullPath) else {
+        guard let url = buildURL() else {
             return nil
         }
 
