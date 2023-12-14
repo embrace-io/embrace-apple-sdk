@@ -19,13 +19,13 @@ extension Embrace {
             appId: String,
             appGroupId: String? = nil,
             platform: Platform = .iOS,
-            endpoints: Embrace.Endpoints = .init(),
+            endpoints: Embrace.Endpoints? = nil,
             captureServices: [CaptureService]
         ) {
             self.appId = appId
             self.appGroupId = appGroupId
             self.platform = platform
-            self.endpoints = endpoints
+            self.endpoints = endpoints ?? .init(appId: appId)
             self.services = captureServices
         }
     }

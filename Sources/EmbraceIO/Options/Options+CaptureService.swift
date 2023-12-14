@@ -17,13 +17,25 @@ public extension Embrace.Options {
         appId: String,
         appGroupId: String? = nil,
         platform: Platform = .iOS,
-        endpoints: Embrace.Endpoints = .init()
+        endpoints: Embrace.Endpoints
     ) {
         self.init(
             appId: appId,
             appGroupId: appGroupId,
             platform: platform,
             endpoints: endpoints,
+            captureServices: .automatic)
+    }
+
+    @objc convenience init(
+        appId: String,
+        appGroupId: String? = nil,
+        platform: Platform = .iOS
+    ) {
+        self.init(
+            appId: appId,
+            appGroupId: appGroupId,
+            platform: platform,
             captureServices: .automatic)
     }
 }
