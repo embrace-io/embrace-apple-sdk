@@ -24,7 +24,7 @@ protocol URLSessionTaskHandler: AnyObject, CaptureServiceHandler {
 
 final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
     @ThreadSafe
-    private var state: CaptureServiceHandlerState
+    private(set) var state: CaptureServiceHandlerState
     private var spans: [URLSessionTask: Span] = [:]
     private let otel: EmbraceOpenTelemetry
     private let queue: DispatchQueue
@@ -43,9 +43,10 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
     }
 
     init(otel: EmbraceOpenTelemetry = EmbraceOTel(),
+         initialState: CaptureServiceHandlerState = .initialized,
          processingQueue: DispatchQueue = DefaultURLSessionTaskHandler.queue()) {
         self.otel = otel
-        self.state = .initialized
+        self.state = initialState
         self.queue = processingQueue
     }
 
