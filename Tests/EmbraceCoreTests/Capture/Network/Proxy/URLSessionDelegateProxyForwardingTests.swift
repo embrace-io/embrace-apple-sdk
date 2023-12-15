@@ -5,9 +5,9 @@
 import XCTest
 @testable import EmbraceCore
 
-/// The purpose of these tests is to prevent any crashes/errores related to the forwarding mechanism of the proxy.
-/// Some of these tests might not have an assertion. This is intended.
-/// If some of these tests crashes, we're hopefully catching something that was going to be on production
+/// The purpose of these tests is to prevent any crashes/errors related to the proxy's forwarding mechanism.
+/// Some of these tests might not have an assertion. This is intentional.
+/// If any of these tests crash, we're hopefully catching something that could have occurred in production.
 ///
 /// More tests on the specific forwarding behavior for each method can be found in the `URLSessionDelegateProxyTests` class.
 class URLSessionDelegateProxyForwardingTests: XCTestCase {
