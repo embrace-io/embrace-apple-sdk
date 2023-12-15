@@ -4,7 +4,11 @@
 
 import Foundation
 
-class FullyImplementedURLSessionDelegate: NSObject, URLSessionTaskDelegate, URLSessionDataDelegate {
+class FullyImplementedURLSessionDelegate: NSObject,
+                                          URLSessionTaskDelegate,
+                                          URLSessionDataDelegate,
+                                          URLSessionStreamDelegate,
+                                          URLSessionDownloadDelegate {
     // MARK: - Task Delegate Methods
     var didCallCreateTask = false
     func urlSession(_ session: URLSession, didCreateTask task: URLSessionTask) {
@@ -83,7 +87,7 @@ class FullyImplementedURLSessionDelegate: NSObject, URLSessionTaskDelegate, URLS
                     didReceive challenge: URLAuthenticationChallenge,
                     completionHandler: @escaping @Sendable (URLSession.AuthChallengeDisposition,
                                                             URLCredential?) -> Void) {
-       didCallTaskWithReceivedAuthenticationChallenge = true
+        didCallTaskWithReceivedAuthenticationChallenge = true
     }
 
     var didCallNeedNewBodyStream = false
@@ -131,8 +135,57 @@ class FullyImplementedURLSessionDelegate: NSObject, URLSessionTaskDelegate, URLS
     }
 
     var didCallWillCacheResponse: Bool = false
-    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, willCacheResponse proposedResponse: CachedURLResponse, completionHandler: @escaping @Sendable (CachedURLResponse?) -> Void) {
+    func urlSession(_ session: URLSession,
+                    dataTask: URLSessionDataTask,
+                    willCacheResponse proposedResponse: CachedURLResponse,
+                    completionHandler: @escaping @Sendable (CachedURLResponse?) -> Void) {
         didCallWillCacheResponse = true
         completionHandler(nil)
+    }
+
+    // MARK: - Download Delegate Methods
+
+    var didCallDidFinishDownloadingTo = false
+    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
+        didCallDidFinishDownloadingTo = true
+    }
+
+    var didCallDidWriteData = false
+    func urlSession(_ session: URLSession,
+                    downloadTask: URLSessionDownloadTask,
+                    didWriteData bytesWritten: Int64,
+                    totalBytesWritten: Int64,
+                    totalBytesExpectedToWrite: Int64) {
+        didCallDidWriteData = true
+    }
+
+    var didCallDidResumeAtOffset = false
+    func urlSession(_ session: URLSession,
+                    downloadTask: URLSessionDownloadTask,
+                    didResumeAtOffset fileOffset: Int64,
+                    expectedTotalBytes: Int64) {
+        didCallDidResumeAtOffset = true
+    }
+
+    // MARK: - Stream Delegate Methods
+
+    var didCallReadClosedFor = false
+    func urlSession(_ session: URLSession, readClosedFor streamTask: URLSessionStreamTask) {
+        didCallReadClosedFor = true
+    }
+
+    var didCallWriteClosedFor = false
+    func urlSession(_ session: URLSession, writeClosedFor streamTask: URLSessionStreamTask) {
+        didCallWriteClosedFor = true
+    }
+
+    var didCallBetterRouteDiscoveredFor = false
+    func urlSession(_ session: URLSession, betterRouteDiscoveredFor streamTask: URLSessionStreamTask) {
+        didCallBetterRouteDiscoveredFor = true
+    }
+
+    var didCallStreamTaskDidBecome = false
+    func urlSession(_ session: URLSession, streamTask: URLSessionStreamTask, didBecome inputStream: InputStream, outputStream: OutputStream) {
+        didCallStreamTaskDidBecome = true
     }
 }
