@@ -222,7 +222,6 @@ private extension URLSessionDelegateProxyTests {
         (sut as URLSessionStreamDelegate).urlSession?(.shared, writeClosedFor: aStreamTask())
     }
 
-
     func whenInvokingBetterRouteDiscoveredForStreamingTask() {
         (sut as URLSessionStreamDelegate).urlSession?(.shared, betterRouteDiscoveredFor: aStreamTask())
     }

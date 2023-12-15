@@ -27,7 +27,7 @@ extension EmbraceStorage: EmbraceStorageResourceFetcher {
             resourceTypeId: resourceTypeId
         )
         try upsertResource(resource)
-        
+
         return resource
     }
 
