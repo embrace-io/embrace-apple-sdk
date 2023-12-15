@@ -17,31 +17,33 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
     private var processor: MockSpanProcessor!
     private var task: URLSessionTask!
     private var otel: EmbraceOTel!
+    private var session: URLSession!
 
     override func setUpWithError() throws {
+        session = ProxiedURLSessionProvider.default()
         processor = MockSpanProcessor()
         EmbraceOTel.setup(spanProcessor: processor)
     }
 
     // MARK: - State Tests
 
-    func testHandlerDefaultStateIsInitialized() {
+    func test_HandlerDefaultStateIsInitialized() {
         XCTAssertEqual(DefaultURLSessionTaskHandler().state, .initialized)
     }
 
-    func test_OnChanceStateToPaused_stateShouldChangeToPaused() {
+    func test_OnChanceStateToPaused_StateShouldChangeToPaused() {
         givenTaskHandler(withInitialState: .initialized)
         whenInvokingOnChangeState(withNewState: .paused)
         thenTaskHandlerState(is: .paused)
     }
 
-    func test_OnChanceStateToUninstalled_stateShouldChangeToPaused() {
+    func test_OnChanceStateToUninstalled_StateShouldChangeToPaused() {
         givenTaskHandler(withInitialState: .initialized)
         whenInvokingOnChangeState(withNewState: .uninstalled)
         thenTaskHandlerState(is: .paused)
     }
 
-    func test_OnChanceStateToListening_stateShouldChangeToListening() {
+    func test_OnChanceStateToListening_StateShouldChangeToListening() {
         givenTaskHandler(withInitialState: .initialized)
         whenInvokingOnChangeState(withNewState: .listening)
         thenTaskHandlerState(is: .listening)
@@ -49,49 +51,49 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
 
     // MARK: - Create Tests
 
-    func test_onCreateTaskWithHandlerNotListening_shouldntCreateSpan() {
+    func test_onCreateTaskWithHandlerNotListening_ShouldntCreateSpan() {
         givenTaskHandler(withInitialState: .paused)
         givenAnURLSessionTask()
-        whenInvokingCreate()
+        whenInvokingCreate(withoutWaiting: true)
         thenNoSpanShouldBeCreated()
     }
 
-    func test_onCreateTask_shouldBuildAndStartANetworkHTTPSpan() {
+    func test_onCreateTask_ShouldBuildAndStartANetworkHTTPSpan() {
         givenTaskHandler(withInitialState: .listening)
         givenAnURLSessionTask()
         whenInvokingCreate()
         thenHTTPNetworkSpanShouldBeCreated()
     }
 
-    func test_onCreateTaskWithUrlAndHTTPMethod_spanNameShouldContainUrlPathAndMethod() {
+    func test_onCreateTaskWithUrlAndHTTPMethod_SpanNameShouldContainUrlPathAndMethod() {
         givenTaskHandler(withInitialState: .listening)
         givenAnURLSessionTask(urlString: "https://ThisIsAUrl/with/some/path", method: "POST")
         whenInvokingCreate()
         thenSpanName(is: "POST /with/some/path")
     }
 
-    func test_onCreateTaskWithoutMethod_spanNameShouldOnlyBePath() {
+    func test_onCreateTaskWithoutMethod_SpanNameShouldOnlyBePath() {
         givenTaskHandler(withInitialState: .listening)
         givenAnURLSessionTask(urlString: "https://embrace.io/with/path/", method: "")
         whenInvokingCreate()
         thenSpanName(is: "/with/path")
     }
 
-    func test_onCreateTask_urlShouldBeSetOnSpanAsAttribute() {
+    func test_onCreateTask_UrlShouldBeSetOnSpanAsAttribute() {
         givenTaskHandler(withInitialState: .listening)
         givenAnURLSessionTask(urlString: "https://embrace-is-great.io")
         whenInvokingCreate()
         thenSpanShouldHaveURLAttribute(withValue: "https://embrace-is-great.io")
     }
 
-    func test_onCreateTaskHavingMethod_httpMethodShouldBeSetOnSpanAsAttribute() {
+    func test_onCreateTaskHavingMethod_HttpMethodShouldBeSetOnSpanAsAttribute() {
         givenTaskHandler(withInitialState: .listening)
         givenAnURLSessionTask(method: "GET")
         whenInvokingCreate()
         thenSpanShouldHaveHttpMethodAttribute(withValue: "GET")
     }
 
-    func test_onCreateTaskWithBody_bodySizeShouldBeSetOnSpanAsAttribute() {
+    func test_onCreateTaskWithBody_BodySizeShouldBeSetOnSpanAsAttribute() {
         let randomData = UUID().uuidString.data(using: .utf8)!
         givenTaskHandler(withInitialState: .listening)
         givenAnURLSessionTask(method: "POST", body: randomData)
@@ -100,6 +102,46 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
     }
 
     // MARK: - Finish Test
+
+    func test_onFinishTaskWithData_ResponseBodySizeShouldBeSetOnSpanAsAttribute() {
+        let randomData = UUID().uuidString.data(using: .utf8)!
+        givenTaskHandler(withInitialState: .listening)
+        givenHandlerCreatedASpan()
+        whenInvokingFinish(withData: randomData)
+        thenSpanShouldHaveResponseBodySizeAttribute(withValue: randomData.count)
+    }
+
+    func test_onFinishTaskWithHandlerNotListening_ShouldntEndSpan() {
+        givenTaskHandler(withInitialState: .listening)
+        givenHandlerCreatedASpan()
+        waitForCreationToEnd()
+        givenStateChanged(toState: .paused)
+        whenInvokingFinish(withoutWaiting: true)
+        thenSpanShouldntEnd()
+    }
+
+    func test_onFinishWithoutHavingPreviousTasks_ShouldntEndAnySpan() {
+        givenTaskHandler(withInitialState: .listening)
+        givenAnURLSessionTask()
+        whenInvokingFinish(withoutWaiting: true)
+        thenSpanShouldntEnd()
+    }
+
+    func test_onFinishWithValidResponse_StatusCodeShouldSetOnSpanAsAttribute() {
+        givenTaskHandler(withInitialState: .listening)
+        givenHandlerCreatedASpan(withResponse: aValidResponse(withStatusCode: 201))
+        whenInvokingFinish()
+        thenSpanShouldHaveStatusCodeAttribute(withValue: 201)
+    }
+
+    func test_onFinishWithError_AllErrorFieldsOnSpanShouldBeFilled() {
+        givenTaskHandler(withInitialState: .listening)
+        givenHandlerCreatedASpan()
+        whenInvokingFinish(error: NSError(domain: "RequestDomain", code: 1234, userInfo: [NSLocalizedDescriptionKey: "Sad Error!"]))
+        thenSpanShouldHaveErrorDomainAttribute(withValue: "RequestDomain")
+        thenSpanShouldHaveErrorCodeAttribute(withValue: 1234)
+        thenSpanShouldHaveErrorMessageAttribute(withValue: "Sad Error!")
+    }
 }
 
 private extension DefaultURLSessionTaskHandlerTests {
@@ -108,16 +150,59 @@ private extension DefaultURLSessionTaskHandlerTests {
         sut = .init(DefaultURLSessionTaskHandler(otel: otel, initialState: initialState, processingQueue: .main))
     }
 
+    func givenStateChanged(toState: CaptureServiceState) {
+        whenInvokingOnChangeState(withNewState: .paused)
+    }
+
+    func givenHandlerCreatedASpan(withResponse response: URLResponse? = nil) {
+        givenAnURLSessionTask(response: response)
+        sut.create(task: task)
+    }
+
+    func givenAnURLSessionTask(urlString: String = "https://embrace.io", method: String? = nil, body: Data? = nil, response: URLResponse? = nil) {
+        var url = URL(string: urlString)!
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        if let body = body {
+            request.httpBody = body
+        }
+        let urlResponse = response ?? aValidResponse()
+        url.mockResponse = .sucessful(withData: UUID().uuidString.data(using: .utf8)!, response: urlResponse)
+        task = session.dataTask(with: request)
+    }
+
     func whenInvokingOnChangeState(withNewState state: CaptureServiceState) {
         sut.changedState(to: state)
     }
 
-    func whenInvokingCreate() {
+    func whenInvokingCreate(withoutWaiting: Bool = false) {
         sut.create(task: task)
+        if !withoutWaiting {
+            waitForCreationToEnd()
+        }
+    }
+
+    func whenInvokingFinish(withData data: Data? = nil, error: Error? = nil, withoutWaiting: Bool = false) {
+        task.resume()
+        waitForRequestToFinish()
+        sut.finish(task: task, data: data, error: error)
+        if !withoutWaiting {
+            waitForFinishMethodToEnd()
+        }
+    }
+
+    func thenSpanShouldHaveResponseBodySizeAttribute(withValue size: Int) {
+        do {
+            let span = try XCTUnwrap(processor.endedSpans.first)
+            let methodAttribute = span.attributes["http.response.body.size"]
+            XCTAssertNotNil(methodAttribute)
+            XCTAssertEqual(methodAttribute?.description, String(size))
+        } catch let exception {
+            XCTFail("Couldn't get span: \(exception.localizedDescription)")
+        }
     }
 
     func thenHTTPNetworkSpanShouldBeCreated() {
-        waitForCreationToEnd()
         do {
             let span = try XCTUnwrap(processor.startedSpans.first)
             XCTAssertEqual(span.embType, .networkHTTP)
@@ -127,7 +212,6 @@ private extension DefaultURLSessionTaskHandlerTests {
     }
 
     func thenSpanShouldHaveURLAttribute(withValue url: String) {
-        waitForCreationToEnd()
         do {
             let span = try XCTUnwrap(processor.startedSpans.first)
             let savedUrl = span.attributes["url.full"]
@@ -139,20 +223,6 @@ private extension DefaultURLSessionTaskHandlerTests {
         }
     }
 
-    func waitForCreationToEnd() {
-        wait(timeout: 1.0, until: { self.processor.startedSpans.count > 0 })
-    }
-
-    func givenAnURLSessionTask(urlString: String = "https://embrace.io", method: String? = nil, body: Data? = nil) {
-        let url = URL(string: urlString)!
-        var request = URLRequest(url: url)
-        request.httpMethod = method
-        if let body = body {
-            request.httpBody = body
-        }
-        task = URLSession(configuration: .default).dataTask(with: request)
-    }
-
     func thenTaskHandlerState(is state: CaptureServiceHandlerState) {
         XCTAssertEqual(sut.state, state)
     }
@@ -162,7 +232,6 @@ private extension DefaultURLSessionTaskHandlerTests {
     }
 
     func thenSpanName(is spanName: String) {
-        waitForCreationToEnd()
         do {
             let span = try XCTUnwrap(processor.startedSpans.first)
             XCTAssertEqual(span.name, spanName)
@@ -172,7 +241,6 @@ private extension DefaultURLSessionTaskHandlerTests {
     }
 
     func thenSpanShouldHaveHttpMethodAttribute(withValue method: String) {
-        waitForCreationToEnd()
         do {
             let span = try XCTUnwrap(processor.startedSpans.first)
             let methodAttribute = span.attributes["http.request.method"]
@@ -184,14 +252,80 @@ private extension DefaultURLSessionTaskHandlerTests {
     }
 
     func thenSpanShouldHaveBodySizeAttribute(withValue size: Int) {
-        waitForCreationToEnd()
         do {
             let span = try XCTUnwrap(processor.startedSpans.first)
-            let methodAttribute = span.attributes["http.request.body.size"]
-            XCTAssertNotNil(methodAttribute)
-            XCTAssertEqual(methodAttribute?.description, String(size))
+            let bodySizeAttribute = span.attributes["http.request.body.size"]
+            XCTAssertNotNil(bodySizeAttribute)
+            XCTAssertEqual(bodySizeAttribute?.description, String(size))
         } catch let exception {
             XCTFail("Couldn't get span: \(exception.localizedDescription)")
         }
+    }
+
+    func thenSpanShouldHaveStatusCodeAttribute(withValue statusCode: Int) {
+        do {
+            let span = try XCTUnwrap(processor.endedSpans.first)
+            let statusCodeAttribute = span.attributes["http.response.status_code"]
+            XCTAssertNotNil(statusCodeAttribute)
+            XCTAssertEqual(statusCodeAttribute?.description, String(statusCode))
+        } catch let exception {
+            XCTFail("Couldn't get span: \(exception.localizedDescription)")
+        }
+    }
+
+    func thenSpanShouldHaveErrorDomainAttribute(withValue domain: String) {
+        do {
+            let span = try XCTUnwrap(processor.endedSpans.first)
+            let errroTypeAttribute = span.attributes["error.type"]
+            XCTAssertNotNil(errroTypeAttribute)
+            XCTAssertEqual(errroTypeAttribute?.description, domain)
+        } catch let exception {
+            XCTFail("Couldn't get span: \(exception.localizedDescription)")
+        }
+    }
+
+    func thenSpanShouldHaveErrorCodeAttribute(withValue code: Int) {
+        do {
+            let span = try XCTUnwrap(processor.endedSpans.first)
+            let errorCodeAttribute = span.attributes["error.code"]
+            XCTAssertNotNil(errorCodeAttribute)
+            XCTAssertEqual(errorCodeAttribute?.description, String(code))
+        } catch let exception {
+            XCTFail("Couldn't get span: \(exception.localizedDescription)")
+        }
+    }
+
+    func thenSpanShouldHaveErrorMessageAttribute(withValue message: String) {
+        do {
+            let span = try XCTUnwrap(processor.endedSpans.first)
+            let errorMessageAttribute = span.attributes["error.message"]
+            XCTAssertNotNil(errorMessageAttribute)
+            XCTAssertEqual(errorMessageAttribute?.description, message)
+        } catch let exception {
+            XCTFail("Couldn't get span: \(exception.localizedDescription)")
+        }
+    }
+
+    func thenSpanShouldntEnd() {
+        XCTAssertTrue(processor.endedSpans.isEmpty)
+    }
+}
+
+// MARK: - Utility Methods
+private extension DefaultURLSessionTaskHandlerTests {
+    func aValidResponse(withStatusCode statusCode: Int = 200) -> HTTPURLResponse {
+        .init(url: URL(string: "https://embrace.io")!, statusCode: statusCode, httpVersion: nil, headerFields: nil)!
+    }
+
+    func waitForCreationToEnd() {
+        wait(timeout: 1.0, until: { self.processor.startedSpans.count > 0 })
+    }
+
+    func waitForFinishMethodToEnd() {
+        wait(timeout: 1.0, until: { self.processor.endedSpans.count > 0 })
+    }
+
+    func waitForRequestToFinish() {
+        wait(timeout: 1.0, until: { self.task.response != nil })
     }
 }
