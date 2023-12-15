@@ -1,11 +1,11 @@
 //
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
-    
 
 import Foundation
 
-class FullyImplementedURLSessionTaskDelegate: NSObject, URLSessionTaskDelegate {
+class FullyImplementedURLSessionDelegate: NSObject, URLSessionTaskDelegate, URLSessionDataDelegate {
+    // MARK: - Task Delegate Methods
     var didCallCreateTask = false
     func urlSession(_ session: URLSession, didCreateTask task: URLSessionTask) {
         didCallCreateTask = true
@@ -100,5 +100,39 @@ class FullyImplementedURLSessionTaskDelegate: NSObject, URLSessionTaskDelegate {
                     needNewBodyStreamFrom offset: Int64,
                     completionHandler: @escaping @Sendable (InputStream?) -> Void) {
         didCallNeedNewBodyStreamAndCompletion = true
+    }
+
+    // MARK: - Data Delegate Methods
+
+    var didCallDidReceiveResponseWithHandler: Bool = false
+    func urlSession(_ session: URLSession,
+                    dataTask: URLSessionDataTask,
+                    didReceive response: URLResponse,
+                    completionHandler: @escaping @Sendable (URLSession.ResponseDisposition) -> Void) {
+        didCallDidReceiveResponseWithHandler = true
+        completionHandler(.allow)
+    }
+
+    var didCallDidBecomeDownloadTask: Bool = false
+    func urlSession(_ session: URLSession,
+                    dataTask: URLSessionDataTask,
+                    didBecome downloadTask: URLSessionDownloadTask) {
+        didCallDidBecomeDownloadTask = true
+    }
+
+    var didCallDidBecomeStreamTask: Bool = false
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didBecome streamTask: URLSessionStreamTask) {
+        didCallDidBecomeStreamTask = true
+    }
+
+    var didCallDidReceiveData: Bool = false
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+        didCallDidReceiveData = true
+    }
+
+    var didCallWillCacheResponse: Bool = false
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, willCacheResponse proposedResponse: CachedURLResponse, completionHandler: @escaping @Sendable (CachedURLResponse?) -> Void) {
+        didCallWillCacheResponse = true
+        completionHandler(nil)
     }
 }
