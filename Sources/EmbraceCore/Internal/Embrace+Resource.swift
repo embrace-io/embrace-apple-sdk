@@ -25,5 +25,4 @@ extension Embrace {
     func addResource(key: String, value: Double) throws {
         try addResource(key: key, value: String(value))
     }
-
 }
