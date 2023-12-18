@@ -46,21 +46,26 @@ import EmbraceObjCUtils
         qos: .utility
     )
 
-    @objc public static func setup(options: Embrace.Options) throws {
+    @objc @discardableResult public static func setup(options: Embrace.Options) throws -> Embrace {
         if !Thread.isMainThread {
             throw EmbraceSetupError.invalidThread("Embrace must be setup on the main thread")
         }
 
-        try Embrace.synchronizationQueue.sync {
-            if client != nil {
+        return try Embrace.synchronizationQueue.sync {
+            if let client = client {
                 ConsoleLog.warning("Embrace was already initialized!")
-                return
+                return client
             }
 
             try options.validateAppId()
             try options.validateGroupId()
 
             client = try Embrace(options: options)
+            if let client = client {
+                return client
+            } else {
+                throw EmbraceSetupError.unableToInitialize("Unable to initialize Embrace.client")
+            }
         }
     }
 
@@ -90,7 +95,7 @@ import EmbraceObjCUtils
         sessionLifecycle.setup()
     }
 
-    @objc public func start() throws {
+    @objc @discardableResult public func start() throws -> Embrace {
         guard Thread.isMainThread else {
             throw EmbraceSetupError.invalidThread("Embrace must be started on the main thread")
         }
@@ -125,6 +130,8 @@ import EmbraceObjCUtils
                 }
             }
         }
+
+        return self
     }
 
     @objc public func currentSessionId() -> String? {
