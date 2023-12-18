@@ -8,6 +8,7 @@ public enum EmbraceSetupError: Error, Equatable {
     case invalidAppId(_ description: String)
     case invalidAppGroupId(_ description: String)
     case invalidThread(_ description: String)
+    case unableToInitialize(_ description: String)
 }
 
 // Allows bridging to NSError
@@ -25,6 +26,8 @@ extension EmbraceSetupError: LocalizedError, CustomNSError {
             return -2
         case .invalidThread:
             return -3
+        case .unableToInitialize:
+            return -4
         }
     }
 
@@ -35,6 +38,8 @@ extension EmbraceSetupError: LocalizedError, CustomNSError {
         case .invalidAppId(let description):
             return description
         case .invalidThread(let description):
+            return description
+        case .unableToInitialize(let description):
             return description
         }
     }
