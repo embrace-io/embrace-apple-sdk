@@ -6,15 +6,19 @@ import Foundation
 import EmbraceCore
 
 extension Embrace.Endpoints {
-    static func fromInfoPlist() -> Embrace.Endpoints {
-        guard let endpoints = Bundle.main.infoDictionary?["EmbraceEndpoints"] as? [String: String] else {
-            return .init()
+    static func fromInfoPlist() -> Embrace.Endpoints? {
+        guard let endpoints = Bundle.main.infoDictionary?["EmbraceEndpoints"] as? [String: String],
+              let baseURL = value(from: endpoints, key: "baseURL"),
+              let developmentURL = value(from: endpoints, key: "developmentBaseURL"),
+              let configBaseURL = value(from: endpoints, key: "configBaseURL")
+        else {
+            return nil
         }
 
         return .init(
-            baseURL: value(from: endpoints, key: "baseURL"),
-            developmentBaseURL: value(from: endpoints, key: "developmentBaseURL"),
-            configBaseURL: value(from: endpoints, key: "configBaseURL")
+            baseURL: baseURL,
+            developmentBaseURL: developmentURL,
+            configBaseURL: configBaseURL
         )
     }
 
