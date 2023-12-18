@@ -9,7 +9,7 @@ extension Embrace.Endpoints {
     static func fromInfoPlist() -> Embrace.Endpoints? {
         guard let endpoints = Bundle.main.infoDictionary?["EmbraceEndpoints"] as? [String: String],
               let baseURL = value(from: endpoints, key: "baseURL"),
-              let developmentURL = value(from: endpoints, key: "developmentBaseURL"),
+              let developmentBaseURL = value(from: endpoints, key: "developmentBaseURL"),
               let configBaseURL = value(from: endpoints, key: "configBaseURL")
         else {
             return nil
@@ -17,7 +17,7 @@ extension Embrace.Endpoints {
 
         return .init(
             baseURL: baseURL,
-            developmentBaseURL: developmentURL,
+            developmentBaseURL: developmentBaseURL,
             configBaseURL: configBaseURL
         )
     }
