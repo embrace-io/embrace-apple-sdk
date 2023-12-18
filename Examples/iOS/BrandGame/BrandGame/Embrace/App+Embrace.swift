@@ -12,7 +12,8 @@ extension BrandGameApp {
             appId: "AK5HV",
             appGroupId: nil,
             platform: .iOS,
-            endpoints: .fromInfoPlist()
+            endpoints: Embrace.Endpoints.fromInfoPlist(),
+            captureServices: .automatic
         )
     }
 #else
