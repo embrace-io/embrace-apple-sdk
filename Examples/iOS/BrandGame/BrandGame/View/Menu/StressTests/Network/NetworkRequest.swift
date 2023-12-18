@@ -29,16 +29,34 @@ extension NetworkStressTest {
             self.idx = idx
         }
 
-        func execute() async throws -> NetworkResponse {
-            let before = Date()
-            let (_, response) = try await URLSession.shared.data(from: url)
-            let after = Date()
+//        func execute() async throws -> NetworkResponse {
+//            let before = Date()
+//            let (_, response) = try await URLSession.shared.data(from: url)
+//            let after = Date()
+//
+//            guard let httpResponse = response as? HTTPURLResponse else {
+//                fatalError("Not a HTTP Response")
+//            }
+//
+//            return NetworkResponse(id: idx, requestURL: url, response: httpResponse, rtt: after.timeIntervalSince(before))
+//        }
 
-            guard let httpResponse = response as? HTTPURLResponse else {
-                fatalError("Not a HTTP Response")
+        func execute(completion: @escaping (NetworkResponse?) -> Void) {
+            let before = Date()
+
+            let task = URLSession.shared.dataTask(with: url) { data, response, error in
+                let after = Date()
+
+                guard let httpResponse = response as? HTTPURLResponse, error == nil else {
+                    completion(nil)
+                    return
+                }
+
+                let networkResponse = NetworkResponse(id: self.idx, requestURL: self.url, response: httpResponse, rtt: after.timeIntervalSince(before))
+                completion(networkResponse)
             }
 
-            return NetworkResponse(id: idx, requestURL: url, response: httpResponse, rtt: after.timeIntervalSince(before))
+            task.resume()
         }
 
     }
