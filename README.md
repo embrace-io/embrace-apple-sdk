@@ -50,7 +50,7 @@ import EmbraceIO
 func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
 
     do {
-      try Embrace.setup( .init(appId: "myApp") )
+      try Embrace.setup(options: .init(appId: "myApp"))
       try Embrace.client?.start()
     } catch {
       // Unable to start Embrace
@@ -94,7 +94,7 @@ import EmbraceIO
 
 func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
     try? Embrace
-        .setup( .init(appId: "myApp") )
+        .setup(options: .init(appId: "myApp"))
         .start()
 
     // Can leverage optional behavior if desired
