@@ -55,9 +55,9 @@ struct NetworkStressTest: View {
                         Chart(responses) { r in
                             BarMark(x: .value("idx", r.id), y: .value("rtt", r.rtt))
                         }
-                            .chartXAxis(.hidden)
-                            .padding(.vertical)
-                            .frame(minHeight: 140)
+                        .chartXAxis(.hidden)
+                        .padding(.vertical)
+                        .frame(minHeight: 140)
 
                         Text("Min: ^[\(responses.min(by: { $0.rtt < $1.rtt })!.rtt) second](inflect: true)")
                         Text("Max: ^[\(responses.max(by: { $0.rtt < $1.rtt })!.rtt) second](inflect: true)")
@@ -72,28 +72,25 @@ struct NetworkStressTest: View {
         .task(id: didSubmit) {
             guard didSubmit else { return }
             responses = []
+            let group = DispatchGroup()
 
-            await withTaskGroup(of: NetworkResponse?.self) { group in
-                for i in 0..<inputCount {
-                    group.addTask {
-                        do {
-                            if let request = NetworkRequest(string: inputURL, idx: i) {
-                                return try await request.execute()
-                            } else {
-                                return nil
+            for i in 0..<inputCount {
+                if let request = NetworkRequest(string: inputURL, idx: i) {
+                    group.enter()
+                    request.execute { response in
+                        DispatchQueue.main.async {
+                            if let response = response {
+                                self.responses.append(response)
                             }
-                        } catch {
-                            return nil
+                            group.leave()
                         }
                     }
                 }
-
-                self.responses = await group.reduce(into: []) { partialResult, response in
-                    if let response { partialResult.append(response) }
-                }
             }
 
-            didSubmit = false
+            group.notify(queue: .main) {
+                didSubmit = false
+            }
         }
         .navigationTitle("Network Stress")
 
