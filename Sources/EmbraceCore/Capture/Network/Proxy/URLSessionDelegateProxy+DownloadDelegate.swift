@@ -11,7 +11,7 @@ extension URLSessionDelegateProxy: URLSessionDownloadDelegate {
         let selector = #selector(
             URLSessionDownloadDelegate.urlSession(_:downloadTask:didFinishDownloadingTo:)
         )
-        if doesOriginalDelegateResponds(to: selector),
+        if originalDelegateResponds(to: selector),
            let task = originalDelegate as? URLSessionDownloadDelegate {
             task.urlSession(session,
                             downloadTask: downloadTask,
@@ -29,7 +29,7 @@ extension URLSessionDelegateProxy: URLSessionDownloadDelegate {
             URLSessionDownloadDelegate
                 .urlSession(_:downloadTask:didWriteData:totalBytesWritten:totalBytesExpectedToWrite:)
         )
-        if doesOriginalDelegateResponds(to: selector),
+        if originalDelegateResponds(to: selector),
            let task = originalDelegate as? URLSessionDownloadDelegate {
             task.urlSession?(session,
                              downloadTask: downloadTask,
@@ -46,7 +46,7 @@ extension URLSessionDelegateProxy: URLSessionDownloadDelegate {
         let selector = #selector(
             URLSessionDownloadDelegate.urlSession(_:downloadTask:didResumeAtOffset:expectedTotalBytes:)
         )
-        if doesOriginalDelegateResponds(to: selector),
+        if originalDelegateResponds(to: selector),
            let task = originalDelegate as? URLSessionDownloadDelegate {
             task.urlSession?(session,
                              downloadTask: downloadTask,

@@ -9,7 +9,7 @@ extension URLSessionDelegateProxy: URLSessionStreamDelegate {
         let selector = #selector(
             URLSessionStreamDelegate.urlSession(_:readClosedFor:)
         )
-        if doesOriginalDelegateResponds(to: selector),
+        if originalDelegateResponds(to: selector),
            let task = originalDelegate as? URLSessionStreamDelegate {
             task.urlSession?(session, readClosedFor: streamTask)
         }
@@ -19,7 +19,7 @@ extension URLSessionDelegateProxy: URLSessionStreamDelegate {
         let selector = #selector(
             URLSessionStreamDelegate.urlSession(_:writeClosedFor:)
         )
-        if doesOriginalDelegateResponds(to: selector),
+        if originalDelegateResponds(to: selector),
            let task = originalDelegate as? URLSessionStreamDelegate {
             task.urlSession?(session, writeClosedFor: streamTask)
         }
@@ -29,7 +29,7 @@ extension URLSessionDelegateProxy: URLSessionStreamDelegate {
         let selector = #selector(
             URLSessionStreamDelegate.urlSession(_:betterRouteDiscoveredFor:)
         )
-        if doesOriginalDelegateResponds(to: selector),
+        if originalDelegateResponds(to: selector),
            let task = originalDelegate as? URLSessionStreamDelegate {
             task.urlSession?(session, betterRouteDiscoveredFor: streamTask)
         }
@@ -42,7 +42,7 @@ extension URLSessionDelegateProxy: URLSessionStreamDelegate {
         let selector = #selector(
             URLSessionStreamDelegate.urlSession(_:streamTask:didBecome:outputStream:)
         )
-        if doesOriginalDelegateResponds(to: selector),
+        if originalDelegateResponds(to: selector),
            let task = originalDelegate as? URLSessionStreamDelegate {
             task.urlSession?(session,
                              streamTask: streamTask,

@@ -11,7 +11,7 @@ extension URLSessionDelegateProxy: URLSessionTaskDelegate {
         let selector = #selector(
             URLSessionTaskDelegate.urlSession(_:task:didFinishCollecting:)
         )
-        if doesOriginalDelegateResponds(to: selector),
+        if originalDelegateResponds(to: selector),
            let taskDelegate = originalDelegate as? URLSessionTaskDelegate {
             taskDelegate.urlSession?(session, task: task, didFinishCollecting: metrics)
         }
@@ -22,7 +22,7 @@ extension URLSessionDelegateProxy: URLSessionTaskDelegate {
         let selector = #selector(
             URLSessionTaskDelegate.urlSession(_:didCreateTask:)
         )
-        if doesOriginalDelegateResponds(to: selector),
+        if originalDelegateResponds(to: selector),
            let taskDelegate = originalDelegate as? URLSessionTaskDelegate {
             taskDelegate.urlSession?(session, didCreateTask: task)
         }
@@ -33,7 +33,7 @@ extension URLSessionDelegateProxy: URLSessionTaskDelegate {
         let selector = #selector(
             URLSessionTaskDelegate.urlSession(_:taskIsWaitingForConnectivity:)
         )
-        if doesOriginalDelegateResponds(to: selector),
+        if originalDelegateResponds(to: selector),
            let taskDelegate = originalDelegate as? URLSessionTaskDelegate {
             taskDelegate.urlSession?(session, taskIsWaitingForConnectivity: task)
         }
@@ -47,7 +47,7 @@ extension URLSessionDelegateProxy: URLSessionTaskDelegate {
         let selector = #selector(
             URLSessionTaskDelegate.urlSession(_:task:didSendBodyData:totalBytesSent:totalBytesExpectedToSend:)
         )
-        if doesOriginalDelegateResponds(to: selector),
+        if originalDelegateResponds(to: selector),
            let taskDelegate = originalDelegate as? URLSessionTaskDelegate {
             taskDelegate.urlSession?(session,
                                      task: task,
@@ -64,7 +64,7 @@ extension URLSessionDelegateProxy: URLSessionTaskDelegate {
         let selector = #selector(
             URLSessionTaskDelegate.urlSession(_:task:didReceiveInformationalResponse:)
         )
-        if doesOriginalDelegateResponds(to: selector),
+        if originalDelegateResponds(to: selector),
            let taskDelegate = originalDelegate as? URLSessionTaskDelegate {
             taskDelegate.urlSession?(session, task: task, didReceiveInformationalResponse: response)
         }
@@ -77,7 +77,7 @@ extension URLSessionDelegateProxy: URLSessionTaskDelegate {
         let selector = #selector(
             URLSessionTaskDelegate.urlSession(_:task:didCompleteWithError:)
         )
-        if doesOriginalDelegateResponds(to: selector),
+        if originalDelegateResponds(to: selector),
            let taskDelegate = originalDelegate as? URLSessionTaskDelegate {
             taskDelegate.urlSession?(session, task: task, didCompleteWithError: error)
         }

@@ -12,7 +12,7 @@ extension URLSessionDelegateProxy: URLSessionDataDelegate {
             URLSessionDataDelegate.urlSession(_:dataTask:didBecome:) as
             (URLSessionDataDelegate) -> ((URLSession, URLSessionDataTask, URLSessionDownloadTask) -> Void)?
         )
-        if doesOriginalDelegateResponds(to: selector),
+        if originalDelegateResponds(to: selector),
            let task = originalDelegate as? URLSessionDataDelegate {
             task.urlSession?(session, dataTask: dataTask, didBecome: downloadTask)
         }
@@ -26,7 +26,7 @@ extension URLSessionDelegateProxy: URLSessionDataDelegate {
             (URLSessionDataDelegate) -> ((URLSession, URLSessionDataTask, URLSessionStreamTask) -> Void)?
         )
 
-        if doesOriginalDelegateResponds(to: selector),
+        if originalDelegateResponds(to: selector),
            let task = originalDelegate as? URLSessionDataDelegate {
             task.urlSession?(session, dataTask: dataTask, didBecome: streamTask)
         }
@@ -44,7 +44,7 @@ extension URLSessionDelegateProxy: URLSessionDataDelegate {
         } else {
             dataTask.embraceData = data
         }
-        if doesOriginalDelegateResponds(to: selector),
+        if originalDelegateResponds(to: selector),
            let task = originalDelegate as? URLSessionDataDelegate {
             task.urlSession?(session, dataTask: dataTask, didReceive: data)
         }

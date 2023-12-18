@@ -34,7 +34,7 @@ class URLSessionDelegateProxy: NSObject {
         return nil
     }
 
-    func doesOriginalDelegateResponds(to aSelector: Selector) -> Bool {
+    func originalDelegateResponds(to aSelector: Selector) -> Bool {
         if let delegate = originalDelegate {
             return delegate.responds(to: aSelector)
         }
