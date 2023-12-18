@@ -29,18 +29,6 @@ extension NetworkStressTest {
             self.idx = idx
         }
 
-//        func execute() async throws -> NetworkResponse {
-//            let before = Date()
-//            let (_, response) = try await URLSession.shared.data(from: url)
-//            let after = Date()
-//
-//            guard let httpResponse = response as? HTTPURLResponse else {
-//                fatalError("Not a HTTP Response")
-//            }
-//
-//            return NetworkResponse(id: idx, requestURL: url, response: httpResponse, rtt: after.timeIntervalSince(before))
-//        }
-
         func execute(completion: @escaping (NetworkResponse?) -> Void) {
             let before = Date()
 
@@ -58,7 +46,6 @@ extension NetworkStressTest {
 
             task.resume()
         }
-
     }
 
     struct NetworkResponse: Sendable, Identifiable {
