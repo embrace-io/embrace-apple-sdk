@@ -1,0 +1,52 @@
+
+PUBLIC_REMOTE_NAME="public"
+
+# Check for --help flag anywhere in arguments and print help if set
+if [[ " $@ " =~ " --help " ]]; then
+  echo "Usage: publish [--tags]"
+  echo ""
+  echo "Pushes current branch to PUBLIC_REMOTE_URL and optionally pushes tags if --tags flag is set."
+  echo ""
+  echo "Options:"
+  echo "  --tags  Push tags to public remote"
+  exit 0
+fi
+
+# Check for --tags flag anywhere in arguments and set variable if set
+if [[ " $@ " =~ " --tags " ]]; then
+  PUBLISH_TAGS=true
+fi
+
+# Check for `git`
+if ! [ -x "$(command -v git)" ]; then
+  echo 'Error: git is not installed.' >&2
+  exit 1
+fi
+
+# Check for PUBLIC_REMOTE_URL envvar
+if [ -z "$PUBLIC_REMOTE_URL" ]; then
+  echo 'Error: PUBLIC_REMOTE_URL is not set.' >&2
+  exit 1
+fi
+
+# Add public repo as remote if it is not already added
+if ! git remote | grep -q "$PUBLIC_REMOTE_NAME"; then
+  git remote add "$PUBLIC_REMOTE_NAME" "$PUBLIC_REMOTE_URL"
+
+  # Remove the remote when the script exits
+  trap 'git remote remove "$PUBLIC_REMOTE_NAME"' EXIT
+
+# else check if public remote has the same repo URL
+elif ! git remote get-url "$PUBLIC_REMOTE_NAME" | grep -q "$PUBLIC_REMOTE_URL"; then
+  echo 'Error: $PUBLIC_REMOTE_NAME remote has a different URL.' >&2
+  echo "Run 'git remote set-url $PUBLIC_REMOTE_NAME $PUBLIC_REMOTE_URL' to update" >&2
+  exit 1
+fi
+
+# Push current branch to public remote, fast-forward only
+git push "$PUBLIC_REMOTE_NAME" "$(git rev-parse --abbrev-ref HEAD)"
+
+# Push tags to public remote if --tags flag is set
+if [ "$PUBLISH_TAGS" = true ]; then
+  git push "$PUBLIC_REMOTE_NAME" --tags
+fi

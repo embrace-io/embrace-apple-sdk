@@ -23,9 +23,9 @@ struct DeviceInfoPayload: Codable {
         case osBuild = "ob"
     }
 
-    init (with resources: [ResourceRecord]) {
+    init(with resources: [ResourceRecord]) {
         resources.forEach { resource in
-            guard let key: DeviceResourceKeys = DeviceResourceKeys(rawValue: resource.key) else {
+            guard let key: DeviceResourceKey = DeviceResourceKey(rawValue: resource.key) else {
                 return
             }
 

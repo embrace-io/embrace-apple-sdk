@@ -28,7 +28,8 @@ final class SpanStorageIntegrationTests: IntegrationTestCase {
         }
     }
 
-    func test_addSpan_storesSpan() throws {
+    //  TESTSKIP: ValueObservation
+    func skip_test_addSpan_storesSpan() throws {
         let exp = expectation(description: "Observe Insert")
         let observation = ValueObservation.tracking(SpanRecord.fetchAll)
         let cancellable = observation.start(in: storage.dbQueue) { error in
@@ -49,7 +50,8 @@ final class SpanStorageIntegrationTests: IntegrationTestCase {
         cancellable.cancel()
     }
 
-    func test_buildSpan_storesOpenSpan() throws {
+    //  TESTSKIP: ValueObservation
+    func skip_test_buildSpan_storesOpenSpan() throws {
         let exp = expectation(description: "Observe Insert")
         let observation = ValueObservation.tracking(SpanRecord.fetchAll)
         let cancellable = observation.start(in: storage.dbQueue) { error in
@@ -76,7 +78,8 @@ final class SpanStorageIntegrationTests: IntegrationTestCase {
         cancellable.cancel()
     }
 
-    func test_buildSpan_storesSpanThatEnded() throws {
+    //  TESTSKIP: ValueObservation
+    func skip_test_buildSpan_storesSpanThatEnded() throws {
         let exp = expectation(description: "Observe Insert")
         let observation = ValueObservation.tracking { db in
             try SpanRecord

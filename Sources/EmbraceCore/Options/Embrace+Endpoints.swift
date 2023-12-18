@@ -6,6 +6,7 @@ import Foundation
 
 extension Embrace {
     @objc(EMBEndpoints)
+    /// Class used to configure the endpoints `Embrace` will use to upload data and fetch the remote configurations.
     public class Endpoints: NSObject {
 
         /// The base URL to upload session data
@@ -17,14 +18,27 @@ extension Embrace {
         /// The base URL to retrieve remote config
         @objc public let configBaseURL: String
 
-        public override convenience init() {
-            self.init(baseURL: nil, developmentBaseURL: nil, configBaseURL: nil)
+        /// Initializer that allows for custom endpoints.
+        /// - Note: If you wish to use the default endpoints please refer to the convenience initializer: `init(appId: String)`.
+        /// - Parameters:
+        ///   - baseURL: Endpoint for session data upload
+        ///   - developmentBaseURL: Endpoint for session data upload while debugging
+        ///   - configBaseURL: Endpoint to fetch the remote config
+        @objc public init(baseURL: String, developmentBaseURL: String, configBaseURL: String) {
+            self.baseURL = baseURL
+            self.developmentBaseURL = developmentBaseURL
+            self.configBaseURL = configBaseURL
         }
+    }
+}
 
-        @objc public init(baseURL: String? = nil, developmentBaseURL: String? = nil, configBaseURL: String? = nil) {
-            self.baseURL = baseURL ?? "https://data.emb-api.com"
-            self.developmentBaseURL = developmentBaseURL ?? "https://data-dev.emb-api.com"
-            self.configBaseURL = configBaseURL ?? "https://config.emb-api.com"
-        }
+extension Embrace.Endpoints {
+    /// Convenience initializer that will use the default endpoints for a given `appId`.
+    /// - Parameter appId: The `appId` of the project.
+    @objc convenience init(appId: String) {
+        self.init(
+            baseURL: "https://a-\(appId).data.emb-api.com",
+            developmentBaseURL: "https://a-\(appId).data-dev.emb-api.com",
+            configBaseURL: "https://a-\(appId).config.emb-api.com")
     }
 }

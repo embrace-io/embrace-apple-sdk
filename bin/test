@@ -25,11 +25,11 @@ SDK_JSON=$(xcodebuild -showsdks -json)
 SELECTED_SDK=$(echo $SDK_JSON | jq -r ".[] | select(.platform == \"$PLATFORM\")")
 
 if [ -z "$SDK_PATH" ] ; then
-    echo "SDK_PATH not set. exiting."
+    echo "SDK_PATH not set."
 fi
 
 if [ -z "$SDK_NAME" ] ; then
-    echo "SDK_NAME not set. exiting."
+    echo "SDK_NAME not set."
 fi
 
 SDK_PATH=$(echo $SELECTED_SDK | jq -r '.sdkPath')
@@ -65,8 +65,8 @@ fi
 # `IS_XCTEST` envvar is work-around for plugin dependency being included in iOS target when using `xcodebuild test`
 # (See Package.swift `targetPlugins`)
 # https://forums.swift.org/t/xcode-attempts-to-build-plugins-for-ios-is-there-a-workaround/57029
-IS_XCTEST=1 \
-xcodebuild test \
+IS_XCTEST=true \
+xcodebuild \
     -workspace . \
     -sdk $SDK_PATH \
     -configuration "Debug" \
@@ -76,7 +76,8 @@ xcodebuild test \
     -destination "id=$SELECTED_DEVICE_UDID" \
     -enableCodeCoverage YES \
     -derivedDataPath $DERIVED_DATA_PATH \
-    -resultBundlePath $XCRESULT_PATH
+    -resultBundlePath $XCRESULT_PATH \
+    test
 
 # If we created a new simulator, delete it
 if [ -n "${CREATED_DEVICE_UDID}" ]; then

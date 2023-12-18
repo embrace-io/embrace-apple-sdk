@@ -7,7 +7,7 @@ import EmbraceCommon
 import EmbraceObjCUtils
 
 @objc public class DeviceInfoCaptureService: NSObject, CaptureService {
-    typealias Keys = DeviceResourceKeys
+    typealias Keys = DeviceResourceKey
 
     let resourceHandler: CaptureServiceResourceHandlerType
 

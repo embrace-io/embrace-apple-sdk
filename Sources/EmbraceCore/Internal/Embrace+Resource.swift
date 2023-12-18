@@ -8,8 +8,8 @@ import EmbraceCommon
 extension Embrace {
 
     // this is temp just so we can test collecting and storing resources into the database
-    // TODO: Replace this with intended otel way of collecting resources
-    public func addResource(key: String, value: String) throws {
+    // TODO: Formalize interface to expose lifecycle type (session, process, permanent) and make public
+    func addResource(key: String, value: String) throws {
         try storage.addResource(
             key: key,
             value: value,
@@ -18,12 +18,11 @@ extension Embrace {
         )
     }
 
-    public func addResource(key: String, value: Int) throws {
+    func addResource(key: String, value: Int) throws {
         try addResource(key: key, value: String(value))
     }
 
-    public func addResource(key: String, value: Double) throws {
+    func addResource(key: String, value: Double) throws {
         try addResource(key: key, value: String(value))
     }
-
 }

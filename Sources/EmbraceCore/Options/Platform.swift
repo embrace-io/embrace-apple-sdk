@@ -3,6 +3,7 @@
 //
 
 @objc(EMBPlatform)
+/// Used to define the platform the current application is running on.
 public enum Platform: Int {
     case iOS
     case iOSExtension

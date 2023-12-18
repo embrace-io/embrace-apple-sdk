@@ -7,7 +7,7 @@ import EmbraceCommon
 import EmbraceObjCUtils
 
 @objc public class AppInfoCaptureService: NSObject, CaptureService {
-    typealias Keys = AppResourceKeys
+    typealias Keys = AppResourceKey
 
     let resourceHandler: CaptureServiceResourceHandlerType
 
