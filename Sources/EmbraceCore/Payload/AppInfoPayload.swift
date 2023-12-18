@@ -31,7 +31,9 @@ struct AppInfoPayload: Codable {
 
     init (with resources: [ResourceRecord]) {
         resources.forEach { resource in
-            guard let key: AppResourceKeys = AppResourceKeys(rawValue: resource.key) else { return }
+            guard let key: AppResourceKey = AppResourceKey(rawValue: resource.key) else {
+                return
+            }
 
             switch key {
             case .buildUUID:

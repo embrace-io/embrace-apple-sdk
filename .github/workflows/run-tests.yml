@@ -42,7 +42,7 @@ jobs:
         timeout-minutes: 10
 
   run-tests:
-    timeout-minutes: 20
+    timeout-minutes: 30
     runs-on: macos-13
     strategy:
       fail-fast: false

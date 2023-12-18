@@ -38,7 +38,7 @@ struct SessionPayload: Encodable {
         self.sessionInfo = SessionInfoPayload(from: sessionRecord, counter: counter)
         self.appInfo = AppInfoPayload(with: resources)
         self.deviceInfo = DeviceInfoPayload(with: resources)
-        self.userInfo = UserInfoPayload()
+        self.userInfo = UserInfoPayload(with: resources)
         self.spans = spans
         self.spanSnapshots = spanSnapshots
     }

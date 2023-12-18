@@ -17,18 +17,18 @@ final class AppInfoCaptureServiceTests: XCTestCase {
         appInfoCollector.start()
 
         // All the correct data should've been collected.
-        XCTAssertEqual(mockHandler.addedStrings["app.build_uuid"], EMBDevice.buildUUID)
-        XCTAssertEqual(mockHandler.addedStrings["app.bundle_version"], EMBDevice.bundleVersion)
-        XCTAssertEqual(mockHandler.addedStrings["app.environment"], EMBDevice.environment)
-        XCTAssertEqual(mockHandler.addedStrings["app.environment_detailed"], EMBDevice.environmentDetail)
-        XCTAssertEqual(mockHandler.addedStrings["app.version"], EMBDevice.appVersion)
-        XCTAssertEqual(mockHandler.addedStrings["app.bundle_id"], Bundle.main.bundleIdentifier)
+        XCTAssertEqual(mockHandler.addedStrings["emb.app.build_uuid"], EMBDevice.buildUUID)
+        XCTAssertEqual(mockHandler.addedStrings["emb.app.bundle_version"], EMBDevice.bundleVersion)
+        XCTAssertEqual(mockHandler.addedStrings["emb.app.environment"], EMBDevice.environment)
+        XCTAssertEqual(mockHandler.addedStrings["emb.app.environment_detailed"], EMBDevice.environmentDetail)
+        XCTAssertEqual(mockHandler.addedStrings["emb.app.version"], EMBDevice.appVersion)
+        XCTAssertEqual(mockHandler.addedStrings["emb.app.bundle_id"], Bundle.main.bundleIdentifier)
 
-        XCTAssertNotNil(mockHandler.addedStrings["app.build_uuid"])
-        XCTAssertNotNil(mockHandler.addedStrings["app.bundle_version"])
-        XCTAssertNotNil(mockHandler.addedStrings["app.environment"])
-        XCTAssertNotNil(mockHandler.addedStrings["app.environment_detailed"])
-        XCTAssertNotNil(mockHandler.addedStrings["app.version"])
-        XCTAssertNotNil(mockHandler.addedStrings["app.bundle_id"])
+        XCTAssertNotNil(mockHandler.addedStrings["emb.app.build_uuid"])
+        XCTAssertNotNil(mockHandler.addedStrings["emb.app.bundle_version"])
+        XCTAssertNotNil(mockHandler.addedStrings["emb.app.environment"])
+        XCTAssertNotNil(mockHandler.addedStrings["emb.app.environment_detailed"])
+        XCTAssertNotNil(mockHandler.addedStrings["emb.app.version"])
+        XCTAssertNotNil(mockHandler.addedStrings["emb.app.bundle_id"])
     }
 }

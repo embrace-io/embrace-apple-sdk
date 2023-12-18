@@ -45,7 +45,7 @@ struct CrashReportPayload: Encodable {
 
         appInfo = AppInfoPayload(with: resources)
         deviceInfo = DeviceInfoPayload(with: resources)
-        userInfo = UserInfoPayload()
+        userInfo = UserInfoPayload(with: resources)
         crashPayload = CrashPayload(from: crashReport)
     }
 }

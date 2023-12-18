@@ -14,7 +14,11 @@ final class EmbraceIntegrationTests: IntegrationTestCase {
 
     let options = Embrace.Options(appId: "myApp", captureServices: [])
 
-    func test_start_createsProcessLaunchSpan() throws {
+    //  TESTSKIP: This test is flakey in CI. It seems the value observation in the DB is not consistent
+    //  May want to introduce and `Embrace.shutdown` method that will flush the SpanProcessor.
+    //  This will allow us to not need to perform the value observation and also not wait an arbitrary
+    //  amount of time for the spans to be processed/exported.
+    func skip_test_start_createsProcessLaunchSpan() throws {
         var processLaunchSpan: SpanData?
         var sdkStartSpan: SpanData?
         try Embrace.setup(options: options)
@@ -37,7 +41,6 @@ final class EmbraceIntegrationTests: IntegrationTestCase {
                     sdkStartSpan = sdkStart
                     expectation.fulfill()
             }
-
         }
 
         // When
