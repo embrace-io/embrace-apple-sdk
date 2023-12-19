@@ -99,14 +99,8 @@ struct URLSessionInitWithDelegateSwizzler: URLSessionSwizzler {
     func install() throws {
         try swizzleClassMethod { originalImplementation -> BlockImplementationType in
             return { urlSession, configuration, delegate, queue -> URLSession in
-                guard let delegate = delegate else {
-                    return originalImplementation(urlSession,
-                                                  Self.selector,
-                                                  configuration,
-                                                  delegate,
-                                                  queue)
-                }
-                let newDelegate = URLSessionDelegateProxy(originalDelegate: delegate, handler: handler)
+                let proxiedDelegate = (delegate != nil) ? delegate : EmbraceDummyURLSessionDelegate()
+                let newDelegate = URLSessionDelegateProxy(originalDelegate: proxiedDelegate, handler: handler)
                 let session = originalImplementation(urlSession, Self.selector, configuration, newDelegate, queue)
                 return session
             }

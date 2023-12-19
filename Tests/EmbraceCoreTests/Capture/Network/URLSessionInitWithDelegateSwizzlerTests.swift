@@ -20,13 +20,11 @@ class URLSessionInitWithDelegateSwizzlerTests: XCTestCase {
         thenSessionsDelegateShouldBeEmbracesProxy()
     }
 
-    /// This test reflects something _I_ consider as a bug. We should add ourselves as
-    /// a delegate when there's none.
-    func testAfterInstall_onCreateURLSessionWithoutDelegate_delegateShouldBeNil() throws {
+    func testAfterInstall_onCreateURLSessionWithoutDelegate_delegateShouldntBeNil() throws {
         givenDataTaskWithURLRequestSwizzler()
         try givenSwizzlingWasDone()
         whenInitializingURLSessionWithoutDelegate()
-        thenSessionsDelegateShouldBeNil()
+        thenSessionsDelegateShouldBeEmbracesProxy()
     }
 
     func test_onInitWithHandler_defaultBaseClassIsURLSession() throws {
@@ -62,10 +60,6 @@ private extension URLSessionInitWithDelegateSwizzlerTests {
 
     func thenSessionsDelegateShouldBeEmbracesProxy() {
         XCTAssertTrue(session.delegate.self is URLSessionDelegateProxy)
-    }
-
-    func thenSessionsDelegateShouldBeNil() {
-        XCTAssertNil(session.delegate)
     }
 
     func thenBaseClassShouldBeURLSession() {
