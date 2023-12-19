@@ -148,6 +148,7 @@ extension ReflexGameModel {
 
         return embrace.buildSpan(name: "reflex-measure", type: .ux)
             .setStartTime(time: startTime)
+            .markAsKeySpan()
             .startSpan()
     }
 }

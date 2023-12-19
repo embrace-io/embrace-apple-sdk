@@ -15,13 +15,13 @@
 		7B3143B92AFDC8EC00BA0D2F /* RightBracketShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B3143B82AFDC8EC00BA0D2F /* RightBracketShape.swift */; };
 		7B3143BF2AFDECCF00BA0D2F /* Icon+Meta.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B3143BE2AFDECCE00BA0D2F /* Icon+Meta.swift */; };
 		7B3143C62AFF1E7D00BA0D2F /* ReflexGameModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B3143C52AFF1E7D00BA0D2F /* ReflexGameModel.swift */; };
+		7B3229DC2B2950D500664F04 /* BubbleMinigameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B56309F2ABF323400E0DF39 /* BubbleMinigameView.swift */; };
 		7B4FFC2D2B1E5B7B006239F7 /* Endpoints+InfoPlist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B4FFC2C2B1E5B7B006239F7 /* Endpoints+InfoPlist.swift */; };
 		7B4FFC332B1E811B006239F7 /* UserInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B4FFC322B1E811B006239F7 /* UserInfo.swift */; };
 		7B56308E2ABE743400E0DF39 /* BrandGameApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B56308D2ABE743400E0DF39 /* BrandGameApp.swift */; };
 		7B5630902ABE743400E0DF39 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B56308F2ABE743400E0DF39 /* ContentView.swift */; };
 		7B5630922ABE743500E0DF39 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7B5630912ABE743500E0DF39 /* Assets.xcassets */; };
 		7B5630952ABE743500E0DF39 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7B5630942ABE743500E0DF39 /* Preview Assets.xcassets */; };
-		7B5630A02ABF323400E0DF39 /* BubbleMinigameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B56309F2ABF323400E0DF39 /* BubbleMinigameView.swift */; };
 		7B5630A22AC1291D00E0DF39 /* BrandIconShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B5630A12AC1291D00E0DF39 /* BrandIconShape.swift */; };
 		7B5630A52AC1331000E0DF39 /* Color+Random.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B5630A42AC1331000E0DF39 /* Color+Random.swift */; };
 		7B62AD932B0027280087C2AE /* ReflexMinigameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B62AD922B0027280087C2AE /* ReflexMinigameView.swift */; };
@@ -383,14 +383,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7B3229DC2B2950D500664F04 /* BubbleMinigameView.swift in Sources */,
 				7BC59A902B0BE25C0001E980 /* CrashExampleTest.swift in Sources */,
 				7BCB662E2AC476BC00ABD33A /* NetworkStressTest.swift in Sources */,
 				7B005D762AD72E080073CAC4 /* App+Embrace.swift in Sources */,
 				7B62AD9B2B005FE20087C2AE /* AppSettings.swift in Sources */,
 				7B62ADA52B0068960087C2AE /* SimonGameModel.swift in Sources */,
 				7B5630A22AC1291D00E0DF39 /* BrandIconShape.swift in Sources */,
-				7B5630A02ABF323400E0DF39 /* BubbleMinigameView.swift in Sources */,
-				7B5630A02ABF323400E0DF39 /* BubbleMinigameView.swift in Sources */,
 				7B62AD932B0027280087C2AE /* ReflexMinigameView.swift in Sources */,
 				7B3143BF2AFDECCF00BA0D2F /* Icon+Meta.swift in Sources */,
 				7BCB662A2AC4767B00ABD33A /* MainMenu.swift in Sources */,
@@ -537,7 +536,6 @@
 		};
 		7B5630992ABE743500E0DF39 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 7B4FFC2E2B1E5D0F006239F7 /* embrace.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;

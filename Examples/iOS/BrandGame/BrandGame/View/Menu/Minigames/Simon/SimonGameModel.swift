@@ -4,6 +4,9 @@
 
 import Foundation
 
+import EmbraceCore
+import EmbraceOTel
+
 @Observable
 class SimonGameModel {
 
@@ -42,9 +45,16 @@ class SimonGameModel {
 
     var userPattern: [IconComponent] = []
 
+    /// measures a single game. Parent of multiple round spans (hopefully)
+    var gameSpan: Span?
+
+    /// measures a single round. Child of game span
+    var roundSpan: Span?
+
     func start() {
         reset()
         newRound()
+        self.gameSpan = buildGameSpan()
     }
 
     func newRound() {
@@ -52,9 +62,10 @@ class SimonGameModel {
 
         // add item to `pattern`
         pattern.append(determineNextItem())
-        print("ROUND \(pattern.count) - BEGIN \n\(pattern)")
 
         gameState = .roundPlayback
+        roundSpan = buildRoundSpan(round: roundNumber)
+
         // playback pattern to user
         playback()
 
@@ -77,6 +88,8 @@ class SimonGameModel {
         // verify round
         if userPattern == patternPrefix {
             if userPattern.count == pattern.count {
+                roundSpan?.status = .ok
+                roundSpan?.end()
                 // NEW ROUND
                 gameState = .betweenRounds
 
@@ -88,6 +101,9 @@ class SimonGameModel {
         } else {
             // fail
             gameState = .roundFail
+            roundSpan?.end(errorCode: .failure)
+            gameSpan?.setAttribute(key: "round.number", value: .string(String(roundNumber)))
+            gameSpan?.end()
             Timer.scheduledTimer(withTimeInterval: 2.4, repeats: false) { _ in
                 self.reset()
             }
@@ -107,12 +123,11 @@ class SimonGameModel {
         }
 
         Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
-
             self.playbackIconIndex! += 1
             self.playbackIcon = self.pattern[safe: self.playbackIconIndex!]
+
             if self.playbackIcon == nil {
                 self.gameState = .roundTestUnderway
-                print("Invalidating timer")
                 timer.invalidate()
             } else {
                 Timer.scheduledTimer(withTimeInterval: 0.8, repeats: false) { _ in
@@ -140,6 +155,32 @@ class SimonGameModel {
         pattern = []
 
         gameState = .waitingForStart
+    }
+
+    private func buildGameSpan() -> Span? {
+        guard let embrace = Embrace.client else { return nil }
+
+        return embrace
+            .buildSpan(name: "simon-game", type: .ux)
+            .markAsKeySpan()
+            .startSpan()
+    }
+
+    private func buildRoundSpan(round: Int) -> Span? {
+        guard let embrace = Embrace.client else { return nil }
+
+        let builder = embrace
+            .buildSpan(
+                name: "simon-round",
+                type: .ux,
+                attributes: ["round.number": String(round)]
+            )
+
+        if let gameSpan = gameSpan {
+            builder.setParent(gameSpan)
+        }
+
+        return builder.startSpan()
     }
 }
 
