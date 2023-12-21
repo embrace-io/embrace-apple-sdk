@@ -16,7 +16,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
     var sessionRecord: SessionRecord!
 
     override func setUpWithError() throws {
-        storage = try EmbraceStorage(options: .init(named: #file))
+        storage = try EmbraceStorage.createInMemoryDb()
 
         sessionRecord = SessionRecord(
             id: TestConstants.sessionId,
@@ -36,6 +36,8 @@ final class SpansPayloadBuilderTests: XCTestCase {
         }
 
         sessionRecord = nil
+
+        try storage.teardown()
     }
 
     func testSpan(startTime: Date, endTime: Date?) -> SpanData {

@@ -58,14 +58,14 @@ final class SessionControllerTests: XCTestCase {
 
         self.queue = DispatchQueue(label: "com.test.embrace.queue", attributes: .concurrent)
         upload = try EmbraceUpload(options: testOptions, queue: queue)
-        storage = try EmbraceStorage(options: .init(named: #file))
+        storage = try EmbraceStorage.createInMemoryDb()
 
         // we pass nil so we only use the upload module in the relevant tests
         controller = SessionController(storage: storage, upload: nil)
     }
 
     override func tearDownWithError() throws {
-        storage = nil
+        try storage.teardown()
         upload = nil
         controller = nil
     }

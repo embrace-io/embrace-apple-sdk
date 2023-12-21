@@ -23,12 +23,17 @@ class MockPowerModeProvider: PowerModeProvider {
 class LowPowerModeCollectorTests: XCTestCase {
 
     let provider = MockPowerModeProvider()
+    var storage: EmbraceStorage!
 
     override func setUpWithError() throws {
         provider.isLowPowerModeEnabled = false
 
-        let storage = try EmbraceStorage(options: .init(named: #file))
+        storage = try EmbraceStorage.createInMemoryDb()
         EmbraceOTel.setup(spanProcessor: .with(storage: storage))
+    }
+
+    override func tearDownWithError() throws {
+        try storage.teardown()
     }
 
     func test_fetchOnStart_modeEnabled() {

@@ -9,8 +9,6 @@ import TestSupport
 extension EmbraceStorageTests {
 
     func test_updateAsync() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
         // given inserted record
         var span = SpanRecord(id: "id", name: "a name", traceId: "traceId", type: .performance, data: Data(), startTime: Date())
         try storage.dbQueue.write { db in
@@ -51,8 +49,6 @@ extension EmbraceStorageTests {
     }
 
     func test_deleteAsync() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
         // given inserted record
         let span = SpanRecord(id: "id", name: "a name", traceId: "traceId", type: .performance, data: Data(), startTime: Date())
         try storage.dbQueue.write { db in
@@ -88,8 +84,6 @@ extension EmbraceStorageTests {
     }
 
     func test_fetchAllAsync() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
         // given inserted records
         let span1 = SpanRecord(id: "id1", name: "a name 1", traceId: "traceId", type: .performance, data: Data(), startTime: Date())
         let span2 = SpanRecord(id: "id2", name: "a name 2", traceId: "traceId", type: .performance, data: Data(), startTime: Date())
@@ -124,8 +118,6 @@ extension EmbraceStorageTests {
     }
 
     func test_executeQueryAsync() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
         // given inserted record
         let span = SpanRecord(id: "id", name: "a name", traceId: "traceId", type: .performance, data: Data(), startTime: Date())
         try storage.dbQueue.write { db in

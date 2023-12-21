@@ -10,26 +10,17 @@ import EmbraceCommon
 // swiftlint:disable cyclomatic_complexity
 
 class SessionRecordTests: XCTestCase {
-
-    let testOptions = EmbraceStorage.Options(
-        baseUrl: URL(fileURLWithPath: NSTemporaryDirectory()),
-        fileName: "test.sqlite"
-    )
+    var storage: EmbraceStorage!
 
     override func setUpWithError() throws {
-        if FileManager.default.fileExists(atPath: testOptions.filePath!) {
-            try FileManager.default.removeItem(atPath: testOptions.filePath!)
-        }
+        storage = try EmbraceStorage.createInDiskDb()
     }
 
     override func tearDownWithError() throws {
-
+        try storage.teardown()
     }
 
     func test_tableSchema() throws {
-        // given new storage
-        let storage = try EmbraceStorage(options: testOptions)
-
         let expectation = XCTestExpectation()
 
         // then the table and its colums should be correct
@@ -156,8 +147,6 @@ class SessionRecordTests: XCTestCase {
     }
 
     func test_addSession() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
         // given inserted session
         let session = try storage.addSession(
             id: .random,
@@ -181,8 +170,6 @@ class SessionRecordTests: XCTestCase {
     }
 
     func test_upsertSession() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
         // given inserted session
         let session = try storage.addSession(
             id: .random,
@@ -206,8 +193,6 @@ class SessionRecordTests: XCTestCase {
     }
 
     func test_fetchSession() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
         // given inserted session
         let sessionId = SessionIdentifier.random
         let original = try storage.addSession(
@@ -228,8 +213,6 @@ class SessionRecordTests: XCTestCase {
     }
 
     func test_fetchLatestSesssion() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
         // given inserted sessions
         _ = try storage.addSession(
             id: .random,
@@ -264,8 +247,6 @@ class SessionRecordTests: XCTestCase {
     }
 
     func test_fetchOldestSesssion() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
         // given inserted sessions
         let session1 = try storage.addSession(
             id: .random,

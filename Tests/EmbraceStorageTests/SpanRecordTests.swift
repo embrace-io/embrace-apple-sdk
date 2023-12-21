@@ -8,26 +8,17 @@ import TestSupport
 import GRDB
 
 class SpanRecordTests: XCTestCase {
-
-    let testOptions = EmbraceStorage.Options(
-        baseUrl: URL(fileURLWithPath: NSTemporaryDirectory()),
-        fileName: "test.sqlite"
-    )
+    var storage: EmbraceStorage!
 
     override func setUpWithError() throws {
-        if FileManager.default.fileExists(atPath: testOptions.filePath!) {
-            try FileManager.default.removeItem(atPath: testOptions.filePath!)
-        }
+        storage = try EmbraceStorage.createInDiskDb()
     }
 
     override func tearDownWithError() throws {
-
+        try storage.teardown()
     }
 
     func test_tableSchema() throws {
-        // given new storage
-        let storage = try EmbraceStorage(options: testOptions)
-
         let expectation = XCTestExpectation()
 
         // then the table and its colums should be correct
@@ -108,8 +99,6 @@ class SpanRecordTests: XCTestCase {
     }
 
     func test_addSpan() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
         // given inserted span
         let span = try storage.addSpan(
             id: "id",
@@ -133,8 +122,6 @@ class SpanRecordTests: XCTestCase {
     }
 
     func test_upsertSpan() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
         // given inserted span
         let span = SpanRecord(id: "id", name: "a name", traceId: "tradeId", type: .performance, data: Data(), startTime: Date())
         try storage.upsertSpan(span)
@@ -150,8 +137,6 @@ class SpanRecordTests: XCTestCase {
     }
 
     func test_fetchSpan() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
         // given inserted span
         let original = try storage.addSpan(
             id: "id",
@@ -172,8 +157,6 @@ class SpanRecordTests: XCTestCase {
     }
 
     func test_cleanUpSpans() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
         // given insterted spans
         _ = try storage.addSpan(
             id: "id1",
@@ -225,8 +208,6 @@ class SpanRecordTests: XCTestCase {
     }
 
     func test_cleanUpSpans_noDate() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
         // given insterted spans
         _ = try storage.addSpan(
             id: "id1",
@@ -275,8 +256,6 @@ class SpanRecordTests: XCTestCase {
     }
 
     func test_closeOpenSpans() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
         // given insterted spans
         _ = try storage.addSpan(
             id: "id1",
@@ -327,8 +306,6 @@ class SpanRecordTests: XCTestCase {
     }
 
     func test_fetchSpans_date_type() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
         // given inserted spans
         let now = Date()
         let span1 = try storage.addSpan(
@@ -373,8 +350,6 @@ class SpanRecordTests: XCTestCase {
     }
 
     func test_fetchSpans_date_type_limit() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
         // given inserted spans
         let now = Date()
         let span1 = try storage.addSpan(

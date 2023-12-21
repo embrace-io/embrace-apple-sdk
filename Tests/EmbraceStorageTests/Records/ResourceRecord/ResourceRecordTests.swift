@@ -8,13 +8,17 @@ import EmbraceCommon
 @testable import EmbraceStorage
 
 class ResourceRecordTests: XCTestCase {
+    var storage: EmbraceStorage!
 
-    let testOptions = EmbraceStorage.Options(named: #file)
+    override func setUpWithError() throws {
+        storage = try EmbraceStorage.createInMemoryDb()
+    }
+
+    override func tearDownWithError() throws {
+        try storage.teardown()
+    }
 
     func test_tableSchema() throws {
-        // given new storage
-        let storage = try EmbraceStorage(options: testOptions)
-
         let expectation = XCTestExpectation()
 
         // then the table and its colums should be correct
@@ -106,8 +110,6 @@ class ResourceRecordTests: XCTestCase {
     }
 
     func test_addResource() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
         // given inserted session
         let resource = try storage.addResource(key: "test", value: "test", resourceType: .permanent)
         XCTAssertNotNil(resource)
@@ -123,8 +125,6 @@ class ResourceRecordTests: XCTestCase {
     }
 
     func test_upsertResource() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
         // given inserted record
         let resource = ResourceRecord(key: "test", value: "test")
         try storage.upsertResource(resource)
@@ -145,8 +145,6 @@ class ResourceRecordTests: XCTestCase {
     }
 
     func test_upsertResources() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
         // given inserted records
         try storage.upsertResources([
             ResourceRecord(key: "cat.name", value: "Chet"),
@@ -175,8 +173,6 @@ class ResourceRecordTests: XCTestCase {
     }
 
     func test_fetchAllResources() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
         var originals = [ResourceRecord]()
 
         // given inserted session
@@ -193,8 +189,6 @@ class ResourceRecordTests: XCTestCase {
     }
 
     func test_fetchAllResourceForSession() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
         let testSessionId = SessionIdentifier(string: "4DF21070-D774-4282-9AFC-2D0D9D223255")!
         let testProcessId = ProcessIdentifier.random
 

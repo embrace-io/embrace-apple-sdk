@@ -12,11 +12,15 @@ import UIKit
 @testable import EmbraceCore
 
 class LowMemoryWarningCaptureServiceTests: XCTestCase {
+    private var storage: EmbraceStorage!
 
     override func setUpWithError() throws {
-        let storageOptions = EmbraceStorage.Options(named: #file)
-        let storage = try EmbraceStorage(options: storageOptions)
+        storage = try EmbraceStorage.createInMemoryDb()
         EmbraceOTel.setup(spanProcessor: .with(storage: storage))
+    }
+
+    override func tearDownWithError() throws {
+        try storage.teardown()
     }
 
     func test_started() {

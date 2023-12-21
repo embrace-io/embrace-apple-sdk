@@ -13,12 +13,6 @@ import TestSupport
 import GRDB
 
 class UnsentDataHandlerTests: XCTestCase {
-
-    let storageOptions = EmbraceStorage.Options(
-        baseUrl: URL(fileURLWithPath: NSTemporaryDirectory()),
-        fileName: "test.sqlite"
-    )
-
     let filePathProvider = TemporaryFilepathProvider()
     var context: CaptureServiceContext!
 
@@ -78,7 +72,9 @@ class UnsentDataHandlerTests: XCTestCase {
         EmbraceHTTPMock.mock(url: Self.testSessionsUrl)
 
         // given a storage and upload modules
-        let storage = try EmbraceStorage(options: storageOptions)
+        let storage = try EmbraceStorage.createInDiskDb()
+        defer { try? storage.teardown() }
+
         let upload = try EmbraceUpload(options: uploadOptions, queue: queue)
 
         // given a finished session in the storage
@@ -113,7 +109,9 @@ class UnsentDataHandlerTests: XCTestCase {
         EmbraceHTTPMock.mock(url: UnsentDataHandlerTests.testSessionsUrl, errorCode: 500)
 
         // given a storage and upload modules
-        let storage = try EmbraceStorage(options: storageOptions)
+        let storage = try EmbraceStorage.createInDiskDb()
+        defer { try? storage.teardown() }
+
         let upload = try EmbraceUpload(options: uploadOptions, queue: queue)
 
         // given a finished session in the storage
@@ -152,7 +150,9 @@ class UnsentDataHandlerTests: XCTestCase {
         EmbraceHTTPMock.mock(url: Self.testBlobsUrl)
 
         // given a storage and upload modules
-        let storage = try EmbraceStorage(options: storageOptions)
+        let storage = try EmbraceStorage.createInDiskDb()
+        defer { try? storage.teardown() }
+
         let upload = try EmbraceUpload(options: uploadOptions, queue: queue)
 
         // TODO: Mock out crash reporter so that we can remove dependency on EmbraceCrash
@@ -234,7 +234,9 @@ class UnsentDataHandlerTests: XCTestCase {
         EmbraceHTTPMock.mock(url: Self.testBlobsUrl, errorCode: 500)
 
         // given a storage and upload modules
-        let storage = try EmbraceStorage(options: storageOptions)
+        let storage = try EmbraceStorage.createInDiskDb()
+        defer { try? storage.teardown() }
+
         let upload = try EmbraceUpload(options: uploadOptions, queue: queue)
 
         // given a crash reporter
@@ -315,7 +317,9 @@ class UnsentDataHandlerTests: XCTestCase {
         EmbraceHTTPMock.mock(url: Self.testBlobsUrl)
 
         // given a storage and upload modules
-        let storage = try EmbraceStorage(options: storageOptions)
+        let storage = try EmbraceStorage.createInDiskDb()
+        defer { try? storage.teardown() }
+
         let upload = try EmbraceUpload(options: uploadOptions, queue: queue)
 
         // given a crash reporter

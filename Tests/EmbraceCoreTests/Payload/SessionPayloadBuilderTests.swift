@@ -14,7 +14,7 @@ final class SessionPayloadBuilderTests: XCTestCase {
     var sessionRecord: SessionRecord!
 
     override func setUpWithError() throws {
-        storage = try EmbraceStorage(options: .init(named: #file))
+        storage = try EmbraceStorage.createInDiskDb()
 
         sessionRecord = SessionRecord(
             id: TestConstants.sessionId,
@@ -34,6 +34,7 @@ final class SessionPayloadBuilderTests: XCTestCase {
         }
 
         sessionRecord = nil
+        try storage.teardown()
     }
 
     func test_counterMissing() throws {
