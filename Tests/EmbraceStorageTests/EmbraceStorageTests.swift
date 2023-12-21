@@ -7,26 +7,17 @@ import TestSupport
 @testable import EmbraceStorage
 
 class EmbraceStorageTests: XCTestCase {
-
-    let testOptions = EmbraceStorage.Options(
-        baseUrl: URL(fileURLWithPath: NSTemporaryDirectory()),
-        fileName: "test.sqlite"
-    )
+    var storage: EmbraceStorage!
 
     override func setUpWithError() throws {
-        if FileManager.default.fileExists(atPath: testOptions.filePath!) {
-            try FileManager.default.removeItem(atPath: testOptions.filePath!)
-        }
+        storage = try EmbraceStorage.createInDiskDb()
     }
 
     override func tearDownWithError() throws {
-
+        try storage.teardown()
     }
 
     func test_databaseSchema() throws {
-        // given new storage
-        let storage = try EmbraceStorage(options: testOptions)
-
         let expectation = XCTestExpectation()
 
         // then all required tables should be present
@@ -41,8 +32,6 @@ class EmbraceStorageTests: XCTestCase {
     }
 
     func test_update() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
         // given inserted record
         var span = SpanRecord(id: "id", name: "a name", traceId: "traceId", type: .performance, data: Data(), startTime: Date())
         try storage.dbQueue.write { db in
@@ -78,8 +67,6 @@ class EmbraceStorageTests: XCTestCase {
     }
 
     func test_delete() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
         // given inserted record
         let span = SpanRecord(id: "id", name: "a name", traceId: "traceId", type: .performance, data: Data(), startTime: Date())
         try storage.dbQueue.write { db in
@@ -110,8 +97,6 @@ class EmbraceStorageTests: XCTestCase {
     }
 
     func test_fetchAll() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
         // given inserted records
         let span1 = SpanRecord(id: "id1", name: "a name 1", traceId: "traceId", type: .performance, data: Data(), startTime: Date())
         let span2 = SpanRecord(id: "id2", name: "a name 2", traceId: "traceId", type: .performance, data: Data(), startTime: Date())
@@ -140,8 +125,6 @@ class EmbraceStorageTests: XCTestCase {
     }
 
     func test_executeQuery() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
         // given inserted record
         let span = SpanRecord(id: "id", name: "a name", traceId: "traceId", type: .performance, data: Data(), startTime: Date())
         try storage.dbQueue.write { db in

@@ -16,7 +16,7 @@ final class SpanStorageIntegrationTests: IntegrationTestCase {
     var storage: EmbraceStorage!
 
     override func setUpWithError() throws {
-        storage = try EmbraceStorage(options: .init(named: #file))
+        storage = try EmbraceStorage.createInMemoryDb()
         let exporter = StorageSpanExporter(options: .init(storage: storage))
 
         EmbraceOTel.setup(spanProcessor: SingleSpanProcessor(spanExporter: exporter))
@@ -26,6 +26,7 @@ final class SpanStorageIntegrationTests: IntegrationTestCase {
         _ = try storage.dbQueue.inDatabase { db in
             try SpanRecord.deleteAll(db)
         }
+        try storage.teardown()
     }
 
     //  TESTSKIP: ValueObservation
