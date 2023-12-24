@@ -127,17 +127,9 @@
 			isa = PBXGroup;
 			children = (
 				7B62AD922B0027280087C2AE /* ReflexMinigameView.swift */,
-				7B3143C42AFF1E6800BA0D2F /* ViewModel */,
-			);
-			path = Reflex;
-			sourceTree = "<group>";
-		};
-		7B3143C42AFF1E6800BA0D2F /* ViewModel */ = {
-			isa = PBXGroup;
-			children = (
 				7B3143C52AFF1E7D00BA0D2F /* ReflexGameModel.swift */,
 			);
-			path = ViewModel;
+			path = Reflex;
 			sourceTree = "<group>";
 		};
 		7B4FFC2B2B1E5B68006239F7 /* Embrace */ = {
@@ -540,7 +532,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_ASSET_PATHS = "\"BrandGame/Preview Content\"";
 				DEVELOPMENT_TEAM = L5RVT7J8CV;
 				ENABLE_PREVIEWS = YES;
@@ -556,7 +548,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = io.embrace.BrandGame;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -571,7 +563,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_ASSET_PATHS = "\"BrandGame/Preview Content\"";
 				DEVELOPMENT_TEAM = L5RVT7J8CV;
 				ENABLE_PREVIEWS = YES;
@@ -587,7 +579,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = io.embrace.BrandGame;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

@@ -74,8 +74,9 @@ class ReflexGameModel {
     }
 
     private func testBegin(icon: IconComponent) {
-        guard gameState == .notStarted else { return }
-        print("Starting Test - Initial icon: \(icon)")
+        guard gameState == .notStarted else {
+            return
+        }
 
         initialIcon = icon
         gameState = .initialTouched

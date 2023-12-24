@@ -12,7 +12,10 @@ struct MenuList: View {
     var body: some View {
         List {
             Section("Metadata") {
-                NavigationLink("User Information", destination: UserInfo())
+                NavigationLink("User Information") {
+                    UserInfo()
+                }
+                .contentShape(Rectangle())
             }
 
             Section("Mini-Games") {
@@ -24,6 +27,7 @@ struct MenuList: View {
                             Image(systemName: "checkmark")
                         }
                     }
+                    .contentShape(Rectangle())
                     .onTapGesture {
                         appSettings.selectedMinigame = game
                         dismiss()
@@ -33,9 +37,13 @@ struct MenuList: View {
 
             Section("Stress Tests") {
                 NavigationLink("Network Requests", destination: NetworkStressTest())
+                    .contentShape(Rectangle())
+
                 NavigationLink("Crash Examples", destination: CrashExampleTest())
+                    .contentShape(Rectangle())
             }
-        }.background(.black)
+        }
+        .background(.black)
     }
 }
 

@@ -48,16 +48,12 @@ struct SimonMinigameView: View {
             return Color.red
         }
 
-        guard gameModel.gameStateIsPlaying else {
-            return Color.primary
-        }
-
         if gameModel.playbackIcon == icon || gameModel.highlightIcon == icon {
-            return switch icon {
-            case .leftBracket: Color.embraceYellow
-            case .leftDot: Color.embracePink
-            case .rightDot: Color.embraceSilver
-            case .rightBracket: Color.embracePurple
+            switch icon {
+            case .leftBracket: return Color.embraceYellow
+            case .leftDot: return Color.embracePink
+            case .rightDot: return Color.embraceSteel
+            case .rightBracket: return Color.embracePurple
             }
         }
         return Color.primary
@@ -70,7 +66,7 @@ struct SimonMinigameView: View {
             startButton()
         case .roundPlayback, .roundTestUnderway:
             Text("Round: \(round)")
-                .foregroundStyle(Color.primary)
+                .foregroundStyle(Color.embraceYellow)
         case .betweenRounds:
             Text("Success!")
                 .foregroundStyle(Color.green)
