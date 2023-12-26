@@ -5,61 +5,66 @@
 import UIKit
 import EmbraceCommon
 
-final class TapsCaptureService: SwizzleCaptureService {
-    private static var listening = false
-    private static var handler: TapCaptureServiceHandlerType?
-    private static var installed = false
+final class TapCaptureService: Swizzlable {
+    typealias ImplementationType = @convention(c) (UIWindow, Selector, UIEvent) -> Void
+    typealias BlockImplementationType = @convention(block) (UIWindow, UIEvent) -> Void
+    static var selector: Selector = #selector(
+        UIWindow.sendEvent(_:)
+    )
 
-    required init() {
-        if TapsCaptureService.handler == nil {
-            TapsCaptureService.handler = TapCaptureServiceHandler()
+    private let handler: TapCaptureServiceHandler
+    private let lock: NSLocking
+    private var didInstall: Bool
+    private(set) var captureServiceState: CaptureServiceState {
+        didSet {
+            handler.changedState(to: captureServiceState)
         }
     }
 
-    convenience init(handler: TapCaptureServiceHandlerType? = TapCaptureServiceHandler()) {
-        TapsCaptureService.handler = handler
-        self.init()
-    }
+    var baseClass: AnyClass = UIWindow.self
 
-    func install(context: EmbraceCommon.CaptureServiceContext) {
-        guard TapsCaptureService.installed == false else {
-            return
-        }
-
-        TapsCaptureService.installed = true
-
-        replace(
-            #selector(UIWindow.sendEvent(_:)),
-            with: #selector(UIWindow.EMBSwizzledSendEvent(_:)),
-            from: UIWindow.self
-        )
-    }
-
-    func start() {
-        TapsCaptureService.listening = true
-    }
-
-    func stop() {
-        TapsCaptureService.listening = false
-    }
-
-    func uninstall() {
-        TapsCaptureService.listening = false
-    }
-
-    static func capturedEvent(_ event: UIEvent) {
-        guard TapsCaptureService.listening else {
-            return
-        }
-
-        handler?.handleCapturedEvent(event)
+    init(lock: NSLocking = NSLock(),
+         handler: TapCaptureServiceHandler = DefaultTapCaptureServiceHandler.create()) {
+        self.lock = lock
+        self.handler = handler
+        self.didInstall = false
+        self.captureServiceState = .uninstalled
     }
 }
 
-extension UIWindow {
-    @objc func EMBSwizzledSendEvent(_ event: UIEvent) {
-        TapsCaptureService.capturedEvent(event)
-        self.EMBSwizzledSendEvent(event)
+extension TapCaptureService: InstalledCaptureService {
+    func install(context: CaptureServiceContext) {
+        guard captureServiceState == .uninstalled else {
+            return
+        }
+        lock.lock()
+        defer { lock.unlock() }
+        guard !didInstall else {
+            return
+        }
+        didInstall = true
+        do {
+            try swizzleInstanceMethod { originalImplementation in
+                return { [weak self] uiWindow, uiEvent -> Void in
+                    self?.handler.handleCapturedEvent(uiEvent)
+                    originalImplementation(uiWindow, TapCaptureService.selector, uiEvent)
+                }
+            }
+        } catch let exception {
+            ConsoleLog.error("An error ocurred while swizzling UIWindow.sendEvent: %@", exception.localizedDescription)
+        }
+    }
+
+    func uninstall() {
+        captureServiceState = .uninstalled
+    }
+
+    func start() {
+        captureServiceState = .listening
+    }
+
+    func stop() {
+        captureServiceState = .paused
     }
 }
 #endif
