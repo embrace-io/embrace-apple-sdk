@@ -23,9 +23,9 @@ public final class TapCaptureService: InstalledCaptureService {
                   swizzlerProvider: DefaultUIWindowSwizzlerProvider())
     }
 
-    private init(lock: NSLocking,
-                 handler: TapCaptureServiceHandler,
-                 swizzlerProvider: UIWindowSwizzlerProvider) {
+    init(lock: NSLocking,
+         handler: TapCaptureServiceHandler,
+         swizzlerProvider: UIWindowSwizzlerProvider) {
         self.lock = lock
         self.handler = handler
         self.swizzler = swizzlerProvider.get(usingHandler: handler)
