@@ -5,13 +5,8 @@
 import UIKit
 import EmbraceCommon
 
-final class TapCaptureService: Swizzlable {
-    typealias ImplementationType = @convention(c) (UIWindow, Selector, UIEvent) -> Void
-    typealias BlockImplementationType = @convention(block) (UIWindow, UIEvent) -> Void
-    static var selector: Selector = #selector(
-        UIWindow.sendEvent(_:)
-    )
-
+public final class TapCaptureService: InstalledCaptureService {
+    private let swizzler: UIWindowSendEventSwizzler
     private let handler: TapCaptureServiceHandler
     private let lock: NSLocking
     private var didInstall: Bool
@@ -21,19 +16,24 @@ final class TapCaptureService: Swizzlable {
         }
     }
 
-    var baseClass: AnyClass = UIWindow.self
+    public convenience init() {
+        let handler = DefaultTapCaptureServiceHandler.create()
+        self.init(lock: NSLock(),
+                  handler: handler,
+                  swizzlerProvider: DefaultUIWindowSwizzlerProvider())
+    }
 
-    init(lock: NSLocking = NSLock(),
-         handler: TapCaptureServiceHandler = DefaultTapCaptureServiceHandler.create()) {
+    private init(lock: NSLocking,
+                 handler: TapCaptureServiceHandler,
+                 swizzlerProvider: UIWindowSwizzlerProvider) {
         self.lock = lock
         self.handler = handler
+        self.swizzler = swizzlerProvider.get(usingHandler: handler)
         self.didInstall = false
         self.captureServiceState = .uninstalled
     }
-}
 
-extension TapCaptureService: InstalledCaptureService {
-    func install(context: CaptureServiceContext) {
+    public func install(context: CaptureServiceContext) {
         guard captureServiceState == .uninstalled else {
             return
         }
@@ -42,29 +42,49 @@ extension TapCaptureService: InstalledCaptureService {
         guard !didInstall else {
             return
         }
-        didInstall = true
         do {
-            try swizzleInstanceMethod { originalImplementation in
-                return { [weak self] uiWindow, uiEvent -> Void in
-                    self?.handler.handleCapturedEvent(uiEvent)
-                    originalImplementation(uiWindow, TapCaptureService.selector, uiEvent)
-                }
-            }
+            try swizzler.install()
+            didInstall = true
         } catch let exception {
             ConsoleLog.error("An error ocurred while swizzling UIWindow.sendEvent: %@", exception.localizedDescription)
         }
     }
 
-    func uninstall() {
+    public func uninstall() {
         captureServiceState = .uninstalled
     }
 
-    func start() {
+    public func start() {
         captureServiceState = .listening
     }
 
-    func stop() {
+    public func stop() {
         captureServiceState = .paused
     }
 }
+
+class UIWindowSendEventSwizzler: Swizzlable {
+    typealias ImplementationType = @convention(c) (UIWindow, Selector, UIEvent) -> Void
+    typealias BlockImplementationType = @convention(block) (UIWindow, UIEvent) -> Void
+    static var selector: Selector = #selector(
+        UIWindow.sendEvent(_:)
+    )
+
+    private let handler: TapCaptureServiceHandler
+    var baseClass: AnyClass = UIWindow.self
+
+    init(handler: TapCaptureServiceHandler) {
+        self.handler = handler
+    }
+
+    func install() throws {
+        try swizzleInstanceMethod { originalImplementation in
+            return { [weak handler = self.handler] uiWindow, uiEvent -> Void in
+                handler?.handleCapturedEvent(uiEvent)
+                originalImplementation(uiWindow, UIWindowSendEventSwizzler.selector, uiEvent)
+            }
+        }
+    }
+}
+
 #endif

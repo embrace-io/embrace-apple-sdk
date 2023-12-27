@@ -9,7 +9,7 @@ import UIKit
 import EmbraceCommon
 import EmbraceOTel
 
-protocol TapCaptureServiceHandler: CaptureServiceHandler {
+protocol TapCaptureServiceHandler: AnyObject, CaptureServiceHandler {
     func handleCapturedEvent(_ event: UIEvent)
 }
 
@@ -82,4 +82,3 @@ private extension DefaultTapCaptureServiceHandler {
 }
 
 #endif
-
