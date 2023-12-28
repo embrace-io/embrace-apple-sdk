@@ -28,6 +28,9 @@ final class DefaultTapCaptureServiceHandler: TapCaptureServiceHandler {
     }
 
     func handleCapturedEvent(_ event: UIEvent) {
+        guard state == .listening else {
+            return
+        }
         guard event.type == .touches,
               let allTouches = event.allTouches,
               let touch = allTouches.first,
