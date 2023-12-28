@@ -8,45 +8,6 @@ import EmbraceCommon
 @testable import EmbraceCore
 import TestSupport
 
-class MockUIWindowSendEventSwizzler: UIWindowSendEventSwizzler {
-    var didCallInstall = false
-    var installInvokationCount = 0
-    override func install() throws {
-        didCallInstall = true
-        installInvokationCount += 1
-    }
-
-    init() { super.init(handler: MockTapCaptureServiceHandler()) }
-}
-
-class MockUIWindowSwizzlerProvider: UIWindowSwizzlerProvider {
-    let swizzler: UIWindowSendEventSwizzler
-
-    init(swizzler: UIWindowSendEventSwizzler = MockUIWindowSendEventSwizzler()) {
-        self.swizzler = swizzler
-    }
-
-    var didCallGet = false
-    func get(usingHandler handler: TapCaptureServiceHandler) -> UIWindowSendEventSwizzler {
-        didCallGet = true
-        return swizzler
-    }
-}
-
-class MockTapCaptureServiceHandler: TapCaptureServiceHandler {
-    var didCallHandlerCapturedEvent = false
-    func handleCapturedEvent(_ event: UIEvent) {
-        didCallHandlerCapturedEvent = true
-    }
-
-    var didCallChangedState = false
-    var changedStateReceivedParameter: CaptureServiceState?
-    func changedState(to captureServiceState: CaptureServiceState) {
-        didCallChangedState = true
-        changedStateReceivedParameter = captureServiceState
-    }
-}
-
 final class TapCaptureServiceTests: XCTestCase {
     private var sut: TapCaptureService!
     private var provider: MockUIWindowSwizzlerProvider!
