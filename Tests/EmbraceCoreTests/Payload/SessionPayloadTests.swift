@@ -24,8 +24,7 @@ final class SessionPayloadTests: XCTestCase {
             endTime: Date(timeIntervalSince1970: 40))
     }
 
-    var mockResources: [ResourceRecord] = [.init(key: AppResourceKey.buildUUID.rawValue, value: "fake_uuid", processIdentifier: .current),
-                                           .init(key: AppResourceKey.bundleVersion.rawValue, value: "fake_bundle_version", processIdentifier: .current),
+    var mockResources: [ResourceRecord] = [.init(key: AppResourceKey.bundleVersion.rawValue, value: "fake_bundle_version", processIdentifier: .current),
                                            .init(key: AppResourceKey.environment.rawValue, value: "fake_environment", processIdentifier: .current),
                                            .init(key: AppResourceKey.detailedEnvironment.rawValue, value: "fake_detailed_environment", processIdentifier: .current),
                                            .init(key: AppResourceKey.framework.rawValue, value: String(1), processIdentifier: .current),
@@ -94,8 +93,7 @@ final class SessionPayloadTests: XCTestCase {
     func test_appInfoKeys() throws {
         // given a session record
         let sessionRecord = mockSessionRecord
-        let mockResources: [ResourceRecord] = [.init(key: AppResourceKey.buildUUID.rawValue, value: "fake_uuid", processIdentifier: .current),
-                                               .init(key: AppResourceKey.bundleVersion.rawValue, value: "fake_bundle_version", processIdentifier: .current),
+        let mockResources: [ResourceRecord] = [.init(key: AppResourceKey.bundleVersion.rawValue, value: "fake_bundle_version", processIdentifier: .current),
                                                .init(key: AppResourceKey.environment.rawValue, value: "fake_environment", processIdentifier: .current),
                                                .init(key: AppResourceKey.detailedEnvironment.rawValue, value: "fake_detailed_environment", processIdentifier: .current),
                                                .init(key: AppResourceKey.framework.rawValue, value: String(1), processIdentifier: .current),
@@ -111,7 +109,8 @@ final class SessionPayloadTests: XCTestCase {
 
         // then the session payload contains the necessary keys
         let appInfo = json["a"] as! [String: Any]
-        XCTAssertEqual(appInfo["bi"] as! String, "fake_uuid")
+        XCTAssertNotNil(appInfo["bi"] as! String)
+        XCTAssertNotNil(appInfo["bid"] as! String)
         XCTAssertEqual(appInfo["bv"] as! String, "fake_bundle_version")
         XCTAssertEqual(appInfo["e"] as! String, "fake_environment")
         XCTAssertEqual(appInfo["ed"] as! String, "fake_detailed_environment")

@@ -12,3 +12,14 @@ public enum Platform: Int {
     case reactNative
     case flutter
 }
+
+extension Platform {
+    var frameworkId: Int {
+        switch self {
+        case .reactNative: return 2
+        case .unity: return 3
+        case.flutter: return 4
+        default: return 1 // defaults to native
+        }
+    }
+}

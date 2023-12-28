@@ -4,6 +4,7 @@
 
 import Foundation
 import EmbraceCommon
+import EmbraceStorage
 
 final class CaptureServices {
 
@@ -22,6 +23,17 @@ final class CaptureServices {
         )
 
         crashReporter = services.first { $0 is CrashReporter } as? CrashReporter
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(onSessionStart),
+            name: Notification.Name.embraceSessionDidStart,
+            object: nil
+        )
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 
     func start() {
@@ -37,6 +49,12 @@ final class CaptureServices {
     func stop() {
         for service in services {
             service.stop()
+        }
+    }
+
+    @objc func onSessionStart(notification: Notification) {
+        if let session = notification.object as? SessionRecord {
+            crashReporter?.currentSessionId = session.id
         }
     }
 }

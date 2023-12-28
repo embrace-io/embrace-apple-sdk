@@ -14,7 +14,9 @@ import KSCrash_Recording
         static let sdkVersion = "emb-sdk"
     }
 
+    @ThreadSafe
     var ksCrash: KSCrash?
+
     private var queue: DispatchQueue = DispatchQueue(label: "com.embrace.crashreporter")
 
     private var appId: String?
@@ -47,7 +49,6 @@ import KSCrash_Recording
 
     /// Used to determine if the last session ended cleanly or in a crash.
     public func getLastRunState() -> LastRunState {
-        // TODO: Concurrency handling
         guard let ksCrash = ksCrash else {
             return .invalid
         }
@@ -76,7 +77,6 @@ import KSCrash_Recording
     /// Fetches all saved `CrashReports`.
     /// - Parameter completion: Completion handler to be called with the fetched `CrashReports`
     public func fetchUnsentCrashReports(completion: @escaping ([CrashReport]) -> Void) {
-        // TODO: Concurrency handling
         guard ksCrash != nil else {
             completion([])
             return
@@ -133,7 +133,6 @@ import KSCrash_Recording
     /// Permanently deletes a crash report for the given identifier.
     /// - Parameter id: Identifier of the report to delete
     public func deleteCrashReport(id: Int) {
-        // TODO: Concurrency handling
         ksCrash?.deleteReport(withID: NSNumber(value: id))
     }
 
