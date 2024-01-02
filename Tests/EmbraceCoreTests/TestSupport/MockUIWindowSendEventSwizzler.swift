@@ -2,6 +2,7 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
+#if canImport(UIKit)
 @testable import EmbraceCore
 
 class MockUIWindowSendEventSwizzler: UIWindowSendEventSwizzler {
@@ -14,3 +15,4 @@ class MockUIWindowSendEventSwizzler: UIWindowSendEventSwizzler {
 
     init() { super.init(handler: MockTapCaptureServiceHandler()) }
 }
+#endif

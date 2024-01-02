@@ -2,6 +2,7 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
+#if canImport(UIKit)
 import XCTest
 
 @testable import EmbraceCore
@@ -53,3 +54,4 @@ private extension UIWindowSendEventSwizzlerTests {
         XCTAssertFalse(handler.didCallHandlerCapturedEvent)
     }
 }
+#endif

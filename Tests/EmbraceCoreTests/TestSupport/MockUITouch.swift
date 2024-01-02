@@ -2,6 +2,7 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
+#if canImport(UIKit)
 import UIKit
 
 class MockUITouch: UITouch {
@@ -16,3 +17,4 @@ class MockUITouch: UITouch {
     override var phase: UITouch.Phase { overridenPhase }
     override var view: UIView? { touchedView }
 }
+#endif
