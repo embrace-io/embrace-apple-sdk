@@ -12,6 +12,7 @@ extension CaptureServiceFactory {
     static var platformCaptureServices: [CaptureService] {
         return [
             URLSessionCaptureService(),
+            TapCaptureService(),
 
             LowMemoryWarningCaptureService(),
             LowPowerModeCaptureService(),
