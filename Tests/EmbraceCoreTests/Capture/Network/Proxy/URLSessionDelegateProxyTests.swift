@@ -179,7 +179,7 @@ private extension URLSessionDelegateProxyTests {
     }
 
     func whenInvokingDidReceiveInformationalResponse() throws {
-        if #available(iOS 17.0, *) {
+        if #available(iOS 17.0, *), #available(macOS 14.0, *) {
             (sut as URLSessionTaskDelegate).urlSession?(.shared,
                                                         task: aTask(),
                                                         didReceiveInformationalResponse: .init())

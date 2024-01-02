@@ -4,6 +4,7 @@
 
 @testable import EmbraceCore
 
+#if canImport(UIKit)
 class MockUIWindowSwizzlerProvider: UIWindowSwizzlerProvider {
     let swizzler: UIWindowSendEventSwizzler
 
@@ -17,3 +18,4 @@ class MockUIWindowSwizzlerProvider: UIWindowSwizzlerProvider {
         return swizzler
     }
 }
+#endif

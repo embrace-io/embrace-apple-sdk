@@ -2,6 +2,7 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
+#if canImport(UIKit)
 import UIKit
 
 class MockTapEvent: UIEvent {
@@ -14,3 +15,4 @@ class MockTapEvent: UIEvent {
         self.mockedTouches = mockedTouches
     }
 }
+#endif

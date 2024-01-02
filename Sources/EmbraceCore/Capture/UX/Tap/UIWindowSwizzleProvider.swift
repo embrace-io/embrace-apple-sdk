@@ -1,7 +1,7 @@
 //
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
-
+#if canImport(UIKit)
 import Foundation
 
 protocol UIWindowSwizzlerProvider {
@@ -13,3 +13,4 @@ struct DefaultUIWindowSwizzlerProvider: UIWindowSwizzlerProvider {
         .init(handler: handler)
     }
 }
+#endif
