@@ -58,6 +58,7 @@ extension URLSessionDelegateProxy: URLSessionTaskDelegate {
     }
 
     @available(iOS 17.0, *)
+    @available(macOS 14.0, *)
     func urlSession(_ session: URLSession,
                     task: URLSessionTask,
                     didReceiveInformationalResponse response: HTTPURLResponse) {

@@ -5,13 +5,6 @@
 import Foundation
 import EmbraceCommon
 
-/// Enum containing possible error codes
-public enum EmbraceUploadErrorCode: Int {
-    case invalidMetadata = 1000
-    case invalidData = 1001
-    case operationCancelled = 1002
-}
-
 /// Class in charge of uploading all the data colected by the Embrace SDK.
 public class EmbraceUpload {
 
@@ -109,13 +102,13 @@ public class EmbraceUpload {
 
         // validate identifier
         guard id.isEmpty == false else {
-            completion?(.failure(internalError(code: .invalidMetadata)))
+            completion?(.failure(EmbraceUploadError.internalError(.invalidMetadata)))
             return
         }
 
         // validate data
         guard data.isEmpty == false else {
-            completion?(.failure(internalError(code: .invalidData)))
+            completion?(.failure(EmbraceUploadError.internalError(.invalidData)))
             return
         }
 
@@ -203,9 +196,5 @@ public class EmbraceUpload {
         case .session: return options.endpoints.sessionsURL
         case .blob: return options.endpoints.blobsURL
         }
-    }
-
-    private func internalError(code: EmbraceUploadErrorCode) -> Error {
-        return NSError(domain: "com.embrace", code: code.rawValue)
     }
 }

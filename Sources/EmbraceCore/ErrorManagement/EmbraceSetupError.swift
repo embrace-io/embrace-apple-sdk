@@ -9,6 +9,7 @@ public enum EmbraceSetupError: Error, Equatable {
     case invalidAppGroupId(_ description: String)
     case invalidThread(_ description: String)
     case invalidOptions(_ description: String)
+    case failedStorageCreation(_ description: String)
     case unableToInitialize(_ description: String)
 }
 
@@ -29,8 +30,10 @@ extension EmbraceSetupError: LocalizedError, CustomNSError {
             return -3
         case .invalidOptions:
             return -4
-        case .unableToInitialize:
+        case .failedStorageCreation:
             return -5
+        case .unableToInitialize:
+            return -6
         }
     }
 
@@ -45,6 +48,8 @@ extension EmbraceSetupError: LocalizedError, CustomNSError {
         case .invalidOptions(let description):
             return description
         case .unableToInitialize(let description):
+            return description
+        case .failedStorageCreation(let description):
             return description
         }
     }

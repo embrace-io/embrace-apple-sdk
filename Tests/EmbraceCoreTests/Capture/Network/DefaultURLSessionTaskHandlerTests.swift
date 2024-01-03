@@ -30,19 +30,19 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
         XCTAssertEqual(DefaultURLSessionTaskHandler().state, .initialized)
     }
 
-    func test_OnChanceStateToPaused_StateShouldChangeToPaused() {
+    func test_OnChangeStateToPaused_StateShouldChangeToPaused() {
         givenTaskHandler(withInitialState: .initialized)
         whenInvokingOnChangeState(withNewState: .paused)
         thenTaskHandlerState(is: .paused)
     }
 
-    func test_OnChanceStateToUninstalled_StateShouldChangeToPaused() {
+    func test_OnChangeStateToUninstalled_StateShouldChangeToPaused() {
         givenTaskHandler(withInitialState: .initialized)
         whenInvokingOnChangeState(withNewState: .uninstalled)
         thenTaskHandlerState(is: .paused)
     }
 
-    func test_OnChanceStateToListening_StateShouldChangeToListening() {
+    func test_OnChangeStateToListening_StateShouldChangeToListening() {
         givenTaskHandler(withInitialState: .initialized)
         whenInvokingOnChangeState(withNewState: .listening)
         thenTaskHandlerState(is: .listening)

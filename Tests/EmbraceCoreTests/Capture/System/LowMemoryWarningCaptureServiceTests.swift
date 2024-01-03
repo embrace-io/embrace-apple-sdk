@@ -2,6 +2,7 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
+#if canImport(UIKit)
 import XCTest
 import TestSupport
 import EmbraceCommon
@@ -79,3 +80,4 @@ class LowMemoryWarningCaptureServiceTests: XCTestCase {
         wait(for: [expectation], timeout: .defaultTimeout)
     }
 }
+#endif

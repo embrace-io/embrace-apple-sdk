@@ -18,12 +18,10 @@ extension Embrace {
                 let storageOptions = EmbraceStorage.Options(baseUrl: storageUrl, fileName: "db.sqlite")
                 return try EmbraceStorage(options: storageOptions)
             } catch {
-                // TODO: Create better error
-                throw NSError(domain: "EmbraceStorageSetup", code: 1)
+                throw EmbraceSetupError.failedStorageCreation("Failed to create EmbraceStorage")
             }
         } else {
-            // TODO: Create better error
-            throw NSError(domain: "EmbraceStorageSetup", code: 2)
+            throw EmbraceSetupError.failedStorageCreation("Failed to create Storage Directory with appId: '\(options.appId)' appGroupId: '\(options.appGroupId ?? "")'")
         }
     }
 
