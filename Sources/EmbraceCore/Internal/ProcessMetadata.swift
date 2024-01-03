@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import EmbraceCommon
 
 enum ProcessMetadata { }
 
@@ -26,7 +27,7 @@ extension ProcessMetadata {
         let retval = sysctl(&mib, UInt32(mib.count), infoPointer, &size, nil, 0)
 
         if retval != 0 {
-            print("Error: \(#file) \(#function) \(#line) - sysctl failed with errno=\(errno)")
+            ConsoleLog.error("Error: \(#file) \(#function) \(#line) - sysctl failed with errno=\(errno)")
             return nil
         }
 
