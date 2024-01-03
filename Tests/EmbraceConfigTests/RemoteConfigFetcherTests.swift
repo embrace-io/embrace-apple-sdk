@@ -42,7 +42,7 @@ class RemoteConfigFetcherTests: XCTestCase {
         // then requests created are correct
         let request = fetcher.newRequest()
 
-        let expectedUrl = "\(testOptions.apiBaseUrl)/v2/config?appId=\(testOptions.appId)&osVersion=\(testOptions.osVersion)&appVersion=\(testOptions.appVersion)&deviceId=\(testOptions.deviceId)"
+        let expectedUrl = "\(testOptions.apiBaseUrl)/v2/config?appId=\(testOptions.appId)&osVersion=\(testOptions.osVersion)&appVersion=\(testOptions.appVersion)&deviceId=\(testOptions.deviceId)&sdkVersion=\(testOptions.sdkVersion)"
         XCTAssertEqual(request!.url?.absoluteString, expectedUrl)
         XCTAssertEqual(request!.httpMethod, "GET")
         XCTAssertEqual(request!.allHTTPHeaderFields!["Accept"], "application/json")

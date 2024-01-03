@@ -75,7 +75,8 @@ class RemoteConfigFetcher {
             URLQueryItem(name: "appId", value: options.appId),
             URLQueryItem(name: "osVersion", value: options.osVersion),
             URLQueryItem(name: "appVersion", value: options.appVersion),
-            URLQueryItem(name: "deviceId", value: options.deviceId)
+            URLQueryItem(name: "deviceId", value: options.deviceId),
+            URLQueryItem(name: "sdkVersion", value: options.sdkVersion)
         ]
 
         return components?.url
