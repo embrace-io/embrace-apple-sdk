@@ -14,7 +14,7 @@ final class CaptureServices {
 
     weak var crashReporter: CrashReporter?
 
-    init(options: Embrace.Options) {
+    init(options: Embrace.Options) throws {
         services = CaptureServiceFactory.addRequiredServices(to: options.services.unique)
         context = CaptureServiceContext(
             appId: options.appId,
@@ -22,7 +22,15 @@ final class CaptureServices {
             filePathProvider: EmbraceFilePathProvider(appId: options.appId, appGroupIdentifier: options.appGroupId)
         )
 
-        crashReporter = services.first { $0 is CrashReporter } as? CrashReporter
+        let crashReporters = services
+            .filter({ $0 is CrashReporter })
+            .compactMap({ $0 as? any CrashReporter })
+
+        guard crashReporters.count <= 1 else {
+            throw EmbraceSetupError.invalidOptions("Only one CrashReporter is allowed at most")
+        }
+
+        crashReporter = crashReporters.first
 
         NotificationCenter.default.addObserver(
             self,

@@ -51,6 +51,28 @@ final class EmbraceSetupCaptureServicesTests: XCTestCase {
         }
     }
 
+    class ExampleCrashReporter: CrashReporter {
+        var currentSessionId: EmbraceCommon.SessionIdentifier?
+        func getLastRunState() -> EmbraceCommon.LastRunState { .cleanExit }
+        func fetchUnsentCrashReports(completion: @escaping ([EmbraceCommon.CrashReport]) -> Void) {}
+        func deleteCrashReport(id: Int) {}
+        func install(context: EmbraceCommon.CaptureServiceContext) {}
+        func uninstall() {}
+        func start() {}
+        func stop() {}
+    }
+    
+    class SecondExampleCrashReporter: CrashReporter {
+        var currentSessionId: EmbraceCommon.SessionIdentifier?
+        func getLastRunState() -> EmbraceCommon.LastRunState { .cleanExit }
+        func fetchUnsentCrashReports(completion: @escaping ([EmbraceCommon.CrashReport]) -> Void) {}
+        func deleteCrashReport(id: Int) {}
+        func install(context: EmbraceCommon.CaptureServiceContext) {}
+        func uninstall() {}
+        func start() {}
+        func stop() {}
+    }
+
     override func tearDown() {
         Embrace.client = nil
     }
@@ -58,11 +80,22 @@ final class EmbraceSetupCaptureServicesTests: XCTestCase {
     func test_EmbraceSetup_passesCaptureServices() throws {
         try Embrace.setup(options: .init(appId: "myAPP", captureServices: [
             ExampleCaptureService(),
-            ExampleInstalledCaptureService()
+            ExampleInstalledCaptureService(),
+            ExampleCrashReporter()
         ]))
 
         let services = Embrace.client!.captureServices.services
         XCTAssertTrue(services.contains { $0 is ExampleCaptureService })
         XCTAssertTrue(services.contains { $0 is ExampleInstalledCaptureService })
+        XCTAssertTrue(services.contains { $0 is ExampleCrashReporter })
+    }
+
+    func test_onlyOneCrashReporterCaptureServiceIsAllowed() throws {
+        XCTAssertThrowsError(try Embrace.setup(options: .init(appId: "myAPP", captureServices: [
+            ExampleCaptureService(),
+            ExampleInstalledCaptureService(),
+            ExampleCrashReporter(),
+            SecondExampleCrashReporter()
+        ])))
     }
 }
