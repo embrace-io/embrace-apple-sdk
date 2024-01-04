@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 #
 #   TODO: Embrace scheme is setup to run all test targets

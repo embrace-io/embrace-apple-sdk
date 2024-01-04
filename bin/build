@@ -1,97 +1,36 @@
 #!/bin/bash
-
-set -x
 set -e
 
-# Pass scheme name as the first argument to the script
-NAME=$1
-# if name is not passed, use the default scheme name of 'Embrace'
-if [ -z "$NAME" ]
-then
-    NAME="Embrace"
-    echo "No scheme name passed, using default scheme name of 'Embrace'"
+CLONED_SOURCE_PACKAGES_DIR_PATH=".build"    # This matches spm location `swift run` uses
+DERIVED_DATA_PATH=".build/DerivedData"
+
+# Retrieve platform as first argument converted to lowercase
+PLATFORM=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+
+# Replace 'os' with 'OS' in platform name
+# this allows input to be `bin/build ios` or `bin/build iOS`
+PLATFORM=${PLATFORM/os/OS}
+
+# Verify that platform is present, exit with error if not
+if [ -z "$PLATFORM" ] ; then
+    echo "Platform is required as first argument:"
+    echo "      bin/build <platform>"
+    exit 1
 fi
 
-# TODO: validate that $NAME is a valid scheme
+# Validate platform as one of 'iOS', 'macOS', 'watchOS', 'tvOS'
+if [ "$PLATFORM" != "iOS" ] && [ "$PLATFORM" != "macOS" ] && [ "$PLATFORM" != "watchOS" ] && [ "$PLATFORM" != "tvOS" ]; then
+    echo "Invalid platform '$PLATFORM'"
+    echo "Must be one of: 'iOS', 'macOS', 'watchOS', 'tvOS'"
+    exit 1
+fi
 
-DERIVED_DATA_PATH=".build/DerivedData"
-PRODUCTS_OUTPATH=".build/Products"
-
-# Build the scheme for all platforms that we plan to support
-for PLATFORM in "iOS" "iOS Simulator"; do
-
-    case $PLATFORM in
-    "iOS")
-    RELEASE_FOLDER="Release-iphoneos"
-    ;;
-    "iOS Simulator")
-    RELEASE_FOLDER="Release-iphonesimulator"
-    ;;
-    esac
-
-    ARCHIVE_PATH="$PRODUCTS_OUTPATH/$RELEASE_FOLDER"
-
-
-    xcodebuild archive -workspace . -scheme $NAME \
-            -destination "generic/platform=$PLATFORM" \
-            -archivePath $ARCHIVE_PATH \
-            -derivedDataPath $DERIVED_DATA_PATH \
-            OTHER_SWIFT_FLAGS='-no-verify-emitted-module-interface' \
-            SKIP_INSTALL=NO BUILD_LIBRARY_FOR_DISTRIBUTION=YES DEFINES_MODULE=YES
-
-    # TODO: OTHER_SWIFT_FLAGS -no-verify-emitted-module-interface used to disable module verification in 14.3+
-    #       https://github.com/apple/swift/issues/64669 (See if we can drop this flag and pass this validation)
-    #
-    # TODO: is `DEFINES_MODULE=YES` necessary here? We explicitly define module ourselves below
-
-
-    FRAMEWORK_PATH="$ARCHIVE_PATH.xcarchive/Products/usr/local/lib/$NAME.framework"
-    MODULES_PATH="$FRAMEWORK_PATH/Modules"
-    HEADERS_PATH="$FRAMEWORK_PATH/Headers"
-    mkdir -p $MODULES_PATH
-    mkdir -p $HEADERS_PATH
-
-    BUILD_PRODUCTS_PATH=".build/Build/Intermediates.noindex/ArchiveIntermediates/$NAME/BuildProductsPath"
-    RELEASE_PATH="$BUILD_PRODUCTS_PATH/$RELEASE_FOLDER"
-    SWIFT_MODULE_PATH="$RELEASE_PATH/$NAME.swiftmodule"
-    SWIFT_MODULEMAP_PATH="./Embrace.modulemap"
-    RESOURCES_BUNDLE_PATH="$RELEASE_PATH/${NAME}_${NAME}.bundle"
-
-    # Copy Swift modules
-    if [ -d $SWIFT_MODULE_PATH ] 
-    then
-        cp -r $SWIFT_MODULE_PATH $MODULES_PATH
-    elif [ -f $SWIFT_MODULEMAP_PATH ]
-    then
-        cp $SWIFT_MODULEMAP_PATH $MODULES_PATH/module.modulemap
-
-        #TODO: automate the creation of this list
-        #TODO: add build checks to assert that there are no `@import` calls in these files
-
-        cp "./Sources/Embrace/include/Embrace.h" $HEADERS_PATH
-        cp "./Sources/Config/include/EmbraceConfig.h" $HEADERS_PATH
-        cp "./Sources/Constants/include/EMBConstants.h" $HEADERS_PATH
-        cp "./Sources/Embrace/include/EMBCustomFlow.h" $HEADERS_PATH
-        cp "./Sources/Embrace/include/EMBPurchaseFlow.h" $HEADERS_PATH
-        cp "./Sources/Embrace/include/EMBRegistrationFlow.h" $HEADERS_PATH
-        cp "./Sources/Embrace/include/EMBSubscriptionPurchaseFlow.h" $HEADERS_PATH
-        cp "./Sources/LegacyModelsPublic/include/EMBNetworkRequest.h" $HEADERS_PATH
-
-    else
-        # In case there are no modules, assume C/ObjC library and create module map
-        echo "module $NAME { export * }" > $MODULES_PATH/module.modulemap
-        #TODO: Test swift code in implementation (private and public)
-    fi
-
-    # Copy resources bundle, if exists 
-    if [ -e $RESOURCES_BUNDLE_PATH ] 
-    then
-        cp -r $RESOURCES_BUNDLE_PATH $FRAMEWORK_PATH
-    fi
-
-done
-
-xcodebuild -create-xcframework \
-    -framework "$PRODUCTS_OUTPATH/Release-iphoneos.xcarchive/Products/usr/local/lib/$NAME.framework" \
-    -framework "$PRODUCTS_OUTPATH/Release-iphonesimulator.xcarchive/Products/usr/local/lib/$NAME.framework" \
-    -output "$PRODUCTS_OUTPATH/$NAME.xcframework"
+xcodebuild \
+    -workspace . \
+    -configuration "Release" \
+    -scheme "EmbraceIO-Package" \
+    -destination "generic/platform=$PLATFORM" \
+    -clonedSourcePackagesDirPath $CLONED_SOURCE_PACKAGES_DIR_PATH \
+    -skipPackagePluginValidation \
+    -derivedDataPath $DERIVED_DATA_PATH \
+    clean build
