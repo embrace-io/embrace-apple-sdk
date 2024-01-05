@@ -4,7 +4,7 @@ let danger = Danger()
 
 func main() {
     guard danger.github != nil else {
-        print("Github not found") ;
+        print("Github not found")
         return
     }
 
@@ -30,7 +30,7 @@ func main() {
         warn("No tests added / modified.")
     }
     // lint modified files
-    SwiftLint.lint(.files(editedFiles), inline: true, strict: true, quiet: false)
+    SwiftLint.lint(.files(editedFiles), inline: true, strict: true, quiet: false);
 
 }
 
