@@ -10,7 +10,10 @@ class URLTestProxy: URLProtocol {
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
 
     override func startLoading() {
-        guard let client = client else { fatalError("There's something going on with the URL Loading System. This shouldn't happen") }
+        guard let client = client else {
+            fatalError("There's something going on with the URL Loading System. This shouldn't happen")
+        }
+
         let possibleMockResponse = request.url?.mockResponse
         if let mockResponse = possibleMockResponse {
             if let response = mockResponse.response {

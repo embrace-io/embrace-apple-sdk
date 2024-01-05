@@ -5,19 +5,28 @@
 import OpenTelemetryApi
 
 public struct RecordingSpanLink: Codable, Equatable {
-    public let context: SpanContext
+    public let traceId: TraceId
+    public let spanId: SpanId
     public let attributes: [String: AttributeValue]
 
-    init(context: SpanContext, attributes: [String: AttributeValue] = [:]) {
-        self.context = context
+    init(traceId: TraceId, spanId: SpanId, attributes: [String: AttributeValue] = [:]) {
+        self.traceId = traceId
+        self.spanId = spanId
         self.attributes = attributes
     }
 }
 
 public func == (lhs: RecordingSpanLink, rhs: RecordingSpanLink) -> Bool {
-    return lhs.context == rhs.context && lhs.attributes == rhs.attributes
+    return
+        lhs.traceId == rhs.traceId &&
+        lhs.spanId == rhs.spanId &&
+        lhs.attributes == rhs.attributes
 }
 
 public func == (lhs: [RecordingSpanLink], rhs: [RecordingSpanLink]) -> Bool {
-    return lhs.elementsEqual(rhs) { $0.context == $1.context && $0.attributes == $1.attributes }
+    return lhs.elementsEqual(rhs) {
+        $0.traceId == $1.traceId &&
+        $0.spanId == $1.spanId &&
+        $0.attributes == $1.attributes
+    }
 }

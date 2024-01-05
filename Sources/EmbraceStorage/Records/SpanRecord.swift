@@ -9,19 +9,21 @@ import GRDB
 /// Represents a span in the storage
 public struct SpanRecord: Codable {
     public var id: String
+    public var name: String
     public var traceId: String
     public var type: SpanType
     public var data: Data
     public var startTime: Date
     public var endTime: Date?
 
-    public init(id: String, traceId: String, type: SpanType, data: Data, startTime: Date, endTime: Date? = nil) {
+    public init(id: String, name: String, traceId: String, type: SpanType, data: Data, startTime: Date, endTime: Date? = nil) {
         self.id = id
         self.traceId = traceId
         self.type = type
         self.data = data
         self.startTime = startTime
         self.endTime = endTime
+        self.name = name
     }
 }
 
@@ -38,6 +40,7 @@ extension SpanRecord: TableRecord {
         try db.create(table: SpanRecord.databaseTableName, options: .ifNotExists) { t in
 
             t.column("id", .text).notNull()
+            t.column("name", .text).notNull()
             t.column("trace_id", .text).notNull()
             t.primaryKey(["trace_id", "id"])
 

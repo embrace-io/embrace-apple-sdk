@@ -1,0 +1,40 @@
+name: Build Platforms
+
+on:
+  workflow_call: {}
+  workflow_dispatch: {}
+  pull_request: {}
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build ${{ matrix.platform }} - Xcode ${{ matrix.xcode_version }}
+    timeout-minutes: 30
+    runs-on: macos-13
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ["iOS", "macOS", "watchOS", "tvOS"]
+        xcode_version: ["15.1"]
+    steps:
+    - name: Select Xcode
+      # See https://github.com/actions/runner-images/blob/main/images/macos/macos-13-Readme.md
+      run: |
+        sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app
+        xcodebuild -version
+    - uses: actions/checkout@v4
+      timeout-minutes: 4
+
+    - name: Cache .build directory
+      uses: actions/cache@v3
+      with:
+        path: .build
+        key: ${{ runner.os }}-build-${{ hashFiles('**/Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-build-
+
+    - name: Run build script
+      run: |
+        bin/build ${{ matrix.platform }} | xcpretty && exit ${PIPESTATUS[0]}

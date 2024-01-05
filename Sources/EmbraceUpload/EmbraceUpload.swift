@@ -5,13 +5,6 @@
 import Foundation
 import EmbraceCommon
 
-/// Enum containing possible error codes
-public enum EmbraceUploadErrorCode: Int {
-    case invalidMetadata = 1000
-    case invalidData = 1001
-    case operationCancelled = 1002
-}
-
 /// Class in charge of uploading all the data colected by the Embrace SDK.
 public class EmbraceUpload {
 
@@ -41,7 +34,8 @@ public class EmbraceUpload {
 
         // reachability monitor
         if options.redundancy.retryOnInternetConnected {
-            reachabilityMonitor = EmbraceReachabilityMonitor(queue: DispatchQueue(label: "com.embrace.upload.reachability"))
+            let monitorQueue = DispatchQueue(label: "com.embrace.upload.reachability")
+            reachabilityMonitor = EmbraceReachabilityMonitor(queue: monitorQueue)
             reachabilityMonitor?.onConnectionRegained = { [weak self] in
                 self?.retryCachedData()
             }
@@ -108,13 +102,13 @@ public class EmbraceUpload {
 
         // validate identifier
         guard id.isEmpty == false else {
-            completion?(.failure(internalError(code: .invalidMetadata)))
+            completion?(.failure(EmbraceUploadError.internalError(.invalidMetadata)))
             return
         }
 
         // validate data
         guard data.isEmpty == false else {
-            completion?(.failure(internalError(code: .invalidData)))
+            completion?(.failure(EmbraceUploadError.internalError(.invalidData)))
             return
         }
 
@@ -133,14 +127,21 @@ public class EmbraceUpload {
         let uploadOperation = EmbraceUploadOperation(
             urlSession: urlSession,
             metadataOptions: options.metadata,
-            endpoint: endpointForType(type),
+            endpoint: endpoint(for: type),
             identifier: id,
             data: data,
             retryCount: options.redundancy.automaticRetryCount,
             attemptCount: attemptCount) { [weak self] (cancelled, count, error) in
 
                 self?.queue.async { [weak self] in
-                    self?.handleOperationFinished(id: id, type: type, cancelled: cancelled, attemptCount: count, error: error)
+                    self?.handleOperationFinished(
+                        id: id,
+                        type: type,
+                        cancelled: cancelled,
+                        attemptCount: count,
+                        error: error
+                    )
+                    self?.cleanCacheFromStaleData()
                 }
             }
 
@@ -180,14 +181,20 @@ public class EmbraceUpload {
         }
     }
 
-    private func endpointForType(_ type: EmbraceUploadType) -> URL {
+    private func cleanCacheFromStaleData() {
+        operationQueue.addOperation { [weak self] in
+            do {
+                try self?.cache.clearStaleDataIfNeeded()
+            } catch {
+                ConsoleLog.debug("Error clearing stale date from cache: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func endpoint(for type: EmbraceUploadType) -> URL {
         switch type {
         case .session: return options.endpoints.sessionsURL
         case .blob: return options.endpoints.blobsURL
         }
-    }
-
-    private func internalError(code: EmbraceUploadErrorCode) -> Error {
-        return NSError(domain: "com.embrace", code: code.rawValue)
     }
 }

@@ -54,4 +54,30 @@ public struct SpanData: Equatable, Codable {
             lhs.events == rhs.events &&
             lhs.links == rhs.links
     }
+
+    public init(
+        traceId: TraceId,
+        spanId: SpanId,
+        parentSpanId: SpanId?,
+        name: String,
+        kind: SpanKind,
+        startTime: Date,
+        endTime: Date?,
+        attributes: [String: AttributeValue] = [String: AttributeValue](),
+        events: [RecordingSpanEvent] = [RecordingSpanEvent](),
+        links: [RecordingSpanLink] = [RecordingSpanLink](),
+        status: Status = .unset
+    ) {
+        self.traceId = traceId
+        self.spanId = spanId
+        self.parentSpanId = parentSpanId
+        self.name = name
+        self.kind = kind
+        self.startTime = startTime
+        self.endTime = endTime
+        self.attributes = attributes
+        self.events = events
+        self.links = links
+        self.status = status
+    }
 }

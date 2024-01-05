@@ -1,10 +1,10 @@
 disabled_rules: # rule identifiers turned on by default to exclude from running
   - identifier_name
-  - type_name
-  - line_length
   - function_parameter_count
-  - nesting
   - notification_center_detachment
+
+opt_in_rules:
+  - conditional_returns_on_newline
 
 included: # case-sensitive paths to include during linting. `--path` is ignored if present
   - Sources
@@ -15,3 +15,24 @@ excluded: # case-sensitive paths to ignore during linting. Takes precedence over
   - docs
 
 reporter: "xcode" # reporter type (xcode, json, csv, checkstyle, codeclimate, junit, html, emoji, sonarqube, markdown, github-actions-logging, summary)
+
+line_length:
+  ignores_comments: true
+  ignores_interpolated_strings: true
+
+type_body_length:
+  warning: 400
+  error: 600
+
+type_name:
+  max_length:
+    warning: 60
+  allowed_symbols: ["_"]
+
+function_body_length:
+  warning: 100
+  error: 300
+
+large_tuple:
+  warning: 4
+  error: 6

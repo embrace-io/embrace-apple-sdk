@@ -8,7 +8,11 @@ import TestSupport
 
 class EmbraceUploadOperationTests: XCTestCase {
 
-    let testMetadataOptions = EmbraceUpload.MetadataOptions(apiKey: "apiKey", userAgent: "userAgent", deviceId: "12345678")
+    let testMetadataOptions = EmbraceUpload.MetadataOptions(
+        apiKey: "apiKey",
+        userAgent: "userAgent",
+        deviceId: "12345678"
+    )
     var urlSession: URLSession!
 
     override func setUpWithError() throws {

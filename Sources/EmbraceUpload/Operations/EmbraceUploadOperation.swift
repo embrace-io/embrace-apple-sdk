@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import EmbraceCommon
 
 typealias EmbraceUploadOperationCompletion = (_ cancelled: Bool, _ attemptCount: Int, _ error: Error?) -> Void
 
@@ -73,10 +74,12 @@ class EmbraceUploadOperation: AsyncOperation {
 
             // check success
             if let response = response as? HTTPURLResponse {
+                ConsoleLog.debug("Upload operation complete. Status: \(response.statusCode) URL: \(String(describing: response.url))")
                 if response.statusCode >= 200 && response.statusCode < 300 {
                     self?.completion?(false, self?.attemptCount ?? 0, nil)
                 } else {
-                    self?.completion?(false, self?.attemptCount ?? 0, self?.incorrectStatusCodeError(response.statusCode))
+                    let returnError = EmbraceUploadError.incorrectStatusCodeError(response.statusCode)
+                    self?.completion?(false, self?.attemptCount ?? 0, returnError)
                 }
 
             // no retries left, send completion
@@ -88,10 +91,6 @@ class EmbraceUploadOperation: AsyncOperation {
         })
 
         task?.resume()
-    }
-
-    private func incorrectStatusCodeError(_ code: Int) -> Error {
-        return NSError(domain: "com.embrace", code: code, userInfo: [NSLocalizedDescriptionKey: "Invalid status code received!"])
     }
 
     private func createRequest() -> URLRequest {

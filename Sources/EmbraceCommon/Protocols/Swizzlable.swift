@@ -35,16 +35,14 @@ public protocol Swizzlable {
 public extension Swizzlable {
     func swizzleInstanceMethod(_ block: (ImplementationType) -> BlockImplementationType) throws {
         guard let method = class_getInstanceMethod(baseClass, Self.selector) else {
-            // TODO: - Migrate this to a real `Error` that is also consistent with the rest of the SDK
-            throw NSError(domain: "No method for selector \(Self.selector) in class \(type(of: self))", code: 0)
+            throw EmbraceSwizzableError.methodNotFound(selectorName: "\(Self.selector)", className: "\(type(of: self))")
         }
         swizzle(method: method, withBlock: block)
     }
 
     func swizzleClassMethod(_ block: (ImplementationType) -> BlockImplementationType) throws {
         guard let method = class_getClassMethod(baseClass, Self.selector) else {
-            // TODO: - Migrate this to a real `Error` that is also consistent with the rest of the SDK
-            throw NSError(domain: "No method for selector \(Self.selector) in class \(type(of: self))", code: 0)
+            throw EmbraceSwizzableError.methodNotFound(selectorName: "\(Self.selector)", className: "\(type(of: self))")
         }
         swizzle(method: method, withBlock: block)
     }

@@ -5,26 +5,75 @@
 import Foundation
 import EmbraceCommon
 import GRDB
+import OpenTelemetryApi
 
 public enum ResourceType: String, Codable {
-    case process
+    /// value tied to a specific session
     case session
+
+    /// value tied to multiple sessions within a single process
+    case process
+
+    /// value tied to the Embrace datastore. Will associate with all sessions until explicitly removed
     case permanent
 }
 
 public struct ResourceRecord: Codable {
-    public var resourceType: ResourceType
-    public var resourceTypeId: String
-    public var key: String
-    public var value: String
-    public var collectedAt: Date
+    public let resourceType: ResourceType
+    public let resourceTypeId: String
+    public let key: String
+    public var value: AttributeValue
+    public let collectedAt: Date
 
-    public init(key: String, value: String, resourceType: ResourceType, resourceTypeId: String = "N/A", collectedAt: Date = Date()) {
+    /// Main initializer for the ResourceRecord
+    ///
+    /// - Note: Its recommended to use any of the ResourceType specific initializers listed below
+    init(
+        key: String,
+        value: AttributeValue,
+        resourceType: ResourceType,
+        resourceTypeId: String,
+        collectedAt: Date = Date()
+    ) {
         self.key = key
         self.value = value
         self.resourceType = resourceType
         self.resourceTypeId = resourceTypeId
         self.collectedAt = collectedAt
+    }
+
+    /// Initialize a session resource
+    /// A session resource uses a ``EmbraceCommon.SessionIdentifier`` as the resourceTypeId
+    /// - Parameters:
+    ///     - key: The unique identifier of the session resource
+    ///     - value: The value of the resource, encoded as a String
+    ///     - sessionId: The session identifier of the session the resource is associated with
+    ///     - collectedAt: The date the resource item was collected
+    public init(key: String, value: String, sessionId: SessionIdentifier, collectedAt: Date = Date()) {
+        self.init(
+            key: key,
+            value: .string(value),
+            resourceType: .session,
+            resourceTypeId: sessionId.toString,
+            collectedAt: collectedAt
+        )
+    }
+
+    /// Initialize a process resource
+    /// A process resource uses a ``EmbraceCommon.ProcessIdentifier`` as the resourceTypeId
+    /// - Parameters:
+    ///     - key: The unique identifier of the process resource
+    ///     - value: The value of the resource, encoded as a String
+    ///     - processIdentifier: The process identifier of the process the resource is associated with
+    ///     - collectedAt: The date the resource item was collected
+    public init(key: String, value: String, processIdentifier: ProcessIdentifier, collectedAt: Date = Date()) {
+        self.init(
+            key: key,
+            value: .string(value),
+            resourceType: .process,
+            resourceTypeId: processIdentifier.hex,
+            collectedAt: collectedAt
+        )
     }
 
     /// Initialize a permanent resource
@@ -34,7 +83,13 @@ public struct ResourceRecord: Codable {
     ///     - value: The value of the resource, encoded as a String
     ///     - collectedAt: The date the resource item was collected
     public init(key: String, value: String, collectedAt: Date = Date()) {
-        self.init(key: key, value: value, resourceType: .permanent, collectedAt: collectedAt)
+        self.init(
+            key: key,
+            value: .string(value),
+            resourceType: .permanent,
+            resourceTypeId: "",
+            collectedAt: collectedAt
+        )
     }
 }
 

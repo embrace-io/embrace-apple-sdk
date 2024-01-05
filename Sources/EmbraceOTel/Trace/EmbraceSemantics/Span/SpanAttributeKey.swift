@@ -5,6 +5,6 @@
 enum SpanAttributeKey: String {
     case type = "emb.type"
     case isKey = "emb.key"
-    case sequenceId = "emb.sequence_id"
     case errorCode = "emb.error_code"
+    case isPrivate = "emb.private"
 }

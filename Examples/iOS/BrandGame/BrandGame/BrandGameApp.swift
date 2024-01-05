@@ -4,17 +4,21 @@
 
 import SwiftUI
 
-import EmbraceIO
+import EmbraceCore
 
 @main
 struct BrandGameApp: App {
 
+    @State var settings: AppSettings = AppSettings()
+
     init() {
-        do{
+        do {
             try Embrace.setup(
                 options: embraceOptions)
+
             try Embrace.client?.start()
-        }catch let e{
+            Embrace.client?.logLevel = .debug
+        } catch let e {
             print("Error starting embrace \(e.localizedDescription)")
         }
     }
@@ -22,6 +26,7 @@ struct BrandGameApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environment(\.settings, settings)
         }
     }
 }

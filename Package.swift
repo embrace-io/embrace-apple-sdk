@@ -19,6 +19,7 @@ let package = Package(
     ],
     products: [
         .library(name: "EmbraceIO", targets: ["EmbraceIO"]),
+        .library(name: "EmbraceCore", targets: ["EmbraceCore"]),
         .library(name: "EmbraceCrash", targets: ["EmbraceCrash"])
     ],
     dependencies: [
@@ -49,27 +50,49 @@ let package = Package(
     ],
     targets: [
 
-        // core ----------------------------------------------------------------------
         .target(
             name: "EmbraceIO",
+            dependencies: [
+            "EmbraceCore",
+            "EmbraceCommon",
+            "EmbraceCrash"
+            ],
+            plugins: targetPlugins
+        ),
+        
+        .testTarget(
+            name: "EmbraceIOTests",
+            dependencies: [
+                "EmbraceIO",
+                "EmbraceCore",
+                "EmbraceCrash",
+                "TestSupport",
+                .product(name: "GRDB", package: "GRDB.swift")
+            ],
+            plugins: targetPlugins
+        ),
+
+        
+        // core ----------------------------------------------------------------------
+        .target(
+            name: "EmbraceCore",
             dependencies: [
                 "EmbraceConfig",
                 "EmbraceOTel",
                 "EmbraceStorage",
                 "EmbraceUpload",
                 "EmbraceObjCUtils",
-                "EmbraceCrash",
                 .product(name: "Gzip", package: "GzipSwift")
             ],
             plugins: targetPlugins
         ),
 
         .testTarget(
-            name: "EmbraceIOTests",
+            name: "EmbraceCoreTests",
             dependencies: [
-                "EmbraceIO",
-                "EmbraceCrash",
+                "EmbraceCore",
                 "TestSupport",
+                "EmbraceCrash",
                 .product(name: "GRDB", package: "GRDB.swift")
             ],
             resources: [
@@ -78,6 +101,7 @@ let package = Package(
             plugins: targetPlugins
         ),
 
+        // common ----------------------------------------------------------------------
         .target(
             name: "EmbraceCommon",
             plugins: targetPlugins
@@ -117,7 +141,6 @@ let package = Package(
             name: "EmbraceOTel",
             dependencies: [
                 "EmbraceCommon",
-                "EmbraceStorage",
                 .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
             ],
             plugins: targetPlugins
@@ -136,8 +159,7 @@ let package = Package(
             name: "EmbraceStorage",
             dependencies: [
                 "EmbraceCommon",
-                .product(name: "GRDB", package: "GRDB.swift"),
-                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
+                .product(name: "GRDB", package: "GRDB.swift")
             ],
             plugins: targetPlugins
         ),
@@ -152,6 +174,7 @@ let package = Package(
             name: "EmbraceUpload",
             dependencies: [
                 "EmbraceCommon",
+                "EmbraceOTel",
                 .product(name: "GRDB", package: "GRDB.swift")
             ],
             plugins: targetPlugins
@@ -160,6 +183,7 @@ let package = Package(
             name: "EmbraceUploadTests",
             dependencies: [
                 "EmbraceUpload",
+                "EmbraceOTel",
                 "TestSupport"
             ],
             plugins: targetPlugins
@@ -187,7 +211,9 @@ let package = Package(
         .target(
             name: "TestSupport",
             dependencies: [
+                "EmbraceCore",
                 "EmbraceOTel",
+                "EmbraceCommon",
                 .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
             ],
             path: "Tests/TestSupport",

@@ -2,19 +2,19 @@
 name: Run Swift Tests
 
 on:
-  pull_request: {}
   workflow_call: {}
   workflow_dispatch: {}
+  pull_request: {}
   push:
     branches:
       - main
 
 jobs:
-  run-tests:
-    timeout-minutes: 20
+  run-lint:
+    timeout-minutes: 10
     runs-on: macos-13
     strategy:
-      fail-fast: false
+      fail-fast: true
     steps:
       - name: Select Xcode
         # See https://github.com/actions/runner-images/blob/main/images/macos/macos-12-Readme.md
@@ -25,13 +25,49 @@ jobs:
       - uses: actions/checkout@v4
         timeout-minutes: 2
 
-      - name: Cache Swift Package Dependencies
+      - name: Cache SPM Dependencies
         uses: actions/cache@v3
         with:
-          path: .build/DerivedData/SourcePackages
-          key: ${{ runner.os }}-spm-xctest-${{ hashFiles('Package.resolved') }}
+          path: |
+            .build/checkouts
+            .build/artifacts
+            .build/*-apple-*/debug/Swift*
+            .build/*-apple-*/debug/SourceKit*
+            .build/*-apple-*/debug/ArgumentParser*
+          key: ${{ runner.os }}-spm-build-cache-lint-${{ hashFiles('Package.resolved') }}
           restore-keys: |
-            ${{ runner.os }}-spm-xctest-
+            ${{ runner.os }}-spm-build-cache-lint
+
+      - run: bin/lint
+        timeout-minutes: 10
+
+  run-tests:
+    timeout-minutes: 30
+    runs-on: macos-13
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Select Xcode
+        # See https://github.com/actions/runner-images/blob/main/images/macos/macos-13-Readme.md
+        run: |
+          sudo xcode-select -s /Applications/Xcode_15.0.app
+          xcodebuild -version
+
+      - uses: actions/checkout@v4
+        timeout-minutes: 2
+
+      - name: Cache SPM Dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            .build/checkouts
+            .build/artifacts
+            .build/*-apple-*/debug/Swift*
+            .build/*-apple-*/debug/SourceKit*
+            .build/*-apple-*/debug/ArgumentParser*
+          key: ${{ runner.os }}-spm-build-cache-test-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-build-cache-test
 
       - name: Display Available SDKs
         run: xcodebuild -showsdks -json

@@ -10,7 +10,14 @@ final class SingleSpanProcessorTests: XCTestCase {
 
     let exporter = InMemorySpanExporter()
 
-    func createSpanData(processor: EmbraceSpanProcessor, traceId: TraceId = .random(), spanId: SpanId = .random(), name: String = "example", startTime: Date = Date(), endTime: Date? = nil) -> RecordingSpan {
+    func createSpanData(
+        processor: EmbraceSpanProcessor,
+        traceId: TraceId = .random(),
+        spanId: SpanId = .random(),
+        name: String = "example",
+        startTime: Date = Date(),
+        endTime: Date? = nil
+    ) -> RecordingSpan {
 
         return RecordingSpan(
             startTime: startTime,

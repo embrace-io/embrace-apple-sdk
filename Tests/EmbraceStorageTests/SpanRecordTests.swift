@@ -5,25 +5,20 @@
 import XCTest
 import TestSupport
 @testable import EmbraceStorage
+import GRDB
 
 class SpanRecordTests: XCTestCase {
-
-    let testOptions = EmbraceStorage.Options(baseUrl: URL(fileURLWithPath: NSTemporaryDirectory()), fileName: "test.sqlite")
+    var storage: EmbraceStorage!
 
     override func setUpWithError() throws {
-        if FileManager.default.fileExists(atPath: testOptions.filePath!) {
-            try FileManager.default.removeItem(atPath: testOptions.filePath!)
-        }
+        storage = try EmbraceStorage.createInDiskDb()
     }
 
     override func tearDownWithError() throws {
-
+        try storage.teardown()
     }
 
     func test_tableSchema() throws {
-        // given new storage
-        let storage = try EmbraceStorage(options: testOptions)
-
         let expectation = XCTestExpectation()
 
         // then the table and its colums should be correct
@@ -42,6 +37,15 @@ class SpanRecordTests: XCTestCase {
                 XCTAssert(idColumn.isNotNull)
             } else {
                 XCTAssert(false, "id column not found!")
+            }
+
+            // name
+            let nameColumn = columns.first(where: { $0.name == "name" })
+            if let nameColumn = nameColumn {
+                XCTAssertEqual(nameColumn.type, "TEXT")
+                XCTAssert(nameColumn.isNotNull)
+            } else {
+                XCTAssert(false, "name column not found!")
             }
 
             // trace_id
@@ -95,10 +99,16 @@ class SpanRecordTests: XCTestCase {
     }
 
     func test_addSpan() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
         // given inserted span
-        let span = try storage.addSpan(id: "id", traceId: "traceId", type: .performance, data: Data(), startTime: Date(), endTime: nil)
+        let span = try storage.addSpan(
+            id: "id",
+            name: "a name",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: Date(),
+            endTime: nil
+        )
         XCTAssertNotNil(span)
 
         // then span should exist in storage
@@ -112,10 +122,8 @@ class SpanRecordTests: XCTestCase {
     }
 
     func test_upsertSpan() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
         // given inserted span
-        let span = SpanRecord(id: "id", traceId: "tradeId", type: .performance, data: Data(), startTime: Date())
+        let span = SpanRecord(id: "id", name: "a name", traceId: "tradeId", type: .performance, data: Data(), startTime: Date())
         try storage.upsertSpan(span)
 
         // then span should exist in storage
@@ -129,143 +137,211 @@ class SpanRecordTests: XCTestCase {
     }
 
     func test_fetchSpan() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
         // given inserted span
-        let original = try storage.addSpan(id: "id", traceId: "traceId", type: .performance, data: Data(), startTime: Date(), endTime: nil)
+        let original = try storage.addSpan(
+            id: "id",
+            name: "a name",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: Date(),
+            endTime: nil
+        )
 
         // when fetching the span
-        let span = try storage.fetchSpan(id: "id", traceId: "traceId")
+        let span = try storage.fetchSpan(id: "id", traceId: TestConstants.traceId)
 
         // then the span should be valid
         XCTAssertNotNil(span)
         XCTAssertEqual(original, span)
     }
 
-    func test_fetchSpans() throws {
-        let storage = try EmbraceStorage(options: testOptions)
+    func test_cleanUpSpans() throws {
+        // given insterted spans
+        _ = try storage.addSpan(
+            id: "id1",
+            name: "a name 1",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: Date(timeIntervalSince1970: 0),
+            endTime: Date(timeIntervalSince1970: 10)
+        )
+        _ = try storage.addSpan(
+            id: "id2",
+            name: "a name 2",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: Date(timeIntervalSince1970: 0),
+            endTime: Date(timeIntervalSince1970: 20)
+        )
+        _ = try storage.addSpan(
+            id: "id3",
+            name: "a name 3",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: Date(timeIntervalSince1970: 0)
+        )
 
-        // given inserted spans
-        let span1 = try storage.addSpan(id: "id1", traceId: "traceId", type: .performance, data: Data(), startTime: Date(), endTime: nil)
-        let span2 = try storage.addSpan(id: "id2", traceId: "traceId", type: .performance, data: Data(), startTime: Date(), endTime: nil)
-        let span3 = try storage.addSpan(id: "id3", traceId: "traceId", type: .performance, data: Data(), startTime: Date(), endTime: nil)
+        // when cleaning up spans with a date
+        try storage.cleanUpSpans(date: Date(timeIntervalSince1970: 15))
 
-        // when fetching the spans
-        let spans = try storage.fetchSpans(traceId: "traceId")
+        // then closed spans older than that date are removed
+        // and open spans remain untouched
+        let expectation = XCTestExpectation()
+        try storage.dbQueue.read { db in
+            let spans = try SpanRecord
+                .order(Column("start_time").asc)
+                .fetchAll(db)
 
-        // then the fetched spans are valid
-        XCTAssert(spans.contains(span1))
-        XCTAssert(spans.contains(span2))
-        XCTAssert(spans.contains(span3))
+            XCTAssertEqual(spans.count, 2)
+            XCTAssertEqual(spans[0].id, "id2")
+            XCTAssertEqual(spans[1].id, "id3")
+            XCTAssertNil(spans[1].endTime)
+
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
-    func test_fetchOpenSpans() throws {
-        let storage = try EmbraceStorage(options: testOptions)
+    func test_cleanUpSpans_noDate() throws {
+        // given insterted spans
+        _ = try storage.addSpan(
+            id: "id1",
+            name: "a name 1",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: Date(timeIntervalSince1970: 0),
+            endTime: Date(timeIntervalSince1970: 10)
+        )
+        _ = try storage.addSpan(
+            id: "id2",
+            name: "a name 2",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: Date(timeIntervalSince1970: 0),
+            endTime: Date(timeIntervalSince1970: 20)
+        )
+        _ = try storage.addSpan(
+            id: "id3",
+            name: "a name 3",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: Date(timeIntervalSince1970: 0)
+        )
 
-        // given inserted spans
-        let span1 = try storage.addSpan(id: "id1", traceId: "traceId", type: .performance, data: Data(), startTime: Date(), endTime: nil)
-        let span2 = try storage.addSpan(id: "id2", traceId: "traceId", type: .performance, data: Data(), startTime: Date(), endTime: Date(timeIntervalSinceNow: 10))
-        let span3 = try storage.addSpan(id: "id3", traceId: "traceId", type: .performance, data: Data(), startTime: Date(), endTime: Date(timeIntervalSinceNow: 10))
+        // when cleaning up spans without a date
+        try storage.cleanUpSpans(date: nil)
 
-        // when fetching the open spans
-        let spans = try storage.fetchOpenSpans(traceId: "traceId")
+        // then all closed spans are removed
+        // and open spans remain untouched
+        let expectation = XCTestExpectation()
+        try storage.dbQueue.read { db in
+            let spans = try SpanRecord.fetchAll(db)
 
-        // then the fetched spans are valid
-        XCTAssert(spans.contains(span1))
-        XCTAssertFalse(spans.contains(span2))
-        XCTAssertFalse(spans.contains(span3))
+            XCTAssertEqual(spans.count, 1)
+            XCTAssertEqual(spans[0].id, "id3")
+            XCTAssertNil(spans[0].endTime)
+
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
-    func test_fetchOpenSpans_type() throws {
-        let storage = try EmbraceStorage(options: testOptions)
+    func test_closeOpenSpans() throws {
+        // given insterted spans
+        _ = try storage.addSpan(
+            id: "id1",
+            name: "a name 1",
+            traceId: TestConstants.traceId,
+            type: .performance, data: Data(),
+            startTime: Date(timeIntervalSince1970: 0),
+            endTime: Date(timeIntervalSince1970: 10)
+        )
+        _ = try storage.addSpan(
+            id: "id2",
+            name: "a name 2",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: Date(timeIntervalSince1970: 1)
+        )
+        _ = try storage.addSpan(
+            id: "id3",
+            name: "a name 3",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: Date(timeIntervalSince1970: 2)
+        )
 
-        // given inserted spans
-        let span1 = try storage.addSpan(id: "id1", traceId: "traceId", type: .performance, data: Data(), startTime: Date(), endTime: nil)
-        let span2 = try storage.addSpan(id: "id2", traceId: "traceId", type: .performance, data: Data(), startTime: Date(), endTime: nil)
-        let span3 = try storage.addSpan(id: "id3", traceId: "traceId", type: .ux, data: Data(), startTime: Date(), endTime: nil)
-
-        // when fetching the open spans
-        let spans = try storage.fetchOpenSpans(traceId: "traceId", type: .performance)
-
-        // then the fetched spans are valid
-        XCTAssert(spans.contains(span1))
-        XCTAssert(spans.contains(span2))
-        XCTAssertFalse(spans.contains(span3))
-    }
-
-    func test_spanCount_traceId() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
-        // given inserted spans
-        _ = try storage.addSpan(id: "id1", traceId: "traceId", type: .performance, data: Data(), startTime: Date(), endTime: nil)
-        _ = try storage.addSpan(id: "id2", traceId: "traceId", type: .performance, data: Data(), startTime: Date(), endTime: nil)
-        _ = try storage.addSpan(id: "id3", traceId: "traceId", type: .ux, data: Data(), startTime: Date(), endTime: nil)
-
-        // then the span count should be correct
-        let count = try storage.spanCount(traceId: "traceId", type: .performance)
-        XCTAssertEqual(count, 2)
-    }
-
-    func test_fetchSpans_traceId_type() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
-        // given inserted spans
-        let span1 = try storage.addSpan(id: "id1", traceId: "traceId", type: .performance, data: Data(), startTime: Date(), endTime: nil)
-        let span2 = try storage.addSpan(id: "id2", traceId: "traceId", type: .performance, data: Data(), startTime: Date(), endTime: nil)
-        let span3 = try storage.addSpan(id: "id3", traceId: "traceId", type: .ux, data: Data(), startTime: Date(), endTime: nil)
-
-        // when fetching the spans
-        let spans = try storage.fetchSpans(traceId: "traceId", type: .performance)
-
-        // then the fetched spans are valid
-        XCTAssert(spans.contains(span1))
-        XCTAssert(spans.contains(span2))
-        XCTAssertFalse(spans.contains(span3))
-    }
-
-    func test_fetchSpans_traceId_type_limit() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
-        // given inserted spans
-        let span1 = try storage.addSpan(id: "id1", traceId: "traceId", type: .performance, data: Data(), startTime: Date(timeIntervalSinceNow: 10), endTime: nil)
-        let span2 = try storage.addSpan(id: "id2", traceId: "traceId", type: .performance, data: Data(), startTime: Date(), endTime: nil)
-        let span3 = try storage.addSpan(id: "id3", traceId: "traceId", type: .performance, data: Data(), startTime: Date(timeIntervalSinceNow: 20), endTime: nil)
-
-        // when fetching the spans
-        let spans = try storage.fetchSpans(traceId: "traceId", type: .performance, limit: 1)
-
-        // then the fetched spans are valid
-        XCTAssertEqual(spans.count, 1)
-        XCTAssertFalse(spans.contains(span1))
-        XCTAssert(spans.contains(span2))
-        XCTAssertFalse(spans.contains(span3))
-    }
-
-    func test_spanCount_date() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
-        // given inserted spans
+        // when closing the spans
         let now = Date()
-        _ = try storage.addSpan(id: "id1", traceId: "traceId", type: .performance, data: Data(), startTime: now, endTime: nil)
-        _ = try storage.addSpan(id: "id2", traceId: "traceId", type: .performance, data: Data(), startTime: now.addingTimeInterval(10), endTime: nil)
-        _ = try storage.addSpan(id: "id3", traceId: "traceId", type: .ux, data: Data(), startTime: now.addingTimeInterval(15), endTime: nil)
+        try storage.closeOpenSpans(endTime: now)
 
-        // then the span count should be correct
-        let count = try storage.spanCount(startTime: now.addingTimeInterval(5), type: .performance)
-        XCTAssertEqual(count, 1)
+        // then all spans are correctly closed
+        let expectation = XCTestExpectation()
+        try storage.dbQueue.read { db in
+            let spans = try SpanRecord
+                .order(Column("start_time").asc)
+                .fetchAll(db)
+
+            XCTAssertEqual(spans.count, 3)
+            XCTAssertNotNil(spans[0].endTime)
+            XCTAssertNotEqual(spans[0].endTime!.timeIntervalSince1970, now.timeIntervalSince1970, accuracy: 0.1)
+            XCTAssertEqual(spans[1].endTime!.timeIntervalSince1970, now.timeIntervalSince1970, accuracy: 0.1)
+            XCTAssertEqual(spans[2].endTime!.timeIntervalSince1970, now.timeIntervalSince1970, accuracy: 0.1)
+
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_fetchSpans_date_type() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
         // given inserted spans
         let now = Date()
-        let span1 = try storage.addSpan(id: "id1", traceId: "traceId", type: .performance, data: Data(), startTime: now, endTime: nil)
-        let span2 = try storage.addSpan(id: "id2", traceId: "traceId", type: .performance, data: Data(), startTime: now.addingTimeInterval(10), endTime: nil)
-        let span3 = try storage.addSpan(id: "id3", traceId: "traceId", type: .performance, data: Data(), startTime: now.addingTimeInterval(15), endTime: nil)
+        let span1 = try storage.addSpan(
+            id: "id1",
+            name: "a name 1",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: now,
+            endTime: nil
+        )
+        let span2 = try storage.addSpan(
+            id: "id2",
+            name: "a name 2",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: now.addingTimeInterval(10),
+            endTime: nil
+        )
+        let span3 = try storage.addSpan(
+            id: "id3",
+            name: "a name 3",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: now.addingTimeInterval(15),
+            endTime: nil
+        )
 
         // when fetching the spans
-        let spans = try storage.fetchSpans(startTime: now.addingTimeInterval(5), type: .performance)
+        let spans = try storage.fetchSpans(
+            startTime: now.addingTimeInterval(5),
+            endTime: now.addingTimeInterval(30),
+            includeOlder: false
+        )
 
         // then the fetched spans are valid
         XCTAssertFalse(spans.contains(span1))
@@ -274,16 +350,43 @@ class SpanRecordTests: XCTestCase {
     }
 
     func test_fetchSpans_date_type_limit() throws {
-        let storage = try EmbraceStorage(options: testOptions)
-
         // given inserted spans
         let now = Date()
-        let span1 = try storage.addSpan(id: "id1", traceId: "traceId", type: .performance, data: Data(), startTime: now, endTime: nil)
-        let span2 = try storage.addSpan(id: "id2", traceId: "traceId", type: .performance, data: Data(), startTime: now.addingTimeInterval(10), endTime: nil)
-        let span3 = try storage.addSpan(id: "id3", traceId: "traceId", type: .performance, data: Data(), startTime: now.addingTimeInterval(15), endTime: nil)
+        let span1 = try storage.addSpan(
+            id: "id1",
+            name: "a name 1",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: now,
+            endTime: nil
+        )
+        let span2 = try storage.addSpan(
+            id: "id2",
+            name: "a name 2",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: now.addingTimeInterval(10),
+            endTime: nil
+        )
+        let span3 = try storage.addSpan(
+            id: "id3",
+            name: "a name 3",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: now.addingTimeInterval(15),
+            endTime: nil
+        )
 
         // when fetching the spans
-        let spans = try storage.fetchSpans(startTime: now.addingTimeInterval(5), type: .performance, limit: 1)
+        let spans = try storage.fetchSpans(
+            startTime: now.addingTimeInterval(5),
+            endTime: now.addingTimeInterval(30),
+            includeOlder: false,
+            limit: 1
+        )
 
         // then the fetched spans are valid
         XCTAssertEqual(spans.count, 1)

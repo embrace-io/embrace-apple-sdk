@@ -11,7 +11,7 @@ import EmbraceCommon
  Prior to merge this PR (or afterwards) this will be unified with austin API updates.
  When that happens:
  - Delete this file
- - Go to `URLSessionCollector` and modify the `init` to be compliant with the protocol that
+ - Go to `URLSessionCaptureService` and modify the `init` to be compliant with the protocol that
  `EmbraceOTel` implements.
 */
 public protocol EmbraceOpenTelemetry {

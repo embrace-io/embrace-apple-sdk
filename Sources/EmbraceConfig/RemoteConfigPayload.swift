@@ -4,6 +4,8 @@
 
 import Foundation
 
+// swiftlint:disable nesting
+
 struct RemoteConfigPayload: Decodable {
     var sdkEnabledThreshold: Float
     var backgroundSessionThreshold: Float
@@ -21,11 +23,20 @@ struct RemoteConfigPayload: Decodable {
         let defaultPayload = RemoteConfigPayload()
 
         let rootContainer = try decoder.container(keyedBy: CodingKeys.self)
-        sdkEnabledThreshold = try rootContainer.decodeIfPresent(Float.self, forKey: .sdkEnabledThreshold) ?? defaultPayload.sdkEnabledThreshold
+        sdkEnabledThreshold = try rootContainer.decodeIfPresent(
+            Float.self,
+            forKey: .sdkEnabledThreshold
+        ) ?? defaultPayload.sdkEnabledThreshold
 
         if rootContainer.contains(.background) {
-            let backgroundContainer = try rootContainer.nestedContainer(keyedBy: CodingKeys.BackgroundCodingKeys.self, forKey: .background)
-            backgroundSessionThreshold = try backgroundContainer.decodeIfPresent(Float.self, forKey: CodingKeys.BackgroundCodingKeys.threshold) ?? defaultPayload.backgroundSessionThreshold
+            let backgroundContainer = try rootContainer.nestedContainer(
+                keyedBy: CodingKeys.BackgroundCodingKeys.self,
+                forKey: .background
+            )
+            backgroundSessionThreshold = try backgroundContainer.decodeIfPresent(
+                Float.self,
+                forKey: CodingKeys.BackgroundCodingKeys.threshold
+            ) ?? defaultPayload.backgroundSessionThreshold
         } else {
             backgroundSessionThreshold = defaultPayload.backgroundSessionThreshold
         }
@@ -37,3 +48,5 @@ struct RemoteConfigPayload: Decodable {
         backgroundSessionThreshold = 0.0
     }
 }
+
+// swiftlint:enable nesting

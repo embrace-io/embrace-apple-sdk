@@ -9,15 +9,21 @@ import GRDB
 
 class EmbraceUploadTests: XCTestCase {
 
-    static let testSessionsUrl = URL(string: "https://embrace.test.com/sessions")!
-    static let testBlobsUrl = URL(string: "https://embrace.test.com/blobs")!
+    static let testSessionsUrl = URL(string: "https://embrace.test.com/upload/sessions")!
+    static let testBlobsUrl = URL(string: "https://embrace.test.com/upload/blobs")!
 
     static let testEndpointOptions = EmbraceUpload.EndpointOptions(
         sessionsURL: EmbraceUploadTests.testSessionsUrl,
         blobsURL: EmbraceUploadTests.testBlobsUrl
     )
-    static let testCacheOptions = EmbraceUpload.CacheOptions(cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory()))!
-    static let testMetadataOptions = EmbraceUpload.MetadataOptions(apiKey: "apiKey", userAgent: "userAgent", deviceId: "12345678")
+    static let testCacheOptions = EmbraceUpload.CacheOptions(
+        cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory())
+    )!
+    static let testMetadataOptions = EmbraceUpload.MetadataOptions(
+        apiKey: "apiKey",
+        userAgent: "userAgent",
+        deviceId: "12345678"
+    )
     static let testRedundancyOptions = EmbraceUpload.RedundancyOptions(automaticRetryCount: 0)
 
     var testOptions: EmbraceUpload.Options!
@@ -44,7 +50,6 @@ class EmbraceUploadTests: XCTestCase {
 
         self.queue = DispatchQueue(label: "com.test.embrace.queue", attributes: .concurrent)
         module = try EmbraceUpload(options: testOptions, queue: queue)
-
     }
 
     override func tearDownWithError() throws {
@@ -89,7 +94,7 @@ class EmbraceUploadTests: XCTestCase {
     }
 
     func test_success() throws {
-        EmbraceHTTPMock.mock(url: EmbraceUploadTests.testSessionsUrl)
+        EmbraceHTTPMock.mock(url: Self.testSessionsUrl)
 
         // given valid values
         let expectation = XCTestExpectation()
@@ -108,7 +113,7 @@ class EmbraceUploadTests: XCTestCase {
     }
 
     func test_cacheFlowOnSuccess() throws {
-        EmbraceHTTPMock.mock(url: EmbraceUploadTests.testSessionsUrl)
+        EmbraceHTTPMock.mock(url: Self.testSessionsUrl)
 
         // given valid values
         let expectation1 = XCTestExpectation(description: "1. Data should be cached in the database")

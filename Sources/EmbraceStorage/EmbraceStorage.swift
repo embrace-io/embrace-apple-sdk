@@ -5,7 +5,7 @@
 import Foundation
 import GRDB
 
-/// Class in charge of storing all the data collected by the Embrace SDK.
+/// Class in charge of storing all the data captured by the Embrace SDK.
 /// It provides an abstraction layer over a GRDB SQLite database.
 public class EmbraceStorage {
 
@@ -117,7 +117,11 @@ extension EmbraceStorage {
     ///   - sql: SQL query to execute
     ///   - arguments: Arguments for the query, if any
     ///   - completion: Completion block called with an `Error` on failure
-    public func executeQueryAsync(_ sql: String, arguments: StatementArguments?, completion: ((Result<Void, Error>) -> Void)?) {
+    public func executeQueryAsync(
+        _ sql: String,
+        arguments: StatementArguments?,
+        completion: ((Result<Void, Error>) -> Void)?
+    ) {
         dbWriteAsync(block: { db in
             try db.execute(sql: sql, arguments: arguments ?? StatementArguments())
         }, completion: completion)
