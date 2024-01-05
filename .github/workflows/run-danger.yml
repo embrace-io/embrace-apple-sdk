@@ -22,7 +22,20 @@ jobs:
 
       - name: Install Danger Swift
         run: |
-          brew install danger/tap/danger-swift
+          if ! which danger-swift > /dev/null; then
+            echo "Danger-swift is not installed; We'll try to install it."
+
+            if ! which brew > /dev/null; then
+              echo "Brew is not installed; cannot proceed with Danger installation."
+            fi 
+            
+            brew bundle --verbose
+
+            echo "Danger was installed successfully"
+          else
+            echo "Danger-swift is already installed"
+          fi
+
           danger-swift --version
 
       - name: Run Danger

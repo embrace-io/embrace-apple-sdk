@@ -1,0 +1,25 @@
+{
+  "entries": {
+    "brew": {
+      "danger/tap/danger-swift": {
+        "version": "3.18.0",
+        "bottle": false,
+        "options": {
+          "tag": "3.15.0"
+        }
+      }
+    }
+  },
+  "system": {
+    "macos": {
+      "ventura": {
+        "HOMEBREW_VERSION": "4.2.2",
+        "HOMEBREW_PREFIX": "/opt/homebrew",
+        "Homebrew/homebrew-core": "api",
+        "CLT": "14.3.1.0.1.1683849156",
+        "Xcode": "15.1",
+        "macOS": "13.5.1"
+      }
+    }
+  }
+}
