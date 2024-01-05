@@ -9,18 +9,37 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: macos-13
     name: "Run Danger"
     steps:
       - uses: actions/checkout@v4
 
       - name: Select Xcode
+        # See https://github.com/actions/runner-images/blob/main/images/macos/macos-12-Readme.md
         run: |
           sudo xcode-select -s /Applications/Xcode_15.0.app
           xcodebuild -version
 
-      - name: Danger
-        uses: docker://ghcr.io/embrace-io/danger-swift-with-swiftlint:3.15.0
-        with:
-            args: --failOnErrors --no-publish-check
-            token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+      - name: Install Danger Swift
+        run: |
+          if ! which danger-swift > /dev/null; then
+            echo "Danger-swift is not installed; We'll try to install it."
+
+            if ! which brew > /dev/null; then
+              echo "Brew is not installed; cannot proceed with Danger installation."
+            fi 
+            
+            brew bundle --verbose
+
+            echo "Danger was installed successfully"
+          else
+            echo "Danger-swift is already installed"
+          fi
+
+          danger-swift --version
+
+      - name: Run Danger
+        run: danger-swift ci
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
