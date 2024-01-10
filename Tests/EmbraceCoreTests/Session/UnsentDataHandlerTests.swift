@@ -8,7 +8,6 @@ import XCTest
 import EmbraceCommon
 import EmbraceStorage
 @testable import EmbraceUpload
-import EmbraceCrash
 import TestSupport
 import GRDB
 
@@ -155,20 +154,8 @@ class UnsentDataHandlerTests: XCTestCase {
 
         let upload = try EmbraceUpload(options: uploadOptions, queue: queue)
 
-        // TODO: Mock out crash reporter so that we can remove dependency on EmbraceCrash
         // given a crash reporter
-        let crashReporter = EmbraceCrashReporter()
-        crashReporter.install(context: .testContext)
-        crashReporter.start()
-
-        // given some fake crash report
-        try FileManager.default.createDirectory(
-            atPath: crashReporter.basePath! + "/Reports",
-            withIntermediateDirectories: true
-        )
-        let report = Bundle.module.path(forResource: "crash_report", ofType: "json", inDirectory: "Mocks")!
-        let finalPath = crashReporter.basePath! + "/Reports/appId-report-0000000000000001.json"
-        try FileManager.default.copyItem(atPath: report, toPath: finalPath)
+        let crashReporter = CrashReporterMock()
 
         // given a finished session in the storage
         try storage.addSession(
@@ -240,18 +227,7 @@ class UnsentDataHandlerTests: XCTestCase {
         let upload = try EmbraceUpload(options: uploadOptions, queue: queue)
 
         // given a crash reporter
-        let crashReporter = EmbraceCrashReporter()
-        crashReporter.install(context: .testContext)
-        crashReporter.start()
-
-        // given some fake crash report
-        try FileManager.default.createDirectory(
-            atPath: crashReporter.basePath! + "/Reports",
-            withIntermediateDirectories: true
-        )
-        let report = Bundle.module.path(forResource: "crash_report", ofType: "json", inDirectory: "Mocks")!
-        let finalPath = crashReporter.basePath! + "/Reports/appId-report-0000000000000001.json"
-        try FileManager.default.copyItem(atPath: report, toPath: finalPath)
+        let crashReporter = CrashReporterMock()
 
         // given a finished session in the storage
         try storage.addSession(
@@ -323,18 +299,7 @@ class UnsentDataHandlerTests: XCTestCase {
         let upload = try EmbraceUpload(options: uploadOptions, queue: queue)
 
         // given a crash reporter
-        let crashReporter = EmbraceCrashReporter()
-        crashReporter.install(context: .testContext)
-        crashReporter.start()
-
-        // given some fake crash report
-        try FileManager.default.createDirectory(
-            atPath: crashReporter.basePath! + "/Reports",
-            withIntermediateDirectories: true
-        )
-        let report = Bundle.module.path(forResource: "crash_report", ofType: "json", inDirectory: "Mocks")!
-        let finalPath = crashReporter.basePath! + "/Reports/appId-report-0000000000000001.json"
-        try FileManager.default.copyItem(atPath: report, toPath: finalPath)
+        let crashReporter = CrashReporterMock()
 
         // given an unfinished session in the storage
         try storage.addSession(

@@ -59,7 +59,7 @@ let package = Package(
             ],
             plugins: targetPlugins
         ),
-        
+
         .testTarget(
             name: "EmbraceIOTests",
             dependencies: [
@@ -72,7 +72,6 @@ let package = Package(
             plugins: targetPlugins
         ),
 
-        
         // core ----------------------------------------------------------------------
         .target(
             name: "EmbraceCore",
@@ -92,7 +91,6 @@ let package = Package(
             dependencies: [
                 "EmbraceCore",
                 "TestSupport",
-                "EmbraceCrash",
                 .product(name: "GRDB", package: "GRDB.swift")
             ],
             resources: [
