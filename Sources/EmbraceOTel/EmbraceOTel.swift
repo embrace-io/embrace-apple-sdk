@@ -25,7 +25,7 @@ import OpenTelemetryApi
 
     // methods to add span
 
-    public func addSpan<T>(
+    public func recordSpan<T>(
         name: String,
         type: SpanType,
         attributes: [String: String] = [:],

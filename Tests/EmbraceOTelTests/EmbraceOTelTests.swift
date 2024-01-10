@@ -25,12 +25,12 @@ final class EmbraceOTelTests: XCTestCase {
         XCTAssertEqual(otel.instrumentationName, "EmbraceTracer")
     }
 
-// MARK: addSpan with block
+// MARK: recordSpan with block
 
-    func test_addSpan_returnsGenericResult_whenInt() throws {
+    func test_recordSpan_returnsGenericResult_whenInt() throws {
         let otel = EmbraceOTel()
 
-        let spanResult = otel.addSpan(name: "math_test", type: .performance) {
+        let spanResult = otel.recordSpan(name: "math_test", type: .performance) {
             var result = 0
             for i in 0...10 {
                 // 1 + 4 + 9 + 16 + 25 + 36 + 49 + 64 + 81 + 100
@@ -44,10 +44,10 @@ final class EmbraceOTelTests: XCTestCase {
         XCTAssertEqual(spanResult, 385)
     }
 
-    func test_addSpan_returnsGenericResult_whenString() throws {
+    func test_recordSpan_returnsGenericResult_whenString() throws {
         let otel = EmbraceOTel()
 
-        let spanResult = otel.addSpan(name: "math_test", type: .performance) {
+        let spanResult = otel.recordSpan(name: "math_test", type: .performance) {
             for i in 0...10 {
                 // 1 + 4 + 9 + 16 + 25 + 36 + 49 + 64 + 81 + 100
                 _ = i * i

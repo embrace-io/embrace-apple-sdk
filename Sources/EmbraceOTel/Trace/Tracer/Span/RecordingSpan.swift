@@ -72,6 +72,10 @@ final class RecordingSpan: Span {
     func end(time: Date) {
         endTime = time
 
+        if status == .unset {
+            status = .ok
+        }
+
         spanProcessor.onEnd(span: self)
     }
 

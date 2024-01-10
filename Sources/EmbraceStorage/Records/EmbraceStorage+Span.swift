@@ -29,7 +29,15 @@ extension EmbraceStorage {
         endTime: Date? = nil
     ) throws -> SpanRecord {
 
-        let span = SpanRecord(id: id, name: name, traceId: traceId, type: type, data: data, startTime: startTime, endTime: endTime)
+        let span = SpanRecord(
+            id: id,
+            name: name,
+            traceId: traceId,
+            type: type,
+            data: data,
+            startTime: startTime,
+            endTime: endTime
+        )
         try upsertSpan(span)
 
         return span

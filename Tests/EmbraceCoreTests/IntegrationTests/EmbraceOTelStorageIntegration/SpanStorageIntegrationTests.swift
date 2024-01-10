@@ -30,28 +30,6 @@ final class SpanStorageIntegrationTests: IntegrationTestCase {
     }
 
     //  TESTSKIP: ValueObservation
-    func skip_test_addSpan_storesSpan() throws {
-        let exp = expectation(description: "Observe Insert")
-        let observation = ValueObservation.tracking(SpanRecord.fetchAll)
-        let cancellable = observation.start(in: storage.dbQueue) { error in
-            fatalError("Error: \(error)")
-        } onChange: { records in
-            if records.count > 0 {
-                exp.fulfill()
-            }
-        }
-
-        let otel = EmbraceOTel()
-        _ = otel.addSpan(name: "example", type: .session) {  5 * 5 }
-        wait(for: [exp], timeout: 1.0)
-
-        let records: [SpanRecord] = try storage.fetchAll()
-        XCTAssertEqual(records.count, 1)
-        XCTAssertEqual(records.first?.type, .session)
-        cancellable.cancel()
-    }
-
-    //  TESTSKIP: ValueObservation
     func skip_test_buildSpan_storesOpenSpan() throws {
         let exp = expectation(description: "Observe Insert")
         let observation = ValueObservation.tracking(SpanRecord.fetchAll)

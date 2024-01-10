@@ -101,6 +101,25 @@ final class RecordingSpanTests: XCTestCase {
         XCTAssertEqual(span.endTime, endTime)
     }
 
+    func test_end_setsStatus_toOk_ifUnset() throws {
+        let span = RecordingSpan(startTime: Date(), context: .create(), name: "example", processor: .noop)
+        XCTAssertEqual(span.status, .unset)
+
+        span.end()
+        XCTAssertEqual(span.status, .ok)
+    }
+
+    func test_end_doesNot_setStatus_toOk_ifError() throws {
+        let errorStatus = Status.error(description: "unable to example")
+
+        let span = RecordingSpan(startTime: Date(), context: .create(), name: "example", processor: .noop)
+        span.status = errorStatus
+        XCTAssertEqual(span.status, errorStatus)
+
+        span.end()
+        XCTAssertEqual(span.status, errorStatus)
+    }
+
     func test_description_containsDescriptiveMessage() throws {
         let span = RecordingSpan(startTime: Date(), context: .create(), name: "example", processor: .noop)
         let description = span.description
