@@ -1,0 +1,23 @@
+name: Publish
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - main
+
+jobs:
+  run-tests-workflow:
+    uses: ./.github/workflows/run-tests
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: run-tests-workflow
+    steps:
+      - uses: actions/checkout@v4
+        timeout-minutes: 2
+
+      - name: Run publish script
+        env:
+          PUBLIC_REMOTE_URL: ${{ env.PUBLIC_REMOTE_URL }}
+        run: bin/publish
