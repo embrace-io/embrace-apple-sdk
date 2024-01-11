@@ -8,7 +8,7 @@ on:
 
 jobs:
   run-tests-workflow:
-    uses: ./.github/workflows/run-tests
+    uses: ./.github/workflows/run-tests.yml
 
   publish:
     runs-on: ubuntu-latest
