@@ -13,6 +13,12 @@ struct DeviceInfoPayload: Codable {
     var totalDiskSpace: Int?
     var osVersion: String?
     var osBuild: String?
+    var osType: String? = "iOS"
+    var osVariant: String?
+    var architecture: String?
+    var model: String?
+    var manufacturer: String? = "Apple"
+    var screenResolution: String?
 
     enum CodingKeys: String, CodingKey {
         case isJailbroken = "jb"
@@ -21,6 +27,12 @@ struct DeviceInfoPayload: Codable {
         case totalDiskSpace = "ms"
         case osVersion = "ov"
         case osBuild = "ob"
+        case osType = "os"
+        case osVariant = "oa"
+        case architecture = "da"
+        case model = "do"
+        case manufacturer = "dm"
+        case screenResolution = "sr"
     }
 
     init(with resources: [ResourceRecord]) {
@@ -42,6 +54,18 @@ struct DeviceInfoPayload: Codable {
                 self.osVersion = resource.stringValue
             case .OSBuild:
                 self.osBuild = resource.stringValue
+            case .architecture:
+                self.architecture = resource.stringValue
+            case .model:
+                self.model = resource.stringValue
+            case .manufacturer:
+                self.manufacturer = resource.stringValue
+            case .screenResolution:
+                self.screenResolution = resource.stringValue
+            case .osType:
+                self.osType = resource.stringValue
+            case .osVariant:
+                self.osVariant = resource.stringValue
             }
         }
     }

@@ -24,7 +24,9 @@ import EmbraceObjCUtils
         let totalDiskSpace = EMBDevice.totalDiskSpace
         let operatingSystemVersion = EMBDevice.operatingSystemVersion
         let operatingSystemBuild = EMBDevice.operatingSystemBuild
-
+        let screenResolution = EMBDevice.screenResolution
+        let deviceModel = EMBDevice.model
+        let osVariant =  EMBDevice.operatingSystemType
         do {
             try resourceHandler.addResource(key: Keys.isJailbroken.rawValue, value: String(isJailbroken))
             try resourceHandler.addResource(key: Keys.locale.rawValue, value: locale)
@@ -32,7 +34,9 @@ import EmbraceObjCUtils
             try resourceHandler.addResource(key: Keys.totalDiskSpace.rawValue, value: totalDiskSpace.intValue)
             try resourceHandler.addResource(key: Keys.OSVersion.rawValue, value: operatingSystemVersion)
             try resourceHandler.addResource(key: Keys.OSBuild.rawValue, value: operatingSystemBuild)
-
+            try resourceHandler.addResource(key: Keys.screenResolution.rawValue, value: screenResolution ?? "")
+            try resourceHandler.addResource(key: Keys.model.rawValue, value: deviceModel)
+            try resourceHandler.addResource(key: Keys.osVariant.rawValue, value: osVariant)
         } catch let e {
             ConsoleLog.error("Failed to capture device info metadata \(e.localizedDescription)")
         }

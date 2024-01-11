@@ -12,6 +12,10 @@ struct SessionPayload: Encodable {
     let appInfo: AppInfoPayload
     let deviceInfo: DeviceInfoPayload
     let userInfo: UserInfoPayload
+    let sessionType: String = "en"
+    let sessionTerminated: Bool = false
+    let cleanExit: Bool = true
+    let coldStart: Bool = false
     let spans: [SpanPayload]
     let spanSnapshots: [SpanPayload]
 
@@ -23,6 +27,10 @@ struct SessionPayload: Encodable {
         case userInfo = "u"
         case spans = "spans"
         case spanSnapshots = "span_snapshots"
+        case sessionType = "ty"
+        case sessionTerminated = "tr"
+        case cleanExit = "ce"
+        case coldStart = "cs"
     }
 
     init(
