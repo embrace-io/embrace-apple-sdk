@@ -114,7 +114,7 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
 
             if let data = data {
                 let totalData = task.embraceData ?? data
-                span.setAttribute(key: SpanAttribute.responseSize, value: totalData .count)
+                span.setAttribute(key: SpanAttribute.responseSize, value: totalData.count)
             }
 
             if let error = error {
