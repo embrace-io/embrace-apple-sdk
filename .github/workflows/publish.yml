@@ -9,6 +9,7 @@ on:
 jobs:
   run-tests-workflow:
     uses: ./.github/workflows/run-tests.yml
+    secrets: inherit
 
   publish:
     runs-on: ubuntu-latest
