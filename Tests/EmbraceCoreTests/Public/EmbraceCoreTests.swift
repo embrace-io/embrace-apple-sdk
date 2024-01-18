@@ -124,6 +124,17 @@ final class EmbraceCoreTests: XCTestCase {
         XCTAssertTrue(embrace.started)
     }
 
+    func test_EmbraceStart_defaultLogLevelIsDebug() throws {
+        guard let embrace = try getLocalEmbrace() else {
+            XCTFail("failed to get embrace instance")
+            return
+        }
+
+        try embrace.start()
+
+        XCTAssertEqual(embrace.logLevel, .debug)
+    }
+
     // MARK: - Helper Methods
     func getLocalEmbrace()throws -> Embrace? {
         // to ensure that each test gets it's own instance of embrace.

@@ -15,6 +15,7 @@ extension Embrace {
         @objc public let platform: Platform
         @objc public let endpoints: Embrace.Endpoints
         @objc public let services: [CaptureService]
+        @objc public let logLevel: LogLevel
 
         /// Default initializer for `Embrace.Options` that requires an array of `CaptureServices` to be passed.
         ///
@@ -32,6 +33,7 @@ extension Embrace {
             appGroupId: String? = nil,
             platform: Platform = .iOS,
             endpoints: Embrace.Endpoints? = nil,
+            logLevel: LogLevel = .default,
             captureServices: [CaptureService]
         ) {
             self.appId = appId
@@ -39,6 +41,7 @@ extension Embrace {
             self.platform = platform
             self.endpoints = endpoints ?? .init(appId: appId)
             self.services = captureServices
+            self.logLevel = logLevel
         }
     }
 }
