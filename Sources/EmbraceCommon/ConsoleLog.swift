@@ -12,6 +12,12 @@ import Foundation
     case info
     case warning
     case error
+
+    #if DEBUG
+    public static let `default`: LogLevel = .debug
+    #else
+    public static let `default`: LogLevel = .error
+    #endif
 }
 
 /// Class in charge of filtering and printing logs to the console
