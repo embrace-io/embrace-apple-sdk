@@ -22,7 +22,7 @@ public extension Embrace.Options {
     @objc convenience init(
         appId: String,
         appGroupId: String? = nil,
-        platform: Platform = .iOS,
+        platform: Platform = .default,
         endpoints: Embrace.Endpoints
     ) {
         self.init(
@@ -36,7 +36,7 @@ public extension Embrace.Options {
     @objc convenience init(
         appId: String,
         appGroupId: String? = nil,
-        platform: Platform = .iOS
+        platform: Platform = .default
     ) {
         self.init(
             appId: appId,
