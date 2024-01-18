@@ -65,18 +65,12 @@ extension Embrace {
         return nil
     }
 #if os(iOS)
-    static func createSessionLifecycle(platform: Platform, controller: SessionControllable) -> SessionLifecycle {
-        switch platform {
-        case .iOS: return iOSSessionLifecycle(controller: controller)
-        default: return ManualSessionLifecycle(controller: controller)
-        }
+    static func createSessionLifecycle(controller: SessionControllable) -> SessionLifecycle {
+        iOSSessionLifecycle(controller: controller)
     }
-// #elseif os(macOS)
 #else
-    static func createSessionLifecycle(platform: Platform, controller: SessionControllable) -> SessionLifecycle {
-        switch platform {
-        default: return ManualSessionLifecycle(controller: controller)
-        }
+    static func createSessionLifecycle(controller: SessionControllable) -> SessionLifecycle {
+        ManualSessionLifecycle(controller: controller)
     }
 #endif
 }
