@@ -68,9 +68,8 @@ extension Embrace {
     static func createSessionLifecycle(controller: SessionControllable) -> SessionLifecycle {
         iOSSessionLifecycle(controller: controller)
     }
-// #elseif os(macOS)
 #else
-    static func createSessionLifecycle(platform: Platform, controller: SessionControllable) -> SessionLifecycle {
+    static func createSessionLifecycle(controller: SessionControllable) -> SessionLifecycle {
         ManualSessionLifecycle(controller: controller)
     }
 #endif
