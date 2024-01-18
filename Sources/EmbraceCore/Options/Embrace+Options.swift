@@ -30,7 +30,7 @@ extension Embrace {
         @objc public init(
             appId: String,
             appGroupId: String? = nil,
-            platform: Platform = .iOS,
+            platform: Platform = .default,
             endpoints: Embrace.Endpoints? = nil,
             captureServices: [CaptureService]
         ) {
