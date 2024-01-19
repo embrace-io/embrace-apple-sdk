@@ -7,6 +7,7 @@ import EmbraceCommon
 import EmbraceOTel
 import EmbraceStorage
 import EmbraceUpload
+import EmbraceObjCUtils
 
 extension Embrace {
     static func createStorage(options: Embrace.Options) throws -> EmbraceStorage {
@@ -27,7 +28,9 @@ extension Embrace {
 
     static func createUpload(options: Embrace.Options, deviceId: String) -> EmbraceUpload? {
         // endpoints
-        guard let sessionsURL = URL.sessionsEndpoint(basePath: options.endpoints.baseURL),
+        guard let sessionsURL = EMBDevice.isDebuggerAttached ?
+                URL.sessionsEndpoint(basePath: options.endpoints.developmentBaseURL) :
+                URL.sessionsEndpoint(basePath: options.endpoints.baseURL),
               let blobsURL = URL.blobsEndpoint(basePath: options.endpoints.baseURL) else {
             ConsoleLog.error("Failed to initialize endpoints!")
             return nil
