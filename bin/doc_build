@@ -5,7 +5,7 @@ rm -rf ../docs/
 
 # build doc for static hosting in github
 swift package --allow-writing-to-directory ../docs/ \
-    generate-documentation --target embrace-ios-core \
+    generate-documentation --target EmbraceCore \
     --disable-indexing \
     --transform-for-static-hosting \
     --hosting-base-path embrace-apple-core-internal \
