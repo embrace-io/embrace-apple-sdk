@@ -16,7 +16,13 @@ public struct SpanRecord: Codable {
     public var startTime: Date
     public var endTime: Date?
 
-    public init(id: String, name: String, traceId: String, type: SpanType, data: Data, startTime: Date, endTime: Date? = nil) {
+    public init(id: String,
+                name: String,
+                traceId: String,
+                type: SpanType,
+                data: Data,
+                startTime: Date,
+                endTime: Date? = nil) {
         self.id = id
         self.traceId = traceId
         self.type = type
@@ -38,7 +44,6 @@ extension SpanRecord: TableRecord {
 
     internal static func defineTable(db: Database) throws {
         try db.create(table: SpanRecord.databaseTableName, options: .ifNotExists) { t in
-
             t.column("id", .text).notNull()
             t.column("name", .text).notNull()
             t.column("trace_id", .text).notNull()
@@ -50,6 +55,17 @@ extension SpanRecord: TableRecord {
 
             t.column("data", .blob).notNull()
         }
+
+        let preventClosedSpanModification = """
+        CREATE TRIGGER IF NOT EXISTS prevent_closed_span_modification
+        BEFORE UPDATE ON \(SpanRecord.databaseTableName)
+        WHEN OLD.end_time IS NOT NULL
+        BEGIN
+            SELECT RAISE(ABORT,'Attempted to modify an already closed span.');
+        END;
+        """
+
+        try db.execute(sql: preventClosedSpanModification)
     }
 }
 

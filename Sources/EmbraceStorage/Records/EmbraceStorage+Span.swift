@@ -47,7 +47,11 @@ extension EmbraceStorage {
     /// - Parameter record: `SpanRecord` to upsert
     public func upsertSpan(_ span: SpanRecord) throws {
         try dbQueue.write { [weak self] db in
-            try self?.upsertSpan(db: db, span: span)
+            do {
+                try self?.upsertSpan(db: db, span: span)
+            } catch let e as DatabaseError {
+                ConsoleLog.error("Failed upsertSpan: \(e.message ?? "[empty message]")")
+            }
         }
     }
 
