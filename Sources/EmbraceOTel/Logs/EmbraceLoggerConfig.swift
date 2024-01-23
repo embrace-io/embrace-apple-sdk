@@ -4,12 +4,22 @@
 
 import Foundation
 
-public protocol EmbraceLoggerConfig {
+public protocol EmbraceLoggerConfig: Equatable {
     var maxInactivityTime: Int { get }
     var maxTimeBetweenLogs: Int { get }
     var maxMessageLength: Int { get }
     var maxAttributes: Int { get }
     var logAmountLimit: Int { get }
+}
+
+extension EmbraceLoggerConfig {
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.maxInactivityTime == rhs.maxInactivityTime &&
+        lhs.maxTimeBetweenLogs == rhs.maxTimeBetweenLogs &&
+        lhs.maxMessageLength == rhs.maxMessageLength &&
+        lhs.maxAttributes == rhs.maxAttributes &&
+        lhs.logAmountLimit == rhs.logAmountLimit
+    }
 }
 
 struct DefaultEmbraceLoggerConfig: EmbraceLoggerConfig {

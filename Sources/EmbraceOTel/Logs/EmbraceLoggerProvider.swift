@@ -34,7 +34,7 @@ class DefaultEmbraceLoggerProvider: EmbraceLoggerProvider {
         EmbraceLoggerBuilder(sharedState: sharedState)
     }
 
-    func update(_ config: EmbraceLoggerConfig) {
+    func update(_ config: any EmbraceLoggerConfig) {
         sharedState.update(config)
     }
 }

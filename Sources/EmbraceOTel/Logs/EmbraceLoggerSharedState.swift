@@ -9,10 +9,10 @@ import Foundation
 class EmbraceLoggerSharedState {
     let resource: Resource
     let processors: [LogRecordProcessor]
-    private(set) var config: EmbraceLoggerConfig
+    private(set) var config: any EmbraceLoggerConfig
 
     init(resource: Resource,
-         config: EmbraceLoggerConfig,
+         config: any EmbraceLoggerConfig,
          processors: [LogRecordProcessor]) {
         self.resource = resource
         self.config = config
@@ -25,7 +25,7 @@ class EmbraceLoggerSharedState {
               processors: [])
     }
 
-    func update(_ config: EmbraceLoggerConfig) {
+    func update(_ config: any EmbraceLoggerConfig) {
         self.config = config
     }
 }
