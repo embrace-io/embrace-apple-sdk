@@ -1,0 +1,64 @@
+name: Smoke test App
+
+env:
+  ARCHIVE_QUIET_MODE: 1
+  AWS_DEFAULT_REGION: "us-west-2"
+
+on:
+  workflow_dispatch:
+# These permissions are needed to interact with GitHub's OIDC Token endpoint
+permissions:
+  id-token: write
+  contents: write
+  packages: read
+
+jobs:
+  build-smoke-tests-app:
+    timeout-minutes: 40
+    runs-on: [macos-12]
+    strategy:
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v3
+        timeout-minutes: 5
+        with:
+          submodules: recursive
+
+      - name: xcodebuild
+        run: |
+          set -o pipefail && \
+          xcodebuild build -verbose -project ./Examples/iOS/BrandGame/BrandGame.xcodeproj \
+            CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO \
+            -scheme BrandGame \
+            -sdk iphonesimulator \
+            -derivedDataPath build
+
+            cd build/Build/Products/Debug-iphonesimulator
+            zip -r BrandGame.zip BrandGame.app
+            mv BrandGame.zip ../../../../
+            cd ../../../../
+      - name: Upload Artifiact
+        uses: actions/upload-artifact@master
+        with:
+          name: TestApp
+          path: BrandGame.zip
+
+  run-smoke-test:
+    needs: build-smoke-tests-app
+    uses: embrace-io/actions/.github/workflows/smoke-test.yml@master
+    secrets: inherit
+    with:
+      #Host: self-hosted, macos # macos-12
+      LaunchCommand: xcrun simctl launch booted
+      KillAppCommand: xcrun simctl terminate booted io.embrace.BrandGame
+      BundleID: io.embrace.BrandGame
+      Tests: AnySessionMetadata
+      TestArtifact: TestApp
+      InstallCommand: |
+       rm -rf BrandGame.app;
+       unzip BrandGame.zip;
+       xcrun simctl shutdown all && xcrun simctl erase all;
+       xcrun simctl boot "iPhone 14" || true;
+       xcrun simctl uninstall booted io.embrace.BrandGame || true;
+       xcrun simctl install booted BrandGame.app

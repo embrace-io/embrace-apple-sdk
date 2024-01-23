@@ -18,6 +18,15 @@ struct BrandGameApp: App {
 
             try Embrace.client?.start()
             Embrace.client?.logLevel = .debug
+            
+            if ProcessInfo.processInfo.arguments.count > 1 {
+                switch ProcessInfo.processInfo.arguments[1] {
+                case "Metadata":
+                    Embrace.client?.buildSpan(name: "Test Started for Metadata", type: .performance).startSpan().end()
+                default:
+                    break
+                }
+            }
         } catch let e {
             print("Error starting embrace \(e.localizedDescription)")
         }
