@@ -10,12 +10,12 @@ class EmbraceLogRecordBuilder: EventBuilder {
     private let sharedState: EmbraceLoggerSharedState
     private let instrumentationScope: InstrumentationScopeInfo
 
-    private var timestamp: Date?
-    private var observedTimestamp: Date?
-    private var severity: Severity?
-    private var spanContext: SpanContext?
-    private var body: String?
-    private var attributes: [String: AttributeValue]
+    private(set) var timestamp: Date?
+    private(set) var observedTimestamp: Date?
+    private(set) var severity: Severity?
+    private(set) var spanContext: SpanContext?
+    private(set) var body: String?
+    private(set) var attributes: [String: AttributeValue]
 
     init(sharedState: EmbraceLoggerSharedState, attributes: [String: AttributeValue]) {
         self.sharedState = sharedState
