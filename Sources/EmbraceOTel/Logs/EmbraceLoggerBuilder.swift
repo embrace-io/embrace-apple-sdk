@@ -8,8 +8,6 @@ import Foundation
 class EmbraceLoggerBuilder: LoggerBuilder {
     private let sharedState: EmbraceLoggerSharedState
     private var eventDomain: String?
-    private var schemaUrl: String?
-    private var includeTraceContext = true
     private var attributes: [String: AttributeValue]
 
     init(sharedState: EmbraceLoggerSharedState) {
@@ -51,4 +49,3 @@ class EmbraceLoggerBuilder: LoggerBuilder {
                       attributes: attributes)
     }
 }
-
