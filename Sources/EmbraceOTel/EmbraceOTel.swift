@@ -16,6 +16,14 @@ import OpenTelemetryApi
             tracerProvider: EmbraceTracerProvider(spanProcessor: spanProcessor) )
     }
 
+    public static func setup(loggerProvider: EmbraceLoggerProvider) {
+        OpenTelemetry.registerLoggerProvider(loggerProvider: loggerProvider)
+    }
+
+    internal var logger: Logger {
+        OpenTelemetry.instance.loggerProvider.get(instrumentationScopeName: instrumentationName)
+    }
+
     // tracer
     internal var tracer: Tracer {
         OpenTelemetry.instance.tracerProvider.get(
