@@ -16,13 +16,15 @@ public struct SpanRecord: Codable {
     public var startTime: Date
     public var endTime: Date?
 
-    public init(id: String,
-                name: String,
-                traceId: String,
-                type: SpanType,
-                data: Data,
-                startTime: Date,
-                endTime: Date? = nil) {
+    public init(
+        id: String,
+        name: String,
+        traceId: String,
+        type: SpanType,
+        data: Data,
+        startTime: Date,
+        endTime: Date? = nil
+    ) {
         self.id = id
         self.traceId = traceId
         self.type = type

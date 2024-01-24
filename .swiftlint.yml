@@ -36,3 +36,7 @@ function_body_length:
 large_tuple:
   warning: 4
   error: 6
+
+cyclomatic_complexity:
+  warning: 20
+  error: 30

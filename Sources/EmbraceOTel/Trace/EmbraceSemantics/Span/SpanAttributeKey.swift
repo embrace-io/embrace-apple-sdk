@@ -8,3 +8,8 @@ enum SpanAttributeKey: String {
     case errorCode = "emb.error_code"
     case isPrivate = "emb.private"
 }
+
+enum SpanErrorAttributeKey: String {
+    case message = "error.message"
+    case code = "error.code"
+}

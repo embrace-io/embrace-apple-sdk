@@ -11,6 +11,8 @@ import EmbraceCommon
 
 @testable import EmbraceCore
 
+// swiflint:disable line_length
+
 class DefaultURLSessionTaskHandlerTests: XCTestCase {
     private var sut: DefaultURLSessionTaskHandler!
     private var processor: MockSpanProcessor!
@@ -328,3 +330,5 @@ private extension DefaultURLSessionTaskHandlerTests {
         wait(timeout: 1.0, until: { self.task.response != nil })
     }
 }
+
+// swiflint:enable line_length

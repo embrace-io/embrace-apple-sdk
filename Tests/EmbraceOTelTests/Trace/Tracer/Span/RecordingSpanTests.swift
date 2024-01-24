@@ -127,4 +127,41 @@ final class RecordingSpanTests: XCTestCase {
         XCTAssertTrue(description.contains("RecordingSpan"))
         XCTAssertTrue(description.contains("'example'"))
     }
+
+    func test_end_errorCode() throws {
+        let span = RecordingSpan(startTime: Date(), context: .create(), name: "example", processor: .noop)
+        span.end(errorCode: .failure)
+
+        let value = AttributeValue.string(SpanErrorCode.failure.rawValue)
+        XCTAssertEqual(span.attributes[SpanAttributeKey.errorCode.rawValue], value)
+        XCTAssertNotNil(span.endTime)
+    }
+
+    func test_end_error() throws {
+        let span = RecordingSpan(startTime: Date(), context: .create(), name: "example", processor: .noop)
+        span.end(error: NSError(domain: "com.embrace.test", code: 123))
+
+        XCTAssertNotNil(span.attributes[SpanErrorAttributeKey.message.rawValue])
+        let value1 = AttributeValue.int(123)
+        XCTAssertEqual(span.attributes[SpanErrorAttributeKey.code.rawValue], value1)
+
+        let value2 = AttributeValue.string(SpanErrorCode.failure.rawValue)
+        XCTAssertEqual(span.attributes[SpanAttributeKey.errorCode.rawValue], value2)
+
+        XCTAssertNotNil(span.endTime)
+    }
+
+    func test_end_error_and_errorCode() throws {
+        let span = RecordingSpan(startTime: Date(), context: .create(), name: "example", processor: .noop)
+        span.end(error: NSError(domain: "com.embrace.test", code: 123), errorCode: .userAbandon)
+
+        XCTAssertNotNil(span.attributes[SpanErrorAttributeKey.message.rawValue])
+        let value1 = AttributeValue.int(123)
+        XCTAssertEqual(span.attributes[SpanErrorAttributeKey.code.rawValue], value1)
+
+        let value2 = AttributeValue.string(SpanErrorCode.userAbandon.rawValue)
+        XCTAssertEqual(span.attributes[SpanAttributeKey.errorCode.rawValue], value2)
+
+        XCTAssertNotNil(span.endTime)
+    }
 }

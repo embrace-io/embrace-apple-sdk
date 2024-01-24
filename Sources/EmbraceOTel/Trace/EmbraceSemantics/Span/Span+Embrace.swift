@@ -23,16 +23,31 @@ extension Span {
     }
 
     public func end(errorCode: SpanErrorCode? = nil, time: Date = Date()) {
+        end(error: nil, errorCode: errorCode, time: time)
+    }
+
+    public func end(error: Error?, errorCode: SpanErrorCode? = nil, time: Date = Date()) {
+        var errorCode = errorCode
+
+        // get attributes from error
+        if let error = error as? NSError {
+            setAttribute(key: SpanErrorAttributeKey.message.rawValue, value: error.localizedDescription)
+            setAttribute(key: SpanErrorAttributeKey.code.rawValue, value: error.code)
+
+            errorCode = errorCode ?? .failure
+        }
+
+        // set error code
         if let errorCode = errorCode {
             setAttribute(key: SpanAttributeKey.errorCode, value: errorCode.rawValue)
             status = .error(description: errorCode.rawValue)
         } else {
+            // no error or error code means the span ended successfully
             status = .ok
         }
 
         end(time: time)
     }
-
 }
 
 extension Span {
