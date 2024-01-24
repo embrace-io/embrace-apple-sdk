@@ -4,32 +4,45 @@ set -e
 CLONED_SOURCE_PACKAGES_DIR_PATH=".build"    # This matches spm location `swift run` uses
 DERIVED_DATA_PATH=".build/DerivedData"
 
-# Retrieve platform as first argument converted to lowercase
-PLATFORM=$(echo "$1" | tr '[:upper:]' '[:lower:]')
-
-# Replace 'os' with 'OS' in platform name
-# this allows input to be `bin/build ios` or `bin/build iOS`
-PLATFORM=${PLATFORM/os/OS}
-
-# Verify that platform is present, exit with error if not
-if [ -z "$PLATFORM" ] ; then
-    echo "Platform is required as first argument:"
-    echo "      bin/build <platform>"
+if [ $# -lt 1 ] ; then
+    echo "Platform list is required as variadic argument:"
+    echo "      bin/build <platform> [<platform> ...]"
+    echo " "
+    echo "Valid platforms are: 'iOS', 'macOS', 'tvOS', and 'watchOS'"
     exit 1
 fi
 
-# Validate platform as one of 'iOS', 'macOS', 'watchOS', 'tvOS'
-if [ "$PLATFORM" != "iOS" ] && [ "$PLATFORM" != "macOS" ] && [ "$PLATFORM" != "watchOS" ] && [ "$PLATFORM" != "tvOS" ]; then
-    echo "Invalid platform '$PLATFORM'"
-    echo "Must be one of: 'iOS', 'macOS', 'watchOS', 'tvOS'"
-    exit 1
-fi
+# Iterate over input, validate, and add to PLATFORMS list
+PLATFORMS=()
+for INPUT in $@; do
+    # Convert input arguments to lowercase
+    PLATFORM=$(echo "$INPUT" | tr '[:upper:]' '[:lower:]')
+
+    # Replace 'os' with 'OS' in platform name
+    # this allows input to be `bin/build ios` or `bin/build iOS`
+    PLATFORM=${PLATFORM/os/OS}
+
+    # Validate platform as one of 'iOS', 'macOS', 'watchOS', 'tvOS'
+    if [ "$PLATFORM" != "iOS" ] && [ "$PLATFORM" != "macOS" ] && [ "$PLATFORM" != "watchOS" ] && [ "$PLATFORM" != "tvOS" ]; then
+        echo "Invalid platform '$PLATFORM'"
+        echo "Must be one of: 'iOS', 'macOS', 'watchOS', 'tvOS'"
+        exit 1
+    fi
+
+    PLATFORMS+=("$PLATFORM")
+done
+
+# Iterate over PLATFORMS and add to DESTINATIONS list
+DESTINATIONS=()
+for PLATFORM in "${PLATFORMS[@]}"; do
+    DESTINATIONS+=("-destination" "generic/platform=$PLATFORM")
+done
 
 xcodebuild \
     -workspace . \
     -configuration "Release" \
     -scheme "EmbraceIO-Package" \
-    -destination "generic/platform=$PLATFORM" \
+    "${DESTINATIONS[@]}" \
     -clonedSourcePackagesDirPath $CLONED_SOURCE_PACKAGES_DIR_PATH \
     -skipPackagePluginValidation \
     -derivedDataPath $DERIVED_DATA_PATH \

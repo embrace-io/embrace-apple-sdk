@@ -10,13 +10,13 @@ on:
 
 jobs:
   build:
-    name: Build ${{ matrix.platform }} - Xcode ${{ matrix.xcode_version }}
+    name: Build ${{ matrix.platform_args }} - Xcode ${{ matrix.xcode_version }}
     timeout-minutes: 30
     runs-on: macos-13
     strategy:
       fail-fast: false
       matrix:
-        platform: ["iOS", "macOS", "watchOS", "tvOS"]
+        platform_args: ["iOS macOS tvOS"] # using a single string will run platforms in parallel
         xcode_version: ["15.1"]
     steps:
     - name: Select Xcode
@@ -37,4 +37,4 @@ jobs:
 
     - name: Run build script
       run: |
-        bin/build ${{ matrix.platform }} | xcpretty && exit ${PIPESTATUS[0]}
+        bin/build ${{ matrix.platform_args }} | xcpretty && exit ${PIPESTATUS[0]}
