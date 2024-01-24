@@ -7,8 +7,8 @@ import OpenTelemetrySdk
 import Foundation
 
 class EmbraceLogRecordBuilder: EventBuilder {
-    private let sharedState: EmbraceLoggerSharedState
-    private let instrumentationScope: InstrumentationScopeInfo
+    let sharedState: EmbraceLoggerSharedState
+    let instrumentationScope: InstrumentationScopeInfo
 
     private(set) var timestamp: Date?
     private(set) var observedTimestamp: Date?

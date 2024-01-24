@@ -23,9 +23,9 @@ extension EmbraceLoggerConfig {
 }
 
 struct DefaultEmbraceLoggerConfig: EmbraceLoggerConfig {
-    var maxInactivityTime: Int = 60
-    var maxTimeBetweenLogs: Int = 20
-    var maxAttributes: Int = 10
-    var maxMessageLength: Int = 128
-    var logAmountLimit: Int = 10
+    let maxInactivityTime: Int = 60
+    let maxTimeBetweenLogs: Int = 20
+    let maxAttributes: Int = 10
+    let maxMessageLength: Int = 128
+    let logAmountLimit: Int = 10
 }

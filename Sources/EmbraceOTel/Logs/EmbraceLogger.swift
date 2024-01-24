@@ -6,7 +6,7 @@ import Foundation
 import OpenTelemetryApi
 
 class EmbraceLogger: Logger {
-    private let sharedState: EmbraceLoggerSharedState
+    let sharedState: EmbraceLoggerSharedState
     private let eventDomain: String?
     private let attributes: [String: AttributeValue]
 
