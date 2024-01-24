@@ -61,7 +61,7 @@ final class EmbraceSetupCaptureServicesTests: XCTestCase {
         func start() {}
         func stop() {}
     }
-    
+
     class SecondExampleCrashReporter: CrashReporter {
         var currentSessionId: EmbraceCommon.SessionIdentifier?
         func getLastRunState() -> EmbraceCommon.LastRunState { .cleanExit }

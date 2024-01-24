@@ -139,7 +139,6 @@ private extension EmbraceLogRecordBuilderTests {
         _ = sut.setSpanContext(spanContext)
     }
 
-
     func whenSetting(severity: Severity) {
         _ = sut.setSeverity(severity)
     }

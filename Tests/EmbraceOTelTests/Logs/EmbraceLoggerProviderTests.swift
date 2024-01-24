@@ -70,7 +70,6 @@ private extension EmbraceLoggerProviderTests {
                                                processors: [])
     }
 
-
     func givenLoggerBuilderProvider() {
         sut = DefaultEmbraceLoggerProvider(sharedState: sharedState)
     }
@@ -98,11 +97,11 @@ private extension EmbraceLoggerProviderTests {
     func thenLoggerIsEmbraceLogger() {
         XCTAssertTrue(resultLogger is EmbraceLogger)
     }
-        
+
     func thenLoggerBuilderIsEmbraceLoggerBuilder() {
         XCTAssertTrue(resultLoggerBuilder is EmbraceLoggerBuilder)
     }
-    
+
     func thenProviderConfigIsDefaultEmbraceLoggerConfig() {
         XCTAssertTrue(sut.sharedState.config is DefaultEmbraceLoggerConfig)
     }
