@@ -5,6 +5,7 @@
 import XCTest
 import OpenTelemetryApi
 
+import TestSupport
 @testable import EmbraceOTel
 
 class EmbraceLoggerTests: XCTestCase {
@@ -29,27 +30,20 @@ class EmbraceLoggerTests: XCTestCase {
         thenProducedEventBuilderIsEmbraceLogRecordBuilder()
     }
 
-    func testGivenLoggerWithDomain_onInvokingEventBuilder_domainAndNameShouldBeAddedAsAttributes() throws {
-        givenEmbraceLogger(eventDomain: "embraceEventDomain")
+    func testGivenLogger_onInvokingEventBuilder_attributesShouldBeEmptyAsWeDontSupportEventAPI() throws {
+        givenEmbraceLogger()
         whenInvokingEventBuilder(withName: "embraceEventName")
-        try thenEventBuilderHas(attributes: ["event.domain": .string("embraceEventDomain"),
-                                             "event.name": .string("embraceEventName")])
-    }
-
-    func testGivenLoggerWithoutDomain_onInvokingEventBuilder_domainAndNameShouldBeUnused() throws {
-        givenEmbraceLogger(eventDomain: nil)
-        whenInvokingEventBuilder(withName: "embraceEventName")
-        try thenEventBuilderHas(attributes: ["event.domain": .string("unused"),
-                                             "event.name": .string("unused")])
+        try thenEventBuilderHas(attributes: .empty())
     }
 }
 
 private extension EmbraceLoggerTests {
-    func givenEmbraceLogger(eventDomain: String? = nil) {
-        sut = .init(sharedState: .init(resource: .init(),
-                                       config: DefaultEmbraceLoggerConfig(),
-                                       processors: [processor]),
-                    eventDomain: eventDomain)
+    func givenEmbraceLogger() {
+        sut = .init(sharedState: .init(
+            resource: .init(),
+            config: DefaultEmbraceLoggerConfig(),
+            processors: [processor]
+        ))
     }
 
     func whenInvokingLogRecordBuilder() {

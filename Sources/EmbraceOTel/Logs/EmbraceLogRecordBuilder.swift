@@ -57,10 +57,11 @@ class EmbraceLogRecordBuilder: EventBuilder {
 
     func emit() {
         sharedState.processors.forEach {
+            let now = Date()
             let log = ReadableLogRecord(resource: sharedState.resource,
                                         instrumentationScopeInfo: instrumentationScope,
-                                        timestamp: timestamp ?? Date(),
-                                        observedTimestamp: observedTimestamp ?? Date(),
+                                        timestamp: timestamp ?? now,
+                                        observedTimestamp: observedTimestamp ?? now,
                                         spanContext: spanContext,
                                         severity: severity,
                                         body: body,

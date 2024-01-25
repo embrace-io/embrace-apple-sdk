@@ -29,12 +29,13 @@ class EmbraceLoggerProviderTests: XCTestCase {
         thenLoggerIsEmbraceLogger()
     }
 
-    func test_get_alwaysReturnsNewInstanceOfEmbraceLogger() throws {
-        let logger1 = DefaultEmbraceLoggerProvider().get()
-        let logger2 = DefaultEmbraceLoggerProvider().get()
+    func test_get_alwaysReturnsSameInstanceOfEmbraceLogger() throws {
+        let provider = DefaultEmbraceLoggerProvider()
+        let logger1 = provider.get()
+        let logger2 = provider.get()
         let embraceLogger1 = try XCTUnwrap(logger1 as? EmbraceLogger)
         let embraceLogger2 = try XCTUnwrap(logger2 as? EmbraceLogger)
-        XCTAssertFalse(embraceLogger1 === embraceLogger2)
+        XCTAssertTrue(embraceLogger1 === embraceLogger2)
     }
 
     func test_loggerBuilderWithInstrumentationScope_alwaysReturnsEmbraceLoggerBuilder() {
@@ -45,15 +46,12 @@ class EmbraceLoggerProviderTests: XCTestCase {
 
     func test_update_changesTheConfigOfSharedStateThroughAllChildren() throws {
         class DummyConfig: EmbraceLoggerConfig {
-            var maxInactivityTime: Int = .random(in: 0...1000)
-            var maxTimeBetweenLogs: Int = .random(in: 0...1000)
-            var maxMessageLength: Int = .random(in: 0...1000)
-            var maxAttributes: Int = .random(in: 0...1000)
+            var maximumInactivityTimeInSeconds: Int = .random(in: 0...1000)
+            var maximumTimeBetweenLogsInSeconds: Int = .random(in: 0...1000)
+            var maximumMessageLength: Int = .random(in: 0...1000)
+            var maximumAttributes: Int = .random(in: 0...1000)
             var logAmountLimit: Int = .random(in: 0...1000)
         }
-        let sharedState = EmbraceLoggerSharedState(resource: .init(),
-                                                   config: DummyConfig(),
-                                                   processors: [])
         givenSharedState(config: DummyConfig())
         givenLoggerBuilderProvider()
         givenLoggerWasCreatedWithProvider()

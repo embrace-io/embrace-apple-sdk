@@ -7,7 +7,6 @@ import Foundation
 
 class EmbraceLoggerBuilder: LoggerBuilder {
     let sharedState: EmbraceLoggerSharedState
-    private var eventDomain: String?
     private var attributes: [String: AttributeValue]
 
     init(sharedState: EmbraceLoggerSharedState) {
@@ -15,8 +14,8 @@ class EmbraceLoggerBuilder: LoggerBuilder {
         self.attributes = [:]
     }
 
+    /// This implementation does nothing at all. We currently don't support the Event API as it's in an experimental state.
     public func setEventDomain(_ eventDomain: String) -> Self {
-        self.eventDomain = eventDomain
         return self
     }
 
@@ -44,8 +43,6 @@ class EmbraceLoggerBuilder: LoggerBuilder {
     }
 
     func build() -> OpenTelemetryApi.Logger {
-        EmbraceLogger(sharedState: sharedState,
-                      eventDomain: eventDomain,
-                      attributes: attributes)
+        EmbraceLogger(sharedState: sharedState, attributes: attributes)
     }
 }

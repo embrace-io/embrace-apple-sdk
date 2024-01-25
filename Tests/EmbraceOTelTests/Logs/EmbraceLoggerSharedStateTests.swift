@@ -21,10 +21,10 @@ class EmbraceLoggerSharedStateTests: XCTestCase {
 
     func test_updateConfig_thenOriginalConfigShouldBeUpdated() {
         class ZeroedConfig: EmbraceLoggerConfig {
-            var maxInactivityTime: Int = 0
-            var maxTimeBetweenLogs: Int = 0
-            var maxMessageLength: Int = 0
-            var maxAttributes: Int = 0
+            var maximumInactivityTimeInSeconds: Int = 0
+            var maximumTimeBetweenLogsInSeconds: Int = 0
+            var maximumMessageLength: Int = 0
+            var maximumAttributes: Int = 0
             var logAmountLimit: Int = 0
         }
         givenEmbraceLoggerSharedState(config: DefaultEmbraceLoggerConfig())

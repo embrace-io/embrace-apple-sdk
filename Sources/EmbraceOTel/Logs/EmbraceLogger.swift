@@ -7,24 +7,22 @@ import OpenTelemetryApi
 
 class EmbraceLogger: Logger {
     let sharedState: EmbraceLoggerSharedState
-    private let eventDomain: String?
     private let attributes: [String: AttributeValue]
 
     init(sharedState: EmbraceLoggerSharedState,
-         eventDomain: String? = nil,
          attributes: [String: AttributeValue] = [:]) {
         self.sharedState = sharedState
-        self.eventDomain = eventDomain
         self.attributes = attributes
     }
 
+    /// This method is meant to be used as part of the [Event API](https://opentelemetry.io/docs/specs/otel/logs/event-api/).
+    /// However, due to the experimental state of this interface and the changes it has been receiving, we decided to not support it.
+    ///
+    /// - Parameter name: the name of the event. **Won't be used**.
+    /// - Returns: a `EmbraceLogRecordBuilder` instance.
     func eventBuilder(name: String) -> EventBuilder {
-        let eventBuilder = EmbraceLogRecordBuilder(sharedState: sharedState,
-                                                   attributes: attributes)
-        return eventBuilder.setAttributes([
-            "event.domain": .string(eventDomain ?? "unused"),
-            "event.name": .string(eventDomain != nil ? name : "unused")
-        ])
+        EmbraceLogRecordBuilder(sharedState: sharedState,
+                                attributes: attributes)
     }
 
     func logRecordBuilder() -> LogRecordBuilder {

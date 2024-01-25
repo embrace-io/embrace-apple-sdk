@@ -12,6 +12,8 @@ public protocol EmbraceLoggerProvider: LoggerProvider {
 }
 
 class DefaultEmbraceLoggerProvider: EmbraceLoggerProvider {
+    private lazy var logger: EmbraceLogger = EmbraceLogger(sharedState: sharedState)
+
     let sharedState: EmbraceLoggerSharedState
 
     init(sharedState: EmbraceLoggerSharedState = .default()) {
@@ -19,7 +21,7 @@ class DefaultEmbraceLoggerProvider: EmbraceLoggerProvider {
     }
 
     func get() -> Logger {
-        EmbraceLogger(sharedState: sharedState)
+        logger
     }
 
     func update(_ config: any EmbraceLoggerConfig) {
@@ -32,9 +34,19 @@ class DefaultEmbraceLoggerProvider: EmbraceLoggerProvider {
         get()
     }
 
-    /// The parameter is not going to be used, as we're always going to create an `EmbraceLoggerBuilder`
-    /// which will be used to create an `EmbraceLogger` instance which always the same
-    /// `instrumentationScope` (version & name)
+    /// This method, defined by the `LoggerProvider` protocol, is intended to
+    /// create a `LoggerBuilder` for a named `Logger` instance. 
+    ///
+    /// In our implementation, the `instrumentationScopeName` parameter is not utilized since we
+    /// consistently create an `EmbraceLoggerBuilder`. This builder, in turn, produces an `EmbraceLogger`
+    /// instance with a fixed `instrumentationScope` (version & name).
+    ///
+    /// Consequently, we advise using `get()` or `get(instrumentationScopeName)` for standard
+    /// `EmbraceLogger` retrieval. Directly instantiate an `EmbraceLoggerBuilder` only if you need a
+    /// `Logger` with a distinct set of attributes.
+    ///
+    /// - Parameter instrumentationScopeName: An unused parameter in this context.
+    /// - Returns: An instance of `EmbraceLoggerBuilder` which conforms to the `LoggerBuilder` interface.
     func loggerBuilder(instrumentationScopeName: String) -> LoggerBuilder {
         EmbraceLoggerBuilder(sharedState: sharedState)
     }
