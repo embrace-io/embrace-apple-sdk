@@ -11,11 +11,27 @@ final class EmbraceOTelTests: XCTestCase {
         EmbraceOTel.setup(spanProcessor: MockSpanProcessor())
     }
 
-// MARK: registerTracer
+// MARK: Register Tracer
 
     func test_setup_setsEmbraceTracerProvider() {
         // DEV: test "setUpWithError" calls EmbraceOTel.setup method
         XCTAssertTrue(OpenTelemetry.instance.tracerProvider is EmbraceTracerProvider)
+    }
+
+    func testOnSettingUpTracer_tracer_isEmbraceTracer() {
+        XCTAssertTrue(EmbraceOTel().tracer is EmbraceTracer)
+    }
+
+// MARK: Register Logger
+
+    func test_setupLoggerProvider_setsLoggerProvider() {
+        EmbraceOTel.setup(loggerProvider: DefaultEmbraceLoggerProvider())
+        XCTAssertTrue(OpenTelemetry.instance.loggerProvider is DefaultEmbraceLoggerProvider)
+    }
+
+    func testOnSettingUpProvider_logger_isEmbraceLogger() {
+        EmbraceOTel.setup(loggerProvider: DefaultEmbraceLoggerProvider())
+        XCTAssertTrue(EmbraceOTel().logger is EmbraceLogger)
     }
 
 // MARK: init
