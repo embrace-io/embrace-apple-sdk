@@ -20,14 +20,13 @@ class DefaultEmbraceLogSharedState: EmbraceLogSharedState {
         self.resourceProvider = resourceProvider
     }
 
-
     func update(_ config: any EmbraceLoggerConfig) {
         self.config = config
     }
 }
 
 extension DefaultEmbraceLogSharedState {
-    static func create() -> EmbraceLogSharedState {
+    static func create() -> DefaultEmbraceLogSharedState {
         DefaultEmbraceLogSharedState(
             config: DefaultEmbraceLoggerConfig(),
             // TODO: Add Exporters

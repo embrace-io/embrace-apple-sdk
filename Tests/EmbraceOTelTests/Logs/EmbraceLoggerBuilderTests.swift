@@ -14,12 +14,13 @@ class EmbraceLoggerBuilderTests: XCTestCase {
     func test_onBuild_createsEmbraceLogger() {
         givenEmbraceLoggerBuilder()
         whenInvokingBuild()
+        thenLoggerIsEmbraceLogger()
     }
+}
 
+extension EmbraceLoggerBuilderTests {
     func givenEmbraceLoggerBuilder() {
-        sut = EmbraceLoggerBuilder(sharedState: .init(resource: .init(),
-                                                      config: DefaultEmbraceLoggerConfig(),
-                                                      processors: []))
+        sut = EmbraceLoggerBuilder(sharedState: MockEmbraceLogSharedState())
     }
 
     func whenInvokingBuild() {

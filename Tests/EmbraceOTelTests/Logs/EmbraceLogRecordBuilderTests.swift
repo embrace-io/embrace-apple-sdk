@@ -8,27 +8,6 @@ import OpenTelemetrySdk
 
 @testable import EmbraceOTel
 
-class SpyLoggerProcessor: LogRecordProcessor {
-    var receivedLogRecord: ReadableLogRecord?
-    var didCallOnEmit = false
-    func onEmit(logRecord: ReadableLogRecord) {
-        didCallOnEmit = true
-        receivedLogRecord = logRecord
-    }
-
-    var didCallForceFlush = false
-    func forceFlush() -> ExportResult {
-        didCallForceFlush = true
-        return .success
-    }
-
-    var didCallShutdown = false
-    func shutdown() -> ExportResult {
-        didCallShutdown = true
-        return .success
-    }
-}
-
 class EmbraceLogRecordBuilderTests: XCTestCase {
     private var sut: EmbraceLogRecordBuilder!
     private var processor: SpyLoggerProcessor!
@@ -117,10 +96,7 @@ class EmbraceLogRecordBuilderTests: XCTestCase {
 
 private extension EmbraceLogRecordBuilderTests {
     func givenEmbraceLogRecordBuilder() {
-        sut = .init(sharedState: .init(resource: .init(),
-                                       config: DefaultEmbraceLoggerConfig(),
-                                       processors: [processor]),
-                    attributes: [:])
+        sut = .init(sharedState: MockEmbraceLogSharedState(processors: [processor]), attributes: [:])
     }
 
     func whenCallingEmit() {

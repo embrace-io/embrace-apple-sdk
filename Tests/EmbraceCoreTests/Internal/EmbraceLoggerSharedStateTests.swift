@@ -4,10 +4,15 @@
 
 import XCTest
 
+@testable import EmbraceCore
 @testable import EmbraceOTel
 
+class DummyEmbraceResourceProvider: EmbraceResourceProvider {
+    func getResources() -> [EmbraceResource] { [] }
+}
+
 class EmbraceLoggerSharedStateTests: XCTestCase {
-    private var sut: EmbraceLoggerSharedState!
+    private var sut: DefaultEmbraceLogSharedState!
 
     func test_default_hasDefaultEmbraceLoggerConfig() {
         whenInvokingDefaultEmbraceLoggerSharedState()
@@ -16,12 +21,12 @@ class EmbraceLoggerSharedStateTests: XCTestCase {
 
     func test_default_hasNoProcessors() {
         whenInvokingDefaultEmbraceLoggerSharedState()
-        thenProcessorsArrayIsEmpty()
+        thenProcessorsArrayHasDefaultProcessors()
     }
 
     func test_updateConfig_thenOriginalConfigShouldBeUpdated() {
         class ZeroedConfig: EmbraceLoggerConfig {
-            var maximumInactivityTimeInSeconds: Int = 0
+            var batchLifetimeInSeconds: Int = 0
             var maximumTimeBetweenLogsInSeconds: Int = 0
             var maximumMessageLength: Int = 0
             var maximumAttributes: Int = 0
@@ -35,7 +40,7 @@ class EmbraceLoggerSharedStateTests: XCTestCase {
 
 private extension EmbraceLoggerSharedStateTests {
     func givenEmbraceLoggerSharedState(config: any EmbraceLoggerConfig) {
-        sut = .init(resource: .init(), config: config, processors: [])
+        sut = .init(config: config, processors: [], resourceProvider: DummyEmbraceResourceProvider())
     }
 
     func whenInvokingUpdate(withConfig config: any EmbraceLoggerConfig) {
@@ -43,14 +48,14 @@ private extension EmbraceLoggerSharedStateTests {
     }
 
     func whenInvokingDefaultEmbraceLoggerSharedState() {
-        sut = .default()
+        sut = .create()
     }
 
     func thenConfig(is config: any EmbraceLoggerConfig) {
         XCTAssertEqual(sut.config.logAmountLimit, config.logAmountLimit)
     }
 
-    func thenProcessorsArrayIsEmpty() {
-        XCTAssertTrue(sut.processors.isEmpty)
+    func thenProcessorsArrayHasDefaultProcessors() {
+        XCTAssertFalse(sut.processors.isEmpty)
     }
 }
