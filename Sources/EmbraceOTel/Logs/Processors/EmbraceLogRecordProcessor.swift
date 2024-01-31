@@ -6,7 +6,7 @@ import OpenTelemetrySdk
 
 public typealias EmbraceLogRecordProcessor = LogRecordProcessor
 
-public extension Array where Element == any EmbraceLogRecordProcessor  {
+public extension Array where Element == any EmbraceLogRecordProcessor {
     static func `default`(
         withExporters exporters: [EmbraceLogRecordExporter]
     ) -> [EmbraceLogRecordProcessor] {

@@ -37,6 +37,6 @@ extension DefaultEmbraceLogSharedState {
 }
 
 // TODO: Remove this and replace with a real implementation
-fileprivate struct DummyResourceProvider: EmbraceResourceProvider {
+private struct DummyResourceProvider: EmbraceResourceProvider {
     func getResources() -> [EmbraceResource] { [] }
 }

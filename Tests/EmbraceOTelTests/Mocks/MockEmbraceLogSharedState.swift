@@ -26,4 +26,3 @@ class MockEmbraceLogSharedState: EmbraceLogSharedState {
         self.config = config
     }
 }
-
