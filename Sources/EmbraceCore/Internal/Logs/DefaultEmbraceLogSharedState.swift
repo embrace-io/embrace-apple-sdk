@@ -7,13 +7,13 @@ import EmbraceOTel
 
 class DefaultEmbraceLogSharedState: EmbraceLogSharedState {
     let processors: [EmbraceLogRecordProcessor]
-    let resourceProvider: ResourceProvider
+    let resourceProvider: EmbraceResourceProvider
     private(set) var config: any EmbraceLoggerConfig
 
     init(
         config: any EmbraceLoggerConfig,
         processors: [EmbraceLogRecordProcessor],
-        resourceProvider: ResourceProvider
+        resourceProvider: EmbraceResourceProvider
     ) {
         self.config = config
         self.processors = processors
@@ -38,6 +38,6 @@ extension DefaultEmbraceLogSharedState {
 }
 
 // TODO: Remove this and replace with a real implementation
-fileprivate struct DummyResourceProvider: ResourceProvider {
+fileprivate struct DummyResourceProvider: EmbraceResourceProvider {
     func getResources() -> [EmbraceResource] { [] }
 }
