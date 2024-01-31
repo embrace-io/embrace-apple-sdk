@@ -6,10 +6,10 @@ import OpenTelemetryApi
 import Foundation
 
 class EmbraceLoggerBuilder: LoggerBuilder {
-    let sharedState: EmbraceLoggerSharedState
+    let sharedState: EmbraceLogSharedState
     private var attributes: [String: AttributeValue]
 
-    init(sharedState: EmbraceLoggerSharedState) {
+    init(sharedState: EmbraceLogSharedState) {
         self.sharedState = sharedState
         self.attributes = [:]
     }

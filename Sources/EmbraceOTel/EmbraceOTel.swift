@@ -16,8 +16,8 @@ import OpenTelemetryApi
             tracerProvider: EmbraceTracerProvider(spanProcessor: spanProcessor) )
     }
 
-    public static func setup(loggerProvider: EmbraceLoggerProvider) {
-        OpenTelemetry.registerLoggerProvider(loggerProvider: loggerProvider)
+    public static func setup(logSharedState: EmbraceLogSharedState) {
+        OpenTelemetry.registerLoggerProvider(loggerProvider: DefaultEmbraceLoggerProvider(sharedState: logSharedState))
     }
 
     internal var logger: Logger {

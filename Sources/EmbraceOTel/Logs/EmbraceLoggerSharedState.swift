@@ -6,28 +6,38 @@ import OpenTelemetryApi
 import OpenTelemetrySdk
 import Foundation
 
-class EmbraceLoggerSharedState {
-    let resource: Resource
-    let processors: [LogRecordProcessor]
-    private(set) var config: any EmbraceLoggerConfig
+/// Typealias created to abstract away the `AttributeValue` from `OpenTelemetryApi`,
+/// reducing the dependency exposure to dependents.
+public typealias ResourceValue = AttributeValue
 
-    init(
-        resource: Resource,
-        config: any EmbraceLoggerConfig,
-        processors: [LogRecordProcessor]
-    ) {
-        self.resource = resource
-        self.config = config
-        self.processors = processors
-    }
+// This representation of the `Resource` concept was necessary because the
+// logReadeableRecord needs it.
+public protocol EmbraceResource {
+    var key: String { get }
+    var value: ResourceValue { get }
+}
 
-    static func `default`() -> EmbraceLoggerSharedState {
-        .init(resource: .init(),
-              config: DefaultEmbraceLoggerConfig(),
-              processors: [])
-    }
+/// This provider allows to dependents to decide which resource they should expose or not
+/// as an `OpenTelemetryApi.Resource`. Mapping to the actual `Resource` object
+/// is being done internally in `EmbraceOTel`.
+public protocol ResourceProvider {
+    func getResources() -> [EmbraceResource]
+}
 
-    func update(_ config: any EmbraceLoggerConfig) {
-        self.config = config
+public protocol EmbraceLogSharedState {
+    var processors: [LogRecordProcessor] { get }
+    var config: any EmbraceLoggerConfig { get }
+    var resourceProvider: ResourceProvider { get }
+
+    func update(_ config: any EmbraceLoggerConfig)
+}
+
+extension EmbraceLogSharedState {
+    func getResource() -> Resource {
+        var attributes: [String: AttributeValue] = [:]
+        resourceProvider.getResources().forEach {
+            attributes[$0.key] = $0.value
+        }
+        return Resource(attributes: attributes)
     }
 }
