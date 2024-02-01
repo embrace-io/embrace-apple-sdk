@@ -19,12 +19,15 @@ class SingleLogRecordProcessor: EmbraceLogRecordProcessor {
     }
 
     func forceFlush() -> ExportResult {
-        exporters.forEach { _ = $0.forceFlush() }
+        let resultSet = Set(exporters.map { $0.forceFlush() })
+        if let firstResult = resultSet.first {
+            return resultSet.count > 1 ? .failure : firstResult
+        }
         return .success
     }
 
     func shutdown() -> ExportResult {
-        exporters.forEach { _ = $0.shutdown() }
+        exporters.forEach { $0.shutdown() }
         return .success
     }
 }
