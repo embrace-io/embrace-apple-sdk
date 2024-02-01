@@ -19,13 +19,13 @@ class BatchLimitsTests: XCTestCase {
     func test_onInvokingFrom_maxAgeIsLoggerConfigBatchLifetime() {
         let randomNumber = Int.random(in: 0...1000)
         let limits = BatchLimits.from(loggerConfig: SimpleEmbraceLoggerConfig(batchLifetimeInSeconds: randomNumber))
-        XCTAssertEqual(limits.maxAge, 123)
+        XCTAssertEqual(limits.maxAge, Double(randomNumber))
     }
 
     func test_onInvokingFrom_maxLogsPerBatchIsLoggerConfigLogAmountLimit() {
         let randomNumber = Int.random(in: 0...1000)
         let limits = BatchLimits.from(loggerConfig: SimpleEmbraceLoggerConfig(logAmountLimit: randomNumber))
-        XCTAssertEqual(limits.maxLogsPerBatch, 456)
+        XCTAssertEqual(limits.maxLogsPerBatch, randomNumber)
     }
 }
 
