@@ -198,8 +198,8 @@ fileprivate extension EmbraceStorage {
             filter = filter.filter(Column("start_time") >= startTime)
         }
 
-        if includeOlder == true {
-            filter = filter.filter(Column("type") != "session")
+        if ignoreSessionSpans == true {
+            filter = filter.filter(Column("type") != SpanType.session.rawValue)
         }
 
         return filter

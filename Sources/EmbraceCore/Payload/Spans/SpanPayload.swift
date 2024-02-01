@@ -30,14 +30,14 @@ struct SpanPayload: Encodable {
         case links
     }
 
-    init(from span: SpanData) {
+    init(from span: SpanData, endTime: Date? = nil) {
         self.traceId = span.traceId.hexString
         self.spanId = span.spanId.hexString
         self.parentSpanId = span.parentSpanId?.hexString
         self.name = span.name
         self.status = span.status.name
         self.startTime = span.startTime.nanosecondsSince1970Truncated
-        self.endTime = span.endTime?.nanosecondsSince1970Truncated
+        self.endTime = (endTime ?? span.endTime)?.nanosecondsSince1970Truncated
         self.attributes = PayloadUtils.convertSpanAttributes(span.attributes)
         self.events = span.events.map { SpanEventPayload(from: $0) }
         self.links = span.links.map { SpanLinkPayload(from: $0) }

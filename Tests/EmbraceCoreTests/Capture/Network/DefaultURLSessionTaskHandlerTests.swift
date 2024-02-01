@@ -11,7 +11,7 @@ import EmbraceCommon
 
 @testable import EmbraceCore
 
-// swiflint:disable line_length
+// swiftlint:disable line_length
 
 class DefaultURLSessionTaskHandlerTests: XCTestCase {
     private var sut: DefaultURLSessionTaskHandler!
@@ -331,4 +331,4 @@ private extension DefaultURLSessionTaskHandlerTests {
     }
 }
 
-// swiflint:enable line_length
+// swiftlint:enable line_length

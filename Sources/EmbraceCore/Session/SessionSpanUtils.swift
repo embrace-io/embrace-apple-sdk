@@ -13,6 +13,7 @@ struct SessionSpanUtils {
     static let sessionIdAttribute = "emb.session_id"
 
     static func spanData(from record: SessionRecord) -> SpanData {
+        // TODO: Define special attribute for "fake session span"
         return SpanData(
             traceId: TraceId.random(),
             spanId: SpanId.random(),

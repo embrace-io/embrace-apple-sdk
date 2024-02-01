@@ -4,6 +4,7 @@
 
 import XCTest
 import TestSupport
+import EmbraceCommon
 @testable import EmbraceStorage
 import GRDB
 
@@ -386,6 +387,52 @@ class SpanRecordTests: XCTestCase {
             endTime: now.addingTimeInterval(30),
             includeOlder: false,
             limit: 1
+        )
+
+        // then the fetched spans are valid
+        XCTAssertEqual(spans.count, 1)
+        XCTAssertFalse(spans.contains(span1))
+        XCTAssert(spans.contains(span2))
+        XCTAssertFalse(spans.contains(span3))
+    }
+
+    func test_fetchSpans_ignoreSessions() throws {
+        // given inserted spans
+        let now = Date()
+        let span1 = try storage.addSpan(
+            id: "id1",
+            name: "a name 1",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: now,
+            endTime: nil
+        )
+        let span2 = try storage.addSpan(
+            id: "id2",
+            name: "a name 2",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: now.addingTimeInterval(10),
+            endTime: nil
+        )
+        let span3 = try storage.addSpan(
+            id: "id3",
+            name: "emb.session",
+            traceId: TestConstants.traceId,
+            type: SpanType.session,
+            data: Data(),
+            startTime: now.addingTimeInterval(15),
+            endTime: now.addingTimeInterval(25)
+        )
+
+        // when fetching the spans
+        let spans = try storage.fetchSpans(
+            startTime: now.addingTimeInterval(5),
+            endTime: now.addingTimeInterval(30),
+            includeOlder: false,
+            ignoreSessionSpans: true
         )
 
         // then the fetched spans are valid

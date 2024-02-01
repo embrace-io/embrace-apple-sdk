@@ -76,7 +76,7 @@ class SpansPayloadBuilder {
             }
 
             if let sessionSpanData = sessionSpanData {
-                return SpanPayload(from: sessionSpanData)
+                return SpanPayload(from: sessionSpanData, endTime: sessionRecord.endTime)
             }
         } catch {
             ConsoleLog.warning("Error fetching span for session \(sessionRecord.id):\n\(error.localizedDescription)")

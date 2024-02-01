@@ -127,6 +127,18 @@ class SpanPayloadTests: XCTestCase {
         XCTAssertNotNil(links[0]["span_id"])
         testAttributes(links[0]["attributes"] as! [String: Any])
     }
+
+    func test_endTime() throws {
+        // given a span data
+        let span = testSpan
+
+        // when creating a payload with a given end time
+        let now = Date()
+        let payload = SpanPayload(from: span, endTime: now)
+
+        // then the correct end time is used
+        XCTAssertEqual(payload.endTime, now.nanosecondsSince1970Truncated)
+    }
 }
 
 // swiftlint:enable force_cast

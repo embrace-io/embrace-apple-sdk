@@ -16,6 +16,10 @@ excluded: # case-sensitive paths to ignore during linting. Takes precedence over
 
 reporter: "xcode" # reporter type (xcode, json, csv, checkstyle, codeclimate, junit, html, emoji, sonarqube, markdown, github-actions-logging, summary)
 
+file_length:
+  warning: 600
+  error: 800
+  
 line_length:
   ignores_comments: true
   ignores_interpolated_strings: true

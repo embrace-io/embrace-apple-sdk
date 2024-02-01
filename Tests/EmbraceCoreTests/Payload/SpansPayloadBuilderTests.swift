@@ -40,27 +40,34 @@ final class SpansPayloadBuilderTests: XCTestCase {
         try storage.teardown()
     }
 
-    func testSpan(startTime: Date, endTime: Date?) -> SpanData {
+    func testSpan(startTime: Date, endTime: Date?, name: String?) -> SpanData {
         return SpanData(
             traceId: TraceId.random(),
             spanId: SpanId.random(),
             parentSpanId: nil,
-            name: "test-span",
+            name: name ?? "test-span",
             kind: .internal,
             startTime: startTime,
             endTime: endTime
         )
     }
 
-    func addSpan(startTime: Date, endTime: Date?) throws -> SpanData {
-        let span = testSpan(startTime: startTime, endTime: endTime)
+    func addSpan(
+        startTime: Date,
+        endTime: Date?,
+        id: String? = nil,
+        traceId: String? = nil,
+        name: String? = nil,
+        type: SpanType = .performance
+    ) throws -> SpanData {
+        let span = testSpan(startTime: startTime, endTime: endTime, name: name)
         let data = try span.toJSON()
 
         let record = SpanRecord(
-            id: span.spanId.hexString,
+            id: id ?? span.spanId.hexString,
             name: span.name,
-            traceId: span.traceId.hexString,
-            type: .performance,
+            traceId: traceId ?? span.traceId.hexString,
+            type: type,
             data: data,
             startTime: span.startTime,
             endTime: span.endTime
@@ -173,6 +180,33 @@ final class SpansPayloadBuilderTests: XCTestCase {
 
         // then the spans are retrieved correctly
         XCTAssertEqual(closed.count, 1001) // 1000 spans + session span
+        XCTAssertEqual(closed[0].name, SessionSpanUtils.spanName) // session span always first
+        XCTAssertEqual(open.count, 0)
+    }
+
+    func test_multiple_session_spans() throws {
+        // given multiple session spans
+        _ = try addSpan(
+            startTime: Date(timeIntervalSince1970: 5),
+            endTime: Date(timeIntervalSince1970: 55),
+            id: TestConstants.spanId,
+            traceId: TestConstants.traceId,
+            name: "emb-session",
+            type: SpanType.session
+        )
+
+        _ = try addSpan(
+            startTime: Date(timeIntervalSince1970: 5),
+            endTime: Date(timeIntervalSince1970: 55),
+            name: "emb-session",
+            type: SpanType.session
+        )
+
+        // when building the spans payload
+        let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
+
+        // then only the correct session span is included
+        XCTAssertEqual(closed.count, 1) // 1000 spans + session span
         XCTAssertEqual(closed[0].name, SessionSpanUtils.spanName) // session span always first
         XCTAssertEqual(open.count, 0)
     }
