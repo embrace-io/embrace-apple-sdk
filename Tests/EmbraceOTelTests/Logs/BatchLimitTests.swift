@@ -28,4 +28,3 @@ class BatchLimitsTests: XCTestCase {
         XCTAssertEqual(limits.maxLogsPerBatch, randomNumber)
     }
 }
-
