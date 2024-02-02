@@ -14,9 +14,9 @@ public protocol EmbraceLoggerProvider: LoggerProvider {
 class DefaultEmbraceLoggerProvider: EmbraceLoggerProvider {
     private lazy var logger: EmbraceLogger = EmbraceLogger(sharedState: sharedState)
 
-    let sharedState: EmbraceLoggerSharedState
+    let sharedState: EmbraceLogSharedState
 
-    init(sharedState: EmbraceLoggerSharedState = .default()) {
+    init(sharedState: EmbraceLogSharedState) {
         self.sharedState = sharedState
     }
 

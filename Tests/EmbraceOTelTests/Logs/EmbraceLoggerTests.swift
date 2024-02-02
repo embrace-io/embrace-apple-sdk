@@ -39,11 +39,7 @@ class EmbraceLoggerTests: XCTestCase {
 
 private extension EmbraceLoggerTests {
     func givenEmbraceLogger() {
-        sut = .init(sharedState: .init(
-            resource: .init(),
-            config: DefaultEmbraceLoggerConfig(),
-            processors: [processor]
-        ))
+        sut = .init(sharedState: MockEmbraceLogSharedState())
     }
 
     func whenInvokingLogRecordBuilder() {

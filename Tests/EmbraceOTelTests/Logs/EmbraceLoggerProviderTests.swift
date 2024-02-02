@@ -9,12 +9,12 @@ import OpenTelemetryApi
 
 class EmbraceLoggerProviderTests: XCTestCase {
     private var sut: DefaultEmbraceLoggerProvider!
-    private var sharedState: EmbraceLoggerSharedState!
+    private var sharedState: EmbraceLogSharedState!
     private var resultLogger: Logger!
     private var resultLoggerBuilder: LoggerBuilder!
 
     override func setUpWithError() throws {
-        givenSharedState(config: DefaultEmbraceLoggerConfig())
+        givenSharedState(config: RandomConfig())
     }
 
     func test_getWithInstrumentation_alwaysReturnsEmbraceLogger() {
@@ -30,7 +30,7 @@ class EmbraceLoggerProviderTests: XCTestCase {
     }
 
     func test_get_alwaysReturnsSameInstanceOfEmbraceLogger() throws {
-        let provider = DefaultEmbraceLoggerProvider()
+        let provider = DefaultEmbraceLoggerProvider(sharedState: MockEmbraceLogSharedState())
         let logger1 = provider.get()
         let logger2 = provider.get()
         let embraceLogger1 = try XCTUnwrap(logger1 as? EmbraceLogger)
@@ -45,27 +45,24 @@ class EmbraceLoggerProviderTests: XCTestCase {
     }
 
     func test_update_changesTheConfigOfSharedStateThroughAllChildren() throws {
-        class DummyConfig: EmbraceLoggerConfig {
-            var maximumInactivityTimeInSeconds: Int = .random(in: 0...1000)
-            var maximumTimeBetweenLogsInSeconds: Int = .random(in: 0...1000)
-            var maximumMessageLength: Int = .random(in: 0...1000)
-            var maximumAttributes: Int = .random(in: 0...1000)
-            var logAmountLimit: Int = .random(in: 0...1000)
+        class ZeroedConfig: EmbraceLoggerConfig {
+            var batchLifetimeInSeconds: Int = 0
+            var maximumTimeBetweenLogsInSeconds: Int = 0
+            var maximumMessageLength: Int = 0
+            var maximumAttributes: Int = 0
+            var logAmountLimit: Int = 0
         }
-        givenSharedState(config: DummyConfig())
+        givenSharedState(config: ZeroedConfig())
         givenLoggerBuilderProvider()
         givenLoggerWasCreatedWithProvider()
-        whenInvokingProviderUpdate(withConfig: DefaultEmbraceLoggerConfig())
-        thenProviderConfigIsDefaultEmbraceLoggerConfig()
-        try thenLoggersConfigIsDefaultEmbraceLoggerConfig()
+        whenInvokingProviderUpdate(withConfig: RandomConfig())
+        try thenLoggersConfigIsRandomEmbraceLoggerConfig()
     }
 }
 
 private extension EmbraceLoggerProviderTests {
     func givenSharedState(config: any EmbraceLoggerConfig) {
-        sharedState = EmbraceLoggerSharedState(resource: .init(),
-                                               config: config,
-                                               processors: [])
+        sharedState = MockEmbraceLogSharedState(config: config)
     }
 
     func givenLoggerBuilderProvider() {
@@ -100,13 +97,8 @@ private extension EmbraceLoggerProviderTests {
         XCTAssertTrue(resultLoggerBuilder is EmbraceLoggerBuilder)
     }
 
-    func thenProviderConfigIsDefaultEmbraceLoggerConfig() {
-        XCTAssertTrue(sut.sharedState.config is DefaultEmbraceLoggerConfig)
-    }
-
-    func thenLoggersConfigIsDefaultEmbraceLoggerConfig() throws {
+    func thenLoggersConfigIsRandomEmbraceLoggerConfig() throws {
         let embraceLogger = try XCTUnwrap(resultLogger as? EmbraceLogger)
-        XCTAssertTrue(embraceLogger.sharedState.config is DefaultEmbraceLoggerConfig)
-
+        XCTAssertTrue(embraceLogger.sharedState.config is RandomConfig)
     }
 }

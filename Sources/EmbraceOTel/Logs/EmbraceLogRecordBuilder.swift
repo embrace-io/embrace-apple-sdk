@@ -7,7 +7,7 @@ import OpenTelemetrySdk
 import Foundation
 
 class EmbraceLogRecordBuilder: EventBuilder {
-    let sharedState: EmbraceLoggerSharedState
+    let sharedState: EmbraceLogSharedState
     let instrumentationScope: InstrumentationScopeInfo
 
     private(set) var timestamp: Date?
@@ -17,7 +17,7 @@ class EmbraceLogRecordBuilder: EventBuilder {
     private(set) var body: String?
     private(set) var attributes: [String: AttributeValue]
 
-    init(sharedState: EmbraceLoggerSharedState, attributes: [String: AttributeValue]) {
+    init(sharedState: EmbraceLogSharedState, attributes: [String: AttributeValue]) {
         self.sharedState = sharedState
         self.attributes = attributes
         self.instrumentationScope = .init(name: "EmbraceLogger")
@@ -58,7 +58,7 @@ class EmbraceLogRecordBuilder: EventBuilder {
     func emit() {
         sharedState.processors.forEach {
             let now = Date()
-            let log = ReadableLogRecord(resource: sharedState.resource,
+            let log = ReadableLogRecord(resource: sharedState.getResource(),
                                         instrumentationScopeInfo: instrumentationScope,
                                         timestamp: timestamp ?? now,
                                         observedTimestamp: observedTimestamp ?? now,

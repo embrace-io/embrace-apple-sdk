@@ -25,12 +25,12 @@ final class EmbraceOTelTests: XCTestCase {
 // MARK: Register Logger
 
     func test_setupLoggerProvider_setsLoggerProvider() {
-        EmbraceOTel.setup(loggerProvider: DefaultEmbraceLoggerProvider())
+        EmbraceOTel.setup(logSharedState: MockEmbraceLogSharedState())
         XCTAssertTrue(OpenTelemetry.instance.loggerProvider is DefaultEmbraceLoggerProvider)
     }
 
     func testOnSettingUpProvider_logger_isEmbraceLogger() {
-        EmbraceOTel.setup(loggerProvider: DefaultEmbraceLoggerProvider())
+        EmbraceOTel.setup(logSharedState: MockEmbraceLogSharedState())
         XCTAssertTrue(EmbraceOTel().logger is EmbraceLogger)
     }
 

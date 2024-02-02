@@ -6,28 +6,20 @@ import OpenTelemetryApi
 import OpenTelemetrySdk
 import Foundation
 
-class EmbraceLoggerSharedState {
-    let resource: Resource
-    let processors: [LogRecordProcessor]
-    private(set) var config: any EmbraceLoggerConfig
+public protocol EmbraceLogSharedState {
+    var processors: [LogRecordProcessor] { get }
+    var config: any EmbraceLoggerConfig { get }
+    var resourceProvider: EmbraceResourceProvider { get }
 
-    init(
-        resource: Resource,
-        config: any EmbraceLoggerConfig,
-        processors: [LogRecordProcessor]
-    ) {
-        self.resource = resource
-        self.config = config
-        self.processors = processors
-    }
+    func update(_ config: any EmbraceLoggerConfig)
+}
 
-    static func `default`() -> EmbraceLoggerSharedState {
-        .init(resource: .init(),
-              config: DefaultEmbraceLoggerConfig(),
-              processors: [])
-    }
-
-    func update(_ config: any EmbraceLoggerConfig) {
-        self.config = config
+extension EmbraceLogSharedState {
+    func getResource() -> Resource {
+        var attributes: [String: AttributeValue] = [:]
+        resourceProvider.getResources().forEach {
+            attributes[$0.key] = $0.value
+        }
+        return Resource(attributes: attributes)
     }
 }
