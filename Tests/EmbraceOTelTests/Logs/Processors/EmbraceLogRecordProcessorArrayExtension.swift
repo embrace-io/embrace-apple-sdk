@@ -9,7 +9,7 @@ import OpenTelemetrySdk
 
 @testable import EmbraceOTel
 
-class EmbraceLogRecordProcessorArrayExtensionTests: XCTest {
+class EmbraceLogRecordProcessorArrayExtensionTests: XCTestCase {
     func test_onDefaultWithExporters_returnSingleLogRecordProcessorInstance() throws {
         let processors: [LogRecordProcessor] = .default(withExporters: [])
         XCTAssertEqual(processors.count, 1)

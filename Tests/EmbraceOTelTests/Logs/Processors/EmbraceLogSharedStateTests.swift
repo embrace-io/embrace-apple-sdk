@@ -10,7 +10,7 @@ import OpenTelemetrySdk
 
 @testable import EmbraceOTel
 
-class EmbraceLogSharedStateTests: XCTest {
+class EmbraceLogSharedStateTests: XCTestCase {
     private var sut: EmbraceLogSharedState!
     private var resourceProvider: SpyEmbraceResourceProvider!
     private var result: Resource!
