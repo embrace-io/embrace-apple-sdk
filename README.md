@@ -7,7 +7,7 @@
 > We would appreciate any feedback you have on the SDK and the APIs that is provides. Please open an issue in Github,
 > reach out to your Embrace representative or email us at support@embrace.io with any feedback you have.
 
-The Embrace Apple SDK instruments your iOS, iPadOS, tvOS, watchOS apps to collect observability data. This SDK
+The Embrace Apple SDK instruments your iOS, iPadOS, tvOS, watchOS* apps to collect observability data. This SDK
 represents a shift from Embrace's previous Apple SDK in that it adopts a more modular approach to instrumentation that
 supports with the OpenTelemetry standard. We have also added features that extend the core OpenTelemetry standard to
 better support mobile apps.
@@ -201,3 +201,7 @@ If you cannot fetch the `KSCrash` dependency, you most likely have Github auth i
 
 To test if your auth changes fixed things, attempt to fetch the dependencies with "File" -> "Packages" --> "Reset package caches"
 
+### WatchOS Support
+> [!WARNING]
+> WatchOS support does not currently include the Embrace Crash Reporter. Instrumentation and observability will be possible but the SDK will not be able to collect crash reports.
+>
