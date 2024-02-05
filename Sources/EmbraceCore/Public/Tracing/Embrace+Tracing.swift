@@ -16,13 +16,18 @@ extension Embrace: EmbraceOpenTelemetry {
     ///     - type: The type of the span. Will be set as the `emb.type` attribute
     ///     - attributes: A dictionary of attributes to set on the span
     /// - Returns: An OpenTelemetry SpanBuilder
-    public func buildSpan(name: String, type: SpanType, attributes: [String: String] = [:]) -> SpanBuilder {
+    public func buildSpan(
+        name: String,
+        type: SpanType = .performance,
+        attributes: [String: String] = [:]
+    ) -> SpanBuilder {
         otel.buildSpan(name: name, type: type, attributes: attributes)
     }
 
     /// Record a span after the fact
     /// - Parameters
     ///     - name: The name of the span
+    ///     - type: The Embrace SpanType to mark this span. Defaults to `performance`
     ///     - parent: The parent span, if this span is a child
     ///     - startTime: The start time of the span
     ///     - endTime: The end time of the span
@@ -31,6 +36,7 @@ extension Embrace: EmbraceOpenTelemetry {
     ///     - errorCode: The error code of the span. Defaults to `noError`
     public func recordCompletedSpan(
         name: String,
+        type: SpanType = .performance,
         parent: Span? = nil,
         startTime: Date,
         endTime: Date,
@@ -38,9 +44,8 @@ extension Embrace: EmbraceOpenTelemetry {
         events: [RecordingSpanEvent] = [],
         errorCode: ErrorCode? = nil
     ) {
-
         let builder = otel
-            .buildSpan(name: name, type: .performance, attributes: attributes)
+            .buildSpan(name: name, type: type, attributes: attributes)
             .setStartTime(time: startTime)
         if let parent = parent { builder.setParent(parent) }
         let span = builder.startSpan()
@@ -83,7 +88,7 @@ extension Embrace { // MARK: Static methods
     public static func recordSpan<T>(
         name: String,
         parent: Span? = nil,
-        type: SpanType,
+        type: SpanType = .performance,
         attributes: [String: String] = [:],
         block: (Span?) throws -> T
     ) rethrows -> T {
