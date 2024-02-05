@@ -13,6 +13,8 @@ final class SpanTypeTests: XCTestCase {
         let type = SpanType(primary: .performance, secondary: "example")
         XCTAssertEqual(type.primary, .performance)
         XCTAssertEqual(type.secondary, "example")
+
+        XCTAssertEqual(type.rawValue, "performance.example")
     }
 
     func test_init_without_secondary_setsProperties() {

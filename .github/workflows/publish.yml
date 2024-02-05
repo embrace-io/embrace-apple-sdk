@@ -20,5 +20,5 @@ jobs:
 
       - name: Run publish script
         env:
-          PUBLIC_REMOTE_URL: ${{ env.PUBLIC_REMOTE_URL }}
+          PUBLIC_REMOTE_URL: ${{ vars.PUBLIC_REMOTE_URL }}
         run: bin/publish
