@@ -1,0 +1,1 @@
+- Recover from corrupted DB during EmbraceStorage init.

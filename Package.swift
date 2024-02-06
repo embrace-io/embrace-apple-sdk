@@ -163,6 +163,9 @@ let package = Package(
         .testTarget(
             name: "EmbraceStorageTests",
             dependencies: ["EmbraceStorage", "TestSupport"],
+            resources: [
+                .copy("Mocks/")
+            ],
             plugins: targetPlugins
         ),
 

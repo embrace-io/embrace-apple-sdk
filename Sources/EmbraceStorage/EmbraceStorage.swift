@@ -3,12 +3,12 @@
 //
 
 import Foundation
+import EmbraceCommon
 import GRDB
 
 /// Class in charge of storing all the data captured by the Embrace SDK.
 /// It provides an abstraction layer over a GRDB SQLite database.
 public class EmbraceStorage {
-
     public private(set) var options: Options
     public private(set) var dbQueue: DatabaseQueue
 
@@ -21,14 +21,14 @@ public class EmbraceStorage {
 
         if case let .inMemory(name) = options.storageMechanism {
             dbQueue = try DatabaseQueue(named: name)
-
         } else if case let .onDisk(baseURL, fileName) = options.storageMechanism {
             // create base directory if necessary
             try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true)
 
             // create sqlite file
-            let filepath = baseURL.appendingPathComponent(fileName).path
-            dbQueue = try DatabaseQueue(path: filepath)
+            let filepath = baseURL.appendingPathComponent(fileName)
+
+            dbQueue = try EmbraceStorage.getDBQueueIfPossible(at: filepath)
         } else {
             fatalError("Unsupported storage mechansim added")
         }
@@ -40,6 +40,48 @@ public class EmbraceStorage {
             try ResourceRecord.defineTable(db: db)
         }
     }
+
+    /// Will attempt to create or open the DB File. If first attempt fails due to GRDB error, it'll assume the existing DB is corruped and try again after deleting the existing DB file.
+    private static func getDBQueueIfPossible(at fileURL: URL) throws -> DatabaseQueue {
+        do {
+            return try DatabaseQueue(path: fileURL.path)
+        } catch {
+            if let dbError = error as? DatabaseError {
+                ConsoleLog.error("""
+GRDB Failed to initialize EmbraceStorage.
+Will attempt to remove existing file and create a new DB.
+Message: \(dbError.message ?? "[empty message]"),
+Result Code: \(dbError.resultCode),
+SQLite Extended Code: \(dbError.extendedResultCode)
+""")
+            } else {
+                ConsoleLog.error("""
+Unknown error while trying to initialize EmbraceStorage: \(error)
+Will attempt to recover by deleting existing DB.
+""")
+            }
+        }
+
+        try EmbraceStorage.deleteDBFile(at: fileURL)
+
+        return try DatabaseQueue(path: fileURL.path)
+    }
+
+    /// Will attempt to delete the provided file.
+    private static func deleteDBFile(at fileURL: URL) throws {
+        do {
+            let fileURL = URL(fileURLWithPath: fileURL.path)
+            try FileManager.default.removeItem(at: fileURL)
+        } catch let error {
+            ConsoleLog.error("""
+EmbraceStorage failed to remove DB file.
+Domain: \(error._domain)
+Code: \(error._code)
+Filepath: \(fileURL)
+""")
+        }
+    }
+
 }
 
 // MARK: - Sync operations

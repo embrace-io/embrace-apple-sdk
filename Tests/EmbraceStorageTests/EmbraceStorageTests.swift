@@ -4,6 +4,7 @@
 
 import XCTest
 import TestSupport
+import GRDB
 @testable import EmbraceStorage
 
 class EmbraceStorageTests: XCTestCase {
@@ -151,5 +152,59 @@ class EmbraceStorageTests: XCTestCase {
         }
 
         wait(for: [expectation2], timeout: .defaultTimeout)
+    }
+
+    func test_corruptedDbAction() {
+        guard let corruptedDb = EmbraceStorageTests.prepareCorruptedDBForTest() else {
+            return XCTFail("\(#function): Failed to create corrupted DB for test")
+        }
+
+        let dbBaseUrl = corruptedDb.deletingLastPathComponent()
+        let dbFile = corruptedDb.lastPathComponent
+
+        /// Make sure the target DB is corrupted and GRDB returns the expected result when trying to load it.
+        let corruptedAttempt = Result(catching: { try DatabaseQueue(path: corruptedDb.absoluteString) })
+        if case let .failure(error as DatabaseError) = corruptedAttempt {
+            XCTAssertEqual(error.resultCode, .SQLITE_CORRUPT)
+        } else {
+            XCTFail("\(#function): Failed to load a corrupted db for test.")
+        }
+
+        /// Attempting to create an EmbraceStorage with the corrupted DB should result in a valid storage creation
+        let storeCreationAttempt = Result(catching: {
+            try EmbraceStorage(options: .init(baseUrl: dbBaseUrl, fileName: dbFile))
+        })
+        if case let .failure(error) = storeCreationAttempt {
+            XCTFail("\(#function): EmbraceStorage failed to recover from corrupted existing DB: \(error)")
+        }
+
+        /// Then the corrupted DB should've been corrected and now GRDB should be able to load it.
+        let fixedAttempt = Result(catching: { try DatabaseQueue(path: corruptedDb.absoluteString) })
+        if case let .failure(error) = fixedAttempt {
+            XCTFail("\(#function): DB Is still corrupted after it should've been fixed: \(error)")
+        }
+    }
+
+    static func prepareCorruptedDBForTest() -> URL? {
+        guard
+        let resourceUrl = Bundle.module.path(forResource: "db_corrupted", ofType: "sqlite", inDirectory: "Mocks"),
+        let corruptedDbPath = URL(string: "file://\(resourceUrl)")
+        else {
+            return nil
+        }
+
+        let copyCorruptedPath = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("db.sqlite")
+
+        do {
+            if FileManager.default.fileExists(atPath: copyCorruptedPath.path) {
+                try FileManager.default.removeItem(at: copyCorruptedPath)
+            }
+            try FileManager.default.copyItem(at: corruptedDbPath, to: copyCorruptedPath)
+            return copyCorruptedPath
+        } catch let e {
+            print("\(#function): error creating corrupt db: \(e)")
+            return nil
+        }
+
     }
 }
