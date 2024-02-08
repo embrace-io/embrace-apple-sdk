@@ -4,6 +4,7 @@
 
 import Foundation
 import EmbraceOTel
+import EmbraceStorage
 
 class DefaultEmbraceLogSharedState: EmbraceLogSharedState {
     let processors: [EmbraceLogRecordProcessor]
@@ -26,17 +27,12 @@ class DefaultEmbraceLogSharedState: EmbraceLogSharedState {
 }
 
 extension DefaultEmbraceLogSharedState {
-    static func create() -> DefaultEmbraceLogSharedState {
+    static func create(storage: EmbraceStorage) -> DefaultEmbraceLogSharedState {
         DefaultEmbraceLogSharedState(
             config: DefaultEmbraceLoggerConfig(),
             // TODO: Add Exporters
             processors: .default(withExporters: []),
-            // TODO: Add Real Provider
-            resourceProvider: DummyResourceProvider())
-    }
-}
 
-// TODO: Remove this and replace with a real implementation
-private struct DummyResourceProvider: EmbraceResourceProvider {
-    func getResources() -> [EmbraceResource] { [] }
+            resourceProvider: ResourceStorageExporter(storage: storage))
+    }
 }

@@ -6,6 +6,7 @@ import XCTest
 
 @testable import EmbraceCore
 @testable import EmbraceOTel
+@testable import EmbraceStorage
 
 class DummyEmbraceResourceProvider: EmbraceResourceProvider {
     func getResources() -> [EmbraceResource] { [] }
@@ -14,13 +15,13 @@ class DummyEmbraceResourceProvider: EmbraceResourceProvider {
 class EmbraceLoggerSharedStateTests: XCTestCase {
     private var sut: DefaultEmbraceLogSharedState!
 
-    func test_default_hasDefaultEmbraceLoggerConfig() {
-        whenInvokingDefaultEmbraceLoggerSharedState()
+    func test_default_hasDefaultEmbraceLoggerConfig() throws {
+        try whenInvokingDefaultEmbraceLoggerSharedState()
         thenConfig(is: DefaultEmbraceLoggerConfig())
     }
 
-    func test_default_hasNoProcessors() {
-        whenInvokingDefaultEmbraceLoggerSharedState()
+    func test_default_hasNoProcessors() throws {
+        try whenInvokingDefaultEmbraceLoggerSharedState()
         thenProcessorsArrayHasDefaultProcessors()
     }
 
@@ -47,8 +48,8 @@ private extension EmbraceLoggerSharedStateTests {
         sut.update(config)
     }
 
-    func whenInvokingDefaultEmbraceLoggerSharedState() {
-        sut = .create()
+    func whenInvokingDefaultEmbraceLoggerSharedState() throws {
+        sut = try .create(storage: EmbraceStorage.createInMemoryDb())
     }
 
     func thenConfig(is config: any EmbraceLoggerConfig) {
