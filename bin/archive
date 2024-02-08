@@ -1,0 +1,71 @@
+#!/bin/bash
+set -e
+
+SCHEME="EmbraceIO-Package"
+CLONED_SOURCE_PACKAGES_DIR_PATH=".build"    # This matches spm location `swift run` uses
+DERIVED_DATA_PATH=".build/DerivedData"
+
+export IS_ARCHIVE=1
+
+TEMP_DIR=".build"
+RELEASE_PATH=".build/Archives"
+
+rm -rf "${TEMP_DIR}"
+rm -rf "${RELEASE_PATH}"
+
+mkdir -p "${TEMP_DIR}"
+mkdir -p "${RELEASE_PATH}"
+
+# -destination "generic/platform=watchOS" \
+# -destination "generic/platform=watchOS Simulator" \
+
+xcodebuild \
+-workspace . \
+-scheme ${SCHEME} \
+-destination "generic/platform=iOS" \
+-destination "generic/platform=iOS Simulator" \
+-destination "generic/platform=tvOS" \
+-destination "generic/platform=tvOS Simulator" \
+-destination "platform=macOS" \
+-configuration "Release" \
+-derivedDataPath "${DERIVED_DATA_PATH}" \
+SKIP_INSTALL=NO \
+BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
+OTHER_SWIFT_FLAGS="-no-verify-emitted-module-interface"
+
+FRAMEWORKS=()
+
+for SDK in iphoneos iphonesimulator
+do
+
+BUILD_PATH="${DERIVED_DATA_PATH}/Build/Products/Release-${SDK}"
+BUILD_FRAMEWORK_PATH="${BUILD_PATH}/PackageFrameworks/EmbraceIO-Dynamic.framework"
+BUILD_FRAMEWORK_HEADERS="${BUILD_FRAMEWORK_PATH}/Headers"
+
+mkdir -p "$BUILD_FRAMEWORK_HEADERS"
+SWIFT_HEADER="${DERIVED_DATA_PATH}/Build/Intermediates.noindex/EmbraceIO.build/Release-${SDK}/EmbraceIO.build/Objects-normal/arm64/EmbraceIO-Swift.h"
+
+if [ -f "$SWIFT_HEADER" ]; then
+    cp -p $SWIFT_HEADER $BUILD_FRAMEWORK_HEADERS || exit -2
+fi
+
+PACKAGE_INCLUDE_DIRS=$(find . -path "*/Sources/*/include" -type d)
+
+if [ -n "$PACKAGE_INCLUDE_DIRS" ]; then
+    cp -prv ./Sources/*/include/* $BUILD_FRAMEWORK_HEADERS || exit -2
+fi
+
+mkdir -p "${BUILD_FRAMEWORK_PATH}/Modules"
+
+for MODULE in ${BUILD_PATH}/*.swiftmodule; do
+    cp -prv ${MODULE} $BUILD_FRAMEWORK_PATH/Modules
+done
+
+FRAMEWORKS+=("-framework" "${DERIVED_DATA_PATH}/Build/Products/Release-${SDK}/PackageFrameworks/EmbraceIO-Dynamic.framework")
+
+#for sdk loop
+done
+
+xcodebuild -create-xcframework \
+"${FRAMEWORKS[@]}" \
+-output "${RELEASE_PATH}/EmbraceIO.xcframework"
