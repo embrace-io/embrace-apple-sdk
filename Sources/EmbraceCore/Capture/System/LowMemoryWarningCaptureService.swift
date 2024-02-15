@@ -8,11 +8,22 @@ import EmbraceOTel
 import OpenTelemetryApi
 
 @objc public class LowMemoryWarningCaptureService: NSObject, InstalledCaptureService {
+    private let otelProvider: EmbraceOTelHandlingProvider
+    private var otel: EmbraceOpenTelemetry? {
+        otelProvider.otelHandler
+    }
 
-    public let otel: EmbraceOpenTelemetry = EmbraceOTel()
     public var onWarningCaptured: (() -> Void)?
 
     @ThreadSafe var started = false
+
+    public override init() {
+        self.otelProvider = EmbraceOtelProvider()
+    }
+
+    internal init(otelProvider: EmbraceOTelHandlingProvider) {
+        self.otelProvider = otelProvider
+    }
 
     deinit {
         NotificationCenter.default.removeObserver(self)
@@ -45,8 +56,13 @@ import OpenTelemetryApi
             return
         }
 
+        guard let otel = otel else {
+            ConsoleLog.error("Missing Embrace Otel when trying to start a span on LowMemoryWarningCaptureService")
+            return
+        }
+
         let event = RecordingSpanEvent(name: "emb-device-low-memory", timestamp: Date())
-        Embrace.client?.add(event: event)
+        otel.add(event: event)
 
         onWarningCaptured?()
     }

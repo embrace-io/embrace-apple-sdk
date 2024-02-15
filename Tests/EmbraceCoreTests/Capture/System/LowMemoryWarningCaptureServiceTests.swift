@@ -6,27 +6,23 @@
 import XCTest
 import TestSupport
 import EmbraceCommon
-import EmbraceStorage
-import OpenTelemetryApi
 import UIKit
-@testable import EmbraceOTel
 @testable import EmbraceCore
 
 class LowMemoryWarningCaptureServiceTests: XCTestCase {
-    private var storage: EmbraceStorage!
+    private var processor: MockSpanProcessor!
+    private var otel: EmbraceOpenTelemetryMock!
+    private var otelProvider: EmbraceOtelProviderMock!
 
     override func setUpWithError() throws {
-        storage = try EmbraceStorage.createInMemoryDb()
-        EmbraceOTel.setup(spanProcessor: .with(storage: storage))
-    }
-
-    override func tearDownWithError() throws {
-        try storage.teardown()
+        processor = MockSpanProcessor()
+        otel = EmbraceOpenTelemetryMock(processor: processor)
+        otelProvider = EmbraceOtelProviderMock(embraceOtel: otel)
     }
 
     func test_started() {
         // given a started service
-        let service = LowMemoryWarningCaptureService()
+        let service = LowMemoryWarningCaptureService(otelProvider: otelProvider)
         service.install(context: .testContext)
         service.start()
 
@@ -44,7 +40,7 @@ class LowMemoryWarningCaptureServiceTests: XCTestCase {
 
     func test_notStarted() {
         // given a service that is not started
-        let service = LowMemoryWarningCaptureService()
+        let service = LowMemoryWarningCaptureService(otelProvider: otelProvider)
         service.install(context: .testContext)
 
         let expectation = XCTestExpectation()
@@ -62,7 +58,7 @@ class LowMemoryWarningCaptureServiceTests: XCTestCase {
 
     func test_stopped() {
         // given a service that is started
-        let service = LowMemoryWarningCaptureService()
+        let service = LowMemoryWarningCaptureService(otelProvider: otelProvider)
         service.install(context: .testContext)
         service.start()
 

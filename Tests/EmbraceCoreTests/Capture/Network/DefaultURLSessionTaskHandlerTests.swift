@@ -4,9 +4,6 @@
 
 import XCTest
 import TestSupport
-
-import EmbraceStorage
-import EmbraceOTel
 import EmbraceCommon
 
 @testable import EmbraceCore
@@ -17,13 +14,15 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
     private var sut: DefaultURLSessionTaskHandler!
     private var processor: MockSpanProcessor!
     private var task: URLSessionTask!
-    private var otel: EmbraceOTel!
+    private var otel: EmbraceOpenTelemetryMock!
+    private var otelProvider: EmbraceOtelProviderMock!
     private var session: URLSession!
 
     override func setUpWithError() throws {
         session = ProxiedURLSessionProvider.default()
         processor = MockSpanProcessor()
-        EmbraceOTel.setup(spanProcessor: processor)
+        otel = EmbraceOpenTelemetryMock(processor: processor)
+        otelProvider = EmbraceOtelProviderMock(embraceOtel: otel)
     }
 
     // MARK: - State Tests
@@ -147,8 +146,8 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
 
 private extension DefaultURLSessionTaskHandlerTests {
     func givenTaskHandler(withInitialState initialState: CaptureServiceHandlerState = .initialized) {
-        otel = .init()
-        sut = .init(DefaultURLSessionTaskHandler(otel: otel, initialState: initialState, processingQueue: .main))
+        otel = EmbraceOpenTelemetryMock(processor: processor)
+        sut = .init(DefaultURLSessionTaskHandler(initialState: initialState, processingQueue: .main, otelProvider: otelProvider))
     }
 
     func givenStateChanged(toState: CaptureServiceState) {

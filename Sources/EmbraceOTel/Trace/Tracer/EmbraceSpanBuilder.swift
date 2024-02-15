@@ -19,10 +19,14 @@ class EmbraceSpanBuilder: SpanBuilder {
     private var links = [RecordingSpanLink]()
 
     private var startAsActive: Bool = false
+    private var otelInstance: OpenTelemetry?
 
-    init(spanName: String, processor: EmbraceSpanProcessor) {
+    init(spanName: String, 
+         processor: EmbraceSpanProcessor,
+         otelInstance: OpenTelemetry? = OpenTelemetry.instance) {
         self.spanName = spanName
         self.spanProcessor = processor
+        self.otelInstance = otelInstance
     }
 
     @discardableResult func setParent(_ parent: OpenTelemetryApi.SpanContext) -> Self {
@@ -93,7 +97,7 @@ class EmbraceSpanBuilder: SpanBuilder {
         )
 
         if startAsActive {
-            OpenTelemetry.instance.contextProvider.setActiveSpan(span)
+            otelInstance?.contextProvider.setActiveSpan(span)
         }
 
         spanProcessor.onStart(span: span)

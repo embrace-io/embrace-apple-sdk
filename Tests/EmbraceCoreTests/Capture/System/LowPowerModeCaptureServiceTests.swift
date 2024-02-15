@@ -5,7 +5,6 @@
 import XCTest
 import TestSupport
 import EmbraceCommon
-import EmbraceStorage
 import OpenTelemetryApi
 @testable import EmbraceOTel
 @testable import EmbraceCore
@@ -23,17 +22,17 @@ class MockPowerModeProvider: PowerModeProvider {
 class LowPowerModeCollectorTests: XCTestCase {
 
     let provider = MockPowerModeProvider()
-    var storage: EmbraceStorage!
+
+    private var processor: MockSpanProcessor!
+    private var otel: EmbraceOpenTelemetryMock!
+    private var otelProvider: EmbraceOtelProviderMock!
 
     override func setUpWithError() throws {
         provider.isLowPowerModeEnabled = false
 
-        storage = try EmbraceStorage.createInMemoryDb()
-        EmbraceOTel.setup(spanProcessor: .with(storage: storage))
-    }
-
-    override func tearDownWithError() throws {
-        try storage.teardown()
+        processor = MockSpanProcessor()
+        otel = EmbraceOpenTelemetryMock(processor: processor)
+        otelProvider = EmbraceOtelProviderMock(embraceOtel: otel)
     }
 
     func test_fetchOnStart_modeEnabled() {
@@ -41,7 +40,7 @@ class LowPowerModeCollectorTests: XCTestCase {
         provider.isLowPowerModeEnabled = true
 
         // when starting a service
-        let service = LowPowerModeCaptureService(provider: provider)
+        let service = LowPowerModeCaptureService(provider: provider, otelProvider: otelProvider)
         service.install(context: .testContext)
         service.start()
 
@@ -59,7 +58,7 @@ class LowPowerModeCollectorTests: XCTestCase {
         provider.isLowPowerModeEnabled = false
 
         // when starting a service
-        let service = LowPowerModeCaptureService(provider: provider)
+        let service = LowPowerModeCaptureService(provider: provider, otelProvider: otelProvider)
         service.install(context: .testContext)
         service.start()
 
@@ -71,7 +70,7 @@ class LowPowerModeCollectorTests: XCTestCase {
         provider.isLowPowerModeEnabled = true
 
         // when installing a service
-        let service = LowPowerModeCaptureService(provider: provider)
+        let service = LowPowerModeCaptureService(provider: provider, otelProvider: otelProvider)
         service.install(context: .testContext)
 
         // then its not started
@@ -100,7 +99,7 @@ class LowPowerModeCollectorTests: XCTestCase {
         provider.isLowPowerModeEnabled = false
 
         // when starting a service
-        let service = LowPowerModeCaptureService(provider: provider)
+        let service = LowPowerModeCaptureService(provider: provider, otelProvider: otelProvider)
         service.install(context: .testContext)
         service.start()
 
@@ -125,7 +124,7 @@ class LowPowerModeCollectorTests: XCTestCase {
         provider.isLowPowerModeEnabled = false
 
         // when starting a service
-        let service = LowPowerModeCaptureService(provider: provider)
+        let service = LowPowerModeCaptureService(provider: provider, otelProvider: otelProvider)
         service.install(context: .testContext)
         service.start()
 
@@ -149,7 +148,7 @@ class LowPowerModeCollectorTests: XCTestCase {
         provider.isLowPowerModeEnabled = true
 
         // when starting a service
-        let service = LowPowerModeCaptureService(provider: provider)
+        let service = LowPowerModeCaptureService(provider: provider, otelProvider: otelProvider)
         service.install(context: .testContext)
         service.start()
 
@@ -170,7 +169,7 @@ class LowPowerModeCollectorTests: XCTestCase {
         provider.isLowPowerModeEnabled = true
 
         // when starting a service
-        let service = LowPowerModeCaptureService(provider: provider)
+        let service = LowPowerModeCaptureService(provider: provider, otelProvider: otelProvider)
         service.install(context: .testContext)
         service.start()
 
@@ -191,7 +190,7 @@ class LowPowerModeCollectorTests: XCTestCase {
         provider.isLowPowerModeEnabled = true
 
         // when starting a service
-        let service = LowPowerModeCaptureService(provider: provider)
+        let service = LowPowerModeCaptureService(provider: provider, otelProvider: otelProvider)
         service.install(context: .testContext)
         service.start()
 

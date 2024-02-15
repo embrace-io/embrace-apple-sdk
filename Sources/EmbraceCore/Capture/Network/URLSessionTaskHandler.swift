@@ -26,8 +26,11 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
     @ThreadSafe
     private(set) var state: CaptureServiceHandlerState
     private var spans: [URLSessionTask: Span] = [:]
-    private let otel: EmbraceOpenTelemetry
     private let queue: DispatchQueue
+    private let otelProvider: EmbraceOTelHandlingProvider
+    private var otel: EmbraceOpenTelemetry? {
+        otelProvider.otelHandler
+    }
 
     enum SpanAttribute {
         // Isn't address redundant?
@@ -42,12 +45,19 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
         static let errorMessage = "error.message"
     }
 
-    init(otel: EmbraceOpenTelemetry = EmbraceOTel(),
-         initialState: CaptureServiceHandlerState = .initialized,
+    init(initialState: CaptureServiceHandlerState = .initialized,
          processingQueue: DispatchQueue = DefaultURLSessionTaskHandler.queue()) {
-        self.otel = otel
         self.state = initialState
         self.queue = processingQueue
+        self.otelProvider = EmbraceOtelProvider()
+    }
+
+    internal init(initialState: CaptureServiceHandlerState = .initialized,
+                  processingQueue: DispatchQueue = DefaultURLSessionTaskHandler.queue(),
+                  otelProvider: EmbraceOTelHandlingProvider) {
+        self.state = initialState
+        self.queue = processingQueue
+        self.otelProvider = otelProvider
     }
 
     func create(task: URLSessionTask) {
@@ -56,7 +66,10 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
                 return
             }
 
-            guard let request = task.originalRequest, let url = request.url else {
+            guard
+                let request = task.originalRequest,
+                let url = request.url,
+                let otel = self.otel else {
                 // TODO: Shall we log this as an error instead of only returning?
                 return
             }
@@ -91,9 +104,9 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
              - HTTP Attributes: https://opentelemetry.io/docs/specs/semconv/attributes-registry/http/
              */
             let name = httpMethod.isEmpty ? url.path : "\(httpMethod) \(url.path)"
-            let networkSpan = self.otel.buildSpan(name: name,
-                                                  type: .networkHTTP,
-                                                  attributes: attributes)
+            let networkSpan = otel.buildSpan(name: name,
+                                                         type: .networkHTTP,
+                                                         attributes: attributes)
             self.spans[task] = networkSpan.startSpan()
         }
     }

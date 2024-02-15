@@ -8,9 +8,11 @@ import EmbraceOTel
 import OpenTelemetryApi
 
 @objc public class LowPowerModeCaptureService: NSObject, InstalledCaptureService {
-
     public let provider: PowerModeProvider
-    public let otel: EmbraceOpenTelemetry
+    private let otelProvider: EmbraceOTelHandlingProvider
+    private var otel: EmbraceOpenTelemetry? {
+        otelProvider.otelHandler
+    }
 
     @ThreadSafe var started = false
     @ThreadSafe var wasLowPowerModeEnabled = false
@@ -18,7 +20,13 @@ import OpenTelemetryApi
 
     public init(provider: PowerModeProvider = DefaultPowerModeProvider()) {
         self.provider = provider
-        self.otel = EmbraceOTel()
+        self.otelProvider = EmbraceOtelProvider()
+    }
+
+    internal init(provider: PowerModeProvider = DefaultPowerModeProvider(),
+                  otelProvider: EmbraceOTelHandlingProvider) {
+        self.provider = provider
+        self.otelProvider = otelProvider
     }
 
     deinit {
@@ -72,6 +80,10 @@ import OpenTelemetryApi
     }
 
     func startSpan(wasManuallyFetched: Bool = false) {
+        guard let otel = self.otel else {
+            ConsoleLog.error("Missing Embrace Otel when trying to start a span on LowPowerModeCaptureService")
+            return
+        }
         endSpan()
 
         let builder = otel.buildSpan(
