@@ -48,9 +48,9 @@ final class MetadataHandlerTests: XCTestCase {
             }
         }
 
-        // when adding a custom property with invalid key
+        // when adding a property with invalid key
         let expectation2 = XCTestExpectation()
-        XCTAssertThrowsError(try handler.addCustomProperty(key: invalidKey, value: "test")) { error in
+        XCTAssertThrowsError(try handler.addProperty(key: invalidKey, value: "test")) { error in
 
             // then it should error out as a MetadataError.invalidKey
             switch error as! MetadataError {
@@ -76,7 +76,7 @@ final class MetadataHandlerTests: XCTestCase {
         // when adding metadata with invalid values
         let expectation = XCTestExpectation()
         try handler.addResource(key: "test", value: invalidValue, lifespan: .permanent)
-        try handler.addCustomProperty(key: "test", value: invalidValue, lifespan: .permanent)
+        try handler.addProperty(key: "test", value: invalidValue, lifespan: .permanent)
 
         // then the values are truncated
         try storage.dbQueue.read { db in
@@ -110,9 +110,9 @@ final class MetadataHandlerTests: XCTestCase {
             }
         }
 
-        // when adding a custom property with session lifespan
+        // when adding a property with session lifespan
         let expectation2 = XCTestExpectation()
-        XCTAssertThrowsError(try handler.addCustomProperty(key: "test", value: "test", lifespan: .session)) { error in
+        XCTAssertThrowsError(try handler.addProperty(key: "test", value: "test", lifespan: .session)) { error in
 
             // then it should error out as a MetadataError.invalidSession
             switch error as! MetadataError {
@@ -154,7 +154,7 @@ final class MetadataHandlerTests: XCTestCase {
 
         // when adding a custom property
         let expectation2 = XCTestExpectation()
-        XCTAssertThrowsError(try handler.addResource(key: "test", value: "test", lifespan: .session)) { error in
+        XCTAssertThrowsError(try handler.addProperty(key: "test", value: "test", lifespan: .session)) { error in
 
             // then it should error out as a MetadataError.limitReached
             switch error as! MetadataError {
