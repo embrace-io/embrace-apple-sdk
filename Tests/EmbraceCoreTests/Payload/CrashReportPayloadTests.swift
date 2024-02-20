@@ -26,7 +26,7 @@ class CrashReportPayloadTests: XCTestCase {
         let crashReport = dummyCrashReport
 
         // when creating a payload
-        let payload = CrashReportPayload(from: crashReport, resourceFetcher: MockResourceFetcher())
+        let payload = CrashReportPayload(from: crashReport, resourceFetcher: MockMetadataFetcher())
 
         // then the properties are correctly set
         XCTAssertEqual(payload.crashPayload.id, crashReport.id.uuidString)
@@ -41,7 +41,7 @@ class CrashReportPayloadTests: XCTestCase {
         let crashReport = dummyCrashReport
 
         // when serializing
-        let payload = CrashReportPayload(from: crashReport, resourceFetcher: MockResourceFetcher())
+        let payload = CrashReportPayload(from: crashReport, resourceFetcher: MockMetadataFetcher())
         let data = try! JSONEncoder().encode(payload)
         let json = try! JSONSerialization.jsonObject(with: data, options: []) as! [String: Any]
 
@@ -57,7 +57,7 @@ class CrashReportPayloadTests: XCTestCase {
         let crashReport = dummyCrashReport
 
         // when serializing
-        let payload = CrashReportPayload(from: crashReport, resourceFetcher: MockResourceFetcher())
+        let payload = CrashReportPayload(from: crashReport, resourceFetcher: MockMetadataFetcher())
         let data = try! JSONEncoder().encode(payload)
         let json = try! JSONSerialization.jsonObject(with: data, options: []) as! [String: Any]
 

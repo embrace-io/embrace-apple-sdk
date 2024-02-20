@@ -4,7 +4,7 @@
 
 import Foundation
 
-extension ResourceRecord {
+extension MetadataRecord {
 
     public var boolValue: Bool? {
         switch value {

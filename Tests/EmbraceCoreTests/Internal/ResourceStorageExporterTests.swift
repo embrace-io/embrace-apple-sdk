@@ -14,9 +14,26 @@ final class ResourceStorageExporterTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         let exporter = ResourceStorageExporter(storage: storage)
 
-        try storage.addResource(key: "permanent", value: "permanent", resourceType: .permanent)
-        try storage.addResource(key: "session", value: "session", resourceType: .session)
-        try storage.addResource(key: "process", value: "process", resourceType: .process)
+        try storage.addMetadata(
+            key: "permanent",
+            value: "permanent",
+            type: .resource,
+            lifespan: .permanent
+        )
+        try storage.addMetadata(
+            key: "session",
+            value: "session",
+            type: .resource,
+            lifespan: .session,
+            lifespanId: "sessionId"
+        )
+        try storage.addMetadata(
+            key: "process",
+            value: "process",
+            type: .resource,
+            lifespan: .process,
+            lifespanId: "processId"
+        )
 
         let resources = exporter.getResources()
 

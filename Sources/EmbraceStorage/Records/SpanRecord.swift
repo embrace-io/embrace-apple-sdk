@@ -35,6 +35,18 @@ public struct SpanRecord: Codable {
     }
 }
 
+extension SpanRecord {
+    struct Schema {
+        static var id: Column { Column("id") }
+        static var traceId: Column { Column("trace_id") }
+        static var type: Column { Column("type") }
+        static var data: Column { Column("data") }
+        static var startTime: Column { Column("start_time") }
+        static var endTime: Column { Column("end_time") }
+        static var name: Column { Column("name") }
+    }
+}
+
 extension SpanRecord: FetchableRecord, PersistableRecord, MutablePersistableRecord {
     public static let databaseColumnDecodingStrategy = DatabaseColumnDecodingStrategy.convertFromSnakeCase
     public static let databaseColumnEncodingStrategy = DatabaseColumnEncodingStrategy.convertToSnakeCase
@@ -46,16 +58,16 @@ extension SpanRecord: TableRecord {
 
     internal static func defineTable(db: Database) throws {
         try db.create(table: SpanRecord.databaseTableName, options: .ifNotExists) { t in
-            t.column("id", .text).notNull()
-            t.column("name", .text).notNull()
-            t.column("trace_id", .text).notNull()
-            t.primaryKey(["trace_id", "id"])
+            t.column(Schema.id.name, .text).notNull()
+            t.column(Schema.name.name, .text).notNull()
+            t.column(Schema.traceId.name, .text).notNull()
+            t.primaryKey([Schema.traceId.name, Schema.id.name])
 
-            t.column("type", .text).notNull()
-            t.column("start_time", .datetime).notNull()
-            t.column("end_time", .datetime)
+            t.column(Schema.type.name, .text).notNull()
+            t.column(Schema.startTime.name, .datetime).notNull()
+            t.column(Schema.endTime.name, .datetime)
 
-            t.column("data", .blob).notNull()
+            t.column(Schema.data.name, .blob).notNull()
         }
 
         let preventClosedSpanModification = """

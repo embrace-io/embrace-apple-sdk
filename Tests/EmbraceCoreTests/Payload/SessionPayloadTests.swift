@@ -13,6 +13,145 @@ import TestSupport
 final class SessionPayloadTests: XCTestCase {
     let options = EmbraceStorage.Options(baseUrl: URL(fileURLWithPath: NSTemporaryDirectory()), fileName: "test.sqlite")
 
+    let mockAppInfoResources: [MetadataRecord] = [
+        .init(
+            key: AppResourceKey.bundleVersion.rawValue,
+            value: .string("fake_bundle_version"),
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.hex
+        ),
+        .init(
+            key: AppResourceKey.environment.rawValue,
+            value: .string("fake_environment"),
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.hex
+        ),
+        .init(
+            key: AppResourceKey.detailedEnvironment.rawValue,
+            value: .string("fake_detailed_environment"),
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.hex
+        ),
+        .init(
+            key: AppResourceKey.framework.rawValue,
+            value: .string("1"),
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.hex
+        ),
+        .init(
+            key: AppResourceKey.launchCount.rawValue,
+            value: .string("2"),
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.hex
+        ),
+        .init(
+            key: AppResourceKey.sdkVersion.rawValue,
+            value: .string("fake_sdk_version"),
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.hex
+        ),
+        .init(
+            key: AppResourceKey.appVersion.rawValue,
+            value: .string("fake_app_version"),
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.hex
+        )
+    ]
+
+    let mockDeviceInfoResources: [MetadataRecord] = [
+        .init(
+            key: DeviceResourceKey.isJailbroken.rawValue,
+            value: .string("false"),
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.hex
+        ),
+        .init(
+            key: DeviceResourceKey.locale.rawValue,
+            value: .string("fake_locale"),
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.hex
+        ),
+        .init(
+            key: DeviceResourceKey.timezone.rawValue,
+            value: .string("fake_timezone"),
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.hex
+        ),
+        .init(
+            key: DeviceResourceKey.totalDiskSpace.rawValue,
+            value: .string("123456"),
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.hex
+        ),
+        .init(
+            key: DeviceResourceKey.architecture.rawValue,
+            value: .string("fake_architecture"),
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.hex
+        ),
+        .init(
+            key: DeviceResourceKey.model.rawValue,
+            value: .string("fake_model"),
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.hex
+        ),
+        .init(
+            key: DeviceResourceKey.manufacturer.rawValue,
+            value: .string("fake_manufacturer"),
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.hex
+        ),
+        .init(
+            key: DeviceResourceKey.screenResolution.rawValue,
+            value: .string("fake_screen_resolution"),
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.hex
+        ),
+        .init(
+            key: DeviceResourceKey.OSVersion.rawValue,
+            value: .string("fake_os_version"),
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.hex
+        ),
+        .init(
+            key: DeviceResourceKey.OSBuild.rawValue,
+            value: .string("fake_os_build"),
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.hex
+        ),
+        .init(
+            key: DeviceResourceKey.osType.rawValue,
+            value: .string("fake_os_type"),
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.hex
+        ),
+        .init(
+            key: DeviceResourceKey.osVariant.rawValue,
+            value: .string("fake_os_variant"),
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.hex
+        )
+    ]
+
     var mockSessionRecord: SessionRecord {
         .init(
             id: .random,
@@ -24,18 +163,10 @@ final class SessionPayloadTests: XCTestCase {
             endTime: Date(timeIntervalSince1970: 40))
     }
 
-    var mockResources: [ResourceRecord] = [.init(key: AppResourceKey.bundleVersion.rawValue, value: "fake_bundle_version", processIdentifier: .current),
-                                           .init(key: AppResourceKey.environment.rawValue, value: "fake_environment", processIdentifier: .current),
-                                           .init(key: AppResourceKey.detailedEnvironment.rawValue, value: "fake_detailed_environment", processIdentifier: .current),
-                                           .init(key: AppResourceKey.framework.rawValue, value: String(1), processIdentifier: .current),
-                                           .init(key: AppResourceKey.launchCount.rawValue, value: String(2), processIdentifier: .current),
-                                           .init(key: AppResourceKey.sdkVersion.rawValue, value: "fake_sdk_version", processIdentifier: .current),
-                                           .init(key: AppResourceKey.appVersion.rawValue, value: "fake_app_version", processIdentifier: .current)]
-
     func test_properties() {
         // given a session record
         let sessionRecord = mockSessionRecord
-        let fetcher = MockResourceFetcher(resources: [])
+        let fetcher = MockMetadataFetcher(resources: [])
 
         // when creating a payload
         let payload = SessionPayload(from: sessionRecord, resourceFetcher: fetcher, counter: 10)
@@ -53,7 +184,7 @@ final class SessionPayloadTests: XCTestCase {
     func test_highLevelKeys() throws {
         // given a session record
         let sessionRecord = mockSessionRecord
-        let fetcher = MockResourceFetcher(resources: [])
+        let fetcher = MockMetadataFetcher(resources: [])
 
         // when serializing
         let payload = SessionPayload(from: sessionRecord, resourceFetcher: fetcher)
@@ -73,7 +204,7 @@ final class SessionPayloadTests: XCTestCase {
     func test_sessionInfoKeys() throws {
         // given a session record
         let sessionRecord = mockSessionRecord
-        let fetcher = MockResourceFetcher(resources: [])
+        let fetcher = MockMetadataFetcher(resources: [])
 
         // when serializing
         let payload = SessionPayload(from: sessionRecord, resourceFetcher: fetcher, counter: 10)
@@ -93,14 +224,7 @@ final class SessionPayloadTests: XCTestCase {
     func test_appInfoKeys() throws {
         // given a session record
         let sessionRecord = mockSessionRecord
-        let mockResources: [ResourceRecord] = [.init(key: AppResourceKey.bundleVersion.rawValue, value: "fake_bundle_version", processIdentifier: .current),
-                                               .init(key: AppResourceKey.environment.rawValue, value: "fake_environment", processIdentifier: .current),
-                                               .init(key: AppResourceKey.detailedEnvironment.rawValue, value: "fake_detailed_environment", processIdentifier: .current),
-                                               .init(key: AppResourceKey.framework.rawValue, value: String(1), processIdentifier: .current),
-                                               .init(key: AppResourceKey.launchCount.rawValue, value: String(2), processIdentifier: .current),
-                                               .init(key: AppResourceKey.sdkVersion.rawValue, value: "fake_sdk_version", processIdentifier: .current),
-                                               .init(key: AppResourceKey.appVersion.rawValue, value: "fake_app_version", processIdentifier: .current)]
-        let fetcher = MockResourceFetcher(resources: mockResources)
+        let fetcher = MockMetadataFetcher(resources: mockAppInfoResources)
 
         // when serializing
         let payload = SessionPayload(from: sessionRecord, resourceFetcher: fetcher)
@@ -123,13 +247,7 @@ final class SessionPayloadTests: XCTestCase {
     func test_deviceInfoKeys() throws {
         // given a session record
         let sessionRecord = mockSessionRecord
-        let mockResources: [ResourceRecord] = [.init(key: DeviceResourceKey.isJailbroken.rawValue, value: String(false), processIdentifier: .current),
-                                               .init(key: DeviceResourceKey.locale.rawValue, value: "fake_locale", processIdentifier: .current),
-                                               .init(key: DeviceResourceKey.timezone.rawValue, value: "fake_timezone", processIdentifier: .current),
-                                               .init(key: DeviceResourceKey.totalDiskSpace.rawValue, value: String(123456), processIdentifier: .current),
-                                               .init(key: DeviceResourceKey.OSVersion.rawValue, value: "fake_os_version", processIdentifier: .current),
-                                               .init(key: DeviceResourceKey.OSBuild.rawValue, value: "fake_os_build", processIdentifier: .current)]
-        let fetcher = MockResourceFetcher(resources: mockResources)
+        let fetcher = MockMetadataFetcher(resources: mockDeviceInfoResources)
 
         // when serializing
         let payload = SessionPayload(from: sessionRecord, resourceFetcher: fetcher)
@@ -144,6 +262,12 @@ final class SessionPayloadTests: XCTestCase {
         XCTAssertEqual(deviceInfo["ms"] as! Int, 123456)
         XCTAssertEqual(deviceInfo["ov"] as! String, "fake_os_version")
         XCTAssertEqual(deviceInfo["ob"] as! String, "fake_os_build")
+        XCTAssertEqual(deviceInfo["os"] as! String, "fake_os_type")
+        XCTAssertEqual(deviceInfo["oa"] as! String, "fake_os_variant")
+        XCTAssertEqual(deviceInfo["da"] as! String, "fake_architecture")
+        XCTAssertEqual(deviceInfo["do"] as! String, "fake_model")
+        XCTAssertEqual(deviceInfo["dm"] as! String, "fake_manufacturer")
+        XCTAssertEqual(deviceInfo["sr"] as! String, "fake_screen_resolution")
     }
 }
 

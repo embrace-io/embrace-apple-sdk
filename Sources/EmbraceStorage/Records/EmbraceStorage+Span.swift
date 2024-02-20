@@ -6,7 +6,6 @@ import Foundation
 import EmbraceCommon
 import GRDB
 
-// MARK: - Sync span operations
 extension EmbraceStorage {
 
     /// Adds a span to the storage synchronously.
@@ -63,7 +62,13 @@ extension EmbraceStorage {
     public func fetchSpan(id: String, traceId: String) throws -> SpanRecord? {
         var span: SpanRecord?
         try dbQueue.read { db in
-            span = try SpanRecord.fetchOne(db, key: ["trace_id": traceId, "id": id])
+            span = try SpanRecord.fetchOne(
+                db,
+                key: [
+                    SpanRecord.Schema.traceId.name: traceId,
+                    SpanRecord.Schema.id.name: id
+                ]
+            )
         }
 
         return span
@@ -74,10 +79,10 @@ extension EmbraceStorage {
     /// - Parameter date: Date used to determine which spans to remove
     public func cleanUpSpans(date: Date? = nil) throws {
         _ = try dbQueue.write { db in
-            var filter = SpanRecord.filter(Column("end_time") != nil)
+            var filter = SpanRecord.filter(SpanRecord.Schema.endTime != nil)
 
             if let date = date {
-                filter = filter.filter(Column("end_time") < date)
+                filter = filter.filter(SpanRecord.Schema.endTime < date)
             }
 
             try filter.deleteAll(db)
@@ -90,8 +95,8 @@ extension EmbraceStorage {
     public func closeOpenSpans(endTime: Date) throws {
         _ = try dbQueue.write { db in
             try SpanRecord
-                .filter(Column("end_time") == nil)
-                .updateAll(db, Column("end_time").set(to: endTime))
+                .filter(SpanRecord.Schema.endTime == nil)
+                .updateAll(db, SpanRecord.Schema.endTime.set(to: endTime))
         }
     }
 
@@ -157,10 +162,10 @@ fileprivate extension EmbraceStorage {
     }
 
     func spanInTraceByTypeRequest(traceId: String, type: SpanType?) -> QueryInterfaceRequest<SpanRecord> {
-        var filter = SpanRecord.filter(Column("trace_id") == traceId)
+        var filter = SpanRecord.filter(SpanRecord.Schema.traceId == traceId)
 
         if let type = type {
-            filter = filter.filter(Column("type") == type.rawValue)
+            filter = filter.filter(SpanRecord.Schema.type == type.rawValue)
         }
 
         return filter
@@ -173,7 +178,7 @@ fileprivate extension EmbraceStorage {
 
     func fetchSpans(db: Database, traceId: String, type: SpanType?, limit: Int?) throws -> [SpanRecord] {
         var request = spanInTraceByTypeRequest(traceId: traceId, type: type)
-            .order(Column("start_time"))
+            .order(SpanRecord.Schema.startTime)
 
         if let limit = limit {
             request = request.limit(limit)
@@ -190,16 +195,16 @@ fileprivate extension EmbraceStorage {
     ) -> QueryInterfaceRequest<SpanRecord> {
 
         var filter = SpanRecord.filter(
-            Column("end_time") == nil ||
-            (Column("end_time") <= endTime && Column("end_time") >= startTime)
+            SpanRecord.Schema.endTime == nil ||
+            (SpanRecord.Schema.endTime <= endTime && SpanRecord.Schema.endTime >= startTime)
         )
 
         if includeOlder == false {
-            filter = filter.filter(Column("start_time") >= startTime)
+            filter = filter.filter(SpanRecord.Schema.startTime >= startTime)
         }
 
         if ignoreSessionSpans == true {
-            filter = filter.filter(Column("type") != SpanType.session.rawValue)
+            filter = filter.filter(SpanRecord.Schema.type != SpanType.session.rawValue)
         }
 
         return filter
@@ -219,7 +224,7 @@ fileprivate extension EmbraceStorage {
             endTime: endTime,
             includeOlder: includeOlder,
             ignoreSessionSpans: ignoreSessionSpans
-        ).order(Column("start_time"))
+        ).order(SpanRecord.Schema.startTime)
 
         if let limit = limit {
             request = request.limit(limit)

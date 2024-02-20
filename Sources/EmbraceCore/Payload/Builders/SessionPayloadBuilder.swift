@@ -11,11 +11,11 @@ class SessionPayloadBuilder {
     static var resourceName = "emb.session.upload_index"
 
     class func build(for sessionRecord: SessionRecord, storage: EmbraceStorage) -> SessionPayload {
-        var resource: ResourceRecord?
+        var resource: MetadataRecord?
 
         do {
             // fetch resource
-            resource = try storage.fetchPermanentResource(key: resourceName)
+            resource = try storage.fetchRequriedPermanentResource(key: resourceName)
         } catch {
             ConsoleLog.debug("Error fetching \(resourceName) resource!")
         }
@@ -27,9 +27,14 @@ class SessionPayloadBuilder {
             if var resource = resource {
                 counter = (resource.integerValue ?? 0) + 1
                 resource.value = .string(String(counter))
-                try storage.upsertResource(resource)
+                try storage.updateMetadata(resource)
             } else {
-                resource = try storage.addResource(key: resourceName, value: "1", resourceType: .permanent)
+                resource = try storage.addMetadata(
+                    key: resourceName,
+                    value: "1",
+                    type: .requiredResource,
+                    lifespan: .permanent
+                )
                 counter = 1
             }
         } catch {

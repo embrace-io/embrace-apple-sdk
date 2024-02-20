@@ -35,7 +35,7 @@ struct DeviceInfoPayload: Codable {
         case screenResolution = "sr"
     }
 
-    init(with resources: [ResourceRecord]) {
+    init(with resources: [MetadataRecord]) {
         resources.forEach { resource in
             guard let key: DeviceResourceKey = DeviceResourceKey(rawValue: resource.key) else {
                 return

@@ -7,8 +7,6 @@ import TestSupport
 import EmbraceCommon
 @testable import EmbraceStorage
 
-// swiftlint:disable cyclomatic_complexity
-
 class SessionRecordTests: XCTestCase {
     var storage: EmbraceStorage!
 
@@ -27,21 +25,22 @@ class SessionRecordTests: XCTestCase {
         try storage.dbQueue.read { db in
             XCTAssert(try db.tableExists(SessionRecord.databaseTableName))
 
+            XCTAssert(try db.table(SessionRecord.databaseTableName, hasUniqueKey: [SessionRecord.Schema.id.name]))
+
             let columns = try db.columns(in: SessionRecord.databaseTableName)
             XCTAssertEqual(columns.count, 12, "Column count does not match expectation. Did you add/remove a column?")
 
             // id
-            let idColumn = columns.first(where: { $0.name == "id" })
+            let idColumn = columns.first(where: { $0.name == SessionRecord.Schema.id.name })
             if let idColumn = idColumn {
                 XCTAssertEqual(idColumn.type, "TEXT")
                 XCTAssert(idColumn.isNotNull)
-                XCTAssert(try db.table(SessionRecord.databaseTableName, hasUniqueKey: ["id"]))
             } else {
                 XCTAssert(false, "id column not found!")
             }
 
             // state
-            let stateTimeColumn = columns.first(where: { $0.name == "state" })
+            let stateTimeColumn = columns.first(where: { $0.name == SessionRecord.Schema.state.name })
             if let stateTimeColumn = stateTimeColumn {
                 XCTAssertEqual(stateTimeColumn.type, "TEXT")
                 XCTAssert(stateTimeColumn.isNotNull)
@@ -50,7 +49,7 @@ class SessionRecordTests: XCTestCase {
             }
 
             // process_id
-            let processIdColumn = columns.first(where: { $0.name == "process_id" })
+            let processIdColumn = columns.first(where: { $0.name == SessionRecord.Schema.processId.name })
             if let processIdColumn = processIdColumn {
                 XCTAssertEqual(processIdColumn.type, "TEXT")
                 XCTAssert(processIdColumn.isNotNull)
@@ -59,7 +58,7 @@ class SessionRecordTests: XCTestCase {
             }
 
             // trace_id
-            let traceIdColumn = columns.first(where: { $0.name == "trace_id" })
+            let traceIdColumn = columns.first(where: { $0.name == SessionRecord.Schema.traceId.name })
             if let traceIdColumn = traceIdColumn {
                 XCTAssertEqual(traceIdColumn.type, "TEXT")
                 XCTAssert(traceIdColumn.isNotNull)
@@ -68,7 +67,7 @@ class SessionRecordTests: XCTestCase {
             }
 
             // span_id
-            let spanIdColumn = columns.first(where: { $0.name == "span_id" })
+            let spanIdColumn = columns.first(where: { $0.name == SessionRecord.Schema.spanId.name })
             if let spanIdColumn = spanIdColumn {
                 XCTAssertEqual(spanIdColumn.type, "TEXT")
                 XCTAssert(spanIdColumn.isNotNull)
@@ -77,7 +76,7 @@ class SessionRecordTests: XCTestCase {
             }
 
             // start_time
-            let startTimeColumn = columns.first(where: { $0.name == "start_time" })
+            let startTimeColumn = columns.first(where: { $0.name == SessionRecord.Schema.startTime.name })
             if let startTimeColumn = startTimeColumn {
                 XCTAssertEqual(startTimeColumn.type, "DATETIME")
                 XCTAssert(startTimeColumn.isNotNull)
@@ -86,7 +85,7 @@ class SessionRecordTests: XCTestCase {
             }
 
             // end_time
-            let endTimeColumn = columns.first(where: { $0.name == "end_time" })
+            let endTimeColumn = columns.first(where: { $0.name == SessionRecord.Schema.endTime.name })
             if let endTimeColumn = endTimeColumn {
                 XCTAssertEqual(endTimeColumn.type, "DATETIME")
             } else {
@@ -94,7 +93,9 @@ class SessionRecordTests: XCTestCase {
             }
 
             // last_heartbeat_time
-            let lastHeartbeatTimeColumn = columns.first(where: { $0.name == "last_heartbeat_time" })
+            let lastHeartbeatTimeColumn = columns.first(where: {
+                $0.name == SessionRecord.Schema.lastHeartbeatTime.name
+            })
             if let lastHeartbeatTimeColumn = lastHeartbeatTimeColumn {
                 XCTAssertEqual(lastHeartbeatTimeColumn.type, "DATETIME")
                 XCTAssert(lastHeartbeatTimeColumn.isNotNull)
@@ -103,7 +104,7 @@ class SessionRecordTests: XCTestCase {
             }
 
             // crash_report_id
-            let crashReportIdColumn = columns.first(where: { $0.name == "crash_report_id" })
+            let crashReportIdColumn = columns.first(where: { $0.name == SessionRecord.Schema.crashReportId.name })
             if let crashReportIdColumn = crashReportIdColumn {
                 XCTAssertEqual(crashReportIdColumn.type, "TEXT")
             } else {
@@ -111,7 +112,7 @@ class SessionRecordTests: XCTestCase {
             }
 
             // cold_start
-            let coldStartColumn = columns.first(where: { $0.name == "cold_start" })
+            let coldStartColumn = columns.first(where: { $0.name == SessionRecord.Schema.coldStart.name })
             if let coldStartColumn = coldStartColumn {
                 XCTAssertEqual(coldStartColumn.type, "BOOLEAN")
                 XCTAssertTrue(coldStartColumn.isNotNull)
@@ -121,7 +122,7 @@ class SessionRecordTests: XCTestCase {
             }
 
             // clean_exit
-            let cleanExitColumn = columns.first(where: { $0.name == "clean_exit" })
+            let cleanExitColumn = columns.first(where: { $0.name == SessionRecord.Schema.cleanExit.name })
             if let cleanExitColumn = cleanExitColumn {
                 XCTAssertEqual(cleanExitColumn.type, "BOOLEAN")
                 XCTAssertTrue(cleanExitColumn.isNotNull)
@@ -131,7 +132,7 @@ class SessionRecordTests: XCTestCase {
             }
 
             // app_terminated
-            let appTerminatedColumn = columns.first(where: { $0.name == "app_terminated" })
+            let appTerminatedColumn = columns.first(where: { $0.name == SessionRecord.Schema.appTerminated.name })
             if let appTerminatedColumn = appTerminatedColumn {
                 XCTAssertEqual(appTerminatedColumn.type, "BOOLEAN")
                 XCTAssertTrue(appTerminatedColumn.isNotNull)
@@ -280,5 +281,3 @@ class SessionRecordTests: XCTestCase {
         XCTAssertEqual(session, session1)
     }
 }
-
-// swiftlint:enable cyclomatic_complexity

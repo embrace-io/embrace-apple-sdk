@@ -57,8 +57,8 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         return EmbraceMeta.sdkVersion
     }
 
-    /// Returns the current `UserResource`.
-    public let user: UserResource
+    /// Returns the current `MetadataHandler`.
+    public let metadata: MetadataHandler
 
     let config: EmbraceConfig
     let storage: EmbraceStorage
@@ -119,13 +119,13 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
 
         self.logLevel = options.logLevel
         self.storage = try Embrace.createStorage(options: options)
-        self.deviceId = EmbraceDeviceId.retrieve(from: self.storage)
+        self.deviceId = EmbraceDeviceId.retrieve(from: storage)
         self.captureServices = try CaptureServices(options: options)
         self.upload = Embrace.createUpload(options: options, deviceId: KeychainAccess.deviceId.uuidString)
         self.config = Embrace.createConfig(options: options, deviceId: KeychainAccess.deviceId.uuidString)
-        self.sessionController = SessionController(storage: self.storage, upload: self.upload)
+        self.sessionController = SessionController(storage: storage, upload: upload)
         self.sessionLifecycle = Embrace.createSessionLifecycle(controller: sessionController)
-        self.user = UserResource(storage: self.storage)
+        self.metadata = MetadataHandler(storage: storage, sessionController: sessionController)
 
         super.init()
 

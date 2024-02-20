@@ -4,6 +4,7 @@
 
 import Foundation
 import EmbraceCommon
+import EmbraceStorage
 
 protocol CaptureServiceResourceHandlerType {
     func addResource(key: String, value: String) throws
@@ -13,14 +14,38 @@ protocol CaptureServiceResourceHandlerType {
 
 class CaptureServiceResourceHandler: NSObject, CaptureServiceResourceHandlerType {
     func addResource(key: String, value: String) throws {
-        try Embrace.client?.addResource(key: key, value: value)
+        _ = try Embrace.client?.storage.addMetadata(
+            MetadataRecord(
+                key: key,
+                value: .string(value),
+                type: .requiredResource,
+                lifespan: .process,
+                lifespanId: ProcessIdentifier.current.hex
+            )
+        )
     }
 
     func addResource(key: String, value: Int) throws {
-        try Embrace.client?.addResource(key: key, value: value)
+        _ = try Embrace.client?.storage.addMetadata(
+            MetadataRecord(
+                key: key,
+                value: .int(value),
+                type: .requiredResource,
+                lifespan: .process,
+                lifespanId: ProcessIdentifier.current.hex
+            )
+        )
     }
 
     func addResource(key: String, value: Double) throws {
-        try Embrace.client?.addResource(key: key, value: value)
+        _ = try Embrace.client?.storage.addMetadata(
+            MetadataRecord(
+                key: key,
+                value: .double(value),
+                type: .requiredResource,
+                lifespan: .process,
+                lifespanId: ProcessIdentifier.current.hex
+            )
+        )
     }
 }

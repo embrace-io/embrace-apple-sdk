@@ -6,7 +6,6 @@ import Foundation
 import EmbraceCommon
 import GRDB
 
-// MARK: - Sync session operations
 extension EmbraceStorage {
     /// Adds a session to the storage synchronously.
     /// - Parameters:
@@ -72,7 +71,7 @@ extension EmbraceStorage {
         var session: SessionRecord?
         try dbQueue.read { db in
             session = try SessionRecord
-                .order(Column("start_time").desc)
+                .order(SessionRecord.Schema.startTime.desc)
                 .fetchOne(db)
         }
 
@@ -85,7 +84,7 @@ extension EmbraceStorage {
         var session: SessionRecord?
         try dbQueue.read { db in
             session = try SessionRecord
-                .order(Column("start_time").asc)
+                .order(SessionRecord.Schema.startTime.asc)
                 .fetchOne(db)
         }
 

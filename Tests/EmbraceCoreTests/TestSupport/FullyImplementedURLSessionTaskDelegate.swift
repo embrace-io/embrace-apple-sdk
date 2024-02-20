@@ -185,7 +185,10 @@ class FullyImplementedURLSessionDelegate: NSObject,
     }
 
     var didCallStreamTaskDidBecome = false
-    func urlSession(_ session: URLSession, streamTask: URLSessionStreamTask, didBecome inputStream: InputStream, outputStream: OutputStream) {
+    func urlSession(_ session: URLSession,
+                    streamTask: URLSessionStreamTask,
+                    didBecome inputStream: InputStream,
+                    outputStream: OutputStream) {
         didCallStreamTaskDidBecome = true
     }
 }

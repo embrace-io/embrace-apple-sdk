@@ -56,6 +56,23 @@ public struct SessionRecord: Codable {
     }
 }
 
+extension SessionRecord {
+    struct Schema {
+        static var id: Column { Column("id") }
+        static var state: Column { Column("state") }
+        static var processId: Column { Column("process_id") }
+        static var traceId: Column { Column("trace_id") }
+        static var spanId: Column { Column("span_id") }
+        static var startTime: Column { Column("start_time") }
+        static var endTime: Column { Column("end_time") }
+        static var lastHeartbeatTime: Column { Column("last_heartbeat_time") }
+        static var crashReportId: Column { Column("crash_report_id") }
+        static var coldStart: Column { Column("cold_start") }
+        static var cleanExit: Column { Column("clean_exit") }
+        static var appTerminated: Column { Column("app_terminated") }
+    }
+}
+
 extension SessionRecord: FetchableRecord, PersistableRecord, MutablePersistableRecord {
     public static let databaseColumnDecodingStrategy = DatabaseColumnDecodingStrategy.convertFromSnakeCase
     public static let databaseColumnEncodingStrategy = DatabaseColumnEncodingStrategy.convertToSnakeCase
@@ -68,30 +85,30 @@ extension SessionRecord: TableRecord {
     internal static func defineTable(db: Database) throws {
         try db.create(table: SessionRecord.databaseTableName, options: .ifNotExists) { t in
 
-            t.primaryKey("id", .text).notNull()
+            t.primaryKey(Schema.id.name, .text).notNull()
 
-            t.column("state", .text).notNull()
-            t.column("process_id", .text).notNull()
-            t.column("trace_id", .text).notNull()
-            t.column("span_id", .text).notNull()
+            t.column(Schema.state.name, .text).notNull()
+            t.column(Schema.processId.name, .text).notNull()
+            t.column(Schema.traceId.name, .text).notNull()
+            t.column(Schema.spanId.name, .text).notNull()
 
-            t.column("start_time", .datetime).notNull()
-            t.column("end_time", .datetime)
-            t.column("last_heartbeat_time", .datetime).notNull()
+            t.column(Schema.startTime.name, .datetime).notNull()
+            t.column(Schema.endTime.name, .datetime)
+            t.column(Schema.lastHeartbeatTime.name, .datetime).notNull()
 
-            t.column("cold_start", .boolean)
+            t.column(Schema.coldStart.name, .boolean)
                 .notNull()
                 .defaults(to: false)
 
-            t.column("clean_exit", .boolean)
+            t.column(Schema.cleanExit.name, .boolean)
                 .notNull()
                 .defaults(to: false)
 
-            t.column("app_terminated", .boolean)
+            t.column(Schema.appTerminated.name, .boolean)
                 .notNull()
                 .defaults(to: false)
 
-            t.column("crash_report_id", .text)
+            t.column(Schema.crashReportId.name, .text)
         }
     }
 }

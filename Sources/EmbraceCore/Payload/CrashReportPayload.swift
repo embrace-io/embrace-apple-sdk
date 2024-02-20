@@ -40,7 +40,7 @@ struct CrashReportPayload: Encodable {
         case crashPayload = "cr"
     }
 
-    init(from crashReport: CrashReport, resourceFetcher: EmbraceStorageResourceFetcher) {
+    init(from crashReport: CrashReport, resourceFetcher: EmbraceStorageMetadataFetcher) {
         let resources = PayloadUtils.fetchResources(from: resourceFetcher, sessionId: crashReport.sessionId)
 
         appInfo = AppInfoPayload(with: resources)

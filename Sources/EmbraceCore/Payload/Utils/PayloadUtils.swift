@@ -8,17 +8,16 @@ import OpenTelemetryApi
 
 class PayloadUtils {
     static func fetchResources(
-        from fetcher: EmbraceStorageResourceFetcher,
+        from fetcher: EmbraceStorageMetadataFetcher,
         sessionId: SessionIdentifier?
-    ) -> [ResourceRecord] {
+    ) -> [MetadataRecord] {
 
         guard let sessionId = sessionId else {
             return []
         }
 
         do {
-            let resources = try fetcher.fetchAllResourceForSession(sessionId: sessionId) ?? []
-            return resources
+            return try fetcher.fetchResourcesForSessionId(sessionId)
         } catch let e {
             ConsoleLog.error("Failed to fetch resource records from storage: \(e.localizedDescription)")
         }

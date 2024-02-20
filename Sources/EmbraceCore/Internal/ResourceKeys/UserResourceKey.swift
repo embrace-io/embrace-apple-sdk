@@ -5,8 +5,8 @@
 import EmbraceStorage
 
 enum UserResourceKey: String, CaseIterable {
+    case name = "emb.user.username"
     case email = "emb.user.email"
-    case username = "emb.user.username"
     case identifier = "emb.user.identifier"
 
     static var allValues: [String] {

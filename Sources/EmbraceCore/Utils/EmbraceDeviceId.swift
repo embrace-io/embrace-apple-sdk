@@ -8,13 +8,15 @@ import EmbraceStorage
 
 class EmbraceDeviceId {
 
+    static let resourceKey = "emb.device_id"
+
     private init() { }
 
     public static func retrieve(from storage: EmbraceStorage?) -> UUID {
 
         if let storage = storage {
             do {
-                if let resource = try storage.fetchPermanentResource(key: "device.id") {
+                if let resource = try storage.fetchRequriedPermanentResource(key: resourceKey) {
                     if let deviceId = resource.uuidValue {
                         return deviceId
                     }
@@ -30,7 +32,12 @@ class EmbraceDeviceId {
 
         if let storage = storage {
             do {
-                try storage.addResource(key: "device.id", value: deviceId.uuidString, resourceType: .permanent)
+                try storage.addMetadata(
+                    key: resourceKey,
+                    value: deviceId.uuidString,
+                    type: .requiredResource,
+                    lifespan: .permanent
+                )
             } catch let e {
                 ConsoleLog.error("Failed to add device id to database \(e.localizedDescription)")
             }

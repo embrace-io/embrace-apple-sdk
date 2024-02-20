@@ -118,6 +118,13 @@ class UnsentDataHandler {
 
             uploadSession(session, storage: storage, upload: upload)
         }
+
+        // remove old metadata
+        do {
+            try storage.cleanMetadata(currentSessionId: currentSessionId, currentProcessId: ProcessIdentifier.current)
+        } catch {
+            ConsoleLog.warning("Error cleaning up metadata:\n\(error.localizedDescription)")
+        }
     }
 
     static public func uploadSession(

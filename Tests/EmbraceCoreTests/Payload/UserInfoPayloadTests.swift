@@ -27,7 +27,13 @@ final class UserInfoPayloadTests: XCTestCase {
 
     func test_userinfo_whenUsernameSet_encodesToJSON() throws {
         let payload = UserInfoPayload(with: [
-            ResourceRecord(key: UserResourceKey.username.rawValue, value: "test")
+            MetadataRecord(
+                key: UserResourceKey.name.rawValue,
+                value: .string("test"),
+                type: .customProperty,
+                lifespan: .permanent,
+                lifespanId: ""
+            )
         ])
 
         let data = try JSONEncoder().encode(payload)
@@ -38,7 +44,13 @@ final class UserInfoPayloadTests: XCTestCase {
 
     func test_userinfo_whenEmailSet_encodesToJSON() throws {
         let payload = UserInfoPayload(with: [
-            ResourceRecord(key: UserResourceKey.email.rawValue, value: "get@me.org")
+            MetadataRecord(
+                key: UserResourceKey.email.rawValue,
+                value: .string("get@me.org"),
+                type: .customProperty,
+                lifespan: .permanent,
+                lifespanId: ""
+            )
         ])
 
         let data = try JSONEncoder().encode(payload)
@@ -49,7 +61,13 @@ final class UserInfoPayloadTests: XCTestCase {
 
     func test_userinfo_whenIdentifierSet_encodesToJSON() throws {
         let payload = UserInfoPayload(with: [
-            ResourceRecord(key: UserResourceKey.identifier.rawValue, value: "1234")
+            MetadataRecord(
+                key: UserResourceKey.identifier.rawValue,
+                value: .string("1234"),
+                type: .customProperty,
+                lifespan: .permanent,
+                lifespanId: ""
+            )
         ])
 
         let data = try JSONEncoder().encode(payload)
@@ -60,9 +78,27 @@ final class UserInfoPayloadTests: XCTestCase {
 
     func test_userinfo_whenEverythingSet_encodesToJSON() throws {
         let payload = UserInfoPayload(with: [
-            ResourceRecord(key: UserResourceKey.username.rawValue, value: "test"),
-            ResourceRecord(key: UserResourceKey.email.rawValue, value: "get@me.org"),
-            ResourceRecord(key: UserResourceKey.identifier.rawValue, value: "1234")
+            MetadataRecord(
+                key: UserResourceKey.name.rawValue,
+                value: .string("test"),
+                type: .customProperty,
+                lifespan: .permanent,
+                lifespanId: ""
+            ),
+            MetadataRecord(
+                key: UserResourceKey.email.rawValue,
+                value: .string("get@me.org"),
+                type: .customProperty,
+                lifespan: .permanent,
+                lifespanId: ""
+            ),
+            MetadataRecord(
+                key: UserResourceKey.identifier.rawValue,
+                value: .string("1234"),
+                type: .customProperty,
+                lifespan: .permanent,
+                lifespanId: ""
+            )
         ])
 
         let data = try JSONEncoder().encode(payload)
@@ -72,5 +108,4 @@ final class UserInfoPayloadTests: XCTestCase {
         XCTAssertEqual(decoded["un"], "test")
         XCTAssertEqual(decoded["id"], "1234")
     }
-
 }

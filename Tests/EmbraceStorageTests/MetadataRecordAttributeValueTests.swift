@@ -7,10 +7,10 @@ import XCTest
 @testable import EmbraceStorage
 import OpenTelemetryApi
 
-final class ResourceRecordAttributeValueTests: XCTestCase {
+final class MetadataRecordAttributeValueTests: XCTestCase {
 
-    func record(value: AttributeValue) -> ResourceRecord {
-        return ResourceRecord(key: "example", value: value, resourceType: .permanent, resourceTypeId: "")
+    func record(value: AttributeValue) -> MetadataRecord {
+        return MetadataRecord(key: "example", value: value, type: .resource, lifespan: .permanent, lifespanId: "")
     }
 
     func test_bool_value() throws {

@@ -9,9 +9,9 @@ import EmbraceCore
 struct UserInfo: View {
 
     class EmbraceUser: ObservableObject {
-        @Published var username: String = Embrace.client?.user.username ?? ""
-        @Published var identifier: String = Embrace.client?.user.identifier ?? ""
-        @Published var email: String = Embrace.client?.user.email ?? ""
+        @Published var username: String = Embrace.client?.metadata.userName ?? ""
+        @Published var identifier: String = Embrace.client?.metadata.userIdentifier ?? ""
+        @Published var email: String = Embrace.client?.metadata.userEmail ?? ""
 
         private var cancellables = Set<AnyCancellable>()
 
@@ -19,27 +19,27 @@ struct UserInfo: View {
             $username
                 .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
                 .sink { output in
-                    Embrace.client?.user.username = output.isEmpty ? nil : output
+                    Embrace.client?.metadata.userName = output.isEmpty ? nil : output
                 }
                 .store(in: &cancellables)
 
             $identifier
                 .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
                 .sink { output in
-                    Embrace.client?.user.identifier = output.isEmpty ? nil : output
+                    Embrace.client?.metadata.userIdentifier = output.isEmpty ? nil : output
                 }
                 .store(in: &cancellables)
 
             $email
                 .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
                 .sink { output in
-                    Embrace.client?.user.email = output.isEmpty ? nil : output
+                    Embrace.client?.metadata.userEmail = output.isEmpty ? nil : output
                 }
                 .store(in: &cancellables)
         }
 
         func clear() {
-            Embrace.client?.user.clear()
+            Embrace.client?.metadata.clearUserProperties()
 
             // Need to clear local state as well
             username.removeAll()

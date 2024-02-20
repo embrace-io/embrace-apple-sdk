@@ -27,12 +27,19 @@ class SpanRecordTests: XCTestCase {
             XCTAssert(try db.tableExists(SpanRecord.databaseTableName))
 
             let columns = try db.columns(in: SpanRecord.databaseTableName)
+            XCTAssertEqual(columns.count, 7)
 
             // primary key
-            XCTAssert(try db.table(SpanRecord.databaseTableName, hasUniqueKey: ["trace_id", "id"]))
+            XCTAssert(try db.table(
+                SpanRecord.databaseTableName,
+                hasUniqueKey: [
+                    SpanRecord.Schema.traceId.name,
+                    SpanRecord.Schema.id.name
+                ]
+            ))
 
             // id
-            let idColumn = columns.first(where: { $0.name == "id" })
+            let idColumn = columns.first(where: { $0.name == SpanRecord.Schema.id.name })
             if let idColumn = idColumn {
                 XCTAssertEqual(idColumn.type, "TEXT")
                 XCTAssert(idColumn.isNotNull)
@@ -41,7 +48,7 @@ class SpanRecordTests: XCTestCase {
             }
 
             // name
-            let nameColumn = columns.first(where: { $0.name == "name" })
+            let nameColumn = columns.first(where: { $0.name == SpanRecord.Schema.name.name })
             if let nameColumn = nameColumn {
                 XCTAssertEqual(nameColumn.type, "TEXT")
                 XCTAssert(nameColumn.isNotNull)
@@ -50,7 +57,7 @@ class SpanRecordTests: XCTestCase {
             }
 
             // trace_id
-            let traceIdColumn = columns.first(where: { $0.name == "trace_id" })
+            let traceIdColumn = columns.first(where: { $0.name == SpanRecord.Schema.traceId.name })
             if let traceIdColumn = traceIdColumn {
                 XCTAssertEqual(traceIdColumn.type, "TEXT")
                 XCTAssert(traceIdColumn.isNotNull)
@@ -59,7 +66,7 @@ class SpanRecordTests: XCTestCase {
             }
 
             // type
-            let typeColumn = columns.first(where: { $0.name == "type" })
+            let typeColumn = columns.first(where: { $0.name == SpanRecord.Schema.type.name })
             if let typeColumn = typeColumn {
                 XCTAssertEqual(typeColumn.type, "TEXT")
                 XCTAssert(typeColumn.isNotNull)
@@ -68,7 +75,7 @@ class SpanRecordTests: XCTestCase {
             }
 
             // start_time
-            let startTimeColumn = columns.first(where: { $0.name == "start_time" })
+            let startTimeColumn = columns.first(where: { $0.name == SpanRecord.Schema.startTime.name })
             if let startTimeColumn = startTimeColumn {
                 XCTAssertEqual(startTimeColumn.type, "DATETIME")
                 XCTAssert(startTimeColumn.isNotNull)
@@ -77,7 +84,7 @@ class SpanRecordTests: XCTestCase {
             }
 
             // end_time
-            let endTimeColumn = columns.first(where: { $0.name == "end_time" })
+            let endTimeColumn = columns.first(where: { $0.name == SpanRecord.Schema.endTime.name })
             if let endTimeColumn = endTimeColumn {
                 XCTAssertEqual(endTimeColumn.type, "DATETIME")
             } else {
@@ -85,7 +92,7 @@ class SpanRecordTests: XCTestCase {
             }
 
             // data
-            let dataColumn = columns.first(where: { $0.name == "data" })
+            let dataColumn = columns.first(where: { $0.name == SpanRecord.Schema.data.name })
             if let dataColumn = dataColumn {
                 XCTAssertEqual(dataColumn.type, "BLOB")
                 XCTAssert(dataColumn.isNotNull)
@@ -124,7 +131,14 @@ class SpanRecordTests: XCTestCase {
 
     func test_upsertSpan() throws {
         // given inserted span
-        let span = SpanRecord(id: "id", name: "a name", traceId: "tradeId", type: .performance, data: Data(), startTime: Date())
+        let span = SpanRecord(
+            id: "id",
+            name: "a name",
+            traceId: "tradeId",
+            type: .performance,
+            data: Data(),
+            startTime: Date()
+        )
         try storage.upsertSpan(span)
 
         // then span should exist in storage
@@ -194,7 +208,7 @@ class SpanRecordTests: XCTestCase {
         let expectation = XCTestExpectation()
         try storage.dbQueue.read { db in
             let spans = try SpanRecord
-                .order(Column("start_time").asc)
+                .order(SpanRecord.Schema.startTime.asc)
                 .fetchAll(db)
 
             XCTAssertEqual(spans.count, 2)
@@ -291,7 +305,7 @@ class SpanRecordTests: XCTestCase {
         let expectation = XCTestExpectation()
         try storage.dbQueue.read { db in
             let spans = try SpanRecord
-                .order(Column("start_time").asc)
+                .order(SpanRecord.Schema.startTime.asc)
                 .fetchAll(db)
 
             XCTAssertEqual(spans.count, 3)

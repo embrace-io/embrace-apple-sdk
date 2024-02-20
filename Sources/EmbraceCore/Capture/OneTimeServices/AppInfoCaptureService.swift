@@ -19,8 +19,8 @@ import EmbraceObjCUtils
         let bundleVersion = EMBDevice.bundleVersion
         let environment = EMBDevice.environment
         let environmentDetail = EMBDevice.environmentDetail
-        var framework = Embrace.client?.options.platform.frameworkId
-        var sdkVersion = EmbraceMeta.sdkVersion
+        let framework = Embrace.client?.options.platform.frameworkId
+        let sdkVersion = EmbraceMeta.sdkVersion
         let appVersion = EMBDevice.appVersion
 
         do {

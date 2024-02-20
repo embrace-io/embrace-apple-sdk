@@ -13,8 +13,16 @@ import OpenTelemetryApi
 final class PayloadUtilTests: XCTestCase {
     func test_fetchResources() throws {
         // given
-        let mockResources: [ResourceRecord] = [.init(key: "fake_res", value: "fake_value", processIdentifier: .random)]
-        let fetcher = MockResourceFetcher(resources: mockResources)
+        let mockResources: [MetadataRecord] = [
+            .init(
+                key: "fake_res",
+                value: .string("fake_value"),
+                type: .requiredResource,
+                lifespan: .process,
+                lifespanId: ProcessIdentifier.random.hex
+            )
+        ]
+        let fetcher = MockMetadataFetcher(resources: mockResources)
 
         // when
         let fetchedResources = PayloadUtils.fetchResources(from: fetcher, sessionId: .random)

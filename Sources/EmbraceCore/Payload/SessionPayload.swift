@@ -35,7 +35,7 @@ struct SessionPayload: Encodable {
 
     init(
         from sessionRecord: SessionRecord,
-        resourceFetcher: EmbraceStorageResourceFetcher,
+        resourceFetcher: EmbraceStorageMetadataFetcher,
         spans: [SpanPayload] = [],
         spanSnapshots: [SpanPayload] = [],
         counter: Int = -1
