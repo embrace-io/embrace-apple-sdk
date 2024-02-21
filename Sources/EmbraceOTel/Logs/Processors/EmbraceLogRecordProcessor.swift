@@ -3,7 +3,6 @@
 //
 
 import OpenTelemetrySdk
-
 public typealias EmbraceLogRecordProcessor = LogRecordProcessor
 
 public extension Array where Element == any EmbraceLogRecordProcessor {

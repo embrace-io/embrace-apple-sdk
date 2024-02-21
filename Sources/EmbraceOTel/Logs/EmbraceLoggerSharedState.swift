@@ -7,7 +7,7 @@ import OpenTelemetrySdk
 import Foundation
 
 public protocol EmbraceLogSharedState {
-    var processors: [LogRecordProcessor] { get }
+    var processors: [EmbraceLogRecordProcessor] { get }
     var config: any EmbraceLoggerConfig { get }
     var resourceProvider: EmbraceResourceProvider { get }
 

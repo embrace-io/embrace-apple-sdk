@@ -14,7 +14,7 @@ class SingleLogRecordProcessor: EmbraceLogRecordProcessor {
 
     func onEmit(logRecord: ReadableLogRecord) {
         exporters.forEach {
-           _ = $0.export(logRecords: [logRecord])
+            _ = $0.export(logRecords: [logRecord])
         }
     }
 

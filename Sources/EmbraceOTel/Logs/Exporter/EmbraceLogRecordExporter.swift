@@ -5,4 +5,5 @@
 import Foundation
 import OpenTelemetrySdk
 
-public typealias EmbraceLogRecordExporter = LogRecordExporter
+public typealias EmbraceLogRecordExporter = OpenTelemetrySdk.LogRecordExporter
+public typealias ExportResult = OpenTelemetrySdk.ExportResult

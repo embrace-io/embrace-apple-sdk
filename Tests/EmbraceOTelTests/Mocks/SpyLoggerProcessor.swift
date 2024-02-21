@@ -3,9 +3,9 @@
 //
 
 import Foundation
-import OpenTelemetrySdk
+@testable import EmbraceOTel
 
-class SpyLoggerProcessor: LogRecordProcessor {
+class SpyLoggerProcessor: EmbraceLogRecordProcessor {
     var receivedLogRecord: ReadableLogRecord?
     var didCallOnEmit = false
     func onEmit(logRecord: ReadableLogRecord) {

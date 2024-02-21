@@ -11,7 +11,7 @@ import OpenTelemetrySdk
 
 class EmbraceLogRecordProcessorArrayExtensionTests: XCTestCase {
     func test_onDefaultWithExporters_returnSingleLogRecordProcessorInstance() throws {
-        let processors: [LogRecordProcessor] = .default(withExporters: [])
+        let processors: [EmbraceLogRecordProcessor] = .default(withExporters: [])
         XCTAssertEqual(processors.count, 1)
         XCTAssertTrue(try XCTUnwrap(processors.first) is SingleLogRecordProcessor)
     }
