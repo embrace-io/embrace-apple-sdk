@@ -12,8 +12,8 @@ struct PayloadEnvelope<T: Codable>: Codable {
     var data = [String: T]()
 }
 
-extension PayloadEnvelope<LogPayload> {
-    init(data: T, resource: ResourcePayload, metadata: MetadataPayload) {
+extension PayloadEnvelope<[LogPayload]> {
+    init(data: [LogPayload], resource: ResourcePayload, metadata: MetadataPayload) {
         type = "logs"
         self.data["logs"] = data
         self.resource = resource
