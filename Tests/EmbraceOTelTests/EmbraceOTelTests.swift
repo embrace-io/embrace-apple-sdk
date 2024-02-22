@@ -13,13 +13,13 @@ final class EmbraceOTelTests: XCTestCase {
 
 // MARK: Register Tracer
 
-    func test_setup_setsEmbraceTracerProvider() {
+    func test_setup_setsTracerProviderSdk() {
         // DEV: test "setUpWithError" calls EmbraceOTel.setup method
-        XCTAssertTrue(OpenTelemetry.instance.tracerProvider is EmbraceTracerProvider)
+        XCTAssertTrue(OpenTelemetry.instance.tracerProvider is TracerProviderSdk)
     }
 
-    func testOnSettingUpTracer_tracer_isEmbraceTracer() {
-        XCTAssertTrue(EmbraceOTel().tracer is EmbraceTracer)
+    func testOnSettingUpTracer_tracer_isTracerSdk() {
+        XCTAssertTrue(EmbraceOTel().tracer is TracerSdk)
     }
 
 // MARK: Register Logger
@@ -82,7 +82,7 @@ final class EmbraceOTelTests: XCTestCase {
         let builder = otel.buildSpan(name: "example", type: .performance)
 
         let span = builder.startSpan()
-        XCTAssertTrue(span is RecordingSpan)
+        XCTAssertTrue(span is RecordEventsReadableSpan)
     }
 
     func test_buildSpan_withAttributes_appendsAttributes() throws {
@@ -94,8 +94,8 @@ final class EmbraceOTelTests: XCTestCase {
                             attributes: ["foo": "bar"]
                         )
 
-        if let span = builder.startSpan() as? RecordingSpan {
-            XCTAssertEqual(span.attributes, [
+        if let span = builder.startSpan() as? ReadableSpan {
+            XCTAssertEqual(span.toSpanData().attributes, [
                 "foo": .string("bar"),
                 "emb.type": .string("performance")
             ])

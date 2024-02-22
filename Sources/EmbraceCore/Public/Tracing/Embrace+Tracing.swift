@@ -36,13 +36,13 @@ extension Embrace: EmbraceOpenTelemetry {
     ///     - errorCode: The error code of the span. Defaults to `noError`
     public func recordCompletedSpan(
         name: String,
-        type: SpanType = .performance,
-        parent: Span? = nil,
+        type: SpanType,
+        parent: Span?,
         startTime: Date,
         endTime: Date,
-        attributes: [String: String] = [:],
-        events: [RecordingSpanEvent] = [],
-        errorCode: ErrorCode? = nil
+        attributes: [String: String],
+        events: [RecordingSpanEvent],
+        errorCode: ErrorCode?
     ) {
         let builder = otel
             .buildSpan(name: name, type: type, attributes: attributes)

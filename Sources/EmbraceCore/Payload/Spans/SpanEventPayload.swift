@@ -16,7 +16,7 @@ struct SpanEventPayload: Encodable {
         case attributes
     }
 
-    init(from event: RecordingSpanEvent) {
+    init(from event: SpanEvent) {
         self.name = event.name
         self.timestamp = event.timestamp.nanosecondsSince1970Truncated
         self.attributes = PayloadUtils.convertSpanAttributes(event.attributes)

@@ -1,3 +1,4 @@
+import Foundation
 import EmbraceOTel
 
 extension EmbraceSpanProcessor where Self == NoopSpanProcessor {
@@ -5,12 +6,15 @@ extension EmbraceSpanProcessor where Self == NoopSpanProcessor {
 }
 
 public struct NoopSpanProcessor: EmbraceSpanProcessor {
+    public let isStartRequired: Bool = true
 
-    public init() {}
+    public let isEndRequired: Bool = true
 
-    public func onStart(span: ExportableSpan) { }
+    public func onStart(parentContext: SpanContext?, span: ReadableSpan) { }
 
-    public func onEnd(span: ExportableSpan) { }
+    public mutating func onEnd(span: ReadableSpan) { }
 
-    public func shutdown() { }
+    public func forceFlush(timeout: TimeInterval?) { }
+
+    public mutating func shutdown() { }
 }

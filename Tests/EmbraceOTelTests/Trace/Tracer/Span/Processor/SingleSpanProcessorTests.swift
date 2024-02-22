@@ -4,7 +4,8 @@
 
 import XCTest
 @testable import EmbraceOTel
-import OpenTelemetryApi
+@testable import OpenTelemetrySdk
+import TestSupport
 
 final class SingleSpanProcessorTests: XCTestCase {
 
@@ -17,50 +18,50 @@ final class SingleSpanProcessorTests: XCTestCase {
         name: String = "example",
         startTime: Date = Date(),
         endTime: Date? = nil
-    ) -> RecordingSpan {
+    ) -> ReadableSpan {
 
-        return RecordingSpan(
-            startTime: startTime,
-            context: SpanContext.create(
-                traceId: traceId,
-                spanId: spanId,
-                traceFlags: .init(),
-                traceState: .init()),
+        let span = RecordEventsReadableSpan.startSpan(
+            context: .create(traceId: traceId, spanId: spanId, traceFlags: .init(), traceState: .init()),
             name: name,
-            processor: processor)
+            instrumentationScopeInfo: .init(),
+            kind: .client,
+            parentContext: nil,
+            hasRemoteParent: false,
+            spanLimits: .init(),
+            spanProcessor: processor,
+            clock: MillisClock(),
+            resource: Resource(),
+            attributes: .init(capacity: 10),
+            links: [],
+            totalRecordedLinks: 0,
+            startTime: startTime
+        )
+
+        if let endTime = endTime {
+            span.end(time: endTime)
+        }
+
+        return span
     }
 
-    func test_onStart_callsExporter() throws {
+    func test_startSpan_callsExporter() throws {
         let processor = SingleSpanProcessor(spanExporter: exporter)
+
         let expectation = expectation(description: "didExport onStart")
         exporter.onExportComplete {
             expectation.fulfill()
         }
 
-        let span = createSpanData(processor: processor)
-        processor.onStart(span: span)
+        let span = createSpanData(processor: processor) // DEV: `startSpan` called in this method
 
         wait(for: [expectation])
-        XCTAssertEqual(exporter.exportedSpans[span.context.spanId], span.spanData)
-    }
-
-    func test_onEnd_callsExporter() throws {
-        let processor = SingleSpanProcessor(spanExporter: exporter)
-        let expectation = expectation(description: "didExport onEnd")
-        exporter.onExportComplete {
-            expectation.fulfill()
-        }
-
-        let span = createSpanData(processor: processor, endTime: Date().addingTimeInterval(10))
-        processor.onEnd(span: span)
-
-        wait(for: [expectation])
-        XCTAssertEqual(exporter.exportedSpans[span.context.spanId], span.spanData)
+        XCTAssertNotNil(exporter.exportedSpans[span.context.spanId])
     }
 
     func test_endingSpan_callsExporter() throws {
         let processor = SingleSpanProcessor(spanExporter: exporter)
         let expectation = expectation(description: "didExport onEnd")
+        expectation.expectedFulfillmentCount = 2        // DEV: need 2 to handle start and end
         exporter.onExportComplete {
             expectation.fulfill()
         }
@@ -71,7 +72,7 @@ final class SingleSpanProcessorTests: XCTestCase {
 
         wait(for: [expectation])
         let exportedSpan = exporter.exportedSpans[span.context.spanId]
-        XCTAssertEqual(exportedSpan, span.spanData)
+        XCTAssertEqual(exportedSpan, span.toSpanData())
         XCTAssertEqual(exportedSpan?.endTime, endTime)
     }
 
@@ -88,7 +89,7 @@ final class SingleSpanProcessorTests: XCTestCase {
 
         let count = 100
         let spans = (0..<count).map { _ in createSpanData(processor: processor) }
-        spans.forEach { span in processor.onStart(span: span) }
+        spans.forEach { span in processor.onStart(parentContext: nil, span: span) }
 
         XCTAssertFalse(exporter.isShutdown)
         processor.shutdown()

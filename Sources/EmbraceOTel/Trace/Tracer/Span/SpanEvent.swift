@@ -10,3 +10,5 @@ public protocol SpanEvent {
     var timestamp: Date { get }
     var attributes: [String: AttributeValue] { get }
 }
+
+extension SpanData.Event: SpanEvent { }

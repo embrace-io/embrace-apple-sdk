@@ -15,24 +15,17 @@ class EmbraceOpenTelemetryMock: EmbraceOpenTelemetry {
     init(processor: EmbraceSpanProcessor, otelInstance: OpenTelemetry? = nil) {
         self.spanProcessor = processor
         self.otelInstance = otelInstance
+
+        // TODO: update callers to use otel setup directly. Should be able to remove EmbraceOpenTelemetryMock
+        EmbraceOTel.setup(spanProcessor: processor)
     }
 
     func buildSpan(name: String,
                    type: SpanType,
                    attributes: [String: String]) -> SpanBuilder {
 
-        let builder = EmbraceSpanBuilder(spanName: name,
-                                         processor: spanProcessor,
-                                         otelInstance: otelInstance)
-
-        builder.setAttribute(key: SpanAttributeKey.type,
-                             value: type.rawValue)
-
-        for (key, value) in attributes {
-            builder.setAttribute(key: key, value: value)
-        }
-
-        return builder
+        return EmbraceOTel()
+            .buildSpan(name: name, type: type, attributes: attributes)
     }
 
     func recordCompletedSpan(

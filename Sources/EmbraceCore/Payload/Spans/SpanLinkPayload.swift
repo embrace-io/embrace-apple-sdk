@@ -15,9 +15,9 @@ struct SpanLinkPayload: Encodable {
         case attributes
     }
 
-    init(from link: RecordingSpanLink) {
-        self.traceId = link.traceId.hexString
-        self.spanId = link.spanId.hexString
+    init(from link: SpanLink) {
+        self.traceId = link.context.traceId.hexString
+        self.spanId = link.context.spanId.hexString
         self.attributes = PayloadUtils.convertSpanAttributes(link.attributes)
     }
 

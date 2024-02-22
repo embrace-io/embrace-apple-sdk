@@ -130,25 +130,25 @@ private extension DefaultTapCaptureServiceHandlerTests {
     }
 
     func thenEventShouldBeAddedToSessionSpan() throws {
-        let recordingSpan = try XCTUnwrap(embrace.sessionController.currentSessionSpan as? RecordingSpan)
-        let recordedEvent = try XCTUnwrap(recordingSpan.events.first)
+        let recordingSpan = try XCTUnwrap(embrace.sessionController.currentSessionSpan as? ReadableSpan)
+        let recordedEvent = try XCTUnwrap(recordingSpan.toSpanData().events.first)
         XCTAssertEqual(recordedEvent.name, "action.tap")
     }
 
     func thenEventShouldntBeAddedToSessionSpan() throws {
-        let recordingSpan = try XCTUnwrap(embrace.sessionController.currentSessionSpan as? RecordingSpan)
-        XCTAssertEqual(recordingSpan.events.count, 0)
+        let recordingSpan = try XCTUnwrap(embrace.sessionController.currentSessionSpan as? ReadableSpan)
+        XCTAssertEqual(recordingSpan.toSpanData().events.count, 0)
     }
 
     func thenRecordedCoordinatesShouldBe(_ stringPoint: String) throws {
-        let recordingSpan = try XCTUnwrap(embrace.sessionController.currentSessionSpan as? RecordingSpan)
-        let recordedEvent = try XCTUnwrap(recordingSpan.events.first)
+        let recordingSpan = try XCTUnwrap(embrace.sessionController.currentSessionSpan as? ReadableSpan)
+        let recordedEvent = try XCTUnwrap(recordingSpan.toSpanData().events.first)
         XCTAssertEqual(recordedEvent.attributes["point"], .string(stringPoint))
     }
 
     func thenRecordedEventViewNameShouldBe(_ viewName: String) throws {
-        let recordingSpan = try XCTUnwrap(embrace.sessionController.currentSessionSpan as? RecordingSpan)
-        let recordedEvent = try XCTUnwrap(recordingSpan.events.first)
+        let recordingSpan = try XCTUnwrap(embrace.sessionController.currentSessionSpan as? ReadableSpan)
+        let recordedEvent = try XCTUnwrap(recordingSpan.toSpanData().events.first)
         XCTAssertEqual(recordedEvent.attributes["view_name"], .string(viewName))
     }
 

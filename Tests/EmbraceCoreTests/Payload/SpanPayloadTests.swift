@@ -7,6 +7,7 @@ import XCTest
 @testable import EmbraceCore
 @testable import EmbraceOTel
 import OpenTelemetryApi
+@testable import OpenTelemetrySdk
 
 // swiftlint:disable force_cast
 
@@ -29,23 +30,27 @@ class SpanPayloadTests: XCTestCase {
             name: "test-span",
             kind: .internal,
             startTime: Date(timeIntervalSince1970: 0),
-            endTime: Date(timeIntervalSince1970: 60),
             attributes: testAttributes,
             events: [
-                RecordingSpanEvent(
+                SpanData.Event(
                     name: "test-span-event",
                     timestamp: Date(timeIntervalSince1970: 20),
                     attributes: testAttributes
                 )
             ],
             links: [
-                RecordingSpanLink(
-                    traceId: TraceId.random(),
-                    spanId: SpanId.random(),
+                SpanData.Link(
+                    context: .create(
+                        traceId: .random(),
+                        spanId: .random(),
+                        traceFlags: .init(),
+                        traceState: .init() ),
                     attributes: testAttributes
                 )
             ],
-            status: .ok
+            status: .ok,
+            endTime: Date(timeIntervalSince1970: 60),
+            hasEnded: true
         )
     }
 
@@ -70,7 +75,7 @@ class SpanPayloadTests: XCTestCase {
         XCTAssertEqual(payload.name, span.name)
         XCTAssertEqual(payload.status, span.status.name)
         XCTAssertEqual(payload.startTime, span.startTime.nanosecondsSince1970Truncated)
-        XCTAssertEqual(payload.endTime, span.endTime?.nanosecondsSince1970Truncated)
+        XCTAssertEqual(payload.endTime, span.endTime.nanosecondsSince1970Truncated)
 
         // attributes
         testAttributes(payload.attributes)
@@ -83,8 +88,8 @@ class SpanPayloadTests: XCTestCase {
 
         // links
         XCTAssertEqual(payload.links.count, 1)
-        XCTAssertEqual(payload.links[0].traceId, span.links[0].traceId.hexString)
-        XCTAssertEqual(payload.links[0].spanId, span.links[0].spanId.hexString)
+        XCTAssertEqual(payload.links[0].traceId, span.links[0].context.traceId.hexString)
+        XCTAssertEqual(payload.links[0].spanId, span.links[0].context.spanId.hexString)
         testAttributes(payload.links[0].attributes)
     }
 

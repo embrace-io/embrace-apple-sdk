@@ -9,6 +9,7 @@ import EmbraceCommon
 @testable import EmbraceOTel
 import TestSupport
 import OpenTelemetryApi
+@testable import OpenTelemetrySdk
 
 final class SpansPayloadBuilderTests: XCTestCase {
 
@@ -48,7 +49,8 @@ final class SpansPayloadBuilderTests: XCTestCase {
             name: name ?? "test-span",
             kind: .internal,
             startTime: startTime,
-            endTime: endTime
+            endTime: endTime ?? Date(),
+            hasEnded: endTime != nil
         )
     }
 
@@ -60,22 +62,22 @@ final class SpansPayloadBuilderTests: XCTestCase {
         name: String? = nil,
         type: SpanType = .performance
     ) throws -> SpanData {
-        let span = testSpan(startTime: startTime, endTime: endTime, name: name)
-        let data = try span.toJSON()
+        let spanData = testSpan(startTime: startTime, endTime: endTime, name: name)
+        let data = try spanData.toJSON()
 
         let record = SpanRecord(
-            id: id ?? span.spanId.hexString,
-            name: span.name,
-            traceId: traceId ?? span.traceId.hexString,
+            id: id ?? spanData.spanId.hexString,
+            name: spanData.name,
+            traceId: traceId ?? spanData.traceId.hexString,
             type: type,
             data: data,
-            startTime: span.startTime,
-            endTime: span.endTime
+            startTime: spanData.startTime,
+            endTime: spanData.hasEnded ? spanData.endTime : nil
         )
 
         try storage.upsertSpan(record)
 
-        return span
+        return spanData
     }
 
     func test_closedSpan() throws {

@@ -37,10 +37,15 @@ struct SpanPayload: Encodable {
         self.name = span.name
         self.status = span.status.name
         self.startTime = span.startTime.nanosecondsSince1970Truncated
-        self.endTime = (endTime ?? span.endTime)?.nanosecondsSince1970Truncated
         self.attributes = PayloadUtils.convertSpanAttributes(span.attributes)
         self.events = span.events.map { SpanEventPayload(from: $0) }
         self.links = span.links.map { SpanLinkPayload(from: $0) }
+
+        if span.hasEnded {
+            self.endTime = (endTime ?? span.endTime)?.nanosecondsSince1970Truncated
+        } else {
+            self.endTime = nil
+        }
     }
 
     func encode(to encoder: Encoder) throws {

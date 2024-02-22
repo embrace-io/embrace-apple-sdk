@@ -7,7 +7,7 @@ import OpenTelemetryApi
 
 class InMemorySpanExporter: EmbraceSpanExporter {
 
-    private(set) var exportedSpans = [SpanId: SpanData]()
+    private(set) var exportedSpans: [SpanId: SpanData] = [:]
 
     private var onExportComplete: (() -> Void)?
 

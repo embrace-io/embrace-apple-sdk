@@ -48,7 +48,7 @@ class SpansPayloadBuilder {
                 let span = try JSONDecoder().decode(SpanData.self, from: record.data)
                 let payload = SpanPayload(from: span)
 
-                if span.endTime != nil {
+                if span.hasEnded {
                     spans.append(payload)
                 } else {
                     spanSnapshots.append(payload)
@@ -63,21 +63,14 @@ class SpansPayloadBuilder {
 
     class func buildSessionSpanPayload(for sessionRecord: SessionRecord, storage: EmbraceStorage) -> SpanPayload? {
         do {
-            var sessionSpanData: SpanData?
-
-            if let sessionSpan = try storage.fetchSpan(id: sessionRecord.spanId, traceId: sessionRecord.traceId) {
-                sessionSpanData = try JSONDecoder().decode(SpanData.self, from: sessionSpan.data)
-            }
-
-            // if for some reason we don't have a session span for the session
-            // we construct a dummy one using the data from the `SessionRecord`
-            if sessionSpanData == nil {
-                sessionSpanData = SessionSpanUtils.spanData(from: sessionRecord)
-            }
-
-            if let sessionSpanData = sessionSpanData {
+            let sessionSpan = try storage.fetchSpan(id: sessionRecord.spanId, traceId: sessionRecord.traceId)
+            if let rawData = sessionSpan?.data {
+                let sessionSpanData = try JSONDecoder().decode(SpanData.self, from: rawData)
                 return SpanPayload(from: sessionSpanData, endTime: sessionRecord.endTime)
+            } else {
+                return SessionSpanUtils.payload(from: sessionRecord)
             }
+
         } catch {
             ConsoleLog.warning("Error fetching span for session \(sessionRecord.id):\n\(error.localizedDescription)")
         }

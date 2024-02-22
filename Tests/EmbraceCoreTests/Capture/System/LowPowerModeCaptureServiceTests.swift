@@ -48,9 +48,9 @@ class LowPowerModeCollectorTests: XCTestCase {
         XCTAssertNotNil(service.currentSpan)
         XCTAssertEqual(service.currentSpan!.name, "emb-device-low-power")
 
-        let span = service.currentSpan as! RecordingSpan
-        XCTAssertEqual(span.spanData.attributes["emb.type"], .string("performance"))
-        XCTAssertEqual(span.spanData.attributes["start_reason"], .string("system_query"))
+        let span = service.currentSpan as! ReadableSpan
+        XCTAssertEqual(span.toSpanData().attributes["emb.type"], .string("performance"))
+        XCTAssertEqual(span.toSpanData().attributes["start_reason"], .string("system_query"))
     }
 
     func test_fetchOnStart_modeDisabled() {
@@ -138,9 +138,9 @@ class LowPowerModeCollectorTests: XCTestCase {
         XCTAssertNotNil(service.currentSpan)
         XCTAssertEqual(service.currentSpan!.name, "emb-device-low-power")
 
-        let span = service.currentSpan as! RecordingSpan
-        XCTAssertEqual(span.spanData.attributes["emb.type"], .string("performance"))
-        XCTAssertEqual(span.spanData.attributes["start_reason"], .string("system_notification"))
+        let span = service.currentSpan as! ReadableSpan
+        XCTAssertEqual(span.toSpanData().attributes["emb.type"], .string("performance"))
+        XCTAssertEqual(span.toSpanData().attributes["start_reason"], .string("system_notification"))
     }
 
     func test_systemEvent_modeDisabled() {
@@ -160,7 +160,7 @@ class LowPowerModeCollectorTests: XCTestCase {
         provider.isLowPowerModeEnabled = false
 
         // then the span is ended
-        XCTAssertNotNil((span as! RecordingSpan).endTime)
+        XCTAssertTrue((span as! ReadableSpan).hasEnded)
         XCTAssertNil(service.currentSpan)
     }
 
@@ -181,7 +181,7 @@ class LowPowerModeCollectorTests: XCTestCase {
         service.stop()
 
         // then the span is ended
-        XCTAssertNotNil((span as! RecordingSpan).endTime)
+        XCTAssertTrue((span as! ReadableSpan).hasEnded)
         XCTAssertNil(service.currentSpan)
     }
 
@@ -202,7 +202,7 @@ class LowPowerModeCollectorTests: XCTestCase {
         service.uninstall()
 
         // then the span is ended
-        XCTAssertNotNil((span as! RecordingSpan).endTime)
+        XCTAssertTrue((span as! ReadableSpan).hasEnded)
         XCTAssertNil(service.currentSpan)
     }
 }

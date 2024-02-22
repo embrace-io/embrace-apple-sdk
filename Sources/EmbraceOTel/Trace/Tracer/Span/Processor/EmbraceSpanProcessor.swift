@@ -2,14 +2,8 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import OpenTelemetryApi
+import OpenTelemetrySdk
 
-public protocol EmbraceSpanProcessor {
-
-    func onStart(span: ExportableSpan)
-
-    func onEnd(span: ExportableSpan)
-
-    func shutdown()
+public protocol EmbraceSpanProcessor: SpanProcessor {
 
 }

@@ -6,23 +6,31 @@ import Foundation
 import EmbraceOTel
 
 public class MockSpanProcessor: EmbraceSpanProcessor {
-
     private(set) public var startedSpans = [SpanData]()
     private(set) public var endedSpans = [SpanData]()
-    private(set) public var isShutdown = false
+    private(set) public var didShutdown = false
+    private(set) public var didForceFlush = false
 
     public init() { }
 
-    public func onStart(span: ExportableSpan) {
-        startedSpans.append(span.spanData)
+    public let isStartRequired: Bool = true
+
+    public let isEndRequired: Bool = true
+
+    public func onStart(parentContext: SpanContext?, span: ReadableSpan) {
+        startedSpans.append(span.toSpanData())
     }
 
-    public func onEnd(span: ExportableSpan) {
-        endedSpans.append(span.spanData)
+    public func onEnd(span: ReadableSpan) {
+        endedSpans.append(span.toSpanData())
+    }
+
+    public func forceFlush(timeout: TimeInterval?) {
+        didForceFlush = true
     }
 
     public func shutdown() {
-        isShutdown = true
+        didShutdown = true
     }
 
 }

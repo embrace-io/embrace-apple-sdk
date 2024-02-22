@@ -163,7 +163,9 @@ final class SessionControllerTests: XCTestCase {
                 session.startTime.timeIntervalSince1970,
                 accuracy: 0.001
             )
-            XCTAssertNil(spanData.endTime)
+            XCTAssertFalse(spanData.hasEnded)
+        } else {
+            XCTFail("No items in `startedSpans`")
         }
     }
 
@@ -209,7 +211,7 @@ final class SessionControllerTests: XCTestCase {
         let endTime = controller.endSession()
 
         if let spanData = spanProcessor.endedSpans.first {
-            XCTAssertEqual(spanData.endTime!.timeIntervalSince1970, endTime.timeIntervalSince1970, accuracy: 0.001)
+            XCTAssertEqual(spanData.endTime.timeIntervalSince1970, endTime.timeIntervalSince1970, accuracy: 0.001)
         }
     }
 

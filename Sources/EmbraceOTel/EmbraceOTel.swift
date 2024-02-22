@@ -1,6 +1,7 @@
 import Foundation
 import EmbraceCommon
 import OpenTelemetryApi
+import OpenTelemetrySdk
 
 // Android implementation
 // https://github.com/embrace-io/embrace-android-sdk3/blob/561fd6b24de0e889f08d154478be132302daa0d0/embrace-android-sdk/src/main/java/io/embrace/android/embracesdk/internal/spans/SpansServiceImpl.kt
@@ -12,8 +13,9 @@ import OpenTelemetryApi
     /// Setup the OpenTelemetryApi
     /// - Parameter: spanProcessor The processor in which to run during the lifetime of each Span
     public static func setup(spanProcessor: EmbraceSpanProcessor) {
-        OpenTelemetry.registerTracerProvider(
-            tracerProvider: EmbraceTracerProvider(spanProcessor: spanProcessor) )
+        OpenTelemetry.registerTracerProvider(tracerProvider:
+            TracerProviderSdk(spanProcessors: [spanProcessor])
+        )
     }
 
     public static func setup(logSharedState: EmbraceLogSharedState) {
