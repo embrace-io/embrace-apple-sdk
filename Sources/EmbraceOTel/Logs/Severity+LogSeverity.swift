@@ -13,4 +13,8 @@ extension Severity {
     public func toLogSeverity() -> LogSeverity? {
         LogSeverity(rawValue: self.rawValue)
     }
+
+    static public func fromLogSeverity(_ logSeverity: LogSeverity) -> Severity? {
+        Severity(rawValue: logSeverity.number)
+    }
 }

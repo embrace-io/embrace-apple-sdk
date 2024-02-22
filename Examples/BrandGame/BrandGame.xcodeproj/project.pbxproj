@@ -39,6 +39,7 @@
 		7BD901432B62ED2200053B1E /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = 7BD901422B62ED2200053B1E /* EmbraceCore */; };
 		7BD901452B62ED2200053B1E /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = 7BD901442B62ED2200053B1E /* EmbraceCrash */; };
 		7BD901472B62ED2200053B1E /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = 7BD901462B62ED2200053B1E /* EmbraceIO */; };
+		FA9505162B86640F00562A4C /* LoggingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA9505152B86640F00562A4C /* LoggingView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -87,6 +88,7 @@
 		7BCB66272AC4742800ABD33A /* MenuList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuList.swift; sourceTree = "<group>"; };
 		7BCB66292AC4767B00ABD33A /* MainMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainMenu.swift; sourceTree = "<group>"; };
 		7BCB662D2AC476BC00ABD33A /* NetworkStressTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkStressTest.swift; sourceTree = "<group>"; };
+		FA9505152B86640F00562A4C /* LoggingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoggingView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -288,6 +290,7 @@
 		7BCB662B2AC4769900ABD33A /* StressTests */ = {
 			isa = PBXGroup;
 			children = (
+				FA9505142B8663FB00562A4C /* Logging */,
 				7BC59A8E2B0BE25C0001E980 /* CrashExample */,
 				7BCB662C2AC476A800ABD33A /* Network */,
 			);
@@ -301,6 +304,14 @@
 				7BC49B0E2AC7864100FF381A /* NetworkRequest.swift */,
 			);
 			path = Network;
+			sourceTree = "<group>";
+		};
+		FA9505142B8663FB00562A4C /* Logging */ = {
+			isa = PBXGroup;
+			children = (
+				FA9505152B86640F00562A4C /* LoggingView.swift */,
+			);
+			path = Logging;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -401,6 +412,7 @@
 				7BCB66282AC4742800ABD33A /* MenuList.swift in Sources */,
 				7B62AD972B0041310087C2AE /* MinigameView.swift in Sources */,
 				7B3143B72AFDC52D00BA0D2F /* RightDotShape.swift in Sources */,
+				FA9505162B86640F00562A4C /* LoggingView.swift in Sources */,
 				7B3143B92AFDC8EC00BA0D2F /* RightBracketShape.swift in Sources */,
 				7B3143B52AFDC50E00BA0D2F /* LeftDotShape.swift in Sources */,
 				7B62ADA32B0068280087C2AE /* SimonMinigameView.swift in Sources */,

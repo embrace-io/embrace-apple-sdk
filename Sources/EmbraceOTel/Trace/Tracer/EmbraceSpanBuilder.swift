@@ -21,7 +21,7 @@ class EmbraceSpanBuilder: SpanBuilder {
     private var startAsActive: Bool = false
     private var otelInstance: OpenTelemetry?
 
-    init(spanName: String, 
+    init(spanName: String,
          processor: EmbraceSpanProcessor,
          otelInstance: OpenTelemetry? = OpenTelemetry.instance) {
         self.spanName = spanName

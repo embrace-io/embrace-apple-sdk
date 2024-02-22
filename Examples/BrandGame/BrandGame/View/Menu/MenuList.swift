@@ -39,6 +39,8 @@ struct MenuList: View {
                 NavigationLink("Network Requests", destination: NetworkStressTest())
                     .contentShape(Rectangle())
 
+                NavigationLink("Logging", destination: LoggingView()).contentShape(Rectangle())
+
                 NavigationLink("Crash Examples", destination: CrashExampleTest())
                     .contentShape(Rectangle())
             }
