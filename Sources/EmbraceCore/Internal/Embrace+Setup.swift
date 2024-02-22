@@ -28,15 +28,16 @@ extension Embrace {
 
     static func createUpload(options: Embrace.Options, deviceId: String) -> EmbraceUpload? {
         // endpoints
-        guard let sessionsURL = EMBDevice.isDebuggerAttached ?
-                URL.sessionsEndpoint(basePath: options.endpoints.developmentBaseURL) :
-                URL.sessionsEndpoint(basePath: options.endpoints.baseURL),
-              let blobsURL = URL.blobsEndpoint(basePath: options.endpoints.baseURL) else {
+        let baseUrl = EMBDevice.isDebuggerAttached ?
+            options.endpoints.developmentBaseURL : options.endpoints.baseURL
+        guard let sessionsURL = URL.sessionsEndpoint(basePath: baseUrl),
+              let blobsURL = URL.blobsEndpoint(basePath: baseUrl),
+              let logsURL = URL.logsEndpoint(basePath: baseUrl) else {
             ConsoleLog.error("Failed to initialize endpoints!")
             return nil
         }
 
-        let endpoints = EmbraceUpload.EndpointOptions(sessionsURL: sessionsURL, blobsURL: blobsURL)
+        let endpoints = EmbraceUpload.EndpointOptions(sessionsURL: sessionsURL, blobsURL: blobsURL, logsURL: logsURL)
 
         // cache
         guard let cacheUrl = EmbraceFileSystem.uploadsDirectoryPath(

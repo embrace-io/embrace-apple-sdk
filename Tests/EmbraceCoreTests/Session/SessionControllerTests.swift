@@ -19,10 +19,12 @@ final class SessionControllerTests: XCTestCase {
     var upload: EmbraceUpload!
     static let testSessionsUrl = URL(string: "https://embrace.test.com/session_controller/sessions")!
     static let testBlobsUrl = URL(string: "https://embrace.test.com/session_controller/blobs")!
+    static let testLogsUrl = URL(string: "https://embrace.test.com/session_controller/logs")!
 
     static let testEndpointOptions = EmbraceUpload.EndpointOptions(
         sessionsURL: SessionControllerTests.testSessionsUrl,
-        blobsURL: SessionControllerTests.testBlobsUrl
+        blobsURL: SessionControllerTests.testBlobsUrl,
+        logsURL: SessionControllerTests.testLogsUrl
     )
     static let testCacheOptions = EmbraceUpload.CacheOptions(
         cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory())

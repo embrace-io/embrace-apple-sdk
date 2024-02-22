@@ -92,6 +92,17 @@ public class EmbraceUpload {
         }
     }
 
+    /// Uploads the given log data
+    /// - Parameters:
+    ///   - id: Identifier of the log
+    ///   - data: Data of the log's payload
+    ///   - completion: Completion block called when the data is succesfully cached, or when an `Error` occurs
+    public func uploadLog(id: String, data: Data, completion: ((Result<(), Error>) -> Void)?) {
+        queue.async { [weak self] in
+            self?.uploadData(id: id, data: data, type: .log, completion: completion)
+        }
+    }
+
     // MARK: - Internal
     private func uploadData(
         id: String,
@@ -195,6 +206,7 @@ public class EmbraceUpload {
         switch type {
         case .session: return options.endpoints.sessionsURL
         case .blob: return options.endpoints.blobsURL
+        case .log: return options.endpoints.logsURL
         }
     }
 }

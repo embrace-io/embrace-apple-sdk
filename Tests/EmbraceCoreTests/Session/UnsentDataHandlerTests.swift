@@ -17,10 +17,12 @@ class UnsentDataHandlerTests: XCTestCase {
 
     static let testSessionsUrl = URL(string: "https://embrace.test.com/sessions")!
     static let testBlobsUrl = URL(string: "https://embrace.test.com/blobs")!
+    static let testLogsUrl = URL(string: "https://embrace.test.com/logs")!
 
     static let testEndpointOptions = EmbraceUpload.EndpointOptions(
         sessionsURL: UnsentDataHandlerTests.testSessionsUrl,
-        blobsURL: UnsentDataHandlerTests.testBlobsUrl
+        blobsURL: UnsentDataHandlerTests.testBlobsUrl,
+        logsURL: UnsentDataHandlerTests.testLogsUrl
     )
     static let testCacheOptions = EmbraceUpload.CacheOptions(
         cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory())

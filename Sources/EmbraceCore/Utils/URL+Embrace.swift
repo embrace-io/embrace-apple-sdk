@@ -18,4 +18,8 @@ extension URL {
     static func blobsEndpoint(basePath: String) -> URL? {
         return endpoint(basePath: basePath, apiPath: "/v1/log/blobs")
     }
+
+    static func logsEndpoint(basePath: String) -> URL? {
+        return endpoint(basePath: basePath, apiPath: "/v2/log/logs")
+    }
 }

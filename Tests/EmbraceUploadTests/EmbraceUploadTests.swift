@@ -11,10 +11,12 @@ class EmbraceUploadTests: XCTestCase {
 
     static let testSessionsUrl = URL(string: "https://embrace.test.com/upload/sessions")!
     static let testBlobsUrl = URL(string: "https://embrace.test.com/upload/blobs")!
+    static let testLogsUrl = URL(string: "https://embrace.test.com/upload/logs")!
 
     static let testEndpointOptions = EmbraceUpload.EndpointOptions(
         sessionsURL: EmbraceUploadTests.testSessionsUrl,
-        blobsURL: EmbraceUploadTests.testBlobsUrl
+        blobsURL: EmbraceUploadTests.testBlobsUrl,
+        logsURL: EmbraceUploadTests.testLogsUrl
     )
     static let testCacheOptions = EmbraceUpload.CacheOptions(
         cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory())
@@ -237,6 +239,7 @@ class EmbraceUploadTests: XCTestCase {
         // then a request to the right endpoint is made
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(EmbraceUploadTests.testSessionsUrl).count, 1)
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(EmbraceUploadTests.testBlobsUrl).count, 0)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(EmbraceUploadTests.testLogsUrl).count, 0)
     }
 
     func test_blobsEndpoint() throws {
@@ -248,5 +251,18 @@ class EmbraceUploadTests: XCTestCase {
         // then a request to the right endpoint is made
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(EmbraceUploadTests.testSessionsUrl).count, 0)
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(EmbraceUploadTests.testBlobsUrl).count, 1)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(EmbraceUploadTests.testLogsUrl).count, 0)
+    }
+
+    func test_logsEndpoint() throws {
+        // when uploading blob data
+        module.uploadLog(id: "id", data: TestConstants.data, completion: nil)
+
+        wait(delay: .defaultTimeout)
+
+        // then a request to the right endpoint is made
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(EmbraceUploadTests.testSessionsUrl).count, 0)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(EmbraceUploadTests.testBlobsUrl).count, 0)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(EmbraceUploadTests.testLogsUrl).count, 1)
     }
 }
