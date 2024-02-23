@@ -6,7 +6,7 @@ import Foundation
 import GRDB
 import EmbraceCommon
 
-public protocol EmbraceStorageMetadataFetcher {
+public protocol EmbraceStorageMetadataFetcher: AnyObject {
     func fetchAllResources() throws -> [MetadataRecord]
     func fetchResourcesForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord]
 

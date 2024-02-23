@@ -14,6 +14,28 @@ extension Embrace {
         attributes: [String: String],
         severity: LogSeverity
     ) {
-        otel.log(message, attributes: attributes, severity: severity)
+        /*
+         If we want to keep this method cleaner, we could move that to `EmbraceLogAttributesBuilder`
+         However that would cause to always add a frame to the stacktrace.
+         */
+        var stackTrace: [String] = []
+        if severity == .error {
+            stackTrace = Thread.callStackSymbols
+        }
+
+        let attributesBuilder = EmbraceLogAttributesBuilder(
+            storage: storage,
+            sessionControllable: sessionController,
+            initialAttributes: attributes
+        )
+
+        let finalAttributes = attributesBuilder
+            .addStackTrace(stackTrace)
+            .addApplicationState()
+            .addApplicationProperties()
+            .addSessionIdentifier()
+            .build()
+
+        otel.log(message, attributes: finalAttributes, severity: severity)
     }
 }

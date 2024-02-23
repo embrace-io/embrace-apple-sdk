@@ -1,0 +1,25 @@
+//
+//  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
+//
+
+import Foundation
+import EmbraceStorage
+import EmbraceCommon
+
+@testable import EmbraceCore
+
+class SpySessionController: SessionControllable {
+    var currentSession: SessionRecord?
+
+    init(currentSession: SessionRecord? = nil) {
+        self.currentSession = currentSession
+    }
+
+    func startSession(state: SessionState) -> SessionRecord {
+        return currentSession!
+    }
+
+    func endSession() -> Date { Date() }
+    func update(state: SessionState) {}
+    func update(appTerminated: Bool) {}
+}
