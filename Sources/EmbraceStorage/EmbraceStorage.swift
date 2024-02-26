@@ -37,6 +37,7 @@ public class EmbraceStorage {
         try dbQueue.write { db in
             try SessionRecord.defineTable(db: db)
             try SpanRecord.defineTable(db: db)
+            try LogRecord.defineTable(db: db)
             try MetadataRecord.defineTable(db: db)
         }
     }

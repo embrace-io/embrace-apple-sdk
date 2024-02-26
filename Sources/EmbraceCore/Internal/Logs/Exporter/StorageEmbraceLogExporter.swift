@@ -45,13 +45,13 @@ class StorageEmbraceLogExporter: EmbraceLogRecordExporter {
 
 private extension StorageEmbraceLogExporter {
     func buildLogRecord(from originalLog: ReadableLogRecord) -> LogRecord {
-        .init(
-            id: LogIdentifier(),
-            timestamp: originalLog.timestamp,
-            // Defaulting to `info`. Need to verify if this is appropriate.
-            severity: originalLog.severity?.toLogSeverity() ?? .info,
-            // Defaulting to an empty string. Need to verify if this is appropriate.
-            body: originalLog.body ?? ""
-        )
+        let embAttributes = originalLog.attributes.reduce(into: [String: String]()) {
+            $0[$1.key] = $1.value.description
+        }
+        return .init(id: LogIdentifier(),
+              severity: originalLog.severity?.toLogSeverity() ?? .info,
+              body: originalLog.body ?? "",
+              attributes: embAttributes,
+              timestamp: originalLog.timestamp)
     }
 }

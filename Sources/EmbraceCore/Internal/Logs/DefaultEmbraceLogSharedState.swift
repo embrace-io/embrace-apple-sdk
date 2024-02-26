@@ -30,9 +30,26 @@ extension DefaultEmbraceLogSharedState {
     static func create(storage: EmbraceStorage) -> DefaultEmbraceLogSharedState {
         DefaultEmbraceLogSharedState(
             config: DefaultEmbraceLoggerConfig(),
-            // TODO: Add Exporters
-            processors: .default(withExporters: []),
+            processors: .default(withExporters: [
+                StorageEmbraceLogExporter(
+                    logBatcher: DefaultLogBatcher(
+                        repository: storage,
+                        logLimits: .init(),
+                        delegate: DummyLogBatcherDelegate.shared
+                    )
+                )
+            ]),
+            resourceProvider: ResourceStorageExporter(storage: storage)
+        )
+    }
+}
 
-            resourceProvider: ResourceStorageExporter(storage: storage))
+// TODO: This should go away. Simply added it to test the whole feature
+import EmbraceCommon
+
+class DummyLogBatcherDelegate: LogBatcherDelegate {
+    static let shared = DummyLogBatcherDelegate()
+    func batchFinished(withLogs logs: [LogRecord]) {
+        ConsoleLog.info("BATCH FINISHEDDD", logs)
     }
 }
