@@ -3,11 +3,9 @@ import EmbraceCommon
 import OpenTelemetryApi
 import OpenTelemetrySdk
 
-// Android implementation
-// https://github.com/embrace-io/embrace-android-sdk3/blob/561fd6b24de0e889f08d154478be132302daa0d0/embrace-android-sdk/src/main/java/io/embrace/android/embracesdk/internal/spans/SpansServiceImpl.kt
 @objc public final class EmbraceOTel: NSObject {
 
-    let instrumentationName = "EmbraceTracer"
+    let instrumentationName = "EmbraceOpenTelemetry"
     let instrumentationVersion = "semver:0.0.1"
 
     /// Setup the OpenTelemetryApi

@@ -27,18 +27,27 @@ class DefaultEmbraceLogSharedState: EmbraceLogSharedState {
 }
 
 extension DefaultEmbraceLogSharedState {
-    static func create(storage: EmbraceStorage) -> DefaultEmbraceLogSharedState {
-        DefaultEmbraceLogSharedState(
-            config: DefaultEmbraceLoggerConfig(),
-            processors: .default(withExporters: [
-                StorageEmbraceLogExporter(
-                    logBatcher: DefaultLogBatcher(
-                        repository: storage,
-                        logLimits: .init(),
-                        delegate: DummyLogBatcherDelegate.shared
-                    )
+    static func create(
+        storage: EmbraceStorage,
+        exporter: EmbraceLogRecordExporter? = nil
+    ) -> DefaultEmbraceLogSharedState {
+        var exporters: [EmbraceLogRecordExporter] = [
+            StorageEmbraceLogExporter(
+                logBatcher: DefaultLogBatcher(
+                    repository: storage,
+                    logLimits: .init(),
+                    delegate: DummyLogBatcherDelegate.shared
                 )
-            ]),
+            )
+        ]
+
+        if let exporter = exporter {
+            exporters.append(exporter)
+        } 
+
+        return DefaultEmbraceLogSharedState(
+            config: DefaultEmbraceLoggerConfig(),
+            processors: .default(withExporters: exporters),
             resourceProvider: ResourceStorageExporter(storage: storage)
         )
     }

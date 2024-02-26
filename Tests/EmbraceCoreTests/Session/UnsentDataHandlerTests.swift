@@ -73,7 +73,7 @@ class UnsentDataHandlerTests: XCTestCase {
         EmbraceHTTPMock.mock(url: Self.testSessionsUrl)
 
         // given a storage and upload modules
-        let storage = try EmbraceStorage.createInDiskDb()
+        let storage = try EmbraceStorage.createInMemoryDb()
         defer { try? storage.teardown() }
 
         let upload = try EmbraceUpload(options: uploadOptions, queue: queue)
@@ -110,7 +110,7 @@ class UnsentDataHandlerTests: XCTestCase {
         EmbraceHTTPMock.mock(url: UnsentDataHandlerTests.testSessionsUrl, errorCode: 500)
 
         // given a storage and upload modules
-        let storage = try EmbraceStorage.createInDiskDb()
+        let storage = try EmbraceStorage.createInMemoryDb()
         defer { try? storage.teardown() }
 
         let upload = try EmbraceUpload(options: uploadOptions, queue: queue)
@@ -151,7 +151,7 @@ class UnsentDataHandlerTests: XCTestCase {
         EmbraceHTTPMock.mock(url: Self.testBlobsUrl)
 
         // given a storage and upload modules
-        let storage = try EmbraceStorage.createInDiskDb()
+        let storage = try EmbraceStorage.createInMemoryDb()
         defer { try? storage.teardown() }
 
         let upload = try EmbraceUpload(options: uploadOptions, queue: queue)
@@ -223,7 +223,7 @@ class UnsentDataHandlerTests: XCTestCase {
         EmbraceHTTPMock.mock(url: Self.testBlobsUrl, errorCode: 500)
 
         // given a storage and upload modules
-        let storage = try EmbraceStorage.createInDiskDb()
+        let storage = try EmbraceStorage.createInMemoryDb()
         defer { try? storage.teardown() }
 
         let upload = try EmbraceUpload(options: uploadOptions, queue: queue)
@@ -295,7 +295,7 @@ class UnsentDataHandlerTests: XCTestCase {
         EmbraceHTTPMock.mock(url: Self.testBlobsUrl)
 
         // given a storage and upload modules
-        let storage = try EmbraceStorage.createInDiskDb()
+        let storage = try EmbraceStorage.createInMemoryDb()
         defer { try? storage.teardown() }
 
         let upload = try EmbraceUpload(options: uploadOptions, queue: queue)
@@ -366,7 +366,7 @@ class UnsentDataHandlerTests: XCTestCase {
         EmbraceHTTPMock.mock(url: Self.testBlobsUrl)
 
         // given a storage and upload modules
-        let storage = try EmbraceStorage.createInDiskDb()
+        let storage = try EmbraceStorage.createInMemoryDb()
         defer { try? storage.teardown() }
 
         let upload = try EmbraceUpload(options: uploadOptions, queue: queue)
@@ -444,7 +444,7 @@ class UnsentDataHandlerTests: XCTestCase {
         EmbraceHTTPMock.mock(url: Self.testBlobsUrl)
 
         // given a storage and upload modules
-        let storage = try EmbraceStorage.createInDiskDb()
+        let storage = try EmbraceStorage.createInMemoryDb()
         defer { try? storage.teardown() }
 
         let upload = try EmbraceUpload(options: uploadOptions, queue: queue)

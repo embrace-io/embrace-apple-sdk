@@ -14,7 +14,7 @@ final class SessionPayloadBuilderTests: XCTestCase {
     var sessionRecord: SessionRecord!
 
     override func setUpWithError() throws {
-        storage = try EmbraceStorage.createInDiskDb()
+        storage = try EmbraceStorage.createInMemoryDb()
 
         sessionRecord = SessionRecord(
             id: TestConstants.sessionId,

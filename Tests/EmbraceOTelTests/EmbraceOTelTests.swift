@@ -36,9 +36,9 @@ final class EmbraceOTelTests: XCTestCase {
 
 // MARK: init
 
-    func test_init() {
+    func test_init_hasCorrectInstrumentationName() {
         let otel = EmbraceOTel()
-        XCTAssertEqual(otel.instrumentationName, "EmbraceTracer")
+        XCTAssertEqual(otel.instrumentationName, "EmbraceOpenTelemetry")
     }
 
 // MARK: recordSpan with block

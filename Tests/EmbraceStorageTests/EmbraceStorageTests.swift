@@ -11,7 +11,7 @@ class EmbraceStorageTests: XCTestCase {
     var storage: EmbraceStorage!
 
     override func setUpWithError() throws {
-        storage = try EmbraceStorage.createInDiskDb()
+        storage = try EmbraceStorage.createInMemoryDb()
     }
 
     override func tearDownWithError() throws {

@@ -4,6 +4,7 @@
 
 import Foundation
 import EmbraceCommon
+import EmbraceOTel
 
 extension Embrace {
 
@@ -16,6 +17,7 @@ extension Embrace {
         @objc public let endpoints: Embrace.Endpoints
         @objc public let services: [CaptureService]
         @objc public let logLevel: LogLevel
+        @objc public let export: OpenTelemetryExport?
 
         /// Default initializer for `Embrace.Options` that requires an array of `CaptureServices` to be passed.
         ///
@@ -34,7 +36,8 @@ extension Embrace {
             platform: Platform = .default,
             endpoints: Embrace.Endpoints? = nil,
             logLevel: LogLevel = .default,
-            captureServices: [CaptureService]
+            captureServices: [CaptureService],
+            export: OpenTelemetryExport? = nil
         ) {
             self.appId = appId
             self.appGroupId = appGroupId
@@ -42,6 +45,7 @@ extension Embrace {
             self.endpoints = endpoints ?? .init(appId: appId)
             self.services = captureServices
             self.logLevel = logLevel
+            self.export = export
         }
     }
 }
