@@ -153,7 +153,7 @@ final class SessionControllerTests: XCTestCase {
 
     func test_startSession_startsSessionSpan() throws {
         let spanProcessor = MockSpanProcessor()
-        EmbraceOTel.setup(spanProcessor: spanProcessor)
+        EmbraceOTel.setup(spanProcessors: [spanProcessor])
 
         let session = controller.startSession(state: .foreground)
 
@@ -205,7 +205,7 @@ final class SessionControllerTests: XCTestCase {
 
     func test_endSession_saves_endsSessionSpan() throws {
         let spanProcessor = MockSpanProcessor()
-        EmbraceOTel.setup(spanProcessor: spanProcessor)
+        EmbraceOTel.setup(spanProcessors: [spanProcessor])
 
         controller.startSession(state: .foreground)
         let endTime = controller.endSession()

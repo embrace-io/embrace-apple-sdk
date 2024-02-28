@@ -17,7 +17,7 @@ class EmbraceOpenTelemetryMock: EmbraceOpenTelemetry {
         self.otelInstance = otelInstance
 
         // TODO: update callers to use otel setup directly. Should be able to remove EmbraceOpenTelemetryMock
-        EmbraceOTel.setup(spanProcessor: processor)
+        EmbraceOTel.setup(spanProcessors: [processor])
     }
 
     func buildSpan(name: String,

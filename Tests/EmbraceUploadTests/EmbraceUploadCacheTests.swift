@@ -13,7 +13,7 @@ class EmbraceUploadCacheTests: XCTestCase {
 
     override func setUpWithError() throws {
         spanProcessor = MockSpanProcessor()
-        EmbraceOTel.setup(spanProcessor: spanProcessor)
+        EmbraceOTel.setup(spanProcessors: [spanProcessor])
         if FileManager.default.fileExists(atPath: testOptions.cacheFilePath) {
             try FileManager.default.removeItem(atPath: testOptions.cacheFilePath)
         }

@@ -19,7 +19,7 @@ final class SpanStorageIntegrationTests: IntegrationTestCase {
         storage = try EmbraceStorage.createInMemoryDb()
         let exporter = StorageSpanExporter(options: .init(storage: storage))
 
-        EmbraceOTel.setup(spanProcessor: SingleSpanProcessor(spanExporter: exporter))
+        EmbraceOTel.setup(spanProcessors: [SingleSpanProcessor(spanExporter: exporter)])
     }
 
     override func tearDownWithError() throws {

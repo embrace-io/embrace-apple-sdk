@@ -129,7 +129,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
 
         super.init()
 
-        EmbraceOTel.setup(spanProcessor: .with(storage: storage))
+        EmbraceOTel.setup(spanProcessors: .processors(for: storage, export: options.export))
         EmbraceOTel.setup(logSharedState:
                             DefaultEmbraceLogSharedState.create(
                                 storage: self.storage,

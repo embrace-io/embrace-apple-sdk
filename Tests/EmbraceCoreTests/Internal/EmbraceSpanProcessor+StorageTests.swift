@@ -15,7 +15,7 @@ final class EmbraceSpanProcessor_StorageTests: XCTestCase {
         defer {
             try? storage.teardown()
         }
-        let processor = SingleSpanProcessor.with(storage: storage)
+        let processor = SingleSpanProcessor(spanExporter: StorageSpanExporter(options: .init(storage: storage)))
         XCTAssert(processor.spanExporter is StorageSpanExporter)
     }
 }

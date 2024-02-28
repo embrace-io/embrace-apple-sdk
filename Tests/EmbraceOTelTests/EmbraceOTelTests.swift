@@ -8,7 +8,7 @@ import TestSupport
 final class EmbraceOTelTests: XCTestCase {
 
     override func setUpWithError() throws {
-        EmbraceOTel.setup(spanProcessor: MockSpanProcessor())
+        EmbraceOTel.setup(spanProcessors: [MockSpanProcessor()])
     }
 
 // MARK: Register Tracer

@@ -10,10 +10,9 @@ import OpenTelemetrySdk
 
     /// Setup the OpenTelemetryApi
     /// - Parameter: spanProcessor The processor in which to run during the lifetime of each Span
-    public static func setup(spanProcessor: EmbraceSpanProcessor) {
-        OpenTelemetry.registerTracerProvider(tracerProvider:
-            TracerProviderSdk(spanProcessors: [spanProcessor])
-        )
+    public static func setup(spanProcessors: [EmbraceSpanProcessor]) {
+        OpenTelemetry.registerTracerProvider(
+            tracerProvider: TracerProviderSdk(spanProcessors: spanProcessors ))
     }
 
     public static func setup(logSharedState: EmbraceLogSharedState) {

@@ -10,13 +10,13 @@ import OpenTelemetrySdk
 /// and passes it to the configured exporter in both `onStart` and `onEnd`
 public struct SingleSpanProcessor: EmbraceSpanProcessor {
 
-    let spanExporter: EmbraceSpanExporter
+    let spanExporter: SpanExporter
     private let processorQueue = DispatchQueue(label: "io.embrace.spanprocessor", qos: .utility)
 
     /// Returns a new SingleSpanProcessor that converts spans to SpanData and forwards them to
     /// the given spanExporter.
     /// - Parameter spanExporter: the SpanExporter to where the Spans are pushed.
-    public init(spanExporter: EmbraceSpanExporter) {
+    public init(spanExporter: SpanExporter) {
         self.spanExporter = spanExporter
     }
 
