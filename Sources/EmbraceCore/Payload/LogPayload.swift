@@ -3,13 +3,14 @@
 //
 
 import Foundation
+import EmbraceCommon
 
 struct LogPayload: Codable {
     var timeUnixNano: String
     var severityNumber: Int
     var severityText: String
-    var body = [String: String]()
-    var attributes = [String: String]()
+    var body: String
+    var attributes: [Attribute]
     var traceId: String?
     var spanId: String?
 
@@ -17,6 +18,8 @@ struct LogPayload: Codable {
         case timeUnixNano = "time_unix_nano"
         case severityNumber = "severity_number"
         case severityText = "severity_text"
+        case body = "body"
+        case attributes = "attributes"
         case traceId = "trace_id"
         case spanId = "span_id"
     }

@@ -29,15 +29,23 @@ class LogRecordTests: XCTestCase {
 
             XCTAssert(try db.table(
                 LogRecord.databaseTableName,
-                hasUniqueKey: ["id"]
+                hasUniqueKey: ["identifier"]
             ))
 
-            // id
-            if let idColumn = columns.first(where: { $0.name == "id" }) {
+            // identifier
+            if let idColumn = columns.first(where: { $0.name == "identifier" }) {
                 XCTAssertEqual(idColumn.type, "TEXT")
                 XCTAssert(idColumn.isNotNull)
             } else {
-                XCTAssert(false, "id column not found!")
+                XCTAssert(false, "identifier column not found!")
+            }
+
+            // process id
+            if let idColumn = columns.first(where: { $0.name == "process_identifier" }) {
+                XCTAssertEqual(idColumn.type, "INTEGER")
+                XCTAssert(idColumn.isNotNull)
+            } else {
+                XCTAssert(false, "process_identifier column not found!")
             }
 
             // severity

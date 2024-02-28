@@ -45,13 +45,14 @@ class StorageEmbraceLogExporter: EmbraceLogRecordExporter {
 
 private extension StorageEmbraceLogExporter {
     func buildLogRecord(from originalLog: ReadableLogRecord) -> LogRecord {
-        let embAttributes = originalLog.attributes.reduce(into: [String: String]()) {
-            $0[$1.key] = $1.value.description
+        let embAttributes = originalLog.attributes.reduce(into: [String: PersistableValue]()) {
+            $0[$1.key] = PersistableValue($1.value.description)
         }
-        return .init(id: LogIdentifier(),
-              severity: originalLog.severity?.toLogSeverity() ?? .info,
-              body: originalLog.body ?? "",
-              attributes: embAttributes,
-              timestamp: originalLog.timestamp)
+        return .init(identifier: LogIdentifier(),
+                     processIdentifier: ProcessIdentifier.current,
+                     severity: originalLog.severity?.toLogSeverity() ?? .info,
+                     body: originalLog.body ?? "",
+                     attributes: embAttributes,
+                     timestamp: originalLog.timestamp)
     }
 }

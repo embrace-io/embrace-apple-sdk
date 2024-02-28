@@ -65,6 +65,8 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
     let upload: EmbraceUpload?
     let captureServices: CaptureServices
 
+    let logController: LogControllable
+
     let sessionController: SessionController
     let sessionLifecycle: SessionLifecycle
 
@@ -113,7 +115,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         fatalError("Use init(options:) instead")
     }
 
-    private init(options: Embrace.Options) throws {
+    private init(options: Embrace.Options, logControllable: LogControllable? = nil) throws {
         self.started = false
         self.options = options
 
@@ -126,15 +128,20 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         self.sessionController = SessionController(storage: storage, upload: upload)
         self.sessionLifecycle = Embrace.createSessionLifecycle(controller: sessionController)
         self.metadata = MetadataHandler(storage: storage, sessionController: sessionController)
-
+        self.logController = logControllable ?? LogController(
+            storage: storage,
+            upload: upload,
+            controller: sessionController
+        )
         super.init()
 
         EmbraceOTel.setup(spanProcessors: .processors(for: storage, export: options.export))
-        EmbraceOTel.setup(logSharedState:
-                            DefaultEmbraceLogSharedState.create(
-                                storage: self.storage,
-                                exporter: options.export?.logExporter ))
-
+        let logSharedState = DefaultEmbraceLogSharedState.create(
+            storage: self.storage,
+            controller: logController,
+            exporter: options.export?.logExporter
+        )
+        EmbraceOTel.setup(logSharedState: logSharedState)
         sessionLifecycle.setup()
     }
 
@@ -174,6 +181,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
                         currentSessionId: self?.sessionController.currentSession?.id,
                         crashReporter: self?.captureServices.crashReporter
                     )
+                    self?.logController.setup()
                 }
             }
         }

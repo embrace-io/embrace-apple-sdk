@@ -3,6 +3,8 @@
 //
 
 import Foundation
+import EmbraceStorage
+import EmbraceObjCUtils
 
 struct ResourcePayload: Codable {
     var jailbroken: Bool?
@@ -43,5 +45,65 @@ struct ResourcePayload: Codable {
         case sdkVersion = "sdk_version"
         case appVersion = "app_version"
         case appBundleId = "app_bundle_id"
+    }
+
+    init(from resources: [MetadataRecord]) {
+        /*
+         Important note:
+            There's no metadata key for `appBundleId` / `buildId`.
+            We should check if there's a way to provide that info eventually
+            without doing it manually at this moment.
+         */
+        self.buildId = EMBDevice.buildUUID
+        self.appBundleId = Bundle.main.bundleIdentifier
+
+        resources.forEach { resource in
+            if let key = AppResourceKey(rawValue: resource.key) {
+                switch key {
+                case .bundleVersion:
+                    self.bundleVersion = resource.stringValue
+                case .environment:
+                    self.environment = resource.stringValue
+                case .detailedEnvironment:
+                    self.environmentDetail = resource.stringValue
+                case .framework:
+                    self.appFramework = resource.integerValue
+                case .launchCount:
+                    self.launchCount = resource.integerValue
+                case .sdkVersion:
+                    self.sdkVersion = resource.stringValue
+                case .appVersion:
+                    self.appVersion = resource.stringValue
+                }
+            }
+
+            if let key = DeviceResourceKey(rawValue: resource.key) {
+                switch key {
+                case .isJailbroken:
+                    self.jailbroken = resource.boolValue
+                case .totalDiskSpace:
+                    self.diskTotalCapacity = resource.integerValue
+                case .architecture:
+                    self.deviceArchitecture = resource.stringValue
+                case .model:
+                    self.deviceModel = resource.stringValue
+                case .manufacturer:
+                    self.deviceManufacturer = resource.stringValue
+                case .screenResolution:
+                    self.screenResolution = resource.stringValue
+                case .OSVersion:
+                    self.osVersion = resource.stringValue
+                case .OSBuild:
+                    self.osBuild = resource.stringValue
+                case .osType:
+                    self.osType = resource.stringValue
+                case .osVariant:
+                    self.osAlternateType = resource.stringValue
+                case .locale, .timezone:
+                    // This is part of the Metadata
+                    break
+                }
+            }
+        }
     }
 }

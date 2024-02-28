@@ -49,7 +49,13 @@ private extension DefaultLogBatcherTests {
     }
 
     func randomLogRecord() -> LogRecord {
-        .init(id: .init(), severity: .info, body: UUID().uuidString, attributes: [:])
+        .init(
+            identifier: .init(),
+            processIdentifier: .random,
+            severity: .info,
+            body: UUID().uuidString,
+            attributes: [:]
+        )
     }
 
     func whenInvokingAddLogRecord(withLogRecord logRecord: LogRecord) {

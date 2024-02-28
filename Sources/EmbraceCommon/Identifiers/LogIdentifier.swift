@@ -24,6 +24,17 @@ public struct LogIdentifier: Codable, Equatable {
         var container = encoder.singleValueContainer()
         try container.encode(value)
     }
+
+    /// Converts the UUID to a string format that is more convenient for the backend.
+    ///
+    /// - This method transforms the UUID into a string representation without the hyphens that typically separate the segments of a UUID.
+    /// It is designed to meet specific backend requirements where the hyphen-less format is preferred.
+    ///
+    /// - IMPORTANT: This method should not be used when you simply need the standard `uuidString` representation.
+    /// For standard UUID strings, use the `value` property directly.
+    public var toString: String {
+        value.uuidString.replacingOccurrences(of: "-", with: "")
+    }
 }
 
 extension LogIdentifier {

@@ -20,6 +20,6 @@ extension URL {
     }
 
     static func logsEndpoint(basePath: String) -> URL? {
-        return endpoint(basePath: basePath, apiPath: "/v2/log/logs")
+        return endpoint(basePath: basePath, apiPath: "/v2/logs")
     }
 }

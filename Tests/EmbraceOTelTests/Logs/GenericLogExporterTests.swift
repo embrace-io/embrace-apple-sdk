@@ -5,13 +5,22 @@
 import XCTest
 @testable import EmbraceCore
 @testable import EmbraceOTel
+import EmbraceStorage
 import TestSupport
 
 final class GenericLogExporterTests: XCTestCase {
+    class DummyLogControllable: LogControllable {
+        func setup() {}
+        func batchFinished(withLogs logs: [LogRecord]) {}
+    }
 
     func test_genericExporter_isCalled_whenConfiguredInSharedState() throws {
         let exporter = InMemoryLogRecordExporter()
-        let sharedState = DefaultEmbraceLogSharedState.create(storage: try .createInMemoryDb(), exporter: exporter)
+        let sharedState = DefaultEmbraceLogSharedState.create(
+            storage: try .createInMemoryDb(),
+            controller: DummyLogControllable(),
+            exporter: exporter
+        )
         EmbraceOTel.setup(logSharedState: sharedState)
 
         EmbraceOTel().logger

@@ -29,6 +29,7 @@ class DefaultEmbraceLogSharedState: EmbraceLogSharedState {
 extension DefaultEmbraceLogSharedState {
     static func create(
         storage: EmbraceStorage,
+        controller: LogControllable,
         exporter: EmbraceLogRecordExporter? = nil
     ) -> DefaultEmbraceLogSharedState {
         var exporters: [EmbraceLogRecordExporter] = [
@@ -36,29 +37,19 @@ extension DefaultEmbraceLogSharedState {
                 logBatcher: DefaultLogBatcher(
                     repository: storage,
                     logLimits: .init(),
-                    delegate: DummyLogBatcherDelegate.shared
+                    delegate: controller
                 )
             )
         ]
 
         if let exporter = exporter {
             exporters.append(exporter)
-        } 
+        }
 
         return DefaultEmbraceLogSharedState(
             config: DefaultEmbraceLoggerConfig(),
             processors: .default(withExporters: exporters),
             resourceProvider: ResourceStorageExporter(storage: storage)
         )
-    }
-}
-
-// TODO: This should go away. Simply added it to test the whole feature
-import EmbraceCommon
-
-class DummyLogBatcherDelegate: LogBatcherDelegate {
-    static let shared = DummyLogBatcherDelegate()
-    func batchFinished(withLogs logs: [LogRecord]) {
-        ConsoleLog.info("BATCH FINISHEDDD", logs)
     }
 }

@@ -94,7 +94,7 @@ public class EmbraceUpload {
 
     /// Uploads the given log data
     /// - Parameters:
-    ///   - id: Identifier of the log
+    ///   - id: Identifier of the log batch (has no utility aside of caching)
     ///   - data: Data of the log's payload
     ///   - completion: Completion block called when the data is succesfully cached, or when an `Error` occurs
     public func uploadLog(id: String, data: Data, completion: ((Result<(), Error>) -> Void)?) {

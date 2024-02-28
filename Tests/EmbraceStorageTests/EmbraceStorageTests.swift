@@ -226,18 +226,28 @@ class EmbraceStorageTests: XCTestCase {
 
     static func prepareCorruptedDBForTest() -> URL? {
         guard
-        let resourceUrl = Bundle.module.path(forResource: "db_corrupted", ofType: "sqlite", inDirectory: "Mocks"),
-        let corruptedDbPath = URL(string: "file://\(resourceUrl)")
+            let resourceUrl = Bundle.module.path(forResource: "db_corrupted", ofType: "sqlite", inDirectory: "Mocks"),
+            let corruptedDbPath = URL(string: "file://\(resourceUrl)")
         else {
             return nil
         }
 
-        let copyCorruptedPath = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("db.sqlite")
+        let temporaryDirectoryURL = URL(fileURLWithPath: NSTemporaryDirectory())
+        let copyCorruptedPath = temporaryDirectoryURL.appendingPathComponent("db.sqlite")
 
         do {
+            if !FileManager.default.fileExists(atPath: temporaryDirectoryURL.path, isDirectory: nil) {
+                try FileManager.default.createDirectory(
+                    at: temporaryDirectoryURL,
+                    withIntermediateDirectories: true,
+                    attributes: nil
+                )
+            }
+
             if FileManager.default.fileExists(atPath: copyCorruptedPath.path) {
                 try FileManager.default.removeItem(at: copyCorruptedPath)
             }
+
             try FileManager.default.copyItem(at: corruptedDbPath, to: copyCorruptedPath)
             return copyCorruptedPath
         } catch let e {

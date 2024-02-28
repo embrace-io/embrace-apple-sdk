@@ -15,7 +15,7 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
     private var result: [String: String]!
 
     // MARK: - Test Build Alone
-    
+
     func testNotCallingOtherMethod_build_returnsInitialAttributes() {
         givenSessionController()
         givenMetadataFetcher()
