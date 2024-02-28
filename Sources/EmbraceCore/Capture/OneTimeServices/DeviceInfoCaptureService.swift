@@ -6,42 +6,63 @@ import Foundation
 import EmbraceCommon
 import EmbraceObjCUtils
 
-@objc public class DeviceInfoCaptureService: NSObject, CaptureService {
-    typealias Keys = DeviceResourceKey
+class DeviceInfoCaptureService: ResourceCaptureService {
 
-    let resourceHandler: CaptureServiceResourceHandlerType
+    override func onStart() {
+        // jailbroken
+        addResource(
+            key: DeviceResourceKey.isJailbroken.rawValue,
+            value: .string(String(EMBDevice.isJailbroken))
+        )
 
-    init(resourceHandler: CaptureServiceResourceHandlerType = CaptureServiceResourceHandler()) {
-        self.resourceHandler = resourceHandler
-    }
+        // locale
+        addResource(
+            key: DeviceResourceKey.locale.rawValue,
+            value: .string(EMBDevice.locale)
+        )
 
-    public func setup(context: EmbraceCommon.CaptureServiceContext) { }
+        // timezone
+        addResource(
+            key: DeviceResourceKey.timezone.rawValue,
+            value: .string(EMBDevice.timezoneDescription)
+        )
 
-    public func start() {
-        let isJailbroken = EMBDevice.isJailbroken
-        let locale = EMBDevice.locale
-        let timezoneDescription = EMBDevice.timezoneDescription
-        let totalDiskSpace = EMBDevice.totalDiskSpace
-        let operatingSystemVersion = EMBDevice.operatingSystemVersion
-        let operatingSystemBuild = EMBDevice.operatingSystemBuild
-        let screenResolution = EMBDevice.screenResolution
-        let deviceModel = EMBDevice.model
-        let osVariant =  EMBDevice.operatingSystemType
-        do {
-            try resourceHandler.addResource(key: Keys.isJailbroken.rawValue, value: String(isJailbroken))
-            try resourceHandler.addResource(key: Keys.locale.rawValue, value: locale)
-            try resourceHandler.addResource(key: Keys.timezone.rawValue, value: timezoneDescription)
-            try resourceHandler.addResource(key: Keys.totalDiskSpace.rawValue, value: totalDiskSpace.intValue)
-            try resourceHandler.addResource(key: Keys.OSVersion.rawValue, value: operatingSystemVersion)
-            try resourceHandler.addResource(key: Keys.OSBuild.rawValue, value: operatingSystemBuild)
-            try resourceHandler.addResource(key: Keys.screenResolution.rawValue, value: screenResolution ?? "")
-            try resourceHandler.addResource(key: Keys.model.rawValue, value: deviceModel)
-            try resourceHandler.addResource(key: Keys.osVariant.rawValue, value: osVariant)
-        } catch let e {
-            ConsoleLog.error("Failed to capture device info metadata \(e.localizedDescription)")
+        // disk space
+        addResource(
+            key: DeviceResourceKey.totalDiskSpace.rawValue,
+            value: .int(EMBDevice.totalDiskSpace.intValue)
+        )
+
+        // os version
+        addResource(
+            key: DeviceResourceKey.OSVersion.rawValue,
+            value: .string(EMBDevice.operatingSystemVersion)
+        )
+
+        // os build
+        addResource(
+            key: DeviceResourceKey.OSBuild.rawValue,
+            value: .string(EMBDevice.operatingSystemBuild)
+        )
+
+        // os variant
+        addResource(
+            key: DeviceResourceKey.osVariant.rawValue,
+            value: .string(EMBDevice.operatingSystemType)
+        )
+
+        // resolution
+        if let resolution = EMBDevice.screenResolution {
+            addResource(
+                key: DeviceResourceKey.screenResolution.rawValue,
+                value: .string(resolution)
+            )
         }
+
+        // model
+        addResource(
+            key: DeviceResourceKey.model.rawValue,
+            value: .string(EMBDevice.model)
+        )
     }
-
-    public func stop() {}
-
 }

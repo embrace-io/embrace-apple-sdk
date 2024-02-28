@@ -3,23 +3,22 @@
 //
 
 import XCTest
+import EmbraceCaptureService
 import EmbraceCommon
 @testable import EmbraceCore
+import TestSupport
 
 class URLSessionCaptureServiceTests: XCTestCase {
     private var sut: URLSessionCaptureService!
     private var lock: DummyLock!
     private var provider: MockedURLSessionSwizzlerProvider!
     private var handler: MockURLSessionTaskHandler!
+    private var otel: MockEmbraceOpenTelemetry!
 
     override func setUp() {
         lock = DummyLock()
+        otel = MockEmbraceOpenTelemetry()
         givenURLSessionSwizzlerProvider()
-    }
-
-    func test_onInit_shouldGetSwizzlersFromProvider() {
-        whenInitializingURLSessionCaptureService()
-        thenProviderShouldGetAllSwizzlers()
     }
 
     func test_onInit_collectorIsUninstalled() {
@@ -27,25 +26,10 @@ class URLSessionCaptureServiceTests: XCTestCase {
         thenCaptureServiceStatus(is: .uninstalled)
     }
 
-    func test_onInvokeStart_statusShouldChangeToListeningAndInformHandler() {
-        givenURLSessionCaptureService()
-        whenInvokingStart()
-        thenCaptureServiceStatus(is: .listening)
-        thenHandlerShouldChangeState(to: .listening)
-    }
-
-    func test_onInvokeStop_statusShouldChangeToPausedAndInformHandler() {
-        givenURLSessionCaptureService()
-        whenInvokingStop()
-        thenCaptureServiceStatus(is: .paused)
-        thenHandlerShouldChangeState(to: .paused)
-    }
-
-    func test_onInvokeShutdown_statusShouldChangeToUninstalledAndInformHandler() {
-        givenURLSessionCaptureService()
-        whenInvokingShutdown()
-        thenCaptureServiceStatus(is: .uninstalled)
-        thenHandlerShouldChangeState(to: .uninstalled)
+    func test_onInstall_shouldGetSwizzlersFromProvider() {
+        whenInitializingURLSessionCaptureService()
+        whenInvokingInstall()
+        thenProviderShouldGetAllSwizzlers()
     }
 
     func test_onInstall_shouldInvokeInstallOnEverySwizzler() {
@@ -87,8 +71,7 @@ private extension URLSessionCaptureServiceTests {
 
     func whenInitializingURLSessionCaptureService() {
         lock = DummyLock()
-        handler = MockURLSessionTaskHandler()
-        sut = .init(lock: lock, swizzlerProvider: provider, handler: handler)
+        sut = URLSessionCaptureService(lock: lock, swizzlerProvider: provider)
     }
 
     func whenInvokingStart() {
@@ -99,30 +82,17 @@ private extension URLSessionCaptureServiceTests {
         sut.stop()
     }
 
-    func whenInvokingShutdown() {
-        sut.uninstall()
-    }
-
     func whenInvokingInstall() {
-        let provider = EmbraceFilePathProvider(appId: "myApp", appGroupIdentifier: "com.example.app-group")
-        sut.install(context: .init(
-            appId: "myApp",
-            sdkVersion: "0.0.0",
-            filePathProvider: provider
-        ))
+        handler = MockURLSessionTaskHandler()
+        sut.install(otel: otel)
     }
 
     func thenProviderShouldGetAllSwizzlers() {
         XCTAssertTrue(provider.didGetAll)
     }
 
-    func thenCaptureServiceStatus(is status: CaptureServiceState) {
-        XCTAssertEqual(sut.status, status)
-    }
-
-    func thenHandlerShouldChangeState(to status: CaptureServiceState) {
-        XCTAssertTrue(handler.didInvokeChangedState)
-        XCTAssertEqual(handler.changedStateReceivedParameter, status)
+    func thenCaptureServiceStatus(is state: CaptureServiceState) {
+        XCTAssertEqual(sut.state, state)
     }
 
     func thenEachSwizzlerShouldHaveBeenInstalled() {

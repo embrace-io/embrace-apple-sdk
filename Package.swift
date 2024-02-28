@@ -53,12 +53,14 @@ let package = Package(
         )
     ],
     targets: [
+        // main target ---------------------------------------------------------------
         .target(
             name: "EmbraceIO",
             dependencies: [
-            "EmbraceCore",
-            "EmbraceCommon",
-            "EmbraceCrash"
+                "EmbraceCaptureService",
+                "EmbraceCore",
+                "EmbraceCommon",
+                "EmbraceCrash"
             ],
             plugins: targetPlugins
         ),
@@ -79,6 +81,8 @@ let package = Package(
         .target(
             name: "EmbraceCore",
             dependencies: [
+                "EmbraceCaptureService",
+                "EmbraceCommon",
                 "EmbraceConfig",
                 "EmbraceOTel",
                 "EmbraceStorage",
@@ -102,7 +106,7 @@ let package = Package(
             plugins: targetPlugins
         ),
 
-        // common ----------------------------------------------------------------------
+        // common --------------------------------------------------------------------
         .target(
             name: "EmbraceCommon",
             plugins: targetPlugins
@@ -116,7 +120,25 @@ let package = Package(
             plugins: targetPlugins
         ),
 
-        // config ----------------------------------------------------------------------
+        // capture service -----------------------------------------------------------
+        .target(
+            name: "EmbraceCaptureService",
+            dependencies: [
+                "EmbraceOTel",
+                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
+            ],
+            plugins: targetPlugins
+        ),
+        .testTarget(
+            name: "EmbraceCaptureServiceTests",
+            dependencies: [
+                "EmbraceCaptureService",
+                "TestSupport"
+            ],
+            plugins: targetPlugins
+        ),
+
+        // config --------------------------------------------------------------------
         .target(
             name: "EmbraceConfig",
             dependencies: [
@@ -155,7 +177,7 @@ let package = Package(
             plugins: targetPlugins
         ),
 
-        // storage ----------------------------------------------------------------------
+        // storage -------------------------------------------------------------------
         .target(
             name: "EmbraceStorage",
             dependencies: [
@@ -173,7 +195,7 @@ let package = Package(
             plugins: targetPlugins
         ),
 
-        // upload ----------------------------------------------------------------------
+        // upload --------------------------------------------------------------------
         .target(
             name: "EmbraceUpload",
             dependencies: [
@@ -193,7 +215,7 @@ let package = Package(
             plugins: targetPlugins
         ),
 
-        // crashes ----------------------------------------------------------------------
+        // crashes -------------------------------------------------------------------
         .target(
             name: "EmbraceCrash",
             dependencies: [
@@ -211,7 +233,7 @@ let package = Package(
             plugins: targetPlugins
         ),
 
-        // test support ----------------------------------------------------------------------
+        // test support --------------------------------------------------------------
         .target(
             name: "TestSupport",
             dependencies: [

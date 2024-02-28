@@ -10,20 +10,20 @@ import UIKit
 @testable import EmbraceCore
 
 class LowMemoryWarningCaptureServiceTests: XCTestCase {
-    private var processor: MockSpanProcessor!
-    private var otel: EmbraceOpenTelemetryMock!
-    private var otelProvider: EmbraceOtelProviderMock!
+    private var otel: MockEmbraceOpenTelemetry!
 
     override func setUpWithError() throws {
-        processor = MockSpanProcessor()
-        otel = EmbraceOpenTelemetryMock(processor: processor)
-        otelProvider = EmbraceOtelProviderMock(embraceOtel: otel)
+        otel = MockEmbraceOpenTelemetry()
+    }
+
+    override func tearDownWithError() throws {
+        otel = nil
     }
 
     func test_started() {
         // given a started service
-        let service = LowMemoryWarningCaptureService(otelProvider: otelProvider)
-        service.install(context: .testContext)
+        let service = LowMemoryWarningCaptureService()
+        service.install(otel: otel)
         service.start()
 
         let expectation = XCTestExpectation()
@@ -40,8 +40,8 @@ class LowMemoryWarningCaptureServiceTests: XCTestCase {
 
     func test_notStarted() {
         // given a service that is not started
-        let service = LowMemoryWarningCaptureService(otelProvider: otelProvider)
-        service.install(context: .testContext)
+        let service = LowMemoryWarningCaptureService()
+        service.install(otel: otel)
 
         let expectation = XCTestExpectation()
         expectation.isInverted = true
@@ -58,8 +58,8 @@ class LowMemoryWarningCaptureServiceTests: XCTestCase {
 
     func test_stopped() {
         // given a service that is started
-        let service = LowMemoryWarningCaptureService(otelProvider: otelProvider)
-        service.install(context: .testContext)
+        let service = LowMemoryWarningCaptureService()
+        service.install(otel: otel)
         service.start()
 
         let expectation = XCTestExpectation()

@@ -4,8 +4,8 @@
 
 import Foundation
 
-/// Object passed to each capture service during setup
-@objc public final class CaptureServiceContext: NSObject {
+/// Object passed to the active crash reporter during setup
+@objc public final class CrashReporterContext: NSObject {
 
     public let appId: String
     public let sdkVersion: String

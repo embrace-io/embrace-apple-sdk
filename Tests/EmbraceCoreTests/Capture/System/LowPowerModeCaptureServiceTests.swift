@@ -22,17 +22,15 @@ class MockPowerModeProvider: PowerModeProvider {
 class LowPowerModeCollectorTests: XCTestCase {
 
     let provider = MockPowerModeProvider()
-
-    private var processor: MockSpanProcessor!
-    private var otel: EmbraceOpenTelemetryMock!
-    private var otelProvider: EmbraceOtelProviderMock!
+    private var otel: MockEmbraceOpenTelemetry!
 
     override func setUpWithError() throws {
         provider.isLowPowerModeEnabled = false
+        otel = MockEmbraceOpenTelemetry()
+    }
 
-        processor = MockSpanProcessor()
-        otel = EmbraceOpenTelemetryMock(processor: processor)
-        otelProvider = EmbraceOtelProviderMock(embraceOtel: otel)
+    override func tearDownWithError() throws {
+        otel = nil
     }
 
     func test_fetchOnStart_modeEnabled() {
@@ -40,8 +38,8 @@ class LowPowerModeCollectorTests: XCTestCase {
         provider.isLowPowerModeEnabled = true
 
         // when starting a service
-        let service = LowPowerModeCaptureService(provider: provider, otelProvider: otelProvider)
-        service.install(context: .testContext)
+        let service = LowPowerModeCaptureService(provider: provider)
+        service.install(otel: otel)
         service.start()
 
         // then a span is started correctly
@@ -58,8 +56,8 @@ class LowPowerModeCollectorTests: XCTestCase {
         provider.isLowPowerModeEnabled = false
 
         // when starting a service
-        let service = LowPowerModeCaptureService(provider: provider, otelProvider: otelProvider)
-        service.install(context: .testContext)
+        let service = LowPowerModeCaptureService(provider: provider)
+        service.install(otel: otel)
         service.start()
 
         // then a span is not started
@@ -70,11 +68,11 @@ class LowPowerModeCollectorTests: XCTestCase {
         provider.isLowPowerModeEnabled = true
 
         // when installing a service
-        let service = LowPowerModeCaptureService(provider: provider, otelProvider: otelProvider)
-        service.install(context: .testContext)
+        let service = LowPowerModeCaptureService(provider: provider)
+        service.install(otel: otel)
 
         // then its not started
-        XCTAssertFalse(service.started)
+        XCTAssertFalse(service.state == .active)
 
         // when low power mode changes
         provider.isLowPowerModeEnabled = false
@@ -86,7 +84,7 @@ class LowPowerModeCollectorTests: XCTestCase {
         service.start()
 
         // then it correctly starts
-        XCTAssertTrue(service.started)
+        XCTAssertTrue(service.state == .active)
 
         // when low power mode changes
         provider.isLowPowerModeEnabled = true
@@ -99,18 +97,18 @@ class LowPowerModeCollectorTests: XCTestCase {
         provider.isLowPowerModeEnabled = false
 
         // when starting a service
-        let service = LowPowerModeCaptureService(provider: provider, otelProvider: otelProvider)
-        service.install(context: .testContext)
+        let service = LowPowerModeCaptureService(provider: provider)
+        service.install(otel: otel)
         service.start()
 
         // then it correctly starts
-        XCTAssertTrue(service.started)
+        XCTAssertTrue(service.state == .active)
 
         // when it is stopped
         service.stop()
 
         // then it stops
-        XCTAssertFalse(service.started)
+        XCTAssertFalse(service.state == .active)
 
         // when low power mode changes
         provider.isLowPowerModeEnabled = true
@@ -124,8 +122,8 @@ class LowPowerModeCollectorTests: XCTestCase {
         provider.isLowPowerModeEnabled = false
 
         // when starting a service
-        let service = LowPowerModeCaptureService(provider: provider, otelProvider: otelProvider)
-        service.install(context: .testContext)
+        let service = LowPowerModeCaptureService(provider: provider)
+        service.install(otel: otel)
         service.start()
 
         // then a span is not started
@@ -148,8 +146,8 @@ class LowPowerModeCollectorTests: XCTestCase {
         provider.isLowPowerModeEnabled = true
 
         // when starting a service
-        let service = LowPowerModeCaptureService(provider: provider, otelProvider: otelProvider)
-        service.install(context: .testContext)
+        let service = LowPowerModeCaptureService(provider: provider)
+        service.install(otel: otel)
         service.start()
 
         // then a span is started
@@ -169,8 +167,8 @@ class LowPowerModeCollectorTests: XCTestCase {
         provider.isLowPowerModeEnabled = true
 
         // when starting a service
-        let service = LowPowerModeCaptureService(provider: provider, otelProvider: otelProvider)
-        service.install(context: .testContext)
+        let service = LowPowerModeCaptureService(provider: provider)
+        service.install(otel: otel)
         service.start()
 
         // then a span is started
@@ -190,8 +188,8 @@ class LowPowerModeCollectorTests: XCTestCase {
         provider.isLowPowerModeEnabled = true
 
         // when starting a service
-        let service = LowPowerModeCaptureService(provider: provider, otelProvider: otelProvider)
-        service.install(context: .testContext)
+        let service = LowPowerModeCaptureService(provider: provider)
+        service.install(otel: otel)
         service.start()
 
         // then a span is started
@@ -199,7 +197,7 @@ class LowPowerModeCollectorTests: XCTestCase {
         XCTAssertNotNil(span)
 
         // when the service is stoped
-        service.uninstall()
+        service.stop()
 
         // then the span is ended
         XCTAssertTrue((span as! ReadableSpan).hasEnded)

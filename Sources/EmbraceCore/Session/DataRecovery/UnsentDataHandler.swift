@@ -50,7 +50,7 @@ class UnsentDataHandler {
         for report in crashReports {
 
             // update session
-            if let sessionId = report.sessionId {
+            if let sessionId = SessionIdentifier(string: report.sessionId) {
                 do {
                     if var session = try storage.fetchSession(id: sessionId) {
                         // update session's end time with the crash report timestamp

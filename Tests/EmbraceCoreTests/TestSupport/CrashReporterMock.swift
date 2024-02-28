@@ -6,13 +6,13 @@ import Foundation
 import EmbraceCommon
 
 class CrashReporterMock: CrashReporter {
-    var currentSessionId: EmbraceCommon.SessionIdentifier?
-    var mockReports: [EmbraceCommon.CrashReport]
+    var currentSessionId: String?
+    var mockReports: [CrashReport]
 
-    init(currentSessionId: EmbraceCommon.SessionIdentifier? = nil, mockReports: [EmbraceCommon.CrashReport]? = nil) {
+    init(currentSessionId: String? = nil, mockReports: [CrashReport]? = nil) {
         self.currentSessionId = currentSessionId
         self.mockReports = mockReports ?? [.init(ksCrashId: 123,
-                                                 sessionId: .some(.random),
+                                                 sessionId: SessionIdentifier.random.toString,
                                                  timestamp: Date(),
                                                  dictionary: ["some key": ["some value"]])]
     }
@@ -31,19 +31,11 @@ class CrashReporterMock: CrashReporter {
         }
     }
 
-    func install(context: EmbraceCommon.CaptureServiceContext) {
-
-    }
-
-    func uninstall() {
+    func install(context: CrashReporterContext) {
 
     }
 
     func start() {
-
-    }
-
-    func stop() {
 
     }
 }

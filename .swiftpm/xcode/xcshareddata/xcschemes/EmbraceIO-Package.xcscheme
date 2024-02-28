@@ -417,6 +417,16 @@
                ReferencedContainer = "container:">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EmbraceCaptureServiceTests"
+               BuildableName = "EmbraceCaptureServiceTests"
+               BlueprintName = "EmbraceCaptureServiceTests"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

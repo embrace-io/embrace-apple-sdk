@@ -4,33 +4,25 @@
 
 import Foundation
 import OpenTelemetryApi
+import EmbraceCaptureService
 import EmbraceCommon
 import EmbraceOTel
 
-enum CaptureServiceHandlerState {
-    case initialized
-    case listening
-    case paused
-}
-
-protocol CaptureServiceHandler {
-    func changedState(to captureServiceState: CaptureServiceState)
-}
-
-protocol URLSessionTaskHandler: AnyObject, CaptureServiceHandler {
+protocol URLSessionTaskHandler: AnyObject {
     func create(task: URLSessionTask)
     func finish(task: URLSessionTask, data: Data?, error: (any Error)?)
 }
 
+protocol URLSessionTaskHandlerDataSource: AnyObject {
+    var state: CaptureServiceState { get }
+    var otel: EmbraceOpenTelemetry? { get }
+}
+
 final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
-    @ThreadSafe
-    private(set) var state: CaptureServiceHandlerState
+
     private var spans: [URLSessionTask: Span] = [:]
     private let queue: DispatchQueue
-    private let otelProvider: EmbraceOTelHandlingProvider
-    private var otel: EmbraceOpenTelemetry? {
-        otelProvider.otelHandler
-    }
+    weak var dataSource: URLSessionTaskHandlerDataSource?
 
     enum SpanAttribute {
         // Isn't address redundant?
@@ -45,31 +37,22 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
         static let errorMessage = "error.message"
     }
 
-    init(initialState: CaptureServiceHandlerState = .initialized,
-         processingQueue: DispatchQueue = DefaultURLSessionTaskHandler.queue()) {
-        self.state = initialState
+    init(processingQueue: DispatchQueue = DefaultURLSessionTaskHandler.queue(),
+         dataSource: URLSessionTaskHandlerDataSource?) {
         self.queue = processingQueue
-        self.otelProvider = EmbraceOtelProvider()
-    }
-
-    internal init(initialState: CaptureServiceHandlerState = .initialized,
-                  processingQueue: DispatchQueue = DefaultURLSessionTaskHandler.queue(),
-                  otelProvider: EmbraceOTelHandlingProvider) {
-        self.state = initialState
-        self.queue = processingQueue
-        self.otelProvider = otelProvider
+        self.dataSource = dataSource
     }
 
     func create(task: URLSessionTask) {
         queue.async {
-            guard self.shouldTrack() else {
+            guard self.dataSource?.state == .active else {
                 return
             }
 
             guard
                 let request = task.originalRequest,
                 let url = request.url,
-                let otel = self.otel else {
+                let otel = self.dataSource?.otel else {
                 // TODO: Shall we log this as an error instead of only returning?
                 return
             }
@@ -104,16 +87,19 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
              - HTTP Attributes: https://opentelemetry.io/docs/specs/semconv/attributes-registry/http/
              */
             let name = httpMethod.isEmpty ? url.path : "\(httpMethod) \(url.path)"
-            let networkSpan = otel.buildSpan(name: name,
-                                                         type: .networkHTTP,
-                                                         attributes: attributes)
+            let networkSpan = otel.buildSpan(
+                name: name,
+                type: .networkHTTP,
+                attributes: attributes
+            )
+
             self.spans[task] = networkSpan.startSpan()
         }
     }
 
     func finish(task: URLSessionTask, data: Data?, error: (any Error)?) {
         queue.async {
-            guard self.shouldTrack() else {
+            guard self.dataSource?.state == .active else {
                 return
             }
 
@@ -141,14 +127,6 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
             span.end()
         }
     }
-
-    func changedState(to captureServiceState: CaptureServiceState) {
-        state = captureServiceState == .listening ? .listening : .paused
-    }
-}
-
-private extension DefaultURLSessionTaskHandler {
-    func shouldTrack() -> Bool { state == .listening }
 }
 
 private extension DefaultURLSessionTaskHandler {

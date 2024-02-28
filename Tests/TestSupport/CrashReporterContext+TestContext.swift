@@ -5,9 +5,9 @@
 import Foundation
 import EmbraceCommon
 
-extension CaptureServiceContext {
-    public static var testContext: CaptureServiceContext {
-        CaptureServiceContext(
+extension CrashReporterContext {
+    public static var testContext: CrashReporterContext {
+        CrashReporterContext(
             appId: TestConstants.appId,
             sdkVersion: TestConstants.sdkVersion,
             filePathProvider: TemporaryFilepathProvider()

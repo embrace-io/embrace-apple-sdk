@@ -11,8 +11,9 @@ public struct SessionIdentifier: Equatable {
         self.value = value
     }
 
-    public init?(string: String) {
-        guard let uuid = UUID(uuidString: string) else {
+    public init?(string: String?) {
+        guard let string = string,
+              let uuid = UUID(uuidString: string) else {
             return nil
         }
 

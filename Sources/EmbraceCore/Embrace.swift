@@ -120,7 +120,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         self.logLevel = options.logLevel
         self.storage = try Embrace.createStorage(options: options)
         self.deviceId = EmbraceDeviceId.retrieve(from: storage)
-        self.captureServices = try CaptureServices(options: options)
+        self.captureServices = try CaptureServices(options: options, storage: storage)
         self.upload = Embrace.createUpload(options: options, deviceId: KeychainAccess.deviceId.uuidString)
         self.config = Embrace.createConfig(options: options, deviceId: KeychainAccess.deviceId.uuidString)
         self.sessionController = SessionController(storage: storage, upload: upload)

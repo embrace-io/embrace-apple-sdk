@@ -41,7 +41,10 @@ struct CrashReportPayload: Encodable {
     }
 
     init(from crashReport: CrashReport, resourceFetcher: EmbraceStorageMetadataFetcher) {
-        let resources = PayloadUtils.fetchResources(from: resourceFetcher, sessionId: crashReport.sessionId)
+        let resources = PayloadUtils.fetchResources(
+            from: resourceFetcher,
+            sessionId: SessionIdentifier(string: crashReport.sessionId)
+        )
 
         appInfo = AppInfoPayload(with: resources)
         deviceInfo = DeviceInfoPayload(with: resources)

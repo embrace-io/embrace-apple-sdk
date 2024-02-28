@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import EmbraceCaptureService
 import EmbraceCommon
 import EmbraceOTel
 
@@ -16,6 +17,7 @@ extension Embrace {
         @objc public let platform: Platform
         @objc public let endpoints: Embrace.Endpoints
         @objc public let services: [CaptureService]
+        @objc public let crashReporter: CrashReporter?
         @objc public let logLevel: LogLevel
         @objc public let export: OpenTelemetryExport?
 
@@ -30,13 +32,16 @@ extension Embrace {
         ///   - platform: `Platform` in which the app will run. Defaults to `.iOS`.
         ///   - endpoints: `Embrace.Endpoints` instance.
         ///   - captureServices: The `CaptureServices` to be installed.
+        ///   - crashReporter: The `CrashReporter` to be installed.
+        ///   - logLevel: The `LogLevel` to use for console logs.
         @objc public init(
             appId: String,
             appGroupId: String? = nil,
             platform: Platform = .default,
             endpoints: Embrace.Endpoints? = nil,
-            logLevel: LogLevel = .default,
             captureServices: [CaptureService],
+            crashReporter: CrashReporter?,
+            logLevel: LogLevel = .default,
             export: OpenTelemetryExport? = nil
         ) {
             self.appId = appId
@@ -44,6 +49,7 @@ extension Embrace {
             self.platform = platform
             self.endpoints = endpoints ?? .init(appId: appId)
             self.services = captureServices
+            self.crashReporter = crashReporter
             self.logLevel = logLevel
             self.export = export
         }

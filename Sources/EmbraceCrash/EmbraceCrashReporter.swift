@@ -23,7 +23,7 @@ import KSCrash_Recording
     public private(set) var basePath: String?
 
     /// Sets the current session identifier that will be included in a crash report.
-    public var currentSessionId: SessionIdentifier? {
+    public var currentSessionId: String? {
         didSet {
             updateKSCrashInfo()
         }
@@ -43,7 +43,7 @@ import KSCrash_Recording
 
         ksCrash.userInfo = [
             UserInfoKey.sdkVersion: sdkVersion ?? NSNull(),
-            UserInfoKey.sessionId: currentSessionId?.toString ?? NSNull()
+            UserInfoKey.sessionId: currentSessionId ?? NSNull()
         ]
     }
 
@@ -56,7 +56,7 @@ import KSCrash_Recording
         return ksCrash.crashedLastLaunch ? .crash : .cleanExit
     }
 
-    public func install(context: EmbraceCommon.CaptureServiceContext) {
+    public func install(context: EmbraceCommon.CrashReporterContext) {
         guard ksCrash == nil else {
             ConsoleLog.debug("EmbraceCrashReporter already installed!")
             return
@@ -118,7 +118,7 @@ import KSCrash_Recording
                 // add report
                 let crashReport = CrashReport(
                     ksCrashId: id.intValue,
-                    sessionId: sessionId,
+                    sessionId: sessionId?.toString,
                     timestamp: timestamp,
                     dictionary: report
                 )
@@ -143,14 +143,5 @@ import KSCrash_Recording
         formatter.formatterBehavior = .default
         formatter.timeZone = TimeZone(secondsFromGMT: 0)
         return formatter
-    }
-
-    // MARK: - Unused
-    public func uninstall() {
-
-    }
-
-    public func stop() {
-
     }
 }

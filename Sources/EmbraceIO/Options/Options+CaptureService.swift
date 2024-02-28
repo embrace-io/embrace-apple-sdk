@@ -2,16 +2,18 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
+import Foundation
+import EmbraceCaptureService
 import EmbraceCore
 import EmbraceCommon
-import Foundation
+import EmbraceCrash
 
 public extension Embrace.Options {
 
-    /// Convenience initializer for `Embrace.Options` that automatically includes the the default `CaptureServices`.
+    /// Convenience initializer for `Embrace.Options` that automatically includes the the default `CaptureServices` and `CrashReporter`,
     /// You can see list of platform service defaults in ``CaptureServiceFactory.platformCaptureServices``.
     ///
-    /// If you wish to customize which `CaptureServices` are installed, please refer to the `Embrace.Options`
+    /// If you wish to customize which `CaptureServices` and `CrashReporter` are installed, please refer to the `Embrace.Options`
     /// initializer found in the `EmbraceCore` target.
     ///
     /// - Parameters:
@@ -23,26 +25,16 @@ public extension Embrace.Options {
         appId: String,
         appGroupId: String? = nil,
         platform: Platform = .default,
-        endpoints: Embrace.Endpoints
+        endpoints: Embrace.Endpoints? = nil
     ) {
         self.init(
             appId: appId,
             appGroupId: appGroupId,
             platform: platform,
             endpoints: endpoints,
-            captureServices: .automatic)
-    }
-
-    @objc convenience init(
-        appId: String,
-        appGroupId: String? = nil,
-        platform: Platform = .default
-    ) {
-        self.init(
-            appId: appId,
-            appGroupId: appGroupId,
-            platform: platform,
-            captureServices: .automatic)
+            captureServices: .automatic,
+            crashReporter: EmbraceCrashReporter()
+        )
     }
 }
 
@@ -52,8 +44,8 @@ extension Embrace.Options: ExpressibleByStringLiteral {
     }
 }
 
-public extension Array where Element == any CaptureService {
-    static var automatic: [any CaptureService] {
+public extension Array where Element == CaptureService {
+    static var automatic: [CaptureService] {
         return CaptureServiceFactory.platformCaptureServices
     }
 }

@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import EmbraceCaptureService
 import EmbraceCommon
 
 /*
@@ -18,45 +19,38 @@ protocol URLSessionSwizzler: Swizzlable {
     func install() throws
 }
 
-public final class URLSessionCaptureService: InstalledCaptureService {
+@objc public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandlerDataSource {
+
     private let lock: NSLocking
-    private let swizzlers: [any URLSessionSwizzler]
-    private let handler: URLSessionTaskHandler
-    private(set) var status: CaptureServiceState = .uninstalled {
-        didSet {
-            handler.changedState(to: status)
-        }
+    private let swizzlerProvider: URLSessionSwizzlerProvider
+    private var swizzlers: [any URLSessionSwizzler] = []
+    private var handler: URLSessionTaskHandler?
+
+    public convenience override init() {
+        self.init(lock: NSLock(), swizzlerProvider: DefaultURLSessionSwizzlerProvider())
     }
 
-    public convenience init() {
-        self.init(
-            lock: NSLock(),
-            swizzlerProvider: DefaultURLSessionSwizzlerProvider(),
-            handler: DefaultURLSessionTaskHandler()
-        )
-    }
-
-    init(
-        lock: NSLocking = NSLock(),
-        swizzlerProvider: URLSessionSwizzlerProvider = DefaultURLSessionSwizzlerProvider(),
-        handler: URLSessionTaskHandler = DefaultURLSessionTaskHandler()
-    ) {
+    init(lock: NSLocking, swizzlerProvider: URLSessionSwizzlerProvider) {
         self.lock = lock
-        self.handler = handler
-        self.swizzlers = swizzlerProvider.getAll(usingHandler: handler)
+        self.swizzlerProvider = swizzlerProvider
     }
 
-    public func install(context: EmbraceCommon.CaptureServiceContext) {
-        guard status == .uninstalled else {
-            return
-        }
-
+    public override func onInstall() {
         lock.lock()
         defer {
-            status = .installed
             lock.unlock()
         }
 
+        guard state == .uninstalled else {
+            return
+        }
+
+        handler = DefaultURLSessionTaskHandler(dataSource: self)
+        guard let handler = handler else {
+            return
+        }
+
+        swizzlers = swizzlerProvider.getAll(usingHandler: handler)
         swizzlers.forEach {
             do {
                 try $0.install()
@@ -65,18 +59,6 @@ public final class URLSessionCaptureService: InstalledCaptureService {
                 ConsoleLog.error("Capture service couldn't be installed: \(exception.localizedDescription)")
             }
         }
-    }
-
-    public func uninstall() {
-        status = .uninstalled
-    }
-
-    public func start() {
-        status = .listening
-    }
-
-    public func stop() {
-        status = .paused
     }
 }
 

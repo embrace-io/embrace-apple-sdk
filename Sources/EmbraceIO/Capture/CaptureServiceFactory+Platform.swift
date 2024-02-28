@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import EmbraceCaptureService
 import EmbraceCore
 import EmbraceCommon
 import EmbraceCrash
@@ -15,9 +16,7 @@ extension CaptureServiceFactory {
             TapCaptureService(),
 
             LowMemoryWarningCaptureService(),
-            LowPowerModeCaptureService(),
-
-            EmbraceCrashReporter()
+            LowPowerModeCaptureService()
         ]
     }
     #elseif os(tvOS)

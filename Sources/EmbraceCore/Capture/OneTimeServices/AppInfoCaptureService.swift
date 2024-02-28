@@ -4,36 +4,48 @@
 
 import Foundation
 import EmbraceCommon
+import OpenTelemetryApi
 import EmbraceObjCUtils
 
-@objc public class AppInfoCaptureService: NSObject, CaptureService {
-    typealias Keys = AppResourceKey
+class AppInfoCaptureService: ResourceCaptureService {
 
-    let resourceHandler: CaptureServiceResourceHandlerType
+    override func onStart() {
+        // bundle version
+        addResource(
+            key: AppResourceKey.bundleVersion.rawValue,
+            value: .string(EMBDevice.bundleVersion)
+        )
 
-    init(resourceHandler: CaptureServiceResourceHandlerType = CaptureServiceResourceHandler()) {
-        self.resourceHandler = resourceHandler
-    }
+        // environment
+        addResource(
+            key: AppResourceKey.environment.rawValue,
+            value: .string(EMBDevice.environment)
+        )
 
-    public func start() {
-        let bundleVersion = EMBDevice.bundleVersion
-        let environment = EMBDevice.environment
-        let environmentDetail = EMBDevice.environmentDetail
-        let framework = Embrace.client?.options.platform.frameworkId
-        let sdkVersion = EmbraceMeta.sdkVersion
-        let appVersion = EMBDevice.appVersion
+        // environment detail
+        addResource(
+            key: AppResourceKey.detailedEnvironment.rawValue,
+            value: .string(EMBDevice.environmentDetail)
+        )
 
-        do {
-            try resourceHandler.addResource(key: Keys.bundleVersion.rawValue, value: bundleVersion)
-            try resourceHandler.addResource(key: Keys.environment.rawValue, value: environment)
-            try resourceHandler.addResource(key: Keys.detailedEnvironment.rawValue, value: environmentDetail)
-            try resourceHandler.addResource(key: Keys.framework.rawValue, value: framework ?? -1)
-            try resourceHandler.addResource(key: Keys.sdkVersion.rawValue, value: sdkVersion)
-            try resourceHandler.addResource(key: Keys.appVersion.rawValue, value: appVersion ?? "N/A")
-        } catch let e {
-            ConsoleLog.error("Failed to capture app info metadata \(e.localizedDescription)")
+        // framework
+        addResource(
+            key: AppResourceKey.framework.rawValue,
+            value: .int(Embrace.client?.options.platform.frameworkId ?? -1)
+        )
+
+        // sdk version
+        addResource(
+            key: AppResourceKey.sdkVersion.rawValue,
+            value: .string(EmbraceMeta.sdkVersion)
+        )
+
+        // app version
+        if let appVersion = EMBDevice.appVersion {
+            addResource(
+                key: AppResourceKey.appVersion.rawValue,
+                value: .string(appVersion)
+            )
         }
     }
-
-    public func stop() {}
 }

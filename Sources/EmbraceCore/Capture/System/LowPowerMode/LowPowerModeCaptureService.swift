@@ -3,37 +3,26 @@
 //
 
 import Foundation
+import EmbraceCaptureService
 import EmbraceCommon
 import EmbraceOTel
-import OpenTelemetryApi
 
-@objc public class LowPowerModeCaptureService: NSObject, InstalledCaptureService {
+@objc public class LowPowerModeCaptureService: CaptureService {
     public let provider: PowerModeProvider
-    private let otelProvider: EmbraceOTelHandlingProvider
-    private var otel: EmbraceOpenTelemetry? {
-        otelProvider.otelHandler
-    }
 
-    @ThreadSafe var started = false
     @ThreadSafe var wasLowPowerModeEnabled = false
     @ThreadSafe var currentSpan: Span?
 
     public init(provider: PowerModeProvider = DefaultPowerModeProvider()) {
         self.provider = provider
-        self.otelProvider = EmbraceOtelProvider()
-    }
-
-    internal init(provider: PowerModeProvider = DefaultPowerModeProvider(),
-                  otelProvider: EmbraceOTelHandlingProvider) {
-        self.provider = provider
-        self.otelProvider = otelProvider
     }
 
     deinit {
         NotificationCenter.default.removeObserver(self)
+        endSpan()
     }
 
-    public func install(context: EmbraceCommon.CaptureServiceContext) {
+    override public func onInstall() {
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(didChangePowerMode),
@@ -42,16 +31,7 @@ import OpenTelemetryApi
         )
     }
 
-    public func uninstall() {
-        NotificationCenter.default.removeObserver(self)
-        started = false
-
-        endSpan()
-    }
-
-    public func start() {
-        started = true
-
+    override public func onStart() {
         if provider.isLowPowerModeEnabled {
             startSpan(wasManuallyFetched: true)
         }
@@ -59,14 +39,12 @@ import OpenTelemetryApi
         wasLowPowerModeEnabled = provider.isLowPowerModeEnabled
     }
 
-    public func stop() {
-        started = false
-
+    override public func onStop() {
         endSpan()
     }
 
     @objc func didChangePowerMode(notification: Notification) {
-        guard started else {
+        guard state == .active else {
             return
         }
 
@@ -80,17 +58,16 @@ import OpenTelemetryApi
     }
 
     func startSpan(wasManuallyFetched: Bool = false) {
-        guard let otel = self.otel else {
-            ConsoleLog.error("Missing Embrace Otel when trying to start a span on LowPowerModeCaptureService")
-            return
-        }
         endSpan()
 
-        let builder = otel.buildSpan(
+        guard let builder = buildSpan(
             name: "emb-device-low-power",
             type: .performance,
             attributes: ["start_reason": wasManuallyFetched ? "system_query" : "system_notification"]
-        )
+        ) else {
+            ConsoleLog.warning("Error trying to create low power mode span!")
+            return
+        }
 
         currentSpan = builder.startSpan()
     }

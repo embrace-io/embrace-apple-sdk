@@ -13,7 +13,7 @@ import GRDB
 
 class UnsentDataHandlerTests: XCTestCase {
     let filePathProvider = TemporaryFilepathProvider()
-    var context: CaptureServiceContext!
+    var context: CrashReporterContext!
 
     static let testSessionsUrl = URL(string: "https://embrace.test.com/sessions")!
     static let testBlobsUrl = URL(string: "https://embrace.test.com/blobs")!
@@ -41,7 +41,7 @@ class UnsentDataHandlerTests: XCTestCase {
         // delete tmpdir
         try? FileManager.default.removeItem(at: filePathProvider.tmpDirectory)
 
-        context = CaptureServiceContext(
+        context = CrashReporterContext(
             appId: TestConstants.appId,
             sdkVersion: TestConstants.sdkVersion,
             filePathProvider: filePathProvider )

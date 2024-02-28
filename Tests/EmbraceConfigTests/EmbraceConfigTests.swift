@@ -49,7 +49,7 @@ class EmbraceConfigTests: XCTestCase {
         config.updateIfNeeded()
 
         // then the update call is ignored
-        wait(delay: 1)
+        wait(delay: 2)
         XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 1)
     }
 

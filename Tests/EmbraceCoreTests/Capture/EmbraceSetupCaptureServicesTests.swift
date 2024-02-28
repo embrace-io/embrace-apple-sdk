@@ -3,6 +3,7 @@
 //
 
 import XCTest
+import EmbraceCaptureService
 import EmbraceCommon
 
 @testable import EmbraceCore
@@ -10,92 +11,52 @@ import EmbraceCommon
 final class EmbraceSetupCaptureServicesTests: XCTestCase {
 
     class ExampleCaptureService: CaptureService {
-
-        var didStart = false
-        var didStop = false
-        var available = true
-
-        func setup(context: EmbraceCommon.CaptureServiceContext) { }
-
-        func start() {
-            didStart = true
-        }
-
-        func stop() {
-            didStop = true
-        }
-    }
-
-    class ExampleInstalledCaptureService: InstalledCaptureService {
-        var didStart = false
-        var didStop = false
-        var available = true
-
-        var didInstall = false
-        var didShutdown = false
-
-        func start() {
-            didStart = true
-        }
-
-        func stop() {
-            didStop = true
-        }
-
-        func install(context: EmbraceCommon.CaptureServiceContext) {
-            didInstall = true
-        }
-
-        func uninstall() {
-            didShutdown = true
-        }
     }
 
     class ExampleCrashReporter: CrashReporter {
-        var currentSessionId: EmbraceCommon.SessionIdentifier?
-        func getLastRunState() -> EmbraceCommon.LastRunState { .cleanExit }
-        func fetchUnsentCrashReports(completion: @escaping ([EmbraceCommon.CrashReport]) -> Void) {}
-        func deleteCrashReport(id: Int) {}
-        func install(context: EmbraceCommon.CaptureServiceContext) {}
-        func uninstall() {}
-        func start() {}
-        func stop() {}
-    }
-
-    class SecondExampleCrashReporter: CrashReporter {
-        var currentSessionId: EmbraceCommon.SessionIdentifier?
-        func getLastRunState() -> EmbraceCommon.LastRunState { .cleanExit }
-        func fetchUnsentCrashReports(completion: @escaping ([EmbraceCommon.CrashReport]) -> Void) {}
-        func deleteCrashReport(id: Int) {}
-        func install(context: EmbraceCommon.CaptureServiceContext) {}
-        func uninstall() {}
-        func start() {}
-        func stop() {}
+        var currentSessionId: String?
+        func install(context: CrashReporterContext) { }
+        func start() { }
+        func getLastRunState() -> LastRunState { return .cleanExit }
+        func fetchUnsentCrashReports(completion: @escaping ([CrashReport]) -> Void) { }
+        func deleteCrashReport(id: Int) { }
     }
 
     override func tearDown() {
         Embrace.client = nil
     }
 
-    func test_EmbraceSetup_passesCaptureServices() throws {
-        try Embrace.setup(options: .init(appId: "myAPP", captureServices: [
-            ExampleCaptureService(),
-            ExampleInstalledCaptureService(),
-            ExampleCrashReporter()
-        ]))
+    func test_setup() throws {
+        let options = Embrace.Options(
+            appId: "myAPP",
+            captureServices: [ ExampleCaptureService() ],
+            crashReporter: ExampleCrashReporter()
+        )
+        try Embrace.setup(options: options)
 
         let services = Embrace.client!.captureServices.services
         XCTAssertTrue(services.contains { $0 is ExampleCaptureService })
-        XCTAssertTrue(services.contains { $0 is ExampleInstalledCaptureService })
-        XCTAssertTrue(services.contains { $0 is ExampleCrashReporter })
+
+        let crashReporter = Embrace.client!.captureServices.crashReporter
+        XCTAssertNotNil(crashReporter)
     }
 
-    func test_onlyOneCrashReporterCaptureServiceIsAllowed() throws {
-        XCTAssertThrowsError(try Embrace.setup(options: .init(appId: "myAPP", captureServices: [
-            ExampleCaptureService(),
-            ExampleInstalledCaptureService(),
-            ExampleCrashReporter(),
-            SecondExampleCrashReporter()
-        ])))
+    func test_duplicatedServices() throws {
+        let options = Embrace.Options(
+            appId: "myAPP",
+            captureServices: [
+                ExampleCaptureService(),
+                ExampleCaptureService(),
+                ExampleCaptureService()
+            ],
+            crashReporter: nil
+        )
+        try Embrace.setup(options: options)
+
+        let services = Embrace.client!.captureServices.services
+        XCTAssertEqual(services.filter { $0 is ExampleCaptureService }.count, 1)
+
+        let crashReporter = Embrace.client!.captureServices.crashReporter
+        XCTAssertNil(crashReporter)
     }
 }

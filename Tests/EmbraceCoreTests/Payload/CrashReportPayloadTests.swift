@@ -15,7 +15,7 @@ class CrashReportPayloadTests: XCTestCase {
     var dummyCrashReport: CrashReport {
         return CrashReport(
             ksCrashId: 123,
-            sessionId: TestConstants.sessionId,
+            sessionId: TestConstants.sessionId.toString,
             timestamp: Date(),
             dictionary: [:]
         )

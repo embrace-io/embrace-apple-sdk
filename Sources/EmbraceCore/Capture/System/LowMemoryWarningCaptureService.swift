@@ -3,32 +3,22 @@
 //
 
 import Foundation
+import EmbraceCaptureService
 import EmbraceCommon
 import EmbraceOTel
 import OpenTelemetryApi
 
-@objc public class LowMemoryWarningCaptureService: NSObject, InstalledCaptureService {
-    private let otelProvider: EmbraceOTelHandlingProvider
-    private var otel: EmbraceOpenTelemetry? {
-        otelProvider.otelHandler
-    }
+@objc public class LowMemoryWarningCaptureService: CaptureService {
 
     public var onWarningCaptured: (() -> Void)?
 
     @ThreadSafe var started = false
 
-    public override init() {
-        self.otelProvider = EmbraceOtelProvider()
-    }
-
-    internal init(otelProvider: EmbraceOTelHandlingProvider) {
-        self.otelProvider = otelProvider
-    }
-
     deinit {
         NotificationCenter.default.removeObserver(self)
     }
-    public func install(context: EmbraceCommon.CaptureServiceContext) {
+
+    public override func onInstall() {
         // hardcoded string so we dont have to use UIApplication
         NotificationCenter.default.addObserver(
             self,
@@ -38,32 +28,15 @@ import OpenTelemetryApi
         )
     }
 
-    public func uninstall() {
-        NotificationCenter.default.removeObserver(self)
-        started = false
-    }
-
-    public func start() {
-        started = true
-    }
-
-    public func stop() {
-        started = false
-    }
-
     @objc func didReceiveMemoryWarning(notification: Notification) {
-        guard started else {
-            return
-        }
-
-        guard let otel = otel else {
-            ConsoleLog.error("Missing Embrace Otel when trying to start a span on LowMemoryWarningCaptureService")
+        guard state == .active else {
             return
         }
 
         let event = RecordingSpanEvent(name: "emb-device-low-memory", timestamp: Date())
-        otel.add(event: event)
 
-        onWarningCaptured?()
+        if add(event: event) {
+            onWarningCaptured?()
+        }
     }
 }

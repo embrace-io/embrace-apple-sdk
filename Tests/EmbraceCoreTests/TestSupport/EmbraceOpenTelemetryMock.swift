@@ -44,15 +44,3 @@ class EmbraceOpenTelemetryMock: EmbraceOpenTelemetry {
 
     func add(event: SpanEvent) {}
 }
-
-class EmbraceOtelProviderMock: EmbraceOTelHandlingProvider {
-    public var embraceOtel: EmbraceOpenTelemetryMock
-
-    init(embraceOtel: EmbraceOpenTelemetryMock) {
-        self.embraceOtel = embraceOtel
-    }
-
-    var otelHandler: EmbraceOpenTelemetry? {
-        embraceOtel
-    }
-}

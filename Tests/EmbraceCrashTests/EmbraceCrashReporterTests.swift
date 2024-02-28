@@ -9,7 +9,7 @@ import EmbraceCommon
 
 class EmbraceCrashReporterTests: XCTestCase {
 
-    var context: CaptureServiceContext = .testContext
+    var context: CrashReporterContext = .testContext
 
     override func setUpWithError() throws {
         try? FileManager.default.removeItem(at: context.filePathProvider.directoryURL(for: "")!)
@@ -26,7 +26,7 @@ class EmbraceCrashReporterTests: XCTestCase {
 
         // when setting the current session id
         let sessionId = SessionIdentifier.random
-        crashReporter.currentSessionId = sessionId
+        crashReporter.currentSessionId = sessionId.toString
 
         // then KSCrash's user info is properly set
         let key = EmbraceCrashReporter.UserInfoKey.sessionId
@@ -64,7 +64,7 @@ class EmbraceCrashReporterTests: XCTestCase {
         let expectation = XCTestExpectation()
         crashReporter.fetchUnsentCrashReports { reports in
             XCTAssertEqual(reports.count, 1)
-            XCTAssertEqual(reports[0].sessionId, TestConstants.sessionId)
+            XCTAssertEqual(reports[0].sessionId, TestConstants.sessionId.toString)
             XCTAssertNotNil(reports[0].timestamp)
 
             expectation.fulfill()

@@ -20,11 +20,4 @@ class MockURLSessionTaskHandler: URLSessionTaskHandler {
         didInvokeFinish = true
         finishReceivedParameters = (task, data, error)
     }
-
-    var didInvokeChangedState = false
-    var changedStateReceivedParameter: CaptureServiceState!
-    func changedState(to captureServiceState: EmbraceCommon.CaptureServiceState) {
-        didInvokeChangedState = true
-        changedStateReceivedParameter = captureServiceState
-    }
 }
