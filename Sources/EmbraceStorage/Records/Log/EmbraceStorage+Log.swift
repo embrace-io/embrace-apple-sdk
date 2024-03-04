@@ -13,36 +13,12 @@ extension LogRecord: Identifiable {
 }
 
 extension EmbraceStorage {
-    @discardableResult public func addLog(
-        id: LogIdentifier,
-        processIdentifier: ProcessIdentifier,
-        severity: LogSeverity,
-        body: String,
-        attributes: [String: PersistableValue],
-        timestamp: Date = Date()
-    ) throws -> LogRecord {
-        let log = LogRecord(
-            identifier: id,
-            processIdentifier: processIdentifier,
-            severity: severity,
-            body: body,
-            attributes: attributes,
-            timestamp: timestamp
-        )
-
-        try writeLog(log)
-
-        return log
-    }
-
     func writeLog(_ log: LogRecord) throws {
         try dbQueue.write { db in
             try log.insert(db)
         }
     }
-}
 
-extension EmbraceStorage: LogRepository {
     public func fetchAll(excludingProcessIdentifier processIdentifier: ProcessIdentifier) throws -> [LogRecord] {
         return try dbQueue.read { db in
             let query = LogRecord.filter(LogRecord.Schema.processIdentifier != processIdentifier.value)

@@ -13,14 +13,14 @@ protocol LogControllable: LogBatcherDelegate {
 
 class LogController: LogControllable {
     private(set) weak var sessionController: SessionControllable?
-    private weak var storage: EmbraceStorage?
-    private weak var upload: EmbraceUpload?
+    private weak var storage: Storage?
+    private weak var upload: EmbraceLogUploader?
     /// This will probably be injected eventually.
     /// For consistency, I created a constant
-    private static let maxLogsPerBatch: Int = 20
+    static let maxLogsPerBatch: Int = 20
 
-    init(storage: EmbraceStorage?,
-         upload: EmbraceUpload?,
+    init(storage: Storage?,
+         upload: EmbraceLogUploader?,
          controller: SessionControllable) {
         self.storage = storage
         self.upload = upload
@@ -125,6 +125,8 @@ private extension LogController {
                     batch = LogsBatch(limits: .init(maxLogsPerBatch: Self.maxLogsPerBatch))
                 }
             case .failure:
+                // This shouldn't happen.
+                // However, we add this logic to ensure everything works fine
                 batches.append(batch)
                 batch = LogsBatch(limits: .init(), logs: [log])
             }

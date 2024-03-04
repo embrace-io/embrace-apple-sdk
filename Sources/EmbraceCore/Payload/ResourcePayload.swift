@@ -28,6 +28,8 @@ struct ResourcePayload: Codable {
     var appBundleId: String?
 
     enum CodingKeys: String, CodingKey {
+        case jailbroken
+        case environment
         case diskTotalCapacity = "disk_total_capacity"
         case osVersion = "os_version"
         case osBuild = "os_build"

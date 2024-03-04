@@ -30,4 +30,8 @@ class LogIdentifierTests: XCTestCase {
         XCTAssertEqual(String(data: dataFromIdentifier, encoding: .utf8), "\"53B55EDD-889A-4876-86BA-6798288B609C\"")
     }
 
+    func test_toString_removesHyphens() throws {
+        let identifier = LogIdentifier(value: try XCTUnwrap(UUID(uuidString: "53B55EDD-889A-4876-86BA-6798288B609C")))
+        XCTAssertEqual(identifier.toString, "53B55EDD889A487686BA6798288B609C")
+    }
 }

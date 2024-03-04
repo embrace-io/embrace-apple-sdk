@@ -25,6 +25,8 @@ class EmbraceStorageTests: XCTestCase {
         try storage.dbQueue.read { db in
             XCTAssert(try db.tableExists(SessionRecord.databaseTableName))
             XCTAssert(try db.tableExists(SpanRecord.databaseTableName))
+            XCTAssert(try db.tableExists(MetadataRecord.databaseTableName))
+            XCTAssert(try db.tableExists(LogRecord.databaseTableName))
 
             expectation.fulfill()
         }

@@ -5,8 +5,12 @@
 import Foundation
 import EmbraceCommon
 
+public protocol EmbraceLogUploader: AnyObject {
+    func uploadLog(id: String, data: Data, completion: ((Result<(), Error>) -> Void)?)
+}
+
 /// Class in charge of uploading all the data colected by the Embrace SDK.
-public class EmbraceUpload {
+public class EmbraceUpload: EmbraceLogUploader {
 
     public private(set) var options: Options
     public private(set) var queue: DispatchQueue
