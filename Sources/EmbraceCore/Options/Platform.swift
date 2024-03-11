@@ -14,12 +14,12 @@ public enum Platform: Int {
 }
 
 extension Platform {
-    var frameworkId: Int {
+    var frameworkId: String {
         switch self {
-        case .native: return 1
-        case .reactNative: return 2
-        case .unity: return 3
-        case .flutter: return 4
+        case .native: return "native"
+        case .reactNative: return "react_native"
+        case .unity: return "unity"
+        case .flutter: return "flutter"
         }
     }
 }

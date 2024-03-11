@@ -37,7 +37,7 @@ final class SessionPayloadTests: XCTestCase {
         ),
         .init(
             key: AppResourceKey.framework.rawValue,
-            value: .string("1"),
+            value: .string("native"),
             type: .requiredResource,
             lifespan: .process,
             lifespanId: ProcessIdentifier.current.hex
@@ -238,7 +238,7 @@ final class SessionPayloadTests: XCTestCase {
         XCTAssertEqual(appInfo["bv"] as! String, "fake_bundle_version")
         XCTAssertEqual(appInfo["e"] as! String, "fake_environment")
         XCTAssertEqual(appInfo["ed"] as! String, "fake_detailed_environment")
-        XCTAssertEqual(appInfo["f"] as! Int, 1)
+        XCTAssertEqual(appInfo["f"] as! String, "native")
         XCTAssertEqual(appInfo["lc"] as! Int, 2)
         XCTAssertEqual(appInfo["sdk"] as! String, "fake_sdk_version")
         XCTAssertEqual(appInfo["v"] as! String, "fake_app_version")
