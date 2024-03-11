@@ -337,7 +337,12 @@ typedef NS_ENUM(NSInteger, EMBReleaseMode) {
 #if UIKIT_AVAILABLE
     return [UIDevice currentDevice].systemVersion;
 #else
-    return @"";
+    NSOperatingSystemVersion operatingSystemVersion = [NSProcessInfo processInfo].operatingSystemVersion;
+    if (operatingSystemVersion.patchVersion == 0) {
+        return [NSString stringWithFormat: @"%i.%i", operatingSystemVersion.majorVersion, operatingSystemVersion.minorVersion];
+    } else {
+        return [NSString stringWithFormat: @"%i.%i.%i", operatingSystemVersion.majorVersion, operatingSystemVersion.minorVersion, operatingSystemVersion.patchVersion];
+    }
 #endif
 }
 
