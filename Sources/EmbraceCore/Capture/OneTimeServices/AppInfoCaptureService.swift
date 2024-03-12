@@ -31,7 +31,7 @@ class AppInfoCaptureService: ResourceCaptureService {
         // framework
         addResource(
             key: AppResourceKey.framework.rawValue,
-            value: .string(Embrace.client?.options.platform.frameworkId ?? "-1")
+            value: .int(Embrace.client?.options.platform.frameworkId ?? -1)
         )
 
         // sdk version

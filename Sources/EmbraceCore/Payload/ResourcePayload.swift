@@ -21,7 +21,7 @@ struct ResourcePayload: Codable {
     var bundleVersion: String?
     var environment: String?
     var environmentDetail: String?
-    var appFramework: String?
+    var appFramework: Int?
     var launchCount: Int?
     var sdkVersion: String?
     var appVersion: String?
@@ -69,7 +69,7 @@ struct ResourcePayload: Codable {
                 case .detailedEnvironment:
                     self.environmentDetail = resource.stringValue
                 case .framework:
-                    self.appFramework = resource.stringValue
+                    self.appFramework = resource.integerValue
                 case .launchCount:
                     self.launchCount = resource.integerValue
                 case .sdkVersion:

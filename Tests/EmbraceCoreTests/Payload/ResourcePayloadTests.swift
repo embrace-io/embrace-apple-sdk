@@ -14,7 +14,7 @@ class ResourcePayloadTests: XCTestCase {
             MetadataRecord.userMetadata(key: "emb.app.bundle_version", value: "9.8.7"),
             MetadataRecord.userMetadata(key: "emb.app.environment", value: "dev"),
             MetadataRecord.userMetadata(key: "emb.app.environment_detailed", value: "si"),
-            MetadataRecord.userMetadata(key: "emb.app.framework", value: "native"),
+            MetadataRecord.userMetadata(key: "emb.app.framework", value: "111"),
             MetadataRecord.userMetadata(key: "emb.app.launch_count", value: "123"),
             MetadataRecord.userMetadata(key: "emb.app.sdk_version", value: "3.2.1"),
             MetadataRecord.userMetadata(key: "emb.app.version", value: "1.2.3"),
@@ -44,7 +44,7 @@ class ResourcePayloadTests: XCTestCase {
         XCTAssertEqual(json["bundle_version"] as? String, "9.8.7")
         XCTAssertEqual(json["environment"] as? String, "dev")
         XCTAssertEqual(json["environment_detail"] as? String, "si")
-        XCTAssertEqual(json["app_framework"] as? String, "native")
+        XCTAssertEqual(json["app_framework"] as? Int, 111)
         XCTAssertEqual(json["launch_count"] as? Int, 123)
         XCTAssertEqual(json["sdk_version"] as? String, "3.2.1")
         XCTAssertEqual(json["app_version"] as? String, "1.2.3")
