@@ -21,7 +21,7 @@ extension CaptureServiceFactory {
     }
     #elseif os(tvOS)
     static var platformCaptureServices: [CaptureService] {
-        return [EmbraceCrashReporter()]
+        return []
     }
     #else
     static var platformCaptureServices: [CaptureService] {

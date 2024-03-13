@@ -38,7 +38,7 @@ extension Embrace.Endpoints {
     @objc convenience init(appId: String) {
         self.init(
             baseURL: "https://a-\(appId).data.emb-api.com",
-            developmentBaseURL: "https://a-\(appId).data-dev.emb-api.com",
+            developmentBaseURL: "https://data-dev.emb-api.com",
             configBaseURL: "https://a-\(appId).config.emb-api.com")
     }
 }
