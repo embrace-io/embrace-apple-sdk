@@ -125,9 +125,9 @@ span?.end()
 
 **Adding User data:**
 ```swift
-Embrace.client?.user.email = "testing.email@my-org.com"
-Embrace.client?.user.identifier = "827B02FE-D868-461D-8B4A-FE7371818369"
-Embrace.client?.user.username = "tony.the.tester"
+Embrace.client?.metadata.userEmail = "testing.email@my-org.com"
+Embrace.client?.metadata.userIdentifier = "827B02FE-D868-461D-8B4A-FE7371818369"
+Embrace.client?.metadata.userName = "tony.the.tester"
 ````
 
 ## Documentation
