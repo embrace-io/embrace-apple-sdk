@@ -4,7 +4,7 @@
 
 import XCTest
 
-import EmbraceCore
+@testable import EmbraceCore
 import EmbraceOTel
 import EmbraceStorage
 import GRDB

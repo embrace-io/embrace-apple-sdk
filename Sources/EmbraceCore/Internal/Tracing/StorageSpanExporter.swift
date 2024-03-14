@@ -5,12 +5,16 @@
 import EmbraceStorage
 import EmbraceOTel
 
-public class StorageSpanExporter: EmbraceSpanExporter {
+class StorageSpanExporter: EmbraceSpanExporter {
 
     private(set) weak var storage: EmbraceStorage?
 
-    public init(options: Options) {
+    let validation: SpanDataValidation
+
+    init(options: Options) {
         self.storage = options.storage
+
+        self.validation = SpanDataValidation(validators: options.validators)
     }
 
     @discardableResult public func export(spans: [SpanData]) -> SpanExporterResultCode {
@@ -19,8 +23,10 @@ public class StorageSpanExporter: EmbraceSpanExporter {
         }
 
         var result = SpanExporterResultCode.success
-        for spanData in spans {
-            if let record = buildRecord(from: spanData) {
+        for var spanData in spans {
+
+            let isValid = validation.execute(spanData: &spanData)
+            if isValid, let record = buildRecord(from: spanData) {
                 do {
                     try storage.upsertSpan(record)
                 } catch {

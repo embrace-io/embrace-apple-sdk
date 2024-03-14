@@ -4,13 +4,15 @@
 
 import EmbraceStorage
 
-public extension StorageSpanExporter {
+extension StorageSpanExporter {
     class Options {
 
         let storage: EmbraceStorage
+        let validators: [SpanDataValidator]
 
-        public init(storage: EmbraceStorage) {
+        init(storage: EmbraceStorage, validators: [SpanDataValidator] = .default) {
             self.storage = storage
+            self.validators = validators
         }
     }
 }
