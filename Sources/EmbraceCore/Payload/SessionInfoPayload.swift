@@ -13,6 +13,9 @@ struct SessionInfoPayload: Codable {
     let lastHeartbeatTime: Int
     let appState: String
     let counter: Int
+    let appTerminated: Bool
+    let cleanExit: Bool
+    let coldStart: Bool
 
     enum CodingKeys: String, CodingKey {
         case sessionId = "id"
@@ -21,6 +24,9 @@ struct SessionInfoPayload: Codable {
         case lastHeartbeatTime = "ht"
         case appState = "as"
         case counter = "sn"
+        case appTerminated = "tr"
+        case cleanExit = "ce"
+        case coldStart = "cs"
     }
 
     init(from sessionRecord: SessionRecord, counter: Int) {
@@ -30,5 +36,8 @@ struct SessionInfoPayload: Codable {
         self.lastHeartbeatTime = sessionRecord.lastHeartbeatTime.millisecondsSince1970Truncated
         self.appState = sessionRecord.state
         self.counter = counter
+        self.appTerminated = sessionRecord.appTerminated
+        self.cleanExit = sessionRecord.cleanExit
+        self.coldStart = sessionRecord.coldStart
     }
 }

@@ -160,7 +160,10 @@ final class SessionPayloadTests: XCTestCase {
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSince1970: 10),
-            endTime: Date(timeIntervalSince1970: 40))
+            endTime: Date(timeIntervalSince1970: 40),
+            coldStart: true,
+            cleanExit: true,
+            appTerminated: false)
     }
 
     func test_properties() {
@@ -179,6 +182,9 @@ final class SessionPayloadTests: XCTestCase {
         XCTAssertEqual(payload.sessionInfo.lastHeartbeatTime, sessionRecord.lastHeartbeatTime.millisecondsSince1970Truncated)
         XCTAssertEqual(payload.sessionInfo.appState, sessionRecord.state)
         XCTAssertEqual(payload.sessionInfo.counter, 10)
+        XCTAssertEqual(payload.sessionInfo.appTerminated, false)
+        XCTAssertEqual(payload.sessionInfo.cleanExit, true)
+        XCTAssertEqual(payload.sessionInfo.coldStart, true)
     }
 
     func test_highLevelKeys() throws {
@@ -219,6 +225,9 @@ final class SessionPayloadTests: XCTestCase {
         XCTAssertEqual(sessionInfo["ht"] as! Int, sessionRecord.lastHeartbeatTime.millisecondsSince1970Truncated)
         XCTAssertEqual(sessionInfo["as"] as! String, sessionRecord.state)
         XCTAssertEqual(sessionInfo["sn"] as! Int, 10)
+        XCTAssertEqual(sessionInfo["tr"] as! Bool, false)
+        XCTAssertEqual(sessionInfo["ce"] as! Bool, true)
+        XCTAssertEqual(sessionInfo["cs"] as! Bool, true)
     }
 
     func test_appInfoKeys() throws {
