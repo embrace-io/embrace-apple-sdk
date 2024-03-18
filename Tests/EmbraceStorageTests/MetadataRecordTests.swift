@@ -359,7 +359,7 @@ class MetadataRecordTests: XCTestCase {
         )
 
         // when cleaning old metadata
-        try storage.cleanMetadata(currentSessionId: TestConstants.sessionId, currentProcessId: TestConstants.processId)
+        try storage.cleanMetadata(currentSessionId: TestConstants.sessionId.toString, currentProcessId: TestConstants.processId.hex)
 
         // then only the correct records should be removed
         let expectation = XCTestExpectation()

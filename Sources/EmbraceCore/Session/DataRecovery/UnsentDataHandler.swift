@@ -98,7 +98,8 @@ class UnsentDataHandler {
     ) {
 
         // clean up old spans + close open spans
-        prepareSpans(storage: storage)
+        cleanOldSpans(storage: storage)
+        closeOpenSpans(storage: storage)
 
         // fetch all sessions in the storage
         var sessions: [SessionRecord]
@@ -116,21 +117,18 @@ class UnsentDataHandler {
                 continue
             }
 
-            uploadSession(session, storage: storage, upload: upload)
+            uploadSession(session, storage: storage, upload: upload, performCleanUp: false)
         }
 
         // remove old metadata
-        do {
-            try storage.cleanMetadata(currentSessionId: currentSessionId, currentProcessId: ProcessIdentifier.current)
-        } catch {
-            ConsoleLog.warning("Error cleaning up metadata:\n\(error.localizedDescription)")
-        }
+        cleanMetadata(storage: storage, currentSessionId: currentSessionId?.toString)
     }
 
     static public func uploadSession(
         _ session: SessionRecord,
         storage: EmbraceStorage,
-        upload: EmbraceUpload
+        upload: EmbraceUpload,
+        performCleanUp: Bool = true
     ) {
         // create payload
         let payload = SessionPayloadBuilder.build(for: session, storage: storage)
@@ -155,6 +153,12 @@ class UnsentDataHandler {
                     // remove session from storage
                     // we can remove this immediately because the upload module will cache it until the upload succeeds
                     try storage.delete(record: session)
+
+                    if performCleanUp {
+                        cleanOldSpans(storage: storage)
+                        cleanMetadata(storage: storage)
+                    }
+
                 } catch {
                     ConsoleLog.debug("Error trying to remove session \(session.id):\n\(error.localizedDescription)")
                 }
@@ -165,8 +169,7 @@ class UnsentDataHandler {
         }
     }
 
-    static private func prepareSpans(storage: EmbraceStorage) {
-
+    static private func cleanOldSpans(storage: EmbraceStorage) {
         do {
             // first we delete any span record that is closed and its older
             // than the oldest session we have on storage
@@ -176,6 +179,13 @@ class UnsentDataHandler {
             let oldestSession = try storage.fetchOldestSesssion()
             try storage.cleanUpSpans(date: oldestSession?.startTime)
 
+        } catch {
+            ConsoleLog.warning("Error cleaning old spans:\n\(error.localizedDescription)")
+        }
+    }
+
+    static private func closeOpenSpans(storage: EmbraceStorage) {
+        do {
             // then we need to close any remaining open spans
             // we use the latest session on storage to determine the `endTime`
             // since we need to have a valid `endTime` for these spans, we default
@@ -185,6 +195,15 @@ class UnsentDataHandler {
             try storage.closeOpenSpans(endTime: endTime)
         } catch {
             ConsoleLog.warning("Error closing open spans:\n\(error.localizedDescription)")
+        }
+    }
+
+    static private func cleanMetadata(storage: EmbraceStorage, currentSessionId: String? = nil) {
+        do {
+            let sessionId = currentSessionId ?? Embrace.client?.currentSessionId()
+            try storage.cleanMetadata(currentSessionId: sessionId, currentProcessId: ProcessIdentifier.current.hex)
+        } catch {
+            ConsoleLog.warning("Error cleaning up metadata:\n\(error.localizedDescription)")
         }
     }
 }

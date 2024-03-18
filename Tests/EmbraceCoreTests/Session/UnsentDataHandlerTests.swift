@@ -360,7 +360,7 @@ class UnsentDataHandlerTests: XCTestCase {
         cancellable.cancel()
     }
 
-    func test_spanCleanUp() throws {
+    func test_spanCleanUp_sendUnsentData() throws {
         // mock successful requests
         EmbraceHTTPMock.mock(url: Self.testSessionsUrl)
         EmbraceHTTPMock.mock(url: Self.testBlobsUrl)
@@ -393,7 +393,7 @@ class UnsentDataHandlerTests: XCTestCase {
         )
 
         // given open span in storage
-        let openSpan = try storage.addSpan(
+        try storage.addSpan(
             id: TestConstants.spanId,
             name: "test",
             traceId: TestConstants.traceId,
@@ -406,7 +406,7 @@ class UnsentDataHandlerTests: XCTestCase {
         UnsentDataHandler.sendUnsentData(storage: storage, upload: upload)
         wait(delay: .longTimeout)
 
-        // then the old close span was removed
+        // then the old closed span was removed
         // and the open span was closed
         let expectation1 = XCTestExpectation()
         try storage.dbQueue.read { db in
@@ -429,8 +429,6 @@ class UnsentDataHandlerTests: XCTestCase {
         // is not valid anymore, and therefore removed
         let expectation2 = XCTestExpectation()
         try storage.dbQueue.read { db in
-            let span = try SpanRecord.fetchOne(db)
-
             XCTAssertEqual(try SpanRecord.fetchCount(db), 0)
             expectation2.fulfill()
         }
@@ -438,7 +436,7 @@ class UnsentDataHandlerTests: XCTestCase {
         wait(for: [expectation2], timeout: .defaultTimeout)
     }
 
-    func test_metadataCleanUp() throws {
+    func test_metadataCleanUp_sendUnsendData() throws {
         // mock successful requests
         EmbraceHTTPMock.mock(url: Self.testSessionsUrl)
         EmbraceHTTPMock.mock(url: Self.testBlobsUrl)
@@ -505,6 +503,117 @@ class UnsentDataHandlerTests: XCTestCase {
             XCTAssert(try sameSessionId!.exists(db))
             XCTAssert(try sameProcessId!.exists(db))
             XCTAssertFalse(try differentSessionId!.exists(db))
+            XCTAssertFalse(try differentProcessId!.exists(db))
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
+    }
+
+    func test_spanCleanUp_uploadSession() throws {
+        // mock successful requests
+        EmbraceHTTPMock.mock(url: Self.testSessionsUrl)
+        EmbraceHTTPMock.mock(url: Self.testBlobsUrl)
+
+        // given a storage and upload modules
+        let storage = try EmbraceStorage.createInMemoryDb()
+        defer { try? storage.teardown() }
+
+        let upload = try EmbraceUpload(options: uploadOptions, queue: queue)
+
+        // given an unfinished session in the storage
+        let session = try storage.addSession(
+            id: TestConstants.sessionId,
+            state: .foreground,
+            processId: ProcessIdentifier.current,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date(timeIntervalSinceNow: -60)
+        )
+
+        // given old closed span in storage
+        let oldSpan = try storage.addSpan(
+            id: "oldSpan",
+            name: "test",
+            traceId: "traceId",
+            type: .performance,
+            data: Data(),
+            startTime: Date(timeIntervalSinceNow: -100),
+            endTime: Date(timeIntervalSinceNow: -80)
+        )
+
+        // when uploading the session
+        UnsentDataHandler.uploadSession(session, storage: storage, upload: upload)
+        wait(delay: .longTimeout)
+
+        // then the old closed span was removed
+        // and the session was removed
+        let expectation = XCTestExpectation()
+        try storage.dbQueue.read { db in
+            XCTAssertFalse(try oldSpan.exists(db))
+            XCTAssertEqual(try SpanRecord.fetchCount(db), 0)
+
+            XCTAssertFalse(try session.exists(db))
+            XCTAssertEqual(try SessionRecord.fetchCount(db), 0)
+
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
+    }
+
+    func test_metadataCleanUp_uploadSession() throws {
+        // mock successful requests
+        EmbraceHTTPMock.mock(url: Self.testSessionsUrl)
+        EmbraceHTTPMock.mock(url: Self.testBlobsUrl)
+
+        // given a storage and upload modules
+        let storage = try EmbraceStorage.createInMemoryDb()
+        defer { try? storage.teardown() }
+
+        let upload = try EmbraceUpload(options: uploadOptions, queue: queue)
+
+        // given an unfinished session in the storage
+        let session = try storage.addSession(
+            id: TestConstants.sessionId,
+            state: .foreground,
+            processId: ProcessIdentifier.current,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date(timeIntervalSinceNow: -60)
+        )
+
+        // given metadata in storage
+        let permanentMetadata = try storage.addMetadata(
+            key: "test",
+            value: "test",
+            type: .requiredResource,
+            lifespan: .permanent
+        )
+        let sameProcessId = try storage.addMetadata(
+            key: "test",
+            value: "test",
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.hex
+        )
+        let differentProcessId = try storage.addMetadata(
+            key: "test",
+            value: "test",
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: "test"
+        )
+
+        // when uploading the session
+        UnsentDataHandler.uploadSession(session, storage: storage, upload: upload)
+        wait(delay: .longTimeout)
+
+        // then metadata is correctly cleaned up
+        let expectation = XCTestExpectation()
+        try storage.dbQueue.read { db in
+            XCTAssert(try permanentMetadata!.exists(db))
+            XCTAssert(try sameProcessId!.exists(db))
             XCTAssertFalse(try differentProcessId!.exists(db))
             expectation.fulfill()
         }

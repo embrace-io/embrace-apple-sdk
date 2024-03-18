@@ -109,22 +109,22 @@ extension EmbraceStorage {
     /// Removes all `MetadataRecords` that don't corresponde to the given session and process ids.
     /// Permanent metadata is not removed.
     public func cleanMetadata(
-        currentSessionId: SessionIdentifier?,
-        currentProcessId: ProcessIdentifier
+        currentSessionId: String?,
+        currentProcessId: String
     ) throws {
         _ = try dbQueue.write { db in
             if let currentSessionId = currentSessionId {
                 try MetadataRecord.filter(
                     (MetadataRecord.Schema.lifespan == MetadataRecordLifespan.session.rawValue &&
-                     MetadataRecord.Schema.lifespanId != currentSessionId.toString) ||
+                     MetadataRecord.Schema.lifespanId != currentSessionId) ||
                     (MetadataRecord.Schema.lifespan == MetadataRecordLifespan.process.rawValue &&
-                     MetadataRecord.Schema.lifespanId != currentProcessId.hex)
+                     MetadataRecord.Schema.lifespanId != currentProcessId)
                 )
                 .deleteAll(db)
             } else {
                 try MetadataRecord.filter(
                     MetadataRecord.Schema.lifespan == MetadataRecordLifespan.process.rawValue &&
-                    MetadataRecord.Schema.lifespanId != currentProcessId.hex
+                    MetadataRecord.Schema.lifespanId != currentProcessId
                 )
                 .deleteAll(db)
             }
