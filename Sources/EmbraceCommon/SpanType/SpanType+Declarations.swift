@@ -26,18 +26,19 @@ extension SpanType {
     public static let sqlVacuum = SpanType(performance: "sql.vacuum")
 
     //  Network types
-    public static let networkHTTP = SpanType(performance: "network.http")
+    public static let networkHTTP = SpanType(performance: "network_request")
 
 }
 
 // MARK: - UX
 extension SpanType {
-    public static let viewTap = SpanType(ux: "action.tap")
+    public static let view = SpanType(ux: "view")
+    public static let inputTap = SpanType(ux: "tap")
 }
 
 // MARK: - System
 extension SpanType {
-    public static let lowPower = SpanType(system: "low-power")
+    public static let lowPower = SpanType(system: "low_power")
 }
 
 // MARK: - Embrace Specific

@@ -47,7 +47,7 @@ class LowPowerModeCollectorTests: XCTestCase {
         XCTAssertEqual(service.currentSpan!.name, "emb-device-low-power")
 
         let span = service.currentSpan as! ReadableSpan
-        XCTAssertEqual(span.toSpanData().attributes["emb.type"], .string("performance"))
+        XCTAssertEqual(span.toSpanData().attributes["emb.type"], .string("perf"))
         XCTAssertEqual(span.toSpanData().attributes["start_reason"], .string("system_query"))
     }
 
@@ -137,7 +137,7 @@ class LowPowerModeCollectorTests: XCTestCase {
         XCTAssertEqual(service.currentSpan!.name, "emb-device-low-power")
 
         let span = service.currentSpan as! ReadableSpan
-        XCTAssertEqual(span.toSpanData().attributes["emb.type"], .string("performance"))
+        XCTAssertEqual(span.toSpanData().attributes["emb.type"], .string("perf"))
         XCTAssertEqual(span.toSpanData().attributes["start_reason"], .string("system_notification"))
     }
 

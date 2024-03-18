@@ -97,7 +97,7 @@ final class EmbraceOTelTests: XCTestCase {
         if let span = builder.startSpan() as? ReadableSpan {
             XCTAssertEqual(span.toSpanData().attributes, [
                 "foo": .string("bar"),
-                "emb.type": .string("performance")
+                "emb.type": .string("perf")
             ])
 
         } else {

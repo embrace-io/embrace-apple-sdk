@@ -88,12 +88,12 @@ extension SpanType {
     /// Top level category for the SpanType
     enum Primary: String {
         /// Category for observing a logical operation
-        case performance
+        case performance = "perf"
 
         /// Category for observing the user's interaction or behavior
-        case ux
+        case ux = "ux"
 
         /// Category for observing the system's operation or status
-        case system
+        case system = "sys"
     }
 }
