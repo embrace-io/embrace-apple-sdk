@@ -19,8 +19,7 @@
     
     EMBOptions* options = [[EMBOptions alloc] initWithAppId:@"myApp"
                                                  appGroupId:nil
-                                                   platform:EMBPlatformNative
-                                                  endpoints:nil];
+                                                   platform:EMBPlatformNative];
     NSError* error = nil;
     
     [Embrace setupWithOptions:options error:&error];

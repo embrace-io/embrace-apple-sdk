@@ -16,8 +16,8 @@ class ResourcePayloadTests: XCTestCase {
             MetadataRecord.userMetadata(key: "emb.app.environment_detailed", value: "si"),
             MetadataRecord.userMetadata(key: "emb.app.framework", value: "111"),
             MetadataRecord.userMetadata(key: "emb.app.launch_count", value: "123"),
-            MetadataRecord.userMetadata(key: "emb.app.sdk_version", value: "3.2.1"),
             MetadataRecord.userMetadata(key: "emb.app.version", value: "1.2.3"),
+            MetadataRecord.userMetadata(key: "emb.sdk.version", value: "3.2.1"),
 
             // Device Resources that should be
             MetadataRecord.createResourceRecord(key: "emb.device.is_jailbroken", value: "true"),

@@ -24,3 +24,5 @@ public typealias SpanData = OpenTelemetrySdk.SpanData
 public typealias ReadableSpan = OpenTelemetrySdk.ReadableSpan
 
 public typealias SpanExporterResultCode = OpenTelemetrySdk.SpanExporterResultCode
+
+public typealias SpanProcessor = OpenTelemetrySdk.SpanProcessor

@@ -4,6 +4,9 @@
 
 import Foundation
 import OpenTelemetryApi
+import OpenTelemetrySdk
+
+public typealias Resource = OpenTelemetrySdk.Resource
 
 /// Typealias created to abstract away the `AttributeValue` from `OpenTelemetryApi`,
 /// reducing the dependency exposure to dependents.
