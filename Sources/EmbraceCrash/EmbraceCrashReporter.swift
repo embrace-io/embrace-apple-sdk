@@ -68,11 +68,10 @@ import KSCrash_Recording
 
         ksCrash = KSCrash.sharedInstance(withBasePath: basePath, andBundleName: appId)
         updateKSCrashInfo()
-    }
-
-    public func start() {
         ksCrash?.install()
     }
+
+    public func start() { }
 
     /// Fetches all saved `CrashReports`.
     /// - Parameter completion: Completion handler to be called with the fetched `CrashReports`
