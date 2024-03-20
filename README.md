@@ -133,10 +133,6 @@ Embrace.client?.metadata.userIdentifier = "827B02FE-D868-461D-8B4A-FE7371818369"
 Embrace.client?.metadata.userName = "tony.the.tester"
 ````
 
-## Documentation
-
-[API Reference Docs](https://embrace-io.github.io/embrace-apple-sdk/documentation/EmbraceIO).
-
 ## Prerequisites
 
 ### Github
@@ -164,10 +160,13 @@ bin/test | xcpretty
 
 ## Linting and Guidelines
 
-All source files must follow our guidelines described [here](https://www.notion.so/embraceio/iOS-Developer-Guidelines-078360496fff4379b033e67c377d42e7).
-
 We use [SwiftLint](https://github.com/realm/SwiftLint) to enforce them and every pull request must satisfy them to be merged.
 SwiftLint is used as a plugin in all of our targets to get warnings and errors directly in Xcode.
+
+You can run the swiftlint plugin from the CLI as well:
+```sh
+swift run swiftlint --fix
+```
 
 ### Using SwiftLint
 
