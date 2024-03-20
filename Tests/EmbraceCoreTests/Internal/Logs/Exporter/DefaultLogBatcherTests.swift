@@ -34,6 +34,34 @@ class DefaultLogBatcherTests: XCTestCase {
         whenInvokingAddLogRecord(withLogRecord: randomLogRecord())
         thenDelegateShouldInvokeBatchFinished()
     }
+
+    func testAutoEndBatchAfterLifespanExpired() {
+        givenDefaultLogBatcher(limits: .init(maxBatchAge: 0.1, maxLogsPerBatch: 10))
+        givenRepositoryCreatesLogsSucessfully()
+        whenInvokingAddLogRecord(withLogRecord: randomLogRecord())
+        thenDelegateShouldInvokeBatchFinishedAfterBatchLifespan(0.2)
+    }
+
+    func testAutoEndBatchAfterLifespanExpired_TimerStartsAgainAfterNewLogAdded() {
+        givenDefaultLogBatcher(limits: .init(maxBatchAge: 0.1, maxLogsPerBatch: 10))
+        givenRepositoryCreatesLogsSucessfully()
+        whenInvokingAddLogRecord(withLogRecord: randomLogRecord())
+        thenDelegateShouldInvokeBatchFinishedAfterBatchLifespan(0.2)
+        self.delegate.didCallBatchFinished = false
+        whenInvokingAddLogRecord(withLogRecord: randomLogRecord())
+        thenDelegateShouldInvokeBatchFinishedAfterBatchLifespan(0.2)
+    }
+
+    func testAutoEndBatchAfterLifespanExpired_CancelWhenBatchEndedPrematurely() {
+        givenDefaultLogBatcher(limits: .init(maxBatchAge: 0.1, maxLogsPerBatch: 3))
+        givenRepositoryCreatesLogsSucessfully()
+        whenInvokingAddLogRecord(withLogRecord: randomLogRecord())
+        whenInvokingAddLogRecord(withLogRecord: randomLogRecord())
+        whenInvokingAddLogRecord(withLogRecord: randomLogRecord())
+        thenDelegateShouldInvokeBatchFinished()
+        self.delegate.didCallBatchFinished = false
+        thenDelegateShouldntInvokeBatchFinishedAfterBatchLifespan(0.2)
+    }
 }
 
 private extension DefaultLogBatcherTests {
@@ -74,5 +102,13 @@ private extension DefaultLogBatcherTests {
 
     func thenDelegateShouldInvokeBatchFinished() {
         wait(timeout: 1.0, until: { self.delegate.didCallBatchFinished })
+    }
+
+    func thenDelegateShouldntInvokeBatchFinishedAfterBatchLifespan(_ lifespan: TimeInterval) {
+        wait(timeout: lifespan, until: { !self.delegate.didCallBatchFinished })
+    }
+
+    func thenDelegateShouldInvokeBatchFinishedAfterBatchLifespan(_ lifespan: TimeInterval) {
+        wait(timeout: lifespan, until: { self.delegate.didCallBatchFinished })
     }
 }

@@ -21,6 +21,7 @@ class DefaultLogBatcher: LogBatcher {
     private let logLimits: LogBatchLimits
 
     private weak var delegate: LogBatcherDelegate?
+    private var batchDeadlineWorkItem: DispatchWorkItem?
     private var batch: LogsBatch?
 
     init(
@@ -55,10 +56,15 @@ private extension DefaultLogBatcher {
             guard let batch = self.batch else {
                 return
             }
+            self.cancelBatchDeadline()
             self.delegate?.batchFinished(withLogs: batch.logs)
             // TODO: Add cleanup step:
             // --> delete reported logs
             self.batch = .init(limits: self.logLimits, logs: logRecords)
+
+            if logRecords.count > 0 {
+                self.renewBatchDeadline(with: self.logLimits)
+            }
         }
     }
 
@@ -70,13 +76,35 @@ private extension DefaultLogBatcher {
                 case .success(let state):
                     if state == .closed {
                         self.renewBatch()
+                    } else if self.batchDeadlineWorkItem == nil {
+                        self.renewBatchDeadline(with: self.logLimits)
                     }
                 case .failure:
                     self.renewBatch(withLogs: [log])
                 }
             } else {
                 self.batch = .init(limits: self.logLimits, logs: [log])
+                self.renewBatchDeadline(with: self.logLimits)
             }
         }
+    }
+
+    func renewBatchDeadline(with logLimits: LogBatchLimits) {
+        self.batchDeadlineWorkItem?.cancel()
+
+        let item = DispatchWorkItem { [weak self] in
+            self?.renewBatch()
+        }
+
+        let lifespan = Int(self.logLimits.maxBatchAge * 1000)
+        let lifeInSeconds = DispatchTimeInterval.milliseconds(lifespan)
+        processorQueue.asyncAfter(deadline: .now() + lifeInSeconds, execute: item)
+
+        self.batchDeadlineWorkItem = item
+    }
+
+    func cancelBatchDeadline() {
+        self.batchDeadlineWorkItem?.cancel()
+        self.batchDeadlineWorkItem = nil
     }
 }
