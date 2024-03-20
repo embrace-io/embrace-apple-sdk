@@ -1,7 +1,7 @@
 # Embrace Apple SDK
 
-> [!CAUTION]
-> This SDK is currently in alpha and is not yet ready for production use. We expect it to be ready for production use
+> [!WARNING]
+> This SDK is currently in beta and is not yet ready for production use. We expect it to be ready for production use
 > in Q1 2024.
 >
 > We would appreciate any feedback you have on the SDK and the APIs that is provides. Please open an issue in Github,
@@ -21,12 +21,13 @@ better support mobile apps.
 * Network capture
 * OTel trace capture
 * Custom breadcrumbs
+* Custom logs
+* OpenTelemetry Export
+* Session properties
 
 ### Key Features Coming in Q1 2024
 
-* Custom logs
 * Metrickit capture
-* Session properties
 * Automatic view tracking
 * Automatic webview capture
 * Network body capture
@@ -40,6 +41,8 @@ To get started using the Embrace SDK, you'll need to:
 
 This should be done as early as possible in the runtime of your app, for instance, the `UIApplicatinDelegate.applicationDidFinishLaunching(_:)`
 could be a good place.
+
+For a more detailed walkthrough, check the [GETTING_STARTED](./GETTING_STARTED.md) doc.
 
 Here is a code snippet:
 

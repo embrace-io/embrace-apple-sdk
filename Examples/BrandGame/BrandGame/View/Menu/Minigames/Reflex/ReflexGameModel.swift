@@ -143,11 +143,7 @@ class ReflexGameModel {
 
 extension ReflexGameModel {
     private func buildSpan(startTime: Date) -> Span? {
-        guard let embrace = Embrace.client else {
-            return nil
-        }
-
-        return embrace.buildSpan(name: "reflex-measure", type: .ux)
+        return Embrace.client?.buildSpan(name: "reflex-measure", type: .ux)
             .setStartTime(time: startTime)
             .markAsKeySpan()
             .startSpan()

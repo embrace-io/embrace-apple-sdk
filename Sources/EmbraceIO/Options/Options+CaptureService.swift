@@ -22,12 +22,14 @@ public extension Embrace.Options {
     ///   - appGroupId: The app group identifier used by the app, if any.
     ///   - platform: `Platform` in which the app will run. Defaults to `.iOS`.
     ///   - endpoints: `Embrace.Endpoints` instance.
+    ///   - logLevel: `LogLevel` for Embrace console logs
     ///   - export: `OpenTelemetryExport` object to export telemetry outside of the Embrace backend.
     @objc convenience init(
         appId: String,
         appGroupId: String? = nil,
         platform: Platform = .default,
         endpoints: Embrace.Endpoints? = nil,
+        logLevel: LogLevel = .default,
         export: OpenTelemetryExport? = nil
     ) {
         self.init(
@@ -37,6 +39,7 @@ public extension Embrace.Options {
             endpoints: endpoints,
             captureServices: .automatic,
             crashReporter: EmbraceCrashReporter(),
+            logLevel: logLevel,
             export: export
         )
     }

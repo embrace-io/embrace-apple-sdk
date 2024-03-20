@@ -16,6 +16,7 @@
 		7B3143BF2AFDECCF00BA0D2F /* Icon+Meta.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B3143BE2AFDECCE00BA0D2F /* Icon+Meta.swift */; };
 		7B3143C62AFF1E7D00BA0D2F /* ReflexGameModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B3143C52AFF1E7D00BA0D2F /* ReflexGameModel.swift */; };
 		7B3229DC2B2950D500664F04 /* BubbleMinigameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B56309F2ABF323400E0DF39 /* BubbleMinigameView.swift */; };
+		7B4C0BDF2BA9F93400F0BC37 /* App+SmokeTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B4C0BDE2BA9F93400F0BC37 /* App+SmokeTest.swift */; };
 		7B4FFC2D2B1E5B7B006239F7 /* Endpoints+InfoPlist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B4FFC2C2B1E5B7B006239F7 /* Endpoints+InfoPlist.swift */; };
 		7B4FFC332B1E811B006239F7 /* UserInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B4FFC322B1E811B006239F7 /* UserInfo.swift */; };
 		7B56308E2ABE743400E0DF39 /* BrandGameApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B56308D2ABE743400E0DF39 /* BrandGameApp.swift */; };
@@ -63,6 +64,7 @@
 		7B3143B82AFDC8EC00BA0D2F /* RightBracketShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RightBracketShape.swift; sourceTree = "<group>"; };
 		7B3143BE2AFDECCE00BA0D2F /* Icon+Meta.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Icon+Meta.swift"; sourceTree = "<group>"; };
 		7B3143C52AFF1E7D00BA0D2F /* ReflexGameModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReflexGameModel.swift; sourceTree = "<group>"; };
+		7B4C0BDE2BA9F93400F0BC37 /* App+SmokeTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "App+SmokeTest.swift"; sourceTree = "<group>"; };
 		7B4FFC2C2B1E5B7B006239F7 /* Endpoints+InfoPlist.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Endpoints+InfoPlist.swift"; sourceTree = "<group>"; };
 		7B4FFC2E2B1E5D0F006239F7 /* embrace.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = embrace.xcconfig; sourceTree = "<group>"; };
 		7B4FFC2F2B1E5D68006239F7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -143,6 +145,7 @@
 			isa = PBXGroup;
 			children = (
 				7B005D752AD72E080073CAC4 /* App+Embrace.swift */,
+				7B4C0BDE2BA9F93400F0BC37 /* App+SmokeTest.swift */,
 				7B4FFC2C2B1E5B7B006239F7 /* Endpoints+InfoPlist.swift */,
 				7B4FFC2E2B1E5D0F006239F7 /* embrace.xcconfig */,
 				7B4FFC302B1E5DA4006239F7 /* embrace.local.xcconfig */,
@@ -411,6 +414,7 @@
 				7B62AD952B0040FE0087C2AE /* Minigame.swift in Sources */,
 				7BCB66282AC4742800ABD33A /* MenuList.swift in Sources */,
 				7B62AD972B0041310087C2AE /* MinigameView.swift in Sources */,
+				7B4C0BDF2BA9F93400F0BC37 /* App+SmokeTest.swift in Sources */,
 				7B3143B72AFDC52D00BA0D2F /* RightDotShape.swift in Sources */,
 				FA9505162B86640F00562A4C /* LoggingView.swift in Sources */,
 				7B3143B92AFDC8EC00BA0D2F /* RightBracketShape.swift in Sources */,
