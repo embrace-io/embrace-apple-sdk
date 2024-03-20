@@ -233,6 +233,15 @@ let package = Package(
             plugins: targetPlugins
         ),
 
+        // Utilities
+        .target(name: "EmbraceObjCUtils",
+                plugins: targetPlugins),
+        .testTarget(
+            name: "EmbraceObjCUtilsTests",
+            dependencies: ["EmbraceObjCUtils", "TestSupport"],
+            plugins: targetPlugins
+        ),
+
         // test support --------------------------------------------------------------
         .target(
             name: "TestSupport",
@@ -244,10 +253,6 @@ let package = Package(
             ],
             path: "Tests/TestSupport",
             plugins: targetPlugins
-        ),
-
-        // Utilities
-        .target(name: "EmbraceObjCUtils",
-                plugins: targetPlugins)
+        )
     ]
 )

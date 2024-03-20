@@ -328,17 +328,18 @@ typedef NS_ENUM(NSInteger, EMBReleaseMode) {
 #if UIKIT_AVAILABLE
     return [UIDevice currentDevice].systemName;
 #else
-    return  @"MacOS";
+    return  @"macOS";
 #endif
 }
 
 + (NSString *)operatingSystemVersion
 {
-#if UIKIT_AVAILABLE
-    return [UIDevice currentDevice].systemVersion;
-#else
-    return @"";
-#endif
+    NSOperatingSystemVersion operatingSystemVersion = [NSProcessInfo processInfo].operatingSystemVersion;
+    if (operatingSystemVersion.patchVersion == 0) {
+        return [NSString stringWithFormat: @"%i.%i", (int)operatingSystemVersion.majorVersion, (int)operatingSystemVersion.minorVersion];
+    } else {
+        return [NSString stringWithFormat: @"%i.%i.%i", (int)operatingSystemVersion.majorVersion, (int)operatingSystemVersion.minorVersion, (int)operatingSystemVersion.patchVersion];
+    }
 }
 
 + (NSString *)operatingSystemBuild
