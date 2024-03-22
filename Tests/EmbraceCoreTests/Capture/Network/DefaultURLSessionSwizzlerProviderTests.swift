@@ -27,7 +27,8 @@ class DefaultURLSessionSwizzlerProviderTests: XCTestCase {
             DownloadTaskWithURLRequestSwizzler.self,
             DownloadTaskWithURLRequestWithCompletionSwizzler.self,
             UploadTaskWithStreamedRequestSwizzler.self,
-            URLSessionInitWithDelegateSwizzler.self
+            URLSessionInitWithDelegateSwizzler.self,
+            SessionTaskResumeSwizzler.self
         ]
 
         // When
@@ -36,7 +37,9 @@ class DefaultURLSessionSwizzlerProviderTests: XCTestCase {
         // Then
         XCTAssertGreaterThanOrEqual(swizzlers.count, expectedTypes.count)
         for swizzler in swizzlers {
-            XCTAssertTrue(expectedTypes.contains(where: { $0 == type(of: swizzler) }))
+            XCTAssertTrue(
+                expectedTypes.contains { $0 == type(of: swizzler) },
+                "Type \(type(of: swizzler)) is not found" )
         }
     }
 }
