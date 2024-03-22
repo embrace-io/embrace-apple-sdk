@@ -8,6 +8,7 @@ extension URLSessionDelegateProxy: URLSessionTaskDelegate {
     func urlSession(_ session: URLSession,
                     task: URLSessionTask,
                     didFinishCollecting metrics: URLSessionTaskMetrics) {
+        handler.finish(task: task, data: nil, error: nil)
         let selector = #selector(
             URLSessionTaskDelegate.urlSession(_:task:didFinishCollecting:)
         )

@@ -90,6 +90,49 @@ struct URLSessionInitWithDelegateSwizzler: URLSessionSwizzler {
     }
 }
 
+struct SessionTaskResumeSwizzler: URLSessionSwizzler {
+    typealias ImplementationType = @convention(c) (URLSessionTask, Selector) -> Void
+    typealias BlockImplementationType = @convention(block) (URLSessionTask) -> Void
+    static var selector: Selector = #selector(URLSessionTask.resume)
+
+    var baseClass: AnyClass
+    private let handler: URLSessionTaskHandler
+    private var originalDelegate: URLSessionTaskDelegate?
+
+    init(handler: URLSessionTaskHandler, baseClass: AnyClass = URLSessionTask.self) {
+        self.handler = handler
+        self.baseClass = baseClass
+    }
+
+    func install() throws {
+        if #available(iOS 15.0, *) {
+            try swizzleInstanceMethod { originalImplementation -> BlockImplementationType in
+                return { [weak handler = self.handler] task in
+                    if let handler = handler {
+                        handler.create(task: task) { captured in
+                            // if the task wasn't captured by other swizzlers it probably means
+                            // it was an async/await task
+                            // we set a proxy delegate to get a callback when the task finishes
+                            if captured {
+                                let originalDelegate = task.delegate
+                                task.delegate = URLSessionDelegateProxy(originalDelegate: originalDelegate, handler: handler)
+                            }
+
+                            // call original
+                            originalImplementation(task, Self.selector)
+                        }
+                    } else {
+                        // call original
+                        originalImplementation(task, Self.selector)
+                    }
+                }
+            }
+        } else {
+            // only supported in ios 15+
+        }
+    }
+}
+
 struct DataTaskWithURLSwizzler: URLSessionSwizzler {
     typealias ImplementationType = @convention(c) (URLSession, Selector, URL) -> URLSessionDataTask
     typealias BlockImplementationType = @convention(block) (URLSession, URL) -> URLSessionDataTask

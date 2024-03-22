@@ -10,8 +10,14 @@ class MockURLSessionTaskHandler: URLSessionTaskHandler {
     var didInvokeCreate = false
     var createReceivedTask: URLSessionTask?
     func create(task: URLSessionTask) {
+        create(task: task, completion: nil)
+    }
+
+    func create(task: URLSessionTask, completion: ((Bool) -> Void)?) {
         didInvokeCreate = true
         createReceivedTask = task
+
+        completion?(true)
     }
 
     var didInvokeFinish = false

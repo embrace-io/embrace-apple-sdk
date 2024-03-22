@@ -10,6 +10,7 @@ import EmbraceOTel
 
 protocol URLSessionTaskHandler: AnyObject {
     func create(task: URLSessionTask)
+    func create(task: URLSessionTask, completion: ((Bool) -> Void)?)
     func finish(task: URLSessionTask, data: Data?, error: (any Error)?)
 }
 
@@ -44,8 +45,18 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
     }
 
     func create(task: URLSessionTask) {
+        create(task: task, completion: nil)
+    }
+
+    func create(task: URLSessionTask, completion: ((Bool) -> Void)? = nil) {
         queue.async {
             guard self.dataSource?.state == .active else {
+                completion?(false)
+                return
+            }
+
+            guard task.embraceCaptured == false else {
+                completion?(false)
                 return
             }
 
@@ -54,8 +65,12 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
                 let url = request.url,
                 let otel = self.dataSource?.otel else {
                 // TODO: Shall we log this as an error instead of only returning?
+                completion?(false)
                 return
             }
+
+            // flag as captured
+            task.embraceCaptured = true
 
             // Probably this could be moved to a separate class
             var attributes: [String: String] = [:]
@@ -94,6 +109,8 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
             )
 
             self.spans[task] = networkSpan.startSpan()
+
+            completion?(true)
         }
     }
 
@@ -116,7 +133,7 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
                 span.setAttribute(key: SpanAttribute.responseSize, value: totalData.count)
             }
 
-            if let error = error {
+            if let error = error ?? task.error {
                 // Should this be something else?
                 let nsError = error as NSError
                 span.setAttribute(key: SpanAttribute.errorType, value: nsError.domain)
