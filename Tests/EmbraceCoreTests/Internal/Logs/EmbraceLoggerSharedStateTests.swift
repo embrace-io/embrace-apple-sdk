@@ -13,7 +13,7 @@ class DummyEmbraceResourceProvider: EmbraceResourceProvider {
 }
 
 class DummyLogControllable: LogControllable {
-    func setup() {}
+    func uploadAllPersistedLogs() {}
     func batchFinished(withLogs logs: [LogRecord]) {}
 }
 

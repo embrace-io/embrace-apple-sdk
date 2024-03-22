@@ -8,7 +8,7 @@ import EmbraceUpload
 import EmbraceCommon
 
 protocol LogControllable: LogBatcherDelegate {
-    func setup()
+    func uploadAllPersistedLogs()
 }
 
 class LogController: LogControllable {
@@ -27,7 +27,7 @@ class LogController: LogControllable {
         self.sessionController = controller
     }
 
-    func setup() {
+    func uploadAllPersistedLogs() {
         guard let storage = storage else {
             return
         }

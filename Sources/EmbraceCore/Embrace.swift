@@ -181,7 +181,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
                         currentSessionId: self?.sessionController.currentSession?.id,
                         crashReporter: self?.captureServices.crashReporter
                     )
-                    self?.logController.setup()
+                    self?.logController.uploadAllPersistedLogs()
                 }
             }
         }

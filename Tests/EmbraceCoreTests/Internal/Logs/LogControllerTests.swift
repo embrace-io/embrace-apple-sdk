@@ -207,7 +207,7 @@ private extension LogControllerTests {
     }
 
     func whenInvokingSetup() {
-        sut.setup()
+        sut.uploadAllPersistedLogs()
     }
 
     func whenInvokingBatchFinished(withLogs logs: [LogRecord]) {

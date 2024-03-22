@@ -10,7 +10,7 @@ import TestSupport
 
 final class GenericLogExporterTests: XCTestCase {
     class DummyLogControllable: LogControllable {
-        func setup() {}
+        func uploadAllPersistedLogs() {}
         func batchFinished(withLogs logs: [LogRecord]) {}
     }
 
