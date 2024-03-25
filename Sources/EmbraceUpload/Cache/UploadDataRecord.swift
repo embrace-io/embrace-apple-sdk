@@ -20,19 +20,28 @@ extension UploadDataRecord: FetchableRecord, PersistableRecord, MutablePersistab
     public static let persistenceConflictPolicy = PersistenceConflictPolicy(insert: .replace, update: .replace)
 }
 
+extension UploadDataRecord {
+    struct Schema {
+        static var id: Column { Column("id") }
+        static var type: Column { Column("type") }
+        static var data: Column { Column("data") }
+        static var attemptCount: Column { Column("attempt_count") }
+        static var date: Column { Column("date") }
+    }
+}
+
 extension UploadDataRecord: TableRecord {
     public static let databaseTableName: String = "uploads"
 
     internal static func defineTable(db: Database) throws {
         try db.create(table: UploadDataRecord.databaseTableName, options: .ifNotExists) { t in
+            t.column(Schema.id.name, .text).notNull()
+            t.column(Schema.type.name, .integer).notNull()
+            t.primaryKey([Schema.id.name, Schema.type.name])
 
-            t.column("id", .text).notNull()
-            t.column("type", .integer).notNull()
-            t.primaryKey(["id", "type"])
-
-            t.column("data", .blob).notNull()
-            t.column("attempt_count", .integer).notNull()
-            t.column("date", .datetime).notNull()
+            t.column(Schema.data.name, .blob).notNull()
+            t.column(Schema.attemptCount.name, .integer).notNull()
+            t.column(Schema.date.name, .datetime).notNull()
         }
     }
 }

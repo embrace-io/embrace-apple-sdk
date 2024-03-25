@@ -151,32 +151,15 @@ class EmbraceUploadCache {
     ///   - type: Type of the data
     ///   - attemptCount: New attempt count
     /// - Returns: Returns the updated `UploadDataRecord`, if any
-    @discardableResult func updateAttemptCount(
+    func updateAttemptCount(
         id: String,
         type: EmbraceUploadType,
         attemptCount: Int
-    ) throws -> UploadDataRecord? {
-        guard let uploadData = try fetchUploadData(id: id, type: type) else {
-            return nil
-        }
-
-        try updateAttemptCount(uploadData: uploadData, attemptCount: attemptCount)
-
-        return uploadData
-    }
-
-    /// Updates the attempt count of the given `UploadDataRecord`
-    /// - Parameters:
-    ///   - uploadData: `UploadDataRecord` instance to update
-    ///   - attemptCount: New attempt count
-    func updateAttemptCount(uploadData: UploadDataRecord, attemptCount: Int) throws {
-        var record = uploadData
-
+    ) throws {
         try dbQueue.write { db in
-            record.attemptCount = attemptCount
-            if try record.exists(db) {
-                try record.update(db)
-            }
+            let filter = UploadDataRecord.Schema.id == id && UploadDataRecord.Schema.type == type
+            try UploadDataRecord.filter(filter)
+                .updateAll(db, UploadDataRecord.Schema.attemptCount.set(to: attemptCount))
         }
     }
 
