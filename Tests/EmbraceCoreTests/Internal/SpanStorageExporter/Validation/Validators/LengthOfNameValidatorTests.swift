@@ -3,18 +3,22 @@
 //
 
 import XCTest
+
 @testable import EmbraceCore
 @testable import OpenTelemetrySdk
+@testable import EmbraceOTel
+import EmbraceCommon
 
 final class LengthOfNameValidatorTests: XCTestCase {
 
-    func spanData(named name: String) -> SpanData {
+    func spanData(named name: String, type: SpanType = .session) -> SpanData {
         return SpanData(
             traceId: .random(),
             spanId: .random(),
             name: name,
             kind: .internal,
             startTime: Date(),
+            attributes: [SpanAttributeKey.type.rawValue: .string(type.rawValue)],
             endTime: Date()
         )
     }
@@ -53,4 +57,12 @@ final class LengthOfNameValidatorTests: XCTestCase {
         XCTAssertFalse(validator.validate(data: &invalid5Character20bits))
     }
 
+    func testOnNetworkSpan_validate_shouldNotTryToValidateLongNames() throws {
+        let longName = "GET https://this-is-a-really-long-url.com/with/some/long/path?and=with&some=parameters&in=url"
+        var span = spanData(named: longName, type: .networkHTTP)
+
+        let validator = LengthOfNameValidator()
+
+        XCTAssertTrue(validator.validate(data: &span))
+    }
 }

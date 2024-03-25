@@ -15,6 +15,13 @@ class LengthOfNameValidator: SpanDataValidator {
     }
 
     func validate(data: inout SpanData) -> Bool {
+        guard shouldValidate(data: data) else {
+            return true
+        }
         return allowedCharacterCount.contains(data.name.count)
+    }
+
+    private func shouldValidate(data: SpanData) -> Bool {
+        return data.embType != .networkHTTP
     }
 }
