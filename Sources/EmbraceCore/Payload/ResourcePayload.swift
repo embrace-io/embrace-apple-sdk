@@ -93,15 +93,15 @@ struct ResourcePayload: Codable {
                     self.deviceManufacturer = resource.stringValue
                 case .screenResolution:
                     self.screenResolution = resource.stringValue
-                case .OSVersion:
+                case .osVersion:
                     self.osVersion = resource.stringValue
-                case .OSBuild:
+                case .osBuild:
                     self.osBuild = resource.stringValue
                 case .osType:
                     self.osType = resource.stringValue
                 case .osVariant:
                     self.osAlternateType = resource.stringValue
-                case .locale, .timezone:
+                case .locale, .timezone, .osName, .osDescription:
                     // This is part of the Metadata
                     break
                 }

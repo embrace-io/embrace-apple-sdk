@@ -35,19 +35,32 @@ class DeviceInfoCaptureService: ResourceCaptureService {
 
         // os version
         addResource(
-            key: DeviceResourceKey.OSVersion.rawValue,
+            key: DeviceResourceKey.osVersion.rawValue,
             value: .string(EMBDevice.operatingSystemVersion)
         )
 
         // os build
         addResource(
-            key: DeviceResourceKey.OSBuild.rawValue,
+            key: DeviceResourceKey.osBuild.rawValue,
             value: .string(EMBDevice.operatingSystemBuild)
         )
 
         // os variant
         addResource(
             key: DeviceResourceKey.osVariant.rawValue,
+            value: .string(EMBDevice.operatingSystemType)
+        )
+
+        // os type
+        // Should always be "darwin" as can be seen in semantic convention docs:
+        // https://opentelemetry.io/docs/specs/semconv/resource/os/
+        addResource(
+            key: DeviceResourceKey.osType.rawValue,
+            value: .string("darwin")
+        )
+
+        addResource(
+            key: DeviceResourceKey.osName.rawValue,
             value: .string(EMBDevice.operatingSystemType)
         )
 

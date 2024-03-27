@@ -23,7 +23,7 @@ class ResourcePayloadTests: XCTestCase {
             MetadataRecord.createResourceRecord(key: "emb.device.is_jailbroken", value: "true"),
             MetadataRecord.createResourceRecord(key: "emb.device.disk_size", value: "494384795648"),
             MetadataRecord.createResourceRecord(key: "emb.device.architecture", value: "arm64"),
-            MetadataRecord.createResourceRecord(key: "emb.device.model", value: "arm64_model"),
+            MetadataRecord.createResourceRecord(key: "emb.device.model.identifier", value: "arm64_model"),
             MetadataRecord.createResourceRecord(key: "emb.device.manufacturer", value: "Apple"),
             MetadataRecord.createResourceRecord(key: "emb.device.screenResolution", value: "1179x2556"),
             MetadataRecord.createResourceRecord(key: "emb.os.version", value: "17.0.1"),

@@ -65,7 +65,7 @@ final class DeviceInfoCaptureServiceTests: XCTestCase {
 
         // os version
         let osVersion = try handler.fetchMetadata(
-            key: DeviceResourceKey.OSVersion.rawValue,
+            key: DeviceResourceKey.osVersion.rawValue,
             type: .requiredResource,
             lifespan: .process,
             lifespanId: processId
@@ -75,7 +75,7 @@ final class DeviceInfoCaptureServiceTests: XCTestCase {
 
         // os build
         let osBuild = try handler.fetchMetadata(
-            key: DeviceResourceKey.OSBuild.rawValue,
+            key: DeviceResourceKey.osBuild.rawValue,
             type: .requiredResource,
             lifespan: .process,
             lifespanId: processId
@@ -110,8 +110,29 @@ final class DeviceInfoCaptureServiceTests: XCTestCase {
             lifespan: .process,
             lifespanId: processId
         )
+
         XCTAssertNotNil(model)
         XCTAssertEqual(model!.stringValue, EMBDevice.model)
+
+        // osType
+        let osType = try handler.fetchMetadata(
+            key: DeviceResourceKey.osType.rawValue,
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: processId
+        )
+        XCTAssertNotNil(osType)
+        XCTAssertEqual(try XCTUnwrap(osType?.stringValue), "darwin")
+
+        // osName
+        let osName = try handler.fetchMetadata(
+            key: DeviceResourceKey.osName.rawValue,
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: processId
+        )
+        XCTAssertNotNil(osName)
+        XCTAssertEqual(try XCTUnwrap(osName?.stringValue), EMBDevice.operatingSystemType)
     }
 
     func test_notStarted() throws {

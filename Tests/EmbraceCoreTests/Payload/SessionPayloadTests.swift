@@ -123,14 +123,14 @@ final class SessionPayloadTests: XCTestCase {
             lifespanId: ProcessIdentifier.current.hex
         ),
         .init(
-            key: DeviceResourceKey.OSVersion.rawValue,
+            key: DeviceResourceKey.osVersion.rawValue,
             value: .string("fake_os_version"),
             type: .requiredResource,
             lifespan: .process,
             lifespanId: ProcessIdentifier.current.hex
         ),
         .init(
-            key: DeviceResourceKey.OSBuild.rawValue,
+            key: DeviceResourceKey.osBuild.rawValue,
             value: .string("fake_os_build"),
             type: .requiredResource,
             lifespan: .process,

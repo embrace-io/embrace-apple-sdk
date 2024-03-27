@@ -50,9 +50,9 @@ struct DeviceInfoPayload: Codable {
                 self.timeZone = resource.stringValue
             case .totalDiskSpace:
                 self.totalDiskSpace = resource.integerValue
-            case .OSVersion:
+            case .osVersion:
                 self.osVersion = resource.stringValue
-            case .OSBuild:
+            case .osBuild:
                 self.osBuild = resource.stringValue
             case .architecture:
                 self.architecture = resource.stringValue
@@ -66,6 +66,8 @@ struct DeviceInfoPayload: Codable {
                 self.osType = resource.stringValue
             case .osVariant:
                 self.osVariant = resource.stringValue
+            case .osName, .osDescription:
+                break
             }
         }
     }
