@@ -149,16 +149,33 @@ final class ViewCaptureServiceTests: XCTestCase {
         XCTAssertEqual(otel.spanProcessor.startedSpans[0].attributes["view.title"], .string("a customized class title"))
         XCTAssertEqual(otel.spanProcessor.startedSpans[0].attributes["view.name"], .string(String(describing: vc.self)))
     }
+
+    func test_manuallyIgnoreView() throws {
+        // given an installed and started view capture service
+        service.install(otel: otel)
+        service.start()
+
+        // when a view is set to manually be ignored
+        let vc = ViewCaptureTestViewController()
+        vc.logView = false
+        // then appears and disappears
+        vc.viewDidAppear(true)
+        vc.viewDidDisappear(true)
+
+        // then the events are not captured
+        XCTAssertEqual(otel.spanProcessor.startedSpans.count, 0)
+        XCTAssertEqual(otel.spanProcessor.endedSpans.count, 0)
+    }
 }
 
 class ViewCaptureTestViewController: UIViewController {
     var customTitle = "Custom Title"
+    var logView = true
 }
 
 extension ViewCaptureTestViewController: EmbraceViewControllerCustomization {
-    func nameForViewControllerInEmbrace() -> String? {
-        customTitle
-    }
+    var nameForViewControllerInEmbrace: String? { customTitle }
+    var shouldCaptureViewInEmbrace: Bool { logView }
 }
 
 #endif

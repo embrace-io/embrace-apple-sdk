@@ -14,6 +14,7 @@ extension CaptureServiceFactory {
         return [
             URLSessionCaptureService(),
             TapCaptureService(),
+            ViewCaptureService(),
 
             LowMemoryWarningCaptureService(),
             LowPowerModeCaptureService()

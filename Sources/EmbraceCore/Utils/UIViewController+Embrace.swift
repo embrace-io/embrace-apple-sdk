@@ -11,7 +11,7 @@ extension UIViewController {
         var title: String?
 
         if let customized = self as? EmbraceViewControllerCustomization {
-            title = customized.nameForViewControllerInEmbrace()
+            title = customized.nameForViewControllerInEmbrace
         } else {
             title = self.title
         }
@@ -19,10 +19,12 @@ extension UIViewController {
         return title ?? ""
     }
 
-    var embViewIgnored: Bool {
-        // TODO: if automatic view capture is disabled, return true
+    var embCaptureView: Bool {
+        if let customized = self as? EmbraceViewControllerCustomization {
+            return customized.shouldCaptureViewInEmbrace
+        }
 
-        return false
+        return true
     }
 }
 

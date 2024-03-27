@@ -14,7 +14,7 @@ extension ViewCaptureService {
             return
         }
 
-        guard !vc.embViewIgnored else {
+        guard vc.embCaptureView else {
             ConsoleLog.debug("\(vc.description) View is manually ignored")
             return
         }
