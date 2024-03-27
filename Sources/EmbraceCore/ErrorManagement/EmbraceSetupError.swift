@@ -11,6 +11,7 @@ public enum EmbraceSetupError: Error, Equatable {
     case invalidOptions(_ description: String)
     case failedStorageCreation(_ description: String)
     case unableToInitialize(_ description: String)
+    case initializationNotAllowed(_ description: String)
 }
 
 // Allows bridging to NSError
@@ -34,6 +35,8 @@ extension EmbraceSetupError: LocalizedError, CustomNSError {
             return -5
         case .unableToInitialize:
             return -6
+        case .initializationNotAllowed:
+            return -7
         }
     }
 
@@ -50,6 +53,8 @@ extension EmbraceSetupError: LocalizedError, CustomNSError {
         case .unableToInitialize(let description):
             return description
         case .failedStorageCreation(let description):
+            return description
+        case .initializationNotAllowed(let description):
             return description
         }
     }

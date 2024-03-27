@@ -93,6 +93,10 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
             throw EmbraceSetupError.invalidThread("Embrace must be setup on the main thread")
         }
 
+        if ProcessInfo.processInfo.isSwiftUIPreview {
+            throw EmbraceSetupError.initializationNotAllowed("Embrace cannot be initialized on SwiftUI Previews")
+        }
+
         return try Embrace.synchronizationQueue.sync {
             if let client = client {
                 ConsoleLog.warning("Embrace was already initialized!")
