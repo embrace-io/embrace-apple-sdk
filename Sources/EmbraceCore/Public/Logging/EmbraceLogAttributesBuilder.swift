@@ -16,6 +16,7 @@ class EmbraceLogAttributesBuilder {
     }
 
     private enum Keys {
+        static let type = "emb.type"
         static let state = "emb.state"
         static let sessionId = "emb.session_id"
         static let stackTrace = "emb.stacktrace.ios"
@@ -44,6 +45,12 @@ class EmbraceLogAttributesBuilder {
         } catch let exception {
             ConsoleLog.error("Couldn't convert stack trace to json string: ", exception.localizedDescription)
         }
+        return self
+    }
+
+    @discardableResult
+    func addLogType(_ logType: LogType) -> Self {
+        attributes[Keys.type] = logType.rawValue
         return self
     }
 

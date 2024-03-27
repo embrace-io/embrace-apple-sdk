@@ -31,6 +31,7 @@ extension Embrace {
 
         let finalAttributes = attributesBuilder
             .addStackTrace(stackTrace)
+            .addLogType(.default)
             .addApplicationState()
             .addApplicationProperties()
             .addSessionIdentifier()
