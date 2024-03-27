@@ -12,6 +12,11 @@
 #import <sys/sysctl.h>
 #import "EMBDevice.h"
 
+#if __has_include(<WatchKit/WatchKit.h>)
+#define WATCHKIT_AVAILABLE 1
+#import <WatchKit/WatchKit.h>
+#endif
+
 #if __has_include(<UIKit/UIKit.h>)
 #define UIKIT_AVAILABLE 1
 #import <UIKit/UIKit.h>
@@ -325,7 +330,9 @@ typedef NS_ENUM(NSInteger, EMBReleaseMode) {
 
 + (NSString *)operatingSystemType
 {
-#if UIKIT_AVAILABLE
+#if WATCHKIT_AVAILABLE
+    return [WKInterfaceDevice currentDevice].systemName;
+#elif UIKIT_AVAILABLE
     return [UIDevice currentDevice].systemName;
 #else
     return  @"macOS";
@@ -358,7 +365,13 @@ typedef NS_ENUM(NSInteger, EMBReleaseMode) {
 
 + (NSString *)screenResolution
 {
-#if UIKIT_AVAILABLE
+#if WATCHKIT_AVAILABLE
+    CGRect bounds = [WKInterfaceDevice currentDevice].screenBounds;
+    CGFloat scale = [WKInterfaceDevice currentDevice].screenScale;
+
+    NSString *resolution = [NSString stringWithFormat:@"%@x%@", @(bounds.size.width * scale), @(bounds.size.height * scale)];
+    return resolution;
+#elif UIKIT_AVAILABLE
     CGRect bounds = [[UIScreen mainScreen] bounds];
     CGFloat scale = [[UIScreen mainScreen] respondsToSelector:@selector(scale)] ? [[UIScreen mainScreen] scale] : 1.0;
     

@@ -1,7 +1,7 @@
 //
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
-#if canImport(UIKit)
+#if canImport(UIKit) && !os(watchOS)
 import UIKit
 import EmbraceCaptureService
 import EmbraceCommon
