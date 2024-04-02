@@ -3,6 +3,7 @@
 //
 
 import EmbraceIO
+import StdoutExporter
 
 extension BrandGameApp {
 #if DEBUG
@@ -13,9 +14,17 @@ extension BrandGameApp {
             appGroupId: nil,
             platform: .default,
             endpoints: Embrace.Endpoints.fromInfoPlist(),
-            logLevel: .debug
+            logLevel: .debug,
+            export: otelExport
         )
     }
+
+    private var otelExport: OpenTelemetryExport {
+        OpenTelemetryExport(
+            spanExporter: StdoutExporter(isDebug: true)
+        )
+    }
+
 #else
     // https://dash.embrace.io/app/kj9hd
     var embraceOptions: Embrace.Options {
@@ -26,4 +35,5 @@ extension BrandGameApp {
         )
     }
 #endif
+
 }

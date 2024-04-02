@@ -16,6 +16,7 @@
 		7B3143BF2AFDECCF00BA0D2F /* Icon+Meta.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B3143BE2AFDECCE00BA0D2F /* Icon+Meta.swift */; };
 		7B3143C62AFF1E7D00BA0D2F /* ReflexGameModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B3143C52AFF1E7D00BA0D2F /* ReflexGameModel.swift */; };
 		7B3229DC2B2950D500664F04 /* BubbleMinigameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B56309F2ABF323400E0DF39 /* BubbleMinigameView.swift */; };
+		7B3BD2192BBC5A1600938444 /* StdoutExporter in Frameworks */ = {isa = PBXBuildFile; productRef = 7B3BD2182BBC5A1600938444 /* StdoutExporter */; };
 		7B4C0BDF2BA9F93400F0BC37 /* App+SmokeTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B4C0BDE2BA9F93400F0BC37 /* App+SmokeTest.swift */; };
 		7B4FFC2D2B1E5B7B006239F7 /* Endpoints+InfoPlist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B4FFC2C2B1E5B7B006239F7 /* Endpoints+InfoPlist.swift */; };
 		7B4FFC332B1E811B006239F7 /* UserInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B4FFC322B1E811B006239F7 /* UserInfo.swift */; };
@@ -39,7 +40,6 @@
 		7BCB662E2AC476BC00ABD33A /* NetworkStressTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BCB662D2AC476BC00ABD33A /* NetworkStressTest.swift */; };
 		7BD901432B62ED2200053B1E /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = 7BD901422B62ED2200053B1E /* EmbraceCore */; };
 		7BD901452B62ED2200053B1E /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = 7BD901442B62ED2200053B1E /* EmbraceCrash */; };
-		7BD901472B62ED2200053B1E /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = 7BD901462B62ED2200053B1E /* EmbraceIO */; };
 		FA9505162B86640F00562A4C /* LoggingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA9505152B86640F00562A4C /* LoggingView.swift */; };
 /* End PBXBuildFile section */
 
@@ -98,10 +98,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				7BD901472B62ED2200053B1E /* EmbraceIO in Frameworks */,
 				7B005D782AD72E4D0073CAC4 /* EmbraceIO in Frameworks */,
 				7BD901452B62ED2200053B1E /* EmbraceCrash in Frameworks */,
 				7BD901432B62ED2200053B1E /* EmbraceCore in Frameworks */,
+				7B3BD2192BBC5A1600938444 /* StdoutExporter in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -338,7 +338,7 @@
 				7B005D772AD72E4D0073CAC4 /* EmbraceIO */,
 				7BD901422B62ED2200053B1E /* EmbraceCore */,
 				7BD901442B62ED2200053B1E /* EmbraceCrash */,
-				7BD901462B62ED2200053B1E /* EmbraceIO */,
+				7B3BD2182BBC5A1600938444 /* StdoutExporter */,
 			);
 			productName = BrandGame;
 			productReference = 7B56308A2ABE743400E0DF39 /* BrandGame.app */;
@@ -370,6 +370,7 @@
 			mainGroup = 7B5630812ABE743400E0DF39;
 			packageReferences = (
 				7BD901412B62ED2200053B1E /* XCLocalSwiftPackageReference "../.." */,
+				7B3BD1FD2BBC5A1600938444 /* XCRemoteSwiftPackageReference "opentelemetry-swift" */,
 			);
 			productRefGroup = 7B56308B2ABE743400E0DF39 /* Products */;
 			projectDirPath = "";
@@ -642,10 +643,26 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		7B3BD1FD2BBC5A1600938444 /* XCRemoteSwiftPackageReference "opentelemetry-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/open-telemetry/opentelemetry-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.5.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		7B005D772AD72E4D0073CAC4 /* EmbraceIO */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = EmbraceIO;
+		};
+		7B3BD2182BBC5A1600938444 /* StdoutExporter */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7B3BD1FD2BBC5A1600938444 /* XCRemoteSwiftPackageReference "opentelemetry-swift" */;
+			productName = StdoutExporter;
 		};
 		7BD901422B62ED2200053B1E /* EmbraceCore */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -654,10 +671,6 @@
 		7BD901442B62ED2200053B1E /* EmbraceCrash */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = EmbraceCrash;
-		};
-		7BD901462B62ED2200053B1E /* EmbraceIO */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = EmbraceIO;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
