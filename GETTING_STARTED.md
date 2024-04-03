@@ -153,7 +153,7 @@ For convenience, we use the `Embrace.client` static accessor to build this span.
 
 ### Exporting Logs and Traces using OpenTelemetry
 
-To export your app's logs and traces using the Embrace iOS SDK to the [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) or a backend of your choice, initialize your `Embrace.Options` object with an [`OpenTelemetryExport`](./Sources/EmbraceCore/Public/OpenTelemetryExport.swift) object.
+To export your app's logs and traces using the Embrace iOS SDK to the [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) or a backend of your choice, initialize your `Embrace.Options` with an [`OpenTelemetryExport`](./Sources/EmbraceCore/Public/OpenTelemetryExport.swift) object.
 
 This object takes optional SpanExporters and LogExporters that point to your ingest points. Here are some example Exporter objects, initialized using HTTP endpoints that are specific to the OTel Collector or your chosen backend:
 
