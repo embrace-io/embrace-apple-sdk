@@ -6,13 +6,13 @@ import Foundation
 import EmbraceCommon
 import EmbraceOTel
 
-extension Embrace {
+@objc extension Embrace {
     private var otel: EmbraceOTel { .init() }
 
     public func log(
         _ message: String,
-        attributes: [String: String],
-        severity: LogSeverity
+        severity: LogSeverity = .info,
+        attributes: [String: String] = [:]
     ) {
         /*
          If we want to keep this method cleaner, we could move that to `EmbraceLogAttributesBuilder`

@@ -4,7 +4,7 @@
 
 import Foundation
 
-public enum LogSeverity: Int, Codable {
+@objc public enum LogSeverity: Int, Codable {
     case info = 9
     case warn = 13
     case error = 17

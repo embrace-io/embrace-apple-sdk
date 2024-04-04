@@ -122,7 +122,7 @@ private extension LoggingView {
             print("Wrong severity number")
             return
         }
-        Embrace.client?.log(logMessage, attributes: attributes, severity: severity)
+        Embrace.client?.log(logMessage, severity: severity, attributes: attributes)
         cleanUpFields()
     }
 
