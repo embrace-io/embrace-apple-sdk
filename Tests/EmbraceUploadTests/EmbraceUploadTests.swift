@@ -8,16 +8,6 @@ import GRDB
 @testable import EmbraceUpload
 
 class EmbraceUploadTests: XCTestCase {
-
-    static let testSessionsUrl = URL(string: "https://embrace.test.com/upload/sessions")!
-    static let testBlobsUrl = URL(string: "https://embrace.test.com/upload/blobs")!
-    static let testLogsUrl = URL(string: "https://embrace.test.com/upload/logs")!
-
-    static let testEndpointOptions = EmbraceUpload.EndpointOptions(
-        sessionsURL: EmbraceUploadTests.testSessionsUrl,
-        blobsURL: EmbraceUploadTests.testBlobsUrl,
-        logsURL: EmbraceUploadTests.testLogsUrl
-    )
     static let testCacheOptions = EmbraceUpload.CacheOptions(
         cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory())
     )!
@@ -41,14 +31,12 @@ class EmbraceUploadTests: XCTestCase {
         urlSessionconfig.protocolClasses = [EmbraceHTTPMock.self]
 
         testOptions = EmbraceUpload.Options(
-            endpoints: EmbraceUploadTests.testEndpointOptions,
+            endpoints: testEndpointOptions(testName: testName),
             cache: EmbraceUploadTests.testCacheOptions,
             metadata: EmbraceUploadTests.testMetadataOptions,
             redundancy: EmbraceUploadTests.testRedundancyOptions,
             urlSessionConfiguration: urlSessionconfig
         )
-
-        EmbraceHTTPMock.setUp()
 
         self.queue = DispatchQueue(label: "com.test.embrace.queue", attributes: .concurrent)
         module = try EmbraceUpload(options: testOptions, queue: queue)
@@ -96,7 +84,7 @@ class EmbraceUploadTests: XCTestCase {
     }
 
     func test_success() throws {
-        EmbraceHTTPMock.mock(url: Self.testSessionsUrl)
+        EmbraceHTTPMock.mock(url: testSessionsUrl())
 
         // given valid values
         let expectation = XCTestExpectation()
@@ -115,7 +103,7 @@ class EmbraceUploadTests: XCTestCase {
     }
 
     func test_cacheFlowOnSuccess() throws {
-        EmbraceHTTPMock.mock(url: Self.testSessionsUrl)
+        EmbraceHTTPMock.mock(url: testSessionsUrl())
 
         // given valid values
         let expectation1 = XCTestExpectation(description: "1. Data should be cached in the database")
@@ -213,8 +201,8 @@ class EmbraceUploadTests: XCTestCase {
         _ = XCTWaiter.wait(for: [XCTestExpectation()], timeout: .defaultTimeout)
 
         // then requests are made
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(EmbraceUploadTests.testSessionsUrl).count, 1)
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(EmbraceUploadTests.testBlobsUrl).count, 1)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count, 1)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testBlobsUrl()).count, 1)
     }
 
     func test_retryCachedData_emptyCache() throws {
@@ -226,8 +214,8 @@ class EmbraceUploadTests: XCTestCase {
         _ = XCTWaiter.wait(for: [XCTestExpectation()], timeout: .defaultTimeout)
 
         // then no requests are made
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(EmbraceUploadTests.testSessionsUrl).count, 0)
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(EmbraceUploadTests.testBlobsUrl).count, 0)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count, 0)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testBlobsUrl()).count, 0)
     }
 
     func test_sessionsEndpoint() throws {
@@ -237,9 +225,9 @@ class EmbraceUploadTests: XCTestCase {
         wait(delay: .defaultTimeout)
 
         // then a request to the right endpoint is made
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(EmbraceUploadTests.testSessionsUrl).count, 1)
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(EmbraceUploadTests.testBlobsUrl).count, 0)
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(EmbraceUploadTests.testLogsUrl).count, 0)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count, 1)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testBlobsUrl()).count, 0)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 0)
     }
 
     func test_blobsEndpoint() throws {
@@ -249,9 +237,9 @@ class EmbraceUploadTests: XCTestCase {
         wait(delay: .defaultTimeout)
 
         // then a request to the right endpoint is made
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(EmbraceUploadTests.testSessionsUrl).count, 0)
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(EmbraceUploadTests.testBlobsUrl).count, 1)
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(EmbraceUploadTests.testLogsUrl).count, 0)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count, 0)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testBlobsUrl()).count, 1)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 0)
     }
 
     func test_logsEndpoint() throws {
@@ -261,8 +249,30 @@ class EmbraceUploadTests: XCTestCase {
         wait(delay: .defaultTimeout)
 
         // then a request to the right endpoint is made
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(EmbraceUploadTests.testSessionsUrl).count, 0)
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(EmbraceUploadTests.testBlobsUrl).count, 0)
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(EmbraceUploadTests.testLogsUrl).count, 1)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count, 0)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testBlobsUrl()).count, 0)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 1)
+    }
+}
+
+private extension EmbraceUploadTests {
+    func testSessionsUrl(testName: String = #function) -> URL {
+        URL(string: "https://embrace.\(testName).com/upload/sessions")!
+    }
+
+    func testBlobsUrl(testName: String = #function) -> URL {
+        URL(string: "https://embrace.\(testName).com/upload/blobs")!
+    }
+
+    func testLogsUrl(testName: String = #function) -> URL {
+        URL(string: "https://embrace.\(testName).com/upload/logs")!
+    }
+
+    func testEndpointOptions(testName: String) -> EmbraceUpload.EndpointOptions {
+        .init(
+            sessionsURL: testSessionsUrl(testName: testName),
+            blobsURL: testBlobsUrl(testName: testName),
+            logsURL: testLogsUrl(testName: testName)
+        )
     }
 }

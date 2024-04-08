@@ -7,20 +7,20 @@ import TestSupport
 @testable import EmbraceConfig
 
 class EmbraceConfigTests: XCTestCase {
-
-    static let testUrl = URL(string: "https://embrace.test.com/config")!
     static var urlSessionConfig: URLSessionConfiguration!
 
     override func setUpWithError() throws {
         EmbraceConfigTests.urlSessionConfig = URLSessionConfiguration.ephemeral
         EmbraceConfigTests.urlSessionConfig.protocolClasses = [EmbraceHTTPMock.self]
-
-        EmbraceHTTPMock.setUp()
     }
 
-    func testOptions(deviceId: String, minimumUpdateInterval: TimeInterval = 0) -> EmbraceConfig.Options {
+    func testOptions(
+        testName: String = #function,
+        deviceId: String,
+        minimumUpdateInterval: TimeInterval = 0
+    ) -> EmbraceConfig.Options {
         return EmbraceConfig.Options(
-            apiBaseUrl: "https://embrace.test.com/config",
+            apiBaseUrl: "https://embrace.\(testName).com/config",
             queue: DispatchQueue(label: "com.test.embrace.queue", attributes: .concurrent),
             appId: TestConstants.appId,
             deviceId: deviceId,
@@ -33,11 +33,7 @@ class EmbraceConfigTests: XCTestCase {
         )
     }
 
-    func testUrl(options: EmbraceConfig.Options) -> URL {
-        return URL(string: "\(options.apiBaseUrl)?appId=\(options.appId)&osVersion=\(options.osVersion)&appVersion=\(options.appVersion)&deviceId=\(options.deviceId)")!
-    }
-
-    func test_frequentUpdatesIgnored() {
+    func test_frequentUpdatesIgnored() throws {
         // given a config with 1 hour minimum update interval
         let options = testOptions(
             deviceId: TestConstants.deviceId,
@@ -50,10 +46,12 @@ class EmbraceConfigTests: XCTestCase {
 
         // then the update call is ignored
         wait(delay: 2)
+        let url = try XCTUnwrap(config.fetcher.buildURL())
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(url).count, 1)
         XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 1)
     }
 
-    func test_frequentUpdatesNotIgnored() {
+    func test_frequentUpdatesNotIgnored() throws {
         // given a config with 1 second minimum update interval
         let options = testOptions(
             deviceId: TestConstants.deviceId,
@@ -62,29 +60,36 @@ class EmbraceConfigTests: XCTestCase {
         let config = EmbraceConfig(options: options)
 
         // when trying to update after 1 second
-        wait(delay: 2)
+        wait(timeout: .longTimeout) {
+            config.updating == false
+        }
         config.updateIfNeeded()
 
         // then the update call is not ignored
         wait(delay: 1)
+        let url = try XCTUnwrap(config.fetcher.buildURL())
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(url).count, 2)
         XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 2)
     }
 
     func test_forcedUpdateNotIgnored() throws {
-        throw XCTSkip("FIXME: This test is flaky")
-        // given a config with 1 hour minimum update interval
         let options = testOptions(
             deviceId: TestConstants.deviceId,
             minimumUpdateInterval: 60 * 60
         )
         let config = EmbraceConfig(options: options)
-
         // when forcing an update
-        wait(delay: 2)
+        wait(timeout: .longTimeout) {
+            config.updating == false
+        }
         config.update()
 
         // then the update call is not ignored
-        wait(delay: 1)
+        wait(timeout: .longTimeout) {
+            config.updating == false
+        }
+        let url = try XCTUnwrap(config.fetcher.buildURL())
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(url).count, 2)
         XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 2)
     }
 

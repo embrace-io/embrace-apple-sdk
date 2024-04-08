@@ -15,7 +15,7 @@ public class EmbraceConfig {
     @ThreadSafe var payload: RemoteConfigPayload = RemoteConfigPayload()
     let fetcher: RemoteConfigFetcher
 
-    @ThreadSafe private var updating = false
+    @ThreadSafe private(set) var updating = false
     @ThreadSafe private var lastUpdateTime: TimeInterval = Date(timeIntervalSince1970: 0).timeIntervalSince1970
 
     public init(options: Options) {

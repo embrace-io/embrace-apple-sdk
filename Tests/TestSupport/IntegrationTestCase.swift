@@ -12,8 +12,6 @@ import XCTest
 open class IntegrationTestCase: XCTestCase {
 
     override open func setUpWithError() throws {
-        EmbraceHTTPMock.setUp()
-
         if let baseURL = EmbraceFileSystem.rootURL() {
             try? FileManager.default.removeItem(at: baseURL)
         }
@@ -24,7 +22,5 @@ open class IntegrationTestCase: XCTestCase {
         if let baseURL = EmbraceFileSystem.rootURL() {
             try? FileManager.default.removeItem(at: baseURL)
         }
-        EmbraceHTTPMock.tearDown()
     }
-
 }

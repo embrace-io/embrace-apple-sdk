@@ -20,8 +20,6 @@ class EmbraceUploadOperationTests: XCTestCase {
         urlSessionconfig.protocolClasses = [EmbraceHTTPMock.self]
 
         self.urlSession = URLSession(configuration: urlSessionconfig)
-
-        EmbraceHTTPMock.setUp()
     }
 
     override func tearDownWithError() throws {

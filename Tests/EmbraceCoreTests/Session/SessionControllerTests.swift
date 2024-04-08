@@ -15,17 +15,8 @@ final class SessionControllerTests: XCTestCase {
 
     var storage: EmbraceStorage!
     var controller: SessionController!
-
     var upload: EmbraceUpload!
-    static let testSessionsUrl = URL(string: "https://embrace.test.com/session_controller/sessions")!
-    static let testBlobsUrl = URL(string: "https://embrace.test.com/session_controller/blobs")!
-    static let testLogsUrl = URL(string: "https://embrace.test.com/session_controller/logs")!
 
-    static let testEndpointOptions = EmbraceUpload.EndpointOptions(
-        sessionsURL: SessionControllerTests.testSessionsUrl,
-        blobsURL: SessionControllerTests.testBlobsUrl,
-        logsURL: SessionControllerTests.testLogsUrl
-    )
     static let testCacheOptions = EmbraceUpload.CacheOptions(
         cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory())
     )!
@@ -49,14 +40,12 @@ final class SessionControllerTests: XCTestCase {
         urlSessionconfig.protocolClasses = [EmbraceHTTPMock.self]
 
         testOptions = EmbraceUpload.Options(
-            endpoints: Self.testEndpointOptions,
+            endpoints: testEndpointOptions(testName: testName),
             cache: Self.testCacheOptions,
             metadata: Self.testMetadataOptions,
             redundancy: Self.testRedundancyOptions,
             urlSessionConfiguration: urlSessionconfig
         )
-
-        EmbraceHTTPMock.setUp()
 
         self.queue = DispatchQueue(label: "com.test.embrace.queue", attributes: .concurrent)
         upload = try EmbraceUpload(options: testOptions, queue: queue)
@@ -217,7 +206,7 @@ final class SessionControllerTests: XCTestCase {
 
     func test_endSession_uploadsSession() throws {
         // mock successful requests
-        EmbraceHTTPMock.mock(url: Self.testSessionsUrl)
+        EmbraceHTTPMock.mock(url: testSessionsUrl())
 
         // given a started session
         let controller = SessionController(storage: storage, upload: upload)
@@ -228,7 +217,7 @@ final class SessionControllerTests: XCTestCase {
         wait(delay: .longTimeout)
 
         // then a session request was sent
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(Self.testSessionsUrl).count, 1)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count, 1)
 
         // then the session is no longer on storage
         let session = try storage.fetchSession(id: TestConstants.sessionId)
@@ -241,7 +230,7 @@ final class SessionControllerTests: XCTestCase {
 
     func test_endSession_uploadsSession_error() throws {
         // mock error requests
-        EmbraceHTTPMock.mock(url: Self.testSessionsUrl, errorCode: 500)
+        EmbraceHTTPMock.mock(url: testSessionsUrl(), errorCode: 500)
 
         // given a started session
         let controller = SessionController(storage: storage, upload: upload)
@@ -252,7 +241,7 @@ final class SessionControllerTests: XCTestCase {
         wait(delay: .longTimeout)
 
         // then a session request was attempted
-        XCTAssertGreaterThan(EmbraceHTTPMock.requestsForUrl(Self.testSessionsUrl).count, 0)
+        XCTAssertGreaterThan(EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count, 0)
 
         // then the total amount of requests is correct
         XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 1)
@@ -342,5 +331,27 @@ final class SessionControllerTests: XCTestCase {
             XCTAssertNotEqual(lastDate, controller.currentSession!.lastHeartbeatTime)
             lastDate = controller.currentSession!.lastHeartbeatTime
         }
+    }
+}
+
+private extension SessionControllerTests {
+    func testEndpointOptions(testName: String) -> EmbraceUpload.EndpointOptions {
+        .init(
+            sessionsURL: testSessionsUrl(testName: testName),
+            blobsURL: testBlobsUrl(testName: testName),
+            logsURL: testLogsUrl(testName: testName)
+        )
+    }
+
+    func testSessionsUrl(testName: String = #function) -> URL {
+        URL(string: "https://embrace.\(testName).com/session_controller/sessions")!
+    }
+
+    func testBlobsUrl(testName: String = #function) -> URL {
+        URL(string: "https://embrace.\(testName).com/session_controller/blobs")!
+    }
+
+    func testLogsUrl(testName: String = #function) -> URL {
+        URL(string: "https://embrace.\(testName).com/session_controller/logs")!
     }
 }
