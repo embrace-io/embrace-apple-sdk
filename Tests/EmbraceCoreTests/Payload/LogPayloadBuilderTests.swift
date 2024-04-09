@@ -19,7 +19,7 @@ class LogPayloadBuilderTests: XCTestCase {
 
         let payload = LogPayloadBuilder.build(log: record)
 
-        let attribute = payload.attributes.first(where: { $0.key == "emb.log_id"})
+        let attribute = payload.attributes.first(where: { $0.key == "log.record.uid"})
         XCTAssertNotNil(attribute)
         XCTAssertEqual(attribute?.value, logId.toString)
     }
