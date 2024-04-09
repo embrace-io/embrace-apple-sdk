@@ -14,6 +14,18 @@ import EmbraceOTel
 class MockURLSessionTaskHandlerDataSource: URLSessionTaskHandlerDataSource {
     var state: CaptureServiceState = .uninstalled
     var otel: EmbraceOpenTelemetry?
+
+    var injectTracingHeader = false
+    var requestsDataSource: URLSessionRequestsDataSource?
+}
+
+class MockURLSessionRequestsDataSource: NSObject, URLSessionRequestsDataSource {
+
+    var block: ((URLRequest) -> URLRequest)?
+
+    func modifiedRequest(for request: URLRequest) -> URLRequest {
+        return block?(request) ?? request
+    }
 }
 
 class DefaultURLSessionTaskHandlerTests: XCTestCase {
@@ -36,6 +48,7 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
 
     func test_onCreateTaskWithHandlerNotListening_ShouldntCreateSpan() {
         givenTaskHandler()
+        givenStateChanged(toState: .paused)
         givenAnURLSessionTask()
         whenInvokingCreate(withoutWaiting: true)
         thenNoSpanShouldBeCreated()
@@ -125,16 +138,89 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
         thenSpanShouldHaveErrorCodeAttribute(withValue: 1234)
         thenSpanShouldHaveErrorMessageAttribute(withValue: "Sad Error!")
     }
+
+    // MARK: - Tracing header
+
+    func test_configsEnabled_tracingHeaderIncluded() {
+        givenTaskHandler()
+        givenTracingHeaderEnabled(true)
+        givenAnURLSessionTask(method: "GET")
+        whenInvokingCreate()
+        thenOriginalRequestShouldHaveTheTracingHeader()
+        whenInvokingFinish()
+        thenSpanShouldHaveTheTracingHeaderAttribute()
+    }
+
+    func test_configsDisabled_tracingHeaderNotIncluded() {
+        givenTaskHandler()
+        givenTracingHeaderEnabled(false)
+        givenAnURLSessionTask(method: "GET")
+        whenInvokingCreate()
+        thenOriginalRequestShouldNotHaveTheTracingHeader()
+        whenInvokingFinish()
+        thenSpanShouldNotHaveTheTracingHeaderAttribute()
+    }
+
+    // MARK: - Requests Data Source
+
+    func test_requestsDataSource_path() {
+        givenTaskHandler()
+        givenRequestsDataSourceWithBlock { originalRequest in
+            var request = originalRequest
+            request.url = URL(string: "http://www.test.com")
+            return request
+        }
+        givenAnURLSessionTask(method: "GET")
+        whenInvokingCreate()
+        whenInvokingFinish()
+        thenSpanHasTheCorrectPath("http://www.test.com")
+    }
+
+    func test_requestsDataSource_method() {
+        givenTaskHandler()
+        givenRequestsDataSourceWithBlock { originalRequest in
+            var request = originalRequest
+            request.httpMethod = "POST"
+            return request
+        }
+        givenAnURLSessionTask(method: "GET")
+        whenInvokingCreate()
+        whenInvokingFinish()
+        thenSpanHasTheCorrectMethod("POST")
+    }
+
+    func test_requestsDataSource_bodySize() {
+        givenTaskHandler()
+        givenRequestsDataSourceWithBlock { originalRequest in
+            var request = originalRequest
+            request.httpBody = "test".data(using: .utf8)!
+            return request
+        }
+        givenAnURLSessionTask(method: "GET")
+        whenInvokingCreate()
+        whenInvokingFinish()
+        thenSpanHasTheCorrectBodySize("4")
+    }
 }
 
 private extension DefaultURLSessionTaskHandlerTests {
     func givenTaskHandler() {
         dataSource.state = .active
-        sut = DefaultURLSessionTaskHandler(processingQueue: .main, dataSource: dataSource)
+        sut = DefaultURLSessionTaskHandler(dataSource: dataSource)
     }
 
     func givenStateChanged(toState: CaptureServiceState) {
         dataSource.state = toState
+    }
+
+    func givenTracingHeaderEnabled(_ enabled: Bool) {
+        dataSource.injectTracingHeader = enabled
+    }
+
+    func givenRequestsDataSourceWithBlock(_ block: @escaping (URLRequest) -> URLRequest) {
+        let requestsDataSource = MockURLSessionRequestsDataSource()
+        requestsDataSource.block = block
+        dataSource.requestsDataSource = requestsDataSource
     }
 
     func givenHandlerCreatedASpan(withResponse response: URLResponse? = nil) {
@@ -283,6 +369,91 @@ private extension DefaultURLSessionTaskHandlerTests {
 
     func thenSpanShouldntEnd() {
         XCTAssertTrue(otel.spanProcessor.endedSpans.isEmpty)
+    }
+
+    func validateTracingHeaderForSpan(tracingHeader: String, span: SpanData) {
+        let components = tracingHeader.components(separatedBy: "-")
+        XCTAssertEqual(components[0], "00")
+
+        XCTAssertEqual(components[1].count, 32)
+        XCTAssertEqual(components[1], span.traceId.hexString)
+
+        XCTAssertEqual(components[2].count, 16)
+        XCTAssertEqual(components[2], span.spanId.hexString)
+
+        XCTAssertEqual(components[3], "01")
+    }
+
+    func thenOriginalRequestShouldHaveTheTracingHeader() {
+        do {
+            let headers = task.originalRequest?.allHTTPHeaderFields
+            XCTAssertNotNil(headers)
+
+            let tracingHeader = headers!["traceparent"]
+            XCTAssertNotNil(tracingHeader)
+
+            let span = try XCTUnwrap(otel.spanProcessor.startedSpans.first)
+            validateTracingHeaderForSpan(tracingHeader: tracingHeader!, span: span)
+        } catch let exception {
+            XCTFail("Couldn't get span: \(exception.localizedDescription)")
+        }
+    }
+
+    func thenOriginalRequestShouldNotHaveTheTracingHeader() {
+        let headers = task.originalRequest?.allHTTPHeaderFields
+        XCTAssertNil(headers?["traceparent"])
+    }
+
+    func thenSpanShouldHaveTheTracingHeaderAttribute() {
+        do {
+            let span = try XCTUnwrap(otel.spanProcessor.endedSpans.first)
+
+            let tracingHeader = span.attributes[DefaultURLSessionTaskHandler.SpanAttribute.tracingHeader]!.description
+            validateTracingHeaderForSpan(tracingHeader: tracingHeader, span: span)
+
+        } catch let exception {
+            XCTFail("Couldn't get span: \(exception.localizedDescription)")
+        }
+    }
+
+    func thenSpanShouldNotHaveTheTracingHeaderAttribute() {
+        do {
+            let span = try XCTUnwrap(otel.spanProcessor.endedSpans.first)
+            XCTAssertNil(span.attributes[DefaultURLSessionTaskHandler.SpanAttribute.tracingHeader])
+
+        } catch let exception {
+            XCTFail("Couldn't get span: \(exception.localizedDescription)")
+        }
+    }
+
+    func thenSpanHasTheCorrectPath(_ path: String) {
+        do {
+            let span = try XCTUnwrap(otel.spanProcessor.endedSpans.first)
+
+            XCTAssertEqual(span.attributes[DefaultURLSessionTaskHandler.SpanAttribute.url], .string(path))
+        } catch let exception {
+            XCTFail("Couldn't get span: \(exception.localizedDescription)")
+        }
+    }
+
+    func thenSpanHasTheCorrectMethod(_ method: String) {
+        do {
+            let span = try XCTUnwrap(otel.spanProcessor.endedSpans.first)
+
+            XCTAssertEqual(span.attributes[DefaultURLSessionTaskHandler.SpanAttribute.method], .string(method))
+        } catch let exception {
+            XCTFail("Couldn't get span: \(exception.localizedDescription)")
+        }
+    }
+
+    func thenSpanHasTheCorrectBodySize(_ bodySize: String) {
+        do {
+            let span = try XCTUnwrap(otel.spanProcessor.endedSpans.first)
+
+            XCTAssertEqual(span.attributes[DefaultURLSessionTaskHandler.SpanAttribute.bodySize], .string(bodySize))
+        } catch let exception {
+            XCTFail("Couldn't get span: \(exception.localizedDescription)")
+        }
     }
 }
 

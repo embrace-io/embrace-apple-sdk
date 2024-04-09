@@ -18,6 +18,7 @@ extension EmbraceStorage {
     ///   - startTime: Date of when the span started
     ///   - endTime: Date of when the span ended (optional)
     /// - Returns: The newly stored `SpanRecord`
+    @discardableResult
     public func addSpan(
         id: String,
         name: String,

@@ -52,6 +52,10 @@ public class EmbraceConfig {
         return isEnabled(threshold: payload.backgroundSessionThreshold)
     }
 
+    public var isNetworkSpansForwardingEnabled: Bool {
+        return isEnabled(threshold: payload.networkSpansForwardingThreshold)
+    }
+
     // MARK: - Update
     @discardableResult
     public func updateIfNeeded() -> Bool {

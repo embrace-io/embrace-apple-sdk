@@ -7,9 +7,12 @@ import TestSupport
 @testable import EmbraceCore
 @testable import EmbraceCommon
 
+// swiftlint:disable force_try
+
 class DataTaskWithURLAndCompletionSwizzlerTests: XCTestCase {
     private var session: URLSession!
     private var sut: DataTaskWithURLAndCompletionSwizzler!
+    private var sut2: DataTaskWithURLRequestAndCompletionSwizzler!
     private var handler: MockURLSessionTaskHandler!
     private var url: URL!
 
@@ -65,7 +68,7 @@ class DataTaskWithURLAndCompletionSwizzlerTests: XCTestCase {
         givenProxiedUrlSession()
         givenSuccessfulRequest()
         whenInvokingDataTaskWithUrl(completionHandler: { _, _, _ in
-            self.thenDataTaskShouldntHaveHeaders()
+            try! self.thenDataTaskShouldHaveHeaders()
             expectation.fulfill()
         })
         wait(for: [expectation])
@@ -88,10 +91,12 @@ private extension DataTaskWithURLAndCompletionSwizzlerTests {
     func givenDataTaskWithURLAndCompletionSwizzler() {
         handler = MockURLSessionTaskHandler()
         sut = DataTaskWithURLAndCompletionSwizzler(handler: handler)
+        sut2 = DataTaskWithURLRequestAndCompletionSwizzler(handler: handler)
     }
 
     func givenSwizzlingWasDone() throws {
         try sut.install()
+        try sut2.install()
     }
 
     func givenProxiedUrlSession() {
@@ -138,7 +143,11 @@ private extension DataTaskWithURLAndCompletionSwizzlerTests {
         XCTAssertNotNil(handler.finishReceivedParameters?.2)
     }
 
-    func thenDataTaskShouldntHaveHeaders() {
-        XCTAssertNil(dataTask.originalRequest?.allHTTPHeaderFields)
+    func thenDataTaskShouldHaveHeaders() throws {
+        let headers = try XCTUnwrap(dataTask.originalRequest?.allHTTPHeaderFields)
+        XCTAssertNotNil(headers["x-emb-id"])
+        XCTAssertNotNil(headers["x-emb-st"])
     }
 }
+
+// swiftlint:enable force_try

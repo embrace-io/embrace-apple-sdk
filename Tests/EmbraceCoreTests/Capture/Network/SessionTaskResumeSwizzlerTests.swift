@@ -7,61 +7,56 @@ import TestSupport
 @testable import EmbraceCore
 @testable import EmbraceCommon
 
-class DataTaskWithURLSwizzlerTests: XCTestCase {
+class SessionTaskResumeSwizzlerTests: XCTestCase {
     private var session: URLSession!
-    private var sut: DataTaskWithURLSwizzler!
-    private var sut2: DataTaskWithURLRequestSwizzler!
+    private var sut: SessionTaskResumeSwizzler!
     private var handler: MockURLSessionTaskHandler!
-    private var dataTask: URLSessionDataTask!
 
     override func tearDownWithError() throws {
         try? sut.unswizzleInstanceMethod()
     }
 
-    func test_afterInstall_taskWillBeCreatedInHandler() throws {
-        givenDataTaskWithURLSwizzler()
+    func test_afterInstall_taskWillBeCreatedInHandler() async throws {
+        givenSessionTaskResumeSwizzler()
         try givenSwizzlingWasDone()
         givenProxiedUrlSession()
-        whenInvokingDataTaskWithUrl()
+        try await whenInvokingDataTaskResume()
         thenHandlerShouldHaveInvokedCreateWithTask()
     }
 
-    func test_withoutInstall_taskWontBeCreatedInHandler() throws {
-        givenDataTaskWithURLSwizzler()
+    func test_withoutInstall_taskWontBeCreatedInHandler() async throws {
+        givenSessionTaskResumeSwizzler()
         givenProxiedUrlSession()
-        whenInvokingDataTaskWithUrl()
+        try await whenInvokingDataTaskResume()
         thenHandlerShouldntHaveInvokedCreate()
     }
 }
 
-private extension DataTaskWithURLSwizzlerTests {
-    func givenDataTaskWithURLSwizzler() {
+private extension SessionTaskResumeSwizzlerTests {
+    func givenSessionTaskResumeSwizzler() {
         handler = MockURLSessionTaskHandler()
-        sut = DataTaskWithURLSwizzler(handler: handler)
-        sut2 = DataTaskWithURLRequestSwizzler(handler: handler)
+        sut = SessionTaskResumeSwizzler(handler: handler)
     }
 
     func givenSwizzlingWasDone() throws {
         try sut.install()
-        try sut2.install()
     }
 
     func givenProxiedUrlSession() {
         session = ProxiedURLSessionProvider.default()
     }
 
-    func whenInvokingDataTaskWithUrl() {
+    func whenInvokingDataTaskResume() async throws {
         var url = URL(string: "https://embrace.io")!
         let mockData = "Mock Data".data(using: .utf8)!
         let mockResponse = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil)!
         url.mockResponse = .sucessful(withData: mockData, response: mockResponse)
-        dataTask = session.dataTask(with: url)
-        dataTask.resume()
+
+        _ = try await session.data(from: url)
     }
 
     func thenHandlerShouldHaveInvokedCreateWithTask() {
         XCTAssertTrue(handler.didInvokeCreate)
-        XCTAssertEqual(handler.createReceivedTask, dataTask)
     }
 
     func thenHandlerShouldntHaveInvokedCreate() {

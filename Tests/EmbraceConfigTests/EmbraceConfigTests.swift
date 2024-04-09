@@ -126,6 +126,18 @@ class EmbraceConfigTests: XCTestCase {
         XCTAssertFalse(config.isBackgroundSessionEnabled)
     }
 
+    func test_networkSpansForwardingEnabled() {
+        // given a config
+        let config = EmbraceConfig(options: testOptions(deviceId: TestConstants.deviceId))
+
+        // then _networkSpansForwardingEnabled returns the correct values
+        config.payload.networkSpansForwardingThreshold = 100
+        XCTAssertTrue(config.isNetworkSpansForwardingEnabled)
+
+        config.payload.networkSpansForwardingThreshold = 0
+        XCTAssertFalse(config.isNetworkSpansForwardingEnabled)
+    }
+
     func test_hexValue() {
         // given an invalid device id
         let config1 = EmbraceConfig(options: testOptions(deviceId: "short"))

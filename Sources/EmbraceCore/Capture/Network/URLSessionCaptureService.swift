@@ -21,16 +21,26 @@ protocol URLSessionSwizzler: Swizzlable {
 
 @objc public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandlerDataSource {
 
+    public let options: URLSessionCaptureService.Options
     private let lock: NSLocking
     private let swizzlerProvider: URLSessionSwizzlerProvider
     private var swizzlers: [any URLSessionSwizzler] = []
     private var handler: URLSessionTaskHandler?
 
+    @objc public convenience init(options: URLSessionCaptureService.Options) {
+        self.init(options: options, lock: NSLock(), swizzlerProvider: DefaultURLSessionSwizzlerProvider())
+    }
+
     public convenience override init() {
         self.init(lock: NSLock(), swizzlerProvider: DefaultURLSessionSwizzlerProvider())
     }
 
-    init(lock: NSLocking, swizzlerProvider: URLSessionSwizzlerProvider) {
+    init(
+        options: URLSessionCaptureService.Options = URLSessionCaptureService.Options(),
+        lock: NSLocking,
+        swizzlerProvider: URLSessionSwizzlerProvider
+    ) {
+        self.options = options
         self.lock = lock
         self.swizzlerProvider = swizzlerProvider
     }
@@ -59,6 +69,20 @@ protocol URLSessionSwizzler: Swizzlable {
                 ConsoleLog.error("Capture service couldn't be installed: \(exception.localizedDescription)")
             }
         }
+    }
+
+    var injectTracingHeader: Bool {
+        // check remote config
+        guard Embrace.client?.config.isNetworkSpansForwardingEnabled == true else {
+            return false
+        }
+
+        // check local config
+        return options.injectTracingHeader
+    }
+
+    var requestsDataSource: URLSessionRequestsDataSource? {
+        return options.requestsDataSource
     }
 }
 
@@ -108,23 +132,19 @@ struct SessionTaskResumeSwizzler: URLSessionSwizzler {
         if #available(iOS 15.0, tvOS 15.0, macOS 12, watchOS 8, *) {
             try swizzleInstanceMethod { originalImplementation -> BlockImplementationType in
                 return { [weak handler = self.handler] task in
-                    if let handler = handler {
-                        handler.create(task: task) { captured in
-                            // if the task wasn't captured by other swizzlers it probably means
-                            // it was an async/await task
-                            // we set a proxy delegate to get a callback when the task finishes
-                            if captured {
-                                let originalDelegate = task.delegate
-                                task.delegate = URLSessionDelegateProxy(originalDelegate: originalDelegate, handler: handler)
-                            }
+                    let captured = handler?.create(task: task) ?? true
 
-                            // call original
-                            originalImplementation(task, Self.selector)
-                        }
-                    } else {
-                        // call original
-                        originalImplementation(task, Self.selector)
+                    // if the task wasn't captured by other swizzlers
+                    // by the time resume was called it probably means
+                    // it was an async/await task
+                    // we set a proxy delegate to get a callback when the task finishes
+                    if !captured, let handler = handler {
+                        let originalDelegate = task.delegate
+                        task.delegate = URLSessionDelegateProxy(originalDelegate: originalDelegate, handler: handler)
                     }
+
+                    // call original
+                    originalImplementation(task, Self.selector)
                 }
             }
         } else {
@@ -148,18 +168,10 @@ struct DataTaskWithURLSwizzler: URLSessionSwizzler {
     }
 
     func install() throws {
-        try swizzleInstanceMethod { originalImplementation in
-            return { [weak handler = self.handler] urlSession, url -> URLSessionDataTask in
-                // TODO: For this cases, we'll need to have the `URLSessionDelegate` swizzled/proxied.
-                // Note: two things to take into account:
-                // 1. We cannot ensure that this request will be tracked with this implementation.
-                //  For example, when using `URLSession.shared.dataTask(with:)`.
-                // 2. As this is has `URL` as parameter, and not `URLRequest`, we cannot add custom headers.
-                //  The old sdk would call the original method using `URLRequest`, but that leads to other kind
-                //  of edge cases.
-                let dataTask = originalImplementation(urlSession, Self.selector, url)
-                handler?.create(task: dataTask)
-                return dataTask
+        try swizzleInstanceMethod { _ in
+            return { urlSession, url -> URLSessionDataTask in
+                // create the task using a URLRequest and let the other swizzler handle it
+                return urlSession.dataTask(with: URLRequest(url: url))
             }
         }
     }
@@ -183,7 +195,6 @@ struct DataTaskWithURLRequestSwizzler: URLSessionSwizzler {
         try swizzleInstanceMethod { originalImplementation -> BlockImplementationType in
             return { [weak handler = self.handler] urlSession, urlRequest -> URLSessionDataTask in
                 let request = urlRequest.addEmbraceHeaders()
-                // TODO: For this cases, we'll need to have the `URLSessionDelegate` swizzled/proxied.
                 let dataTask = originalImplementation(urlSession, Self.selector, request)
                 handler?.create(task: dataTask)
                 return dataTask
@@ -208,27 +219,12 @@ struct DataTaskWithURLAndCompletionSwizzler: URLSessionSwizzler {
     }
 
     func install() throws {
-        try swizzleInstanceMethod { originalImplementation -> BlockImplementationType in
-            return { [weak handler = self.handler] urlSession, url, completion -> URLSessionDataTask in
-                // TODO: For this cases, we'll need to have the `URLSessionDelegate` swizzled/proxied.
-                guard let completion = completion else {
-                    let task = originalImplementation(urlSession, Self.selector, url, completion)
-                    handler?.create(task: task)
-                    return task
+        try swizzleInstanceMethod { _ in
+            return { urlSession, url, completion -> URLSessionDataTask in
+                // create the task using a URLRequest and let the other swizzler handle it
+                return urlSession.dataTask(with: URLRequest(url: url)) { data, response, error in
+                    completion?(data, response, error)
                 }
-
-                var originalTask: URLSessionDataTask?
-
-                let dataTask = originalImplementation(urlSession, Self.selector, url) { data, response, error in
-                    if let task = originalTask {
-                        handler?.finish(task: task, data: data, error: error)
-                    }
-                    completion(data, response, error)
-                }
-
-                originalTask = dataTask
-                handler?.create(task: dataTask)
-                return dataTask
             }
         }
     }
@@ -254,21 +250,24 @@ struct DataTaskWithURLRequestAndCompletionSwizzler: URLSessionSwizzler {
     func install() throws {
         try swizzleInstanceMethod { originalImplementation -> BlockImplementationType in
             return { [weak handler = self.handler] urlSession, urlRequest, completion -> URLSessionDataTask in
-                // TODO: For this cases, we'll need to have the `URLSessionDelegate` swizzled/proxied.
+
+                let request = urlRequest.addEmbraceHeaders()
+
                 guard let completion = completion else {
-                    let task = originalImplementation(urlSession, Self.selector, urlRequest, completion)
+                    let task = originalImplementation(urlSession, Self.selector, request, completion)
                     handler?.create(task: task)
                     return task
                 }
 
                 var originalTask: URLSessionDataTask?
-                let request = urlRequest.addEmbraceHeaders()
+
                 let dataTask = originalImplementation(urlSession, Self.selector, request) { data, response, error in
                     if let task = originalTask {
                         handler?.finish(task: task, data: data, error: error)
                     }
                     completion(data, response, error)
                 }
+
                 originalTask = dataTask
                 handler?.create(task: dataTask)
                 return dataTask
@@ -392,13 +391,15 @@ struct UploadTaskWithRequestFromFileWithCompletionSwizzler: URLSessionSwizzler {
     func install() throws {
         try swizzleInstanceMethod { originalImplementation -> BlockImplementationType in
             return { [weak handler = self.handler] urlSession, urlRequest, url, completion -> URLSessionUploadTask in
+
+                let request = urlRequest.addEmbraceHeaders()
+
                 guard let completion = completion else {
-                    let task = originalImplementation(urlSession, Self.selector, urlRequest, url, completion)
+                    let task = originalImplementation(urlSession, Self.selector, request, url, completion)
                     handler?.create(task: task)
                     return task
                 }
 
-                let request = urlRequest.addEmbraceHeaders()
                 var originalTask: URLSessionUploadTask?
                 let uploadTask = originalImplementation(urlSession, Self.selector, request, url) { data, response, error in
                     if let task = originalTask {
@@ -461,13 +462,14 @@ struct DownloadTaskWithURLRequestWithCompletionSwizzler: URLSessionSwizzler {
     func install() throws {
         try swizzleInstanceMethod { originalImplementation -> BlockImplementationType in
             return { [weak handler = self.handler] urlSession, urlRequest, completion -> URLSessionDownloadTask in
+
+                let request = urlRequest.addEmbraceHeaders()
+
                 guard let completion = completion else {
-                    let task = originalImplementation(urlSession, Self.selector, urlRequest, completion)
+                    let task = originalImplementation(urlSession, Self.selector, request, completion)
                     handler?.create(task: task)
                     return task
                 }
-
-                let request = urlRequest.addEmbraceHeaders()
 
                 var originalTask: URLSessionDownloadTask?
                 let downloadTask = originalImplementation(urlSession, Self.selector, request) { url, response, error in

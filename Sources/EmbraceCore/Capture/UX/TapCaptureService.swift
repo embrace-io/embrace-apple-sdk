@@ -43,8 +43,6 @@ import EmbraceOTel
             return
         }
 
-        let t = event.allTouches?.first
-
         guard event.type == .touches,
               let allTouches = event.allTouches,
               let touch = allTouches.first,

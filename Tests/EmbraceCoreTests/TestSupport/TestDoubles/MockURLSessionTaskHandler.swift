@@ -7,17 +7,16 @@ import Foundation
 @testable import EmbraceCommon
 
 class MockURLSessionTaskHandler: URLSessionTaskHandler {
+
+    var shouldHandleTasks = true
+
     var didInvokeCreate = false
     var createReceivedTask: URLSessionTask?
-    func create(task: URLSessionTask) {
-        create(task: task, completion: nil)
-    }
-
-    func create(task: URLSessionTask, completion: ((Bool) -> Void)?) {
+    func create(task: URLSessionTask) -> Bool {
         didInvokeCreate = true
         createReceivedTask = task
 
-        completion?(true)
+        return shouldHandleTasks
     }
 
     var didInvokeFinish = false

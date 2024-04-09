@@ -7,16 +7,20 @@ import OpenTelemetryApi
 import EmbraceCaptureService
 import EmbraceCommon
 import EmbraceOTel
+import EmbraceObjCUtils
 
 protocol URLSessionTaskHandler: AnyObject {
-    func create(task: URLSessionTask)
-    func create(task: URLSessionTask, completion: ((Bool) -> Void)?)
+    @discardableResult
+    func create(task: URLSessionTask) -> Bool
     func finish(task: URLSessionTask, data: Data?, error: (any Error)?)
 }
 
 protocol URLSessionTaskHandlerDataSource: AnyObject {
     var state: CaptureServiceState { get }
     var otel: EmbraceOpenTelemetry? { get }
+
+    var injectTracingHeader: Bool { get }
+    var requestsDataSource: URLSessionRequestsDataSource? { get }
 }
 
 final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
@@ -31,6 +35,7 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
         static let url = "url.full"
         static let method = "http.request.method"
         static let bodySize = "http.request.body.size"
+        static let tracingHeader = "emb.w3c_traceparent"
         static let statusCode = "http.response.status_code"
         static let responseSize = "http.response.body.size"
         static let errorType = "error.type"
@@ -44,37 +49,38 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
         self.dataSource = dataSource
     }
 
-    func create(task: URLSessionTask) {
-        create(task: task, completion: nil)
-    }
+    @discardableResult
+    func create(task: URLSessionTask) -> Bool {
 
-    func create(task: URLSessionTask, completion: ((Bool) -> Void)? = nil) {
-        queue.async {
+        var handled = false
+
+        queue.sync {
+            // don't capture if the service is not active
             guard self.dataSource?.state == .active else {
-                completion?(false)
                 return
             }
 
+            // don't capture if this task was already handled
             guard task.embraceCaptured == false else {
-                completion?(false)
                 return
             }
 
             guard
-                let request = task.originalRequest,
+                var request = task.originalRequest,
                 let url = request.url,
                 let otel = self.dataSource?.otel else {
-                // TODO: Shall we log this as an error instead of only returning?
-                completion?(false)
                 return
             }
+
+            // get modified request from data source
+            request = self.dataSource?.requestsDataSource?.modifiedRequest(for: request) ?? request
 
             // flag as captured
             task.embraceCaptured = true
 
             // Probably this could be moved to a separate class
             var attributes: [String: String] = [:]
-            attributes[SpanAttribute.url] = url.absoluteString
+            attributes[SpanAttribute.url] = request.url?.absoluteString ?? "N/A"
 
             let httpMethod = request.httpMethod ?? ""
             if !httpMethod.isEmpty {
@@ -108,10 +114,18 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
                 attributes: attributes
             )
 
-            self.spans[task] = networkSpan.startSpan()
+            let span = networkSpan.startSpan()
+            self.spans[task] = span
 
-            completion?(true)
+            // tracing header
+            if let tracingHader = self.addTracingHeader(task: task, span: span) {
+                span.setAttribute(key: SpanAttribute.tracingHeader, value: .string(tracingHader))
+            }
+
+            handled = true
         }
+
+        return handled
     }
 
     func finish(task: URLSessionTask, data: Data?, error: (any Error)?) {
@@ -143,6 +157,33 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
 
             span.end()
         }
+    }
+
+    func addTracingHeader(task: URLSessionTask, span: Span) -> String? {
+
+        guard dataSource?.injectTracingHeader == true,
+              task.originalRequest != nil else {
+            return nil
+        }
+
+        // ignore if header is already present
+        let headerName = "traceparent"
+
+        let previousValue = task.originalRequest?.value(forHTTPHeaderField: headerName)
+        guard previousValue == nil else {
+            return previousValue
+        }
+
+        // set traceparent request header
+        // Docs: https://www.w3.org/TR/trace-context-1/#trace-context-http-headers-format
+        // Note: Version hardcoded to "00"
+        // Note: Flags hardcoded to "01" (means "sampled")
+        let value = "00-\(span.context.traceId.hexString)-\(span.context.spanId.hexString)-01"
+        if task.injectHeader(withKey: headerName, value: value) {
+            return value
+        }
+
+        return nil
     }
 }
 

@@ -19,7 +19,8 @@ extension EmbraceStorage {
     ///   - lastHeartbeatTime: `Date` of the last heartbeat for the session (optional).
     ///   - crashReportId: Identifier of the crash report linked with this session
     /// - Returns: The newly stored `SessionRecord`
-    @discardableResult public func addSession(
+    @discardableResult
+    public func addSession(
         id: SessionIdentifier,
         state: SessionState,
         processId: ProcessIdentifier,

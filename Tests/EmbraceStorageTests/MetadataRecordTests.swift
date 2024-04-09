@@ -7,7 +7,7 @@ import TestSupport
 import EmbraceCommon
 @testable import EmbraceStorage
 
-// swiftlint:disable type_body_length file_length
+// swiftlint:disable type_body_length
 
 class MetadataRecordTests: XCTestCase {
     var storage: EmbraceStorage!
@@ -794,4 +794,4 @@ class MetadataRecordTests: XCTestCase {
     }
 }
 
-// swiftlint:enable type_body_length file_length
+// swiftlint:enable type_body_length

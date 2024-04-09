@@ -3,4 +3,7 @@
     "threshold": 75
   },
   "threshold": 50,
+  "network_span_forwarding": {
+    "pct_enabled": 25
+  }
 }

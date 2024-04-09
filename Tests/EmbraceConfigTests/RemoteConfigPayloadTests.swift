@@ -19,6 +19,7 @@ class RemoteConfigPayloadTests: XCTestCase {
         let payload = try! JSONDecoder().decode(RemoteConfigPayload.self, from: data)
         XCTAssertEqual(payload.sdkEnabledThreshold, 100)
         XCTAssertEqual(payload.backgroundSessionThreshold, 0)
+        XCTAssertEqual(payload.networkSpansForwardingThreshold, 0)
     }
 
     func test_values() {
@@ -30,6 +31,7 @@ class RemoteConfigPayloadTests: XCTestCase {
         let payload = try! JSONDecoder().decode(RemoteConfigPayload.self, from: data)
         XCTAssertEqual(payload.sdkEnabledThreshold, 50)
         XCTAssertEqual(payload.backgroundSessionThreshold, 75)
+        XCTAssertEqual(payload.networkSpansForwardingThreshold, 25)
     }
 }
 
