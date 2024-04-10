@@ -9,10 +9,14 @@ class CrashReporterMock: CrashReporter {
     var currentSessionId: String?
     var mockReports: [CrashReport]
 
-    init(currentSessionId: String? = nil, mockReports: [CrashReport]? = nil) {
+    init(
+        currentSessionId: String? = nil,
+        crashSessionId: String? = nil,
+        mockReports: [CrashReport]? = nil
+    ) {
         self.currentSessionId = currentSessionId
         self.mockReports = mockReports ?? [.init(ksCrashId: 123,
-                                                 sessionId: SessionIdentifier.random.toString,
+                                                 sessionId: crashSessionId ?? SessionIdentifier.random.toString,
                                                  timestamp: Date(),
                                                  dictionary: ["some key": ["some value"]])]
     }

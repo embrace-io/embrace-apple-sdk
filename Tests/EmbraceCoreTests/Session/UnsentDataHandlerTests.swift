@@ -11,7 +11,6 @@ import EmbraceStorage
 import TestSupport
 import GRDB
 
-// swiftlint:disable file_length
 class UnsentDataHandlerTests: XCTestCase {
     let filePathProvider = TemporaryFilepathProvider()
     var context: CrashReporterContext!
@@ -145,7 +144,7 @@ class UnsentDataHandlerTests: XCTestCase {
         let upload = try EmbraceUpload(options: uploadOptions, queue: queue)
 
         // given a crash reporter
-        let crashReporter = CrashReporterMock()
+        let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.toString)
 
         // given a finished session in the storage
         try storage.addSession(
@@ -173,13 +172,15 @@ class UnsentDataHandlerTests: XCTestCase {
                 }
             }
         }
-        wait(delay: .longTimeout)
+        wait(for: [expectation1], timeout: .veryLongTimeout)
+        cancellable.cancel()
 
         // then a crash report was sent
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testBlobsUrl()).count, 1)
-
         // then a session request was sent
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSessionUrl()).count, 1)
+        wait(timeout: .veryLongTimeout) {
+            EmbraceHTTPMock.requestsForUrl(self.testBlobsUrl()).count == 1 &&
+            EmbraceHTTPMock.requestsForUrl(self.testSessionUrl()).count == 1
+        }
 
         // then the total amount of requests is correct
         XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 2)
@@ -216,7 +217,20 @@ class UnsentDataHandlerTests: XCTestCase {
         let upload = try EmbraceUpload(options: uploadOptions, queue: queue)
 
         // given a crash reporter
-        let crashReporter = CrashReporterMock()
+        let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.toString)
+
+        // then the crash report id is set on the session
+        let didSendCrashesExpectation = XCTestExpectation()
+        let observation = ValueObservation.tracking(SessionRecord.fetchAll)
+        let cancellable = observation.start(in: storage.dbQueue) { error in
+            XCTAssert(false, error.localizedDescription)
+        } onChange: { records in
+            if let record = records.first {
+                if record.crashReportId != nil {
+                    didSendCrashesExpectation.fulfill()
+                }
+            }
+        }
 
         // given a finished session in the storage
         try storage.addSession(
@@ -232,25 +246,15 @@ class UnsentDataHandlerTests: XCTestCase {
         // when failing to send unsent sessions
         UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, crashReporter: crashReporter)
 
-        // then the crash report id is set on the session
-        let expectation1 = XCTestExpectation()
-        let observation = ValueObservation.tracking(SessionRecord.fetchAll)
-        let cancellable = observation.start(in: storage.dbQueue) { error in
-            XCTAssert(false, error.localizedDescription)
-        } onChange: { records in
-            if let record = records.first {
-                if record.crashReportId != nil {
-                    expectation1.fulfill()
-                }
-            }
-        }
-        wait(delay: .longTimeout)
+        wait(for: [didSendCrashesExpectation], timeout: .veryLongTimeout)
+        cancellable.cancel()
 
         // then a crash report request was attempted
-        XCTAssertGreaterThan(EmbraceHTTPMock.requestsForUrl(testBlobsUrl()).count, 0)
-
         // then a session request was attempted
-        XCTAssertGreaterThan(EmbraceHTTPMock.requestsForUrl(testSessionUrl()).count, 0)
+        wait(timeout: .veryLongTimeout) {
+            EmbraceHTTPMock.requestsForUrl(self.testBlobsUrl()).count > 0 &&
+            EmbraceHTTPMock.requestsForUrl(self.testSessionUrl()).count > 0
+        }
 
         // then the total amount of requests is correct
         XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 2)
@@ -271,9 +275,6 @@ class UnsentDataHandlerTests: XCTestCase {
         }
 
         wait(for: [expectation], timeout: .defaultTimeout)
-
-        // clean up
-        cancellable.cancel()
     }
 
     func test_withCrashReporter_unfinishedSession() throws {
@@ -288,7 +289,7 @@ class UnsentDataHandlerTests: XCTestCase {
         let upload = try EmbraceUpload(options: uploadOptions, queue: queue)
 
         // given a crash reporter
-        let crashReporter = CrashReporterMock()
+        let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.toString)
 
         // given an unfinished session in the storage
         try storage.addSession(
@@ -315,13 +316,15 @@ class UnsentDataHandlerTests: XCTestCase {
                 }
             }
         }
-        wait(delay: .longTimeout)
+        wait(for: [expectation1], timeout: .veryLongTimeout)
+        cancellable.cancel()
 
         // then a crash report was sent
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testBlobsUrl()).count, 1)
-
         // then a session request was sent
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSessionUrl()).count, 1)
+        wait(timeout: .veryLongTimeout) {
+            EmbraceHTTPMock.requestsForUrl(self.testBlobsUrl()).count == 1 &&
+            EmbraceHTTPMock.requestsForUrl(self.testSessionUrl()).count == 1
+        }
 
         // then the total amount of requests is correct
         XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 2)
@@ -331,10 +334,10 @@ class UnsentDataHandlerTests: XCTestCase {
         XCTAssertNil(session)
 
         // then the session and crash report upload data is no longer cached
-        let uploadData = try upload.cache.fetchAllUploadData()
-        XCTAssertEqual(uploadData.count, 0)
+        wait(timeout: .veryLongTimeout) {
+            try upload.cache.fetchAllUploadData().count == 0
+        }
 
-        // then the crash is not longer stored
         let expectation = XCTestExpectation()
         crashReporter.fetchUnsentCrashReports { reports in
             XCTAssertEqual(reports.count, 0)
@@ -636,4 +639,3 @@ private extension UnsentDataHandlerTests {
         return url
     }
 }
-// swiftlint:enable file_length

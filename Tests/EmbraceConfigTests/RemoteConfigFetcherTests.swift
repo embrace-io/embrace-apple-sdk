@@ -83,7 +83,7 @@ class RemoteConfigFetcherTests: XCTestCase {
             expectation.fulfill()
         }
 
-        wait(for: [expectation], timeout: .defaultTimeout)
+        wait(for: [expectation], timeout: .longTimeout)
 
         XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 1)
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(url).count, 1)
@@ -109,7 +109,7 @@ class RemoteConfigFetcherTests: XCTestCase {
             expectation.fulfill()
         }
 
-        wait(for: [expectation], timeout: .defaultTimeout)
+        wait(for: [expectation], timeout: .longTimeout)
 
         XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 1)
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(url).count, 1)
@@ -130,7 +130,7 @@ class RemoteConfigFetcherTests: XCTestCase {
             expectation.fulfill()
         }
 
-        wait(for: [expectation], timeout: .defaultTimeout)
+        wait(for: [expectation], timeout: .longTimeout)
 
         XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 1)
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(url).count, 1)

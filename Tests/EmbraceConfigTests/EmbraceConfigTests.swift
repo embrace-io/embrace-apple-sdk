@@ -9,6 +9,10 @@ import TestSupport
 class EmbraceConfigTests: XCTestCase {
     static var urlSessionConfig: URLSessionConfiguration!
 
+    private var apiBaseUrl: String {
+        "https://embrace.\(testName).com/config"
+    }
+
     override func setUpWithError() throws {
         EmbraceConfigTests.urlSessionConfig = URLSessionConfiguration.ephemeral
         EmbraceConfigTests.urlSessionConfig.protocolClasses = [EmbraceHTTPMock.self]
@@ -20,7 +24,7 @@ class EmbraceConfigTests: XCTestCase {
         minimumUpdateInterval: TimeInterval = 0
     ) -> EmbraceConfig.Options {
         return EmbraceConfig.Options(
-            apiBaseUrl: "https://embrace.\(testName).com/config",
+            apiBaseUrl: apiBaseUrl,
             queue: DispatchQueue(label: "com.test.embrace.queue", attributes: .concurrent),
             appId: TestConstants.appId,
             deviceId: deviceId,
@@ -33,22 +37,57 @@ class EmbraceConfigTests: XCTestCase {
         )
     }
 
+    func mockSuccessfulResponse() throws {
+        var url = try XCTUnwrap(URL(string: "\(apiBaseUrl)/v2/config"))
+
+        if #available(iOS 16.0, *) {
+            url.append(queryItems: [
+                .init(name: "appId", value: TestConstants.appId),
+                .init(name: "osVersion", value: TestConstants.osVersion),
+                .init(name: "appVersion", value: TestConstants.appVersion),
+                .init(name: "deviceId", value: TestConstants.deviceId),
+                .init(name: "sdkVersion", value: TestConstants.sdkVersion)
+            ])
+        } else {
+            XCTFail("This will fail on versions prior to iOS 16.0")
+        }
+
+        let path = Bundle.module.path(
+            forResource: "remote_config",
+            ofType: "json",
+            inDirectory: "Mocks"
+        )!
+        let data = try Data(contentsOf: URL(fileURLWithPath: path))
+        EmbraceHTTPMock.mock(url: url, response: .withData(data, statusCode: 200))
+    }
+
     func test_frequentUpdatesIgnored() throws {
         // given a config with 1 hour minimum update interval
         let options = testOptions(
             deviceId: TestConstants.deviceId,
             minimumUpdateInterval: 60 * 60
         )
+
+        // Given the response is successful (necessary to save the `lastUpdateTime` value)
+        try mockSuccessfulResponse()
+
+        // Given an EmbraceConfig (executes fetch on init)
         let config = EmbraceConfig(options: options)
+
+        // Wait until the fetch from init has finished
+        wait(timeout: .longTimeout) {
+            config.updating == false
+        }
 
         // when trying to update too soon
         config.updateIfNeeded()
 
         // then the update call is ignored
-        wait(delay: 2)
         let url = try XCTUnwrap(config.fetcher.buildURL())
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(url).count, 1)
-        XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 1)
+        wait(timeout: .longTimeout) {
+            return EmbraceHTTPMock.requestsForUrl(url).count == 1 &&
+            EmbraceHTTPMock.totalRequestCount() == 1
+        }
     }
 
     func test_frequentUpdatesNotIgnored() throws {
@@ -57,19 +96,28 @@ class EmbraceConfigTests: XCTestCase {
             deviceId: TestConstants.deviceId,
             minimumUpdateInterval: 1
         )
+
+        // Given the response is successful (necessary to save the `lastUpdateTime` value)
+        try mockSuccessfulResponse()
+
+        // Given an EmbraceConfig (executes fetch on init)
         let config = EmbraceConfig(options: options)
 
-        // when trying to update after 1 second
+        // Wait until the fetch from init has finished
         wait(timeout: .longTimeout) {
             config.updating == false
         }
+
+        // When invoking updateIfNeeded after waiting the "minimumUpdateInterval" amount assigned above
+        wait(delay: 1)
         config.updateIfNeeded()
 
         // then the update call is not ignored
-        wait(delay: 1)
         let url = try XCTUnwrap(config.fetcher.buildURL())
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(url).count, 2)
-        XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 2)
+        wait(timeout: .longTimeout) {
+            return EmbraceHTTPMock.requestsForUrl(url).count == 2 &&
+            EmbraceHTTPMock.totalRequestCount() == 2
+        }
     }
 
     func test_forcedUpdateNotIgnored() throws {
@@ -77,11 +125,19 @@ class EmbraceConfigTests: XCTestCase {
             deviceId: TestConstants.deviceId,
             minimumUpdateInterval: 60 * 60
         )
+
+        // Given the response is successful (necessary to save the `lastUpdateTime` value)
+        try mockSuccessfulResponse()
+
+        // Given an EmbraceConfig (executes fetch on init)
         let config = EmbraceConfig(options: options)
-        // when forcing an update
+
+        // Wait until the fetch from init has finished
         wait(timeout: .longTimeout) {
             config.updating == false
         }
+
+        // When forcing an update
         config.update()
 
         // then the update call is not ignored
@@ -89,8 +145,10 @@ class EmbraceConfigTests: XCTestCase {
             config.updating == false
         }
         let url = try XCTUnwrap(config.fetcher.buildURL())
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(url).count, 2)
-        XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 2)
+        wait(timeout: .longTimeout) {
+            return EmbraceHTTPMock.requestsForUrl(url).count == 2 &&
+            EmbraceHTTPMock.totalRequestCount() == 2
+        }
     }
 
     func test_invalidDeviceId() {
