@@ -12,4 +12,5 @@ extension LogType {
 // MARK: - System
 extension LogType {
     public static let `default` = LogType(system: "log")
+    public static let breadcrumb = LogType(system: "breadcrumb")
 }
