@@ -11,6 +11,8 @@ import TestSupport
 import OpenTelemetryApi
 @testable import OpenTelemetrySdk
 
+// swiftlint:disable force_cast
+
 final class SpansPayloadBuilderTests: XCTestCase {
 
     var storage: EmbraceStorage!
@@ -168,6 +170,50 @@ final class SpansPayloadBuilderTests: XCTestCase {
         XCTAssertEqual(open.count, 0)
     }
 
+    func test_openSpan_withinCrashedSession() throws {
+        // given a crashed session
+        sessionRecord.crashReportId = "test"
+
+        // given a open span that started after the crashed session
+        let span = try addSpan(
+            startTime: Date(timeIntervalSince1970: 55),
+            endTime: nil
+        )
+        let payload = SpanPayload(from: span, endTime: sessionRecord.endTime, failed: true)
+
+        // when building the spans payload
+        let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
+
+        // then the spans are retrieved correctly
+        XCTAssertEqual(closed.count, 2)
+        XCTAssertEqual(closed[0].name, SessionSpanUtils.spanName) // session span always first
+        XCTAssertEqual(closed[1], payload)
+        XCTAssertEqual(closed[1].attributes["emb.error_code"] as! String, "failure")
+        XCTAssertEqual(open.count, 0)
+    }
+
+    func test_openSpan_beforeCrashedSession() throws {
+        // given a crashed session
+        sessionRecord.crashReportId = "test"
+
+        // given a open span that started before the crashed session
+        let span = try addSpan(
+            startTime: Date(timeIntervalSince1970: 0),
+            endTime: nil
+        )
+        let payload = SpanPayload(from: span, endTime: sessionRecord.endTime, failed: true)
+
+        // when building the spans payload
+        let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
+
+        // then the spans are retrieved correctly
+        XCTAssertEqual(closed.count, 2)
+        XCTAssertEqual(closed[0].name, SessionSpanUtils.spanName) // session span always first
+        XCTAssertEqual(closed[1], payload)
+        XCTAssertEqual(closed[1].attributes["emb.error_code"] as! String, "failure")
+        XCTAssertEqual(open.count, 0)
+    }
+
     func test_hardLimit() throws {
         // given more than 1000 spans
         for _ in 1...1100 {
@@ -213,3 +259,5 @@ final class SpansPayloadBuilderTests: XCTestCase {
         XCTAssertEqual(open.count, 0)
     }
 }
+
+// swiftlint:enable force_cast

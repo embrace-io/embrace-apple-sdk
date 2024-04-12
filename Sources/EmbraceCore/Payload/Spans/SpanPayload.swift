@@ -30,22 +30,29 @@ struct SpanPayload: Encodable {
         case links
     }
 
-    init(from span: SpanData, endTime: Date? = nil) {
+    init(from span: SpanData, endTime: Date? = nil, failed: Bool = false) {
         self.traceId = span.traceId.hexString
         self.spanId = span.spanId.hexString
         self.parentSpanId = span.parentSpanId?.hexString
         self.name = span.name
         self.status = span.status.name
         self.startTime = span.startTime.nanosecondsSince1970Truncated
-        self.attributes = PayloadUtils.convertSpanAttributes(span.attributes)
         self.events = span.events.map { SpanEventPayload(from: $0) }
         self.links = span.links.map { SpanLinkPayload(from: $0) }
 
-        if span.hasEnded {
-            self.endTime = (endTime ?? span.endTime)?.nanosecondsSince1970Truncated
+        if let endTime = endTime {
+            self.endTime = endTime.nanosecondsSince1970Truncated
+        } else if span.hasEnded {
+            self.endTime = span.endTime.nanosecondsSince1970Truncated
         } else {
             self.endTime = nil
         }
+
+        var dict = PayloadUtils.convertSpanAttributes(span.attributes)
+        if failed {
+            dict["emb.error_code"] = "failure"
+        }
+        self.attributes = dict
     }
 
     func encode(to encoder: Encoder) throws {
