@@ -26,6 +26,7 @@ struct ResourcePayload: Codable {
     var sdkVersion: String?
     var appVersion: String?
     var appBundleId: String?
+    var processIdentifier: String?
 
     enum CodingKeys: String, CodingKey {
         case jailbroken
@@ -47,6 +48,7 @@ struct ResourcePayload: Codable {
         case sdkVersion = "sdk_version"
         case appVersion = "app_version"
         case appBundleId = "app_bundle_id"
+        case processIdentifier = "process_identifier"
     }
 
     init(from resources: [MetadataRecord]) {
@@ -76,6 +78,8 @@ struct ResourcePayload: Codable {
                     self.sdkVersion = resource.stringValue
                 case .appVersion:
                     self.appVersion = resource.stringValue
+                case .processIdentifier:
+                    self.processIdentifier = resource.stringValue
                 }
             }
 

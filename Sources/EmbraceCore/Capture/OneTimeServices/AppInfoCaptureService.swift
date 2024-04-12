@@ -47,5 +47,11 @@ class AppInfoCaptureService: ResourceCaptureService {
                 value: .string(appVersion)
             )
         }
+
+        // process identifier
+        addResource(
+            key: AppResourceKey.processIdentifier.rawValue,
+            value: .string(ProcessIdentifier.current.hex)
+        )
     }
 }

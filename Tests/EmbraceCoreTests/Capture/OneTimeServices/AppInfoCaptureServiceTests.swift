@@ -82,6 +82,16 @@ final class AppInfoCaptureServiceTests: XCTestCase {
         )
         XCTAssertNotNil(appVersion)
         XCTAssertEqual(appVersion!.stringValue, EMBDevice.appVersion)
+
+        // process identifier
+        let processIdentifier = try handler.fetchMetadata(
+            key: AppResourceKey.processIdentifier.rawValue,
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: processId
+        )
+        XCTAssertNotNil(processIdentifier)
+        XCTAssertEqual(processIdentifier!.stringValue, ProcessIdentifier.current.hex)
     }
 
     func test_notStarted() throws {

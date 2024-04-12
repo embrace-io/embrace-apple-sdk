@@ -55,6 +55,7 @@ struct AppInfoPayload: Codable {
                 self.sdkVersion = resource.stringValue
             case .appVersion:
                 self.appVersion = resource.stringValue
+            default: break
             }
         }
     }

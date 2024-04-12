@@ -11,30 +11,31 @@ class ResourcePayloadTests: XCTestCase {
     func test_encodeToJSONProperly() throws {
         let payloadStruct = ResourcePayload(from: [
             // App Resources that should be
-            MetadataRecord.userMetadata(key: "emb.app.bundle_version", value: "9.8.7"),
-            MetadataRecord.userMetadata(key: "emb.app.environment", value: "dev"),
-            MetadataRecord.userMetadata(key: "emb.app.environment_detailed", value: "si"),
-            MetadataRecord.userMetadata(key: "emb.app.framework", value: "111"),
-            MetadataRecord.userMetadata(key: "emb.app.launch_count", value: "123"),
-            MetadataRecord.userMetadata(key: "emb.app.version", value: "1.2.3"),
-            MetadataRecord.userMetadata(key: "emb.sdk.version", value: "3.2.1"),
+            MetadataRecord.userMetadata(key: AppResourceKey.bundleVersion.rawValue, value: "9.8.7"),
+            MetadataRecord.userMetadata(key: AppResourceKey.environment.rawValue, value: "dev"),
+            MetadataRecord.userMetadata(key: AppResourceKey.detailedEnvironment.rawValue, value: "si"),
+            MetadataRecord.userMetadata(key: AppResourceKey.framework.rawValue, value: "111"),
+            MetadataRecord.userMetadata(key: AppResourceKey.launchCount.rawValue, value: "123"),
+            MetadataRecord.userMetadata(key: AppResourceKey.appVersion.rawValue, value: "1.2.3"),
+            MetadataRecord.userMetadata(key: AppResourceKey.sdkVersion.rawValue, value: "3.2.1"),
+            MetadataRecord.userMetadata(key: AppResourceKey.processIdentifier.rawValue, value: "12345"),
 
             // Device Resources that should be
-            MetadataRecord.createResourceRecord(key: "emb.device.is_jailbroken", value: "true"),
-            MetadataRecord.createResourceRecord(key: "emb.device.disk_size", value: "494384795648"),
-            MetadataRecord.createResourceRecord(key: "emb.device.architecture", value: "arm64"),
-            MetadataRecord.createResourceRecord(key: "emb.device.model.identifier", value: "arm64_model"),
-            MetadataRecord.createResourceRecord(key: "emb.device.manufacturer", value: "Apple"),
-            MetadataRecord.createResourceRecord(key: "emb.device.screenResolution", value: "1179x2556"),
-            MetadataRecord.createResourceRecord(key: "emb.os.version", value: "17.0.1"),
-            MetadataRecord.createResourceRecord(key: "emb.os.build_id", value: "23D60"),
-            MetadataRecord.createResourceRecord(key: "emb.os.type", value: "iOS"),
-            MetadataRecord.createResourceRecord(key: "emb.os.variant", value: "iOS_variant"),
+            MetadataRecord.createResourceRecord(key: DeviceResourceKey.isJailbroken.rawValue, value: "true"),
+            MetadataRecord.createResourceRecord(key: DeviceResourceKey.totalDiskSpace.rawValue, value: "494384795648"),
+            MetadataRecord.createResourceRecord(key: DeviceResourceKey.architecture.rawValue, value: "arm64"),
+            MetadataRecord.createResourceRecord(key: DeviceResourceKey.model.rawValue, value: "arm64_model"),
+            MetadataRecord.createResourceRecord(key: DeviceResourceKey.manufacturer.rawValue, value: "Apple"),
+            MetadataRecord.createResourceRecord(key: DeviceResourceKey.screenResolution.rawValue, value: "1179x2556"),
+            MetadataRecord.createResourceRecord(key: DeviceResourceKey.osVersion.rawValue, value: "17.0.1"),
+            MetadataRecord.createResourceRecord(key: DeviceResourceKey.osBuild.rawValue, value: "23D60"),
+            MetadataRecord.createResourceRecord(key: DeviceResourceKey.osType.rawValue, value: "iOS"),
+            MetadataRecord.createResourceRecord(key: DeviceResourceKey.osVariant.rawValue, value: "iOS_variant"),
+            MetadataRecord.createResourceRecord(key: DeviceResourceKey.locale.rawValue, value: "en_US_POSIX"),
+            MetadataRecord.createResourceRecord(key: DeviceResourceKey.timezone.rawValue, value: "GMT-3:00"),
 
             // Random properties that shouldn't be used
             MetadataRecord.userMetadata(key: "random_user_metadata_property", value: "value"),
-            MetadataRecord.createResourceRecord(key: "emb.device.locale", value: "en_US_POSIX"),
-            MetadataRecord.createResourceRecord(key: "emb.device.timezone", value: "GMT-3:00"),
             MetadataRecord.createResourceRecord(key: "random_resource_property", value: "value")
         ])
 
@@ -48,6 +49,7 @@ class ResourcePayloadTests: XCTestCase {
         XCTAssertEqual(json["launch_count"] as? Int, 123)
         XCTAssertEqual(json["sdk_version"] as? String, "3.2.1")
         XCTAssertEqual(json["app_version"] as? String, "1.2.3")
+        XCTAssertEqual(json["process_identifier"] as? String, "12345")
 
         XCTAssertEqual(json["jailbroken"] as? Bool, true)
         XCTAssertEqual(json["disk_total_capacity"] as? Int, 494384795648)
