@@ -43,5 +43,6 @@ large_tuple:
   error: 6
 
 cyclomatic_complexity:
+  ignores_case_statements: true
   warning: 20
   error: 30

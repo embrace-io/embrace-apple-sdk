@@ -10,7 +10,7 @@ import EmbraceStorage
 class ResourcePayloadTests: XCTestCase {
     func test_encodeToJSONProperly() throws {
         let payloadStruct = ResourcePayload(from: [
-            // App Resources that should be
+            // App Resources that should be present
             MetadataRecord.userMetadata(key: AppResourceKey.bundleVersion.rawValue, value: "9.8.7"),
             MetadataRecord.userMetadata(key: AppResourceKey.environment.rawValue, value: "dev"),
             MetadataRecord.userMetadata(key: AppResourceKey.detailedEnvironment.rawValue, value: "si"),
@@ -20,7 +20,7 @@ class ResourcePayloadTests: XCTestCase {
             MetadataRecord.userMetadata(key: AppResourceKey.sdkVersion.rawValue, value: "3.2.1"),
             MetadataRecord.userMetadata(key: AppResourceKey.processIdentifier.rawValue, value: "12345"),
 
-            // Device Resources that should be
+            // Device Resources that should be present
             MetadataRecord.createResourceRecord(key: DeviceResourceKey.isJailbroken.rawValue, value: "true"),
             MetadataRecord.createResourceRecord(key: DeviceResourceKey.totalDiskSpace.rawValue, value: "494384795648"),
             MetadataRecord.createResourceRecord(key: DeviceResourceKey.architecture.rawValue, value: "arm64"),
@@ -29,8 +29,9 @@ class ResourcePayloadTests: XCTestCase {
             MetadataRecord.createResourceRecord(key: DeviceResourceKey.screenResolution.rawValue, value: "1179x2556"),
             MetadataRecord.createResourceRecord(key: DeviceResourceKey.osVersion.rawValue, value: "17.0.1"),
             MetadataRecord.createResourceRecord(key: DeviceResourceKey.osBuild.rawValue, value: "23D60"),
-            MetadataRecord.createResourceRecord(key: DeviceResourceKey.osType.rawValue, value: "iOS"),
+            MetadataRecord.createResourceRecord(key: DeviceResourceKey.osType.rawValue, value: "darwin"),
             MetadataRecord.createResourceRecord(key: DeviceResourceKey.osVariant.rawValue, value: "iOS_variant"),
+            MetadataRecord.createResourceRecord(key: DeviceResourceKey.osName.rawValue, value: "iPadOS"),
             MetadataRecord.createResourceRecord(key: DeviceResourceKey.locale.rawValue, value: "en_US_POSIX"),
             MetadataRecord.createResourceRecord(key: DeviceResourceKey.timezone.rawValue, value: "GMT-3:00"),
 
@@ -41,6 +42,9 @@ class ResourcePayloadTests: XCTestCase {
 
         let jsonData = try JSONEncoder().encode(payloadStruct)
         let json = try XCTUnwrap(JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any])
+
+        XCTAssertEqual(json["app_bundle_id"] as? String, Bundle.main.bundleIdentifier)
+        XCTAssertNotNil(json["build_id"] as? String)
 
         XCTAssertEqual(json["bundle_version"] as? String, "9.8.7")
         XCTAssertEqual(json["environment"] as? String, "dev")
@@ -59,8 +63,18 @@ class ResourcePayloadTests: XCTestCase {
         XCTAssertEqual(json["screen_resolution"] as? String, "1179x2556")
         XCTAssertEqual(json["os_version"] as? String, "17.0.1")
         XCTAssertEqual(json["os_build"] as? String, "23D60")
-        XCTAssertEqual(json["os_type"] as? String, "iOS")
+        XCTAssertEqual(json["os_type"] as? String, "darwin")
         XCTAssertEqual(json["os_alternate_type"] as? String, "iOS_variant")
+        XCTAssertEqual(json["os_name"] as? String, "iPadOS")
+
+        let jsonKeys = Set(json.keys)
+        let expectedKeys = Set(ResourcePayload.CodingKeys.allCases.map { $0.rawValue })
+
+        XCTAssertEqual(
+            jsonKeys,
+            expectedKeys,
+            "Unexpected keys: \(jsonKeys.subtracting(expectedKeys)) Missing keys: \(expectedKeys.subtracting(jsonKeys))"
+        )
 
         XCTAssertNil(json["random_user_metadata_property"])
         XCTAssertNil(json["random_resource_property"])

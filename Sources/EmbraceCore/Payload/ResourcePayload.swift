@@ -11,7 +11,8 @@ struct ResourcePayload: Codable {
     var diskTotalCapacity: Int?
     var osVersion: String?
     var osBuild: String?
-    var osType: String? = "iOS"
+    var osName: String?
+    var osType: String?
     var osAlternateType: String?
     var deviceArchitecture: String?
     var deviceModel: String?
@@ -28,12 +29,13 @@ struct ResourcePayload: Codable {
     var appBundleId: String?
     var processIdentifier: String?
 
-    enum CodingKeys: String, CodingKey {
+    enum CodingKeys: String, CodingKey, CaseIterable {
         case jailbroken
         case environment
         case diskTotalCapacity = "disk_total_capacity"
         case osVersion = "os_version"
         case osBuild = "os_build"
+        case osName = "os_name"
         case osType = "os_type"
         case osAlternateType = "os_alternate_type"
         case deviceArchitecture = "device_architecture"
@@ -103,9 +105,11 @@ struct ResourcePayload: Codable {
                     self.osBuild = resource.stringValue
                 case .osType:
                     self.osType = resource.stringValue
+                case .osName:
+                    self.osName = resource.stringValue
                 case .osVariant:
                     self.osAlternateType = resource.stringValue
-                case .locale, .timezone, .osName, .osDescription:
+                case .locale, .timezone, .osDescription:
                     // This is part of the Metadata
                     break
                 }
