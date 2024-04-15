@@ -5,6 +5,7 @@
 import Foundation
 import EmbraceObjCUtils
 import EmbraceConfig
+import EmbraceCommon
 
 extension Embrace {
     static func createConfig(options: Embrace.Options, deviceId: String) -> EmbraceConfig {

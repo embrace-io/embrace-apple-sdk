@@ -6,6 +6,7 @@ import XCTest
 import Foundation
 
 @testable import EmbraceCore
+import EmbraceCommon
 
 class EmbraceMetaUserAgentTests: XCTestCase {
 

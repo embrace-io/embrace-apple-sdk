@@ -6,7 +6,7 @@ import OpenTelemetrySdk
 @objc public final class EmbraceOTel: NSObject {
 
     let instrumentationName = "EmbraceOpenTelemetry"
-    let instrumentationVersion = "semver:0.0.1"
+    let instrumentationVersion = "semver:\(EmbraceMeta.sdkVersion)"
 
     /// Setup the OpenTelemetryApi
     /// - Parameter: spanProcessor The processor in which to run during the lifetime of each Span
