@@ -90,6 +90,9 @@ let package = Package(
                 "EmbraceObjCUtils",
                 .product(name: "Gzip", package: "GzipSwift")
             ],
+            resources: [
+                .copy("PrivacyInfo.xcprivacy")
+            ],
             plugins: targetPlugins
         ),
 
