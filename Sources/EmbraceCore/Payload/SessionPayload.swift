@@ -35,12 +35,13 @@ struct SessionPayload: Encodable {
         counter: Int = -1
     ) {
         let resources = PayloadUtils.fetchResources(from: resourceFetcher, sessionId: sessionRecord.id)
+        let properties = PayloadUtils.fetchCustomProperties(from: resourceFetcher, sessionId: sessionRecord.id)
 
         self.messageFormatVersion = 15
-        self.sessionInfo = SessionInfoPayload(from: sessionRecord, counter: counter)
+        self.sessionInfo = SessionInfoPayload(from: sessionRecord, metadata: properties, counter: counter)
         self.appInfo = AppInfoPayload(with: resources)
         self.deviceInfo = DeviceInfoPayload(with: resources)
-        self.userInfo = UserInfoPayload(with: resources)
+        self.userInfo = UserInfoPayload(with: properties)
         self.spans = spans
         self.spanSnapshots = spanSnapshots
     }

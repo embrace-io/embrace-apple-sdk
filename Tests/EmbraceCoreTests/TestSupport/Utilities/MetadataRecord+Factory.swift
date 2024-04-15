@@ -4,19 +4,21 @@
 
 import Foundation
 import EmbraceStorage
+import EmbraceCommon
 import OpenTelemetryApi
 
 extension MetadataRecord {
     static func createSessionPropertyRecord(
         key: String,
-        value: AttributeValue
+        value: AttributeValue,
+        sessionId: SessionIdentifier = .random
     ) -> MetadataRecord {
         self.init(
             key: key,
             value: value,
             type: .customProperty,
             lifespan: .session,
-            lifespanId: UUID().uuidString
+            lifespanId: sessionId.toString
         )
     }
 

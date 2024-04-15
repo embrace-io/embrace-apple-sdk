@@ -27,7 +27,7 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
     // MARK: - addSessionIdentifier Tests
 
     func testOnHavingSession_addSessionIdentifier_addsTheIdentifierToAttributes() {
-        let identifier = UUID()
+        let identifier = SessionIdentifier.random
         givenSessionController(sessionWithId: identifier)
         givenMetadataFetcher()
         givenEmbraceLogAttributesBuilder()
@@ -35,7 +35,7 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
         whenInvokingAddSessionIdentifier()
         whenInvokingBuild()
 
-        thenResultingAttributes(is: ["emb.session_id": identifier.uuidString])
+        thenResultingAttributes(is: ["emb.session_id": identifier.toString])
     }
 
     func testOnNotHavingSession_addSessionIdentifier_addsNothingToAttributes() {
@@ -52,12 +52,13 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
     // MARK: - addApplicationProperties Tests
 
     func testOnHavingMetadataCustomProperties_addApplicationProperties_addsCustomPropertiesToAttributes() {
-        givenSessionController()
+        let sessionId = SessionIdentifier.random
+        givenSessionController(sessionWithId: sessionId)
         givenMetadataFetcher(with: [
-            .createSessionPropertyRecord(key: "custom_prop_int", value: .int(1)),
-            .createSessionPropertyRecord(key: "custom_prop_bool", value: .bool(false)),
-            .createSessionPropertyRecord(key: "custom_prop_double", value: .double(3.0)),
-            .createSessionPropertyRecord(key: "custom_prop_string", value: .string("hello"))]
+            .createSessionPropertyRecord(key: "custom_prop_int", value: .int(1), sessionId: sessionId),
+            .createSessionPropertyRecord(key: "custom_prop_bool", value: .bool(false), sessionId: sessionId),
+            .createSessionPropertyRecord(key: "custom_prop_double", value: .double(3.0), sessionId: sessionId),
+            .createSessionPropertyRecord(key: "custom_prop_string", value: .string("hello"), sessionId: sessionId)]
         )
         givenEmbraceLogAttributesBuilder()
 
@@ -149,7 +150,7 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
 
 private extension EmbraceLogAttributesBuilderTests {
     func givenSessionController(
-        sessionWithId sessionId: UUID = .init(),
+        sessionWithId sessionId: SessionIdentifier = .random,
         sessionState: SessionState = .foreground
     ) {
         controller = SpySessionController(currentSession: .with(id: sessionId, state: sessionState))
@@ -160,7 +161,7 @@ private extension EmbraceLogAttributesBuilderTests {
     }
 
     func givenMetadataFetcher(with metadata: [MetadataRecord]? = nil) {
-        storage = .init(resources: metadata)
+        storage = .init(metadata: metadata ?? [])
     }
 
     func givenEmbraceLogAttributesBuilder(withInitialAttributes attributes: [String: String] = [:]) {

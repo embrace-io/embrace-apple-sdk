@@ -22,7 +22,7 @@ final class PayloadUtilTests: XCTestCase {
                 lifespanId: ProcessIdentifier.random.hex
             )
         ]
-        let fetcher = MockMetadataFetcher(resources: mockResources)
+        let fetcher = MockMetadataFetcher(metadata: mockResources)
 
         // when
         let fetchedResources = PayloadUtils.fetchResources(from: fetcher, sessionId: .random)
@@ -58,6 +58,27 @@ final class PayloadUtilTests: XCTestCase {
         XCTAssertNil(converted["doubleArray"])
         XCTAssertNil(converted["intArray"])
         XCTAssertNil(converted["stringArray"])
+    }
+
+    func test_fetchCustomProperties() throws {
+        // given
+        let sessionId = SessionIdentifier.random
+        let mockResources: [MetadataRecord] = [
+            .init(
+                key: "fake_res",
+                value: .string("fake_value"),
+                type: .customProperty,
+                lifespan: .session,
+                lifespanId: sessionId.toString
+            )
+        ]
+        let fetcher = MockMetadataFetcher(metadata: mockResources)
+
+        // when
+        let fetchedResources = PayloadUtils.fetchCustomProperties(from: fetcher, sessionId: sessionId)
+
+        // then the session payload contains the necessary keys
+        XCTAssertEqual(mockResources, fetchedResources)
     }
 }
 

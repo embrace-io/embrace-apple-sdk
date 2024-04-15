@@ -25,6 +25,24 @@ class PayloadUtils {
         return []
     }
 
+    static func fetchCustomProperties(
+        from fetcher: EmbraceStorageMetadataFetcher,
+        sessionId: SessionIdentifier?
+    ) -> [MetadataRecord] {
+
+        guard let sessionId = sessionId else {
+            return []
+        }
+
+        do {
+            return try fetcher.fetchCustomPropertiesForSessionId(sessionId)
+        } catch let e {
+            ConsoleLog.error("Failed to fetch custom properties from storage: \(e.localizedDescription)")
+        }
+
+        return []
+    }
+
     static func convertSpanAttributes(_ attributes: [String: AttributeValue]) -> [String: Any] {
         var result: [String: Any] = [:]
 

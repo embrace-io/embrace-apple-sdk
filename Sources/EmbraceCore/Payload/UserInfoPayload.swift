@@ -17,19 +17,20 @@ struct UserInfoPayload: Codable {
         case email = "em"
     }
 
-    init(with resources: [MetadataRecord]) {
-        resources.forEach { resource in
-            guard let key: UserResourceKey = UserResourceKey(rawValue: resource.key) else {
+    init(with properties: [MetadataRecord]) {
+        properties.forEach { property in
+            guard let key: UserResourceKey = UserResourceKey(rawValue: property.key) else {
                 return
             }
+            let value = property.stringValue
 
             switch key {
             case .name:
-                username = resource.stringValue
+                username = value
             case .identifier:
-                identifier = resource.stringValue
+                identifier = value
             case .email:
-                email = resource.stringValue
+                email = value
             }
         }
     }

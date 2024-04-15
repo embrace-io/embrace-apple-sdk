@@ -7,9 +7,9 @@ import EmbraceStorage
 import EmbraceCommon
 
 extension SessionRecord {
-    static func with(id: UUID, state: SessionState) -> SessionRecord {
+    static func with(id: SessionIdentifier, state: SessionState) -> SessionRecord {
         .init(
-            id: .init(value: id),
+            id: id,
             state: state,
             processId: .random,
             traceId: "",

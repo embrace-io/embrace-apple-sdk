@@ -3,6 +3,7 @@
 //
 
 import SwiftUI
+import EmbraceIO
 
 struct ContentView: View {
 
@@ -18,6 +19,7 @@ struct ContentView: View {
             TapGesture(count: 3)
                 .onEnded { _ in
                     isShowingMenu = true
+                    try? Embrace.client?.metadata.addProperty(key: "user.menu.open", value: "true")
                 }
         )
         .ignoresSafeArea(.all)

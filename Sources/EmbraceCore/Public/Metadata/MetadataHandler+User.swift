@@ -62,7 +62,7 @@ extension MetadataHandler {
 
     private func value(for key: UserResourceKey) -> String? {
         do {
-            let record = try storage?.fetchMetadata(key: key.rawValue, type: .resource, lifespan: .permanent)
+            let record = try storage?.fetchMetadata(key: key.rawValue, type: .customProperty, lifespan: .permanent)
             return record?.stringValue
         } catch {
             ConsoleLog.warning("Unable to read user metadata!")
@@ -73,12 +73,15 @@ extension MetadataHandler {
     private func update(key: UserResourceKey, value: String?) {
         if let value = value {
             do {
-                try storage?.updateMetadata(
+                let record = MetadataRecord(
                     key: key.rawValue,
-                    value: value,
+                    value: .string(value),
                     type: .customProperty,
-                    lifespan: .permanent
+                    lifespan: .permanent,
+                    lifespanId: ""
                 )
+
+                _ = try storage?.addMetadata(record)
             } catch {
                 ConsoleLog.warning("Unable to update user metadata!")
             }

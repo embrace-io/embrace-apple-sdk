@@ -67,6 +67,7 @@ extension EmbraceStorage {
             ).fetchCount(db)
 
             guard count < limit else {
+                // TODO: limit could be applied incorrectly if at max limit and updating an existing record
                 return false
             }
 

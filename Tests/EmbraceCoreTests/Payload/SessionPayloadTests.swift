@@ -169,7 +169,7 @@ final class SessionPayloadTests: XCTestCase {
     func test_properties() {
         // given a session record
         let sessionRecord = mockSessionRecord
-        let fetcher = MockMetadataFetcher(resources: [])
+        let fetcher = MockMetadataFetcher(metadata: [])
 
         // when creating a payload
         let payload = SessionPayload(from: sessionRecord, resourceFetcher: fetcher, counter: 10)
@@ -190,7 +190,7 @@ final class SessionPayloadTests: XCTestCase {
     func test_highLevelKeys() throws {
         // given a session record
         let sessionRecord = mockSessionRecord
-        let fetcher = MockMetadataFetcher(resources: [])
+        let fetcher = MockMetadataFetcher(metadata: [])
 
         // when serializing
         let payload = SessionPayload(from: sessionRecord, resourceFetcher: fetcher)
@@ -210,7 +210,7 @@ final class SessionPayloadTests: XCTestCase {
     func test_sessionInfoKeys() throws {
         // given a session record
         let sessionRecord = mockSessionRecord
-        let fetcher = MockMetadataFetcher(resources: [])
+        let fetcher = MockMetadataFetcher(metadata: [])
 
         // when serializing
         let payload = SessionPayload(from: sessionRecord, resourceFetcher: fetcher, counter: 10)
@@ -230,10 +230,42 @@ final class SessionPayloadTests: XCTestCase {
         XCTAssertEqual(sessionInfo["cs"] as! Bool, true)
     }
 
+    func test_sessionInfoKeys_withSessionProperties() throws {
+        // given a session record
+        let sessionRecord = mockSessionRecord
+        let fetcher = MockMetadataFetcher(metadata: [
+            MetadataRecord(
+            key: "foo",
+            value: .string("bar"),
+            type: .customProperty,
+            lifespan: .session, lifespanId: sessionRecord.id.toString, collectedAt: Date()
+            )
+        ])
+
+        // when serializing
+        let payload = SessionPayload(from: sessionRecord, resourceFetcher: fetcher, counter: 10)
+        let data = try JSONEncoder().encode(payload)
+        let json = try JSONSerialization.jsonObject(with: data, options: []) as! [String: Any]
+
+        // then the session payload contains the necessary keys
+        let sessionInfo = json["s"] as! [String: Any]
+        XCTAssertEqual(sessionInfo.keys.count, 10)
+        XCTAssertEqual(sessionInfo["id"] as! String, sessionRecord.id.toString)
+        XCTAssertEqual(sessionInfo["st"] as! Int, sessionRecord.startTime.millisecondsSince1970Truncated)
+        XCTAssertEqual(sessionInfo["et"] as? Int, sessionRecord.endTime?.millisecondsSince1970Truncated)
+        XCTAssertEqual(sessionInfo["ht"] as! Int, sessionRecord.lastHeartbeatTime.millisecondsSince1970Truncated)
+        XCTAssertEqual(sessionInfo["as"] as! String, sessionRecord.state)
+        XCTAssertEqual(sessionInfo["sn"] as! Int, 10)
+        XCTAssertEqual(sessionInfo["tr"] as! Bool, false)
+        XCTAssertEqual(sessionInfo["ce"] as! Bool, true)
+        XCTAssertEqual(sessionInfo["cs"] as! Bool, true)
+        XCTAssertEqual(sessionInfo["sp"] as! [String: String], ["foo": "bar"])
+    }
+
     func test_appInfoKeys() throws {
         // given a session record
         let sessionRecord = mockSessionRecord
-        let fetcher = MockMetadataFetcher(resources: mockAppInfoResources)
+        let fetcher = MockMetadataFetcher(metadata: mockAppInfoResources)
 
         // when serializing
         let payload = SessionPayload(from: sessionRecord, resourceFetcher: fetcher)
@@ -256,7 +288,7 @@ final class SessionPayloadTests: XCTestCase {
     func test_deviceInfoKeys() throws {
         // given a session record
         let sessionRecord = mockSessionRecord
-        let fetcher = MockMetadataFetcher(resources: mockDeviceInfoResources)
+        let fetcher = MockMetadataFetcher(metadata: mockDeviceInfoResources)
 
         // when serializing
         let payload = SessionPayload(from: sessionRecord, resourceFetcher: fetcher)

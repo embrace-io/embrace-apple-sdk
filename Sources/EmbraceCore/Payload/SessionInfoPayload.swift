@@ -16,6 +16,7 @@ struct SessionInfoPayload: Codable {
     let appTerminated: Bool
     let cleanExit: Bool
     let coldStart: Bool
+    let properties: [String: String]
 
     enum CodingKeys: String, CodingKey {
         case sessionId = "id"
@@ -27,9 +28,11 @@ struct SessionInfoPayload: Codable {
         case appTerminated = "tr"
         case cleanExit = "ce"
         case coldStart = "cs"
+        case properties = "sp"
     }
 
-    init(from sessionRecord: SessionRecord, counter: Int) {
+    ///
+    init(from sessionRecord: SessionRecord, metadata: [MetadataRecord], counter: Int) {
         self.sessionId = sessionRecord.id
         self.startTime = sessionRecord.startTime.millisecondsSince1970Truncated
         self.endTime = sessionRecord.endTime?.millisecondsSince1970Truncated
@@ -39,5 +42,13 @@ struct SessionInfoPayload: Codable {
         self.appTerminated = sessionRecord.appTerminated
         self.cleanExit = sessionRecord.cleanExit
         self.coldStart = sessionRecord.coldStart
+        self.properties = metadata.reduce(into: [:]) { result, record in
+            guard UserResourceKey(rawValue: record.key) == nil else {
+                // prevent UserResource keys from appearing in properties
+                // will be sent in UserInfoPayload instead
+                return
+            }
+            result[record.key] = record.stringValue
+        }
     }
 }
