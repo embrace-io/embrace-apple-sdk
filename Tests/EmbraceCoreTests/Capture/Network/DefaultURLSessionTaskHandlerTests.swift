@@ -199,7 +199,7 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
         givenAnURLSessionTask(method: "GET")
         whenInvokingCreate()
         whenInvokingFinish()
-        thenSpanHasTheCorrectBodySize("4")
+        thenSpanHasTheCorrectBodySize(4)
     }
 }
 
@@ -446,11 +446,11 @@ private extension DefaultURLSessionTaskHandlerTests {
         }
     }
 
-    func thenSpanHasTheCorrectBodySize(_ bodySize: String) {
+    func thenSpanHasTheCorrectBodySize(_ bodySize: Int) {
         do {
             let span = try XCTUnwrap(otel.spanProcessor.endedSpans.first)
 
-            XCTAssertEqual(span.attributes[DefaultURLSessionTaskHandler.SpanAttribute.bodySize], .string(bodySize))
+            XCTAssertEqual(span.attributes[DefaultURLSessionTaskHandler.SpanAttribute.bodySize], .int(bodySize))
         } catch let exception {
             XCTFail("Couldn't get span: \(exception.localizedDescription)")
         }

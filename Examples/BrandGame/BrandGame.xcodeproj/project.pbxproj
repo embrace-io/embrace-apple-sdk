@@ -40,6 +40,9 @@
 		7BCB662E2AC476BC00ABD33A /* NetworkStressTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BCB662D2AC476BC00ABD33A /* NetworkStressTest.swift */; };
 		7BD901432B62ED2200053B1E /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = 7BD901422B62ED2200053B1E /* EmbraceCore */; };
 		7BD901452B62ED2200053B1E /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = 7BD901442B62ED2200053B1E /* EmbraceCrash */; };
+		FA02A8EE2BCDBBD10066B3AE /* NetworkRequestBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA02A8ED2BCDBBD10066B3AE /* NetworkRequestBuilder.swift */; };
+		FA02A8F02BCDBBEC0066B3AE /* Request.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA02A8EF2BCDBBEC0066B3AE /* Request.swift */; };
+		FA02A8F22BCDBC290066B3AE /* RequestResponseDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA02A8F12BCDBC290066B3AE /* RequestResponseDetail.swift */; };
 		FA9505162B86640F00562A4C /* LoggingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA9505152B86640F00562A4C /* LoggingView.swift */; };
 /* End PBXBuildFile section */
 
@@ -90,6 +93,9 @@
 		7BCB66272AC4742800ABD33A /* MenuList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuList.swift; sourceTree = "<group>"; };
 		7BCB66292AC4767B00ABD33A /* MainMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainMenu.swift; sourceTree = "<group>"; };
 		7BCB662D2AC476BC00ABD33A /* NetworkStressTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkStressTest.swift; sourceTree = "<group>"; };
+		FA02A8ED2BCDBBD10066B3AE /* NetworkRequestBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkRequestBuilder.swift; sourceTree = "<group>"; };
+		FA02A8EF2BCDBBEC0066B3AE /* Request.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Request.swift; sourceTree = "<group>"; };
+		FA02A8F12BCDBC290066B3AE /* RequestResponseDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequestResponseDetail.swift; sourceTree = "<group>"; };
 		FA9505152B86640F00562A4C /* LoggingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoggingView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -303,10 +309,21 @@
 		7BCB662C2AC476A800ABD33A /* Network */ = {
 			isa = PBXGroup;
 			children = (
+				FA02A8F32BCDBF750066B3AE /* NetworkRequestBuilder */,
 				7BCB662D2AC476BC00ABD33A /* NetworkStressTest.swift */,
 				7BC49B0E2AC7864100FF381A /* NetworkRequest.swift */,
 			);
 			path = Network;
+			sourceTree = "<group>";
+		};
+		FA02A8F32BCDBF750066B3AE /* NetworkRequestBuilder */ = {
+			isa = PBXGroup;
+			children = (
+				FA02A8ED2BCDBBD10066B3AE /* NetworkRequestBuilder.swift */,
+				FA02A8EF2BCDBBEC0066B3AE /* Request.swift */,
+				FA02A8F12BCDBC290066B3AE /* RequestResponseDetail.swift */,
+			);
+			path = NetworkRequestBuilder;
 			sourceTree = "<group>";
 		};
 		FA9505142B8663FB00562A4C /* Logging */ = {
@@ -405,6 +422,7 @@
 				7B62AD9B2B005FE20087C2AE /* AppSettings.swift in Sources */,
 				7B62ADA52B0068960087C2AE /* SimonGameModel.swift in Sources */,
 				7B5630A22AC1291D00E0DF39 /* BrandIconShape.swift in Sources */,
+				FA02A8F02BCDBBEC0066B3AE /* Request.swift in Sources */,
 				7B62AD932B0027280087C2AE /* ReflexMinigameView.swift in Sources */,
 				7B3143BF2AFDECCF00BA0D2F /* Icon+Meta.swift in Sources */,
 				7BCB662A2AC4767B00ABD33A /* MainMenu.swift in Sources */,
@@ -414,8 +432,10 @@
 				7B5630A52AC1331000E0DF39 /* Color+Random.swift in Sources */,
 				7B62AD952B0040FE0087C2AE /* Minigame.swift in Sources */,
 				7BCB66282AC4742800ABD33A /* MenuList.swift in Sources */,
+				FA02A8F22BCDBC290066B3AE /* RequestResponseDetail.swift in Sources */,
 				7B62AD972B0041310087C2AE /* MinigameView.swift in Sources */,
 				7B4C0BDF2BA9F93400F0BC37 /* App+SmokeTest.swift in Sources */,
+				FA02A8EE2BCDBBD10066B3AE /* NetworkRequestBuilder.swift in Sources */,
 				7B3143B72AFDC52D00BA0D2F /* RightDotShape.swift in Sources */,
 				FA9505162B86640F00562A4C /* LoggingView.swift in Sources */,
 				7B3143B92AFDC8EC00BA0D2F /* RightBracketShape.swift in Sources */,

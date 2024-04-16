@@ -37,6 +37,16 @@ struct NetworkStressTest: View {
                     }
                 }
 
+                Section {
+                    NavigationLink {
+                        NetworkRequestBuilder()
+                    } label: {
+                        Text("Build complex request")
+                    }
+                } header: {
+                    Text("Other Options")
+                }
+
                 TextField("URL", text: $inputURL)
                 Stepper("^[\(inputCount) Request](inflect: true)",
                         value: $inputCount,
@@ -101,5 +111,8 @@ struct NetworkStressTest: View {
 }
 
 #Preview {
-    NetworkStressTest()
+    NavigationStack {
+        NetworkStressTest()
+            .navigationBarTitleDisplayMode(.inline)
+    }
 }

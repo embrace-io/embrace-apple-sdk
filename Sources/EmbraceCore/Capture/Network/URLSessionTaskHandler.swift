@@ -87,11 +87,6 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
                 attributes[SpanAttribute.method] = httpMethod
             }
 
-            // This should be modified if we start doing this for streaming tasks.
-            if let bodySize = request.httpBody {
-                attributes[SpanAttribute.bodySize] = String(bodySize.count)
-            }
-
             /*
              Note: According to the OpenTelemetry specification, the attribute name should be ' {method} {http.route}.
              The `{http.route}` corresponds to the template of the path so it's necessary to understand the templating system being employed.
@@ -113,6 +108,11 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
                 type: .networkHTTP,
                 attributes: attributes
             )
+
+            // This should be modified if we start doing this for streaming tasks.
+            if let bodySize = request.httpBody {
+                networkSpan.setAttribute(key: SpanAttribute.bodySize, value: bodySize.count)
+            }
 
             let span = networkSpan.startSpan()
             self.spans[task] = span
