@@ -177,15 +177,21 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
                 sessionLifecycle.start()
                 captureServices.start()
 
-                // send unsent sessions and crash reports
                 processingQueue.async { [weak self] in
+                    // fetch crash reports and link them to sessions
+                    // then upload them
                     UnsentDataHandler.sendUnsentData(
                         storage: self?.storage,
                         upload: self?.upload,
                         currentSessionId: self?.sessionController.currentSession?.id,
                         crashReporter: self?.captureServices.crashReporter
                     )
+
+                    // upload persisted logs
                     self?.logController.uploadAllPersistedLogs()
+
+                    // retry any remaining cached upload data
+                    self?.upload?.retryCachedData()
                 }
             }
         }
