@@ -24,7 +24,7 @@ extension ViewCaptureService {
         }
 
         let title = vc.embViewName
-        let className = SwiftDemangler.demangleClassName(String(describing: vc.self))
+        let className = SwiftDemangler.demangleClassName(String(describing: type(of: vc)))
 
         vc.emb_associatedSpan = otel?.buildSpan(
             name: "emb-screen-view",

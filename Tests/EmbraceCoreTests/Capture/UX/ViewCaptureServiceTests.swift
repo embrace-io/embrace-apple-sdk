@@ -131,7 +131,7 @@ final class ViewCaptureServiceTests: XCTestCase {
         // then the view is captured with the correct view name
         XCTAssertEqual(otel.spanProcessor.startedSpans.count, 1)
         XCTAssertEqual(otel.spanProcessor.startedSpans[0].attributes["view.title"], .string("A custom title"))
-        XCTAssertEqual(otel.spanProcessor.startedSpans[0].attributes["view.name"], .string(String(describing: vc.self)))
+        XCTAssertEqual(otel.spanProcessor.startedSpans[0].attributes["view.name"], .string("UIViewController"))
     }
 
     func test_ViewName_embName() {
@@ -147,7 +147,7 @@ final class ViewCaptureServiceTests: XCTestCase {
         // then the view is captured with the correct title name
         XCTAssertEqual(otel.spanProcessor.startedSpans.count, 1)
         XCTAssertEqual(otel.spanProcessor.startedSpans[0].attributes["view.title"], .string("a customized class title"))
-        XCTAssertEqual(otel.spanProcessor.startedSpans[0].attributes["view.name"], .string(String(describing: vc.self)))
+        XCTAssertEqual(otel.spanProcessor.startedSpans[0].attributes["view.name"], .string("ViewCaptureTestViewController"))
     }
 
     func test_manuallyIgnoreView() throws {
