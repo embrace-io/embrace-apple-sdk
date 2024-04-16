@@ -61,15 +61,15 @@ import EmbraceOTel
         let accessibilityIdentifier = target.accessibilityIdentifier
         let targetClass = type(of: target)
 
-        let viewName = accessibilityIdentifier ?? NSStringFromClass(targetClass)
+        let viewName = accessibilityIdentifier ?? String(describing: targetClass)
 
-        // TODO: Review Attributes & Span Event Name
         let event = RecordingSpanEvent(
-            name: "action.tap",
+            name: "emb-ui-tap",
             timestamp: Date(),
             attributes: [
-                "view_name": .string(viewName),
-                "point": .string(point.toString())
+                "view.name": .string(viewName),
+                "tap.coords": .string(point.toString()),
+                "emb.type": .string("ux.tap")
             ]
         )
 

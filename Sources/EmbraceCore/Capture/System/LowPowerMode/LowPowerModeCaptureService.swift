@@ -62,7 +62,7 @@ import EmbraceOTel
 
         guard let builder = buildSpan(
             name: "emb-device-low-power",
-            type: .performance,
+            type: .lowPower,
             attributes: ["start_reason": wasManuallyFetched ? "system_query" : "system_notification"]
         ) else {
             ConsoleLog.warning("Error trying to create low power mode span!")

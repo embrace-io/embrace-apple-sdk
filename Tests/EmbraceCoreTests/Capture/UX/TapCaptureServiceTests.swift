@@ -37,7 +37,7 @@ final class TapCaptureServiceTests: XCTestCase {
 
         // then the tap is captured
         XCTAssertEqual(otel.events.count, 1)
-        XCTAssertEqual(otel.events[0].name, "action.tap")
+        XCTAssertEqual(otel.events[0].name, "emb-ui-tap")
     }
 
     func test_tap_uninstalled() throws {
@@ -80,23 +80,23 @@ final class TapCaptureServiceTests: XCTestCase {
     func test_tap_eventName_accessibilityIdentifier() throws {
         let view = UIView()
         view.accessibilityIdentifier = "an_identifier"
-        try testViewName(view: view, viewName: "an_identifier")
+        try assertViewName(view: view, viewName: "an_identifier")
     }
 
     func test_tap_eventName_noAccessibilityIdentifier() throws {
         let view = UIView()
-        try testViewName(view: view, viewName: "UIView")
+        try assertViewName(view: view, viewName: "UIView")
     }
 
     func test_tap_eventName_keyboardLayout() throws {
-        try testNoCoordinate(viewName: "UIKeyboardLayout")
+        try assertNoCoordinate(viewName: "UIKeyboardLayout")
     }
 
     func test_tap_eventName_remoteKeyboardWindow() throws {
-        try testNoCoordinate(viewName: "UIRemoteKeyboardWindow")
+        try assertNoCoordinate(viewName: "UIRemoteKeyboardWindow")
     }
 
-    func testViewName(view: UIView, viewName: String) throws {
+    func assertViewName(view: UIView, viewName: String) throws {
         // given an installed and started tap capture service
         service.install(otel: otel)
         service.start()
@@ -107,10 +107,10 @@ final class TapCaptureServiceTests: XCTestCase {
 
         // then the tap is captured with the correct view name
         XCTAssertEqual(otel.events.count, 1)
-        XCTAssertEqual(otel.events[0].attributes["view_name"], .string(viewName))
+        XCTAssertEqual(otel.events[0].attributes["view.name"], .string(viewName))
     }
 
-    func testNoCoordinate(viewName: String) throws {
+    func assertNoCoordinate(viewName: String) throws {
         // given an installed and started tap capture service
         service.install(otel: otel)
         service.start()
@@ -123,8 +123,11 @@ final class TapCaptureServiceTests: XCTestCase {
 
         // then the tap is captured without coordinates
         XCTAssertEqual(otel.events.count, 1)
-        XCTAssertEqual(otel.events[0].attributes["view_name"], .string(viewName))
-        XCTAssertEqual(otel.events[0].attributes["point"], .string("0.0,0.0"))
+        let otelEvent = try XCTUnwrap(otel.events.first)
+
+        XCTAssertEqual(otelEvent.attributes["view.name"], .string(viewName))
+        XCTAssertEqual(otelEvent.attributes["tap.coords"], .string("0.0,0.0"))
+        XCTAssertEqual(otelEvent.attributes["emb.type"], .string("ux.tap"))
     }
 }
 

@@ -303,7 +303,7 @@ final class SessionPayloadTests: XCTestCase {
         XCTAssertEqual(deviceInfo["ms"] as! Int, 123456)
         XCTAssertEqual(deviceInfo["ov"] as! String, "fake_os_version")
         XCTAssertEqual(deviceInfo["ob"] as! String, "fake_os_build")
-        XCTAssertEqual(deviceInfo["os"] as! String, "fake_os_type")
+        XCTAssertEqual(deviceInfo["os"] as! String, "iOS") // hardcoded in payload
         XCTAssertEqual(deviceInfo["oa"] as! String, "fake_os_variant")
         XCTAssertEqual(deviceInfo["da"] as! String, "fake_architecture")
         XCTAssertEqual(deviceInfo["do"] as! String, "fake_model")

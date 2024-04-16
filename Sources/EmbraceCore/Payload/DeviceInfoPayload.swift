@@ -13,7 +13,7 @@ struct DeviceInfoPayload: Codable {
     var totalDiskSpace: Int?
     var osVersion: String?
     var osBuild: String?
-    var osType: String? = "iOS"
+    let osType: String = "iOS" // Hardcode to iOS for /v1/sessions endpoint
     var osVariant: String?
     var architecture: String?
     var model: String?
@@ -62,11 +62,9 @@ struct DeviceInfoPayload: Codable {
                 self.manufacturer = resource.stringValue
             case .screenResolution:
                 self.screenResolution = resource.stringValue
-            case .osType:
-                self.osType = resource.stringValue
             case .osVariant:
                 self.osVariant = resource.stringValue
-            case .osName, .osDescription:
+            case .osName, .osDescription, .osType:
                 break
             }
         }
