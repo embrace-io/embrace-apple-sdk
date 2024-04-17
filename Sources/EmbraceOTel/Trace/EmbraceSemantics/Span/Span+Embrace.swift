@@ -11,13 +11,15 @@ extension Span {
         setAttribute(key: key.rawValue, value: value)
     }
 
-    /// Mark this Span as important  so the backend will create aggregate metrics for it, and the UI will show it as a "top level" span
+    /// Mark this Span as important  so the backend will create aggregate metrics for it, and the UI will prioritize this span
     public func markAsKeySpan() {
         setAttribute(key: SpanAttributeKey.isKey, value: "true")
     }
 
     /// Mark this Span as private. This is used for observability of the SDK itself
-    /// When marked as private, a span will not appear in the Embrace dashboard
+    /// When marked as private, a span will not appear in the Embrace dashboard.
+    /// - Note: This method should not be called by application developers, it is only public
+    ///         to allow access to multiple targets within the Embrace SDK.
     public func markAsPrivate() {
         setAttribute(key: SpanAttributeKey.isPrivate, value: "true")
     }

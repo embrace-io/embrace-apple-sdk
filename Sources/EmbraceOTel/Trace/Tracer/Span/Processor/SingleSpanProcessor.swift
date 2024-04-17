@@ -26,6 +26,7 @@ public struct SingleSpanProcessor: EmbraceSpanProcessor {
 
     public func onStart(parentContext: SpanContext?, span: OpenTelemetrySdk.ReadableSpan) {
         let exporter = self.spanExporter
+
         let data = span.toSpanData()
 
         processorQueue.async {
@@ -35,7 +36,15 @@ public struct SingleSpanProcessor: EmbraceSpanProcessor {
 
     public func onEnd(span: OpenTelemetrySdk.ReadableSpan) {
         let exporter = self.spanExporter
-        let data = span.toSpanData()
+
+        var data = span.toSpanData()
+        if data.hasEnded && data.status == .unset {
+            if let errorCode = data.errorCode {
+                data.settingStatus(.error(description: errorCode.rawValue))
+            } else {
+                data.settingStatus(.ok)
+            }
+        }
 
         processorQueue.async {
             exporter.export(spans: [data])

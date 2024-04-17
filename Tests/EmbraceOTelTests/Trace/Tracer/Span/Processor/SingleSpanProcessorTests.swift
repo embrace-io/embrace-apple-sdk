@@ -4,6 +4,7 @@
 
 import XCTest
 @testable import EmbraceOTel
+import OpenTelemetryApi
 @testable import OpenTelemetrySdk
 import TestSupport
 
@@ -58,6 +59,21 @@ final class SingleSpanProcessorTests: XCTestCase {
         XCTAssertNotNil(exporter.exportedSpans[span.context.spanId])
     }
 
+    func test_startSpan_doesNotSetSpanStatus() throws {
+        let processor = SingleSpanProcessor(spanExporter: exporter)
+
+        let expectation = expectation(description: "didExport onStart")
+        exporter.onExportComplete {
+            expectation.fulfill()
+        }
+
+        let span = createSpanData(processor: processor) // DEV: `startSpan` called in this method
+
+        wait(for: [expectation])
+        let exportedSpan = try XCTUnwrap(exporter.exportedSpans[span.context.spanId])
+        XCTAssertEqual(exportedSpan.status, .unset)
+    }
+
     func test_endingSpan_callsExporter() throws {
         let processor = SingleSpanProcessor(spanExporter: exporter)
         let expectation = expectation(description: "didExport onEnd")
@@ -71,9 +87,52 @@ final class SingleSpanProcessorTests: XCTestCase {
         span.end(time: endTime)
 
         wait(for: [expectation])
-        let exportedSpan = exporter.exportedSpans[span.context.spanId]
-        XCTAssertEqual(exportedSpan, span.toSpanData())
-        XCTAssertEqual(exportedSpan?.endTime, endTime)
+        let exportedSpan = try XCTUnwrap(exporter.exportedSpans[span.context.spanId])
+        XCTAssertEqual(exportedSpan.traceId, span.context.traceId)
+        XCTAssertEqual(exportedSpan.spanId, span.context.spanId)
+        XCTAssertEqual(exportedSpan.endTime, endTime)
+    }
+
+    func test_endingSpan_setStatus_ifNoErrorCode_setsOk() throws {
+        let processor = SingleSpanProcessor(spanExporter: exporter)
+        let expectation = expectation(description: "didExport onEnd")
+        expectation.expectedFulfillmentCount = 2        // DEV: need 2 to handle start and end
+        exporter.onExportComplete {
+            expectation.fulfill()
+        }
+
+        let span = createSpanData(processor: processor)
+        let endTime = Date().addingTimeInterval(2)
+        span.end(time: endTime)
+
+        wait(for: [expectation])
+        let exportedSpan = try XCTUnwrap(exporter.exportedSpans[span.context.spanId])
+        XCTAssertEqual(exportedSpan.traceId, span.context.traceId)
+        XCTAssertEqual(exportedSpan.spanId, span.context.spanId)
+        XCTAssertEqual(exportedSpan.endTime, endTime)
+        XCTAssertEqual(exportedSpan.status, .ok)
+    }
+
+    func test_endingSpan_setStatus_ifErrorCode_setsError() throws {
+        let processor = SingleSpanProcessor(spanExporter: exporter)
+        let expectation = expectation(description: "didExport onEnd")
+        expectation.expectedFulfillmentCount = 2        // DEV: need 2 to handle start and end
+        exporter.onExportComplete {
+            expectation.fulfill()
+        }
+
+        let span = createSpanData(processor: processor)
+
+        span.setAttribute(key: SpanAttributeKey.errorCode, value: SpanErrorCode.unknown.rawValue)
+        let endTime = Date().addingTimeInterval(2)
+        span.end(time: endTime)
+
+        wait(for: [expectation])
+        let exportedSpan = try XCTUnwrap(exporter.exportedSpans[span.context.spanId])
+        XCTAssertEqual(exportedSpan.traceId, span.context.traceId)
+        XCTAssertEqual(exportedSpan.spanId, span.context.spanId)
+        XCTAssertEqual(exportedSpan.endTime, endTime)
+        XCTAssertEqual(exportedSpan.status, .error(description: "unknown"))
     }
 
     func test_shutdown_callsShutdownOnExporter() throws {

@@ -19,6 +19,13 @@ extension SpanData {
         return .performance
     }
 
+    var errorCode: SpanErrorCode? {
+        guard let value = attributes[SpanAttributeKey.errorCode.rawValue] else {
+            return nil
+        }
+        return SpanErrorCode(rawValue: value.description)
+    }
+
     public func toJSON() throws -> Data {
         let encoder = JSONEncoder()
         return try encoder.encode(self)
