@@ -12,3 +12,5 @@ embraceBaseURL=;
 embraceDevelopmentBaseURL=;
 embraceConfigBaseURL=;
 
+embraceApiKey=;
+embraceSymbolUploadToken=;

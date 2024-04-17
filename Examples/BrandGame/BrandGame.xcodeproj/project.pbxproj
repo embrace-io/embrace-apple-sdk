@@ -88,6 +88,8 @@
 		7B62AD9E2B00608A0087C2AE /* AppSettings+Environment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppSettings+Environment.swift"; sourceTree = "<group>"; };
 		7B62ADA22B0068280087C2AE /* SimonMinigameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimonMinigameView.swift; sourceTree = "<group>"; };
 		7B62ADA42B0068960087C2AE /* SimonGameModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimonGameModel.swift; sourceTree = "<group>"; };
+		7BBBCD4D2BCEC14000BC289A /* run.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = run.sh; sourceTree = "<group>"; };
+		7BBBCD4E2BCEC14000BC289A /* upload */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = upload; sourceTree = "<group>"; };
 		7BC49B0E2AC7864100FF381A /* NetworkRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkRequest.swift; sourceTree = "<group>"; };
 		7BC59A8F2B0BE25C0001E980 /* CrashExampleTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CrashExampleTest.swift; sourceTree = "<group>"; };
 		7BCB66272AC4742800ABD33A /* MenuList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuList.swift; sourceTree = "<group>"; };
@@ -150,6 +152,7 @@
 		7B4FFC2B2B1E5B68006239F7 /* Embrace */ = {
 			isa = PBXGroup;
 			children = (
+				7BBBCD4C2BCEC0F000BC289A /* Script */,
 				7B005D752AD72E080073CAC4 /* App+Embrace.swift */,
 				7B4C0BDE2BA9F93400F0BC37 /* App+SmokeTest.swift */,
 				7B4FFC2C2B1E5B7B006239F7 /* Endpoints+InfoPlist.swift */,
@@ -266,6 +269,15 @@
 			path = Simon;
 			sourceTree = "<group>";
 		};
+		7BBBCD4C2BCEC0F000BC289A /* Script */ = {
+			isa = PBXGroup;
+			children = (
+				7BBBCD4D2BCEC14000BC289A /* run.sh */,
+				7BBBCD4E2BCEC14000BC289A /* upload */,
+			);
+			path = Script;
+			sourceTree = "<group>";
+		};
 		7BC59A8E2B0BE25C0001E980 /* CrashExample */ = {
 			isa = PBXGroup;
 			children = (
@@ -345,6 +357,7 @@
 				7B5630872ABE743400E0DF39 /* Frameworks */,
 				7B5630882ABE743400E0DF39 /* Resources */,
 				7B5630B52AC26E5900E0DF39 /* Embed Frameworks */,
+				7BBBCD512BCEC22A00BC289A /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -409,6 +422,26 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		7BBBCD512BCEC22A00BC289A /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [ -z \"$embraceApiKey\" ] || [ -z \"$embraceSymbolUploadToken\" ]; then\n    echo \"Both embraceApiKey and embraceSymbolUploadToken need to be set in the environment.\"\n    exit 0\nfi\n\nEMBRACE_ID=${embraceApiKey} EMBRACE_TOKEN=${embraceSymbolUploadToken} \"${SRCROOT}/BrandGame/Embrace/Script/run.sh\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		7B5630862ABE743400E0DF39 /* Sources */ = {
@@ -578,9 +611,11 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 2;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_ASSET_PATHS = "\"BrandGame/Preview Content\"";
 				DEVELOPMENT_TEAM = L5RVT7J8CV;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = BrandGame/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -612,6 +647,7 @@
 				DEVELOPMENT_ASSET_PATHS = "\"BrandGame/Preview Content\"";
 				DEVELOPMENT_TEAM = L5RVT7J8CV;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = BrandGame/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
