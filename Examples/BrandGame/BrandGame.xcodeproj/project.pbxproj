@@ -33,6 +33,8 @@
 		7B62AD9F2B00608A0087C2AE /* AppSettings+Environment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B62AD9E2B00608A0087C2AE /* AppSettings+Environment.swift */; };
 		7B62ADA32B0068280087C2AE /* SimonMinigameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B62ADA22B0068280087C2AE /* SimonMinigameView.swift */; };
 		7B62ADA52B0068960087C2AE /* SimonGameModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B62ADA42B0068960087C2AE /* SimonGameModel.swift */; };
+		7BBBCD5B2BD07CE000BC289A /* GitInfo+InfoPlist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BBBCD5A2BD07CE000BC289A /* GitInfo+InfoPlist.swift */; };
+		7BBBCD5D2BD07DE600BC289A /* App+GitInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BBBCD5C2BD07DE600BC289A /* App+GitInfo.swift */; };
 		7BBBCD582BD0205C00BC289A /* StdoutLogExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BBBCD572BD0205C00BC289A /* StdoutLogExporter.swift */; };
 		7BC49B0F2AC7864100FF381A /* NetworkRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BC49B0E2AC7864100FF381A /* NetworkRequest.swift */; };
 		7BC59A902B0BE25C0001E980 /* CrashExampleTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BC59A8F2B0BE25C0001E980 /* CrashExampleTest.swift */; };
@@ -91,6 +93,9 @@
 		7B62ADA42B0068960087C2AE /* SimonGameModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimonGameModel.swift; sourceTree = "<group>"; };
 		7BBBCD4D2BCEC14000BC289A /* run.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = run.sh; sourceTree = "<group>"; };
 		7BBBCD4E2BCEC14000BC289A /* upload */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = upload; sourceTree = "<group>"; };
+		7BBBCD5A2BD07CE000BC289A /* GitInfo+InfoPlist.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GitInfo+InfoPlist.swift"; sourceTree = "<group>"; };
+		7BBBCD5C2BD07DE600BC289A /* App+GitInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "App+GitInfo.swift"; sourceTree = "<group>"; };
+		7BBBCD602BD081D900BC289A /* inject_git_info.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = inject_git_info.sh; sourceTree = "<group>"; };
 		7BBBCD572BD0205C00BC289A /* StdoutLogExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StdoutLogExporter.swift; sourceTree = "<group>"; };
 		7BC49B0E2AC7864100FF381A /* NetworkRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkRequest.swift; sourceTree = "<group>"; };
 		7BC59A8F2B0BE25C0001E980 /* CrashExampleTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CrashExampleTest.swift; sourceTree = "<group>"; };
@@ -157,7 +162,9 @@
 				7BBBCD4C2BCEC0F000BC289A /* Script */,
 				7B005D752AD72E080073CAC4 /* App+Embrace.swift */,
 				7B4C0BDE2BA9F93400F0BC37 /* App+SmokeTest.swift */,
+				7BBBCD5C2BD07DE600BC289A /* App+GitInfo.swift */,
 				7B4FFC2C2B1E5B7B006239F7 /* Endpoints+InfoPlist.swift */,
+				7BBBCD5A2BD07CE000BC289A /* GitInfo+InfoPlist.swift */,
 				7B4FFC2E2B1E5D0F006239F7 /* embrace.xcconfig */,
 				7B4FFC302B1E5DA4006239F7 /* embrace.local.xcconfig */,
 			);
@@ -277,6 +284,7 @@
 			children = (
 				7BBBCD4D2BCEC14000BC289A /* run.sh */,
 				7BBBCD4E2BCEC14000BC289A /* upload */,
+				7BBBCD602BD081D900BC289A /* inject_git_info.sh */,
 			);
 			sourceTree = "<group>";
 			path = Script;
@@ -384,6 +392,7 @@
 				7B5630872ABE743400E0DF39 /* Frameworks */,
 				7B5630882ABE743400E0DF39 /* Resources */,
 				7B5630B52AC26E5900E0DF39 /* Embed Frameworks */,
+				7BBBCD592BD0767E00BC289A /* ShellScript */,
 				7BBBCD512BCEC22A00BC289A /* ShellScript */,
 			);
 			buildRules = (
@@ -468,6 +477,24 @@
 			shellPath = /bin/sh;
 			shellScript = "if [ -z \"$embraceApiKey\" ] || [ -z \"$embraceSymbolUploadToken\" ]; then\n    echo \"Both embraceApiKey and embraceSymbolUploadToken need to be set in the environment.\"\n    exit 0\nfi\n\nEMBRACE_ID=${embraceApiKey} EMBRACE_TOKEN=${embraceSymbolUploadToken} \"${SRCROOT}/BrandGame/Embrace/Script/run.sh\"\n";
 		};
+		7BBBCD592BD0767E00BC289A /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${BUILT_PRODUCTS_DIR}/${INFOPLIST_PATH}",
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "${SRCROOT}/BrandGame/Embrace/Script/inject_git_info.sh\n";
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -480,7 +507,9 @@
 				7BCB662E2AC476BC00ABD33A /* NetworkStressTest.swift in Sources */,
 				7B005D762AD72E080073CAC4 /* App+Embrace.swift in Sources */,
 				7B62AD9B2B005FE20087C2AE /* AppSettings.swift in Sources */,
+				7BBBCD5B2BD07CE000BC289A /* GitInfo+InfoPlist.swift in Sources */,
 				7B62ADA52B0068960087C2AE /* SimonGameModel.swift in Sources */,
+				7BBBCD5D2BD07DE600BC289A /* App+GitInfo.swift in Sources */,
 				7B5630A22AC1291D00E0DF39 /* BrandIconShape.swift in Sources */,
 				FA02A8F02BCDBBEC0066B3AE /* Request.swift in Sources */,
 				7B62AD932B0027280087C2AE /* ReflexMinigameView.swift in Sources */,
@@ -638,7 +667,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_ASSET_PATHS = "\"BrandGame/Preview Content\"";
 				DEVELOPMENT_TEAM = L5RVT7J8CV;
@@ -656,7 +685,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = io.embrace.BrandGame;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -671,7 +700,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_ASSET_PATHS = "\"BrandGame/Preview Content\"";
 				DEVELOPMENT_TEAM = L5RVT7J8CV;
 				ENABLE_PREVIEWS = YES;
@@ -688,7 +717,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = io.embrace.BrandGame;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

@@ -4,7 +4,7 @@
 
 import SwiftUI
 
-import EmbraceCore
+import EmbraceIO
 
 @main
 struct BrandGameApp: App {
@@ -17,6 +17,7 @@ struct BrandGameApp: App {
                 .setup(options: embraceOptions)
                 .start()
 
+            addGitInfoProperties()
             smokeTestIfNecessary()
         } catch let e {
             print("Error starting Embrace \(e.localizedDescription)")

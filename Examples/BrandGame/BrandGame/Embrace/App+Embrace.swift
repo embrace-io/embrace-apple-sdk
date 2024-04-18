@@ -32,7 +32,7 @@ extension BrandGameApp {
         return .init(
             appId: "kj9hd",
             appGroupId: nil,
-            platform: .iOS
+            platform: .default
         )
     }
 #endif
