@@ -181,6 +181,7 @@ final class SessionPayloadTests: XCTestCase {
         XCTAssertEqual(payload.sessionInfo.endTime, sessionRecord.endTime?.millisecondsSince1970Truncated)
         XCTAssertEqual(payload.sessionInfo.lastHeartbeatTime, sessionRecord.lastHeartbeatTime.millisecondsSince1970Truncated)
         XCTAssertEqual(payload.sessionInfo.appState, sessionRecord.state)
+        XCTAssertEqual(payload.sessionInfo.sessionType, "en")
         XCTAssertEqual(payload.sessionInfo.counter, 10)
         XCTAssertEqual(payload.sessionInfo.appTerminated, false)
         XCTAssertEqual(payload.sessionInfo.cleanExit, true)
@@ -224,6 +225,7 @@ final class SessionPayloadTests: XCTestCase {
         XCTAssertEqual(sessionInfo["et"] as? Int, sessionRecord.endTime?.millisecondsSince1970Truncated)
         XCTAssertEqual(sessionInfo["ht"] as! Int, sessionRecord.lastHeartbeatTime.millisecondsSince1970Truncated)
         XCTAssertEqual(sessionInfo["as"] as! String, sessionRecord.state)
+        XCTAssertEqual(sessionInfo["ty"] as! String, "en")
         XCTAssertEqual(sessionInfo["sn"] as! Int, 10)
         XCTAssertEqual(sessionInfo["tr"] as! Bool, false)
         XCTAssertEqual(sessionInfo["ce"] as! Bool, true)
@@ -249,12 +251,13 @@ final class SessionPayloadTests: XCTestCase {
 
         // then the session payload contains the necessary keys
         let sessionInfo = json["s"] as! [String: Any]
-        XCTAssertEqual(sessionInfo.keys.count, 10)
+        XCTAssertEqual(sessionInfo.keys.count, 11)
         XCTAssertEqual(sessionInfo["id"] as! String, sessionRecord.id.toString)
         XCTAssertEqual(sessionInfo["st"] as! Int, sessionRecord.startTime.millisecondsSince1970Truncated)
         XCTAssertEqual(sessionInfo["et"] as? Int, sessionRecord.endTime?.millisecondsSince1970Truncated)
         XCTAssertEqual(sessionInfo["ht"] as! Int, sessionRecord.lastHeartbeatTime.millisecondsSince1970Truncated)
         XCTAssertEqual(sessionInfo["as"] as! String, sessionRecord.state)
+        XCTAssertEqual(sessionInfo["ty"] as! String, "en")
         XCTAssertEqual(sessionInfo["sn"] as! Int, 10)
         XCTAssertEqual(sessionInfo["tr"] as! Bool, false)
         XCTAssertEqual(sessionInfo["ce"] as! Bool, true)

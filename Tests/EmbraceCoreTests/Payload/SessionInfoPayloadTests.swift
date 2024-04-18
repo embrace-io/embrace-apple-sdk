@@ -40,13 +40,12 @@ final class SessionInfoPayloadTests: XCTestCase {
         XCTAssertEqual(sessionInfoPayload.endTime, record.endTime?.millisecondsSince1970Truncated)
         XCTAssertEqual(sessionInfoPayload.lastHeartbeatTime, record.lastHeartbeatTime.millisecondsSince1970Truncated)
         XCTAssertEqual(sessionInfoPayload.appState, record.state)
+        XCTAssertEqual(sessionInfoPayload.sessionType, "en")
         XCTAssertEqual(sessionInfoPayload.counter, counter)
         XCTAssertEqual(sessionInfoPayload.appTerminated, record.appTerminated)
         XCTAssertEqual(sessionInfoPayload.cleanExit, record.cleanExit)
         XCTAssertEqual(sessionInfoPayload.coldStart, record.coldStart)
         XCTAssertEqual(sessionInfoPayload.properties.count, metadata.count)
         XCTAssertEqual(sessionInfoPayload.properties, ["foo": "bar"])
-
     }
-
 }

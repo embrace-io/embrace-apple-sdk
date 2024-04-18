@@ -12,6 +12,7 @@ struct SessionInfoPayload: Codable {
     let endTime: Int?
     let lastHeartbeatTime: Int
     let appState: String
+    let sessionType: String = "en"
     let counter: Int
     let appTerminated: Bool
     let cleanExit: Bool
@@ -24,6 +25,7 @@ struct SessionInfoPayload: Codable {
         case endTime = "et"
         case lastHeartbeatTime = "ht"
         case appState = "as"
+        case sessionType = "ty"
         case counter = "sn"
         case appTerminated = "tr"
         case cleanExit = "ce"
