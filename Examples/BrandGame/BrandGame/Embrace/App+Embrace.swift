@@ -21,7 +21,8 @@ extension BrandGameApp {
 
     private var otelExport: OpenTelemetryExport {
         OpenTelemetryExport(
-            spanExporter: StdoutExporter(isDebug: true)
+            spanExporter: StdoutExporter(isDebug: true),
+            logExporter: StdoutLogExporter(isDebug: true)
         )
     }
 

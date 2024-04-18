@@ -33,6 +33,7 @@
 		7B62AD9F2B00608A0087C2AE /* AppSettings+Environment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B62AD9E2B00608A0087C2AE /* AppSettings+Environment.swift */; };
 		7B62ADA32B0068280087C2AE /* SimonMinigameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B62ADA22B0068280087C2AE /* SimonMinigameView.swift */; };
 		7B62ADA52B0068960087C2AE /* SimonGameModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B62ADA42B0068960087C2AE /* SimonGameModel.swift */; };
+		7BBBCD582BD0205C00BC289A /* StdoutLogExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BBBCD572BD0205C00BC289A /* StdoutLogExporter.swift */; };
 		7BC49B0F2AC7864100FF381A /* NetworkRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BC49B0E2AC7864100FF381A /* NetworkRequest.swift */; };
 		7BC59A902B0BE25C0001E980 /* CrashExampleTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BC59A8F2B0BE25C0001E980 /* CrashExampleTest.swift */; };
 		7BCB66282AC4742800ABD33A /* MenuList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BCB66272AC4742800ABD33A /* MenuList.swift */; };
@@ -90,6 +91,7 @@
 		7B62ADA42B0068960087C2AE /* SimonGameModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimonGameModel.swift; sourceTree = "<group>"; };
 		7BBBCD4D2BCEC14000BC289A /* run.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = run.sh; sourceTree = "<group>"; };
 		7BBBCD4E2BCEC14000BC289A /* upload */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = upload; sourceTree = "<group>"; };
+		7BBBCD572BD0205C00BC289A /* StdoutLogExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StdoutLogExporter.swift; sourceTree = "<group>"; };
 		7BC49B0E2AC7864100FF381A /* NetworkRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkRequest.swift; sourceTree = "<group>"; };
 		7BC59A8F2B0BE25C0001E980 /* CrashExampleTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CrashExampleTest.swift; sourceTree = "<group>"; };
 		7BCB66272AC4742800ABD33A /* MenuList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuList.swift; sourceTree = "<group>"; };
@@ -192,6 +194,7 @@
 			children = (
 				7B4FFC2F2B1E5D68006239F7 /* Info.plist */,
 				7B4FFC2B2B1E5B68006239F7 /* Embrace */,
+				7BBBCD542BD0202C00BC289A /* OpenTelemetry */,
 				7B62AD9C2B0060620087C2AE /* Model */,
 				7B5630A32AC132FC00E0DF39 /* Utils */,
 				7BCB66262AC4726800ABD33A /* View */,
@@ -275,7 +278,31 @@
 				7BBBCD4D2BCEC14000BC289A /* run.sh */,
 				7BBBCD4E2BCEC14000BC289A /* upload */,
 			);
+			sourceTree = "<group>";
 			path = Script;
+		};
+		7BBBCD542BD0202C00BC289A /* OpenTelemetry */ = {
+			isa = PBXGroup;
+			children = (
+				7BBBCD552BD0204000BC289A /* Export */,
+			);
+			path = OpenTelemetry;
+			sourceTree = "<group>";
+		};
+		7BBBCD552BD0204000BC289A /* Export */ = {
+			isa = PBXGroup;
+			children = (
+				7BBBCD562BD0204700BC289A /* Log */,
+			);
+			path = Export;
+			sourceTree = "<group>";
+		};
+		7BBBCD562BD0204700BC289A /* Log */ = {
+			isa = PBXGroup;
+			children = (
+				7BBBCD572BD0205C00BC289A /* StdoutLogExporter.swift */,
+			);
+			path = Log;
 			sourceTree = "<group>";
 		};
 		7BC59A8E2B0BE25C0001E980 /* CrashExample */ = {
@@ -464,6 +491,7 @@
 				7B3143C62AFF1E7D00BA0D2F /* ReflexGameModel.swift in Sources */,
 				7B5630A52AC1331000E0DF39 /* Color+Random.swift in Sources */,
 				7B62AD952B0040FE0087C2AE /* Minigame.swift in Sources */,
+				7BBBCD582BD0205C00BC289A /* StdoutLogExporter.swift in Sources */,
 				7BCB66282AC4742800ABD33A /* MenuList.swift in Sources */,
 				FA02A8F22BCDBC290066B3AE /* RequestResponseDetail.swift in Sources */,
 				7B62AD972B0041310087C2AE /* MinigameView.swift in Sources */,
