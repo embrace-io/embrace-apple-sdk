@@ -28,9 +28,17 @@ class StorageEmbraceLogExporter: EmbraceLogRecordExporter {
         guard state == .active else {
             return .failure
         }
+
         for var log in logRecords where validation.execute(log: &log) {
+
+            // do not export raw crash logs
+            guard log.attributes["emb.type"] != .string(LogType.rawCrash.rawValue) else {
+                continue
+            }
+
             self.logBatcher.addLogRecord(logRecord: buildLogRecord(from: log))
         }
+
         return .success
     }
 

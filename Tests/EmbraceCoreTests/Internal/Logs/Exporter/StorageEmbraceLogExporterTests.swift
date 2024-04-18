@@ -7,6 +7,7 @@ import XCTest
 @testable import EmbraceCore
 import EmbraceStorage
 import EmbraceOTel
+import EmbraceCommon
 
 class StorageEmbraceLogExporterTests: XCTestCase {
     private var sut: StorageEmbraceLogExporter!
@@ -92,6 +93,18 @@ class StorageEmbraceLogExporterTests: XCTestCase {
     func test_forceFlush_alwaysSucceedsAsItDoesNothing() {
         givenStorageEmbraceLogExporter()
         whenInvokingForceFlush()
+        thenResult(is: .success)
+    }
+
+    func test_rawCrashLogs_dontGetExported() {
+        let logData = randomLogData(
+            body: "example",
+            attributes: [ "emb.type": .string(LogType.rawCrash.rawValue) ]
+        )
+
+        givenStorageEmbraceLogExporter(initialState: .active)
+        whenInvokingExport(withLogs: [logData])
+        thenBatchAdded(count: 0)
         thenResult(is: .success)
     }
 }

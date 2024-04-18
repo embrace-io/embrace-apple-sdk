@@ -6,14 +6,17 @@ import Foundation
 import EmbraceCommon
 import EmbraceStorage
 import EmbraceUpload
+import EmbraceOTel
 import Gzip
 
 class UnsentDataHandler {
     static func sendUnsentData(
         storage: EmbraceStorage?,
         upload: EmbraceUpload?,
+        otel: EmbraceOpenTelemetry?,
         currentSessionId: SessionIdentifier? = nil,
-        crashReporter: CrashReporter? = nil) {
+        crashReporter: CrashReporter? = nil
+    ) {
 
         guard let storage = storage,
               let upload = upload else {
@@ -22,13 +25,12 @@ class UnsentDataHandler {
 
         // if we have a crash reporter, we fetch the unsent crash reports first
         // and save their identifiers to the corresponding sessions
-
-        // TODO: Check that crash reports are fetched in chronological order!
         if let crashReporter = crashReporter {
             crashReporter.fetchUnsentCrashReports { reports in
                 sendCrashReports(
                     storage: storage,
                     upload: upload,
+                    otel: otel,
                     currentSessionId: currentSessionId,
                     crashReporter: crashReporter,
                     crashReports: reports
@@ -42,17 +44,21 @@ class UnsentDataHandler {
     static private func sendCrashReports(
         storage: EmbraceStorage,
         upload: EmbraceUpload,
+        otel: EmbraceOpenTelemetry?,
         currentSessionId: SessionIdentifier?,
         crashReporter: CrashReporter,
-        crashReports: [CrashReport]) {
-
+        crashReports: [CrashReport]
+    ) {
         // send crash reports
         for report in crashReports {
 
             // update session
+            var session: SessionRecord?
+
             if let sessionId = SessionIdentifier(string: report.sessionId) {
                 do {
-                    if var session = try storage.fetchSession(id: sessionId) {
+                    session = try storage.fetchSession(id: sessionId)
+                    if var session = session {
                         // update session's end time with the crash report timestamp
                         session.endTime = report.timestamp ?? session.endTime
 
@@ -63,6 +69,25 @@ class UnsentDataHandler {
                     }
                 } catch {
                     ConsoleLog.warning("Error updating session \(sessionId) with crashReportId \(report.id)!")
+                }
+            }
+
+            // send otel log
+            if let otel = otel {
+                do {
+                    let data = try JSONSerialization.data(withJSONObject: report.dictionary)
+                    if let body = String(data: data, encoding: String.Encoding.utf8) {
+                        logRawCrash(
+                            otel: otel,
+                            body: body,
+                            session: session,
+                            timestamp: (report.timestamp ?? session?.endTime) ?? Date()
+                        )
+                    } else {
+                        ConsoleLog.warning("Error serializing raw crash report \(report.id)!")
+                    }
+                } catch {
+                    ConsoleLog.warning("Error serializing raw crash report \(report.id)!")
                 }
             }
 
@@ -89,6 +114,32 @@ class UnsentDataHandler {
 
         // send sessions
         sendSessions(storage: storage, upload: upload, currentSessionId: currentSessionId)
+    }
+
+    static private func logRawCrash(
+        otel: EmbraceOpenTelemetry,
+        body: String,
+        session: SessionRecord?,
+        timestamp: Date
+    ) {
+
+        let attributesBuilder = EmbraceLogAttributesBuilder(
+            session: session,
+            initialAttributes: [:]
+        )
+
+        let finalAttributes = attributesBuilder
+            .addLogType(.rawCrash)
+            .addApplicationProperties()
+            .addSessionIdentifier()
+            .build()
+
+        otel.log(
+            body,
+            severity: .fatal,
+            timestamp: timestamp,
+            attributes: finalAttributes
+        )
     }
 
     static private func sendSessions(

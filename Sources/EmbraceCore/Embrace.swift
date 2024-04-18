@@ -183,6 +183,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
                     UnsentDataHandler.sendUnsentData(
                         storage: self?.storage,
                         upload: self?.upload,
+                        otel: self,
                         currentSessionId: self?.sessionController.currentSession?.id,
                         crashReporter: self?.captureServices.crashReporter
                     )

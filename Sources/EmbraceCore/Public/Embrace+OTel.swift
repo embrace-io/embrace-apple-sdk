@@ -70,6 +70,57 @@ extension Embrace: EmbraceOpenTelemetry {
     public func add(event: SpanEvent) {
         add(events: [event])
     }
+
+    /// Creates and adds a log for the current session span
+    /// - Parameters:
+    ///   - message: Body of the log
+    ///   - severity: `LogSeverity` for the log
+    ///   - attributes: Attributes for the log
+    public func log(
+        _ message: String,
+        severity: LogSeverity,
+        attributes: [String: String] = [:]
+    ) {
+        log(message, severity: severity, timestamp: Date(), attributes: attributes)
+    }
+
+    /// Creates and adds a log for the current session span
+    /// - Parameters:
+    ///   - message: Body of the log
+    ///   - severity: `LogSeverity` for the log
+    ///   - timestamp: Timestamp for the log
+    ///   - attributes: Attributes for the log
+    public func log(
+        _ message: String,
+        severity: EmbraceCommon.LogSeverity,
+        timestamp: Date,
+        attributes: [String: String]
+    ) {
+        /*
+         If we want to keep this method cleaner, we could move that to `EmbraceLogAttributesBuilder`
+         However that would cause to always add a frame to the stacktrace.
+         */
+        var stackTrace: [String] = []
+        if severity != .info {
+            stackTrace = Thread.callStackSymbols
+        }
+
+        let attributesBuilder = EmbraceLogAttributesBuilder(
+            storage: storage,
+            sessionControllable: sessionController,
+            initialAttributes: attributes
+        )
+
+        let finalAttributes = attributesBuilder
+            .addStackTrace(stackTrace)
+            .addLogType(.default)
+            .addApplicationState()
+            .addApplicationProperties()
+            .addSessionIdentifier()
+            .build()
+
+        otel.log(message, severity: severity, attributes: finalAttributes)
+    }
 }
 
 extension Embrace { // MARK: Static methods

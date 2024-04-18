@@ -71,8 +71,17 @@ import OpenTelemetrySdk
 
     public func log(
         _ message: String,
-        attributes: [String: String],
-        severity: LogSeverity
+        severity: LogSeverity,
+        attributes: [String: String]
+    ) {
+        log(message, severity: severity, timestamp: Date(), attributes: attributes)
+    }
+
+    public func log(
+        _ message: String,
+        severity: LogSeverity,
+        timestamp: Date,
+        attributes: [String: String]
     ) {
         let otelAttributes = attributes.reduce(into: [String: AttributeValue]()) {
             $0[$1.key] = AttributeValue.string($1.value)
@@ -80,7 +89,7 @@ import OpenTelemetrySdk
         logger
             .logRecordBuilder()
             .setBody(message)
-            .setTimestamp(Date())
+            .setTimestamp(timestamp)
             .setAttributes(otelAttributes)
             .setSeverity(Severity.fromLogSeverity(severity) ?? .info)
             .emit()

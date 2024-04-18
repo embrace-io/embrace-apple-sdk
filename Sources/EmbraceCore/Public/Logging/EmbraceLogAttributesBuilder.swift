@@ -9,10 +9,11 @@ import EmbraceCommon
 class EmbraceLogAttributesBuilder {
     private weak var storage: EmbraceStorageMetadataFetcher?
     private weak var sessionControllable: SessionControllable?
+    private var session: SessionRecord?
     private var attributes: [String: String]
 
     private var currentSession: SessionRecord? {
-        sessionControllable?.currentSession
+        session ?? sessionControllable?.currentSession
     }
 
     private enum Keys {
@@ -29,7 +30,12 @@ class EmbraceLogAttributesBuilder {
         self.storage = storage
         self.sessionControllable = sessionControllable
         self.attributes = initialAttributes
+    }
 
+    init(session: SessionRecord?,
+         initialAttributes: [String: String]) {
+        self.session = session
+        self.attributes = initialAttributes
     }
 
     @discardableResult

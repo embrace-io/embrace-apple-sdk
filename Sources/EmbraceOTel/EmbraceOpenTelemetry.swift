@@ -25,4 +25,17 @@ public protocol EmbraceOpenTelemetry {
     func add(events: [SpanEvent])
 
     func add(event: SpanEvent)
+
+    func log(
+        _ message: String,
+        severity: LogSeverity,
+        attributes: [String: String]
+    )
+
+    func log(
+        _ message: String,
+        severity: LogSeverity,
+        timestamp: Date,
+        attributes: [String: String]
+    )
 }

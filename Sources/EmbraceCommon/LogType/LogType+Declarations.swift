@@ -13,4 +13,5 @@ extension LogType {
 extension LogType {
     public static let `default` = LogType(system: "log")
     public static let breadcrumb = LogType(system: "breadcrumb")
+    public static let rawCrash = LogType(system: "ios.raw_crash")
 }

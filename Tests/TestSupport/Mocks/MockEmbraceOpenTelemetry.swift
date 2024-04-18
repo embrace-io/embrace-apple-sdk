@@ -7,10 +7,12 @@ import Foundation
 @testable import EmbraceCore
 import EmbraceCommon
 import OpenTelemetryApi
+import OpenTelemetrySdk
 
 public class MockEmbraceOpenTelemetry: EmbraceOpenTelemetry {
     private(set) public var spanProcessor = MockSpanProcessor()
     private(set) public var events: [SpanEvent] = []
+    private(set) public var logs: [ReadableLogRecord] = []
 
     public init() {
         EmbraceOTel.setup(spanProcessors: [spanProcessor])
@@ -43,5 +45,32 @@ public class MockEmbraceOpenTelemetry: EmbraceOpenTelemetry {
 
     public func add(event: SpanEvent) {
         events.append(event)
+    }
+
+    public func log(
+        _ message: String,
+        severity: LogSeverity,
+        attributes: [String: String]
+    ) {
+        log(message, severity: severity, timestamp: Date(), attributes: attributes)
+    }
+
+    public func log(_ message: String, severity: LogSeverity, timestamp: Date, attributes: [String: String]) {
+
+        var otelAttributes: [String: AttributeValue] = [:]
+        for (key, value) in attributes {
+            otelAttributes[key] = .string(value)
+        }
+
+        let log = ReadableLogRecord(
+            resource: .init(),
+            instrumentationScopeInfo: .init(),
+            timestamp: timestamp,
+            severity: Severity.fromLogSeverity(severity),
+            body: message,
+            attributes: otelAttributes
+        )
+
+        logs.append(log)
     }
 }
