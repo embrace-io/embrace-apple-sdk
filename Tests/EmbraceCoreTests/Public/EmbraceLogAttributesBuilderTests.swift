@@ -146,6 +146,30 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
 
         thenResultingAttributes(containsKey: "emb.stacktrace.ios")
     }
+
+    // MARK: - addLogType Tests
+    func test_onAddLogType_addsValue() {
+        givenSessionController()
+        givenMetadataFetcher()
+        givenEmbraceLogAttributesBuilder()
+
+        whenInvokingAddLogType(.default)
+        whenInvokingBuild()
+
+        thenResultingAttributes(is: ["emb.type": LogType.default.rawValue])
+    }
+
+    func test_onAddLogType_whenAlreadySet_doesNotChangeValue() {
+        givenSessionController()
+        givenMetadataFetcher()
+        givenEmbraceLogAttributesBuilder(withInitialAttributes: ["emb.type": LogType.rawCrash.rawValue])
+
+        whenInvokingAddLogType(.default)
+        whenInvokingBuild()
+
+        thenResultingAttributes(is: ["emb.type": LogType.rawCrash.rawValue])
+    }
+
 }
 
 private extension EmbraceLogAttributesBuilderTests {
@@ -190,6 +214,10 @@ private extension EmbraceLogAttributesBuilderTests {
 
     func whenInvokingAddApplicationState() {
         sut.addApplicationState()
+    }
+
+    func whenInvokingAddLogType(_ logType: LogType) {
+        sut.addLogType(logType)
     }
 
     func thenResultingAttributes(is dict: [String: String]) {

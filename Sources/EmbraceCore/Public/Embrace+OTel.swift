@@ -101,7 +101,7 @@ extension Embrace: EmbraceOpenTelemetry {
          However that would cause to always add a frame to the stacktrace.
          */
         var stackTrace: [String] = []
-        if severity != .info {
+        if severity == .warn || severity == .error {
             stackTrace = Thread.callStackSymbols
         }
 

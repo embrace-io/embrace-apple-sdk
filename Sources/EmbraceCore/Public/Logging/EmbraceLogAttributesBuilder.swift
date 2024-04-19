@@ -54,8 +54,13 @@ class EmbraceLogAttributesBuilder {
         return self
     }
 
+    /// Makes sure that `emb.type` attribute is not already set in attributes
+    /// If not set, will set the `emb.type` to the value
     @discardableResult
     func addLogType(_ logType: LogType) -> Self {
+        guard attributes[Keys.type] == nil else {
+            return self
+        }
         attributes[Keys.type] = logType.rawValue
         return self
     }
