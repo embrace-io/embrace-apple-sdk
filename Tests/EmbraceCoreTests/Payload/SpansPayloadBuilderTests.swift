@@ -82,6 +82,50 @@ final class SpansPayloadBuilderTests: XCTestCase {
         return spanData
     }
 
+    func test_noSessionSpan() throws {
+        // given no session span and a session record with nil end time
+        let record = SessionRecord(
+            id: TestConstants.sessionId,
+            state: .foreground,
+            processId: .random,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date(timeIntervalSince1970: 50),
+            endTime: nil,
+            lastHeartbeatTime: Date(timeIntervalSince1970: 100)
+        )
+
+        // when building the spans payload
+        let (closed, open) = SpansPayloadBuilder.build(for: record, storage: storage)
+
+        // then a session span is created
+        // and its end time is valid
+        XCTAssertEqual(closed.count, 1)
+        XCTAssertEqual(closed[0].name, SessionSpanUtils.spanName)
+        XCTAssertEqual(closed[0].endTime, record.lastHeartbeatTime.nanosecondsSince1970Truncated)
+    }
+
+    func test_sessionSpan_withNoEndTime() throws {
+        // given a session span with no end time
+        _ = try addSpan(
+            startTime: Date(timeIntervalSince1970: 5),
+            endTime: nil,
+            id: TestConstants.spanId,
+            traceId: TestConstants.traceId,
+            name: "emb-session",
+            type: SpanType.session
+        )
+
+        // when building the spans payload
+        let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
+
+        // then session span has an end time
+        XCTAssertEqual(closed.count, 1)
+        XCTAssertEqual(closed[0].name, SessionSpanUtils.spanName)
+        XCTAssertNotNil(closed[0].endTime)
+        XCTAssertEqual(closed[0].endTime, sessionRecord.endTime!.nanosecondsSince1970Truncated)
+    }
+
     func test_closedSpan() throws {
         // given a closed span within a session time frame
         let span = try addSpan(

@@ -32,7 +32,8 @@ fileprivate extension SpanPayload {
         self.name = SessionSpanUtils.spanName
         self.status = Status.ok.name
         self.startTime = session.startTime.nanosecondsSince1970Truncated
-        self.endTime = session.endTime?.nanosecondsSince1970Truncated
+        self.endTime = session.endTime?.nanosecondsSince1970Truncated ??
+                       session.lastHeartbeatTime.nanosecondsSince1970Truncated
         self.attributes = [
             SessionSpanUtils.sessionIdAttribute: session.id.toString
         ]

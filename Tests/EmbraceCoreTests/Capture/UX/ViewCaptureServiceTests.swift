@@ -147,7 +147,10 @@ final class ViewCaptureServiceTests: XCTestCase {
         // then the view is captured with the correct title name
         XCTAssertEqual(otel.spanProcessor.startedSpans.count, 1)
         XCTAssertEqual(otel.spanProcessor.startedSpans[0].attributes["view.title"], .string("a customized class title"))
-        XCTAssertEqual(otel.spanProcessor.startedSpans[0].attributes["view.name"], .string("ViewCaptureTestViewController"))
+        XCTAssertEqual(
+            otel.spanProcessor.startedSpans[0].attributes["view.name"],
+            .string("ViewCaptureTestViewController")
+        )
     }
 
     func test_manuallyIgnoreView() throws {
