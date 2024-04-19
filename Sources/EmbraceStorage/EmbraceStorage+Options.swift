@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import EmbraceCommon
 
 public extension EmbraceStorage {
     enum StorageMechanism {
@@ -15,7 +16,7 @@ public extension EmbraceStorage {
         let storageMechanism: StorageMechanism
 
         /// Dictionary containing the storage limits per span type
-        public var spanLimits: [String: Int] = [:]
+        public var spanLimits: [SpanType: Int] = [:]
 
         /// Determines how many `MetadataRecords` of the `.resource` type can be present at any given time.
         public var resourcesLimit: Int = 100

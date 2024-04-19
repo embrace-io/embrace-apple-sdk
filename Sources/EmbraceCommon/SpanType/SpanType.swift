@@ -6,7 +6,7 @@
 /// - This struct will be serialized into the Span's `emb.type` attribute.
 /// - This struct is encoded as a String with the format `<primary>.<secondary>`.
 /// - The primary category is required, but the secondary category is optional.
-public struct SpanType: Equatable {
+public struct SpanType: Equatable, Hashable {
     let primary: Primary
 
     let secondary: String?

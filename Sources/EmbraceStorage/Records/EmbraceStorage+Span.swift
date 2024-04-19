@@ -8,6 +8,8 @@ import GRDB
 
 extension EmbraceStorage {
 
+    static let defaultSpanLimitByType = 1500
+
     /// Adds a span to the storage synchronously.
     /// - Parameters:
     ///   - id: Identifier of the span
@@ -142,43 +144,36 @@ fileprivate extension EmbraceStorage {
         }
 
         // check limit and delete if necessary
-        if let limit = options.spanLimits[span.type.rawValue] {
+        // default to 1500 if limit is not set
+        let limit = options.spanLimits[span.type, default: Self.defaultSpanLimitByType]
 
-            let count = try spanCount(db: db, traceId: span.traceId, type: span.type)
-            if count >= limit {
-                let spansToDelete = try fetchSpans(
-                    db: db, traceId:
-                        span.traceId,
-                    type: span.type,
-                    limit: count - limit + 1
-                )
+        let count = try spanCount(db: db, type: span.type)
+        if count >= limit {
+            let spansToDelete = try fetchSpans(
+                db: db,
+                type: span.type,
+                limit: count - limit + 1
+            )
 
-                for spanToDelete in spansToDelete {
-                    try spanToDelete.delete(db)
-                }
+            for spanToDelete in spansToDelete {
+                try spanToDelete.delete(db)
             }
         }
 
         try span.insert(db)
     }
 
-    func spanInTraceByTypeRequest(traceId: String, type: SpanType?) -> QueryInterfaceRequest<SpanRecord> {
-        var filter = SpanRecord.filter(SpanRecord.Schema.traceId == traceId)
-
-        if let type = type {
-            filter = filter.filter(SpanRecord.Schema.type == type.rawValue)
-        }
-
-        return filter
+    func requestSpans(of type: SpanType) -> QueryInterfaceRequest<SpanRecord> {
+        return SpanRecord.filter(SpanRecord.Schema.type == type.rawValue)
     }
 
-    func spanCount(db: Database, traceId: String, type: SpanType?) throws -> Int {
-        return try spanInTraceByTypeRequest(traceId: traceId, type: type)
+    func spanCount(db: Database, type: SpanType) throws -> Int {
+        return try requestSpans(of: type)
             .fetchCount(db)
     }
 
-    func fetchSpans(db: Database, traceId: String, type: SpanType?, limit: Int?) throws -> [SpanRecord] {
-        var request = spanInTraceByTypeRequest(traceId: traceId, type: type)
+    func fetchSpans(db: Database, type: SpanType, limit: Int?) throws -> [SpanRecord] {
+        var request = requestSpans(of: type)
             .order(SpanRecord.Schema.startTime)
 
         if let limit = limit {
