@@ -7,11 +7,11 @@ import XCTest
 
 class CGPointToStringTests: XCTestCase {
     func test_toString_ReturnsXAndYPointsSeparatedByComma() {
-        XCTAssertEqual("1.0,2.0", CGPoint(x: 1, y: 2).toString())
-        XCTAssertEqual("-1.0,-2.0", CGPoint(x: -1, y: -2).toString())
+        XCTAssertEqual("1,2", CGPoint(x: 1, y: 2).toString())
+        XCTAssertEqual("-1,-2", CGPoint(x: -1, y: -2).toString())
     }
 
     func test_toString_TruncatesEachPoint() {
-        XCTAssertEqual("1.0,2.0", CGPoint(x: 1.234456, y: 2.987654).toString())
+        XCTAssertEqual("1,2", CGPoint(x: 1.234456, y: 2.987654).toString())
     }
 }

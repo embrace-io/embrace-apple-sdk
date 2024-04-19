@@ -6,6 +6,6 @@ import Foundation
 
 extension CGPoint {
     func toString() -> String {
-        "\(trunc(x)),\(trunc(y))"
+        "\(Int(trunc(x))),\(Int(trunc(y)))"
     }
 }

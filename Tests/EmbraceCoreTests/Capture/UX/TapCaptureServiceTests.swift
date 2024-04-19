@@ -126,7 +126,7 @@ final class TapCaptureServiceTests: XCTestCase {
         let otelEvent = try XCTUnwrap(otel.events.first)
 
         XCTAssertEqual(otelEvent.attributes["view.name"], .string(viewName))
-        XCTAssertEqual(otelEvent.attributes["tap.coords"], .string("0.0,0.0"))
+        XCTAssertEqual(otelEvent.attributes["tap.coords"], .string("0,0"))
         XCTAssertEqual(otelEvent.attributes["emb.type"], .string("ux.tap"))
     }
 }
