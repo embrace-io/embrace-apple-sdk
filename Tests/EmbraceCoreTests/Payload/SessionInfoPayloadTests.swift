@@ -21,7 +21,9 @@ final class SessionInfoPayloadTests: XCTestCase {
             spanId: .random(),
             startTime: Date(),
             endTime: Date(timeIntervalSinceNow: 2),
-            lastHeartbeatTime: Date(timeIntervalSinceNow: 1.5) )
+            lastHeartbeatTime: Date(timeIntervalSinceNow: 1.5),
+            crashReportId: "test"
+        )
 
         let metadata = [
             MetadataRecord(
@@ -45,6 +47,7 @@ final class SessionInfoPayloadTests: XCTestCase {
         XCTAssertEqual(sessionInfoPayload.appTerminated, record.appTerminated)
         XCTAssertEqual(sessionInfoPayload.cleanExit, record.cleanExit)
         XCTAssertEqual(sessionInfoPayload.coldStart, record.coldStart)
+        XCTAssertEqual(sessionInfoPayload.crashReportId, "test")
         XCTAssertEqual(sessionInfoPayload.properties.count, metadata.count)
         XCTAssertEqual(sessionInfoPayload.properties, ["foo": "bar"])
     }

@@ -17,6 +17,7 @@ struct SessionInfoPayload: Codable {
     let appTerminated: Bool
     let cleanExit: Bool
     let coldStart: Bool
+    let crashReportId: String?
     let properties: [String: String]
 
     enum CodingKeys: String, CodingKey {
@@ -30,6 +31,7 @@ struct SessionInfoPayload: Codable {
         case appTerminated = "tr"
         case cleanExit = "ce"
         case coldStart = "cs"
+        case crashReportId = "ri"
         case properties = "sp"
     }
 
@@ -44,6 +46,7 @@ struct SessionInfoPayload: Codable {
         self.appTerminated = sessionRecord.appTerminated
         self.cleanExit = sessionRecord.cleanExit
         self.coldStart = sessionRecord.coldStart
+        self.crashReportId = sessionRecord.crashReportId
         self.properties = metadata.reduce(into: [:]) { result, record in
             guard UserResourceKey(rawValue: record.key) == nil else {
                 // prevent UserResource keys from appearing in properties

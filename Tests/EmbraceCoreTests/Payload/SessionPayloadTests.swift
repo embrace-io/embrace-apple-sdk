@@ -168,9 +168,11 @@ final class SessionPayloadTests: XCTestCase {
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSince1970: 10),
             endTime: Date(timeIntervalSince1970: 40),
+            crashReportId: "test",
             coldStart: true,
             cleanExit: true,
-            appTerminated: false)
+            appTerminated: false
+        )
     }
 
     func test_properties() {
@@ -193,6 +195,7 @@ final class SessionPayloadTests: XCTestCase {
         XCTAssertEqual(payload.sessionInfo.appTerminated, false)
         XCTAssertEqual(payload.sessionInfo.cleanExit, true)
         XCTAssertEqual(payload.sessionInfo.coldStart, true)
+        XCTAssertEqual(payload.sessionInfo.crashReportId, "test")
     }
 
     func test_highLevelKeys() throws {
@@ -237,6 +240,7 @@ final class SessionPayloadTests: XCTestCase {
         XCTAssertEqual(sessionInfo["tr"] as! Bool, false)
         XCTAssertEqual(sessionInfo["ce"] as! Bool, true)
         XCTAssertEqual(sessionInfo["cs"] as! Bool, true)
+        XCTAssertEqual(sessionInfo["ri"] as! String, "test")
     }
 
     func test_sessionInfoKeys_withSessionProperties() throws {
@@ -258,7 +262,7 @@ final class SessionPayloadTests: XCTestCase {
 
         // then the session payload contains the necessary keys
         let sessionInfo = json["s"] as! [String: Any]
-        XCTAssertEqual(sessionInfo.keys.count, 11)
+        XCTAssertEqual(sessionInfo.keys.count, 12)
         XCTAssertEqual(sessionInfo["id"] as! String, sessionRecord.id.toString)
         XCTAssertEqual(sessionInfo["st"] as! Int, sessionRecord.startTime.millisecondsSince1970Truncated)
         XCTAssertEqual(sessionInfo["et"] as? Int, sessionRecord.endTime?.millisecondsSince1970Truncated)
@@ -269,6 +273,7 @@ final class SessionPayloadTests: XCTestCase {
         XCTAssertEqual(sessionInfo["tr"] as! Bool, false)
         XCTAssertEqual(sessionInfo["ce"] as! Bool, true)
         XCTAssertEqual(sessionInfo["cs"] as! Bool, true)
+        XCTAssertEqual(sessionInfo["ri"] as! String, "test")
         XCTAssertEqual(sessionInfo["sp"] as! [String: String], ["foo": "bar"])
     }
 
