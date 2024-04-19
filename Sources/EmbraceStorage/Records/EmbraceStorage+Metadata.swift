@@ -242,11 +242,14 @@ extension EmbraceStorage {
 
             return try resourcesFilter()
                 .filter(
-                    (MetadataRecord.Schema.lifespan == MetadataRecordLifespan.session.rawValue &&
-                     MetadataRecord.Schema.lifespanId == "\(session.id)") ||
-                    (MetadataRecord.Schema.lifespan == MetadataRecordLifespan.process.rawValue &&
-                     MetadataRecord.Schema.lifespanId == "\(session.processId.hex)") ||
-                    MetadataRecord.Schema.lifespan == MetadataRecordLifespan.permanent.rawValue
+                    (
+                        MetadataRecord.Schema.lifespan == MetadataRecordLifespan.session.rawValue &&
+                        MetadataRecord.Schema.lifespanId == session.id.toString
+                    ) || (
+                        MetadataRecord.Schema.lifespan == MetadataRecordLifespan.process.rawValue &&
+                        MetadataRecord.Schema.lifespanId == session.processId.hex
+                    ) ||
+                        MetadataRecord.Schema.lifespan == MetadataRecordLifespan.permanent.rawValue
                 )
                 .fetchAll(db)
         }
@@ -268,11 +271,14 @@ extension EmbraceStorage {
 
             return try customPropertiesFilter()
                 .filter(
-                    (MetadataRecord.Schema.lifespan == MetadataRecordLifespan.session.rawValue &&
-                     MetadataRecord.Schema.lifespanId == "\(session.id)") ||
-                    (MetadataRecord.Schema.lifespan == MetadataRecordLifespan.process.rawValue &&
-                     MetadataRecord.Schema.lifespanId == "\(session.processId.hex)") ||
-                    MetadataRecord.Schema.lifespan == MetadataRecordLifespan.permanent.rawValue
+                    (
+                        MetadataRecord.Schema.lifespan == MetadataRecordLifespan.session.rawValue &&
+                        MetadataRecord.Schema.lifespanId == session.id.toString
+                    ) || (
+                        MetadataRecord.Schema.lifespan == MetadataRecordLifespan.process.rawValue &&
+                        MetadataRecord.Schema.lifespanId == session.processId.hex
+                    ) ||
+                        MetadataRecord.Schema.lifespan == MetadataRecordLifespan.permanent.rawValue
                 )
                 .fetchAll(db)
         }

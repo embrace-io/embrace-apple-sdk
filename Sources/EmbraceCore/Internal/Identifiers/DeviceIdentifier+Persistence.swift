@@ -6,19 +6,16 @@ import Foundation
 import EmbraceCommon
 import EmbraceStorage
 
-class EmbraceDeviceId {
-
+extension DeviceIdentifier {
     static let resourceKey = "emb.device_id"
 
-    private init() { }
-
-    public static func retrieve(from storage: EmbraceStorage?) -> UUID {
-
+    static func retrieve(from storage: EmbraceStorage?) -> DeviceIdentifier {
+        // retrieve from storage
         if let storage = storage {
             do {
                 if let resource = try storage.fetchRequriedPermanentResource(key: resourceKey) {
-                    if let deviceId = resource.uuidValue {
-                        return deviceId
+                    if let uuid = resource.uuidValue {
+                        return DeviceIdentifier(value: uuid)
                     }
 
                     ConsoleLog.warning("Failed to convert device.id back into a UUID. Possibly corrupted!")
@@ -28,13 +25,15 @@ class EmbraceDeviceId {
             }
         }
 
-        let deviceId = KeychainAccess.deviceId
+        // fallback to retrieve from Keychain
+        let uuid = KeychainAccess.deviceId
+        let deviceId = DeviceIdentifier(value: uuid)
 
         if let storage = storage {
             do {
                 try storage.addMetadata(
                     key: resourceKey,
-                    value: deviceId.uuidString,
+                    value: deviceId.hex,
                     type: .requiredResource,
                     lifespan: .permanent
                 )
@@ -44,7 +43,5 @@ class EmbraceDeviceId {
         }
 
         return deviceId
-
     }
-
 }

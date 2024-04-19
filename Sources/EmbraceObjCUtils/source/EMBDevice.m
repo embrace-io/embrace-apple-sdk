@@ -139,7 +139,7 @@ typedef NS_ENUM(NSInteger, EMBReleaseMode) {
     return [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"] ?: @"";
 }
 
-+ (NSString *)buildUUID
++ (NSUUID *)buildUUID
 {
     const struct mach_header *machHeader = NULL;
     
@@ -168,10 +168,10 @@ typedef NS_ENUM(NSInteger, EMBReleaseMode) {
         
         if (segmentCommand->cmd == LC_UUID) {
             const struct uuid_command *uuidCommand = (const struct uuid_command *)segmentCommand;
-            return [[[NSUUID alloc] initWithUUIDBytes:uuidCommand->uuid] UUIDString];
-            break;
+            return [[NSUUID alloc] initWithUUIDBytes:uuidCommand->uuid];
         }
     }
+    return nil;
 }
 
 + (NSString *)manufacturer

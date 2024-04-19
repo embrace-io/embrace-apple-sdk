@@ -19,6 +19,12 @@ final class SessionIdentifierTests: XCTestCase {
         XCTAssertEqual(sessionIdentifier?.value, value)
     }
 
+    func test_init_withoutHyphen() throws {
+        let value = UUID()
+        let sessionIdentifier = SessionIdentifier(string: value.withoutHyphen)
+        XCTAssertEqual(sessionIdentifier?.value, value)
+    }
+
     func test_init_withWithInvalidString_isNil() throws {
         XCTAssertNil(SessionIdentifier(string: "Hello World"))
     }
@@ -34,10 +40,24 @@ final class SessionIdentifierTests: XCTestCase {
         XCTAssertEqual(sessionId, decoded)
     }
 
-    func test_encode_encodesValueAsUUID() throws {
+    func test_encode_encodesValueAsUUID_withoutHyphen() throws {
         let sessionId = SessionIdentifier(string: "53B55EDD-889A-4876-86BA-6798288B609C")!
         let data = try JSONEncoder().encode(sessionId)
-        XCTAssertEqual(String(data: data, encoding: .utf8), "\"53B55EDD-889A-4876-86BA-6798288B609C\"")
+        XCTAssertEqual(String(data: data, encoding: .utf8), "\"53B55EDD889A487686BA6798288B609C\"")
+    }
+
+    func test_decode_valueWithoutHyphen_returnsSessionId() throws {
+        let data = "\"53B55EDD889A487686BA6798288B609C\"".data(using: .utf8)!
+        let sessionId = try JSONDecoder().decode(SessionIdentifier.self, from: data)
+
+        XCTAssertEqual(sessionId, SessionIdentifier(string: "53B55EDD889A487686BA6798288B609C")!)
+    }
+
+    func test_decode_valueWithHyphen_returnsSessionId() throws {
+        let data = "\"53B55EDD-889A-4876-86BA-6798288B609C\"".data(using: .utf8)!
+        let sessionId = try JSONDecoder().decode(SessionIdentifier.self, from: data)
+
+        XCTAssertEqual(sessionId, SessionIdentifier(string: "53B55EDD889A487686BA6798288B609C")!)
     }
 
 }

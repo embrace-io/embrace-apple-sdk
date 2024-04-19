@@ -54,13 +54,8 @@ struct ResourcePayload: Codable {
     }
 
     init(from resources: [MetadataRecord]) {
-        /*
-         Important note:
-            There's no metadata key for `appBundleId` / `buildId`.
-            We should check if there's a way to provide that info eventually
-            without doing it manually at this moment.
-         */
-        self.buildId = EMBDevice.buildUUID
+
+        // bundle_id is constant and won't change over app install lifetime
         self.appBundleId = Bundle.main.bundleIdentifier
 
         resources.forEach { resource in
@@ -82,6 +77,8 @@ struct ResourcePayload: Codable {
                     self.appVersion = resource.stringValue
                 case .processIdentifier:
                     self.processIdentifier = resource.stringValue
+                case .buildID:
+                    self.buildId = resource.stringValue
                 }
             }
 

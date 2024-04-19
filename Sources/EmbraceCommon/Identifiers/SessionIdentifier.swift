@@ -13,25 +13,40 @@ public struct SessionIdentifier: Equatable {
 
     public init?(string: String?) {
         guard let string = string,
-              let uuid = UUID(uuidString: string) else {
+              let uuid = UUID(withoutHyphen: string) else {
             return nil
         }
 
         self.value = uuid
     }
 
-    public var toString: String { value.uuidString }
+    /// Converts the UUID to a string format without hyphens
+    ///
+    /// - This method transforms the UUID into a string representation without the hyphens that typically separate the segments of a UUID.
+    /// It is designed to meet specific backend requirements where the hyphen-less format is preferred.
+    ///
+    /// - IMPORTANT: This method should not be used when you simply need the standard `uuidString` representation.
+    /// For standard UUID strings, use the `value` property directly.
+    public var toString: String { value.withoutHyphen }
 }
 
 extension SessionIdentifier: Codable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
-        value = try container.decode(UUID.self)
+        let rawValue = try container.decode(String.self)
+        if let uuid = UUID(withoutHyphen: rawValue) {
+            value = uuid
+        } else {
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Encoded value is not a valid UUID string"
+            )
+        }
     }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
-        try container.encode(value)
+        try container.encode(value.withoutHyphen)
     }
 }
 

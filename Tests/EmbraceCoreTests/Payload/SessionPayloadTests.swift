@@ -62,6 +62,13 @@ final class SessionPayloadTests: XCTestCase {
             type: .requiredResource,
             lifespan: .process,
             lifespanId: ProcessIdentifier.current.hex
+        ),
+        .init(
+            key: AppResourceKey.buildID.rawValue,
+            value: .string("fake-build-uuid-1234"),
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.hex
         )
     ]
 

@@ -8,7 +8,7 @@ import EmbraceCommon
 import EmbraceObjCUtils
 
 struct AppInfoPayload: Codable {
-    var buildUUID: String?
+    var buildID: String?
     var bundleVersion: String?
     var environment: String?
     var detailedEnvironment: String?
@@ -19,7 +19,7 @@ struct AppInfoPayload: Codable {
     var appBundleId: String?
 
     enum CodingKeys: String, CodingKey {
-        case buildUUID = "bi"
+        case buildID = "bi"
         case bundleVersion = "bv"
         case environment = "e"
         case detailedEnvironment = "ed"
@@ -31,8 +31,6 @@ struct AppInfoPayload: Codable {
     }
 
     init (with resources: [MetadataRecord]) {
-
-        self.buildUUID = EMBDevice.buildUUID
         self.appBundleId = Bundle.main.bundleIdentifier
 
         resources.forEach { resource in
@@ -55,6 +53,8 @@ struct AppInfoPayload: Codable {
                 self.sdkVersion = resource.stringValue
             case .appVersion:
                 self.appVersion = resource.stringValue
+            case .buildID:
+                self.buildID = resource.stringValue
             default: break
             }
         }

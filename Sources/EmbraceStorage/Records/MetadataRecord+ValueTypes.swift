@@ -48,7 +48,7 @@ extension MetadataRecord {
 
     public var uuidValue: UUID? {
         switch value {
-        case .string(let string): return UUID(uuidString: string)
+        case .string(let string): return UUID(withoutHyphen: string)
         default: return nil
         }
     }

@@ -10,8 +10,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (instancetype)init NS_UNAVAILABLE;
 
 @property (class, nullable, readonly)  NSString *appVersion;
-@property (class, nullable, readonly)  NSString *buildUUID;
 @property (class, nullable, readonly)  NSString *screenResolution;
+@property (class, nullable, readonly)  NSUUID *buildUUID;
 
 @property (class, readonly)  NSString *environment;
 @property (class, readonly)  NSString *environmentDetail;

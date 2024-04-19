@@ -42,8 +42,8 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
     /// Returns whether the SDK was started.
     @objc public private(set) var started: Bool
 
-    /// Returns the `UUID` used by Embrace for the current device.
-    @objc public private(set) var deviceId: UUID
+    /// Returns the `DeviceIdentifier` used by Embrace for the current device.
+    public private(set) var deviceId: DeviceIdentifier
 
     /// Used to control the verbosity level of the Embrace SDK console logs.
     @objc public var logLevel: LogLevel = .error {
@@ -125,10 +125,10 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
 
         self.logLevel = options.logLevel
         self.storage = try Embrace.createStorage(options: options)
-        self.deviceId = EmbraceDeviceId.retrieve(from: storage)
+        self.deviceId = DeviceIdentifier.retrieve(from: storage)
         self.captureServices = try CaptureServices(options: options, storage: storage)
-        self.upload = Embrace.createUpload(options: options, deviceId: KeychainAccess.deviceId.uuidString)
-        self.config = Embrace.createConfig(options: options, deviceId: KeychainAccess.deviceId.uuidString)
+        self.upload = Embrace.createUpload(options: options, deviceId: deviceId.hex)
+        self.config = Embrace.createConfig(options: options, deviceId: deviceId.hex)
         self.sessionController = SessionController(storage: storage, upload: upload)
         self.sessionLifecycle = Embrace.createSessionLifecycle(controller: sessionController)
         self.metadata = MetadataHandler(storage: storage, sessionController: sessionController)
@@ -207,6 +207,10 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         }
 
         return sessionController.currentSession?.id.toString
+    }
+
+    @objc public func currentDeviceId() -> String? {
+        return deviceId.hex
     }
 
     /// Method used to force the Embrace SDK to start a new session.

@@ -48,6 +48,14 @@ class AppInfoCaptureService: ResourceCaptureService {
             )
         }
 
+        // build UUID
+        if let buildUUID = EMBDevice.buildUUID {
+            addResource(
+                key: AppResourceKey.buildID.rawValue,
+                value: .string(buildUUID.withoutHyphen)
+            )
+        }
+
         // process identifier
         addResource(
             key: AppResourceKey.processIdentifier.rawValue,

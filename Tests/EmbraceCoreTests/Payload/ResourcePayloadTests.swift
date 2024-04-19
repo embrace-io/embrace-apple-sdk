@@ -19,6 +19,7 @@ class ResourcePayloadTests: XCTestCase {
             MetadataRecord.userMetadata(key: AppResourceKey.appVersion.rawValue, value: "1.2.3"),
             MetadataRecord.userMetadata(key: AppResourceKey.sdkVersion.rawValue, value: "3.2.1"),
             MetadataRecord.userMetadata(key: AppResourceKey.processIdentifier.rawValue, value: "12345"),
+            MetadataRecord.userMetadata(key: AppResourceKey.buildID.rawValue, value: "fakebuilduuidnohyphen"),
 
             // Device Resources that should be present
             MetadataRecord.createResourceRecord(key: DeviceResourceKey.isJailbroken.rawValue, value: "true"),
@@ -44,7 +45,7 @@ class ResourcePayloadTests: XCTestCase {
         let json = try XCTUnwrap(JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any])
 
         XCTAssertEqual(json["app_bundle_id"] as? String, Bundle.main.bundleIdentifier)
-        XCTAssertNotNil(json["build_id"] as? String)
+        XCTAssertEqual(json["build_id"] as? String, "fakebuilduuidnohyphen")
 
         XCTAssertEqual(json["bundle_version"] as? String, "9.8.7")
         XCTAssertEqual(json["environment"] as? String, "dev")
@@ -87,14 +88,5 @@ class ResourcePayloadTests: XCTestCase {
         let json = try XCTUnwrap(JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any])
 
         XCTAssertEqual(json["app_bundle_id"] as? String, Bundle.main.bundleIdentifier!)
-    }
-
-    func test_encodeToJSON_alwaysHasBuildId() throws {
-        let payloadStruct = ResourcePayload(from: [])
-
-        let jsonData = try JSONEncoder().encode(payloadStruct)
-        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any])
-
-        XCTAssertNotNil(json["build_id"])
     }
 }
