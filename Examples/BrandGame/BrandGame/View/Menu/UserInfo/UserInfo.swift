@@ -9,13 +9,15 @@ import EmbraceCore
 struct UserInfo: View {
 
     class EmbraceUser: ObservableObject {
-        @Published var username: String = Embrace.client?.metadata.userName ?? ""
-        @Published var identifier: String = Embrace.client?.metadata.userIdentifier ?? ""
-        @Published var email: String = Embrace.client?.metadata.userEmail ?? ""
+        @Published var username: String = ""
+        @Published var identifier: String = ""
+        @Published var email: String = ""
 
         private var cancellables = Set<AnyCancellable>()
 
-        init() {
+        func listen() {
+            cancellables.removeAll()
+
             $username
                 .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
                 .sink { output in
@@ -36,6 +38,16 @@ struct UserInfo: View {
                     Embrace.client?.metadata.userEmail = output.isEmpty ? nil : output
                 }
                 .store(in: &cancellables)
+        }
+
+        func refresh() {
+            guard let metadata = Embrace.client?.metadata else {
+                return
+            }
+
+            username = metadata.userName ?? ""
+            identifier = metadata.userIdentifier ?? ""
+            email = metadata.userEmail ?? ""
         }
 
         func clear() {
@@ -68,6 +80,10 @@ struct UserInfo: View {
         }
         .textInputAutocapitalization(.never)
         .autocorrectionDisabled()
+        .onAppear {
+            user.refresh()
+            user.listen()
+        }
     }
 }
 

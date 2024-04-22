@@ -33,9 +33,10 @@
 		7B62AD9F2B00608A0087C2AE /* AppSettings+Environment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B62AD9E2B00608A0087C2AE /* AppSettings+Environment.swift */; };
 		7B62ADA32B0068280087C2AE /* SimonMinigameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B62ADA22B0068280087C2AE /* SimonMinigameView.swift */; };
 		7B62ADA52B0068960087C2AE /* SimonGameModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B62ADA42B0068960087C2AE /* SimonGameModel.swift */; };
+		7B7341E12BD4AD100026D8B8 /* LazyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B7341E02BD4AD100026D8B8 /* LazyView.swift */; };
+		7BBBCD582BD0205C00BC289A /* StdoutLogExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BBBCD572BD0205C00BC289A /* StdoutLogExporter.swift */; };
 		7BBBCD5B2BD07CE000BC289A /* GitInfo+InfoPlist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BBBCD5A2BD07CE000BC289A /* GitInfo+InfoPlist.swift */; };
 		7BBBCD5D2BD07DE600BC289A /* App+GitInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BBBCD5C2BD07DE600BC289A /* App+GitInfo.swift */; };
-		7BBBCD582BD0205C00BC289A /* StdoutLogExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BBBCD572BD0205C00BC289A /* StdoutLogExporter.swift */; };
 		7BC49B0F2AC7864100FF381A /* NetworkRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BC49B0E2AC7864100FF381A /* NetworkRequest.swift */; };
 		7BC59A902B0BE25C0001E980 /* CrashExampleTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BC59A8F2B0BE25C0001E980 /* CrashExampleTest.swift */; };
 		7BCB66282AC4742800ABD33A /* MenuList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BCB66272AC4742800ABD33A /* MenuList.swift */; };
@@ -91,12 +92,13 @@
 		7B62AD9E2B00608A0087C2AE /* AppSettings+Environment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppSettings+Environment.swift"; sourceTree = "<group>"; };
 		7B62ADA22B0068280087C2AE /* SimonMinigameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimonMinigameView.swift; sourceTree = "<group>"; };
 		7B62ADA42B0068960087C2AE /* SimonGameModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimonGameModel.swift; sourceTree = "<group>"; };
+		7B7341E02BD4AD100026D8B8 /* LazyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LazyView.swift; sourceTree = "<group>"; };
 		7BBBCD4D2BCEC14000BC289A /* run.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = run.sh; sourceTree = "<group>"; };
 		7BBBCD4E2BCEC14000BC289A /* upload */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = upload; sourceTree = "<group>"; };
+		7BBBCD572BD0205C00BC289A /* StdoutLogExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StdoutLogExporter.swift; sourceTree = "<group>"; };
 		7BBBCD5A2BD07CE000BC289A /* GitInfo+InfoPlist.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GitInfo+InfoPlist.swift"; sourceTree = "<group>"; };
 		7BBBCD5C2BD07DE600BC289A /* App+GitInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "App+GitInfo.swift"; sourceTree = "<group>"; };
 		7BBBCD602BD081D900BC289A /* inject_git_info.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = inject_git_info.sh; sourceTree = "<group>"; };
-		7BBBCD572BD0205C00BC289A /* StdoutLogExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StdoutLogExporter.swift; sourceTree = "<group>"; };
 		7BC49B0E2AC7864100FF381A /* NetworkRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkRequest.swift; sourceTree = "<group>"; };
 		7BC59A8F2B0BE25C0001E980 /* CrashExampleTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CrashExampleTest.swift; sourceTree = "<group>"; };
 		7BCB66272AC4742800ABD33A /* MenuList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuList.swift; sourceTree = "<group>"; };
@@ -286,8 +288,8 @@
 				7BBBCD4E2BCEC14000BC289A /* upload */,
 				7BBBCD602BD081D900BC289A /* inject_git_info.sh */,
 			);
-			sourceTree = "<group>";
 			path = Script;
+			sourceTree = "<group>";
 		};
 		7BBBCD542BD0202C00BC289A /* OpenTelemetry */ = {
 			isa = PBXGroup;
@@ -330,6 +332,7 @@
 				7BCB662B2AC4769900ABD33A /* StressTests */,
 				7BCB66292AC4767B00ABD33A /* MainMenu.swift */,
 				7BCB66272AC4742800ABD33A /* MenuList.swift */,
+				7B7341E02BD4AD100026D8B8 /* LazyView.swift */,
 			);
 			path = Menu;
 			sourceTree = "<group>";
@@ -515,6 +518,7 @@
 				7B62AD932B0027280087C2AE /* ReflexMinigameView.swift in Sources */,
 				7B3143BF2AFDECCF00BA0D2F /* Icon+Meta.swift in Sources */,
 				7BCB662A2AC4767B00ABD33A /* MainMenu.swift in Sources */,
+				7B7341E12BD4AD100026D8B8 /* LazyView.swift in Sources */,
 				7B62AD9F2B00608A0087C2AE /* AppSettings+Environment.swift in Sources */,
 				7B5630902ABE743400E0DF39 /* ContentView.swift in Sources */,
 				7B3143C62AFF1E7D00BA0D2F /* ReflexGameModel.swift in Sources */,
@@ -667,7 +671,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 5;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_ASSET_PATHS = "\"BrandGame/Preview Content\"";
 				DEVELOPMENT_TEAM = L5RVT7J8CV;
@@ -685,7 +689,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = io.embrace.BrandGame;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -700,7 +704,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_ASSET_PATHS = "\"BrandGame/Preview Content\"";
 				DEVELOPMENT_TEAM = L5RVT7J8CV;
 				ENABLE_PREVIEWS = YES;
@@ -717,7 +721,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = io.embrace.BrandGame;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

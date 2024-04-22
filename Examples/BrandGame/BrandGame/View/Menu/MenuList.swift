@@ -12,10 +12,10 @@ struct MenuList: View {
     var body: some View {
         List {
             Section("Metadata") {
-                NavigationLink("User Information") {
-                    UserInfo()
-                }
-                .contentShape(Rectangle())
+               NavigationLink(destination: LazyView(UserInfo())) {
+                   Text("User Information")
+               }
+               .contentShape(Rectangle())
             }
 
             Section("Mini-Games") {
