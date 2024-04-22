@@ -1,16 +1,16 @@
 # Embrace Apple SDK
 
-> [!WARNING]
-> This SDK is currently in beta and is not yet ready for production use. We expect it to be ready for production use
-> in Q1 2024.
+> [!IMPORTANT]
 >
-> We would appreciate any feedback you have on the SDK and the APIs that is provides. Please open an issue in Github,
-> reach out to your Embrace representative or email us at support@embrace.io with any feedback you have.
+> We appreciate any feedback you have on the SDK and the APIs that is provides. Please open an issue in Github,
+> reach out to your Embrace representative, or email us at support@embrace.io with any feedback you have.
 
-The Embrace Apple SDK instruments your iOS, iPadOS, tvOS, watchOS* apps to collect observability data. This SDK
-represents a shift from Embrace's previous Apple SDK in that it adopts a more modular approach to instrumentation that
-supports with the OpenTelemetry standard. We have also added features that extend the core OpenTelemetry standard to
+The Embrace Apple SDK instruments your iOS, iPadOS, tvOS, visionOS, and watchOS* apps to collect observability data.
+This project represents a shift from the previous Embrace SDK in that it adopts a more modular approach that
+supports the OpenTelemetry standard. We have also added features that extend OpenTelemetry to
 better support mobile apps.
+
+More documentation and examples can be found at [docs.embrace.io](https://docs.embrace.io).
 
 ## Features
 
@@ -24,25 +24,27 @@ better support mobile apps.
 * Custom logs
 * OpenTelemetry Export
 * Session properties
+* Automatic view tracking
 
 ### Key Features Coming in Q1 2024
 
 * Metrickit capture
-* Automatic view tracking
 * Automatic webview capture
 * Network body capture
 
 ## Getting Started
 
-To get started using the Embrace SDK, you'll need to:
+For a more detailed walkthrough, check the [GETTING_STARTED](./GETTING_STARTED.md) doc. You can also open the **BrandGame** project under `Examples/BrandGame` to see an app that is already setup and using the EmbraceIO package.
+
+---
+
+Here is a quick overview to start using the Embrace SDK. You'll need to:
 1. Import the `EmbraceIO` module
 1. Create an instance of the Embrace client by passing `Embrace.Options` to the `setup` method.
 1. Call the `start` method on that instance
 
 This should be done as early as possible in the runtime of your app, for instance, the `UIApplicatinDelegate.applicationDidFinishLaunching(_:)`
 could be a good place.
-
-For a more detailed walkthrough, check the [GETTING_STARTED](./GETTING_STARTED.md) doc.
 
 Here is a code snippet:
 
