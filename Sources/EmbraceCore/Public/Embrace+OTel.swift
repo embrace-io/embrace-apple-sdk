@@ -7,6 +7,7 @@ import EmbraceCommon
 import EmbraceOTel
 
 extension Embrace: EmbraceOpenTelemetry {
+    private var exporter: EmbraceSpanExporter { StorageSpanExporter(options: .init(storage: storage)) }
 
     private var otel: EmbraceOTel { EmbraceOTel() }
 
@@ -61,7 +62,14 @@ extension Embrace: EmbraceOpenTelemetry {
     /// If there is no current session, this event will be dropped
     /// - Parameter events: An array of SpanEvent objects
     public func add(events: [SpanEvent]) {
-        sessionController.currentSessionSpan?.add(events: events)
+        guard let span = sessionController.currentSessionSpan else {
+            ConsoleLog.debug("\(#function) failed: No current session span")
+            return
+        }
+
+        span.add(events: events)
+
+        flush(span)
     }
 
     /// Adds a single SpanEvent object to the current session span
@@ -69,6 +77,17 @@ extension Embrace: EmbraceOpenTelemetry {
     /// - Parameter event: A SpanEvent object
     public func add(event: SpanEvent) {
         add(events: [event])
+    }
+
+    /// Flushes the given ReadableSpan compliant Span to disk
+    /// This is intended to save changes on long running spans.
+    /// - Parameter span: A `Span` object that implements `ReadableSpan`
+    public func flush(_ span: Span) {
+        if let span = span as? ReadableSpan {
+            exporter.export(spans: [span.toSpanData()])
+        } else {
+            ConsoleLog.debug("Tried to flush a non-ReadableSpan object")
+        }
     }
 
     /// Creates and adds a log for the current session span

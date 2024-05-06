@@ -119,12 +119,14 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         fatalError("Use init(options:) instead")
     }
 
-    private init(options: Embrace.Options, logControllable: LogControllable? = nil) throws {
+    init(options: Embrace.Options,
+         logControllable: LogControllable? = nil,
+         embraceStorage: EmbraceStorage? = nil) throws {
         self.started = false
         self.options = options
 
         self.logLevel = options.logLevel
-        self.storage = try Embrace.createStorage(options: options)
+        self.storage = try embraceStorage ?? Embrace.createStorage(options: options)
         self.deviceId = DeviceIdentifier.retrieve(from: storage)
         self.captureServices = try CaptureServices(options: options, storage: storage)
         self.upload = Embrace.createUpload(options: options, deviceId: deviceId.hex)

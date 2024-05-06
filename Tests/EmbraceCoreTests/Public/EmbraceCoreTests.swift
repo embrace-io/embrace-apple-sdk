@@ -5,6 +5,8 @@
 import XCTest
 @testable import EmbraceCore
 import EmbraceCommon
+import EmbraceStorage
+import EmbraceOTel
 
 final class EmbraceCoreTests: XCTestCase {
 
@@ -135,17 +137,69 @@ final class EmbraceCoreTests: XCTestCase {
         XCTAssertEqual(embrace.logLevel, .debug)
     }
 
+    func test_flushSpan_AddEventToSessionSpan() throws {
+        // Given an Embrace client.
+        let storage = try EmbraceStorage.createInMemoryDb()
+        guard let embrace = try getLocalEmbrace(storage: storage) else {
+            XCTFail("\(#function): failed to get embrace instance")
+            return
+        }
+
+        try embrace.start()
+
+        // When adding an event to the Session Span.
+        embrace.add(event: Breadcrumb(message: "Test Breadcrumb", attributes: [:]))
+
+        // Check the event was flushed to storage immediately after.
+        try storage.dbQueue.inDatabase { db in
+            let records = try SpanRecord.fetchAll(db)
+            if let sessionSpan = records.first(where: { $0.name == "emb-session" }) {
+                let spanData = try JSONDecoder().decode(SpanData.self, from: sessionSpan.data)
+                let breadcrumbEvent = spanData.events.first(where: {
+                    $0.name == "emb-breadcrumb" &&
+                    $0.attributes["message"] == .string("Test Breadcrumb")
+                })
+                XCTAssertNotNil(breadcrumbEvent)
+            } else {
+                XCTFail("\(#function): Failed, no session span found on storage.")
+            }
+        }
+    }
+
+    func test_ManualSpanExport() throws {
+        // Given an Embrace client.
+        let storage = try EmbraceStorage.createInMemoryDb()
+        guard let embrace = try getLocalEmbrace(storage: storage) else {
+            XCTFail("\(#function): failed to get embrace instance")
+            return
+        }
+
+        let span = embrace.buildSpan(name: "test_manual_export_span").startSpan()
+
+        embrace.flush(span)
+
+        try storage.dbQueue.inDatabase { db in
+            let records = try SpanRecord.fetchAll(db)
+            if let sessionSpan = records.first(where: { $0.name == "test_manual_export_span" }) {
+                let spanData = try JSONDecoder().decode(SpanData.self, from: sessionSpan.data)
+                XCTAssertFalse(spanData.hasEnded)
+            } else {
+                XCTFail("\(#function): Failed, span not found in storage.")
+            }
+        }
+    }
+
     // MARK: - Helper Methods
-    func getLocalEmbrace()throws -> Embrace? {
+    func getLocalEmbrace(storage: EmbraceStorage? = nil)throws -> Embrace? {
         // to ensure that each test gets it's own instance of embrace.
         return try lock.locked {
             // I use random string for group id to ensure a different storage location each time
-            try Embrace.setup(options: .init(
+            try Embrace.client = Embrace(options: .init(
                 appId: "testA",
                 appGroupId: randomString(length: 5),
                 captureServices: [],
                 crashReporter: nil
-            ))
+            ), embraceStorage: storage)
             XCTAssertNotNil(Embrace.client)
             let embrace = Embrace.client
             Embrace.client = nil
