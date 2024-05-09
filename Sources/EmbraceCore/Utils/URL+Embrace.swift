@@ -11,8 +11,8 @@ extension URL {
         return components?.url
     }
 
-    static func sessionsEndpoint(basePath: String) -> URL? {
-        return endpoint(basePath: basePath, apiPath: "/v1/log/sessions")
+    static func spansEndpoint(basePath: String) -> URL? {
+        return endpoint(basePath: basePath, apiPath: "/v2/spans")
     }
 
     static func blobsEndpoint(basePath: String) -> URL? {

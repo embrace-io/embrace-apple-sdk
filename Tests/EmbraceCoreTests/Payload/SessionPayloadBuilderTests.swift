@@ -57,7 +57,6 @@ final class SessionPayloadBuilderTests: XCTestCase {
         )
 
         XCTAssertEqual(resource!.value, .string("1"))
-        XCTAssertEqual(payload.sessionInfo.counter, 1)
     }
 
     func test_existingCounter() throws {
@@ -87,6 +86,5 @@ final class SessionPayloadBuilderTests: XCTestCase {
         )
 
         XCTAssertEqual(resource!.value, .string("11"))
-        XCTAssertEqual(payload.sessionInfo.counter, 11)
     }
 }

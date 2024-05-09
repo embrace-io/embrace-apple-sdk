@@ -64,7 +64,6 @@ final class StorageSpanExporterTests: XCTestCase {
         let name = "target_span"
 
         let startTime = Date()
-        let endTime = startTime.addingTimeInterval(2000)
 
         let openSpanData = SpanData(traceId: traceId,
                                     spanId: spanId,

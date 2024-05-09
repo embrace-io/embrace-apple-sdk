@@ -8,7 +8,7 @@ import EmbraceOTel
 struct SpanEventPayload: Encodable {
     let name: String
     let timestamp: Int
-    let attributes: [String: Any]
+    let attributes: [Attribute]
 
     enum CodingKeys: String, CodingKey {
         case name

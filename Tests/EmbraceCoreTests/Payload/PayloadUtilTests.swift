@@ -48,16 +48,20 @@ final class PayloadUtilTests: XCTestCase {
         let converted = PayloadUtils.convertSpanAttributes(attributes)
 
         // then values are converted correctly
-        XCTAssertEqual(converted["bool"] as! Bool, true)
-        XCTAssertEqual(converted["double"] as! Double, 123.456)
-        XCTAssertEqual(converted["int"] as! Int, 123456)
-        XCTAssertEqual(converted["string"] as! String, "test")
+        let boolAttribute = converted.first { $0.key == "bool" }
+        XCTAssertEqual(boolAttribute!.value, "true")
+
+        let doubleAttribute = converted.first { $0.key == "double" }
+        XCTAssertEqual(doubleAttribute!.value, "123.456")
+
+        let intAttribute = converted.first { $0.key == "int" }
+        XCTAssertEqual(intAttribute!.value, "123456")
+
+        let stringAttribute = converted.first { $0.key == "string" }
+        XCTAssertEqual(stringAttribute!.value, "test")
 
         // and array values are discarded
-        XCTAssertNil(converted["boolArray"])
-        XCTAssertNil(converted["doubleArray"])
-        XCTAssertNil(converted["intArray"])
-        XCTAssertNil(converted["stringArray"])
+        XCTAssertEqual(converted.count, 4)
     }
 
     func test_fetchCustomProperties() throws {

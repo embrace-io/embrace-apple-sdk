@@ -51,7 +51,7 @@ class EmbraceUploadTests: XCTestCase {
         // given an invalid identifier
         let expectation = XCTestExpectation()
 
-        module.uploadSession(id: "", data: Data()) { result in
+        module.uploadSpans(id: "", data: Data()) { result in
             switch result {
             case .failure(let error as NSError):
                 // then the upload should fail with the correct code
@@ -69,7 +69,7 @@ class EmbraceUploadTests: XCTestCase {
         // given an invalid data
         let expectation = XCTestExpectation()
 
-        module.uploadSession(id: "id", data: Data()) { result in
+        module.uploadSpans(id: "id", data: Data()) { result in
             switch result {
             case .failure(let error as NSError):
                 // then the upload should fail with the correct code
@@ -89,7 +89,7 @@ class EmbraceUploadTests: XCTestCase {
         // given valid values
         let expectation = XCTestExpectation()
 
-        module.uploadSession(id: "id", data: TestConstants.data) { result in
+        module.uploadSpans(id: "id", data: TestConstants.data) { result in
             switch result {
             case .success:
                 // then the success completion callback is called without
@@ -119,7 +119,7 @@ class EmbraceUploadTests: XCTestCase {
             // and its data should be valid
             if let record = records.first {
                 XCTAssertEqual(record.id, "id")
-                XCTAssertEqual(record.type, EmbraceUploadType.session.rawValue)
+                XCTAssertEqual(record.type, EmbraceUploadType.spans.rawValue)
                 XCTAssertEqual(record.data, TestConstants.data)
                 dataCached = true
                 expectation1.fulfill()
@@ -131,7 +131,7 @@ class EmbraceUploadTests: XCTestCase {
         }
 
         // when uploading data
-        module.uploadSession(id: "id", data: TestConstants.data) { result in
+        module.uploadSpans(id: "id", data: TestConstants.data) { result in
             switch result {
             case .success:
                 // then the cache step succeeds
@@ -163,14 +163,14 @@ class EmbraceUploadTests: XCTestCase {
             // and its data should be valid
             if let record = records.first {
                 XCTAssertEqual(record.id, "id")
-                XCTAssertEqual(record.type, EmbraceUploadType.session.rawValue)
+                XCTAssertEqual(record.type, EmbraceUploadType.spans.rawValue)
                 XCTAssertEqual(record.data, TestConstants.data)
                 expectation1.fulfill()
             }
         }
 
         // when uploading data
-        module.uploadSession(id: "id", data: TestConstants.data) { result in
+        module.uploadSpans(id: "id", data: TestConstants.data) { result in
             switch result {
             case .success:
                 // then the cache step succeeds
@@ -183,7 +183,7 @@ class EmbraceUploadTests: XCTestCase {
         wait(for: [expectation1, expectation2], timeout: .veryLongTimeout)
 
         // the ndata should remain cached
-        let record = try module.cache.fetchUploadData(id: "id", type: .session)
+        let record = try module.cache.fetchUploadData(id: "id", type: .spans)
         XCTAssertNotNil(record)
 
         // clean up
@@ -192,7 +192,7 @@ class EmbraceUploadTests: XCTestCase {
 
     func test_retryCachedData() throws {
         // given cached data
-        _ = try module.cache.saveUploadData(id: "id1", type: .session, data: TestConstants.data)
+        _ = try module.cache.saveUploadData(id: "id1", type: .spans, data: TestConstants.data)
         _ = try module.cache.saveUploadData(id: "id2", type: .blob, data: TestConstants.data)
 
         // when retrying to upload all cached data
@@ -220,7 +220,7 @@ class EmbraceUploadTests: XCTestCase {
 
     func test_sessionsEndpoint() throws {
         // when uploading session data
-        module.uploadSession(id: "id", data: TestConstants.data, completion: nil)
+        module.uploadSpans(id: "id", data: TestConstants.data, completion: nil)
 
         wait(delay: .defaultTimeout)
 
@@ -270,7 +270,7 @@ private extension EmbraceUploadTests {
 
     func testEndpointOptions(testName: String) -> EmbraceUpload.EndpointOptions {
         .init(
-            sessionsURL: testSessionsUrl(testName: testName),
+            spansURL: testSessionsUrl(testName: testName),
             blobsURL: testBlobsUrl(testName: testName),
             logsURL: testLogsUrl(testName: testName)
         )

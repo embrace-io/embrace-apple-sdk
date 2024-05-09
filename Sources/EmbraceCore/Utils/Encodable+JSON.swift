@@ -4,8 +4,6 @@
 
 import Foundation
 
-// swiftlint:disable cyclomatic_complexity
-
 struct JSONCodingKeys: CodingKey {
     var stringValue: String
     var intValue: Int?
@@ -164,5 +162,3 @@ extension UnkeyedEncodingContainer {
         try container.encode(value)
     }
 }
-
-// swiftlint:enable cyclomatic_complexity

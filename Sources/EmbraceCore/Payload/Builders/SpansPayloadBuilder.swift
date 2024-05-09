@@ -13,7 +13,8 @@ class SpansPayloadBuilder {
 
     class func build(
         for sessionRecord: SessionRecord,
-        storage: EmbraceStorage
+        storage: EmbraceStorage,
+        sessionNumber: Int = -1
     ) -> (spans: [SpanPayload], spanSnapshots: [SpanPayload]) {
 
         let endTime = sessionRecord.endTime ?? sessionRecord.lastHeartbeatTime
@@ -39,7 +40,11 @@ class SpansPayloadBuilder {
         var spanSnapshots: [SpanPayload] = []
 
         // fetch and add session span first
-        if let sessionSpanPayload = buildSessionSpanPayload(for: sessionRecord, storage: storage) {
+        if let sessionSpanPayload = buildSessionSpanPayload(
+            for: sessionRecord,
+            storage: storage,
+            sessionNumber: sessionNumber
+        ) {
             spans.append(sessionSpanPayload)
         }
 
@@ -69,18 +74,20 @@ class SpansPayloadBuilder {
         return (spans, spanSnapshots)
     }
 
-    class func buildSessionSpanPayload(for sessionRecord: SessionRecord, storage: EmbraceStorage) -> SpanPayload? {
+    class func buildSessionSpanPayload(
+        for sessionRecord: SessionRecord,
+        storage: EmbraceStorage,
+        sessionNumber: Int
+    ) -> SpanPayload? {
         do {
+            var spanData: SpanData?
             let sessionSpan = try storage.fetchSpan(id: sessionRecord.spanId, traceId: sessionRecord.traceId)
+
             if let rawData = sessionSpan?.data {
-                let sessionSpanData = try JSONDecoder().decode(SpanData.self, from: rawData)
-                return SpanPayload(
-                    from: sessionSpanData,
-                    endTime: sessionRecord.endTime ?? sessionRecord.lastHeartbeatTime
-                )
-            } else {
-                return SessionSpanUtils.payload(from: sessionRecord)
+                spanData = try JSONDecoder().decode(SpanData.self, from: rawData)
             }
+
+            return SessionSpanUtils.payload(from: sessionRecord, spanData: spanData, sessionNumber: sessionNumber)
 
         } catch {
             ConsoleLog.warning("Error fetching span for session \(sessionRecord.id):\n\(error.localizedDescription)")

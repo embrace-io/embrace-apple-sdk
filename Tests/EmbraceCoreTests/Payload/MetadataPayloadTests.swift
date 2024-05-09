@@ -11,13 +11,13 @@ class MetadataPayloadTests: XCTestCase {
     func test_encodeToJSONProperly() throws {
         let payloadStruct = MetadataPayload(from: [
             // User Resources
-            MetadataRecord.userMetadata(key: "emb.user.email", value: "email@domain.com"),
-            MetadataRecord.userMetadata(key: "emb.user.identifier", value: "12345"),
-            MetadataRecord.userMetadata(key: "emb.user.username", value: "embrace_user"),
+            MetadataRecord.userMetadata(key: UserResourceKey.email.rawValue, value: "email@domain.com"),
+            MetadataRecord.userMetadata(key: UserResourceKey.identifier.rawValue, value: "12345"),
+            MetadataRecord.userMetadata(key: UserResourceKey.name.rawValue, value: "embrace_user"),
 
             // Device Resources
-            MetadataRecord.createResourceRecord(key: "emb.device.locale", value: "en_US_POSIX"),
-            MetadataRecord.createResourceRecord(key: "emb.device.timezone", value: "GMT-3:00"),
+            MetadataRecord.createResourceRecord(key: DeviceResourceKey.locale.rawValue, value: "en_US_POSIX"),
+            MetadataRecord.createResourceRecord(key: DeviceResourceKey.timezone.rawValue, value: "GMT-3:00"),
 
             // Random properties
             MetadataRecord.userMetadata(key: "random_user_metadata_property", value: "value"),

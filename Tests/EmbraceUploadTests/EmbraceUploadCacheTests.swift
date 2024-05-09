@@ -94,7 +94,7 @@ class EmbraceUploadCacheTests: XCTestCase {
         // given inserted upload data
         let original = UploadDataRecord(
             id: "id",
-            type: EmbraceUploadType.session.rawValue,
+            type: EmbraceUploadType.spans.rawValue,
             data: Data(),
             attemptCount: 0,
             date: Date()
@@ -104,7 +104,7 @@ class EmbraceUploadCacheTests: XCTestCase {
         }
 
         // when fetching the upload data
-        let uploadData = try cache.fetchUploadData(id: "id", type: .session)
+        let uploadData = try cache.fetchUploadData(id: "id", type: .spans)
 
         // then the upload data should be valid
         XCTAssertNotNil(uploadData)
@@ -138,7 +138,7 @@ class EmbraceUploadCacheTests: XCTestCase {
         let cache = try EmbraceUploadCache(options: testOptions)
 
         // given inserted upload data
-        let data = try cache.saveUploadData(id: "id", type: .session, data: Data())
+        let data = try cache.saveUploadData(id: "id", type: .spans, data: Data())
 
         // then the upload data should exist
         let expectation = XCTestExpectation()
@@ -159,9 +159,9 @@ class EmbraceUploadCacheTests: XCTestCase {
         let cache = try EmbraceUploadCache(options: options)
 
         // given inserted upload datas
-        let data1 = try cache.saveUploadData(id: "id1", type: .session, data: Data())
-        let data2 = try cache.saveUploadData(id: "id2", type: .session, data: Data())
-        let data3 = try cache.saveUploadData(id: "id3", type: .session, data: Data())
+        let data1 = try cache.saveUploadData(id: "id1", type: .spans, data: Data())
+        let data2 = try cache.saveUploadData(id: "id2", type: .spans, data: Data())
+        let data3 = try cache.saveUploadData(id: "id3", type: .spans, data: Data())
 
         // then only the last data should exist
         let expectation = XCTestExpectation()
@@ -182,7 +182,7 @@ class EmbraceUploadCacheTests: XCTestCase {
         // given inserted upload data
         let data = UploadDataRecord(
             id: "id",
-            type: EmbraceUploadType.session.rawValue,
+            type: EmbraceUploadType.spans.rawValue,
             data: Data(),
             attemptCount: 0,
             date: Date()
@@ -192,7 +192,7 @@ class EmbraceUploadCacheTests: XCTestCase {
         }
 
         // when deleting the data
-        let success = try cache.deleteUploadData(id: "id", type: .session)
+        let success = try cache.deleteUploadData(id: "id", type: .spans)
         XCTAssert(success)
 
         // then the upload data should not exist
@@ -211,7 +211,7 @@ class EmbraceUploadCacheTests: XCTestCase {
         // given inserted upload data
         let original = UploadDataRecord(
             id: "id",
-            type: EmbraceUploadType.session.rawValue,
+            type: EmbraceUploadType.spans.rawValue,
             data: Data(),
             attemptCount: 0,
             date: Date()
@@ -221,7 +221,7 @@ class EmbraceUploadCacheTests: XCTestCase {
         }
 
         // when updating the attempt count
-        _ = try cache.updateAttemptCount(id: "id", type: .session, attemptCount: 10)
+        _ = try cache.updateAttemptCount(id: "id", type: .spans, attemptCount: 10)
 
         // then the data is updated successfully
         let expectation = XCTestExpectation()

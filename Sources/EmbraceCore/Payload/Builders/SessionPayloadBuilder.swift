@@ -10,7 +10,7 @@ class SessionPayloadBuilder {
 
     static var resourceName = "emb.session.upload_index"
 
-    class func build(for sessionRecord: SessionRecord, storage: EmbraceStorage) -> SessionPayload {
+    class func build(for sessionRecord: SessionRecord, storage: EmbraceStorage) -> PayloadEnvelope<[SpanPayload]> {
         var resource: MetadataRecord?
 
         do {
@@ -42,15 +42,36 @@ class SessionPayloadBuilder {
         }
 
         // build spans
-        let (spans, spanSnapshots) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
+        let (spans, spanSnapshots) = SpansPayloadBuilder.build(
+            for: sessionRecord,
+            storage: storage,
+            sessionNumber: counter
+        )
+
+        // build resources payload
+        var resources: [MetadataRecord] = []
+        do {
+            resources = try storage.fetchResourcesForSessionId(sessionRecord.id)
+        } catch {
+            ConsoleLog.error("Error fetching resources for session \(sessionRecord.id.toString)")
+        }
+        let resourcePayload =  ResourcePayload(from: resources)
+
+        // build metadata payload
+        var metadata: [MetadataRecord] = []
+        do {
+            metadata = try storage.fetchCustomPropertiesForSessionId(sessionRecord.id)
+        } catch {
+            ConsoleLog.error("Error fetching custom properties for session \(sessionRecord.id.toString)")
+        }
+        let metadataPayload =  MetadataPayload(from: metadata)
 
         // build payload
-        return SessionPayload(
-            from: sessionRecord,
-            resourceFetcher: storage,
+        return PayloadEnvelope(
             spans: spans,
             spanSnapshots: spanSnapshots,
-            counter: counter
+            resource: resourcePayload,
+            metadata: metadataPayload
         )
     }
 }

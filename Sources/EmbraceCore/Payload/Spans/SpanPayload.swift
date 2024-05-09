@@ -13,7 +13,7 @@ struct SpanPayload: Encodable {
     let status: String
     let startTime: Int
     let endTime: Int?
-    let attributes: [String: Any]
+    let attributes: [Attribute]
     let events: [SpanEventPayload]
     let links: [SpanLinkPayload]
 
@@ -48,11 +48,11 @@ struct SpanPayload: Encodable {
             self.endTime = nil
         }
 
-        var dict = PayloadUtils.convertSpanAttributes(span.attributes)
+        var attributeArray = PayloadUtils.convertSpanAttributes(span.attributes)
         if failed {
-            dict["emb.error_code"] = "failure"
+            attributeArray.append(Attribute(key: "emb.error_code", value: "failure"))
         }
-        self.attributes = dict
+        self.attributes = attributeArray
     }
 
     func encode(to encoder: Encoder) throws {

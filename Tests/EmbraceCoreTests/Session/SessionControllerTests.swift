@@ -337,7 +337,7 @@ final class SessionControllerTests: XCTestCase {
 private extension SessionControllerTests {
     func testEndpointOptions(testName: String) -> EmbraceUpload.EndpointOptions {
         .init(
-            sessionsURL: testSessionsUrl(testName: testName),
+            spansURL: testSessionsUrl(testName: testName),
             blobsURL: testBlobsUrl(testName: testName),
             logsURL: testLogsUrl(testName: testName)
         )

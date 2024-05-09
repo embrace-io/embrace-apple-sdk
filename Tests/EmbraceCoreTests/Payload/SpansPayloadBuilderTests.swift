@@ -96,7 +96,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
         )
 
         // when building the spans payload
-        let (closed, open) = SpansPayloadBuilder.build(for: record, storage: storage)
+        let (closed, _) = SpansPayloadBuilder.build(for: record, storage: storage)
 
         // then a session span is created
         // and its end time is valid
@@ -117,7 +117,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
         )
 
         // when building the spans payload
-        let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
+        let (closed, _) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
 
         // then session span has an end time
         XCTAssertEqual(closed.count, 1)
@@ -232,8 +232,11 @@ final class SpansPayloadBuilderTests: XCTestCase {
         XCTAssertEqual(closed.count, 2)
         XCTAssertEqual(closed[0].name, SessionSpanUtils.spanName) // session span always first
         XCTAssertEqual(closed[1], payload)
-        XCTAssertEqual(closed[1].attributes["emb.error_code"] as! String, "failure")
         XCTAssertEqual(open.count, 0)
+
+        // then the error code attribute was added
+        let attribute = closed[1].attributes.first { $0.key == "emb.error_code" }
+        XCTAssertEqual(attribute!.value, "failure")
     }
 
     func test_openSpan_beforeCrashedSession() throws {
@@ -254,8 +257,11 @@ final class SpansPayloadBuilderTests: XCTestCase {
         XCTAssertEqual(closed.count, 2)
         XCTAssertEqual(closed[0].name, SessionSpanUtils.spanName) // session span always first
         XCTAssertEqual(closed[1], payload)
-        XCTAssertEqual(closed[1].attributes["emb.error_code"] as! String, "failure")
         XCTAssertEqual(open.count, 0)
+
+        // then the error code attribute was added
+        let attribute = closed[1].attributes.first { $0.key == "emb.error_code" }
+        XCTAssertEqual(attribute!.value, "failure")
     }
 
     func test_hardLimit() throws {

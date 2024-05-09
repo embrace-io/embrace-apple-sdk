@@ -36,6 +36,9 @@ class ResourcePayloadTests: XCTestCase {
             MetadataRecord.createResourceRecord(key: DeviceResourceKey.locale.rawValue, value: "en_US_POSIX"),
             MetadataRecord.createResourceRecord(key: DeviceResourceKey.timezone.rawValue, value: "GMT-3:00"),
 
+            // session counter
+            MetadataRecord.createResourceRecord(key: SessionPayloadBuilder.resourceName, value: "10"),
+
             // Random properties that shouldn't be used
             MetadataRecord.userMetadata(key: "random_user_metadata_property", value: "value"),
             MetadataRecord.createResourceRecord(key: "random_resource_property", value: "value")

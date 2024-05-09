@@ -659,7 +659,7 @@ class UnsentDataHandlerTests: XCTestCase {
 private extension UnsentDataHandlerTests {
     func testEndpointOptions(forTest testName: String) -> EmbraceUpload.EndpointOptions {
         .init(
-            sessionsURL: testSessionUrl(forTest: testName),
+            spansURL: testSessionUrl(forTest: testName),
             blobsURL: testBlobsUrl(forTest: testName),
             logsURL: testLogsUrl(forTest: testName)
         )

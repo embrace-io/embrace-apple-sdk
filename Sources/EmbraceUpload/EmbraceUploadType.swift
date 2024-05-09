@@ -3,7 +3,7 @@
 //
 
 enum EmbraceUploadType: Int {
-    case session = 0
+    case spans = 0
     case blob
     case log
 }

@@ -7,7 +7,7 @@ import EmbraceOTel
 struct SpanLinkPayload: Encodable {
     let traceId: String
     let spanId: String
-    let attributes: [String: Any]
+    let attributes: [Attribute]
 
     enum CodingKeys: String, CodingKey {
         case traceId = "trace_id"

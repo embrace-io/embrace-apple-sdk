@@ -196,8 +196,8 @@ class UnsentDataHandler {
             return
         }
 
-        // upload session
-        upload.uploadSession(id: session.id.toString, data: payloadData) { result in
+        // upload session spans
+        upload.uploadSpans(id: session.id.toString, data: payloadData) { result in
             switch result {
             case .success:
                 do {

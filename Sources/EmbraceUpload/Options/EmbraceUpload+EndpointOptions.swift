@@ -6,8 +6,8 @@ import Foundation
 
 public extension EmbraceUpload {
     class EndpointOptions {
-        /// URL for the sessions upload endpoint
-        public let sessionsURL: URL
+        /// URL for the spans upload endpoint
+        public let spansURL: URL
 
         /// URL for the blobs upload endpoint
         public let blobsURL: URL
@@ -15,8 +15,8 @@ public extension EmbraceUpload {
         /// URL for the logs upload endpoint
         public let logsURL: URL
 
-        public init(sessionsURL: URL, blobsURL: URL, logsURL: URL) {
-            self.sessionsURL = sessionsURL
+        public init(spansURL: URL, blobsURL: URL, logsURL: URL) {
+            self.spansURL = spansURL
             self.blobsURL = blobsURL
             self.logsURL = logsURL
         }

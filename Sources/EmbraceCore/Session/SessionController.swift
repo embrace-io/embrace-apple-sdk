@@ -50,7 +50,9 @@ class SessionController: SessionControllable {
         self.heartbeat = SessionHeartbeat(queue: heartbeatQueue, interval: heartbeatInterval)
 
         self.heartbeat.callback = { [weak self] in
-            self?.currentSession?.lastHeartbeatTime = Date()
+            let heartbeat = Date()
+            self?.currentSession?.lastHeartbeatTime = heartbeat
+            SessionSpanUtils.setHeartbeat(span: self?.currentSessionSpan, heartbeat: heartbeat)
             self?.save()
         }
     }
@@ -75,9 +77,12 @@ class SessionController: SessionControllable {
 
         return lock.locked {
 
+            // detect cold start
+            let isColdStart = withinColdStartInterval(startTime: startTime)
+
             // create session span
             let newId = SessionIdentifier.random
-            let span = SessionSpanUtils.span(id: newId, startTime: startTime)
+            let span = SessionSpanUtils.span(id: newId, startTime: startTime, state: state, coldStart: isColdStart)
             currentSessionSpan = span
 
             // create session record
@@ -89,7 +94,7 @@ class SessionController: SessionControllable {
                 spanId: span.context.spanId.hexString,
                 startTime: startTime
             )
-            session.coldStart = withinColdStartInterval(startTime: startTime)
+            session.coldStart = isColdStart
             currentSession = session
 
             // save session record
@@ -119,6 +124,8 @@ class SessionController: SessionControllable {
 
             let now = Date()
             currentSessionSpan?.end(time: now)
+            SessionSpanUtils.setCleanExit(span: currentSessionSpan, cleanExit: true)
+
             currentSession?.endTime = now
             currentSession?.cleanExit = true
 
@@ -136,11 +143,13 @@ class SessionController: SessionControllable {
     }
 
     func update(state: SessionState) {
+        SessionSpanUtils.setState(span: currentSessionSpan, state: state)
         currentSession?.state = state.rawValue
         save()
     }
 
     func update(appTerminated: Bool) {
+        SessionSpanUtils.setTerminated(span: currentSessionSpan, terminated: appTerminated)
         currentSession?.appTerminated = appTerminated
         save()
     }

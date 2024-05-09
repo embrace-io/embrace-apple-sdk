@@ -74,14 +74,14 @@ public class EmbraceUpload: EmbraceLogUploader {
         }
     }
 
-    /// Uploads the given session data
+    /// Uploads the given session span data
     /// - Parameters:
     ///   - id: Identifier of the session
     ///   - data: Data of the session's payload
     ///   - completion: Completion block called when the data is succesfully cached, or when an `Error` occurs
-    public func uploadSession(id: String, data: Data, completion: ((Result<(), Error>) -> Void)?) {
+    public func uploadSpans(id: String, data: Data, completion: ((Result<(), Error>) -> Void)?) {
         queue.async { [weak self] in
-            self?.uploadData(id: id, data: data, type: .session, completion: completion)
+            self?.uploadData(id: id, data: data, type: .spans, completion: completion)
         }
     }
 
@@ -208,7 +208,7 @@ public class EmbraceUpload: EmbraceLogUploader {
 
     private func endpoint(for type: EmbraceUploadType) -> URL {
         switch type {
-        case .session: return options.endpoints.sessionsURL
+        case .spans: return options.endpoints.spansURL
         case .blob: return options.endpoints.blobsURL
         case .log: return options.endpoints.logsURL
         }

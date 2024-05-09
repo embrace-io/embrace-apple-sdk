@@ -9,6 +9,7 @@ public struct TestConstants {
     public static let domain = "com.test.embrace"
     public static let url = URL(string: "https://embrace.test.com/path")!
     public static let data = "test".data(using: .utf8)!
+    public static let date = Date(timeIntervalSince1970: 0)
 
     public static let sessionId = SessionIdentifier(string: "18EDB6CE-90C2-456B-97CB-91E0F5941CCA")!
     public static let processId = ProcessIdentifier(hex: "12345678")!

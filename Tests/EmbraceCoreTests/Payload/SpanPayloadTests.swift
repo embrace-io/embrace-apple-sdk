@@ -54,11 +54,43 @@ class SpanPayloadTests: XCTestCase {
         )
     }
 
-    func testAttributes(_ attributes: [String: Any]) {
-        XCTAssertEqual(attributes["bool"] as! Bool, true)
-        XCTAssertEqual(attributes["double"] as! Double, 123.456)
-        XCTAssertEqual(attributes["int"] as! Int, 123456)
-        XCTAssertEqual(attributes["string"] as! String, "test")
+    func testAttributes(_ attributes: [Attribute]) {
+        let boolAttribute = attributes.first { $0.key == "bool" }
+        XCTAssertEqual(boolAttribute!.value, "true")
+
+        let doubleAttribute = attributes.first { $0.key == "double" }
+        XCTAssertEqual(doubleAttribute!.value, "123.456")
+
+        let intAttribute = attributes.first { $0.key == "int" }
+        XCTAssertEqual(intAttribute!.value, "123456")
+
+        let stringAttribute = attributes.first { $0.key == "string" }
+        XCTAssertEqual(stringAttribute!.value, "test")
+    }
+
+    func testJSONAttributes(_ attributes: [[String: Any]]) {
+
+        var count = 0
+        for keyValue in attributes {
+            if keyValue["key"] as! String == "bool" {
+                XCTAssertEqual(keyValue["value"] as! String, "true")
+                count += 1
+
+            } else if keyValue["key"] as! String == "double" {
+                XCTAssertEqual(keyValue["value"] as! String, "123.456")
+                count += 1
+
+            } else if keyValue["key"] as! String == "int" {
+                XCTAssertEqual(keyValue["value"] as! String, "123456")
+                count += 1
+
+            } else if keyValue["key"] as! String == "string" {
+                XCTAssertEqual(keyValue["value"] as! String, "test")
+                count += 1
+            }
+        }
+
+        XCTAssertEqual(count, 4)
     }
 
     func test_properties() {
@@ -115,22 +147,22 @@ class SpanPayloadTests: XCTestCase {
         XCTAssertNotNil(json["links"])
 
         // attributes
-        let attributes = json["attributes"] as! [String: Any]
-        testAttributes(attributes)
+        let attributes = json["attributes"] as! [[String: Any]]
+        testJSONAttributes(attributes)
 
         // events
         let events = json["events"] as! [[String: Any]]
         XCTAssertEqual(events.count, 1)
         XCTAssertNotNil(events[0]["name"])
         XCTAssertNotNil(events[0]["time_unix_nano"])
-        testAttributes(events[0]["attributes"] as! [String: Any])
+        testJSONAttributes(events[0]["attributes"] as! [[String: Any]])
 
         // links
         let links = json["links"] as! [[String: Any]]
         XCTAssertEqual(links.count, 1)
         XCTAssertNotNil(links[0]["trace_id"])
         XCTAssertNotNil(links[0]["span_id"])
-        testAttributes(links[0]["attributes"] as! [String: Any])
+        testJSONAttributes(links[0]["attributes"] as! [[String: Any]])
     }
 
     func test_endTime() throws {

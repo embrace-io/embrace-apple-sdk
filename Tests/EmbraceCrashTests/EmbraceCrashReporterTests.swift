@@ -12,11 +12,11 @@ class EmbraceCrashReporterTests: XCTestCase {
     var context: CrashReporterContext = .testContext
 
     override func setUpWithError() throws {
-        try? FileManager.default.removeItem(at: context.filePathProvider.directoryURL(for: "")!)
+        try? FileManager.default.removeItem(at: context.filePathProvider.directoryURL(for: "embrace_crash_reporter")!)
     }
 
     override func tearDownWithError() throws {
-        try? FileManager.default.removeItem(at: context.filePathProvider.directoryURL(for: "")!)
+        try? FileManager.default.removeItem(at: context.filePathProvider.directoryURL(for: "embrace_crash_reporter")!)
     }
 
     func test_currentSessionId() {

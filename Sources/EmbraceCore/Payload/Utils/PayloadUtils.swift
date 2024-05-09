@@ -43,16 +43,15 @@ class PayloadUtils {
         return []
     }
 
-    static func convertSpanAttributes(_ attributes: [String: AttributeValue]) -> [String: Any] {
-        var result: [String: Any] = [:]
+    static func convertSpanAttributes(_ attributes: [String: AttributeValue]) -> [Attribute] {
+        var result: [Attribute] = []
 
         for (key, value) in attributes {
             switch value {
-            case .bool(let boolValue): result[key] = boolValue
-            case .double(let doubleValue): result[key] = doubleValue
-            case .int(let intValue): result[key] = intValue
-            case .string(let stringValue): result[key] = stringValue
-            default: continue
+            case .boolArray, .intArray, .doubleArray, .stringArray:
+                continue
+            default:
+                result.append(Attribute(key: key, value: value.description))
             }
         }
 
