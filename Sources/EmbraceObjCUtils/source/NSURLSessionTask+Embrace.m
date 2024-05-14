@@ -12,12 +12,16 @@
         return NO;
     }
 
-    if (![self.originalRequest isKindOfClass:[NSMutableURLRequest class]]) {
+    if (![self.originalRequest isKindOfClass:[NSMutableURLRequest class]] ||
+        ![self.currentRequest isKindOfClass:[NSMutableURLRequest class]]) {
         return NO;
     }
 
     NSMutableURLRequest *request = (NSMutableURLRequest *)self.originalRequest;
     [request setValue:value forHTTPHeaderField:key];
+
+    NSMutableURLRequest *currentRequest = (NSMutableURLRequest *)self.currentRequest;
+    [currentRequest setValue:value forHTTPHeaderField:key];
 
     return YES;
 }

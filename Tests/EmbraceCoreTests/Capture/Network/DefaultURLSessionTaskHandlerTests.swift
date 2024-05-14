@@ -392,6 +392,12 @@ private extension DefaultURLSessionTaskHandlerTests {
             let tracingHeader = headers!["traceparent"]
             XCTAssertNotNil(tracingHeader)
 
+            let currentHeaders = task.currentRequest?.allHTTPHeaderFields
+            XCTAssertNotNil(currentHeaders)
+
+            let currentTracingHeader = currentHeaders!["traceparent"]
+            XCTAssertNotNil(currentTracingHeader)
+
             let span = try XCTUnwrap(otel.spanProcessor.startedSpans.first)
             validateTracingHeaderForSpan(tracingHeader: tracingHeader!, span: span)
         } catch let exception {
