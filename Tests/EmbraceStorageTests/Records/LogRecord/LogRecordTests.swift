@@ -19,7 +19,7 @@ class LogRecordTests: XCTestCase {
     }
 
     func test_tableSchema() throws {
-        let expectation = XCTestExpectation()
+        XCTAssertEqual(LogRecord.databaseTableName, "logs")
 
         // then the table and its colums should be correct
         try storage.dbQueue.read { db in
@@ -79,10 +79,6 @@ class LogRecordTests: XCTestCase {
             } else {
                 XCTAssert(false, "attributes column not found!")
             }
-
-            expectation.fulfill()
         }
-
-        wait(for: [expectation], timeout: .defaultTimeout)
     }
 }

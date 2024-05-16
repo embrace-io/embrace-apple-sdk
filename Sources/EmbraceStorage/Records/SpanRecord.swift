@@ -48,39 +48,11 @@ extension SpanRecord {
 }
 
 extension SpanRecord: FetchableRecord, PersistableRecord, MutablePersistableRecord {
+    public static let databaseTableName: String = "spans"
+
     public static let databaseColumnDecodingStrategy = DatabaseColumnDecodingStrategy.convertFromSnakeCase
     public static let databaseColumnEncodingStrategy = DatabaseColumnEncodingStrategy.convertToSnakeCase
     public static let persistenceConflictPolicy = PersistenceConflictPolicy(insert: .replace, update: .replace)
-}
-
-extension SpanRecord: TableRecord {
-    public static let databaseTableName: String = "spans"
-
-    internal static func defineTable(db: Database) throws {
-        try db.create(table: SpanRecord.databaseTableName, options: .ifNotExists) { t in
-            t.column(Schema.id.name, .text).notNull()
-            t.column(Schema.name.name, .text).notNull()
-            t.column(Schema.traceId.name, .text).notNull()
-            t.primaryKey([Schema.traceId.name, Schema.id.name])
-
-            t.column(Schema.type.name, .text).notNull()
-            t.column(Schema.startTime.name, .datetime).notNull()
-            t.column(Schema.endTime.name, .datetime)
-
-            t.column(Schema.data.name, .blob).notNull()
-        }
-
-        let preventClosedSpanModification = """
-        CREATE TRIGGER IF NOT EXISTS prevent_closed_span_modification
-        BEFORE UPDATE ON \(SpanRecord.databaseTableName)
-        WHEN OLD.end_time IS NOT NULL
-        BEGIN
-            SELECT RAISE(ABORT,'Attempted to modify an already closed span.');
-        END;
-        """
-
-        try db.execute(sql: preventClosedSpanModification)
-    }
 }
 
 extension SpanRecord: Equatable {

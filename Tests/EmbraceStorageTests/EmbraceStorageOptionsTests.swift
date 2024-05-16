@@ -14,7 +14,7 @@ class EmbraceStorageOptionsTests: XCTestCase {
         XCTAssertNil(options.name)
         XCTAssertEqual(options.baseUrl, url)
         XCTAssertEqual(options.fileName, "test.sqlite")
-        XCTAssertEqual(options.filePath, url.appendingPathComponent("test.sqlite").path)
+        XCTAssertEqual(options.fileURL, url.appendingPathComponent("test.sqlite"))
     }
 
     func test_init_withName() {
@@ -23,6 +23,6 @@ class EmbraceStorageOptionsTests: XCTestCase {
         XCTAssertEqual(options.name, "example")
         XCTAssertNil(options.baseUrl)
         XCTAssertNil(options.fileName)
-        XCTAssertNil(options.filePath)
+        XCTAssertNil(options.fileURL)
     }
 }

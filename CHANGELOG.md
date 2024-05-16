@@ -1,5 +1,14 @@
 
 
+**Features**
+
+**Updates**
+
+* Adds `MigrationService` in `EmbraceStorage` target to structure DB migrations that occur. Will perform migrations 
+during SDK setup if any are outstanding. Converted existing DB schema to be initialized using migrations.
+
+
+
 ## 6.0.0
 
 April 22nd, 2024

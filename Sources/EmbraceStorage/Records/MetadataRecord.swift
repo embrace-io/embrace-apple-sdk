@@ -67,32 +67,11 @@ extension MetadataRecord {
 }
 
 extension MetadataRecord: FetchableRecord, PersistableRecord, MutablePersistableRecord {
+    public static let databaseTableName: String = "metadata"
+
     public static let databaseColumnDecodingStrategy = DatabaseColumnDecodingStrategy.convertFromSnakeCase
     public static let databaseColumnEncodingStrategy = DatabaseColumnEncodingStrategy.convertToSnakeCase
     public static let persistenceConflictPolicy = PersistenceConflictPolicy(insert: .replace, update: .replace)
-}
-
-extension MetadataRecord: TableRecord {
-    public static let databaseTableName: String = "metadata"
-
-    internal static func defineTable(db: Database) throws {
-        try db.create(table: MetadataRecord.databaseTableName, options: .ifNotExists) { t in
-
-            t.column(Schema.key.name, .text).notNull()
-            t.column(Schema.value.name, .text).notNull()
-            t.column(Schema.type.name, .text).notNull()
-            t.column(Schema.lifespan.name, .text).notNull()
-            t.column(Schema.lifespanId.name, .text).notNull()
-            t.column(Schema.collectedAt.name, .datetime).notNull()
-
-            t.primaryKey([
-                Schema.key.name,
-                Schema.type.name,
-                Schema.lifespan.name,
-                Schema.lifespanId.name
-            ])
-        }
-    }
 }
 
 extension MetadataRecord: Equatable {

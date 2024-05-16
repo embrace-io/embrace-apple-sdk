@@ -20,7 +20,7 @@ class SpanRecordTests: XCTestCase {
     }
 
     func test_tableSchema() throws {
-        let expectation = XCTestExpectation()
+        XCTAssertEqual(SpanRecord.databaseTableName, "spans")
 
         // then the table and its colums should be correct
         try storage.dbQueue.read { db in
@@ -99,11 +99,7 @@ class SpanRecordTests: XCTestCase {
             } else {
                 XCTAssert(false, "data column not found!")
             }
-
-            expectation.fulfill()
         }
-
-        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_addSpan() throws {
@@ -120,13 +116,9 @@ class SpanRecordTests: XCTestCase {
         XCTAssertNotNil(span)
 
         // then span should exist in storage
-        let expectation = XCTestExpectation()
         try storage.dbQueue.read { db in
             XCTAssert(try span.exists(db))
-            expectation.fulfill()
         }
-
-        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_upsertSpan() throws {

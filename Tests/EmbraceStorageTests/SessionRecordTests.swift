@@ -19,7 +19,7 @@ class SessionRecordTests: XCTestCase {
     }
 
     func test_tableSchema() throws {
-        let expectation = XCTestExpectation()
+        XCTAssertEqual(SessionRecord.databaseTableName, "sessions")
 
         // then the table and its colums should be correct
         try storage.dbQueue.read { db in
@@ -141,10 +141,7 @@ class SessionRecordTests: XCTestCase {
                 XCTAssert(false, "app_terminated column not found!")
             }
 
-            expectation.fulfill()
         }
-
-        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_addSession() throws {

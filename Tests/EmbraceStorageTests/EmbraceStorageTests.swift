@@ -19,20 +19,110 @@ class EmbraceStorageTests: XCTestCase {
     }
 
     func test_databaseSchema() throws {
-        let expectation = XCTestExpectation()
-
         // then all required tables should be present
         try storage.dbQueue.read { db in
-            XCTAssert(try db.tableExists(SessionRecord.databaseTableName))
-            XCTAssert(try db.tableExists(SpanRecord.databaseTableName))
-            XCTAssert(try db.tableExists(MetadataRecord.databaseTableName))
-            XCTAssert(try db.tableExists(LogRecord.databaseTableName))
+            XCTAssertTrue(try db.tableExists(SessionRecord.databaseTableName))
+            XCTAssertTrue(try db.tableExists(SpanRecord.databaseTableName))
+            XCTAssertTrue(try db.tableExists(MetadataRecord.databaseTableName))
+            XCTAssertTrue(try db.tableExists(LogRecord.databaseTableName))
+        }
+    }
 
-            expectation.fulfill()
+    func test_performMigration_generatesTables() throws {
+        storage = try EmbraceStorage.createInMemoryDb(runMigrations: false)
+
+        try storage.dbQueue.read { db in
+            XCTAssertFalse(try db.tableExists(SessionRecord.databaseTableName))
+            XCTAssertFalse(try db.tableExists(SpanRecord.databaseTableName))
+            XCTAssertFalse(try db.tableExists(MetadataRecord.databaseTableName))
+            XCTAssertFalse(try db.tableExists(LogRecord.databaseTableName))
         }
 
-        wait(for: [expectation], timeout: .defaultTimeout)
+        try storage.performMigration()
+
+        try storage.dbQueue.read { db in
+            XCTAssertTrue(try db.tableExists(SessionRecord.databaseTableName))
+            XCTAssertTrue(try db.tableExists(SpanRecord.databaseTableName))
+            XCTAssertTrue(try db.tableExists(MetadataRecord.databaseTableName))
+            XCTAssertTrue(try db.tableExists(LogRecord.databaseTableName))
+        }
     }
+
+    func test_performMigration_ifResetsIfErrorTrue_resetsDB() throws {
+        storage = try EmbraceStorage.createInMemoryDb()
+
+        let service = ThrowingMigrationService(performToThrow: 1)
+        try storage.performMigration(
+            resetIfError: true,
+            service: service
+        )
+
+        try storage.dbQueue.read { db in
+            XCTAssertTrue(try db.tableExists(SessionRecord.databaseTableName))
+            XCTAssertTrue(try db.tableExists(SpanRecord.databaseTableName))
+            XCTAssertTrue(try db.tableExists(MetadataRecord.databaseTableName))
+            XCTAssertTrue(try db.tableExists(LogRecord.databaseTableName))
+        }
+
+        XCTAssertEqual(service.currentPerformCount, 2)
+    }
+
+    func test_performMigration_ifResetsIfErrorTrue_andMigrationFailsTwice_rethrowsError() throws {
+        storage = try EmbraceStorage.createInMemoryDb()
+
+        let service = ThrowingMigrationService(performsToThrow: [1, 2])
+        XCTAssertThrowsError(
+            try storage.performMigration(
+                resetIfError: true,
+                service: service
+            )
+        )
+
+        XCTAssertEqual(service.currentPerformCount, 2)
+    }
+
+    func test_performMigration_ifResetsIfErrorFalse_rethrowsError() throws {
+        storage = try EmbraceStorage.createInMemoryDb()
+        let service = ThrowingMigrationService(performToThrow: 1)
+
+        XCTAssertThrowsError(
+            try storage.performMigration(
+                resetIfError: false,
+                service: service
+            )
+        )
+        XCTAssertEqual(service.currentPerformCount, 1)
+    }
+
+    func test_reset_remakesDB() throws {
+        storage = try .createInDiskDb() // need to use on disk DB, 
+        // inMemory will keep same memory instance because dbQueue `name` is the same.
+
+        // given inserted record
+        let span = SpanRecord(
+            id: "id",
+            name: "a name",
+            traceId: "traceId",
+            type: .performance,
+            data: Data(),
+            startTime: Date()
+        )
+
+        try storage.dbQueue.write { db in
+            try span.insert(db)
+        }
+
+        try storage.reset()
+
+        // then record should not exist in storage
+        try storage.dbQueue.read { db in
+            XCTAssertFalse(try span.exists(db))
+        }
+
+        try FileManager.default.removeItem(at: storage.options.fileURL!)
+    }
+
+// MARK: - DB actions
 
     func test_update() throws {
         // given inserted record
@@ -50,13 +140,9 @@ class EmbraceStorageTests: XCTestCase {
         }
 
         // then record should exist in storage
-        let expectation1 = XCTestExpectation()
         try storage.dbQueue.read { db in
             XCTAssert(try span.exists(db))
-            expectation1.fulfill()
         }
-
-        wait(for: [expectation1], timeout: .defaultTimeout)
 
         // when updating record
         let endTime = Date(timeInterval: 10, since: span.startTime)
@@ -65,16 +151,11 @@ class EmbraceStorageTests: XCTestCase {
         try storage.update(record: span)
 
         // the record should update successfuly
-        let expectation2 = XCTestExpectation()
         try storage.dbQueue.read { db in
             XCTAssert(try span.exists(db))
             XCTAssertNotNil(span.endTime)
             XCTAssertEqual(span.endTime, endTime)
-
-            expectation2.fulfill()
         }
-
-        wait(for: [expectation2], timeout: .defaultTimeout)
     }
 
     func test_delete() throws {
@@ -93,26 +174,18 @@ class EmbraceStorageTests: XCTestCase {
         }
 
         // then record should exist in storage
-        let expectation1 = XCTestExpectation()
         try storage.dbQueue.read { db in
             XCTAssert(try span.exists(db))
-            expectation1.fulfill()
         }
-
-        wait(for: [expectation1], timeout: .defaultTimeout)
 
         // when deleting record
         let success = try storage.delete(record: span)
         XCTAssert(success)
 
         // then record should not exist in storage
-        let expectation2 = XCTestExpectation()
         try storage.dbQueue.read { db in
             XCTAssertFalse(try span.exists(db))
-            expectation2.fulfill()
         }
-
-        wait(for: [expectation2], timeout: .defaultTimeout)
     }
 
     func test_fetchAll() throws {

@@ -3,16 +3,23 @@
 //
 
 import Foundation
-import EmbraceStorage
+@testable import EmbraceStorage
 
 public extension EmbraceStorage {
-    static func createInMemoryDb() throws -> EmbraceStorage {
-        try .init(options: .init(named: UUID().uuidString))
+    static func createInMemoryDb(runMigrations: Bool = true) throws -> EmbraceStorage {
+        let storage = try EmbraceStorage(options: .init(named: UUID().uuidString))
+        if runMigrations { try storage.performMigration() }
+        return storage
     }
 
-    static func createInDiskDb() throws -> EmbraceStorage {
+    static func createInDiskDb(runMigrations: Bool = true) throws -> EmbraceStorage {
         let url = URL(fileURLWithPath: NSTemporaryDirectory())
-        return try .init(options: .init(baseUrl: url, fileName: "\(UUID().uuidString).sqlite"))
+        let storage = try EmbraceStorage(
+            options: .init(baseUrl: url, fileName: "\(UUID().uuidString).sqlite")
+        )
+
+        if runMigrations { try storage.performMigration() }
+        return storage
     }
 }
 

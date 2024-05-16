@@ -74,43 +74,11 @@ extension SessionRecord {
 }
 
 extension SessionRecord: FetchableRecord, PersistableRecord, MutablePersistableRecord {
+    public static let databaseTableName: String = "sessions"
+
     public static let databaseColumnDecodingStrategy = DatabaseColumnDecodingStrategy.convertFromSnakeCase
     public static let databaseColumnEncodingStrategy = DatabaseColumnEncodingStrategy.convertToSnakeCase
     public static let persistenceConflictPolicy = PersistenceConflictPolicy(insert: .replace, update: .replace)
-}
-
-extension SessionRecord: TableRecord {
-    public static let databaseTableName: String = "sessions"
-
-    internal static func defineTable(db: Database) throws {
-        try db.create(table: SessionRecord.databaseTableName, options: .ifNotExists) { t in
-
-            t.primaryKey(Schema.id.name, .text).notNull()
-
-            t.column(Schema.state.name, .text).notNull()
-            t.column(Schema.processId.name, .text).notNull()
-            t.column(Schema.traceId.name, .text).notNull()
-            t.column(Schema.spanId.name, .text).notNull()
-
-            t.column(Schema.startTime.name, .datetime).notNull()
-            t.column(Schema.endTime.name, .datetime)
-            t.column(Schema.lastHeartbeatTime.name, .datetime).notNull()
-
-            t.column(Schema.coldStart.name, .boolean)
-                .notNull()
-                .defaults(to: false)
-
-            t.column(Schema.cleanExit.name, .boolean)
-                .notNull()
-                .defaults(to: false)
-
-            t.column(Schema.appTerminated.name, .boolean)
-                .notNull()
-                .defaults(to: false)
-
-            t.column(Schema.crashReportId.name, .text)
-        }
-    }
 }
 
 extension SessionRecord: Equatable {

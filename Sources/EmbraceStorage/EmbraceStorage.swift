@@ -18,73 +18,39 @@ public class EmbraceStorage: Storage {
     /// - Parameters:
     ///   - baseUrl: URL containing the path when the database will be stored.
     public init(options: Options) throws {
-
         self.options = options
-
-        if case let .inMemory(name) = options.storageMechanism {
-            dbQueue = try DatabaseQueue(named: name)
-        } else if case let .onDisk(baseURL, fileName) = options.storageMechanism {
-            // create base directory if necessary
-            try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true)
-
-            // create sqlite file
-            let filepath = baseURL.appendingPathComponent(fileName)
-
-            dbQueue = try EmbraceStorage.getDBQueueIfPossible(at: filepath)
-        } else {
-            fatalError("Unsupported storage mechansim added")
-        }
-
-        // define tables
-        try dbQueue.write { db in
-            try SessionRecord.defineTable(db: db)
-            try SpanRecord.defineTable(db: db)
-            try LogRecord.defineTable(db: db)
-            try MetadataRecord.defineTable(db: db)
-        }
+        dbQueue = try Self.createDBQueue(options: options)
     }
 
-    /// Will attempt to create or open the DB File. If first attempt fails due to GRDB error, it'll assume the existing DB is corruped and try again after deleting the existing DB file.
-    private static func getDBQueueIfPossible(at fileURL: URL) throws -> DatabaseQueue {
+    /// Performs any DB migrations
+    /// - Parameters:
+    ///   - resetIfError: If true and the migrations fail the DB will be reset entirely.
+    public func performMigration(
+        resetIfError: Bool = true,
+        service: MigrationServiceProtocol = MigrationService()
+    ) throws {
         do {
-            return try DatabaseQueue(path: fileURL.path)
-        } catch {
-            if let dbError = error as? DatabaseError {
-                ConsoleLog.error("""
-GRDB Failed to initialize EmbraceStorage.
-Will attempt to remove existing file and create a new DB.
-Message: \(dbError.message ?? "[empty message]"),
-Result Code: \(dbError.resultCode),
-SQLite Extended Code: \(dbError.extendedResultCode)
-""")
+            try service.perform(dbQueue, migrations: .current)
+        } catch let error {
+            if resetIfError {
+                ConsoleLog.error("Error performing migrations, resetting EmbraceStorage: \(error)")
+                try reset(migrationService: service)
             } else {
-                ConsoleLog.error("""
-Unknown error while trying to initialize EmbraceStorage: \(error)
-Will attempt to recover by deleting existing DB.
-""")
+                ConsoleLog.error("Error performing migrations. Reset not enabled: \(error)")
+                throw error // re-throw error if auto-recover is not enabled
             }
         }
-
-        try EmbraceStorage.deleteDBFile(at: fileURL)
-
-        return try DatabaseQueue(path: fileURL.path)
     }
 
-    /// Will attempt to delete the provided file.
-    private static func deleteDBFile(at fileURL: URL) throws {
-        do {
-            let fileURL = URL(fileURLWithPath: fileURL.path)
+    /// Deletes the database and recreates it from scratch
+    func reset(migrationService: MigrationServiceProtocol = MigrationService()) throws {
+        if let fileURL = options.fileURL {
             try FileManager.default.removeItem(at: fileURL)
-        } catch let error {
-            ConsoleLog.error("""
-EmbraceStorage failed to remove DB file.
-Domain: \(error._domain)
-Code: \(error._code)
-Filepath: \(fileURL)
-""")
         }
-    }
 
+        dbQueue = try Self.createDBQueue(options: options)
+        try performMigration(resetIfError: false, service: migrationService) // Do not perpetuate loop
+    }
 }
 
 // MARK: - Sync operations
@@ -170,5 +136,66 @@ extension EmbraceStorage {
         dbWriteAsync(block: { db in
             try db.execute(sql: sql, arguments: arguments ?? StatementArguments())
         }, completion: completion)
+    }
+}
+
+extension EmbraceStorage {
+
+    private static func createDBQueue(options: EmbraceStorage.Options) throws -> DatabaseQueue {
+        if case let .inMemory(name) = options.storageMechanism {
+            return try DatabaseQueue(named: name)
+        } else if case let .onDisk(baseURL, _) = options.storageMechanism, let fileURL = options.fileURL {
+            // create base directory if necessary
+            try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true)
+            return try EmbraceStorage.getDBQueueIfPossible(at: fileURL)
+        } else {
+            fatalError("Unsupported storage mechansim added")
+        }
+    }
+
+    /// Will attempt to create or open the DB File. If first attempt fails due to GRDB error, it'll assume the existing DB is corruped and try again after deleting the existing DB file.
+    private static func getDBQueueIfPossible(at fileURL: URL) throws -> DatabaseQueue {
+        do {
+            return try DatabaseQueue(path: fileURL.path)
+        } catch {
+            if let dbError = error as? DatabaseError {
+                ConsoleLog.error(
+                    """
+                    GRDB Failed to initialize EmbraceStorage.
+                    Will attempt to remove existing file and create a new DB.
+                    Message: \(dbError.message ?? "[empty message]"),
+                    Result Code: \(dbError.resultCode),
+                    SQLite Extended Code: \(dbError.extendedResultCode)
+                    """
+                )
+            } else {
+                ConsoleLog.error(
+                    """
+                    Unknown error while trying to initialize EmbraceStorage: \(error)
+                    Will attempt to recover by deleting existing DB.
+                    """
+                )
+            }
+        }
+
+        try EmbraceStorage.deleteDBFile(at: fileURL)
+
+        return try DatabaseQueue(path: fileURL.path)
+    }
+
+    /// Will attempt to delete the provided file.
+    private static func deleteDBFile(at fileURL: URL) throws {
+        do {
+            let fileURL = URL(fileURLWithPath: fileURL.path)
+            try FileManager.default.removeItem(at: fileURL)
+        } catch let error {
+            ConsoleLog.error(
+                """
+                EmbraceStorage failed to remove DB file.
+                Error: \(error.localizedDescription)
+                Filepath: \(fileURL)
+                """
+            )
+        }
     }
 }

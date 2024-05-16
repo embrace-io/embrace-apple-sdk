@@ -21,7 +21,7 @@ class MetadataRecordTests: XCTestCase {
     }
 
     func test_tableSchema() throws {
-        let expectation = XCTestExpectation()
+        XCTAssertEqual(MetadataRecord.databaseTableName, "metadata")
 
         // then the table and its colums should be correct
         try storage.dbQueue.read { db in
@@ -95,11 +95,7 @@ class MetadataRecordTests: XCTestCase {
             } else {
                 XCTAssert(false, "lifespan_id column not found!")
             }
-
-            expectation.fulfill()
         }
-
-        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_addMetadata() throws {

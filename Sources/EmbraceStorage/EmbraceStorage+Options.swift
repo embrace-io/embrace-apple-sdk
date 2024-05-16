@@ -66,10 +66,10 @@ extension EmbraceStorage.Options {
         return nil
     }
 
-    /// Full path to the storage file
-    public var filePath: String? {
+    /// URL to the storage file
+    public var fileURL: URL? {
         if case let .onDisk(url, filename) = storageMechanism {
-            return url.appendingPathComponent(filename).path
+            return url.appendingPathComponent(filename)
         }
         return nil
     }

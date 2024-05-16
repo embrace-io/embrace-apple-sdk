@@ -17,7 +17,9 @@ extension Embrace {
         ) {
             do {
                 let storageOptions = EmbraceStorage.Options(baseUrl: storageUrl, fileName: "db.sqlite")
-                return try EmbraceStorage(options: storageOptions)
+                let storage = try EmbraceStorage(options: storageOptions)
+                try storage.performMigration()
+                return storage
             } catch {
                 throw EmbraceSetupError.failedStorageCreation("Failed to create EmbraceStorage")
             }
