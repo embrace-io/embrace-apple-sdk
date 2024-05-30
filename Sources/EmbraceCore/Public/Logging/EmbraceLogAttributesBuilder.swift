@@ -10,6 +10,7 @@ class EmbraceLogAttributesBuilder {
     private weak var storage: EmbraceStorageMetadataFetcher?
     private weak var sessionControllable: SessionControllable?
     private var session: SessionRecord?
+    private var crashReport: CrashReport?
     private var attributes: [String: String]
 
     private var currentSession: SessionRecord? {
@@ -22,6 +23,10 @@ class EmbraceLogAttributesBuilder {
         static let sessionId = "emb.session_id"
         static let stackTrace = "emb.stacktrace.ios"
         static let propertiesPrefix = "emb.properties.%@"
+
+        static let crashId = "log.record.uid"
+        static let crashProvider = "emb.provider"
+        static let crashPayload = "emb.payload"
     }
 
     init(storage: EmbraceStorageMetadataFetcher,
@@ -33,8 +38,10 @@ class EmbraceLogAttributesBuilder {
     }
 
     init(session: SessionRecord?,
+         crashReport: CrashReport?,
          initialAttributes: [String: String]) {
         self.session = session
+        self.crashReport = crashReport
         self.attributes = initialAttributes
     }
 
@@ -103,6 +110,19 @@ class EmbraceLogAttributesBuilder {
             return self
         }
         attributes[Keys.sessionId] = sessionId.toString
+        return self
+    }
+
+    @discardableResult
+    func addCrashReportProperties() -> Self {
+        guard let crashReport = crashReport else {
+            return self
+        }
+
+        attributes[Keys.crashId] = crashReport.id.withoutHyphen
+        attributes[Keys.crashProvider] = crashReport.provider
+        attributes[Keys.crashPayload] = crashReport.payload
+
         return self
     }
 

@@ -9,6 +9,10 @@ import EmbraceCommon
 import EmbraceOTel
 import EmbraceObjCUtils
 
+extension Notification.Name {
+    static let networkRequestCaptured = Notification.Name("networkRequestCaptured")
+}
+
 protocol URLSessionTaskHandler: AnyObject {
     @discardableResult
     func create(task: URLSessionTask) -> Bool
@@ -156,6 +160,9 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
             }
 
             span.end()
+
+            // internal notification with the captured request
+            Embrace.notificationCenter.post(name: .networkRequestCaptured, object: task)
         }
     }
 

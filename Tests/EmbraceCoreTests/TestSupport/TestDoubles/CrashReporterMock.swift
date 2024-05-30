@@ -6,8 +6,11 @@ import Foundation
 import EmbraceCommon
 
 class CrashReporterMock: CrashReporter {
+
     var currentSessionId: String?
     var mockReports: [CrashReport]
+
+    var onNewReport: ((EmbraceCommon.CrashReport) -> Void)?
 
     init(
         currentSessionId: String? = nil,
@@ -15,10 +18,15 @@ class CrashReporterMock: CrashReporter {
         mockReports: [CrashReport]? = nil
     ) {
         self.currentSessionId = currentSessionId
-        self.mockReports = mockReports ?? [.init(ksCrashId: 123,
-                                                 sessionId: crashSessionId ?? SessionIdentifier.random.toString,
-                                                 timestamp: Date(),
-                                                 dictionary: ["some key": ["some value"]])]
+        self.mockReports = mockReports ?? [
+            CrashReport(
+                payload: "test",
+                provider: "mock",
+                internalId: 123,
+                sessionId: crashSessionId ?? SessionIdentifier.random.toString,
+                timestamp: Date()
+            )
+        ]
     }
 
     func getLastRunState() -> EmbraceCommon.LastRunState {
@@ -31,15 +39,11 @@ class CrashReporterMock: CrashReporter {
 
     func deleteCrashReport(id: Int) {
         mockReports.removeAll { report in
-            report.ksCrashId == id
+            report.internalId == id
         }
     }
 
     func install(context: CrashReporterContext) {
-
-    }
-
-    func start() {
 
     }
 }

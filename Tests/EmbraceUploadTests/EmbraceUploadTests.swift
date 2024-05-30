@@ -84,7 +84,7 @@ class EmbraceUploadTests: XCTestCase {
     }
 
     func test_success() throws {
-        EmbraceHTTPMock.mock(url: testSessionsUrl())
+        EmbraceHTTPMock.mock(url: testSpansUrl())
 
         // given valid values
         let expectation = XCTestExpectation()
@@ -103,7 +103,7 @@ class EmbraceUploadTests: XCTestCase {
     }
 
     func test_cacheFlowOnSuccess() throws {
-        EmbraceHTTPMock.mock(url: testSessionsUrl())
+        EmbraceHTTPMock.mock(url: testSpansUrl())
 
         // given valid values
         let expectation1 = XCTestExpectation(description: "1. Data should be cached in the database")
@@ -193,7 +193,7 @@ class EmbraceUploadTests: XCTestCase {
     func test_retryCachedData() throws {
         // given cached data
         _ = try module.cache.saveUploadData(id: "id1", type: .spans, data: TestConstants.data)
-        _ = try module.cache.saveUploadData(id: "id2", type: .blob, data: TestConstants.data)
+        _ = try module.cache.saveUploadData(id: "id2", type: .log, data: TestConstants.data)
 
         // when retrying to upload all cached data
         module.retryCachedData()
@@ -201,8 +201,8 @@ class EmbraceUploadTests: XCTestCase {
         _ = XCTWaiter.wait(for: [XCTestExpectation()], timeout: .defaultTimeout)
 
         // then requests are made
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count, 1)
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testBlobsUrl()).count, 1)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 1)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 1)
     }
 
     func test_retryCachedData_emptyCache() throws {
@@ -214,54 +214,36 @@ class EmbraceUploadTests: XCTestCase {
         _ = XCTWaiter.wait(for: [XCTestExpectation()], timeout: .defaultTimeout)
 
         // then no requests are made
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count, 0)
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testBlobsUrl()).count, 0)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 0)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 0)
     }
 
-    func test_sessionsEndpoint() throws {
+    func test_spansEndpoint() throws {
         // when uploading session data
         module.uploadSpans(id: "id", data: TestConstants.data, completion: nil)
 
         wait(delay: .defaultTimeout)
 
         // then a request to the right endpoint is made
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count, 1)
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testBlobsUrl()).count, 0)
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 0)
-    }
-
-    func test_blobsEndpoint() throws {
-        // when uploading blob data
-        module.uploadBlob(id: "id", data: TestConstants.data, completion: nil)
-
-        wait(delay: .defaultTimeout)
-
-        // then a request to the right endpoint is made
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count, 0)
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testBlobsUrl()).count, 1)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 1)
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 0)
     }
 
     func test_logsEndpoint() throws {
-        // when uploading blob data
+        // when uploading log data
         module.uploadLog(id: "id", data: TestConstants.data, completion: nil)
 
         wait(delay: .defaultTimeout)
 
         // then a request to the right endpoint is made
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count, 0)
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testBlobsUrl()).count, 0)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 0)
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 1)
     }
 }
 
 private extension EmbraceUploadTests {
-    func testSessionsUrl(testName: String = #function) -> URL {
+    func testSpansUrl(testName: String = #function) -> URL {
         URL(string: "https://embrace.\(testName).com/upload/sessions")!
-    }
-
-    func testBlobsUrl(testName: String = #function) -> URL {
-        URL(string: "https://embrace.\(testName).com/upload/blobs")!
     }
 
     func testLogsUrl(testName: String = #function) -> URL {
@@ -270,8 +252,7 @@ private extension EmbraceUploadTests {
 
     func testEndpointOptions(testName: String) -> EmbraceUpload.EndpointOptions {
         .init(
-            spansURL: testSessionsUrl(testName: testName),
-            blobsURL: testBlobsUrl(testName: testName),
+            spansURL: testSpansUrl(testName: testName),
             logsURL: testLogsUrl(testName: testName)
         )
     }

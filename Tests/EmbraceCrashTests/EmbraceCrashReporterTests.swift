@@ -49,7 +49,6 @@ class EmbraceCrashReporterTests: XCTestCase {
         // given a crash reporter
         let crashReporter = EmbraceCrashReporter()
         crashReporter.install(context: context)
-        crashReporter.start()
 
         // given some fake crash report
         try FileManager.default.createDirectory(
@@ -77,7 +76,6 @@ class EmbraceCrashReporterTests: XCTestCase {
         // given a crash reporter
         let crashReporter = EmbraceCrashReporter()
         crashReporter.install(context: context)
-        crashReporter.start()
 
         // given some fake crash report
         try FileManager.default.createDirectory(

@@ -6,6 +6,7 @@ import Foundation
 import EmbraceCaptureService
 import EmbraceCommon
 import EmbraceStorage
+import EmbraceUpload
 
 final class CaptureServices {
 
@@ -15,7 +16,7 @@ final class CaptureServices {
     var context: CrashReporterContext
     weak var crashReporter: CrashReporter?
 
-    init(options: Embrace.Options, storage: EmbraceStorage?) throws {
+    init(options: Embrace.Options, storage: EmbraceStorage?, upload: EmbraceUpload?) throws {
         // add required capture services
         // adn remove duplicates
         services = CaptureServiceFactory.addRequiredServices(to: options.services.unique)
@@ -24,9 +25,24 @@ final class CaptureServices {
         context = CrashReporterContext(
             appId: options.appId,
             sdkVersion: EmbraceMeta.sdkVersion,
-            filePathProvider: EmbraceFilePathProvider(appId: options.appId, appGroupIdentifier: options.appGroupId)
+            filePathProvider: EmbraceFilePathProvider(appId: options.appId, appGroupIdentifier: options.appGroupId),
+            notificationCenter: Embrace.notificationCenter
         )
         crashReporter = options.crashReporter
+
+        // upload action for crash reports
+        if let crashReporter = options.crashReporter {
+            crashReporter.onNewReport = { [weak crashReporter, weak storage, weak upload] report in
+                UnsentDataHandler.sendCrashLog(
+                    report: report,
+                    reporter: crashReporter,
+                    session: nil,
+                    storage: storage,
+                    upload: upload,
+                    otel: Embrace.client
+                )
+            }
+        }
 
         // pass storage reference to capture services
         // that generate resources

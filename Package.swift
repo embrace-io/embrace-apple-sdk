@@ -22,9 +22,11 @@ let package = Package(
         .library(name: "EmbraceIO", targets: ["EmbraceIO"]),
         .library(name: "EmbraceCore", targets: ["EmbraceCore"]),
         .library(name: "EmbraceCrash", targets: ["EmbraceCrash"]),
+        .library(name: "EmbraceCrashlyticsSupport", targets: ["EmbraceCrashlyticsSupport"]),
         .library(name: "EmbraceIO-Dynamic", type: .dynamic, targets: ["EmbraceIO"]),
         .library(name: "EmbraceCore-Dynamic", type: .dynamic, targets: ["EmbraceCore"]),
-        .library(name: "EmbraceCrash-Dynamic", type: .dynamic, targets: ["EmbraceCrash"])
+        .library(name: "EmbraceCrash-Dynamic", type: .dynamic, targets: ["EmbraceCrash"]),
+        .library(name: "EmbraceCrashlyticsSupport-Dynamic", type: .dynamic, targets: ["EmbraceCrashlyticsSupport"])
     ],
     dependencies: [
         .package(
@@ -233,6 +235,22 @@ let package = Package(
             resources: [
                 .copy("Mocks/")
             ],
+            plugins: targetPlugins
+        ),
+
+        // crashlytics support  -------------------------------------------------------
+        .target(
+            name: "EmbraceCrashlyticsSupport",
+            dependencies: [
+                "EmbraceCommon"
+            ],
+            path: "Sources/ThirdParty/EmbraceCrashlyticsSupport",
+            plugins: targetPlugins
+        ),
+        .testTarget(
+            name: "EmbraceCrashlyticsSupportTests",
+            dependencies: ["EmbraceCrashlyticsSupport", "EmbraceCommon", "TestSupport"],
+            path: "Tests/ThirdParty/EmbraceCrashlyticsSupportTests",
             plugins: targetPlugins
         ),
 

@@ -5,7 +5,7 @@
 import XCTest
 import EmbraceStorage
 import EmbraceCommon
-
+import TestSupport
 @testable import EmbraceCore
 
 class LogPayloadBuilderTests: XCTestCase {
@@ -46,5 +46,65 @@ class LogPayloadBuilderTests: XCTestCase {
             }
             XCTAssertTrue(originalAttributeWasMigrated)
         }
+    }
+
+    func test_manualBuild() throws {
+        // given a session in storage
+        let storage = try EmbraceStorage.createInMemoryDb()
+        try storage.addSession(
+            id: TestConstants.sessionId,
+            state: .foreground,
+            processId: TestConstants.processId,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date(timeIntervalSince1970: 0),
+            endTime: Date(timeIntervalSince1970: 60)
+        )
+
+        // given metadata in storage of that session
+        try storage.addMetadata(
+            key: AppResourceKey.appVersion.rawValue,
+            value: "1.0.0",
+            type: .requiredResource,
+            lifespan: .permanent
+        )
+        try storage.addMetadata(
+            key: UserResourceKey.name.rawValue,
+            value: "test",
+            type: .customProperty,
+            lifespan: .session,
+            lifespanId: TestConstants.sessionId.toString
+        )
+
+        // when manually building a log payload
+        let timestamp = Date(timeIntervalSince1970: 30)
+        let payload = LogPayloadBuilder.build(
+            timestamp: timestamp,
+            severity: .fatal,
+            body: "test",
+            attributes: [
+                "key1": "value1",
+                "key2": "value2"
+            ],
+            storage: storage,
+            sessionId: TestConstants.sessionId
+        )
+
+        // then the payload is correct
+        XCTAssertEqual(payload.resource.appVersion, "1.0.0")
+        XCTAssertEqual(payload.metadata.username, "test")
+
+        let logs = payload.data["logs"]!
+        XCTAssertEqual(logs.count, 1)
+        XCTAssertEqual(logs[0].body, "test")
+        XCTAssertEqual(logs[0].timeUnixNano, String(timestamp.nanosecondsSince1970Truncated))
+        XCTAssertEqual(logs[0].severityNumber, LogSeverity.fatal.number)
+        XCTAssertEqual(logs[0].severityText, LogSeverity.fatal.text)
+
+        let attribute1 = logs[0].attributes.first { $0.key == "key1" }
+        XCTAssertEqual(attribute1!.value, "value1")
+
+        let attribute2 = logs[0].attributes.first { $0.key == "key2" }
+        XCTAssertEqual(attribute2!.value, "value2")
     }
 }

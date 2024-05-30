@@ -161,7 +161,7 @@ class SessionController: SessionControllable {
             return
         }
 
-        UnsentDataHandler.uploadSession(session, storage: storage, upload: upload)
+        UnsentDataHandler.sendSession(session, storage: storage, upload: upload)
     }
 }
 

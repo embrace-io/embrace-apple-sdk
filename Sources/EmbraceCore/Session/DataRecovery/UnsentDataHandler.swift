@@ -52,7 +52,7 @@ class UnsentDataHandler {
         // send crash reports
         for report in crashReports {
 
-            // update session
+            // link session with crash report if possible
             var session: SessionRecord?
 
             if let sessionId = SessionIdentifier(string: report.sessionId) {
@@ -72,74 +72,106 @@ class UnsentDataHandler {
                 }
             }
 
-            // send otel log
-            if let otel = otel {
-                do {
-                    let data = try JSONSerialization.data(withJSONObject: report.dictionary)
-                    if let body = String(data: data, encoding: String.Encoding.utf8) {
-                        logRawCrash(
-                            otel: otel,
-                            body: body,
-                            session: session,
-                            timestamp: (report.timestamp ?? session?.endTime) ?? Date()
-                        )
-                    } else {
-                        ConsoleLog.warning("Error serializing raw crash report \(report.id)!")
-                    }
-                } catch {
-                    ConsoleLog.warning("Error serializing raw crash report \(report.id)!")
-                }
-            }
-
-            // upload crash report
-            do {
-                let payload = CrashReportPayload(from: report, resourceFetcher: storage)
-                let payloadData = try JSONEncoder().encode(payload).gzipped()
-
-                upload.uploadBlob(id: report.id.uuidString, data: payloadData) { result in
-                    switch result {
-                    case .success:
-                        // remove crash report
-                        // we can remove this immediately because the upload module will cache it until the upload succeeds
-                        crashReporter.deleteCrashReport(id: report.ksCrashId)
-
-                    case .failure(let error): ConsoleLog.warning("Error trying to upload crash report \(report.id):\n\(error.localizedDescription)")
-                    }
-                }
-
-            } catch {
-                ConsoleLog.warning("Error encoding crash report \(report.id) for session \(String(describing: report.sessionId)):\n" + error.localizedDescription)
-            }
+            // send crash log
+            sendCrashLog(
+                report: report,
+                reporter: crashReporter,
+                session: session,
+                storage: storage,
+                upload: upload,
+                otel: otel
+            )
         }
 
         // send sessions
-        sendSessions(storage: storage, upload: upload, currentSessionId: currentSessionId)
+        sendSessions(
+            storage: storage,
+            upload: upload,
+            currentSessionId: currentSessionId
+        )
     }
 
-    static private func logRawCrash(
-        otel: EmbraceOpenTelemetry,
-        body: String,
+    static public func sendCrashLog(
+        report: CrashReport,
+        reporter: CrashReporter?,
+        session: SessionRecord?,
+        storage: EmbraceStorage?,
+        upload: EmbraceUpload?,
+        otel: EmbraceOpenTelemetry?
+    ) {
+        let timestamp = (report.timestamp ?? session?.lastHeartbeatTime) ?? Date()
+
+        // send otel log
+        let attributes = logCrash(
+            otel: otel,
+            report: report,
+            session: session,
+            timestamp: timestamp
+        )
+
+        guard let upload = upload else {
+            return
+        }
+
+        // upload crash log
+        do {
+            let payload = LogPayloadBuilder.build(
+                timestamp: timestamp,
+                severity: LogSeverity.fatal,
+                body: "",
+                attributes: attributes,
+                storage: storage,
+                sessionId: session?.id
+            )
+            let payloadData = try JSONEncoder().encode(payload).gzipped()
+
+            upload.uploadLog(id: report.id.uuidString, data: payloadData) { result in
+                switch result {
+                case .success:
+                    // remove crash report
+                    // we can remove this immediately because the upload module will cache it until the upload succeeds
+                    if let internalId = report.internalId {
+                        reporter?.deleteCrashReport(id: internalId)
+                    }
+
+                case .failure(let error): ConsoleLog.warning("Error trying to upload crash report \(report.id):\n\(error.localizedDescription)")
+                }
+            }
+
+        } catch {
+            ConsoleLog.warning("Error encoding crash report \(report.id) for session \(String(describing: report.sessionId)):\n" + error.localizedDescription)
+        }
+    }
+
+    static private func logCrash(
+        otel: EmbraceOpenTelemetry?,
+        report: CrashReport,
         session: SessionRecord?,
         timestamp: Date
-    ) {
+    ) -> [String: String] {
 
         let attributesBuilder = EmbraceLogAttributesBuilder(
             session: session,
+            crashReport: report,
             initialAttributes: [:]
         )
 
-        let finalAttributes = attributesBuilder
-            .addLogType(.rawCrash)
+        let attributes = attributesBuilder
+            .addLogType(.crash)
             .addApplicationProperties()
+            .addApplicationState()
             .addSessionIdentifier()
+            .addCrashReportProperties()
             .build()
 
-        otel.log(
-            body,
+        otel?.log(
+            "",
             severity: .fatal,
             timestamp: timestamp,
-            attributes: finalAttributes
+            attributes: attributes
         )
+
+        return attributes
     }
 
     static private func sendSessions(
@@ -168,14 +200,14 @@ class UnsentDataHandler {
                 continue
             }
 
-            uploadSession(session, storage: storage, upload: upload, performCleanUp: false)
+            sendSession(session, storage: storage, upload: upload, performCleanUp: false)
         }
 
         // remove old metadata
         cleanMetadata(storage: storage, currentSessionId: currentSessionId?.toString)
     }
 
-    static public func uploadSession(
+    static public func sendSession(
         _ session: SessionRecord,
         storage: EmbraceStorage,
         upload: EmbraceUpload,

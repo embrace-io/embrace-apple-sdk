@@ -9,6 +9,8 @@ import KSCrash_Recording
 /// Class used to interact with KSCrash
 @objc public final class EmbraceCrashReporter: NSObject, CrashReporter {
 
+    static let providerIdentifier = "kscrash"
+
     enum UserInfoKey {
         static let sessionId = "emb-sid"
         static let sdkVersion = "emb-sdk"
@@ -35,6 +37,9 @@ import KSCrash_Recording
             updateKSCrashInfo()
         }
     }
+
+    /// Unused in this KSCrash implementation
+    public var onNewReport: ((CrashReport) -> Void)?
 
     private func updateKSCrashInfo() {
         guard let ksCrash = ksCrash else {
@@ -71,8 +76,6 @@ import KSCrash_Recording
         ksCrash?.install()
     }
 
-    public func start() { }
-
     /// Fetches all saved `CrashReports`.
     /// - Parameter completion: Completion handler to be called with the fetched `CrashReports`
     public func fetchUnsentCrashReports(completion: @escaping ([CrashReport]) -> Void) {
@@ -99,6 +102,23 @@ import KSCrash_Recording
                     continue
                 }
 
+                // serialize json
+                var payload: String?
+                do {
+                    let data = try JSONSerialization.data(withJSONObject: report)
+                    if let json = String(data: data, encoding: String.Encoding.utf8) {
+                        payload = json
+                    } else {
+                        ConsoleLog.warning("Error serializing raw crash report \(reportId)!")
+                    }
+                } catch {
+                    ConsoleLog.warning("Error serializing raw crash report \(reportId)!")
+                }
+
+                guard let payload = payload else {
+                    continue
+                }
+
                 // get custom data from report
                 var sessionId: SessionIdentifier?
                 var timestamp: Date?
@@ -116,10 +136,11 @@ import KSCrash_Recording
 
                 // add report
                 let crashReport = CrashReport(
-                    ksCrashId: id.intValue,
+                    payload: payload,
+                    provider: EmbraceCrashReporter.providerIdentifier,
+                    internalId: id.intValue,
                     sessionId: sessionId?.toString,
-                    timestamp: timestamp,
-                    dictionary: report
+                    timestamp: timestamp
                 )
 
                 crashReports.append(crashReport)

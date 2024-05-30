@@ -31,8 +31,8 @@ class StorageEmbraceLogExporter: EmbraceLogRecordExporter {
 
         for var log in logRecords where validation.execute(log: &log) {
 
-            // do not export raw crash logs
-            guard log.attributes["emb.type"] != .string(LogType.rawCrash.rawValue) else {
+            // do not export crash logs
+            guard log.attributes["emb.type"] != .string(LogType.crash.rawValue) else {
                 continue
             }
 

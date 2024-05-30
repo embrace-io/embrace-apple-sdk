@@ -33,13 +33,12 @@ extension Embrace {
         let baseUrl = EMBDevice.isDebuggerAttached ?
             options.endpoints.developmentBaseURL : options.endpoints.baseURL
         guard let spansURL = URL.spansEndpoint(basePath: baseUrl),
-              let blobsURL = URL.blobsEndpoint(basePath: baseUrl),
               let logsURL = URL.logsEndpoint(basePath: baseUrl) else {
             ConsoleLog.error("Failed to initialize endpoints!")
             return nil
         }
 
-        let endpoints = EmbraceUpload.EndpointOptions(spansURL: spansURL, blobsURL: blobsURL, logsURL: logsURL)
+        let endpoints = EmbraceUpload.EndpointOptions(spansURL: spansURL, logsURL: logsURL)
 
         // cache
         guard let cacheUrl = EmbraceFileSystem.uploadsDirectoryPath(

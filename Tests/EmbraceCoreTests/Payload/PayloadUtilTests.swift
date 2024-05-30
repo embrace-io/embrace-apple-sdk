@@ -8,8 +8,6 @@ import XCTest
 @testable import EmbraceCommon
 import OpenTelemetryApi
 
-// swiftlint:disable force_cast
-
 final class PayloadUtilTests: XCTestCase {
     func test_fetchResources() throws {
         // given
@@ -19,7 +17,7 @@ final class PayloadUtilTests: XCTestCase {
                 value: .string("fake_value"),
                 type: .requiredResource,
                 lifespan: .process,
-                lifespanId: ProcessIdentifier.random.hex
+                lifespanId: ProcessIdentifier.current.hex
             )
         ]
         let fetcher = MockMetadataFetcher(metadata: mockResources)
@@ -85,5 +83,3 @@ final class PayloadUtilTests: XCTestCase {
         XCTAssertEqual(mockResources, fetchedResources)
     }
 }
-
-// swiftlint:enable force_cast

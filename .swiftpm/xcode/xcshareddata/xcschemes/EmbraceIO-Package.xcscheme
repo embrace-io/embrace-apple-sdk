@@ -328,6 +328,34 @@
                ReferencedContainer = "container:">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EmbraceCrashlyticsSupport"
+               BuildableName = "EmbraceCrashlyticsSupport"
+               BlueprintName = "EmbraceCrashlyticsSupport"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EmbraceCrashlyticsSupport-Dynamic"
+               BuildableName = "EmbraceCrashlyticsSupport-Dynamic"
+               BlueprintName = "EmbraceCrashlyticsSupport-Dynamic"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -434,6 +462,16 @@
                BlueprintIdentifier = "EmbraceObjCUtilsTests"
                BuildableName = "EmbraceObjCUtilsTests"
                BlueprintName = "EmbraceObjCUtilsTests"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EmbraceCrashlyticsSupportTests"
+               BuildableName = "EmbraceCrashlyticsSupportTests"
+               BlueprintName = "EmbraceCrashlyticsSupportTests"
                ReferencedContainer = "container:">
             </BuildableReference>
          </TestableReference>

@@ -99,7 +99,7 @@ class StorageEmbraceLogExporterTests: XCTestCase {
     func test_rawCrashLogs_dontGetExported() {
         let logData = randomLogData(
             body: "example",
-            attributes: [ "emb.type": .string(LogType.rawCrash.rawValue) ]
+            attributes: [ "emb.type": .string(LogType.crash.rawValue) ]
         )
 
         givenStorageEmbraceLogExporter(initialState: .active)

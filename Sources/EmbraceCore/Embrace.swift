@@ -80,6 +80,8 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         qos: .utility
     )
 
+    static let notificationCenter: NotificationCenter = NotificationCenter()
+
     /// Method used to configure the Embrace SDK.
     /// - Parameter options: `Embrace.Options` to be used by the SDK.
     /// - Throws: `EmbraceSetupError.invalidThread` if not called from the main thread.
@@ -128,8 +130,8 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         self.logLevel = options.logLevel
         self.storage = try embraceStorage ?? Embrace.createStorage(options: options)
         self.deviceId = DeviceIdentifier.retrieve(from: storage)
-        self.captureServices = try CaptureServices(options: options, storage: storage)
         self.upload = Embrace.createUpload(options: options, deviceId: deviceId.hex)
+        self.captureServices = try CaptureServices(options: options, storage: storage, upload: upload)
         self.config = Embrace.createConfig(options: options, deviceId: deviceId.hex)
         self.sessionController = SessionController(storage: storage, upload: upload)
         self.sessionLifecycle = Embrace.createSessionLifecycle(controller: sessionController)

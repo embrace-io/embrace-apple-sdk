@@ -41,6 +41,18 @@ class SpyStorage: Storage {
         return stubbedFetchResourcesForSessionId
     }
 
+    var didCallFetchResourcesForProcessId = false
+    var fetchResourcesForProcessIdReceivedParameter: ProcessIdentifier!
+    var stubbedFetchResourcesForProcessId: [MetadataRecord] = []
+    func fetchResourcesForProcessId(_ processId: ProcessIdentifier) throws -> [MetadataRecord] {
+        didCallFetchResourcesForProcessId = true
+        fetchResourcesForProcessIdReceivedParameter = processId
+        guard !shouldThrow else {
+            throw RandomError()
+        }
+        return stubbedFetchResourcesForProcessId
+    }
+
     var didCallFetchAllCustomProperties = false
     var stubbedFetchAllCustomProperties: [MetadataRecord] = []
     func fetchAllCustomProperties() throws -> [MetadataRecord] {

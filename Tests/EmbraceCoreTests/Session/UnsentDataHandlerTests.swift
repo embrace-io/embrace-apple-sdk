@@ -31,7 +31,9 @@ class UnsentDataHandlerTests: XCTestCase {
         context = CrashReporterContext(
             appId: TestConstants.appId,
             sdkVersion: TestConstants.sdkVersion,
-            filePathProvider: filePathProvider )
+            filePathProvider: filePathProvider,
+            notificationCenter: NotificationCenter.default
+        )
 
         let urlSessionconfig = URLSessionConfiguration.ephemeral
         urlSessionconfig.protocolClasses = [EmbraceHTTPMock.self]
@@ -58,7 +60,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
     func test_withoutCrashReporter() throws {
         // mock successful requests
-        EmbraceHTTPMock.mock(url: testSessionUrl())
+        EmbraceHTTPMock.mock(url: testSpansUrl())
 
         // given a storage and upload modules
         let storage = try EmbraceStorage.createInMemoryDb()
@@ -84,7 +86,7 @@ class UnsentDataHandlerTests: XCTestCase {
         wait(delay: .longTimeout)
 
         // then a session request was sent
-        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSessionUrl()).count, 1)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 1)
 
         // then the session is no longer on storage
         let session = try storage.fetchSession(id: TestConstants.sessionId)
@@ -100,7 +102,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
     func test_withoutCrashReporter_error() throws {
         // mock error requests
-        EmbraceHTTPMock.mock(url: testSessionUrl(), errorCode: 500)
+        EmbraceHTTPMock.mock(url: testSpansUrl(), errorCode: 500)
 
         // given a storage and upload modules
         let storage = try EmbraceStorage.createInMemoryDb()
@@ -126,7 +128,7 @@ class UnsentDataHandlerTests: XCTestCase {
         wait(delay: .longTimeout)
 
         // then a session request was attempted
-        XCTAssertGreaterThan(EmbraceHTTPMock.requestsForUrl(testSessionUrl()).count, 0)
+        XCTAssertGreaterThan(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 0)
 
         // then the total amount of requests is correct
         XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 1)
@@ -145,8 +147,8 @@ class UnsentDataHandlerTests: XCTestCase {
 
     func test_withCrashReporter() throws {
         // mock successful requests
-        EmbraceHTTPMock.mock(url: testSessionUrl())
-        EmbraceHTTPMock.mock(url: testBlobsUrl())
+        EmbraceHTTPMock.mock(url: testSpansUrl())
+        EmbraceHTTPMock.mock(url: testLogsUrl())
 
         // given a storage and upload modules
         let storage = try EmbraceStorage.createInMemoryDb()
@@ -192,8 +194,8 @@ class UnsentDataHandlerTests: XCTestCase {
         // then a crash report was sent
         // then a session request was sent
         wait(timeout: .veryLongTimeout) {
-            EmbraceHTTPMock.requestsForUrl(self.testBlobsUrl()).count == 1 &&
-            EmbraceHTTPMock.requestsForUrl(self.testSessionUrl()).count == 1
+            EmbraceHTTPMock.requestsForUrl(self.testLogsUrl()).count == 1 &&
+            EmbraceHTTPMock.requestsForUrl(self.testSpansUrl()).count == 1
         }
 
         // then the total amount of requests is correct
@@ -218,7 +220,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // then the raw crash log was sent
         XCTAssertEqual(otel.logs.count, 1)
-        XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string(LogType.rawCrash.rawValue))
+        XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string(LogType.crash.rawValue))
         XCTAssertEqual(otel.logs[0].timestamp, report.timestamp)
 
         // clean up
@@ -226,8 +228,8 @@ class UnsentDataHandlerTests: XCTestCase {
     }
 
     func test_withCrashReporter_error() throws {
-        EmbraceHTTPMock.mock(url: testSessionUrl(), errorCode: 500)
-        EmbraceHTTPMock.mock(url: testBlobsUrl(), errorCode: 500)
+        EmbraceHTTPMock.mock(url: testSpansUrl(), errorCode: 500)
+        EmbraceHTTPMock.mock(url: testLogsUrl(), errorCode: 500)
 
         // given a storage and upload modules
         let storage = try EmbraceStorage.createInMemoryDb()
@@ -274,8 +276,8 @@ class UnsentDataHandlerTests: XCTestCase {
         // then a crash report request was attempted
         // then a session request was attempted
         wait(timeout: .veryLongTimeout) {
-            EmbraceHTTPMock.requestsForUrl(self.testBlobsUrl()).count > 0 &&
-            EmbraceHTTPMock.requestsForUrl(self.testSessionUrl()).count > 0
+            EmbraceHTTPMock.requestsForUrl(self.testLogsUrl()).count > 0 &&
+            EmbraceHTTPMock.requestsForUrl(self.testSpansUrl()).count > 0
         }
 
         // then the total amount of requests is correct
@@ -300,14 +302,14 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // then the raw crash log was sent
         XCTAssertEqual(otel.logs.count, 1)
-        XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string(LogType.rawCrash.rawValue))
+        XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string(LogType.crash.rawValue))
         XCTAssertEqual(otel.logs[0].timestamp, report.timestamp)
     }
 
     func test_withCrashReporter_unfinishedSession() throws {
         // mock successful requests
-        EmbraceHTTPMock.mock(url: testSessionUrl())
-        EmbraceHTTPMock.mock(url: testBlobsUrl())
+        EmbraceHTTPMock.mock(url: testSpansUrl())
+        EmbraceHTTPMock.mock(url: testLogsUrl())
 
         // given a storage and upload modules
         let storage = try EmbraceStorage.createInMemoryDb()
@@ -352,8 +354,8 @@ class UnsentDataHandlerTests: XCTestCase {
         // then a crash report was sent
         // then a session request was sent
         wait(timeout: .veryLongTimeout) {
-            EmbraceHTTPMock.requestsForUrl(self.testBlobsUrl()).count == 1 &&
-            EmbraceHTTPMock.requestsForUrl(self.testSessionUrl()).count == 1
+            EmbraceHTTPMock.requestsForUrl(self.testLogsUrl()).count == 1 &&
+            EmbraceHTTPMock.requestsForUrl(self.testSpansUrl()).count == 1
         }
 
         // then the total amount of requests is correct
@@ -378,17 +380,78 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // then the raw crash log was sent
         XCTAssertEqual(otel.logs.count, 1)
-        XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string(LogType.rawCrash.rawValue))
+        XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string(LogType.crash.rawValue))
         XCTAssertEqual(otel.logs[0].timestamp, report.timestamp)
 
         // clean up
         cancellable.cancel()
     }
 
+    func test_sendCrashLog() throws {
+        // mock successful requests
+        EmbraceHTTPMock.mock(url: testLogsUrl())
+
+        // given a storage and upload modules
+        let storage = try EmbraceStorage.createInMemoryDb()
+        defer { try? storage.teardown() }
+
+        let upload = try EmbraceUpload(options: uploadOptions, queue: queue)
+        let otel = MockEmbraceOpenTelemetry()
+
+        // given a crash reporter
+        let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.toString)
+        let report = crashReporter.mockReports[0]
+
+        // given a finished session in the storage
+        let session = try storage.addSession(
+            id: TestConstants.sessionId,
+            state: .foreground,
+            processId: ProcessIdentifier.current,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date(timeIntervalSinceNow: -60),
+            endTime: Date()
+        )
+
+        // when sending a crash log
+        UnsentDataHandler.sendCrashLog(
+            report: report,
+            reporter: crashReporter,
+            session: session,
+            storage: storage,
+            upload: upload,
+            otel: otel
+        )
+
+        // then a crash log was sent
+        wait(timeout: .veryLongTimeout) {
+            EmbraceHTTPMock.requestsForUrl(self.testLogsUrl()).count == 1
+        }
+
+        // then the total amount of requests is correct
+        XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 1)
+
+        // then the crash log upload data is no longer cached
+        let uploadData = try upload.cache.fetchAllUploadData()
+        XCTAssertEqual(uploadData.count, 0)
+
+        // then the raw crash log was constructed correctly
+        XCTAssertEqual(otel.logs.count, 1)
+        XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string(LogType.crash.rawValue))
+        XCTAssertEqual(otel.logs[0].timestamp, report.timestamp)
+        XCTAssertEqual(otel.logs[0].body, "")
+        XCTAssertEqual(otel.logs[0].severity, .fatal4)
+        XCTAssertEqual(otel.logs[0].attributes["emb.session_id"], .string(TestConstants.sessionId.toString))
+        XCTAssertEqual(otel.logs[0].attributes["emb.state"], .string(SessionState.foreground.rawValue))
+        XCTAssertEqual(otel.logs[0].attributes["log.record.uid"], .string(report.id.withoutHyphen))
+        XCTAssertEqual(otel.logs[0].attributes["emb.provider"], .string(report.provider))
+        XCTAssertEqual(otel.logs[0].attributes["emb.payload"], .string(report.payload))
+    }
+
     func test_spanCleanUp_sendUnsentData() throws {
         // mock successful requests
-        EmbraceHTTPMock.mock(url: testSessionUrl())
-        EmbraceHTTPMock.mock(url: testBlobsUrl())
+        EmbraceHTTPMock.mock(url: testSpansUrl())
+        EmbraceHTTPMock.mock(url: testLogsUrl())
 
         // given a storage and upload modules
         let storage = try EmbraceStorage.createInMemoryDb()
@@ -465,8 +528,8 @@ class UnsentDataHandlerTests: XCTestCase {
 
     func test_metadataCleanUp_sendUnsendData() throws {
         // mock successful requests
-        EmbraceHTTPMock.mock(url: testSessionUrl())
-        EmbraceHTTPMock.mock(url: testBlobsUrl())
+        EmbraceHTTPMock.mock(url: testSpansUrl())
+        EmbraceHTTPMock.mock(url: testLogsUrl())
 
         // given a storage and upload modules
         let storage = try EmbraceStorage.createInMemoryDb()
@@ -546,8 +609,8 @@ class UnsentDataHandlerTests: XCTestCase {
 
     func test_spanCleanUp_uploadSession() throws {
         // mock successful requests
-        EmbraceHTTPMock.mock(url: testSessionUrl())
-        EmbraceHTTPMock.mock(url: testBlobsUrl())
+        EmbraceHTTPMock.mock(url: testSpansUrl())
+        EmbraceHTTPMock.mock(url: testLogsUrl())
 
         // given a storage and upload modules
         let storage = try EmbraceStorage.createInMemoryDb()
@@ -577,7 +640,7 @@ class UnsentDataHandlerTests: XCTestCase {
         )
 
         // when uploading the session
-        UnsentDataHandler.uploadSession(session, storage: storage, upload: upload)
+        UnsentDataHandler.sendSession(session, storage: storage, upload: upload)
         wait(delay: .longTimeout)
 
         // then the old closed span was removed
@@ -598,8 +661,8 @@ class UnsentDataHandlerTests: XCTestCase {
 
     func test_metadataCleanUp_uploadSession() throws {
         // mock successful requests
-        EmbraceHTTPMock.mock(url: testSessionUrl())
-        EmbraceHTTPMock.mock(url: testBlobsUrl())
+        EmbraceHTTPMock.mock(url: testSpansUrl())
+        EmbraceHTTPMock.mock(url: testLogsUrl())
 
         // given a storage and upload modules
         let storage = try EmbraceStorage.createInMemoryDb()
@@ -640,7 +703,7 @@ class UnsentDataHandlerTests: XCTestCase {
         )
 
         // when uploading the session
-        UnsentDataHandler.uploadSession(session, storage: storage, upload: upload)
+        UnsentDataHandler.sendSession(session, storage: storage, upload: upload)
         wait(delay: .longTimeout)
 
         // then metadata is correctly cleaned up
@@ -659,20 +722,13 @@ class UnsentDataHandlerTests: XCTestCase {
 private extension UnsentDataHandlerTests {
     func testEndpointOptions(forTest testName: String) -> EmbraceUpload.EndpointOptions {
         .init(
-            spansURL: testSessionUrl(forTest: testName),
-            blobsURL: testBlobsUrl(forTest: testName),
+            spansURL: testSpansUrl(forTest: testName),
             logsURL: testLogsUrl(forTest: testName)
         )
     }
 
-    func testSessionUrl(forTest testName: String = #function) -> URL {
+    func testSpansUrl(forTest testName: String = #function) -> URL {
         var url = URL(string: "https://embrace.test.com/sessions")!
-        url.testName = testName
-        return url
-    }
-
-    func testBlobsUrl(forTest testName: String = #function) -> URL {
-        var url = URL(string: "https://embrace.test.com/blobs")!
         url.testName = testName
         return url
     }

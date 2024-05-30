@@ -12,26 +12,35 @@ import Foundation
     @objc var currentSessionId: String? { get set }
 
     @objc func install(context: CrashReporterContext)
-    @objc func start()
 
     @objc func getLastRunState() -> LastRunState
 
     @objc func fetchUnsentCrashReports(completion: @escaping ([CrashReport]) -> Void)
     @objc func deleteCrashReport(id: Int)
+
+    @objc var onNewReport: ((CrashReport) -> Void)? { get set }
 }
 
 @objc public class CrashReport: NSObject {
     public private(set) var id: UUID
-    public private(set) var ksCrashId: Int
+    public private(set) var payload: String
+    public private(set) var provider: String
+    public private(set) var internalId: Int?
     public private(set) var sessionId: String?
     public private(set) var timestamp: Date?
-    public private(set) var dictionary: [String: Any]
 
-    public init(ksCrashId: Int, sessionId: String?, timestamp: Date?, dictionary: [String: Any]) {
+    public init(
+        payload: String,
+        provider: String,
+        internalId: Int? = nil,
+        sessionId: String? = nil,
+        timestamp: Date? = nil
+    ) {
         self.id = UUID()
-        self.ksCrashId = ksCrashId
+        self.payload = payload
+        self.provider = provider
+        self.internalId = internalId
         self.sessionId = sessionId
         self.timestamp = timestamp
-        self.dictionary = dictionary
     }
 }

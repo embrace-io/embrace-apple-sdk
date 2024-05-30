@@ -16,10 +16,10 @@ final class EmbraceSetupCaptureServicesTests: XCTestCase {
     class ExampleCrashReporter: CrashReporter {
         var currentSessionId: String?
         func install(context: CrashReporterContext) { }
-        func start() { }
         func getLastRunState() -> LastRunState { return .cleanExit }
         func fetchUnsentCrashReports(completion: @escaping ([CrashReport]) -> Void) { }
         func deleteCrashReport(id: Int) { }
+        var onNewReport: ((EmbraceCommon.CrashReport) -> Void)?
     }
 
     override func tearDown() {

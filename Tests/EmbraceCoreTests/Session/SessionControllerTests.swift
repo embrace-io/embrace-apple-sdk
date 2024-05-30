@@ -338,17 +338,12 @@ private extension SessionControllerTests {
     func testEndpointOptions(testName: String) -> EmbraceUpload.EndpointOptions {
         .init(
             spansURL: testSessionsUrl(testName: testName),
-            blobsURL: testBlobsUrl(testName: testName),
             logsURL: testLogsUrl(testName: testName)
         )
     }
 
     func testSessionsUrl(testName: String = #function) -> URL {
         URL(string: "https://embrace.\(testName).com/session_controller/sessions")!
-    }
-
-    func testBlobsUrl(testName: String = #function) -> URL {
-        URL(string: "https://embrace.\(testName).com/session_controller/blobs")!
     }
 
     func testLogsUrl(testName: String = #function) -> URL {

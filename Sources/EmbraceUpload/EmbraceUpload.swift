@@ -85,17 +85,6 @@ public class EmbraceUpload: EmbraceLogUploader {
         }
     }
 
-    /// Uploads the given blob data
-    /// - Parameters:
-    ///   - id: Identifier of the blob
-    ///   - data: Data of the blob's payload
-    ///   - completion: Completion block called when the data is succesfully cached, or when an `Error` occurs
-    public func uploadBlob(id: String, data: Data, completion: ((Result<(), Error>) -> Void)?) {
-        queue.async { [weak self] in
-            self?.uploadData(id: id, data: data, type: .blob, completion: completion)
-        }
-    }
-
     /// Uploads the given log data
     /// - Parameters:
     ///   - id: Identifier of the log batch (has no utility aside of caching)
@@ -209,7 +198,6 @@ public class EmbraceUpload: EmbraceLogUploader {
     private func endpoint(for type: EmbraceUploadType) -> URL {
         switch type {
         case .spans: return options.endpoints.spansURL
-        case .blob: return options.endpoints.blobsURL
         case .log: return options.endpoints.logsURL
         }
     }

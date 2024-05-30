@@ -10,7 +10,8 @@ extension CrashReporterContext {
         CrashReporterContext(
             appId: TestConstants.appId,
             sdkVersion: TestConstants.sdkVersion,
-            filePathProvider: TemporaryFilepathProvider()
+            filePathProvider: TemporaryFilepathProvider(),
+            notificationCenter: NotificationCenter.default
         )
     }
 }

@@ -23,6 +23,14 @@ class MockMetadataFetcher: EmbraceStorageMetadataFetcher {
         }
     }
 
+    func fetchResourcesForProcessId(_ processId: ProcessIdentifier) throws -> [MetadataRecord] {
+        return metadata.filter { record in
+            (record.type == .resource || record.type == .requiredResource) &&
+            record.lifespan == .process &&
+            record.lifespanId == processId.hex
+        }
+    }
+
     func fetchAllCustomProperties() throws -> [MetadataRecord] {
         return metadata.filter { $0.type == .customProperty }
     }

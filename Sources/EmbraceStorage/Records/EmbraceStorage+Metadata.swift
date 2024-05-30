@@ -9,6 +9,7 @@ import EmbraceCommon
 public protocol EmbraceStorageMetadataFetcher: AnyObject {
     func fetchAllResources() throws -> [MetadataRecord]
     func fetchResourcesForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord]
+    func fetchResourcesForProcessId(_ processId: ProcessIdentifier) throws -> [MetadataRecord]
 
     func fetchAllCustomProperties() throws -> [MetadataRecord]
     func fetchCustomPropertiesForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord]
@@ -248,6 +249,22 @@ extension EmbraceStorage {
                     ) || (
                         MetadataRecord.Schema.lifespan == MetadataRecordLifespan.process.rawValue &&
                         MetadataRecord.Schema.lifespanId == session.processId.hex
+                    ) ||
+                        MetadataRecord.Schema.lifespan == MetadataRecordLifespan.permanent.rawValue
+                )
+                .fetchAll(db)
+        }
+    }
+
+    /// Returns all records with types `.requiredResource` or `.resource` that are tied to a given process id
+    public func fetchResourcesForProcessId(_ processId: ProcessIdentifier) throws -> [MetadataRecord] {
+        try dbQueue.read { db in
+
+            return try resourcesFilter()
+                .filter(
+                    (
+                        MetadataRecord.Schema.lifespan == MetadataRecordLifespan.process.rawValue &&
+                        MetadataRecord.Schema.lifespanId == processId.hex
                     ) ||
                         MetadataRecord.Schema.lifespan == MetadataRecordLifespan.permanent.rawValue
                 )
