@@ -6,19 +6,15 @@ import Foundation
 import EmbraceStorage
 import GRDB
 
-class ThrowingMigrationService: MigrationServiceProtocol {
+class ThrowingMigration: Migration {
     enum MigrationServiceError: Error {
         case alwaysError
     }
 
+    static var identifier = "AlwaysThrowingMigration"
+
     let performsToThrow: [Int]
     private(set) var currentPerformCount: Int = 0
-
-    /// - Parameters:
-    ///    - performToThrow: The invocation of `perform` that should throw. Defaults to 1, the first call to `perform`.
-    init(performToThrow: Int = 1) {
-        self.performsToThrow = [performToThrow]
-    }
 
     /// - Parameters:
     ///    - performToThrow: The invocation of `perform` that should throw. Defaults to 1, the first call to `perform`.
@@ -26,7 +22,13 @@ class ThrowingMigrationService: MigrationServiceProtocol {
         self.performsToThrow = performsToThrow
     }
 
-    func perform(_ dbQueue: DatabaseWriter, migrations: [Migration]) throws {
+    /// - Parameters:
+    ///    - performToThrow: The invocation of `perform` that should throw. Defaults to 1, the first call to `perform`.
+    convenience init(performToThrow: Int = 1) {
+        self.init(performsToThrow: [performToThrow])
+    }
+
+    func perform(_ db: GRDB.Database) throws {
         currentPerformCount += 1
         if performsToThrow.contains(currentPerformCount) {
             throw MigrationServiceError.alwaysError

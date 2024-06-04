@@ -48,10 +48,10 @@ final class StorageSpanExporterTests: XCTestCase {
         let exportedSpans: [SpanRecord] = try storage.fetchAll()
         XCTAssertTrue(exportedSpans.count == 1)
 
-        let exportedSpan = exportedSpans.first
-        XCTAssertEqual(exportedSpan?.traceId, traceId.hexString)
-        XCTAssertEqual(exportedSpan?.id, spanId.hexString)
-        XCTAssertEqual(exportedSpan!.endTime!.timeIntervalSince1970, endTime.timeIntervalSince1970, accuracy: 0.01)
+        let exportedSpan = try XCTUnwrap(exportedSpans.first)
+        XCTAssertEqual(exportedSpan.traceId, traceId.hexString)
+        XCTAssertEqual(exportedSpan.id, spanId.hexString)
+        XCTAssertEqual(exportedSpan.endTime!.timeIntervalSince1970, endTime.timeIntervalSince1970, accuracy: 0.01)
     }
 
     func test_DB_allowsOpenSpan_toUpdateAttributes() throws {

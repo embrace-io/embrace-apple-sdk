@@ -23,5 +23,5 @@ extension Migration {
 }
 
 extension Migration {
-    static var foreignKeyChecks: DatabaseMigrator.ForeignKeyChecks { .immediate }
+    public static var foreignKeyChecks: DatabaseMigrator.ForeignKeyChecks { .immediate }
 }

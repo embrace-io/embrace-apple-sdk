@@ -27,14 +27,14 @@ public class EmbraceStorage: Storage {
     ///   - resetIfError: If true and the migrations fail the DB will be reset entirely.
     public func performMigration(
         resetIfError: Bool = true,
-        service: MigrationServiceProtocol = MigrationService()
+        migrations: [Migration] = .current
     ) throws {
         do {
-            try service.perform(dbQueue, migrations: .current)
+            try MigrationService().perform(dbQueue, migrations: migrations)
         } catch let error {
             if resetIfError {
                 ConsoleLog.error("Error performing migrations, resetting EmbraceStorage: \(error)")
-                try reset(migrationService: service)
+                try reset(migrations: migrations)
             } else {
                 ConsoleLog.error("Error performing migrations. Reset not enabled: \(error)")
                 throw error // re-throw error if auto-recover is not enabled
@@ -43,13 +43,13 @@ public class EmbraceStorage: Storage {
     }
 
     /// Deletes the database and recreates it from scratch
-    func reset(migrationService: MigrationServiceProtocol = MigrationService()) throws {
+    func reset(migrations: [Migration] = .current) throws {
         if let fileURL = options.fileURL {
             try FileManager.default.removeItem(at: fileURL)
         }
 
         dbQueue = try Self.createDBQueue(options: options)
-        try performMigration(resetIfError: false, service: migrationService) // Do not perpetuate loop
+        try performMigration(resetIfError: false, migrations: migrations) // Do not perpetuate loop
     }
 }
 

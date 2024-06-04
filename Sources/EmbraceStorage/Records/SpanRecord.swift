@@ -15,6 +15,7 @@ public struct SpanRecord: Codable {
     public var data: Data
     public var startTime: Date
     public var endTime: Date?
+    public var processIdentifier: ProcessIdentifier
 
     public init(
         id: String,
@@ -23,7 +24,8 @@ public struct SpanRecord: Codable {
         type: SpanType,
         data: Data,
         startTime: Date,
-        endTime: Date? = nil
+        endTime: Date? = nil,
+        processIdentifier: ProcessIdentifier = .current
     ) {
         self.id = id
         self.traceId = traceId
@@ -32,6 +34,7 @@ public struct SpanRecord: Codable {
         self.startTime = startTime
         self.endTime = endTime
         self.name = name
+        self.processIdentifier = processIdentifier
     }
 }
 
@@ -44,6 +47,7 @@ extension SpanRecord {
         static var startTime: Column { Column("start_time") }
         static var endTime: Column { Column("end_time") }
         static var name: Column { Column("name") }
+        static var processIdentifier: Column { Column("process_identifier") }
     }
 }
 

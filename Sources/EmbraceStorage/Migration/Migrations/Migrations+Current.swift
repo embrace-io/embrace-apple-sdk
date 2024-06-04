@@ -6,14 +6,15 @@ import Foundation
 
 extension Array where Element == Migration {
 
-    static var current: [Migration] {
+    public static var current: [Migration] {
         return [
             // register migrations here
             // order matters
             AddSpanRecordMigration(),
             AddSessionRecordMigration(),
             AddMetadataRecordMigration(),
-            AddLogRecordMigration()
+            AddLogRecordMigration(),
+            AddProcessIdentifierToSpanRecordMigration()
         ]
     }
 }

@@ -51,11 +51,8 @@ class EmbraceStorageTests: XCTestCase {
     func test_performMigration_ifResetsIfErrorTrue_resetsDB() throws {
         storage = try EmbraceStorage.createInMemoryDb()
 
-        let service = ThrowingMigrationService(performToThrow: 1)
-        try storage.performMigration(
-            resetIfError: true,
-            service: service
-        )
+        let migration = ThrowingMigration(performToThrow: 1)
+        try storage.performMigration(resetIfError: true, migrations: .current + [migration])
 
         try storage.dbQueue.read { db in
             XCTAssertTrue(try db.tableExists(SessionRecord.databaseTableName))
@@ -64,34 +61,34 @@ class EmbraceStorageTests: XCTestCase {
             XCTAssertTrue(try db.tableExists(LogRecord.databaseTableName))
         }
 
-        XCTAssertEqual(service.currentPerformCount, 2)
+        XCTAssertEqual(migration.currentPerformCount, 2)
     }
 
     func test_performMigration_ifResetsIfErrorTrue_andMigrationFailsTwice_rethrowsError() throws {
         storage = try EmbraceStorage.createInMemoryDb()
 
-        let service = ThrowingMigrationService(performsToThrow: [1, 2])
+        let migration = ThrowingMigration(performsToThrow: [1, 2])
         XCTAssertThrowsError(
             try storage.performMigration(
                 resetIfError: true,
-                service: service
+                migrations: [migration]
             )
         )
 
-        XCTAssertEqual(service.currentPerformCount, 2)
+        XCTAssertEqual(migration.currentPerformCount, 2)
     }
 
     func test_performMigration_ifResetsIfErrorFalse_rethrowsError() throws {
         storage = try EmbraceStorage.createInMemoryDb()
-        let service = ThrowingMigrationService(performToThrow: 1)
+        let migration = ThrowingMigration(performToThrow: 1)
 
         XCTAssertThrowsError(
             try storage.performMigration(
                 resetIfError: false,
-                service: service
+                migrations: [migration]
             )
         )
-        XCTAssertEqual(service.currentPerformCount, 1)
+        XCTAssertEqual(migration.currentPerformCount, 1)
     }
 
     func test_reset_remakesDB() throws {
