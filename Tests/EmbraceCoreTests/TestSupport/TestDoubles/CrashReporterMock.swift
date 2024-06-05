@@ -43,7 +43,7 @@ class CrashReporterMock: CrashReporter {
         }
     }
 
-    func install(context: CrashReporterContext) {
+    func install(context: CrashReporterContext, logger: InternalLogger) {
 
     }
 }

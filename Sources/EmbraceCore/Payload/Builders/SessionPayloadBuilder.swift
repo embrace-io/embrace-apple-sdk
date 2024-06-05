@@ -17,7 +17,7 @@ class SessionPayloadBuilder {
             // fetch resource
             resource = try storage.fetchRequriedPermanentResource(key: resourceName)
         } catch {
-            ConsoleLog.debug("Error fetching \(resourceName) resource!")
+            Embrace.logger.debug("Error fetching \(resourceName) resource!")
         }
 
         // increment counter or create resource if needed
@@ -38,7 +38,7 @@ class SessionPayloadBuilder {
                 counter = 1
             }
         } catch {
-            ConsoleLog.debug("Error updating \(resourceName) resource!")
+            Embrace.logger.debug("Error updating \(resourceName) resource!")
         }
 
         // build spans
@@ -53,7 +53,7 @@ class SessionPayloadBuilder {
         do {
             resources = try storage.fetchResourcesForSessionId(sessionRecord.id)
         } catch {
-            ConsoleLog.error("Error fetching resources for session \(sessionRecord.id.toString)")
+            Embrace.logger.error("Error fetching resources for session \(sessionRecord.id.toString)")
         }
         let resourcePayload =  ResourcePayload(from: resources)
 
@@ -62,7 +62,7 @@ class SessionPayloadBuilder {
         do {
             metadata = try storage.fetchCustomPropertiesForSessionId(sessionRecord.id)
         } catch {
-            ConsoleLog.error("Error fetching custom properties for session \(sessionRecord.id.toString)")
+            Embrace.logger.error("Error fetching custom properties for session \(sessionRecord.id.toString)")
         }
         let metadataPayload =  MetadataPayload(from: metadata)
 

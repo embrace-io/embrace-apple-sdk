@@ -65,7 +65,7 @@ import EmbraceOTel
             type: .lowPower,
             attributes: ["start_reason": wasManuallyFetched ? "system_query" : "system_notification"]
         ) else {
-            ConsoleLog.warning("Error trying to create low power mode span!")
+            Embrace.logger.warning("Error trying to create low power mode span!")
             return
         }
 

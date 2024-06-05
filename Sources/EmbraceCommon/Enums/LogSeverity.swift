@@ -5,6 +5,8 @@
 import Foundation
 
 @objc public enum LogSeverity: Int, Codable {
+    case trace = 1
+    case debug = 5
     case info = 9
     case warn = 13
     case error = 17
@@ -14,6 +16,8 @@ import Foundation
     /// More info: https://opentelemetry.io/docs/specs/otel/logs/data-model/
     public var text: String {
         switch self {
+        case .trace: "TRACE"
+        case .debug: "DEBUG"
         case .info: "INFO"
         case .warn: "WARN"
         case .error: "ERROR"

@@ -19,7 +19,7 @@ class PayloadUtils {
         do {
             return try fetcher.fetchResourcesForSessionId(sessionId)
         } catch let e {
-            ConsoleLog.error("Failed to fetch resource records from storage: \(e.localizedDescription)")
+            Embrace.logger.error("Failed to fetch resource records from storage: \(e.localizedDescription)")
         }
 
         return []
@@ -37,7 +37,7 @@ class PayloadUtils {
         do {
             return try fetcher.fetchCustomPropertiesForSessionId(sessionId)
         } catch let e {
-            ConsoleLog.error("Failed to fetch custom properties from storage: \(e.localizedDescription)")
+            Embrace.logger.error("Failed to fetch custom properties from storage: \(e.localizedDescription)")
         }
 
         return []

@@ -12,7 +12,12 @@ import Foundation
     public let filePathProvider: FilePathProvider
     public let notificationCenter: NotificationCenter
 
-    public init(appId: String, sdkVersion: String, filePathProvider: FilePathProvider, notificationCenter: NotificationCenter) {
+    public init(
+        appId: String,
+        sdkVersion: String,
+        filePathProvider: FilePathProvider,
+        notificationCenter: NotificationCenter
+    ) {
         self.appId = appId
         self.sdkVersion = sdkVersion
         self.filePathProvider = filePathProvider

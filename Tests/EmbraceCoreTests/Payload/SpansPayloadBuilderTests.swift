@@ -11,8 +11,6 @@ import TestSupport
 import OpenTelemetryApi
 @testable import OpenTelemetrySdk
 
-// swiftlint:disable force_cast
-
 final class SpansPayloadBuilderTests: XCTestCase {
 
     var storage: EmbraceStorage!
@@ -309,5 +307,3 @@ final class SpansPayloadBuilderTests: XCTestCase {
         XCTAssertEqual(open.count, 0)
     }
 }
-
-// swiftlint:enable force_cast

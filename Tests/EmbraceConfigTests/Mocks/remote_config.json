@@ -5,5 +5,12 @@
   "threshold": 50,
   "network_span_forwarding": {
     "pct_enabled": 25
+  },
+  "internal_log_limits": {
+    "trace": 10,
+    "debug": 20,
+    "info": 30,
+    "warning": 40,
+    "error": 50,
   }
 }

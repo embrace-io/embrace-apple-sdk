@@ -17,7 +17,7 @@ extension Embrace {
         ) {
             do {
                 let storageOptions = EmbraceStorage.Options(baseUrl: storageUrl, fileName: "db.sqlite")
-                let storage = try EmbraceStorage(options: storageOptions)
+                let storage = try EmbraceStorage(options: storageOptions, logger: Embrace.logger)
                 try storage.performMigration()
                 return storage
             } catch {
@@ -34,7 +34,7 @@ extension Embrace {
             options.endpoints.developmentBaseURL : options.endpoints.baseURL
         guard let spansURL = URL.spansEndpoint(basePath: baseUrl),
               let logsURL = URL.logsEndpoint(basePath: baseUrl) else {
-            ConsoleLog.error("Failed to initialize endpoints!")
+            Embrace.logger.error("Failed to initialize endpoints!")
             return nil
         }
 
@@ -47,7 +47,7 @@ extension Embrace {
         ),
               let cache = EmbraceUpload.CacheOptions(cacheBaseUrl: cacheUrl)
         else {
-            ConsoleLog.error("Failed to initialize upload cache!")
+            Embrace.logger.error("Failed to initialize upload cache!")
             return nil
         }
 
@@ -62,9 +62,9 @@ extension Embrace {
             let options = EmbraceUpload.Options(endpoints: endpoints, cache: cache, metadata: metadata)
             let queue = DispatchQueue(label: "com.embrace.upload", attributes: .concurrent)
 
-            return try EmbraceUpload(options: options, queue: queue)
+            return try EmbraceUpload(options: options, logger: Embrace.logger, queue: queue)
         } catch {
-            ConsoleLog.error("Error initializing Embrace Upload: " + error.localizedDescription)
+            Embrace.logger.error("Error initializing Embrace Upload: " + error.localizedDescription)
         }
 
         return nil

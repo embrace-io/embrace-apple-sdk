@@ -61,6 +61,8 @@ class EmbraceConfigTests: XCTestCase {
         EmbraceHTTPMock.mock(url: url, response: .withData(data, statusCode: 200))
     }
 
+    let logger = MockLogger()
+
     func test_frequentUpdatesIgnored() throws {
         // given a config with 1 hour minimum update interval
         let options = testOptions(
@@ -72,7 +74,7 @@ class EmbraceConfigTests: XCTestCase {
         try mockSuccessfulResponse()
 
         // Given an EmbraceConfig (executes fetch on init)
-        let config = EmbraceConfig(options: options)
+        let config = EmbraceConfig(options: options, notificationCenter: NotificationCenter.default, logger: logger)
 
         // Wait until the fetch from init has finished
         wait(timeout: .longTimeout) {
@@ -101,7 +103,7 @@ class EmbraceConfigTests: XCTestCase {
         try mockSuccessfulResponse()
 
         // Given an EmbraceConfig (executes fetch on init)
-        let config = EmbraceConfig(options: options)
+        let config = EmbraceConfig(options: options, notificationCenter: NotificationCenter.default, logger: logger)
 
         // Wait until the fetch from init has finished
         wait(timeout: .longTimeout) {
@@ -130,7 +132,7 @@ class EmbraceConfigTests: XCTestCase {
         try mockSuccessfulResponse()
 
         // Given an EmbraceConfig (executes fetch on init)
-        let config = EmbraceConfig(options: options)
+        let config = EmbraceConfig(options: options, notificationCenter: NotificationCenter.default, logger: logger)
 
         // Wait until the fetch from init has finished
         wait(timeout: .longTimeout) {
@@ -151,18 +153,50 @@ class EmbraceConfigTests: XCTestCase {
         }
     }
 
+    func test_updateCallback() throws {
+        // given a config with 1 hour minimum update interval
+        let options = testOptions(
+            deviceId: TestConstants.deviceId,
+            minimumUpdateInterval: 60 * 60
+        )
+
+        // Given the response is successful (necessary to save the `lastUpdateTime` value)
+        try mockSuccessfulResponse()
+
+        // Given an EmbraceConfig (executes fetch on init)
+        let config = EmbraceConfig(options: options, notificationCenter: NotificationCenter.default, logger: logger)
+
+        // making sure the fetched config is different so the notification is triggered
+        config.payload.backgroundSessionThreshold = 12345
+
+        expectation(forNotification: .embraceConfigUpdated, object: nil) { _ in
+            return true
+        }
+
+        waitForExpectations(timeout: .veryLongTimeout)
+    }
+
     func test_invalidDeviceId() {
         // given a config with an invalid device id
-        let config = EmbraceConfig(options: testOptions(deviceId: ""))
+        let config = EmbraceConfig(
+            options: testOptions(deviceId: ""),
+            notificationCenter: NotificationCenter.default,
+            logger: logger
+        )
 
         // then all settings are disabled
         XCTAssertFalse(config.isSDKEnabled)
         XCTAssertFalse(config.isBackgroundSessionEnabled)
+        XCTAssertFalse(config.isNetworkSpansForwardingEnabled)
     }
 
     func test_isSDKEnabled() {
         // given a config
-        let config = EmbraceConfig(options: testOptions(deviceId: TestConstants.deviceId))
+        let config = EmbraceConfig(
+            options: testOptions(deviceId: TestConstants.deviceId),
+            notificationCenter: NotificationCenter.default,
+            logger: logger
+        )
 
         // then isSDKEnabled returns the correct values
         config.payload.sdkEnabledThreshold = 100
@@ -174,7 +208,11 @@ class EmbraceConfigTests: XCTestCase {
 
     func test_isBackgroundSessionEnabled() {
         // given a config
-        let config = EmbraceConfig(options: testOptions(deviceId: TestConstants.deviceId))
+        let config = EmbraceConfig(
+            options: testOptions(deviceId: TestConstants.deviceId),
+            notificationCenter: NotificationCenter.default,
+            logger: logger
+        )
 
         // then isBackgroundSessionEnabled returns the correct values
         config.payload.backgroundSessionThreshold = 100
@@ -186,9 +224,13 @@ class EmbraceConfigTests: XCTestCase {
 
     func test_networkSpansForwardingEnabled() {
         // given a config
-        let config = EmbraceConfig(options: testOptions(deviceId: TestConstants.deviceId))
+        let config = EmbraceConfig(
+            options: testOptions(deviceId: TestConstants.deviceId),
+            notificationCenter: NotificationCenter.default,
+            logger: logger
+        )
 
-        // then _networkSpansForwardingEnabled returns the correct values
+        // then isNetworkSpansForwardingEnabled returns the correct values
         config.payload.networkSpansForwardingThreshold = 100
         XCTAssertTrue(config.isNetworkSpansForwardingEnabled)
 
@@ -196,20 +238,62 @@ class EmbraceConfigTests: XCTestCase {
         XCTAssertFalse(config.isNetworkSpansForwardingEnabled)
     }
 
+    func test_internalLogsLimits() {
+        // given a config
+        let config = EmbraceConfig(
+            options: testOptions(deviceId: TestConstants.deviceId),
+            notificationCenter: NotificationCenter.default,
+            logger: logger
+        )
+
+        // then test_internalLogsTraceLimit returns the correct values
+        config.payload.internalLogsTraceLimit = 10
+        config.payload.internalLogsDebugLimit = 20
+        config.payload.internalLogsInfoLimit = 30
+        config.payload.internalLogsWarningLimit = 40
+        config.payload.internalLogsErrorLimit = 50
+
+        XCTAssertEqual(config.internalLogsTraceLimit, 10)
+        XCTAssertEqual(config.internalLogsDebugLimit, 20)
+        XCTAssertEqual(config.internalLogsInfoLimit, 30)
+        XCTAssertEqual(config.internalLogsWarningLimit, 40)
+        XCTAssertEqual(config.internalLogsErrorLimit, 50)
+    }
+
     func test_hexValue() {
         // given an invalid device id
-        let config1 = EmbraceConfig(options: testOptions(deviceId: "short"))
+        let config1 = EmbraceConfig(
+            options: testOptions(deviceId: "short"),
+            notificationCenter: NotificationCenter.default,
+            logger: logger
+        )
 
         // then the internal hex value is defaulted to UInt64.max
         // which will make all configs be disabled
         XCTAssertEqual(config1.deviceIdHexValue, UInt64.max)
 
         // given valid device ids
-        let config2 = EmbraceConfig(options: testOptions(deviceId: "000000"))
-        let config3 = EmbraceConfig(options: testOptions(deviceId: "123456"))
-        let config4 = EmbraceConfig(options: testOptions(deviceId: "ABCDEF"))
-        let config5 = EmbraceConfig(options: testOptions(deviceId: "A5F67E"))
-        let config6 = EmbraceConfig(options: testOptions(deviceId: "FFFFFF"))
+        let config2 = EmbraceConfig(
+            options: testOptions(deviceId: "000000"),
+            notificationCenter: NotificationCenter.default,
+            logger: logger
+        )
+        let config3 = EmbraceConfig(
+            options: testOptions(deviceId: "123456"),
+            notificationCenter: NotificationCenter.default,
+            logger: logger)
+        let config4 = EmbraceConfig(
+            options: testOptions(deviceId: "ABCDEF"),
+            notificationCenter: NotificationCenter.default,
+            logger: logger)
+        let config5 = EmbraceConfig(
+            options: testOptions(deviceId: "A5F67E"),
+            notificationCenter: NotificationCenter.default,
+            logger: logger)
+        let config6 = EmbraceConfig(
+            options: testOptions(deviceId: "FFFFFF"),
+            notificationCenter: NotificationCenter.default,
+            logger: logger)
 
         // then the internal hex values are parsed correctly
         XCTAssertEqual(config2.deviceIdHexValue, 0x0)

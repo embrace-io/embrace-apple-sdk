@@ -10,11 +10,13 @@ class RemoteConfigFetcher {
     static let routePath = "/v2/config"
 
     let options: EmbraceConfig.Options
+    let logger: InternalLogger
     let session: URLSession
     let operationQueue: OperationQueue
 
-    init(options: EmbraceConfig.Options) {
+    init(options: EmbraceConfig.Options, logger: InternalLogger) {
         self.options = options
+        self.logger = logger
 
         operationQueue = OperationQueue()
         operationQueue.underlyingQueue = options.queue
@@ -32,22 +34,22 @@ class RemoteConfigFetcher {
         }
 
         // execute request
-        let dataTask = session.dataTask(with: request) { data, response, error in
+        let dataTask = session.dataTask(with: request) { [weak self] data, response, error in
 
             guard let data = data, error == nil else {
-                ConsoleLog.error("Error fetching remote config:\n\(String(describing: error?.localizedDescription))")
+                self?.logger.error("Error fetching remote config:\n\(String(describing: error?.localizedDescription))")
                 completion(nil)
                 return
             }
 
             guard let httpResponse = response as? HTTPURLResponse else {
-                ConsoleLog.error("Error fetching remote config - Invalid response:\n\(String(describing: response?.description))")
+                self?.logger.error("Error fetching remote config - Invalid response:\n\(String(describing: response?.description))")
                 completion(nil)
                 return
             }
 
             guard httpResponse.statusCode >= 200 && httpResponse.statusCode < 300 else {
-                ConsoleLog.error("Error fetching remote config - Invalid response:\n\(httpResponse.description))")
+                self?.logger.error("Error fetching remote config - Invalid response:\n\(httpResponse.description))")
                 completion(nil)
                 return
             }
@@ -56,10 +58,10 @@ class RemoteConfigFetcher {
             do {
                 let payload = try JSONDecoder().decode(RemoteConfigPayload.self, from: data)
 
-                ConsoleLog.info("Succesfully fetched remote config")
+                self?.logger.info("Succesfully fetched remote config")
                 completion(payload)
             } catch {
-                ConsoleLog.error("Error decoding remote config:\n\(error.localizedDescription)")
+                self?.logger.error("Error decoding remote config:\n\(error.localizedDescription)")
                 completion(nil)
             }
         }

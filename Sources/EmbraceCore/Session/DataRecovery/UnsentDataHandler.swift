@@ -68,7 +68,7 @@ class UnsentDataHandler {
                         try storage.update(record: session)
                     }
                 } catch {
-                    ConsoleLog.warning("Error updating session \(sessionId) with crashReportId \(report.id)!")
+                    Embrace.logger.warning("Error updating session \(sessionId) with crashReportId \(report.id)!")
                 }
             }
 
@@ -134,12 +134,13 @@ class UnsentDataHandler {
                         reporter?.deleteCrashReport(id: internalId)
                     }
 
-                case .failure(let error): ConsoleLog.warning("Error trying to upload crash report \(report.id):\n\(error.localizedDescription)")
+                case .failure(let error):
+                    Embrace.logger.warning("Error trying to upload crash report \(report.id):\n\(error.localizedDescription)")
                 }
             }
 
         } catch {
-            ConsoleLog.warning("Error encoding crash report \(report.id) for session \(String(describing: report.sessionId)):\n" + error.localizedDescription)
+            Embrace.logger.warning("Error encoding crash report \(report.id) for session \(String(describing: report.sessionId)):\n" + error.localizedDescription)
         }
     }
 
@@ -189,7 +190,7 @@ class UnsentDataHandler {
         do {
             sessions = try storage.fetchAll()
         } catch {
-            ConsoleLog.warning("Error fetching unsent sessions:\n\(error.localizedDescription)")
+            Embrace.logger.warning("Error fetching unsent sessions:\n\(error.localizedDescription)")
             return
         }
 
@@ -220,7 +221,7 @@ class UnsentDataHandler {
         do {
             payloadData = try JSONEncoder().encode(payload).gzipped()
         } catch {
-            ConsoleLog.warning("Error encoding session \(session.id.toString):\n" + error.localizedDescription)
+            Embrace.logger.warning("Error encoding session \(session.id.toString):\n" + error.localizedDescription)
             return
         }
 
@@ -243,11 +244,11 @@ class UnsentDataHandler {
                     }
 
                 } catch {
-                    ConsoleLog.debug("Error trying to remove session \(session.id):\n\(error.localizedDescription)")
+                    Embrace.logger.debug("Error trying to remove session \(session.id):\n\(error.localizedDescription)")
                 }
 
             case .failure(let error):
-                ConsoleLog.warning("Error trying to upload session \(session.id):\n\(error.localizedDescription)")
+                Embrace.logger.warning("Error trying to upload session \(session.id):\n\(error.localizedDescription)")
             }
         }
     }
@@ -263,7 +264,7 @@ class UnsentDataHandler {
             try storage.cleanUpSpans(date: oldestSession?.startTime)
 
         } catch {
-            ConsoleLog.warning("Error cleaning old spans:\n\(error.localizedDescription)")
+            Embrace.logger.warning("Error cleaning old spans:\n\(error.localizedDescription)")
         }
     }
 
@@ -277,7 +278,7 @@ class UnsentDataHandler {
             let endTime = (latestSession?.endTime ?? latestSession?.lastHeartbeatTime) ?? Date()
             try storage.closeOpenSpans(endTime: endTime)
         } catch {
-            ConsoleLog.warning("Error closing open spans:\n\(error.localizedDescription)")
+            Embrace.logger.warning("Error closing open spans:\n\(error.localizedDescription)")
         }
     }
 
@@ -286,7 +287,7 @@ class UnsentDataHandler {
             let sessionId = currentSessionId ?? Embrace.client?.currentSessionId()
             try storage.cleanMetadata(currentSessionId: sessionId, currentProcessId: ProcessIdentifier.current.hex)
         } catch {
-            ConsoleLog.warning("Error cleaning up metadata:\n\(error.localizedDescription)")
+            Embrace.logger.warning("Error cleaning up metadata:\n\(error.localizedDescription)")
         }
     }
 }

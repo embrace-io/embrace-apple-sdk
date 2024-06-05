@@ -201,7 +201,7 @@ extension LogController {
         }
 
         func log() {
-            ConsoleLog.error(localizedDescription)
+            Embrace.logger.error(localizedDescription)
         }
     }
 }

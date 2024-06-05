@@ -66,7 +66,7 @@ protocol URLSessionSwizzler: Swizzlable {
                 try $0.install()
             } catch let exception {
                 // TODO: See what to do when this kind of issues arises
-                ConsoleLog.error("Capture service couldn't be installed: \(exception.localizedDescription)")
+                Embrace.logger.error("Capture service couldn't be installed: \(exception.localizedDescription)")
             }
         }
     }

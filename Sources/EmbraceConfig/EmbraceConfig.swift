@@ -5,9 +5,15 @@
 import Foundation
 import EmbraceCommon
 
+public extension Notification.Name {
+    static let embraceConfigUpdated = Notification.Name("embraceConfigUpdated")
+}
+
 public class EmbraceConfig {
 
     public let options: Options
+    let logger: InternalLogger
+    let notificationCenter: NotificationCenter
 
     let deviceIdUsedDigits = 6
     var deviceIdHexValue: UInt64 = UInt64.max // defaults to everything disabled
@@ -18,9 +24,14 @@ public class EmbraceConfig {
     @ThreadSafe private(set) var updating = false
     @ThreadSafe private var lastUpdateTime: TimeInterval = Date(timeIntervalSince1970: 0).timeIntervalSince1970
 
-    public init(options: Options) {
+    public var onUpdate: (() -> Void)?
+
+    public init(options: Options, notificationCenter: NotificationCenter, logger: InternalLogger) {
         self.options = options
-        fetcher = RemoteConfigFetcher(options: options)
+        self.notificationCenter = notificationCenter
+        self.logger = logger
+
+        fetcher = RemoteConfigFetcher(options: options, logger: logger)
         update()
 
         // get hex value of the last 6 digits of the device id
@@ -56,6 +67,26 @@ public class EmbraceConfig {
         return isEnabled(threshold: payload.networkSpansForwardingThreshold)
     }
 
+    public var internalLogsTraceLimit: Int {
+        return payload.internalLogsTraceLimit
+    }
+
+    public var internalLogsDebugLimit: Int {
+        return payload.internalLogsDebugLimit
+    }
+
+    public var internalLogsInfoLimit: Int {
+        return payload.internalLogsInfoLimit
+    }
+
+    public var internalLogsWarningLimit: Int {
+        return payload.internalLogsWarningLimit
+    }
+
+    public var internalLogsErrorLimit: Int {
+        return payload.internalLogsErrorLimit
+    }
+
     // MARK: - Update
     @discardableResult
     public func updateIfNeeded() -> Bool {
@@ -76,6 +107,11 @@ public class EmbraceConfig {
 
         fetcher.fetch { [weak self] payload in
             if let payload = payload {
+
+                if self?.payload != payload {
+                    self?.notificationCenter.post(name: .embraceConfigUpdated, object: nil)
+                }
+
                 self?.payload = payload
                 self?.lastUpdateTime = Date().timeIntervalSince1970
             }

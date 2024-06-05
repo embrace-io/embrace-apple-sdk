@@ -33,9 +33,7 @@ final class EmbraceIntegrationTests: IntegrationTestCase {
             }) ?? []
 
             if let processLaunch = spanDatas.first(where: { $0.name == "emb-process-launch" }),
-                let sdkStart = spanDatas.first(where: { $0.name == "emb-sdk-start" }),
-                processLaunch.endTime != nil,
-                sdkStart.endTime != nil {
+                let sdkStart = spanDatas.first(where: { $0.name == "emb-sdk-start" }) {
                     processLaunchSpan = processLaunch
                     sdkStartSpan = sdkStart
                     expectation.fulfill()

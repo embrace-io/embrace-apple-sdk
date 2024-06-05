@@ -18,10 +18,10 @@ extension DeviceIdentifier {
                         return DeviceIdentifier(value: uuid)
                     }
 
-                    ConsoleLog.warning("Failed to convert device.id back into a UUID. Possibly corrupted!")
+                    Embrace.logger.warning("Failed to convert device.id back into a UUID. Possibly corrupted!")
                 }
             } catch let e {
-                ConsoleLog.error("Failed to fetch device id from database \(e.localizedDescription)")
+                Embrace.logger.error("Failed to fetch device id from database \(e.localizedDescription)")
             }
         }
 
@@ -38,7 +38,7 @@ extension DeviceIdentifier {
                     lifespan: .permanent
                 )
             } catch let e {
-                ConsoleLog.error("Failed to add device id to database \(e.localizedDescription)")
+                Embrace.logger.error("Failed to add device id to database \(e.localizedDescription)")
             }
         }
 

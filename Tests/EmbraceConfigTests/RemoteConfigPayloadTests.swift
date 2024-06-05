@@ -20,6 +20,11 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssertEqual(payload.sdkEnabledThreshold, 100)
         XCTAssertEqual(payload.backgroundSessionThreshold, 0)
         XCTAssertEqual(payload.networkSpansForwardingThreshold, 0)
+        XCTAssertEqual(payload.internalLogsTraceLimit, 0)
+        XCTAssertEqual(payload.internalLogsDebugLimit, 0)
+        XCTAssertEqual(payload.internalLogsInfoLimit, 0)
+        XCTAssertEqual(payload.internalLogsWarningLimit, 0)
+        XCTAssertEqual(payload.internalLogsErrorLimit, 3)
     }
 
     func test_values() {
@@ -32,6 +37,11 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssertEqual(payload.sdkEnabledThreshold, 50)
         XCTAssertEqual(payload.backgroundSessionThreshold, 75)
         XCTAssertEqual(payload.networkSpansForwardingThreshold, 25)
+        XCTAssertEqual(payload.internalLogsTraceLimit, 10)
+        XCTAssertEqual(payload.internalLogsDebugLimit, 20)
+        XCTAssertEqual(payload.internalLogsInfoLimit, 30)
+        XCTAssertEqual(payload.internalLogsWarningLimit, 40)
+        XCTAssertEqual(payload.internalLogsErrorLimit, 50)
     }
 }
 

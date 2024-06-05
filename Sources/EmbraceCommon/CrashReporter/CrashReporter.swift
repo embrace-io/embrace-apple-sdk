@@ -11,7 +11,7 @@ import Foundation
 @objc public protocol CrashReporter {
     @objc var currentSessionId: String? { get set }
 
-    @objc func install(context: CrashReporterContext)
+    @objc func install(context: CrashReporterContext, logger: InternalLogger)
 
     @objc func getLastRunState() -> LastRunState
 

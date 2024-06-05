@@ -48,7 +48,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
     /// Used to control the verbosity level of the Embrace SDK console logs.
     @objc public var logLevel: LogLevel = .error {
         didSet {
-            ConsoleLog.shared.level = logLevel
+            Embrace.logger.level = logLevel
         }
     }
 
@@ -82,6 +82,8 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
 
     static let notificationCenter: NotificationCenter = NotificationCenter()
 
+    static let logger: DefaultInternalLogger = DefaultInternalLogger()
+
     /// Method used to configure the Embrace SDK.
     /// - Parameter options: `Embrace.Options` to be used by the SDK.
     /// - Throws: `EmbraceSetupError.invalidThread` if not called from the main thread.
@@ -101,7 +103,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
 
         return try Embrace.synchronizationQueue.sync {
             if let client = client {
-                ConsoleLog.warning("Embrace was already initialized!")
+                Embrace.logger.warning("Embrace was already initialized!")
                 return client
             }
 
@@ -121,6 +123,10 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         fatalError("Use init(options:) instead")
     }
 
+    deinit {
+        Embrace.notificationCenter.removeObserver(self)
+    }
+
     init(options: Embrace.Options,
          logControllable: LogControllable? = nil,
          embraceStorage: EmbraceStorage? = nil) throws {
@@ -128,6 +134,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         self.options = options
 
         self.logLevel = options.logLevel
+
         self.storage = try embraceStorage ?? Embrace.createStorage(options: options)
         self.deviceId = DeviceIdentifier.retrieve(from: storage)
         self.upload = Embrace.createUpload(options: options, deviceId: deviceId.hex)
@@ -143,6 +150,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         )
         super.init()
 
+        // setup otel
         EmbraceOTel.setup(spanProcessors: .processors(for: storage, export: options.export))
         let logSharedState = DefaultEmbraceLogSharedState.create(
             storage: self.storage,
@@ -151,6 +159,13 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         )
         EmbraceOTel.setup(logSharedState: logSharedState)
         sessionLifecycle.setup()
+
+        // config update event
+        Embrace.notificationCenter.addObserver(
+            self,
+            selector: #selector(onConfigUpdated),
+            name: .embraceConfigUpdated, object: nil
+        )
     }
 
     /// Method used to start the Embrace SDK.
@@ -164,12 +179,12 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
 
         Embrace.synchronizationQueue.sync {
             guard started == false else {
-                ConsoleLog.warning("Embrace was already started!")
+                Embrace.logger.warning("Embrace was already started!")
                 return
             }
 
             guard config.isSDKEnabled else {
-                ConsoleLog.warning("Embrace can't start when disabled!")
+                Embrace.logger.warning("Embrace can't start when disabled!")
                 return
             }
 
@@ -226,5 +241,10 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
     /// Method used to force the Embrace SDK to stop the current session, if any.
     @objc public func endCurrentSession() {
         sessionLifecycle.endSession()
+    }
+
+    /// Called everytime the remote config changes
+    @objc private func onConfigUpdated() {
+        Embrace.logger.limits = InternalLogLimits(config: config)
     }
 }

@@ -38,7 +38,7 @@ class EmbraceLogAttributesBuilder {
     }
 
     init(session: SessionRecord?,
-         crashReport: CrashReport?,
+         crashReport: CrashReport? = nil,
          initialAttributes: [String: String]) {
         self.session = session
         self.crashReport = crashReport
@@ -56,7 +56,7 @@ class EmbraceLogAttributesBuilder {
             let stackTraceInBase64 = jsonData.base64EncodedString()
             attributes[Keys.stackTrace] = stackTraceInBase64
         } catch let exception {
-            ConsoleLog.error("Couldn't convert stack trace to json string: ", exception.localizedDescription)
+            Embrace.logger.error("Couldn't convert stack trace to json string: \(exception.localizedDescription)")
         }
         return self
     }

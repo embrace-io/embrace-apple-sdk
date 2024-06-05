@@ -38,8 +38,7 @@ import EmbraceOTel
                 try didAppearSwizzle?.install()
                 try didDisappearSwizzle?.install()
             } catch let exception {
-                ConsoleLog.error("An error ocurred while swizzling UIViewController: %@",
-                                 exception.localizedDescription)
+                Embrace.logger.error("An error ocurred while swizzling UIViewController: \(exception.localizedDescription)")
             }
         }
     }

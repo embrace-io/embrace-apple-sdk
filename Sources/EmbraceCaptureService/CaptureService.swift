@@ -23,15 +23,20 @@ import OpenTelemetryApi
     /// Getter for the OTel handler used by the capture service.
     private(set) public var otel: EmbraceOpenTelemetry?
 
+    /// `EmbraceConsoleLogger` instance used to generate internal logs.
+    private(set) public var logger: InternalLogger?
+
     /// Getter for the state of the capture service.
     @ThreadSafe
     private(set) public var state: CaptureServiceState = .uninstalled
 
-    public func install(otel: EmbraceOpenTelemetry?) {
+    public func install(otel: EmbraceOpenTelemetry?, logger: InternalLogger? = nil) {
         guard state == .uninstalled else {
             return
         }
+
         self.otel = otel
+        self.logger = logger
 
         onInstall()
 

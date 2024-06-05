@@ -31,7 +31,7 @@ class SpansPayloadBuilder {
             )
 
         } catch {
-            ConsoleLog.error("Error fetching spans for session \(sessionRecord.id):\n\(error.localizedDescription)")
+            Embrace.logger.error("Error fetching spans for session \(sessionRecord.id):\n\(error.localizedDescription)")
             return ([], [])
         }
 
@@ -67,7 +67,7 @@ class SpansPayloadBuilder {
                     spanSnapshots.append(payload)
                 }
             } catch {
-                ConsoleLog.error("Error decoding span!:\n\(error.localizedDescription)")
+                Embrace.logger.error("Error decoding span!:\n\(error.localizedDescription)")
             }
         }
 
@@ -90,7 +90,7 @@ class SpansPayloadBuilder {
             return SessionSpanUtils.payload(from: sessionRecord, spanData: spanData, sessionNumber: sessionNumber)
 
         } catch {
-            ConsoleLog.warning("Error fetching span for session \(sessionRecord.id):\n\(error.localizedDescription)")
+            Embrace.logger.warning("Error fetching span for session \(sessionRecord.id):\n\(error.localizedDescription)")
         }
 
         return nil

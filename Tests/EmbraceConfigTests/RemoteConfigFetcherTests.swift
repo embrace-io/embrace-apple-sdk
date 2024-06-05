@@ -25,6 +25,8 @@ class RemoteConfigFetcherTests: XCTestCase {
         )
     }
 
+    let logger = MockLogger()
+
     override func setUpWithError() throws {
         // can't use ephemeral because we need to test the cache
         RemoteConfigFetcherTests.urlSessionConfig = URLSessionConfiguration.default
@@ -33,7 +35,7 @@ class RemoteConfigFetcherTests: XCTestCase {
 
     func test_requestMetadata() {
         // given a fetcher
-        let fetcher = RemoteConfigFetcher(options: testOptions())
+        let fetcher = RemoteConfigFetcher(options: testOptions(), logger: logger)
 
         // then requests created are correct
         let request = fetcher.newRequest()
@@ -47,7 +49,7 @@ class RemoteConfigFetcherTests: XCTestCase {
 
     func test_ETag() throws {
         // given a fetcher
-        let fetcher = RemoteConfigFetcher(options: testOptions())
+        let fetcher = RemoteConfigFetcher(options: testOptions(), logger: logger)
 
         // when there's a cached response
         let url = try XCTUnwrap(fetcher.buildURL())
@@ -67,7 +69,7 @@ class RemoteConfigFetcherTests: XCTestCase {
 
     func test_fetchSuccess() throws {
         // given a fetcher
-        let fetcher = RemoteConfigFetcher(options: testOptions())
+        let fetcher = RemoteConfigFetcher(options: testOptions(), logger: logger)
 
         // and a valid remote config
         let url = try XCTUnwrap(fetcher.buildURL())
@@ -91,7 +93,7 @@ class RemoteConfigFetcherTests: XCTestCase {
 
     func test_fetchSuccess_wrongResponseCode() throws {
         // given a fetcher
-        let fetcher = RemoteConfigFetcher(options: testOptions())
+        let fetcher = RemoteConfigFetcher(options: testOptions(), logger: logger)
 
         // and a valid remote config
         let url = try XCTUnwrap(fetcher.buildURL())
@@ -117,7 +119,7 @@ class RemoteConfigFetcherTests: XCTestCase {
 
     func test_fetchFailure() throws {
         // given a fetcher
-        let fetcher = RemoteConfigFetcher(options: testOptions())
+        let fetcher = RemoteConfigFetcher(options: testOptions(), logger: logger)
 
         // when failing to fetch the config
         let url = try XCTUnwrap(fetcher.buildURL())

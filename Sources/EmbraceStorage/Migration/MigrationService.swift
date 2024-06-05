@@ -10,11 +10,16 @@ public protocol MigrationServiceProtocol {
 }
 
 final public class MigrationService: MigrationServiceProtocol {
-    public init() { }
+
+    let logger: InternalLogger
+
+    public init(logger: InternalLogger) {
+        self.logger = logger
+    }
 
     public func perform(_ dbQueue: DatabaseWriter, migrations: [Migration]) throws {
         guard migrations.count > 0 else {
-            ConsoleLog.debug("No migrations to perform")
+            logger.debug("No migrations to perform")
             return
         }
 
@@ -27,10 +32,10 @@ final public class MigrationService: MigrationServiceProtocol {
 
         try dbQueue.read { db in
             if try migrator.hasCompletedMigrations(db) {
-                ConsoleLog.debug("DB is up to date")
+                logger.debug("DB is up to date")
                 return
             } else {
-                ConsoleLog.debug("Running up to \(migrations.count) migrations")
+                logger.debug("Running up to \(migrations.count) migrations")
             }
         }
 

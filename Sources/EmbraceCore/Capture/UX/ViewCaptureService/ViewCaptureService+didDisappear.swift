@@ -15,12 +15,12 @@ extension ViewCaptureService {
         }
 
         guard vc.embCaptureView else {
-            ConsoleLog.debug("\(vc.description) View is manually ignored")
+            Embrace.logger.debug("\(vc.description) View is manually ignored")
             return
         }
 
         guard let span = vc.emb_associatedSpan else {
-            ConsoleLog.error("\(vc.description) Can not be closed because it's not being tracked")
+            Embrace.logger.error("\(vc.description) Can not be closed because it's not being tracked")
             return
         }
 

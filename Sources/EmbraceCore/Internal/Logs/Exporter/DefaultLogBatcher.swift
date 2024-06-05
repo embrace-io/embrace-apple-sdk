@@ -43,7 +43,7 @@ class DefaultLogBatcher: LogBatcher {
                 case .success:
                     self.addLogToBatch(logRecord)
                 case .failure(let error):
-                    ConsoleLog.error(error.localizedDescription)
+                    Embrace.logger.error(error.localizedDescription)
                 }
             }
         }

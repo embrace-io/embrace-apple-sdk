@@ -9,7 +9,7 @@ import GRDB
 
 class MigrationServiceTests: XCTestCase {
     var dbQueue: DatabaseQueue!
-    var migrationService = MigrationService()
+    var migrationService = MigrationService(logger: MockLogger())
 
     override func setUpWithError() throws {
         dbQueue = try DatabaseQueue(named: name)

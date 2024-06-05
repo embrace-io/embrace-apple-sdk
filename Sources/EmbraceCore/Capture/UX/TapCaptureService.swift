@@ -34,7 +34,7 @@ import EmbraceOTel
 
             try swizzler?.install()
         } catch let exception {
-            ConsoleLog.error("An error ocurred while swizzling UIWindow.sendEvent: %@", exception.localizedDescription)
+            Embrace.logger.error("An error ocurred while swizzling UIWindow.sendEvent: \(exception.localizedDescription)")
         }
     }
 
@@ -75,7 +75,7 @@ import EmbraceOTel
 
         add(event: event)
 
-        ConsoleLog.trace("Captured tap at \(point) on: \(viewName)")
+        Embrace.logger.trace("Captured tap at \(point) on: \(viewName)")
     }
 
     func shouldRecordCoordinates(from target: AnyObject?) -> Bool {

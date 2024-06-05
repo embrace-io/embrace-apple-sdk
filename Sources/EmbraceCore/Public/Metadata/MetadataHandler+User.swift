@@ -53,7 +53,7 @@ extension MetadataHandler {
         do {
             try storage?.removeAllMetadata(keys: UserResourceKey.allValues, lifespan: .permanent)
         } catch {
-            ConsoleLog.warning("Unable to clear user metadata")
+            Embrace.logger.warning("Unable to clear user metadata")
         }
     }
 }
@@ -65,7 +65,7 @@ extension MetadataHandler {
             let record = try storage?.fetchMetadata(key: key.rawValue, type: .customProperty, lifespan: .permanent)
             return record?.stringValue
         } catch {
-            ConsoleLog.warning("Unable to read user metadata!")
+            Embrace.logger.warning("Unable to read user metadata!")
         }
         return nil
     }
@@ -83,7 +83,7 @@ extension MetadataHandler {
 
                 _ = try storage?.addMetadata(record)
             } catch {
-                ConsoleLog.warning("Unable to update user metadata!")
+                Embrace.logger.warning("Unable to update user metadata!")
             }
         } else {
             remove(key)
@@ -94,7 +94,7 @@ extension MetadataHandler {
         do {
             try storage?.removeMetadata(key: key.rawValue, type: .customProperty, lifespan: .permanent)
         } catch {
-            ConsoleLog.warning("An error occurred when removing this user resource key: \(key)")
+            Embrace.logger.warning("An error occurred when removing this user resource key: \(key)")
         }
     }
 }

@@ -32,6 +32,7 @@ import EmbraceCommon
     }
 
     let options: CrashlyticsReporter.Options
+    var logger: InternalLogger?
     var context: CrashReporterContext?
 
     /// Object used to interact with Firebase
@@ -52,8 +53,9 @@ import EmbraceCommon
         return .invalid
     }
 
-    public func install(context: CrashReporterContext) {
+    public func install(context: CrashReporterContext, logger: InternalLogger) {
         self.context = context
+        self.logger = logger
         wrapper.sdkVersion = context.sdkVersion
 
         context.notificationCenter.addObserver(

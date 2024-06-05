@@ -67,10 +67,10 @@ final class CaptureServices {
     }
 
     func start() {
-        crashReporter?.install(context: context)
+        crashReporter?.install(context: context, logger: Embrace.logger)
 
         for service in services {
-            service.install(otel: Embrace.client)
+            service.install(otel: Embrace.client, logger: Embrace.logger)
             service.start()
         }
     }

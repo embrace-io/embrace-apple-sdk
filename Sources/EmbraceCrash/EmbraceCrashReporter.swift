@@ -19,6 +19,7 @@ import KSCrash_Recording
     @ThreadSafe
     var ksCrash: KSCrash?
 
+    var logger: InternalLogger?
     private var queue: DispatchQueue = DispatchQueue(label: "com.embrace.crashreporter")
 
     private var appId: String?
@@ -61,12 +62,13 @@ import KSCrash_Recording
         return ksCrash.crashedLastLaunch ? .crash : .cleanExit
     }
 
-    public func install(context: EmbraceCommon.CrashReporterContext) {
+    public func install(context: EmbraceCommon.CrashReporterContext, logger: InternalLogger?) {
         guard ksCrash == nil else {
-            ConsoleLog.debug("EmbraceCrashReporter already installed!")
+            logger?.debug("EmbraceCrashReporter already installed!")
             return
         }
 
+        self.logger = logger
         sdkVersion = context.sdkVersion
         appId = context.appId
         basePath = context.filePathProvider.directoryURL(for: "embrace_crash_reporter")?.path
@@ -109,10 +111,10 @@ import KSCrash_Recording
                     if let json = String(data: data, encoding: String.Encoding.utf8) {
                         payload = json
                     } else {
-                        ConsoleLog.warning("Error serializing raw crash report \(reportId)!")
+                        self?.logger?.warning("Error serializing raw crash report \(reportId)!")
                     }
                 } catch {
-                    ConsoleLog.warning("Error serializing raw crash report \(reportId)!")
+                    self?.logger?.warning("Error serializing raw crash report \(reportId)!")
                 }
 
                 guard let payload = payload else {

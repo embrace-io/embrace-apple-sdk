@@ -15,7 +15,7 @@ final class EmbraceSetupCaptureServicesTests: XCTestCase {
 
     class ExampleCrashReporter: CrashReporter {
         var currentSessionId: String?
-        func install(context: CrashReporterContext) { }
+        func install(context: CrashReporterContext, logger: InternalLogger) { }
         func getLastRunState() -> LastRunState { return .cleanExit }
         func fetchUnsentCrashReports(completion: @escaping ([CrashReport]) -> Void) { }
         func deleteCrashReport(id: Int) { }

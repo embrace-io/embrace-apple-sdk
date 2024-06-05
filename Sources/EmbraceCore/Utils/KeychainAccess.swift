@@ -26,7 +26,7 @@ class KeychainAccess {
             if let uuid = UUID(uuidString: _deviceId) {
                 return uuid
             }
-            ConsoleLog.error("Failed to construct device id from keychain")
+            Embrace.logger.error("Failed to construct device id from keychain")
         }
 
         // generate new id
@@ -39,7 +39,7 @@ class KeychainAccess {
 
         if status != errSecSuccess {
             if let err = SecCopyErrorMessageString(status, nil) {
-                ConsoleLog.error("Write failed: \(err)")
+                Embrace.logger.error("Write failed: \(err)")
             }
         }
 

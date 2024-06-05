@@ -8,7 +8,11 @@ import EmbraceConfig
 import EmbraceCommon
 
 extension Embrace {
-    static func createConfig(options: Embrace.Options, deviceId: String) -> EmbraceConfig {
+    static func createConfig(
+        options: Embrace.Options,
+        deviceId: String
+    ) -> EmbraceConfig {
+
         let configOptions = EmbraceConfig.Options(
             apiBaseUrl: options.endpoints.configBaseURL,
             queue: DispatchQueue(label: "com.embrace.config"),
@@ -20,6 +24,10 @@ extension Embrace {
             userAgent: EmbraceMeta.userAgent
         )
 
-        return EmbraceConfig(options: configOptions)
+        return EmbraceConfig(
+            options: configOptions,
+            notificationCenter: Embrace.notificationCenter,
+            logger: Embrace.logger
+        )
     }
 }

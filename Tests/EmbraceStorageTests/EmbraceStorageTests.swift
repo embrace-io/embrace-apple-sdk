@@ -283,7 +283,7 @@ class EmbraceStorageTests: XCTestCase {
 
         /// Attempting to create an EmbraceStorage with the corrupted DB should result in a valid storage creation
         let storeCreationAttempt = Result(catching: {
-            try EmbraceStorage(options: .init(baseUrl: dbBaseUrl, fileName: dbFile))
+            try EmbraceStorage(options: .init(baseUrl: dbBaseUrl, fileName: dbFile), logger: MockLogger())
         })
         if case let .failure(error) = storeCreationAttempt {
             XCTFail("\(#function): EmbraceStorage failed to recover from corrupted existing DB: \(error)")

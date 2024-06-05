@@ -48,7 +48,7 @@ final class SessionControllerTests: XCTestCase {
         )
 
         self.queue = DispatchQueue(label: "com.test.embrace.queue", attributes: .concurrent)
-        upload = try EmbraceUpload(options: testOptions, queue: queue)
+        upload = try EmbraceUpload(options: testOptions, logger: MockLogger(), queue: queue)
         storage = try EmbraceStorage.createInMemoryDb()
 
         // we pass nil so we only use the upload module in the relevant tests

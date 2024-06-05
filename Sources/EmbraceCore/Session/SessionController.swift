@@ -186,7 +186,7 @@ extension SessionController {
         do {
             try storage.upsertSession(session)
         } catch {
-            ConsoleLog.warning("Error trying to update session:\n\(error.localizedDescription)")
+            Embrace.logger.warning("Error trying to update session:\n\(error.localizedDescription)")
         }
     }
 }

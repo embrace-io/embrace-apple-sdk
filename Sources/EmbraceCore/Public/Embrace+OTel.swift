@@ -63,7 +63,7 @@ extension Embrace: EmbraceOpenTelemetry {
     /// - Parameter events: An array of SpanEvent objects
     public func add(events: [SpanEvent]) {
         guard let span = sessionController.currentSessionSpan else {
-            ConsoleLog.debug("\(#function) failed: No current session span")
+            Embrace.logger.debug("\(#function) failed: No current session span")
             return
         }
 
@@ -86,7 +86,7 @@ extension Embrace: EmbraceOpenTelemetry {
         if let span = span as? ReadableSpan {
             exporter.export(spans: [span.toSpanData()])
         } else {
-            ConsoleLog.debug("Tried to flush a non-ReadableSpan object")
+            Embrace.logger.debug("Tried to flush a non-ReadableSpan object")
         }
     }
 

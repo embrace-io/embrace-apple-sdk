@@ -9,6 +9,7 @@ import EmbraceCommon
 
 class EmbraceCrashReporterTests: XCTestCase {
 
+    let logger = MockLogger()
     var context: CrashReporterContext = .testContext
 
     override func setUpWithError() throws {
@@ -22,7 +23,7 @@ class EmbraceCrashReporterTests: XCTestCase {
     func test_currentSessionId() {
         // given a crash reporter
         let crashReporter = EmbraceCrashReporter()
-        crashReporter.install(context: context)
+        crashReporter.install(context: context, logger: logger)
 
         // when setting the current session id
         let sessionId = SessionIdentifier.random
@@ -38,7 +39,7 @@ class EmbraceCrashReporterTests: XCTestCase {
         let crashReporter = EmbraceCrashReporter()
 
         // sdkversion set via context
-        crashReporter.install(context: context)
+        crashReporter.install(context: context, logger: logger)
 
         // then KSCrash's user info is properly set
         let key = EmbraceCrashReporter.UserInfoKey.sdkVersion
@@ -48,7 +49,7 @@ class EmbraceCrashReporterTests: XCTestCase {
     func test_fetchCrashReports() throws {
         // given a crash reporter
         let crashReporter = EmbraceCrashReporter()
-        crashReporter.install(context: context)
+        crashReporter.install(context: context, logger: logger)
 
         // given some fake crash report
         try FileManager.default.createDirectory(
@@ -75,7 +76,7 @@ class EmbraceCrashReporterTests: XCTestCase {
     func test_fetchCrashReports_count() throws {
         // given a crash reporter
         let crashReporter = EmbraceCrashReporter()
-        crashReporter.install(context: context)
+        crashReporter.install(context: context, logger: logger)
 
         // given some fake crash report
         try FileManager.default.createDirectory(

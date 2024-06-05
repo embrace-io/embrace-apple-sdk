@@ -7,7 +7,7 @@ import Foundation
 
 public extension EmbraceStorage {
     static func createInMemoryDb(runMigrations: Bool = true) throws -> EmbraceStorage {
-        let storage = try EmbraceStorage(options: .init(named: UUID().uuidString))
+        let storage = try EmbraceStorage(options: .init(named: UUID().uuidString), logger: MockLogger())
         if runMigrations { try storage.performMigration() }
         return storage
     }
@@ -15,7 +15,8 @@ public extension EmbraceStorage {
     static func createInDiskDb(runMigrations: Bool = true) throws -> EmbraceStorage {
         let url = URL(fileURLWithPath: NSTemporaryDirectory())
         let storage = try EmbraceStorage(
-            options: .init(baseUrl: url, fileName: "\(UUID().uuidString).sqlite")
+            options: .init(baseUrl: url, fileName: "\(UUID().uuidString).sqlite"),
+            logger: MockLogger()
         )
 
         if runMigrations { try storage.performMigration() }

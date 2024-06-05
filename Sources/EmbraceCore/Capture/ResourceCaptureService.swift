@@ -32,7 +32,7 @@ extension EmbraceStorage: ResourceCaptureServiceHandler {
                 )
             )
         } catch {
-            ConsoleLog.error("Failed to capture resource: \(error.localizedDescription)")
+            Embrace.logger.error("Failed to capture resource: \(error.localizedDescription)")
         }
     }
 }

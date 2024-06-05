@@ -43,7 +43,7 @@ struct LogPayloadBuilder {
                     resources = try storage.fetchResourcesForProcessId(ProcessIdentifier.current)
                 }
             } catch {
-                ConsoleLog.error("Error fetching resources for crash log.")
+                Embrace.logger.error("Error fetching resources for crash log.")
             }
         }
 

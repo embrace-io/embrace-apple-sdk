@@ -16,6 +16,7 @@ class EmbraceUploadOperation: AsyncOperation {
     private let data: Data
     private let retryCount: Int
     private var attemptCount: Int
+    private let logger: InternalLogger?
     private let completion: EmbraceUploadOperationCompletion?
 
     private var task: URLSessionDataTask?
@@ -28,6 +29,7 @@ class EmbraceUploadOperation: AsyncOperation {
         data: Data,
         retryCount: Int,
         attemptCount: Int,
+        logger: InternalLogger? = nil,
         completion: EmbraceUploadOperationCompletion? = nil
     ) {
         self.urlSession = urlSession
@@ -37,6 +39,7 @@ class EmbraceUploadOperation: AsyncOperation {
         self.data = data
         self.retryCount = retryCount
         self.attemptCount = attemptCount
+        self.logger = logger
         self.completion = completion
     }
 
@@ -74,7 +77,7 @@ class EmbraceUploadOperation: AsyncOperation {
 
             // check success
             if let response = response as? HTTPURLResponse {
-                ConsoleLog.debug("Upload operation complete. Status: \(response.statusCode) URL: \(String(describing: response.url))")
+                self?.logger?.debug("Upload operation complete. Status: \(response.statusCode) URL: \(String(describing: response.url))")
                 if response.statusCode >= 200 && response.statusCode < 300 {
                     self?.completion?(false, self?.attemptCount ?? 0, nil)
                 } else {

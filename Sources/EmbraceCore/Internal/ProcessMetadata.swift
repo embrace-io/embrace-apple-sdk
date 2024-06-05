@@ -27,7 +27,7 @@ extension ProcessMetadata {
         let retval = sysctl(&mib, UInt32(mib.count), infoPointer, &size, nil, 0)
 
         if retval != 0 {
-            ConsoleLog.error("Error: \(#file) \(#function) \(#line) - sysctl failed with errno=\(errno)")
+            Embrace.logger.error("Error: \(#file) \(#function) \(#line) - sysctl failed with errno=\(errno)")
             return nil
         }
 

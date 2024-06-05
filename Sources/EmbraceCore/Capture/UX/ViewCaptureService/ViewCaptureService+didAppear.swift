@@ -14,12 +14,12 @@ extension ViewCaptureService {
         }
 
         guard vc.embCaptureView else {
-            ConsoleLog.debug("\(vc.description) View is manually ignored")
+            Embrace.logger.debug("\(vc.description) View is manually ignored")
             return
         }
 
         guard vc.emb_associatedSpan == nil else {
-            ConsoleLog.debug("\(vc.description) Is already being tracked")
+            Embrace.logger.debug("\(vc.description) Is already being tracked")
             return
         }
 

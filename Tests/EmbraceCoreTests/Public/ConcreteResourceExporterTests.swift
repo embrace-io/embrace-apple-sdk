@@ -5,7 +5,7 @@
 import XCTest
 import EmbraceOTel
 import EmbraceStorage
-
+import TestSupport
 @testable import EmbraceCore
 
 class ConcreteResourceExporterTests: XCTestCase {
@@ -86,7 +86,7 @@ class ConcreteResourceExporterTests: XCTestCase {
 
     // This test is not that tidy, but ensures that the internalExporter always have the ResourceStorageExporter
     func test_create_setsInternalExporterAsResourceStorageExporter() throws {
-        let storage = try EmbraceStorage(options: .init(named: ""))
+        let storage = try EmbraceStorage(options: .init(named: ""), logger: MockLogger())
         let createdExporter = ConcreteResourceExporter.create(storage: storage)
         let mirror = Mirror(reflecting: createdExporter)
         let internalExporter = try mirror.children.first(where: {

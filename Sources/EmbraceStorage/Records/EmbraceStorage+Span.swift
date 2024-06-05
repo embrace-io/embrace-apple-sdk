@@ -52,7 +52,7 @@ extension EmbraceStorage {
             do {
                 try self?.upsertSpan(db: db, span: span)
             } catch let e as DatabaseError {
-                ConsoleLog.error("Failed upsertSpan `\(span.name)`: \(e.message ?? "[empty message]")")
+                logger.error("Failed upsertSpan `\(span.name)`: \(e.message ?? "[empty message]")")
             }
         }
     }

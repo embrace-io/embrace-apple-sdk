@@ -13,6 +13,7 @@ public protocol EmbraceLogUploader: AnyObject {
 public class EmbraceUpload: EmbraceLogUploader {
 
     public private(set) var options: Options
+    public private(set) var logger: InternalLogger
     public private(set) var queue: DispatchQueue
 
     let cache: EmbraceUploadCache
@@ -20,13 +21,15 @@ public class EmbraceUpload: EmbraceLogUploader {
     let operationQueue: OperationQueue
     var reachabilityMonitor: EmbraceReachabilityMonitor?
 
-    /// Returns an EmbraceUpload instance initialized on the given path.
+    /// Returns an `EmbraceUpload` instance
     /// - Parameters:
-    ///   - options: EmbraceUploadOptions instance
-    ///   - queue: DispatchQueue to be used for all upload operations
-    public init(options: Options, queue: DispatchQueue) throws {
+    ///   - options: `EmbraceUpload.Options` instance
+    ///   - logger: `EmbraceConsoleLogger` instance
+    ///   - queue: `DispatchQueue` to be used for all upload operations
+    public init(options: Options, logger: InternalLogger, queue: DispatchQueue) throws {
 
         self.options = options
+        self.logger = logger
         self.queue = queue
 
         cache = try EmbraceUploadCache(options: options.cache)
@@ -69,7 +72,7 @@ public class EmbraceUpload: EmbraceLogUploader {
                         completion: nil)
                 }
             } catch {
-                ConsoleLog.debug("Error retrying cached upload data: \(error.localizedDescription)")
+                self?.logger.debug("Error retrying cached upload data: \(error.localizedDescription)")
             }
         }
     }
@@ -122,7 +125,7 @@ public class EmbraceUpload: EmbraceLogUploader {
                 try self?.cache.saveUploadData(id: id, type: type, data: data)
                 completion?(.success(()))
             } catch {
-                ConsoleLog.debug("Error caching upload data: \(error.localizedDescription)")
+                self?.logger.debug("Error caching upload data: \(error.localizedDescription)")
                 completion?(.failure(error))
             }
         }
@@ -135,7 +138,8 @@ public class EmbraceUpload: EmbraceLogUploader {
             identifier: id,
             data: data,
             retryCount: options.redundancy.automaticRetryCount,
-            attemptCount: attemptCount) { [weak self] (cancelled, count, error) in
+            attemptCount: attemptCount,
+            logger: logger) { [weak self] (cancelled, count, error) in
 
                 self?.queue.async { [weak self] in
                     self?.handleOperationFinished(
@@ -169,7 +173,7 @@ public class EmbraceUpload: EmbraceLogUploader {
                 do {
                     try self?.cache.updateAttemptCount(id: id, type: type, attemptCount: attemptCount)
                 } catch {
-                    ConsoleLog.debug("Error updating cache: \(error.localizedDescription)")
+                    self?.logger.debug("Error updating cache: \(error.localizedDescription)")
                 }
             }
             return
@@ -180,7 +184,7 @@ public class EmbraceUpload: EmbraceLogUploader {
             do {
                 try self?.cache.deleteUploadData(id: id, type: type)
             } catch {
-                ConsoleLog.debug("Error deleting cache: \(error.localizedDescription)")
+                self?.logger.debug("Error deleting cache: \(error.localizedDescription)")
             }
         }
     }
@@ -190,7 +194,7 @@ public class EmbraceUpload: EmbraceLogUploader {
             do {
                 try self?.cache.clearStaleDataIfNeeded()
             } catch {
-                ConsoleLog.debug("Error clearing stale date from cache: \(error.localizedDescription)")
+                self?.logger.debug("Error clearing stale date from cache: \(error.localizedDescription)")
             }
         }
     }

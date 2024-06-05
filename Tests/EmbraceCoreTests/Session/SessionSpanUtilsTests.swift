@@ -12,8 +12,6 @@ import EmbraceOTel
 import OpenTelemetryApi
 import OpenTelemetrySdk
 
-// swiftlint:disable force_cast
-
 final class SessionSpanUtilsTests: XCTestCase {
 
     var spanProcessor: MockSpanProcessor!
@@ -224,5 +222,3 @@ final class SessionSpanUtilsTests: XCTestCase {
         XCTAssertEqual(crashIdAttribute!.value, "test")
     }
 }
-
-// swiftlint:enable force_cast
