@@ -287,7 +287,8 @@ class SpanRecordTests: XCTestCase {
             traceId: TestConstants.traceId,
             type: .performance,
             data: Data(),
-            startTime: Date(timeIntervalSince1970: 1)
+            startTime: Date(timeIntervalSince1970: 1),
+            processIdentifier: TestConstants.processId
         )
         _ = try storage.addSpan(
             id: "id3",
@@ -313,7 +314,7 @@ class SpanRecordTests: XCTestCase {
             XCTAssertNotNil(spans[0].endTime)
             XCTAssertNotEqual(spans[0].endTime!.timeIntervalSince1970, now.timeIntervalSince1970, accuracy: 0.1)
             XCTAssertEqual(spans[1].endTime!.timeIntervalSince1970, now.timeIntervalSince1970, accuracy: 0.1)
-            XCTAssertEqual(spans[2].endTime!.timeIntervalSince1970, now.timeIntervalSince1970, accuracy: 0.1)
+            XCTAssertNil(spans[2].endTime)
 
             expectation.fulfill()
         }

@@ -16,7 +16,6 @@ typealias DownloadTaskCompletion = (URL?, URLResponse?, Error?) -> Void
 
 protocol URLSessionSwizzler: Swizzlable {
     init(handler: URLSessionTaskHandler, baseClass: AnyClass)
-    func install() throws
 }
 
 @objc public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandlerDataSource {

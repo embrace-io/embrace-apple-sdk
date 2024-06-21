@@ -190,6 +190,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
 
             let processStartSpan = createProcessStartSpan()
             defer { processStartSpan.end() }
+
             recordSpan(name: "emb-sdk-start", parent: processStartSpan, type: .performance) { _ in
                 started = true
 

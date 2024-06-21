@@ -18,6 +18,12 @@ public class MockEmbraceOpenTelemetry: EmbraceOpenTelemetry {
         EmbraceOTel.setup(spanProcessors: [spanProcessor])
     }
 
+    public func clear() {
+        spanProcessor = MockSpanProcessor()
+        events = []
+        logs = []
+    }
+
     public func buildSpan(
         name: String,
         type: SpanType,

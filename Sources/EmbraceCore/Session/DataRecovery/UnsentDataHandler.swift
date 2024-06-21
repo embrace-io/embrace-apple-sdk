@@ -183,7 +183,7 @@ class UnsentDataHandler {
 
         // clean up old spans + close open spans
         cleanOldSpans(storage: storage)
-        closeOpenSpans(storage: storage)
+        closeOpenSpans(storage: storage, currentSessionId: currentSessionId)
 
         // fetch all sessions in the storage
         var sessions: [SessionRecord]
@@ -268,13 +268,13 @@ class UnsentDataHandler {
         }
     }
 
-    static private func closeOpenSpans(storage: EmbraceStorage) {
+    static private func closeOpenSpans(storage: EmbraceStorage, currentSessionId: SessionIdentifier?) {
         do {
             // then we need to close any remaining open spans
             // we use the latest session on storage to determine the `endTime`
             // since we need to have a valid `endTime` for these spans, we default
             // to `Date()` if we don't have a session
-            let latestSession = try storage.fetchLatestSesssion()
+            let latestSession = try storage.fetchLatestSesssion(ignoringCurrentSessionId: currentSessionId)
             let endTime = (latestSession?.endTime ?? latestSession?.lastHeartbeatTime) ?? Date()
             try storage.closeOpenSpans(endTime: endTime)
         } catch {

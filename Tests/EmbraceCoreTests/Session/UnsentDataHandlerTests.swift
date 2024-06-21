@@ -490,7 +490,8 @@ class UnsentDataHandlerTests: XCTestCase {
             traceId: TestConstants.traceId,
             type: .performance,
             data: Data(),
-            startTime: Date(timeIntervalSinceNow: -50)
+            startTime: Date(timeIntervalSinceNow: -50),
+            processIdentifier: TestConstants.processId
         )
 
         // when sending unsent sessions

@@ -28,7 +28,8 @@ extension EmbraceStorage {
         type: SpanType,
         data: Data,
         startTime: Date,
-        endTime: Date? = nil
+        endTime: Date? = nil,
+        processIdentifier: ProcessIdentifier = .current
     ) throws -> SpanRecord {
 
         let span = SpanRecord(
@@ -38,7 +39,8 @@ extension EmbraceStorage {
             type: type,
             data: data,
             startTime: startTime,
-            endTime: endTime
+            endTime: endTime,
+            processIdentifier: processIdentifier
         )
         try upsertSpan(span)
 
@@ -52,7 +54,7 @@ extension EmbraceStorage {
             do {
                 try self?.upsertSpan(db: db, span: span)
             } catch let e as DatabaseError {
-                logger.error("Failed upsertSpan `\(span.name)`: \(e.message ?? "[empty message]")")
+                self?.logger.error("Failed upsertSpan `\(span.name)`: \(e.message ?? "[empty message]")")
             }
         }
     }
@@ -98,7 +100,10 @@ extension EmbraceStorage {
     public func closeOpenSpans(endTime: Date) throws {
         _ = try dbQueue.write { db in
             try SpanRecord
-                .filter(SpanRecord.Schema.endTime == nil)
+                .filter(
+                    SpanRecord.Schema.endTime == nil &&
+                    SpanRecord.Schema.processIdentifier != ProcessIdentifier.current
+                )
                 .updateAll(db, SpanRecord.Schema.endTime.set(to: endTime))
         }
     }

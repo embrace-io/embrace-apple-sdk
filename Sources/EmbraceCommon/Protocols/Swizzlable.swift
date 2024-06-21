@@ -19,6 +19,9 @@ public protocol Swizzlable {
     /// The class on which method swizzling will be performed.
     var baseClass: AnyClass { get }
 
+    /// Should be called when the swizzling should be executed.
+    func install() throws
+
     /// Swizzles an instance method of the base class with a new implementation provided as a block.
     ///
     /// - Parameter block: A block representing the new implementation.
