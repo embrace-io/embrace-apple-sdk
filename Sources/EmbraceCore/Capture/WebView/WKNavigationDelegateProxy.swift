@@ -8,6 +8,8 @@ import EmbraceOTel
 
 class WKNavigationDelegateProxy: NSObject {
     weak var originalDelegate: WKNavigationDelegate?
+
+    // callback triggered the webview loads an url or errors
     var callback: ((URL?, Int?) -> Void)?
 }
 
@@ -26,11 +28,8 @@ extension WKNavigationDelegateProxy: WKNavigationDelegate {
         callback?(webView.url, statusCode)
 
         // call original
-        if let delegate = originalDelegate {
-            delegate.webView?(webView, decidePolicyFor: navigationResponse, decisionHandler: decisionHandler)
-        } else {
-            decisionHandler(.allow)
-        }
+        originalDelegate?.webView?(webView, decidePolicyFor: navigationResponse, decisionHandler: decisionHandler)
+            ?? decisionHandler(.allow)
     }
 
     func webView(
@@ -42,9 +41,7 @@ extension WKNavigationDelegateProxy: WKNavigationDelegate {
         callback?(webView.url, (error as NSError).code)
 
         // call original
-        if let delegate = originalDelegate {
-            delegate.webView?(webView, didFailProvisionalNavigation: navigation, withError: error)
-        }
+        originalDelegate?.webView?(webView, didFailProvisionalNavigation: navigation, withError: error)
     }
 
     func webView(
@@ -56,9 +53,7 @@ extension WKNavigationDelegateProxy: WKNavigationDelegate {
         callback?(webView.url, (error as NSError).code)
 
         // call original
-        if let delegate = originalDelegate {
-            delegate.webView?(webView, didFail: navigation, withError: error)
-        }
+        originalDelegate?.webView?(webView, didFail: navigation, withError: error)
     }
 
     // forwarded methods without capture
@@ -67,11 +62,8 @@ extension WKNavigationDelegateProxy: WKNavigationDelegate {
         decidePolicyFor navigationAction: WKNavigationAction,
         decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
     ) {
-        if let delegate = originalDelegate {
-            delegate.webView?(webView, decidePolicyFor: navigationAction, decisionHandler: decisionHandler)
-        } else {
-            decisionHandler(.allow)
-        }
+        originalDelegate?.webView?(webView, decidePolicyFor: navigationAction, decisionHandler: decisionHandler)
+            ?? decisionHandler(.allow)
     }
 
     func webView(
@@ -80,52 +72,41 @@ extension WKNavigationDelegateProxy: WKNavigationDelegate {
         preferences: WKWebpagePreferences,
         decisionHandler: @escaping (WKNavigationActionPolicy, WKWebpagePreferences) -> Void
     ) {
-        if let delegate = originalDelegate {
-            delegate.webView?(
-                webView,
-                decidePolicyFor: navigationAction,
-                preferences: preferences,
-                decisionHandler: decisionHandler
-            )
-        } else {
-            decisionHandler(.allow, preferences)
-        }
+        originalDelegate?.webView?(
+            webView,
+            decidePolicyFor: navigationAction,
+            preferences: preferences,
+            decisionHandler: decisionHandler
+        )
+            ?? decisionHandler(.allow, preferences)
     }
 
     func webView(
         _ webView: WKWebView,
         didStartProvisionalNavigation navigation: WKNavigation!
     ) {
-        if let delegate = originalDelegate {
-            delegate.webView?(webView, didStartProvisionalNavigation: navigation)
-        }
+         originalDelegate?.webView?(webView, didStartProvisionalNavigation: navigation)
     }
 
     func webView(
         _ webView: WKWebView,
         didReceiveServerRedirectForProvisionalNavigation navigation: WKNavigation!
     ) {
-        if let delegate = originalDelegate {
-            delegate.webView?(webView, didReceiveServerRedirectForProvisionalNavigation: navigation)
-        }
+        originalDelegate?.webView?(webView, didReceiveServerRedirectForProvisionalNavigation: navigation)
     }
 
     func webView(
         _ webView: WKWebView,
         didCommit navigation: WKNavigation!
     ) {
-        if let delegate = originalDelegate {
-            delegate.webView?(webView, didCommit: navigation)
-        }
+        originalDelegate?.webView?(webView, didCommit: navigation)
     }
 
     func webView(
         _ webView: WKWebView,
         didFinish navigation: WKNavigation!
     ) {
-        if let delegate = originalDelegate {
-            delegate.webView?(webView, didFinish: navigation)
-        }
+        originalDelegate?.webView?(webView, didFinish: navigation)
     }
 
     func webView(
@@ -133,19 +114,14 @@ extension WKNavigationDelegateProxy: WKNavigationDelegate {
         didReceive challenge: URLAuthenticationChallenge,
         completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
     ) {
-        if let delegate = originalDelegate {
-            delegate.webView?(webView, didReceive: challenge, completionHandler: completionHandler)
-        } else {
-            completionHandler(.performDefaultHandling, nil)
-        }
+        originalDelegate?.webView?(webView, didReceive: challenge, completionHandler: completionHandler)
+            ?? completionHandler(.performDefaultHandling, nil)
     }
 
     func webViewWebContentProcessDidTerminate(
         _ webView: WKWebView
     ) {
-        if let delegate = originalDelegate {
-            delegate.webViewWebContentProcessDidTerminate?(webView)
-        }
+        originalDelegate?.webViewWebContentProcessDidTerminate?(webView)
     }
 
     @available(iOS 14, *)
@@ -154,11 +130,12 @@ extension WKNavigationDelegateProxy: WKNavigationDelegate {
         authenticationChallenge challenge: URLAuthenticationChallenge,
         shouldAllowDeprecatedTLS decisionHandler: @escaping (Bool) -> Void
     ) {
-        if let delegate = originalDelegate {
-            delegate.webView?(webView, authenticationChallenge: challenge, shouldAllowDeprecatedTLS: decisionHandler)
-        } else {
-            decisionHandler(false)
-        }
+        originalDelegate?.webView?(
+            webView,
+            authenticationChallenge: challenge,
+            shouldAllowDeprecatedTLS: decisionHandler
+        )
+            ?? decisionHandler(false)
     }
 
     @available(iOS 14.5, *)
@@ -167,9 +144,7 @@ extension WKNavigationDelegateProxy: WKNavigationDelegate {
         navigationAction: WKNavigationAction,
         didBecome download: WKDownload
     ) {
-        if let delegate = originalDelegate {
-            delegate.webView?(webView, navigationAction: navigationAction, didBecome: download)
-        }
+        originalDelegate?.webView?(webView, navigationAction: navigationAction, didBecome: download)
     }
 
     @available(iOS 14.5, *)
@@ -178,9 +153,7 @@ extension WKNavigationDelegateProxy: WKNavigationDelegate {
         navigationResponse: WKNavigationResponse,
         didBecome download: WKDownload
     ) {
-        if let delegate = originalDelegate {
-            delegate.webView?(webView, navigationResponse: navigationResponse, didBecome: download)
-        }
+        originalDelegate?.webView?(webView, navigationResponse: navigationResponse, didBecome: download)
     }
 }
 #endif

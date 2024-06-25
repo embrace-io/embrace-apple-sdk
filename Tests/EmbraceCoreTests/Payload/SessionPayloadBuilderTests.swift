@@ -47,7 +47,7 @@ final class SessionPayloadBuilderTests: XCTestCase {
         XCTAssertNil(resource)
 
         // when building a session payload
-        let payload = SessionPayloadBuilder.build(for: sessionRecord, storage: storage)
+        _ = SessionPayloadBuilder.build(for: sessionRecord, storage: storage)
 
         // then a resource is created with the correct value
         resource = try storage.fetchMetadata(
@@ -76,7 +76,7 @@ final class SessionPayloadBuilderTests: XCTestCase {
         XCTAssertNotNil(resource)
 
         // when building a session payload
-        let payload = SessionPayloadBuilder.build(for: sessionRecord, storage: storage)
+        _ = SessionPayloadBuilder.build(for: sessionRecord, storage: storage)
 
         // then the counter is updated correctly
         resource = try storage.fetchMetadata(
