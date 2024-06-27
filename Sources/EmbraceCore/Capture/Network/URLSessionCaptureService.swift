@@ -23,7 +23,7 @@ protocol URLSessionSwizzler: Swizzlable {
     public let options: URLSessionCaptureService.Options
     private let lock: NSLocking
     private let swizzlerProvider: URLSessionSwizzlerProvider
-    private var swizzlers: [any URLSessionSwizzler] = []
+    private(set) var swizzlers: [any URLSessionSwizzler] = []
     private var handler: URLSessionTaskHandler?
 
     @objc public convenience init(options: URLSessionCaptureService.Options) {

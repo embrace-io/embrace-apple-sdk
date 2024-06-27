@@ -11,11 +11,11 @@ extension URLSessionDelegateProxy: URLSessionDownloadDelegate {
         let selector = #selector(
             URLSessionDownloadDelegate.urlSession(_:downloadTask:didFinishDownloadingTo:)
         )
-        if originalDelegateResponds(to: selector),
-           let task = originalDelegate as? URLSessionDownloadDelegate {
-            task.urlSession(session,
-                            downloadTask: downloadTask,
-                            didFinishDownloadingTo: location)
+
+        invokeDelegates(session: session, selector: selector) { (delegate: URLSessionDownloadDelegate) in
+            delegate.urlSession(session,
+                                 downloadTask: downloadTask,
+                                 didFinishDownloadingTo: location)
         }
     }
 
@@ -29,13 +29,13 @@ extension URLSessionDelegateProxy: URLSessionDownloadDelegate {
             URLSessionDownloadDelegate
                 .urlSession(_:downloadTask:didWriteData:totalBytesWritten:totalBytesExpectedToWrite:)
         )
-        if originalDelegateResponds(to: selector),
-           let task = originalDelegate as? URLSessionDownloadDelegate {
-            task.urlSession?(session,
-                             downloadTask: downloadTask,
-                             didWriteData: bytesWritten,
-                             totalBytesWritten: totalBytesWritten,
-                             totalBytesExpectedToWrite: totalBytesExpectedToWrite)
+
+        invokeDelegates(session: session, selector: selector) { (delegate: URLSessionDownloadDelegate) in
+            delegate.urlSession?(session,
+                                downloadTask: downloadTask,
+                                didWriteData: bytesWritten,
+                                totalBytesWritten: totalBytesWritten,
+                                totalBytesExpectedToWrite: totalBytesExpectedToWrite)
         }
     }
 
@@ -46,12 +46,12 @@ extension URLSessionDelegateProxy: URLSessionDownloadDelegate {
         let selector = #selector(
             URLSessionDownloadDelegate.urlSession(_:downloadTask:didResumeAtOffset:expectedTotalBytes:)
         )
-        if originalDelegateResponds(to: selector),
-           let task = originalDelegate as? URLSessionDownloadDelegate {
-            task.urlSession?(session,
-                             downloadTask: downloadTask,
-                             didResumeAtOffset: fileOffset,
-                             expectedTotalBytes: expectedTotalBytes)
+
+        invokeDelegates(session: session, selector: selector) { (delegate: URLSessionDownloadDelegate) in
+            delegate.urlSession?(session,
+                                 downloadTask: downloadTask,
+                                 didResumeAtOffset: fileOffset,
+                                 expectedTotalBytes: expectedTotalBytes)
         }
     }
 }

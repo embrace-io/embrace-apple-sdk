@@ -11,7 +11,7 @@ import XCTest
 ///
 /// More tests on the specific forwarding behavior for each method can be found in the `URLSessionDelegateProxyTests` class.
 class URLSessionDelegateProxyForwardingTests: XCTestCase {
-    private var originalDelegate: URLSessionDelegateWithoutImplementingMethods!
+    private var originalDelegate: NotImplementedURLSessionDelegate!
     private var sut: URLSessionDelegateProxy!
     private var handler: MockURLSessionTaskHandler!
 

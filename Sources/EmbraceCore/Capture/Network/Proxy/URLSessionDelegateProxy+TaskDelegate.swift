@@ -12,9 +12,9 @@ extension URLSessionDelegateProxy: URLSessionTaskDelegate {
         let selector = #selector(
             URLSessionTaskDelegate.urlSession(_:task:didFinishCollecting:)
         )
-        if originalDelegateResponds(to: selector),
-           let taskDelegate = originalDelegate as? URLSessionTaskDelegate {
-            taskDelegate.urlSession?(session, task: task, didFinishCollecting: metrics)
+
+        invokeDelegates(session: session, selector: selector) { (delegate: URLSessionTaskDelegate) in
+            delegate.urlSession?(session, task: task, didFinishCollecting: metrics)
         }
     }
 
@@ -23,9 +23,9 @@ extension URLSessionDelegateProxy: URLSessionTaskDelegate {
         let selector = #selector(
             URLSessionTaskDelegate.urlSession(_:didCreateTask:)
         )
-        if originalDelegateResponds(to: selector),
-           let taskDelegate = originalDelegate as? URLSessionTaskDelegate {
-            taskDelegate.urlSession?(session, didCreateTask: task)
+
+        invokeDelegates(session: session, selector: selector) { (delegate: URLSessionTaskDelegate) in
+            delegate.urlSession?(session, didCreateTask: task)
         }
     }
 
@@ -34,9 +34,9 @@ extension URLSessionDelegateProxy: URLSessionTaskDelegate {
         let selector = #selector(
             URLSessionTaskDelegate.urlSession(_:taskIsWaitingForConnectivity:)
         )
-        if originalDelegateResponds(to: selector),
-           let taskDelegate = originalDelegate as? URLSessionTaskDelegate {
-            taskDelegate.urlSession?(session, taskIsWaitingForConnectivity: task)
+
+        invokeDelegates(session: session, selector: selector) { (delegate: URLSessionTaskDelegate) in
+            delegate.urlSession?(session, taskIsWaitingForConnectivity: task)
         }
     }
 
@@ -48,13 +48,13 @@ extension URLSessionDelegateProxy: URLSessionTaskDelegate {
         let selector = #selector(
             URLSessionTaskDelegate.urlSession(_:task:didSendBodyData:totalBytesSent:totalBytesExpectedToSend:)
         )
-        if originalDelegateResponds(to: selector),
-           let taskDelegate = originalDelegate as? URLSessionTaskDelegate {
-            taskDelegate.urlSession?(session,
-                                     task: task,
-                                     didSendBodyData: bytesSent,
-                                     totalBytesSent: totalBytesSent,
-                                     totalBytesExpectedToSend: totalBytesExpectedToSend)
+
+        invokeDelegates(session: session, selector: selector) { (delegate: URLSessionTaskDelegate) in
+            delegate.urlSession?(session,
+                                 task: task,
+                                 didSendBodyData: bytesSent,
+                                 totalBytesSent: totalBytesSent,
+                                 totalBytesExpectedToSend: totalBytesExpectedToSend)
         }
     }
 
@@ -65,9 +65,9 @@ extension URLSessionDelegateProxy: URLSessionTaskDelegate {
         let selector = #selector(
             URLSessionTaskDelegate.urlSession(_:task:didReceiveInformationalResponse:)
         )
-        if originalDelegateResponds(to: selector),
-           let taskDelegate = originalDelegate as? URLSessionTaskDelegate {
-            taskDelegate.urlSession?(session, task: task, didReceiveInformationalResponse: response)
+
+        invokeDelegates(session: session, selector: selector) { (delegate: URLSessionTaskDelegate) in
+            delegate.urlSession?(session, task: task, didReceiveInformationalResponse: response)
         }
     }
 
@@ -78,9 +78,9 @@ extension URLSessionDelegateProxy: URLSessionTaskDelegate {
         let selector = #selector(
             URLSessionTaskDelegate.urlSession(_:task:didCompleteWithError:)
         )
-        if originalDelegateResponds(to: selector),
-           let taskDelegate = originalDelegate as? URLSessionTaskDelegate {
-            taskDelegate.urlSession?(session, task: task, didCompleteWithError: error)
+
+        invokeDelegates(session: session, selector: selector) { (delegate: URLSessionTaskDelegate) in
+            delegate.urlSession?(session, task: task, didCompleteWithError: error)
         }
     }
 }

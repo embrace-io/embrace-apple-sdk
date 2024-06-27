@@ -9,9 +9,9 @@ extension URLSessionDelegateProxy: URLSessionStreamDelegate {
         let selector = #selector(
             URLSessionStreamDelegate.urlSession(_:readClosedFor:)
         )
-        if originalDelegateResponds(to: selector),
-           let task = originalDelegate as? URLSessionStreamDelegate {
-            task.urlSession?(session, readClosedFor: streamTask)
+
+        invokeDelegates(session: session, selector: selector) { (delegate: URLSessionStreamDelegate) in
+            delegate.urlSession?(session, readClosedFor: streamTask)
         }
     }
 
@@ -19,9 +19,9 @@ extension URLSessionDelegateProxy: URLSessionStreamDelegate {
         let selector = #selector(
             URLSessionStreamDelegate.urlSession(_:writeClosedFor:)
         )
-        if originalDelegateResponds(to: selector),
-           let task = originalDelegate as? URLSessionStreamDelegate {
-            task.urlSession?(session, writeClosedFor: streamTask)
+
+        invokeDelegates(session: session, selector: selector) { (delegate: URLSessionStreamDelegate) in
+            delegate.urlSession?(session, writeClosedFor: streamTask)
         }
     }
 
@@ -29,9 +29,9 @@ extension URLSessionDelegateProxy: URLSessionStreamDelegate {
         let selector = #selector(
             URLSessionStreamDelegate.urlSession(_:betterRouteDiscoveredFor:)
         )
-        if originalDelegateResponds(to: selector),
-           let task = originalDelegate as? URLSessionStreamDelegate {
-            task.urlSession?(session, betterRouteDiscoveredFor: streamTask)
+
+        invokeDelegates(session: session, selector: selector) { (delegate: URLSessionStreamDelegate) in
+            delegate.urlSession?(session, betterRouteDiscoveredFor: streamTask)
         }
     }
 
@@ -42,12 +42,12 @@ extension URLSessionDelegateProxy: URLSessionStreamDelegate {
         let selector = #selector(
             URLSessionStreamDelegate.urlSession(_:streamTask:didBecome:outputStream:)
         )
-        if originalDelegateResponds(to: selector),
-           let task = originalDelegate as? URLSessionStreamDelegate {
-            task.urlSession?(session,
-                             streamTask: streamTask,
-                             didBecome: inputStream,
-                             outputStream: outputStream)
+
+        invokeDelegates(session: session, selector: selector) { (delegate: URLSessionStreamDelegate) in
+            delegate.urlSession?(session,
+                                 streamTask: streamTask,
+                                 didBecome: inputStream,
+                                 outputStream: outputStream)
         }
     }
 }

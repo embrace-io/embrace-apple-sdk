@@ -12,9 +12,9 @@ extension URLSessionDelegateProxy: URLSessionDataDelegate {
             URLSessionDataDelegate.urlSession(_:dataTask:didBecome:) as
             (URLSessionDataDelegate) -> ((URLSession, URLSessionDataTask, URLSessionDownloadTask) -> Void)?
         )
-        if originalDelegateResponds(to: selector),
-           let task = originalDelegate as? URLSessionDataDelegate {
-            task.urlSession?(session, dataTask: dataTask, didBecome: downloadTask)
+
+        invokeDelegates(session: session, selector: selector) { (delegate: URLSessionDataDelegate) in
+            delegate.urlSession?(session, dataTask: dataTask, didBecome: downloadTask)
         }
     }
 
@@ -26,9 +26,8 @@ extension URLSessionDelegateProxy: URLSessionDataDelegate {
             (URLSessionDataDelegate) -> ((URLSession, URLSessionDataTask, URLSessionStreamTask) -> Void)?
         )
 
-        if originalDelegateResponds(to: selector),
-           let task = originalDelegate as? URLSessionDataDelegate {
-            task.urlSession?(session, dataTask: dataTask, didBecome: streamTask)
+        invokeDelegates(session: session, selector: selector) { (delegate: URLSessionDataDelegate) in
+            delegate.urlSession?(session, dataTask: dataTask, didBecome: streamTask)
         }
     }
 
@@ -44,9 +43,9 @@ extension URLSessionDelegateProxy: URLSessionDataDelegate {
         } else {
             dataTask.embraceData = data
         }
-        if originalDelegateResponds(to: selector),
-           let task = originalDelegate as? URLSessionDataDelegate {
-            task.urlSession?(session, dataTask: dataTask, didReceive: data)
+
+        invokeDelegates(session: session, selector: selector) { (delegate: URLSessionDataDelegate) in
+            delegate.urlSession?(session, dataTask: dataTask, didReceive: data)
         }
     }
 }

@@ -41,6 +41,30 @@ class URLSessionDelegateProxy: NSObject {
         return false
     }
 
+    /// Performs logic to call `originalDelegate` and the `session.delegate` when necessary. Will call `block` 0 or 1 time
+    /// Will call  block with`originalDelegate` if non-nil and responds to selector
+    /// If we did not call `originalDelegate` then call block with `session.delegate` if non-nil and responds to selector
+    /// - Note Will also prevent infinite recursion by checking that current invocation is not already against session.delegate
+    func invokeDelegates<T: URLSessionDelegate>(session: URLSession, selector: Selector, block: (T) -> Void) {
+        // call original delegate
+        if let delegate = originalDelegate as? T, delegate.responds(to: selector) {
+            block(delegate)
+            return
+        }
+
+        guard (session.delegate as? URLSessionDelegateProxy) != self else {
+            // guard that we are not the session.delegate to prevent infinite recursion
+            return
+        }
+
+        // if session delegate also responds to selector, we must call it
+        if let sessionDelegate = session.delegate as? T,
+            sessionDelegate.responds(to: selector) {
+
+            block(sessionDelegate)
+        }
+    }
+
     // Check if this is necessary
     override var description: String {
         return originalDelegate?.description ?? String(describing: type(of: self))
