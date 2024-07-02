@@ -43,7 +43,7 @@ Here is a quick overview to start using the Embrace SDK. You'll need to:
 1. Create an instance of the Embrace client by passing `Embrace.Options` to the `setup` method.
 1. Call the `start` method on that instance
 
-This should be done as early as possible in the runtime of your app, for instance, the `UIApplicatinDelegate.applicationDidFinishLaunching(_:)`
+This should be done as early as possible in the runtime of your app, for instance, the `UIApplicationDelegate.applicationDidFinishLaunching(_:)`
 could be a good place.
 
 Here is a code snippet:
