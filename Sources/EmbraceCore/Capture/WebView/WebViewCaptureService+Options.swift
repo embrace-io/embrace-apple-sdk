@@ -2,6 +2,7 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
+#if canImport(WebKit)
 import Foundation
 
 extension WebViewCaptureService {
@@ -20,3 +21,4 @@ extension WebViewCaptureService {
         }
     }
 }
+#endif
