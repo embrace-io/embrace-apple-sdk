@@ -67,12 +67,16 @@ jobs:
           show-code-coverage: true
           upload-bundles: true
 
+      - name: Convert results for Codecov
+        run: |
+          brew install a7ex/homebrew-formulae/xcresultparser
+          xcresultparser --output-format cobertura .build/test/output.xcresult > .build/test/output.xcresult.xml
+
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
-          flags: unittests
+          plugin: xcode
+          file: .build/test/output.xcresult.xml
           fail_ci_if_error: true
-          xcode: true
-          xcode_archive_path: .build/test/output.xcresult
