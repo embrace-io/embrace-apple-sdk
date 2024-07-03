@@ -4,7 +4,7 @@
 
 import SwiftUI
 
-struct NetworkRequestBuilder: View {
+struct NetworkRequestBuilderView: View {
     @StateObject var model = Request()
     @State private var selectedMethod = "POST"
     @State private var urlString = "https://httpbin.org/anything?status_code=200"
@@ -72,6 +72,6 @@ struct NetworkRequestBuilder: View {
 
 #Preview {
     NavigationStack {
-        NetworkRequestBuilder()
+        NetworkRequestBuilderView()
     }
 }

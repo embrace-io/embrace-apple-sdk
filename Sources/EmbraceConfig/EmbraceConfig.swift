@@ -107,12 +107,14 @@ public class EmbraceConfig {
 
         fetcher.fetch { [weak self] payload in
             if let payload = payload {
+                let previousPayload = self?.payload
 
-                if self?.payload != payload {
+                self?.payload = payload
+
+                if previousPayload != payload {
                     self?.notificationCenter.post(name: .embraceConfigUpdated, object: nil)
                 }
 
-                self?.payload = payload
                 self?.lastUpdateTime = Date().timeIntervalSince1970
             }
 

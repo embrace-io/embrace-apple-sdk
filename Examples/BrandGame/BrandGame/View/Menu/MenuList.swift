@@ -35,14 +35,27 @@ struct MenuList: View {
                 }
             }
 
-            Section("Stress Tests") {
-                NavigationLink("Network Requests", destination: NetworkStressTest())
-                    .contentShape(Rectangle())
-
-                NavigationLink("Logging", destination: LoggingView()).contentShape(Rectangle())
-
-                NavigationLink("Crash Examples", destination: CrashExampleTest())
-                    .contentShape(Rectangle())
+            Section("Tests") {
+                NavigationLink(
+                    "Memory Pressure Simulator",
+                    destination: MemoryPressureSimulatorView()
+                )
+                NavigationLink(
+                    "Network Requests",
+                    destination: NetworkStressTest()
+                )
+                NavigationLink(
+                    "WebView Usage",
+                    destination: BrowserView()
+                )
+                NavigationLink(
+                    "Logging",
+                    destination: LoggingView()
+                )
+                NavigationLink(
+                    "Crashes",
+                    destination: CrashExampleTest()
+                )
             }
         }
         .background(.black)

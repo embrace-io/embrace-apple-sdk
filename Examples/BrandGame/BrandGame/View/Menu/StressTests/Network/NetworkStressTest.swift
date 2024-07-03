@@ -39,7 +39,7 @@ struct NetworkStressTest: View {
 
                 Section {
                     NavigationLink {
-                        NetworkRequestBuilder()
+                        NetworkRequestBuilderView()
                     } label: {
                         Text("Build complex request")
                     }

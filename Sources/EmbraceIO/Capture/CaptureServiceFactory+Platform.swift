@@ -15,6 +15,7 @@ extension CaptureServiceFactory {
             URLSessionCaptureService(),
             TapCaptureService(),
             ViewCaptureService(),
+            WebViewCaptureService(options: .init(stripQueryParams: false)),
 
             LowMemoryWarningCaptureService(),
             LowPowerModeCaptureService()

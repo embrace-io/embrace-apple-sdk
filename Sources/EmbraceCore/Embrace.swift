@@ -159,6 +159,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         )
         EmbraceOTel.setup(logSharedState: logSharedState)
         sessionLifecycle.setup()
+        Embrace.logger.otel = self
 
         // config update event
         Embrace.notificationCenter.addObserver(
