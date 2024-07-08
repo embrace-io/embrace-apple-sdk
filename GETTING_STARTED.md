@@ -206,7 +206,7 @@ In order to have stack traces in error logs or crashes be as readable as possibl
  your app's desymbolication files to the Embrace backend. The best way to do this is to add a build step
  to your project.
 
-First, download [our support utility](https://s3.amazonaws.com/embrace-downloads-prod/embrace_support.zip).
+First, download [our support utility](https://downloads.embrace.io/embrace_support.zip).
 This is an archive that contains the Embrace `upload` binary and also a shell script `run.sh`.
 These should be copied into your project at a known location like `embrace_support/upload`
 and `embrace_support/run.sh`.
