@@ -4,7 +4,7 @@
 
 We as members, contributors, and leaders pledge to make participation in our
 community a harassment-free experience for everyone, regardless of age, body
-size, visible or invisible disability, ethnicity, sex characteristics, gender
+size, visible or invisible disability, ethnicity, sex, gender
 identity and expression, level of experience, education, socio-economic status,
 nationality, personal appearance, race, religion, or sexual identity
 and orientation.
@@ -44,7 +44,7 @@ response to any behavior that they deem inappropriate, threatening, offensive,
 or harmful.
 
 Community leaders have the right and responsibility to remove, edit, or reject
-comments, commits, code, wiki edits, issues, and other contributions that are
+comments, commits, code, issues, and other contributions that are
 not aligned to this Code of Conduct, and will communicate reasons for moderation
 decisions when appropriate.
 
@@ -60,8 +60,9 @@ representative at an online or offline event.
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the community leaders responsible for enforcement at
-support@embrace.io. All complaints will be reviewed and investigated promptly and fairly.
+conduct@embrace.io. 
 
+All complaints will be reviewed and investigated promptly and fairly. 
 All community leaders are obligated to respect the privacy and security of the
 reporter of any incident.
 
@@ -70,16 +71,7 @@ reporter of any incident.
 Community leaders will follow these Community Impact Guidelines in determining
 the consequences for any action they deem in violation of this Code of Conduct:
 
-### 1. Correction
-
-**Community Impact**: Use of inappropriate language or other behavior deemed
-unprofessional or unwelcome in the community.
-
-**Consequence**: A private, written warning from community leaders, providing
-clarity around the nature of the violation and an explanation of why the
-behavior was inappropriate. A public apology may be requested.
-
-### 2. Warning
+### 1. Warning
 
 **Community Impact**: A violation through a single incident or series
 of actions.
@@ -91,7 +83,7 @@ includes avoiding interactions in community spaces as well as external channels
 like social media. Violating these terms may lead to a temporary or
 permanent ban.
 
-### 3. Temporary Ban
+### 2. Temporary Ban
 
 **Community Impact**: A serious violation of community standards, including
 sustained inappropriate behavior.
@@ -102,7 +94,7 @@ private interaction with the people involved, including unsolicited interaction
 with those enforcing the Code of Conduct, is allowed during this period.
 Violating these terms may lead to a permanent ban.
 
-### 4. Permanent Ban
+### 3. Permanent Ban
 
 **Community Impact**: Demonstrating a pattern of violation of community
 standards, including sustained inappropriate behavior,  harassment of an
