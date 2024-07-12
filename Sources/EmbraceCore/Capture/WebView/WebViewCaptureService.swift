@@ -9,6 +9,7 @@ import EmbraceCommon
 import EmbraceOTel
 import EmbraceCaptureService
 
+/// Automatically generates span events when a `WKWebView` loads an URL or throws an error.
 @objc public final class WebViewCaptureService: CaptureService {
 
     @objc public let options: WebViewCaptureService.Options

@@ -9,12 +9,12 @@ import EmbraceCommon
 import OpenTelemetryApi
 import OpenTelemetrySdk
 
-public class MockEmbraceOpenTelemetry: EmbraceOpenTelemetry {
+public class MockEmbraceOpenTelemetry: NSObject, EmbraceOpenTelemetry {
     private(set) public var spanProcessor = MockSpanProcessor()
     private(set) public var events: [SpanEvent] = []
     private(set) public var logs: [ReadableLogRecord] = []
 
-    public init() {
+    public override init() {
         EmbraceOTel.setup(spanProcessors: [spanProcessor])
     }
 
