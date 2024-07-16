@@ -60,7 +60,10 @@ class SessionPayloadBuilder {
         // build metadata payload
         var metadata: [MetadataRecord] = []
         do {
-            metadata = try storage.fetchCustomPropertiesForSessionId(sessionRecord.id)
+            let properties = try storage.fetchCustomPropertiesForSessionId(sessionRecord.id)
+            let tags = try storage.fetchPersonaTagsForSessionId(sessionRecord.id)
+            metadata.append(contentsOf: properties)
+            metadata.append(contentsOf: tags)
         } catch {
             Embrace.logger.error("Error fetching custom properties for session \(sessionRecord.id.toString)")
         }

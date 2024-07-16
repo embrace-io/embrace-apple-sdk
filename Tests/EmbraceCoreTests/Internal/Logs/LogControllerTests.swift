@@ -262,6 +262,8 @@ private extension LogControllerTests {
         let currentSessionId = sessionController.currentSession?.id
         XCTAssertTrue(unwrappedStorage.didCallFetchCustomPropertiesForSessionId)
         XCTAssertEqual(unwrappedStorage.fetchCustomPropertiesForSessionIdReceivedParameter, currentSessionId)
+        XCTAssertTrue(unwrappedStorage.didCallFetchCustomPropertiesForSessionId)
+        XCTAssertEqual(unwrappedStorage.fetchPersonaTagsForSessionIdReceivedParameter, currentSessionId)
     }
 
     func randomLogRecord() -> LogRecord {

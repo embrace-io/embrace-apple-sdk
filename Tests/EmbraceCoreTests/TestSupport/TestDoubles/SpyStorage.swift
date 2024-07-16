@@ -53,16 +53,6 @@ class SpyStorage: Storage {
         return stubbedFetchResourcesForProcessId
     }
 
-    var didCallFetchAllCustomProperties = false
-    var stubbedFetchAllCustomProperties: [MetadataRecord] = []
-    func fetchAllCustomProperties() throws -> [MetadataRecord] {
-        didCallFetchAllCustomProperties = true
-        guard !shouldThrow else {
-            throw RandomError()
-        }
-        return stubbedFetchAllCustomProperties
-    }
-
     var didCallFetchCustomPropertiesForSessionId = false
     var fetchCustomPropertiesForSessionIdReceivedParameter: SessionIdentifier!
     var stubbedFetchCustomPropertiesForSessionId: [MetadataRecord] = []
@@ -73,6 +63,30 @@ class SpyStorage: Storage {
             throw RandomError()
         }
         return stubbedFetchCustomPropertiesForSessionId
+    }
+
+    var didCallFetchPersonaTagsForSessionId = false
+    var fetchPersonaTagsForSessionIdReceivedParameter: SessionIdentifier!
+    var stubbedFetchPersonaTagsForSessionId: [MetadataRecord] = []
+    func fetchPersonaTagsForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord] {
+        didCallFetchPersonaTagsForSessionId = true
+        fetchPersonaTagsForSessionIdReceivedParameter = sessionId
+        guard !shouldThrow else {
+            throw RandomError()
+        }
+        return stubbedFetchPersonaTagsForSessionId
+    }
+
+    var didCallFetchPersonaTagsForProcessId = false
+    var fetchPersonaTagsForProcessIdReceivedParameter: ProcessIdentifier!
+    var stubbedFetchPersonaTagsForProcessId: [MetadataRecord] = []
+    func fetchPersonaTagsForProcessId(_ processId: ProcessIdentifier) throws -> [MetadataRecord] {
+        didCallFetchPersonaTagsForProcessId = true
+        fetchPersonaTagsForProcessIdReceivedParameter = processId
+        guard !shouldThrow else {
+            throw RandomError()
+        }
+        return stubbedFetchPersonaTagsForProcessId
     }
 
     var didCallCreate = false

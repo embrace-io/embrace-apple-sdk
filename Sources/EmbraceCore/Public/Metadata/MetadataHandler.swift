@@ -7,7 +7,13 @@ import EmbraceCommonInternal
 import EmbraceStorageInternal
 
 @objc public enum MetadataLifespan: Int {
-    case session, process, permanent
+    /// The resource will be removed when the session ends.
+    case session
+    /// The resource will be removed when the process ends
+    case process
+
+    /// The resource will be removed when the app is uninstalled.
+    case permanent
 }
 
 @objc(EMBMetadataHandler)
@@ -50,7 +56,7 @@ public class MetadataHandler: NSObject {
         try addMetadata(key: key, value: value, type: .customProperty, lifespan: lifespan)
     }
 
-    private func addMetadata(key: String, value: String, type: MetadataRecordType, lifespan: MetadataLifespan) throws {
+    func addMetadata(key: String, value: String, type: MetadataRecordType, lifespan: MetadataLifespan) throws {
         guard let storage = storage else {
             return
         }
@@ -126,7 +132,7 @@ public class MetadataHandler: NSObject {
     /// - Parameters:
     ///   - key: The key of the resource to remove.
     ///   - lifespan: The lifespan of the resource to remove.
-    @objc public func removeResource (key: String, lifespan: MetadataLifespan = .session) throws {
+    @objc public func removeResource(key: String, lifespan: MetadataLifespan = .session) throws {
         try remove(key: key, type: .resource, lifespan: lifespan)
     }
 
@@ -138,7 +144,7 @@ public class MetadataHandler: NSObject {
         try remove(key: key, type: .customProperty, lifespan: lifespan)
     }
 
-    private func remove(key: String, type: MetadataRecordType, lifespan: MetadataLifespan = .session) throws {
+    func remove(key: String, type: MetadataRecordType, lifespan: MetadataLifespan = .session) throws {
         try storage?.removeMetadata(
             key: key,
             type: type,
@@ -146,21 +152,21 @@ public class MetadataHandler: NSObject {
         )
     }
 
-    /// Removes all resources for the given lifespans.
+    /// Removes all resources for the given lifespans. If no lifespans are passed, all resources are removed.
     /// - Parameters:
     ///   - lifespans: Array of lifespans.
-    public func removeAllResources(lifespans: [MetadataLifespan]) throws {
+    public func removeAllResources(lifespans: [MetadataLifespan] = [.permanent, .process, .session]) throws {
         try removeAll(type: .resource, lifespans: lifespans)
     }
 
-    /// Removes all properties for the given lifespans.
+    /// Removes all properties for the given lifespans. If no lifespans are passed, all properties are removed.
     /// - Parameters:
     ///   - lifespans: Array of lifespans.
     public func removeAllProperties(lifespans: [MetadataLifespan]) throws {
         try removeAll(type: .customProperty, lifespans: lifespans)
     }
 
-    private func removeAll(type: MetadataRecordType, lifespans: [MetadataLifespan]) throws {
+    func removeAll(type: MetadataRecordType, lifespans: [MetadataLifespan]) throws {
         try storage?.removeAllMetadata(
             type: type,
             lifespans: lifespans.map { $0.recordLifespan }

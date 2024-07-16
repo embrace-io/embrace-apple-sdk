@@ -31,15 +31,27 @@ class MockMetadataFetcher: EmbraceStorageMetadataFetcher {
         }
     }
 
-    func fetchAllCustomProperties() throws -> [MetadataRecord] {
-        return metadata.filter { $0.type == .customProperty }
-    }
-
     func fetchCustomPropertiesForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord] {
         return metadata.filter { record in
             record.type == .customProperty &&
             record.lifespan == .session &&
             record.lifespanId == sessionId.toString
+        }
+    }
+
+    func fetchPersonaTagsForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord] {
+        return metadata.filter { record in
+            record.type == .personaTag &&
+            record.lifespan == .session &&
+            record.lifespanId == sessionId.toString
+        }
+    }
+
+    func fetchPersonaTagsForProcessId(_ processId: ProcessIdentifier) throws -> [MetadataRecord] {
+        return metadata.filter { record in
+            record.type == .personaTag &&
+            record.lifespan == .process &&
+            record.lifespanId == processId.hex
         }
     }
 }

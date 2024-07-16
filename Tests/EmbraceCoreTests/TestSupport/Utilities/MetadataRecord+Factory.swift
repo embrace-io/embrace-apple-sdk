@@ -41,4 +41,14 @@ extension MetadataRecord {
             lifespanId: .random()
         )
     }
+
+    static func createPersonaTagRecord(value: String) -> MetadataRecord {
+        .init(
+            key: value,
+            value: .string(value),
+            type: .personaTag,
+            lifespan: .session,
+            lifespanId: .random()
+        )
+    }
 }

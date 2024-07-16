@@ -75,6 +75,19 @@ class LogPayloadBuilderTests: XCTestCase {
             lifespan: .session,
             lifespanId: TestConstants.sessionId.toString
         )
+        try storage.addMetadata(
+            key: "tag1",
+            value: "tag1",
+            type: .personaTag,
+            lifespan: .permanent
+        )
+        try storage.addMetadata(
+            key: "tag2",
+            value: "tag2",
+            type: .personaTag,
+            lifespan: .session,
+            lifespanId: TestConstants.sessionId.toString
+        )
 
         // when manually building a log payload
         let timestamp = Date(timeIntervalSince1970: 30)
@@ -93,6 +106,7 @@ class LogPayloadBuilderTests: XCTestCase {
         // then the payload is correct
         XCTAssertEqual(payload.resource.appVersion, "1.0.0")
         XCTAssertEqual(payload.metadata.username, "test")
+        XCTAssertEqual(payload.metadata.personas, ["tag1", "tag2"])
 
         let logs = payload.data["logs"]!
         XCTAssertEqual(logs.count, 1)

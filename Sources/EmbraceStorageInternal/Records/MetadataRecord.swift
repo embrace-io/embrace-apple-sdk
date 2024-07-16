@@ -16,6 +16,9 @@ public enum MetadataRecordType: String, Codable {
 
     /// Custom property attached to session and logs data and that can be manipulated by the user of the SDK
     case customProperty
+
+    /// Persona tag attached to session and logs data and that can be manipulated by the user of the SDK
+    case personaTag
 }
 
 public enum MetadataRecordLifespan: String, Codable {

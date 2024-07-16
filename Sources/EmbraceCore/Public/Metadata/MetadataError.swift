@@ -8,6 +8,7 @@ public enum MetadataError: Error, Equatable {
     case invalidKey(_ description: String)
     case invalidSession(_ description: String)
     case limitReached(_ description: String)
+    case invalidValue(_ description: String)
 }
 
 extension MetadataError: LocalizedError, CustomNSError {
@@ -24,6 +25,8 @@ extension MetadataError: LocalizedError, CustomNSError {
             return -2
         case .limitReached:
             return -3
+        case .invalidValue:
+            return -4
         }
     }
 
@@ -34,6 +37,8 @@ extension MetadataError: LocalizedError, CustomNSError {
         case .invalidSession(let description):
             return description
         case .limitReached(let description):
+            return description
+        case .invalidValue(let description):
             return description
         }
     }

@@ -47,7 +47,7 @@ public struct PushNotificationEvent: SpanEvent {
         self.name = Constants.eventName
         self.timestamp = timestamp
 
-        var dict = Self.parse(apsDict: apsDict, captureData: captureData)
+        let dict = Self.parse(apsDict: apsDict, captureData: captureData)
         self.attributes = attributes.merging(dict) { (current, _) in current }
     }
 

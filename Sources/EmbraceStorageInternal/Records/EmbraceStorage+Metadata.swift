@@ -10,9 +10,9 @@ public protocol EmbraceStorageMetadataFetcher: AnyObject {
     func fetchAllResources() throws -> [MetadataRecord]
     func fetchResourcesForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord]
     func fetchResourcesForProcessId(_ processId: ProcessIdentifier) throws -> [MetadataRecord]
-
-    func fetchAllCustomProperties() throws -> [MetadataRecord]
     func fetchCustomPropertiesForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord]
+    func fetchPersonaTagsForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord]
+    func fetchPersonaTagsForProcessId(_ processId: ProcessIdentifier) throws -> [MetadataRecord]
 }
 
 extension EmbraceStorage {
@@ -60,7 +60,7 @@ extension EmbraceStorage {
             // this means a resource will not count towards the custom property limit, and viceversa
             // this also means metadata from other sessions/processes will not count for the limit either
 
-            let limit = metadata.type == .resource ? options.resourcesLimit : options.customPropertiesLimit
+            let limit = limitForType(metadata.type)
             let count = try MetadataRecord.filter(
                 MetadataRecord.Schema.type == metadata.type.rawValue &&
                 (MetadataRecord.Schema.lifespan == MetadataRecordLifespan.permanent.rawValue ||
@@ -74,6 +74,15 @@ extension EmbraceStorage {
 
             try metadata.insert(db)
             return true
+        }
+    }
+
+    private func limitForType(_ type: MetadataRecordType) -> Int {
+        switch type {
+        case .resource: return options.resourcesLimit
+        case .customProperty: return options.customPropertiesLimit
+        case .personaTag: return options.personaTagsLimit
+        default: return 0
         }
     }
 
@@ -157,8 +166,8 @@ extension EmbraceStorage {
     }
 
     /// Removes all `MetadataRecords` for the given lifespans.
-    /// Note that this method is inteded to be indirectly used by implementers of the SDK
-    /// For this reason records of the `.requiredResource` type are not removed.
+    /// - Note: This method is inteded to be indirectly used by implementers of the SDK
+    ///         For this reason records of the `.requiredResource` type are not removed.
     public func removeAllMetadata(type: MetadataRecordType, lifespans: [MetadataRecordLifespan]) throws {
         guard type != .requiredResource && lifespans.count > 0 else {
             return
@@ -272,13 +281,6 @@ extension EmbraceStorage {
         }
     }
 
-    /// Returns all records of the `.customProperty` type
-    public func fetchAllCustomProperties() throws -> [MetadataRecord] {
-        try dbQueue.read { db in
-            return try customPropertiesFilter().fetchAll(db)
-        }
-    }
-
     /// Returns all records of the `.customProperty` type that are tied to a given session id
     public func fetchCustomPropertiesForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord] {
         try dbQueue.read { db in
@@ -300,6 +302,44 @@ extension EmbraceStorage {
                 .fetchAll(db)
         }
     }
+
+    /// Returns all records of the `.personaTag` type that are tied to a given session id
+    public func fetchPersonaTagsForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord] {
+        try dbQueue.read { db in
+            guard let session = try SessionRecord.fetchOne(db, key: sessionId.toString) else {
+                return []
+            }
+
+            return try personaTagsFilter()
+                .filter(
+                    (
+                        MetadataRecord.Schema.lifespan == MetadataRecordLifespan.session.rawValue &&
+                        MetadataRecord.Schema.lifespanId == session.id.toString
+                    ) || (
+                        MetadataRecord.Schema.lifespan == MetadataRecordLifespan.process.rawValue &&
+                        MetadataRecord.Schema.lifespanId == session.processId.hex
+                    ) ||
+                        MetadataRecord.Schema.lifespan == MetadataRecordLifespan.permanent.rawValue
+                )
+                .fetchAll(db)
+        }
+    }
+
+    /// Returns all records of the `.personaTag` type that are tied to a given process id
+    public func fetchPersonaTagsForProcessId(_ processId: ProcessIdentifier) throws -> [MetadataRecord] {
+        try dbQueue.read { db in
+
+            return try personaTagsFilter()
+                .filter(
+                    (
+                        MetadataRecord.Schema.lifespan == MetadataRecordLifespan.process.rawValue &&
+                        MetadataRecord.Schema.lifespanId == processId.hex
+                    ) ||
+                        MetadataRecord.Schema.lifespan == MetadataRecordLifespan.permanent.rawValue
+                )
+                .fetchAll(db)
+        }
+    }
 }
 
 extension EmbraceStorage {
@@ -311,5 +351,9 @@ extension EmbraceStorage {
 
     private func customPropertiesFilter() -> QueryInterfaceRequest<MetadataRecord> {
         return MetadataRecord.filter(MetadataRecord.Schema.type == MetadataRecordType.customProperty.rawValue)
+    }
+
+    private func personaTagsFilter() -> QueryInterfaceRequest<MetadataRecord> {
+        return MetadataRecord.filter(MetadataRecord.Schema.type == MetadataRecordType.personaTag.rawValue)
     }
 }

@@ -24,6 +24,9 @@ public extension EmbraceStorage {
         /// Determines how many `MetadataRecords` of the `.customProperty` type can be present at any given time.
         public var customPropertiesLimit: Int = 100
 
+        /// Determines how many `MetadataRecords` of the `.personaTag` type can be present at any given time.
+        public var personaTagsLimit: Int = 10
+
         /// Use this initializer to create a storage object that is persisted locally to disk
         /// - Parameters:
         ///   - baseUrl: The URL to the directory this storage object should use to persist data. Must be a URL to a local directory.

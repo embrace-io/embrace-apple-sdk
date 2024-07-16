@@ -7,8 +7,6 @@ import TestSupport
 import EmbraceCommonInternal
 @testable import EmbraceStorageInternal
 
-// swiftlint:disable type_body_length
-
 class MetadataRecordTests: XCTestCase {
     var storage: EmbraceStorage!
 
@@ -581,64 +579,6 @@ class MetadataRecordTests: XCTestCase {
         XCTAssertFalse(resources.contains(property3!))
     }
 
-    func test_fetchAllCustomProperties() throws {
-        // given inserted records
-        let resource1 = try storage.addMetadata(
-            key: "test1",
-            value: "test",
-            type: .resource,
-            lifespan: .process,
-            lifespanId: "test"
-        )
-        let resource2 = try storage.addMetadata(
-            key: "test2",
-            value: "test",
-            type: .requiredResource,
-            lifespan: .process,
-            lifespanId: "test"
-        )
-        let resource3 = try storage.addMetadata(
-            key: "test3",
-            value: "test",
-            type: .resource,
-            lifespan: .process,
-            lifespanId: "test"
-        )
-        let property1 = try storage.addMetadata(
-            key: "test4",
-            value: "test",
-            type: .customProperty,
-            lifespan: .session,
-            lifespanId: "test"
-        )
-        let property2 = try storage.addMetadata(
-            key: "test5",
-            value: "test",
-            type: .customProperty,
-            lifespan: .session,
-            lifespanId: "test"
-        )
-        let property3 = try storage.addMetadata(
-            key: "test6",
-            value: "test",
-            type: .customProperty,
-            lifespan: .session,
-            lifespanId: "test"
-        )
-
-        // when fetching all custom properties
-        let resources = try storage.fetchAllCustomProperties()
-
-        // then the correct records are fetched
-        XCTAssertEqual(resources.count, 3)
-        XCTAssertFalse(resources.contains(resource1!))
-        XCTAssertFalse(resources.contains(resource2!))
-        XCTAssertFalse(resources.contains(resource3!))
-        XCTAssert(resources.contains(property1!))
-        XCTAssert(resources.contains(property2!))
-        XCTAssert(resources.contains(property3!))
-    }
-
     func test_fetchResourcesForSessionId() throws {
         // given a session in storage
         try storage.addSession(
@@ -789,5 +729,3 @@ class MetadataRecordTests: XCTestCase {
         XCTAssertFalse(resources.contains(resource2!))
     }
 }
-
-// swiftlint:enable type_body_length

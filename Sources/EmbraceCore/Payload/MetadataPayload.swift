@@ -42,6 +42,10 @@ struct MetadataPayload: Codable {
                     break
                 }
             }
+
+            if record.type == .personaTag {
+                personas.append(record.key)
+            }
         }
     }
 }
