@@ -4,7 +4,7 @@
 
 import SwiftUI
 import EmbraceIO
-import EmbraceCommon
+import EmbraceCommonInternal
 
 struct LoggingView: View {
     @State private var logMessage: String = "This is the log message..."

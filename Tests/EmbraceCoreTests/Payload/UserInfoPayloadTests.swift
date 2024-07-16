@@ -5,7 +5,7 @@
 import XCTest
 
 @testable import EmbraceCore
-import EmbraceStorage
+import EmbraceStorageInternal
 
 final class UserInfoPayloadTests: XCTestCase {
 

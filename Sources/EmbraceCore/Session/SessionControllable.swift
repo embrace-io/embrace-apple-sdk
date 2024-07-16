@@ -3,8 +3,8 @@
 //
 
 import Foundation
-import EmbraceCommon
-import EmbraceStorage
+import EmbraceCommonInternal
+import EmbraceStorageInternal
 
 /// Protocol for managing sessions.
 /// See ``SessionController`` for main conformance

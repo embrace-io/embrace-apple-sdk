@@ -4,8 +4,8 @@
 
 import Foundation
 
-import EmbraceStorage
-import EmbraceCommon
+import EmbraceStorageInternal
+import EmbraceCommonInternal
 
 protocol LogBatcherDelegate: AnyObject {
     func batchFinished(withLogs logs: [LogRecord])

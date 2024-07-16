@@ -3,7 +3,7 @@
 //
 
 import Foundation
-import EmbraceStorage
+import EmbraceStorageInternal
 
 struct MetadataPayload: Codable {
     var locale: String?
@@ -41,6 +41,10 @@ struct MetadataPayload: Codable {
                 default:
                     break
                 }
+            }
+
+            if record.type == .personaTag {
+                personas.append(record.key)
             }
         }
     }

@@ -4,9 +4,9 @@
 import XCTest
 
 @testable import EmbraceCore
-@testable import EmbraceOTel
+@testable import EmbraceOTelInternal
 import OpenTelemetryApi
-import EmbraceStorage
+import EmbraceStorageInternal
 
 final class ResourceStorageExporterTests: XCTestCase {
     func test_exorter_gets_every_type_of_resource() throws {

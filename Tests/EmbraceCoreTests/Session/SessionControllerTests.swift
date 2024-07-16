@@ -5,10 +5,10 @@
 import XCTest
 
 @testable import EmbraceCore
-import EmbraceStorage
-@testable import EmbraceUpload
-import EmbraceCommon
-import EmbraceOTel
+import EmbraceStorageInternal
+@testable import EmbraceUploadInternal
+import EmbraceCommonInternal
+import EmbraceOTelInternal
 import TestSupport
 
 final class SessionControllerTests: XCTestCase {

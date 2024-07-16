@@ -3,7 +3,7 @@
 //
 
 @testable import EmbraceCrashlyticsSupport
-import EmbraceCommon
+import EmbraceCommonInternal
 import TestSupport
 import XCTest
 

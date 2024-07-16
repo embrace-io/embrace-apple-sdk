@@ -4,8 +4,8 @@
 
 import Foundation
 @testable import EmbraceCore
-import EmbraceCommon
-import EmbraceStorage
+import EmbraceCommonInternal
+import EmbraceStorageInternal
 import TestSupport
 
 class MockSessionController: SessionControllable {

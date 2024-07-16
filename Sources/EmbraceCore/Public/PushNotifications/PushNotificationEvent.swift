@@ -2,7 +2,7 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import EmbraceOTel
+import EmbraceOTelInternal
 import Foundation
 import UserNotifications
 
@@ -21,7 +21,11 @@ public struct PushNotificationEvent: SpanEvent {
          attributes: [String: AttributeValue] = [:],
          captureData: Bool = true
     ) throws {
-        try self.init(userInfo: notification.request.content.userInfo, attributes: attributes, captureData: captureData)
+        var userInfo: [AnyHashable: Any] = [:]
+#if !os(tvOS)
+        userInfo = notification.request.content.userInfo
+#endif
+    try self.init(userInfo: userInfo, attributes: attributes, captureData: captureData)
     }
 
     /// Returns a span event on using the `userInfo` dictionary from a push notification
@@ -43,7 +47,7 @@ public struct PushNotificationEvent: SpanEvent {
         self.name = Constants.eventName
         self.timestamp = timestamp
 
-        var dict = Self.parse(apsDict: apsDict, captureData: captureData)
+        let dict = Self.parse(apsDict: apsDict, captureData: captureData)
         self.attributes = attributes.merging(dict) { (current, _) in current }
     }
 

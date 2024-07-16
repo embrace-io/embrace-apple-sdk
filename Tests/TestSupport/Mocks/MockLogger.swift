@@ -2,7 +2,7 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import EmbraceCommon
+import EmbraceCommonInternal
 
 public class MockLogger: InternalLogger {
 
@@ -12,7 +12,7 @@ public class MockLogger: InternalLogger {
         self.level = level
     }
 
-    public func log(level: EmbraceCommon.LogLevel, message: String, attributes: [String: String]) -> Bool {
+    public func log(level: LogLevel, message: String, attributes: [String: String]) -> Bool {
         guard self.level != .none && self.level.rawValue <= level.rawValue else {
             return false
         }
@@ -20,7 +20,7 @@ public class MockLogger: InternalLogger {
         print(message)
         return true
     }
-    @discardableResult public func log(level: EmbraceCommon.LogLevel, message: String) -> Bool {
+    @discardableResult public func log(level: LogLevel, message: String) -> Bool {
         return log(level: level, message: message, attributes: [:])
     }
 

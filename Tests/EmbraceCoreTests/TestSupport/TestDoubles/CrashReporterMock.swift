@@ -3,14 +3,14 @@
 //
 
 import Foundation
-import EmbraceCommon
+import EmbraceCommonInternal
 
 class CrashReporterMock: CrashReporter {
 
     var currentSessionId: String?
     var mockReports: [CrashReport]
 
-    var onNewReport: ((EmbraceCommon.CrashReport) -> Void)?
+    var onNewReport: ((CrashReport) -> Void)?
 
     init(
         currentSessionId: String? = nil,
@@ -29,11 +29,11 @@ class CrashReporterMock: CrashReporter {
         ]
     }
 
-    func getLastRunState() -> EmbraceCommon.LastRunState {
+    func getLastRunState() -> LastRunState {
         return .crash
     }
 
-    func fetchUnsentCrashReports(completion: @escaping ([EmbraceCommon.CrashReport]) -> Void) {
+    func fetchUnsentCrashReports(completion: @escaping ([CrashReport]) -> Void) {
         completion(mockReports)
     }
 

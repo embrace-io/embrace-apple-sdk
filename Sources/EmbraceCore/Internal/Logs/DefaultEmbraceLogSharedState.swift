@@ -3,8 +3,8 @@
 //
 
 import Foundation
-import EmbraceOTel
-import EmbraceStorage
+import EmbraceOTelInternal
+import EmbraceStorageInternal
 
 class DefaultEmbraceLogSharedState: EmbraceLogSharedState {
     let processors: [EmbraceLogRecordProcessor]

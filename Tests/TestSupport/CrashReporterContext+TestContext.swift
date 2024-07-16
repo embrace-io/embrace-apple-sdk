@@ -3,7 +3,7 @@
 //
 
 import Foundation
-import EmbraceCommon
+import EmbraceCommonInternal
 
 extension CrashReporterContext {
     public static var testContext: CrashReporterContext {

@@ -3,8 +3,8 @@
 //
 
 import Foundation
-import EmbraceStorage
-import EmbraceObjCUtils
+import EmbraceStorageInternal
+import EmbraceObjCUtilsInternal
 
 struct ResourcePayload: Codable {
     var jailbroken: Bool?

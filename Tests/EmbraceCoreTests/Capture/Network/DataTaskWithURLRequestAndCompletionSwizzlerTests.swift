@@ -5,7 +5,7 @@
 import XCTest
 import TestSupport
 @testable import EmbraceCore
-@testable import EmbraceCommon
+@testable import EmbraceCommonInternal
 
 class DataTaskWithURLRequestAndCompletionSwizzlerTests: XCTestCase {
     private var session: URLSession!

@@ -4,7 +4,7 @@
 
 import XCTest
 @testable import EmbraceCore
-import EmbraceCommon
+import EmbraceCommonInternal
 
 #if os(iOS)
 

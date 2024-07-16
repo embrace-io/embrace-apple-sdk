@@ -4,8 +4,8 @@
 
 import XCTest
 @testable import EmbraceCore
-@testable import EmbraceStorage
-@testable import EmbraceCommon
+@testable import EmbraceStorageInternal
+@testable import EmbraceCommonInternal
 import OpenTelemetryApi
 
 final class PayloadUtilTests: XCTestCase {

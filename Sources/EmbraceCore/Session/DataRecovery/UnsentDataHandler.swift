@@ -3,11 +3,10 @@
 //
 
 import Foundation
-import EmbraceCommon
-import EmbraceStorage
-import EmbraceUpload
-import EmbraceOTel
-import Gzip
+import EmbraceCommonInternal
+import EmbraceStorageInternal
+import EmbraceUploadInternal
+import EmbraceOTelInternal
 
 class UnsentDataHandler {
     static func sendUnsentData(

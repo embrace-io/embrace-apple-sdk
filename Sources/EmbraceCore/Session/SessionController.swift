@@ -3,10 +3,10 @@
 //
 
 import Foundation
-import EmbraceCommon
-import EmbraceStorage
-import EmbraceUpload
-import EmbraceOTel
+import EmbraceCommonInternal
+import EmbraceStorageInternal
+import EmbraceUploadInternal
+import EmbraceOTelInternal
 
 extension Notification.Name {
     static let embraceSessionDidStart = Notification.Name("embrace.session.did_start")

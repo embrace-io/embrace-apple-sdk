@@ -3,8 +3,8 @@
 //
 
 import Foundation
-import EmbraceOTel
-import EmbraceStorage
+import EmbraceOTelInternal
+import EmbraceStorageInternal
 
 extension Collection where Element == SpanProcessor {
     static func processors(for storage: EmbraceStorage, export: OpenTelemetryExport?) -> [SpanProcessor] {

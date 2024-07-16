@@ -5,8 +5,8 @@
 import XCTest
 
 @testable import EmbraceCore
-@testable import EmbraceOTel
-import EmbraceStorage
+@testable import EmbraceOTelInternal
+import EmbraceStorageInternal
 
 final class EmbraceSpanProcessor_StorageTests: XCTestCase {
 

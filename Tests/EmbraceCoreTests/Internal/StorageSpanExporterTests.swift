@@ -5,10 +5,10 @@
 import XCTest
 
 @testable import EmbraceCore
-@testable import EmbraceOTel
+@testable import EmbraceOTelInternal
 @testable import OpenTelemetrySdk
 import OpenTelemetryApi
-import EmbraceStorage
+import EmbraceStorageInternal
 
 final class StorageSpanExporterTests: XCTestCase {
     func test_DB_preventsClosedSpan_fromUpdatingEndTime() throws {

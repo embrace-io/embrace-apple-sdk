@@ -4,8 +4,8 @@
 
 import XCTest
 @testable import EmbraceCore
-import EmbraceStorage
-import EmbraceCommon
+import EmbraceStorageInternal
+import EmbraceCommonInternal
 import TestSupport
 
 final class SessionPayloadBuilderTests: XCTestCase {

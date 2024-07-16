@@ -4,9 +4,9 @@
 
 import XCTest
 @testable import EmbraceCore
-import EmbraceCommon
-import EmbraceObjCUtils
-import EmbraceStorage
+import EmbraceCommonInternal
+import EmbraceObjCUtilsInternal
+import EmbraceStorageInternal
 
 final class AppInfoCaptureServiceTests: XCTestCase {
 

@@ -3,8 +3,8 @@
 //
 
 import XCTest
-import EmbraceOTel
-import EmbraceStorage
+import EmbraceOTelInternal
+import EmbraceStorageInternal
 import TestSupport
 @testable import EmbraceCore
 

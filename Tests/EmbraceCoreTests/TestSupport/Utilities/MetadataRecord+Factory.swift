@@ -3,8 +3,8 @@
 //
 
 import Foundation
-import EmbraceStorage
-import EmbraceCommon
+import EmbraceStorageInternal
+import EmbraceCommonInternal
 import OpenTelemetryApi
 
 extension MetadataRecord {
@@ -37,6 +37,16 @@ extension MetadataRecord {
             key: key,
             value: .string(value),
             type: .resource,
+            lifespan: .session,
+            lifespanId: .random()
+        )
+    }
+
+    static func createPersonaTagRecord(value: String) -> MetadataRecord {
+        .init(
+            key: value,
+            value: .string(value),
+            type: .personaTag,
             lifespan: .session,
             lifespanId: .random()
         )

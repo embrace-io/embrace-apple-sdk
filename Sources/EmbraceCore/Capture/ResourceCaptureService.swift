@@ -3,8 +3,8 @@
 //
 
 import EmbraceCaptureService
-import EmbraceCommon
-import EmbraceStorage
+import EmbraceCommonInternal
+import EmbraceStorageInternal
 import OpenTelemetryApi
 
 protocol ResourceCaptureServiceHandler: AnyObject {

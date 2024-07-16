@@ -3,9 +3,9 @@
 //
 
 import Foundation
-import EmbraceCommon
-import EmbraceStorage
-import EmbraceOTel
+import EmbraceCommonInternal
+import EmbraceStorageInternal
+import EmbraceOTelInternal
 import OpenTelemetryApi
 
 struct SessionSpanUtils {

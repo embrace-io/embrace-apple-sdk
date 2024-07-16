@@ -4,9 +4,9 @@
 
 import XCTest
 @testable import EmbraceCore
-import EmbraceCommon
-import EmbraceStorage
-import EmbraceOTel
+import EmbraceCommonInternal
+import EmbraceStorageInternal
+import EmbraceOTelInternal
 
 final class EmbraceCoreTests: XCTestCase {
 

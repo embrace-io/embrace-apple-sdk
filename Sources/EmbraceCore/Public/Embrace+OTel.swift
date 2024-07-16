@@ -3,8 +3,8 @@
 //
 
 import Foundation
-import EmbraceCommon
-import EmbraceOTel
+import EmbraceCommonInternal
+import EmbraceOTelInternal
 
 extension Embrace: EmbraceOpenTelemetry {
     private var exporter: EmbraceSpanExporter { StorageSpanExporter(options: .init(storage: storage)) }
@@ -111,7 +111,7 @@ extension Embrace: EmbraceOpenTelemetry {
     ///   - attributes: Attributes for the log
     public func log(
         _ message: String,
-        severity: EmbraceCommon.LogSeverity,
+        severity: LogSeverity,
         timestamp: Date,
         attributes: [String: String]
     ) {

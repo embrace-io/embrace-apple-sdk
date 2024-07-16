@@ -4,9 +4,9 @@
 
 import XCTest
 import TestSupport
-import EmbraceCommon
+import EmbraceCommonInternal
 import OpenTelemetryApi
-@testable import EmbraceOTel
+@testable import EmbraceOTelInternal
 @testable import EmbraceCore
 
 // swiftlint:disable force_cast

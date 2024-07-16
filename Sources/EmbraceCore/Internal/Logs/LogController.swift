@@ -3,9 +3,9 @@
 //
 
 import Foundation
-import EmbraceStorage
-import EmbraceUpload
-import EmbraceCommon
+import EmbraceStorageInternal
+import EmbraceUploadInternal
+import EmbraceCommonInternal
 
 protocol LogControllable: LogBatcherDelegate {
     func uploadAllPersistedLogs()
@@ -149,7 +149,13 @@ private extension LogController {
         guard let storage = storage else {
             throw Error.couldntAccessStorageModule
         }
-        let metadata = try storage.fetchCustomPropertiesForSessionId(sessionId)
+
+        var metadata: [MetadataRecord] = []
+        let properties = try storage.fetchCustomPropertiesForSessionId(sessionId)
+        let tags = try storage.fetchPersonaTagsForSessionId(sessionId)
+        metadata.append(contentsOf: properties)
+        metadata.append(contentsOf: tags)
+
         return MetadataPayload(from: metadata)
     }
 }

@@ -4,7 +4,7 @@
 
 import Foundation
 import EmbraceCore
-import EmbraceCommon
+import EmbraceCommonInternal
 
 public extension Swizzlable {
     func unswizzleInstanceMethod() throws {

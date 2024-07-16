@@ -3,7 +3,7 @@
 //
 
 import Foundation
-import EmbraceOTel
+import EmbraceOTelInternal
 
 class WhitespaceSpanNameValidator: SpanDataValidator {
     func validate(data: inout SpanData) -> Bool {

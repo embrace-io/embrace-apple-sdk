@@ -3,11 +3,11 @@
 //
 
 import Foundation
-import EmbraceCommon
-import EmbraceOTel
-import EmbraceStorage
-import EmbraceUpload
-import EmbraceObjCUtils
+import EmbraceCommonInternal
+import EmbraceOTelInternal
+import EmbraceStorageInternal
+import EmbraceUploadInternal
+import EmbraceObjCUtilsInternal
 
 extension Embrace {
     static func createStorage(options: Embrace.Options) throws -> EmbraceStorage {

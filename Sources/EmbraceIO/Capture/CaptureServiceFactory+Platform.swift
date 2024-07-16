@@ -5,7 +5,7 @@
 import Foundation
 import EmbraceCaptureService
 import EmbraceCore
-import EmbraceCommon
+import EmbraceCommonInternal
 import EmbraceCrash
 
 extension CaptureServiceFactory {

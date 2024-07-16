@@ -6,7 +6,7 @@
 import XCTest
 import UIKit
 @testable import EmbraceCore
-import EmbraceOTel
+import EmbraceOTelInternal
 import TestSupport
 
 final class ViewCaptureServiceTests: XCTestCase {

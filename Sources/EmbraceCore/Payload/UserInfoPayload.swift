@@ -3,7 +3,7 @@
 //
 
 import Foundation
-import EmbraceStorage
+import EmbraceStorageInternal
 
 struct UserInfoPayload: Codable {
 

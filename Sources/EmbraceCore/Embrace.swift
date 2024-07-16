@@ -3,12 +3,12 @@
 //
 
 import Foundation
-import EmbraceCommon
-import EmbraceConfig
-import EmbraceOTel
-import EmbraceStorage
-import EmbraceUpload
-import EmbraceObjCUtils
+import EmbraceCommonInternal
+import EmbraceConfigInternal
+import EmbraceOTelInternal
+import EmbraceStorageInternal
+import EmbraceUploadInternal
+import EmbraceObjCUtilsInternal
 
 /**
  Main class used to interact with the Embrace SDK.

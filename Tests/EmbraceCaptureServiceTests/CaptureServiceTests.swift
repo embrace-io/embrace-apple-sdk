@@ -5,7 +5,7 @@
 import XCTest
 @testable import EmbraceCaptureService
 import TestSupport
-import EmbraceOTel
+import EmbraceOTelInternal
 
 class MockCaptureService: CaptureService {
     var installCalled = false

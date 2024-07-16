@@ -4,7 +4,7 @@
 
 import Foundation
 @testable import EmbraceCore
-@testable import EmbraceCommon
+@testable import EmbraceCommonInternal
 
 class MockURLSessionTaskHandler: URLSessionTaskHandler {
 

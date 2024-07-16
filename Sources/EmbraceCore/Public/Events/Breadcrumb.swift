@@ -3,8 +3,8 @@
 //
 
 import Foundation
-import EmbraceOTel
-import EmbraceCommon
+import EmbraceOTelInternal
+import EmbraceCommonInternal
 
 public struct Breadcrumb: SpanEvent {
     public let name: String

@@ -3,9 +3,9 @@
 //
 
 import Foundation
-@testable import EmbraceOTel
+@testable import EmbraceOTelInternal
 @testable import EmbraceCore
-import EmbraceCommon
+import EmbraceCommonInternal
 import OpenTelemetryApi
 import OpenTelemetrySdk
 

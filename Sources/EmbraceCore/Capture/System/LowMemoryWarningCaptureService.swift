@@ -4,8 +4,8 @@
 
 import Foundation
 import EmbraceCaptureService
-import EmbraceCommon
-import EmbraceOTel
+import EmbraceCommonInternal
+import EmbraceOTelInternal
 import OpenTelemetryApi
 
 @objc public class LowMemoryWarningCaptureService: CaptureService {

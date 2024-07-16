@@ -4,10 +4,9 @@
 
 import Foundation
 import UserNotifications
-import EmbraceCommon
-import EmbraceOTel
+import EmbraceCommonInternal
+import EmbraceOTelInternal
 import EmbraceCaptureService
-import UIKit
 
 /// Automatically generates span events when notifications are received through the `UNUserNotificationCenter`.
 @objc public final class PushNotificationCaptureService: CaptureService {

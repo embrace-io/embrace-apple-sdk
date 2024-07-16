@@ -4,9 +4,9 @@
 
 import XCTest
 @testable import EmbraceCore
-import EmbraceStorage
-import EmbraceCommon
-@testable import EmbraceOTel
+import EmbraceStorageInternal
+import EmbraceCommonInternal
+@testable import EmbraceOTelInternal
 import TestSupport
 import OpenTelemetryApi
 @testable import OpenTelemetrySdk

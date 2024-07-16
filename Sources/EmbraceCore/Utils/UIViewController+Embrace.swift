@@ -4,7 +4,7 @@
 #if canImport(UIKit)
 
 import UIKit
-import EmbraceCommon
+import EmbraceCommonInternal
 
 extension UIViewController {
     var embViewName: String {

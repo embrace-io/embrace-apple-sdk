@@ -5,8 +5,8 @@
 import UIKit
 import SwiftUI
 import EmbraceCaptureService
-import EmbraceCommon
-import EmbraceOTel
+import EmbraceCommonInternal
+import EmbraceOTelInternal
 
 @objc public final class ViewCaptureService: CaptureService {
     private var didAppearSwizzle: UIViewControllerDidAppearSwizzler?

@@ -5,9 +5,9 @@
 import XCTest
 
 @testable import EmbraceCore
-import EmbraceStorage
-import EmbraceUpload
-import EmbraceCommon
+import EmbraceStorageInternal
+import EmbraceUploadInternal
+import EmbraceCommonInternal
 
 class LogControllerTests: XCTestCase {
     private var sut: LogController!
@@ -262,6 +262,8 @@ private extension LogControllerTests {
         let currentSessionId = sessionController.currentSession?.id
         XCTAssertTrue(unwrappedStorage.didCallFetchCustomPropertiesForSessionId)
         XCTAssertEqual(unwrappedStorage.fetchCustomPropertiesForSessionIdReceivedParameter, currentSessionId)
+        XCTAssertTrue(unwrappedStorage.didCallFetchCustomPropertiesForSessionId)
+        XCTAssertEqual(unwrappedStorage.fetchPersonaTagsForSessionIdReceivedParameter, currentSessionId)
     }
 
     func randomLogRecord() -> LogRecord {

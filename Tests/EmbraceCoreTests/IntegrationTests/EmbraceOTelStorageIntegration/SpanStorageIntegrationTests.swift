@@ -5,8 +5,8 @@
 import XCTest
 
 @testable import EmbraceCore
-import EmbraceOTel
-import EmbraceStorage
+import EmbraceOTelInternal
+import EmbraceStorageInternal
 import GRDB
 
 import TestSupport

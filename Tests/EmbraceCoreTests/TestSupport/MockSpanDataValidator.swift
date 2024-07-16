@@ -4,7 +4,7 @@
 
 import Foundation
 @testable import EmbraceCore
-import EmbraceOTel
+import EmbraceOTelInternal
 
 class MockSpanDataValidator: SpanDataValidator {
 

@@ -49,3 +49,8 @@ xcuserdata/
 ## Sonar
 .scannerwork
 sonar-output
+
+## Tuist
+*.xcworkspace
+*.xcodeproj
+Derived/

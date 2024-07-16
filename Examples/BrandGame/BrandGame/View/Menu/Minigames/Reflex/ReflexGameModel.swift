@@ -4,7 +4,7 @@
 
 import Foundation
 import EmbraceCore
-import EmbraceOTel
+import EmbraceOTelInternal
 
 @Observable
 class ReflexGameModel {

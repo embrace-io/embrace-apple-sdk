@@ -3,7 +3,7 @@
 //
 
 import Foundation
-import EmbraceUpload
+import EmbraceUploadInternal
 
 class SpyEmbraceLogUploader: EmbraceLogUploader {
     var didCallUploadLog = false

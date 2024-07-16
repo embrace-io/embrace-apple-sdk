@@ -3,7 +3,7 @@
 //
 
 @testable import EmbraceCore
-import EmbraceOTel
+import EmbraceOTelInternal
 
 class MockLogDataValidator: LogDataValidator {
 

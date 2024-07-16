@@ -5,9 +5,9 @@
 import Foundation
 import EmbraceCaptureService
 import EmbraceCore
-import EmbraceCommon
+import EmbraceCommonInternal
 import EmbraceCrash
-import EmbraceOTel
+import EmbraceOTelInternal
 
 public extension Embrace.Options {
 

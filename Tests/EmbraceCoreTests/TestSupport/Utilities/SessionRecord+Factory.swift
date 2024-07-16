@@ -3,8 +3,8 @@
 //
 
 import Foundation
-import EmbraceStorage
-import EmbraceCommon
+import EmbraceStorageInternal
+import EmbraceCommonInternal
 
 extension SessionRecord {
     static func with(id: SessionIdentifier, state: SessionState) -> SessionRecord {

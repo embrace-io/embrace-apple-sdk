@@ -5,8 +5,8 @@
 import XCTest
 
 @testable import EmbraceCore
-@testable import EmbraceOTel
-@testable import EmbraceStorage
+@testable import EmbraceOTelInternal
+@testable import EmbraceStorageInternal
 
 class DummyEmbraceResourceProvider: EmbraceResourceProvider {
     func getResources() -> [EmbraceResource] { [] }

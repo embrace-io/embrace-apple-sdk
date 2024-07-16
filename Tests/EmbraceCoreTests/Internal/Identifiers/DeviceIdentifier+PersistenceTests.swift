@@ -4,9 +4,9 @@
 
 import Foundation
 import XCTest
-import EmbraceStorage
+import EmbraceStorageInternal
 @testable import EmbraceCore
-import EmbraceCommon
+import EmbraceCommonInternal
 
 class DeviceIdentifier_PersistenceTests: XCTestCase {
 

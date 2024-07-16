@@ -3,8 +3,8 @@
 //
 
 import Foundation
-import EmbraceStorage
-import EmbraceCommon
+import EmbraceStorageInternal
+import EmbraceCommonInternal
 
 struct LogPayloadBuilder {
     static func build(log: LogRecord) -> LogPayload {
@@ -38,9 +38,14 @@ struct LogPayloadBuilder {
             do {
                 if let sessionId = sessionId {
                     resources = try storage.fetchResourcesForSessionId(sessionId)
-                    metadata = try storage.fetchCustomPropertiesForSessionId(sessionId)
+
+                    let properties = try storage.fetchCustomPropertiesForSessionId(sessionId)
+                    let tags = try storage.fetchPersonaTagsForSessionId(sessionId)
+                    metadata.append(contentsOf: properties)
+                    metadata.append(contentsOf: tags)
                 } else {
                     resources = try storage.fetchResourcesForProcessId(ProcessIdentifier.current)
+                    metadata = try storage.fetchPersonaTagsForProcessId(ProcessIdentifier.current)
                 }
             } catch {
                 Embrace.logger.error("Error fetching resources for crash log.")
