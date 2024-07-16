@@ -16,7 +16,7 @@ class WKNavigationDelegateProxyTests: XCTestCase {
 
     func test_forwarding() {
         // given a proxy with an original delegate
-        let originalDelegate: MockWKNavigationDelegate = MockWKNavigationDelegate()
+        let originalDelegate = MockWKNavigationDelegate()
         let proxy = WKNavigationDelegateProxy()
         proxy.originalDelegate = originalDelegate
 

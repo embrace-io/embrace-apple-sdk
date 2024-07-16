@@ -10,7 +10,7 @@ This project represents a shift from the previous Embrace SDK in that it adopts 
 supports the OpenTelemetry standard. We have also added features that extend OpenTelemetry to
 better support mobile apps.
 
-More documentation and examples can be found at [docs.embrace.io](https://docs.embrace.io).
+More documentation and examples can be found at [https://embrace.io/docs/](https://embrace.io/docs/).
 
 ## Features
 

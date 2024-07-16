@@ -21,10 +21,10 @@ import OpenTelemetryApi
 @objc open class CaptureService: NSObject {
 
     /// Getter for the OTel handler used by the capture service.
-    private(set) public var otel: EmbraceOpenTelemetry?
+    private(set) public weak var otel: EmbraceOpenTelemetry?
 
     /// `EmbraceConsoleLogger` instance used to generate internal logs.
-    private(set) public var logger: InternalLogger?
+    private(set) public weak var logger: InternalLogger?
 
     /// Getter for the state of the capture service.
     @ThreadSafe

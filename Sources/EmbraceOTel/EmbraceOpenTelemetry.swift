@@ -6,7 +6,7 @@ import Foundation
 import OpenTelemetryApi
 import EmbraceCommon
 
-public protocol EmbraceOpenTelemetry {
+public protocol EmbraceOpenTelemetry: AnyObject {
     func buildSpan(name: String,
                    type: SpanType,
                    attributes: [String: String]) -> SpanBuilder
