@@ -3,8 +3,8 @@
 //
 
 import Foundation
-import EmbraceCommon
-import EmbraceStorage
+import EmbraceCommonInternal
+import EmbraceStorageInternal
 
 @objc public enum MetadataLifespan: Int {
     case session, process, permanent

@@ -5,9 +5,9 @@
 import Foundation
 import OpenTelemetryApi
 import EmbraceCaptureService
-import EmbraceCommon
-import EmbraceOTel
-import EmbraceObjCUtils
+import EmbraceCommonInternal
+import EmbraceOTelInternal
+import EmbraceObjCUtilsInternal
 
 extension Notification.Name {
     static let networkRequestCaptured = Notification.Name("networkRequestCaptured")

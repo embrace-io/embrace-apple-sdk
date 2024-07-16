@@ -3,9 +3,9 @@
 //
 
 import Foundation
-import EmbraceCommon
-import EmbraceOTel
-import EmbraceStorage
+import EmbraceCommonInternal
+import EmbraceOTelInternal
+import EmbraceStorageInternal
 
 class StorageEmbraceLogExporter: EmbraceLogRecordExporter {
     @ThreadSafe

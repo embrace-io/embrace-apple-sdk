@@ -3,7 +3,7 @@
 //
 
 import Foundation
-import EmbraceCommon
+import EmbraceCommonInternal
 
 public struct TestConstants {
     public static let domain = "com.test.embrace"

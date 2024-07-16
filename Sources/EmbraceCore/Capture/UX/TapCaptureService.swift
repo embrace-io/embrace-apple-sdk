@@ -4,8 +4,8 @@
 #if canImport(UIKit) && !os(watchOS)
 import UIKit
 import EmbraceCaptureService
-import EmbraceCommon
-import EmbraceOTel
+import EmbraceCommonInternal
+import EmbraceOTelInternal
 
 @objc public final class TapCaptureService: CaptureService {
 

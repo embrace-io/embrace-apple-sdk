@@ -3,7 +3,7 @@
 //
 
 import UserNotifications
-import EmbraceOTel
+import EmbraceOTelInternal
 
 class UNUserNotificationCenterDelegateProxy: NSObject {
     weak var originalDelegate: UNUserNotificationCenterDelegate?
@@ -28,7 +28,7 @@ extension UNUserNotificationCenterDelegateProxy: UNUserNotificationCenterDelegat
         }
 
         // call original
-        if #available(iOS 14.0, *) {
+        if #available(iOS 14.0, tvOS 14.0, *) {
             originalDelegate?.userNotificationCenter?(
                 center,
                 willPresent: notification,
@@ -44,7 +44,7 @@ extension UNUserNotificationCenterDelegateProxy: UNUserNotificationCenterDelegat
                 ?? completionHandler(.alert)
         }
     }
-
+#if !os(tvOS)
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse,
@@ -72,4 +72,5 @@ extension UNUserNotificationCenterDelegateProxy: UNUserNotificationCenterDelegat
         // call original
         originalDelegate?.userNotificationCenter?(center, openSettingsFor: notification)
     }
+#endif
 }

@@ -5,9 +5,9 @@
 import XCTest
 
 @testable import EmbraceCore
-import EmbraceStorage
-import EmbraceOTel
-import EmbraceCommon
+import EmbraceStorageInternal
+import EmbraceOTelInternal
+import EmbraceCommonInternal
 
 class StorageEmbraceLogExporterTests: XCTestCase {
     private var sut: StorageEmbraceLogExporter!

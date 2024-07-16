@@ -3,8 +3,8 @@
 //
 import XCTest
 @testable import EmbraceCore
-@testable import EmbraceStorage
-import EmbraceCommon
+@testable import EmbraceStorageInternal
+import EmbraceCommonInternal
 
 class MockMetadataFetcher: EmbraceStorageMetadataFetcher {
     var metadata: [MetadataRecord]

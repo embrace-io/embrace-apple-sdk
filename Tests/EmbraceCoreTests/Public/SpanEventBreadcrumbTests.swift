@@ -3,7 +3,7 @@
 //
 
 import XCTest
-import EmbraceOTel
+import EmbraceOTelInternal
 @testable import EmbraceCore
 
 class SpanEventBreadcrumbTests: XCTestCase {

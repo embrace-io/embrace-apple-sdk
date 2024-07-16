@@ -3,7 +3,7 @@
 //
 
 import Foundation
-import EmbraceOTel
+import EmbraceOTelInternal
 
 protocol SpanDataValidator {
 

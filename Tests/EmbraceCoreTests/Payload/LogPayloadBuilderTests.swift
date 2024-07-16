@@ -3,8 +3,8 @@
 //
 
 import XCTest
-import EmbraceStorage
-import EmbraceCommon
+import EmbraceStorageInternal
+import EmbraceCommonInternal
 import TestSupport
 @testable import EmbraceCore
 

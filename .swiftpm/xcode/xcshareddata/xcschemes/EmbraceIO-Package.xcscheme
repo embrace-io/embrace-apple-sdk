@@ -336,6 +336,48 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EmbraceCore-Static"
+               BuildableName = "EmbraceCore-Static"
+               BlueprintName = "EmbraceCore-Static"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EmbraceCrash-Static"
+               BuildableName = "EmbraceCrash-Static"
+               BlueprintName = "EmbraceCrash-Static"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EmbraceIO-Static"
+               BuildableName = "EmbraceIO-Static"
+               BlueprintName = "EmbraceIO-Static"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
                BlueprintIdentifier = "EmbraceCrashlyticsSupport"
                BuildableName = "EmbraceCrashlyticsSupport"
                BlueprintName = "EmbraceCrashlyticsSupport"
@@ -353,6 +395,20 @@
                BlueprintIdentifier = "EmbraceCrashlyticsSupport-Dynamic"
                BuildableName = "EmbraceCrashlyticsSupport-Dynamic"
                BlueprintName = "EmbraceCrashlyticsSupport-Dynamic"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EmbraceCrashlyticsSupport-Static"
+               BuildableName = "EmbraceCrashlyticsSupport-Static"
+               BlueprintName = "EmbraceCrashlyticsSupport-Static"
                ReferencedContainer = "container:">
             </BuildableReference>
          </BuildActionEntry>
@@ -472,6 +528,66 @@
                BlueprintIdentifier = "EmbraceCrashlyticsSupportTests"
                BuildableName = "EmbraceCrashlyticsSupportTests"
                BlueprintName = "EmbraceCrashlyticsSupportTests"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EmbraceCommonInternalTests"
+               BuildableName = "EmbraceCommonInternalTests"
+               BlueprintName = "EmbraceCommonInternalTests"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EmbraceConfigInternalTests"
+               BuildableName = "EmbraceConfigInternalTests"
+               BlueprintName = "EmbraceConfigInternalTests"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EmbraceOTelInternalTests"
+               BuildableName = "EmbraceOTelInternalTests"
+               BlueprintName = "EmbraceOTelInternalTests"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EmbraceObjCUtilsInternalTests"
+               BuildableName = "EmbraceObjCUtilsInternalTests"
+               BlueprintName = "EmbraceObjCUtilsInternalTests"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EmbraceStorageInternalTests"
+               BuildableName = "EmbraceStorageInternalTests"
+               BlueprintName = "EmbraceStorageInternalTests"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EmbraceUploadInternalTests"
+               BuildableName = "EmbraceUploadInternalTests"
+               BlueprintName = "EmbraceUploadInternalTests"
                ReferencedContainer = "container:">
             </BuildableReference>
          </TestableReference>

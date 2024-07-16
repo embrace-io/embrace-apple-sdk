@@ -3,8 +3,8 @@
 //
 
 import Foundation
-import EmbraceStorage
-import EmbraceCommon
+import EmbraceStorageInternal
+import EmbraceCommonInternal
 
 struct LogPayloadBuilder {
     static func build(log: LogRecord) -> LogPayload {

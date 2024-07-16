@@ -3,7 +3,7 @@
 //
 
 import Foundation
-@testable import EmbraceStorage
+@testable import EmbraceStorageInternal
 
 public extension EmbraceStorage {
     static func createInMemoryDb(runMigrations: Bool = true) throws -> EmbraceStorage {

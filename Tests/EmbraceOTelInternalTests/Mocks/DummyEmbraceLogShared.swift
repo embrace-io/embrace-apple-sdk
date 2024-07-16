@@ -1,0 +1,20 @@
+//
+//  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
+//
+
+import Foundation
+import OpenTelemetrySdk
+
+@testable import EmbraceOTelInternal
+
+class DummyEmbraceLogShared: EmbraceLogSharedState {
+    var processors: [EmbraceLogRecordProcessor] = []
+    var config: any EmbraceLoggerConfig = RandomConfig()
+    var resourceProvider: EmbraceResourceProvider
+
+    init(resourceProvider: EmbraceResourceProvider = DummyEmbraceResourceProvider()) {
+        self.resourceProvider = resourceProvider
+    }
+
+    func update(_ config: any EmbraceLoggerConfig) { }
+}

@@ -2,8 +2,8 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import EmbraceStorage
-import EmbraceCommon
+import EmbraceStorageInternal
+import EmbraceCommonInternal
 
 class SpyLogRepository: LogRepository {
     var didCallFetchAll = false

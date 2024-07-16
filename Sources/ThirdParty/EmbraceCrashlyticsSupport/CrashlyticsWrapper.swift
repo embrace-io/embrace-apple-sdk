@@ -3,7 +3,7 @@
 //
 
 import Foundation
-import EmbraceCommon
+import EmbraceCommonInternal
 
 class CrashlyticsWrapper {
 

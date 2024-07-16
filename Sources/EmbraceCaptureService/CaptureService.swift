@@ -3,8 +3,8 @@
 //
 
 import Foundation
-import EmbraceCommon
-import EmbraceOTel
+import EmbraceCommonInternal
+import EmbraceOTelInternal
 import OpenTelemetryApi
 
 /// Base class for all capture services (this class should never be used directly)

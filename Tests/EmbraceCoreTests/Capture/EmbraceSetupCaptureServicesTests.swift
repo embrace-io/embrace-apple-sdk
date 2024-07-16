@@ -4,7 +4,7 @@
 
 import XCTest
 import EmbraceCaptureService
-import EmbraceCommon
+import EmbraceCommonInternal
 
 @testable import EmbraceCore
 
@@ -19,7 +19,7 @@ final class EmbraceSetupCaptureServicesTests: XCTestCase {
         func getLastRunState() -> LastRunState { return .cleanExit }
         func fetchUnsentCrashReports(completion: @escaping ([CrashReport]) -> Void) { }
         func deleteCrashReport(id: Int) { }
-        var onNewReport: ((EmbraceCommon.CrashReport) -> Void)?
+        var onNewReport: ((CrashReport) -> Void)?
     }
 
     override func tearDown() {

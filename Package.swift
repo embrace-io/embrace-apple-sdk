@@ -30,8 +30,8 @@ let package = Package(
     ],
     dependencies: [
         .package(
-            url: "https://github.com/embrace-io/KSCrash.git",
-            exact: "1.16.0"
+             url: "https://github.com/embrace-io/KSCrash.git",
+             exact: "2.0.2"
         ),
         .package(
             url: "https://github.com/open-telemetry/opentelemetry-swift",
@@ -49,10 +49,6 @@ let package = Package(
             url: "https://github.com/apple/swift-docc-plugin",
             branch: "main"
         ),
-        .package(
-            url: "https://github.com/1024jp/GzipSwift",
-            exact: "6.0.1"
-        )
     ],
     targets: [
         // main target ---------------------------------------------------------------
@@ -61,7 +57,7 @@ let package = Package(
             dependencies: [
                 "EmbraceCaptureService",
                 "EmbraceCore",
-                "EmbraceCommon",
+                "EmbraceCommonInternal",
                 "EmbraceCrash"
             ],
             plugins: targetPlugins
@@ -84,13 +80,12 @@ let package = Package(
             name: "EmbraceCore",
             dependencies: [
                 "EmbraceCaptureService",
-                "EmbraceCommon",
-                "EmbraceConfig",
-                "EmbraceOTel",
-                "EmbraceStorage",
-                "EmbraceUpload",
-                "EmbraceObjCUtils",
-                .product(name: "Gzip", package: "GzipSwift")
+                "EmbraceCommonInternal",
+                "EmbraceConfigInternal",
+                "EmbraceOTelInternal",
+                "EmbraceStorageInternal",
+                "EmbraceUploadInternal",
+                "EmbraceObjCUtilsInternal",
             ],
             resources: [
                 .copy("PrivacyInfo.xcprivacy")
@@ -113,13 +108,13 @@ let package = Package(
 
         // common --------------------------------------------------------------------
         .target(
-            name: "EmbraceCommon",
+            name: "EmbraceCommonInternal",
             plugins: targetPlugins
         ),
         .testTarget(
-            name: "EmbraceCommonTests",
+            name: "EmbraceCommonInternalTests",
             dependencies: [
-                "EmbraceCommon",
+                "EmbraceCommonInternal",
                 "TestSupport"
             ],
             plugins: targetPlugins
@@ -129,7 +124,7 @@ let package = Package(
         .target(
             name: "EmbraceCaptureService",
             dependencies: [
-                "EmbraceOTel",
+                "EmbraceOTelInternal",
                 .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
             ],
             plugins: targetPlugins
@@ -145,17 +140,17 @@ let package = Package(
 
         // config --------------------------------------------------------------------
         .target(
-            name: "EmbraceConfig",
+            name: "EmbraceConfigInternal",
             dependencies: [
-                "EmbraceCommon"
+                "EmbraceCommonInternal"
             ],
             plugins: targetPlugins
         ),
 
         .testTarget(
-            name: "EmbraceConfigTests",
+            name: "EmbraceConfigInternalTests",
             dependencies: [
-                "EmbraceConfig",
+                "EmbraceConfigInternal",
                 "TestSupport"
             ],
             resources: [
@@ -166,17 +161,17 @@ let package = Package(
 
         // OTel ----------------------------------------------------------------------
         .target(
-            name: "EmbraceOTel",
+            name: "EmbraceOTelInternal",
             dependencies: [
-                "EmbraceCommon",
+                "EmbraceCommonInternal",
                 .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
             ],
             plugins: targetPlugins
         ),
         .testTarget(
-            name: "EmbraceOTelTests",
+            name: "EmbraceOTelInternalTests",
             dependencies: [
-                "EmbraceOTel",
+                "EmbraceOTelInternal",
                 "TestSupport"
             ],
             plugins: targetPlugins
@@ -184,16 +179,16 @@ let package = Package(
 
         // storage -------------------------------------------------------------------
         .target(
-            name: "EmbraceStorage",
+            name: "EmbraceStorageInternal",
             dependencies: [
-                "EmbraceCommon",
+                "EmbraceCommonInternal",
                 .product(name: "GRDB", package: "GRDB.swift")
             ],
             plugins: targetPlugins
         ),
         .testTarget(
-            name: "EmbraceStorageTests",
-            dependencies: ["EmbraceStorage", "TestSupport"],
+            name: "EmbraceStorageInternalTests",
+            dependencies: ["EmbraceStorageInternal", "TestSupport"],
             resources: [
                 .copy("Mocks/")
             ],
@@ -202,19 +197,19 @@ let package = Package(
 
         // upload --------------------------------------------------------------------
         .target(
-            name: "EmbraceUpload",
+            name: "EmbraceUploadInternal",
             dependencies: [
-                "EmbraceCommon",
-                "EmbraceOTel",
+                "EmbraceCommonInternal",
+                "EmbraceOTelInternal",
                 .product(name: "GRDB", package: "GRDB.swift")
             ],
             plugins: targetPlugins
         ),
         .testTarget(
-            name: "EmbraceUploadTests",
+            name: "EmbraceUploadInternalTests",
             dependencies: [
-                "EmbraceUpload",
-                "EmbraceOTel",
+                "EmbraceUploadInternal",
+                "EmbraceOTelInternal",
                 "TestSupport"
             ],
             plugins: targetPlugins
@@ -224,8 +219,8 @@ let package = Package(
         .target(
             name: "EmbraceCrash",
             dependencies: [
-                "EmbraceCommon",
-                .product(name: "KSCrash", package: "KSCrash")
+                "EmbraceCommonInternal",
+                .product(name: "Recording", package: "KSCrash")
             ],
             plugins: targetPlugins
         ),
@@ -242,24 +237,24 @@ let package = Package(
         .target(
             name: "EmbraceCrashlyticsSupport",
             dependencies: [
-                "EmbraceCommon"
+                "EmbraceCommonInternal"
             ],
             path: "Sources/ThirdParty/EmbraceCrashlyticsSupport",
             plugins: targetPlugins
         ),
         .testTarget(
             name: "EmbraceCrashlyticsSupportTests",
-            dependencies: ["EmbraceCrashlyticsSupport", "EmbraceCommon", "TestSupport"],
+            dependencies: ["EmbraceCrashlyticsSupport", "EmbraceCommonInternal", "TestSupport"],
             path: "Tests/ThirdParty/EmbraceCrashlyticsSupportTests",
             plugins: targetPlugins
         ),
 
         // Utilities
-        .target(name: "EmbraceObjCUtils",
+        .target(name: "EmbraceObjCUtilsInternal",
                 plugins: targetPlugins),
         .testTarget(
-            name: "EmbraceObjCUtilsTests",
-            dependencies: ["EmbraceObjCUtils", "TestSupport"],
+            name: "EmbraceObjCUtilsInternalTests",
+            dependencies: ["EmbraceObjCUtilsInternal", "TestSupport"],
             plugins: targetPlugins
         ),
 
@@ -268,8 +263,8 @@ let package = Package(
             name: "TestSupport",
             dependencies: [
                 "EmbraceCore",
-                "EmbraceOTel",
-                "EmbraceCommon",
+                "EmbraceOTelInternal",
+                "EmbraceCommonInternal",
                 .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
             ],
             path: "Tests/TestSupport",

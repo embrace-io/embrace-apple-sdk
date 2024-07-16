@@ -3,7 +3,7 @@
 //
 
 import XCTest
-import EmbraceCommon
+import EmbraceCommonInternal
 
 @testable import EmbraceCore
 

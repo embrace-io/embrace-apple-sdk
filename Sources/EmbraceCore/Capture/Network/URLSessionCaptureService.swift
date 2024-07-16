@@ -4,7 +4,7 @@
 
 import Foundation
 import EmbraceCaptureService
-import EmbraceCommon
+import EmbraceCommonInternal
 
 /*
  We decided that, to improve readability, we'll keep all the classes that swizzle methods

@@ -3,8 +3,8 @@
 //
 
 import Foundation
-import EmbraceCommon
-import KSCrash_Recording
+import EmbraceCommonInternal
+import KSCrashRecording
 
 /// Class used to interact with KSCrash
 @objc public final class EmbraceCrashReporter: NSObject, CrashReporter {
@@ -62,7 +62,7 @@ import KSCrash_Recording
         return ksCrash.crashedLastLaunch ? .crash : .cleanExit
     }
 
-    public func install(context: EmbraceCommon.CrashReporterContext, logger: InternalLogger) {
+    public func install(context: CrashReporterContext, logger: InternalLogger) {
         guard ksCrash == nil else {
             logger.debug("EmbraceCrashReporter already installed!")
             return

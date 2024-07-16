@@ -4,7 +4,7 @@
 
 import XCTest
 @testable import EmbraceCore
-import EmbraceOTel
+import EmbraceOTelInternal
 
 final class LengthOfBodyValidatorTests: XCTestCase {
 

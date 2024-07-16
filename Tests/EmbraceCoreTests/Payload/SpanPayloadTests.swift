@@ -5,7 +5,7 @@
 import Foundation
 import XCTest
 @testable import EmbraceCore
-@testable import EmbraceOTel
+@testable import EmbraceOTelInternal
 import OpenTelemetryApi
 @testable import OpenTelemetrySdk
 

@@ -6,8 +6,8 @@ import XCTest
 
 @testable import EmbraceCore
 @testable import OpenTelemetrySdk
-@testable import EmbraceOTel
-import EmbraceCommon
+@testable import EmbraceOTelInternal
+import EmbraceCommonInternal
 
 final class LengthOfNameValidatorTests: XCTestCase {
 

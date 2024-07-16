@@ -3,9 +3,9 @@
 //
 
 import XCTest
-import EmbraceCommon
+import EmbraceCommonInternal
 @testable import EmbraceCore
-@testable import EmbraceStorage
+@testable import EmbraceStorageInternal
 import OpenTelemetryApi
 import TestSupport
 

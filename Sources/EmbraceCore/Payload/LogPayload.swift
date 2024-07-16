@@ -3,7 +3,7 @@
 //
 
 import Foundation
-import EmbraceCommon
+import EmbraceCommonInternal
 
 struct LogPayload: Codable {
     var timeUnixNano: String

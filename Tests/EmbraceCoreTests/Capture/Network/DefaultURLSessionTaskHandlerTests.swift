@@ -5,8 +5,8 @@
 import XCTest
 @testable import EmbraceCaptureService
 import TestSupport
-import EmbraceCommon
-import EmbraceOTel
+import EmbraceCommonInternal
+import EmbraceOTelInternal
 @testable import EmbraceCore
 
 // swiftlint:disable line_length

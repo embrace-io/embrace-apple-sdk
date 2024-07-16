@@ -4,9 +4,9 @@
 
 import Foundation
 import EmbraceCaptureService
-import EmbraceCommon
-import EmbraceStorage
-import EmbraceUpload
+import EmbraceCommonInternal
+import EmbraceStorageInternal
+import EmbraceUploadInternal
 
 final class CaptureServices {
 

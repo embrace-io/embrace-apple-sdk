@@ -3,7 +3,7 @@
 //
 
 import Foundation
-import EmbraceOTel
+import EmbraceOTelInternal
 
 struct SpanEventPayload: Encodable {
     let name: String

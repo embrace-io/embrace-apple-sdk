@@ -2,7 +2,7 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import EmbraceOTel
+import EmbraceOTelInternal
 
 /// Validates the length of ``SpanData.name``. 
 /// This compares the length of the String in characters, not bytes.

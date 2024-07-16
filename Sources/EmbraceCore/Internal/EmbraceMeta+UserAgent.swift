@@ -3,7 +3,7 @@
 //
 
 import Foundation
-import EmbraceCommon
+import EmbraceCommonInternal
 
 extension EmbraceMeta {
     static var userAgent: String { "Embrace/i/\(sdkVersion)" }

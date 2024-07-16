@@ -3,7 +3,7 @@
 //
 
 import Foundation
-import EmbraceCommon
+import EmbraceCommonInternal
 
 /// Class used to capture Crashlytics reports
 @objc public final class CrashlyticsReporter: NSObject, CrashReporter {

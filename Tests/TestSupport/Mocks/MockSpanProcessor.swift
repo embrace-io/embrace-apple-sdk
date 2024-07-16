@@ -3,7 +3,7 @@
 //
 
 import Foundation
-import EmbraceOTel
+import EmbraceOTelInternal
 
 public class MockSpanProcessor: EmbraceSpanProcessor {
     private(set) public var startedSpans = [SpanData]()

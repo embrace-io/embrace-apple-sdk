@@ -5,9 +5,9 @@
 import Foundation
 import XCTest
 @testable import EmbraceCore
-import EmbraceCommon
-import EmbraceStorage
-@testable import EmbraceUpload
+import EmbraceCommonInternal
+import EmbraceStorageInternal
+@testable import EmbraceUploadInternal
 import TestSupport
 import GRDB
 

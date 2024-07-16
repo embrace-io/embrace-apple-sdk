@@ -3,9 +3,9 @@
 //
 
 import Foundation
-import EmbraceStorage
-import EmbraceCommon
-import EmbraceObjCUtils
+import EmbraceStorageInternal
+import EmbraceCommonInternal
+import EmbraceObjCUtilsInternal
 
 struct AppInfoPayload: Codable {
     var buildID: String?

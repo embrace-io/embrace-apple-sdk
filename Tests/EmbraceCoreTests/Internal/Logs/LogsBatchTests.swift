@@ -5,8 +5,8 @@
 import Foundation
 import XCTest
 
-import EmbraceCommon
-import EmbraceStorage
+import EmbraceCommonInternal
+import EmbraceStorageInternal
 
 @testable import EmbraceCore
 

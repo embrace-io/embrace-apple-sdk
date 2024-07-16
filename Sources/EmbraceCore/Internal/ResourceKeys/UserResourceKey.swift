@@ -2,7 +2,7 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import EmbraceStorage
+import EmbraceStorageInternal
 
 enum UserResourceKey: String, CaseIterable {
     case name = "emb.user.username"

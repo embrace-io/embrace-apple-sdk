@@ -4,7 +4,7 @@
 
 import XCTest
 import EmbraceCaptureService
-import EmbraceCommon
+import EmbraceCommonInternal
 @testable import EmbraceCore
 import TestSupport
 

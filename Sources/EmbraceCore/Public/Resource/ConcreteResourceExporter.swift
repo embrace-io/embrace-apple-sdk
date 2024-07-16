@@ -3,8 +3,8 @@
 //
 
 import Foundation
-import EmbraceOTel
-import EmbraceStorage
+import EmbraceOTelInternal
+import EmbraceStorageInternal
 
 public class ConcreteResourceExporter: EmbraceResourceProvider {
     private let internalExporter: EmbraceResourceProvider

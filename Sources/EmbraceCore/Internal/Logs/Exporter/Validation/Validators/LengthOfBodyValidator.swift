@@ -3,7 +3,7 @@
 //
 
 import Foundation
-import EmbraceOTel
+import EmbraceOTelInternal
 
 /// Validates the length of ``ReadableLogRecord.body``.
 /// This compares the length of the String in characters, not bytes.

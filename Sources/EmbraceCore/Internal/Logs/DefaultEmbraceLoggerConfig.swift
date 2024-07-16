@@ -2,7 +2,7 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import EmbraceOTel
+import EmbraceOTelInternal
 
 struct DefaultEmbraceLoggerConfig: EmbraceLoggerConfig {
     let batchLifetimeInSeconds: Int = 60

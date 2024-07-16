@@ -3,9 +3,9 @@
 //
 
 import Foundation
-import EmbraceObjCUtils
-import EmbraceConfig
-import EmbraceCommon
+import EmbraceObjCUtilsInternal
+import EmbraceConfigInternal
+import EmbraceCommonInternal
 
 extension Embrace {
     static func createConfig(

@@ -2,9 +2,9 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import EmbraceStorage
-import EmbraceObjCUtils
-import EmbraceCommon
+import EmbraceStorageInternal
+import EmbraceObjCUtilsInternal
+import EmbraceCommonInternal
 
 class EmbraceLogAttributesBuilder {
     private weak var storage: EmbraceStorageMetadataFetcher?

@@ -3,8 +3,8 @@
 //
 
 import Foundation
-import EmbraceCommon
-import EmbraceObjCUtils
+import EmbraceCommonInternal
+import EmbraceObjCUtilsInternal
 
 class DeviceInfoCaptureService: ResourceCaptureService {
 

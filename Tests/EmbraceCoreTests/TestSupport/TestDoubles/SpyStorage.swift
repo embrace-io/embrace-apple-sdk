@@ -3,8 +3,8 @@
 //
 
 import Foundation
-import EmbraceStorage
-import EmbraceCommon
+import EmbraceStorageInternal
+import EmbraceCommonInternal
 
 class RandomError: Error, CustomNSError {
     static var errorDomain: String = "Embrace"

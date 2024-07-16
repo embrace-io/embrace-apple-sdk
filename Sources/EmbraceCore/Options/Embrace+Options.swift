@@ -4,8 +4,8 @@
 
 import Foundation
 import EmbraceCaptureService
-import EmbraceCommon
-import EmbraceOTel
+import EmbraceCommonInternal
+import EmbraceOTelInternal
 
 extension Embrace {
 

@@ -3,7 +3,7 @@
 //
 
 import Foundation
-import EmbraceCommon
+import EmbraceCommonInternal
 
 public class TemporaryFilepathProvider: FilePathProvider {
 

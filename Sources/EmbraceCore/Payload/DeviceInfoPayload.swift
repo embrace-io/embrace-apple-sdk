@@ -3,8 +3,8 @@
 //
 
 import Foundation
-import EmbraceCommon
-import EmbraceStorage
+import EmbraceCommonInternal
+import EmbraceStorageInternal
 
 struct DeviceInfoPayload: Codable {
     var isJailbroken: Bool?

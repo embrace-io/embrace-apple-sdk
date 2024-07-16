@@ -5,9 +5,9 @@
 import XCTest
 
 @testable import EmbraceCore
-import EmbraceStorage
-import EmbraceUpload
-import EmbraceCommon
+import EmbraceStorageInternal
+import EmbraceUploadInternal
+import EmbraceCommonInternal
 
 class LogControllerTests: XCTestCase {
     private var sut: LogController!

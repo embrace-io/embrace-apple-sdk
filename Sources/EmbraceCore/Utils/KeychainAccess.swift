@@ -4,7 +4,7 @@
 
 import Foundation
 import Security
-import EmbraceCommon
+import EmbraceCommonInternal
 
 class KeychainAccess {
 

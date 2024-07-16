@@ -3,9 +3,9 @@
 //
 
 import Foundation
-import EmbraceStorage
-import EmbraceUpload
-import EmbraceCommon
+import EmbraceStorageInternal
+import EmbraceUploadInternal
+import EmbraceCommonInternal
 
 protocol LogControllable: LogBatcherDelegate {
     func uploadAllPersistedLogs()

@@ -4,7 +4,7 @@
 
 #if canImport(WebKit)
 import WebKit
-import EmbraceOTel
+import EmbraceOTelInternal
 
 class WKNavigationDelegateProxy: NSObject {
     weak var originalDelegate: WKNavigationDelegate?

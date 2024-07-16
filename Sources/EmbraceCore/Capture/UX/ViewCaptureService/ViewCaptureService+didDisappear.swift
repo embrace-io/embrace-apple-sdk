@@ -5,8 +5,8 @@
 #if canImport(UIKit)
 
 import UIKit
-import EmbraceCommon
-import EmbraceOTel
+import EmbraceCommonInternal
+import EmbraceOTelInternal
 
 extension ViewCaptureService {
     func handleViewDidDisappear(_ vc: UIViewController, animated: Bool) {

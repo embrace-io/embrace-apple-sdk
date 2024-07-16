@@ -5,8 +5,8 @@
 #if canImport(WebKit)
 import Foundation
 import WebKit
-import EmbraceCommon
-import EmbraceOTel
+import EmbraceCommonInternal
+import EmbraceOTelInternal
 import EmbraceCaptureService
 
 /// Automatically generates span events when a `WKWebView` loads an URL or throws an error.

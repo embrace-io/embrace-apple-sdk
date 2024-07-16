@@ -5,7 +5,7 @@
 #if canImport(UIKit) && !os(watchOS)
 import XCTest
 import TestSupport
-import EmbraceCommon
+import EmbraceCommonInternal
 import UIKit
 @testable import EmbraceCore
 

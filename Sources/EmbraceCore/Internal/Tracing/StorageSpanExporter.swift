@@ -2,8 +2,8 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import EmbraceStorage
-import EmbraceOTel
+import EmbraceStorageInternal
+import EmbraceOTelInternal
 
 class StorageSpanExporter: EmbraceSpanExporter {
 
