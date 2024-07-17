@@ -19,7 +19,7 @@ extension URLSessionCaptureService {
             self.requestsDataSource = requestsDataSource
         }
 
-        @objc convenience override init() {
+        @objc public convenience override init() {
             self.init(injectTracingHeader: true, requestsDataSource: nil)
         }
     }

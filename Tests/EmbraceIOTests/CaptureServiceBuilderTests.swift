@@ -1,0 +1,204 @@
+//
+//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
+//
+
+@testable import EmbraceIO
+import XCTest
+
+// swiftlint:disable force_cast
+
+class CaptureServiceBuilderTests: XCTestCase {
+
+    func test_defaults() throws {
+        // given a builder
+        let builder = CaptureServiceBuilder()
+
+        // when adding the defaults
+        builder.addDefaults()
+
+        // then the list contains all the default services
+        let list = builder.build()
+
+        XCTAssertEqual(list.count, 6)
+        XCTAssertNotNil(list.first(where: { $0 is URLSessionCaptureService }))
+        XCTAssertNotNil(list.first(where: { $0 is TapCaptureService }))
+        XCTAssertNotNil(list.first(where: { $0 is ViewCaptureService }))
+        XCTAssertNotNil(list.first(where: { $0 is WebViewCaptureService }))
+        XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
+        XCTAssertNotNil(list.first(where: { $0 is LowPowerModeCaptureService }))
+    }
+
+    func test_defaultsWithNonEmptyList() throws {
+        // given a builder
+        let builder = CaptureServiceBuilder()
+
+        // when adding a URLSessionCaptureService with custom options
+        let options = URLSessionCaptureService.Options(injectTracingHeader: false, requestsDataSource: nil)
+        builder.add(.urlSession(options: options))
+
+        // when adding the defaults
+        builder.addDefaults()
+
+        // then the list contains the correct services
+        let list = builder.build()
+
+        XCTAssertEqual(list.count, 6)
+        XCTAssertNotNil(list.first(where: { $0 is TapCaptureService }))
+        XCTAssertNotNil(list.first(where: { $0 is ViewCaptureService }))
+        XCTAssertNotNil(list.first(where: { $0 is WebViewCaptureService }))
+        XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
+        XCTAssertNotNil(list.first(where: { $0 is LowPowerModeCaptureService }))
+
+        let service = list.first(where: { $0 is URLSessionCaptureService }) as! URLSessionCaptureService
+        XCTAssertFalse(service.options.injectTracingHeader)
+        XCTAssertNil(service.options.requestsDataSource)
+    }
+
+    func test_remove() throws {
+        // given a builder
+        let builder = CaptureServiceBuilder()
+
+        // when adding the defaults
+        builder.addDefaults()
+
+        // when removing some services
+        builder.remove(ofType: URLSessionCaptureService.self)
+        builder.remove(ofType: TapCaptureService.self)
+        builder.remove(ofType: ViewCaptureService.self)
+
+        // then the list contains the correct services
+        let list = builder.build()
+
+        XCTAssertEqual(list.count, 3)
+        XCTAssertNotNil(list.first(where: { $0 is WebViewCaptureService }))
+        XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
+        XCTAssertNotNil(list.first(where: { $0 is LowPowerModeCaptureService }))
+    }
+
+    func test_replace() {
+        // given a builder
+        let builder = CaptureServiceBuilder()
+
+        // when adding a default URLSessionCaptureService
+        builder.add(.urlSession())
+
+        // and then adding it again
+        let options = URLSessionCaptureService.Options(injectTracingHeader: false, requestsDataSource: nil)
+        builder.add(.urlSession(options: options))
+
+        // then the list contains the correct services
+        let list = builder.build()
+
+        XCTAssertEqual(list.count, 1)
+        let service = list[0] as! URLSessionCaptureService
+        XCTAssertFalse(service.options.injectTracingHeader)
+        XCTAssertNil(service.options.requestsDataSource)
+    }
+
+    func test_addUrlSessionCaptureService() throws {
+        // given a builder
+        let builder = CaptureServiceBuilder()
+
+        // when adding a URLSessionCaptureService
+        let options = URLSessionCaptureService.Options(injectTracingHeader: false, requestsDataSource: nil)
+        builder.add(.urlSession(options: options))
+
+        // then the list contains the capture service
+        let list = builder.build()
+
+        XCTAssertEqual(list.count, 1)
+        let service = list[0] as! URLSessionCaptureService
+        XCTAssertFalse(service.options.injectTracingHeader)
+        XCTAssertNil(service.options.requestsDataSource)
+    }
+
+    func test_addTapCaptureService() throws {
+        // given a builder
+        let builder = CaptureServiceBuilder()
+
+        // when adding a TapCaptureService
+        builder.add(.tap())
+
+        // then the list contains the capture service
+        let list = builder.build()
+
+        XCTAssertEqual(list.count, 1)
+        XCTAssertNotNil(list.first(where: { $0 is TapCaptureService }))
+    }
+
+    func test_addViewCaptureService() throws {
+        // given a builder
+        let builder = CaptureServiceBuilder()
+
+        // when adding a ViewCaptureService
+        builder.add(.view())
+
+        // then the list contains the capture service
+        let list = builder.build()
+
+        XCTAssertEqual(list.count, 1)
+        XCTAssertNotNil(list.first(where: { $0 is ViewCaptureService }))
+    }
+
+    func test_addWebViewCaptureService() throws {
+        // given a builder
+        let builder = CaptureServiceBuilder()
+
+        // when adding a WebViewCaptureService
+        let options = WebViewCaptureService.Options(stripQueryParams: true)
+        builder.add(.webView(options: options))
+
+        // then the list contains the capture service
+        let list = builder.build()
+
+        XCTAssertEqual(list.count, 1)
+        let service = list[0] as! WebViewCaptureService
+        XCTAssert(service.options.stripQueryParams)
+    }
+
+    func test_addLowMemoryWarningCaptureService() throws {
+        // given a builder
+        let builder = CaptureServiceBuilder()
+
+        // when adding a LowMemoryWarningCaptureService
+        builder.add(.lowMemoryWarning())
+
+        // then the list contains the capture service
+        let list = builder.build()
+
+        XCTAssertEqual(list.count, 1)
+        XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
+    }
+
+    func test_addLowPowerModeCaptureService() throws {
+        // given a builder
+        let builder = CaptureServiceBuilder()
+
+        // when adding a LowPowerModeCaptureService
+        builder.add(.lowPowerMode())
+
+        // then the list contains the capture service
+        let list = builder.build()
+
+        XCTAssertEqual(list.count, 1)
+        XCTAssertNotNil(list.first(where: { $0 is LowPowerModeCaptureService }))
+    }
+
+    func test_addPushNotificationCaptureService() throws {
+        // given a builder
+        let builder = CaptureServiceBuilder()
+
+        // when adding a PushNotificationCaptureService
+        let options = PushNotificationCaptureService.Options(captureData: true)
+        builder.add(.pushNotification(options: options))
+
+        // then the list contains the capture service
+        let list = builder.build()
+
+        XCTAssertEqual(list.count, 1)
+        let service = list[0] as! PushNotificationCaptureService
+        XCTAssert(service.options.captureData)
+    }
+}
+
+// swiftlint:enable force_cast

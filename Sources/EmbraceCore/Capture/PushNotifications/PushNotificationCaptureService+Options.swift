@@ -15,7 +15,7 @@ extension PushNotificationCaptureService {
             self.captureData = captureData
         }
 
-        @objc convenience override init() {
+        @objc public convenience override init() {
             self.init(captureData: false)
         }
     }

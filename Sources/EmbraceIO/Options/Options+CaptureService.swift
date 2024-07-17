@@ -77,6 +77,8 @@ extension Embrace.Options: ExpressibleByStringLiteral {
 
 public extension Array where Element == CaptureService {
     static var automatic: [CaptureService] {
-        return CaptureServiceFactory.platformCaptureServices
+        return CaptureServiceBuilder()
+            .addDefaults()
+            .build()
     }
 }

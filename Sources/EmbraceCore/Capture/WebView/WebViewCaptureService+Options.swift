@@ -16,7 +16,7 @@ extension WebViewCaptureService {
             self.stripQueryParams = stripQueryParams
         }
 
-        @objc convenience override init() {
+        @objc public convenience override init() {
             self.init(stripQueryParams: false)
         }
     }
