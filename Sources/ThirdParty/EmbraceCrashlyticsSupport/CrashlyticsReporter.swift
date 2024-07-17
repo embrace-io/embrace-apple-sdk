@@ -50,7 +50,7 @@ import EmbraceCommonInternal
 
     /// Always returns `.invalid`
     public func getLastRunState() -> LastRunState {
-        return .invalid
+        return .unavailable
     }
 
     public func install(context: CrashReporterContext, logger: InternalLogger) {

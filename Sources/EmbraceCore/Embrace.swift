@@ -221,7 +221,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         return self
     }
 
-    /// Method used to obtain the current session identifier, if any.
+    /// Returns the current session identifier, if any.
     @objc public func currentSessionId() -> String? {
         guard config.isSDKEnabled else {
             return nil
@@ -230,19 +230,29 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         return sessionController.currentSession?.id.toString
     }
 
+    /// Returns the current device identifier.
     @objc public func currentDeviceId() -> String? {
         return deviceId.hex
     }
 
-    /// Method used to force the Embrace SDK to start a new session.
+    /// Forces the Embrace SDK to start a new session.
     /// - Note: If there was a session running, it will be ended before starting a new one.
     @objc public func startNewSession() {
         sessionLifecycle.startSession()
     }
 
-    /// Method used to force the Embrace SDK to stop the current session, if any.
+    /// Force the Embrace SDK to stop the current session, if any.
     @objc public func endCurrentSession() {
         sessionLifecycle.endSession()
+    }
+
+    /// Returns the last run end state.
+    @objc public func lastRunEndState() -> LastRunEndState {
+        guard let crashReporterEndState = captureServices.crashReporter?.getLastRunState() else {
+            return .unavailable
+        }
+
+        return LastRunEndState(rawValue: crashReporterEndState.rawValue) ?? .unavailable
     }
 
     /// Called everytime the remote config changes

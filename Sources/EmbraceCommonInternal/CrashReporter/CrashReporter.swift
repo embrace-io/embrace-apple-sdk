@@ -5,7 +5,7 @@
 import Foundation
 
 @objc public enum LastRunState: Int {
-    case invalid, crash, cleanExit
+    case unavailable, crash, cleanExit
 }
 
 @objc public protocol CrashReporter {

@@ -29,8 +29,9 @@ class CrashReporterMock: CrashReporter {
         ]
     }
 
+    public var forcedLastRunState: LastRunState = .crash
     func getLastRunState() -> LastRunState {
-        return .crash
+        return forcedLastRunState
     }
 
     func fetchUnsentCrashReports(completion: @escaping ([CrashReport]) -> Void) {

@@ -90,6 +90,25 @@ final class EmbraceCoreTests: XCTestCase {
         }
     }
 
+    func test_getLastRunEndState() throws {
+        let crashReporter = CrashReporterMock()
+        let embrace = try getLocalEmbrace(crashReporter: crashReporter)
+
+        crashReporter.forcedLastRunState = .unavailable
+        XCTAssertEqual(embrace?.lastRunEndState(), .unavailable)
+
+        crashReporter.forcedLastRunState = .crash
+        XCTAssertEqual(embrace?.lastRunEndState(), .crash)
+
+        crashReporter.forcedLastRunState = .cleanExit
+        XCTAssertEqual(embrace?.lastRunEndState(), .cleanExit)
+    }
+
+    func test_getLastRunEndState_noCrashReporter() throws {
+        let embrace = try getLocalEmbrace()
+        XCTAssertEqual(embrace?.lastRunEndState(), .unavailable)
+    }
+
     func test_EmbraceStartNonMainThreadShouldThrow() throws {
         let embrace = try getLocalEmbrace()
         let expectation = self.expectation(description: "testWillNotDeadlock")
@@ -190,7 +209,7 @@ final class EmbraceCoreTests: XCTestCase {
     }
 
     // MARK: - Helper Methods
-    func getLocalEmbrace(storage: EmbraceStorage? = nil)throws -> Embrace? {
+    func getLocalEmbrace(storage: EmbraceStorage? = nil, crashReporter: CrashReporter? = nil)throws -> Embrace? {
         // to ensure that each test gets it's own instance of embrace.
         return try lock.locked {
             // I use random string for group id to ensure a different storage location each time
@@ -198,7 +217,7 @@ final class EmbraceCoreTests: XCTestCase {
                 appId: "testA",
                 appGroupId: randomString(length: 5),
                 captureServices: [],
-                crashReporter: nil
+                crashReporter: crashReporter
             ), embraceStorage: storage)
             XCTAssertNotNil(Embrace.client)
             let embrace = Embrace.client

@@ -56,7 +56,7 @@ import KSCrashRecording
     /// Used to determine if the last session ended cleanly or in a crash.
     public func getLastRunState() -> LastRunState {
         guard let ksCrash = ksCrash else {
-            return .invalid
+            return .unavailable
         }
 
         return ksCrash.crashedLastLaunch ? .crash : .cleanExit
