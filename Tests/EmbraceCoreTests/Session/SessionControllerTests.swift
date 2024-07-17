@@ -37,6 +37,7 @@ final class SessionControllerTests: XCTestCase {
         }
 
         let urlSessionconfig = URLSessionConfiguration.ephemeral
+        urlSessionconfig.httpMaximumConnectionsPerHost = .max
         urlSessionconfig.protocolClasses = [EmbraceHTTPMock.self]
 
         testOptions = EmbraceUpload.Options(

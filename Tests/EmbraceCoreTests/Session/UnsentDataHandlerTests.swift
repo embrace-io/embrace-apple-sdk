@@ -37,6 +37,7 @@ class UnsentDataHandlerTests: XCTestCase {
         )
 
         let urlSessionconfig = URLSessionConfiguration.ephemeral
+        urlSessionconfig.httpMaximumConnectionsPerHost = .max
         urlSessionconfig.protocolClasses = [EmbraceHTTPMock.self]
 
         let testCacheOptions = EmbraceUpload.CacheOptions(

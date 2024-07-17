@@ -196,8 +196,8 @@ struct WKWebViewLoadFileURLSwizzler: Swizzlable {
 }
 
 struct WKWebViewLoadDataSwizzler: Swizzlable {
-    typealias ImplementationType = @convention(c) (WKWebView, Selector, Data, String, String, URL) -> WKNavigation?
-    typealias BlockImplementationType = @convention(block) (WKWebView, Data, String, String, URL) -> WKNavigation?
+    typealias ImplementationType = @convention(c) (WKWebView, Selector, Data, String, String, URL?) -> WKNavigation?
+    typealias BlockImplementationType = @convention(block) (WKWebView, Data, String, String, URL?) -> WKNavigation?
     static var selector: Selector = #selector(
         WKWebView.load(_:mimeType:characterEncodingName:baseURL:)
     )

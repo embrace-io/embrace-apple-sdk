@@ -14,7 +14,9 @@ class EmbraceConfigTests: XCTestCase {
     }
 
     override func setUpWithError() throws {
-        EmbraceConfigTests.urlSessionConfig = URLSessionConfiguration.ephemeral
+        let config = URLSessionConfiguration.ephemeral
+        config.httpMaximumConnectionsPerHost = .max
+        EmbraceConfigTests.urlSessionConfig = config
         EmbraceConfigTests.urlSessionConfig.protocolClasses = [EmbraceHTTPMock.self]
     }
 
@@ -154,6 +156,10 @@ class EmbraceConfigTests: XCTestCase {
     }
 
     func test_updateCallback() throws {
+        expectation(forNotification: .embraceConfigUpdated, object: nil) { _ in
+            return true
+        }
+
         // given a config with 1 hour minimum update interval
         let options = testOptions(
             deviceId: TestConstants.deviceId,
@@ -169,9 +175,7 @@ class EmbraceConfigTests: XCTestCase {
         // making sure the fetched config is different so the notification is triggered
         config.payload.backgroundSessionThreshold = 12345
 
-        expectation(forNotification: .embraceConfigUpdated, object: nil) { _ in
-            return true
-        }
+        config.update()
 
         waitForExpectations(timeout: .veryLongTimeout)
     }

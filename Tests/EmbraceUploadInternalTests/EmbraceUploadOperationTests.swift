@@ -17,6 +17,7 @@ class EmbraceUploadOperationTests: XCTestCase {
 
     override func setUpWithError() throws {
         let urlSessionconfig = URLSessionConfiguration.ephemeral
+        urlSessionconfig.httpMaximumConnectionsPerHost = .max
         urlSessionconfig.protocolClasses = [EmbraceHTTPMock.self]
 
         self.urlSession = URLSession(configuration: urlSessionconfig)
