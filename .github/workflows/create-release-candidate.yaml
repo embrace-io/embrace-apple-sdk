@@ -70,7 +70,7 @@ jobs:
           chmod +x ./run.sh
           rm go_tool_ios-upload go_tool_ios-upload.arm64
       - name: Store Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Upload Tool Universal Binary
           path: artifacts
@@ -113,7 +113,7 @@ jobs:
           ls -la artifacts
 
       - name: Store Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Upload Tool Download
           path: artifacts
@@ -184,7 +184,7 @@ jobs:
           cd build; zip -r "$DIR/xcframeworks.zip" xcframeworks
 
       - name: Store XCFrameworks
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Embrace-Universal Build Artifacts
           path: xcframeworks.zip
@@ -224,7 +224,7 @@ jobs:
           zip "$DIR/embrace_$RC_VERSION.zip" -r xcframeworks/*; cd -;
 
       - name: Store Cocoapods Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Cocoapods Release Archive
           path: embrace_${{ env.RC_VERSION }}.zip
