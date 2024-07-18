@@ -58,7 +58,7 @@ jobs:
 
     steps:
       - name: Download Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: Upload Tool Download
           path: artifacts
@@ -202,13 +202,13 @@ jobs:
 
     steps:
       - name: Download Artifacts - Upload Tool
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: Upload Tool Universal Binary
           path: artifacts
 
       - name: Download Artifacts - XCFrameworks
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: Embrace-Universal Build Artifacts
 
@@ -263,13 +263,13 @@ jobs:
           echo "AWS_SESSION_TOKEN=`echo $credentials | jq -r .Credentials.SessionToken`" >> $GITHUB_ENV
 
       - name: Download Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: Embrace-Universal Build Artifacts
           path: embrace
 
       - name: Download Cocoapods Release Archive
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: Cocoapods Release Archive
           path: cocoapods/
