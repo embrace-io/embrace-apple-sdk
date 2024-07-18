@@ -249,7 +249,7 @@ jobs:
           # echo AWS_ASSUME_ROLE=arn:aws:iam::$(echo '${{ vars.AWS_ACCOUNT_IDS }}' | jq .${{ matrix.environment }}):role/${{ matrix.environment }}-embrace-ios-sdk >> $GITHUB_ENV
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v3
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ env.AWS_LOGIN_ROLE }}
           aws-region: ${{ env.AWS_DEFAULT_REGION }}
