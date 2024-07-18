@@ -45,6 +45,10 @@ struct MenuList: View {
                     destination: NetworkStressTest()
                 )
                 NavigationLink(
+                    "OpenTelemetry",
+                    destination: OpenTelemetryView()
+                )
+                NavigationLink(
                     "WebView Usage",
                     destination: BrowserView()
                 )

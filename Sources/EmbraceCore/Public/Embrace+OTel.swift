@@ -11,6 +11,13 @@ extension Embrace: EmbraceOpenTelemetry {
 
     private var otel: EmbraceOTel { EmbraceOTel() }
 
+    /// - Parameters:
+    ///     - instrumentationName: The name of the instrumentation library requesting the tracer.
+    /// - Returns: An OpenTelemetry Tracer so callers can use interface directly
+    public func tracer(instrumentationName: String) -> Tracer {
+        otel.tracer(instrumentationName: instrumentationName)
+    }
+
     /// Returns an OpenTelemetry SpanBuilder that is using an Embrace Tracer
     /// - Parameters:
     ///     - name: The name of the span

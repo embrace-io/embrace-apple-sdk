@@ -6,6 +6,8 @@ import OpenTelemetryApi
 import OpenTelemetrySdk
 
 // API
+public typealias Tracer = OpenTelemetryApi.Tracer
+
 public typealias TraceId = OpenTelemetryApi.TraceId
 
 public typealias SpanId = OpenTelemetryApi.SpanId

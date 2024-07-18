@@ -23,7 +23,7 @@ class Request: ObservableObject {
 
         let task = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             DispatchQueue.main.async {
-                guard let self = self else { 
+                guard let self = self else {
                     return
                 }
 

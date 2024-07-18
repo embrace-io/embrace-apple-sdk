@@ -14,6 +14,7 @@ import EmbraceCaptureService
         return URLSessionCaptureService(options: options)
     }
 
+#if canImport(UIKit) && !os(watchOS)
     /// Returns a `TapCaptureService`.
     static func tap() -> TapCaptureService {
         return TapCaptureService()
@@ -23,7 +24,9 @@ import EmbraceCaptureService
     static func view() -> ViewCaptureService {
         return ViewCaptureService()
     }
+#endif
 
+#if canImport(WebKit)
     /// Returns a `WebViewCaptureService` with the given `WebViewCaptureService.Options`.
     /// - Parameter options: `WebViewCaptureService.Options` used to configure the service.
     static func webView(
@@ -31,6 +34,7 @@ import EmbraceCaptureService
     ) -> WebViewCaptureService {
         return WebViewCaptureService(options: options)
     }
+#endif
 
     /// Adds a `LowMemoryWarningCaptureService`.
     static func lowMemoryWarning() -> LowMemoryWarningCaptureService {

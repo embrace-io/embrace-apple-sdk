@@ -36,7 +36,7 @@ class MemoryPressureSimulator {
     func startSimulating() {
         isSimulating = true
         timer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] _ in
-            guard let self = self else { 
+            guard let self = self else {
                 return
             }
             let dataSize = 10 * 1024 * 1024 // 10 MB

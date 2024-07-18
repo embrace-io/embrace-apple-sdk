@@ -30,12 +30,22 @@ import OpenTelemetrySdk
 
     // tracer
     internal var tracer: Tracer {
-        OpenTelemetry.instance.tracerProvider.get(
-            instrumentationName: instrumentationName,
-            instrumentationVersion: instrumentationVersion)
+        tracer(instrumentationName: instrumentationName, instrumentationVersion: instrumentationVersion)
     }
 
-    // methods to add span
+    /// Retrieve a tracer for the given instrumentation metadata
+    /// - Parameters
+    ///     - instrumentationName: the name of the instrumentation library, not the name of the instrumented library
+    ///     - instrumentationVersion: The version of the instrumentation library (e.g., "semver:1.0.0"). Optional
+    ///  - Returns An OpenTelemetry Tracer instance
+    public func tracer(instrumentationName: String, instrumentationVersion: String? = nil) -> Tracer {
+        OpenTelemetry.instance.tracerProvider.get(
+            instrumentationName: instrumentationName,
+            instrumentationVersion: instrumentationVersion
+        )
+    }
+
+    // MARK: - Tracing
 
     public func recordSpan<T>(
         name: String,
@@ -68,6 +78,8 @@ import OpenTelemetrySdk
 
         return builder
     }
+
+    // MARK: - Logging
 
     public func log(
         _ message: String,

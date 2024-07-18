@@ -209,7 +209,7 @@ final class EmbraceCoreTests: XCTestCase {
     }
 
     // MARK: - Helper Methods
-    func getLocalEmbrace(storage: EmbraceStorage? = nil, crashReporter: CrashReporter? = nil)throws -> Embrace? {
+    func getLocalEmbrace(storage: EmbraceStorage? = nil, crashReporter: CrashReporter? = nil) throws -> Embrace? {
         // to ensure that each test gets it's own instance of embrace.
         return try lock.locked {
             // I use random string for group id to ensure a different storage location each time

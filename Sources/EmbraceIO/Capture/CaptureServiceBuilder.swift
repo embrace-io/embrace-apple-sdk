@@ -39,6 +39,7 @@ public class CaptureServiceBuilder: NSObject {
             add(.urlSession())
         }
 
+#if canImport(UIKit) && !os(watchOS)
         // tap
         if !services.contains(where: { $0 is TapCaptureService }) {
             add(.tap())
@@ -48,11 +49,14 @@ public class CaptureServiceBuilder: NSObject {
         if !services.contains(where: { $0 is ViewCaptureService }) {
             add(.view())
         }
+#endif
 
+#if canImport(WebKit)
         // web view
         if !services.contains(where: { $0 is WebViewCaptureService }) {
             add(.webView())
         }
+#endif
 
         // low memory
         if !services.contains(where: { $0 is LowMemoryWarningCaptureService }) {

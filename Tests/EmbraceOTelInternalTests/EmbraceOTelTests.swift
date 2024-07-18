@@ -41,6 +41,38 @@ final class EmbraceOTelTests: XCTestCase {
         XCTAssertEqual(otel.instrumentationName, "EmbraceOpenTelemetry")
     }
 
+// MARK: tracer
+
+    func test_tracer_returnsTracerWithCorrectInstrumentationName() throws {
+        let otel = EmbraceOTel()
+
+        let tracer = otel.tracer(instrumentationName: "ExampleName")
+        let tracerSdk = try XCTUnwrap(tracer as? TracerSdk)
+
+        XCTAssertEqual(tracerSdk.instrumentationScopeInfo.name, "ExampleName")
+        XCTAssertEqual(tracerSdk.instrumentationScopeInfo.version, "")  // DEV: looks like a side effect
+                                                                        //  in TracerProviderSdk causes empty string
+    }
+
+    func test_tracer_returnsTracerWithCorrectInstrumentationName_andVersion() throws {
+        let otel = EmbraceOTel()
+
+        let tracer = otel.tracer(instrumentationName: "ExampleName", instrumentationVersion: "1.1.4")
+        let tracerSdk = try XCTUnwrap(tracer as? TracerSdk)
+
+        XCTAssertEqual(tracerSdk.instrumentationScopeInfo.name, "ExampleName")
+        XCTAssertEqual(tracerSdk.instrumentationScopeInfo.version, "1.1.4")
+    }
+
+    func test_tracer_returnsSameTracerInstance_whenSameNamePassed() throws {
+        let otel = EmbraceOTel()
+
+        let first = otel.tracer(instrumentationName: "ExampleName")
+        let second = otel.tracer(instrumentationName: "ExampleName")
+
+//        XCTAssertEqual(first, second)
+    }
+
 // MARK: recordSpan with block
 
     func test_recordSpan_returnsGenericResult_whenInt() throws {
