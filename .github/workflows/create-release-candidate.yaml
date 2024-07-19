@@ -1,4 +1,4 @@
-name: Create Release Candidate (6.0)
+name: Create Release Candidate (6.x)
 
 env:
   ARCHIVE_QUIET_MODE: 1
@@ -16,7 +16,6 @@ on:
         description: "The release candidate version to create"
         required: true
 
-# These permissions are needed to interact with GitHub's OIDC Token endpoint
 permissions:
   id-token: write
   contents: write
@@ -51,73 +50,6 @@ jobs:
           echo "Using RC_VERSION $RC_VERSION"
           echo "rc_version=$RC_VERSION" >> $GITHUB_OUTPUT
 
-  build_universal_upload:
-    name: Build Universal Upload Tool
-    runs-on: macos-12
-    needs: retrieve_upload_tool
-
-    steps:
-      - name: Download Artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: Upload Tool Download
-          path: artifacts
-      - name: Build Universal Upload Tool
-        run: |
-          cd artifacts
-          lipo -create -output upload go_tool_ios-upload go_tool_ios-upload.arm64
-          chmod +x ./upload
-          chmod +x ./run.sh
-          rm go_tool_ios-upload go_tool_ios-upload.arm64
-      - name: Store Artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: Upload Tool Universal Binary
-          path: artifacts
-
-  retrieve_upload_tool:
-    name: Bundle upload tool
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    env:
-      UPLOAD_TOOL_VERSION: "20240410.2"
-
-    steps:
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Make artifacts directory
-        run: mkdir -p artifacts
-
-      - name: Fetch upload tool
-        run: |
-          echo "Fetching upload tool $UPLOAD_TOOL_VERSION"
-          docker pull ghcr.io/embrace-io/go_tool_ios-upload:$UPLOAD_TOOL_VERSION
-          if [ $? -ne 0 ]; then
-              echo 'You must login to the GitHub Container registry'
-              echo 'See: https://www.notion.so/embraceio/Pulling-Binaries-from-Docker-Container-Registry-5eee0954e57846ca8ad29f6584253a4f for more details'
-              exit 1
-          fi
-          docker create --name ios-upload-release ghcr.io/embrace-io/go_tool_ios-upload:$UPLOAD_TOOL_VERSION /go_tool_ios-upload.arm64
-          docker cp ios-upload-release:/go_tool_ios-upload.amd64 artifacts/go_tool_ios-upload
-          docker cp ios-upload-release:/go_tool_ios-upload.arm64 artifacts/go_tool_ios-upload.arm64
-          docker cp ios-upload-release:/static/run.sh artifacts/run.sh
-          docker rm ios-upload-release
-          ls -la artifacts
-
-      - name: Store Artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: Upload Tool Download
-          path: artifacts
-
   build_release_candidate:
     name: Bump Version and Build Release
     runs-on: macos-13
@@ -127,7 +59,7 @@ jobs:
     env:
       RC_VERSION: ${{ needs.rc_version_number.outputs.rc_version }}
       ON_RELEASE_BRANCH: ${{ needs.rc_version_number.outputs.on_release_branch }}
-      DEV_AWS_BUCKET_MANIFEST_URL: "https://embrace-downloads-dev.s3.amazonaws.com/embrace-dev.json"
+      DEV_AWS_BUCKET_MANIFEST_URL: "https://downloads.stg.emb-eng.com/embrace-apple-sdk.json"
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
@@ -149,14 +81,14 @@ jobs:
         run: |
           git config --global user.name "embrace-ci"
           git config --global user.email "embrace-ci@users.noreply.github.com"
-          git config --global url."https://${{ secrets.CD_GITHUB_USER }}:${{ secrets.CD_GITHUB_TOKEN }}@github.com".insteadOf "https://github.com"
 
           git add EmbraceIO.podspec \
               EmbraceIO-DEV.podspec \
               Sources/EmbraceCommon/EmbraceMeta.swift
           git diff --cached
-          git commit -m "Bumps version to '$RC_VERSION'"
+          git commit -m "CI/CD: Bumps version to '$RC_VERSION'"
           git push
+
       - name: Select Xcode 15
         run: sudo xcode-select -switch /Applications/Xcode_15.1.app
 
@@ -174,7 +106,7 @@ jobs:
           mise doctor
           ./bin/build_xcframeworks.sh
 
-        # TODO: Finish this step
+      # TODO: Finish this step
       - name: Sign XCFramework
         run: echo "We're not going to sign the xcframeworks at this moment. Will do it later"
 
@@ -196,16 +128,32 @@ jobs:
     needs:
       - rc_version_number
       - build_release_candidate
-      - build_universal_upload
     env:
       RC_VERSION: ${{ needs.rc_version_number.outputs.rc_version }}
 
     steps:
-      - name: Download Artifacts - Upload Tool
-        uses: actions/download-artifact@v3
-        with:
-          name: Upload Tool Universal Binary
-          path: artifacts
+      - name: Determine latest embrace_support.zip version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(gh release list --repo embrace-io/action-symbol-upload --json tagName --jq '.[] | select(.tagName | startswith("embrace_support-")) | .tagName' --order desc | head -1)
+          echo "Using tool version ${version}"
+          echo "SUPPORT_TOOL=${version}" >> $GITHUB_ENV
+
+      - name: Download embrace_support.zip
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release --repo embrace-io/action-symbol-upload download ${{ env.SUPPORT_TOOL }} --pattern 'embrace_support-*' --clobber
+
+      - name: Verify and extract embrace_support.zip
+        run: |
+          if /usr/bin/shasum -a 256 -c ${{ env.SUPPORT_TOOL }}.zip.sha256; then
+            unzip -o ${{ env.SUPPORT_TOOL }}.zip
+          else
+            echo "Checksum verification failed, aborting."
+            exit 1
+          fi
 
       - name: Download Artifacts - XCFrameworks
         uses: actions/download-artifact@v3
@@ -218,8 +166,10 @@ jobs:
       - name: Create Cocoapods Release Zip
         run: |
           DIR=$(pwd -P)
-          chmod +x artifacts/run.sh
-          chmod +x artifacts/upload
+
+          mv run.sh upload artifacts/
+          chmod +x artifacts/run.sh artifacts/upload
+
           cd artifacts; zip "$DIR/embrace_$RC_VERSION.zip" *; cd -;
           zip "$DIR/embrace_$RC_VERSION.zip" -r xcframeworks/*; cd -;
 
@@ -228,7 +178,7 @@ jobs:
         with:
           name: Cocoapods Release Archive
           path: embrace_${{ env.RC_VERSION }}.zip
-  
+
   publish_artifacts:
     name: Publish to S3
     runs-on: ubuntu-latest
@@ -244,8 +194,8 @@ jobs:
       - name: Set AWS identifiers
         run: |
           echo AWS_LOGIN_ROLE=arn:aws:iam::$(echo '${{ vars.AWS_ACCOUNT_IDS }}' | jq .login):role/login-embrace-ios-sdk >> $GITHUB_ENV
-          echo AWS_ASSUME_ROLE=arn:aws:iam::$(echo '${{ vars.AWS_ACCOUNT_IDS }}' | jq .production):role/production-embrace-ios-sdk >> $GITHUB_ENV
-          # TODO: this should use matrix.environment once we split embrace-downloads-<env> buckets
+          echo AWS_ASSUME_ROLE=arn:aws:iam::$(echo '${{ vars.AWS_ACCOUNT_IDS }}' | jq .production):role/staging-embrace-ios-sdk >> $GITHUB_ENV
+          # TODO: this should use matrix.environment once we split embrace--<env>-downloads buckets
           # echo AWS_ASSUME_ROLE=arn:aws:iam::$(echo '${{ vars.AWS_ACCOUNT_IDS }}' | jq .${{ matrix.environment }}):role/${{ matrix.environment }}-embrace-ios-sdk >> $GITHUB_ENV
 
       - name: Configure AWS credentials
@@ -257,7 +207,7 @@ jobs:
       - name: Assume AWS role
         run: |
           pip install --upgrade awscli
-          credentials=$( aws sts assume-role --role-arn "${{ env.AWS_ASSUME_ROLE }}" --role-session-name "`echo $GITHUB_REPOSITORY | tr "/" "-"`" )
+          credentials=$(aws sts assume-role --role-arn "${{ env.AWS_ASSUME_ROLE }}" --role-session-name "`echo $GITHUB_REPOSITORY | tr "/" "-"`" --duration-seconds 900)
           echo "AWS_ACCESS_KEY_ID=`echo $credentials | jq -r .Credentials.AccessKeyId`" >> $GITHUB_ENV
           echo "AWS_SECRET_ACCESS_KEY=`echo $credentials | jq -r .Credentials.SecretAccessKey`" >> $GITHUB_ENV
           echo "AWS_SESSION_TOKEN=`echo $credentials | jq -r .Credentials.SessionToken`" >> $GITHUB_ENV
@@ -276,11 +226,11 @@ jobs:
 
       - name: Upload to AWS
         env:
-          AWS_BUCKET_DEV: "s3://embrace-downloads-dev"
-          AWS_BUCKET_DSYM: "s3://embrace-production-dsyms"
+          AWS_BUCKET_STAGING: "s3://embrace-staging-downloads"
+          AWS_BUCKET_DSYM: "s3://embrace-staging-dsyms"
         run: |
           shasum cocoapods/embrace_*.zip
-          aws s3 cp cocoapods/embrace_*.zip ${{ env.AWS_BUCKET_DEV }}
+          aws s3 cp --acl=public-read cocoapods/embrace_*.zip ${{ env.AWS_BUCKET_STAGING }}
           rm -rf cocoapods
 
           # missing dsysm upload
@@ -312,7 +262,7 @@ jobs:
         run: pod trunk push embrace-apple-core-internal/EmbraceIO-DEV.podspec --allow-warnings
 
 # Note: missing/removed steps from old sdk
-# - Store embrace-dev.json
+# - Store embrace-apple-sdk.json
 # - workflow_update_docs
 # - archive_carthage_artifacts (dont think so)
 # - update_spm (should do)
