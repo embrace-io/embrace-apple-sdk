@@ -2,7 +2,6 @@ name: Smoke test App
 
 env:
   ARCHIVE_QUIET_MODE: 1
-  AWS_DEFAULT_REGION: "us-west-2"
 
 on:
   workflow_dispatch:

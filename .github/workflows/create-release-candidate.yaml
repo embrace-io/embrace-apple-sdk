@@ -2,7 +2,7 @@ name: Create Release Candidate (6.x)
 
 env:
   ARCHIVE_QUIET_MODE: 1
-  AWS_DEFAULT_REGION: "us-west-2"
+  AWS_DEFAULT_REGION: "${{ vars.AWS_DEFAULT_REGION }}"
 
 on:
   # Temporal
@@ -40,13 +40,14 @@ jobs:
             RC_VERSION=$BRANCH_VERSION
             echo "on_release_branch=true" >> $GITHUB_OUTPUT
           fi
-          
+
           if [[ "$RC_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Using RC_VERSION of $RC_VERSION"
           else
             echo "Error: RC_VERSION of '$RC_VERSION' is not the correct format."
             exit 1
           fi
+
           echo "Using RC_VERSION $RC_VERSION"
           echo "rc_version=$RC_VERSION" >> $GITHUB_OUTPUT
 
@@ -68,7 +69,7 @@ jobs:
         run: |
           echo "Bumping version to '$RC_VERSION'"
           bin/version_bump $RC_VERSION
-        
+
           # DEV: show diff
           git diff
 
@@ -100,7 +101,7 @@ jobs:
           echo "$HOME/.local/share/mise/shims" >> $GITHUB_PATH
 
       - name: Build XCFramework
-        run: | 
+        run: |
           eval "$(~/.local/bin/mise activate bash)" >> ~/.bashrc
           echo "$PATH"
           mise doctor
