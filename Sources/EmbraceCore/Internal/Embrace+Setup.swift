@@ -97,4 +97,12 @@ extension Embrace {
         return builder.startSpan()
     }
 
+    func recordSetupSpan(startTime: Date) {
+        buildSpan(name: "emb-setup", type: .performance)
+            .markAsPrivate()
+            .setStartTime(time: startTime)
+            .startSpan()
+            .end()
+    }
+
 }

@@ -23,13 +23,7 @@ class SpansPayloadBuilder {
         // fetch spans that started during the session
         // ignore spans where emb.type == session
         do {
-            records = try storage.fetchSpans(
-                startTime: sessionRecord.startTime,
-                endTime: endTime,
-                ignoreSessionSpans: true,
-                limit: spanCountLimit
-            )
-
+            records = try storage.fetchSpans(for: sessionRecord, ignoreSessionSpans: true, limit: spanCountLimit)
         } catch {
             Embrace.logger.error("Error fetching spans for session \(sessionRecord.id):\n\(error.localizedDescription)")
             return ([], [])

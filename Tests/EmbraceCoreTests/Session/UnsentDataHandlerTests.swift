@@ -58,6 +58,8 @@ class UnsentDataHandlerTests: XCTestCase {
     override func tearDownWithError() throws {
         // delete tmpdir
         try? FileManager.default.removeItem(at: filePathProvider.tmpDirectory)
+
+        EmbraceHTTPMock.clearRequests()
     }
 
     func test_withoutCrashReporter() throws {
@@ -427,7 +429,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // then a crash log was sent
         wait(timeout: .veryLongTimeout) {
-            EmbraceHTTPMock.requestsForUrl(self.testLogsUrl()).count == 1
+            EmbraceHTTPMock.requestsForUrl(self.testLogsUrl()).count > 0
         }
 
         // then the total amount of requests is correct

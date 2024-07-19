@@ -108,34 +108,28 @@ extension EmbraceStorage {
         }
     }
 
-    /// Fetches all the stored spans synchronously that started in a given time frame.
-    /// - Parameters:
-    ///   - startTime: Date to be used as `startTime` for the fetch
-    ///   - endTime: Date to be used as `endTime` for the fetch
-    ///   - includeOlder: Defines if spans that were started before the given `startTime` should be included.
-    ///   - limit: Limit the amount of spans fetched (optional)
-    /// - Returns: Array containing the stored `SpanRecords`
+    /// Fetch spans for the given session record
+    /// Will retrieve all spans that overlap with session record start / end (or last heartbeat)
+    /// that occur within the same process. For cold start sessions, will include spans that occur before the session starts.
+    /// Parameters:
+    /// - sessionRecord: The session record to fetch spans for
+    /// - ignoreSessionSpans: Whether to ignore the session's (or any other session's) own span
     public func fetchSpans(
-        startTime: Date,
-        endTime: Date,
-        includeOlder: Bool = true,
+        for sessionRecord: SessionRecord,
         ignoreSessionSpans: Bool = true,
-        limit: Int? = nil
+        limit: Int = 1000
     ) throws -> [SpanRecord] {
+        return try dbQueue.read { db in
+            var query = SpanRecord.filter(for: sessionRecord)
 
-        var spans: [SpanRecord] = []
-        try dbQueue.read { [weak self] db in
-            spans = try self?.fetchSpans(
-                db: db,
-                startTime: startTime,
-                endTime: endTime,
-                includeOlder: includeOlder,
-                ignoreSessionSpans: ignoreSessionSpans,
-                limit: limit
-            ) ?? []
+            if ignoreSessionSpans {
+                query = query.filter(SpanRecord.Schema.type != SpanType.session)
+            }
+
+            return try query
+                .limit(limit)
+                .fetchAll(db)
         }
-
-        return spans
     }
 }
 
@@ -195,15 +189,21 @@ fileprivate extension EmbraceStorage {
         ignoreSessionSpans: Bool
     ) -> QueryInterfaceRequest<SpanRecord> {
 
+        // end_time is nil
+        // or end_time is between parameters (start_time, end_time)
         var filter = SpanRecord.filter(
             SpanRecord.Schema.endTime == nil ||
             (SpanRecord.Schema.endTime <= endTime && SpanRecord.Schema.endTime >= startTime)
         )
 
+        // if we don't include old spans
+        // select where start_time is greater than parameter (start_time)
         if includeOlder == false {
             filter = filter.filter(SpanRecord.Schema.startTime >= startTime)
         }
 
+        // if ignoring session span
+        // select where type is not session span
         if ignoreSessionSpans == true {
             filter = filter.filter(SpanRecord.Schema.type != SpanType.session.rawValue)
         }

@@ -73,6 +73,10 @@ public class EmbraceHTTPMock: URLProtocol {
             .reduce(0) { $0 + $1.count }
     }
 
+    public class func clearRequests() {
+        requests.removeAll()
+    }
+
     // MARK: - Internal
     public override class func canInit(with request: URLRequest) -> Bool {
         return true
