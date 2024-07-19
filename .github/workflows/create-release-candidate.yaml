@@ -195,7 +195,7 @@ jobs:
       - name: Set AWS identifiers
         run: |
           echo AWS_LOGIN_ROLE=arn:aws:iam::$(echo '${{ vars.AWS_ACCOUNT_IDS }}' | jq .login):role/login-embrace-ios-sdk >> $GITHUB_ENV
-          echo AWS_ASSUME_ROLE=arn:aws:iam::$(echo '${{ vars.AWS_ACCOUNT_IDS }}' | jq .production):role/staging-embrace-ios-sdk >> $GITHUB_ENV
+          echo AWS_ASSUME_ROLE=arn:aws:iam::$(echo '${{ vars.AWS_ACCOUNT_IDS }}' | jq .staging):role/staging-embrace-ios-sdk >> $GITHUB_ENV
           # TODO: this should use matrix.environment once we split embrace--<env>-downloads buckets
           # echo AWS_ASSUME_ROLE=arn:aws:iam::$(echo '${{ vars.AWS_ACCOUNT_IDS }}' | jq .${{ matrix.environment }}):role/${{ matrix.environment }}-embrace-ios-sdk >> $GITHUB_ENV
 
