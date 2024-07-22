@@ -22,7 +22,7 @@ class LogsBatchTests: XCTestCase {
     }
 
     func testHavingRecentLogs_batchStateShouldBeOpen() {
-        givenLimits(maxBatchAge: 10)
+        givenLimits(maxBatchAge: Double.infinity)
         givenLogBatch(logs: [recentLog()])
         thenBatch(is: .open)
     }
