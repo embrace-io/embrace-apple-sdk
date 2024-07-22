@@ -46,7 +46,7 @@ jobs:
             cd $ROOT_DIR
 
       - name: Upload Artifiact
-        uses: actions/upload-artifact@master
+        uses: actions/upload-artifact@v4
         with:
           name: TestApp
           path: BrandGame.zip

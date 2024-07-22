@@ -15,6 +15,10 @@ on:
       rc_version:
         description: "The release candidate version to create"
         required: true
+      override_version:
+        description: "Should delete previous podspec (if exist) and create a new one"
+        type: boolean
+        default: false
 
 permissions:
   id-token: write
@@ -85,7 +89,7 @@ jobs:
 
           git add EmbraceIO.podspec \
               EmbraceIO-DEV.podspec \
-              Sources/EmbraceCommon/EmbraceMeta.swift
+              Sources/EmbraceCommonInternal/EmbraceMeta.swift
           git diff --cached
           git commit -m "CI/CD: Bumps version to '$RC_VERSION'"
           git push
@@ -117,7 +121,7 @@ jobs:
           cd build; zip -r "$DIR/xcframeworks.zip" xcframeworks
 
       - name: Store XCFrameworks
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Embrace-Universal Build Artifacts
           path: xcframeworks.zip
@@ -157,7 +161,7 @@ jobs:
           fi
 
       - name: Download Artifacts - XCFrameworks
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: Embrace-Universal Build Artifacts
 
@@ -167,7 +171,7 @@ jobs:
       - name: Create Cocoapods Release Zip
         run: |
           DIR=$(pwd -P)
-
+          mkdir artifacts
           mv run.sh upload artifacts/
           chmod +x artifacts/run.sh artifacts/upload
 
@@ -175,7 +179,7 @@ jobs:
           zip "$DIR/embrace_$RC_VERSION.zip" -r xcframeworks/*; cd -;
 
       - name: Store Cocoapods Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Cocoapods Release Archive
           path: embrace_${{ env.RC_VERSION }}.zip
@@ -194,13 +198,13 @@ jobs:
     steps:
       - name: Set AWS identifiers
         run: |
-          echo AWS_LOGIN_ROLE=arn:aws:iam::$(echo '${{ vars.AWS_ACCOUNT_IDS }}' | jq .login):role/login-embrace-ios-sdk >> $GITHUB_ENV
-          echo AWS_ASSUME_ROLE=arn:aws:iam::$(echo '${{ vars.AWS_ACCOUNT_IDS }}' | jq .staging):role/staging-embrace-ios-sdk >> $GITHUB_ENV
+          echo AWS_LOGIN_ROLE=arn:aws:iam::$(echo '${{ vars.AWS_ACCOUNT_IDS }}' | jq .login):role/login-embrace-downloads >> $GITHUB_ENV
+          echo AWS_ASSUME_ROLE=arn:aws:iam::$(echo '${{ vars.AWS_ACCOUNT_IDS }}' | jq .staging):role/staging-embrace-downloads >> $GITHUB_ENV
           # TODO: this should use matrix.environment once we split embrace--<env>-downloads buckets
           # echo AWS_ASSUME_ROLE=arn:aws:iam::$(echo '${{ vars.AWS_ACCOUNT_IDS }}' | jq .${{ matrix.environment }}):role/${{ matrix.environment }}-embrace-ios-sdk >> $GITHUB_ENV
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v3
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ env.AWS_LOGIN_ROLE }}
           aws-region: ${{ env.AWS_DEFAULT_REGION }}
@@ -214,13 +218,13 @@ jobs:
           echo "AWS_SESSION_TOKEN=`echo $credentials | jq -r .Credentials.SessionToken`" >> $GITHUB_ENV
 
       - name: Download Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: Embrace-Universal Build Artifacts
           path: embrace
 
       - name: Download Cocoapods Release Archive
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: Cocoapods Release Archive
           path: cocoapods/
@@ -258,9 +262,18 @@ jobs:
         run: |
           cd embrace-apple-core-internal
           bin/version_bump $RC_VERSION --cocoapods
-
+      - name: Delete and recreate podspec if override is true
+        if: ${{ inputs.override_version }}
+        run: |
+          info=$(pod trunk info EmbraceIO-DEV)
+          if echo "$info" | grep -q "$version"; then
+            echo "y" | pod trunk delete EmbraceIO-DEV $RC_VERSION
+          else
+            echo "Version doesn't exist at all, so it shouldn't be removed"
+          fi
       - name: Push EmbraceIO-DEV Podspec
-        run: pod trunk push embrace-apple-core-internal/EmbraceIO-DEV.podspec --allow-warnings
+        run: |
+          pod trunk push embrace-apple-core-internal/EmbraceIO-DEV.podspec --allow-warnings
 
 # Note: missing/removed steps from old sdk
 # - Store embrace-apple-sdk.json

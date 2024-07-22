@@ -1,6 +1,6 @@
 Pod::Spec.new do |spec|
   spec.name                           = "EmbraceIO"
-  spec.version                        = "__REPLACE_VERSION__"
+  spec.version                        = "6.0.0"
   spec.summary                        = "Visibility into your users that you didn't have before."
   spec.description                    = <<-DESC
                       Embrace is the only performance monitoring platform focused solely on mobile. We are built
@@ -20,69 +20,69 @@ Pod::Spec.new do |spec|
     io.vendored_frameworks = "xcframeworks/EmbraceIO.xcframework"
     io.dependency "EmbraceIO/EmbraceCaptureService"
     io.dependency "EmbraceIO/EmbraceCore"
-    io.dependency "EmbraceIO/EmbraceCommon"
+    io.dependency "EmbraceIO/EmbraceCommonInternal"
     io.dependency "EmbraceIO/EmbraceCrash"
   end
 
   spec.subspec 'EmbraceCore' do |core|
     core.vendored_frameworks = "xcframeworks/EmbraceCore.xcframework"
     core.dependency "EmbraceIO/EmbraceCaptureService"
-    core.dependency "EmbraceIO/EmbraceCommon"
-    core.dependency "EmbraceIO/EmbraceConfig"
-    core.dependency "EmbraceIO/EmbraceOTel"
-    core.dependency "EmbraceIO/EmbraceStorage"
-    core.dependency "EmbraceIO/EmbraceUpload"
-    core.dependency "EmbraceIO/EmbraceObjCUtils"
+    core.dependency "EmbraceIO/EmbraceCommonInternal"
+    core.dependency "EmbraceIO/EmbraceConfigInternal"
+    core.dependency "EmbraceIO/EmbraceOTelInternal"
+    core.dependency "EmbraceIO/EmbraceStorageInternal"
+    core.dependency "EmbraceIO/EmbraceUploadInternal"
+    core.dependency "EmbraceIO/EmbraceObjCUtilsInternal"
   end
 
-  spec.subspec 'EmbraceCommon' do |common|
-    common.vendored_frameworks = "xcframeworks/EmbraceCommon.xcframework"
+  spec.subspec 'EmbraceCommonInternal' do |common|
+    common.vendored_frameworks = "xcframeworks/EmbraceCommonInternal.xcframework"
   end
 
   spec.subspec 'EmbraceCaptureService' do |capture|
     capture.vendored_frameworks = "xcframeworks/EmbraceCaptureService.xcframework"
-    capture.dependency "EmbraceIO/EmbraceOTel"
+    capture.dependency "EmbraceIO/EmbraceOTelInternal"
     capture.dependency "EmbraceIO/OpenTelemetrySdk"
   end
 
-  spec.subspec 'EmbraceConfig' do |config|
-    config.vendored_frameworks = "xcframeworks/EmbraceConfig.xcframework"
-    config.dependency "EmbraceIO/EmbraceCommon"
+  spec.subspec 'EmbraceConfigInternal' do |config|
+    config.vendored_frameworks = "xcframeworks/EmbraceConfigInternal.xcframework"
+    config.dependency "EmbraceIO/EmbraceCommonInternal"
   end
 
-  spec.subspec 'EmbraceOTel' do |otel|
-    otel.vendored_frameworks = "xcframeworks/EmbraceOTel.xcframework"
-    otel.dependency "EmbraceIO/EmbraceCommon"
+  spec.subspec 'EmbraceOTelInternal' do |otel|
+    otel.vendored_frameworks = "xcframeworks/EmbraceOTelInternal.xcframework"
+    otel.dependency "EmbraceIO/EmbraceCommonInternal"
     otel.dependency "EmbraceIO/OpenTelemetrySdk"
   end
 
-  spec.subspec 'EmbraceStorage' do |storage|
-    storage.vendored_frameworks = "xcframeworks/EmbraceStorage.xcframework"
-    storage.dependency "EmbraceIO/EmbraceCommon"
+  spec.subspec 'EmbraceStorageInternal' do |storage|
+    storage.vendored_frameworks = "xcframeworks/EmbraceStorageInternal.xcframework"
+    storage.dependency "EmbraceIO/EmbraceCommonInternal"
     storage.dependency "EmbraceIO/OpenTelemetryApi"
     storage.dependency "EmbraceIO/GRDB"
   end
 
-  spec.subspec 'EmbraceUpload' do |upload|
-    upload.vendored_frameworks = "xcframeworks/EmbraceUpload.xcframework"
-    upload.dependency "EmbraceIO/EmbraceCommon"
-    upload.dependency "EmbraceIO/EmbraceOTel"
+  spec.subspec 'EmbraceUploadInternal' do |upload|
+    upload.vendored_frameworks = "xcframeworks/EmbraceUploadInternal.xcframework"
+    upload.dependency "EmbraceIO/EmbraceCommonInternal"
+    upload.dependency "EmbraceIO/EmbraceOTelInternal"
     upload.dependency "EmbraceIO/GRDB"
   end
 
   spec.subspec 'EmbraceCrashlyticsSupport' do |cs|
     cs.vendored_frameworks = "xcframeworks/EmbraceCrashlyticsSupport.xcframework"
-    cs.dependency "EmbraceIO/EmbraceCommon"
+    cs.dependency "EmbraceIO/EmbraceCommonInternal"
   end
 
   spec.subspec 'EmbraceCrash' do |crash|
     crash.vendored_frameworks = "xcframeworks/EmbraceCrash.xcframework"
-    crash.dependency "EmbraceIO/EmbraceCommon"
+    crash.dependency "EmbraceIO/EmbraceCommonInternal"
     crash.dependency "EmbraceIO/KSCrash"
   end
 
-  spec.subspec 'EmbraceObjCUtils' do |objc|
-    objc.vendored_frameworks = "xcframeworks/EmbraceObjCUtils.xcframework"
+  spec.subspec 'EmbraceObjCUtilsInternal' do |objc|
+    objc.vendored_frameworks = "xcframeworks/EmbraceObjCUtilsInternal.xcframework"
   end
 
   # External

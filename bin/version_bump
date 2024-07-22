@@ -29,7 +29,7 @@ validate_semver() {
 }
 
 create_meta_file() {
-    local meta_file_path="Sources/EmbraceCommon/EmbraceMeta.swift"
+    local meta_file_path="Sources/EmbraceCommonInternal/EmbraceMeta.swift"
     # Find the root of the repo
     local root_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )/.."
 
