@@ -61,7 +61,7 @@ extension MetadataHandler {
     }
 }
 
-public extension MetadataHandler {
+extension MetadataHandler {
     /// Adds a persona tag with the given value and lifespan.
     /// - Parameters:
     ///  - persona The value of the persona tag to add.
