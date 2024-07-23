@@ -261,24 +261,11 @@ jobs:
             gh config set prompt disabled
           fi
 
-      - name: Create Draft Release
+      - name: Create (Pre) Release
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           gh release create ${{ needs.rc_version_number.outputs.rc_version }} cocoapods/embrace_${{ needs.rc_version_number.outputs.rc_version }}.zip -t "Release ${{ needs.rc_version_number.outputs.rc_version }}" -p
-
-      - name: Flush CloudFront CDN
-        env:
-          # downloads.stg.emb-eng.com
-          AWS_CLOUDFRONT_ID: E1Q329634TJ1Q9
-        run: |
-          echo "$(date): Invalidating https://us-east-1.console.aws.amazon.com/cloudfront/v3/home?region=us-west-2#/distributions/${{ env.AWS_CLOUDFRONT_ID }}"
-          aws cloudfront create-invalidation --region us-west-2 --distribution-id ${{ env.AWS_CLOUDFRONT_ID }} --paths '/*' | tee invalidation.json
-
-          invalidation_id=$(cat invalidation.json | jq -r .Invalidation.Id)
-
-          echo "$(date): Waiting for completion of https://us-east-1.console.aws.amazon.com/cloudfront/v3/home?region=us-west-2#/distributions/${{ env.AWS_CLOUDFRONT_ID }}/invalidations/details/${invalidation_id}"
-          aws cloudfront wait invalidation-completed --region us-west-2 --distribution-id ${{ env.AWS_CLOUDFRONT_ID }} --id $invalidation_id
 
   push_podspec:
     name: Push Podspec to Cocoapods
