@@ -183,6 +183,64 @@ jobs:
           name: Cocoapods Release Archive
           path: embrace_${{ env.RC_VERSION }}.zip
 
+  publish_artifacts:
+    name: Publish to S3
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs:
+      - rc_version_number
+      - archive_cocoapods_artifacts
+    env:
+      RC_VERSION: ${{ needs.rc_version_number.outputs.rc_version }}
+    steps:
+      - name: Set AWS identifiers
+        run: |
+          echo AWS_LOGIN_ROLE=arn:aws:iam::$(echo '${{ vars.AWS_ACCOUNT_IDS }}' | jq .login):role/login-embrace-downloads >> $GITHUB_ENV
+          echo AWS_ASSUME_ROLE=arn:aws:iam::$(echo '${{ vars.AWS_ACCOUNT_IDS }}' | jq .staging):role/staging-embrace-downloads >> $GITHUB_ENV
+          # TODO: this should use matrix.environment once we split embrace--<env>-downloads buckets
+          # echo AWS_ASSUME_ROLE=arn:aws:iam::$(echo '${{ vars.AWS_ACCOUNT_IDS }}' | jq .${{ matrix.environment }}):role/${{ matrix.environment }}-embrace-ios-sdk >> $GITHUB_ENV
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_LOGIN_ROLE }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+      - name: Assume AWS role
+        run: |
+          pip install --upgrade awscli
+          credentials=$(aws sts assume-role --role-arn "${{ env.AWS_ASSUME_ROLE }}" --role-session-name "`echo $GITHUB_REPOSITORY | tr "/" "-"`" --duration-seconds 900)
+          echo "AWS_ACCESS_KEY_ID=`echo $credentials | jq -r .Credentials.AccessKeyId`" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=`echo $credentials | jq -r .Credentials.SecretAccessKey`" >> $GITHUB_ENV
+          echo "AWS_SESSION_TOKEN=`echo $credentials | jq -r .Credentials.SessionToken`" >> $GITHUB_ENV
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Embrace-Universal Build Artifacts
+          path: embrace
+      - name: Download Cocoapods Release Archive
+        uses: actions/download-artifact@v4
+        with:
+          name: Cocoapods Release Archive
+          path: cocoapods/
+      - name: Upload to AWS
+        env:
+          AWS_BUCKET_STAGING: "s3://embrace-staging-downloads"
+          AWS_BUCKET_DSYM: "s3://embrace-staging-dsyms"
+        run: |
+          shasum cocoapods/embrace_*.zip
+          aws s3 cp --acl=public-read cocoapods/embrace_*.zip ${{ env.AWS_BUCKET_STAGING }}
+          rm -rf cocoapods
+          # missing dsysm upload
+      - name: Flush CloudFront CDN
+        env:
+          # downloads.stg.emb-eng.com
+          AWS_CLOUDFRONT_ID: E1Q329634TJ1Q9
+        run: |
+          echo "$(date): Invalidating https://us-east-1.console.aws.amazon.com/cloudfront/v3/home?region=us-west-2#/distributions/${{ env.AWS_CLOUDFRONT_ID }}"
+          aws cloudfront create-invalidation --region us-west-2 --distribution-id ${{ env.AWS_CLOUDFRONT_ID }} --paths '/*' | tee invalidation.json
+          invalidation_id=$(cat invalidation.json | jq -r .Invalidation.Id)
+          echo "$(date): Waiting for completion of https://us-east-1.console.aws.amazon.com/cloudfront/v3/home?region=us-west-2#/distributions/${{ env.AWS_CLOUDFRONT_ID }}/invalidations/details/${invalidation_id}"
+          aws cloudfront wait invalidation-completed --region us-west-2 --distribution-id ${{ env.AWS_CLOUDFRONT_ID }} --id $invalidation_id
+
   create_github_release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
