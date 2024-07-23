@@ -7,13 +7,22 @@ import EmbraceCaptureService
 import EmbraceCommonInternal
 import EmbraceOTelInternal
 
+/// Service that capture taps on the screen.
+/// Note that any taps done on a keyboard view will be automatically ignored.
 @objc public final class TapCaptureService: CaptureService {
+
+    public let options: TapCaptureService.Options
 
     private var swizzler: UIWindowSendEventSwizzler?
     private let lock: NSLocking
 
-    public override init() {
-        self.lock = NSLock()
+    @objc public convenience init(options: TapCaptureService.Options = TapCaptureService.Options()) {
+        self.init(options: options, lock: NSLock())
+    }
+
+    init(options: TapCaptureService.Options, lock: NSLock) {
+        self.options = options
+        self.lock = lock
     }
 
     override public func onInstall() {
@@ -43,6 +52,7 @@ import EmbraceOTelInternal
             return
         }
 
+        // get touch data
         guard event.type == .touches,
               let allTouches = event.allTouches,
               let touch = allTouches.first,
@@ -51,42 +61,68 @@ import EmbraceOTelInternal
             return
         }
 
-        let screenView = target.window
-        var point = CGPoint()
-
-        if shouldRecordCoordinates(from: target) {
-            point = touch.location(in: screenView)
+        // check if the view type should be ignored
+        let shouldCapture = options.delegate?.shouldCaptureTap(onView: target) ?? true
+        guard shouldCapture else {
+            return
         }
 
+        guard options.ignoredViewTypes.first(where: { type(of: target) == $0 }) == nil else {
+            return
+        }
+
+        // get view name
         let accessibilityIdentifier = target.accessibilityIdentifier
         let targetClass = type(of: target)
 
         let viewName = accessibilityIdentifier ?? String(describing: targetClass)
 
+        var attributes: [String: AttributeValue] = [
+            Constants.viewName: .string(viewName),
+            "emb.type": .string(Constants.eventType)
+        ]
+
+        // get coordinates
+        if shouldRecordCoordinates(from: target) {
+            let point = touch.location(in: target.window)
+            attributes[Constants.tapCoordinates] = .string(point.toString())
+            Embrace.logger.trace("Captured tap at \(point) on: \(viewName)")
+        } else {
+            Embrace.logger.trace("Captured tap with no coordinates on: \(viewName)")
+        }
+
+        // create span event
         let event = RecordingSpanEvent(
-            name: "emb-ui-tap",
+            name: Constants.eventName,
             timestamp: Date(),
-            attributes: [
-                "view.name": .string(viewName),
-                "tap.coords": .string(point.toString()),
-                "emb.type": .string("ux.tap")
-            ]
+            attributes: attributes
         )
-
         add(event: event)
-
-        Embrace.logger.trace("Captured tap at \(point) on: \(viewName)")
     }
 
-    func shouldRecordCoordinates(from target: AnyObject?) -> Bool {
+    func shouldRecordCoordinates(from target: UIView) -> Bool {
+
+        let shouldCapture = 
+            options.delegate?.shouldCaptureTapCoordinates(onView: target) ??
+            options.captureTapCoordinates
+        guard shouldCapture else {
+            return false
+        }
+
         guard let keyboardViewClass = NSClassFromString("UIKeyboardLayout"),
-              let keyboardWindowClass = NSClassFromString("UIRemoteKeyboardWindow"),
-              let target = target
+              let keyboardWindowClass = NSClassFromString("UIRemoteKeyboardWindow")
         else {
             return false
         }
 
         return !(target.isKind(of: keyboardViewClass) || target.isKind(of: keyboardWindowClass))
+    }
+
+    struct Constants {
+        static let eventName = "emb-ui-tap"
+        static let eventType = "ux.tap"
+        static let viewName = "view.name"
+        static let tapCoordinates = "tap.coords"
     }
 }
 

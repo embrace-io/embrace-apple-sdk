@@ -15,9 +15,12 @@ import EmbraceCaptureService
     }
 
 #if canImport(UIKit) && !os(watchOS)
-    /// Returns a `TapCaptureService`.
-    static func tap() -> TapCaptureService {
-        return TapCaptureService()
+    /// Returns a `TapCaptureService` with the given `TapCaptureService.Options`.
+    /// - Parameter options: `TapCaptureService.Options` used to configure the service.
+    static func tap(
+        options: TapCaptureService.Options = TapCaptureService.Options()
+    ) -> TapCaptureService {
+        return TapCaptureService(options: options)
     }
 
     /// Returns a `ViewCaptureService`.
