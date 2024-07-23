@@ -45,7 +45,7 @@ jobs:
             echo "on_release_branch=true" >> $GITHUB_OUTPUT
           fi
 
-          if [[ "$RC_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          if [[ "$RC_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)*)?$ ]]; then
             echo "Using RC_VERSION of $RC_VERSION"
           else
             echo "Error: RC_VERSION of '$RC_VERSION' is not the correct format."
