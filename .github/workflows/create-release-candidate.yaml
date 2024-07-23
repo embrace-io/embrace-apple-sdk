@@ -209,6 +209,19 @@ jobs:
         run: |
           gh release create ${{ needs.rc_version_number.outputs.rc_version }} cocoapods/embrace_${{ needs.rc_version_number.outputs.rc_version }}.zip -t "Release ${{ needs.rc_version_number.outputs.rc_version }}" -p
 
+      - name: Flush CloudFront CDN
+        env:
+          # downloads.stg.emb-eng.com
+          AWS_CLOUDFRONT_ID: E1Q329634TJ1Q9
+        run: |
+          echo "$(date): Invalidating https://us-east-1.console.aws.amazon.com/cloudfront/v3/home?region=us-west-2#/distributions/${{ env.AWS_CLOUDFRONT_ID }}"
+          aws cloudfront create-invalidation --region us-west-2 --distribution-id ${{ env.AWS_CLOUDFRONT_ID }} --paths '/*' | tee invalidation.json
+
+          invalidation_id=$(cat invalidation.json | jq -r .Invalidation.Id)
+
+          echo "$(date): Waiting for completion of https://us-east-1.console.aws.amazon.com/cloudfront/v3/home?region=us-west-2#/distributions/${{ env.AWS_CLOUDFRONT_ID }}/invalidations/details/${invalidation_id}"
+          aws cloudfront wait invalidation-completed --region us-west-2 --distribution-id ${{ env.AWS_CLOUDFRONT_ID }} --id $invalidation_id
+
   push_podspec:
     name: Push Podspec to Cocoapods
     runs-on: macos-13
@@ -243,3 +256,21 @@ jobs:
       - name: Push EmbraceIO-DEV Podspec
         run: |
           pod trunk push embrace-apple-core-internal/EmbraceIO-DEV.podspec --allow-warnings
+      - name: Cleanup old EmbraceIO-DEV Cocoapods versions
+        env:
+          KEEP_VERSIONS: 5
+        run: |
+          brew install coreutils # Install sane version of "head"
+
+          for old_version in $(pod trunk info EmbraceIO-DEV | grep '^      -' | grep ' (20' | ghead -n -${KEEP_VERSIONS} | awk '{print $2}'); do
+            echo "Removing $old_version"
+            echo "y" | pod trunk delete EmbraceIO-DEV $old_version || echo "We can ignore any errors"
+          done
+
+# Note: missing/removed steps from old sdk
+# - Store embrace-apple-sdk.json
+# - workflow_update_docs
+# - archive_carthage_artifacts (dont think so)
+# - update_spm (should do)
+# - create_prs (i don't know if it's needed)
+# - workflow_after_release (idem above)
