@@ -5,7 +5,7 @@
 import Foundation
 
 /// Convenience declarations for common patterns using User Personas
-extension PersonaTag {
+public extension PersonaTag {
     static let free: PersonaTag = "free"
     static let preview: PersonaTag = "preview"
     static let subscriber: PersonaTag = "subscriber"
