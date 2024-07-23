@@ -64,7 +64,6 @@ jobs:
     env:
       RC_VERSION: ${{ needs.rc_version_number.outputs.rc_version }}
       ON_RELEASE_BRANCH: ${{ needs.rc_version_number.outputs.on_release_branch }}
-      DEV_AWS_BUCKET_MANIFEST_URL: "https://downloads.stg.emb-eng.com/embrace-apple-sdk.json"
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
@@ -184,61 +183,31 @@ jobs:
           name: Cocoapods Release Archive
           path: embrace_${{ env.RC_VERSION }}.zip
 
-  publish_artifacts:
-    name: Publish to S3
+  create_github_release:
+    name: Create GitHub Release
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     needs:
       - rc_version_number
       - archive_cocoapods_artifacts
 
-    env:
-      RC_VERSION: ${{ needs.rc_version_number.outputs.rc_version }}
-
     steps:
-      - name: Set AWS identifiers
-        run: |
-          echo AWS_LOGIN_ROLE=arn:aws:iam::$(echo '${{ vars.AWS_ACCOUNT_IDS }}' | jq .login):role/login-embrace-downloads >> $GITHUB_ENV
-          echo AWS_ASSUME_ROLE=arn:aws:iam::$(echo '${{ vars.AWS_ACCOUNT_IDS }}' | jq .staging):role/staging-embrace-downloads >> $GITHUB_ENV
-          # TODO: this should use matrix.environment once we split embrace--<env>-downloads buckets
-          # echo AWS_ASSUME_ROLE=arn:aws:iam::$(echo '${{ vars.AWS_ACCOUNT_IDS }}' | jq .${{ matrix.environment }}):role/${{ matrix.environment }}-embrace-ios-sdk >> $GITHUB_ENV
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ env.AWS_LOGIN_ROLE }}
-          aws-region: ${{ env.AWS_DEFAULT_REGION }}
-
-      - name: Assume AWS role
-        run: |
-          pip install --upgrade awscli
-          credentials=$(aws sts assume-role --role-arn "${{ env.AWS_ASSUME_ROLE }}" --role-session-name "`echo $GITHUB_REPOSITORY | tr "/" "-"`" --duration-seconds 900)
-          echo "AWS_ACCESS_KEY_ID=`echo $credentials | jq -r .Credentials.AccessKeyId`" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=`echo $credentials | jq -r .Credentials.SecretAccessKey`" >> $GITHUB_ENV
-          echo "AWS_SESSION_TOKEN=`echo $credentials | jq -r .Credentials.SessionToken`" >> $GITHUB_ENV
-
-      - name: Download Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: Embrace-Universal Build Artifacts
-          path: embrace
-
       - name: Download Cocoapods Release Archive
         uses: actions/download-artifact@v4
         with:
           name: Cocoapods Release Archive
           path: cocoapods/
 
-      - name: Upload to AWS
-        env:
-          AWS_BUCKET_STAGING: "s3://embrace-staging-downloads"
-          AWS_BUCKET_DSYM: "s3://embrace-staging-dsyms"
+      - name: Disable GitHub CLI Prompt if Enabled
         run: |
-          shasum cocoapods/embrace_*.zip
-          aws s3 cp --acl=public-read cocoapods/embrace_*.zip ${{ env.AWS_BUCKET_STAGING }}
-          rm -rf cocoapods
+          if [ "$(gh config get prompt)" = "enabled" ]; then
+            gh config set prompt disabled
+          fi
 
-          # missing dsysm upload
+      - name: Create Draft Release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          gh release create ${{ needs.rc_version_number.outputs.rc_version }} cocoapods/embrace_${{ needs.rc_version_number.outputs.rc_version }}.zip -t "Release ${{ needs.rc_version_number.outputs.rc_version }}" -p
 
   push_podspec:
     name: Push Podspec to Cocoapods
@@ -274,11 +243,3 @@ jobs:
       - name: Push EmbraceIO-DEV Podspec
         run: |
           pod trunk push embrace-apple-core-internal/EmbraceIO-DEV.podspec --allow-warnings
-
-# Note: missing/removed steps from old sdk
-# - Store embrace-apple-sdk.json
-# - workflow_update_docs
-# - archive_carthage_artifacts (dont think so)
-# - update_spm (should do)
-# - create_prs (i don't know if it's needed)
-# - workflow_after_release (idem above)
