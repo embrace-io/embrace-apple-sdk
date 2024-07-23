@@ -215,7 +215,7 @@ jobs:
     timeout-minutes: 10
     needs:
       - rc_version_number
-      - publish_artifacts
+      - create_github_release
     env:
       COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
       RC_VERSION: ${{ needs.rc_version_number.outputs.rc_version }}
