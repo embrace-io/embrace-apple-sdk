@@ -320,9 +320,5 @@ jobs:
           done
 
 # Note: missing/removed steps from old sdk
-# - Store embrace-apple-sdk.json
-# - workflow_update_docs
-# - archive_carthage_artifacts (dont think so)
-# - update_spm (should do)
-# - create_prs (i don't know if it's needed)
 # - workflow_after_release (idem above)
+# - dsyms work
