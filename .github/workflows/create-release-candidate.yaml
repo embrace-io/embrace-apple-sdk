@@ -271,7 +271,7 @@ jobs:
             gh release upload $RC_VERSION cocoapods/embrace_$RC_VERSION.zip --clobber --repo embrace-io/embrace-apple-sdk
           else 
             echo "Creating Release $RC_VERSION in Github"
-            gh release create $RC_VERSION cocoapods/embrace_$RC_VERSION.zip -t "Release $RC_VERSION" -p --repo embrace-io/embrace-apple-sdk
+            gh release create $RC_VERSION cocoapods/embrace_$RC_VERSION.zip --title "Release $RC_VERSION" --prerelease --repo embrace-io/embrace-apple-sdk
           fi
 
   push_podspec:
