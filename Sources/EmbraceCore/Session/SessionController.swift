@@ -35,6 +35,7 @@ class SessionController: SessionControllable {
     weak var storage: EmbraceStorage?
     weak var upload: EmbraceUpload?
     let heartbeat: SessionHeartbeat
+    let queue: DispatchQueue
 
     internal var notificationCenter = NotificationCenter.default
 
@@ -48,6 +49,7 @@ class SessionController: SessionControllable {
 
         let heartbeatQueue = DispatchQueue(label: "com.embrace.session_heartbeat")
         self.heartbeat = SessionHeartbeat(queue: heartbeatQueue, interval: heartbeatInterval)
+        self.queue = DispatchQueue(label: "com.embrace.session_controller_upload")
 
         self.heartbeat.callback = { [weak self] in
             let heartbeat = Date()
@@ -161,7 +163,9 @@ class SessionController: SessionControllable {
             return
         }
 
-        UnsentDataHandler.sendSession(session, storage: storage, upload: upload)
+        queue.async {
+            UnsentDataHandler.sendSession(session, storage: storage, upload: upload)
+        }
     }
 }
 
