@@ -261,11 +261,18 @@ jobs:
             gh config set prompt disabled
           fi
 
-      - name: Create (Pre) Release
+      - name: Create/Edit (Pre) Release
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          RC_VERSION: ${{ needs.rc_version_number.outputs.rc_version}}
         run: |
-          gh release create ${{ needs.rc_version_number.outputs.rc_version }} cocoapods/embrace_${{ needs.rc_version_number.outputs.rc_version }}.zip -t "Release ${{ needs.rc_version_number.outputs.rc_version }}" -p
+          if gh release view --repo embrace-io/embrace-apple-sdk $RC_VERSION > /dev/null 2>&1; then
+            echo "Release $RC_VERSION already exists; editing..."
+            gh release upload $RC_VERSION cocoapods/embrace_$RC_VERSION.zip --clobber --repo embrace-io/embrace-apple-sdk
+          else 
+            echo "Creating Release $RC_VERSION in Github"
+            gh release create $RC_VERSION cocoapods/embrace_$RC_VERSION.zip -t "Release $RC_VERSION" -p --repo embrace-io/embrace-apple-sdk
+          fi
 
   push_podspec:
     name: Push Podspec to Cocoapods
