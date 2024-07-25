@@ -82,3 +82,7 @@ extension MetadataRecord: Equatable {
         return lhs.key == rhs.key
     }
 }
+
+extension MetadataRecord {
+    public static let lifespanIdForPermanent = ""
+}

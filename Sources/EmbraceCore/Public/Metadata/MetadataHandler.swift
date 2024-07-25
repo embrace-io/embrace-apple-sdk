@@ -66,28 +66,14 @@ public class MetadataHandler: NSObject {
             throw MetadataError.invalidKey("The key length can not be greater than \(Self.maxKeyLength)")
         }
 
-        // get lifespan id
-        var id: String = ""
-
-        // session lifespan
-        if lifespan == .session {
-            guard let sessionId = sessionController?.currentSession?.id.toString else {
-                throw MetadataError.invalidSession("Can't add a session property if there's no active session!")
-            }
-
-            id = sessionId
-
-            // process lifespan
-        } else if lifespan == .process {
-            id = ProcessIdentifier.current.hex
-        }
+        let lifespanContext = try currentContext(for: lifespan.recordLifespan)
 
         let record = try storage.addMetadata(
             key: key,
             value: validateValue(value),
             type: type,
             lifespan: lifespan.recordLifespan,
-            lifespanId: id
+            lifespanId: lifespanContext
         )
 
         if record == nil {
@@ -144,11 +130,19 @@ public class MetadataHandler: NSObject {
         try remove(key: key, type: .customProperty, lifespan: lifespan)
     }
 
+    /// Removes the metadata for the given key, type and lifespan.
+    /// - Parameters:
+    ///  - key: The key of the metadata to remove.
+    ///  - type: The type of the metadata to remove.
+    ///  - lifespan: The lifespan of the metadata to remove.
+    ///
+    ///  - Throws: `MetadataError.invalidSession` if a metadata with a `.session` lifespan is removed when there's no active session.
     func remove(key: String, type: MetadataRecordType, lifespan: MetadataLifespan = .session) throws {
         try storage?.removeMetadata(
             key: key,
             type: type,
-            lifespan: lifespan.recordLifespan
+            lifespan: lifespan.recordLifespan,
+            lifespanId: try currentContext(for: lifespan.recordLifespan)
         )
     }
 
@@ -182,6 +176,22 @@ extension MetadataHandler {
 
         let range = value.startIndex...value.index(value.startIndex, offsetBy: Self.maxValueLength - 4)
         return String(value[range]) + "..."
+    }
+}
+
+extension MetadataHandler {
+    private func currentContext(for lifespan: MetadataRecordLifespan) throws -> String {
+        if lifespan == .session {
+            guard let sessionId = sessionController?.currentSession?.id.toString else {
+                throw MetadataError.invalidSession("Can't add a session property if there's no active session!")
+            }
+            return sessionId
+        } else if lifespan == .process {
+            return ProcessIdentifier.current.hex
+        } else {
+            // permanent
+            return MetadataRecord.lifespanIdForPermanent
+        }
     }
 }
 
