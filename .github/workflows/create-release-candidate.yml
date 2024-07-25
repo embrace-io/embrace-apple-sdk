@@ -5,7 +5,6 @@ env:
   AWS_DEFAULT_REGION: "${{ vars.AWS_DEFAULT_REGION }}"
 
 on:
-  # Temporal
   push:
     branches:
       - "release/*"
@@ -291,23 +290,30 @@ jobs:
           path: embrace-apple-core-internal
 
       - name: Be sure Podspec has bumped version
-        # If we haven't pushed version bump podspec will use existing version
-        # See "Commit Version Changes" step
         run: |
           cd embrace-apple-core-internal
           bin/version_bump $RC_VERSION --cocoapods
-      - name: Delete and recreate podspec if override is true
-        if: ${{ inputs.override_version }}
+
+      - name: Check if cocoapods version exists
         run: |
           info=$(pod trunk info EmbraceIO-DEV)
           if echo "$info" | grep -q "$version"; then
-            echo "y" | pod trunk delete EmbraceIO-DEV $RC_VERSION
+            echo "COCOAPODS_VERSION_EXISTS=true" >> $GITHUB_ENV
           else
-            echo "Version doesn't exist at all, so it shouldn't be removed"
+            echo "COCOAPODS_VERSION_EXISTS=false" >> $GITHUB_ENV
           fi
+
+      - name: Delete and recreate podspec
+        if: ${{ inputs.override_version }} && env.COCOAPODS_VERSION_EXISTS == 'true'
+        run: |
+            echo "y" | pod trunk delete EmbraceIO-DEV $RC_VERSION
+            echo "COCOAPODS_VERSION_EXISTS=false" >> $GITHUB_ENV
+
       - name: Push EmbraceIO-DEV Podspec
+        if: env.COCOAPODS_VERSION_EXISTS == 'false'
         run: |
           pod trunk push embrace-apple-core-internal/EmbraceIO-DEV.podspec --allow-warnings
+
       - name: Cleanup old EmbraceIO-DEV Cocoapods versions
         env:
           KEEP_VERSIONS: 5
