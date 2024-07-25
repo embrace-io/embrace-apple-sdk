@@ -306,7 +306,7 @@ jobs:
       - name: Delete and recreate podspec
         if: ${{ inputs.override_version }} && env.COCOAPODS_VERSION_EXISTS == 'true'
         run: |
-            echo "y" | pod trunk delete EmbraceIO-DEV $RC_VERSION
+            echo "y" | pod trunk delete EmbraceIO-DEV $RC_VERSION || echo "Ignoring HTML Output"
             echo "COCOAPODS_VERSION_EXISTS=false" >> $GITHUB_ENV
 
       - name: Push EmbraceIO-DEV Podspec
