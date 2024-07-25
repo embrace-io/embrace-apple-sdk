@@ -19,6 +19,15 @@ final class MetadataHandlerTests: XCTestCase {
         storage = try EmbraceStorage.createInMemoryDb()
         sessionController = MockSessionController()
         sessionController.startSession(state: .foreground)
+
+        try storage.addSession(
+            id: sessionController.currentSession!.id,
+            state: .foreground,
+            processId: .current,
+            traceId: .random(),
+            spanId: .random(),
+            startTime: Date()
+        )
     }
 
     override func tearDownWithError() throws {
@@ -167,6 +176,157 @@ final class MetadataHandlerTests: XCTestCase {
 
         wait(for: [expectation1, expectation2], timeout: .defaultTimeout)
     }
+
+    // MARK: Removing Metadata
+
+    func test_remove_removesMetadata_withSessionLifespan() throws {
+        let handler = MetadataHandler(storage: storage, sessionController: sessionController)
+
+        // when added
+        try handler.addProperty(key: "foo", value: "bar", lifespan: .session)
+
+        let firstFetch = try storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
+        let item = firstFetch.first { record in
+            record.key == "foo"
+        }
+        XCTAssertNotNil(item)
+
+        // When removed
+        try handler.removeProperty(key: "foo", lifespan: .session)
+
+        let secondFetch = try storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
+        let result = secondFetch.first { record in
+            record.key == "foo"
+        }
+        XCTAssertNil(result)
+    }
+
+    func test_remove_doesNot_removeMetadataWithSessionLifespan_whenSessionChanges() throws {
+        let handler = MetadataHandler(storage: storage, sessionController: sessionController)
+
+        let firstSessionId = sessionController.currentSession!.id
+        // when added to first session
+        try handler.addProperty(key: "foo", value: "bar", lifespan: .session)
+
+        // start new session
+        let newSession = sessionController.startSession(state: .foreground)
+        let secondSessionId = newSession.id
+        try storage.addSession(
+            id: secondSessionId,
+            state: .foreground,
+            processId: .current,
+            traceId: .random(),
+            spanId: .random(),
+            startTime: Date()
+        )
+
+        let fetch1 = try storage.fetchCustomPropertiesForSessionId(firstSessionId)
+        let result1 = fetch1.first { record in
+            record.key == "foo"
+        }
+        XCTAssertNotNil(result1)
+
+        // When removed
+        try handler.removeProperty(key: "foo", lifespan: .session)
+
+        let fetch2 = try storage.fetchCustomPropertiesForSessionId(secondSessionId)
+        let result2 = fetch2.first { record in
+            record.key == "foo"
+        }
+        XCTAssertNil(result2)    // not present from second session
+
+        let fetch3 = try storage.fetchCustomPropertiesForSessionId(firstSessionId)
+        let result3 = fetch3.first { record in
+            record.key == "foo"
+        }
+        XCTAssertNotNil(result3) // still present in first session
+    }
+
+    func test_remove_removesMetadata_withProcessLifespan() throws {
+        let handler = MetadataHandler(storage: storage, sessionController: sessionController)
+
+        // when added
+        try handler.addProperty(key: "foo", value: "bar", lifespan: .process)
+
+        let firstFetch = try storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
+        let item = firstFetch.first { record in
+            record.key == "foo"
+        }
+        XCTAssertNotNil(item)
+
+        // When removed
+        try handler.removeProperty(key: "foo", lifespan: .process)
+
+        let secondFetch = try storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
+        let result = secondFetch.first { record in
+            record.key == "foo"
+        }
+        XCTAssertNil(result)
+    }
+
+    func test_remove_doesNot_removeMetadataWithProcessLifespan_whenProcessChanges() throws {
+        let handler = MetadataHandler(storage: storage, sessionController: sessionController)
+
+        let otherProcessId = ProcessIdentifier.random
+        let otherSessionId = SessionIdentifier.random
+        try storage.addSession(
+            id: otherSessionId,
+            state: .foreground,
+            processId: otherProcessId,
+            traceId: .random(),
+            spanId: .random(),
+            startTime: Date()
+        )
+
+        // when added to process that occurred "before"
+        try storage.addMetadata(
+            key: "foo",
+            value: "bar",
+            type: .customProperty,
+            lifespan: .process,
+            lifespanId: otherProcessId.hex
+        )
+
+        // When removed
+        try handler.removeProperty(key: "foo", lifespan: .process)
+
+        // exists in other session
+        let fetch1 = try storage.fetchCustomPropertiesForSessionId(otherSessionId)
+        let result1 = fetch1.first { record in
+            record.key == "foo"
+        }
+        XCTAssertNotNil(result1)
+
+        // does not exist in current session
+        let fetch2 = try storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
+        let result2 = fetch2.first { record in
+            record.key == "foo"
+        }
+        XCTAssertNil(result2)    // not present from second session
+    }
+
+    func test_remove_removesMetadata_withPermanentLifespan() throws {
+        let handler = MetadataHandler(storage: storage, sessionController: sessionController)
+
+        // when added
+        try handler.addProperty(key: "foo", value: "bar", lifespan: .permanent)
+
+        let firstFetch = try storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
+        let item = firstFetch.first { record in
+            record.key == "foo"
+        }
+        XCTAssertNotNil(item)
+
+        // When removed
+        try handler.removeProperty(key: "foo", lifespan: .permanent)
+
+        let secondFetch = try storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
+        let result = secondFetch.first { record in
+            record.key == "foo"
+        }
+        XCTAssertNil(result)
+    }
+
 }
 
 // swiftlint:enable force_cast
