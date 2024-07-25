@@ -194,7 +194,7 @@ class MockTapCaptureserviceDelegate: NSObject, TapCaptureServiceDelegate {
     func shouldCaptureTap(onView: UIView) -> Bool {
         return shouldCaptureNextTap
     }
-    
+
     var shouldCaptureNextCoordinates: Bool = true
     func shouldCaptureTapCoordinates(onView: UIView) -> Bool {
         return shouldCaptureNextCoordinates

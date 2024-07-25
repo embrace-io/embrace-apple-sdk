@@ -1,5 +1,5 @@
 //
-//  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
+//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
 import Foundation
@@ -18,7 +18,8 @@ import OpenTelemetryApi
 ///
 /// This base class provides the necessary functionallity and structure that should be used
 /// by all capture services.
-@objc open class CaptureService: NSObject {
+@objc(EMBCaptureService)
+open class CaptureService: NSObject {
 
     /// Getter for the OTel handler used by the capture service.
     private(set) public weak var otel: EmbraceOpenTelemetry?

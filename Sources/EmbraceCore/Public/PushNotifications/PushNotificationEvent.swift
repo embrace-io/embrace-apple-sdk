@@ -1,12 +1,16 @@
 //
-//  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
+//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
 import EmbraceOTelInternal
 import Foundation
 import UserNotifications
 
-public struct PushNotificationEvent: SpanEvent {
+/// Class used to represent a Push Notification as a SpanEvent.
+/// Usage example:
+/// `Embrace.client?.add(.push(userInfo: apsDictionary))
+@objc(EMBPushNotificationEvent)
+public class PushNotificationEvent: NSObject, SpanEvent {
     public let name: String
     public let timestamp: Date
     public private(set) var attributes: [String: AttributeValue]
@@ -16,16 +20,16 @@ public struct PushNotificationEvent: SpanEvent {
     ///   - notification: The `UNNotification` received by the app
     ///   - captureData: Whether or not Embrace should parse the data inside the push notification
     /// - Throws: `PushNotificationError.invalidPayload` if the `aps` object is not present in the `userInfo` of the `UNNotification`.
-    init(notification: UNNotification,
-         timestamp: Date = Date(),
-         attributes: [String: AttributeValue] = [:],
-         captureData: Bool = true
+    convenience init(notification: UNNotification,
+                     timestamp: Date = Date(),
+                     attributes: [String: AttributeValue] = [:],
+                     captureData: Bool = true
     ) throws {
         var userInfo: [AnyHashable: Any] = [:]
 #if !os(tvOS)
         userInfo = notification.request.content.userInfo
 #endif
-    try self.init(userInfo: userInfo, attributes: attributes, captureData: captureData)
+        try self.init(userInfo: userInfo, attributes: attributes, captureData: captureData)
     }
 
     /// Returns a span event on using the `userInfo` dictionary from a push notification

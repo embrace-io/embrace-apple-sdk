@@ -1,12 +1,16 @@
 //
-//  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
+//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
 import Foundation
 import EmbraceOTelInternal
 import EmbraceCommonInternal
 
-public struct Breadcrumb: SpanEvent {
+/// Class used to represent a Breadcrum as a SpanEvent.
+/// Usage example:
+/// `Embrace.client?.add(.breadcrumb("This is a breadcrumb"))
+@objc(EMBBreadcrumb)
+public class Breadcrumb: NSObject, SpanEvent {
     public let name: String
     public let timestamp: Date
     public private(set) var attributes: [String: AttributeValue]

@@ -1,5 +1,5 @@
 //
-//  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
+//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
 import Foundation
@@ -9,8 +9,8 @@ import EmbraceOTelInternal
 
 extension Embrace {
 
-    @objc(EMBOptions)
     /// Class used to setup the Embrace SDK.
+    @objc(EMBOptions)
     public final class Options: NSObject {
         @objc public let appId: String
         @objc public let appGroupId: String?
@@ -34,6 +34,7 @@ extension Embrace {
         ///   - captureServices: The `CaptureServices` to be installed.
         ///   - crashReporter: The `CrashReporter` to be installed.
         ///   - logLevel: The `LogLevel` to use for console logs.
+        ///   - export: `OpenTelemetryExport` object to export telemetry outside of the Embrace backend.
         @objc public init(
             appId: String,
             appGroupId: String? = nil,

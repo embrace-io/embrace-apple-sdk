@@ -6,7 +6,7 @@ import EmbraceCaptureService
 import Foundation
 
 /// Class used to build the list of `CaptureServices` to be used by the `Embrace` instance.
-@objc (EMBCaptureServiceBuilder)
+@objc(EMBCaptureServiceBuilder)
 public class CaptureServiceBuilder: NSObject {
     private var services: [CaptureService] = []
 

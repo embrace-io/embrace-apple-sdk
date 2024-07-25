@@ -1,5 +1,5 @@
 //
-//  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
+//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
 import Foundation
@@ -8,7 +8,9 @@ import EmbraceCommonInternal
 import EmbraceOTelInternal
 import OpenTelemetryApi
 
-@objc public class LowMemoryWarningCaptureService: CaptureService {
+/// Service that generates OpenTelemetry span events when the application receives a low memory warning.
+@objc(EMBLowMemoryWarningCaptureService)
+public class LowMemoryWarningCaptureService: CaptureService {
 
     public var onWarningCaptured: (() -> Void)?
 

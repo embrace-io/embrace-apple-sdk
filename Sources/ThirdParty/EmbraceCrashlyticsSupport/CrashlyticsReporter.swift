@@ -5,8 +5,9 @@
 import Foundation
 import EmbraceCommonInternal
 
-/// Class used to capture Crashlytics reports
-@objc public final class CrashlyticsReporter: NSObject, CrashReporter {
+/// Special `CrashReporter` implementation that captures crash data from Crashlytics reports.
+@objc(EMBCrashlyticsReporter)
+public final class CrashlyticsReporter: NSObject, CrashReporter {
 
     static let providerIdentifier = "crashlytics"
 

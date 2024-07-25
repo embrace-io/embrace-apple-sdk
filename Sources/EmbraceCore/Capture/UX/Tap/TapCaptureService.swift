@@ -1,5 +1,5 @@
 //
-//  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
+//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 #if canImport(UIKit) && !os(watchOS)
 import UIKit
@@ -7,9 +7,10 @@ import EmbraceCaptureService
 import EmbraceCommonInternal
 import EmbraceOTelInternal
 
-/// Service that capture taps on the screen.
+/// Service that generates OpenTelemtry span events for taps on the screen.
 /// Note that any taps done on a keyboard view will be automatically ignored.
-@objc public final class TapCaptureService: CaptureService {
+@objc(EMBTapCaptureService)
+public final class TapCaptureService: CaptureService {
 
     public let options: TapCaptureService.Options
 
@@ -102,7 +103,7 @@ import EmbraceOTelInternal
 
     func shouldRecordCoordinates(from target: UIView) -> Bool {
 
-        let shouldCapture = 
+        let shouldCapture =
             options.delegate?.shouldCaptureTapCoordinates(onView: target) ??
             options.captureTapCoordinates
         guard shouldCapture else {
