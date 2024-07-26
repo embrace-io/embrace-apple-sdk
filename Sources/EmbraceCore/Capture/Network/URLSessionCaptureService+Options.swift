@@ -6,7 +6,7 @@ import Foundation
 
 extension URLSessionCaptureService {
     /// Class used to setup a URLSessionCaptureService.
-    @objc(URLSessionCaptureServiceOptions)
+    @objc(EMBURLSessionCaptureServiceOptions)
     public final class Options: NSObject {
         /// Defines wether or not the Embrace SDK should inject the `traceparent` header into all network requests
         @objc public let injectTracingHeader: Bool
