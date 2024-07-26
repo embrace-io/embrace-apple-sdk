@@ -1,5 +1,5 @@
 //
-//  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
+//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
 import Foundation
@@ -16,6 +16,7 @@ import EmbraceStorageInternal
     case permanent
 }
 
+/// Class used to generate resources, properties and persona tags to be included in sessions and logs.
 @objc(EMBMetadataHandler)
 public class MetadataHandler: NSObject {
 

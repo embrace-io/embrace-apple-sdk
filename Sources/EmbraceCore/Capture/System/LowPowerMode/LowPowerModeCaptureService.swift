@@ -1,5 +1,5 @@
 //
-//  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
+//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
 import Foundation
@@ -7,7 +7,9 @@ import EmbraceCaptureService
 import EmbraceCommonInternal
 import EmbraceOTelInternal
 
-@objc public class LowPowerModeCaptureService: CaptureService {
+/// Service that generates OpenTelemetry spans when the phone is running in low power mode.
+@objc(EMBLowPowerModeCaptureService)
+public class LowPowerModeCaptureService: CaptureService {
     public let provider: PowerModeProvider
 
     @ThreadSafe var wasLowPowerModeEnabled = false

@@ -1,15 +1,10 @@
 //
-//  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
+//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
 import Foundation
 import EmbraceCaptureService
 import EmbraceCommonInternal
-
-/*
- We decided that, to improve readability, we'll keep all the classes that swizzle methods
- from `URLSession` together. That's why we've disabled the file_length warning in this case.
- */
 
 typealias URLSessionCompletion = (Data?, URLResponse?, Error?) -> Void
 typealias DownloadTaskCompletion = (URL?, URLResponse?, Error?) -> Void
@@ -18,7 +13,9 @@ protocol URLSessionSwizzler: Swizzlable {
     init(handler: URLSessionTaskHandler, baseClass: AnyClass)
 }
 
-@objc public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandlerDataSource {
+/// Service that generates OpenTelemetry spans for network requests that use `URLSession`.
+@objc(EMBURLSessionCaptureService)
+public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandlerDataSource {
 
     public let options: URLSessionCaptureService.Options
     private let lock: NSLocking
