@@ -8,6 +8,7 @@ import EmbraceCaptureService
 import EmbraceCommonInternal
 import EmbraceOTelInternal
 import EmbraceObjCUtilsInternal
+import EmbraceSemantics
 
 extension Notification.Name {
     static let networkRequestCaptured = Notification.Name("networkRequestCaptured")
@@ -32,20 +33,6 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
     private var spans: [URLSessionTask: Span] = [:]
     private let queue: DispatchQueue
     weak var dataSource: URLSessionTaskHandlerDataSource?
-
-    enum SpanAttribute {
-        // Isn't address redundant?
-        static let address = "server.address"
-        static let url = "url.full"
-        static let method = "http.request.method"
-        static let bodySize = "http.request.body.size"
-        static let tracingHeader = "emb.w3c_traceparent"
-        static let statusCode = "http.response.status_code"
-        static let responseSize = "http.response.body.size"
-        static let errorType = "error.type"
-        static let errorCode = "error.code"
-        static let errorMessage = "error.message"
-    }
 
     init(processingQueue: DispatchQueue = DefaultURLSessionTaskHandler.queue(),
          dataSource: URLSessionTaskHandlerDataSource?) {
@@ -84,11 +71,11 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
 
             // Probably this could be moved to a separate class
             var attributes: [String: String] = [:]
-            attributes[SpanAttribute.url] = request.url?.absoluteString ?? "N/A"
+            attributes[SpanSemantics.NetworkRequest.keyUrl] = request.url?.absoluteString ?? "N/A"
 
             let httpMethod = request.httpMethod ?? ""
             if !httpMethod.isEmpty {
-                attributes[SpanAttribute.method] = httpMethod
+                attributes[SpanSemantics.NetworkRequest.keyMethod] = httpMethod
             }
 
             /*
@@ -109,13 +96,13 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
             let name = httpMethod.isEmpty ? url.path : "\(httpMethod) \(url.path)"
             let networkSpan = otel.buildSpan(
                 name: name,
-                type: .networkHTTP,
+                type: .networkRequest,
                 attributes: attributes
             )
 
             // This should be modified if we start doing this for streaming tasks.
             if let bodySize = request.httpBody {
-                networkSpan.setAttribute(key: SpanAttribute.bodySize, value: bodySize.count)
+                networkSpan.setAttribute(key: SpanSemantics.NetworkRequest.keyBodySize, value: bodySize.count)
             }
 
             let span = networkSpan.startSpan()
@@ -123,7 +110,7 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
 
             // tracing header
             if let tracingHader = self.addTracingHeader(task: task, span: span) {
-                span.setAttribute(key: SpanAttribute.tracingHeader, value: .string(tracingHader))
+                span.setAttribute(key: SpanSemantics.NetworkRequest.keyTracingHeader, value: .string(tracingHader))
             }
 
             handled = true
@@ -143,20 +130,35 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
             }
 
             if let response = task.response as? HTTPURLResponse {
-                span.setAttribute(key: SpanAttribute.statusCode, value: response.statusCode)
+                span.setAttribute(
+                    key: SpanSemantics.NetworkRequest.keyStatusCode,
+                    value: response.statusCode
+                )
             }
 
             if let data = data {
                 let totalData = task.embraceData ?? data
-                span.setAttribute(key: SpanAttribute.responseSize, value: totalData.count)
+                span.setAttribute(
+                    key: SpanSemantics.NetworkRequest.keyResponseSize,
+                    value: totalData.count
+                )
             }
 
             if let error = error ?? task.error {
                 // Should this be something else?
                 let nsError = error as NSError
-                span.setAttribute(key: SpanAttribute.errorType, value: nsError.domain)
-                span.setAttribute(key: SpanAttribute.errorCode, value: nsError.code)
-                span.setAttribute(key: SpanAttribute.errorMessage, value: error.localizedDescription)
+                span.setAttribute(
+                    key: SpanSemantics.NetworkRequest.keyErrorType,
+                    value: nsError.domain
+                )
+                span.setAttribute(
+                    key: SpanSemantics.NetworkRequest.keyErrorCode,
+                    value: nsError.code
+                )
+                span.setAttribute(
+                    key: SpanSemantics.NetworkRequest.keyErrorMessage,
+                    value: error.localizedDescription
+                )
             }
 
             span.end()
@@ -174,7 +176,7 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
         }
 
         // ignore if header is already present
-        let headerName = "traceparent"
+        let headerName = SpanSemantics.NetworkRequest.traceparentHeader
 
         let previousValue = task.originalRequest?.value(forHTTPHeaderField: headerName)
         guard previousValue == nil else {

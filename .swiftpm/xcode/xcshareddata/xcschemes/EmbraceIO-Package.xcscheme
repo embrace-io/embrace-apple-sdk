@@ -412,6 +412,20 @@
                ReferencedContainer = "container:">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EmbraceSemantics"
+               BuildableName = "EmbraceSemantics"
+               BlueprintName = "EmbraceSemantics"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -588,6 +602,16 @@
                BlueprintIdentifier = "EmbraceUploadInternalTests"
                BuildableName = "EmbraceUploadInternalTests"
                BlueprintName = "EmbraceUploadInternalTests"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EmbraceSemanticsTests"
+               BuildableName = "EmbraceSemanticsTests"
+               BlueprintName = "EmbraceSemanticsTests"
                ReferencedContainer = "container:">
             </BuildableReference>
          </TestableReference>

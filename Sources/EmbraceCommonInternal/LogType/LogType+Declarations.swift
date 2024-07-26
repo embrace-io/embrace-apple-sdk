@@ -12,7 +12,5 @@ extension LogType {
 // MARK: - System
 extension LogType {
     public static let `default` = LogType(system: "log")
-    public static let breadcrumb = LogType(system: "breadcrumb")
-    public static let crash = LogType(system: "ios.crash")
     public static let `internal` = LogType(system: "internal")
 }

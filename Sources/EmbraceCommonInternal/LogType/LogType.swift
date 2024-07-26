@@ -8,12 +8,12 @@ public struct LogType: Equatable {
     let primary: Primary
     let secondary: String?
 
-    init(primary: Primary, secondary: String? = nil) {
+    public init(primary: Primary, secondary: String? = nil) {
         self.primary = primary
         self.secondary = secondary
     }
 
-    init(system secondary: String) {
+    public init(system secondary: String) {
         self.primary = .system
         self.secondary = secondary
     }
@@ -65,7 +65,7 @@ extension LogType: CustomStringConvertible {
     public var description: String { rawValue }
 }
 
-extension LogType {
+public extension LogType {
     enum Primary: String {
         case system = "sys"
     }

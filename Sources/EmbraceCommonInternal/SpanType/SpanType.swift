@@ -11,13 +11,13 @@ public struct SpanType: Equatable, Hashable {
 
     let secondary: String?
 
-    init(primary: Primary, secondary: String? = nil) {
+    public init(primary: Primary, secondary: String? = nil) {
         self.primary = primary
         self.secondary = secondary
     }
 }
 
-extension SpanType {
+public extension SpanType {
 
     init(performance secondary: String) {
         self.primary = .performance
@@ -83,7 +83,7 @@ extension SpanType: Codable {
     }
 }
 
-extension SpanType {
+public extension SpanType {
 
     /// Top level category for the SpanType
     enum Primary: String {

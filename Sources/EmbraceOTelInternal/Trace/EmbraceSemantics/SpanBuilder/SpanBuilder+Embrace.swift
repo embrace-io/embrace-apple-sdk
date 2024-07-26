@@ -3,24 +3,25 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceSemantics
 import OpenTelemetryApi
 
 extension SpanBuilder {
-    @discardableResult func setAttribute(key: SpanAttributeKey, value: String) -> Self {
-        setAttribute(key: key.rawValue, value: value)
+    @discardableResult func setAttribute(key: String, value: String) -> Self {
+        setAttribute(key: key, value: value)
         return self
     }
 
     @discardableResult public func markAsPrivate() -> Self {
-        setAttribute(key: .isPrivate, value: "true")
+        setAttribute(key: SpanSemantics.keyIsPrivateSpan, value: "true")
     }
 
     @discardableResult public func markAsKeySpan() -> Self {
-        setAttribute(key: .isKey, value: "true")
+        setAttribute(key: SpanSemantics.keyIsKeySpan, value: "true")
     }
 
     @discardableResult public func error(errorCode: SpanErrorCode) -> Self {
-        setAttribute(key: SpanAttributeKey.errorCode, value: errorCode.rawValue)
+        setAttribute(key: SpanSemantics.keyErrorCode, value: errorCode.rawValue)
     }
 
 }

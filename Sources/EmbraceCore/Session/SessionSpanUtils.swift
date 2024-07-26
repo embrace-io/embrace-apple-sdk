@@ -6,47 +6,34 @@ import Foundation
 import EmbraceCommonInternal
 import EmbraceStorageInternal
 import EmbraceOTelInternal
+import EmbraceSemantics
 import OpenTelemetryApi
 
 struct SessionSpanUtils {
-    static let spanName = "emb-session"
-    static let spanType = "ux.session"
-
-    enum AttributeKey: String {
-        case type = "emb.type"
-        case id = "emb.session_id"
-        case state = "emb.state"
-        case coldStart = "emb.cold_start"
-        case terminated = "emb.terminated"
-        case cleanExit = "emb.clean_exit"
-        case sessionNumber = "emb.session_number"
-        case heartbeat = "emb.heartbeat_time_unix_nano"
-        case crashId = "emb.crash_id"
-    }
 
     static func span(id: SessionIdentifier, startTime: Date, state: SessionState, coldStart: Bool) -> Span {
-        EmbraceOTel().buildSpan(name: spanName, type: .session)
+        EmbraceOTel().buildSpan(name: SpanSemantics.Session.name, type: .session)
             .setStartTime(time: startTime)
-            .setAttribute(key: AttributeKey.id.rawValue, value: id.toString)
-            .setAttribute(key: AttributeKey.state.rawValue, value: state.rawValue)
-            .setAttribute(key: AttributeKey.coldStart.rawValue, value: coldStart)
+            .setAttribute(key: SpanSemantics.Session.keyId, value: id.toString)
+            .setAttribute(key: SpanSemantics.Session.keyState, value: state.rawValue)
+            .setAttribute(key: SpanSemantics.Session.keyColdStart, value: coldStart)
             .startSpan()
     }
 
     static func setState(span: Span?, state: SessionState) {
-        span?.setAttribute(key: AttributeKey.state.rawValue, value: state.rawValue)
+        span?.setAttribute(key: SpanSemantics.Session.keyState, value: state.rawValue)
     }
 
     static func setHeartbeat(span: Span?, heartbeat: Date) {
-        span?.setAttribute(key: AttributeKey.heartbeat.rawValue, value: heartbeat.nanosecondsSince1970Truncated)
+        span?.setAttribute(key: SpanSemantics.Session.keyHeartbeat, value: heartbeat.nanosecondsSince1970Truncated)
     }
 
     static func setTerminated(span: Span?, terminated: Bool) {
-        span?.setAttribute(key: AttributeKey.terminated.rawValue, value: terminated)
+        span?.setAttribute(key: SpanSemantics.Session.keyTerminated, value: terminated)
     }
 
     static func setCleanExit(span: Span?, cleanExit: Bool) {
-        span?.setAttribute(key: AttributeKey.cleanExit.rawValue, value: cleanExit)
+        span?.setAttribute(key: SpanSemantics.Session.keyCleanExit, value: cleanExit)
     }
 
     static func payload(
@@ -63,7 +50,7 @@ fileprivate extension SpanPayload {
         self.traceId = session.traceId
         self.spanId = session.spanId
         self.parentSpanId = nil
-        self.name = SessionSpanUtils.spanName
+        self.name = SpanSemantics.Session.name
         self.status = Status.ok.name
         self.startTime = session.startTime.nanosecondsSince1970Truncated
         self.endTime = session.endTime?.nanosecondsSince1970Truncated ??
@@ -71,42 +58,42 @@ fileprivate extension SpanPayload {
 
         var attributeArray: [Attribute] = [
             Attribute(
-                key: SessionSpanUtils.AttributeKey.type.rawValue,
-                value: SessionSpanUtils.spanType
+                key: SpanSemantics.keyEmbraceType,
+                value: SpanType.session.rawValue
             ),
             Attribute(
-                key: SessionSpanUtils.AttributeKey.id.rawValue,
+                key: SpanSemantics.Session.keyId,
                 value: session.id.toString
             ),
             Attribute(
-                key: SessionSpanUtils.AttributeKey.state.rawValue,
+                key: SpanSemantics.Session.keyState,
                 value: session.state
             ),
             Attribute(
-                key: SessionSpanUtils.AttributeKey.coldStart.rawValue,
+                key: SpanSemantics.Session.keyColdStart,
                 value: String(session.coldStart)
             ),
             Attribute(
-                key: SessionSpanUtils.AttributeKey.terminated.rawValue,
+                key: SpanSemantics.Session.keyTerminated,
                 value: String(session.appTerminated)
             ),
             Attribute(
-                key: SessionSpanUtils.AttributeKey.cleanExit.rawValue,
+                key: SpanSemantics.Session.keyCleanExit,
                 value: String(session.cleanExit)
             ),
             Attribute(
-                key: SessionSpanUtils.AttributeKey.heartbeat.rawValue,
+                key: SpanSemantics.Session.keyHeartbeat,
                 value: String(session.lastHeartbeatTime.nanosecondsSince1970Truncated)
             ),
             Attribute(
-                key: SessionSpanUtils.AttributeKey.sessionNumber.rawValue,
+                key: SpanSemantics.Session.keySessionNumber,
                 value: String(sessionNumber)
             )
         ]
 
         if let crashId = session.crashReportId {
             attributeArray.append(Attribute(
-                key: SessionSpanUtils.AttributeKey.crashId.rawValue,
+                key: SpanSemantics.Session.keyCrashId,
                 value: crashId
             ))
         }

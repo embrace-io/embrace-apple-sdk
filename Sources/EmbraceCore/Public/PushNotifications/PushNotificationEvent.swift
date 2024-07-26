@@ -2,9 +2,11 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import EmbraceOTelInternal
 import Foundation
 import UserNotifications
+import EmbraceOTelInternal
+import EmbraceCommonInternal
+import EmbraceSemantics
 
 /// Class used to represent a Push Notification as a SpanEvent.
 /// Usage example:
@@ -44,11 +46,11 @@ public class PushNotificationEvent: NSObject, SpanEvent {
     ) throws {
 
         // find aps key
-        guard let apsDict = userInfo[Constants.rootKey] as? [AnyHashable: Any] else {
+        guard let apsDict = userInfo[Constants.apsRootKey] as? [AnyHashable: Any] else {
             throw PushNotificationError.invalidPayload("Couldn't find aps object!")
         }
 
-        self.name = Constants.eventName
+        self.name = SpanEventSemantics.PushNotification.name
         self.timestamp = timestamp
 
         let dict = Self.parse(apsDict: apsDict, captureData: captureData)
@@ -60,11 +62,11 @@ public class PushNotificationEvent: NSObject, SpanEvent {
         var dict: [String: AttributeValue] = [:]
 
         // set types
-        dict["emb.type"] = .string(Constants.eventType)
-        dict[Constants.keyType] =
+        dict[SpanEventSemantics.keyEmbraceType] = .string(SpanType.pushNotification.rawValue)
+        dict[SpanEventSemantics.PushNotification.keyType] =
             isSilent(userInfo: apsDict) ?
-            .string(Constants.silentType) :
-            .string(Constants.notificationType)
+            .string(SpanEventSemantics.PushNotification.silentType) :
+            .string(SpanEventSemantics.PushNotification.notificationType)
 
         // capture data if enabled
         if captureData {
@@ -87,23 +89,23 @@ public class PushNotificationEvent: NSObject, SpanEvent {
             let badge = apsDict[Constants.apsBadge] as? Int
 
             if let title = title {
-                dict[Constants.keyTitle] = .string(title)
+                dict[SpanEventSemantics.PushNotification.keyTitle] = .string(title)
             }
 
             if let subtitle = subtitle {
-                dict[Constants.keySubtitle] = .string(subtitle)
+                dict[SpanEventSemantics.PushNotification.keySubtitle] = .string(subtitle)
             }
 
             if let body = body {
-                dict[Constants.keyBody] = .string(body)
+                dict[SpanEventSemantics.PushNotification.keyBody] = .string(body)
             }
 
             if let category = category {
-                dict[Constants.keyCategory] = .string(category)
+                dict[SpanEventSemantics.PushNotification.keyCategory] = .string(category)
             }
 
             if let badge = badge {
-                dict[Constants.keyBadge] = .int(badge)
+                dict[SpanEventSemantics.PushNotification.keyBadge] = .int(badge)
             }
         }
 
@@ -120,13 +122,7 @@ public class PushNotificationEvent: NSObject, SpanEvent {
     }
 
     struct Constants {
-        static let rootKey = "aps"
-        static let eventName = "emb-push-notification"
-        static let eventType = "sys.push_notification"
-
-        static let notificationType = "notif"
-        static let silentType = "silent"
-
+        static let apsRootKey = "aps"
         static let apsAlert = "alert"
         static let apsTitle = "title"
         static let apsTitleLocalized = "title-loc-key"
@@ -137,13 +133,6 @@ public class PushNotificationEvent: NSObject, SpanEvent {
         static let apsCategory = "category"
         static let apsBadge = "badge"
         static let apsContentAvailable = "content-available"
-
-        static let keyType = "notification.type"
-        static let keyTitle = "notification.title"
-        static let keySubtitle = "notification.subtitle"
-        static let keyBody = "notification.body"
-        static let keyCategory = "notification.category"
-        static let keyBadge = "notification.badge"
     }
 }
 
