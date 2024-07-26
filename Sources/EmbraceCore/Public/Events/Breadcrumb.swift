@@ -8,7 +8,7 @@ import EmbraceCommonInternal
 
 /// Class used to represent a Breadcrum as a SpanEvent.
 /// Usage example:
-/// `Embrace.client?.add(.breadcrumb("This is a breadcrumb"))
+/// `Embrace.client?.add(.breadcrumb("This is a breadcrumb"))`
 @objc(EMBBreadcrumb)
 public class Breadcrumb: NSObject, SpanEvent {
     public let name: String
