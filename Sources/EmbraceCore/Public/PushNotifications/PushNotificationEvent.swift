@@ -8,7 +8,7 @@ import UserNotifications
 
 /// Class used to represent a Push Notification as a SpanEvent.
 /// Usage example:
-/// `Embrace.client?.add(.push(userInfo: apsDictionary))
+/// `Embrace.client?.add(.push(userInfo: apsDictionary))`
 @objc(EMBPushNotificationEvent)
 public class PushNotificationEvent: NSObject, SpanEvent {
     public let name: String
