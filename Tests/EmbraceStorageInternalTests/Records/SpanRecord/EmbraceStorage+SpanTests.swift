@@ -56,7 +56,7 @@ final class EmbraceStorage_SpanTests: XCTestCase {
 
     func test_upsertSpan_limitIsUniqueToSpecificType() throws {
         storage.options.spanLimits[.performance] = 3
-        storage.options.spanLimits[.networkHTTP] = 1
+        storage.options.spanLimits[.networkRequest] = 1
 
         // insert 3 .performance spans
         for i in 0..<3 {
@@ -78,7 +78,7 @@ final class EmbraceStorage_SpanTests: XCTestCase {
                 id: SpanId.random().hexString,
                 name: "network \(i)",
                 traceId: TraceId.random().hexString,
-                type: .networkHTTP,
+                type: .networkRequest,
                 data: Data(),
                 startTime: Date()
             )

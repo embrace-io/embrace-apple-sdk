@@ -35,12 +35,12 @@ final class TapCaptureServiceTests: XCTestCase {
 
         // then the tap is captured
         XCTAssertEqual(otel.events.count, 1)
-        XCTAssertEqual(otel.events[0].name, TapCaptureService.Constants.eventName)
+        XCTAssertEqual(otel.events[0].name, "emb-ui-tap")
     }
 
     func test_tap_notStarted() throws {
         // given an installed but not started tap capture service
-        let service = TapCaptureService()
+        _ = TapCaptureService()
 
         // when a tap is done
         let event = MockTapEvent(mockedTouches: [.init()])
@@ -112,7 +112,7 @@ final class TapCaptureServiceTests: XCTestCase {
 
         // then the tap is not captured without coordinates
         XCTAssertEqual(otel.events.count, 1)
-        XCTAssertNil(otel.events[0].attributes[TapCaptureService.Constants.tapCoordinates])
+        XCTAssertNil(otel.events[0].attributes["tap.coords"])
     }
 
     func test_delegate() throws {
@@ -140,8 +140,8 @@ final class TapCaptureServiceTests: XCTestCase {
 
         // then the taps are captured correctly
         XCTAssertEqual(otel.events.count, 2)
-        XCTAssertNil(otel.events[0].attributes[TapCaptureService.Constants.tapCoordinates])
-        XCTAssertNotNil(otel.events[1].attributes[TapCaptureService.Constants.tapCoordinates])
+        XCTAssertNil(otel.events[0].attributes["tap.coords"])
+        XCTAssertNotNil(otel.events[1].attributes["tap.coords"])
     }
 
     func assertViewName(view: UIView, viewName: String) throws {
@@ -158,8 +158,8 @@ final class TapCaptureServiceTests: XCTestCase {
         XCTAssertEqual(otel.events.count, 1)
         let event = try XCTUnwrap(otel.events.first)
 
-        XCTAssertEqual(event.attributes[TapCaptureService.Constants.viewName], .string(viewName))
-        XCTAssertNotNil(event.attributes[TapCaptureService.Constants.tapCoordinates])
+        XCTAssertEqual(event.attributes["view.name"], .string(viewName))
+        XCTAssertNotNil(event.attributes["tap.coords"])
     }
 
     func assertNoCoordinate(viewName: String) throws {
@@ -178,9 +178,9 @@ final class TapCaptureServiceTests: XCTestCase {
         XCTAssertEqual(otel.events.count, 1)
         let event = try XCTUnwrap(otel.events.first)
 
-        XCTAssertEqual(event.attributes[TapCaptureService.Constants.viewName], .string(viewName))
-        XCTAssertEqual(event.attributes["emb.type"], .string(TapCaptureService.Constants.eventType))
-        XCTAssertNil(event.attributes[TapCaptureService.Constants.tapCoordinates])
+        XCTAssertEqual(event.attributes["view.name"], .string(viewName))
+        XCTAssertEqual(event.attributes["emb.type"], .string("ux.tap"))
+        XCTAssertNil(event.attributes["tap.coords"])
     }
 }
 

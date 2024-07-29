@@ -5,12 +5,13 @@
 @testable import EmbraceCore
 import XCTest
 import TestSupport
+import EmbraceSemantics
 
 // swiftlint:disable force_cast force_try
 class PushNotificationEventTests: XCTestCase {
 
     let validPayload: [AnyHashable: Any] = [
-        PushNotificationEvent.Constants.rootKey: [
+        PushNotificationEvent.Constants.apsRootKey: [
             PushNotificationEvent.Constants.apsAlert: [
                 PushNotificationEvent.Constants.apsTitle: "title",
                 PushNotificationEvent.Constants.apsSubtitle: "subtitle",
@@ -22,7 +23,7 @@ class PushNotificationEventTests: XCTestCase {
     ]
 
     let validLocalizedPayload: [AnyHashable: Any] = [
-        PushNotificationEvent.Constants.rootKey: [
+        PushNotificationEvent.Constants.apsRootKey: [
             PushNotificationEvent.Constants.apsAlert: [
                 PushNotificationEvent.Constants.apsTitleLocalized: "title",
                 PushNotificationEvent.Constants.apsSubtitleLocalized: "subtitle",
@@ -34,7 +35,7 @@ class PushNotificationEventTests: XCTestCase {
     ]
 
     let validSilentPayload: [AnyHashable: Any] = [
-        PushNotificationEvent.Constants.rootKey: [
+        PushNotificationEvent.Constants.apsRootKey: [
             PushNotificationEvent.Constants.apsContentAvailable: 1
         ]
     ]
@@ -59,11 +60,11 @@ class PushNotificationEventTests: XCTestCase {
         let event = try! PushNotificationEvent(userInfo: validPayload, captureData: false)
 
         // then the attributes are correct
-        XCTAssertEqual(event.name, PushNotificationEvent.Constants.eventName)
-        XCTAssertEqual(event.attributes["emb.type"], .string(PushNotificationEvent.Constants.eventType))
+        XCTAssertEqual(event.name, "emb-push-notification")
+        XCTAssertEqual(event.attributes["emb.type"], .string("sys.push_notification"))
         XCTAssertEqual(
-            event.attributes[PushNotificationEvent.Constants.keyType],
-            .string(PushNotificationEvent.Constants.notificationType)
+            event.attributes["notification.type"],
+            .string("notif")
         )
         XCTAssertEqual(event.attributes.count, 2)
     }
@@ -73,11 +74,11 @@ class PushNotificationEventTests: XCTestCase {
         let event = try! PushNotificationEvent(userInfo: validSilentPayload, captureData: false)
 
         // then the attributes are correct
-        XCTAssertEqual(event.name, PushNotificationEvent.Constants.eventName)
-        XCTAssertEqual(event.attributes["emb.type"], .string(PushNotificationEvent.Constants.eventType))
+        XCTAssertEqual(event.name, "emb-push-notification")
+        XCTAssertEqual(event.attributes["emb.type"], .string("sys.push_notification"))
         XCTAssertEqual(
-            event.attributes[PushNotificationEvent.Constants.keyType],
-            .string(PushNotificationEvent.Constants.silentType)
+            event.attributes["notification.type"],
+            .string("silent")
         )
         XCTAssertEqual(event.attributes.count, 2)
     }
@@ -87,17 +88,17 @@ class PushNotificationEventTests: XCTestCase {
         let event = try! PushNotificationEvent(userInfo: validPayload, captureData: true)
 
         // then the attributes are correct
-        XCTAssertEqual(event.name, PushNotificationEvent.Constants.eventName)
-        XCTAssertEqual(event.attributes["emb.type"], .string(PushNotificationEvent.Constants.eventType))
+        XCTAssertEqual(event.name, "emb-push-notification")
+        XCTAssertEqual(event.attributes["emb.type"], .string("sys.push_notification"))
         XCTAssertEqual(
-            event.attributes[PushNotificationEvent.Constants.keyType],
-            .string(PushNotificationEvent.Constants.notificationType)
+            event.attributes["notification.type"],
+            .string("notif")
         )
-        XCTAssertEqual(event.attributes[PushNotificationEvent.Constants.keyTitle], .string("title"))
-        XCTAssertEqual(event.attributes[PushNotificationEvent.Constants.keySubtitle], .string("subtitle"))
-        XCTAssertEqual(event.attributes[PushNotificationEvent.Constants.keyBody], .string("body"))
-        XCTAssertEqual(event.attributes[PushNotificationEvent.Constants.keyCategory], .string("category"))
-        XCTAssertEqual(event.attributes[PushNotificationEvent.Constants.keyBadge], .int(1))
+        XCTAssertEqual(event.attributes["notification.title"], .string("title"))
+        XCTAssertEqual(event.attributes["notification.subtitle"], .string("subtitle"))
+        XCTAssertEqual(event.attributes["notification.body"], .string("body"))
+        XCTAssertEqual(event.attributes["notification.category"], .string("category"))
+        XCTAssertEqual(event.attributes["notification.badge"], .int(1))
     }
 
     func test_validLocalizedPayload() throws {
@@ -105,17 +106,17 @@ class PushNotificationEventTests: XCTestCase {
         let event = try! PushNotificationEvent(userInfo: validLocalizedPayload, captureData: true)
 
         // then the attributes are correct
-        XCTAssertEqual(event.name, PushNotificationEvent.Constants.eventName)
-        XCTAssertEqual(event.attributes["emb.type"], .string(PushNotificationEvent.Constants.eventType))
+        XCTAssertEqual(event.name, "emb-push-notification")
+        XCTAssertEqual(event.attributes["emb.type"], .string("sys.push_notification"))
         XCTAssertEqual(
-            event.attributes[PushNotificationEvent.Constants.keyType],
-            .string(PushNotificationEvent.Constants.notificationType)
+            event.attributes["notification.type"],
+            .string("notif")
         )
-        XCTAssertEqual(event.attributes[PushNotificationEvent.Constants.keyTitle], .string("title"))
-        XCTAssertEqual(event.attributes[PushNotificationEvent.Constants.keySubtitle], .string("subtitle"))
-        XCTAssertEqual(event.attributes[PushNotificationEvent.Constants.keyBody], .string("body"))
-        XCTAssertEqual(event.attributes[PushNotificationEvent.Constants.keyCategory], .string("category"))
-        XCTAssertEqual(event.attributes[PushNotificationEvent.Constants.keyBadge], .int(1))
+        XCTAssertEqual(event.attributes["notification.title"], .string("title"))
+        XCTAssertEqual(event.attributes["notification.subtitle"], .string("subtitle"))
+        XCTAssertEqual(event.attributes["notification.body"], .string("body"))
+        XCTAssertEqual(event.attributes["notification.category"], .string("category"))
+        XCTAssertEqual(event.attributes["notification.badge"], .int(1))
     }
 }
 
