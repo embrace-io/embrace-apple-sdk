@@ -50,7 +50,7 @@ struct UserInfo: View {
             email = metadata.userEmail ?? ""
         }
 
-        func clear() {
+        func clearProperties() {
             Embrace.client?.metadata.clearUserProperties()
 
             // Need to clear local state as well
@@ -58,23 +58,51 @@ struct UserInfo: View {
             identifier.removeAll()
             email.removeAll()
         }
+
+        func clearPersonas() {
+            try? Embrace.client?.metadata.removeAllPersonas()
+            objectWillChange.send()
+        }
+
+        func toggle(persona: PersonaTag, lifespan: MetadataLifespan) {
+            if hasPersona(persona) {
+                try? Embrace.client?.metadata.remove(persona: persona, lifespan: lifespan)
+            } else {
+                try? Embrace.client?.metadata.add(persona: persona, lifespan: lifespan)
+            }
+
+            objectWillChange.send()
+        }
+
+        func hasPersona(_ persona: PersonaTag) -> Bool {
+            let currentPersonas = Embrace.client?.metadata.currentPersonas ?? []
+
+            return currentPersonas.contains(persona)
+        }
     }
 
-    @Environment(\.dismiss) private var dismiss
+    // Retrieve scenePhase so we can see session metadata removed when app is foregrounded.
+    @Environment(\.scenePhase) var scenePhase
 
-    @ObservedObject var user = EmbraceUser()
+    @StateObject var user = EmbraceUser()
 
     var body: some View {
         Form {
-            Section {
+            Section(header: Text("Properties")) {
                 TextField("Username", text: $user.username)
                 TextField("Identifier", text: $user.identifier)
                 TextField("Email", text: $user.email)
+
+                Button("Clear All") {
+                    user.clearProperties()
+                }
             }
 
-            Section {
+            Section(header: Text("Personas - Session")) {
+                PersonaGrid(lifespan: .session, user: user)
+
                 Button("Clear All") {
-                    user.clear()
+                    user.clearPersonas()
                 }
             }
         }
@@ -83,9 +111,58 @@ struct UserInfo: View {
         .onAppear {
             user.refresh()
             user.listen()
+        }.onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                user.refresh()
+            }
+        }
+
+    }
+
+    func personaGridRows(size: Int = 3) -> [[PersonaTag]] {
+        let count = Self.quickPersonas.count
+
+        return stride(from: 0, to: count, by: size).map {
+            Array(Self.quickPersonas[$0 ..< Swift.min($0 + size, count)])
         }
     }
+
+    func colorForPersona(persona: PersonaTag) -> Color {
+        let idx = persona.rawValue.count % Self.personaColors.count
+        return Self.personaColors[idx]
+    }
+
 }
+
+extension UserInfo {
+    static var quickPersonas: [PersonaTag] {
+        [
+            PersonaTag.free,
+            PersonaTag.preview,
+            PersonaTag.subscriber,
+            PersonaTag.payer,
+            PersonaTag.guest,
+            PersonaTag.pro,
+            PersonaTag.mvp,
+            PersonaTag.vip
+        ]
+    }
+
+    static var personaColors: [Color] {
+        [
+            Color.embraceLead,
+            Color.embracePink,
+            Color.embracePurple,
+            Color.embraceSilver
+        ]
+    }
+}
+
+extension PersonaTag: Identifiable {
+    public var id: String { rawValue }
+}
+
+extension PersonaTag: Hashable { }
 
 #Preview {
     UserInfo()

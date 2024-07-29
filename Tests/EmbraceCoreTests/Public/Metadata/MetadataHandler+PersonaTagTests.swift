@@ -203,7 +203,7 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
             lifespanId: sessionController.currentSession!.id.toString
         )
 
-        try storage.removeMetadata(key: "permanent", type: .personaTag, lifespan: .permanent)
+        try storage.removeMetadata(key: "permanent", type: .personaTag, lifespan: .permanent, lifespanId: "")
 
         // when fetching the current persona tags
         let tags = handler.currentPersonas
@@ -242,12 +242,12 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
         )
 
         // when removing a persona tag
-        try handler.remove(persona: "permanent", lifespan: .permanent)
+        try handler.remove(persona: "session", lifespan: .session)
 
         // then the persona tag is removed
         let tags = try storage.fetchPersonaTagsForSessionId(sessionController.currentSession!.id)
         XCTAssertEqual(tags.count, 2)
-        XCTAssertEqual(Set(tags.map(\.key)), Set(["process", "session"]))
+        XCTAssertEqual(Set(tags.map(\.key)), Set(["permanent", "process"]))
     }
 
     func test_removePersona_doesNotRemove_whenLifespanDoesNotMatch() throws {

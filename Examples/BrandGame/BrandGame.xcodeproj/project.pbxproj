@@ -16,6 +16,7 @@
 		7B3143C62AFF1E7D00BA0D2F /* ReflexGameModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B3143C52AFF1E7D00BA0D2F /* ReflexGameModel.swift */; };
 		7B3229DC2B2950D500664F04 /* BubbleMinigameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B56309F2ABF323400E0DF39 /* BubbleMinigameView.swift */; };
 		7B3BD2192BBC5A1600938444 /* StdoutExporter in Frameworks */ = {isa = PBXBuildFile; productRef = 7B3BD2182BBC5A1600938444 /* StdoutExporter */; };
+		7B3CBA0A2C52E67600688E7B /* PersonaGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B3CBA092C52E67600688E7B /* PersonaGrid.swift */; };
 		7B4C0BDF2BA9F93400F0BC37 /* App+SmokeTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B4C0BDE2BA9F93400F0BC37 /* App+SmokeTest.swift */; };
 		7B4FFC2D2B1E5B7B006239F7 /* Endpoints+InfoPlist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B4FFC2C2B1E5B7B006239F7 /* Endpoints+InfoPlist.swift */; };
 		7B4FFC332B1E811B006239F7 /* UserInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B4FFC322B1E811B006239F7 /* UserInfo.swift */; };
@@ -33,6 +34,7 @@
 		7B62ADA32B0068280087C2AE /* SimonMinigameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B62ADA22B0068280087C2AE /* SimonMinigameView.swift */; };
 		7B62ADA52B0068960087C2AE /* SimonGameModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B62ADA42B0068960087C2AE /* SimonGameModel.swift */; };
 		7B7341E12BD4AD100026D8B8 /* LazyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B7341E02BD4AD100026D8B8 /* LazyView.swift */; };
+		7B8BE3F92C5154BC006B0BF3 /* PillText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B8BE3F82C5154BC006B0BF3 /* PillText.swift */; };
 		7BBBCD582BD0205C00BC289A /* StdoutLogExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BBBCD572BD0205C00BC289A /* StdoutLogExporter.swift */; };
 		7BBBCD5B2BD07CE000BC289A /* GitInfo+InfoPlist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BBBCD5A2BD07CE000BC289A /* GitInfo+InfoPlist.swift */; };
 		7BBBCD5D2BD07DE600BC289A /* App+GitInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BBBCD5C2BD07DE600BC289A /* App+GitInfo.swift */; };
@@ -89,6 +91,7 @@
 		7B3143B82AFDC8EC00BA0D2F /* RightBracketShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RightBracketShape.swift; sourceTree = "<group>"; };
 		7B3143BE2AFDECCE00BA0D2F /* Icon+Meta.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Icon+Meta.swift"; sourceTree = "<group>"; };
 		7B3143C52AFF1E7D00BA0D2F /* ReflexGameModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReflexGameModel.swift; sourceTree = "<group>"; };
+		7B3CBA092C52E67600688E7B /* PersonaGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonaGrid.swift; sourceTree = "<group>"; };
 		7B4C0BDE2BA9F93400F0BC37 /* App+SmokeTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "App+SmokeTest.swift"; sourceTree = "<group>"; };
 		7B4FFC2C2B1E5B7B006239F7 /* Endpoints+InfoPlist.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Endpoints+InfoPlist.swift"; sourceTree = "<group>"; };
 		7B4FFC2E2B1E5D0F006239F7 /* embrace.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = embrace.xcconfig; sourceTree = "<group>"; };
@@ -111,6 +114,7 @@
 		7B62ADA22B0068280087C2AE /* SimonMinigameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimonMinigameView.swift; sourceTree = "<group>"; };
 		7B62ADA42B0068960087C2AE /* SimonGameModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimonGameModel.swift; sourceTree = "<group>"; };
 		7B7341E02BD4AD100026D8B8 /* LazyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LazyView.swift; sourceTree = "<group>"; };
+		7B8BE3F82C5154BC006B0BF3 /* PillText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PillText.swift; sourceTree = "<group>"; };
 		7BBBCD4D2BCEC14000BC289A /* run.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = run.sh; sourceTree = "<group>"; };
 		7BBBCD4E2BCEC14000BC289A /* upload */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = upload; sourceTree = "<group>"; };
 		7BBBCD572BD0205C00BC289A /* StdoutLogExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StdoutLogExporter.swift; sourceTree = "<group>"; };
@@ -213,6 +217,8 @@
 			isa = PBXGroup;
 			children = (
 				7B4FFC322B1E811B006239F7 /* UserInfo.swift */,
+				7B8BE3F82C5154BC006B0BF3 /* PillText.swift */,
+				7B3CBA092C52E67600688E7B /* PersonaGrid.swift */,
 			);
 			path = UserInfo;
 			sourceTree = "<group>";
@@ -622,6 +628,7 @@
 				7B62AD9F2B00608A0087C2AE /* AppSettings+Environment.swift in Sources */,
 				7B5630902ABE743400E0DF39 /* ContentView.swift in Sources */,
 				FA4C5F332C486E13005C0371 /* CreateSpanView.swift in Sources */,
+				7B8BE3F92C5154BC006B0BF3 /* PillText.swift in Sources */,
 				7B3143C62AFF1E7D00BA0D2F /* ReflexGameModel.swift in Sources */,
 				FAFDA3D72C34273100AD17CF /* MemoryPressureSimulatorView.swift in Sources */,
 				7B5630A52AC1331000E0DF39 /* Color+Random.swift in Sources */,
@@ -632,6 +639,7 @@
 				FAFDA3D42C333FC900AD17CF /* Request.swift in Sources */,
 				7B4C0BDF2BA9F93400F0BC37 /* App+SmokeTest.swift in Sources */,
 				7B3143B72AFDC52D00BA0D2F /* RightDotShape.swift in Sources */,
+				7B3CBA0A2C52E67600688E7B /* PersonaGrid.swift in Sources */,
 				FA9505162B86640F00562A4C /* LoggingView.swift in Sources */,
 				7B3143B92AFDC8EC00BA0D2F /* RightBracketShape.swift in Sources */,
 				7B3143B52AFDC50E00BA0D2F /* LeftDotShape.swift in Sources */,
