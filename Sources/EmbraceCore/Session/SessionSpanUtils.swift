@@ -52,14 +52,20 @@ struct SessionSpanUtils {
     static func payload(
         from session: SessionRecord,
         spanData: SpanData? = nil,
+        properties: [MetadataRecord],
         sessionNumber: Int
     ) -> SpanPayload {
-        return SpanPayload(from: session, spanData: spanData, sessionNumber: sessionNumber)
+        return SpanPayload(from: session, spanData: spanData, properties: properties, sessionNumber: sessionNumber)
     }
 }
 
 fileprivate extension SpanPayload {
-    init(from session: SessionRecord, spanData: SpanData? = nil, sessionNumber: Int) {
+    init(
+        from session: SessionRecord,
+        spanData: SpanData? = nil,
+        properties: [MetadataRecord],
+        sessionNumber: Int
+    ) {
         self.traceId = session.traceId
         self.spanId = session.spanId
         self.parentSpanId = nil
@@ -110,6 +116,17 @@ fileprivate extension SpanPayload {
                 value: crashId
             ))
         }
+
+        var mutableProperties = properties
+        mutableProperties.removeAll(where: { $0.key.contains("emb.user") })
+        attributeArray.append(
+            contentsOf: mutableProperties.map {
+                Attribute(
+                    key: String(format: "emb.properties.%@", $0.key),
+                    value: $0.value.description
+                )
+            }
+        )
 
         self.attributes = attributeArray
 

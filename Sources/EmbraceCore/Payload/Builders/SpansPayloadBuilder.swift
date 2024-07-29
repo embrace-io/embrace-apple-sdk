@@ -81,7 +81,9 @@ class SpansPayloadBuilder {
                 spanData = try JSONDecoder().decode(SpanData.self, from: rawData)
             }
 
-            return SessionSpanUtils.payload(from: sessionRecord, spanData: spanData, sessionNumber: sessionNumber)
+            let properties = try storage.fetchCustomPropertiesForSessionId(sessionRecord.id)
+
+            return SessionSpanUtils.payload(from: sessionRecord, spanData: spanData, properties: properties, sessionNumber: sessionNumber)
 
         } catch {
             Embrace.logger.warning("Error fetching span for session \(sessionRecord.id):\n\(error.localizedDescription)")
