@@ -117,13 +117,12 @@ fileprivate extension SpanPayload {
             ))
         }
 
-        var mutableProperties = properties
-        mutableProperties.removeAll(where: { $0.key.contains("emb.user") })
         attributeArray.append(
-            contentsOf: mutableProperties.compactMap {
-                Attribute(
-                    key: String(format: "emb.properties.%@", $0.key),
-                    value: $0.value.description
+            contentsOf: properties.compactMap { record in
+                guard !record.key.starts(with: "emb.user") else { return nil }
+                return Attribute(
+                    key: String(format: "emb.properties.%@", record.key),
+                    value: record.value.description
                 )
             }
         )
