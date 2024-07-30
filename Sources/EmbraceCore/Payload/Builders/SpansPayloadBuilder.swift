@@ -83,7 +83,12 @@ class SpansPayloadBuilder {
 
             let properties = try storage.fetchCustomPropertiesForSessionId(sessionRecord.id)
 
-            return SessionSpanUtils.payload(from: sessionRecord, spanData: spanData, properties: properties, sessionNumber: sessionNumber)
+            return SessionSpanUtils.payload(
+                from: sessionRecord,
+                spanData: spanData,
+                properties: properties,
+                sessionNumber: sessionNumber
+            )
 
         } catch {
             Embrace.logger.warning("Error fetching span for session \(sessionRecord.id):\n\(error.localizedDescription)")
