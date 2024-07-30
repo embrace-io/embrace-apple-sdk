@@ -52,7 +52,7 @@ struct SessionSpanUtils {
     static func payload(
         from session: SessionRecord,
         spanData: SpanData? = nil,
-        properties: [MetadataRecord],
+        properties: [MetadataRecord] = [],
         sessionNumber: Int
     ) -> SpanPayload {
         return SpanPayload(from: session, spanData: spanData, properties: properties, sessionNumber: sessionNumber)
@@ -119,7 +119,9 @@ fileprivate extension SpanPayload {
 
         attributeArray.append(
             contentsOf: properties.compactMap { record in
-                guard !record.key.starts(with: "emb.user") else { return nil }
+                guard !record.key.starts(with: "emb.user") else {
+                    return nil
+                }
                 return Attribute(
                     key: String(format: "emb.properties.%@", record.key),
                     value: record.value.description
