@@ -1,9 +1,9 @@
 //
-//  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
+//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-@objc(EMBPlatform)
 /// Used to define the platform the current application is running on.
+@objc(EMBPlatform)
 public enum Platform: Int {
     case unity
     case reactNative

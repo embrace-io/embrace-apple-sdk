@@ -1,5 +1,5 @@
 //
-//  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
+//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
 import Foundation
@@ -78,7 +78,7 @@ extension MetadataHandler {
                     value: .string(value),
                     type: .customProperty,
                     lifespan: .permanent,
-                    lifespanId: ""
+                    lifespanId: MetadataRecord.lifespanIdForPermanent
                 )
 
                 _ = try storage?.addMetadata(record)
@@ -92,7 +92,7 @@ extension MetadataHandler {
 
     private func remove(_ key: UserResourceKey) {
         do {
-            try storage?.removeMetadata(key: key.rawValue, type: .customProperty, lifespan: .permanent)
+            try remove(key: key.rawValue, type: .customProperty, lifespan: .permanent)
         } catch {
             Embrace.logger.warning("An error occurred when removing this user resource key: \(key)")
         }

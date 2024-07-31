@@ -8,7 +8,7 @@ import EmbraceCommonInternal
 import EmbraceOTelInternal
 import EmbraceCaptureService
 
-/// Automatically generates span events when notifications are received through the `UNUserNotificationCenter`.
+/// Service that generates OpenTelemetry span events when notifications are received through the `UNUserNotificationCenter`.
 @objc public final class PushNotificationCaptureService: CaptureService {
 
     @objc public let options: PushNotificationCaptureService.Options

@@ -1,5 +1,5 @@
 //
-//  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
+//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
 import Foundation
@@ -81,4 +81,8 @@ extension MetadataRecord: Equatable {
     public static func == (lhs: Self, rhs: Self) -> Bool {
         return lhs.key == rhs.key
     }
+}
+
+extension MetadataRecord {
+    public static let lifespanIdForPermanent = ""
 }

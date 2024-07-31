@@ -1,12 +1,13 @@
 //
-//  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
+//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
 import Foundation
 
 extension Embrace {
-    @objc(EMBEndpoints)
+
     /// Class used to configure the endpoints `Embrace` will use to upload data and fetch the remote configurations.
+    @objc(EMBEndpoints)
     public class Endpoints: NSObject {
 
         /// The base URL to upload session data

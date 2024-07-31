@@ -1,5 +1,5 @@
 //
-//  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
+//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
 /// A SpanType is an Embrace specific concept to allow for better categorization of Spans.

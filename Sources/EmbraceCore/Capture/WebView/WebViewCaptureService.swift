@@ -9,8 +9,9 @@ import EmbraceCommonInternal
 import EmbraceOTelInternal
 import EmbraceCaptureService
 
-/// Automatically generates span events when a `WKWebView` loads an URL or throws an error.
-@objc public final class WebViewCaptureService: CaptureService {
+/// Service that generates OpenTelemetry span events when a `WKWebView` loads an URL or throws an error.
+@objc(EMBWebViewCaptureService)
+public final class WebViewCaptureService: CaptureService {
 
     @objc public let options: WebViewCaptureService.Options
     private let lock: NSLocking
@@ -119,8 +120,12 @@ struct WKWebViewSetNativationDelegateSwizzler: Swizzlable {
     func install() throws {
         try swizzleInstanceMethod { originalImplementation -> BlockImplementationType in
             return { webView, delegate in
-                proxy.originalDelegate = delegate
-                originalImplementation(webView, Self.selector, proxy)
+                if !(webView.navigationDelegate is WKNavigationDelegateProxy) {
+                    proxy.originalDelegate = delegate
+                    originalImplementation(webView, Self.selector, proxy)
+                } else {
+                    originalImplementation(webView, Self.selector, delegate)
+                }
             }
         }
     }

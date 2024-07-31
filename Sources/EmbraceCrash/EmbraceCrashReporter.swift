@@ -1,13 +1,15 @@
 //
-//  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
+//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
 import Foundation
 import EmbraceCommonInternal
 import KSCrashRecording
 
-/// Class used to interact with KSCrash
-@objc public final class EmbraceCrashReporter: NSObject, CrashReporter {
+/// Default `CrashReporter` used by the Embrace SDK.
+/// Internally uses KSCrash to capture data from crashes.
+@objc(EMBEmbraceCrashReporter)
+public final class EmbraceCrashReporter: NSObject, CrashReporter {
 
     static let providerIdentifier = "kscrash"
 

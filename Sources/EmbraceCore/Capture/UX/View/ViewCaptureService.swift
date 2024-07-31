@@ -1,5 +1,5 @@
 //
-//  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
+//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 #if canImport(UIKit)
 import UIKit
@@ -8,7 +8,10 @@ import EmbraceCaptureService
 import EmbraceCommonInternal
 import EmbraceOTelInternal
 
-@objc public final class ViewCaptureService: CaptureService {
+/// Service that generates OpenTelemtry spans for `UIViewControllers`.
+/// The spans start on `viewDidAppear` and end on `viewDidDisappear`.
+@objc(EMBViewCaptureService)
+public final class ViewCaptureService: CaptureService {
     private var didAppearSwizzle: UIViewControllerDidAppearSwizzler?
     private var didDisappearSwizzle: UIViewControllerDidDisappearSwizzler?
     private var lock: UnfairLock

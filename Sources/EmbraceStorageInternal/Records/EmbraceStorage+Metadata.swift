@@ -1,5 +1,5 @@
 //
-//  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
+//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
 import Foundation
@@ -147,21 +147,17 @@ extension EmbraceStorage {
         key: String,
         type: MetadataRecordType,
         lifespan: MetadataRecordLifespan,
-        lifespanId: String = ""
+        lifespanId: String
     ) throws {
-        try dbQueue.write { db in
-            guard let record = try MetadataRecord
+        _ = try dbQueue.write { db in
+            try MetadataRecord
                 .filter(
                     MetadataRecord.Schema.key == key &&
                     MetadataRecord.Schema.type == type.rawValue &&
                     MetadataRecord.Schema.lifespan == lifespan.rawValue &&
                     MetadataRecord.Schema.lifespanId == lifespanId
                 )
-                .fetchOne(db) else {
-                return
-            }
-
-            try record.delete(db)
+                .deleteAll(db)
         }
     }
 

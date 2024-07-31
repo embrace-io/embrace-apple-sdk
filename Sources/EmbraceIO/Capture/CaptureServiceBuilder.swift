@@ -6,7 +6,7 @@ import EmbraceCaptureService
 import Foundation
 
 /// Class used to build the list of `CaptureServices` to be used by the `Embrace` instance.
-@objc (EMBCaptureServiceBuilder)
+@objc(EMBCaptureServiceBuilder)
 public class CaptureServiceBuilder: NSObject {
     private var services: [CaptureService] = []
 
@@ -17,15 +17,21 @@ public class CaptureServiceBuilder: NSObject {
 
     /// Adds the given `CaptureService`.
     /// - Note: If there was another `CaptureService` already added of the same type, it will be replaced with the new one.
-    @objc public func add(_ service: CaptureService) {
+    @discardableResult
+    @objc public func add(_ service: CaptureService) -> Self {
         remove(ofType: type(of: service))
         services.append(service)
+
+        return self
     }
 
     /// Removes a previously added `CaptureService` of the given type, if any.
     /// - Parameter type: Type of the `CaptureService` to remove.
-    @objc public func remove(ofType type: AnyClass) {
+    @discardableResult
+    @objc public func remove(ofType type: AnyClass) -> Self {
         services.removeAll(where: { $0.isKind(of: type) })
+
+        return self
     }
 
     /// Adds the default `CaptureServices` using their corresponding default options.

@@ -1,5 +1,5 @@
 //
-//  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
+//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
 import Foundation
@@ -92,7 +92,8 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
     /// - Throws: `EmbraceSetupError.invalidOptions` when providing more than one `CrashReporter`.
     /// - Note: This method won't do anything if the Embrace SDK was already setup.
     /// - Returns: The `Embrace` client instance.
-    @objc @discardableResult public static func setup(options: Embrace.Options) throws -> Embrace {
+    @discardableResult
+    @objc public static func setup(options: Embrace.Options) throws -> Embrace {
         if !Thread.isMainThread {
             throw EmbraceSetupError.invalidThread("Embrace must be setup on the main thread")
         }
@@ -176,7 +177,8 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
     /// - Throws: `EmbraceSetupError.invalidThread` if not called from the main thread.
     /// - Note: This method won't do anything if the Embrace SDK was already started or if it was disabled via the remote configurations.
     /// - Returns: The `Embrace` client instance.
-    @objc @discardableResult public func start() throws -> Embrace {
+    @discardableResult
+    @objc public func start() throws -> Embrace {
         guard Thread.isMainThread else {
             throw EmbraceSetupError.invalidThread("Embrace must be started on the main thread")
         }
