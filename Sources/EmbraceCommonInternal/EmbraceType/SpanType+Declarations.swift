@@ -2,15 +2,6 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
-
-// MARK: - Primary categories
-extension SpanType {
-    public static let performance = SpanType(primary: .performance)
-    public static let ux = SpanType(primary: .ux)
-    public static let system = SpanType(primary: .system)
-}
-
 // MARK: - Performance
 extension SpanType {
 
