@@ -70,7 +70,8 @@ final class EmbraceOTelTests: XCTestCase {
         let first = otel.tracer(instrumentationName: "ExampleName")
         let second = otel.tracer(instrumentationName: "ExampleName")
 
-//        XCTAssertEqual(first, second)
+        // compare memory address of first and second
+        XCTAssertTrue(first === second)
     }
 
 // MARK: recordSpan with block
