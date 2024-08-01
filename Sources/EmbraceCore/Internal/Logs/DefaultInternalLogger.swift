@@ -133,6 +133,7 @@ class DefaultInternalLogger: InternalLogger {
         // send log
         otel?.log(
             message,
+            type: .default,
             severity: level.severity,
             attributes: attributes
         )

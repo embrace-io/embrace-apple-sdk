@@ -1,14 +1,30 @@
 import XCTest
 
 @testable import EmbraceOTelInternal
+@testable import EmbraceCore
+
 import OpenTelemetryApi
 import OpenTelemetrySdk
+import EmbraceStorageInternal
 import TestSupport
 
 final class EmbraceOTelTests: XCTestCase {
 
+    class DummyLogControllable: LogControllable {
+        func uploadAllPersistedLogs() {}
+        func batchFinished(withLogs logs: [LogRecord]) {}
+    }
+
+    var logExporter = InMemoryLogRecordExporter()
+
     override func setUpWithError() throws {
         EmbraceOTel.setup(spanProcessors: [MockSpanProcessor()])
+
+        EmbraceOTel.setup(logSharedState: DefaultEmbraceLogSharedState.create(
+            storage: try .createInMemoryDb(),
+            controller: DummyLogControllable(),
+            exporter: logExporter
+        ))
     }
 
 // MARK: Register Tracer
@@ -141,4 +157,32 @@ final class EmbraceOTelTests: XCTestCase {
         }
     }
 
+    // MARK: log
+    func test_log_emitsLogToExporter() throws {
+        let otel = EmbraceOTel()
+
+        otel.log("example message", severity: .info, attributes: [:])
+        let record = logExporter.finishedLogRecords.first { $0.body == "example message" }
+
+        XCTAssertNotNil(record)
+        XCTAssertEqual(record?.body, "example message")
+    }
+
+    func test_log_withTimestampAndAttributes_emitsLogToExporter() throws {
+        let otel = EmbraceOTel()
+
+        let logTime = Date()
+
+        otel.log(
+            "example message",
+            severity: .info,
+            timestamp: logTime,
+            attributes: ["foo": "bar"])
+        let record = logExporter.finishedLogRecords.first { $0.body == "example message" }
+
+        XCTAssertNotNil(record)
+        XCTAssertEqual(record?.body, "example message")
+        XCTAssertEqual(record?.timestamp, logTime)
+        XCTAssertEqual(record?.attributes, ["foo" : .string("bar")])
+    }
 }

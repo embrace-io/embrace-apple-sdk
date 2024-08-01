@@ -104,10 +104,11 @@ extension Embrace: EmbraceOpenTelemetry {
     ///   - attributes: Attributes for the log
     public func log(
         _ message: String,
+        type: LogType,
         severity: LogSeverity,
         attributes: [String: String] = [:]
     ) {
-        log(message, severity: severity, timestamp: Date(), attributes: attributes)
+        log(message, type: type, severity: severity, timestamp: Date(), attributes: attributes)
     }
 
     /// Creates and adds a log for the current session span
@@ -118,6 +119,7 @@ extension Embrace: EmbraceOpenTelemetry {
     ///   - attributes: Attributes for the log
     public func log(
         _ message: String,
+        type: LogType,
         severity: LogSeverity,
         timestamp: Date,
         attributes: [String: String]
