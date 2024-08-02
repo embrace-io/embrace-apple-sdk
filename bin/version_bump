@@ -65,7 +65,6 @@ EOM
 
 bump_cocoapods_version() {
     sed -n "s/__REPLACE_VERSION__/$VERSION_NUMBER/;w EmbraceIO.podspec" $DIRECTORY/templates/EmbraceIO.podspec.tpl
-    sed -n "s/__REPLACE_VERSION__/$VERSION_NUMBER/;w EmbraceIO-DEV.podspec" $DIRECTORY/templates/EmbraceIO-DEV.podspec.tpl
 }
 
 VERSION_NUMBER="$1"

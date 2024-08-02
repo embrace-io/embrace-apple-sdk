@@ -1,4 +1,4 @@
-name: Create Release Candidate (6.x)
+name: Create Release Candidate
 
 env:
   ARCHIVE_QUIET_MODE: 1
@@ -6,6 +6,8 @@ env:
 
 on:
   push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
     branches:
       - "release/*"
 
@@ -14,6 +16,10 @@ on:
       rc_version:
         description: "The release candidate version to create"
         required: true
+      is_production_ready:
+        description: "Is the release candidate production ready"
+        type: boolean
+        default: false
       override_version:
         description: "Should delete previous podspec (if exist) and create a new one"
         type: boolean
@@ -25,44 +31,82 @@ permissions:
   packages: read
 
 jobs:
-  rc_version_number:
-    name: Set RC_VERSION from Branch if Necessary
+  extractor:
+    name: Extract elements from context
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
       RC_VERSION: ${{ github.event.inputs.rc_version }}
+      IS_PRODUCTION_READY: ${{ github.event.inputs.is_production_ready }}
     outputs:
-      rc_version: ${{ steps.extractor.outputs.rc_version }}
-      on_release_branch: ${{ steps.extractor.outputs.on_release_branch }}
+      rc_version: ${{ steps.rc_version_extractor.outputs.rc_version }}
+      is_production_ready: ${{ env.IS_PRODUCTION_READY }}
+
     steps:
-      - name: Extract RC Version Number
-        id: extractor
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Exctract Production Readiness
         run: |
+          if [ -z "$IS_PRODUCTION_READY" ]; then
+            if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_type }}" == "tag" ]]; then
+              echo "IS_PRODUCTION_READY=true" >> $GITHUB_ENV
+            else
+              echo "IS_PRODUCTION_READY=false" >> $GITHUB_ENV
+            fi
+          fi
+          echo "Production readiness determined: $IS_PRODUCTION_READY"
+          
+      - name: Validate and Extract RC Version Number
+        id: rc_version_extractor
+        run: |
+          # If the workflow wasn't triggered manually, extract the version number either from branch or tag
+          # (depending the event which triggered the workflow).
           if [ -z "$RC_VERSION" ]; then
-            BRANCH_VERSION=${GITHUB_REF_NAME##release/}
-            RC_VERSION=$BRANCH_VERSION
-            echo "on_release_branch=true" >> $GITHUB_OUTPUT
+            if [[ "${{ github.ref_type }}" == "branch" ]]; then
+              BRANCH_VERSION=${GITHUB_REF_NAME##release/}
+              RC_VERSION=$BRANCH_VERSION
+            elif [[ "${{ github.ref_type }}" == "tag" ]]; then
+              TAG_VERSION=${GITHUB_REF_NAME#refs/tags/}
+              RC_VERSION=$TAG_VERSION
+            fi
           fi
-
-          if [[ "$RC_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)*)?$ ]]; then
-            echo "Using RC_VERSION of $RC_VERSION"
+          
+          # Production-ready versions should always follow a "definitive" version format:
+          # - xx.yy.zz
+          # But, non-production-ready versions support having pre-release versions, like:
+          # - x.y.z-alpha
+          # - x.y.z-rc1
+          if [ "$IS_PRODUCTION_READY" == "true" ]; then
+            if ! [[ "$RC_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "Error: RC_VERSION of '$RC_VERSION' is not in the correct production-ready format."
+              exit 1
+            fi
           else
-            echo "Error: RC_VERSION of '$RC_VERSION' is not the correct format."
-            exit 1
+            if ! [[ "$RC_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)*)?$ ]]; then
+              echo "Error: RC_VERSION of '$RC_VERSION' is not compliant with pre-release semver."
+              exit 1
+            fi
+
+            VERSION_COUNTER=1
+
+            while git tag -l | grep -q "^${RC_VERSION}-rc${VERSION_COUNTER}$"; do
+              VERSION_COUNTER=$((VERSION_COUNTER + 1))
+            done
+            RC_VERSION="${RC_VERSION}-rc${VERSION_COUNTER}"
           fi
 
-          echo "Using RC_VERSION $RC_VERSION"
           echo "rc_version=$RC_VERSION" >> $GITHUB_OUTPUT
+          echo "Using RC_VERSION of $RC_VERSION"
 
   build_release_candidate:
     name: Bump Version and Build Release
     runs-on: macos-13
     timeout-minutes: 60
     needs:
-      - rc_version_number
+      - extractor
     env:
-      RC_VERSION: ${{ needs.rc_version_number.outputs.rc_version }}
-      ON_RELEASE_BRANCH: ${{ needs.rc_version_number.outputs.on_release_branch }}
+      RC_VERSION: ${{ needs.extractor.outputs.rc_version }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
@@ -86,7 +130,6 @@ jobs:
           git config --global user.email "embrace-ci@users.noreply.github.com"
 
           git add EmbraceIO.podspec \
-              EmbraceIO-DEV.podspec \
               Sources/EmbraceCommonInternal/EmbraceMeta.swift
           git diff --cached
           git commit -m "CI/CD: Bumps version to '$RC_VERSION'"
@@ -129,10 +172,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs:
-      - rc_version_number
+      - extractor
       - build_release_candidate
     env:
-      RC_VERSION: ${{ needs.rc_version_number.outputs.rc_version }}
+      RC_VERSION: ${{ needs.extractor.outputs.rc_version }}
 
     steps:
       - name: Determine latest embrace_support.zip version
@@ -182,69 +225,11 @@ jobs:
           name: Cocoapods Release Archive
           path: embrace_${{ env.RC_VERSION }}.zip
 
-  publish_artifacts:
-    name: Publish to S3
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs:
-      - rc_version_number
-      - archive_cocoapods_artifacts
-    env:
-      RC_VERSION: ${{ needs.rc_version_number.outputs.rc_version }}
-    steps:
-      - name: Set AWS identifiers
-        run: |
-          echo AWS_LOGIN_ROLE=arn:aws:iam::$(echo '${{ vars.AWS_ACCOUNT_IDS }}' | jq .login):role/login-embrace-downloads >> $GITHUB_ENV
-          echo AWS_ASSUME_ROLE=arn:aws:iam::$(echo '${{ vars.AWS_ACCOUNT_IDS }}' | jq .staging):role/staging-embrace-downloads >> $GITHUB_ENV
-          # TODO: this should use matrix.environment once we split embrace--<env>-downloads buckets
-          # echo AWS_ASSUME_ROLE=arn:aws:iam::$(echo '${{ vars.AWS_ACCOUNT_IDS }}' | jq .${{ matrix.environment }}):role/${{ matrix.environment }}-embrace-ios-sdk >> $GITHUB_ENV
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ env.AWS_LOGIN_ROLE }}
-          aws-region: ${{ env.AWS_DEFAULT_REGION }}
-      - name: Assume AWS role
-        run: |
-          pip install --upgrade awscli
-          credentials=$(aws sts assume-role --role-arn "${{ env.AWS_ASSUME_ROLE }}" --role-session-name "`echo $GITHUB_REPOSITORY | tr "/" "-"`" --duration-seconds 900)
-          echo "AWS_ACCESS_KEY_ID=`echo $credentials | jq -r .Credentials.AccessKeyId`" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=`echo $credentials | jq -r .Credentials.SecretAccessKey`" >> $GITHUB_ENV
-          echo "AWS_SESSION_TOKEN=`echo $credentials | jq -r .Credentials.SessionToken`" >> $GITHUB_ENV
-      - name: Download Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: Embrace-Universal Build Artifacts
-          path: embrace
-      - name: Download Cocoapods Release Archive
-        uses: actions/download-artifact@v4
-        with:
-          name: Cocoapods Release Archive
-          path: cocoapods/
-      - name: Upload to AWS
-        env:
-          AWS_BUCKET_STAGING: "s3://embrace-staging-downloads"
-          AWS_BUCKET_DSYM: "s3://embrace-staging-dsyms"
-        run: |
-          shasum cocoapods/embrace_*.zip
-          aws s3 cp --acl=public-read cocoapods/embrace_*.zip ${{ env.AWS_BUCKET_STAGING }}
-          rm -rf cocoapods
-          # missing dsysm upload
-      - name: Flush CloudFront CDN
-        env:
-          # downloads.stg.emb-eng.com
-          AWS_CLOUDFRONT_ID: E1Q329634TJ1Q9
-        run: |
-          echo "$(date): Invalidating https://us-east-1.console.aws.amazon.com/cloudfront/v3/home?region=us-west-2#/distributions/${{ env.AWS_CLOUDFRONT_ID }}"
-          aws cloudfront create-invalidation --region us-west-2 --distribution-id ${{ env.AWS_CLOUDFRONT_ID }} --paths '/*' | tee invalidation.json
-          invalidation_id=$(cat invalidation.json | jq -r .Invalidation.Id)
-          echo "$(date): Waiting for completion of https://us-east-1.console.aws.amazon.com/cloudfront/v3/home?region=us-west-2#/distributions/${{ env.AWS_CLOUDFRONT_ID }}/invalidations/details/${invalidation_id}"
-          aws cloudfront wait invalidation-completed --region us-west-2 --distribution-id ${{ env.AWS_CLOUDFRONT_ID }} --id $invalidation_id
-
   create_github_release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
     needs:
-      - rc_version_number
+      - extractor
       - archive_cocoapods_artifacts
 
     steps:
@@ -260,17 +245,23 @@ jobs:
             gh config set prompt disabled
           fi
 
-      - name: Create/Edit (Pre) Release
+      - name: Create/Edit Release
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          RC_VERSION: ${{ needs.rc_version_number.outputs.rc_version}}
+          RC_VERSION: ${{ needs.extractor.outputs.rc_version}}
+          IS_PRODUCTION_READY: ${{ needs.extractor.outputs.is_production_ready }}
         run: |
           if gh release view --repo embrace-io/embrace-apple-sdk $RC_VERSION > /dev/null 2>&1; then
-            echo "Release $RC_VERSION already exists; editing..."
-            gh release upload $RC_VERSION cocoapods/embrace_$RC_VERSION.zip --clobber --repo embrace-io/embrace-apple-sdk
+            if [ "$IS_PRODUCTION_READY" == "false" ]; then 
+              echo "Release $RC_VERSION already exists; editing..."
+              gh release upload $RC_VERSION cocoapods/embrace_$RC_VERSION.zip --clobber --repo embrace-io/embrace-apple-sdk
+            else
+              echo "Cannot update a productive release"
+              exit 1
+            fi
           else 
             echo "Creating Release $RC_VERSION in Github"
-            gh release create $RC_VERSION cocoapods/embrace_$RC_VERSION.zip --title "$RC_VERSION" --prerelease --repo embrace-io/embrace-apple-sdk
+            gh release create $RC_VERSION cocoapods/embrace_$RC_VERSION.zip --title "$RC_VERSION" --prerelease=$IS_PRODUCTION_READY --repo embrace-io/embrace-apple-sdk
           fi
 
   push_podspec:
@@ -278,11 +269,12 @@ jobs:
     runs-on: macos-13
     timeout-minutes: 10
     needs:
-      - rc_version_number
+      - extractor
       - create_github_release
     env:
       COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
-      RC_VERSION: ${{ needs.rc_version_number.outputs.rc_version }}
+      RC_VERSION: ${{ needs.extractor.outputs.rc_version }}
+      IS_PRODUCTION_READY: ${{ needs.extractor.outputs.is_production_ready }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
@@ -296,35 +288,24 @@ jobs:
 
       - name: Check if cocoapods version exists
         run: |
-          info=$(pod trunk info EmbraceIO-DEV)
+          info=$(pod trunk info EmbraceIO)
           if echo "$info" | grep -q "$version"; then
             echo "COCOAPODS_VERSION_EXISTS=true" >> $GITHUB_ENV
           else
             echo "COCOAPODS_VERSION_EXISTS=false" >> $GITHUB_ENV
           fi
 
+      # Only can delete pre-productive releases in cocoapods
       - name: Delete and recreate podspec
-        if: ${{ inputs.override_version }} && env.COCOAPODS_VERSION_EXISTS == 'true'
+        if: ${{ inputs.override_version }} && env.COCOAPODS_VERSION_EXISTS == 'true' && env.IS_PRODUCTION_READY == 'false'
         run: |
-            echo "y" | pod trunk delete EmbraceIO-DEV $RC_VERSION || echo "Ignoring HTML Output"
+            echo "y" | pod trunk delete EmbraceIO $RC_VERSION || echo "Ignoring HTML Output"
             echo "COCOAPODS_VERSION_EXISTS=false" >> $GITHUB_ENV
 
-      - name: Push EmbraceIO-DEV Podspec
+      - name: Push EmbraceIO Podspec
         if: env.COCOAPODS_VERSION_EXISTS == 'false'
         run: |
-          pod trunk push embrace-apple-core-internal/EmbraceIO-DEV.podspec --allow-warnings
-
-      - name: Cleanup old EmbraceIO-DEV Cocoapods versions
-        env:
-          KEEP_VERSIONS: 5
-        run: |
-          brew install coreutils # Install sane version of "head"
-
-          for old_version in $(pod trunk info EmbraceIO-DEV | grep '^      -' | grep ' (20' | ghead -n -${KEEP_VERSIONS} | awk '{print $2}'); do
-            echo "Removing $old_version"
-            echo "y" | pod trunk delete EmbraceIO-DEV $old_version || echo "We can ignore any errors"
-          done
+          pod trunk push embrace-apple-core-internal/EmbraceIO.podspec --allow-warnings
 
 # Note: missing/removed steps from old sdk
-# - workflow_after_release (idem above)
 # - dsyms work
