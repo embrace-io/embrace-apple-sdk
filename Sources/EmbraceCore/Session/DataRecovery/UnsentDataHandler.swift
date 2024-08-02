@@ -166,8 +166,8 @@ class UnsentDataHandler {
 
         otel?.log(
             "",
-            type: .default,
             severity: .fatal,
+            type: .crash,
             timestamp: timestamp,
             attributes: attributes
         )

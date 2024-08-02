@@ -183,6 +183,6 @@ final class EmbraceOTelTests: XCTestCase {
         XCTAssertNotNil(record)
         XCTAssertEqual(record?.body, "example message")
         XCTAssertEqual(record?.timestamp, logTime)
-        XCTAssertEqual(record?.attributes, ["foo" : .string("bar")])
+        XCTAssertEqual(record?.attributes, ["foo": .string("bar")])
     }
 }

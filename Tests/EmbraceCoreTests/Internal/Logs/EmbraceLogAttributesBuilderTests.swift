@@ -153,10 +153,10 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
         givenMetadataFetcher()
         givenEmbraceLogAttributesBuilder()
 
-        whenInvokingAddLogType(.default)
+        whenInvokingAddLogType(.message)
         whenInvokingBuild()
 
-        thenResultingAttributes(is: ["emb.type": LogType.default.rawValue])
+        thenResultingAttributes(is: ["emb.type": LogType.message.rawValue])
     }
 
     func test_onAddLogType_whenAlreadySet_doesNotChangeValue() {
@@ -164,7 +164,7 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
         givenMetadataFetcher()
         givenEmbraceLogAttributesBuilder(withInitialAttributes: ["emb.type": LogType.crash.rawValue])
 
-        whenInvokingAddLogType(.default)
+        whenInvokingAddLogType(.message)
         whenInvokingBuild()
 
         thenResultingAttributes(is: ["emb.type": LogType.crash.rawValue])
