@@ -116,8 +116,7 @@ final class EmbraceOTelTests: XCTestCase {
 
         let span = builder.startSpan()
 
-        throw XCTSkip("Test failing consistently in CI")
-//        XCTAssertTrue(span is RecordEventsReadableSpan)
+        XCTAssertTrue(span is RecordEventsReadableSpan)
     }
 
     func test_buildSpan_withAttributes_appendsAttributes() throws {
@@ -136,9 +135,7 @@ final class EmbraceOTelTests: XCTestCase {
             ])
 
         } else {
-            throw XCTSkip("Test failing consistently in CI")
-//            XCTFail("Builder did not return a RecordingSpan")
-
+            XCTFail("Builder did not return a RecordingSpan")
         }
     }
 
