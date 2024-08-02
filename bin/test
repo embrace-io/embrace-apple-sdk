@@ -78,6 +78,7 @@ xcodebuild \
     -enableCodeCoverage YES \
     -derivedDataPath $DERIVED_DATA_PATH \
     -resultBundlePath $XCRESULT_PATH \
+    -retry-tests-on-failure \
     test
 
 # If we created a new simulator, delete it
