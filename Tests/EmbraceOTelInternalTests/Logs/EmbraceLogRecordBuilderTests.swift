@@ -49,6 +49,26 @@ class EmbraceLogRecordBuilderTests: XCTestCase {
         thenProducedRecordHas(spanContext: spanContext)
     }
 
+    func test_whenActiveSpanContextSet_valueShouldBeAddedToRecordLogOnEmit() {
+        givenEmbraceLogRecordBuilder()
+        let spanContext = whenSpanContextActive()
+        whenCallingEmit()
+        thenProducedRecordHas(spanContext: spanContext)
+    }
+
+    func test_whenActiveSpanContextSet_andExplicitlySet_explicitValueShouldBeAddedToRecordLogOnEmit() {
+        let explicitContext = SpanContext.create(traceId: .random(),
+                                         spanId: .random(),
+                                         traceFlags: .init(),
+                                         traceState: .init())
+
+        givenEmbraceLogRecordBuilder()
+        let activeContext = whenSpanContextActive()
+        whenSetting(spanContext: explicitContext)
+        whenCallingEmit()
+        thenProducedRecordHas(spanContext: explicitContext)
+    }
+
     func test_onSetSeverity_valueShouldBeAddedToRecordLogOnEmit() throws {
         let severity = try XCTUnwrap(Severity(rawValue: .random(in: 1...24)))
         givenEmbraceLogRecordBuilder()
@@ -113,6 +133,18 @@ private extension EmbraceLogRecordBuilderTests {
 
     func whenSetting(spanContext: SpanContext) {
         _ = sut.setSpanContext(spanContext)
+    }
+
+    func whenSpanContextActive() -> SpanContext {
+        let span = OpenTelemetry.instance.tracerProvider
+            .get(instrumentationName: "test", instrumentationVersion: nil)
+            .spanBuilder(spanName: "example-span")
+            .setActive(true)
+            .startSpan()
+
+        OpenTelemetry.instance.contextProvider.setActiveSpan(span)
+
+        return span.context
     }
 
     func whenSetting(severity: Severity) {

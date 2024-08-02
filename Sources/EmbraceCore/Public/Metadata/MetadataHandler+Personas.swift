@@ -72,7 +72,7 @@ extension MetadataHandler {
     /// - Note: This method is for Objective-C compatibility. In Swift, it is
     /// recommended to use ``PersonaTag`` and define custom persona tags as static properties.
     @objc public func add(persona: String, lifespan: MetadataLifespan = .session) throws {
-        try add(persona: PersonaTag(persona))
+        try add(persona: PersonaTag(persona), lifespan: lifespan)
     }
 
     /// Retrieve the current set of persona tags as strings.
