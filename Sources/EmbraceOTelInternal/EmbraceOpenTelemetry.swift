@@ -30,6 +30,7 @@ public protocol EmbraceOpenTelemetry: AnyObject {
         _ message: String,
         type: LogType,
         severity: LogSeverity,
+        type: LogType,
         attributes: [String: String]
     )
 
@@ -37,6 +38,7 @@ public protocol EmbraceOpenTelemetry: AnyObject {
         _ message: String,
         type: LogType,
         severity: LogSeverity,
+        type: LogType,
         timestamp: Date,
         attributes: [String: String]
     )
