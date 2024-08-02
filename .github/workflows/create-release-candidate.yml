@@ -261,7 +261,11 @@ jobs:
             fi
           else 
             echo "Creating Release $RC_VERSION in Github"
-            gh release create $RC_VERSION cocoapods/embrace_$RC_VERSION.zip --title "$RC_VERSION" --prerelease=$IS_PRODUCTION_READY --repo embrace-io/embrace-apple-sdk
+            PRERELEASE_FLAG=""
+            if [ "$IS_PRODUCTION_READY" == "false" ]; then
+              PRERELEASE_FLAG="--prerelease"
+            fi
+            gh release create $RC_VERSION cocoapods/embrace_$RC_VERSION.zip --title "$RC_VERSION" --prerelease=$PRERELEASE_FLAG --repo embrace-io/embrace-apple-sdk
           fi
 
   push_podspec:
