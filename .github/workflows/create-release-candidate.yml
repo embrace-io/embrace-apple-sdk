@@ -78,7 +78,6 @@ jobs:
           # Production-ready versions should always follow a "definitive" version format:
           # - xx.yy.zz
           # But, non-production-ready versions support having pre-release versions, like:
-          # - x.y.z-alpha
           # - x.y.z-rc1
           if [ "$IS_PRODUCTION_READY" == "true" ]; then
             if ! [[ "$RC_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
