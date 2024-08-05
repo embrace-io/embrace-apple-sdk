@@ -114,7 +114,9 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
-
+        with:
+          fetch-depth: 0
+          
       - name: Bump Version
         run: |
           echo "Bumping version to '$RC_VERSION'"
@@ -287,6 +289,7 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           path: embrace-apple-core-internal
 
       - name: Be sure Podspec has bumped version
