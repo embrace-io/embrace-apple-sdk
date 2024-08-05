@@ -90,9 +90,10 @@ jobs:
 
             VERSION_COUNTER=1
 
-            while git tag -l | grep -q "^${RC_VERSION}-rc${VERSION_COUNTER}$"; do
+            while [ ! -z $(git tag -l ${RC_VERSION}-rc${VERSION_COUNTER}) ]; do
               VERSION_COUNTER=$((VERSION_COUNTER + 1))
             done
+
             RC_VERSION="${RC_VERSION}-rc${VERSION_COUNTER}"
           fi
 
