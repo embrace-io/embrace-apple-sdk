@@ -14,6 +14,10 @@ public typealias SpanId = OpenTelemetryApi.SpanId
 
 public typealias SpanContext = OpenTelemetryApi.SpanContext
 
+public typealias TraceFlags = OpenTelemetryApi.TraceFlags
+
+public typealias TraceState = OpenTelemetryApi.TraceState
+
 public typealias Span=OpenTelemetryApi.Span
 
 public typealias SpanBuilder=OpenTelemetryApi.SpanBuilder
