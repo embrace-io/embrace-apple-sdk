@@ -270,7 +270,7 @@ jobs:
             if [ "$IS_PRODUCTION_READY" == "false" ]; then
               PRERELEASE_FLAG="--prerelease"
             fi
-            gh release create $RC_VERSION cocoapods/embrace_$RC_VERSION.zip --title "$RC_VERSION" --prerelease=$PRERELEASE_FLAG --repo embrace-io/embrace-apple-sdk
+            gh release create $RC_VERSION cocoapods/embrace_$RC_VERSION.zip --title "$RC_VERSION" $PRERELEASE_FLAG --repo embrace-io/embrace-apple-sdk
           fi
 
   push_podspec:
