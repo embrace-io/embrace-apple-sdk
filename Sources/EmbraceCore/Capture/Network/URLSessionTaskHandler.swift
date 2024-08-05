@@ -174,19 +174,13 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
         }
 
         // ignore if header is already present
-        let headerName = "traceparent"
-
-        let previousValue = task.originalRequest?.value(forHTTPHeaderField: headerName)
+        let previousValue = task.originalRequest?.value(forHTTPHeaderField: W3C.traceparentHeaderName)
         guard previousValue == nil else {
             return previousValue
         }
 
-        // set traceparent request header
-        // Docs: https://www.w3.org/TR/trace-context-1/#trace-context-http-headers-format
-        // Note: Version hardcoded to "00"
-        // Note: Flags hardcoded to "01" (means "sampled")
-        let value = "00-\(span.context.traceId.hexString)-\(span.context.spanId.hexString)-01"
-        if task.injectHeader(withKey: headerName, value: value) {
+        let value = W3C.traceparent(from: span.context)
+        if task.injectHeader(withKey: W3C.traceparentHeaderName, value: value) {
             return value
         }
 
