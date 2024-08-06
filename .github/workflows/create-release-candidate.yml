@@ -260,7 +260,7 @@ jobs:
               echo "Release $RC_VERSION already exists; editing..."
               gh release upload $RC_VERSION cocoapods/embrace_$RC_VERSION.zip --clobber --repo embrace-io/embrace-apple-sdk
             else
-              echo "Cannot update a productive release"
+              echo "Cannot update a production release"
               exit 1
             fi
           else 
