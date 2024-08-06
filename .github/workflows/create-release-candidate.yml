@@ -1,4 +1,4 @@
-name: Create Release Candidate
+name: Create Release
 
 env:
   ARCHIVE_QUIET_MODE: 1
