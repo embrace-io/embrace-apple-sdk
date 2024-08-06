@@ -115,7 +115,7 @@ struct UserInfo: View {
             if newPhase == .active {
                 user.refresh()
             }
-        }
+        }.navigationTitle("User Information")
 
     }
 

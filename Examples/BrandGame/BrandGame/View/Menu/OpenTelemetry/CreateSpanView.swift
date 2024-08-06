@@ -84,7 +84,7 @@ struct CreateSpanView: View {
     }
 
     private func isValidForm() -> Bool {
-        guard !name.isEmpty else { 
+        guard !name.isEmpty else {
             return false
         }
         guard startTime <= endTime else {

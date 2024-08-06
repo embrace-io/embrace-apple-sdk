@@ -21,9 +21,6 @@ struct LoggingView: View {
     var body: some View {
         VStack(alignment: .center) {
             VStack(alignment: .leading) {
-                Text("Logging")
-                    .font(.title)
-                    .bold()
                 TextField("Message", text: $logMessage)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                 Picker("Severity", selection: $severity) {
@@ -49,7 +46,7 @@ struct LoggingView: View {
             }
             .buttonStyle(.borderedProminent)
             .padding()
-        }
+        }.navigationTitle("Logging")
     }
 }
 

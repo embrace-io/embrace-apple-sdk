@@ -63,7 +63,7 @@ struct BrowserView: View {
                 .buttonStyle(.borderedProminent)
             }
             .padding(.horizontal)
-        }
+        }.navigationTitle("WebView Usage")
     }
 
     private func loadURL() {

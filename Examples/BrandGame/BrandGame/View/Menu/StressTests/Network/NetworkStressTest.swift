@@ -62,8 +62,8 @@ struct NetworkStressTest: View {
                         Text("Round Trip Times")
                             .bold()
 
-                        Chart(responses) { r in
-                            BarMark(x: .value("idx", r.id), y: .value("rtt", r.rtt))
+                        Chart(responses) { response in
+                            BarMark(x: .value("idx", response.id), y: .value("rtt", response.rtt))
                         }
                         .chartXAxis(.hidden)
                         .padding(.vertical)
@@ -87,8 +87,8 @@ struct NetworkStressTest: View {
             responses = []
             let group = DispatchGroup()
 
-            for i in 0..<inputCount {
-                if let request = NetworkRequest(string: inputURL, idx: i) {
+            for index in 0..<inputCount {
+                if let request = NetworkRequest(string: inputURL, idx: index) {
                     group.enter()
                     request.execute { response in
                         DispatchQueue.main.async {
@@ -105,7 +105,7 @@ struct NetworkStressTest: View {
                 didSubmit = false
             }
         }
-        .navigationTitle("Network Stress")
+        .navigationTitle("Network Requests")
 
     }
 }
