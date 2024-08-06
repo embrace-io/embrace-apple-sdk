@@ -6,8 +6,13 @@ import XCTest
 import EmbraceCore
 
 import EmbraceOTelInternal
+import OpenTelemetryApi
 
 final class W3C_TraceParentTests: XCTestCase {
+
+    override func setUp() async throws {
+        OpenTelemetry.registerTracerProvider(tracerProvider: DefaultTracerProvider.instance)
+    }
 
     func test_w3c_traceparent_returnsCorrectValue() {
         let unsampled = W3C.traceparent(traceId: "exampletraceid", spanId: "examplespanid", sampled: false)
