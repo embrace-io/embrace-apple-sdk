@@ -21,8 +21,10 @@ final class W3C_TraceParentTests: XCTestCase {
         let span = EmbraceOTel()
             .buildSpan(name: "example", type: .performance)
             .startSpan()
-        let traceparent = W3C.traceparent(from: span)
 
+        print("TYPE OF SPAN: \(type(of: span)) \t\t SPAN: \(span)")
+
+        let traceparent = W3C.traceparent(from: span)
         XCTAssertEqual(traceparent, "00-\(span.context.traceId.hexString)-\(span.context.spanId.hexString)-00")
     }
 
