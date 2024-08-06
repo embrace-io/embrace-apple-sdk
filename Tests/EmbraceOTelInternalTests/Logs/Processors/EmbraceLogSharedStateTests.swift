@@ -17,11 +17,11 @@ class EmbraceLogSharedStateTests: XCTestCase {
 
     func testEveryImplementation_onGetResource_mergesAllAttributesInAResource() {
         givenResourceProvider(
-            withResources: [
-                DefaultEmbraceResource(key: "hello", value: .string("world")),
-                DefaultEmbraceResource(key: "IsTrue", value: .bool(true)),
-                DefaultEmbraceResource(key: "number", value: .int(123))
-            ]
+            withResource: Resource(attributes: [
+                "hello": .string("world"),
+                "IsTrue": .bool(true),
+                "number": .int(123)
+            ])
         )
         givenAnyImplementationOfEmbraceLogSharedState()
         whenInvokingGetResource()
@@ -36,9 +36,9 @@ class EmbraceLogSharedStateTests: XCTestCase {
 }
 
 private extension EmbraceLogSharedStateTests {
-    func givenResourceProvider(withResources resources: [EmbraceResource]) {
+    func givenResourceProvider(withResource resource: Resource) {
         resourceProvider = .init()
-        resourceProvider.stubbedGetResources = resources
+        resourceProvider.stubbedResource = resource
     }
 
     func givenAnyImplementationOfEmbraceLogSharedState() {

@@ -9,7 +9,7 @@ import XCTest
 @testable import EmbraceStorageInternal
 
 class DummyEmbraceResourceProvider: EmbraceResourceProvider {
-    func getResources() -> [EmbraceResource] { [] }
+    func getResource() -> Resource { Resource() }
 }
 
 class DummyLogControllable: LogControllable {

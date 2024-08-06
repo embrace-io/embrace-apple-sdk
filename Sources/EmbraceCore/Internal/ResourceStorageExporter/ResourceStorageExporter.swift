@@ -1,6 +1,8 @@
 //
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
+
+import Foundation
 import EmbraceStorageInternal
 import EmbraceOTelInternal
 
@@ -21,16 +23,31 @@ class ResourceStorageExporter: EmbraceResourceProvider {
         self.storage = storage
     }
 
-    func getResources() -> [EmbraceResource] {
-
+    func getResource() -> Resource {
         guard let storage = storage else {
-            return []
+            return Resource()
         }
 
-        guard let resources = try? storage.fetchAllResources() else {
-            return []
+        guard let records = try? storage.fetchAllResources() else {
+            return Resource()
         }
 
-        return resources.map {ConcreteEmbraceResource(key: $0.key, value: $0.value)}
+        var attributes: [String: AttributeValue] = records.reduce(into: [:]) { partialResult, record in
+            partialResult[record.key] = record.value
+        }
+
+        if attributes[ResourceAttributes.serviceName.rawValue] == nil {
+            let serviceName = [Bundle.main.bundleIdentifier, ProcessInfo.processInfo.processName]
+                .compactMap { $0 }
+                .joined(separator: ":")
+
+            attributes[ResourceAttributes.serviceName.rawValue] = .string(serviceName)
+        }
+
+        if attributes[ResourceAttributes.telemetrySdkLanguage.rawValue] == nil {
+            attributes[ResourceAttributes.telemetrySdkLanguage.rawValue] = .string("swift")
+        }
+
+        return Resource(attributes: attributes)
     }
 }

@@ -9,29 +9,29 @@ import OpenTelemetrySdk
 /// as an `OpenTelemetryApi.Resource`. Mapping to the actual `Resource` object
 /// is being done internally in `EmbraceOTel`.
 public protocol EmbraceResourceProvider {
-    func getResources() -> [EmbraceResource]
+    func getResource() -> Resource
 }
 
-extension EmbraceResourceProvider {
-    public func getResource() -> Resource {
-        var attributes: [String: AttributeValue] = [:]
-
-        getResources().forEach {
-            attributes[$0.key] = $0.value
-        }
-
-        if attributes[ResourceAttributes.serviceName.rawValue] == nil {
-            let serviceName = [Bundle.main.bundleIdentifier, ProcessInfo.processInfo.processName]
-                .compactMap { $0 }
-                .joined(separator: ":")
-
-            attributes[ResourceAttributes.serviceName.rawValue] = .string(serviceName)
-        }
-
-        if attributes[ResourceAttributes.telemetrySdkLanguage.rawValue] == nil {
-            attributes[ResourceAttributes.telemetrySdkLanguage.rawValue] = .string("swift")
-        }
-
-        return Resource(attributes: attributes)
-    }
-}
+// extension EmbraceResourceProvider {
+//    public func getResource() -> Resource {
+//        var attributes: [String: AttributeValue] = [:]
+//
+////        getResources().forEach {
+////            attributes[$0.key] = $0.value
+////        }
+//
+//        if attributes[ResourceAttributes.serviceName.rawValue] == nil {
+//            let serviceName = [Bundle.main.bundleIdentifier, ProcessInfo.processInfo.processName]
+//                .compactMap { $0 }
+//                .joined(separator: ":")
+//
+//            attributes[ResourceAttributes.serviceName.rawValue] = .string(serviceName)
+//        }
+//
+//        if attributes[ResourceAttributes.telemetrySdkLanguage.rawValue] == nil {
+//            attributes[ResourceAttributes.telemetrySdkLanguage.rawValue] = .string("swift")
+//        }
+//
+//        return Resource(attributes: attributes)
+//    }
+// }

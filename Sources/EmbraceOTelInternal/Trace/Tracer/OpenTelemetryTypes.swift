@@ -32,3 +32,5 @@ public typealias ReadableSpan = OpenTelemetrySdk.ReadableSpan
 public typealias SpanExporterResultCode = OpenTelemetrySdk.SpanExporterResultCode
 
 public typealias SpanProcessor = OpenTelemetrySdk.SpanProcessor
+
+public typealias ResourceAttributes=OpenTelemetrySdk.ResourceAttributes
