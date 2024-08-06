@@ -59,7 +59,7 @@ jobs:
             fi
           fi
           echo "Production readiness determined: $IS_PRODUCTION_READY"
-          
+
       - name: Validate and Extract RC Version Number
         id: rc_version_extractor
         run: |
@@ -74,7 +74,7 @@ jobs:
               RC_VERSION=$TAG_VERSION
             fi
           fi
-          
+
           # Production-ready versions should always follow a "definitive" version format:
           # - xx.yy.zz
           # But, non-production-ready versions support having pre-release versions, like:
@@ -115,7 +115,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          
+
       - name: Bump Version
         run: |
           echo "Bumping version to '$RC_VERSION'"
@@ -218,8 +218,8 @@ jobs:
         run: |
           DIR=$(pwd -P)
           mkdir artifacts
-          mv run.sh upload artifacts/
-          chmod +x artifacts/run.sh artifacts/upload
+          chmod +x run.sh embrace_symbol_upload.darwin
+          mv run.sh embrace_symbol_upload.darwin artifacts/
 
           cd artifacts; zip "$DIR/embrace_$RC_VERSION.zip" *; cd -;
           zip "$DIR/embrace_$RC_VERSION.zip" -r xcframeworks/*; cd -;
@@ -257,14 +257,14 @@ jobs:
           IS_PRODUCTION_READY: ${{ needs.extractor.outputs.is_production_ready }}
         run: |
           if gh release view --repo embrace-io/embrace-apple-sdk $RC_VERSION > /dev/null 2>&1; then
-            if [ "$IS_PRODUCTION_READY" == "false" ]; then 
+            if [ "$IS_PRODUCTION_READY" == "false" ]; then
               echo "Release $RC_VERSION already exists; editing..."
               gh release upload $RC_VERSION cocoapods/embrace_$RC_VERSION.zip --clobber --repo embrace-io/embrace-apple-sdk
             else
               echo "Cannot update a productive release"
               exit 1
             fi
-          else 
+          else
             echo "Creating Release $RC_VERSION in Github"
             PRERELEASE_FLAG=""
             if [ "$IS_PRODUCTION_READY" == "false" ]; then
