@@ -207,8 +207,8 @@ In order to have stack traces in error logs or crashes be as readable as possibl
  to your project.
 
 First, download [our support utility](https://downloads.embrace.io/embrace_support.zip).
-This is an archive that contains the Embrace `upload` binary and also a shell script `run.sh`.
-These should be copied into your project at a known location like `embrace_support/upload`
+This is an archive that contains the Embrace `embrace_symbol_upload` binary and also a shell script `run.sh`.
+These should be copied into your project at a known location like `embrace_support/embrace_symbol_upload.darwin`
 and `embrace_support/run.sh`.
 
 Then, in your app target's Xcode Build Phases pane, add a new 'Run Script Phase' at the end of the list
