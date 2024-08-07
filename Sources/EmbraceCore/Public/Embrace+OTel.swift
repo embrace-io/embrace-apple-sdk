@@ -7,6 +7,7 @@ import EmbraceCommonInternal
 import EmbraceOTelInternal
 
 extension Embrace: EmbraceOpenTelemetry {
+
     private var exporter: EmbraceSpanExporter { StorageSpanExporter(options: .init(storage: storage)) }
 
     private var otel: EmbraceOTel { EmbraceOTel() }
@@ -105,9 +106,10 @@ extension Embrace: EmbraceOpenTelemetry {
     public func log(
         _ message: String,
         severity: LogSeverity,
+        type: LogType = .message,
         attributes: [String: String] = [:]
     ) {
-        log(message, severity: severity, timestamp: Date(), attributes: attributes)
+        log(message, severity: severity, type: type, timestamp: Date(), attributes: attributes)
     }
 
     /// Creates and adds a log for the current session span
@@ -119,6 +121,7 @@ extension Embrace: EmbraceOpenTelemetry {
     public func log(
         _ message: String,
         severity: LogSeverity,
+        type: LogType = .message,
         timestamp: Date,
         attributes: [String: String]
     ) {
@@ -139,7 +142,7 @@ extension Embrace: EmbraceOpenTelemetry {
 
         let finalAttributes = attributesBuilder
             .addStackTrace(stackTrace)
-            .addLogType(.default)
+            .addLogType(type)
             .addApplicationState()
             .addApplicationProperties()
             .addSessionIdentifier()

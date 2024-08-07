@@ -4,10 +4,6 @@
 
 import EmbraceCommonInternal
 
-public extension LogType {
-    static let crash = LogType(system: "ios.crash")
-}
-
 public struct LogSemantics {
     public static let keyEmbraceType = "emb.type"
     public static let keyId = "log.record.uid"

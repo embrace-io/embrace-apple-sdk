@@ -29,12 +29,14 @@ public protocol EmbraceOpenTelemetry: AnyObject {
     func log(
         _ message: String,
         severity: LogSeverity,
+        type: LogType,
         attributes: [String: String]
     )
 
     func log(
         _ message: String,
         severity: LogSeverity,
+        type: LogType,
         timestamp: Date,
         attributes: [String: String]
     )

@@ -56,12 +56,19 @@ public class MockEmbraceOpenTelemetry: NSObject, EmbraceOpenTelemetry {
     public func log(
         _ message: String,
         severity: LogSeverity,
+        type: LogType = .message,
         attributes: [String: String]
     ) {
-        log(message, severity: severity, timestamp: Date(), attributes: attributes)
+        log(message, severity: severity, type: type, timestamp: Date(), attributes: attributes)
     }
 
-    public func log(_ message: String, severity: LogSeverity, timestamp: Date, attributes: [String: String]) {
+    public func log(
+        _ message: String,
+        severity: LogSeverity,
+        type: LogType = .message,
+        timestamp: Date,
+        attributes: [String: String]
+    ) {
 
         var otelAttributes: [String: AttributeValue] = [:]
         for (key, value) in attributes {
