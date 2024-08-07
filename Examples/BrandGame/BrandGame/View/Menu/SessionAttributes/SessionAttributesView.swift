@@ -9,6 +9,7 @@ struct SessionAttributesView: View {
     @State private var property = Property()
     @State private var action: Action = .add
     @State private var appliesToAllAttributes: Bool = false
+    @State private var showPopUp: Bool = false
 
     private var metadataLifespan: MetadataLifespan {
         return property.lifespan.toMetadataLifespan()
@@ -63,6 +64,7 @@ struct SessionAttributesView: View {
                 }
             }
         }
+        .popUp("\(property.type.rawValue) was \(action.rawValue)ed", shouldShow: $showPopUp)
         .navigationBarTitle("Session Attributes", displayMode: .inline)
     }
 }
@@ -88,6 +90,9 @@ private extension SessionAttributesView {
             case .delete:
                 try deleteProperty()
             }
+            showPopUp = true
+            property.key = ""
+            property.value = ""
         } catch let exception {
             print(exception.localizedDescription)
         }
