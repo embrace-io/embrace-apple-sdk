@@ -134,6 +134,7 @@ class DefaultInternalLogger: InternalLogger {
         otel?.log(
             message,
             severity: level.severity,
+            type: .internal,
             attributes: attributes
         )
 

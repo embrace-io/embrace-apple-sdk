@@ -4,8 +4,8 @@
 
 import XCTest
 
-@testable import EmbraceStorage
-import EmbraceCommon
+@testable import EmbraceStorageInternal
+import EmbraceCommonInternal
 import OpenTelemetryApi
 
 fileprivate extension Date {

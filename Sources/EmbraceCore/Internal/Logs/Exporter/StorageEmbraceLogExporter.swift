@@ -33,7 +33,7 @@ class StorageEmbraceLogExporter: EmbraceLogRecordExporter {
         for var log in logRecords where validation.execute(log: &log) {
 
             // do not export crash logs
-            guard log.attributes[LogSemantics.keyEmbraceType] != .string(LogType.crash.rawValue) else {
+            guard !log.isEmbType(LogType.crash) else {
                 continue
             }
 
