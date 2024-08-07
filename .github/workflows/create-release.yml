@@ -1,8 +1,7 @@
-name: Create Release Candidate
+name: Create Release
 
 env:
   ARCHIVE_QUIET_MODE: 1
-  AWS_DEFAULT_REGION: "${{ vars.AWS_DEFAULT_REGION }}"
 
 on:
   push:
@@ -261,7 +260,7 @@ jobs:
               echo "Release $RC_VERSION already exists; editing..."
               gh release upload $RC_VERSION cocoapods/embrace_$RC_VERSION.zip --clobber --repo embrace-io/embrace-apple-sdk
             else
-              echo "Cannot update a productive release"
+              echo "Cannot update a production release"
               exit 1
             fi
           else
@@ -289,11 +288,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          path: embrace-apple-core-internal
+          path: embrace-apple-sdk
 
       - name: Be sure Podspec has bumped version
         run: |
-          cd embrace-apple-core-internal
+          cd embrace-apple-sdk
           bin/version_bump $RC_VERSION --cocoapods
 
       - name: Check if cocoapods version exists
@@ -315,7 +314,7 @@ jobs:
       - name: Push EmbraceIO Podspec
         if: env.COCOAPODS_VERSION_EXISTS == 'false'
         run: |
-          pod trunk push embrace-apple-core-internal/EmbraceIO.podspec --allow-warnings
+          pod trunk push embrace-apple-sdk/EmbraceIO.podspec --allow-warnings
 
 # Note: missing/removed steps from old sdk
 # - dsyms work
