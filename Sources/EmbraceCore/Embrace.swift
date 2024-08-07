@@ -231,7 +231,6 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         guard config.isSDKEnabled else {
             return nil
         }
-
         return sessionController.currentSession?.id.toString
     }
 
