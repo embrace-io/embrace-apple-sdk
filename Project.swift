@@ -64,6 +64,9 @@ let project = Project(
             product: .framework,
             bundleId: "com.embraceio.EmbraceSemantics",
             sources: ["Sources/EmbraceSemantics/**"],
+            dependencies: [
+                .target(name: "EmbraceCommonInternal")
+            ],
             settings: .settings(base: [
                 "SKIP_INSTALL": "NO",
                 "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES"
