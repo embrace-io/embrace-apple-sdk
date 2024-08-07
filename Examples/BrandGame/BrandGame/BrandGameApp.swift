@@ -19,8 +19,8 @@ struct BrandGameApp: App {
 
             addGitInfoProperties()
             smokeTestIfNecessary()
-        } catch let e {
-            print("Error starting Embrace \(e.localizedDescription)")
+        } catch let exception {
+            print("Error starting Embrace \(exception.localizedDescription)")
         }
     }
 
