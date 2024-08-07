@@ -1,6 +1,6 @@
 Pod::Spec.new do |spec|
   spec.name                           = "EmbraceIO"
-  spec.version                        = "6.0.0"
+  spec.version                        = "__REPLACE_VERSION__"
   spec.summary                        = "Visibility into your users that you didn't have before."
   spec.description                    = <<-DESC
                       Embrace is the only performance monitoring platform focused solely on mobile. We are built
@@ -10,8 +10,8 @@ Pod::Spec.new do |spec|
   spec.documentation_url                 = "https://embrace.io/docs/"
   spec.license                        = { :type => "Apache 2.0" }
   spec.author                         = "Embrace.io"
-  spec.source                         = { "http" => "https://downloads.embrace.io/embrace_#{spec.version}.zip" }
-  spec.preserve_paths                 = [ "run.sh", "upload" ]
+  spec.source                         = { "http" => "https://github.com/embrace-io/embrace-apple-sdk/releases/download/#{spec.version}/embrace_#{spec.version}.zip" }
+  spec.preserve_paths                 = [ "run.sh", "embrace_symbol_upload.darwin" ]
   spec.requires_arc                   = true
   spec.ios.deployment_target          = "13.0"
   spec.default_subspec = "EmbraceIO"

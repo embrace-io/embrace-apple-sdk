@@ -200,4 +200,91 @@ final class SessionSpanUtilsTests: XCTestCase {
         }
         XCTAssertEqual(crashIdAttribute!.value, "test")
     }
+
+    func test_payloadFromSession_shouldAddCustomePropertiesWithPrefixedKey() {
+        let session = givenSessionRecord()
+
+        let properties = [
+            givenCustomProperty(withKey: "a_permanent_key", value: "a_permanent_value", lifespan: .permanent),
+            givenCustomProperty(withKey: "a_process_key", value: "a_process_value", lifespan: .permanent),
+            givenCustomProperty(withKey: "a_session_key", value: "a_session_value", lifespan: .permanent)
+        ]
+
+        // when building the session span payload
+        let payload = SessionSpanUtils.payload(from: session, properties: properties, sessionNumber: 100)
+
+        XCTAssertGreaterThanOrEqual(payload.attributes.count, 3)
+        let permanentCustomProperty = payload.attributes.first {
+            $0.key == "emb.properties.a_permanent_key"
+        }
+        XCTAssertEqual(permanentCustomProperty!.value, "a_permanent_value")
+
+        let processCustomProperty = payload.attributes.first {
+            $0.key == "emb.properties.a_process_key"
+        }
+        XCTAssertEqual(processCustomProperty!.value, "a_process_value")
+
+        let sessionCustomProperty = payload.attributes.first {
+            $0.key == "emb.properties.a_session_key"
+        }
+        XCTAssertEqual(sessionCustomProperty!.value, "a_session_value")
+    }
+
+    func test_payloadFromSession_attributesShouldntIncludeUserProperties() {
+        let session = givenSessionRecord()
+        var properties: [MetadataRecord] = []
+        properties.append(
+            givenCustomProperty(
+                withKey: "emb.user.username",
+                value: "embrace",
+                lifespan: .session
+            )
+        )
+        properties.append(
+            givenCustomProperty(
+                withKey: "emb.user.email",
+                value: "asd@embrace.io",
+                lifespan: .permanent
+            )
+        )
+        properties.append(
+            givenCustomProperty(
+                withKey: "emb.user.identifier",
+                value: .random(),
+                lifespan: .process
+            )
+        )
+
+        // when building the session span payload
+        let payload = SessionSpanUtils.payload(from: session, properties: properties, sessionNumber: 100)
+
+        XCTAssertFalse(payload.attributes.contains(where: { $0.key == "emb.user.username "}))
+        XCTAssertFalse(payload.attributes.contains(where: { $0.key == "emb.user.email"}))
+        XCTAssertFalse(payload.attributes.contains(where: { $0.key == "emb.user.identifierj"}))
+    }
+}
+
+private extension SessionSpanUtilsTests {
+    func givenSessionRecord() -> SessionRecord {
+        let endTime = Date(timeIntervalSince1970: 60)
+        let heartbeat = Date(timeIntervalSince1970: 58)
+
+        return SessionRecord(
+            id: TestConstants.sessionId,
+            state: .foreground,
+            processId: TestConstants.processId,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: TestConstants.date,
+            endTime: endTime,
+            lastHeartbeatTime: heartbeat,
+            crashReportId: .random(),
+            coldStart: .random(),
+            cleanExit: .random(),
+            appTerminated: .random())
+    }
+
+    func givenCustomProperty(withKey key: String, value: String, lifespan: MetadataRecordLifespan) -> MetadataRecord {
+        .init(key: key, value: .string(value), type: .customProperty, lifespan: lifespan, lifespanId: .random())
+    }
 }

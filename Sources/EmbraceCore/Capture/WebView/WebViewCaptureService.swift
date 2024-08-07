@@ -125,8 +125,12 @@ struct WKWebViewSetNativationDelegateSwizzler: Swizzlable {
     func install() throws {
         try swizzleInstanceMethod { originalImplementation -> BlockImplementationType in
             return { webView, delegate in
-                proxy.originalDelegate = delegate
-                originalImplementation(webView, Self.selector, proxy)
+                if !(webView.navigationDelegate is WKNavigationDelegateProxy) {
+                    proxy.originalDelegate = delegate
+                    originalImplementation(webView, Self.selector, proxy)
+                } else {
+                    originalImplementation(webView, Self.selector, delegate)
+                }
             }
         }
     }

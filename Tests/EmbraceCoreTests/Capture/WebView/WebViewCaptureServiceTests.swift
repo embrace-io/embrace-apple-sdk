@@ -34,6 +34,20 @@ class WebViewCaptureServiceTests: XCTestCase {
         XCTAssert(service.proxy.originalDelegate!.isKind(of: MockWKNavigationDelegate.self))
     }
 
+    func test_setNavigationDelegate_ShouldntGenerateRecursion() throws {
+        // given a webView already "swizzled"
+        let webView = WKWebView()
+        let originalDelegate = MockWKNavigationDelegate()
+        webView.navigationDelegate = originalDelegate
+
+        // When Setting a new delegate for the same webview
+        let secondDelegate = MockWKNavigationDelegate()
+        webView.navigationDelegate = secondDelegate
+
+        // Then the proxy class added during in the swizzled method should be removed to prevent any potential recursion.
+        XCTAssertTrue(try XCTUnwrap(webView.navigationDelegate).isKind(of: MockWKNavigationDelegate.self))
+    }
+
     func test_spanEvent() {
         // given a webview
         let webView = WKWebView()

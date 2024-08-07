@@ -19,6 +19,5 @@ public extension SpanSemantics {
         public static let keyErrorType = "error.type"
         public static let keyErrorCode = "error.code"
         public static let keyErrorMessage = "error.message"
-        public static let traceparentHeader = "traceparent"
     }
 }
