@@ -73,6 +73,8 @@ create_xcframework EmbraceStorageInternal
 create_xcframework EmbraceOTelInternal
 create_xcframework EmbraceUploadInternal
 create_xcframework EmbraceConfigInternal
+
+create_xcframework EmbraceSemantics
 create_xcframework EmbraceCrash
 create_xcframework EmbraceCrashlyticsSupport
 create_xcframework EmbraceCaptureService

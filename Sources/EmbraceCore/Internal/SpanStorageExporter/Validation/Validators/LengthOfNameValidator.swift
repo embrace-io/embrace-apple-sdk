@@ -3,6 +3,7 @@
 //
 
 import EmbraceOTelInternal
+import EmbraceSemantics
 
 /// Validates the length of ``SpanData.name``. 
 /// This compares the length of the String in characters, not bytes.
@@ -22,6 +23,6 @@ class LengthOfNameValidator: SpanDataValidator {
     }
 
     private func shouldValidate(data: SpanData) -> Bool {
-        return data.embType != .networkHTTP
+        return data.embType != .networkRequest
     }
 }

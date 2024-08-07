@@ -18,6 +18,6 @@ class BreadcrumbTests: XCTestCase {
 
     func test_onInit_embTypeIsSysBreadcrumb() {
         let breadcrumb = Breadcrumb(message: "", attributes: .empty())
-        XCTAssertEqual(breadcrumb.attributes["emb.type"], .string(LogType.breadcrumb.rawValue))
+        XCTAssertEqual(breadcrumb.attributes["emb.type"], .string("sys.breadcrumb"))
     }
 }

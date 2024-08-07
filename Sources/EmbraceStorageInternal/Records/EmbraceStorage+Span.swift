@@ -4,6 +4,7 @@
 
 import Foundation
 import EmbraceCommonInternal
+import EmbraceSemantics
 import GRDB
 
 extension EmbraceStorage {

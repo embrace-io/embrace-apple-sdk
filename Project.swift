@@ -14,7 +14,8 @@ let project = Project(
                 .target(name: "EmbraceCaptureService"),
                 .target(name: "EmbraceCore"),
                 .target(name: "EmbraceCommonInternal"),
-                .target(name: "EmbraceCrash")
+                .target(name: "EmbraceCrash"),
+                .target(name: "EmbraceSemantics")
             ],
             settings: .settings(base: [
                 "SKIP_INSTALL": "NO",
@@ -36,6 +37,7 @@ let project = Project(
                 .target(name: "EmbraceStorageInternal"),
                 .target(name: "EmbraceUploadInternal"),
                 .target(name: "EmbraceObjCUtilsInternal"),
+                .target(name: "EmbraceSemantics")
             ],
             settings: .settings(base: [
                 "HEADER_SEARCH_PATHS": ["$(SRCROOT)/Sources/EmbraceObjCUtilsInternal/include"],
@@ -51,6 +53,17 @@ let project = Project(
             product: .framework,
             bundleId: "com.embraceio.EmbraceCommonInternal",
             sources: ["Sources/EmbraceCommonInternal/**"],
+            settings: .settings(base: [
+                "SKIP_INSTALL": "NO",
+                "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES"
+            ])
+        ),
+        .target(
+            name: "EmbraceSemantics",
+            destinations: .iOS,
+            product: .framework,
+            bundleId: "com.embraceio.EmbraceSemantics",
+            sources: ["Sources/EmbraceSemantics/**"],
             settings: .settings(base: [
                 "SKIP_INSTALL": "NO",
                 "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES"
@@ -93,6 +106,7 @@ let project = Project(
             sources: ["Sources/EmbraceOTelInternal/**"],
             dependencies: [
                 .target(name: "EmbraceCommonInternal"),
+                .target(name: "EmbraceSemantics"),
                 .external(name: "OpenTelemetrySdk")
             ],
             settings: .settings(base: [
@@ -108,6 +122,7 @@ let project = Project(
             sources: ["Sources/EmbraceStorageInternal/**"],
             dependencies: [
                 .target(name: "EmbraceCommonInternal"),
+                .target(name: "EmbraceSemantics"),
                 .external(name: "OpenTelemetryApi"),
                 .external(name: "GRDB")
             ],

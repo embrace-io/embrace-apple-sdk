@@ -6,6 +6,7 @@
 import UIKit
 import EmbraceCommonInternal
 import EmbraceOTelInternal
+import EmbraceSemantics
 
 extension ViewCaptureService {
     func handleViewDidAppear(_ vc: UIViewController, animated: Bool) {
@@ -27,10 +28,13 @@ extension ViewCaptureService {
         let className = SwiftDemangler.demangleClassName(String(describing: type(of: vc)))
 
         vc.emb_associatedSpan = otel?.buildSpan(
-            name: "emb-screen-view",
+            name: SpanSemantics.View.name,
             type: .view,
-            attributes: ["view.title": title,
-                         "view.name": className])
+            attributes: [
+                SpanSemantics.View.keyViewTitle: title,
+                SpanSemantics.View.keyViewName: className
+            ]
+        )
         .startSpan()
     }
 }

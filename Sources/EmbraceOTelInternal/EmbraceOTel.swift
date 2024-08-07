@@ -1,9 +1,15 @@
+//
+//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
+//
+
 import Foundation
 import EmbraceCommonInternal
+import EmbraceSemantics
 import OpenTelemetryApi
 import OpenTelemetrySdk
 
-@objc public final class EmbraceOTel: NSObject {
+@objc(EMBEmbraceOTel)
+public final class EmbraceOTel: NSObject {
 
     let instrumentationName = "EmbraceOpenTelemetry"
     let instrumentationVersion = "semver:\(EmbraceMeta.sdkVersion)"
@@ -69,8 +75,9 @@ import OpenTelemetrySdk
 
         let builder = tracer.spanBuilder(spanName: name)
                         .setAttribute(
-                            key: SpanAttributeKey.type,
-                            value: type.rawValue )
+                            key: SpanSemantics.keyEmbraceType,
+                            value: type.rawValue
+                        )
 
         for (key, value) in attributes {
             builder.setAttribute(key: key, value: value)

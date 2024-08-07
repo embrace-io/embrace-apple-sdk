@@ -6,6 +6,7 @@ import Foundation
 import EmbraceCommonInternal
 import EmbraceOTelInternal
 import EmbraceStorageInternal
+import EmbraceSemantics
 
 class StorageEmbraceLogExporter: EmbraceLogRecordExporter {
     @ThreadSafe
@@ -32,7 +33,7 @@ class StorageEmbraceLogExporter: EmbraceLogRecordExporter {
         for var log in logRecords where validation.execute(log: &log) {
 
             // do not export crash logs
-            guard log.attributes["emb.type"] != .string(LogType.crash.rawValue) else {
+            guard log.attributes[LogSemantics.keyEmbraceType] != .string(LogType.crash.rawValue) else {
                 continue
             }
 

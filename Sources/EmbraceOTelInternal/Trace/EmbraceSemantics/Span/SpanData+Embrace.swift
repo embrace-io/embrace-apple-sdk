@@ -4,11 +4,12 @@
 
 import Foundation
 import EmbraceCommonInternal
+import EmbraceSemantics
 import OpenTelemetrySdk
 
 extension SpanData {
     public var embType: SpanType {
-        if let raw = attributes[SpanAttributeKey.type.rawValue] {
+        if let raw = attributes[SpanSemantics.keyEmbraceType] {
             switch raw {
             case let .string(val):
                 return SpanType(rawValue: val) ?? .performance
@@ -20,7 +21,7 @@ extension SpanData {
     }
 
     var errorCode: SpanErrorCode? {
-        guard let value = attributes[SpanAttributeKey.errorCode.rawValue] else {
+        guard let value = attributes[SpanSemantics.keyErrorCode] else {
             return nil
         }
         return SpanErrorCode(rawValue: value.description)

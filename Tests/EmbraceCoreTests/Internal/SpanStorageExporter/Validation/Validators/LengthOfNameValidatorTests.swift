@@ -18,7 +18,7 @@ final class LengthOfNameValidatorTests: XCTestCase {
             name: name,
             kind: .internal,
             startTime: Date(),
-            attributes: [SpanAttributeKey.type.rawValue: .string(type.rawValue)],
+            attributes: ["emb.type": .string(type.rawValue)],
             endTime: Date()
         )
     }
@@ -59,7 +59,7 @@ final class LengthOfNameValidatorTests: XCTestCase {
 
     func testOnNetworkSpan_validate_shouldNotTryToValidateLongNames() throws {
         let longName = "GET https://this-is-a-really-long-url.com/with/some/long/path?and=with&some=parameters&in=url"
-        var span = spanData(named: longName, type: .networkHTTP)
+        var span = spanData(named: longName, type: .networkRequest)
 
         let validator = LengthOfNameValidator()
 

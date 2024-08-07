@@ -270,7 +270,7 @@ private extension DefaultURLSessionTaskHandlerTests {
     func thenHTTPNetworkSpanShouldBeCreated() {
         do {
             let span = try XCTUnwrap(otel.spanProcessor.startedSpans.first)
-            XCTAssertEqual(span.embType, .networkHTTP)
+            XCTAssertEqual(span.embType, .networkRequest)
         } catch let exception {
             XCTFail("Couldn't get span: \(exception.localizedDescription)")
         }
@@ -414,7 +414,7 @@ private extension DefaultURLSessionTaskHandlerTests {
         do {
             let span = try XCTUnwrap(otel.spanProcessor.endedSpans.first)
 
-            let tracingHeader = span.attributes[DefaultURLSessionTaskHandler.SpanAttribute.tracingHeader]!.description
+            let tracingHeader = span.attributes["emb.w3c_traceparent"]!.description
             validateTracingHeaderForSpan(tracingHeader: tracingHeader, span: span)
 
         } catch let exception {
@@ -425,7 +425,7 @@ private extension DefaultURLSessionTaskHandlerTests {
     func thenSpanShouldNotHaveTheTracingHeaderAttribute() {
         do {
             let span = try XCTUnwrap(otel.spanProcessor.endedSpans.first)
-            XCTAssertNil(span.attributes[DefaultURLSessionTaskHandler.SpanAttribute.tracingHeader])
+            XCTAssertNil(span.attributes["emb.w3c_traceparent"])
 
         } catch let exception {
             XCTFail("Couldn't get span: \(exception.localizedDescription)")
@@ -436,7 +436,7 @@ private extension DefaultURLSessionTaskHandlerTests {
         do {
             let span = try XCTUnwrap(otel.spanProcessor.endedSpans.first)
 
-            XCTAssertEqual(span.attributes[DefaultURLSessionTaskHandler.SpanAttribute.url], .string(path))
+            XCTAssertEqual(span.attributes["url.full"], .string(path))
         } catch let exception {
             XCTFail("Couldn't get span: \(exception.localizedDescription)")
         }
@@ -446,7 +446,7 @@ private extension DefaultURLSessionTaskHandlerTests {
         do {
             let span = try XCTUnwrap(otel.spanProcessor.endedSpans.first)
 
-            XCTAssertEqual(span.attributes[DefaultURLSessionTaskHandler.SpanAttribute.method], .string(method))
+            XCTAssertEqual(span.attributes["http.request.method"], .string(method))
         } catch let exception {
             XCTFail("Couldn't get span: \(exception.localizedDescription)")
         }
@@ -456,7 +456,7 @@ private extension DefaultURLSessionTaskHandlerTests {
         do {
             let span = try XCTUnwrap(otel.spanProcessor.endedSpans.first)
 
-            XCTAssertEqual(span.attributes[DefaultURLSessionTaskHandler.SpanAttribute.bodySize], .int(bodySize))
+            XCTAssertEqual(span.attributes["http.request.body.size"], .int(bodySize))
         } catch let exception {
             XCTFail("Couldn't get span: \(exception.localizedDescription)")
         }

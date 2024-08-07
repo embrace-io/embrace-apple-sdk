@@ -4,6 +4,7 @@
 
 import Foundation
 import EmbraceOTelInternal
+import EmbraceSemantics
 
 struct SpanPayload: Encodable {
     let traceId: String
@@ -50,7 +51,7 @@ struct SpanPayload: Encodable {
 
         var attributeArray = PayloadUtils.convertSpanAttributes(span.attributes)
         if failed {
-            attributeArray.append(Attribute(key: "emb.error_code", value: "failure"))
+            attributeArray.append(Attribute(key: SpanSemantics.keyErrorCode, value: "failure"))
         }
         self.attributes = attributeArray
     }

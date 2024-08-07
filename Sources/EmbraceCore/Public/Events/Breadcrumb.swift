@@ -5,6 +5,7 @@
 import Foundation
 import EmbraceOTelInternal
 import EmbraceCommonInternal
+import EmbraceSemantics
 
 /// Class used to represent a Breadcrum as a SpanEvent.
 /// Usage example:
@@ -15,22 +16,16 @@ public class Breadcrumb: NSObject, SpanEvent {
     public let timestamp: Date
     public private(set) var attributes: [String: AttributeValue]
 
-    private enum Constants {
-        static let name = "emb-breadcrumb"
-        static let messageKey = "message"
-        static let typeKey = "emb.type"
-    }
-
     init(
         message: String,
         timestamp: Date = Date(),
         attributes: [String: AttributeValue]
     ) {
-        self.name = Constants.name
+        self.name = SpanEventSemantics.Bradcrumb.name
         self.timestamp = timestamp
         self.attributes = attributes
-        self.attributes[Constants.messageKey] = .string(message)
-        self.attributes[Constants.typeKey] = .string(LogType.breadcrumb.rawValue)
+        self.attributes[SpanEventSemantics.Bradcrumb.keyMessage] = .string(message)
+        self.attributes[SpanEventSemantics.keyEmbraceType] = .string(SpanType.breadcrumb.rawValue)
     }
 }
 

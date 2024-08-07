@@ -6,6 +6,7 @@ import Foundation
 import EmbraceCaptureService
 import EmbraceCommonInternal
 import EmbraceOTelInternal
+import EmbraceSemantics
 import OpenTelemetryApi
 
 /// Service that generates OpenTelemetry span events when the application receives a low memory warning.
@@ -35,7 +36,13 @@ public class LowMemoryWarningCaptureService: CaptureService {
             return
         }
 
-        let event = RecordingSpanEvent(name: "emb-device-low-memory", timestamp: Date())
+        let event = RecordingSpanEvent(
+            name: SpanEventSemantics.LowMemory.name,
+            timestamp: Date(),
+            attributes: [
+                SpanEventSemantics.keyEmbraceType: .string(SpanType.lowMemory.rawValue)
+            ]
+        )
 
         if add(event: event) {
             onWarningCaptured?()

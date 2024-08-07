@@ -5,6 +5,7 @@
 import EmbraceStorageInternal
 import EmbraceObjCUtilsInternal
 import EmbraceCommonInternal
+import EmbraceSemantics
 
 class EmbraceLogAttributesBuilder {
     private weak var storage: EmbraceStorageMetadataFetcher?
@@ -15,18 +16,6 @@ class EmbraceLogAttributesBuilder {
 
     private var currentSession: SessionRecord? {
         session ?? sessionControllable?.currentSession
-    }
-
-    private enum Keys {
-        static let type = "emb.type"
-        static let state = "emb.state"
-        static let sessionId = "emb.session_id"
-        static let stackTrace = "emb.stacktrace.ios"
-        static let propertiesPrefix = "emb.properties.%@"
-
-        static let crashId = "log.record.uid"
-        static let crashProvider = "emb.provider"
-        static let crashPayload = "emb.payload"
     }
 
     init(storage: EmbraceStorageMetadataFetcher,
@@ -54,7 +43,7 @@ class EmbraceLogAttributesBuilder {
         do {
             let jsonData = try JSONSerialization.data(withJSONObject: processedStackTrace, options: [])
             let stackTraceInBase64 = jsonData.base64EncodedString()
-            attributes[Keys.stackTrace] = stackTraceInBase64
+            attributes[LogSemantics.keyStackTrace] = stackTraceInBase64
         } catch let exception {
             Embrace.logger.error("Couldn't convert stack trace to json string: \(exception.localizedDescription)")
         }
@@ -65,10 +54,10 @@ class EmbraceLogAttributesBuilder {
     /// If not set, will set the `emb.type` to the value
     @discardableResult
     func addLogType(_ logType: LogType) -> Self {
-        guard attributes[Keys.type] == nil else {
+        guard attributes[LogSemantics.keyEmbraceType] == nil else {
             return self
         }
-        attributes[Keys.type] = logType.rawValue
+        attributes[LogSemantics.keyEmbraceType] = logType.rawValue
         return self
     }
 
@@ -87,7 +76,7 @@ class EmbraceLogAttributesBuilder {
                 }
 
                 if let value = record.stringValue {
-                    let key = String(format: Keys.propertiesPrefix, record.key)
+                    let key = String(format: LogSemantics.keyPropertiesPrefix, record.key)
                     attributes[key] = value
                 }
             }
@@ -100,7 +89,7 @@ class EmbraceLogAttributesBuilder {
         guard let state = currentSession?.state else {
             return self
         }
-        attributes[Keys.state] = state
+        attributes[LogSemantics.keyState] = state
         return self
     }
 
@@ -109,7 +98,7 @@ class EmbraceLogAttributesBuilder {
         guard let sessionId = currentSession?.id else {
             return self
         }
-        attributes[Keys.sessionId] = sessionId.toString
+        attributes[LogSemantics.keySessionId] = sessionId.toString
         return self
     }
 
@@ -119,9 +108,9 @@ class EmbraceLogAttributesBuilder {
             return self
         }
 
-        attributes[Keys.crashId] = crashReport.id.withoutHyphen
-        attributes[Keys.crashProvider] = crashReport.provider
-        attributes[Keys.crashPayload] = crashReport.payload
+        attributes[LogSemantics.Crash.keyId] = crashReport.id.withoutHyphen
+        attributes[LogSemantics.Crash.keyProvider] = crashReport.provider
+        attributes[LogSemantics.Crash.keyPayload] = crashReport.payload
 
         return self
     }

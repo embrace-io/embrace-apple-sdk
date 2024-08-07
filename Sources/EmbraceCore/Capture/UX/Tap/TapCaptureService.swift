@@ -6,6 +6,7 @@ import UIKit
 import EmbraceCaptureService
 import EmbraceCommonInternal
 import EmbraceOTelInternal
+import EmbraceSemantics
 
 /// Service that generates OpenTelemetry span events for taps on the screen.
 /// Note that any taps done on a keyboard view will be automatically ignored.
@@ -79,14 +80,14 @@ public final class TapCaptureService: CaptureService {
         let viewName = accessibilityIdentifier ?? String(describing: targetClass)
 
         var attributes: [String: AttributeValue] = [
-            Constants.viewName: .string(viewName),
-            "emb.type": .string(Constants.eventType)
+            SpanEventSemantics.Tap.keyViewName: .string(viewName),
+            SpanEventSemantics.keyEmbraceType: .string(SpanType.tap.rawValue)
         ]
 
         // get coordinates
         if shouldRecordCoordinates(from: target) {
             let point = touch.location(in: target.window)
-            attributes[Constants.tapCoordinates] = .string(point.toString())
+            attributes[SpanEventSemantics.Tap.keyCoordinates] = .string(point.toString())
             Embrace.logger.trace("Captured tap at \(point) on: \(viewName)")
         } else {
             Embrace.logger.trace("Captured tap with no coordinates on: \(viewName)")
@@ -94,7 +95,7 @@ public final class TapCaptureService: CaptureService {
 
         // create span event
         let event = RecordingSpanEvent(
-            name: Constants.eventName,
+            name: SpanEventSemantics.Tap.name,
             timestamp: Date(),
             attributes: attributes
         )
@@ -117,13 +118,6 @@ public final class TapCaptureService: CaptureService {
         }
 
         return !(target.isKind(of: keyboardViewClass) || target.isKind(of: keyboardWindowClass))
-    }
-
-    struct Constants {
-        static let eventName = "emb-ui-tap"
-        static let eventType = "ux.tap"
-        static let viewName = "view.name"
-        static let tapCoordinates = "tap.coords"
     }
 }
 

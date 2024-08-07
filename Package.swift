@@ -23,10 +23,13 @@ let package = Package(
         .library(name: "EmbraceCore", targets: ["EmbraceCore"]),
         .library(name: "EmbraceCrash", targets: ["EmbraceCrash"]),
         .library(name: "EmbraceCrashlyticsSupport", targets: ["EmbraceCrashlyticsSupport"]),
+        .library(name: "EmbraceSemantics", targets: ["EmbraceSemantics"]),
+
         .library(name: "EmbraceIO-Dynamic", type: .dynamic, targets: ["EmbraceIO"]),
         .library(name: "EmbraceCore-Dynamic", type: .dynamic, targets: ["EmbraceCore"]),
         .library(name: "EmbraceCrash-Dynamic", type: .dynamic, targets: ["EmbraceCrash"]),
-        .library(name: "EmbraceCrashlyticsSupport-Dynamic", type: .dynamic, targets: ["EmbraceCrashlyticsSupport"])
+        .library(name: "EmbraceCrashlyticsSupport-Dynamic", type: .dynamic, targets: ["EmbraceCrashlyticsSupport"]),
+        .library(name: "EmbraceSemantics-Dynamic", type: .dynamic, targets: ["EmbraceSemantics"]),
     ],
     dependencies: [
         .package(
@@ -58,7 +61,8 @@ let package = Package(
                 "EmbraceCaptureService",
                 "EmbraceCore",
                 "EmbraceCommonInternal",
-                "EmbraceCrash"
+                "EmbraceCrash",
+                "EmbraceSemantics"
             ],
             plugins: targetPlugins
         ),
@@ -86,6 +90,7 @@ let package = Package(
                 "EmbraceStorageInternal",
                 "EmbraceUploadInternal",
                 "EmbraceObjCUtilsInternal",
+                "EmbraceSemantics"
             ],
             resources: [
                 .copy("PrivacyInfo.xcprivacy")
@@ -116,6 +121,15 @@ let package = Package(
             dependencies: [
                 "EmbraceCommonInternal",
                 "TestSupport"
+            ],
+            plugins: targetPlugins
+        ),
+
+        // semantics -----------------------------------------------------------------
+        .target(
+            name: "EmbraceSemantics",
+            dependencies: [
+                "EmbraceCommonInternal"
             ],
             plugins: targetPlugins
         ),
@@ -164,6 +178,7 @@ let package = Package(
             name: "EmbraceOTelInternal",
             dependencies: [
                 "EmbraceCommonInternal",
+                "EmbraceSemantics",
                 .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
             ],
             plugins: targetPlugins
@@ -182,6 +197,7 @@ let package = Package(
             name: "EmbraceStorageInternal",
             dependencies: [
                 "EmbraceCommonInternal",
+                "EmbraceSemantics",
                 .product(name: "GRDB", package: "GRDB.swift")
             ],
             plugins: targetPlugins

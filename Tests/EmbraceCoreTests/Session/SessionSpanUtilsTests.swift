@@ -37,24 +37,12 @@ final class SessionSpanUtilsTests: XCTestCase {
 
         // then the span is correct
         let spanData = spanProcessor.startedSpans[0]
-        XCTAssertEqual(spanData.name, SessionSpanUtils.spanName)
+        XCTAssertEqual(spanData.name, "emb-session")
         XCTAssertEqual(spanData.startTime, TestConstants.date)
-        XCTAssertEqual(
-            spanData.attributes[SessionSpanUtils.AttributeKey.type.rawValue],
-            .string(SessionSpanUtils.spanType)
-        )
-        XCTAssertEqual(
-            spanData.attributes[SessionSpanUtils.AttributeKey.id.rawValue],
-            .string(TestConstants.sessionId.toString)
-        )
-        XCTAssertEqual(
-            spanData.attributes[SessionSpanUtils.AttributeKey.state.rawValue],
-            .string(SessionState.foreground.rawValue)
-        )
-        XCTAssertEqual(
-            spanData.attributes[SessionSpanUtils.AttributeKey.coldStart.rawValue],
-            .bool(true)
-        )
+        XCTAssertEqual(spanData.attributes["emb.type"], .string("ux.session"))
+        XCTAssertEqual(spanData.attributes["emb.session_id"], .string(TestConstants.sessionId.toString))
+        XCTAssertEqual(spanData.attributes["emb.state"], .string(SessionState.foreground.rawValue))
+        XCTAssertEqual(spanData.attributes["emb.cold_start"], .bool(true))
     }
 
     func test_setState() throws {
@@ -72,10 +60,7 @@ final class SessionSpanUtilsTests: XCTestCase {
 
         // then it is updated correctly
         let spanData = spanProcessor.endedSpans[0]
-        XCTAssertEqual(
-            spanData.attributes[SessionSpanUtils.AttributeKey.state.rawValue],
-            .string(SessionState.background.rawValue)
-        )
+        XCTAssertEqual(spanData.attributes["emb.state"], .string(SessionState.background.rawValue))
     }
 
     func test_setHeartbeat() throws {
@@ -95,7 +80,7 @@ final class SessionSpanUtilsTests: XCTestCase {
         // then it is updated correctly
         let spanData = spanProcessor.endedSpans[0]
         XCTAssertEqual(
-            spanData.attributes[SessionSpanUtils.AttributeKey.heartbeat.rawValue],
+            spanData.attributes["emb.heartbeat_time_unix_nano"],
             .int(heartbeat.nanosecondsSince1970Truncated)
         )
     }
@@ -115,10 +100,7 @@ final class SessionSpanUtilsTests: XCTestCase {
 
         // then it is updated correctly
         let spanData = spanProcessor.endedSpans[0]
-        XCTAssertEqual(
-            spanData.attributes[SessionSpanUtils.AttributeKey.terminated.rawValue],
-            .bool(true)
-        )
+        XCTAssertEqual(spanData.attributes["emb.terminated"], .bool(true))
     }
 
     func test_setCleanExit() throws {
@@ -136,10 +118,7 @@ final class SessionSpanUtilsTests: XCTestCase {
 
         // then it is updated correctly
         let spanData = spanProcessor.endedSpans[0]
-        XCTAssertEqual(
-            spanData.attributes[SessionSpanUtils.AttributeKey.cleanExit.rawValue],
-            .bool(true)
-        )
+        XCTAssertEqual(spanData.attributes["emb.clean_exit"], .bool(true))
     }
 
     func test_payloadFromSesssion() throws {
@@ -166,7 +145,7 @@ final class SessionSpanUtilsTests: XCTestCase {
         let payload = SessionSpanUtils.payload(from: session, sessionNumber: 100)
 
         // then the payload is correct
-        XCTAssertEqual(payload.name, SessionSpanUtils.spanName)
+        XCTAssertEqual(payload.name, "emb-session")
         XCTAssertEqual(payload.traceId, TestConstants.traceId)
         XCTAssertEqual(payload.spanId, TestConstants.spanId)
         XCTAssertNil(payload.parentSpanId)
@@ -177,47 +156,47 @@ final class SessionSpanUtilsTests: XCTestCase {
         XCTAssertEqual(payload.links.count, 0)
 
         let typeAttribute = payload.attributes.first {
-            $0.key == SessionSpanUtils.AttributeKey.type.rawValue
+            $0.key == "emb.type"
         }
-        XCTAssertEqual(typeAttribute!.value, SessionSpanUtils.spanType)
+        XCTAssertEqual(typeAttribute!.value, "ux.session")
 
         let sessionAttribute = payload.attributes.first {
-            $0.key == SessionSpanUtils.AttributeKey.id.rawValue
+            $0.key == "emb.session_id"
         }
         XCTAssertEqual(sessionAttribute!.value, TestConstants.sessionId.toString)
 
         let stateAttribute = payload.attributes.first {
-            $0.key == SessionSpanUtils.AttributeKey.state.rawValue
+            $0.key == "emb.state"
         }
         XCTAssertEqual(stateAttribute!.value, SessionState.foreground.rawValue)
 
         let coldStartAttribute = payload.attributes.first {
-            $0.key == SessionSpanUtils.AttributeKey.coldStart.rawValue
+            $0.key == "emb.cold_start"
         }
         XCTAssertEqual(coldStartAttribute!.value, "true")
 
         let terminatedAttribute = payload.attributes.first {
-            $0.key == SessionSpanUtils.AttributeKey.terminated.rawValue
+            $0.key == "emb.terminated"
         }
         XCTAssertEqual(terminatedAttribute!.value, "true")
 
         let cleanExitAttribute = payload.attributes.first {
-            $0.key == SessionSpanUtils.AttributeKey.cleanExit.rawValue
+            $0.key == "emb.clean_exit"
         }
         XCTAssertEqual(cleanExitAttribute!.value, "false")
 
         let heartbeatAttribute = payload.attributes.first {
-            $0.key == SessionSpanUtils.AttributeKey.heartbeat.rawValue
+            $0.key == "emb.heartbeat_time_unix_nano"
         }
         XCTAssertEqual(heartbeatAttribute!.value, String(heartbeat.nanosecondsSince1970Truncated))
 
         let sessionNumberAttribute = payload.attributes.first {
-            $0.key == SessionSpanUtils.AttributeKey.sessionNumber.rawValue
+            $0.key == "emb.session_number"
         }
         XCTAssertEqual(sessionNumberAttribute!.value, "100")
 
         let crashIdAttribute = payload.attributes.first {
-            $0.key == SessionSpanUtils.AttributeKey.crashId.rawValue
+            $0.key == "emb.crash_id"
         }
         XCTAssertEqual(crashIdAttribute!.value, "test")
     }
