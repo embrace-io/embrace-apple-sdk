@@ -150,7 +150,11 @@ jobs:
               Sources/EmbraceCommonInternal/EmbraceMeta.swift
           git diff --cached
           git commit -m "CI/CD: Bumps version to '$RC_VERSION'"
-          git push
+          if [ -z "$BASE_BRANCH" ]; then
+            git push
+          else
+            git push origin $BASE_BRANCH
+          fi
 
       - name: Select Xcode 15
         run: sudo xcode-select -switch /Applications/Xcode_15.1.app
