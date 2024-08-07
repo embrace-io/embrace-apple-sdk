@@ -2,21 +2,13 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
-
-// MARK: - Primary categories
-extension LogType {
-    public static let system = LogType(primary: .system)
-}
+import EmbraceCommonInternal
 
 // MARK: - System
 extension LogType {
 
     /// Used for Embrace Log messages. Use this type for common application logs 
     public static let message = LogType(system: "log")
-
-    /// Used for crash reports
-    public static let crash = LogType(system: "ios.crash")
 
     /// Used for exception messages
     public static let exception = LogType(system: "exception")
