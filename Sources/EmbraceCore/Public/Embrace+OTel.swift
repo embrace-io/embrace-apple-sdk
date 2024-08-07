@@ -7,8 +7,12 @@ import EmbraceCommonInternal
 import EmbraceOTelInternal
 
 extension Embrace: EmbraceOpenTelemetry {
-
-    private var exporter: EmbraceSpanExporter { StorageSpanExporter(options: .init(storage: storage)) }
+    private var exporter: EmbraceSpanExporter {
+        StorageSpanExporter(
+            options: .init(storage: storage),
+            logger: Embrace.logger
+        )
+    }
 
     private var otel: EmbraceOTel { EmbraceOTel() }
 
