@@ -9,12 +9,6 @@ struct MemoryPressureSimulatorView: View {
 
     var body: some View {
         VStack {
-            Text("Memory Pressure Simulator")
-                .padding(.horizontal)
-                .font(.largeTitle)
-                .bold()
-                .minimumScaleFactor(0.1)
-                .lineLimit(1)
             Spacer()
             Text("Memory Used: \(simulator.totalMemoryBytes / 1024 / 1024) MB")
                 .font(.title2)
@@ -40,7 +34,7 @@ struct MemoryPressureSimulatorView: View {
             }
             .buttonStyle(.borderedProminent)
             .padding(.horizontal)
-        }
+        }.navigationTitle("Memory Pressure Simulator")
     }
 
     private func executeMemoryWarning() {

@@ -7,6 +7,7 @@ import XCTest
 @testable import EmbraceCore
 @testable import EmbraceOTelInternal
 import EmbraceStorageInternal
+import TestSupport
 
 final class EmbraceSpanProcessor_StorageTests: XCTestCase {
 
@@ -15,7 +16,12 @@ final class EmbraceSpanProcessor_StorageTests: XCTestCase {
         defer {
             try? storage.teardown()
         }
-        let processor = SingleSpanProcessor(spanExporter: StorageSpanExporter(options: .init(storage: storage)))
+        let processor = SingleSpanProcessor(
+            spanExporter: StorageSpanExporter(
+                options: .init(storage: storage),
+                logger: MockLogger()
+            )
+        )
         XCTAssert(processor.spanExporter is StorageSpanExporter)
     }
 }

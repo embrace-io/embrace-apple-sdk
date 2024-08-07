@@ -18,12 +18,12 @@ class LogTypeDeclarationTests: XCTestCase {
         XCTAssertEqual(LogType.system.rawValue, "sys")
     }
 
-    // MARK: - Default
-    func test_logTypeDefault_isSysLogString() {
-        XCTAssertEqual(LogType.default.rawValue, "sys.log")
+    // MARK: - Message
+    func test_logTypeMessage_isSysLogString() {
+        XCTAssertEqual(LogType.message.rawValue, "sys.log")
     }
 
-    func test_logTypeDefault_isPrimarySystemAndSecondaryLog() {
-        XCTAssertEqual(LogType.default, .init(primary: .system, secondary: "log"))
+    func test_logTypeMessage_isPrimarySystemAndSecondaryLog() {
+        XCTAssertEqual(LogType.message, .init(primary: .system, secondary: "log"))
     }
 }

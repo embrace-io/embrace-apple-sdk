@@ -9,7 +9,12 @@ import EmbraceStorageInternal
 extension Collection where Element == SpanProcessor {
     static func processors(for storage: EmbraceStorage, export: OpenTelemetryExport?) -> [SpanProcessor] {
         var processors: [SpanProcessor] = [
-            SingleSpanProcessor(spanExporter: StorageSpanExporter(options: .init(storage: storage)))
+            SingleSpanProcessor(
+                spanExporter: StorageSpanExporter(
+                    options: .init(storage: storage),
+                    logger: Embrace.logger
+                )
+            )
         ]
 
         if let external = export?.spanExporter {

@@ -15,7 +15,9 @@ struct MenuList: View {
                NavigationLink(destination: LazyView(UserInfo())) {
                    Text("User Information")
                }
-               .contentShape(Rectangle())
+                NavigationLink(destination: SessionAttributesView()) {
+                    Text("Session Attributes")
+                }
             }
 
             Section("Mini-Games") {

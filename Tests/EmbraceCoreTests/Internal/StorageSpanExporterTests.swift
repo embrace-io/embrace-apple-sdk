@@ -9,12 +9,13 @@ import XCTest
 @testable import OpenTelemetrySdk
 import OpenTelemetryApi
 import EmbraceStorageInternal
+import TestSupport
 
 final class StorageSpanExporterTests: XCTestCase {
     func test_DB_preventsClosedSpan_fromUpdatingEndTime() throws {
         // Given
         let storage = try EmbraceStorage.createInMemoryDb()
-        let exporter = StorageSpanExporter(options: .init(storage: storage))
+        let exporter = StorageSpanExporter(options: .init(storage: storage), logger: MockLogger())
 
         let traceId = TraceId.random()
         let spanId = SpanId.random()
@@ -57,7 +58,7 @@ final class StorageSpanExporterTests: XCTestCase {
     func test_DB_allowsOpenSpan_toUpdateAttributes() throws {
         // Given
         let storage = try EmbraceStorage.createInMemoryDb()
-        let exporter = StorageSpanExporter(options: .init(storage: storage))
+        let exporter = StorageSpanExporter(options: .init(storage: storage), logger: MockLogger())
 
         let traceId = TraceId.random()
         let spanId = SpanId.random()

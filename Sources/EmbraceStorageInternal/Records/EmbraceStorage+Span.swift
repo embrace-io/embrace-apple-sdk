@@ -51,12 +51,15 @@ extension EmbraceStorage {
     /// Adds or updates a `SpanRecord` to the storage synchronously.
     /// - Parameter record: `SpanRecord` to upsert
     public func upsertSpan(_ span: SpanRecord) throws {
-        try dbQueue.write { [weak self] db in
-            do {
+        do {
+            try dbQueue.write { [weak self] db in
                 try self?.upsertSpan(db: db, span: span)
-            } catch let e as DatabaseError {
-                self?.logger.error("Failed upsertSpan `\(span.name)`: \(e.message ?? "[empty message]")")
             }
+        } catch let exception as DatabaseError {
+            throw EmbraceStorageError.cannotUpsertSpan(
+                spanName: span.name,
+                message: exception.message ?? "[empty message]"
+            )
         }
     }
 

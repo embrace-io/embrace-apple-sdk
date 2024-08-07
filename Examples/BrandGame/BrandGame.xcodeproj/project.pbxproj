@@ -49,6 +49,7 @@
 		FA3B0A172C3C2A5600315578 /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = FA3B0A162C3C2A5600315578 /* EmbraceIO */; };
 		FA4C5F332C486E13005C0371 /* CreateSpanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA4C5F322C486E13005C0371 /* CreateSpanView.swift */; };
 		FA4C5F352C487B45005C0371 /* AttributesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA4C5F342C487B45005C0371 /* AttributesView.swift */; };
+		FA4FA4FA2C62DBB600E66300 /* NoSpacesTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA4FA4F92C62DBB600E66300 /* NoSpacesTextField.swift */; };
 		FA716C7E2C45B94A00AD0161 /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = FA716C7D2C45B94A00AD0161 /* EmbraceCore */; };
 		FA716C802C45B94A00AD0161 /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = FA716C7F2C45B94A00AD0161 /* EmbraceCrash */; };
 		FA716C822C45B94A00AD0161 /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = FA716C812C45B94A00AD0161 /* EmbraceCrashlyticsSupport */; };
@@ -57,6 +58,7 @@
 		FA9505162B86640F00562A4C /* LoggingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA9505152B86640F00562A4C /* LoggingView.swift */; };
 		FAB41A9F2C49492200972BA9 /* PopUpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAB41A9E2C49492200972BA9 /* PopUpView.swift */; };
 		FAB41AA22C49556100972BA9 /* PopUpViewModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAB41AA12C49556100972BA9 /* PopUpViewModifier.swift */; };
+		FABF7EE12C627A8C00E84140 /* SessionAttributesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FABF7EE02C627A8C00E84140 /* SessionAttributesView.swift */; };
 		FADB905E2C333B8B00079005 /* WebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADB905D2C333B8B00079005 /* WebView.swift */; };
 		FADB90602C333BBA00079005 /* BrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADB905F2C333BBA00079005 /* BrowserView.swift */; };
 		FAF85DF52C45B1C6002306FF /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = FAF85DF42C45B1C6002306FF /* EmbraceCore */; };
@@ -128,10 +130,12 @@
 		7BCB662D2AC476BC00ABD33A /* NetworkStressTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkStressTest.swift; sourceTree = "<group>"; };
 		FA4C5F322C486E13005C0371 /* CreateSpanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateSpanView.swift; sourceTree = "<group>"; };
 		FA4C5F342C487B45005C0371 /* AttributesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributesView.swift; sourceTree = "<group>"; };
+		FA4FA4F92C62DBB600E66300 /* NoSpacesTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoSpacesTextField.swift; sourceTree = "<group>"; };
 		FA910EF02C4835B100C2E2E4 /* OpenTelemetryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenTelemetryView.swift; sourceTree = "<group>"; };
 		FA9505152B86640F00562A4C /* LoggingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoggingView.swift; sourceTree = "<group>"; };
 		FAB41A9E2C49492200972BA9 /* PopUpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopUpView.swift; sourceTree = "<group>"; };
 		FAB41AA12C49556100972BA9 /* PopUpViewModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopUpViewModifier.swift; sourceTree = "<group>"; };
+		FABF7EE02C627A8C00E84140 /* SessionAttributesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionAttributesView.swift; sourceTree = "<group>"; };
 		FADB905D2C333B8B00079005 /* WebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebView.swift; sourceTree = "<group>"; };
 		FADB905F2C333BBA00079005 /* BrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserView.swift; sourceTree = "<group>"; };
 		FAFDA3CF2C333FC900AD17CF /* NetworkRequestBuilderView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NetworkRequestBuilderView.swift; sourceTree = "<group>"; };
@@ -369,6 +373,7 @@
 		7BCB66252AC4726100ABD33A /* Menu */ = {
 			isa = PBXGroup;
 			children = (
+				FABF7EDF2C627A7A00E84140 /* SessionAttributes */,
 				7B3143C02AFDECE900BA0D2F /* Minigames */,
 				FA910EEF2C48359900C2E2E4 /* OpenTelemetry */,
 				7B4FFC312B1E8104006239F7 /* UserInfo */,
@@ -413,6 +418,14 @@
 			path = Network;
 			sourceTree = "<group>";
 		};
+		FA4FA4F82C62DBAA00E66300 /* TextFields */ = {
+			isa = PBXGroup;
+			children = (
+				FA4FA4F92C62DBB600E66300 /* NoSpacesTextField.swift */,
+			);
+			path = TextFields;
+			sourceTree = "<group>";
+		};
 		FA910EEF2C48359900C2E2E4 /* OpenTelemetry */ = {
 			isa = PBXGroup;
 			children = (
@@ -433,6 +446,7 @@
 		FAB41A9D2C4948F900972BA9 /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				FA4FA4F82C62DBAA00E66300 /* TextFields */,
 				FAB41AA02C49555300972BA9 /* PopUp */,
 			);
 			path = Components;
@@ -445,6 +459,14 @@
 				FAB41AA12C49556100972BA9 /* PopUpViewModifier.swift */,
 			);
 			path = PopUp;
+			sourceTree = "<group>";
+		};
+		FABF7EDF2C627A7A00E84140 /* SessionAttributes */ = {
+			isa = PBXGroup;
+			children = (
+				FABF7EE02C627A8C00E84140 /* SessionAttributesView.swift */,
+			);
+			path = SessionAttributes;
 			sourceTree = "<group>";
 		};
 		FADB905C2C333B6400079005 /* Browser */ = {
@@ -612,6 +634,7 @@
 				7BCB662E2AC476BC00ABD33A /* NetworkStressTest.swift in Sources */,
 				7B005D762AD72E080073CAC4 /* App+Embrace.swift in Sources */,
 				7B62AD9B2B005FE20087C2AE /* AppSettings.swift in Sources */,
+				FA4FA4FA2C62DBB600E66300 /* NoSpacesTextField.swift in Sources */,
 				7BBBCD5B2BD07CE000BC289A /* GitInfo+InfoPlist.swift in Sources */,
 				FAB41A9F2C49492200972BA9 /* PopUpView.swift in Sources */,
 				7B62ADA52B0068960087C2AE /* SimonGameModel.swift in Sources */,
@@ -620,6 +643,7 @@
 				7BBBCD5D2BD07DE600BC289A /* App+GitInfo.swift in Sources */,
 				FAFDA3D32C333FC900AD17CF /* RequestResponseDetail.swift in Sources */,
 				7B5630A22AC1291D00E0DF39 /* BrandIconShape.swift in Sources */,
+				FABF7EE12C627A8C00E84140 /* SessionAttributesView.swift in Sources */,
 				7B62AD932B0027280087C2AE /* ReflexMinigameView.swift in Sources */,
 				FAB41AA22C49556100972BA9 /* PopUpViewModifier.swift in Sources */,
 				7B3143BF2AFDECCF00BA0D2F /* Icon+Meta.swift in Sources */,

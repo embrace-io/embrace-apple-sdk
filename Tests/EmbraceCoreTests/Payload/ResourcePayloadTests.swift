@@ -39,9 +39,9 @@ class ResourcePayloadTests: XCTestCase {
             // session counter
             MetadataRecord.createResourceRecord(key: SessionPayloadBuilder.resourceName, value: "10"),
 
-            // Random properties that shouldn't be used
-            MetadataRecord.userMetadata(key: "random_user_metadata_property", value: "value"),
-            MetadataRecord.createResourceRecord(key: "random_resource_property", value: "value")
+            // Random properties that should be used
+            MetadataRecord.userMetadata(key: "random_user_metadata_property", value: "value1"),
+            MetadataRecord.createResourceRecord(key: "random_resource_property", value: "value2")
         ])
 
         let jsonData = try JSONEncoder().encode(payloadStruct)
@@ -73,15 +73,9 @@ class ResourcePayloadTests: XCTestCase {
 
         let jsonKeys = Set(json.keys)
         let expectedKeys = Set(ResourcePayload.CodingKeys.allCases.map { $0.rawValue })
-
-        XCTAssertEqual(
-            jsonKeys,
-            expectedKeys,
-            "Unexpected keys: \(jsonKeys.subtracting(expectedKeys)) Missing keys: \(expectedKeys.subtracting(jsonKeys))"
-        )
-
-        XCTAssertNil(json["random_user_metadata_property"])
-        XCTAssertNil(json["random_resource_property"])
+        XCTAssertTrue(jsonKeys.isSuperset(of: expectedKeys))
+        XCTAssertEqual(json["random_user_metadata_property"] as? String, "value1")
+        XCTAssertEqual(json["random_resource_property"] as? String, "value2")
     }
 
     func test_encodeToJSON_alwaysHasBundleId() throws {

@@ -4,17 +4,18 @@
 
 import EmbraceStorageInternal
 import EmbraceOTelInternal
+import EmbraceCommonInternal
 
 class StorageSpanExporter: EmbraceSpanExporter {
-
     private(set) weak var storage: EmbraceStorage?
+    private weak var logger: InternalLogger?
 
     let validation: SpanDataValidation
 
-    init(options: Options) {
+    init(options: Options, logger: InternalLogger) {
         self.storage = options.storage
-
         self.validation = SpanDataValidation(validators: options.validators)
+        self.logger = logger
     }
 
     @discardableResult public func export(spans: [SpanData]) -> SpanExporterResultCode {
@@ -29,7 +30,8 @@ class StorageSpanExporter: EmbraceSpanExporter {
             if isValid, let record = buildRecord(from: spanData) {
                 do {
                     try storage.upsertSpan(record)
-                } catch {
+                } catch let exception {
+                    self.logger?.error(exception.localizedDescription)
                     result = .failure
                 }
             } else {

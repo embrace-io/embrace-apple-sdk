@@ -40,7 +40,7 @@ struct CrashExampleTest: View {
             Text("Submitting this form will cause the app to crash")
                 .foregroundStyle(Color.secondary)
                 .listRowBackground(Color.clear)
-        }
+        }.navigationTitle("Crash Examples")
     }
 
     func title(for example: ExampleCrash) -> String {
