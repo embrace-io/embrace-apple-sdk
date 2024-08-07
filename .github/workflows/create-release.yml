@@ -109,11 +109,24 @@ jobs:
       - extractor
     env:
       RC_VERSION: ${{ needs.extractor.outputs.rc_version }}
+      IS_PRODUCTION_READY: ${{ needs.extractor.outputs.is_production_ready }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Determine base branch for the tag
+        if: env.IS_PRODUCTION_READY == 'true'
+        run: |
+          TAG_COMMIT=$(git rev-list -n 1 $RC_VERSION)
+          BASE_BRANCH=$(git branch -r --contains $TAG_COMMIT | head -n 1 | sed 's|origin/||')
+          echo "BASE_BRANCH=$BASE_BRANCH" >> $GITHUB_ENV
+
+      - name: Checkout base branch
+        if: env.IS_PRODUCTION_READY == 'true'
+        run: |
+          git checkout $BASE_BRANCH
 
       - name: Bump Version
         run: |
