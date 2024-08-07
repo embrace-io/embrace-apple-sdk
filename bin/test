@@ -79,6 +79,7 @@ xcodebuild \
     -derivedDataPath $DERIVED_DATA_PATH \
     -resultBundlePath $XCRESULT_PATH \
     -retry-tests-on-failure \
+    -test-iterations 2 \
     test
 
 # If we created a new simulator, delete it
