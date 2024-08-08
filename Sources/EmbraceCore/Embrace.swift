@@ -60,7 +60,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
     /// Returns the current `MetadataHandler` used to store resources and session properties.
     public let metadata: MetadataHandler
 
-    let config: EmbraceConfig
+    let config: EmbraceConfig?
     let storage: EmbraceStorage
     let upload: EmbraceUpload?
     let captureServices: CaptureServices
@@ -189,7 +189,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
                 return
             }
 
-            guard config.isSDKEnabled else {
+            guard config == nil || config?.isSDKEnabled == true else {
                 Embrace.logger.warning("Embrace can't start when disabled!")
                 return
             }
@@ -228,9 +228,10 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
 
     /// Returns the current session identifier, if any.
     @objc public func currentSessionId() -> String? {
-        guard config.isSDKEnabled else {
+        guard config == nil || config?.isSDKEnabled == true else {
             return nil
         }
+
         return sessionController.currentSession?.id.toString
     }
 
@@ -261,6 +262,8 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
 
     /// Called everytime the remote config changes
     @objc private func onConfigUpdated() {
-        Embrace.logger.limits = InternalLogLimits(config: config)
+        if let config = config {
+            Embrace.logger.limits = InternalLogLimits(config: config)
+        }
     }
 }

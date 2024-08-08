@@ -15,7 +15,7 @@ extension Embrace {
         @objc public let appId: String
         @objc public let appGroupId: String?
         @objc public let platform: Platform
-        @objc public let endpoints: Embrace.Endpoints
+        @objc public let endpoints: Embrace.Endpoints?
         @objc public let services: [CaptureService]
         @objc public let crashReporter: CrashReporter?
         @objc public let logLevel: LogLevel
@@ -54,22 +54,50 @@ extension Embrace {
             self.logLevel = logLevel
             self.export = export
         }
+
+        /// Initializer for `Embrace.Options` that does not require an appId.
+        /// Use this initializer if you don't want the SDK to send data to Embrace's servers.
+        /// You must provide your own `OpenTelemetryExport` on this mode.
+        ///
+        /// - Parameters:
+        ///   - platform: `Platform` in which the app will run. Defaults to `.iOS`.
+        ///   - captureServices: The `CaptureServices` to be installed.
+        ///   - crashReporter: The `CrashReporter` to be installed.
+        ///   - logLevel: The `LogLevel` to use for console logs.
+        ///   - export: `OpenTelemetryExport` object to export telemetry outside of the Embrace backend.
+        @objc public init(
+            platform: Platform = .default,
+            captureServices: [CaptureService],
+            crashReporter: CrashReporter?,
+            logLevel: LogLevel = .default,
+            export: OpenTelemetryExport
+        ) {
+            self.appId = "no_id"
+            self.appGroupId = nil
+            self.platform = platform
+            self.endpoints = nil
+            self.services = captureServices
+            self.crashReporter = crashReporter
+            self.logLevel = logLevel
+            self.export = export
+        }
     }
 }
 
 internal extension Embrace.Options {
     func validateAppId() throws {
-        // this also covers if it's empty
-        if self.appId.count != 5 {
+        if appId.count != 5 {
             throw EmbraceSetupError.invalidAppId("App Id must be 5 characters in length")
         }
     }
 
     func validateGroupId() throws {
-        if let groupId = self.appGroupId {
-            if groupId.isEmpty {
-                throw EmbraceSetupError.invalidAppGroupId("group id must not be empty if provided")
-            }
+        guard let groupId = self.appGroupId else {
+            return
+        }
+
+        if groupId.isEmpty {
+            throw EmbraceSetupError.invalidAppGroupId("group id must not be empty if provided")
         }
     }
 }
