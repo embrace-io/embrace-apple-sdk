@@ -69,7 +69,7 @@ public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandl
 
     var injectTracingHeader: Bool {
         // check remote config
-        guard Embrace.client?.config.isNetworkSpansForwardingEnabled == true else {
+        guard Embrace.client?.config?.isNetworkSpansForwardingEnabled == true else {
             return false
         }
 
