@@ -13,13 +13,3 @@ public protocol EmbraceLogSharedState {
 
     func update(_ config: any EmbraceLoggerConfig)
 }
-
-extension EmbraceLogSharedState {
-    func getResource() -> Resource {
-        var attributes: [String: AttributeValue] = [:]
-        resourceProvider.getResources().forEach {
-            attributes[$0.key] = $0.value
-        }
-        return Resource(attributes: attributes)
-    }
-}
