@@ -24,12 +24,6 @@ let package = Package(
         .library(name: "EmbraceCrash", targets: ["EmbraceCrash"]),
         .library(name: "EmbraceCrashlyticsSupport", targets: ["EmbraceCrashlyticsSupport"]),
         .library(name: "EmbraceSemantics", targets: ["EmbraceSemantics"]),
-
-        .library(name: "EmbraceIO-Dynamic", type: .dynamic, targets: ["EmbraceIO"]),
-        .library(name: "EmbraceCore-Dynamic", type: .dynamic, targets: ["EmbraceCore"]),
-        .library(name: "EmbraceCrash-Dynamic", type: .dynamic, targets: ["EmbraceCrash"]),
-        .library(name: "EmbraceCrashlyticsSupport-Dynamic", type: .dynamic, targets: ["EmbraceCrashlyticsSupport"]),
-        .library(name: "EmbraceSemantics-Dynamic", type: .dynamic, targets: ["EmbraceSemantics"]),
     ],
     dependencies: [
         .package(

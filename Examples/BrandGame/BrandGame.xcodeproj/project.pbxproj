@@ -61,6 +61,11 @@
 		FABF7EE12C627A8C00E84140 /* SessionAttributesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FABF7EE02C627A8C00E84140 /* SessionAttributesView.swift */; };
 		FADB905E2C333B8B00079005 /* WebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADB905D2C333B8B00079005 /* WebView.swift */; };
 		FADB90602C333BBA00079005 /* BrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADB905F2C333BBA00079005 /* BrowserView.swift */; };
+		FAEF5A112C6BA46F00484474 /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = FAEF5A102C6BA46F00484474 /* EmbraceCore */; };
+		FAEF5A132C6BA46F00484474 /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = FAEF5A122C6BA46F00484474 /* EmbraceCrash */; };
+		FAEF5A152C6BA46F00484474 /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = FAEF5A142C6BA46F00484474 /* EmbraceCrashlyticsSupport */; };
+		FAEF5A172C6BA46F00484474 /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = FAEF5A162C6BA46F00484474 /* EmbraceIO */; };
+		FAEF5A192C6BA46F00484474 /* EmbraceSemantics in Frameworks */ = {isa = PBXBuildFile; productRef = FAEF5A182C6BA46F00484474 /* EmbraceSemantics */; };
 		FAF85DF52C45B1C6002306FF /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = FAF85DF42C45B1C6002306FF /* EmbraceCore */; };
 		FAF85DF72C45B1C6002306FF /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = FAF85DF62C45B1C6002306FF /* EmbraceCrash */; };
 		FAF85DF92C45B1C6002306FF /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = FAF85DF82C45B1C6002306FF /* EmbraceCrashlyticsSupport */; };
@@ -151,18 +156,23 @@
 			buildActionMask = 2147483647;
 			files = (
 				7B3BD2192BBC5A1600938444 /* StdoutExporter in Frameworks */,
+				FAEF5A132C6BA46F00484474 /* EmbraceCrash in Frameworks */,
 				FA3B0A132C3C2A5600315578 /* EmbraceCrash in Frameworks */,
 				FA716C822C45B94A00AD0161 /* EmbraceCrashlyticsSupport in Frameworks */,
 				FA3B0A152C3C2A5600315578 /* EmbraceCrashlyticsSupport in Frameworks */,
 				FA716C7E2C45B94A00AD0161 /* EmbraceCore in Frameworks */,
 				FA716C802C45B94A00AD0161 /* EmbraceCrash in Frameworks */,
 				FA716C842C45B94A00AD0161 /* EmbraceIO in Frameworks */,
+				FAEF5A172C6BA46F00484474 /* EmbraceIO in Frameworks */,
 				FAF85DFB2C45B1C6002306FF /* EmbraceIO in Frameworks */,
 				FA3B0A172C3C2A5600315578 /* EmbraceIO in Frameworks */,
 				FA3B0A112C3C2A5600315578 /* EmbraceCore in Frameworks */,
 				FAF85DF52C45B1C6002306FF /* EmbraceCore in Frameworks */,
 				FAF85DF92C45B1C6002306FF /* EmbraceCrashlyticsSupport in Frameworks */,
 				FAF85DF72C45B1C6002306FF /* EmbraceCrash in Frameworks */,
+				FAEF5A152C6BA46F00484474 /* EmbraceCrashlyticsSupport in Frameworks */,
+				FAEF5A192C6BA46F00484474 /* EmbraceSemantics in Frameworks */,
+				FAEF5A112C6BA46F00484474 /* EmbraceCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -530,6 +540,11 @@
 				FA716C7F2C45B94A00AD0161 /* EmbraceCrash */,
 				FA716C812C45B94A00AD0161 /* EmbraceCrashlyticsSupport */,
 				FA716C832C45B94A00AD0161 /* EmbraceIO */,
+				FAEF5A102C6BA46F00484474 /* EmbraceCore */,
+				FAEF5A122C6BA46F00484474 /* EmbraceCrash */,
+				FAEF5A142C6BA46F00484474 /* EmbraceCrashlyticsSupport */,
+				FAEF5A162C6BA46F00484474 /* EmbraceIO */,
+				FAEF5A182C6BA46F00484474 /* EmbraceSemantics */,
 			);
 			productName = BrandGame;
 			productReference = 7B56308A2ABE743400E0DF39 /* BrandGame.app */;
@@ -561,7 +576,7 @@
 			mainGroup = 7B5630812ABE743400E0DF39;
 			packageReferences = (
 				7B3BD1FD2BBC5A1600938444 /* XCRemoteSwiftPackageReference "opentelemetry-swift" */,
-				FA716C7C2C45B94A00AD0161 /* XCLocalSwiftPackageReference "../.." */,
+				FAEF5A0F2C6BA46F00484474 /* XCLocalSwiftPackageReference "../.." */,
 			);
 			productRefGroup = 7B56308B2ABE743400E0DF39 /* Products */;
 			projectDirPath = "";
@@ -889,7 +904,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		FA716C7C2C45B94A00AD0161 /* XCLocalSwiftPackageReference "../.." */ = {
+		FAEF5A0F2C6BA46F00484474 /* XCLocalSwiftPackageReference "../.." */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../..;
 		};
@@ -943,6 +958,26 @@
 		FA716C832C45B94A00AD0161 /* EmbraceIO */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = EmbraceIO;
+		};
+		FAEF5A102C6BA46F00484474 /* EmbraceCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EmbraceCore;
+		};
+		FAEF5A122C6BA46F00484474 /* EmbraceCrash */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EmbraceCrash;
+		};
+		FAEF5A142C6BA46F00484474 /* EmbraceCrashlyticsSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EmbraceCrashlyticsSupport;
+		};
+		FAEF5A162C6BA46F00484474 /* EmbraceIO */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EmbraceIO;
+		};
+		FAEF5A182C6BA46F00484474 /* EmbraceSemantics */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EmbraceSemantics;
 		};
 		FAF85DF42C45B1C6002306FF /* EmbraceCore */ = {
 			isa = XCSwiftPackageProductDependency;
