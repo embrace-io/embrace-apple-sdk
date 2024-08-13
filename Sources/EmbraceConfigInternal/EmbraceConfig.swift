@@ -87,6 +87,10 @@ public class EmbraceConfig {
         return payload.internalLogsErrorLimit
     }
 
+    public var networkPayloadCaptureRules: [NetworkPayloadCaptureRule] {
+        return payload.networkPayloadCaptureRules
+    }
+
     // MARK: - Update
     @discardableResult
     public func updateIfNeeded() -> Bool {

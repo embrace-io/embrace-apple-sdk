@@ -1,16 +1,40 @@
 {
-  "background": {
-    "threshold": 75
-  },
-  "threshold": 50,
-  "network_span_forwarding": {
-    "pct_enabled": 25
-  },
-  "internal_log_limits": {
-    "trace": 10,
-    "debug": 20,
-    "info": 30,
-    "warning": 40,
-    "error": 50,
-  }
+    "background": {
+        "threshold": 75
+    },
+    "threshold": 50,
+    "network_span_forwarding": {
+        "pct_enabled": 25
+    },
+    "internal_log_limits": {
+        "trace": 10,
+        "debug": 20,
+        "info": 30,
+        "warning": 40,
+        "error": 50,
+    },
+    "network_payload_capture": [
+        {
+            "id": "rule1",
+            "url": "www.test.com/user/*",
+            "status_code": [
+                200,
+                201,
+                404,
+                -1
+            ],
+            "method": [
+                "GET",
+                "POST"
+            ],
+            "expiration": 1723570602,
+            "public_key": "key"
+        },
+        {
+            "id": "rule2",
+            "url": "www.test.com/test",
+            "expiration": 1723570602,
+            "public_key": "key"
+        },
+    ]
 }

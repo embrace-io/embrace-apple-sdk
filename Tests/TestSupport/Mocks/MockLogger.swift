@@ -6,7 +6,7 @@ import EmbraceCommonInternal
 
 public class MockLogger: InternalLogger {
 
-    public var level: LogLevel
+    public var level: LogLevel = .debug
 
     public init(level: LogLevel = .none) {
         self.level = level

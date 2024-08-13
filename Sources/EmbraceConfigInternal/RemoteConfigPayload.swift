@@ -17,6 +17,8 @@ struct RemoteConfigPayload: Decodable, Equatable {
     var internalLogsWarningLimit: Int
     var internalLogsErrorLimit: Int
 
+    var networkPayloadCaptureRules: [NetworkPayloadCaptureRule]
+
     enum CodingKeys: String, CodingKey {
         case sdkEnabledThreshold = "threshold"
 
@@ -38,6 +40,8 @@ struct RemoteConfigPayload: Decodable, Equatable {
             case warning
             case error
         }
+
+        case networkPayLoadCapture = "network_payload_capture"
     }
 
     public init(from decoder: Decoder) throws {
@@ -117,6 +121,12 @@ struct RemoteConfigPayload: Decodable, Equatable {
             internalLogsWarningLimit = defaultPayload.internalLogsWarningLimit
             internalLogsErrorLimit = defaultPayload.internalLogsErrorLimit
         }
+
+        // network payload capture
+        networkPayloadCaptureRules = try rootContainer.decodeIfPresent(
+            [NetworkPayloadCaptureRule].self,
+            forKey: .networkPayLoadCapture
+        ) ?? defaultPayload.networkPayloadCaptureRules
     }
 
     // defaults
@@ -130,6 +140,8 @@ struct RemoteConfigPayload: Decodable, Equatable {
         internalLogsInfoLimit = 0
         internalLogsWarningLimit = 0
         internalLogsErrorLimit = 3
+
+        networkPayloadCaptureRules = []
     }
 }
 

@@ -172,6 +172,11 @@ class EmbraceConfigTests: XCTestCase {
         // Given an EmbraceConfig (executes fetch on init)
         let config = EmbraceConfig(options: options, notificationCenter: NotificationCenter.default, logger: logger)
 
+        // Wait until the fetch from init has finished
+        wait(timeout: .longTimeout) {
+            config.updating == false
+        }
+
         // making sure the fetched config is different so the notification is triggered
         config.payload.backgroundSessionThreshold = 12345
 
@@ -250,7 +255,7 @@ class EmbraceConfigTests: XCTestCase {
             logger: logger
         )
 
-        // then test_internalLogsTraceLimit returns the correct values
+        // then internal logs limits returns the correct values
         config.payload.internalLogsTraceLimit = 10
         config.payload.internalLogsDebugLimit = 20
         config.payload.internalLogsInfoLimit = 30
@@ -263,6 +268,41 @@ class EmbraceConfigTests: XCTestCase {
         XCTAssertEqual(config.internalLogsWarningLimit, 40)
         XCTAssertEqual(config.internalLogsErrorLimit, 50)
     }
+
+    func test_networkPayloadCaptureRules() {
+        // given a config
+        let config = EmbraceConfig(
+            options: testOptions(deviceId: TestConstants.deviceId),
+            notificationCenter: NotificationCenter.default,
+            logger: logger
+        )
+
+        // then network capture rules are returned correctly
+        let expiration = Date().timeIntervalSince1970
+
+        config.payload.networkPayloadCaptureRules = [
+            NetworkPayloadCaptureRule(
+                id: "test1",
+                urlRegex: "test1",
+                statusCodes: [200],
+                methods: ["GET"],
+                expiration: expiration,
+                publicKey: "key1"
+            ),
+            NetworkPayloadCaptureRule(
+                id: "test2",
+                urlRegex: "test2",
+                statusCodes: [500],
+                methods: ["POST"],
+                expiration: expiration,
+                publicKey: "key2"
+            )
+        ]
+
+        XCTAssertEqual(config.networkPayloadCaptureRules.count, 2)
+        XCTAssertEqual(config.networkPayloadCaptureRules[0].id, "test1")
+        XCTAssertEqual(config.networkPayloadCaptureRules[1].id, "test2")
+   }
 
     func test_hexValue() {
         // given an invalid device id
