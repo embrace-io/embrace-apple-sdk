@@ -9,7 +9,7 @@ import OpenTelemetryApi
 import EmbraceStorageInternal
 
 final class ResourceStorageExporterTests: XCTestCase {
-    func test_exorter_gets_every_type_of_resource() throws {
+    func test_exporter_gets_every_type_of_resource() throws {
         // Given
         let storage = try EmbraceStorage.createInMemoryDb()
         let exporter = ResourceStorageExporter(storage: storage)
@@ -35,12 +35,18 @@ final class ResourceStorageExporterTests: XCTestCase {
             lifespanId: "processId"
         )
 
-        let resources = exporter.getResources()
+        let resource = exporter.getResource()
+        XCTAssertEqual(resource.attributes.count, 5)
 
-        XCTAssertEqual(resources.count, 3)
+        XCTAssertEqual(resource.attributes["session"], .string("session"))
+        XCTAssertEqual(resource.attributes["process"], .string("process"))
+        XCTAssertEqual(resource.attributes["permanent"], .string("permanent"))
 
-        XCTAssertTrue(resources.contains(where: {$0.key == "permanent" && $0.value.description == "permanent"}))
-        XCTAssertTrue(resources.contains(where: {$0.key == "session" && $0.value.description == "session"}))
-        XCTAssertTrue(resources.contains(where: {$0.key == "process" && $0.value.description == "process"}))
+        XCTAssertEqual(resource.attributes["telemetry.sdk.language"], .string("swift"))
+
+        let serviceName = [Bundle.main.bundleIdentifier, ProcessInfo.processInfo.processName]
+            .compactMap { $0 }
+            .joined(separator: ":")
+        XCTAssertEqual(resource.attributes["service.name"], .string(serviceName))
     }
 }
