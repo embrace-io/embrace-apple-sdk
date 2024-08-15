@@ -12,7 +12,7 @@ import EmbraceObjCUtilsInternal
 extension Embrace {
     static func createStorage(options: Embrace.Options) throws -> EmbraceStorage {
         if let storageUrl = EmbraceFileSystem.storageDirectoryURL(
-            appId: options.appId,
+            partitionIdentifier: options.appId,
             appGroupId: options.appGroupId
         ) {
             do {
@@ -45,7 +45,7 @@ extension Embrace {
 
         // cache
         guard let cacheUrl = EmbraceFileSystem.uploadsDirectoryPath(
-            appId: options.appId,
+            partitionIdentifier: options.appId,
             appGroupId: options.appGroupId
         ),
               let cache = EmbraceUpload.CacheOptions(cacheBaseUrl: cacheUrl)

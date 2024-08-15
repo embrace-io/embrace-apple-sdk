@@ -19,7 +19,9 @@ class EmbraceFilePathProvider: FilePathProvider {
     }
 
     func directoryURL(for scope: String) -> URL? {
-        let captureURL = EmbraceFileSystem.captureDirectoryURL(appId: appId, appGroupId: appGroupIdentifier)
+        let captureURL = EmbraceFileSystem.captureDirectoryURL(
+            partitionIdentifier: appId,
+            appGroupId: appGroupIdentifier)
         return captureURL?.appendingPathComponent(scope)
     }
 }

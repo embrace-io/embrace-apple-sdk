@@ -48,42 +48,58 @@ public struct EmbraceFileSystem {
 
     /// Returns a subpath within the root directory of the Embrace SDK.
     /// ```
-    /// io.embrace.data/<version>/<app-id>/<name>
+    /// io.embrace.data/<version>/<partition-id>/<name>
     /// ```
-    static func directoryURL(name: String, appId: String, appGroupId: String? = nil) -> URL? {
+    /// - Parameters:
+    ///    - name: The name of the subdirectory
+    ///    - partitionIdentifier: The main paritition identifier to use
+    ///    - appGroupId: The app group identifier if using an app group container.
+    static func directoryURL(name: String, partitionIdentifier: String, appGroupId: String? = nil) -> URL? {
         guard let baseURL = systemDirectory(appGroupId: appGroupId) else {
             return nil
         }
 
-        let components = [rootDirectoryName, versionDirectoryName, appId, name]
+        let components = [rootDirectoryName, versionDirectoryName, partitionIdentifier, name]
         return baseURL.appendingPathComponent(components.joined(separator: "/"))
     }
 
     /// Returns the subdirectory for the storage
     /// ```
-    /// io.embrace.data/<version>/<app-id>/storage
+    /// io.embrace.data/<version>/<partition-id>/storage
     /// ```
     static func storageDirectoryURL(
-        appId: String,
+        partitionIdentifier: String,
         appGroupId: String? = nil) -> URL? {
-        return directoryURL(name: storageDirectoryName, appId: appId, appGroupId: appGroupId)
+        return directoryURL(
+            name: storageDirectoryName,
+            partitionIdentifier: partitionIdentifier,
+            appGroupId: appGroupId
+        )
     }
 
     /// Returns the subdirectory for upload data
     /// ```
-    /// io.embrace.data/<version>/<app-id>/uploads
+    /// io.embrace.data/<version>/<partition-id>/uploads
     /// ```
     static func uploadsDirectoryPath(
-        appId: String,
+        partitionIdentifier: String,
         appGroupId: String? = nil) -> URL? {
-        return directoryURL(name: uploadsDirectoryName, appId: appId, appGroupId: appGroupId)
+        return directoryURL(
+            name: uploadsDirectoryName,
+            partitionIdentifier: partitionIdentifier,
+            appGroupId: appGroupId
+        )
     }
 
     /// Returns the subdirectory for data capture
     /// ```
-    /// io.embrace.data/<version>/<app-id>/capture
+    /// io.embrace.data/<version>/<partition-id>/capture
     /// ```
-    static func captureDirectoryURL(appId: String, appGroupId: String? = nil) -> URL? {
-        return directoryURL(name: captureDirectoryName, appId: appId, appGroupId: appGroupId)
+    static func captureDirectoryURL(partitionIdentifier: String, appGroupId: String? = nil) -> URL? {
+        return directoryURL(
+            name: captureDirectoryName,
+            partitionIdentifier: partitionIdentifier,
+            appGroupId: appGroupId
+        )
     }
 }
