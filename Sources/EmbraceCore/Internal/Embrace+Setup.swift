@@ -11,24 +11,26 @@ import EmbraceObjCUtilsInternal
 
 extension Embrace {
     static func createStorage(options: Embrace.Options) throws -> EmbraceStorage {
+
+        let partitionId = options.appId ?? EmbraceFileSystem.defaultPartitionId
         if let storageUrl = EmbraceFileSystem.storageDirectoryURL(
-            partitionIdentifier: options.appId,
+            partitionId: partitionId,
             appGroupId: options.appGroupId
         ) {
-            do {
-                let storageOptions = EmbraceStorage.Options(baseUrl: storageUrl, fileName: "db.sqlite")
-                let storage = try EmbraceStorage(options: storageOptions, logger: Embrace.logger)
-                try storage.performMigration()
-                return storage
-            } catch {
-                throw EmbraceSetupError.failedStorageCreation("Failed to create EmbraceStorage")
-            }
+            let storageOptions = EmbraceStorage.Options(baseUrl: storageUrl, fileName: "db.sqlite")
+            let storage = try EmbraceStorage(options: storageOptions, logger: Embrace.logger)
+            try storage.performMigration()
+            return storage
         } else {
-            throw EmbraceSetupError.failedStorageCreation("Failed to create Storage Directory with appId: '\(options.appId)' appGroupId: '\(options.appGroupId ?? "")'")
+            throw EmbraceSetupError.failedStorageCreation(partitionId: partitionId, appGroupId: options.appGroupId)
         }
     }
 
     static func createUpload(options: Embrace.Options, deviceId: String) -> EmbraceUpload? {
+        guard let appId = options.appId else {
+            return nil
+        }
+
         // endpoints
         guard let endpoints = options.endpoints else {
             return nil
@@ -45,7 +47,7 @@ extension Embrace {
 
         // cache
         guard let cacheUrl = EmbraceFileSystem.uploadsDirectoryPath(
-            partitionIdentifier: options.appId,
+            partitionIdentifier: appId,
             appGroupId: options.appGroupId
         ),
               let cache = EmbraceUpload.CacheOptions(cacheBaseUrl: cacheUrl)
@@ -56,7 +58,7 @@ extension Embrace {
 
         // metadata
         let metadata = EmbraceUpload.MetadataOptions(
-            apiKey: options.appId,
+            apiKey: appId,
             userAgent: EmbraceMeta.userAgent,
             deviceId: deviceId.filter { c in c.isHexDigit }
         )

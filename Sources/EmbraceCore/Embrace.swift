@@ -110,8 +110,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
                 return client
             }
 
-            try options.validateAppId()
-            try options.validateGroupId()
+            try options.validate()
 
             client = try Embrace(options: options)
             if let client = client {

@@ -108,7 +108,7 @@ class LogPayloadBuilderTests: XCTestCase {
         XCTAssertEqual(payload.metadata.username, "test")
         XCTAssertEqual(payload.metadata.personas, ["tag1", "tag2"])
 
-        let logs = payload.data["logs"]!
+        let logs = try XCTUnwrap(payload.data["logs"])
         XCTAssertEqual(logs.count, 1)
         XCTAssertEqual(logs[0].body, "test")
         XCTAssertEqual(logs[0].timeUnixNano, String(timestamp.nanosecondsSince1970Truncated))

@@ -12,7 +12,7 @@ extension Embrace {
     /// Class used to setup the Embrace SDK.
     @objc(EMBOptions)
     public final class Options: NSObject {
-        @objc public let appId: String
+        @objc public let appId: String?
         @objc public let appGroupId: String?
         @objc public let platform: Platform
         @objc public let endpoints: Embrace.Endpoints?
@@ -72,7 +72,7 @@ extension Embrace {
             logLevel: LogLevel = .default,
             export: OpenTelemetryExport
         ) {
-            self.appId = "no_id"
+            self.appId = nil
             self.appGroupId = nil
             self.platform = platform
             self.endpoints = nil
@@ -85,19 +85,36 @@ extension Embrace {
 }
 
 internal extension Embrace.Options {
+    /// Valiate Options object to make sure it has not been configured ambiguously
+    func validate() throws {
+        try validateAppId()
+        try validateGroupId()
+        try validateOTelExport()
+    }
+
     func validateAppId() throws {
+        guard let appId = appId else {
+            return
+        }
+
         if appId.count != 5 {
-            throw EmbraceSetupError.invalidAppId("App Id must be 5 characters in length")
+            throw EmbraceSetupError.invalidAppId("`appId` must be 5 characters in length if provided")
         }
     }
 
     func validateGroupId() throws {
-        guard let groupId = self.appGroupId else {
+        guard let groupId = appGroupId else {
             return
         }
 
         if groupId.isEmpty {
-            throw EmbraceSetupError.invalidAppGroupId("group id must not be empty if provided")
+            throw EmbraceSetupError.invalidAppGroupId("`appGroupId` must not be empty if provided")
+        }
+    }
+
+    func validateOTelExport() throws {
+        if appId == nil, export == nil {
+            throw EmbraceSetupError.invalidOptions("`OpenTelemetryExport` must be provided when not using an `appId`")
         }
     }
 }

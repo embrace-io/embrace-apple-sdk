@@ -6,12 +6,15 @@ import Foundation
 import EmbraceCommonInternal
 
 class EmbraceFilePathProvider: FilePathProvider {
-    let appId: String
-    let appGroupIdentifier: String?
+    let partitionId: String
+    let appGroupId: String?
 
-    init(appId: String, appGroupIdentifier: String?) {
-        self.appId = appId
-        self.appGroupIdentifier = appGroupIdentifier
+    /// - Parameters:
+    ///   - partitionId: The base directory this file path provider should use.
+    ///   - appGroupId: An optional app group identifier to use if the provider should create file paths in the app group container.
+    init(partitionId: String, appGroupId: String?) {
+        self.partitionId = partitionId
+        self.appGroupId = appGroupId
     }
 
     func fileURL(for scope: String, name: String) -> URL? {
@@ -20,8 +23,8 @@ class EmbraceFilePathProvider: FilePathProvider {
 
     func directoryURL(for scope: String) -> URL? {
         let captureURL = EmbraceFileSystem.captureDirectoryURL(
-            partitionIdentifier: appId,
-            appGroupId: appGroupIdentifier)
+            partitionIdentifier: partitionId,
+            appGroupId: appGroupId)
         return captureURL?.appendingPathComponent(scope)
     }
 }
