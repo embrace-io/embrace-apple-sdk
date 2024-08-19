@@ -6,14 +6,14 @@ import Foundation
 
 public struct NetworkPayloadCaptureRule: Decodable, Equatable {
 
-    let id: String
-    let urlRegex: String
-    let statusCodes: [Int]?
-    let methods: [String]?
-    let expiration: Double
-    let publicKey: String
+    public let id: String
+    public let urlRegex: String
+    public let statusCodes: [Int]?
+    public let methods: [String]?
+    public let expiration: Double
+    public let publicKey: String
 
-    var expirationDate: Date {
+    public var expirationDate: Date {
         return Date(timeIntervalSince1970: expiration)
     }
 

@@ -5,7 +5,6 @@
 import EmbraceCommonInternal
 
 extension LogType {
-
     /// Used for crash reports provided by the Crash Reporter
     public static let crash = LogType(system: "ios.crash")
 

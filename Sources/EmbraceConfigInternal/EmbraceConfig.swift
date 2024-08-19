@@ -116,7 +116,7 @@ public class EmbraceConfig {
                 self?.payload = payload
 
                 if previousPayload != payload {
-                    self?.notificationCenter.post(name: .embraceConfigUpdated, object: nil)
+                    self?.notificationCenter.post(name: .embraceConfigUpdated, object: self)
                 }
 
                 self?.lastUpdateTime = Date().timeIntervalSince1970

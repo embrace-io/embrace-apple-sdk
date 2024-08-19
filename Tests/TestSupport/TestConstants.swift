@@ -5,6 +5,8 @@
 import Foundation
 import EmbraceCommonInternal
 
+// swiftlint:disable line_length
+
 public struct TestConstants {
     public static let domain = "com.test.embrace"
     public static let url = URL(string: "https://embrace.test.com/path")!
@@ -22,4 +24,8 @@ public struct TestConstants {
     public static let sdkVersion = "00.1.00"
     public static let appVersion = "1.0"
     public static let userAgent = "Embrace/i/00.1.00"
+
+    public static let rsaPublicKey = "MIIBCgKCAQEAor8onPvG/tF2PJyYJISMXzKX/IW3jvpYveLKCiufySKiytzl6diKJmeMDD8RzrFWMyyxqJSOxnftF4stiAhmkmHKf0+YSqQ44/hGbd5uGCSziUGM6Ai6eoCcaiepDmOpaCXCnjpE4qaNHJSEtt5LxqmLojWjtIvCiGNMiVueQKjk29WOXvWXDLWUV1UTJRc7zQq/grSLK4lGD2rzyuR+bMvqStATgF1XU3UfW7iYZDcfir+m21rgoOGQZm+dY38rDeUOTTC2drswJE0K8a+7S+AB0rjjXHQIJjM8QaroaehNQC+zlzXkS2TKD2QPP+Qmpkw7hPYIOKZSV5XurDLfcQIDAQAB"
 }
+
+// swiftlint:enable line_length
