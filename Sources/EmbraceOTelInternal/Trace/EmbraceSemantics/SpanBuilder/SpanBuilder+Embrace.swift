@@ -20,7 +20,7 @@ extension SpanBuilder {
         setAttribute(key: SpanSemantics.keyIsKeySpan, value: "true")
     }
 
-    @discardableResult public func error(errorCode: SpanErrorCode) -> Self {
+    @discardableResult public func error(errorCode: ErrorCode) -> Self {
         setAttribute(key: SpanSemantics.keyErrorCode, value: errorCode.rawValue)
     }
 
