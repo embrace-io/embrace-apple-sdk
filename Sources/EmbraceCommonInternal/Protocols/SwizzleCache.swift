@@ -5,17 +5,21 @@
 import Foundation
 
 #if DEBUG
-/// This class acts as a container for all the original implementations
-/// of the swizzled methods around the SDK.
+/// This class acts as a container for storing original implementations of methods that have been swizzled by the SDK.
 ///
-/// Important: This class is meant to be used for testing only
+/// Important: This class is intended for testing purposes only.
 public class SwizzleCache {
-    /// This structure is a complementary class used to uniquely identify and store the original method
-    /// implementations before method swizzling is applied. It facilitates the process of unswizzling
-    /// the original method implementations when needed.
+    /// This class uniquely identifies and stores original method implementations before swizzling.
+    /// It is used to make easier the unswizzling process by identifying the method implementation based on the Method,
+    /// the swizzled class, and the class performing the swizzle operation.
     struct OriginalMethod: Hashable {
+        /// The method whose original implementation was overridden.
         let method: Method
+
+        /// The class where the method resides that was swizzled (e.g., `UIWindow`, `NSURLSession`).
         let baseClass: AnyClass
+
+        /// A String describing the type of the class that performs the swizzling.
         let swizzlerClass: String
 
         fileprivate init(
