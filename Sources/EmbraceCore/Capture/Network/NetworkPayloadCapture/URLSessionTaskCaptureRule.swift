@@ -9,6 +9,7 @@ class URLSessionTaskCaptureRule {
 
     private var rule: NetworkPayloadCaptureRule
     private let regex: NSRegularExpression?
+    let publicKey: String
 
     var id: String {
         return rule.id
@@ -18,9 +19,6 @@ class URLSessionTaskCaptureRule {
     }
     var expirationDate: Date {
         return rule.expirationDate
-    }
-    var publicKey: String {
-        return rule.publicKey
     }
 
     init(rule: NetworkPayloadCaptureRule) {
@@ -32,12 +30,16 @@ class URLSessionTaskCaptureRule {
             Embrace.logger.error("Error trying to create regex \"\(rule.urlRegex)\" for rule \(rule.id)!\n\(error.localizedDescription)")
             regex = nil
         }
+
+        self.publicKey = URLSessionTaskCaptureRule.sanitize(rule.publicKey)
     }
 
     func shouldTriggerFor(request: URLRequest?, response: URLResponse?, error: Error?) -> Bool {
+
         guard let request = request,
               let url = request.url,
-              let method = request.httpMethod else {
+              let method = request.httpMethod,
+              expirationDate > Date() else {
             return false
         }
 
@@ -88,5 +90,17 @@ class URLSessionTaskCaptureRule {
 
         let matches = regex.matches(in: url, range: NSRange(location: 0, length: url.count))
         return matches.count > 0
+    }
+
+    static private func sanitize(_ key: String) -> String {
+        return key
+            .replacingOccurrences(of: "-----BEGIN PUBLIC KEY-----", with: "")
+            .replacingOccurrences(of: "-----END PUBLIC KEY-----", with: "")
+            .replacingOccurrences(of: "-----BEGIN RSA PUBLIC KEY-----", with: "")
+            .replacingOccurrences(of: "-----END RSA PUBLIC KEY-----", with: "")
+            .replacingOccurrences(of: "\r", with: "")
+            .replacingOccurrences(of: "\n", with: "")
+            .replacingOccurrences(of: "\t", with: "")
+            .replacingOccurrences(of: " ", with: "")
     }
 }

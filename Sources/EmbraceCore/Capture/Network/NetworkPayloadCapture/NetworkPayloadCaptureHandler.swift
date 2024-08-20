@@ -99,11 +99,6 @@ class NetworkPayloadCaptureHandler {
                 continue
             }
 
-            // check if rule has expired
-            guard rule.expirationDate > Date() else {
-                continue
-            }
-
             // check if rule applies for this task
             guard rule.shouldTriggerFor(request: request, response: response, error: error) else {
                 continue

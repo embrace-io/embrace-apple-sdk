@@ -17,7 +17,7 @@ class NetworkPayloadCaptureHandlerTests: XCTestCase {
             statusCodes: [500],
             methods: ["GET"],
             expiration: 9999999999,
-            publicKey: TestConstants.rsaPublicKey
+            publicKey: TestConstants.rsaSanitizedPublicKey
         ),
 
         NetworkPayloadCaptureRule(
@@ -26,7 +26,7 @@ class NetworkPayloadCaptureHandlerTests: XCTestCase {
             statusCodes: [-1],
             methods: ["POST"],
             expiration: 9999999999,
-            publicKey: TestConstants.rsaPublicKey
+            publicKey: TestConstants.rsaSanitizedPublicKey
         )
     ]
 
