@@ -53,6 +53,15 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
                 return
             }
 
+            // save start time for payload capture
+            task.embraceStartTime = Date()
+
+            // don't capture if the service is not active
+            guard self.dataSource?.state == .active else {
+                return
+            }
+
+            // validate task
             guard
                 var request = task.originalRequest,
                 let url = request.url,
@@ -62,14 +71,6 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
 
             // get modified request from data source
             request = self.dataSource?.requestsDataSource?.modifiedRequest(for: request) ?? request
-
-            // save start time for payload capture
-            task.embraceStartTime = Date()
-
-            // don't capture if the service is not active
-            guard self.dataSource?.state == .active else {
-                return
-            }
 
             // flag as captured
             task.embraceCaptured = true
