@@ -8,6 +8,7 @@ import Foundation
 import EmbraceCommonInternal
 import OpenTelemetryApi
 import OpenTelemetrySdk
+import EmbraceSemantics
 
 public class MockEmbraceOpenTelemetry: NSObject, EmbraceOpenTelemetry {
     private(set) public var spanProcessor = MockSpanProcessor()
@@ -69,6 +70,9 @@ public class MockEmbraceOpenTelemetry: NSObject, EmbraceOpenTelemetry {
         timestamp: Date,
         attributes: [String: String]
     ) {
+
+        var attributes = attributes
+        attributes["emb.type"] = type.rawValue
 
         var otelAttributes: [String: AttributeValue] = [:]
         for (key, value) in attributes {

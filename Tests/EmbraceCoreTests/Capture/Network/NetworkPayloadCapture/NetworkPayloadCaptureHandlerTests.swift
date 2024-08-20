@@ -175,5 +175,12 @@ class NetworkPayloadCaptureHandlerTests: XCTestCase {
 
         // then a log is generated
         XCTAssertEqual(otel.logs.count, 1)
+        XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string("sys.network_capture"))
+        XCTAssertEqual(otel.logs[0].attributes["url"], .string("www.test.com/user/1234"))
+        XCTAssertEqual(otel.logs[0].attributes["encryption-mechanism"], .string("hybrid"))
+        XCTAssertNotNil(otel.logs[0].attributes["encrypted-payload"])
+        XCTAssertEqual(otel.logs[0].attributes["payload-algorithm"], .string("AES.GCM"))
+        XCTAssertEqual(otel.logs[0].attributes["key-algorithm"], .string("RSA.PKCS1"))
+        XCTAssertNotNil(otel.logs[0].attributes["encrypted-key"])
     }
 }
