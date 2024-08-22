@@ -8,6 +8,8 @@ import TestSupport
 @testable import EmbraceConfigInternal
 import EmbraceStorageInternal
 
+// swiftlint:disable force_cast
+
 class EncryptedNetworkPayloadTests: XCTestCase {
 
     let startTime = Date(timeIntervalSince1970: 100)
@@ -33,13 +35,22 @@ class EncryptedNetworkPayloadTests: XCTestCase {
     func getTestPayload() -> EncryptedNetworkPayload? {
         let url = URL(string: "www.test.com/user/1234?q=test")!
 
-        var request = URLRequest(url:url)
+        var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.httpBody = "1234".data(using: .utf8)
         request.allHTTPHeaderFields = ["testKey": "testValue"]
 
-        let response = HTTPURLResponse(url: url, statusCode: 500, httpVersion: nil, headerFields: ["testKey": "testValue"])
-        let error = NSError(domain: "com.test.embrace", code: 1234, userInfo: [NSLocalizedDescriptionKey: "test message"])
+        let response = HTTPURLResponse(
+            url: url,
+            statusCode: 500,
+            httpVersion: nil,
+            headerFields: ["testKey": "testValue"]
+        )
+        let error = NSError(
+            domain: "com.test.embrace",
+            code: 1234,
+            userInfo: [NSLocalizedDescriptionKey: "test message"]
+        )
 
         return EncryptedNetworkPayload(
             request: request,
@@ -127,3 +138,4 @@ class EncryptedNetworkPayloadTests: XCTestCase {
     }
 }
 
+// swiftlint:enable force_cast

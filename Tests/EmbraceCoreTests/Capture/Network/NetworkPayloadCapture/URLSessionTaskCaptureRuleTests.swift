@@ -98,7 +98,7 @@ class URLSessionTaskCaptureRuleTests: XCTestCase {
         // it should not trigger for a request matches the url and method
         // doesnt match the status code
         let url = URL(string: "www.test.com/user/1234")!
-        var request = URLRequest(url:url)
+        var request = URLRequest(url: url)
         request.httpMethod = "POST"
         let response = HTTPURLResponse(url: url, statusCode: 404, httpVersion: nil, headerFields: nil)
 
@@ -111,7 +111,7 @@ class URLSessionTaskCaptureRuleTests: XCTestCase {
 
         // it should not trigger for a request matches on everything if the rule has expired
         let url = URL(string: "www.test.com/user/1234")!
-        var request = URLRequest(url:url)
+        var request = URLRequest(url: url)
         request.httpMethod = "GET"
         let response = HTTPURLResponse(url: url, statusCode: 500, httpVersion: nil, headerFields: nil)
 
@@ -124,7 +124,7 @@ class URLSessionTaskCaptureRuleTests: XCTestCase {
 
         // it should trigger for a request matches on everything
         let url = URL(string: "www.test.com/user/1234")!
-        var request = URLRequest(url:url)
+        var request = URLRequest(url: url)
         request.httpMethod = "GET"
         let response = HTTPURLResponse(url: url, statusCode: 500, httpVersion: nil, headerFields: nil)
 
@@ -137,7 +137,7 @@ class URLSessionTaskCaptureRuleTests: XCTestCase {
 
         // it should trigger for a request matches on everything
         let url = URL(string: "www.test.com/test")!
-        var request = URLRequest(url:url)
+        var request = URLRequest(url: url)
         request.httpMethod = "POST"
         let response = HTTPURLResponse(url: url, statusCode: 500, httpVersion: nil, headerFields: nil)
         let error = NSError(domain: "com.test.embrace", code: 1234)
