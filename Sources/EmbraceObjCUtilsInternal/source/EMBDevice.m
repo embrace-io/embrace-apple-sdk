@@ -363,38 +363,6 @@ typedef NS_ENUM(NSInteger, EMBReleaseMode) {
     }
 }
 
-+ (NSString *)screenResolution
-{
-#if WATCHKIT_AVAILABLE
-    CGRect bounds = [WKInterfaceDevice currentDevice].screenBounds;
-    CGFloat scale = [WKInterfaceDevice currentDevice].screenScale;
-
-    NSString *resolution = [NSString stringWithFormat:@"%@x%@", @(bounds.size.width * scale), @(bounds.size.height * scale)];
-    return resolution;
-#elif UIKIT_AVAILABLE
-    CGRect bounds = [[UIScreen mainScreen] bounds];
-    CGFloat scale = [[UIScreen mainScreen] respondsToSelector:@selector(scale)] ? [[UIScreen mainScreen] scale] : 1.0;
-    
-    NSString *resolution = [NSString stringWithFormat:@"%@x%@", @(bounds.size.width * scale), @(bounds.size.height * scale)];
-    return resolution;
-#elif APPKIT_AVAILABLE
-    NSRect screenRect;
-    NSArray *screenArray = [NSScreen screens];
-    NSUInteger screenCount = [screenArray count];
-    NSUInteger index  = 0;
-    
-    for (; index < screenCount; index++)
-    {
-        NSScreen *screen = [screenArray objectAtIndex: index];
-        screenRect = [screen visibleFrame];
-    }
-    
-    return [NSString stringWithFormat:@"%.1fx%.1f",screenRect.size.width, screenRect.size.height];
-#else
-    return NULL;
-#endif
-}
-
 + (NSString *)timezoneDescription
 {
     return [[[[NSCalendar alloc] initWithCalendarIdentifier:NSCalendarIdentifierISO8601] timeZone] name] ?: @"";
