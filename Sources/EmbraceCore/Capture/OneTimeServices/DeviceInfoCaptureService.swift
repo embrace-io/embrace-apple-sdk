@@ -64,14 +64,6 @@ class DeviceInfoCaptureService: ResourceCaptureService {
             value: .string(EMBDevice.operatingSystemType)
         )
 
-        // resolution
-        if let resolution = EMBDevice.screenResolution {
-            addResource(
-                key: DeviceResourceKey.screenResolution.rawValue,
-                value: .string(resolution)
-            )
-        }
-
         // model
         addResource(
             key: DeviceResourceKey.model.rawValue,

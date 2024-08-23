@@ -93,16 +93,6 @@ final class DeviceInfoCaptureServiceTests: XCTestCase {
         XCTAssertNotNil(osVariant)
         XCTAssertEqual(osVariant!.stringValue, EMBDevice.operatingSystemType)
 
-        // resolution
-        let resolution = try handler.fetchMetadata(
-            key: DeviceResourceKey.screenResolution.rawValue,
-            type: .requiredResource,
-            lifespan: .process,
-            lifespanId: processId
-        )
-        XCTAssertNotNil(resolution)
-        XCTAssertEqual(resolution!.stringValue, EMBDevice.screenResolution)
-
         // model
         let model = try handler.fetchMetadata(
             key: DeviceResourceKey.model.rawValue,
