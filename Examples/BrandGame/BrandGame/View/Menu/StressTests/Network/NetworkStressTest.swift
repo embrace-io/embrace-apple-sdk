@@ -26,7 +26,7 @@ struct NetworkStressTest: View {
             Form {
                 Section("Configuration") {
                     Toggle(isOn: $useNewConcurrency) {
-                        Text("Use new concurrency?")
+                        Text("Use async/await?")
                     }
                 }
                 List {
