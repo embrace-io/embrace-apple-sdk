@@ -104,6 +104,14 @@ struct URLSessionInitWithDelegateSwizzler: URLSessionSwizzler {
                 let proxiedDelegate = (delegate != nil) ? delegate : EmbraceDummyURLSessionDelegate()
                 let newDelegate = URLSessionDelegateProxy(originalDelegate: proxiedDelegate, handler: handler)
                 let session = originalImplementation(urlSession, Self.selector, configuration, newDelegate, queue)
+
+                // If we have already been swizzled by another player, we notify our proxied delegate,
+                // as this will later help determine whether or not to forward the invocation of various
+                // `URLSessionDelegate` methods.
+                if session.delegate !== newDelegate {
+                    newDelegate.swizzledDelegate = session.delegate
+                }
+
                 return session
             }
         }
