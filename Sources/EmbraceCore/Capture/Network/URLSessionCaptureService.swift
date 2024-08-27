@@ -138,7 +138,7 @@ struct SessionTaskResumeSwizzler: URLSessionSwizzler {
                 return { [weak handler = self.handler] task in
                     let handled = handler?.create(task: task) ?? true
 
-                    // if the task wasn't captured by other swizzlers
+                    // if the task was handled by this swizzler
                     // by the time resume was called it probably means
                     // it was an async/await task
                     // we set a proxy delegate to get a callback when the task finishes
