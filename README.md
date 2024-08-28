@@ -17,7 +17,7 @@ More documentation and examples can be found at [https://embrace.io/docs/](https
 ### Currently Supported Key Features
 
 * Session capture
-* Crash capture (full Embrace dashboard support coming soon)
+* Crash capture 
 * Network capture
 * OTel trace capture
 * Custom breadcrumbs
@@ -26,11 +26,11 @@ More documentation and examples can be found at [https://embrace.io/docs/](https
 * Session properties
 * Automatic view tracking
 
-### Key Features Coming in Q1 2024
+### Key Features Coming Soon
 
 * Metrickit capture
-* Automatic webview capture
-* Network body capture
+* Network payload capture
+* Extensions insights
 
 ## Getting Started
 
