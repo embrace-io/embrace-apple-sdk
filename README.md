@@ -215,6 +215,9 @@ We appreciate any feedback you have on the SDK and the APIs that is provides. To
 
 For urgent matters (such as outages) or issues concerning the Embrace service or UI reach out in our [Community Slack](https://join.slack.com/t/embraceio-community/shared_invite/zt-ywr4jhzp-DLROX0ndN9a0soHMf6Ksow) for direct, faster assistance.
 
+## License
+[![Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-orange)](./LICENSE.txt)
+
 Embrace Apple SDK is published under the Apache-2.0 license. 
 
 [![Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-orange)](./LICENSE.txt)
