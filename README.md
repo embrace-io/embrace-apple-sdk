@@ -1,14 +1,13 @@
 # Embrace Apple SDK
 
-> [!IMPORTANT]
->
-> We appreciate any feedback you have on the SDK and the APIs that is provides. Please open an issue in Github,
-> reach out to your Embrace representative, or email us at support@embrace.io with any feedback you have.
-
 The Embrace Apple SDK instruments your iOS, iPadOS, tvOS, visionOS, and watchOS* apps to collect observability data.
 This project represents a shift from the previous Embrace SDK in that it adopts a more modular approach that
-supports the OpenTelemetry standard. We have also added features that extend OpenTelemetry to
+supports the [OpenTelemetry](https://opentelemetry.io/) standard. We have also added features that extend OpenTelemetry to
 better support mobile apps.
+
+Telemetry recorded through this SDK can be consumed on the Embrace platform for Embrace customers, but it can also be used by those who are not Embrace customers to export collected data directly to any OTel Collector, either one that they host or is hosted by other vendors. In effect, this SDK is an alternative to using the [OpenTelemetry Swift SDK](https://github.com/open-telemetry/opentelemetry-swift) directly for iOS apps that want to leverage the OpenTelemetry ecosystem for observability, but also want all the advanced telemetry capture that Embrace is known for. 
+
+Currently, only Spans and Logs are supported, but other signals will be added in the future.
 
 More documentation and examples can be found at [https://embrace.io/docs/](https://embrace.io/docs/).
 
@@ -209,3 +208,13 @@ To test if your auth changes fixed things, attempt to fetch the dependencies wit
 > [!WARNING]
 > WatchOS support does not currently include the Embrace Crash Reporter. Instrumentation and observability will be possible but the SDK will not be able to collect crash reports.
 >
+
+## Support 
+
+We appreciate any feedback you have on the SDK and the APIs that is provides. To contribute to this project please see our [Contribution Guidelines](https://github.com/embrace-io/embrace-apple-sdk/blob/main/CONTRIBUTING.md) there you'll be able to submit a feature request, create a bug report, or submit a pull request.
+
+For urgent matters (such as outages) or issues concerning the Embrace service or UI reach out in our [Community Slack](https://join.slack.com/t/embraceio-community/shared_invite/zt-ywr4jhzp-DLROX0ndN9a0soHMf6Ksow) for direct, faster assistance.
+
+Embrace Apple SDK is published under the Apache-2.0 license. 
+
+[![Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-orange)](./LICENSE.txt)
