@@ -6,6 +6,7 @@ import Foundation
 import EmbraceCommonInternal
 import EmbraceStorageInternal
 import EmbraceOTelInternal
+import EmbraceSemantics
 
 class SpansPayloadBuilder {
 

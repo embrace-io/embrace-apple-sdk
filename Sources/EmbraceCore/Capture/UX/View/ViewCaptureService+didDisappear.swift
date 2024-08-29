@@ -7,6 +7,7 @@
 import UIKit
 import EmbraceCommonInternal
 import EmbraceOTelInternal
+import EmbraceSemantics
 
 extension ViewCaptureService {
     func handleViewDidDisappear(_ vc: UIViewController, animated: Bool) {

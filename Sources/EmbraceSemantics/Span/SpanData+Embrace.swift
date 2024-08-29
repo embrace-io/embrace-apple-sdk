@@ -4,7 +4,6 @@
 
 import Foundation
 import EmbraceCommonInternal
-import EmbraceSemantics
 import OpenTelemetrySdk
 
 extension SpanData {
@@ -20,7 +19,7 @@ extension SpanData {
         return .performance
     }
 
-    var errorCode: ErrorCode? {
+    public var errorCode: ErrorCode? {
         guard let value = attributes[SpanSemantics.keyErrorCode] else {
             return nil
         }

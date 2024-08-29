@@ -102,7 +102,8 @@ public final class EmbraceOTel: NSObject {
         timestamp: Date,
         attributes: [String: String]
     ) {
-        let otelAttributes = attributes.reduce(into: [String: AttributeValue]()) {
+
+        let otelAttributes = attributes.reduce(into: [:]) {
             $0[$1.key] = AttributeValue.string($1.value)
         }
         logger

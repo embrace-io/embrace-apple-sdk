@@ -5,6 +5,7 @@
 import Foundation
 import EmbraceOTelInternal
 import EmbraceStorageInternal
+import EmbraceSemantics
 
 extension Collection where Element == SpanProcessor {
     static func processors(for storage: EmbraceStorage, export: OpenTelemetryExport?) -> [SpanProcessor] {

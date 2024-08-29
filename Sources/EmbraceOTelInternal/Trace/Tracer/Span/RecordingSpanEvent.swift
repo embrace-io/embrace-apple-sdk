@@ -4,6 +4,7 @@
 
 import Foundation
 import OpenTelemetryApi
+import EmbraceSemantics
 
 public struct RecordingSpanEvent: SpanEvent, Codable, Equatable {
     public let name: String

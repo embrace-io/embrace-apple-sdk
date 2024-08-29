@@ -3,6 +3,7 @@
 //
 
 import OpenTelemetryApi
+import EmbraceSemantics
 
 public struct RecordingSpanLink: Codable, Equatable {
     public let traceId: TraceId

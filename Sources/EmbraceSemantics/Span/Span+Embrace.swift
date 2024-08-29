@@ -3,7 +3,6 @@
 //
 
 import Foundation
-import EmbraceSemantics
 import OpenTelemetryApi
 
 extension Span {

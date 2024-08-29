@@ -2,7 +2,7 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import EmbraceOTelInternal
+import EmbraceSemantics
 
 public extension W3C {
     static let traceparentHeaderName = "traceparent"

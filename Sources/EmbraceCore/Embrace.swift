@@ -10,6 +10,8 @@ import EmbraceStorageInternal
 import EmbraceUploadInternal
 import EmbraceObjCUtilsInternal
 
+ import EmbraceSemantics
+
 /**
  Main class used to interact with the Embrace SDK.
 
@@ -155,6 +157,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         super.init()
 
         // setup otel
+
         EmbraceOTel.setup(spanProcessors: .processors(for: storage, export: options.export))
         let logSharedState = DefaultEmbraceLogSharedState.create(
             storage: self.storage,

@@ -4,6 +4,7 @@
 
 import Foundation
 import EmbraceOTelInternal
+import EmbraceSemantics
 
 struct SpanEventPayload: Encodable {
     let name: String

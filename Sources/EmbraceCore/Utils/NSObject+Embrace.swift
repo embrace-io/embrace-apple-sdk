@@ -4,6 +4,7 @@
 
 import Foundation
 import EmbraceOTelInternal
+import EmbraceSemantics
 
 extension NSObject {
     private struct AssociatedKeys {

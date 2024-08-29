@@ -4,6 +4,7 @@
 
 import Foundation
 import EmbraceOTelInternal
+import EmbraceSemantics
 
 class WhitespaceSpanNameValidator: SpanDataValidator {
     func validate(data: inout SpanData) -> Bool {

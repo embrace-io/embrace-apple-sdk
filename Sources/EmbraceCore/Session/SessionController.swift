@@ -7,6 +7,7 @@ import EmbraceCommonInternal
 import EmbraceStorageInternal
 import EmbraceUploadInternal
 import EmbraceOTelInternal
+import EmbraceSemantics
 
 public extension Notification.Name {
     static let embraceSessionDidStart = Notification.Name("embrace.session.did_start")

@@ -5,6 +5,7 @@
 import Foundation
 import OpenTelemetryApi
 import EmbraceCommonInternal
+import EmbraceSemantics
 
 public protocol EmbraceOpenTelemetry: AnyObject {
     func buildSpan(name: String,

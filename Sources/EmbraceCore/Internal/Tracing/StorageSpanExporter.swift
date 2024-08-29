@@ -5,6 +5,7 @@
 import EmbraceStorageInternal
 import EmbraceOTelInternal
 import EmbraceCommonInternal
+import EmbraceSemantics
 
 class StorageSpanExporter: EmbraceSpanExporter {
     private(set) weak var storage: EmbraceStorage?

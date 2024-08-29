@@ -4,8 +4,8 @@
 
 import Foundation
 
-import EmbraceCore
-import EmbraceOTelInternal
+import EmbraceIO
+import EmbraceSemantics
 
 @Observable
 class SimonGameModel {
@@ -48,7 +48,7 @@ class SimonGameModel {
     /// measures a single game. Parent of multiple round spans (hopefully)
     var gameSpan: Span?
 
-    /// measures a single round. Child of game span
+    /// measures a single round.  Child of game span
     var roundSpan: Span?
 
     func start() {

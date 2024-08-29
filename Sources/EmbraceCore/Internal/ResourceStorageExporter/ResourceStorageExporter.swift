@@ -5,6 +5,7 @@
 import Foundation
 import EmbraceStorageInternal
 import EmbraceOTelInternal
+import EmbraceSemantics
 
 class ConcreteEmbraceResource: EmbraceResource {
     var key: String

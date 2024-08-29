@@ -5,6 +5,7 @@
 import Foundation
 import EmbraceCommonInternal
 import EmbraceOTelInternal
+import EmbraceSemantics
 
 extension Embrace: EmbraceOpenTelemetry {
     private var exporter: EmbraceSpanExporter {

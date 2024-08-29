@@ -3,6 +3,7 @@
 //
 
 import EmbraceOTelInternal
+import EmbraceSemantics
 
 struct SpanLinkPayload: Encodable {
     let traceId: String
