@@ -13,6 +13,7 @@ public protocol EmbraceStorageMetadataFetcher: AnyObject {
     func fetchCustomPropertiesForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord]
     func fetchPersonaTagsForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord]
     func fetchPersonaTagsForProcessId(_ processId: ProcessIdentifier) throws -> [MetadataRecord]
+    func fetchCrashInfo() throws -> [MetadataRecord]
 }
 
 extension EmbraceStorage {
@@ -336,20 +337,30 @@ extension EmbraceStorage {
                 .fetchAll(db)
         }
     }
+
+    public func fetchCrashInfo() throws -> [MetadataRecord] {
+        try dbQueue.read { db in
+            return try crashInfoFilter().fetchAll(db)
+        }
+    }
 }
 
 extension EmbraceStorage {
     private func resourcesFilter() -> QueryInterfaceRequest<MetadataRecord> {
-        return MetadataRecord.filter(
+        MetadataRecord.filter(
             MetadataRecord.Schema.type == MetadataRecordType.requiredResource.rawValue ||
             MetadataRecord.Schema.type == MetadataRecordType.resource.rawValue)
     }
 
     private func customPropertiesFilter() -> QueryInterfaceRequest<MetadataRecord> {
-        return MetadataRecord.filter(MetadataRecord.Schema.type == MetadataRecordType.customProperty.rawValue)
+        MetadataRecord.filter(MetadataRecord.Schema.type == MetadataRecordType.customProperty.rawValue)
     }
 
     private func personaTagsFilter() -> QueryInterfaceRequest<MetadataRecord> {
-        return MetadataRecord.filter(MetadataRecord.Schema.type == MetadataRecordType.personaTag.rawValue)
+        MetadataRecord.filter(MetadataRecord.Schema.type == MetadataRecordType.personaTag.rawValue)
+    }
+
+    private func crashInfoFilter() -> QueryInterfaceRequest<MetadataRecord> {
+        MetadataRecord.filter(MetadataRecord.Schema.type == MetadataRecordType.crashInfo.rawValue)
     }
 }

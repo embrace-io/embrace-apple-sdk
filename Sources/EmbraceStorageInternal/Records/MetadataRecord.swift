@@ -19,6 +19,9 @@ public enum MetadataRecordType: String, Codable {
 
     /// Persona tag attached to session and logs data and that can be manipulated by the user of the SDK
     case personaTag
+
+    /// Information that will be appended with the next crash occurence
+    case crashInfo
 }
 
 public enum MetadataRecordLifespan: String, Codable {
