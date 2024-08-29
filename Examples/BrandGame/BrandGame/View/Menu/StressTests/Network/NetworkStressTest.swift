@@ -14,15 +14,21 @@ struct NetworkStressTest: View {
 
     ]
 
-    @State var inputURL: String = NetworkStressTest.quickURLs.first!
-    @State var inputCount: UInt = 20
-    @State var didSubmit: Bool = false
+    @State private var inputURL: String = NetworkStressTest.quickURLs.first!
+    @State private var inputCount: UInt = 20
+    @State private var didSubmit: Bool = false
+    @State private var useNewConcurrency: Bool = false
 
-    @State var responses: [NetworkResponse] = []
+    @State private var responses: [NetworkResponse] = []
 
     var body: some View {
         VStack {
             Form {
+                Section("Configuration") {
+                    Toggle(isOn: $useNewConcurrency) {
+                        Text("Use async/await?")
+                    }
+                }
                 List {
                     Section("Quick URLs") {
                         ForEach(NetworkStressTest.quickURLs, id: \.self) { item in
@@ -85,28 +91,47 @@ struct NetworkStressTest: View {
             }
 
             responses = []
-            let group = DispatchGroup()
 
-            for index in 0..<inputCount {
-                if let request = NetworkRequest(string: inputURL, idx: index) {
-                    group.enter()
-                    request.execute { response in
-                        DispatchQueue.main.async {
-                            if let response = response {
-                                self.responses.append(response)
-                            }
-                            group.leave()
-                        }
-                    }
-                }
-            }
-
-            group.notify(queue: .main) {
+            if useNewConcurrency {
+                await performNewConcurrencyRequests()
                 didSubmit = false
+            } else {
+                performLegacyRequests {
+                    didSubmit = false
+                }
             }
         }
         .navigationTitle("Network Requests")
+    }
 
+    private func performNewConcurrencyRequests() async {
+        for index in 0..<inputCount {
+            if let request = NetworkRequest(string: inputURL, idx: index),
+               let response = await request.execute() {
+                responses.append(response)
+            }
+        }
+    }
+
+    private func performLegacyRequests(completion: @escaping () -> Void) {
+        let group = DispatchGroup()
+
+        for index in 0..<inputCount {
+            group.enter()
+            if let request = NetworkRequest(string: inputURL, idx: index) {
+                request.execute { response in
+                    DispatchQueue.main.async {
+                        if let response = response {
+                            self.responses.append(response)
+                        }
+                        group.leave()
+                    }
+                }
+            }        }
+
+        group.notify(queue: .main) {
+            completion()
+        }
     }
 }
 
