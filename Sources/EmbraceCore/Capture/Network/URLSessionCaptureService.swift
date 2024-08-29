@@ -136,13 +136,13 @@ struct SessionTaskResumeSwizzler: URLSessionSwizzler {
         if #available(iOS 15.0, tvOS 15.0, macOS 12, watchOS 8, *) {
             try swizzleInstanceMethod { originalImplementation -> BlockImplementationType in
                 return { [weak handler = self.handler] task in
-                    let captured = handler?.create(task: task) ?? true
+                    let handled = handler?.create(task: task) ?? true
 
-                    // if the task wasn't captured by other swizzlers
+                    // if the task was handled by this swizzler
                     // by the time resume was called it probably means
                     // it was an async/await task
                     // we set a proxy delegate to get a callback when the task finishes
-                    if !captured, let handler = handler {
+                    if handled, let handler = handler {
                         let originalDelegate = task.delegate
                         task.delegate = URLSessionDelegateProxy(originalDelegate: originalDelegate, handler: handler)
                     }
