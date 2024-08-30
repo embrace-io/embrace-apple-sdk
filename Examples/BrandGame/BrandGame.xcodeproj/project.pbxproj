@@ -54,6 +54,7 @@
 		FA716C802C45B94A00AD0161 /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = FA716C7F2C45B94A00AD0161 /* EmbraceCrash */; };
 		FA716C822C45B94A00AD0161 /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = FA716C812C45B94A00AD0161 /* EmbraceCrashlyticsSupport */; };
 		FA716C842C45B94A00AD0161 /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = FA716C832C45B94A00AD0161 /* EmbraceIO */; };
+		FA7C3FCD2C821A3400EA7344 /* AddCrashInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA7C3FCC2C821A3400EA7344 /* AddCrashInfoView.swift */; };
 		FA910EF12C4835B100C2E2E4 /* OpenTelemetryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA910EF02C4835B100C2E2E4 /* OpenTelemetryView.swift */; };
 		FA9505162B86640F00562A4C /* LoggingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA9505152B86640F00562A4C /* LoggingView.swift */; };
 		FAB41A9F2C49492200972BA9 /* PopUpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAB41A9E2C49492200972BA9 /* PopUpView.swift */; };
@@ -136,6 +137,7 @@
 		FA4C5F322C486E13005C0371 /* CreateSpanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateSpanView.swift; sourceTree = "<group>"; };
 		FA4C5F342C487B45005C0371 /* AttributesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributesView.swift; sourceTree = "<group>"; };
 		FA4FA4F92C62DBB600E66300 /* NoSpacesTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoSpacesTextField.swift; sourceTree = "<group>"; };
+		FA7C3FCC2C821A3400EA7344 /* AddCrashInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddCrashInfoView.swift; sourceTree = "<group>"; };
 		FA910EF02C4835B100C2E2E4 /* OpenTelemetryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenTelemetryView.swift; sourceTree = "<group>"; };
 		FA9505152B86640F00562A4C /* LoggingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoggingView.swift; sourceTree = "<group>"; };
 		FAB41A9E2C49492200972BA9 /* PopUpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopUpView.swift; sourceTree = "<group>"; };
@@ -375,6 +377,7 @@
 			isa = PBXGroup;
 			children = (
 				7BC59A8F2B0BE25C0001E980 /* CrashExampleTest.swift */,
+				FA7C3FCC2C821A3400EA7344 /* AddCrashInfoView.swift */,
 			);
 			name = CrashExample;
 			path = BrandGame/View/Menu/StressTests/CrashExample;
@@ -678,6 +681,7 @@
 				FAFDA3D42C333FC900AD17CF /* Request.swift in Sources */,
 				7B4C0BDF2BA9F93400F0BC37 /* App+SmokeTest.swift in Sources */,
 				7B3143B72AFDC52D00BA0D2F /* RightDotShape.swift in Sources */,
+				FA7C3FCD2C821A3400EA7344 /* AddCrashInfoView.swift in Sources */,
 				7B3CBA0A2C52E67600688E7B /* PersonaGrid.swift in Sources */,
 				FA9505162B86640F00562A4C /* LoggingView.swift in Sources */,
 				7B3143B92AFDC8EC00BA0D2F /* RightBracketShape.swift in Sources */,

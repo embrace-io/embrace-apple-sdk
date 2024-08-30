@@ -7,8 +7,8 @@ import SwiftUI
 import EmbraceCore
 
 struct CrashExampleTest: View {
-
-    @State var selectedExample: ExampleCrash = .fatalError
+    @State private var selectedExample: ExampleCrash = .fatalError
+    @State private var showAddCrashInfo: Bool = false
 
     var body: some View {
         Form {
@@ -29,6 +29,14 @@ struct CrashExampleTest: View {
                 }
             }
 
+            Section("Actions") {
+                Button {
+                    showAddCrashInfo = true
+                } label: {
+                    Text("Add Extra Info")
+                }
+            }
+
             Section {
                 Button {
                     Embrace.client?.crash(type: selectedExample)
@@ -40,7 +48,12 @@ struct CrashExampleTest: View {
             Text("Submitting this form will cause the app to crash")
                 .foregroundStyle(Color.secondary)
                 .listRowBackground(Color.clear)
-        }.navigationTitle("Crash Examples")
+        }.sheet(isPresented: $showAddCrashInfo, content: {
+            NavigationStack {
+                AddCrashInfoView()
+            }.presentationDetents([.medium])
+        })
+        .navigationTitle("Crash Examples")
     }
 
     func title(for example: ExampleCrash) -> String {

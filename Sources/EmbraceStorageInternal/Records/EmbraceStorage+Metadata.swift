@@ -83,6 +83,7 @@ extension EmbraceStorage {
         case .resource: return options.resourcesLimit
         case .customProperty: return options.customPropertiesLimit
         case .personaTag: return options.personaTagsLimit
+        case .crashInfo: return options.crashInfoLimit
         default: return 0
         }
     }
