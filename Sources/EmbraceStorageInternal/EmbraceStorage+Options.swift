@@ -24,9 +24,6 @@ public extension EmbraceStorage {
         /// Determines how many `MetadataRecords` of the `.customProperty` type can be present at any given time.
         public var customPropertiesLimit: Int = 100
 
-        /// Determines how many `MetadataRecords` of the `.crashInfo` type can be present at any given time.
-        public var crashInfoLimit: Int = 100
-
         /// Determines how many `MetadataRecords` of the `.personaTag` type can be present at any given time.
         public var personaTagsLimit: Int = 10
 

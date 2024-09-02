@@ -100,19 +100,10 @@ class UnsentDataHandler {
     ) {
         let timestamp = (report.timestamp ?? session?.lastHeartbeatTime) ?? Date()
 
-        var crashInfo: [String: String] = [:]
-
-        if let persistedCrashInfo = try? storage?.fetchCrashInfo() {
-            persistedCrashInfo.forEach {
-                crashInfo[$0.key] = $0.value.description
-            }
-        }
-
         // send otel log
         let attributes = createLogCrashAttributes(
             otel: otel,
             report: report,
-            extraInfo: crashInfo,
             session: session,
             timestamp: timestamp
         )
@@ -155,7 +146,6 @@ class UnsentDataHandler {
     static private func createLogCrashAttributes(
         otel: EmbraceOpenTelemetry?,
         report: CrashReport,
-        extraInfo: [String: String],
         session: SessionRecord?,
         timestamp: Date
     ) -> [String: String] {
@@ -163,7 +153,7 @@ class UnsentDataHandler {
         let attributesBuilder = EmbraceLogAttributesBuilder(
             session: session,
             crashReport: report,
-            initialAttributes: extraInfo
+            initialAttributes: [:]
         )
 
         let attributes = attributesBuilder

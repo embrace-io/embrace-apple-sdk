@@ -13,7 +13,6 @@ public protocol EmbraceStorageMetadataFetcher: AnyObject {
     func fetchCustomPropertiesForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord]
     func fetchPersonaTagsForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord]
     func fetchPersonaTagsForProcessId(_ processId: ProcessIdentifier) throws -> [MetadataRecord]
-    func fetchCrashInfo() throws -> [MetadataRecord]
 }
 
 extension EmbraceStorage {
@@ -83,7 +82,6 @@ extension EmbraceStorage {
         case .resource: return options.resourcesLimit
         case .customProperty: return options.customPropertiesLimit
         case .personaTag: return options.personaTagsLimit
-        case .crashInfo: return options.crashInfoLimit
         default: return 0
         }
     }
@@ -338,12 +336,6 @@ extension EmbraceStorage {
                 .fetchAll(db)
         }
     }
-
-    public func fetchCrashInfo() throws -> [MetadataRecord] {
-        try dbQueue.read { db in
-            return try crashInfoFilter().fetchAll(db)
-        }
-    }
 }
 
 extension EmbraceStorage {
@@ -359,9 +351,5 @@ extension EmbraceStorage {
 
     private func personaTagsFilter() -> QueryInterfaceRequest<MetadataRecord> {
         MetadataRecord.filter(MetadataRecord.Schema.type == MetadataRecordType.personaTag.rawValue)
-    }
-
-    private func crashInfoFilter() -> QueryInterfaceRequest<MetadataRecord> {
-        MetadataRecord.filter(MetadataRecord.Schema.type == MetadataRecordType.crashInfo.rawValue)
     }
 }

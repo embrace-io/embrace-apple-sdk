@@ -62,12 +62,5 @@ extension Embrace {
         guard let crashRporter = captureServices.crashReporter else {
             throw EmbraceCrashReportError.noCrashReporterAvailable
         }
-
-        try metadata.addMetadata(
-            key: key,
-            value: value,
-            type: .crashInfo,
-            lifespan: .process
-        )
     }
 }
