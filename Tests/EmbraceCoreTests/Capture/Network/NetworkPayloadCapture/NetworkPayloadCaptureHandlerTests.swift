@@ -68,14 +68,14 @@ class NetworkPayloadCaptureHandlerTests: XCTestCase {
         // and the current session id is correct
         XCTAssert(handler.active)
         XCTAssertEqual(handler.rulesTriggeredMap.count, 0)
-        XCTAssertEqual(handler.currentSessionId, TestConstants.sessionId.toString)
+        XCTAssertEqual(handler.currentSessionId, TestConstants.sessionId)
     }
 
     func test_onSessionEnd() throws {
         // given a handler
         let handler = NetworkPayloadCaptureHandler(otel: nil)
         handler.active = true
-        handler.currentSessionId = TestConstants.sessionId.toString
+        handler.currentSessionId = TestConstants.sessionId
 
         // when a session ends
         handler.onSessionEnd()
