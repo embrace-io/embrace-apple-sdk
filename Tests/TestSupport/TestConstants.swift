@@ -27,16 +27,17 @@ public struct TestConstants {
 
     public static let rsaPublicKey =
     """
-    -----BEGIN RSA PUBLIC KEY-----
-    MIIBCgKCAQEAor8onPvG/tF2PJyYJISMXzKX/IW3jvpYveLKCiufySKiytzl6diK
-    JmeMDD8RzrFWMyyxqJSOxnftF4stiAhmkmHKf0+YSqQ44/hGbd5uGCSziUGM6Ai6
-    eoCcaiepDmOpaCXCnjpE4qaNHJSEtt5LxqmLojWjtIvCiGNMiVueQKjk29WOXvWX
-    DLWUV1UTJRc7zQq/grSLK4lGD2rzyuR+bMvqStATgF1XU3UfW7iYZDcfir+m21rg
-    oOGQZm+dY38rDeUOTTC2drswJE0K8a+7S+AB0rjjXHQIJjM8QaroaehNQC+zlzXk
-    S2TKD2QPP+Qmpkw7hPYIOKZSV5XurDLfcQIDAQAB
-    -----END RSA PUBLIC KEY-----
+    -----BEGIN PUBLIC KEY-----
+    MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAn1Mbg+uF2GAZ2BZvFzKE
+    2gyE6cQOESpWTAuzXp0u9jCMJO+/LcKv6d3oaP/vZRDTtGPAfxYgc0tBiAYdOtkl
+    hiNQvb4puA34ai7h3jbBWsZgA0P5UtYflhR79CCXHH/1SuzaX4G6YYDdfQKYxAF/
+    vLNpi7q8LMt8iSGCFxsMyKs+gfMPqUQVy0At7LjGnrBMV50SRu0lCslbtb+LSb1v
+    F5EEpmw3d8M58dZkPUwgN9XU/nbfQt2X1tPg8SvZGLBxZHqVzaIQLCZr9O/XUq33
+    /TsOrZSTNdw/K6bs6nBzYnagbcoeHBVWYT8l1xvHE3b1Rnc3r5MCTaLUM7Tqb7an
+    qwIDAQAB
+    -----END PUBLIC KEY-----
     """
-    public static let rsaSanitizedPublicKey = "MIIBCgKCAQEAor8onPvG/tF2PJyYJISMXzKX/IW3jvpYveLKCiufySKiytzl6diKJmeMDD8RzrFWMyyxqJSOxnftF4stiAhmkmHKf0+YSqQ44/hGbd5uGCSziUGM6Ai6eoCcaiepDmOpaCXCnjpE4qaNHJSEtt5LxqmLojWjtIvCiGNMiVueQKjk29WOXvWXDLWUV1UTJRc7zQq/grSLK4lGD2rzyuR+bMvqStATgF1XU3UfW7iYZDcfir+m21rgoOGQZm+dY38rDeUOTTC2drswJE0K8a+7S+AB0rjjXHQIJjM8QaroaehNQC+zlzXkS2TKD2QPP+Qmpkw7hPYIOKZSV5XurDLfcQIDAQAB"
+    public static let rsaSanitizedPublicKey = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAn1Mbg+uF2GAZ2BZvFzKE2gyE6cQOESpWTAuzXp0u9jCMJO+/LcKv6d3oaP/vZRDTtGPAfxYgc0tBiAYdOtklhiNQvb4puA34ai7h3jbBWsZgA0P5UtYflhR79CCXHH/1SuzaX4G6YYDdfQKYxAF/vLNpi7q8LMt8iSGCFxsMyKs+gfMPqUQVy0At7LjGnrBMV50SRu0lCslbtb+LSb1vF5EEpmw3d8M58dZkPUwgN9XU/nbfQt2X1tPg8SvZGLBxZHqVzaIQLCZr9O/XUq33/TsOrZSTNdw/K6bs6nBzYnagbcoeHBVWYT8l1xvHE3b1Rnc3r5MCTaLUM7Tqb7anqwIDAQAB"
 }
 
 // swiftlint:enable line_length

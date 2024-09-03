@@ -17,5 +17,6 @@ public extension LogSemantics {
         public static let keyPayloadAlgorithm = "payload-algorithm"
         public static let keyEncryptedKey = "encrypted-key"
         public static let keyKeyAlgorithm = "key-algorithm"
+        public static let keyAesIv = "aes-iv"
     }
 }

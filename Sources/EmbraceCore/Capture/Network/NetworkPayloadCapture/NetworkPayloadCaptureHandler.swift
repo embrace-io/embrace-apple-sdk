@@ -136,7 +136,8 @@ class NetworkPayloadCaptureHandler {
                     LogSemantics.NetworkCapture.keyEncryptedPayload: result.payload,
                     LogSemantics.NetworkCapture.keyPayloadAlgorithm: result.payloadAlgorithm,
                     LogSemantics.NetworkCapture.keyEncryptedKey: result.key,
-                    LogSemantics.NetworkCapture.keyKeyAlgorithm: result.keyAlgorithm
+                    LogSemantics.NetworkCapture.keyKeyAlgorithm: result.keyAlgorithm,
+                    LogSemantics.NetworkCapture.keyAesIv: result.iv
                 ]
             )
 

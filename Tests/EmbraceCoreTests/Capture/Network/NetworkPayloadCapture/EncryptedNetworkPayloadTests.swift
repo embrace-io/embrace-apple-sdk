@@ -122,7 +122,7 @@ class EncryptedNetworkPayloadTests: XCTestCase {
         // then the encryption is succesful
         XCTAssertNotNil(result)
         XCTAssertEqual(result!.mechanism, "hybrid")
-        XCTAssertEqual(result!.payloadAlgorithm, "AES.GCM")
+        XCTAssertEqual(result!.payloadAlgorithm, "aes-256-cbc")
         XCTAssertEqual(result!.keyAlgorithm, "RSA.PKCS1")
     }
 

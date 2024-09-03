@@ -5,6 +5,7 @@
 import Foundation
 import Security
 import CryptoKit
+import CommonCrypto
 
 struct EncryptedNetworkPayload: Encodable {
 
@@ -124,71 +125,26 @@ struct EncryptedNetworkPayload: Encodable {
             return nil
         }
 
-        // generate symmetric key
-        let symmetricKey = SymmetricKey(size: .bits256)
-
-        // encrypt payload using aes
-        var encryptedData: Data?
-        do {
-            encryptedData = try AES.GCM.seal(data, using: symmetricKey).combined
-        } catch {
-            Embrace.logger.debug("Error encrypting payload with AES.GCM!:\n\(error.localizedDescription)")
-        }
-        guard let encryptedData = encryptedData else {
+        // encrypt payload
+        guard let aesResult = EncryptionHelper.aesEncrypt(data: data) else {
+            Embrace.logger.debug("Error with AES encryption!")
             return nil
         }
 
-        // parse public key string
-        var createKeyError: Unmanaged<CFError>?
-
-        let attributes = [
-            kSecAttrKeyClass as String: kSecAttrKeyClassPublic,
-            kSecAttrKeyType as String: kSecAttrKeyTypeRSA
-        ] as CFDictionary
-
-        guard let keyData = Data(base64Encoded: key),
-              let publicKey = SecKeyCreateWithData(keyData as CFData, attributes, &createKeyError) else {
-
-            if let createKeyError = createKeyError {
-                Embrace.logger.debug("Error creating public key \(key)!:\n\(createKeyError)")
-            } else {
-                Embrace.logger.debug("Error creating public key \(key)!")
-            }
-            return nil
-        }
-
-        // validate encryption algorithm
-        let algorithm: SecKeyAlgorithm = .rsaEncryptionPKCS1
-        guard SecKeyIsAlgorithmSupported(publicKey, .encrypt, algorithm) else {
-            Embrace.logger.debug("PKCS1 encryption not supported!")
-            return nil
-        }
-
-        // get symmetric key data
-        let symmetricKeyData = symmetricKey.withUnsafeBytes { body in
-            Data(body)
-        }
-
-        // encrypt symmetric key using the asymmetric key
-        var error: Unmanaged<CFError>?
-        guard let encryptedSymmetricKey = SecKeyCreateEncryptedData(
-            publicKey,
-            algorithm,
-            symmetricKeyData as CFData,
-            &error
-        ) as Data? else {
-            if let error = error {
-                Embrace.logger.debug("Encryption error:\n\(error)")
-            }
+        // encrypt symmetric key
+        guard let hexKeyData = aesResult.key.hexString.data(using: .utf8),
+              let rsaResult = EncryptionHelper.rsaEncrypt(publicKey: key, data: hexKeyData) else {
+            Embrace.logger.debug("Error with RSA encryption!")
             return nil
         }
 
         return EncryptedPayloadResult(
             mechanism: "hybrid",
-            payload: encryptedData.base64EncodedString(),
-            payloadAlgorithm: "AES.GCM",
-            key: encryptedSymmetricKey.base64EncodedString(),
-            keyAlgorithm: "RSA.PKCS1"
+            payload: aesResult.data.base64EncodedString(),
+            payloadAlgorithm: aesResult.algorithm,
+            key: rsaResult.data.base64EncodedString(),
+            keyAlgorithm: rsaResult.algorithm,
+            iv: aesResult.iv.hexString
         )
     }
 }
@@ -199,4 +155,11 @@ struct EncryptedPayloadResult {
     let payloadAlgorithm: String
     let key: String
     let keyAlgorithm: String
+    let iv: String
+}
+
+extension Data {
+    var hexString: String {
+        return map { String(format: "%02hhx", $0) }.joined()
+    }
 }
