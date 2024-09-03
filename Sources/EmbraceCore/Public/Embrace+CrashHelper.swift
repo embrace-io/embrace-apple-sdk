@@ -9,11 +9,14 @@ extension Embrace {
     /// This defines the error types related to crash reporting within the Embrace SDK.
     private enum EmbraceCrashReportError: LocalizedError, CustomNSError {
         case noCrashReporterAvailable
+        case crashReporterIsNotExtendable
 
         var errorDescription: String? {
             switch self {
             case .noCrashReporterAvailable:
                 return "No crash reporter is available to append information."
+            case .crashReporterIsNotExtendable:
+                return "Cannot add extra information to the given crash reporter"
             }
         }
 
@@ -25,14 +28,13 @@ extension Embrace {
             switch self {
             case .noCrashReporterAvailable:
                 return 1000
+            case .crashReporterIsNotExtendable:
+                return 1001
             }
         }
 
         var errorUserInfo: [String: Any] {
-            switch self {
-            case .noCrashReporterAvailable:
-                return [NSLocalizedDescriptionKey: self.errorDescription ?? ""]
-            }
+            return [NSLocalizedDescriptionKey: self.errorDescription ?? ""]
         }
     }
 
@@ -54,7 +56,7 @@ extension Embrace {
     /// crash that is reported during the lifetime of the process. This can be useful for adding context
     /// or debugging information that may help in analyzing the crash when exported.
     ///
-    /// - Important: Throws an exception if no `CrashReporter` is configured.
+    /// - Important: Throws an exception if no proper `CrashReporter` is configured.
     ///
     /// - Parameters:
     ///   - key: The key for the attribute.
