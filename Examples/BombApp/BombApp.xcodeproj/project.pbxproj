@@ -47,6 +47,8 @@
 		FA29890B2C34982D0065F0E2 /* EmbraceTestCrash.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA29890A2C34982D0065F0E2 /* EmbraceTestCrash.swift */; };
 		FA29890D2C3498590065F0E2 /* EmbraceTestIndexOutOfBounds.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA29890C2C3498590065F0E2 /* EmbraceTestIndexOutOfBounds.swift */; };
 		FA2989152C34995E0065F0E2 /* InternalConsistency.m in Sources */ = {isa = PBXBuildFile; fileRef = FA2989142C34995E0065F0E2 /* InternalConsistency.m */; };
+		FAA47E512C87429800FEFC01 /* AddCrashInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAA47E502C87429800FEFC01 /* AddCrashInfoView.swift */; };
+		FAA47E542C87430600FEFC01 /* NoSpacesTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAA47E532C87430600FEFC01 /* NoSpacesTextField.swift */; };
 		FAFDA3E72C343F2100AD17CF /* BombApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFDA3E62C343F2100AD17CF /* BombApp.swift */; };
 		FAFDA3EB2C343F2200AD17CF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FAFDA3EA2C343F2200AD17CF /* Assets.xcassets */; };
 		FAFDA3EE2C343F2200AD17CF /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FAFDA3ED2C343F2200AD17CF /* Preview Assets.xcassets */; };
@@ -54,7 +56,6 @@
 		FAFDA3F82C343F8000AD17CF /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = FAFDA3F72C343F8000AD17CF /* EmbraceCrash */; };
 		FAFDA3FA2C343F8000AD17CF /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = FAFDA3F92C343F8000AD17CF /* EmbraceCrashlyticsSupport */; };
 		FAFDA3FC2C343F8000AD17CF /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = FAFDA3FB2C343F8000AD17CF /* EmbraceIO */; };
-		FAFDA4012C343FB500AD17CF /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = FAFDA4002C343FB500AD17CF /* GoogleService-Info.plist */; };
 		FAFDA4182C34408E00AD17CF /* BombAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFDA4172C34408E00AD17CF /* BombAppDelegate.swift */; };
 		FAFDA4472C3441B400AD17CF /* CRLCrashStackGuard.m in Sources */ = {isa = PBXBuildFile; fileRef = FAFDA41B2C3441B300AD17CF /* CRLCrashStackGuard.m */; };
 		FAFDA4482C3441B400AD17CF /* CRLCrash.m in Sources */ = {isa = PBXBuildFile; fileRef = FAFDA41D2C3441B300AD17CF /* CRLCrash.m */; };
@@ -91,11 +92,12 @@
 		FA29890C2C3498590065F0E2 /* EmbraceTestIndexOutOfBounds.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbraceTestIndexOutOfBounds.swift; sourceTree = "<group>"; };
 		FA2989132C34995E0065F0E2 /* InternalConsistency.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = InternalConsistency.h; sourceTree = "<group>"; };
 		FA2989142C34995E0065F0E2 /* InternalConsistency.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = InternalConsistency.m; sourceTree = "<group>"; };
+		FAA47E502C87429800FEFC01 /* AddCrashInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddCrashInfoView.swift; sourceTree = "<group>"; };
+		FAA47E532C87430600FEFC01 /* NoSpacesTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoSpacesTextField.swift; sourceTree = "<group>"; };
 		FAFDA3E32C343F2100AD17CF /* BombApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BombApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FAFDA3E62C343F2100AD17CF /* BombApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BombApp.swift; sourceTree = "<group>"; };
 		FAFDA3EA2C343F2200AD17CF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		FAFDA3ED2C343F2200AD17CF /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
-		FAFDA4002C343FB500AD17CF /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		FAFDA4172C34408E00AD17CF /* BombAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BombAppDelegate.swift; sourceTree = "<group>"; };
 		FAFDA41B2C3441B300AD17CF /* CRLCrashStackGuard.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CRLCrashStackGuard.m; sourceTree = "<group>"; };
 		FAFDA41C2C3441B300AD17CF /* CRLCrashAbort.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CRLCrashAbort.h; sourceTree = "<group>"; };
@@ -203,6 +205,25 @@
 			path = Bombs;
 			sourceTree = "<group>";
 		};
+		FAA47E4F2C87422F00FEFC01 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				FAA47E522C8742F900FEFC01 /* Components */,
+				FAFDA3E62C343F2100AD17CF /* BombApp.swift */,
+				FA2988F42C347F3F0065F0E2 /* BombView.swift */,
+				FAA47E502C87429800FEFC01 /* AddCrashInfoView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		FAA47E522C8742F900FEFC01 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				FAA47E532C87430600FEFC01 /* NoSpacesTextField.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
 		FAFDA3DA2C343F2100AD17CF = {
 			isa = PBXGroup;
 			children = (
@@ -222,12 +243,11 @@
 		FAFDA3E52C343F2100AD17CF /* BombApp */ = {
 			isa = PBXGroup;
 			children = (
+				FAA47E4F2C87422F00FEFC01 /* Views */,
 				FA2989072C3498060065F0E2 /* Bombs */,
 				FAFDA3FF2C343FA700AD17CF /* Resources */,
 				FAFDA3EC2C343F2200AD17CF /* Preview Content */,
 				FAFDA4192C3441B300AD17CF /* ThirdParty */,
-				FAFDA3E62C343F2100AD17CF /* BombApp.swift */,
-				FA2988F42C347F3F0065F0E2 /* BombView.swift */,
 				FAFDA4172C34408E00AD17CF /* BombAppDelegate.swift */,
 				FA2988FA2C34836A0065F0E2 /* BombAppDelegate+withCrashlytics.swift */,
 				FA2988F22C347E260065F0E2 /* EmbraceOptions.swift */,
@@ -247,7 +267,6 @@
 			isa = PBXGroup;
 			children = (
 				FAFDA3EA2C343F2200AD17CF /* Assets.xcassets */,
-				FAFDA4002C343FB500AD17CF /* GoogleService-Info.plist */,
 				FA2988B72C34434F0065F0E2 /* BombApp-Bridging-Header.h */,
 			);
 			path = Resources;
@@ -415,7 +434,6 @@
 			files = (
 				FAFDA3EE2C343F2200AD17CF /* Preview Assets.xcassets in Resources */,
 				FAFDA3EB2C343F2200AD17CF /* Assets.xcassets in Resources */,
-				FAFDA4012C343FB500AD17CF /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -454,6 +472,7 @@
 			files = (
 				FAFDA45A2C3441B400AD17CF /* CRLCrashObjCMsgSend.m in Sources */,
 				FAFDA45C2C3441B400AD17CF /* CRLCrashPrivInst.m in Sources */,
+				FAA47E512C87429800FEFC01 /* AddCrashInfoView.swift in Sources */,
 				FAFDA4482C3441B400AD17CF /* CRLCrash.m in Sources */,
 				FA2989092C34981B0065F0E2 /* SwiftFatal.swift in Sources */,
 				FAFDA4592C3441B400AD17CF /* CRLCrashROPage.m in Sources */,
@@ -464,6 +483,7 @@
 				FAFDA4542C3441B400AD17CF /* CRLCrashReleasedObject.m in Sources */,
 				FAFDA4522C3441B400AD17CF /* CRLCrashSmashStackBottom.m in Sources */,
 				FAFDA4552C3441B400AD17CF /* CRLCrashTrap.m in Sources */,
+				FAA47E542C87430600FEFC01 /* NoSpacesTextField.swift in Sources */,
 				FAFDA44E2C3441B400AD17CF /* CRLCrashNXPage.m in Sources */,
 				FAFDA4492C3441B400AD17CF /* CRLCrashSwift.swift in Sources */,
 				FAFDA4182C34408E00AD17CF /* BombAppDelegate.swift in Sources */,

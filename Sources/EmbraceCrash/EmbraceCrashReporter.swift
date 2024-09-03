@@ -41,6 +41,12 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
         }
     }
 
+    private(set) var extraInfo: [String: String] = [:] {
+        didSet {
+            updateKSCrashInfo()
+        }
+    }
+
     /// Unused in this KSCrash implementation
     public var onNewReport: ((CrashReport) -> Void)?
 
@@ -49,10 +55,16 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
             return
         }
 
-        ksCrash.userInfo = [
-            UserInfoKey.sdkVersion: sdkVersion ?? NSNull(),
-            UserInfoKey.sessionId: currentSessionId ?? NSNull()
-        ]
+        if ksCrash.userInfo == nil {
+            ksCrash.userInfo = [:]
+        }
+
+        ksCrash.userInfo[UserInfoKey.sdkVersion] = self.sdkVersion ?? NSNull()
+        ksCrash.userInfo[UserInfoKey.sessionId] = self.currentSessionId ?? NSNull()
+        
+        self.extraInfo.forEach {
+            ksCrash.userInfo[$0.key] = $0.value
+        }
     }
 
     /// Used to determine if the last session ended cleanly or in a crash.
@@ -167,5 +179,11 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
         formatter.formatterBehavior = .default
         formatter.timeZone = TimeZone(secondsFromGMT: 0)
         return formatter
+    }
+}
+
+extension EmbraceCrashReporter: ExtendableCrashReporter {
+    public func appendCrashInfo(key: String, value: String) {
+        extraInfo[key] = value
     }
 }

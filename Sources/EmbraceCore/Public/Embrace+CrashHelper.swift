@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import EmbraceCommonInternal
 
 extension Embrace {
     /// This defines the error types related to crash reporting within the Embrace SDK.
@@ -46,7 +47,7 @@ extension Embrace {
     public func crash(type: ExampleCrash = .fatalError) -> Never {
         CrashHelper.crash(example: type)
     }
-    
+
     /// Appends additional key-value information to the next crash report.
     ///
     /// This method allows the addition of a key-value pair as an attribute to the next occurring
@@ -62,5 +63,11 @@ extension Embrace {
         guard let crashRporter = captureServices.crashReporter else {
             throw EmbraceCrashReportError.noCrashReporterAvailable
         }
+
+        guard let extendableCrashReporter = crashRporter as? ExtendableCrashReporter else {
+            throw EmbraceCrashReportError.noCrashReporterAvailable
+        }
+
+        extendableCrashReporter.appendCrashInfo(key: key, value: value)
     }
 }

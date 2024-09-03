@@ -21,6 +21,10 @@ import Foundation
     @objc var onNewReport: ((CrashReport) -> Void)? { get set }
 }
 
+public protocol ExtendableCrashReporter: CrashReporter {
+    func appendCrashInfo(key: String, value: String)
+}
+
 @objc public class CrashReport: NSObject {
     public private(set) var id: UUID
     public private(set) var payload: String

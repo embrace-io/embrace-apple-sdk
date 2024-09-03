@@ -1,14 +1,12 @@
 //
-//  EmbraceOptions.swift
-//  BombApp
-//
-//  Created by Ariel Demarco on 02/07/2024.
+//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
 import EmbraceIO
 
 extension Embrace.Endpoints {
     static func fromInfoPlist() -> Embrace.Endpoints? {
+//        return .init(baseURL: "http://localhost:8989/api", developmentBaseURL: "http://localhost:8989/api", configBaseURL: "http://localhost:8989/api")
         guard let endpoints = Bundle.main.infoDictionary?["EmbraceEndpoints"] as? [String: String],
               let baseURL = value(from: endpoints, key: "baseURL"),
               let developmentBaseURL = value(from: endpoints, key: "developmentBaseURL"),
