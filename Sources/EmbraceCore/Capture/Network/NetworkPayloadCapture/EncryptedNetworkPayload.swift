@@ -6,6 +6,7 @@ import Foundation
 import Security
 import CryptoKit
 import CommonCrypto
+import EmbraceCommonInternal
 
 struct EncryptedNetworkPayload: Encodable {
 
@@ -61,7 +62,7 @@ struct EncryptedNetworkPayload: Encodable {
         startTime: Date?,
         endTime: Date?,
         matchedUrl: String,
-        sessionId: String?
+        sessionId: SessionIdentifier?
     ) {
         guard let request = request,
               let url = request.url,
@@ -76,7 +77,7 @@ struct EncryptedNetworkPayload: Encodable {
         self.endTime = endTime?.nanosecondsSince1970Truncated
 
         self.matchedUrl = matchedUrl
-        self.sessionId = sessionId
+        self.sessionId = sessionId?.toString
 
         if let body = request.httpBody {
             self.requestBody = String(data: body, encoding: .utf8)

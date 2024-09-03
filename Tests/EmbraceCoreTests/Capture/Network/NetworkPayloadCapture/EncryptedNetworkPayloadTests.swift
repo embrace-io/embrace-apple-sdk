@@ -60,7 +60,7 @@ class EncryptedNetworkPayloadTests: XCTestCase {
             startTime: startTime,
             endTime: endTime,
             matchedUrl: "www.test.com/user/*",
-            sessionId: TestConstants.sessionId.toString
+            sessionId: TestConstants.sessionId
         )
     }
 

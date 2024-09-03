@@ -21,7 +21,7 @@ class NetworkPayloadCaptureHandler {
     var rulesTriggeredMap: [String: Bool] = [:]
 
     @ThreadSafe
-    var currentSessionId: String?
+    var currentSessionId: SessionIdentifier?
 
     private var otel: EmbraceOpenTelemetry?
 
@@ -72,7 +72,7 @@ class NetworkPayloadCaptureHandler {
         active = true
         rulesTriggeredMap.removeAll()
 
-        currentSessionId = (notification.object as? SessionRecord)?.id.toString
+        currentSessionId = (notification.object as? SessionRecord)?.id
     }
 
     @objc func onSessionEnd() {
