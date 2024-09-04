@@ -6,6 +6,7 @@ import Foundation
 import EmbraceCaptureService
 import EmbraceCommonInternal
 import EmbraceOTelInternal
+import EmbraceConfigInternal
 
 extension Embrace {
 
@@ -20,6 +21,7 @@ extension Embrace {
         @objc public let crashReporter: CrashReporter?
         @objc public let logLevel: LogLevel
         @objc public let export: OpenTelemetryExport?
+        @objc public let runtimeConfiguration: EmbraceConfigurable?
 
         /// Default initializer for `Embrace.Options` that requires an array of `CaptureServices` to be passed.
         ///
@@ -53,6 +55,7 @@ extension Embrace {
             self.crashReporter = crashReporter
             self.logLevel = logLevel
             self.export = export
+            self.runtimeConfiguration = nil
         }
 
         /// Initializer for `Embrace.Options` that does not require an appId.

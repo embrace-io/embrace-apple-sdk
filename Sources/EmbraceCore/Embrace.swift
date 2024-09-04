@@ -142,7 +142,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         self.deviceId = DeviceIdentifier.retrieve(from: storage)
         self.upload = Embrace.createUpload(options: options, deviceId: deviceId.hex)
         self.captureServices = try CaptureServices(options: options, storage: storage, upload: upload)
-        self.config = Embrace.createConfig(options: options, deviceId: deviceId.hex)
+        self.config = Embrace.createConfig(options: options, deviceId: deviceId)
         self.sessionController = SessionController(storage: storage, upload: upload, config: config)
         self.sessionLifecycle = Embrace.createSessionLifecycle(controller: sessionController)
         self.metadata = MetadataHandler(storage: storage, sessionController: sessionController)
@@ -254,7 +254,8 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
     /// Called everytime the remote config changes
     @objc private func onConfigUpdated() {
         if let config = config {
-            Embrace.logger.limits = InternalLogLimits(config: config)
+            Embrace.logger.limits = config.internalLogLimits
         }
     }
 }
+

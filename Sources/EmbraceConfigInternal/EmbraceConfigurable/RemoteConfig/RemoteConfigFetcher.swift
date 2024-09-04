@@ -5,16 +5,16 @@
 import Foundation
 import EmbraceCommonInternal
 
-class RemoteConfigFetcher {
+public class RemoteConfigFetcher {
 
     static let routePath = "/v2/config"
 
-    let options: EmbraceConfig.Options
+    let options: RemoteConfigFetcher.Options
     let logger: InternalLogger
     let session: URLSession
     let operationQueue: OperationQueue
 
-    init(options: EmbraceConfig.Options, logger: InternalLogger) {
+    public init(options: RemoteConfigFetcher.Options, logger: InternalLogger) {
         self.options = options
         self.logger = logger
 
@@ -77,7 +77,7 @@ class RemoteConfigFetcher {
             URLQueryItem(name: "appId", value: options.appId),
             URLQueryItem(name: "osVersion", value: options.osVersion),
             URLQueryItem(name: "appVersion", value: options.appVersion),
-            URLQueryItem(name: "deviceId", value: options.deviceId),
+            URLQueryItem(name: "deviceId", value: options.deviceId.hex),
             URLQueryItem(name: "sdkVersion", value: options.sdkVersion)
         ]
 

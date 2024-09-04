@@ -5,8 +5,8 @@
 import Foundation
 import EmbraceCommonInternal
 
-public extension EmbraceConfig {
-    class Options {
+public extension RemoteConfigFetcher {
+    struct Options {
         let apiBaseUrl: String
         let queue: DispatchQueue
 
@@ -17,7 +17,6 @@ public extension EmbraceConfig {
         let appVersion: String
         let userAgent: String
 
-        let minimumUpdateInterval: TimeInterval
         let urlSessionConfiguration: URLSessionConfiguration
 
         public init(
@@ -29,9 +28,8 @@ public extension EmbraceConfig {
             sdkVersion: String,
             appVersion: String,
             userAgent: String,
-            minimumUpdateInterval: TimeInterval = 60 * 60,
-            urlSessionConfiguration: URLSessionConfiguration = URLSessionConfiguration.default) {
-
+            urlSessionConfiguration: URLSessionConfiguration = URLSessionConfiguration.default
+        ) {
             self.apiBaseUrl = apiBaseUrl
             self.queue = queue
             self.appId = appId
@@ -40,7 +38,6 @@ public extension EmbraceConfig {
             self.sdkVersion = sdkVersion
             self.appVersion = appVersion
             self.userAgent = userAgent
-            self.minimumUpdateInterval = minimumUpdateInterval
             self.urlSessionConfiguration = urlSessionConfiguration
         }
     }

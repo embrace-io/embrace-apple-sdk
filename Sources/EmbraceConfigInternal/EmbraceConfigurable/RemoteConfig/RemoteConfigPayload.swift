@@ -6,7 +6,7 @@ import Foundation
 
 // swiftlint:disable nesting
 
-struct RemoteConfigPayload: Decodable, Equatable {
+public struct RemoteConfigPayload: Decodable, Equatable {
     var sdkEnabledThreshold: Float
     var backgroundSessionThreshold: Float
     var networkSpansForwardingThreshold: Float
