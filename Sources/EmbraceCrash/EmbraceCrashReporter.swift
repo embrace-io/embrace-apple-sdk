@@ -55,16 +55,20 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
             return
         }
 
-        if ksCrash.userInfo == nil {
-            ksCrash.userInfo = [:]
+        var crashInfo: [AnyHashable: Any] = [:]
+
+        if ksCrash.userInfo != nil {
+            crashInfo = ksCrash.userInfo
         }
 
-        ksCrash.userInfo[UserInfoKey.sdkVersion] = self.sdkVersion ?? NSNull()
-        ksCrash.userInfo[UserInfoKey.sessionId] = self.currentSessionId ?? NSNull()
+        crashInfo[UserInfoKey.sdkVersion] = self.sdkVersion ?? NSNull()
+        crashInfo[UserInfoKey.sessionId] = self.currentSessionId ?? NSNull()
 
         self.extraInfo.forEach {
-            ksCrash.userInfo[$0.key] = $0.value
+            crashInfo[$0.key] = $0.value
         }
+
+        ksCrash.userInfo = crashInfo
     }
 
     /// Used to determine if the last session ended cleanly or in a crash.

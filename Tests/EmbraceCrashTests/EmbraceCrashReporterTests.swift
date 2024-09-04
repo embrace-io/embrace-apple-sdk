@@ -121,4 +121,18 @@ class EmbraceCrashReporterTests: XCTestCase {
             XCTAssertTrue(ksCrash.userInfo.keys.contains(AnyHashable(expectedKey)))
         }
     }
+
+    func testInKSCrash_appendCrashInfo_shouldntDeletePreexistingKeys() throws {
+        let crashReporter = EmbraceCrashReporter()
+        crashReporter.install(context: context, logger: logger)
+        crashReporter.ksCrash?.userInfo = ["initial_key": "one_value"]
+
+        crashReporter.appendCrashInfo(key: "some", value: "value")
+
+        let ksCrash = try XCTUnwrap(crashReporter.ksCrash)
+        for expectedKey in [ "emb-sdk", "emb-sid" ] {
+            XCTAssertTrue(ksCrash.userInfo.keys.contains(AnyHashable(expectedKey)))
+        }
+        XCTAssertEqual(ksCrash.userInfo["initial_key"] as? String, "one_value")
+    }
 }
