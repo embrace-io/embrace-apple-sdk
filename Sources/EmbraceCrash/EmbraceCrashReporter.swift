@@ -61,7 +61,7 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
 
         ksCrash.userInfo[UserInfoKey.sdkVersion] = self.sdkVersion ?? NSNull()
         ksCrash.userInfo[UserInfoKey.sessionId] = self.currentSessionId ?? NSNull()
-        
+
         self.extraInfo.forEach {
             ksCrash.userInfo[$0.key] = $0.value
         }

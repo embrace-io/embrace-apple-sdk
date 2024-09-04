@@ -208,6 +208,28 @@ final class EmbraceCoreTests: XCTestCase {
         }
     }
 
+    // MARK: - CrashHelper tests
+    func test_appendCrashInfo_throwsOnNotHavingCrashReporter() throws {
+        let embrace = try getLocalEmbrace(crashReporter: nil)
+
+        XCTAssertThrowsError(try embrace?.appendCrashInfo(key: .random(), value: .random()))
+    }
+
+    func test_appendCrashInfo_throwsOnNotAnExtendableCrashReporter() throws {
+        let crashReporter = CrashReporterMock()
+        let embrace = try getLocalEmbrace(crashReporter: crashReporter)
+
+        XCTAssertThrowsError(try embrace?.appendCrashInfo(key: .random(), value: .random()))
+    }
+
+    func test_appendCrashInfo_forwardsToReporterToAddTheGivenInfo() throws {
+        let crashReporter = ExtendableCrashReporterMock()
+        let embrace = try getLocalEmbrace(crashReporter: crashReporter)
+
+        XCTAssertNoThrow(try embrace?.appendCrashInfo(key: .random(), value: .random()))
+        XCTAssertTrue(crashReporter.didCallAppendCrashInfo)
+    }
+
     // MARK: - Helper Methods
     func getLocalEmbrace(storage: EmbraceStorage? = nil, crashReporter: CrashReporter? = nil) throws -> Embrace? {
         // to ensure that each test gets it's own instance of embrace.

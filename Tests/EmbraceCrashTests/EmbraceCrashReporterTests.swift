@@ -100,4 +100,25 @@ class EmbraceCrashReporterTests: XCTestCase {
 
         wait(for: [expectation], timeout: .defaultTimeout)
     }
+
+    func test_appendCrashInfo_addsKeyValuesInKSCrashUserInfo() throws {
+        let crashReporter = EmbraceCrashReporter()
+        crashReporter.install(context: context, logger: logger)
+
+        crashReporter.appendCrashInfo(key: "some", value: "value")
+
+        XCTAssertEqual(try XCTUnwrap(crashReporter.ksCrash?.userInfo["some"]) as? String, "value")
+    }
+
+    func test_appendCrashInfo_addsDefaultInfoWhenBeingCalled() throws {
+        let crashReporter = EmbraceCrashReporter()
+        crashReporter.install(context: context, logger: logger)
+
+        crashReporter.appendCrashInfo(key: "some", value: "value")
+
+        let ksCrash = try XCTUnwrap(crashReporter.ksCrash)
+        for expectedKey in [ "emb-sdk", "emb-sid" ] {
+            XCTAssertTrue(ksCrash.userInfo.keys.contains(AnyHashable(expectedKey)))
+        }
+    }
 }
