@@ -135,4 +135,30 @@ class EmbraceCrashReporterTests: XCTestCase {
         }
         XCTAssertEqual(ksCrash.userInfo["initial_key"] as? String, "one_value")
     }
+
+    func testHavingInternalAddedInfoInKSCrash_appendCrashInfo_shouldntEraseThoseValues() throws {
+        // given crash reporter with an already setted sdkVersion and sessionId
+        let crashReporter = EmbraceCrashReporter()
+        let context = CrashReporterContext(
+            appId: "_-_-_",
+            sdkVersion: "1.2.3",
+            filePathProvider: TemporaryFilepathProvider(),
+            notificationCenter: .default
+        )
+        crashReporter.install(context: context, logger: logger)
+        crashReporter.currentSessionId = "original_session_id"
+        let ksCrash = try XCTUnwrap(crashReporter.ksCrash)
+
+        // [Intermdiate Assertion to ensure the `given` state]
+        XCTAssertEqual(ksCrash.userInfo["emb-sid"] as? String, "original_session_id")
+        XCTAssertEqual(ksCrash.userInfo["emb-sdk"] as? String, "1.2.3")
+
+        // When trying to change the internal (necessary) properties from kscrash
+        crashReporter.appendCrashInfo(key: "emb-sid", value: "maliciously_updated_session_id")
+        crashReporter.appendCrashInfo(key: "emb-sdk", value: "1.2.3-broken")
+
+        // Then values should remain untouched
+        XCTAssertEqual(ksCrash.userInfo["emb-sid"] as? String, "original_session_id")
+        XCTAssertEqual(ksCrash.userInfo["emb-sdk"] as? String, "1.2.3")
+    }
 }

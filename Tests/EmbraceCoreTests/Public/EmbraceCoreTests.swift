@@ -208,7 +208,7 @@ final class EmbraceCoreTests: XCTestCase {
         }
     }
 
-    // MARK: - CrashHelper tests
+    // MARK: - Crash+CrashRecorder tests
     func test_appendCrashInfo_throwsOnNotHavingCrashReporter() throws {
         let embrace = try getLocalEmbrace(crashReporter: nil)
 
