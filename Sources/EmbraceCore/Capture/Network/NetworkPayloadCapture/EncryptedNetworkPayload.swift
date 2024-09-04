@@ -113,6 +113,13 @@ struct EncryptedNetworkPayload: Encodable {
         }
     }
 
+    /// Returns the encrypted json representation of this object, along with the necessary things to decrypt the data.
+    /// We are use hybrid encryption with AES and RSA.
+    /// First we encrypt the payload using aes-256-cbc with a randomly generated symmetric key and iv.
+    /// Afterwards we encrypt the symmetric key using RSA and the public key provided.
+    /// In order to decrypt the data, the user will have to first decrypt the symmetric key using their private key with RSA.
+    /// After that they'll have the symmetric key to decrypt the data using aes-256-cbc.
+    /// Note: Both the symmetric key and iv are converted into hex strings for easier use with openssl commands during decryption.
     func encrypted(withKey key: String) -> EncryptedPayloadResult? {
 
         // encode json payload
