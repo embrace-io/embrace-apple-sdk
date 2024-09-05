@@ -84,7 +84,7 @@ public class MockEmbraceOpenTelemetry: NSObject, EmbraceOpenTelemetry {
             instrumentationScopeInfo: .init(),
             timestamp: timestamp,
             severity: Severity.fromLogSeverity(severity),
-            body: message,
+            body: .string(message),
             attributes: otelAttributes
         )
 

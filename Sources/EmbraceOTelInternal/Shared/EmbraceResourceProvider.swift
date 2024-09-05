@@ -11,4 +11,3 @@ import OpenTelemetrySdk
 public protocol EmbraceResourceProvider {
     func getResource() -> Resource
 }
-

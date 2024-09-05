@@ -6,6 +6,7 @@ import Foundation
 import EmbraceOTelInternal
 import EmbraceCommonInternal
 import EmbraceSemantics
+import OpenTelemetryApi
 
 /// Class used to represent a Breadcrum as a SpanEvent.
 /// Usage example:

@@ -7,6 +7,7 @@ import EmbraceCaptureService
 import EmbraceCommonInternal
 import EmbraceOTelInternal
 import EmbraceSemantics
+import OpenTelemetryApi
 
 /// Service that generates OpenTelemetry span events for taps on the screen.
 /// Note that any taps done on a keyboard view will be automatically ignored.

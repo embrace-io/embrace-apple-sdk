@@ -5,6 +5,8 @@
 import Foundation
 import EmbraceStorageInternal
 import EmbraceOTelInternal
+import OpenTelemetryApi
+import OpenTelemetrySdk
 
 class ConcreteEmbraceResource: EmbraceResource {
     var key: String

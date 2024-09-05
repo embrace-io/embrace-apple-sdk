@@ -4,8 +4,9 @@
 
 import Foundation
 @testable import EmbraceOTelInternal
+import OpenTelemetrySdk
 
-class SpyLoggerProcessor: EmbraceLogRecordProcessor {
+class SpyLoggerProcessor: LogRecordProcessor {
     var receivedLogRecord: ReadableLogRecord?
     var didCallOnEmit = false
     func onEmit(logRecord: ReadableLogRecord) {
@@ -14,13 +15,13 @@ class SpyLoggerProcessor: EmbraceLogRecordProcessor {
     }
 
     var didCallForceFlush = false
-    func forceFlush() -> ExportResult {
+    func forceFlush(explicitTimeout: TimeInterval?) -> ExportResult {
         didCallForceFlush = true
         return .success
     }
 
     var didCallShutdown = false
-    func shutdown() -> ExportResult {
+    func shutdown(explicitTimeout: TimeInterval?) -> ExportResult {
         didCallShutdown = true
         return .success
     }

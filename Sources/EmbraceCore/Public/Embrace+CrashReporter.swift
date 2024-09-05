@@ -50,7 +50,7 @@ extension Embrace {
     /// - Parameters:
     ///   - key: The key for the attribute.
     ///   - value: The value associated with the given key.
-    @objc public func appendCrashInfo(key: String, value: String) throws {
+    public func appendCrashInfo(key: String, value: String) throws {
         guard let crashRporter = captureServices.crashReporter else {
             throw EmbraceCrashReportError.noCrashReporterAvailable
         }
@@ -63,7 +63,7 @@ extension Embrace {
     }
 
     /// Returns the last run end state.
-    @objc public func lastRunEndState() -> LastRunEndState {
+    public func lastRunEndState() -> LastRunEndState {
         guard let crashReporterEndState = captureServices.crashReporter?.getLastRunState() else {
             return .unavailable
         }

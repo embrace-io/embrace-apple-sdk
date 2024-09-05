@@ -7,6 +7,8 @@ import XCTest
 @testable import EmbraceOTelInternal
 import EmbraceStorageInternal
 import TestSupport
+import OpenTelemetryApi
+import OpenTelemetrySdk
 
 final class GenericLogExporterTests: XCTestCase {
     class DummyLogControllable: LogControllable {
@@ -25,12 +27,12 @@ final class GenericLogExporterTests: XCTestCase {
 
         EmbraceOTel().logger
             .logRecordBuilder()
-            .setBody("example log message")
+            .setBody(.string("example log message"))
             .emit()
 
         let exportedLogRecord = exporter.finishedLogRecords.first
         XCTAssertNotNil(exportedLogRecord)
-        XCTAssertEqual(exportedLogRecord?.body, "example log message")
+        XCTAssertEqual(exportedLogRecord?.body, .string("example log message"))
     }
 
 }

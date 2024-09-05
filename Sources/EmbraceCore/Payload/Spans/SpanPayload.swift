@@ -5,6 +5,7 @@
 import Foundation
 import EmbraceOTelInternal
 import EmbraceSemantics
+import OpenTelemetrySdk
 
 struct SpanPayload: Encodable {
     let traceId: String

@@ -4,6 +4,7 @@
 
 import Foundation
 import OpenTelemetryApi
+import OpenTelemetrySdk
 
 public protocol SpanEvent {
     var name: String { get }

@@ -7,6 +7,7 @@ import EmbraceCaptureService
 import EmbraceCommonInternal
 import EmbraceOTelInternal
 import EmbraceSemantics
+import OpenTelemetryApi
 
 /// Service that generates OpenTelemetry spans when the phone is running in low power mode.
 @objc(EMBLowPowerModeCaptureService)

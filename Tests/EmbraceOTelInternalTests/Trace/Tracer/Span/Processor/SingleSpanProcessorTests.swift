@@ -13,7 +13,7 @@ final class SingleSpanProcessorTests: XCTestCase {
     let exporter = InMemorySpanExporter()
 
     func createSpanData(
-        processor: EmbraceSpanProcessor,
+        processor: SpanProcessor,
         traceId: TraceId = .random(),
         spanId: SpanId = .random(),
         name: String = "example",
@@ -136,7 +136,7 @@ final class SingleSpanProcessorTests: XCTestCase {
     }
 
     func test_shutdown_callsShutdownOnExporter() throws {
-        let processor = SingleSpanProcessor(spanExporter: exporter)
+        var processor = SingleSpanProcessor(spanExporter: exporter)
 
         XCTAssertFalse(exporter.isShutdown)
         processor.shutdown()
@@ -144,7 +144,7 @@ final class SingleSpanProcessorTests: XCTestCase {
     }
 
     func test_shutdown_processesOngoingQueue() throws {
-        let processor = SingleSpanProcessor(spanExporter: exporter)
+        var processor = SingleSpanProcessor(spanExporter: exporter)
 
         let count = 100
         let spans = (0..<count).map { _ in createSpanData(processor: processor) }

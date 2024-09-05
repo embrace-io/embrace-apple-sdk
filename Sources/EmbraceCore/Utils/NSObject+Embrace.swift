@@ -4,6 +4,7 @@
 
 import Foundation
 import EmbraceOTelInternal
+import OpenTelemetryApi
 
 extension NSObject {
     private struct AssociatedKeys {

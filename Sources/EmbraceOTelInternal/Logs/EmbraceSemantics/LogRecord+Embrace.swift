@@ -4,6 +4,7 @@
 
 import EmbraceSemantics
 import EmbraceCommonInternal
+import OpenTelemetrySdk
 
 extension ReadableLogRecord {
     public var embType: LogType? {

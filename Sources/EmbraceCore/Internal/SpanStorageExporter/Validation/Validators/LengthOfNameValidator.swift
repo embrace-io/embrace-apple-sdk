@@ -4,6 +4,7 @@
 
 import EmbraceOTelInternal
 import EmbraceSemantics
+import OpenTelemetrySdk
 
 /// Validates the length of ``SpanData.name``. 
 /// This compares the length of the String in characters, not bytes.
