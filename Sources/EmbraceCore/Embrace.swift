@@ -250,15 +250,6 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         sessionLifecycle.endSession()
     }
 
-    /// Returns the last run end state.
-    @objc public func lastRunEndState() -> LastRunEndState {
-        guard let crashReporterEndState = captureServices.crashReporter?.getLastRunState() else {
-            return .unavailable
-        }
-
-        return LastRunEndState(rawValue: crashReporterEndState.rawValue) ?? .unavailable
-    }
-
     /// Called everytime the remote config changes
     @objc private func onConfigUpdated() {
         if let config = config {

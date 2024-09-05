@@ -340,16 +340,16 @@ extension EmbraceStorage {
 
 extension EmbraceStorage {
     private func resourcesFilter() -> QueryInterfaceRequest<MetadataRecord> {
-        return MetadataRecord.filter(
+        MetadataRecord.filter(
             MetadataRecord.Schema.type == MetadataRecordType.requiredResource.rawValue ||
             MetadataRecord.Schema.type == MetadataRecordType.resource.rawValue)
     }
 
     private func customPropertiesFilter() -> QueryInterfaceRequest<MetadataRecord> {
-        return MetadataRecord.filter(MetadataRecord.Schema.type == MetadataRecordType.customProperty.rawValue)
+        MetadataRecord.filter(MetadataRecord.Schema.type == MetadataRecordType.customProperty.rawValue)
     }
 
     private func personaTagsFilter() -> QueryInterfaceRequest<MetadataRecord> {
-        return MetadataRecord.filter(MetadataRecord.Schema.type == MetadataRecordType.personaTag.rawValue)
+        MetadataRecord.filter(MetadataRecord.Schema.type == MetadataRecordType.personaTag.rawValue)
     }
 }

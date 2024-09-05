@@ -98,7 +98,7 @@ class CrashlyticsWrapper {
         }
     }
 
-    private func setCustomValue(key: String, value: String) {
+    func setCustomValue(key: String, value: String) {
         guard let instance = instance else {
             return
         }
