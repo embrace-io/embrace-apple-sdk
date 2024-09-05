@@ -28,7 +28,7 @@ struct LoggingView: View {
             VStack(alignment: .leading) {
                 TextField("Message", text: $logMessage)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
-                
+
                 VStack(alignment: .leading) {
                     Text("Severity")
                         .bold()
