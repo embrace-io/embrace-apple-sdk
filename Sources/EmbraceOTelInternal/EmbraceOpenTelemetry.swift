@@ -30,7 +30,8 @@ public protocol EmbraceOpenTelemetry: AnyObject {
         _ message: String,
         severity: LogSeverity,
         type: LogType,
-        attributes: [String: String]
+        attributes: [String: String],
+        stackTraceBehavior: StackTraceBehavior
     )
 
     func log(
@@ -38,6 +39,7 @@ public protocol EmbraceOpenTelemetry: AnyObject {
         severity: LogSeverity,
         type: LogType,
         timestamp: Date,
-        attributes: [String: String]
+        attributes: [String: String],
+        stackTraceBehavior: StackTraceBehavior
     )
 }

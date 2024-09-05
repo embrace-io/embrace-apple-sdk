@@ -113,9 +113,17 @@ extension Embrace: EmbraceOpenTelemetry {
         _ message: String,
         severity: LogSeverity,
         type: LogType = .message,
-        attributes: [String: String] = [:]
+        attributes: [String: String] = [:],
+        stackTraceBehavior: StackTraceBehavior = .default
     ) {
-        log(message, severity: severity, type: type, timestamp: Date(), attributes: attributes)
+        log(
+            message,
+            severity: severity,
+            type: type,
+            timestamp: Date(),
+            attributes: attributes,
+            stackTraceBehavior: stackTraceBehavior
+        )
     }
 
     /// Creates and adds a log for the current session span
@@ -129,25 +137,25 @@ extension Embrace: EmbraceOpenTelemetry {
         severity: LogSeverity,
         type: LogType = .message,
         timestamp: Date,
-        attributes: [String: String]
+        attributes: [String: String],
+        stackTraceBehavior: StackTraceBehavior = .default
     ) {
-        /*
-         If we want to keep this method cleaner, we could move that to `EmbraceLogAttributesBuilder`
-         However that would cause to always add a frame to the stacktrace.
-         */
-        var stackTrace: [String] = []
-        if severity == .warn || severity == .error {
-            stackTrace = Thread.callStackSymbols
-        }
-
         let attributesBuilder = EmbraceLogAttributesBuilder(
             storage: storage,
             sessionControllable: sessionController,
             initialAttributes: attributes
         )
 
+        /*
+         If we want to keep this method cleaner, we could move this logcto `EmbraceLogAttributesBuilder`
+         However that would cause to always add a frame to the stacktrace.
+         */
+        if stackTraceBehavior == .default && (severity == .warn || severity == .error) {
+            var stackTrace: [String] = Thread.callStackSymbols
+            attributesBuilder.addStackTrace(stackTrace)
+        }
+
         let finalAttributes = attributesBuilder
-            .addStackTrace(stackTrace)
             .addLogType(type)
             .addApplicationState()
             .addApplicationProperties()

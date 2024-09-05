@@ -138,7 +138,8 @@ class NetworkPayloadCaptureHandler {
                     LogSemantics.NetworkCapture.keyEncryptedKey: result.key,
                     LogSemantics.NetworkCapture.keyKeyAlgorithm: result.keyAlgorithm,
                     LogSemantics.NetworkCapture.keyAesIv: result.iv
-                ]
+                ],
+                stackTraceBehavior: .default
             )
 
             // flag rule as triggered

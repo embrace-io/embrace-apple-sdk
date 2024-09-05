@@ -58,9 +58,17 @@ public class MockEmbraceOpenTelemetry: NSObject, EmbraceOpenTelemetry {
         _ message: String,
         severity: LogSeverity,
         type: LogType = .message,
-        attributes: [String: String]
+        attributes: [String: String],
+        stackTraceBehavior: StackTraceBehavior = .default
     ) {
-        log(message, severity: severity, type: type, timestamp: Date(), attributes: attributes)
+        log(
+            message,
+            severity: severity,
+            type: type,
+            timestamp: Date(),
+            attributes: attributes,
+            stackTraceBehavior: stackTraceBehavior
+        )
     }
 
     public func log(
@@ -68,7 +76,8 @@ public class MockEmbraceOpenTelemetry: NSObject, EmbraceOpenTelemetry {
         severity: LogSeverity,
         type: LogType = .message,
         timestamp: Date,
-        attributes: [String: String]
+        attributes: [String: String],
+        stackTraceBehavior: StackTraceBehavior = .default
     ) {
 
         var attributes = attributes

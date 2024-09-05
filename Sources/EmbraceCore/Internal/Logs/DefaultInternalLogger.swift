@@ -135,7 +135,8 @@ class DefaultInternalLogger: InternalLogger {
             message,
             severity: level.severity,
             type: .internal,
-            attributes: attributes
+            attributes: attributes,
+            stackTraceBehavior: .default
         )
 
         // update count
