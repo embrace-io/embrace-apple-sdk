@@ -12,10 +12,10 @@ extension Embrace {
     /// Class used to setup the Embrace SDK.
     @objc(EMBOptions)
     public final class Options: NSObject {
-        @objc public let appId: String
+        @objc public let appId: String?
         @objc public let appGroupId: String?
         @objc public let platform: Platform
-        @objc public let endpoints: Embrace.Endpoints
+        @objc public let endpoints: Embrace.Endpoints?
         @objc public let services: [CaptureService]
         @objc public let crashReporter: CrashReporter?
         @objc public let logLevel: LogLevel
@@ -34,7 +34,7 @@ extension Embrace {
         ///   - captureServices: The `CaptureServices` to be installed.
         ///   - crashReporter: The `CrashReporter` to be installed.
         ///   - logLevel: The `LogLevel` to use for console logs.
-        ///   - export: `OpenTelemetryExport` object to export telemetry outside of the Embrace backend.
+        ///   - export: `OpenTelemetryExport` object to export telemetry using OpenTelemetry protocols
         @objc public init(
             appId: String,
             appGroupId: String? = nil,
@@ -54,22 +54,67 @@ extension Embrace {
             self.logLevel = logLevel
             self.export = export
         }
+
+        /// Initializer for `Embrace.Options` that does not require an appId.
+        /// Use this initializer if you don't want the SDK to send data to Embrace's servers.
+        /// You must provide your own `OpenTelemetryExport`
+        ///
+        /// - Parameters:
+        ///   - export: `OpenTelemetryExport` object to export telemetry using OpenTelemetry protocols
+        ///   - platform: `Platform` in which the app will run. Defaults to `.iOS`.
+        ///   - captureServices: The `CaptureServices` to be installed.
+        ///   - crashReporter: The `CrashReporter` to be installed.
+        ///   - logLevel: The `LogLevel` to use for console logs.
+        @objc public init(
+            export: OpenTelemetryExport,
+            platform: Platform = .default,
+            captureServices: [CaptureService],
+            crashReporter: CrashReporter?,
+            logLevel: LogLevel = .default
+        ) {
+            self.appId = nil
+            self.appGroupId = nil
+            self.platform = platform
+            self.endpoints = nil
+            self.services = captureServices
+            self.crashReporter = crashReporter
+            self.logLevel = logLevel
+            self.export = export
+        }
     }
 }
 
 internal extension Embrace.Options {
+    /// Valiate Options object to make sure it has not been configured ambiguously
+    func validate() throws {
+        try validateAppId()
+        try validateGroupId()
+        try validateOTelExport()
+    }
+
     func validateAppId() throws {
-        // this also covers if it's empty
-        if self.appId.count != 5 {
-            throw EmbraceSetupError.invalidAppId("App Id must be 5 characters in length")
+        guard let appId = appId else {
+            return
+        }
+
+        if appId.count != 5 {
+            throw EmbraceSetupError.invalidAppId("`appId` must be 5 characters in length if provided")
         }
     }
 
     func validateGroupId() throws {
-        if let groupId = self.appGroupId {
-            if groupId.isEmpty {
-                throw EmbraceSetupError.invalidAppGroupId("group id must not be empty if provided")
-            }
+        guard let groupId = appGroupId else {
+            return
+        }
+
+        if groupId.isEmpty {
+            throw EmbraceSetupError.invalidAppGroupId("`appGroupId` must not be empty if provided")
+        }
+    }
+
+    func validateOTelExport() throws {
+        if appId == nil, export == nil {
+            throw EmbraceSetupError.invalidOptions("`OpenTelemetryExport` must be provided when not using an `appId`")
         }
     }
 }

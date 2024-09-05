@@ -11,38 +11,43 @@ import EmbraceObjCUtilsInternal
 
 extension Embrace {
     static func createStorage(options: Embrace.Options) throws -> EmbraceStorage {
+
+        let partitionId = options.appId ?? EmbraceFileSystem.defaultPartitionId
         if let storageUrl = EmbraceFileSystem.storageDirectoryURL(
-            appId: options.appId,
+            partitionId: partitionId,
             appGroupId: options.appGroupId
         ) {
-            do {
-                let storageOptions = EmbraceStorage.Options(baseUrl: storageUrl, fileName: "db.sqlite")
-                let storage = try EmbraceStorage(options: storageOptions, logger: Embrace.logger)
-                try storage.performMigration()
-                return storage
-            } catch {
-                throw EmbraceSetupError.failedStorageCreation("Failed to create EmbraceStorage")
-            }
+            let storageOptions = EmbraceStorage.Options(baseUrl: storageUrl, fileName: "db.sqlite")
+            let storage = try EmbraceStorage(options: storageOptions, logger: Embrace.logger)
+            try storage.performMigration()
+            return storage
         } else {
-            throw EmbraceSetupError.failedStorageCreation("Failed to create Storage Directory with appId: '\(options.appId)' appGroupId: '\(options.appGroupId ?? "")'")
+            throw EmbraceSetupError.failedStorageCreation(partitionId: partitionId, appGroupId: options.appGroupId)
         }
     }
 
     static func createUpload(options: Embrace.Options, deviceId: String) -> EmbraceUpload? {
+        guard let appId = options.appId else {
+            return nil
+        }
+
         // endpoints
-        let baseUrl = EMBDevice.isDebuggerAttached ?
-            options.endpoints.developmentBaseURL : options.endpoints.baseURL
+        guard let endpoints = options.endpoints else {
+            return nil
+        }
+
+        let baseUrl = EMBDevice.isDebuggerAttached ? endpoints.developmentBaseURL : endpoints.baseURL
         guard let spansURL = URL.spansEndpoint(basePath: baseUrl),
               let logsURL = URL.logsEndpoint(basePath: baseUrl) else {
             Embrace.logger.error("Failed to initialize endpoints!")
             return nil
         }
 
-        let endpoints = EmbraceUpload.EndpointOptions(spansURL: spansURL, logsURL: logsURL)
+        let uploadEndpoints = EmbraceUpload.EndpointOptions(spansURL: spansURL, logsURL: logsURL)
 
         // cache
         guard let cacheUrl = EmbraceFileSystem.uploadsDirectoryPath(
-            appId: options.appId,
+            partitionIdentifier: appId,
             appGroupId: options.appGroupId
         ),
               let cache = EmbraceUpload.CacheOptions(cacheBaseUrl: cacheUrl)
@@ -53,13 +58,13 @@ extension Embrace {
 
         // metadata
         let metadata = EmbraceUpload.MetadataOptions(
-            apiKey: options.appId,
+            apiKey: appId,
             userAgent: EmbraceMeta.userAgent,
             deviceId: deviceId.filter { c in c.isHexDigit }
         )
 
         do {
-            let options = EmbraceUpload.Options(endpoints: endpoints, cache: cache, metadata: metadata)
+            let options = EmbraceUpload.Options(endpoints: uploadEndpoints, cache: cache, metadata: metadata)
             let queue = DispatchQueue(label: "com.embrace.upload", attributes: .concurrent)
 
             return try EmbraceUpload(options: options, logger: Embrace.logger, queue: queue)

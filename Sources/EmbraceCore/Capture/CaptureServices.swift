@@ -22,10 +22,14 @@ final class CaptureServices {
         services = CaptureServiceFactory.addRequiredServices(to: options.services.unique)
 
         // create context for crash reporter
+        let partitionIdentifier = options.appId ?? EmbraceFileSystem.defaultPartitionId
         context = CrashReporterContext(
             appId: options.appId,
             sdkVersion: EmbraceMeta.sdkVersion,
-            filePathProvider: EmbraceFilePathProvider(appId: options.appId, appGroupIdentifier: options.appGroupId),
+            filePathProvider: EmbraceFilePathProvider(
+                partitionId: partitionIdentifier,
+                appGroupId: options.appGroupId
+            ),
             notificationCenter: Embrace.notificationCenter
         )
         crashReporter = options.crashReporter

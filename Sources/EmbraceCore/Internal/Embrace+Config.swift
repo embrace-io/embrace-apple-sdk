@@ -8,15 +8,25 @@ import EmbraceConfigInternal
 import EmbraceCommonInternal
 
 extension Embrace {
+
+    /// Creates `EmbraceConfig` object
     static func createConfig(
         options: Embrace.Options,
         deviceId: String
-    ) -> EmbraceConfig {
+    ) -> EmbraceConfig? {
+
+        guard let appId = options.appId else {
+            return nil
+        }
+
+        guard let endpoints = options.endpoints else {
+            return nil
+        }
 
         let configOptions = EmbraceConfig.Options(
-            apiBaseUrl: options.endpoints.configBaseURL,
+            apiBaseUrl: endpoints.configBaseURL,
             queue: DispatchQueue(label: "com.embrace.config"),
-            appId: options.appId,
+            appId: appId,
             deviceId: deviceId,
             osVersion: EMBDevice.appVersion ?? "",
             sdkVersion: EmbraceMeta.sdkVersion,
