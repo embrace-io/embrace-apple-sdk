@@ -8,6 +8,8 @@ extension URLSessionTask {
     private struct AssociatedKeys {
         static var embraceCaptured: UInt8 = 0
         static var embraceData: UInt8 = 1
+        static var embraceStartTime: UInt8 = 2
+        static var embraceEndTime: UInt8 = 3
     }
 
     var embraceCaptured: Bool {
@@ -36,6 +38,32 @@ extension URLSessionTask {
         set {
             objc_setAssociatedObject(self,
                                      &AssociatedKeys.embraceData,
+                                     newValue,
+                                     .OBJC_ASSOCIATION_RETAIN)
+        }
+    }
+
+    var embraceStartTime: Date? {
+        get {
+            return objc_getAssociatedObject(self,
+                                            &AssociatedKeys.embraceStartTime) as? Date
+        }
+        set {
+            objc_setAssociatedObject(self,
+                                     &AssociatedKeys.embraceStartTime,
+                                     newValue,
+                                     .OBJC_ASSOCIATION_RETAIN)
+        }
+    }
+
+    var embraceEndTime: Date? {
+        get {
+            return objc_getAssociatedObject(self,
+                                            &AssociatedKeys.embraceEndTime) as? Date
+        }
+        set {
+            objc_setAssociatedObject(self,
+                                     &AssociatedKeys.embraceEndTime,
                                      newValue,
                                      .OBJC_ASSOCIATION_RETAIN)
         }

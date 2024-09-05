@@ -63,7 +63,7 @@ class EmbraceLogRecordBuilderTests: XCTestCase {
                                          traceState: .init())
 
         givenEmbraceLogRecordBuilder()
-        let activeContext = whenSpanContextActive()
+        _ = whenSpanContextActive()
         whenSetting(spanContext: explicitContext)
         whenCallingEmit()
         thenProducedRecordHas(spanContext: explicitContext)

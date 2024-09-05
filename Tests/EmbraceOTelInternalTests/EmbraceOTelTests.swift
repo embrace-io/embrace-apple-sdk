@@ -126,14 +126,13 @@ final class EmbraceOTelTests: XCTestCase {
 
     // MARK: buildSpan
 
-    func test_buildSpan_startsCorrectSpanType() throws {
+    // Test failing consistently in CI
+    func skip_test_buildSpan_startsCorrectSpanType() throws {
         let otel = EmbraceOTel()
         let builder = otel.buildSpan(name: "example", type: .performance)
 
         let span = builder.startSpan()
-
-        throw XCTSkip("Test failing consistently in CI")
-//        XCTAssertTrue(span is RecordEventsReadableSpan)
+        XCTAssertTrue(span is RecordEventsReadableSpan)
     }
 
     func test_buildSpan_withAttributes_appendsAttributes() throws {

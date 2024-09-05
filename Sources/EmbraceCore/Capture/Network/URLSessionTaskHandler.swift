@@ -32,12 +32,14 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
 
     private var spans: [URLSessionTask: Span] = [:]
     private let queue: DispatchQueue
+    private let payloadCaptureHandler: NetworkPayloadCaptureHandler
     weak var dataSource: URLSessionTaskHandlerDataSource?
 
     init(processingQueue: DispatchQueue = DefaultURLSessionTaskHandler.queue(),
          dataSource: URLSessionTaskHandlerDataSource?) {
         self.queue = processingQueue
         self.dataSource = dataSource
+        self.payloadCaptureHandler = NetworkPayloadCaptureHandler(otel: dataSource?.otel)
     }
 
     @discardableResult
@@ -46,16 +48,20 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
         var handled = false
 
         queue.sync {
-            // don't capture if the service is not active
-            guard self.dataSource?.state == .active else {
-                return
-            }
-
             // don't capture if this task was already handled
             guard task.embraceCaptured == false else {
                 return
             }
 
+            // save start time for payload capture
+            task.embraceStartTime = Date()
+
+            // don't capture if the service is not active
+            guard self.dataSource?.state == .active else {
+                return
+            }
+
+            // validate task
             guard
                 var request = task.originalRequest,
                 let url = request.url,
@@ -121,14 +127,30 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
 
     func finish(task: URLSessionTask, data: Data?, error: (any Error)?) {
         queue.async {
+            // save end time for payload capture
+            task.embraceEndTime = Date()
+
+            // process payload capture
+            self.payloadCaptureHandler.process(
+                request: task.currentRequest ?? task.originalRequest,
+                response: task.response,
+                data: data,
+                error: error,
+                startTime: task.embraceStartTime,
+                endTime: task.embraceEndTime
+            )
+
+            // stop if the service is disabled
             guard self.dataSource?.state == .active else {
                 return
             }
 
+            // stop if there was no span for this task
             guard let span = self.spans.removeValue(forKey: task) else {
                 return
             }
 
+            // generate attributes from reponse
             if let response = task.response as? HTTPURLResponse {
                 span.setAttribute(
                     key: SpanSemantics.NetworkRequest.keyStatusCode,

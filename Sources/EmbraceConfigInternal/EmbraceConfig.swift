@@ -87,6 +87,10 @@ public class EmbraceConfig {
         return payload.internalLogsErrorLimit
     }
 
+    public var networkPayloadCaptureRules: [NetworkPayloadCaptureRule] {
+        return payload.networkPayloadCaptureRules
+    }
+
     // MARK: - Update
     @discardableResult
     public func updateIfNeeded() -> Bool {
@@ -112,7 +116,7 @@ public class EmbraceConfig {
                 self?.payload = payload
 
                 if previousPayload != payload {
-                    self?.notificationCenter.post(name: .embraceConfigUpdated, object: nil)
+                    self?.notificationCenter.post(name: .embraceConfigUpdated, object: self)
                 }
 
                 self?.lastUpdateTime = Date().timeIntervalSince1970
