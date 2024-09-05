@@ -62,9 +62,11 @@ public extension Swizzlable {
 
     private func saveInCache(originalImplementation: IMP, forMethod method: Method) {
         #if DEBUG
+        let swizzlerClassName = String(describing: type(of: self))
         SwizzleCache.shared.addMethodImplementation(originalImplementation,
                                                     forMethod: method,
-                                                    inClass: baseClass)
+                                                    inClass: baseClass,
+                                                    swizzler: swizzlerClassName)
         #endif
     }
 }

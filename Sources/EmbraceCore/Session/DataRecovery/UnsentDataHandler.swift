@@ -101,7 +101,7 @@ class UnsentDataHandler {
         let timestamp = (report.timestamp ?? session?.lastHeartbeatTime) ?? Date()
 
         // send otel log
-        let attributes = logCrash(
+        let attributes = createLogCrashAttributes(
             otel: otel,
             report: report,
             session: session,
@@ -143,7 +143,7 @@ class UnsentDataHandler {
         }
     }
 
-    static private func logCrash(
+    static private func createLogCrashAttributes(
         otel: EmbraceOpenTelemetry?,
         report: CrashReport,
         session: SessionRecord?,

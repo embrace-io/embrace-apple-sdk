@@ -106,3 +106,9 @@ public final class CrashlyticsReporter: NSObject, CrashReporter {
 
     }
 }
+
+extension CrashlyticsReporter: ExtendableCrashReporter {
+    public func appendCrashInfo(key: String, value: String) {
+        wrapper.setCustomValue(key: key, value: value)
+    }
+}

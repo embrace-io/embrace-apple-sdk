@@ -69,7 +69,7 @@ public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandl
 
     var injectTracingHeader: Bool {
         // check remote config
-        guard Embrace.client?.config.isNetworkSpansForwardingEnabled == true else {
+        guard Embrace.client?.config?.isNetworkSpansForwardingEnabled == true else {
             return false
         }
 
@@ -104,6 +104,14 @@ struct URLSessionInitWithDelegateSwizzler: URLSessionSwizzler {
                 let proxiedDelegate = (delegate != nil) ? delegate : EmbraceDummyURLSessionDelegate()
                 let newDelegate = URLSessionDelegateProxy(originalDelegate: proxiedDelegate, handler: handler)
                 let session = originalImplementation(urlSession, Self.selector, configuration, newDelegate, queue)
+
+                // If we have already been swizzled by another player, we notify our proxied delegate,
+                // as this will later help determine whether or not to forward the invocation of various
+                // `URLSessionDelegate` methods.
+                if session.delegate !== newDelegate {
+                    newDelegate.swizzledDelegate = session.delegate
+                }
+
                 return session
             }
         }
@@ -128,13 +136,13 @@ struct SessionTaskResumeSwizzler: URLSessionSwizzler {
         if #available(iOS 15.0, tvOS 15.0, macOS 12, watchOS 8, *) {
             try swizzleInstanceMethod { originalImplementation -> BlockImplementationType in
                 return { [weak handler = self.handler] task in
-                    let captured = handler?.create(task: task) ?? true
+                    let handled = handler?.create(task: task) ?? true
 
-                    // if the task wasn't captured by other swizzlers
+                    // if the task was handled by this swizzler
                     // by the time resume was called it probably means
                     // it was an async/await task
                     // we set a proxy delegate to get a callback when the task finishes
-                    if !captured, let handler = handler {
+                    if handled, let handler = handler {
                         let originalDelegate = task.delegate
                         task.delegate = URLSessionDelegateProxy(originalDelegate: originalDelegate, handler: handler)
                     }

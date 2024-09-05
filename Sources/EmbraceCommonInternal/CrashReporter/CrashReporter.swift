@@ -21,6 +21,15 @@ import Foundation
     @objc var onNewReport: ((CrashReport) -> Void)? { get set }
 }
 
+/// This protocol that extends the functionality of a `CrashReporter` and it allows
+/// implementers to add additional information to crash reports and extend them.
+///
+/// Implementing this protocol is optional and should only be considered in cases where
+/// additional customization in error reporting is required.
+public protocol ExtendableCrashReporter: CrashReporter {
+    func appendCrashInfo(key: String, value: String)
+}
+
 @objc public class CrashReport: NSObject {
     public private(set) var id: UUID
     public private(set) var payload: String

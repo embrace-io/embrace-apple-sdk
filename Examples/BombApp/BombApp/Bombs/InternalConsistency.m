@@ -1,8 +1,5 @@
 //
-//  InternalInconsistency.m
-//  BombApp
-//
-//  Created by Ariel Demarco on 02/07/2024.
+//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
 #import "InternalConsistency.h"

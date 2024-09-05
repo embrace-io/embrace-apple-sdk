@@ -20,6 +20,8 @@ public typealias TraceState = OpenTelemetryApi.TraceState
 
 public typealias Span=OpenTelemetryApi.Span
 
+public typealias Status=OpenTelemetryApi.Status
+
 public typealias SpanBuilder=OpenTelemetryApi.SpanBuilder
 
 public typealias AttributeValue=OpenTelemetryApi.AttributeValue
@@ -32,3 +34,5 @@ public typealias ReadableSpan = OpenTelemetrySdk.ReadableSpan
 public typealias SpanExporterResultCode = OpenTelemetrySdk.SpanExporterResultCode
 
 public typealias SpanProcessor = OpenTelemetrySdk.SpanProcessor
+
+public typealias ResourceAttributes=OpenTelemetrySdk.ResourceAttributes

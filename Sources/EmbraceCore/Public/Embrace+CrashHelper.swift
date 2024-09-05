@@ -3,9 +3,9 @@
 //
 
 import Foundation
+import EmbraceCommonInternal
 
 extension Embrace {
-
     /// Crash the app in the prescribed manner.
     /// This method is used to test the Embrace Crash Reporter.
     ///
@@ -17,5 +17,4 @@ extension Embrace {
     public func crash(type: ExampleCrash = .fatalError) -> Never {
         CrashHelper.crash(example: type)
     }
-
 }

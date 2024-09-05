@@ -8,6 +8,10 @@ class EmbraceDummyURLSessionDelegate: NSObject, URLSessionDelegate {}
 
 class URLSessionDelegateProxy: NSObject {
     weak var originalDelegate: URLSessionDelegate?
+
+    /// This helps to determine if, during the creation of the `URLSessionDelegateProxy`,
+    /// another player or SDK has already swizzled or proxied NSURLSession/URLSession.
+    weak var swizzledDelegate: URLSessionDelegate?
     let handler: URLSessionTaskHandler
 
     init(originalDelegate: URLSessionDelegate?, handler: URLSessionTaskHandler) {
@@ -54,6 +58,12 @@ class URLSessionDelegateProxy: NSObject {
 
         guard (session.delegate as? URLSessionDelegateProxy) != self else {
             // guard that we are not the session.delegate to prevent infinite recursion
+            return
+        }
+
+        // Avoid forwarding the delegate if it was already swizzled by somebody else
+        // during our swizzling to prevent potential infinite recursion.
+        guard self.swizzledDelegate == nil else {
             return
         }
 

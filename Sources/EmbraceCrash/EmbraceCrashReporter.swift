@@ -24,7 +24,6 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
     var logger: InternalLogger?
     private var queue: DispatchQueue = DispatchQueue(label: "com.embrace.crashreporter")
 
-    private var appId: String?
     public private(set) var basePath: String?
 
     /// Sets the current session identifier that will be included in a crash report.
@@ -41,6 +40,12 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
         }
     }
 
+    private(set) var extraInfo: [String: String] = [:] {
+        didSet {
+            updateKSCrashInfo()
+        }
+    }
+
     /// Unused in this KSCrash implementation
     public var onNewReport: ((CrashReport) -> Void)?
 
@@ -49,10 +54,16 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
             return
         }
 
-        ksCrash.userInfo = [
-            UserInfoKey.sdkVersion: sdkVersion ?? NSNull(),
-            UserInfoKey.sessionId: currentSessionId ?? NSNull()
-        ]
+        var crashInfo: [AnyHashable: Any] = ksCrash.userInfo ?? [:]
+
+        self.extraInfo.forEach {
+            crashInfo[$0.key] = $0.value
+        }
+
+        crashInfo[UserInfoKey.sdkVersion] = self.sdkVersion ?? NSNull()
+        crashInfo[UserInfoKey.sessionId] = self.currentSessionId ?? NSNull()
+
+        ksCrash.userInfo = crashInfo
     }
 
     /// Used to determine if the last session ended cleanly or in a crash.
@@ -72,10 +83,11 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
 
         self.logger = logger
         sdkVersion = context.sdkVersion
-        appId = context.appId
         basePath = context.filePathProvider.directoryURL(for: "embrace_crash_reporter")?.path
 
-        ksCrash = KSCrash.sharedInstance(withBasePath: basePath, andBundleName: appId)
+        let bundleName = context.appId ?? "default"
+        ksCrash = KSCrash.sharedInstance(withBasePath: basePath, andBundleName: bundleName)
+
         updateKSCrashInfo()
         ksCrash?.install()
     }
@@ -167,5 +179,11 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
         formatter.formatterBehavior = .default
         formatter.timeZone = TimeZone(secondsFromGMT: 0)
         return formatter
+    }
+}
+
+extension EmbraceCrashReporter: ExtendableCrashReporter {
+    public func appendCrashInfo(key: String, value: String) {
+        extraInfo[key] = value
     }
 }

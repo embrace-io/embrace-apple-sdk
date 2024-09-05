@@ -7,8 +7,8 @@ import Foundation
 @testable import EmbraceOTelInternal
 
 class SpyEmbraceResourceProvider: EmbraceResourceProvider {
-    var stubbedGetResources: [EmbraceResource] = []
-    func getResources() -> [EmbraceResource] {
-        stubbedGetResources
+    var stubbedResource = Resource()
+    func getResource() -> Resource {
+        stubbedResource
     }
 }

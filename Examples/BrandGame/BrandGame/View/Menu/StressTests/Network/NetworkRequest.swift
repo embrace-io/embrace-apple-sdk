@@ -52,6 +52,27 @@ extension NetworkStressTest {
 
             task.resume()
         }
+
+        func execute() async -> (NetworkResponse?) {
+            let before = Date()
+            do {
+                let response = try await URLSession.shared.data(for: .init(url: url))
+                let after = Date()
+                guard let httpResponse = response.1 as? HTTPURLResponse else {
+                    return nil
+                }
+                
+                return NetworkResponse(
+                    id: idx,
+                    requestURL: url,
+                    response: httpResponse,
+                    rtt: after.timeIntervalSince(before)
+                )
+            } catch let exception {
+                print(exception.localizedDescription)
+                return nil
+            }
+        }
     }
 
     struct NetworkResponse: Sendable, Identifiable {

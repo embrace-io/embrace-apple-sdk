@@ -1,18 +1,20 @@
 //
-//  ContentView.swift
-//  BombApp
-//
-//  Created by Ariel Demarco on 02/07/2024.
+//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
 import SwiftUI
 
 struct BombView: View {
     @State private var showTooltip: Bool
+    @State private var showAddCrashInfo: Bool
 
-    init(showTooltip: Bool = false) {
+    init(
+        showTooltip: Bool = false,
+        showAddCrashInfo: Bool = false
+    ) {
         UITableView.appearance().backgroundColor = .clear
         self.showTooltip = showTooltip
+        self.showAddCrashInfo = showAddCrashInfo
     }
 
     var body: some View {
@@ -32,6 +34,19 @@ struct BombView: View {
         .padding()
         .navigationTitle("BombApp")
         .toolbar {
+            Button {
+                withAnimation(.spring()) {
+                    showAddCrashInfo.toggle()
+                }
+            } label: {
+                Image(systemName: "gear")
+                    .tint(.primary)
+            }.sheet(isPresented: $showAddCrashInfo) {
+                NavigationStack {
+                    AddCrashInfoView()
+                }.presentationDetents([.medium, .large])
+            }
+
             Button(action: {
                 withAnimation(.spring()) {
                     showTooltip.toggle()

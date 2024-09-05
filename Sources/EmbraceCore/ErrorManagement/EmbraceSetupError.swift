@@ -9,7 +9,7 @@ public enum EmbraceSetupError: Error, Equatable {
     case invalidAppGroupId(_ description: String)
     case invalidThread(_ description: String)
     case invalidOptions(_ description: String)
-    case failedStorageCreation(_ description: String)
+    case failedStorageCreation(partitionId: String, appGroupId: String?)
     case unableToInitialize(_ description: String)
     case initializationNotAllowed(_ description: String)
 }
@@ -52,8 +52,8 @@ extension EmbraceSetupError: LocalizedError, CustomNSError {
             return description
         case .unableToInitialize(let description):
             return description
-        case .failedStorageCreation(let description):
-            return description
+        case .failedStorageCreation(let partitionId, let appGroupId):
+            return "Failed to create Storage Directory. partitionId: '\(partitionId)' appGroupId: '\(appGroupId ?? "")'"
         case .initializationNotAllowed(let description):
             return description
         }

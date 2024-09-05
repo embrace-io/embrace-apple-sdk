@@ -6,17 +6,17 @@ import XCTest
 @testable import EmbraceOTelInternal
 
 struct MockResourceProvider: EmbraceResourceProvider {
-    let resources: [EmbraceResource]
+    let resource: Resource
 
-    func getResources() -> [EmbraceResource] {
-        return resources
+    func getResource() -> Resource {
+        return resource
     }
 }
 
 final class EmbraceResourceProviderTests: XCTestCase {
 
     func test_getResource_returnsResourceWithDefaultAttributes() throws {
-        let provider = MockResourceProvider(resources: [])
+        let provider = MockResourceProvider(resource: .init())
         let resource = provider.getResource()
 
         XCTAssertFalse(resource.attributes.isEmpty)
@@ -26,10 +26,10 @@ final class EmbraceResourceProviderTests: XCTestCase {
     }
 
     func test_getResource_allowsOverrideOfDefaultResources() throws {
-        let provider = MockResourceProvider(resources: [
-            DefaultEmbraceResource(key: "service.name", value: .string("example")),
-            DefaultEmbraceResource(key: "telemetry.sdk.language", value: .string("bacon"))
-        ])
+        let provider = MockResourceProvider(resource: Resource(attributes: [
+            "service.name": .string("example"),
+            "telemetry.sdk.language": .string("bacon")
+        ]))
         let resource = provider.getResource()
 
         XCTAssertFalse(resource.attributes.isEmpty)
@@ -38,18 +38,17 @@ final class EmbraceResourceProviderTests: XCTestCase {
     }
 
     func test_getResource_includesCustomResourceAttributes() throws {
-        let provider = MockResourceProvider(resources: [
-            DefaultEmbraceResource(key: "my.name", value: .string("bob")),
-            DefaultEmbraceResource(key: "my.age", value: .int(42)),
-            DefaultEmbraceResource(key: "service.name", value: .string("example"))
-        ])
+        let provider = MockResourceProvider(resource: Resource(attributes: [
+            "my.name": .string("bob"),
+            "my.age": .int(42),
+            "service.name": .string("example")
+        ]))
         let resource = provider.getResource()
 
-        XCTAssertEqual(resource.attributes.count, 4)
+        XCTAssertEqual(resource.attributes.count, 3)
         XCTAssertEqual(resource.attributes["my.name"], .string("bob"))
         XCTAssertEqual(resource.attributes["my.age"], .int(42))
         XCTAssertEqual(resource.attributes["service.name"], .string("example"))
-        XCTAssertEqual(resource.attributes["telemetry.sdk.language"], .string("swift"))
     }
 
 }

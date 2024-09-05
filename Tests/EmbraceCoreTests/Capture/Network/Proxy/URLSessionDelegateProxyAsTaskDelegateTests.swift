@@ -7,7 +7,7 @@ import XCTest
 import TestSupport
 
 final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
-
+    private var otherSwizzler: DummyURLSessionInitWithDelegateSwizzler?
     private var urlSessionCaptureService: URLSessionCaptureService!
     private var openTelemetry: MockEmbraceOpenTelemetry!
 
@@ -20,9 +20,14 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
     // MARK: - Setup
 
     override func tearDown() async throws {
-        urlSessionCaptureService.swizzlers.forEach { swizzler in
-            try? swizzler.unswizzleClassMethod()
-            try? swizzler.unswizzleInstanceMethod()
+        do {
+            urlSessionCaptureService.swizzlers.forEach { swizzler in
+                try? swizzler.unswizzleClassMethod()
+                try? swizzler.unswizzleInstanceMethod()
+            }
+            try otherSwizzler?.unswizzleClassMethod()
+        } catch let exception {
+            print(exception)
         }
     }
 
@@ -36,7 +41,6 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
 
     func givenURLSession(delegate: URLSessionDelegate? = nil) {
         urlSession = ProxiedURLSessionProvider.with(configuration: .default, delegate: delegate)
-//        urlSession = URLSession(configuration: .default, delegate: delegate, delegateQueue: nil)
     }
 
     func givenTaskDelegate(_ delegate: URLSessionDelegate = FullyImplementedURLSessionDelegate()) {
@@ -79,6 +83,83 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
             sessionDelegate.didReceiveDataExpectation,
             sessionDelegate.didCompleteWithErrorExpectation
         ], timeout: Self.timeoutQuick)
+    }
+
+    func givenSomebodyElseSwizzlesURLSessionInit() throws {
+        otherSwizzler = DummyURLSessionInitWithDelegateSwizzler()
+        try otherSwizzler?.install()
+    }
+
+    @available(iOS 15.0, *)
+    func testWithPreviousSwizzledProxy_taskWithDelegate_callsTaskDelegateOnly() throws {
+        /*
+         This test checks what happens when there's a delegate assigned when creating a
+         URLSessionDataTask assigning a delegate whenever we have two swizzlers:
+         - First somebody else that swizzles the URLSession
+         - Second our swizzler.
+         */
+        try givenSomebodyElseSwizzlesURLSessionInit()
+        givenCaptureServiceInstalled()
+        givenTaskDelegate()
+        givenSessionDelegate()
+        givenURLSession(delegate: sessionDelegate)
+
+        let url = mockedURL(string: "https://example.io/aa")
+        let task = urlSession.dataTask(with: url)
+        let taskDelegate = try XCTUnwrap(taskDelegate as? FullyImplementedURLSessionDelegate)
+        task.delegate = taskDelegate
+        task.resume()
+
+        let sessionDelegate = try XCTUnwrap(sessionDelegate as? FullyImplementedURLSessionDelegate)
+        sessionDelegate.didReceiveDataExpectation.isInverted = true
+        sessionDelegate.didCompleteWithErrorExpectation.isInverted = true
+        wait(for: [
+            sessionDelegate.didReceiveDataExpectation,
+            sessionDelegate.didCompleteWithErrorExpectation,
+            taskDelegate.didReceiveDataExpectation,
+            taskDelegate.didCompleteWithErrorExpectation
+        ], timeout: Self.timeoutQuick)
+
+        XCTAssertTrue(try XCTUnwrap(otherSwizzler?.proxy?.didInvokeRespondsTo))
+        XCTAssertFalse(try XCTUnwrap(otherSwizzler?.proxy?.didInvokeForwardingTarget))
+        XCTAssertFalse(try XCTUnwrap(otherSwizzler?.proxy?.didForwardToTargetSuccesfully))
+        XCTAssertFalse(try XCTUnwrap(otherSwizzler?.proxy?.didForwardRespondsToSuccessfullyBool))
+    }
+
+    @available(iOS 15.0, *)
+    func testWithProxySwizzledAfterEmbrace_taskWithDelegate_callsTaskDelegateOnly() throws {
+        /*
+         This test checks what happens when there's a delegate assigned when creating a
+         URLSessionDataTask assigning a delegate whenever we have two swizzlers:
+         - First our swizzler.
+         - Second somebody else that swizzles the URLSession.
+         */
+        givenCaptureServiceInstalled()
+        try givenSomebodyElseSwizzlesURLSessionInit()
+        givenTaskDelegate()
+        givenSessionDelegate()
+        givenURLSession(delegate: sessionDelegate)
+
+        let url = mockedURL(string: "https://example.io/aa")
+        let task = urlSession.dataTask(with: url)
+        let taskDelegate = try XCTUnwrap(taskDelegate as? FullyImplementedURLSessionDelegate)
+        task.delegate = taskDelegate
+        task.resume()
+
+        let sessionDelegate = try XCTUnwrap(sessionDelegate as? FullyImplementedURLSessionDelegate)
+        sessionDelegate.didReceiveDataExpectation.isInverted = true
+        sessionDelegate.didCompleteWithErrorExpectation.isInverted = true
+        wait(for: [
+            sessionDelegate.didReceiveDataExpectation,
+            sessionDelegate.didCompleteWithErrorExpectation,
+            taskDelegate.didReceiveDataExpectation,
+            taskDelegate.didCompleteWithErrorExpectation
+        ], timeout: Self.timeoutQuick)
+
+        XCTAssertTrue(try XCTUnwrap(otherSwizzler?.proxy?.didInvokeRespondsTo))
+        XCTAssertFalse(try XCTUnwrap(otherSwizzler?.proxy?.didInvokeForwardingTarget))
+        XCTAssertFalse(try XCTUnwrap(otherSwizzler?.proxy?.didForwardToTargetSuccesfully))
+        XCTAssertFalse(try XCTUnwrap(otherSwizzler?.proxy?.didForwardRespondsToSuccessfullyBool))
     }
 
     @available(iOS 15.0, *)

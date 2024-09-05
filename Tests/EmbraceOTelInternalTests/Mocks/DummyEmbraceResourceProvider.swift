@@ -7,5 +7,5 @@ import Foundation
 @testable import EmbraceOTelInternal
 
 class DummyEmbraceResourceProvider: EmbraceResourceProvider {
-    func getResources() -> [EmbraceResource] { [] }
+    func getResource() -> Resource { Resource() }
 }
