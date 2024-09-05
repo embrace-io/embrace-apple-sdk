@@ -47,7 +47,7 @@ class NetworkPayloadCaptureHandler {
             object: nil
         )
 
-        updateRules(Embrace.client?.config.networkPayloadCaptureRules)
+        updateRules(Embrace.client?.config?.networkPayloadCaptureRules)
     }
 
     deinit {
