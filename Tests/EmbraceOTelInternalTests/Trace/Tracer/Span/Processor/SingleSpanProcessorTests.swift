@@ -123,7 +123,7 @@ final class SingleSpanProcessorTests: XCTestCase {
 
         let span = createSpanData(processor: processor)
 
-        span.setAttribute(key: "emb.error_code", value: SpanErrorCode.unknown.rawValue)
+        span.setAttribute(key: "emb.error_code", value: ErrorCode.unknown.rawValue)
         let endTime = Date().addingTimeInterval(2)
         span.end(time: endTime)
 

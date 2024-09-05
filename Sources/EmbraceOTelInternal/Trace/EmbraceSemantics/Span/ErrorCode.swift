@@ -3,7 +3,7 @@
 //
 
 /// Embrace specific error status for spans
-public enum ErrorCode {
+public enum ErrorCode: String {
     /// Span ended in an expected, but less than optimal state
     case failure
 

@@ -24,7 +24,6 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
     var logger: InternalLogger?
     private var queue: DispatchQueue = DispatchQueue(label: "com.embrace.crashreporter")
 
-    private var appId: String?
     public private(set) var basePath: String?
 
     /// Sets the current session identifier that will be included in a crash report.
@@ -84,10 +83,11 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
 
         self.logger = logger
         sdkVersion = context.sdkVersion
-        appId = context.appId
         basePath = context.filePathProvider.directoryURL(for: "embrace_crash_reporter")?.path
 
-        ksCrash = KSCrash.sharedInstance(withBasePath: basePath, andBundleName: appId)
+        let bundleName = context.appId ?? "default"
+        ksCrash = KSCrash.sharedInstance(withBasePath: basePath, andBundleName: bundleName)
+
         updateKSCrashInfo()
         ksCrash?.install()
     }

@@ -5,6 +5,7 @@
 import Foundation
 import EmbraceCommonInternal
 import EmbraceOTelInternal
+import EmbraceSemantics
 
 extension Embrace: EmbraceOpenTelemetry {
     private var exporter: EmbraceSpanExporter {
@@ -60,6 +61,7 @@ extension Embrace: EmbraceOpenTelemetry {
         let builder = otel
             .buildSpan(name: name, type: type, attributes: attributes)
             .setStartTime(time: startTime)
+
         if let parent = parent { builder.setParent(parent) }
         let span = builder.startSpan()
 
@@ -67,7 +69,7 @@ extension Embrace: EmbraceOpenTelemetry {
             span.addEvent(name: event.name, attributes: event.attributes, timestamp: event.timestamp)
         }
 
-        span.end(time: endTime)
+        span.end(errorCode: errorCode, time: endTime)
     }
 
     /// Adds a list of SpanEvent objects to the current session span

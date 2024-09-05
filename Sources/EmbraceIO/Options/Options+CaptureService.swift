@@ -11,8 +11,8 @@ import EmbraceOTelInternal
 
 public extension Embrace.Options {
 
-    /// Convenience initializer for `Embrace.Options` that automatically includes the the default `CaptureServices` and `CrashReporter`,
-    /// You can see list of platform service defaults in ``CaptureServiceFactory.platformCaptureServices``.
+    /// Convenience initializer for `Embrace.Options` that automatically includes the default `CaptureServices` and `CrashReporter`,
+    /// You can see list of platform service defaults in ``CaptureServiceBuilder.addDefaults``.
     ///
     /// If you wish to customize which `CaptureServices` and `CrashReporter` are installed, please refer to the `Embrace.Options`
     /// initializer found in the `EmbraceCore` target.
@@ -44,8 +44,8 @@ public extension Embrace.Options {
         )
     }
 
-    /// Convenience initializer for `Embrace.Options` that automatically includes the the default `CaptureServices` and `CrashReporter`,
-    /// You can see list of platform service defaults in ``CaptureServiceFactory.platformCaptureServices``.
+    /// Convenience initializer for `Embrace.Options` that automatically includes the default `CaptureServices` and `CrashReporter`,
+    /// You can see list of platform service defaults in ``CaptureServiceBuilder.addDefaults``.
     ///
     /// If you wish to customize which `CaptureServices` and `CrashReporter` are installed, please refer to the `Embrace.Options`
     /// initializer found in the `EmbraceCore` target.
@@ -65,6 +65,26 @@ public extension Embrace.Options {
             platform: platform,
             captureServices: .automatic,
             crashReporter: EmbraceCrashReporter()
+        )
+    }
+
+    /// Initializer for `Embrace.Options` that does not require an appId.
+    
+    /// Use this initializer if you don't want the SDK to send data to Embrace's servers.
+    /// You must provide your own `OpenTelemetryExport`
+    ///
+    /// If you wish to customize which `CaptureServices` and `CrashReporter` are installed, please refer to the `Embrace.Options`
+    /// initializer found in the `EmbraceCore` target.
+    ///
+    /// - Parameters:
+    ///   - export: `OpenTelemetryExport` object to export telemetry using OpenTelemetry protocols
+    ///   - logLevel: The `LogLevel` to use for console logs.
+    @objc convenience init(export: OpenTelemetryExport, logLevel: LogLevel = .default) {
+        self.init(
+            export: export,
+            captureServices: .automatic,
+            crashReporter: EmbraceCrashReporter(),
+            logLevel: logLevel
         )
     }
 }
