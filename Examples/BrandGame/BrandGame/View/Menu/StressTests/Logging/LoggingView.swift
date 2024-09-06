@@ -9,6 +9,7 @@ import EmbraceCommonInternal
 struct LoggingView: View {
     @State private var logMessage: String = "This is the log message..."
     @State private var severity: Int = LogSeverity.info.rawValue
+    @State private var behavior: Int = StackTraceBehavior.default.rawValue
     @State private var key: String = ""
     @State private var value: String = ""
     @State private var attributes: [String: String] = [:]
@@ -18,18 +19,36 @@ struct LoggingView: View {
         [.info, .warn, .error]
     }()
 
+    private let behaviors: [StackTraceBehavior] = {
+        [.default, .notIncluded]
+    }()
+
     var body: some View {
         VStack(alignment: .center) {
             VStack(alignment: .leading) {
                 TextField("Message", text: $logMessage)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
-                Picker("Severity", selection: $severity) {
-                    ForEach(severities, id: \.rawValue) {
-                        Text($0.text)
-                    }
+
+                VStack(alignment: .leading) {
+                    Text("Severity")
+                        .bold()
+                    Picker("Severity", selection: $severity) {
+                        ForEach(severities, id: \.rawValue) {
+                            Text($0.text)
+                        }
+                    }.pickerStyle(SegmentedPickerStyle())
                 }
-                .pickerStyle(SegmentedPickerStyle())
-                .padding(.bottom)
+                .padding(.vertical)
+
+                VStack(alignment: .leading) {
+                    Text("Stacktrace Behavior").bold()
+                    Picker("Stacktrace Behavior", selection: $behavior) {
+                        ForEach(behaviors, id: \.rawValue) {
+                            Text($0.asString())
+                        }
+                    }.pickerStyle(SegmentedPickerStyle())
+                }
+
                 AttributesView(key: $key, value: $value, attributes: $attributes)
             }.padding()
             Toggle(isOn: $shouldCleanUp) {
@@ -67,7 +86,11 @@ private extension LoggingView {
             print("Wrong severity number")
             return
         }
-        Embrace.client?.log(logMessage, severity: severity, attributes: attributes)
+        guard let behavior = StackTraceBehavior(rawValue: behavior) else {
+            print("Wrong behavior")
+            return
+        }
+        Embrace.client?.log(logMessage, severity: severity, attributes: attributes, stackTraceBehavior: behavior)
         cleanUpFields()
     }
 

@@ -169,7 +169,8 @@ class UnsentDataHandler {
             severity: .fatal,
             type: .crash,
             timestamp: timestamp,
-            attributes: attributes
+            attributes: attributes,
+            stackTraceBehavior: .default
         )
 
         return attributes
