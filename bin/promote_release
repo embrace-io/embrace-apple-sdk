@@ -1,0 +1,40 @@
+#!/bin/bash
+
+function print_usage {
+    echo "Usage: promote_release <version_number>"
+    echo ""
+    echo "Arguments:"
+    echo "  <version_number>        The version number of the release to promote (semver format)"
+}
+
+# Validate received parameters
+if [ $# -eq 0 ]; then
+  printf "[ERROR] No arguments were provided\n"
+  print_usage
+  exit 1
+fi
+
+RC_VERSION=$1
+
+# Validate version format: check if it's semver compliant
+if ! [[ "$RC_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "Error: Version number '$RC_VERSION' is not in semver format."
+  exit 1
+fi
+
+echo "Preparing to promote release version: $RC_VERSION"
+
+# Bump version
+bash "$(dirname "$(realpath "$0")")/version_bump" $RC_VERSION || exit 1
+
+# Get current branch, tag, commit & push
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+git add EmbraceIO.podspec \
+  Sources/EmbraceCommonInternal/EmbraceMeta.swift
+
+git commit -m "Bumps version to '$RC_VERSION'"
+
+git tag $RC_VERSION || { echo "Error: Failed to create tag."; exit 1; }
+
+git push origin $CURRENT_BRANCH --tags
