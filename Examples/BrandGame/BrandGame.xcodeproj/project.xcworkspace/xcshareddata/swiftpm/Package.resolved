@@ -1,4 +1,5 @@
 {
+  "originHash" : "6e07e0560435c53134e44fa5cb74fa9d8ef80028485c826b61f47f54d502272b",
   "pins" : [
     {
       "identity" : "collectionconcurrencykit",
@@ -50,8 +51,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/open-telemetry/opentelemetry-swift",
       "state" : {
-        "revision" : "37b52e2070cb925d98de30b51af6f0de91feae89",
-        "version" : "1.5.1"
+        "revision" : "0dd37c4a14a6aeeb131eea40a13cb3832c7c6a97",
+        "version" : "1.10.1"
       }
     },
     {
@@ -61,15 +62,6 @@
       "state" : {
         "revision" : "18c1a35ca966236cee0c5a714a51a73ff33384c1",
         "version" : "0.5.2"
-      }
-    },
-    {
-      "identity" : "reachability.swift",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/ashleymills/Reachability.swift",
-      "state" : {
-        "revision" : "7cbd73f46a7dfaeca079e18df7324c6de6d1834a",
-        "version" : "5.2.3"
       }
     },
     {
@@ -253,5 +245,5 @@
       }
     }
   ],
-  "version" : 2
+  "version" : 3
 }
