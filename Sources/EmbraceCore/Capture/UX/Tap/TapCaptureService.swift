@@ -134,8 +134,7 @@ class UIWindowSendEventSwizzler: Swizzlable {
     var onEvent: ((UIEvent) -> Void)?
 
     func install() throws {
-        try swizzleInstanceMethod { originalImplementation in
-            return { [weak self] uiWindow, uiEvent -> Void in
+        try swizzleInstanceMethod { originalImplementation in { [weak self] uiWindow, uiEvent -> Void in
                 self?.onEvent?(uiEvent)
                 originalImplementation(uiWindow, UIWindowSendEventSwizzler.selector, uiEvent)
             }
