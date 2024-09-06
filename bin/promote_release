@@ -29,10 +29,12 @@ bash "$(dirname "$(realpath "$0")")/version_bump" $RC_VERSION || exit 1
 
 # Get current branch, tag, commit & push
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-git tag $RC_VERSION || { echo "Error: Failed to create tag."; exit 1; }
 
 git add EmbraceIO.podspec \
   Sources/EmbraceCommonInternal/EmbraceMeta.swift
 
 git commit -m "Bumps version to '$RC_VERSION'"
+
+git tag $RC_VERSION || { echo "Error: Failed to create tag."; exit 1; }
+
 git push origin $CURRENT_BRANCH --tags
