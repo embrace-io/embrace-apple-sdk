@@ -11,8 +11,8 @@ import TestSupport
 class RemoteConfigFetcherTests: XCTestCase {
     static var urlSessionConfig: URLSessionConfiguration!
 
-    func testOptions(testName: String = #function) -> EmbraceConfig.Options {
-        return EmbraceConfig.Options(
+    func testOptions(testName: String = #function) -> RemoteConfigFetcher.Options {
+        return RemoteConfigFetcher.Options(
             apiBaseUrl: "https://embrace.\(testName).com",
             queue: DispatchQueue(label: "com.test.embrace.queue", attributes: .concurrent),
             appId: TestConstants.appId,

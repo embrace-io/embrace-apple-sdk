@@ -21,6 +21,7 @@ public class EmbraceConfig {
 
     public init(
         configurable: EmbraceConfigurable,
+        options: Options,
         notificationCenter: NotificationCenter,
         logger: InternalLogger
     ) {

@@ -19,7 +19,7 @@ public struct TestConstants {
     public static let spanId = "spanId"
 
     public static let appId = "appId"
-    public static let deviceId = "18EDB6CE90C2456B97CB91E0F5941CCA"
+    public static let deviceId = DeviceIdentifier(string: "18EDB6CE90C2456B97CB91E0F5941CCA")!
     public static let osVersion = "16.0"
     public static let sdkVersion = "00.1.00"
     public static let appVersion = "1.0"

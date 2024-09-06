@@ -14,21 +14,9 @@ extension Embrace {
         options: Embrace.Options,
         deviceId: DeviceIdentifier
     ) -> EmbraceConfig {
-
-        let configOptions = EmbraceConfig.Options(
-            apiBaseUrl: endpoints.configBaseURL,
-            queue: DispatchQueue(label: "com.embrace.config"),
-            appId: appId,
-            deviceId: deviceId,
-            osVersion: EMBDevice.appVersion ?? "",
-            sdkVersion: EmbraceMeta.sdkVersion,
-            appVersion: EMBDevice.operatingSystemVersion,
-            userAgent: EmbraceMeta.userAgent
-        )
-
         return EmbraceConfig(
             configurable: runtimeConfiguration(from: options, deviceId: deviceId),
-            options: configOptions,
+            options: .init(),
             notificationCenter: Embrace.notificationCenter,
             logger: Embrace.logger
         )
@@ -42,10 +30,18 @@ extension Embrace {
             return configImpl
         }
 
+        guard let configBaseURL = options.endpoints?.configBaseURL else {
+            return DefaultConfig()
+        }
+
+        guard let appId = options.appId else {
+            return DefaultConfig()
+        }
+
         let options = RemoteConfigFetcher.Options(
-            apiBaseUrl: options.endpoints.configBaseURL,
+            apiBaseUrl: configBaseURL,
             queue: DispatchQueue(label: "com.embrace.config"),
-            appId: options.appId,
+            appId: appId,
             deviceId: deviceId,
             osVersion: EMBDevice.appVersion ?? "",
             sdkVersion: EmbraceMeta.sdkVersion,
@@ -58,18 +54,5 @@ extension Embrace {
             fetcher: fetcher,
             deviceIdHexValue: deviceId.intValue(digitCount: 6)
         )
-    }
-}
-
-extension DeviceIdentifier {
-    func intValue(digitCount: Int) -> UInt64 {
-        var deviceIdHexValue: UInt64 = UInt64.max // defaults to everything disabled
-
-        let hexValue = hex
-        if hexValue.count >= digitCount {
-            deviceIdHexValue = UInt64.init(hexValue.suffix(digitCount), radix: 16) ?? .max
-        }
-
-        return deviceIdHexValue
     }
 }

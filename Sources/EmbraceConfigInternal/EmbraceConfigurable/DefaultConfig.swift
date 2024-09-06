@@ -2,21 +2,23 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-class DefaultConfig: EmbraceConfigurable {
-    let isSDKEnabled: Bool = true
+public class DefaultConfig: EmbraceConfigurable {
+    public let isSDKEnabled: Bool = true
 
-    let isBackgroundSessionEnabled: Bool = false
+    public let isBackgroundSessionEnabled: Bool = false
 
-    let isNetworkSpansForwardingEnabled: Bool = false
+    public let isNetworkSpansForwardingEnabled: Bool = false
 
-    let internalLogLimits = InternalLogLimits()
+    public let internalLogLimits = InternalLogLimits()
 
-    let networkPayloadCaptureRules = [NetworkPayloadCaptureRule]()
+    public let networkPayloadCaptureRules = [NetworkPayloadCaptureRule]()
 
-    func update() { /* No op */ }
+    public func update() { /* No op */ }
+
+    public init() { }
 }
 
-extension EmbraceConfigurable {
+extension EmbraceConfigurable where Self == DefaultConfig {
     public static var `default`: EmbraceConfigurable {
         return DefaultConfig()
     }

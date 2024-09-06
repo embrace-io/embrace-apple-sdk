@@ -54,6 +54,8 @@ extension RemoteConfig: EmbraceConfigurable {
 
     public var isNetworkSpansForwardingEnabled: Bool { isEnabled(threshold: payload.networkSpansForwardingThreshold) }
 
+    public var networkPayloadCaptureRules: [NetworkPayloadCaptureRule] { payload.networkPayloadCaptureRules }
+
     public var internalLogLimits: InternalLogLimits {
         InternalLogLimits(
             trace: UInt(max(payload.internalLogsTraceLimit, 0)),

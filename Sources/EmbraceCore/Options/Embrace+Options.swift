@@ -73,7 +73,8 @@ extension Embrace {
             platform: Platform = .default,
             captureServices: [CaptureService],
             crashReporter: CrashReporter?,
-            logLevel: LogLevel = .default
+            logLevel: LogLevel = .default,
+            runtimeConfiguration: EmbraceConfigurable = .default
         ) {
             self.appId = nil
             self.appGroupId = nil
@@ -83,6 +84,7 @@ extension Embrace {
             self.crashReporter = crashReporter
             self.logLevel = logLevel
             self.export = export
+            self.runtimeConfiguration = runtimeConfiguration
         }
     }
 }
