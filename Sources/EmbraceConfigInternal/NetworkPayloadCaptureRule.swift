@@ -5,7 +5,7 @@
 import Foundation
 
 @objc
-public class NetworkPayloadCaptureRule: NSObject, Decodable {
+public final class NetworkPayloadCaptureRule: NSObject {
     public let id: String
     public let urlRegex: String
     public let statusCodes: [Int]?
@@ -17,6 +17,24 @@ public class NetworkPayloadCaptureRule: NSObject, Decodable {
         return Date(timeIntervalSince1970: expiration)
     }
 
+    init(
+        id: String,
+        urlRegex: String,
+        statusCodes: [Int]?,
+        methods: [String]?,
+        expiration: Double,
+        publicKey: String
+    ) {
+        self.id = id
+        self.urlRegex = urlRegex
+        self.statusCodes = statusCodes
+        self.methods = methods
+        self.expiration = expiration
+        self.publicKey = publicKey
+    }
+}
+
+extension NetworkPayloadCaptureRule: Decodable {
     enum CodingKeys: String, CodingKey {
         case id
         case urlRegex = "url"
@@ -27,7 +45,7 @@ public class NetworkPayloadCaptureRule: NSObject, Decodable {
     }
 }
 
-extension NetworkPayloadCaptureRule {
+extension NetworkPayloadCaptureRule /* Equatable */ {
     public static func == (lhs: NetworkPayloadCaptureRule, rhs: NetworkPayloadCaptureRule) -> Bool {
         lhs.id == rhs.id
     }

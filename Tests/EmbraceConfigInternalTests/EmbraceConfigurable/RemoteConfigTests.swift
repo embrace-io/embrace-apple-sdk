@@ -129,4 +129,30 @@ final class RemoteConfigTests: XCTestCase {
             InternalLogLimits(trace: 10, debug: 20, info: 30, warning: 40, error: 50)
         )
     }
+
+    func test_networkPayloadCaptureRules() {
+        // given a config
+        let config = RemoteConfig(fetcher: fetcher, deviceIdHexValue: 128, deviceIdUsedDigits: 2)
+
+        let rule1 = NetworkPayloadCaptureRule(
+            id: "test1",
+            urlRegex: "https://example.com/.*",
+            statusCodes: [200],
+            methods: ["GET"],
+            expiration: 0,
+            publicKey: ""
+        )
+
+        let rule2 = NetworkPayloadCaptureRule(
+            id: "test2",
+            urlRegex: "https://test.com/.*",
+            statusCodes: [404],
+            methods: ["GET"],
+            expiration: 0,
+            publicKey: ""
+        )
+
+        config.payload.networkPayloadCaptureRules = [rule1, rule2]
+        XCTAssertEqual(config.networkPayloadCaptureRules, [rule1, rule2])
+    }
 }
