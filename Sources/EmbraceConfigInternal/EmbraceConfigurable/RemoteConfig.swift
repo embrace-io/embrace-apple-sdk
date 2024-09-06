@@ -9,25 +9,25 @@ import EmbraceCommonInternal
 public class RemoteConfig {
 
     // config requests
-    @ThreadSafe private var payload: RemoteConfigPayload
+    @ThreadSafe var payload: RemoteConfigPayload
     let fetcher: RemoteConfigFetcher
 
     // threshold values
-    let deviceIdUsedDigits = 6
-    var deviceIdHexValue: UInt64 = UInt64.max // defaults to everything disabled
+    let deviceIdUsedDigits: UInt
+    let deviceIdHexValue: UInt64
 
     @ThreadSafe private(set) var updating = false
 
     public init(
         payload: RemoteConfigPayload = RemoteConfigPayload(),
         fetcher: RemoteConfigFetcher,
-        deviceIdHexValue: UInt64,
-        updating: Bool = false
+        deviceIdHexValue: UInt64 = UInt64.max /* default to everything disabled */,
+        deviceIdUsedDigits: UInt
     ) {
         self.payload = payload
         self.fetcher = fetcher
         self.deviceIdHexValue = deviceIdHexValue
-        self.updating = updating
+        self.deviceIdUsedDigits = deviceIdUsedDigits
     }
 
     public func update() {
@@ -72,7 +72,19 @@ extension RemoteConfig {
         return Self.isEnabled(hexValue: deviceIdHexValue, digits: deviceIdUsedDigits, threshold: threshold)
     }
 
-    static func isEnabled(hexValue: UInt64, digits: Int, threshold: Float) -> Bool {
+    /// Algorithm to determine if percentage threshold is enabled for the hexValue
+    /// Given a `hexValue` (derived from DeviceIdentifier to persist across app launches)
+    /// Determine the max value for the probability `space` by using the number of `digits` (16 ^ `n`)
+    /// If the `hexValue` is within the `threshold`
+    /// ```
+    /// space = 16^numDigits
+    /// result = (hexValue / space) * 100.0 < threshold
+    /// ```
+    /// - Parameters:
+    ///  - hexValue: The value to test
+    ///  - digits: The number of digits used to calculate the total space. Must match the number of digits used to determine the hexValue
+    ///  - threshold: The percentage threshold to test against. Values between 0.0 and 100.0
+    static func isEnabled(hexValue: UInt64, digits: UInt, threshold: Float) -> Bool {
         let space = powf(16, Float(digits))
         let result = (Float(hexValue) / space) * 100
 

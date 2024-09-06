@@ -7,8 +7,9 @@ import TestSupport
 @testable import EmbraceConfigInternal
 import EmbraceCommonInternal
 
-class RemoteConfigTests: XCTestCase {
+class RemoteConfigFetcherTests: XCTestCase {
     static var urlSessionConfig: URLSessionConfiguration!
+    let logger = MockLogger()
 
     private var apiBaseUrl: String {
         "https://embrace.\(testName).com/config"
@@ -17,8 +18,8 @@ class RemoteConfigTests: XCTestCase {
     override func setUpWithError() throws {
         let config = URLSessionConfiguration.ephemeral
         config.httpMaximumConnectionsPerHost = .max
-        RemoteConfigTests.urlSessionConfig = config
-        RemoteConfigTests.urlSessionConfig.protocolClasses = [EmbraceHTTPMock.self]
+        Self.urlSessionConfig = config
+        Self.urlSessionConfig.protocolClasses = [EmbraceHTTPMock.self]
     }
 
     func fetcherOptions(
@@ -39,7 +40,7 @@ class RemoteConfigTests: XCTestCase {
             sdkVersion: sdkVersion,
             appVersion: appVersion,
             userAgent: userAgent,
-            urlSessionConfiguration: RemoteConfigTests.urlSessionConfig
+            urlSessionConfiguration: Self.urlSessionConfig
         )
     }
 
@@ -84,8 +85,6 @@ class RemoteConfigTests: XCTestCase {
 
         EmbraceHTTPMock.mock(url: url, response: .withData(Data(), statusCode: 404))
     }
-
-    let logger = MockLogger()
 
     // MARK: buildURL
     func test_buildURL_addsCorrectQuery() throws {
@@ -172,73 +171,4 @@ class RemoteConfigTests: XCTestCase {
         }
         wait(for: [expectation])
     }
-
-//    func test_isSDKEnabled() {
-//        // given a config
-//        let config = EmbraceConfig(
-//            options: testOptions(deviceId: TestConstants.deviceId),
-//            notificationCenter: NotificationCenter.default,
-//            logger: logger
-//        )
-//
-//        // then isSDKEnabled returns the correct values
-//        config.payload.sdkEnabledThreshold = 100
-//        XCTAssertTrue(config.isSDKEnabled)
-//
-//        config.payload.sdkEnabledThreshold = 0
-//        XCTAssertFalse(config.isSDKEnabled)
-//    }
-//
-//    func test_isBackgroundSessionEnabled() {
-//        // given a config
-//        let config = EmbraceConfig(
-//            options: testOptions(deviceId: TestConstants.deviceId),
-//            notificationCenter: NotificationCenter.default,
-//            logger: logger
-//        )
-//
-//        // then isBackgroundSessionEnabled returns the correct values
-//        config.payload.backgroundSessionThreshold = 100
-//        XCTAssertTrue(config.isBackgroundSessionEnabled)
-//
-//        config.payload.backgroundSessionThreshold = 0
-//        XCTAssertFalse(config.isBackgroundSessionEnabled)
-//    }
-//
-//    func test_networkSpansForwardingEnabled() {
-//        // given a config
-//        let config = EmbraceConfig(
-//            options: testOptions(deviceId: TestConstants.deviceId),
-//            notificationCenter: NotificationCenter.default,
-//            logger: logger
-//        )
-//
-//        // then isNetworkSpansForwardingEnabled returns the correct values
-//        config.payload.networkSpansForwardingThreshold = 100
-//        XCTAssertTrue(config.isNetworkSpansForwardingEnabled)
-//
-//        config.payload.networkSpansForwardingThreshold = 0
-//        XCTAssertFalse(config.isNetworkSpansForwardingEnabled)
-//    }
-//    func test_internalLogsLimits() {
-//        // given a config
-//        let config = EmbraceConfig(
-//            options: testOptions(deviceId: TestConstants.deviceId),
-//            notificationCenter: NotificationCenter.default,
-//            logger: logger
-//        )
-//
-//        // then test_internalLogsTraceLimit returns the correct values
-//        config.payload.internalLogsTraceLimit = 10
-//        config.payload.internalLogsDebugLimit = 20
-//        config.payload.internalLogsInfoLimit = 30
-//        config.payload.internalLogsWarningLimit = 40
-//        config.payload.internalLogsErrorLimit = 50
-//
-//        XCTAssertEqual(config.internalLogsTraceLimit, 10)
-//        XCTAssertEqual(config.internalLogsDebugLimit, 20)
-//        XCTAssertEqual(config.internalLogsInfoLimit, 30)
-//        XCTAssertEqual(config.internalLogsWarningLimit, 40)
-//        XCTAssertEqual(config.internalLogsErrorLimit, 50)
-//    }
 }

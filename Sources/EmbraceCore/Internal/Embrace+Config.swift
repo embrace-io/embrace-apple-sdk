@@ -50,9 +50,11 @@ extension Embrace {
         )
 
         let fetcher = RemoteConfigFetcher(options: options, logger: logger)
+        let usedDigits = UInt(6)
         return RemoteConfig(
             fetcher: fetcher,
-            deviceIdHexValue: deviceId.intValue(digitCount: 6)
+            deviceIdHexValue: deviceId.intValue(digitCount: usedDigits),
+            deviceIdUsedDigits: usedDigits
         )
     }
 }

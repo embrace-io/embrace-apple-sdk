@@ -21,4 +21,17 @@ import Foundation
         self.warning = warning
         self.error = error
     }
+
+    public override func isEqual(_ object: Any?) -> Bool {
+        guard let other = object as? Self else {
+            return false
+        }
+
+        return
+            trace == other.trace &&
+            debug == other.debug &&
+            info == other.info &&
+            warning == other.warning &&
+            error == other.error
+    }
 }
