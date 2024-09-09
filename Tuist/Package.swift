@@ -34,7 +34,7 @@ let package = Package(
         ),
         .package(
             url: "https://github.com/groue/GRDB.swift",
-            exact: "6.16.0"
+            exact: "6.29.1"
         ),
         .package(
             url: "https://github.com/realm/SwiftLint",
