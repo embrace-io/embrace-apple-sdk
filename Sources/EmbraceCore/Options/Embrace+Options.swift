@@ -68,6 +68,7 @@ extension Embrace {
         ///   - captureServices: The `CaptureServices` to be installed.
         ///   - crashReporter: The `CrashReporter` to be installed.
         ///   - logLevel: The `LogLevel` to use for console logs.
+        ///   - runtimeConfiguration: An object to control runtime behavior of the SDK itself.
         @objc public init(
             export: OpenTelemetryExport,
             platform: Platform = .default,
