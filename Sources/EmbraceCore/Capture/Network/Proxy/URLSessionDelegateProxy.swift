@@ -7,7 +7,7 @@ import Foundation
 class EmbraceDummyURLSessionDelegate: NSObject, URLSessionDelegate {}
 
 class URLSessionDelegateProxy: NSObject {
-    weak var originalDelegate: URLSessionDelegate?
+    var originalDelegate: URLSessionDelegate?
 
     /// This helps to determine if, during the creation of the `URLSessionDelegateProxy`,
     /// another player or SDK has already swizzled or proxied NSURLSession/URLSession.
@@ -73,6 +73,18 @@ class URLSessionDelegateProxy: NSObject {
 
             block(sessionDelegate)
         }
+    }
+
+    func urlSession(_ session: URLSession, didBecomeInvalidWithError error: Error?) {
+        let selector = #selector(
+            URLSessionDelegate.urlSession(_:didBecomeInvalidWithError:)
+        )
+        // If the `originalDelegate` has implemented the `didBecomeInvalidWithError` we forward them the call to them.
+        // However, to prevent any kind of leakeage, we clean on end the `originalDelegate` so we don't retain it.
+        invokeDelegates(session: session, selector: selector) { (delegate: URLSessionDelegate) in
+            delegate.urlSession?(session, didBecomeInvalidWithError: error)
+        }
+        originalDelegate = nil
     }
 
     // Check if this is necessary
