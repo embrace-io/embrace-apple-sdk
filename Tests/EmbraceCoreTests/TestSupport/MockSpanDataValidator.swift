@@ -5,6 +5,7 @@
 import Foundation
 @testable import EmbraceCore
 import EmbraceOTelInternal
+import OpenTelemetrySdk
 
 class MockSpanDataValidator: SpanDataValidator {
 
@@ -19,5 +20,4 @@ class MockSpanDataValidator: SpanDataValidator {
         didValidate = true
         return isValid
     }
-
 }

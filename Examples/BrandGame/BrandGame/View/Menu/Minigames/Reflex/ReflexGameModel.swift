@@ -5,6 +5,8 @@
 import Foundation
 import EmbraceCore
 import EmbraceOTelInternal
+import OpenTelemetryApi
+import OpenTelemetrySdk
 
 @Observable
 class ReflexGameModel {

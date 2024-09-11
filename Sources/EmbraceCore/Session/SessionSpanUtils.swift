@@ -8,6 +8,7 @@ import EmbraceStorageInternal
 import EmbraceOTelInternal
 import EmbraceSemantics
 import OpenTelemetryApi
+import OpenTelemetrySdk
 
 struct SessionSpanUtils {
 

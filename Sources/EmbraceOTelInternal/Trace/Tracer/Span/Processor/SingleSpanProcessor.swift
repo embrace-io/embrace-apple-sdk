@@ -8,7 +8,7 @@ import OpenTelemetrySdk
 
 /// A really simple implementation of the SpanProcessor that converts the ExportableSpan to SpanData
 /// and passes it to the configured exporter in both `onStart` and `onEnd`
-public struct SingleSpanProcessor: EmbraceSpanProcessor {
+public struct SingleSpanProcessor: SpanProcessor {
 
     let spanExporter: SpanExporter
     private let processorQueue = DispatchQueue(label: "io.embrace.spanprocessor", qos: .utility)
@@ -30,7 +30,7 @@ public struct SingleSpanProcessor: EmbraceSpanProcessor {
         let data = span.toSpanData()
 
         processorQueue.async {
-            exporter.export(spans: [data])
+            _ = exporter.export(spans: [data])
         }
     }
 
@@ -47,7 +47,7 @@ public struct SingleSpanProcessor: EmbraceSpanProcessor {
         }
 
         processorQueue.async {
-            exporter.export(spans: [data])
+            _ = exporter.export(spans: [data])
         }
     }
 
@@ -55,10 +55,9 @@ public struct SingleSpanProcessor: EmbraceSpanProcessor {
         _ = processorQueue.sync { spanExporter.flush() }
     }
 
-    public func shutdown() {
+    public func shutdown(explicitTimeout: TimeInterval?) {
         processorQueue.sync {
             spanExporter.shutdown()
         }
     }
-
 }

@@ -4,9 +4,8 @@
 
 import Foundation
 import EmbraceOTelInternal
+import OpenTelemetrySdk
 
 protocol SpanDataValidator {
-
     func validate(data: inout SpanData) -> Bool
-
 }

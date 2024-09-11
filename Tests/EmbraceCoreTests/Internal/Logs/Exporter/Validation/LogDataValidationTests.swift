@@ -5,6 +5,7 @@
 import XCTest
 @testable import EmbraceCore
 import EmbraceOTelInternal
+import OpenTelemetrySdk
 
 final class LogDataValidationTests: XCTestCase {
 

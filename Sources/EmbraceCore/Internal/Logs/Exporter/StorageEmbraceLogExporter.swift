@@ -7,8 +7,11 @@ import EmbraceCommonInternal
 import EmbraceOTelInternal
 import EmbraceStorageInternal
 import EmbraceSemantics
+import OpenTelemetryApi
+import OpenTelemetrySdk
 
-class StorageEmbraceLogExporter: EmbraceLogRecordExporter {
+class StorageEmbraceLogExporter: LogRecordExporter {
+
     @ThreadSafe
     private(set) var state: State
     private let logBatcher: LogBatcher
@@ -25,7 +28,7 @@ class StorageEmbraceLogExporter: EmbraceLogRecordExporter {
         self.validation = LogDataValidation(validators: validators)
     }
 
-    func export(logRecords: [ReadableLogRecord]) -> ExportResult {
+    func export(logRecords: [ReadableLogRecord], explicitTimeout: TimeInterval?) -> ExportResult {
         guard state == .active else {
             return .failure
         }
@@ -43,13 +46,13 @@ class StorageEmbraceLogExporter: EmbraceLogRecordExporter {
         return .success
     }
 
-    func shutdown() {
+    func shutdown(explicitTimeout: TimeInterval?) {
         state = .inactive
     }
 
     /// Everything is always persisted on disk, so calling this method has no effect at all.
     /// - Returns: `ExportResult.success`
-    func forceFlush() -> ExportResult {
+    func forceFlush(explicitTimeout: TimeInterval?) -> ExportResult {
         .success
     }
 }
@@ -62,7 +65,7 @@ private extension StorageEmbraceLogExporter {
         return .init(identifier: LogIdentifier(),
                      processIdentifier: ProcessIdentifier.current,
                      severity: originalLog.severity?.toLogSeverity() ?? .info,
-                     body: originalLog.body ?? "",
+                     body: originalLog.body?.description ?? "",
                      attributes: embAttributes,
                      timestamp: originalLog.timestamp)
     }
@@ -87,6 +90,8 @@ private extension PersistableValue {
             self.init(value)
         case let .doubleArray(value):
             self.init(value)
+        default:
+            return nil
         }
     }
 }

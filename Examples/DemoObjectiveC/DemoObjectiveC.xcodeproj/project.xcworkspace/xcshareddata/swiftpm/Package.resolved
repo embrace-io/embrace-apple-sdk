@@ -1,4 +1,5 @@
 {
+  "originHash" : "30bf3f1af4d312afac34bcff9ba35cc3f452c81988789fae8ce52c8747bfec81",
   "pins" : [
     {
       "identity" : "collectionconcurrencykit",
@@ -23,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/groue/GRDB.swift",
       "state" : {
-        "revision" : "e83f3eb25ef4d5a36a13dbee98f8ac67e24e5c8f",
-        "version" : "6.16.0"
+        "revision" : "dd6b98ce04eda39aa22f066cd421c24d7236ea8a",
+        "version" : "6.29.1"
       }
     },
     {
@@ -50,8 +51,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/open-telemetry/opentelemetry-swift",
       "state" : {
-        "revision" : "37b52e2070cb925d98de30b51af6f0de91feae89",
-        "version" : "1.5.1"
+        "revision" : "0dd37c4a14a6aeeb131eea40a13cb3832c7c6a97",
+        "version" : "1.10.1"
       }
     },
     {
@@ -61,15 +62,6 @@
       "state" : {
         "revision" : "18c1a35ca966236cee0c5a714a51a73ff33384c1",
         "version" : "0.5.2"
-      }
-    },
-    {
-      "identity" : "reachability.swift",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/ashleymills/Reachability.swift",
-      "state" : {
-        "revision" : "7cbd73f46a7dfaeca079e18df7324c6de6d1834a",
-        "version" : "5.2.3"
       }
     },
     {
@@ -253,5 +245,5 @@
       }
     }
   ],
-  "version" : 2
+  "version" : 3
 }

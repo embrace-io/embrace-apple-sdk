@@ -4,6 +4,7 @@
 
 import XCTest
 @testable import EmbraceOTelInternal
+import OpenTelemetrySdk
 
 struct MockResourceProvider: EmbraceResourceProvider {
     let resource: Resource
@@ -50,5 +51,4 @@ final class EmbraceResourceProviderTests: XCTestCase {
         XCTAssertEqual(resource.attributes["my.age"], .int(42))
         XCTAssertEqual(resource.attributes["service.name"], .string("example"))
     }
-
 }

@@ -8,6 +8,7 @@ import TestSupport
 import EmbraceCommonInternal
 import EmbraceOTelInternal
 @testable import EmbraceCore
+import OpenTelemetrySdk
 
 // swiftlint:disable line_length
 

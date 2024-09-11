@@ -3,10 +3,10 @@
 //
 
 import XCTest
-
 @testable import EmbraceCore
 @testable import EmbraceOTelInternal
 @testable import EmbraceStorageInternal
+import OpenTelemetrySdk
 
 class DummyEmbraceResourceProvider: EmbraceResourceProvider {
     func getResource() -> Resource { Resource() }

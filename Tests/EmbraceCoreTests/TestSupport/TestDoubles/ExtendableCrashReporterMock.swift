@@ -10,7 +10,7 @@ class ExtendableCrashReporterMock: ExtendableCrashReporter {
     func appendCrashInfo(key: String, value: String) {
         didCallAppendCrashInfo = true
     }
-    
+
     var currentSessionId: String?
     func install(context: EmbraceCommonInternal.CrashReporterContext, logger: EmbraceCommonInternal.InternalLogger) {}
     func getLastRunState() -> EmbraceCommonInternal.LastRunState {

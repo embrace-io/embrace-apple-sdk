@@ -6,9 +6,11 @@ import Foundation
 import EmbraceCommonInternal
 import EmbraceOTelInternal
 import EmbraceSemantics
+import OpenTelemetryApi
+import OpenTelemetrySdk
 
 extension Embrace: EmbraceOpenTelemetry {
-    private var exporter: EmbraceSpanExporter {
+    private var exporter: SpanExporter {
         StorageSpanExporter(
             options: .init(storage: storage),
             logger: Embrace.logger
@@ -98,7 +100,7 @@ extension Embrace: EmbraceOpenTelemetry {
     /// - Parameter span: A `Span` object that implements `ReadableSpan`
     public func flush(_ span: Span) {
         if let span = span as? ReadableSpan {
-            exporter.export(spans: [span.toSpanData()])
+            _ = exporter.export(spans: [span.toSpanData()])
         } else {
             Embrace.logger.debug("Tried to flush a non-ReadableSpan object")
         }

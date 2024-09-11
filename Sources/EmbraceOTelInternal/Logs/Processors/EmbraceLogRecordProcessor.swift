@@ -3,12 +3,11 @@
 //
 
 import OpenTelemetrySdk
-public typealias EmbraceLogRecordProcessor = LogRecordProcessor
 
-public extension Array where Element == any EmbraceLogRecordProcessor {
+public extension Array where Element == any LogRecordProcessor {
     static func `default`(
-        withExporters exporters: [EmbraceLogRecordExporter]
-    ) -> [EmbraceLogRecordProcessor] {
+        withExporters exporters: [LogRecordExporter]
+    ) -> [LogRecordProcessor] {
         [SingleLogRecordProcessor(exporters: exporters)]
     }
 }

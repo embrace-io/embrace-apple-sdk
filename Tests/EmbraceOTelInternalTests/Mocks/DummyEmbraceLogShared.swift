@@ -8,7 +8,7 @@ import OpenTelemetrySdk
 @testable import EmbraceOTelInternal
 
 class DummyEmbraceLogShared: EmbraceLogSharedState {
-    var processors: [EmbraceLogRecordProcessor] = []
+    var processors: [LogRecordProcessor] = []
     var config: any EmbraceLoggerConfig = RandomConfig()
     var resourceProvider: EmbraceResourceProvider
 

@@ -5,15 +5,16 @@
 import Foundation
 import EmbraceOTelInternal
 import EmbraceStorageInternal
+import OpenTelemetrySdk
 
 class DefaultEmbraceLogSharedState: EmbraceLogSharedState {
-    let processors: [EmbraceLogRecordProcessor]
+    let processors: [LogRecordProcessor]
     let resourceProvider: EmbraceResourceProvider
     private(set) var config: any EmbraceLoggerConfig
 
     init(
         config: any EmbraceLoggerConfig,
-        processors: [EmbraceLogRecordProcessor],
+        processors: [LogRecordProcessor],
         resourceProvider: EmbraceResourceProvider
     ) {
         self.config = config
@@ -30,9 +31,9 @@ extension DefaultEmbraceLogSharedState {
     static func create(
         storage: EmbraceStorage,
         controller: LogControllable,
-        exporter: EmbraceLogRecordExporter? = nil
+        exporter: LogRecordExporter? = nil
     ) -> DefaultEmbraceLogSharedState {
-        var exporters: [EmbraceLogRecordExporter] = [
+        var exporters: [LogRecordExporter] = [
             StorageEmbraceLogExporter(
                 logBatcher: DefaultLogBatcher(
                     repository: storage,

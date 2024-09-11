@@ -2,11 +2,14 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
+import Foundation
 import EmbraceStorageInternal
 import EmbraceOTelInternal
 import EmbraceCommonInternal
+import OpenTelemetrySdk
 
-class StorageSpanExporter: EmbraceSpanExporter {
+class StorageSpanExporter: SpanExporter {
+
     private(set) weak var storage: EmbraceStorage?
     private weak var logger: InternalLogger?
 
@@ -18,7 +21,7 @@ class StorageSpanExporter: EmbraceSpanExporter {
         self.logger = logger
     }
 
-    @discardableResult public func export(spans: [SpanData]) -> SpanExporterResultCode {
+    @discardableResult public func export(spans: [SpanData], explicitTimeout: TimeInterval?) -> SpanExporterResultCode {
         guard let storage = storage else {
             return .failure
         }
@@ -42,12 +45,12 @@ class StorageSpanExporter: EmbraceSpanExporter {
         return result
     }
 
-    public func flush() -> SpanExporterResultCode {
+    public func flush(explicitTimeout: TimeInterval?) -> SpanExporterResultCode {
         // TODO: do we need to make sure storage writes are finished?
         return .success
     }
 
-    public func shutdown() {
+    public func shutdown(explicitTimeout: TimeInterval?) {
         _ = flush()
     }
 

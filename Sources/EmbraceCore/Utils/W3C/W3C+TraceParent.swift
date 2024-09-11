@@ -3,6 +3,7 @@
 //
 
 import EmbraceOTelInternal
+import OpenTelemetryApi
 
 public extension W3C {
     static let traceparentHeaderName = "traceparent"
