@@ -4,6 +4,7 @@
 
 import Foundation
 import EmbraceCommonInternal
+import EmbraceConfiguration
 
 /// Remote config uses the Embrace Config Service to request config values
 public class RemoteConfig {

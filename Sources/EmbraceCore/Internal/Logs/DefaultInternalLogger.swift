@@ -7,6 +7,7 @@ import EmbraceCommonInternal
 import EmbraceOTelInternal
 import EmbraceStorageInternal
 import EmbraceConfigInternal
+import EmbraceConfiguration
 
 class DefaultInternalLogger: InternalLogger {
 

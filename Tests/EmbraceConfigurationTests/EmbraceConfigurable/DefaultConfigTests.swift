@@ -3,7 +3,7 @@
 //
 
 import XCTest
-import EmbraceConfigInternal
+import EmbraceConfiguration
 
 final class DefaultConfigTests: XCTestCase {
 

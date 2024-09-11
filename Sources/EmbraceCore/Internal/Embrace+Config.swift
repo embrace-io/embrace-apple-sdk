@@ -6,6 +6,7 @@ import Foundation
 import EmbraceObjCUtilsInternal
 import EmbraceConfigInternal
 import EmbraceCommonInternal
+import EmbraceConfiguration
 
 extension Embrace {
 

@@ -7,6 +7,7 @@ import EmbraceCaptureService
 import EmbraceCommonInternal
 import EmbraceOTelInternal
 import EmbraceConfigInternal
+import EmbraceConfiguration
 
 extension Embrace {
 

@@ -4,6 +4,7 @@
 
 import Foundation
 import EmbraceCommonInternal
+import EmbraceConfiguration
 
 public extension Notification.Name {
     static let embraceConfigUpdated = Notification.Name("embraceConfigUpdated")

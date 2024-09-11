@@ -5,6 +5,7 @@
 import XCTest
 import TestSupport
 @testable import EmbraceConfigInternal
+import EmbraceConfiguration
 
 final class EmbraceConfigTests: XCTestCase {
     func buildConfig(

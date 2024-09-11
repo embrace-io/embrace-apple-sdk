@@ -8,6 +8,7 @@ import EmbraceCommonInternal
 import EmbraceOTelInternal
 import EmbraceStorageInternal
 import EmbraceSemantics
+import EmbraceConfiguration
 
 class NetworkPayloadCaptureHandler {
 

@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import EmbraceConfiguration
 
 // swiftlint:disable nesting
 

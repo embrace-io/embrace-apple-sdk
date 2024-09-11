@@ -4,6 +4,7 @@
 
 import Foundation
 import EmbraceConfigInternal
+import EmbraceConfiguration
 import XCTest
 
 class MockEmbraceConfigurable: EmbraceConfigurable {
@@ -56,9 +57,9 @@ class MockEmbraceConfigurable: EmbraceConfigurable {
         }
     }
 
-    private var _networkPayloadCaptureRules: [EmbraceConfigInternal.NetworkPayloadCaptureRule] = []
+    private var _networkPayloadCaptureRules: [NetworkPayloadCaptureRule] = []
     let networkPayloadCaptureRulesExpectation = XCTestExpectation(description: "networkPayloadCaptureRules called")
-    var networkPayloadCaptureRules: [EmbraceConfigInternal.NetworkPayloadCaptureRule] {
+    var networkPayloadCaptureRules: [NetworkPayloadCaptureRule] {
         get {
             networkPayloadCaptureRulesExpectation.fulfill()
             return _networkPayloadCaptureRules

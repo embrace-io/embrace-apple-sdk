@@ -3,7 +3,7 @@
 //
 
 import Foundation
-import EmbraceConfigInternal
+import EmbraceConfiguration
 
 class URLSessionTaskCaptureRule {
 
