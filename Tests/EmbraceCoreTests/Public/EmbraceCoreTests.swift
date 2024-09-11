@@ -235,10 +235,19 @@ final class EmbraceCoreTests: XCTestCase {
     func getLocalEmbrace(storage: EmbraceStorage? = nil, crashReporter: CrashReporter? = nil) throws -> Embrace? {
         // to ensure that each test gets it's own instance of embrace.
         return try lock.locked {
+
+            // use fake endpoints
+            let endpoints = Embrace.Endpoints(
+                baseURL: "https://embrace.\(testName).com/api",
+                developmentBaseURL: "https://embrace.\(testName).com/api-dev",
+                configBaseURL: "https://embrace.\(testName).com/config"
+            )
+
             // I use random string for group id to ensure a different storage location each time
             try Embrace.client = Embrace(options: .init(
                 appId: "testA",
                 appGroupId: randomString(length: 5),
+                endpoints: endpoints,
                 captureServices: [],
                 crashReporter: crashReporter
             ), embraceStorage: storage)
