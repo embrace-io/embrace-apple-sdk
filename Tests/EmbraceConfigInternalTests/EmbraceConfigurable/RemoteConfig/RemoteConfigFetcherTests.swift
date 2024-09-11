@@ -62,7 +62,7 @@ class RemoteConfigFetcherTests: XCTestCase {
         let path = Bundle.module.path(
             forResource: "remote_config",
             ofType: "json",
-            inDirectory: "Mocks"
+            inDirectory: "Fixtures"
         )!
         let data = try Data(contentsOf: URL(fileURLWithPath: path))
         EmbraceHTTPMock.mock(url: url, response: .withData(data, statusCode: 200))

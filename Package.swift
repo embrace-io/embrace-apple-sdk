@@ -162,7 +162,7 @@ let package = Package(
                 "TestSupport"
             ],
             resources: [
-                .copy("Mocks/")
+                .copy("Fixtures")
             ],
             plugins: targetPlugins
         ),

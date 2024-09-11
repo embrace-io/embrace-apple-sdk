@@ -53,6 +53,7 @@ public class EmbraceConfig {
         }
 
         update()
+        lastUpdateTime = Date().timeIntervalSince1970
         return true
     }
 
