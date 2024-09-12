@@ -59,7 +59,18 @@ public class EmbraceConfig {
     }
 
     public func update() {
-        configurable.update()
+        configurable.update { [weak self] didChange, error in
+            if let error = error {
+                self?.logger.error(
+                    "Failed update in EmbraceConfig",
+                    attributes: [ "error.message": error.localizedDescription ]
+                )
+            }
+
+            if didChange {
+                self?.notificationCenter.post(name: .embraceConfigUpdated, object: self)
+            }
+        }
     }
 
     // MARK: - Notifications
@@ -68,7 +79,7 @@ public class EmbraceConfig {
     }
 }
 
-extension EmbraceConfig: EmbraceConfigurable {
+extension EmbraceConfig /* EmbraceConfigurable delegation */ {
     public var isSDKEnabled: Bool {
         return configurable.isSDKEnabled
     }

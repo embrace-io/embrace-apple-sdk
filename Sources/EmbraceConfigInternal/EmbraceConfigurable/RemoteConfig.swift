@@ -30,22 +30,6 @@ public class RemoteConfig {
         self.deviceIdHexValue = deviceIdHexValue
         self.deviceIdUsedDigits = deviceIdUsedDigits
     }
-
-    public func update() {
-        guard updating == false else {
-            return
-        }
-
-        updating = true
-        fetcher.fetch { [self] newPayload in
-            defer { updating = false }
-            guard let newPayload = newPayload else {
-                return
-            }
-
-            payload = newPayload
-        }
-    }
 }
 
 extension RemoteConfig: EmbraceConfigurable {
@@ -65,6 +49,32 @@ extension RemoteConfig: EmbraceConfigurable {
             warning: UInt(max(payload.internalLogsWarningLimit, 0)),
             error: UInt(max(payload.internalLogsErrorLimit, 0))
         )
+    }
+
+    public func update(completion: @escaping (Bool, (any Error)?) -> Void) {
+        guard updating == false else {
+            completion(false, nil)
+            return
+        }
+
+        updating = true
+        fetcher.fetch { [weak self] newPayload in
+            defer { self?.updating = false }
+            guard let strongSelf = self else {
+                completion(false, nil)
+                return
+            }
+
+            guard let newPayload = newPayload else {
+                completion(false, nil)
+                return
+            }
+
+            let didUpdate = strongSelf.payload != newPayload
+            strongSelf.payload = newPayload
+
+            completion(didUpdate, nil)
+        }
     }
 }
 

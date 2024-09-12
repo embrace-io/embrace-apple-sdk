@@ -13,7 +13,9 @@ public class DefaultConfig: EmbraceConfigurable {
 
     public let networkPayloadCaptureRules = [NetworkPayloadCaptureRule]()
 
-    public func update() { /* No op */ }
+    public func update(completion: (Bool, (any Error)?) -> Void) {
+        completion(false, nil)
+    }
 
     public init() { }
 }

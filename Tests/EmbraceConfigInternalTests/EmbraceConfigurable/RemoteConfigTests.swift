@@ -5,6 +5,7 @@
 import XCTest
 import TestSupport
 @testable import EmbraceConfigInternal
+@testable import EmbraceConfiguration
 
 final class RemoteConfigTests: XCTestCase {
 

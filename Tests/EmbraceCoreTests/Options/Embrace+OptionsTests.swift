@@ -5,15 +5,8 @@
 import XCTest
 import EmbraceCore
 import EmbraceConfigInternal
-
-class MockEmbraceConfigurable: EmbraceConfigurable {
-    var isSDKEnabled: Bool = true
-    var isBackgroundSessionEnabled: Bool = true
-    var isNetworkSpansForwardingEnabled: Bool = true
-    var networkPayloadCaptureRules: [NetworkPayloadCaptureRule] = []
-    var internalLogLimits: InternalLogLimits = InternalLogLimits()
-    func update() { }
-}
+import EmbraceConfiguration
+import TestSupport
 
 final class Embrace_OptionsTests: XCTestCase {
 

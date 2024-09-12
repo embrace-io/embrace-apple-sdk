@@ -20,6 +20,8 @@ final class EmbraceConfigTests: XCTestCase {
         )
     }
 
+    // MARK: Update if Needed
+
     func test_updateIfNeeded_returnsTrueIfUpdateOccurs() {
         let mockConfig = MockEmbraceConfigurable()
         mockConfig.updateExpectation.expectedFulfillmentCount = 1
@@ -48,6 +50,37 @@ final class EmbraceConfigTests: XCTestCase {
 
         wait(for: [mockConfig.updateExpectation], timeout: 1)
     }
+
+    func test_updateIfNeeded_postsNotificationIf_configDidChange() {
+        let mockConfig = MockEmbraceConfigurable()
+        mockConfig.updateCompletionParamDidUpdate = true
+        mockConfig.updateExpectation.expectedFulfillmentCount = 1
+
+        let config = buildConfig(configurable: mockConfig)
+
+        let notificationExpectation = expectation(forNotification: .embraceConfigUpdated, object: config)
+
+        let result1 = config.updateIfNeeded()
+        XCTAssertTrue(result1)
+        wait(for: [notificationExpectation])
+    }
+
+    func test_updateIfNeeded_doesNot_postNotificationIf_configDidNotChange() {
+        let mockConfig = MockEmbraceConfigurable()
+        mockConfig.updateCompletionParamDidUpdate = false
+        mockConfig.updateExpectation.expectedFulfillmentCount = 1
+
+        let config = buildConfig(configurable: mockConfig)
+
+        let notificationExpectation = expectation(forNotification: .embraceConfigUpdated, object: config)
+        notificationExpectation.isInverted = true
+
+        let result1 = config.updateIfNeeded()
+        XCTAssertTrue(result1)
+        wait(for: [notificationExpectation], timeout: .shortTimeout)
+    }
+
+    // MARK: appDidBecomeActive
 
     func test_appDidBecomeActive_callsUpdate() {
         let mockConfig = MockEmbraceConfigurable()
@@ -91,6 +124,8 @@ final class EmbraceConfigTests: XCTestCase {
 
         wait(for: [mockConfig.updateExpectation], timeout: 1)
     }
+
+// MARK: Configurable Delegation
 
     func test_isSDKEnabled_callsUnderlyingConfigurable() {
         let mockConfig = MockEmbraceConfigurable()
