@@ -16,7 +16,8 @@ let project = Project(
                 .target(name: "EmbraceCore"),
                 .target(name: "EmbraceCommonInternal"),
                 .target(name: "EmbraceCrash"),
-                .target(name: "EmbraceSemantics")
+                .target(name: "EmbraceSemantics"),
+                .target(name: "EmbraceConfiguration")
             ],
             settings: .settings(base: [
                 "SKIP_INSTALL": "NO",
@@ -39,7 +40,8 @@ let project = Project(
                 .target(name: "EmbraceStorageInternal"),
                 .target(name: "EmbraceUploadInternal"),
                 .target(name: "EmbraceObjCUtilsInternal"),
-                .target(name: "EmbraceSemantics")
+                .target(name: "EmbraceSemantics"),
+                .target(name: "EmbraceConfiguration")
             ],
             settings: .settings(base: [
                 "HEADER_SEARCH_PATHS": ["$(SRCROOT)/Sources/EmbraceObjCUtilsInternal/include"],
@@ -100,8 +102,21 @@ let project = Project(
             deploymentTargets: .iOS("13.0"),
             sources: ["Sources/EmbraceConfigInternal/**"],
             dependencies: [
-                .target(name: "EmbraceCommonInternal")
+                .target(name: "EmbraceCommonInternal"),
+                .target(name: "EmbraceConfiguration")
             ],
+            settings: .settings(base: [
+                "SKIP_INSTALL": "NO",
+                "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES"
+            ])
+        ),
+        .target(
+            name: "EmbraceConfiguration",
+            destinations: .iOS,
+            product: .framework,
+            bundleId: "com.embraceio.EmbraceConfiguration",
+            sources: ["Sources/EmbraceConfiguration/**"],
+            dependencies: [],
             settings: .settings(base: [
                 "SKIP_INSTALL": "NO",
                 "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES"
