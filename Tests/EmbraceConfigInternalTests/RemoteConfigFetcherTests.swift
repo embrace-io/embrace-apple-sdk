@@ -118,7 +118,7 @@ class RemoteConfigFetcherTests: XCTestCase {
     }
 
     func test_fetchFailure() throws {
-        
+
         // TODO: Figure out why this test fails regularly on CI
         throw XCTSkip()
 
