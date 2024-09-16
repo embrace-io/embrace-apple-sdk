@@ -3,11 +3,11 @@
 //
 
 import XCTest
-
 @testable import EmbraceStorageInternal
 import EmbraceOTelInternal
 import EmbraceCommonInternal
 import GRDB
+import OpenTelemetryApi
 
 final class _0240523_00_AddProcessIdentifierToSpanRecordMigration: XCTestCase {
 

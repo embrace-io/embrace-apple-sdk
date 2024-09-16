@@ -8,6 +8,7 @@ import EmbraceStorageInternal
 import EmbraceOTelInternal
 import GRDB
 import TestSupport
+import OpenTelemetrySdk
 
 final class EmbraceIntegrationTests: IntegrationTestCase {
 

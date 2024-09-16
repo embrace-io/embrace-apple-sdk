@@ -4,8 +4,11 @@
 
 import Foundation
 import EmbraceOTelInternal
+import OpenTelemetryApi
+import OpenTelemetrySdk
 
-public class MockSpanProcessor: EmbraceSpanProcessor {
+public class MockSpanProcessor: SpanProcessor {
+
     private(set) public var startedSpans = [SpanData]()
     private(set) public var endedSpans = [SpanData]()
     private(set) public var didShutdown = false
@@ -29,7 +32,7 @@ public class MockSpanProcessor: EmbraceSpanProcessor {
         didForceFlush = true
     }
 
-    public func shutdown() {
+    public func shutdown(explicitTimeout: TimeInterval?) {
         didShutdown = true
     }
 

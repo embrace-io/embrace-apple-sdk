@@ -7,6 +7,7 @@ import EmbraceCaptureService
 import EmbraceCommonInternal
 import EmbraceOTelInternal
 import EmbraceSemantics
+import OpenTelemetryApi
 
 /// Service that generates OpenTelemetry span events for taps on the screen.
 /// Note that any taps done on a keyboard view will be automatically ignored.
@@ -133,8 +134,7 @@ class UIWindowSendEventSwizzler: Swizzlable {
     var onEvent: ((UIEvent) -> Void)?
 
     func install() throws {
-        try swizzleInstanceMethod { originalImplementation in
-            return { [weak self] uiWindow, uiEvent -> Void in
+        try swizzleInstanceMethod { originalImplementation in { [weak self] uiWindow, uiEvent -> Void in
                 self?.onEvent?(uiEvent)
                 originalImplementation(uiWindow, UIWindowSendEventSwizzler.selector, uiEvent)
             }

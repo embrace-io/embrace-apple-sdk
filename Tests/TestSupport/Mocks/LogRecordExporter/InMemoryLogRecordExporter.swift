@@ -6,12 +6,13 @@ import Foundation
 import OpenTelemetrySdk
 
 public class InMemoryLogRecordExporter: LogRecordExporter {
+
     private(set) public var finishedLogRecords = [ReadableLogRecord]()
     private var isRunning = true
 
     public init() { }
 
-    public func export(logRecords: [ReadableLogRecord]) -> ExportResult {
+    public func export(logRecords: [ReadableLogRecord], explicitTimeout: TimeInterval?) -> ExportResult {
         guard isRunning else {
             return .failure
         }
@@ -19,12 +20,12 @@ public class InMemoryLogRecordExporter: LogRecordExporter {
         return .success
     }
 
-    public func shutdown() {
+    public func shutdown(explicitTimeout: TimeInterval?) {
         finishedLogRecords.removeAll()
         isRunning = false
     }
 
-    public func forceFlush() -> ExportResult {
+    public func forceFlush(explicitTimeout: TimeInterval?) -> ExportResult {
         guard isRunning else {
             return .failure
         }

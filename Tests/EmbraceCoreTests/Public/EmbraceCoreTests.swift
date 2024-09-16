@@ -7,6 +7,7 @@ import XCTest
 import EmbraceCommonInternal
 import EmbraceStorageInternal
 import EmbraceOTelInternal
+import OpenTelemetrySdk
 
 final class EmbraceCoreTests: XCTestCase {
 

@@ -4,6 +4,7 @@
 
 import Foundation
 import EmbraceOTelInternal
+import OpenTelemetrySdk
 
 /// Validates the length of ``ReadableLogRecord.body``.
 /// This compares the length of the String in characters, not bytes.
@@ -20,6 +21,6 @@ class LengthOfBodyValidator: LogDataValidator {
         guard let body = data.body else {
             return false
         }
-        return allowedCharacterCount.contains(body.count)
+        return allowedCharacterCount.contains(body.description.count)
     }
 }

@@ -5,10 +5,11 @@
 import Foundation
 import OpenTelemetrySdk
 
-class SingleLogRecordProcessor: EmbraceLogRecordProcessor {
-    private let exporters: [EmbraceLogRecordExporter]
+class SingleLogRecordProcessor: LogRecordProcessor {
 
-    init(exporters: [EmbraceLogRecordExporter]) {
+    private let exporters: [LogRecordExporter]
+
+    init(exporters: [LogRecordExporter]) {
         self.exporters = exporters
     }
 
@@ -18,7 +19,7 @@ class SingleLogRecordProcessor: EmbraceLogRecordProcessor {
         }
     }
 
-    func forceFlush() -> ExportResult {
+    func forceFlush(explicitTimeout: TimeInterval?) -> ExportResult {
         let resultSet = Set(exporters.map { $0.forceFlush() })
         if let firstResult = resultSet.first {
             return resultSet.count > 1 ? .failure : firstResult
@@ -26,7 +27,7 @@ class SingleLogRecordProcessor: EmbraceLogRecordProcessor {
         return .success
     }
 
-    func shutdown() -> ExportResult {
+    func shutdown(explicitTimeout: TimeInterval?) -> ExportResult {
         exporters.forEach { $0.shutdown() }
         return .success
     }

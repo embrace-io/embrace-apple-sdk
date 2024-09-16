@@ -4,8 +4,10 @@
 
 import EmbraceOTelInternal
 import OpenTelemetryApi
+import OpenTelemetrySdk
+import Foundation
 
-public class InMemorySpanExporter: EmbraceSpanExporter {
+public class InMemorySpanExporter: SpanExporter {
 
     public private(set) var exportedSpans: [SpanId: SpanData] = [:]
 
@@ -25,7 +27,7 @@ public class InMemorySpanExporter: EmbraceSpanExporter {
         self.onFlush = completion
     }
 
-    public func export(spans: [SpanData]) -> SpanExporterResultCode {
+    public func export(spans: [SpanData], explicitTimeout: TimeInterval?) -> SpanExporterResultCode {
         spans.forEach { data in
             exportedSpans[data.spanId] = data
         }
@@ -34,12 +36,12 @@ public class InMemorySpanExporter: EmbraceSpanExporter {
         return .success
     }
 
-    public func flush() -> SpanExporterResultCode {
+    public func flush(explicitTimeout: TimeInterval?) -> SpanExporterResultCode {
         onFlush?()
         return .success
     }
 
-    public func shutdown() {
+    public func shutdown(explicitTimeout: TimeInterval?) {
         isShutdown = true
     }
 }

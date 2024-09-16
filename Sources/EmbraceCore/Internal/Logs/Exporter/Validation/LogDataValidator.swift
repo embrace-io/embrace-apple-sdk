@@ -4,6 +4,7 @@
 
 import Foundation
 import EmbraceOTelInternal
+import OpenTelemetrySdk
 
 protocol LogDataValidator {
 

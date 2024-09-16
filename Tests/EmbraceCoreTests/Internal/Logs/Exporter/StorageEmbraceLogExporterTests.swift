@@ -3,11 +3,12 @@
 //
 
 import XCTest
-
 @testable import EmbraceCore
 import EmbraceStorageInternal
 import EmbraceOTelInternal
 import EmbraceCommonInternal
+import OpenTelemetryApi
+import OpenTelemetrySdk
 
 class StorageEmbraceLogExporterTests: XCTestCase {
     private var sut: StorageEmbraceLogExporter!
@@ -149,7 +150,7 @@ private extension StorageEmbraceLogExporterTests {
             resource: .init(),
             instrumentationScopeInfo: .init(),
             timestamp: Date(),
-            body: body,
+            body: .string(body ?? ""),
             attributes: attributes )
     }
 

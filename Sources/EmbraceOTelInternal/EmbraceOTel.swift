@@ -107,7 +107,7 @@ public final class EmbraceOTel: NSObject {
         }
         logger
             .logRecordBuilder()
-            .setBody(message)
+            .setBody(.string(message))
             .setTimestamp(timestamp)
             .setAttributes(otelAttributes)
             .setSeverity(Severity.fromLogSeverity(severity) ?? .info)

@@ -69,7 +69,7 @@ public extension Embrace.Options {
     }
 
     /// Initializer for `Embrace.Options` that does not require an appId.
-    
+
     /// Use this initializer if you don't want the SDK to send data to Embrace's servers.
     /// You must provide your own `OpenTelemetryExport`
     ///

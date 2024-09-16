@@ -7,6 +7,7 @@ import OpenTelemetrySdk
 import Foundation
 
 class EmbraceLogRecordBuilder: EventBuilder {
+
     let sharedState: EmbraceLogSharedState
     let instrumentationScope: InstrumentationScopeInfo
 
@@ -14,7 +15,7 @@ class EmbraceLogRecordBuilder: EventBuilder {
     private(set) var observedTimestamp: Date?
     private(set) var severity: Severity?
     private(set) var spanContext: SpanContext?
-    private(set) var body: String?
+    private(set) var body: AttributeValue?
     private(set) var attributes: [String: AttributeValue]
 
     init(sharedState: EmbraceLogSharedState, attributes: [String: AttributeValue]) {
@@ -43,7 +44,7 @@ class EmbraceLogRecordBuilder: EventBuilder {
         return self
     }
 
-    func setBody(_ body: String) -> Self {
+    func setBody(_ body: AttributeValue) -> Self {
         self.body = body
         return self
     }
@@ -53,6 +54,10 @@ class EmbraceLogRecordBuilder: EventBuilder {
             self.attributes[$0.key] = $0.value
         }
         return self
+    }
+
+    func setData(_ attributes: [String: OpenTelemetryApi.AttributeValue]) -> Self {
+        return setAttributes(attributes)
     }
 
     func emit() {

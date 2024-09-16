@@ -152,7 +152,7 @@ private extension EmbraceLogRecordBuilderTests {
     }
 
     func whenSetting(body: String) {
-        _ = sut.setBody(body)
+        _ = sut.setBody(.string(body))
     }
 
     func whenSetting(attribute: [String: AttributeValue]) {
@@ -170,7 +170,7 @@ private extension EmbraceLogRecordBuilderTests {
     func thenProducedRecordHas(body: String) {
         XCTAssertTrue(processor.didCallOnEmit)
         XCTAssertNotNil(processor.receivedLogRecord)
-        XCTAssertEqual(processor.receivedLogRecord?.body, body)
+        XCTAssertEqual(processor.receivedLogRecord?.body, .string(body))
     }
 
     func thenProducedRecordHas(severity: Severity) {

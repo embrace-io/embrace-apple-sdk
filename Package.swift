@@ -23,7 +23,7 @@ let package = Package(
         .library(name: "EmbraceCore", targets: ["EmbraceCore"]),
         .library(name: "EmbraceCrash", targets: ["EmbraceCrash"]),
         .library(name: "EmbraceCrashlyticsSupport", targets: ["EmbraceCrashlyticsSupport"]),
-        .library(name: "EmbraceSemantics", targets: ["EmbraceSemantics"]),
+        .library(name: "EmbraceSemantics", targets: ["EmbraceSemantics"])
     ],
     dependencies: [
         .package(
@@ -32,7 +32,7 @@ let package = Package(
         ),
         .package(
             url: "https://github.com/open-telemetry/opentelemetry-swift",
-            exact: "1.5.1"
+            exact: "1.10.1"
         ),
         .package(
             url: "https://github.com/groue/GRDB.swift",
@@ -45,7 +45,7 @@ let package = Package(
         .package(
             url: "https://github.com/apple/swift-docc-plugin",
             branch: "main"
-        ),
+        )
     ],
     targets: [
         // main target ---------------------------------------------------------------

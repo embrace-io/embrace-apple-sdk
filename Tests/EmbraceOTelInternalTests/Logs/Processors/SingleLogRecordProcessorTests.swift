@@ -4,6 +4,7 @@
 
 import XCTest
 import Foundation
+import OpenTelemetrySdk
 
 @testable import EmbraceOTelInternal
 
@@ -66,7 +67,7 @@ private extension SingleLogRecordProcessorTests {
         givenProcessor(withExporters: [exporter])
     }
 
-    func givenProcessor(withExporters exporters: [EmbraceLogRecordExporter]) {
+    func givenProcessor(withExporters exporters: [LogRecordExporter]) {
         sut = .init(exporters: exporters)
     }
 

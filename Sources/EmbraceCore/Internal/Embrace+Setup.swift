@@ -8,6 +8,7 @@ import EmbraceOTelInternal
 import EmbraceStorageInternal
 import EmbraceUploadInternal
 import EmbraceObjCUtilsInternal
+import OpenTelemetryApi
 
 extension Embrace {
     static func createStorage(options: Embrace.Options) throws -> EmbraceStorage {

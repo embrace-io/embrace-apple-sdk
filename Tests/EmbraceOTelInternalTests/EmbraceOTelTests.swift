@@ -161,10 +161,10 @@ final class EmbraceOTelTests: XCTestCase {
         let otel = EmbraceOTel()
 
         otel.log("example message", severity: .info, attributes: [:])
-        let record = logExporter.finishedLogRecords.first { $0.body == "example message" }
+        let record = logExporter.finishedLogRecords.first { $0.body == .string("example message") }
 
         XCTAssertNotNil(record)
-        XCTAssertEqual(record?.body, "example message")
+        XCTAssertEqual(record?.body, .string("example message"))
     }
 
     func test_log_withTimestampAndAttributes_emitsLogToExporter() throws {
@@ -177,10 +177,10 @@ final class EmbraceOTelTests: XCTestCase {
             severity: .info,
             timestamp: logTime,
             attributes: ["foo": "bar"])
-        let record = logExporter.finishedLogRecords.first { $0.body == "example message" }
+        let record = logExporter.finishedLogRecords.first { $0.body == .string("example message") }
 
         XCTAssertNotNil(record)
-        XCTAssertEqual(record?.body, "example message")
+        XCTAssertEqual(record?.body, .string("example message"))
         XCTAssertEqual(record?.timestamp, logTime)
         XCTAssertEqual(record?.attributes, ["foo": .string("bar")])
     }

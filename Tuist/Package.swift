@@ -26,11 +26,11 @@ let package = Package(
     dependencies: [
         .package(
             url: "https://github.com/embrace-io/KSCrash.git",
-            exact: "2.0.0"
+            exact: "2.0.2"
         ),
         .package(
             url: "https://github.com/open-telemetry/opentelemetry-swift",
-            exact: "1.5.1"
+            exact: "1.10.1"
         ),
         .package(
             url: "https://github.com/groue/GRDB.swift",

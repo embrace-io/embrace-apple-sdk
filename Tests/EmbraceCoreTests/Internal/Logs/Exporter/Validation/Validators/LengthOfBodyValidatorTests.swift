@@ -5,6 +5,7 @@
 import XCTest
 @testable import EmbraceCore
 import EmbraceOTelInternal
+import OpenTelemetrySdk
 
 final class LengthOfBodyValidatorTests: XCTestCase {
 
@@ -13,7 +14,7 @@ final class LengthOfBodyValidatorTests: XCTestCase {
             resource: .init(),
             instrumentationScopeInfo: .init(),
             timestamp: Date(),
-            body: body,
+            body: .string(body ?? ""),
             attributes: [:]
         )
     }
@@ -50,5 +51,4 @@ final class LengthOfBodyValidatorTests: XCTestCase {
         XCTAssertTrue(validator.validate(data: &validMinimum))
         XCTAssertTrue(validator.validate(data: &validMaximum))
     }
-
 }

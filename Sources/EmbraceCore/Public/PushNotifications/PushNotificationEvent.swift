@@ -7,6 +7,7 @@ import UserNotifications
 import EmbraceOTelInternal
 import EmbraceCommonInternal
 import EmbraceSemantics
+import OpenTelemetryApi
 
 /// Class used to represent a Push Notification as a SpanEvent.
 /// Usage example:

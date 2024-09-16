@@ -6,6 +6,7 @@ import XCTest
 import TestSupport
 import EmbraceCommonInternal
 import OpenTelemetryApi
+import OpenTelemetrySdk
 @testable import EmbraceOTelInternal
 @testable import EmbraceCore
 

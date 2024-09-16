@@ -4,6 +4,7 @@
 
 @testable import EmbraceCore
 import EmbraceOTelInternal
+import OpenTelemetrySdk
 
 class MockLogDataValidator: LogDataValidator {
 
@@ -18,5 +19,4 @@ class MockLogDataValidator: LogDataValidator {
         didValidate = true
         return isValid
     }
-
 }

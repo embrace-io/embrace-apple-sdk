@@ -1,11 +1,13 @@
 import Foundation
 import EmbraceOTelInternal
+import OpenTelemetryApi
+import OpenTelemetrySdk
 
-extension EmbraceSpanProcessor where Self == NoopSpanProcessor {
+extension SpanProcessor where Self == NoopSpanProcessor {
     static var noop: NoopSpanProcessor { .init() }
 }
 
-public struct NoopSpanProcessor: EmbraceSpanProcessor {
+public struct NoopSpanProcessor: SpanProcessor {
     public let isStartRequired: Bool = true
 
     public let isEndRequired: Bool = true
@@ -16,5 +18,5 @@ public struct NoopSpanProcessor: EmbraceSpanProcessor {
 
     public func forceFlush(timeout: TimeInterval?) { }
 
-    public mutating func shutdown() { }
+    public mutating func shutdown(explicitTimeout: TimeInterval?) { }
 }
