@@ -39,7 +39,7 @@ extension Embrace {
             return DefaultConfig()
         }
 
-        let options = RemoteConfigFetcher.Options(
+        let options = RemoteConfig.Options(
             apiBaseUrl: configBaseURL,
             queue: DispatchQueue(label: "com.embrace.config"),
             appId: appId,
@@ -50,12 +50,10 @@ extension Embrace {
             userAgent: EmbraceMeta.userAgent
         )
 
-        let fetcher = RemoteConfigFetcher(options: options, logger: logger)
         let usedDigits = UInt(6)
         return RemoteConfig(
-            fetcher: fetcher,
-            deviceIdHexValue: deviceId.intValue(digitCount: usedDigits),
-            deviceIdUsedDigits: usedDigits
+            options: options,
+            logger: logger
         )
     }
 }

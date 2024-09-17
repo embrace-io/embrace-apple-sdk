@@ -5,7 +5,7 @@
 import Foundation
 import EmbraceCommonInternal
 
-public extension RemoteConfigFetcher {
+public extension RemoteConfig {
     struct Options {
         let apiBaseUrl: String
         let queue: DispatchQueue

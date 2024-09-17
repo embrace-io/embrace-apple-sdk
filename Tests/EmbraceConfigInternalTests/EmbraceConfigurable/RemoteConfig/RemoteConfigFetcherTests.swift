@@ -30,8 +30,8 @@ class RemoteConfigFetcherTests: XCTestCase {
         sdkVersion: String = TestConstants.sdkVersion,
         appVersion: String = TestConstants.appVersion,
         userAgent: String = TestConstants.userAgent
-    ) -> RemoteConfigFetcher.Options {
-        return RemoteConfigFetcher.Options(
+    ) -> RemoteConfig.Options {
+        return RemoteConfig.Options(
             apiBaseUrl: apiBaseUrl,
             queue: DispatchQueue(label: "com.test.embrace.queue", attributes: .concurrent),
             appId: appId,

@@ -5,16 +5,16 @@
 import Foundation
 import EmbraceCommonInternal
 
-public class RemoteConfigFetcher {
+class RemoteConfigFetcher {
 
     static let routePath = "/v2/config"
 
-    let options: RemoteConfigFetcher.Options
+    let options: RemoteConfig.Options
     let logger: InternalLogger
     let session: URLSession
     let operationQueue: OperationQueue
 
-    public init(options: RemoteConfigFetcher.Options, logger: InternalLogger) {
+    public init(options: RemoteConfig.Options, logger: InternalLogger) {
         self.options = options
         self.logger = logger
 
@@ -27,7 +27,7 @@ public class RemoteConfigFetcher {
         )
     }
 
-    public func fetch(completion: @escaping (RemoteConfigPayload?) -> Void) {
+    func fetch(completion: @escaping (RemoteConfigPayload?) -> Void) {
         guard let request = newRequest() else {
             completion(nil)
             return

@@ -14,21 +14,30 @@ public class RemoteConfig {
     let fetcher: RemoteConfigFetcher
 
     // threshold values
-    let deviceIdUsedDigits: UInt
+    static let deviceIdUsedDigits: UInt = 6
     let deviceIdHexValue: UInt64
 
     @ThreadSafe private(set) var updating = false
 
-    public init(
+    public convenience init(
+        options: RemoteConfig.Options,
+        payload: RemoteConfigPayload = RemoteConfigPayload(),
+        logger: InternalLogger
+    ) {
+        self.init(options: options,
+                  fetcher: RemoteConfigFetcher(options: options, logger: logger),
+                  logger: logger)
+    }
+
+    init(
+        options: RemoteConfig.Options,
         payload: RemoteConfigPayload = RemoteConfigPayload(),
         fetcher: RemoteConfigFetcher,
-        deviceIdHexValue: UInt64 = UInt64.max /* default to everything disabled */,
-        deviceIdUsedDigits: UInt
+        logger: InternalLogger
     ) {
         self.payload = payload
         self.fetcher = fetcher
-        self.deviceIdHexValue = deviceIdHexValue
-        self.deviceIdUsedDigits = deviceIdUsedDigits
+        self.deviceIdHexValue = options.deviceId.intValue(digitCount: Self.deviceIdUsedDigits)
     }
 }
 
@@ -80,7 +89,7 @@ extension RemoteConfig: EmbraceConfigurable {
 
 extension RemoteConfig {
     func isEnabled(threshold: Float) -> Bool {
-        return Self.isEnabled(hexValue: deviceIdHexValue, digits: deviceIdUsedDigits, threshold: threshold)
+        return Self.isEnabled(hexValue: deviceIdHexValue, digits: Self.deviceIdUsedDigits, threshold: threshold)
     }
 
     /// Algorithm to determine if percentage threshold is enabled for the hexValue
