@@ -21,7 +21,7 @@
     {
       "identity" : "grdb.swift",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/groue/GRDB.swift.git",
+      "location" : "https://github.com/groue/GRDB.swift",
       "state" : {
         "revision" : "dd6b98ce04eda39aa22f066cd421c24d7236ea8a",
         "version" : "6.29.1"
@@ -41,8 +41,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/embrace-io/KSCrash.git",
       "state" : {
-        "revision" : "30df8d35f1cc8d0537d595c4b18ddc0eb2675511",
-        "version" : "2.0.2"
+        "revision" : "17ad4c5159145ed550acb04b1cff48e826547265",
+        "version" : "2.0.4"
       }
     },
     {

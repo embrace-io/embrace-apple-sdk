@@ -22,7 +22,7 @@ public class LowMemoryWarningCaptureService: CaptureService {
     }
 
     public override func onInstall() {
-        // hardcoded string so we dont have to use UIApplication
+        // hardcoded string so we don't have to use UIApplication
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(didReceiveMemoryWarning),

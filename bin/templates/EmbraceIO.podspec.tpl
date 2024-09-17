@@ -35,6 +35,7 @@ Pod::Spec.new do |spec|
     core.dependency "EmbraceIO/EmbraceUploadInternal"
     core.dependency "EmbraceIO/EmbraceObjCUtilsInternal"
     core.dependency "EmbraceIO/EmbraceSemantics"
+    core.dependency "EmbraceIO/EmbraceConfiguration"
   end
 
   spec.subspec 'EmbraceCommonInternal' do |common|
@@ -43,6 +44,7 @@ Pod::Spec.new do |spec|
 
   spec.subspec 'EmbraceSemantics' do |semantics|
     semantics.vendored_frameworks = "xcframeworks/EmbraceSemantics.xcframework"
+    semantics.dependency "EmbraceIO/EmbraceCommonInternal"
   end
 
   spec.subspec 'EmbraceCaptureService' do |capture|
@@ -54,6 +56,7 @@ Pod::Spec.new do |spec|
   spec.subspec 'EmbraceConfigInternal' do |config|
     config.vendored_frameworks = "xcframeworks/EmbraceConfigInternal.xcframework"
     config.dependency "EmbraceIO/EmbraceCommonInternal"
+    config.dependency "EmbraceIO/EmbraceConfiguration"
   end
 
   spec.subspec 'EmbraceOTelInternal' do |otel|
@@ -67,7 +70,6 @@ Pod::Spec.new do |spec|
     storage.vendored_frameworks = "xcframeworks/EmbraceStorageInternal.xcframework"
     storage.dependency "EmbraceIO/EmbraceCommonInternal"
     storage.dependency "EmbraceIO/EmbraceSemantics"
-    storage.dependency "EmbraceIO/OpenTelemetryApi"
     storage.dependency "EmbraceIO/GRDB"
   end
 

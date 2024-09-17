@@ -210,7 +210,7 @@ final class MetadataHandlerTests: XCTestCase {
 
         // start new session
         let newSession = sessionController.startSession(state: .foreground)
-        let secondSessionId = newSession.id
+        let secondSessionId = newSession!.id
         try storage.addSession(
             id: secondSessionId,
             state: .foreground,

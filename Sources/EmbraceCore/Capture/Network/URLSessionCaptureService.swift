@@ -102,6 +102,12 @@ struct URLSessionInitWithDelegateSwizzler: URLSessionSwizzler {
         try swizzleClassMethod { originalImplementation -> BlockImplementationType in
             return { urlSession, configuration, delegate, queue -> URLSession in
                 let proxiedDelegate = (delegate != nil) ? delegate : EmbraceDummyURLSessionDelegate()
+
+                // check if we support proxying this type of delegate
+                guard isDelegateSupported(proxiedDelegate) else {
+                    return originalImplementation(urlSession, Self.selector, configuration, delegate, queue)
+                }
+
                 let newDelegate = URLSessionDelegateProxy(originalDelegate: proxiedDelegate, handler: handler)
                 let session = originalImplementation(urlSession, Self.selector, configuration, newDelegate, queue)
 
@@ -115,6 +121,32 @@ struct URLSessionInitWithDelegateSwizzler: URLSessionSwizzler {
                 return session
             }
         }
+    }
+
+    // list of third party URLSessionDelegate implementations that we don't support
+    // due to issues / crashes out of our control
+    private let unsupportedDelegates: [String] = [
+
+        // This type belongs to an internal library used by Firebase which
+        // incorrectly assumes the type of the URLSession delegate, resulting
+        // in it calling a method that is not implemented by our proxy.
+        //
+        // We can't solve this on our side in a clean way so we'll just not
+        // capture any requests from this library until the issue is solved
+        // on their side.
+        //
+        // Library: https://github.com/google/gtm-session-fetcher/
+        // Issue: https://github.com/google/gtm-session-fetcher/issues/190
+        "GTMSessionFetcher"
+    ]
+
+    func isDelegateSupported(_ delegate: AnyObject?) -> Bool {
+        guard let delegate = delegate else {
+            return true
+        }
+
+        let name = NSStringFromClass(type(of: delegate))
+        return unsupportedDelegates.first { name.contains($0) } == nil
     }
 }
 

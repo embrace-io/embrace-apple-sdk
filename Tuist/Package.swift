@@ -26,7 +26,7 @@ let package = Package(
     dependencies: [
         .package(
             url: "https://github.com/embrace-io/KSCrash.git",
-            exact: "2.0.2"
+            exact: "2.0.4"
         ),
         .package(
             url: "https://github.com/open-telemetry/opentelemetry-swift",

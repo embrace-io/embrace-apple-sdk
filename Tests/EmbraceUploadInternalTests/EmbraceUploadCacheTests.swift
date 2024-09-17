@@ -8,15 +8,12 @@ import EmbraceOTelInternal
 @testable import EmbraceUploadInternal
 
 class EmbraceUploadCacheTests: XCTestCase {
-    let testOptions = EmbraceUpload.CacheOptions(cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory()))!
+    let logger = MockLogger()
     var spanProcessor: MockSpanProcessor!
 
     override func setUpWithError() throws {
         spanProcessor = MockSpanProcessor()
         EmbraceOTel.setup(spanProcessors: [spanProcessor])
-        if FileManager.default.fileExists(atPath: testOptions.cacheFilePath) {
-            try FileManager.default.removeItem(atPath: testOptions.cacheFilePath)
-        }
     }
 
     override func tearDownWithError() throws {
@@ -25,11 +22,12 @@ class EmbraceUploadCacheTests: XCTestCase {
 
     func test_tableSchema() throws {
         // given new cache
-        let cache = try EmbraceUploadCache(options: testOptions)
+        let options = EmbraceUpload.CacheOptions(named: testName)
+        let cache = try EmbraceUploadCache(options: options, logger: logger)
 
         let expectation = XCTestExpectation()
 
-        // then the table and its colums should be correct
+        // then the table and its columns should be correct
         try cache.dbQueue.read { db in
             XCTAssert(try db.tableExists(UploadDataRecord.databaseTableName))
 
@@ -89,7 +87,8 @@ class EmbraceUploadCacheTests: XCTestCase {
     }
 
     func test_fetchUploadData() throws {
-        let cache = try EmbraceUploadCache(options: testOptions)
+        let options = EmbraceUpload.CacheOptions(named: testName)
+        let cache = try EmbraceUploadCache(options: options, logger: logger)
 
         // given inserted upload data
         let original = UploadDataRecord(
@@ -112,7 +111,8 @@ class EmbraceUploadCacheTests: XCTestCase {
     }
 
     func test_fetchAllUploadData() throws {
-        let cache = try EmbraceUploadCache(options: testOptions)
+        let options = EmbraceUpload.CacheOptions(named: testName)
+        let cache = try EmbraceUploadCache(options: options, logger: logger)
 
         // given inserted upload datas
         let data1 = UploadDataRecord(id: "id1", type: 0, data: Data(), attemptCount: 0, date: Date())
@@ -135,7 +135,8 @@ class EmbraceUploadCacheTests: XCTestCase {
     }
 
     func test_saveUploadData() throws {
-        let cache = try EmbraceUploadCache(options: testOptions)
+        let options = EmbraceUpload.CacheOptions(named: testName)
+        let cache = try EmbraceUploadCache(options: options, logger: logger)
 
         // given inserted upload data
         let data = try cache.saveUploadData(id: "id", type: .spans, data: Data())
@@ -152,11 +153,8 @@ class EmbraceUploadCacheTests: XCTestCase {
 
     func test_saveUploadData_limit() throws {
         // given a cache with a limit of 1
-        let options = EmbraceUpload.CacheOptions(
-            cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory()),
-            cacheLimit: 1
-        )!
-        let cache = try EmbraceUploadCache(options: options)
+        let options = EmbraceUpload.CacheOptions(named: testName, cacheLimit: 1)
+        let cache = try EmbraceUploadCache(options: options, logger: logger)
 
         // given inserted upload datas
         let data1 = try cache.saveUploadData(id: "id1", type: .spans, data: Data())
@@ -177,7 +175,8 @@ class EmbraceUploadCacheTests: XCTestCase {
     }
 
     func test_deleteUploadData() throws {
-        let cache = try EmbraceUploadCache(options: testOptions)
+        let options = EmbraceUpload.CacheOptions(named: testName)
+        let cache = try EmbraceUploadCache(options: options, logger: logger)
 
         // given inserted upload data
         let data = UploadDataRecord(
@@ -206,7 +205,8 @@ class EmbraceUploadCacheTests: XCTestCase {
     }
 
     func test_updateAttemptCount() throws {
-        let cache = try EmbraceUploadCache(options: testOptions)
+        let options = EmbraceUpload.CacheOptions(named: testName)
+        let cache = try EmbraceUploadCache(options: options, logger: logger)
 
         // given inserted upload data
         let original = UploadDataRecord(

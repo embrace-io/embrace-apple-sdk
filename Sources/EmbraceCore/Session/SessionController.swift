@@ -4,6 +4,7 @@
 
 import Foundation
 import EmbraceCommonInternal
+import EmbraceConfigInternal
 import EmbraceStorageInternal
 import EmbraceUploadInternal
 import EmbraceOTelInternal
@@ -35,18 +36,27 @@ class SessionController: SessionControllable {
 
     weak var storage: EmbraceStorage?
     weak var upload: EmbraceUpload?
+    weak var config: EmbraceConfig?
+
+    private var backgroundSessionsEnabled: Bool {
+        return config?.isBackgroundSessionEnabled == true
+    }
+
     let heartbeat: SessionHeartbeat
     let queue: DispatchQueue
+    var firstSession = true
 
     internal var notificationCenter = NotificationCenter.default
 
     init(
         storage: EmbraceStorage,
         upload: EmbraceUpload?,
+        config: EmbraceConfig?,
         heartbeatInterval: TimeInterval = SessionHeartbeat.defaultInterval
     ) {
         self.storage = storage
         self.upload = upload
+        self.config = config
 
         let heartbeatQueue = DispatchQueue(label: "com.embrace.session_heartbeat")
         self.heartbeat = SessionHeartbeat(queue: heartbeatQueue, interval: heartbeatInterval)
@@ -65,23 +75,39 @@ class SessionController: SessionControllable {
     }
 
     @discardableResult
-    func startSession(state: SessionState) -> SessionRecord {
+    func startSession(state: SessionState) -> SessionRecord? {
         return startSession(state: state, startTime: Date())
     }
 
     @discardableResult
-    func startSession(state: SessionState, startTime: Date = Date()) -> SessionRecord {
+    func startSession(state: SessionState, startTime: Date = Date()) -> SessionRecord? {
         // end current session first
         if currentSession != nil {
             endSession()
         }
 
+        // detect cold start
+        let isColdStart = firstSession
+
+        // Don't start background session if the config is disabled.
+        //
+        // Note: There's an exception for the cold start session:
+        // We start the session anyways and we drop it when it ends if
+        // it's still considered a background session.
+        // Due to how iOS works we can't know for sure the state when the
+        // app starts, so we need to delay the logic!
+        //
+        // +
+        if isColdStart == false &&
+           state == .background &&
+           backgroundSessionsEnabled == false {
+            return nil
+        }
+        // -
+
         // we lock after end session to avoid a deadlock
 
         return lock.locked {
-
-            // detect cold start
-            let isColdStart = withinColdStartInterval(startTime: startTime)
 
             // create session span
             let newId = SessionIdentifier.random
@@ -109,6 +135,8 @@ class SessionController: SessionControllable {
             // post notification
             notificationCenter.post(name: .embraceSessionDidStart, object: session)
 
+            firstSession = false
+
             return session
         }
     }
@@ -121,11 +149,22 @@ class SessionController: SessionControllable {
         return lock.locked {
             // stop heartbeat
             heartbeat.stop()
+            let now = Date()
+
+            // If the session is a background session and background sessions
+            // are disabled in the config, we drop the session!
+            // +
+            if currentSession?.coldStart == true &&
+               currentSession?.state == SessionState.background.rawValue &&
+               backgroundSessionsEnabled == false {
+                delete()
+                return now
+            }
+            // -
 
             // post notification
             notificationCenter.post(name: .embraceSessionWillEnd, object: currentSession)
 
-            let now = Date()
             currentSessionSpan?.end(time: now)
             SessionSpanUtils.setCleanExit(span: currentSessionSpan, cleanExit: true)
 
@@ -171,17 +210,6 @@ class SessionController: SessionControllable {
 }
 
 extension SessionController {
-    static let allowedColdStartInterval: TimeInterval = 5.0
-
-    /// - Returns: `true` if ``ProcessMetadata.uptime`` is less than or equal to the allowed cold start interval. See ``iOSAppListener.minimumColdStartInterval``
-    private func withinColdStartInterval(startTime: Date) -> Bool {
-        guard let uptime = ProcessMetadata.uptime(since: startTime), uptime >= 0 else {
-            return false
-        }
-
-        return uptime <= Self.allowedColdStartInterval
-    }
-
     private func save() {
         guard let storage = storage,
               let session = currentSession else {
@@ -193,5 +221,21 @@ extension SessionController {
         } catch {
             Embrace.logger.warning("Error trying to update session:\n\(error.localizedDescription)")
         }
+    }
+
+    private func delete() {
+        guard let storage = storage,
+              let session = currentSession else {
+            return
+        }
+
+        do {
+            try storage.delete(record: session)
+        } catch {
+            Embrace.logger.warning("Error trying to delete session:\n\(error.localizedDescription)")
+        }
+
+        currentSession = nil
+        currentSessionSpan = nil
     }
 }

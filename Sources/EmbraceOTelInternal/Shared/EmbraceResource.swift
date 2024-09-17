@@ -11,7 +11,7 @@ import OpenTelemetrySdk
 public typealias ResourceValue = AttributeValue
 
 // This representation of the `Resource` concept was necessary because
-// some entities (like `LogReadeableRecord`) needs it.
+// some entities (like `LogReadableRecord`) needs it.
 public protocol EmbraceResource {
     var key: String { get }
     var value: ResourceValue { get }

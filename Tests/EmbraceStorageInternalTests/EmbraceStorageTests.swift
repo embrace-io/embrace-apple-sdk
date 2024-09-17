@@ -147,7 +147,7 @@ class EmbraceStorageTests: XCTestCase {
 
         try storage.update(record: span)
 
-        // the record should update successfuly
+        // the record should update successfully
         try storage.dbQueue.read { db in
             XCTAssert(try span.exists(db))
             XCTAssertNotNil(span.endTime)
@@ -222,7 +222,7 @@ class EmbraceStorageTests: XCTestCase {
         // when fetching all records
         let records: [SpanRecord] = try storage.fetchAll()
 
-        // then all records should be successfuly fetched
+        // then all records should be successfully fetched
         XCTAssert(records.count == 2)
         XCTAssert(records.contains(span1))
         XCTAssert(records.contains(span2))

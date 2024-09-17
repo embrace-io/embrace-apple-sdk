@@ -8,11 +8,9 @@ import TestSupport
 
 extension EmbraceUploadCacheTests {
     func test_clearStaleDataIfNeeded_basedOn_size() throws {
-        let testOptions = EmbraceUpload.CacheOptions(cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory()))!
         // setting the maximum db size of 1000 bytes
-        testOptions.cacheDaysLimit = 0
-        testOptions.cacheSizeLimit = 1000
-        let cache = try EmbraceUploadCache(options: testOptions)
+        let options = EmbraceUpload.CacheOptions(named: testName, cacheSizeLimit: 1000)
+        let cache = try EmbraceUploadCache(options: options, logger: MockLogger())
 
         // given some upload cache
         let now = Date()
@@ -67,11 +65,9 @@ extension EmbraceUploadCacheTests {
     }
 
     func test_clearStaleDataIfNeeded_basedOn_size_noLimit() throws {
-        let testOptions = EmbraceUpload.CacheOptions(cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory()))!
         // disabling cache size limit
-        testOptions.cacheSizeLimit = 0
-        testOptions.cacheDaysLimit = 0
-        let cache = try EmbraceUploadCache(options: testOptions)
+        let options = EmbraceUpload.CacheOptions(named: testName)
+        let cache = try EmbraceUploadCache(options: options, logger: MockLogger())
 
         // given some upload cache
         let now = Date()
@@ -125,11 +121,9 @@ extension EmbraceUploadCacheTests {
     }
 
     func test_clearStaleDataIfNeeded_basedOn_size_noRecords() throws {
-        let testOptions = EmbraceUpload.CacheOptions(cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory()))!
         // setting the maximum db size of 1 byte
-        testOptions.cacheSizeLimit = 1
-        testOptions.cacheDaysLimit = 0
-        let cache = try EmbraceUploadCache(options: testOptions)
+        let options = EmbraceUpload.CacheOptions(named: testName, cacheSizeLimit: 1)
+        let cache = try EmbraceUploadCache(options: options, logger: MockLogger())
 
         // when attempting to remove data from an empty cache
         let removedRecords = try cache.clearStaleDataIfNeeded()
@@ -139,11 +133,9 @@ extension EmbraceUploadCacheTests {
     }
 
     func test_clearStaleDataIfNeeded_basedOn_size_didNotHitLimit() throws {
-        let testOptions = EmbraceUpload.CacheOptions(cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory()))!
         // setting enough cache limit
-        testOptions.cacheSizeLimit = 1801
-        testOptions.cacheDaysLimit = 0
-        let cache = try EmbraceUploadCache(options: testOptions)
+        let options = EmbraceUpload.CacheOptions(named: testName, cacheSizeLimit: 1801)
+        let cache = try EmbraceUploadCache(options: options, logger: MockLogger())
 
         // given some upload cache
         let now = Date()

@@ -8,7 +8,7 @@ import EmbraceCaptureService
 import EmbraceCommonInternal
 import EmbraceOTelInternal
 
-/// Service that generates OpenTelemtry spans for `UIViewControllers`.
+/// Service that generates OpenTelemetry spans for `UIViewControllers`.
 /// The spans start on `viewDidAppear` and end on `viewDidDisappear`.
 @objc(EMBViewCaptureService)
 public final class ViewCaptureService: CaptureService {

@@ -6,7 +6,7 @@ import Foundation
 import XCTest
 @testable import EmbraceCore
 import EmbraceCommonInternal
-import EmbraceStorageInternal
+@testable import EmbraceStorageInternal
 @testable import EmbraceUploadInternal
 import TestSupport
 import GRDB
@@ -40,13 +40,9 @@ class UnsentDataHandlerTests: XCTestCase {
         urlSessionconfig.httpMaximumConnectionsPerHost = .max
         urlSessionconfig.protocolClasses = [EmbraceHTTPMock.self]
 
-        let testCacheOptions = EmbraceUpload.CacheOptions(
-            cacheBaseUrl: filePathProvider.fileURL(for: testName, name: "upload_cache")!
-        )!
-
         uploadOptions = EmbraceUpload.Options(
             endpoints: testEndpointOptions(forTest: testName),
-            cache: testCacheOptions,
+            cache: EmbraceUpload.CacheOptions(named: testName),
             metadata: UnsentDataHandlerTests.testMetadataOptions,
             redundancy: UnsentDataHandlerTests.testRedundancyOptions,
             urlSessionConfiguration: urlSessionconfig
@@ -337,10 +333,7 @@ class UnsentDataHandlerTests: XCTestCase {
             startTime: Date(timeIntervalSinceNow: -60)
         )
 
-        // when sending unsent sessions
-        UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel, crashReporter: crashReporter)
-
-        // then the crash report id and timestamp is set on the session
+        // the crash report id and timestamp is set on the session
         let expectation1 = XCTestExpectation()
         let observation = ValueObservation.tracking(SessionRecord.fetchAll).print()
         let cancellable = observation.start(in: storage.dbQueue) { error in
@@ -352,7 +345,11 @@ class UnsentDataHandlerTests: XCTestCase {
                 }
             }
         }
-        wait(for: [expectation1], timeout: .veryLongTimeout)
+
+        // when sending unsent sessions
+        UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel, crashReporter: crashReporter)
+
+        wait(for: [expectation1], timeout: 5000)
         cancellable.cancel()
 
         // then a crash report was sent
@@ -721,6 +718,41 @@ class UnsentDataHandlerTests: XCTestCase {
         }
 
         wait(for: [expectation], timeout: .defaultTimeout)
+    }
+
+    func test_logsUpload() throws {
+        // mock successful requests
+        EmbraceHTTPMock.mock(url: testSpansUrl())
+        EmbraceHTTPMock.mock(url: testLogsUrl())
+
+        // given a storage and upload modules
+        let storage = try EmbraceStorage.createInMemoryDb()
+        defer { try? storage.teardown() }
+
+        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue)
+        let logController = LogController(storage: storage, upload: upload, controller: MockSessionController())
+        let otel = MockEmbraceOpenTelemetry()
+
+        // given logs in storage
+        for _ in 0...5 {
+            try storage.writeLog(LogRecord(
+                identifier: LogIdentifier.random,
+                processIdentifier: TestConstants.processId,
+                severity: .debug,
+                body: "test",
+                attributes: [:]
+            ))
+        }
+
+        // when sending unsent data
+        UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel, logController: logController)
+        wait(delay: .longTimeout)
+
+        // then no sessions were sent
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 0)
+
+        // then a log batch was sent
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 1)
     }
 }
 

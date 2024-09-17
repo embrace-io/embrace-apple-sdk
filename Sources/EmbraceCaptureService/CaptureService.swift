@@ -16,7 +16,7 @@ import OpenTelemetryApi
 /// Multiple `CaptureServices` can run at the same time and be in charge of handling
 /// different types of data.
 ///
-/// This base class provides the necessary functionallity and structure that should be used
+/// This base class provides the necessary functionality and structure that should be used
 /// by all capture services.
 @objc(EMBCaptureService)
 open class CaptureService: NSObject {
@@ -103,7 +103,7 @@ extension CaptureService {
     /// Use this method to generate events with the capture service.
     /// - Parameters:
     ///   - event: `RecordingSpanEvent` instance to add.
-    /// - Returns: Boolean indicating if the event was succesfully added. If the capture service is not active, this method always returns false.
+    /// - Returns: Boolean indicating if the event was successfully added. If the capture service is not active, this method always returns false.
     @discardableResult
     public func add(event: RecordingSpanEvent) -> Bool {
         guard state == .active else {
@@ -118,7 +118,7 @@ extension CaptureService {
     /// Use this method to generate events with the capture service.
     /// - Parameters:
     ///   - events: Array of `RecordingSpanEvents` to add.
-    /// - Returns: Boolean indicating if the events were succesfully added. If the capture service is not active, this method always returns false.
+    /// - Returns: Boolean indicating if the events were successfully added. If the capture service is not active, this method always returns false.
     @discardableResult
     public func add(events: [RecordingSpanEvent]) -> Bool {
         guard state == .active else {

@@ -4,6 +4,7 @@
 
 import Foundation
 import EmbraceCommonInternal
+import EmbraceConfigInternal
 import EmbraceOTelInternal
 import EmbraceStorageInternal
 import EmbraceUploadInternal

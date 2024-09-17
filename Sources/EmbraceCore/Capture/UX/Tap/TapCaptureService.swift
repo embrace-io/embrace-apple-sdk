@@ -46,7 +46,7 @@ public final class TapCaptureService: CaptureService {
 
             try swizzler?.install()
         } catch let exception {
-            Embrace.logger.error("An error ocurred while swizzling UIWindow.sendEvent: \(exception.localizedDescription)")
+            Embrace.logger.error("An error occurred while swizzling UIWindow.sendEvent: \(exception.localizedDescription)")
         }
     }
 

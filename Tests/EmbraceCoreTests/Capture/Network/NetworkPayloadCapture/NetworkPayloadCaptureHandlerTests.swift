@@ -7,6 +7,7 @@ import TestSupport
 @testable import EmbraceCore
 @testable import EmbraceConfigInternal
 import EmbraceStorageInternal
+@testable import EmbraceConfiguration
 
 class NetworkPayloadCaptureHandlerTests: XCTestCase {
 

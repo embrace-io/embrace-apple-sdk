@@ -22,7 +22,7 @@ class SpanRecordTests: XCTestCase {
     func test_tableSchema() throws {
         XCTAssertEqual(SpanRecord.databaseTableName, "spans")
 
-        // then the table and its colums should be correct
+        // then the table and its columns should be correct
         try storage.dbQueue.read { db in
             XCTAssert(try db.tableExists(SpanRecord.databaseTableName))
 
@@ -173,7 +173,7 @@ class SpanRecordTests: XCTestCase {
     }
 
     func test_cleanUpSpans() throws {
-        // given insterted spans
+        // given inserted spans
         _ = try storage.addSpan(
             id: "id1",
             name: "a name 1",

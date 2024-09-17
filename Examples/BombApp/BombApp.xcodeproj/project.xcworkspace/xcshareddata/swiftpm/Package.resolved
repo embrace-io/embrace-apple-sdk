@@ -1,5 +1,5 @@
 {
-  "originHash" : "f35065f67c35655933e2b4ed841314daab70232fc79185162a3eea7fe1831c3b",
+  "originHash" : "d471a26f48de52ea4ca90915729c04354c0c18d83f037e7ebf7731d1e72c2bc2",
   "pins" : [
     {
       "identity" : "abseil-cpp-binary",
@@ -123,8 +123,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/embrace-io/KSCrash.git",
       "state" : {
-        "revision" : "30df8d35f1cc8d0537d595c4b18ddc0eb2675511",
-        "version" : "2.0.2"
+        "revision" : "17ad4c5159145ed550acb04b1cff48e826547265",
+        "version" : "2.0.4"
       }
     },
     {

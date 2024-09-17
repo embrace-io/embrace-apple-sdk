@@ -20,6 +20,8 @@ class ResourcePayloadTests: XCTestCase {
             MetadataRecord.userMetadata(key: AppResourceKey.sdkVersion.rawValue, value: "3.2.1"),
             MetadataRecord.userMetadata(key: AppResourceKey.processIdentifier.rawValue, value: "12345"),
             MetadataRecord.userMetadata(key: AppResourceKey.buildID.rawValue, value: "fakebuilduuidnohyphen"),
+            MetadataRecord.userMetadata(key: AppResourceKey.processStartTime.rawValue, value: "12345"),
+            MetadataRecord.userMetadata(key: AppResourceKey.processPreWarm.rawValue, value: "true"),
 
             // Device Resources that should be present
             MetadataRecord.createResourceRecord(key: DeviceResourceKey.isJailbroken.rawValue, value: "true"),
@@ -58,6 +60,8 @@ class ResourcePayloadTests: XCTestCase {
         XCTAssertEqual(json["sdk_version"] as? String, "3.2.1")
         XCTAssertEqual(json["app_version"] as? String, "1.2.3")
         XCTAssertEqual(json["process_identifier"] as? String, "12345")
+        XCTAssertEqual(json["process_start_time"] as? Int, 12345)
+        XCTAssertEqual(json["process_pre_warm"] as? Bool, true)
 
         XCTAssertEqual(json["jailbroken"] as? Bool, true)
         XCTAssertEqual(json["disk_total_capacity"] as? Int, 494384795648)

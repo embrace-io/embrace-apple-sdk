@@ -237,7 +237,7 @@ private extension DefaultURLSessionTaskHandlerTests {
             request.httpBody = body
         }
         let urlResponse = response ?? aValidResponse()
-        url.mockResponse = .sucessful(withData: UUID().uuidString.data(using: .utf8)!, response: urlResponse)
+        url.mockResponse = .successful(withData: UUID().uuidString.data(using: .utf8)!, response: urlResponse)
         task = session.dataTask(with: request)
     }
 

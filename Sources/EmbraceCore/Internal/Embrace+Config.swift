@@ -6,25 +6,41 @@ import Foundation
 import EmbraceObjCUtilsInternal
 import EmbraceConfigInternal
 import EmbraceCommonInternal
+import EmbraceConfiguration
 
 extension Embrace {
 
     /// Creates `EmbraceConfig` object
     static func createConfig(
         options: Embrace.Options,
-        deviceId: String
-    ) -> EmbraceConfig? {
+        deviceId: DeviceIdentifier
+    ) -> EmbraceConfig {
+        return EmbraceConfig(
+            configurable: runtimeConfiguration(from: options, deviceId: deviceId),
+            options: .init(),
+            notificationCenter: Embrace.notificationCenter,
+            logger: Embrace.logger
+        )
+    }
+
+    private static func runtimeConfiguration(
+        from options: Embrace.Options,
+        deviceId: DeviceIdentifier
+    ) -> EmbraceConfigurable {
+        if let configImpl = options.runtimeConfiguration {
+            return configImpl
+        }
+
+        guard let configBaseURL = options.endpoints?.configBaseURL else {
+            return DefaultConfig()
+        }
 
         guard let appId = options.appId else {
-            return nil
+            return DefaultConfig()
         }
 
-        guard let endpoints = options.endpoints else {
-            return nil
-        }
-
-        let configOptions = EmbraceConfig.Options(
-            apiBaseUrl: endpoints.configBaseURL,
+        let options = RemoteConfig.Options(
+            apiBaseUrl: configBaseURL,
             queue: DispatchQueue(label: "com.embrace.config"),
             appId: appId,
             deviceId: deviceId,
@@ -34,10 +50,10 @@ extension Embrace {
             userAgent: EmbraceMeta.userAgent
         )
 
-        return EmbraceConfig(
-            options: configOptions,
-            notificationCenter: Embrace.notificationCenter,
-            logger: Embrace.logger
+        let usedDigits = UInt(6)
+        return RemoteConfig(
+            options: options,
+            logger: logger
         )
     }
 }

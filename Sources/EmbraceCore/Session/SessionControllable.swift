@@ -13,7 +13,7 @@ protocol SessionControllable: AnyObject {
     var currentSession: SessionRecord? { get }
 
     @discardableResult
-    func startSession(state: SessionState) -> SessionRecord
+    func startSession(state: SessionState) -> SessionRecord?
 
     @discardableResult
     func endSession() -> Date

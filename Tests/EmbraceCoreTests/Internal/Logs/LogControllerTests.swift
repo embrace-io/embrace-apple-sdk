@@ -12,7 +12,7 @@ import EmbraceCommonInternal
 class LogControllerTests: XCTestCase {
     private var sut: LogController!
     private var storage: SpyStorage?
-    private var sessionController: SpySessionController!
+    private var sessionController: MockSessionController!
     private var upload: SpyEmbraceLogUploader!
 
     override func setUp() {
@@ -49,25 +49,39 @@ class LogControllerTests: XCTestCase {
     }
 
     func testHavingLogs_onSetup_fetchesResourcesFromStorage() throws {
-        givenStorage(withLogs: [randomLogRecord()])
+        let sessionId = SessionIdentifier.random
+        let log = randomLogRecord(sessionId: sessionId)
+
+        givenStorage(withLogs: [log])
         givenLogController()
         whenInvokingSetup()
-        try thenFetchesResourcesForCurrentSessionIdFromStorage()
+        try thenFetchesResourcesFromStorage(sessionId: sessionId)
     }
 
     func testHavingLogs_onSetup_fetchesMetadataFromStorage() throws {
-        givenStorage(withLogs: [randomLogRecord()])
+        let sessionId = SessionIdentifier.random
+        let log = randomLogRecord(sessionId: sessionId)
+
+        givenStorage(withLogs: [log])
         givenLogController()
         whenInvokingSetup()
-        try thenFetchesMetadataForCurrentSessionIdFromStorage()
+        try thenFetchesMetadataFromStorage(sessionId: sessionId)
     }
 
-    func testHavingLogsButNoSession_onSetup_wontTryToUploadAnything() {
-        givenSessionControllerWithoutSession()
-        givenStorage(withLogs: [randomLogRecord()])
+    func testHavingLogsWithNoSessionId_onSetup_fetchesResourcesFromStorage() throws {
+        let log = randomLogRecord()
+        givenStorage(withLogs: [log])
         givenLogController()
         whenInvokingSetup()
-        thenDoesntTryToUploadAnything()
+        try thenFetchesResourcesFromStorage(processId: log.processIdentifier)
+    }
+
+    func testHavingLogsWithNoSessionId_onSetup_fetchesMetadataFromStorage() throws {
+        let log = randomLogRecord()
+        givenStorage(withLogs: [log])
+        givenLogController()
+        whenInvokingSetup()
+        try thenFetchesMetadataFromStorage(processId: log.processIdentifier)
     }
 
     func testHavingLogsForLessThanABatch_onSetup_logUploaderShouldSendASingleBatch() {
@@ -112,22 +126,28 @@ class LogControllerTests: XCTestCase {
         thenDoesntTryToUploadAnything()
     }
 
+    func testHavingSessionButNoLogs_onBatchFinished_wontTryToUploadAnything() {
+        givenLogController()
+        whenInvokingBatchFinished(withLogs: [])
+        thenDoesntTryToUploadAnything()
+    }
+
     func testHavingLogs_onBatchFinished_fetchesResourcesFromStorage() throws {
         givenLogController()
         whenInvokingBatchFinished(withLogs: [randomLogRecord()])
-        try thenFetchesResourcesForCurrentSessionIdFromStorage()
+        try thenFetchesResourcesFromStorage(sessionId: sessionController.currentSession?.id)
     }
 
     func testHavingLogs_onBatchFinished_fetchesMetadataFromStorage() throws {
         givenLogController()
         whenInvokingBatchFinished(withLogs: [randomLogRecord()])
-        try thenFetchesMetadataForCurrentSessionIdFromStorage()
+        try thenFetchesMetadataFromStorage(sessionId: sessionController.currentSession?.id)
     }
 
     func testHavingLogs_onBatchFinished_logUploaderShouldSendASingleBatch() throws {
         givenLogController()
         whenInvokingBatchFinished(withLogs: [randomLogRecord()])
-        try thenFetchesMetadataForCurrentSessionIdFromStorage()
+        try thenFetchesMetadataFromStorage(sessionId: sessionController.currentSession?.id)
     }
 
     func testHavingThrowingStorage_onBatchFinished_wontTryToUploadAnything() {
@@ -250,29 +270,45 @@ private extension LogControllerTests {
         XCTAssertFalse(unwrappedStorage.didCallRemoveLogs)
     }
 
-    func thenFetchesResourcesForCurrentSessionIdFromStorage() throws {
+    func thenFetchesResourcesFromStorage(sessionId: SessionIdentifier?) throws {
         let unwrappedStorage = try XCTUnwrap(storage)
-        let currentSessionId = sessionController.currentSession?.id
         XCTAssertTrue(unwrappedStorage.didCallFetchResourcesForSessionId)
-        XCTAssertEqual(unwrappedStorage.fetchResourcesForSessionIdReceivedParameter, currentSessionId)
+        XCTAssertEqual(unwrappedStorage.fetchResourcesForSessionIdReceivedParameter, sessionId)
     }
 
-    func thenFetchesMetadataForCurrentSessionIdFromStorage() throws {
+    func thenFetchesMetadataFromStorage(sessionId: SessionIdentifier?) throws {
         let unwrappedStorage = try XCTUnwrap(storage)
-        let currentSessionId = sessionController.currentSession?.id
         XCTAssertTrue(unwrappedStorage.didCallFetchCustomPropertiesForSessionId)
-        XCTAssertEqual(unwrappedStorage.fetchCustomPropertiesForSessionIdReceivedParameter, currentSessionId)
+        XCTAssertEqual(unwrappedStorage.fetchCustomPropertiesForSessionIdReceivedParameter, sessionId)
         XCTAssertTrue(unwrappedStorage.didCallFetchCustomPropertiesForSessionId)
-        XCTAssertEqual(unwrappedStorage.fetchPersonaTagsForSessionIdReceivedParameter, currentSessionId)
+        XCTAssertEqual(unwrappedStorage.fetchPersonaTagsForSessionIdReceivedParameter, sessionId)
     }
 
-    func randomLogRecord() -> LogRecord {
-        .init(
+    func thenFetchesResourcesFromStorage(processId: ProcessIdentifier) throws {
+        let unwrappedStorage = try XCTUnwrap(storage)
+        XCTAssertTrue(unwrappedStorage.didCallFetchResourcesForProcessId)
+        XCTAssertEqual(unwrappedStorage.fetchResourcesForProcessIdReceivedParameter, processId)
+    }
+
+    func thenFetchesMetadataFromStorage(processId: ProcessIdentifier) throws {
+        let unwrappedStorage = try XCTUnwrap(storage)
+        XCTAssertTrue(unwrappedStorage.didCallFetchPersonaTagsForProcessId)
+        XCTAssertEqual(unwrappedStorage.fetchPersonaTagsForProcessIdReceivedParameter, processId)
+    }
+
+    func randomLogRecord(sessionId: SessionIdentifier? = nil) -> LogRecord {
+
+        var attributes: [String: PersistableValue] = [:]
+        if let sessionId = sessionId {
+            attributes["emb.session_id"] = PersistableValue(sessionId.toString)
+        }
+
+        return LogRecord(
             identifier: .random,
             processIdentifier: .random,
             severity: .info,
             body: UUID().uuidString,
-            attributes: .empty()
+            attributes: attributes
         )
     }
 

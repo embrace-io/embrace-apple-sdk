@@ -17,7 +17,7 @@ class DeviceIdentifier_PersistenceTests: XCTestCase {
         KeychainAccess.keychain = AlwaysSuccessfulKeychainInterface()
 
         // delete the resource if we already have it
-        if let resource = try storage.fetchRequriedPermanentResource(key: DeviceIdentifier.resourceKey) {
+        if let resource = try storage.fetchRequiredPermanentResource(key: DeviceIdentifier.resourceKey) {
             try storage.delete(record: resource)
         }
     }
@@ -29,7 +29,7 @@ class DeviceIdentifier_PersistenceTests: XCTestCase {
     func test_retrieve_withNoRecordInStorage_shouldCreateNewPermanentRecord() throws {
         let result = DeviceIdentifier.retrieve(from: storage)
 
-        let resourceRecord = try storage.fetchRequriedPermanentResource(key: DeviceIdentifier.resourceKey)
+        let resourceRecord = try storage.fetchRequiredPermanentResource(key: DeviceIdentifier.resourceKey)
         XCTAssertNotNil(resourceRecord)
         XCTAssertEqual(resourceRecord?.lifespan, .permanent)
 
@@ -40,7 +40,7 @@ class DeviceIdentifier_PersistenceTests: XCTestCase {
     func test_retrieve_withNoRecordInStorage_shouldRequestFromKeychain() throws {
         // because of our setup we could assume there is no database entry but lets make sure
         // to delete the resource if we already have it
-        if let resource = try storage.fetchRequriedPermanentResource(key: DeviceIdentifier.resourceKey) {
+        if let resource = try storage.fetchRequiredPermanentResource(key: DeviceIdentifier.resourceKey) {
             try storage.delete(record: resource)
         }
         let keychainDeviceId = KeychainAccess.deviceId

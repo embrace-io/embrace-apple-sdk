@@ -13,6 +13,7 @@ class UnsentDataHandler {
         storage: EmbraceStorage?,
         upload: EmbraceUpload?,
         otel: EmbraceOpenTelemetry?,
+        logController: LogControllable? = nil,
         currentSessionId: SessionIdentifier? = nil,
         crashReporter: CrashReporter? = nil
     ) {
@@ -21,6 +22,9 @@ class UnsentDataHandler {
               let upload = upload else {
             return
         }
+
+        // send any logs in storage first before we clean up the resources
+        logController?.uploadAllPersistedLogs()
 
         // if we have a crash reporter, we fetch the unsent crash reports first
         // and save their identifiers to the corresponding sessions
@@ -261,7 +265,7 @@ class UnsentDataHandler {
             // since spans are only sent when included in a session
             // all of these would never be sent anymore, so they can be safely removed
             // if no session is found, all closed spans can be safely removed as well
-            let oldestSession = try storage.fetchOldestSesssion()
+            let oldestSession = try storage.fetchOldestSession()
             try storage.cleanUpSpans(date: oldestSession?.startTime)
 
         } catch {
@@ -275,7 +279,7 @@ class UnsentDataHandler {
             // we use the latest session on storage to determine the `endTime`
             // since we need to have a valid `endTime` for these spans, we default
             // to `Date()` if we don't have a session
-            let latestSession = try storage.fetchLatestSesssion(ignoringCurrentSessionId: currentSessionId)
+            let latestSession = try storage.fetchLatestSession(ignoringCurrentSessionId: currentSessionId)
             let endTime = (latestSession?.endTime ?? latestSession?.lastHeartbeatTime) ?? Date()
             try storage.closeOpenSpans(endTime: endTime)
         } catch {

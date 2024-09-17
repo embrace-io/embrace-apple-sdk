@@ -142,8 +142,8 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         self.deviceId = DeviceIdentifier.retrieve(from: storage)
         self.upload = Embrace.createUpload(options: options, deviceId: deviceId.hex)
         self.captureServices = try CaptureServices(options: options, storage: storage, upload: upload)
-        self.config = Embrace.createConfig(options: options, deviceId: deviceId.hex)
-        self.sessionController = SessionController(storage: storage, upload: upload)
+        self.config = Embrace.createConfig(options: options, deviceId: deviceId)
+        self.sessionController = SessionController(storage: storage, upload: upload, config: config)
         self.sessionLifecycle = Embrace.createSessionLifecycle(controller: sessionController)
         self.metadata = MetadataHandler(storage: storage, sessionController: sessionController)
         self.logController = logControllable ?? LogController(
@@ -182,6 +182,9 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
             throw EmbraceSetupError.invalidThread("Embrace must be started on the main thread")
         }
 
+        // must be called on main thread in order to fetch the app state
+        sessionLifecycle.setup()
+
         Embrace.synchronizationQueue.sync {
             guard started == false else {
                 Embrace.logger.warning("Embrace was already started!")
@@ -209,12 +212,10 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
                         storage: self?.storage,
                         upload: self?.upload,
                         otel: self,
+                        logController: self?.logController,
                         currentSessionId: self?.sessionController.currentSession?.id,
                         crashReporter: self?.captureServices.crashReporter
                     )
-
-                    // upload persisted logs
-                    self?.logController.uploadAllPersistedLogs()
 
                     // retry any remaining cached upload data
                     self?.upload?.retryCachedData()
@@ -250,10 +251,11 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         sessionLifecycle.endSession()
     }
 
-    /// Called everytime the remote config changes
+    /// Called every time the remote config changes
     @objc private func onConfigUpdated() {
         if let config = config {
-            Embrace.logger.limits = InternalLogLimits(config: config)
+            Embrace.logger.limits = config.internalLogLimits
         }
     }
 }
+

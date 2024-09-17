@@ -21,7 +21,7 @@ class SessionRecordTests: XCTestCase {
     func test_tableSchema() throws {
         XCTAssertEqual(SessionRecord.databaseTableName, "sessions")
 
-        // then the table and its colums should be correct
+        // then the table and its columns should be correct
         try storage.dbQueue.read { db in
             XCTAssert(try db.tableExists(SessionRecord.databaseTableName))
 
@@ -238,13 +238,13 @@ class SessionRecordTests: XCTestCase {
         )
 
         // when fetching the latest session
-        let session = try storage.fetchLatestSesssion()
+        let session = try storage.fetchLatestSession()
 
         // then the fetched session is valid
         XCTAssertEqual(session, session3)
     }
 
-    func test_fetchOldestSesssion() throws {
+    func test_fetchOldestSession() throws {
         // given inserted sessions
         let session1 = try storage.addSession(
             id: .random,
@@ -272,7 +272,7 @@ class SessionRecordTests: XCTestCase {
         )
 
         // when fetching the oldest session
-        let session = try storage.fetchOldestSesssion()
+        let session = try storage.fetchOldestSession()
 
         // then the fetched session is valid
         XCTAssertEqual(session, session1)

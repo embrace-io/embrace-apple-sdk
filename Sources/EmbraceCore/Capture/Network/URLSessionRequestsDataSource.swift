@@ -8,7 +8,7 @@ import Foundation
 /// captures their data into OTel spans.
 ///
 /// Example:
-/// This could be useful if you need to obfuscate certains parts of a request path
+/// This could be useful if you need to obfuscate certain parts of a request path
 /// if it contains sensitive data.
 @objc public protocol URLSessionRequestsDataSource: NSObjectProtocol {
     @objc func modifiedRequest(for request: URLRequest) -> URLRequest

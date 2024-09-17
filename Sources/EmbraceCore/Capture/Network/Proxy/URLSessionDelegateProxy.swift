@@ -80,7 +80,7 @@ class URLSessionDelegateProxy: NSObject {
             URLSessionDelegate.urlSession(_:didBecomeInvalidWithError:)
         )
         // If the `originalDelegate` has implemented the `didBecomeInvalidWithError` we forward them the call to them.
-        // However, to prevent any kind of leakeage, we clean on end the `originalDelegate` so we don't retain it.
+        // However, to prevent any kind of leakage, we clean on end the `originalDelegate` so we don't retain it.
         invokeDelegates(session: session, selector: selector) { (delegate: URLSessionDelegate) in
             delegate.urlSession?(session, didBecomeInvalidWithError: error)
         }

@@ -61,7 +61,13 @@ class StorageEmbraceLogExporterTests: XCTestCase {
 
     func test_havingActiveLogExporter_onExport_whenInvalidBody_exportSucceedsButNotAddedToBatch() {
         givenStorageEmbraceLogExporter(initialState: .active)
-        whenInvokingExport(withLogs: [randomLogData(body: nil)])
+
+        var str = ""
+        for _ in 1...4001 {
+            str += "."
+        }
+        whenInvokingExport(withLogs: [randomLogData(body: str)])
+        
         thenBatchAdded(count: 0)
         thenResult(is: .success)
     }
@@ -77,7 +83,12 @@ class StorageEmbraceLogExporterTests: XCTestCase {
     func test_havingActiveLogExporter_onExportManyLogs_someValidSomeInvalid_shouldInvokeBatcherForEveryValidLog() {
         let validAmount = Int.random(in: 1..<10)
         let validLogs = randomLogs(quantity: validAmount, body: "example")
-        let invalidLogs = randomLogs(quantity: Int.random(in: 1..<10))
+
+        var str = ""
+        for _ in 1...4001 {
+            str += "."
+        }
+        let invalidLogs = randomLogs(quantity: Int.random(in: 1..<10), body: str)
 
         givenStorageEmbraceLogExporter(initialState: .active)
         whenInvokingExport(withLogs: (validLogs + invalidLogs).shuffled())
@@ -108,6 +119,12 @@ class StorageEmbraceLogExporterTests: XCTestCase {
         thenBatchAdded(count: 0)
         thenResult(is: .success)
     }
+
+    func test_endBatch_onSessionEnd() {
+        givenStorageEmbraceLogExporter(initialState: .active)
+        whenSessionEnds()
+        thenBatchRenewed()
+    }
 }
 
 private extension StorageEmbraceLogExporterTests {
@@ -126,6 +143,10 @@ private extension StorageEmbraceLogExporterTests {
 
     func whenInvokingForceFlush() {
         result = sut.forceFlush()
+    }
+
+    func whenSessionEnds() {
+        NotificationCenter.default.post(name: .embraceSessionWillEnd, object: nil)
     }
 
     func thenState(is newState: StorageEmbraceLogExporter.State) {
@@ -159,16 +180,27 @@ private extension StorageEmbraceLogExporterTests {
             randomLogData(body: body)
         }
     }
+
+    func thenBatchRenewed() {
+        XCTAssert(batcher.didCallRenewBatch)
+    }
 }
 
 class SpyLogBatcher: LogBatcher {
-    private (set) var didCallAddLogRecord: Bool = false
-    private (set) var addLogRecordInvocationCount: Int = 0
-    private (set) var logRecords = [LogRecord]()
+    private(set) var didCallAddLogRecord: Bool = false
+    private(set) var addLogRecordInvocationCount: Int = 0
+    private(set) var logRecords = [LogRecord]()
 
     func addLogRecord(logRecord: LogRecord) {
         didCallAddLogRecord = true
         addLogRecordInvocationCount += 1
         logRecords.append(logRecord)
+    }
+
+    private(set) var didCallRenewBatch: Bool = false
+    private(set) var renewBatchInvocationCount: Int = 0
+    func renewBatch(withLogs logRecords: [LogRecord]) {
+        didCallRenewBatch = true
+        renewBatchInvocationCount += 1
     }
 }

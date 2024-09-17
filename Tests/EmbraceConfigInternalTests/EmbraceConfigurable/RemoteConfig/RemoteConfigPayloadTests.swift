@@ -12,7 +12,7 @@ class RemoteConfigPayloadTests: XCTestCase {
 
     func test_defaults() {
         // given an empty remote config
-        let path = Bundle.module.path(forResource: "remote_config_empty", ofType: "json", inDirectory: "Mocks")!
+        let path = Bundle.module.path(forResource: "remote_config_empty", ofType: "json", inDirectory: "Fixtures")!
         let data = try! Data(contentsOf: URL(fileURLWithPath: path))
 
         // then the default values are used
@@ -30,7 +30,7 @@ class RemoteConfigPayloadTests: XCTestCase {
 
     func test_values() {
         // given a valid remote config
-        let path = Bundle.module.path(forResource: "remote_config", ofType: "json", inDirectory: "Mocks")!
+        let path = Bundle.module.path(forResource: "remote_config", ofType: "json", inDirectory: "Fixtures")!
         let data = try! Data(contentsOf: URL(fileURLWithPath: path))
 
         // then the values are correct

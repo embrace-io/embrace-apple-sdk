@@ -38,7 +38,7 @@ function create_xcframework {
 
     echo "Create $PRODUCT.xcframework"
 
-    xcodebuild -create-xcframework -allow-internal-distribution ${xcoptions[@]} -output "$BUILD_DIR/$PRODUCT.xcframework"
+    xcodebuild -create-xcframework ${xcoptions[@]} -output "$BUILD_DIR/$PRODUCT.xcframework"
 }
 
 mise install
@@ -46,9 +46,11 @@ tuist install -p "$REPO_DIR"
 tuist generate --no-open -p "$REPO_DIR"
 
 create_xcframework KSCrashCore
-create_xcframework KSCrashFilters
-create_xcframework KSCrashSinks
-create_xcframework KSCrashInstallations 
 create_xcframework KSCrashRecordingCore
-create_xcframework KSCrashReportingCore
 create_xcframework KSCrashRecording
+
+# Commented this as they're not necessary to build them right now.
+#create_xcframework KSCrashFilters
+#create_xcframework KSCrashSinks
+#create_xcframework KSCrashInstallations
+#create_xcframework KSCrashReportingCore

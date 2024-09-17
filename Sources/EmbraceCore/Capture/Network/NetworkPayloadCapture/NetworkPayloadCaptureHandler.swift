@@ -8,6 +8,7 @@ import EmbraceCommonInternal
 import EmbraceOTelInternal
 import EmbraceStorageInternal
 import EmbraceSemantics
+import EmbraceConfiguration
 
 class NetworkPayloadCaptureHandler {
 
@@ -48,6 +49,12 @@ class NetworkPayloadCaptureHandler {
         )
 
         updateRules(Embrace.client?.config?.networkPayloadCaptureRules)
+
+        // check if a session is already started
+        if let sessionId = Embrace.client?.currentSessionId() {
+            active = true
+            currentSessionId = SessionIdentifier(string: sessionId)
+        }
     }
 
     deinit {

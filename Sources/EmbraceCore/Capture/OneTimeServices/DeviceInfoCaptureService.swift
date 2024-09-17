@@ -69,5 +69,11 @@ class DeviceInfoCaptureService: ResourceCaptureService {
             key: DeviceResourceKey.model.rawValue,
             value: .string(EMBDevice.model)
         )
+
+        // architecture
+        addResource(
+            key: DeviceResourceKey.architecture.rawValue,
+            value: .string(EMBDevice.architecture)
+        )
     }
 }

@@ -149,11 +149,11 @@ extension Embrace: EmbraceOpenTelemetry {
         )
 
         /*
-         If we want to keep this method cleaner, we could move this logcto `EmbraceLogAttributesBuilder`
+         If we want to keep this method cleaner, we could move this log to `EmbraceLogAttributesBuilder`
          However that would cause to always add a frame to the stacktrace.
          */
         if stackTraceBehavior == .default && (severity == .warn || severity == .error) {
-            var stackTrace: [String] = Thread.callStackSymbols
+            let stackTrace: [String] = Thread.callStackSymbols
             attributesBuilder.addStackTrace(stackTrace)
         }
 
