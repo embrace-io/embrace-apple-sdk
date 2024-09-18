@@ -7,7 +7,7 @@ import Foundation
 struct PayloadEnvelope<T: Encodable>: Encodable {
     var resource: ResourcePayload
     var metadata: MetadataPayload
-    var version: String = "1.0" // TODO: Make this the actual version
+    var version: String = "1.0"
     var type: String
     var data = [String: T]()
 }

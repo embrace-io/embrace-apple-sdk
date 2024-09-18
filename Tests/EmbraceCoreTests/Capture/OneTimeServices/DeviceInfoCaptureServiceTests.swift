@@ -13,7 +13,7 @@ final class DeviceInfoCaptureServiceTests: XCTestCase {
     func test_started() throws {
         // given an device info capture service
         let service = DeviceInfoCaptureService()
-        let handler = try EmbraceStorage.createInDiskDb()
+        let handler = try EmbraceStorage.createInMemoryDb()
         service.handler = handler
 
         // when the service is installed and started
@@ -22,6 +22,9 @@ final class DeviceInfoCaptureServiceTests: XCTestCase {
 
         // then the app info resources are correctly stored
         let processId = ProcessIdentifier.current.hex
+
+        let resources = try handler.fetchResourcesForProcessId(.current)
+        XCTAssertEqual(resources.count, 11)
 
         // jailbroken
         let jailbroken = try handler.fetchMetadata(
@@ -123,12 +126,22 @@ final class DeviceInfoCaptureServiceTests: XCTestCase {
         )
         XCTAssertNotNil(osName)
         XCTAssertEqual(try XCTUnwrap(osName?.stringValue), EMBDevice.operatingSystemType)
+
+        // osName
+        let architecture = try handler.fetchMetadata(
+            key: DeviceResourceKey.architecture.rawValue,
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: processId
+        )
+        XCTAssertNotNil(architecture)
+        XCTAssertEqual(try XCTUnwrap(architecture?.stringValue), EMBDevice.architecture)
     }
 
     func test_notStarted() throws {
         // given an app info capture service
         let service = AppInfoCaptureService()
-        let handler = try EmbraceStorage.createInDiskDb()
+        let handler = try EmbraceStorage.createInMemoryDb()
         service.handler = handler
 
         // when the service is installed but not started
