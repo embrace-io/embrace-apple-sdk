@@ -191,7 +191,7 @@ We have provided an example pre-commit hook in `.githooks/pre-commit`. Note that
 
 ### Github auth issues
 
-If you cannot fetch the `KSCrash` dependency, you most likely have Github auth issues.
+If you cannot fetch the `KSCrash` dependency, you most likely have Github auth issues in Xcode.
 
 1. Verify you have set up Github credentials in on the "Accounts" tab in "Settings"
 2. Enter the passcode for your SSH key on that page if prompted to do so.
@@ -202,7 +202,7 @@ If you cannot fetch the `KSCrash` dependency, you most likely have Github auth i
   insteadOf = https://github.com/
 ```
 
-To test if your auth changes fixed things, attempt to fetch the dependencies with "File" -> "Packages" --> "Reset package caches"
+To test that your changes fixed the auth issue, attempt to fetch the dependencies with "File" -> "Packages" --> "Reset package caches".
 
 ### WatchOS Support
 > [!WARNING]
@@ -211,13 +211,14 @@ To test if your auth changes fixed things, attempt to fetch the dependencies wit
 
 ## Support 
 
-We appreciate any feedback you have on the SDK and the APIs that is provides. To contribute to this project please see our [Contribution Guidelines](https://github.com/embrace-io/embrace-apple-sdk/blob/main/CONTRIBUTING.md) there you'll be able to submit a feature request, create a bug report, or submit a pull request.
+We appreciate any feedback you have on the SDK and the APIs that it provides. 
 
-For urgent matters (such as outages) or issues concerning the Embrace service or UI reach out in our [Community Slack](https://join.slack.com/t/embraceio-community/shared_invite/zt-ywr4jhzp-DLROX0ndN9a0soHMf6Ksow) for direct, faster assistance.
+To contribute to this project please see our [Contribution Guidelines](https://github.com/embrace-io/embrace-apple-sdk/blob/main/CONTRIBUTING.md). After completing the Individual Contributor License Agreement (CLA), you'll be able to submit a feature request, create a bug report, or submit a pull request.
+
+For urgent matters (such as outages) or issues concerning the Embrace service or UI, reach out in our [Community Slack](community.embrace.io) for direct, faster assistance.
 
 ## License
 [![Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-orange)](./LICENSE.txt)
 
-Embrace Apple SDK is published under the Apache-2.0 license. 
+Embrace Apple SDK is published under the Apache-2.0 license.
 
-[![Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-orange)](./LICENSE.txt)
