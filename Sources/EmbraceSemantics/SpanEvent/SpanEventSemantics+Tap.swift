@@ -4,8 +4,8 @@
 
 import EmbraceCommonInternal
 
-public extension SpanType {
-    static let tap = SpanType(ux: "tap")
+public extension SpanEventType {
+    static let tap = SpanEventType(ux: "tap")
 }
 
 public extension SpanEventSemantics {

@@ -80,7 +80,7 @@ public final class WebViewCaptureService: CaptureService {
         let urlString = getUrlString(url: url)
 
         var attributes: [String: AttributeValue] = [
-            SpanEventSemantics.keyEmbraceType: .string(SpanType.webView.rawValue),
+            SpanEventSemantics.keyEmbraceType: .string(SpanEventType.webView.rawValue),
             SpanEventSemantics.WebView.keyUrl: .string(urlString)
         ]
 
