@@ -209,12 +209,10 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
                         storage: self?.storage,
                         upload: self?.upload,
                         otel: self,
+                        logController: self?.logController,
                         currentSessionId: self?.sessionController.currentSession?.id,
                         crashReporter: self?.captureServices.crashReporter
                     )
-
-                    // upload persisted logs
-                    self?.logController.uploadAllPersistedLogs()
 
                     // retry any remaining cached upload data
                     self?.upload?.retryCachedData()
