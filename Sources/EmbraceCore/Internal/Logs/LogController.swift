@@ -6,6 +6,7 @@ import Foundation
 import EmbraceStorageInternal
 import EmbraceUploadInternal
 import EmbraceCommonInternal
+import EmbraceSemantics
 
 protocol LogControllable: LogBatcherDelegate {
     func uploadAllPersistedLogs()
@@ -63,23 +64,40 @@ private extension LogController {
         guard batches.count > 0 else {
             return
         }
-        guard let sessionId = sessionController?.currentSession?.id else {
-            return
-        }
 
-        do {
-            let resourcePayload = try createResourcePayload(sessionId: sessionId)
-            let metadataPayload = try createMetadataPayload(sessionId: sessionId)
+        for batch in batches {
+            do {
+                guard batch.logs.count > 0 else {
+                    continue
+                }
 
-            batches.forEach { batch in
+                // Since we always end batches when a session ends
+                // all the logs still in storage when the app starts should come
+                // from the last session before the app closes.
+                //
+                // We grab the first valid sessionId from the stored logs
+                // and assume all of them come from the same session.
+                //
+                // If we can't find a sessionId, we use the processId instead
+
+                var sessionId: SessionIdentifier?
+                if let log = batch.logs.first(where: { $0.attributes[LogSemantics.keySessionId] != nil }) {
+                    sessionId = SessionIdentifier(string: log.attributes[LogSemantics.keySessionId]?.description)
+                }
+
+                let processId = batch.logs[0].processIdentifier
+
+                let resourcePayload = try createResourcePayload(sessionId: sessionId, processId: processId)
+                let metadataPayload = try createMetadataPayload(sessionId: sessionId, processId: processId)
+
                 send(
                     logs: batch.logs,
                     resourcePayload: resourcePayload,
                     metadataPayload: metadataPayload
                 )
+            } catch let exception {
+                Error.couldntCreatePayload(reason: exception.localizedDescription).log()
             }
-        } catch let exception {
-            Error.couldntCreatePayload(reason: exception.localizedDescription).log()
         }
     }
 
@@ -137,24 +155,41 @@ private extension LogController {
         return batches
     }
 
-    func createResourcePayload(sessionId: SessionIdentifier) throws -> ResourcePayload {
+    func createResourcePayload(sessionId: SessionIdentifier?,
+                               processId: ProcessIdentifier = ProcessIdentifier.current
+    ) throws -> ResourcePayload {
         guard let storage = storage else {
             throw Error.couldntAccessStorageModule
         }
-        let resources = try storage.fetchResourcesForSessionId(sessionId)
+
+        var resources: [MetadataRecord] = []
+
+        if let sessionId = sessionId {
+            resources = try storage.fetchResourcesForSessionId(sessionId)
+        } else {
+            resources = try storage.fetchResourcesForProcessId(processId)
+        }
+
         return ResourcePayload(from: resources)
     }
 
-    func createMetadataPayload(sessionId: SessionIdentifier) throws -> MetadataPayload {
+    func createMetadataPayload(sessionId: SessionIdentifier?,
+                               processId: ProcessIdentifier = ProcessIdentifier.current
+    ) throws -> MetadataPayload {
         guard let storage = storage else {
             throw Error.couldntAccessStorageModule
         }
 
         var metadata: [MetadataRecord] = []
-        let properties = try storage.fetchCustomPropertiesForSessionId(sessionId)
-        let tags = try storage.fetchPersonaTagsForSessionId(sessionId)
-        metadata.append(contentsOf: properties)
-        metadata.append(contentsOf: tags)
+
+        if let sessionId = sessionId {
+            let properties = try storage.fetchCustomPropertiesForSessionId(sessionId)
+            let tags = try storage.fetchPersonaTagsForSessionId(sessionId)
+            metadata.append(contentsOf: properties)
+            metadata.append(contentsOf: tags)
+        } else {
+            metadata = try storage.fetchPersonaTagsForProcessId(processId)
+        }
 
         return MetadataPayload(from: metadata)
     }

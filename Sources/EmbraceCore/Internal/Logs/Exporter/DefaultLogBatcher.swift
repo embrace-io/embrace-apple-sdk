@@ -13,6 +13,7 @@ protocol LogBatcherDelegate: AnyObject {
 
 protocol LogBatcher {
     func addLogRecord(logRecord: LogRecord)
+    func renewBatch(withLogs logRecords: [LogRecord])
 }
 
 class DefaultLogBatcher: LogBatcher {
@@ -50,7 +51,7 @@ class DefaultLogBatcher: LogBatcher {
     }
 }
 
-private extension DefaultLogBatcher {
+internal extension DefaultLogBatcher {
     func renewBatch(withLogs logRecords: [LogRecord] = []) {
         processorQueue.async {
             guard let batch = self.batch else {

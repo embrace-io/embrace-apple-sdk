@@ -13,6 +13,7 @@ class UnsentDataHandler {
         storage: EmbraceStorage?,
         upload: EmbraceUpload?,
         otel: EmbraceOpenTelemetry?,
+        logController: LogControllable? = nil,
         currentSessionId: SessionIdentifier? = nil,
         crashReporter: CrashReporter? = nil
     ) {
@@ -21,6 +22,9 @@ class UnsentDataHandler {
               let upload = upload else {
             return
         }
+
+        // send any logs in storage first before we clean up the resources
+        logController?.uploadAllPersistedLogs()
 
         // if we have a crash reporter, we fetch the unsent crash reports first
         // and save their identifiers to the corresponding sessions

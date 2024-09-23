@@ -153,7 +153,7 @@ extension Embrace: EmbraceOpenTelemetry {
          However that would cause to always add a frame to the stacktrace.
          */
         if stackTraceBehavior == .default && (severity == .warn || severity == .error) {
-            var stackTrace: [String] = Thread.callStackSymbols
+            let stackTrace: [String] = Thread.callStackSymbols
             attributesBuilder.addStackTrace(stackTrace)
         }
 
