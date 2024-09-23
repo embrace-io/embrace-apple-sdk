@@ -17,9 +17,6 @@ final class SessionControllerTests: XCTestCase {
     var controller: SessionController!
     var upload: EmbraceUpload!
 
-    static let testCacheOptions = EmbraceUpload.CacheOptions(
-        cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory())
-    )!
     static let testMetadataOptions = EmbraceUpload.MetadataOptions(
         apiKey: "apiKey",
         userAgent: "userAgent",
@@ -32,17 +29,13 @@ final class SessionControllerTests: XCTestCase {
     var module: EmbraceUpload!
 
     override func setUpWithError() throws {
-        if FileManager.default.fileExists(atPath: Self.testCacheOptions.cacheFilePath) {
-            try FileManager.default.removeItem(atPath: Self.testCacheOptions.cacheFilePath)
-        }
-
         let urlSessionconfig = URLSessionConfiguration.ephemeral
         urlSessionconfig.httpMaximumConnectionsPerHost = .max
         urlSessionconfig.protocolClasses = [EmbraceHTTPMock.self]
 
         testOptions = EmbraceUpload.Options(
             endpoints: testEndpointOptions(testName: testName),
-            cache: Self.testCacheOptions,
+            cache: EmbraceUpload.CacheOptions(named: testName),
             metadata: Self.testMetadataOptions,
             redundancy: Self.testRedundancyOptions,
             urlSessionConfiguration: urlSessionconfig

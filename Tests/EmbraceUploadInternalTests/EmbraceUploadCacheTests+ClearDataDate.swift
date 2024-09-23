@@ -8,11 +8,9 @@ import TestSupport
 
 extension EmbraceUploadCacheTests {
     func test_clearStaleDataIfNeeded_basedOn_date() throws {
-        let testOptions = EmbraceUpload.CacheOptions(cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory()))!
         // setting the maximum allowed days
-        testOptions.cacheDaysLimit = 15
-        testOptions.cacheSizeLimit = 0
-        let cache = try EmbraceUploadCache(options: testOptions)
+        let options = EmbraceUpload.CacheOptions(named: testName, cacheDaysLimit: 15)
+        let cache = try EmbraceUploadCache(options: options, logger: MockLogger())
 
         // given some upload cache
         let oldDate = Calendar.current.date(byAdding: .day, value: -16, to: Date())!
@@ -94,11 +92,9 @@ extension EmbraceUploadCacheTests {
     }
 
     func test_clearStaleDataIfNeeded_basedOn_date_noLimit() throws {
-        let testOptions = EmbraceUpload.CacheOptions(cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory()))!
         // disabling maximum allowed days
-        testOptions.cacheDaysLimit = 0
-        testOptions.cacheSizeLimit = 0
-        let cache = try EmbraceUploadCache(options: testOptions)
+        let options = EmbraceUpload.CacheOptions(named: testName)
+        let cache = try EmbraceUploadCache(options: options, logger: MockLogger())
 
         // given some upload cache
         let oldDate = Calendar.current.date(byAdding: .day, value: -16, to: Date())!
@@ -165,11 +161,9 @@ extension EmbraceUploadCacheTests {
     }
 
     func test_clearStaleDataIfNeeded_basedOn_date_noRecords() throws {
-        let testOptions = EmbraceUpload.CacheOptions(cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory()))!
         // setting minimum allowed time
-        testOptions.cacheDaysLimit = 1
-        testOptions.cacheSizeLimit = 0
-        let cache = try EmbraceUploadCache(options: testOptions)
+        let options = EmbraceUpload.CacheOptions(named: testName, cacheDaysLimit: 1)
+        let cache = try EmbraceUploadCache(options: options, logger: MockLogger())
 
         // when attempting to remove data from an empty cache
         let removedRecords = try cache.clearStaleDataIfNeeded()
@@ -179,11 +173,9 @@ extension EmbraceUploadCacheTests {
     }
 
     func test_clearStaleDataIfNeeded_basedOn_date_didNotHitTimeLimit() throws {
-        let testOptions = EmbraceUpload.CacheOptions(cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory()))!
         // disabling maximum allowed days
-        testOptions.cacheDaysLimit = 17
-        testOptions.cacheSizeLimit = 0
-        let cache = try EmbraceUploadCache(options: testOptions)
+        let options = EmbraceUpload.CacheOptions(named: testName, cacheDaysLimit: 17)
+        let cache = try EmbraceUploadCache(options: options, logger: MockLogger())
 
         // given some upload cache
         let oldDate = Calendar.current.date(byAdding: .day, value: -16, to: Date())!
@@ -255,11 +247,9 @@ extension EmbraceUploadCacheTests {
     }
 
     func test_clearStaleDataIfNeeded_basedOn_size_and_date() throws {
-        let testOptions = EmbraceUpload.CacheOptions(cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory()))!
         // setting both limits for days and size
-        testOptions.cacheDaysLimit = 15
-        testOptions.cacheSizeLimit = 1001
-        let cache = try EmbraceUploadCache(options: testOptions)
+        let options = EmbraceUpload.CacheOptions(named: testName, cacheDaysLimit: 15, cacheSizeLimit: 1001)
+        let cache = try EmbraceUploadCache(options: options, logger: MockLogger())
 
         // given some upload cache
         let oldDate = Calendar.current.date(byAdding: .day, value: -16, to: Date())!

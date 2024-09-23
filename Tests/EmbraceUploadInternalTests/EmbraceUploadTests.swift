@@ -8,9 +8,6 @@ import GRDB
 @testable import EmbraceUploadInternal
 
 class EmbraceUploadTests: XCTestCase {
-    static let testCacheOptions = EmbraceUpload.CacheOptions(
-        cacheBaseUrl: URL(fileURLWithPath: NSTemporaryDirectory())
-    )!
     static let testMetadataOptions = EmbraceUpload.MetadataOptions(
         apiKey: "apiKey",
         userAgent: "userAgent",
@@ -23,17 +20,13 @@ class EmbraceUploadTests: XCTestCase {
     var module: EmbraceUpload!
 
     override func setUpWithError() throws {
-        if FileManager.default.fileExists(atPath: EmbraceUploadTests.testCacheOptions.cacheFilePath) {
-            try FileManager.default.removeItem(atPath: EmbraceUploadTests.testCacheOptions.cacheFilePath)
-        }
-
         let urlSessionconfig = URLSessionConfiguration.ephemeral
         urlSessionconfig.httpMaximumConnectionsPerHost = .max
         urlSessionconfig.protocolClasses = [EmbraceHTTPMock.self]
 
         testOptions = EmbraceUpload.Options(
             endpoints: testEndpointOptions(testName: testName),
-            cache: EmbraceUploadTests.testCacheOptions,
+            cache: EmbraceUpload.CacheOptions(named: testName),
             metadata: EmbraceUploadTests.testMetadataOptions,
             redundancy: EmbraceUploadTests.testRedundancyOptions,
             urlSessionConfiguration: urlSessionconfig

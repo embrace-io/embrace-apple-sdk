@@ -32,7 +32,7 @@ public class EmbraceUpload: EmbraceLogUploader {
         self.logger = logger
         self.queue = queue
 
-        cache = try EmbraceUploadCache(options: options.cache)
+        cache = try EmbraceUploadCache(options: options.cache, logger: logger)
 
         urlSession = URLSession(configuration: options.urlSessionConfiguration)
 
