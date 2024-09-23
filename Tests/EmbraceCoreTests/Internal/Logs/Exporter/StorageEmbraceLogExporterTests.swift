@@ -176,9 +176,9 @@ private extension StorageEmbraceLogExporterTests {
 }
 
 class SpyLogBatcher: LogBatcher {
-    private (set) var didCallAddLogRecord: Bool = false
-    private (set) var addLogRecordInvocationCount: Int = 0
-    private (set) var logRecords = [LogRecord]()
+    private(set) var didCallAddLogRecord: Bool = false
+    private(set) var addLogRecordInvocationCount: Int = 0
+    private(set) var logRecords = [LogRecord]()
 
     func addLogRecord(logRecord: LogRecord) {
         didCallAddLogRecord = true
@@ -186,8 +186,8 @@ class SpyLogBatcher: LogBatcher {
         logRecords.append(logRecord)
     }
 
-    private (set) var didCallRenewBatch: Bool = false
-    private (set) var renewBatchInvocationCount: Int = 0
+    private(set) var didCallRenewBatch: Bool = false
+    private(set) var renewBatchInvocationCount: Int = 0
     func renewBatch(withLogs logRecords: [LogRecord]) {
         didCallRenewBatch = true
         renewBatchInvocationCount += 1
