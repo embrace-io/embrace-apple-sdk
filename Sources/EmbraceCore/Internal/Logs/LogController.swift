@@ -155,7 +155,7 @@ private extension LogController {
         return batches
     }
 
-    func createResourcePayload(sessionId: SessionIdentifier?, 
+    func createResourcePayload(sessionId: SessionIdentifier?,
                                processId: ProcessIdentifier = ProcessIdentifier.current
     ) throws -> ResourcePayload {
         guard let storage = storage else {
