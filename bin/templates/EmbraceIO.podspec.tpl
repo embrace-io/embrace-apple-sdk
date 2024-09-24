@@ -43,6 +43,7 @@ Pod::Spec.new do |spec|
 
   spec.subspec 'EmbraceSemantics' do |semantics|
     semantics.vendored_frameworks = "xcframeworks/EmbraceSemantics.xcframework"
+    semantics.dependency "EmbraceIO/EmbraceCommonInternal"
   end
 
   spec.subspec 'EmbraceCaptureService' do |capture|
@@ -67,7 +68,6 @@ Pod::Spec.new do |spec|
     storage.vendored_frameworks = "xcframeworks/EmbraceStorageInternal.xcframework"
     storage.dependency "EmbraceIO/EmbraceCommonInternal"
     storage.dependency "EmbraceIO/EmbraceSemantics"
-    storage.dependency "EmbraceIO/OpenTelemetryApi"
     storage.dependency "EmbraceIO/GRDB"
   end
 
