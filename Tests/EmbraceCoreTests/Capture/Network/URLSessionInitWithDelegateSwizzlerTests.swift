@@ -15,7 +15,7 @@ class URLSessionInitWithDelegateSwizzlerTests: XCTestCase {
     func testAfterInstall_onCreateURLSessionWithDelegate_originalShouldBeWrapped() throws {
         givenDataTaskWithURLRequestSwizzler()
         try givenSwizzlingWasDone()
-        whenInitializingURLSessionWithDummyDelegate()
+        whenInitializingURLSessionWithDelegate()
         thenSessionsDelegateShouldntBeDummyDelegate()
         thenSessionsDelegateShouldBeEmbracesProxy()
     }
@@ -31,6 +31,14 @@ class URLSessionInitWithDelegateSwizzlerTests: XCTestCase {
         givenDataTaskWithURLRequestSwizzler()
         thenBaseClassShouldBeURLSession()
     }
+
+    func test_unsupportedDelegates() throws {
+        givenDataTaskWithURLRequestSwizzler()
+        try givenSwizzlingWasDone()
+        whenInitializingURLSessionWithDelegate(GTMSessionFetcher())
+        thenSessionsDelegateShouldntBeEmbracesProxy()
+        XCTAssertTrue(session.delegate.self is GTMSessionFetcher)
+    }
 }
 
 private extension URLSessionInitWithDelegateSwizzlerTests {
@@ -43,10 +51,9 @@ private extension URLSessionInitWithDelegateSwizzlerTests {
         try sut.install()
     }
 
-    func whenInitializingURLSessionWithDummyDelegate() {
-        let originalDelegate = DummyURLSessionDelegate()
+    func whenInitializingURLSessionWithDelegate(_ delegate: URLSessionDelegate = DummyURLSessionDelegate()) {
         session = URLSession(configuration: .default,
-                             delegate: originalDelegate,
+                             delegate: delegate,
                              delegateQueue: nil)
     }
 
@@ -62,7 +69,14 @@ private extension URLSessionInitWithDelegateSwizzlerTests {
         XCTAssertTrue(session.delegate.self is URLSessionDelegateProxy)
     }
 
+    func thenSessionsDelegateShouldntBeEmbracesProxy() {
+        XCTAssertFalse(session.delegate.self is URLSessionDelegateProxy)
+    }
+
     func thenBaseClassShouldBeURLSession() {
         XCTAssertTrue(sut.baseClass == URLSession.self)
     }
 }
+
+// unsupported delegates
+class GTMSessionFetcher: NSObject, URLSessionDelegate {}
