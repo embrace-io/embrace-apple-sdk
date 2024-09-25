@@ -8,7 +8,7 @@ if [ $# -lt 1 ] ; then
     echo "Platform list is required as variadic argument:"
     echo "      bin/build <platform> [<platform> ...]"
     echo " "
-    echo "Valid platforms are: 'iOS', 'macOS', 'tvOS', and 'watchOS'"
+    echo "Valid platforms are: 'iOS', 'tvOS', and 'watchOS'"
     exit 1
 fi
 
@@ -22,10 +22,10 @@ for INPUT in $@; do
     # this allows input to be `bin/build ios` or `bin/build iOS`
     PLATFORM=${PLATFORM/os/OS}
 
-    # Validate platform as one of 'iOS', 'macOS', 'watchOS', 'tvOS'
-    if [ "$PLATFORM" != "iOS" ] && [ "$PLATFORM" != "macOS" ] && [ "$PLATFORM" != "watchOS" ] && [ "$PLATFORM" != "tvOS" ]; then
+    # Validate platform as one of 'iOS', 'watchOS', 'tvOS'
+    if [ "$PLATFORM" != "iOS" ] && [ "$PLATFORM" != "watchOS" ] && [ "$PLATFORM" != "tvOS" ]; then
         echo "Invalid platform '$PLATFORM'"
-        echo "Must be one of: 'iOS', 'macOS', 'watchOS', 'tvOS'"
+        echo "Must be one of: 'iOS', 'watchOS', 'tvOS'"
         exit 1
     fi
 
