@@ -9,11 +9,11 @@ jobs:
   build-brandgame-app:
     name: Build BrandGame App
     timeout-minutes: 20
-    runs-on: macos-13
+    runs-on: macos-14
     strategy:
       fail-fast: false
       matrix:
-        xcode_version: ["15.1"]
+        xcode_version: ["15.4"]
     steps:
       - name: Select Xcode
         # See https://github.com/actions/runner-images/blob/main/images/macos/macos-13-Readme.md
@@ -46,11 +46,11 @@ jobs:
   build-demoobjc-app:
     name: Build Objc Demo App
     timeout-minutes: 20
-    runs-on: macos-13
+    runs-on: macos-14
     strategy:
       fail-fast: false
       matrix:
-        xcode_version: ["15.1"]
+        xcode_version: ["15.4"]
     steps:
       - name: Select Xcode
         # See https://github.com/actions/runner-images/blob/main/images/macos/macos-13-Readme.md
