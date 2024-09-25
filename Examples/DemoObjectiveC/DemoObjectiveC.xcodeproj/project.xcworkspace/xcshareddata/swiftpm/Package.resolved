@@ -1,5 +1,5 @@
 {
-  "originHash" : "30bf3f1af4d312afac34bcff9ba35cc3f452c81988789fae8ce52c8747bfec81",
+  "originHash" : "c4c0f33afe19377a25be65e4f8dc7067a26455fa853852bf4727cbcf617d8bda",
   "pins" : [
     {
       "identity" : "collectionconcurrencykit",
@@ -42,8 +42,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/embrace-io/KSCrash.git",
       "state" : {
-        "revision" : "fbf295e9228fa9e4c9aa0334dfe8347f0987d071",
-        "version" : "2.0.3"
+        "revision" : "17ad4c5159145ed550acb04b1cff48e826547265",
+        "version" : "2.0.4"
       }
     },
     {
