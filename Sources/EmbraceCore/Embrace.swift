@@ -143,7 +143,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         self.upload = Embrace.createUpload(options: options, deviceId: deviceId.hex)
         self.captureServices = try CaptureServices(options: options, storage: storage, upload: upload)
         self.config = Embrace.createConfig(options: options, deviceId: deviceId.hex)
-        self.sessionController = SessionController(storage: storage, upload: upload)
+        self.sessionController = SessionController(storage: storage, upload: upload, config: config)
         self.sessionLifecycle = Embrace.createSessionLifecycle(controller: sessionController)
         self.metadata = MetadataHandler(storage: storage, sessionController: sessionController)
         self.logController = logControllable ?? LogController(
@@ -181,6 +181,9 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         guard Thread.isMainThread else {
             throw EmbraceSetupError.invalidThread("Embrace must be started on the main thread")
         }
+
+        // must be called on main thread in order to fetch the app state
+        sessionLifecycle.setup()
 
         Embrace.synchronizationQueue.sync {
             guard started == false else {
