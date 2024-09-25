@@ -187,6 +187,11 @@ jobs:
         with:
           name: Embrace-Universal Build Artifacts
           path: xcframeworks.zip
+      
+      - name: Tag the release candidate version
+        run: |
+          git tag $RC_VERSION
+          git push origin $RC_VERSION
 
   archive_cocoapods_artifacts:
     name: Archive Cocoapods Artifacts
@@ -275,7 +280,7 @@ jobs:
           if gh release view --repo embrace-io/embrace-apple-sdk $RC_VERSION > /dev/null 2>&1; then
             if [ "$IS_PRODUCTION_READY" == "false" ]; then
               echo "Release $RC_VERSION already exists; editing..."
-              gh release upload $RC_VERSION cocoapods/embrace_$RC_VERSION.zip --clobber --repo embrace-io/embrace-apple-sdk
+              gh release upload $RC_VERSION cocoapods/embrace_$RC_VERSION.zip --clobber --repo embrace-io/embrace-apple-sdk --verify-tag
             else
               echo "Cannot update a production release"
               exit 1
@@ -286,7 +291,7 @@ jobs:
             if [ "$IS_PRODUCTION_READY" == "false" ]; then
               PRERELEASE_FLAG="--prerelease"
             fi
-            gh release create $RC_VERSION cocoapods/embrace_$RC_VERSION.zip --title "$RC_VERSION" $PRERELEASE_FLAG --repo embrace-io/embrace-apple-sdk
+            gh release create $RC_VERSION cocoapods/embrace_$RC_VERSION.zip --title "$RC_VERSION" $PRERELEASE_FLAG --repo embrace-io/embrace-apple-sdk  --verify-tag
           fi
 
   push_podspec:
@@ -304,6 +309,7 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v4
         with:
+          ref: ${{ needs.extractor.outputs.rc_version }}
           fetch-depth: 0
           path: embrace-apple-sdk
 
