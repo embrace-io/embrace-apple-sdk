@@ -5,7 +5,6 @@
 #if os(iOS)
 import Foundation
 import EmbraceCommonInternal
-import EmbraceConfigInternal
 import UIKit
 
 // ignoring linting rule to have a lowercase letter first on the class name
