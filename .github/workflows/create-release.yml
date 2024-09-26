@@ -189,6 +189,7 @@ jobs:
           path: xcframeworks.zip
       
       - name: Tag the release candidate version
+        if: env.IS_PRODUCTION_READY == 'false'
         run: |
           git tag $RC_VERSION
           git push origin $RC_VERSION
