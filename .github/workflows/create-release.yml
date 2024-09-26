@@ -103,7 +103,7 @@ jobs:
 
   build_release_candidate:
     name: Bump Version and Build Release
-    runs-on: macos-13
+    runs-on: macos-14
     timeout-minutes: 60
     needs:
       - extractor
@@ -157,7 +157,7 @@ jobs:
           fi
 
       - name: Select Xcode 15
-        run: sudo xcode-select -switch /Applications/Xcode_15.1.app
+        run: sudo xcode-select -switch /Applications/Xcode_15.4.app
 
       - name: Install Mise
         run: |
@@ -187,6 +187,12 @@ jobs:
         with:
           name: Embrace-Universal Build Artifacts
           path: xcframeworks.zip
+      
+      - name: Tag the release candidate version
+        if: env.IS_PRODUCTION_READY == 'false'
+        run: |
+          git tag $RC_VERSION
+          git push origin $RC_VERSION
 
   archive_cocoapods_artifacts:
     name: Archive Cocoapods Artifacts
@@ -275,7 +281,7 @@ jobs:
           if gh release view --repo embrace-io/embrace-apple-sdk $RC_VERSION > /dev/null 2>&1; then
             if [ "$IS_PRODUCTION_READY" == "false" ]; then
               echo "Release $RC_VERSION already exists; editing..."
-              gh release upload $RC_VERSION cocoapods/embrace_$RC_VERSION.zip --clobber --repo embrace-io/embrace-apple-sdk
+              gh release upload $RC_VERSION cocoapods/embrace_$RC_VERSION.zip --clobber --repo embrace-io/embrace-apple-sdk --verify-tag
             else
               echo "Cannot update a production release"
               exit 1
@@ -286,12 +292,12 @@ jobs:
             if [ "$IS_PRODUCTION_READY" == "false" ]; then
               PRERELEASE_FLAG="--prerelease"
             fi
-            gh release create $RC_VERSION cocoapods/embrace_$RC_VERSION.zip --title "$RC_VERSION" $PRERELEASE_FLAG --repo embrace-io/embrace-apple-sdk
+            gh release create $RC_VERSION cocoapods/embrace_$RC_VERSION.zip --title "$RC_VERSION" $PRERELEASE_FLAG --repo embrace-io/embrace-apple-sdk  --verify-tag
           fi
 
   push_podspec:
     name: Push Podspec to Cocoapods
-    runs-on: macos-13
+    runs-on: macos-14
     timeout-minutes: 10
     needs:
       - extractor
@@ -304,6 +310,7 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v4
         with:
+          ref: ${{ needs.extractor.outputs.rc_version }}
           fetch-depth: 0
           path: embrace-apple-sdk
 
