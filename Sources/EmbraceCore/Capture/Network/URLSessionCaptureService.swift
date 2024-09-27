@@ -140,12 +140,12 @@ struct URLSessionInitWithDelegateSwizzler: URLSessionSwizzler {
         "GTMSessionFetcher"
     ]
 
-    func isDelegateSupported(_ delegate: URLSessionDelegate?) -> Bool {
+    func isDelegateSupported(_ delegate: AnyObject?) -> Bool {
         guard let delegate = delegate else {
             return true
         }
 
-        let name = String(describing: delegate)
+        let name = NSStringFromClass(type(of: delegate))
         return unsupportedDelegates.first { name.contains($0) } == nil
     }
 }
