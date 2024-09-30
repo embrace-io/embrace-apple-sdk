@@ -13,7 +13,7 @@ class LengthOfBodyValidator: LogDataValidator {
 
     let allowedCharacterCount: ClosedRange<Int>
 
-    init(allowedCharacterCount: ClosedRange<Int> = 1...4000) {
+    init(allowedCharacterCount: ClosedRange<Int> = 0...4000) {
         self.allowedCharacterCount = allowedCharacterCount
     }
 
