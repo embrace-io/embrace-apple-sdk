@@ -44,7 +44,7 @@ class SessionController: SessionControllable {
 
     let heartbeat: SessionHeartbeat
     let queue: DispatchQueue
-    let processUptimeProvider: ProcessUptimeProvider
+    var firstSession = true
 
     internal var notificationCenter = NotificationCenter.default
 
@@ -52,8 +52,7 @@ class SessionController: SessionControllable {
         storage: EmbraceStorage,
         upload: EmbraceUpload?,
         config: EmbraceConfig?,
-        heartbeatInterval: TimeInterval = SessionHeartbeat.defaultInterval,
-        processUptimeProvider: ProcessUptimeProvider = DefaultProcessUptimeProvider()
+        heartbeatInterval: TimeInterval = SessionHeartbeat.defaultInterval
     ) {
         self.storage = storage
         self.upload = upload
@@ -62,8 +61,6 @@ class SessionController: SessionControllable {
         let heartbeatQueue = DispatchQueue(label: "com.embrace.session_heartbeat")
         self.heartbeat = SessionHeartbeat(queue: heartbeatQueue, interval: heartbeatInterval)
         self.queue = DispatchQueue(label: "com.embrace.session_controller_upload")
-
-        self.processUptimeProvider = processUptimeProvider
 
         self.heartbeat.callback = { [weak self] in
             let heartbeat = Date()
@@ -90,7 +87,7 @@ class SessionController: SessionControllable {
         }
 
         // detect cold start
-        let isColdStart = withinColdStartInterval(startTime: startTime)
+        let isColdStart = firstSession
 
         // Don't start background session if the config is disabled.
         //
@@ -137,6 +134,8 @@ class SessionController: SessionControllable {
 
             // post notification
             notificationCenter.post(name: .embraceSessionDidStart, object: session)
+
+            firstSession = false
 
             return session
         }
@@ -211,17 +210,6 @@ class SessionController: SessionControllable {
 }
 
 extension SessionController {
-    static let allowedColdStartInterval: TimeInterval = 5.0
-
-    /// - Returns: `true` if ``ProcessMetadata.uptime`` is less than or equal to the allowed cold start interval.
-    private func withinColdStartInterval(startTime: Date) -> Bool {
-        guard let uptime = processUptimeProvider.uptime(since: startTime), uptime >= 0 else {
-            return false
-        }
-
-        return uptime <= Self.allowedColdStartInterval
-    }
-
     private func save() {
         guard let storage = storage,
               let session = currentSession else {

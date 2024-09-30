@@ -14,4 +14,6 @@ public enum AppResourceKey: String, Codable {
     case buildID = "emb.app.build_id"
     case sdkVersion = "emb.sdk.version"
     case processIdentifier = "emb.process_identifier"
+    case processStartTime = "emb.process_start_time"
+    case processPreWarm = "emb.process_pre_warm"
 }

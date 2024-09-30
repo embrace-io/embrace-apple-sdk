@@ -89,30 +89,6 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertTrue(controller.currentSession!.coldStart)
     }
 
-    func test_startSession_ifStartAtMatchesAllowedColdStartInterval_marksSessionAsColdStartTrue() throws {
-        let processStart = ProcessMetadata.startTime!
-        let startTime = processStart.addingTimeInterval(SessionController.allowedColdStartInterval)
-
-        controller.startSession(state: .foreground, startTime: startTime)
-        XCTAssertTrue(controller.currentSession!.coldStart)
-    }
-
-    func test_startSession_ifStartAtIsPassedAllowedColdStartInterval_marksSessionAsColdStartFalse() throws {
-        let processStart = ProcessMetadata.startTime!
-        let startTime = processStart.addingTimeInterval(SessionController.allowedColdStartInterval + 1)
-
-        controller.startSession(state: .foreground, startTime: startTime)
-        XCTAssertFalse(controller.currentSession!.coldStart)
-    }
-
-    func test_startSession_ifStartAtIsBeforeProcessStart_marksSessionAsColdStartFalse() throws {
-        let processStart = ProcessMetadata.startTime!
-        let startTime = processStart.addingTimeInterval(-1)
-
-        controller.startSession(state: .foreground, startTime: startTime)
-        XCTAssertFalse(controller.currentSession!.coldStart)
-    }
-
     func test_startSession_saves_foregroundSession() throws {
         let session = controller.startSession(state: .foreground)
 
@@ -321,8 +297,7 @@ final class SessionControllerTests: XCTestCase {
         let controller = SessionController(
             storage: storage,
             upload: nil,
-            config: config,
-            processUptimeProvider: MockProcessUptimeProvider()
+            config: config
         )
 
         // when starting a cold start session in the background
@@ -371,8 +346,7 @@ final class SessionControllerTests: XCTestCase {
         let controller = SessionController(
             storage: storage,
             upload: nil,
-            config: nil,
-            processUptimeProvider: MockProcessUptimeProvider()
+            config: nil
         )
 
         // when starting a cold start session in the background
@@ -387,22 +361,6 @@ final class SessionControllerTests: XCTestCase {
         // then the session is not stored
         let sessions: [SessionRecord] = try storage.fetchAll()
         XCTAssertEqual(sessions.count, 0)
-    }
-
-    func test_background_disabled() throws {
-        // given background sessions disabled
-        let controller = SessionController(
-            storage: storage,
-            upload: nil,
-            config: nil,
-            processUptimeProvider: MockProcessUptimeProvider(uptime: 60)
-        )
-
-        // when starting a session in the background
-        let session = controller.startSession(state: .background)
-
-        // then the session is not created
-        XCTAssertNil(session)
     }
 
     // MARK: heartbeat

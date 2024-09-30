@@ -61,5 +61,20 @@ class AppInfoCaptureService: ResourceCaptureService {
             key: AppResourceKey.processIdentifier.rawValue,
             value: .string(ProcessIdentifier.current.hex)
         )
+
+        // process start time
+        if let uptime = ProcessMetadata.uptime() {
+            addResource(
+                key: AppResourceKey.processStartTime.rawValue,
+                value: .int(Int(trunc(uptime)))
+            )
+        }
+
+        // pre-warm
+        let isPreWarm = ProcessInfo.processInfo.environment["ActivePrewarm"] == "1"
+        addResource(
+            key: AppResourceKey.processPreWarm.rawValue,
+            value: .bool(isPreWarm)
+        )
     }
 }
