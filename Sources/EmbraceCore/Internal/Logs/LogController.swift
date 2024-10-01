@@ -47,7 +47,7 @@ class LogController: LogControllable {
 extension LogController {
     func batchFinished(withLogs logs: [LogRecord]) {
         do {
-            guard let sessionId = sessionController?.currentSession?.id else {
+            guard let sessionId = sessionController?.currentSession?.id, logs.count > 0 else {
                 return
             }
             let resourcePayload = try createResourcePayload(sessionId: sessionId)

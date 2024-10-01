@@ -126,6 +126,12 @@ class LogControllerTests: XCTestCase {
         thenDoesntTryToUploadAnything()
     }
 
+    func testHavingSessionButNoLogs_onBatchFinished_wontTryToUploadAnything() {
+        givenLogController()
+        whenInvokingBatchFinished(withLogs: [])
+        thenDoesntTryToUploadAnything()
+    }
+
     func testHavingLogs_onBatchFinished_fetchesResourcesFromStorage() throws {
         givenLogController()
         whenInvokingBatchFinished(withLogs: [randomLogRecord()])
