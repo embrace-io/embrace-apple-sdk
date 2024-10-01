@@ -9,6 +9,7 @@ let project = Project(
             destinations: .iOS,
             product: .framework,
             bundleId: "com.embraceio.EmbraceIO",
+            deploymentTargets: .iOS("13.0"),
             sources: ["Sources/EmbraceIO/**"],
             dependencies: [
                 .target(name: "EmbraceCaptureService"),
@@ -27,6 +28,7 @@ let project = Project(
             destinations: .iOS,
             product: .framework,
             bundleId: "com.embraceio.EmbraceCore",
+            deploymentTargets: .iOS("13.0"),
             sources: ["Sources/EmbraceCore/**"],
             resources: ["Sources/EmbraceCore/PrivacyInfo.xcprivacy"],
             dependencies: [
@@ -52,6 +54,7 @@ let project = Project(
             destinations: .iOS,
             product: .framework,
             bundleId: "com.embraceio.EmbraceCommonInternal",
+            deploymentTargets: .iOS("13.0"),
             sources: ["Sources/EmbraceCommonInternal/**"],
             settings: .settings(base: [
                 "SKIP_INSTALL": "NO",
@@ -63,6 +66,7 @@ let project = Project(
             destinations: .iOS,
             product: .framework,
             bundleId: "com.embraceio.EmbraceSemantics",
+            deploymentTargets: .iOS("13.0"),
             sources: ["Sources/EmbraceSemantics/**"],
             dependencies: [
                 .target(name: "EmbraceCommonInternal")
@@ -77,6 +81,7 @@ let project = Project(
             destinations: .iOS,
             product: .framework,
             bundleId: "com.embraceio.EmbraceCaptureService",
+            deploymentTargets: .iOS("13.0"),
             sources: ["Sources/EmbraceCaptureService/**"],
             dependencies: [
                 .target(name: "EmbraceOTelInternal"),
@@ -92,6 +97,7 @@ let project = Project(
             destinations: .iOS,
             product: .framework,
             bundleId: "com.embraceio.EmbraceConfigInternal",
+            deploymentTargets: .iOS("13.0"),
             sources: ["Sources/EmbraceConfigInternal/**"],
             dependencies: [
                 .target(name: "EmbraceCommonInternal")
@@ -106,6 +112,7 @@ let project = Project(
             destinations: .iOS,
             product: .framework,
             bundleId: "com.embraceio.EmbraceOTelInternal",
+            deploymentTargets: .iOS("13.0"),
             sources: ["Sources/EmbraceOTelInternal/**"],
             dependencies: [
                 .target(name: "EmbraceCommonInternal"),
@@ -122,6 +129,7 @@ let project = Project(
             destinations: .iOS,
             product: .framework,
             bundleId: "com.embraceio.EmbraceStorageInternal",
+            deploymentTargets: .iOS("13.0"),
             sources: ["Sources/EmbraceStorageInternal/**"],
             dependencies: [
                 .target(name: "EmbraceCommonInternal"),
@@ -139,6 +147,7 @@ let project = Project(
             destinations: .iOS,
             product: .framework,
             bundleId: "com.embraceio.EmbraceUploadInternal",
+            deploymentTargets: .iOS("13.0"),
             sources: ["Sources/EmbraceUploadInternal/**"],
             dependencies: [
                 .target(name: "EmbraceCommonInternal"),
@@ -155,6 +164,7 @@ let project = Project(
             destinations: .iOS,
             product: .framework,
             bundleId: "com.embraceio.EmbraceCrashlyticsSupport",
+            deploymentTargets: .iOS("13.0"),
             sources: ["Sources/ThirdParty/EmbraceCrashlyticsSupport/**"],
             dependencies: [
                 .target(name: "EmbraceCommonInternal")
@@ -169,6 +179,7 @@ let project = Project(
             destinations: .iOS,
             product: .framework,
             bundleId: "com.embraceio.EmbraceCrash",
+            deploymentTargets: .iOS("13.0"),
             sources: ["Sources/EmbraceCrash/**"],
             dependencies: [
                 .target(name: "EmbraceCommonInternal"),
@@ -185,6 +196,7 @@ let project = Project(
             destinations: .iOS,
             product: .framework,
             bundleId: "com.embraceio.EmbraceObjCUtilsInternal",
+            deploymentTargets: .iOS("13.0"),
             sources: ["Sources/EmbraceObjCUtilsInternal/**"],
             headers: .headers(public: "Sources/EmbraceObjCUtilsInternal/include/**/*.h"),
             settings: .settings(base: [
