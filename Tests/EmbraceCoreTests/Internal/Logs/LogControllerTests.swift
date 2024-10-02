@@ -12,7 +12,7 @@ import EmbraceCommonInternal
 class LogControllerTests: XCTestCase {
     private var sut: LogController!
     private var storage: SpyStorage?
-    private var sessionController: SpySessionController!
+    private var sessionController: MockSessionController!
     private var upload: SpyEmbraceLogUploader!
 
     override func setUp() {

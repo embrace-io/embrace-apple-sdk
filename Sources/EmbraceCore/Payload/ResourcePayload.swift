@@ -29,6 +29,8 @@ struct ResourcePayload: Codable {
     var appVersion: String?
     var appBundleId: String?
     var processIdentifier: String?
+    var processStartTime: Int?
+    var processPreWarm: Bool?
     var additionalResources: [String: String] = [:]
 
     private let excludedKeys: Set<String> = [
@@ -61,6 +63,8 @@ struct ResourcePayload: Codable {
         case appVersion = "app_version"
         case appBundleId = "app_bundle_id"
         case processIdentifier = "process_identifier"
+        case processStartTime = "process_start_time"
+        case processPreWarm = "process_pre_warm"
     }
 
     func encode(to encoder: Encoder) throws {
@@ -87,6 +91,8 @@ struct ResourcePayload: Codable {
         try container.encode(appVersion, forKey: .appVersion)
         try container.encode(appBundleId, forKey: .appBundleId)
         try container.encode(processIdentifier, forKey: .processIdentifier)
+        try container.encode(processStartTime, forKey: .processStartTime)
+        try container.encode(processPreWarm, forKey: .processPreWarm)
 
         var additionalResourcesContainer = encoder.container(keyedBy: StringDictionaryCodingKeys.self)
         for (key, value) in additionalResources {
@@ -126,7 +132,12 @@ struct ResourcePayload: Codable {
                     self.processIdentifier = resource.stringValue
                 case .buildID:
                     self.buildId = resource.stringValue
+                case .processStartTime:
+                    self.processStartTime = resource.integerValue
+                case .processPreWarm:
+                    self.processPreWarm = resource.boolValue
                 }
+
             } else if let key = DeviceResourceKey(rawValue: resource.key) {
                 switch key {
                 case .isJailbroken:

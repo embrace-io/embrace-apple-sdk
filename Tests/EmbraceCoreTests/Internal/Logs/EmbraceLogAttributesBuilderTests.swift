@@ -11,7 +11,7 @@ import EmbraceCommonInternal
 class EmbraceLogAttributesBuilderTests: XCTestCase {
     private var sut: EmbraceLogAttributesBuilder!
     private var storage: MockMetadataFetcher!
-    private var controller: SpySessionController!
+    private var controller: MockSessionController!
     private var result: [String: String]!
 
     // MARK: - Test Build Alone
@@ -177,11 +177,12 @@ private extension EmbraceLogAttributesBuilderTests {
         sessionWithId sessionId: SessionIdentifier = .random,
         sessionState: SessionState = .foreground
     ) {
-        controller = SpySessionController(currentSession: .with(id: sessionId, state: sessionState))
+        controller = MockSessionController()
+        controller.currentSession = .with(id: sessionId, state: sessionState)
     }
 
     func givenSessionControllerWithNoSession() {
-        controller = SpySessionController(currentSession: nil)
+        controller = MockSessionController()
     }
 
     func givenMetadataFetcher(with metadata: [MetadataRecord]? = nil) {

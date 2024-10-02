@@ -9,6 +9,7 @@ import EmbraceStorageInternal
 @testable import EmbraceUploadInternal
 import EmbraceCommonInternal
 import EmbraceOTelInternal
+import EmbraceConfigInternal
 import TestSupport
 
 final class SessionControllerTests: XCTestCase {
@@ -24,29 +25,30 @@ final class SessionControllerTests: XCTestCase {
     )
     static let testRedundancyOptions = EmbraceUpload.RedundancyOptions(automaticRetryCount: 0)
 
-    var testOptions: EmbraceUpload.Options!
+    var uploadTestOptions: EmbraceUpload.Options!
+
     var queue: DispatchQueue!
     var module: EmbraceUpload!
 
     override func setUpWithError() throws {
-        let urlSessionconfig = URLSessionConfiguration.ephemeral
-        urlSessionconfig.httpMaximumConnectionsPerHost = .max
-        urlSessionconfig.protocolClasses = [EmbraceHTTPMock.self]
+        let uploadUrlSessionconfig = URLSessionConfiguration.ephemeral
+        uploadUrlSessionconfig.httpMaximumConnectionsPerHost = .max
+        uploadUrlSessionconfig.protocolClasses = [EmbraceHTTPMock.self]
 
-        testOptions = EmbraceUpload.Options(
+        uploadTestOptions = EmbraceUpload.Options(
             endpoints: testEndpointOptions(testName: testName),
             cache: EmbraceUpload.CacheOptions(named: testName),
             metadata: Self.testMetadataOptions,
             redundancy: Self.testRedundancyOptions,
-            urlSessionConfiguration: urlSessionconfig
+            urlSessionConfiguration: uploadUrlSessionconfig
         )
 
-        self.queue = DispatchQueue(label: "com.test.embrace.queue", attributes: .concurrent)
-        upload = try EmbraceUpload(options: testOptions, logger: MockLogger(), queue: queue)
+        self.queue = DispatchQueue(label: "com.test.embrace.upload.queue", attributes: .concurrent)
+        upload = try EmbraceUpload(options: uploadTestOptions, logger: MockLogger(), queue: queue)
         storage = try EmbraceStorage.createInMemoryDb()
 
-        // we pass nil so we only use the upload module in the relevant tests
-        controller = SessionController(storage: storage, upload: nil)
+        // we pass nil so we only use the upload/config module in the relevant tests
+        controller = SessionController(storage: storage, upload: nil, config: nil)
     }
 
     override func tearDownWithError() throws {
@@ -60,19 +62,14 @@ final class SessionControllerTests: XCTestCase {
         let b = controller.startSession(state: .foreground)
         let c = controller.startSession(state: .foreground)
 
-        XCTAssertNotEqual(a.id, b.id)
-        XCTAssertNotEqual(a.id, c.id)
-        XCTAssertNotEqual(b.id, c.id)
+        XCTAssertNotEqual(a!.id, b!.id)
+        XCTAssertNotEqual(a!.id, c!.id)
+        XCTAssertNotEqual(b!.id, c!.id)
     }
 
     func test_startSession_setsForegroundState() throws {
         let a = controller.startSession(state: .foreground)
-        XCTAssertEqual(a.state, "foreground")
-    }
-
-    func test_startSession_setsBackgroundState() throws {
-        let a = controller.startSession(state: .background)
-        XCTAssertEqual(a.state, "background")
+        XCTAssertEqual(a!.state, "foreground")
     }
 
     // MARK: startSession
@@ -80,7 +77,7 @@ final class SessionControllerTests: XCTestCase {
     func test_startSession_setsCurrentSession_andPostsDidStartNotification() throws {
         let notificationExpectation = expectation(forNotification: .embraceSessionDidStart, object: nil)
 
-        let session = controller.startSession(state: .foreground)
+        let session = controller.startSession(state: .foreground)!
         XCTAssertNotNil(session.startTime)
         XCTAssertNotNil(controller.currentSessionSpan)
         XCTAssertEqual(controller.currentSession?.id, session.id)
@@ -92,46 +89,13 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertTrue(controller.currentSession!.coldStart)
     }
 
-    func test_startSession_ifStartAtMatchesAllowedColdStartInterval_marksSessionAsColdStartTrue() throws {
-        let processStart = ProcessMetadata.startTime!
-        let startTime = processStart.addingTimeInterval(SessionController.allowedColdStartInterval)
-
-        controller.startSession(state: .foreground, startTime: startTime)
-        XCTAssertTrue(controller.currentSession!.coldStart)
-    }
-
-    func test_startSession_ifStartAtIsPassedAllowedColdStartInterval_marksSessionAsColdStartFalse() throws {
-        let processStart = ProcessMetadata.startTime!
-        let startTime = processStart.addingTimeInterval(SessionController.allowedColdStartInterval + 1)
-
-        controller.startSession(state: .foreground, startTime: startTime)
-        XCTAssertFalse(controller.currentSession!.coldStart)
-    }
-
-    func test_startSession_ifStartAtIsBeforeProcessStart_marksSessionAsColdStartFalse() throws {
-        let processStart = ProcessMetadata.startTime!
-        let startTime = processStart.addingTimeInterval(-1)
-
-        controller.startSession(state: .foreground, startTime: startTime)
-        XCTAssertFalse(controller.currentSession!.coldStart)
-    }
-
     func test_startSession_saves_foregroundSession() throws {
         let session = controller.startSession(state: .foreground)
 
         let sessions: [SessionRecord] = try storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
-        XCTAssertEqual(sessions.first?.id, session.id)
+        XCTAssertEqual(sessions.first?.id, session!.id)
         XCTAssertEqual(sessions.first?.state, "foreground")
-    }
-
-    func test_startSession_saves_backgroundSession() throws {
-        let session = controller.startSession(state: .background)
-
-        let sessions: [SessionRecord] = try storage.fetchAll()
-        XCTAssertEqual(sessions.count, 1)
-        XCTAssertEqual(sessions.first?.id, session.id)
-        XCTAssertEqual(sessions.first?.state, "background")
     }
 
     func test_startSession_startsSessionSpan() throws {
@@ -143,12 +107,22 @@ final class SessionControllerTests: XCTestCase {
         if let spanData = spanProcessor.startedSpans.first {
             XCTAssertEqual(
                 spanData.startTime.timeIntervalSince1970,
-                session.startTime.timeIntervalSince1970,
+                session!.startTime.timeIntervalSince1970,
                 accuracy: 0.001
             )
             XCTAssertFalse(spanData.hasEnded)
         } else {
             XCTFail("No items in `startedSpans`")
+        }
+    }
+
+    func test_startSession_onlyFirstOneIsColdStart() throws {
+        var session = controller.startSession(state: .foreground)
+        XCTAssertTrue(session!.coldStart)
+
+        for _ in 1...10 {
+            session = controller.startSession(state: .foreground)
+            XCTAssertFalse(session!.coldStart)
         }
     }
 
@@ -159,7 +133,7 @@ final class SessionControllerTests: XCTestCase {
 
         let session = controller.startSession(state: .foreground)
         XCTAssertNotNil(controller.currentSessionSpan)
-        XCTAssertNil(session.endTime)
+        XCTAssertNil(session!.endTime)
 
         let endTime = controller.endSession()
 
@@ -175,13 +149,13 @@ final class SessionControllerTests: XCTestCase {
 
     func test_endSession_saves_foregroundSession() throws {
         let session = controller.startSession(state: .foreground)
-        XCTAssertNil(session.endTime)
+        XCTAssertNil(session!.endTime)
 
         let endTime = controller.endSession()
 
         let sessions: [SessionRecord] = try storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
-        XCTAssertEqual(sessions.first!.id, session.id)
+        XCTAssertEqual(sessions.first!.id, session!.id)
         XCTAssertEqual(sessions.first!.state, "foreground")
         XCTAssertEqual(sessions.first!.endTime!.timeIntervalSince1970, endTime.timeIntervalSince1970, accuracy: 0.001)
     }
@@ -203,7 +177,7 @@ final class SessionControllerTests: XCTestCase {
         EmbraceHTTPMock.mock(url: testSessionsUrl())
 
         // given a started session
-        let controller = SessionController(storage: storage, upload: upload)
+        let controller = SessionController(storage: storage, upload: upload, config: nil)
         controller.startSession(state: .foreground)
 
         // when ending the session
@@ -227,7 +201,7 @@ final class SessionControllerTests: XCTestCase {
         EmbraceHTTPMock.mock(url: testSessionsUrl(), errorCode: 500)
 
         // given a started session
-        let controller = SessionController(storage: storage, upload: upload)
+        let controller = SessionController(storage: storage, upload: upload, config: nil)
         controller.startSession(state: .foreground)
 
         // when ending the session and the upload fails
@@ -259,17 +233,9 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertEqual(controller.currentSession?.state, "background")
     }
 
-    func test_update_assignsState_toForeground_whenPresent() throws {
-        controller.startSession(state: .background)
-        XCTAssertEqual(controller.currentSession?.state, "background")
-
-        controller.update(state: .foreground)
-        XCTAssertEqual(controller.currentSession?.state, "foreground")
-    }
-
     func test_update_assignsAppTerminated_toFalse_whenPresent() throws {
         var session = controller.startSession(state: .foreground)
-        session.appTerminated = true
+        session!.appTerminated = true
 
         controller.update(appTerminated: false)
         XCTAssertEqual(controller.currentSession?.appTerminated, false)
@@ -277,7 +243,7 @@ final class SessionControllerTests: XCTestCase {
 
     func test_update_assignsAppTerminated_toTrue_whenPresent() throws {
         var session = controller.startSession(state: .foreground)
-        session.appTerminated = false
+        session!.appTerminated = false
 
         controller.update(appTerminated: true)
         XCTAssertEqual(controller.currentSession?.appTerminated, true)
@@ -285,39 +251,137 @@ final class SessionControllerTests: XCTestCase {
 
     func test_update_changesTo_appTerminated_saveInStorage() throws {
         var session = controller.startSession(state: .foreground)
-        session.appTerminated = false
+        session!.appTerminated = false
 
         controller.update(appTerminated: true)
 
         let sessions: [SessionRecord] = try storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
-        XCTAssertEqual(sessions.first?.id, session.id)
+        XCTAssertEqual(sessions.first?.id, session!.id)
         XCTAssertEqual(sessions.first?.state, "foreground")
         XCTAssertEqual(sessions.first?.appTerminated, true)
     }
 
     func test_update_changesTo_sessionState_saveInStorage() throws {
         var session = controller.startSession(state: .foreground)
-        session.appTerminated = false
+        session!.appTerminated = false
 
         controller.update(state: .background)
 
         let sessions: [SessionRecord] = try storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
-        XCTAssertEqual(sessions.first?.id, session.id)
+        XCTAssertEqual(sessions.first?.id, session!.id)
         XCTAssertEqual(sessions.first?.state, "background")
         XCTAssertEqual(sessions.first?.appTerminated, false)
+    }
+
+    // MARK: background
+    func test_startup_background_enabled() throws {
+
+        // given background sessions enabled
+        try mockSuccessfulResponse()
+
+        let configUrlSessionconfig = URLSessionConfiguration.ephemeral
+        configUrlSessionconfig.httpMaximumConnectionsPerHost = .max
+        configUrlSessionconfig.protocolClasses = [EmbraceHTTPMock.self]
+
+        let configTestOptions = EmbraceConfig.Options(
+            apiBaseUrl: configBaseUrl,
+            queue: DispatchQueue(label: "com.test.embrace.config.queue", attributes: .concurrent),
+            appId: TestConstants.appId,
+            deviceId: TestConstants.deviceId,
+            osVersion: TestConstants.osVersion,
+            sdkVersion: TestConstants.sdkVersion,
+            appVersion: TestConstants.appVersion,
+            userAgent: TestConstants.userAgent,
+            urlSessionConfiguration: configUrlSessionconfig
+        )
+
+        let config = EmbraceConfig(
+            options: configTestOptions,
+            notificationCenter: NotificationCenter.default,
+            logger: MockLogger()
+        )
+        wait(delay: .defaultTimeout)
+
+        let controller = SessionController(
+            storage: storage,
+            upload: nil,
+            config: config
+        )
+
+        // when starting a cold start session in the background
+        let session = controller.startSession(state: .background)
+
+        // then the session is created
+        XCTAssertNotNil(session)
+
+        // when the session ends
+        controller.endSession()
+
+        // then the session is stored
+        let sessions: [SessionRecord] = try storage.fetchAll()
+        XCTAssertEqual(sessions.count, 1)
+        XCTAssertEqual(sessions.first?.id, session!.id)
+        XCTAssertEqual(sessions.first?.state, "background")
+    }
+
+    func mockSuccessfulResponse() throws {
+        var url = try XCTUnwrap(URL(string: "\(configBaseUrl)/v2/config"))
+
+        if #available(iOS 16.0, *) {
+            url.append(queryItems: [
+                .init(name: "appId", value: TestConstants.appId),
+                .init(name: "osVersion", value: TestConstants.osVersion),
+                .init(name: "appVersion", value: TestConstants.appVersion),
+                .init(name: "deviceId", value: TestConstants.deviceId),
+                .init(name: "sdkVersion", value: TestConstants.sdkVersion)
+            ])
+        } else {
+            XCTFail("This will fail on versions prior to iOS 16.0")
+        }
+
+        let path = Bundle.module.path(
+            forResource: "remote_config_background_enabled",
+            ofType: "json",
+            inDirectory: "Mocks"
+        )!
+        let data = try Data(contentsOf: URL(fileURLWithPath: path))
+        EmbraceHTTPMock.mock(url: url, response: .withData(data, statusCode: 200))
+    }
+
+    func test_startup_background_disabled() throws {
+
+        // given background sessions disabled
+        let controller = SessionController(
+            storage: storage,
+            upload: nil,
+            config: nil
+        )
+
+        // when starting a cold start session in the background
+        let session = controller.startSession(state: .background)
+
+        // then the session is created
+        XCTAssertNotNil(session)
+
+        // when the session ends
+        controller.endSession()
+
+        // then the session is not stored
+        let sessions: [SessionRecord] = try storage.fetchAll()
+        XCTAssertEqual(sessions.count, 0)
     }
 
     // MARK: heartbeat
 
     func test_heartbeat() throws {
         // given a session controller with a 1 second heartbeat invertal
-        let controller = SessionController(storage: storage, upload: nil, heartbeatInterval: 1)
+        let controller = SessionController(storage: storage, upload: nil, config: nil, heartbeatInterval: 1)
 
         // when starting a session
         let session = controller.startSession(state: .foreground)
-        var lastDate = session.lastHeartbeatTime
+        var lastDate = session!.lastHeartbeatTime
 
         // then the heartbeat time is updated every second
         for _ in 1...3 {
@@ -342,5 +406,9 @@ private extension SessionControllerTests {
 
     func testLogsUrl(testName: String = #function) -> URL {
         URL(string: "https://embrace.\(testName).com/session_controller/logs")!
+    }
+
+    private var configBaseUrl: String {
+        "https://embrace.\(testName).com/config"
     }
 }
