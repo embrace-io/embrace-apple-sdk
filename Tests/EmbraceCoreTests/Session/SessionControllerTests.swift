@@ -116,6 +116,16 @@ final class SessionControllerTests: XCTestCase {
         }
     }
 
+    func test_startSession_onlyFirstOneIsColdStart() throws {
+        var session = controller.startSession(state: .foreground)
+        XCTAssertTrue(session!.coldStart)
+
+        for _ in 1...10 {
+            session = controller.startSession(state: .foreground)
+            XCTAssertFalse(session!.coldStart)
+        }
+    }
+
     // MARK: endSession
 
     func test_endSession_setsCurrentSessionToNil_andPostsWillEndNotification() throws {
