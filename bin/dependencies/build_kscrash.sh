@@ -38,7 +38,7 @@ function create_xcframework {
 
     echo "Create $PRODUCT.xcframework"
 
-    xcodebuild -create-xcframework -allow-internal-distribution ${xcoptions[@]} -output "$BUILD_DIR/$PRODUCT.xcframework"
+    xcodebuild -create-xcframework ${xcoptions[@]} -output "$BUILD_DIR/$PRODUCT.xcframework"
 }
 
 mise install
