@@ -63,10 +63,10 @@ class AppInfoCaptureService: ResourceCaptureService {
         )
 
         // process start time
-        if let uptime = ProcessMetadata.uptime() {
+        if let processStartTime = ProcessMetadata.startTime {
             addResource(
                 key: AppResourceKey.processStartTime.rawValue,
-                value: .int(Int(trunc(uptime)))
+                value: .int(processStartTime.nanosecondsSince1970Truncated)
             )
         }
 
