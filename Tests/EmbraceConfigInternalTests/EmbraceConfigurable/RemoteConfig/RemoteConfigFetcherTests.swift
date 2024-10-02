@@ -52,7 +52,6 @@ class RemoteConfigFetcherTests: XCTestCase {
                 .init(name: "appId", value: TestConstants.appId),
                 .init(name: "osVersion", value: TestConstants.osVersion),
                 .init(name: "appVersion", value: TestConstants.appVersion),
-                .init(name: "deviceId", value: TestConstants.deviceId.hex),
                 .init(name: "sdkVersion", value: TestConstants.sdkVersion)
             ])
         } else {
@@ -96,9 +95,8 @@ class RemoteConfigFetcherTests: XCTestCase {
         XCTAssertTrue(queryItems.contains { $0.name == "appId" && $0.value == TestConstants.appId })
         XCTAssertTrue(queryItems.contains { $0.name == "osVersion" && $0.value == TestConstants.osVersion })
         XCTAssertTrue(queryItems.contains { $0.name == "appVersion" && $0.value == TestConstants.appVersion })
-        XCTAssertTrue(queryItems.contains { $0.name == "deviceId" && $0.value == TestConstants.deviceId.hex })
         XCTAssertTrue(queryItems.contains { $0.name == "sdkVersion" && $0.value == TestConstants.sdkVersion })
-        XCTAssertEqual(queryItems.count, 5)
+        XCTAssertEqual(queryItems.count, 4)
     }
 
     // MARK: newRequest
