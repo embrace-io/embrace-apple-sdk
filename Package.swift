@@ -16,7 +16,7 @@ if ProcessInfo.processInfo.environment["IS_XCTEST"] != nil ||
 let package = Package(
     name: "EmbraceIO",
     platforms: [
-        .iOS(.v13), .tvOS(.v13), .macOS(.v13), .watchOS(.v6)
+        .iOS(.v16), .tvOS(.v13), .macOS(.v13), .watchOS(.v6)
     ],
     products: [
         .library(name: "EmbraceIO", targets: ["EmbraceIO"]),
@@ -45,6 +45,10 @@ let package = Package(
         .package(
             url: "https://github.com/apple/swift-docc-plugin",
             branch: "main"
+        ),
+        .package(
+            url: "https://github.com/ordo-one/package-benchmark",
+                .upToNextMajor(from: "1.25.0")
         )
     ],
     targets: [
@@ -192,6 +196,7 @@ let package = Package(
             dependencies: [
                 "EmbraceCommonInternal",
                 "EmbraceSemantics",
+                .product(name: "OpenTelemetryApi", package: "opentelemetry-swift"),
                 .product(name: "GRDB", package: "GRDB.swift")
             ],
             plugins: targetPlugins
@@ -203,6 +208,18 @@ let package = Package(
                 .copy("Mocks/")
             ],
             plugins: targetPlugins
+        ),
+
+        .executableTarget(
+            name: "EmbraceStorageBenchmarks",
+            dependencies: [
+                .product(name: "Benchmark", package: "package-benchmark"),
+                "EmbraceStorageInternal"
+            ],
+            path: "Benchmarks/EmbraceStorageBenchmarks",
+            plugins: [
+                .plugin(name: "BenchmarkPlugin", package: "package-benchmark")
+            ]
         ),
 
         // upload --------------------------------------------------------------------
