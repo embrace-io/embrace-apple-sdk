@@ -3,8 +3,8 @@
 //
 import EmbraceCommonInternal
 
-public extension SpanType {
-    static let lowMemory = SpanType(system: "low_memory")
+public extension SpanEventType {
+    static let lowMemory = SpanEventType(system: "low_memory")
 }
 
 public extension SpanEventSemantics {

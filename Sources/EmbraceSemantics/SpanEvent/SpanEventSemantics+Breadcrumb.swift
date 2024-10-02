@@ -4,8 +4,8 @@
 
 import EmbraceCommonInternal
 
-public extension SpanType {
-    static let breadcrumb = SpanType(system: "breadcrumb")
+public extension SpanEventType {
+    static let breadcrumb = SpanEventType(system: "breadcrumb")
 }
 
 public extension SpanEventSemantics {

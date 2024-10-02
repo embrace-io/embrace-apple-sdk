@@ -40,7 +40,7 @@ public class LowMemoryWarningCaptureService: CaptureService {
             name: SpanEventSemantics.LowMemory.name,
             timestamp: Date(),
             attributes: [
-                SpanEventSemantics.keyEmbraceType: .string(SpanType.lowMemory.rawValue)
+                SpanEventSemantics.keyEmbraceType: .string(SpanEventType.lowMemory.rawValue)
             ]
         )
 

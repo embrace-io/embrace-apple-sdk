@@ -4,8 +4,8 @@
 
 import EmbraceCommonInternal
 
-public extension SpanType {
-    static let webView = SpanType(ux: "webview")
+public extension SpanEventType {
+    static let webView = SpanEventType(ux: "webview")
 }
 
 public extension SpanEventSemantics {

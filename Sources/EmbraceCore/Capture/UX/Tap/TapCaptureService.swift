@@ -82,7 +82,7 @@ public final class TapCaptureService: CaptureService {
 
         var attributes: [String: AttributeValue] = [
             SpanEventSemantics.Tap.keyViewName: .string(viewName),
-            SpanEventSemantics.keyEmbraceType: .string(SpanType.tap.rawValue)
+            SpanEventSemantics.keyEmbraceType: .string(SpanEventType.tap.rawValue)
         ]
 
         // get coordinates

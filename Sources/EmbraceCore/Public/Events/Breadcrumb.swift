@@ -26,7 +26,7 @@ public class Breadcrumb: NSObject, SpanEvent {
         self.timestamp = timestamp
         self.attributes = attributes
         self.attributes[SpanEventSemantics.Bradcrumb.keyMessage] = .string(message)
-        self.attributes[SpanEventSemantics.keyEmbraceType] = .string(SpanType.breadcrumb.rawValue)
+        self.attributes[SpanEventSemantics.keyEmbraceType] = .string(SpanEventType.breadcrumb.rawValue)
     }
 }
 
