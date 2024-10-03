@@ -21,14 +21,19 @@ final class LengthOfBodyValidatorTests: XCTestCase {
 
     func test_validate_init_defaultsToCorrect_allowedCharacterCount() {
         let validator = LengthOfBodyValidator()
-        XCTAssertEqual(validator.allowedCharacterCount, 1...4000)
+        XCTAssertEqual(validator.allowedCharacterCount, 0...4000)
     }
 
-    func test_validate_isInvalid_ifBodyIsNil() {
+    func test_validate_isInvalid_ifBodySizeIsOutOfRange() {
         let validator = LengthOfBodyValidator()
 
-        var invalidNil = logData(body: nil)
-        let result = validator.validate(data: &invalidNil)
+        var str = ""
+        for _ in 1...4001 {
+            str += "."
+        }
+
+        var invalidLog = logData(body: str)
+        let result = validator.validate(data: &invalidLog)
         XCTAssertFalse(result)
     }
 
