@@ -40,7 +40,7 @@ let package = Package(
         ),
         .package(
             url: "https://github.com/realm/SwiftLint",
-            exact: "0.53.0"
+            from: "0.53.0"
         ),
         .package(
             url: "https://github.com/apple/swift-docc-plugin",
