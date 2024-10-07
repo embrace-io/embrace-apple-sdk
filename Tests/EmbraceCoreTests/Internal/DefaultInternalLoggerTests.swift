@@ -6,6 +6,8 @@ import XCTest
 @testable import EmbraceCore
 import TestSupport
 import EmbraceStorageInternal
+import EmbraceConfigInternal
+import EmbraceConfiguration
 import OpenTelemetryApi
 
 class DefaultInternalLoggerTests: XCTestCase {

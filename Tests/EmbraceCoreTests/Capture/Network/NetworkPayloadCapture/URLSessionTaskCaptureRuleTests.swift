@@ -6,6 +6,7 @@ import XCTest
 import TestSupport
 @testable import EmbraceCore
 @testable import EmbraceConfigInternal
+@testable import EmbraceConfiguration
 import EmbraceStorageInternal
 
 class URLSessionTaskCaptureRuleTests: XCTestCase {

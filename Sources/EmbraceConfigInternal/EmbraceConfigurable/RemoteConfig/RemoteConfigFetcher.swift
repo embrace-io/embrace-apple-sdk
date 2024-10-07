@@ -9,12 +9,12 @@ class RemoteConfigFetcher {
 
     static let routePath = "/v2/config"
 
-    let options: EmbraceConfig.Options
+    let options: RemoteConfig.Options
     let logger: InternalLogger
     let session: URLSession
     let operationQueue: OperationQueue
 
-    init(options: EmbraceConfig.Options, logger: InternalLogger) {
+    public init(options: RemoteConfig.Options, logger: InternalLogger) {
         self.options = options
         self.logger = logger
 
@@ -27,7 +27,7 @@ class RemoteConfigFetcher {
         )
     }
 
-    public func fetch(completion: @escaping (RemoteConfigPayload?) -> Void) {
+    func fetch(completion: @escaping (RemoteConfigPayload?) -> Void) {
         guard let request = newRequest() else {
             completion(nil)
             return
@@ -77,7 +77,6 @@ class RemoteConfigFetcher {
             URLQueryItem(name: "appId", value: options.appId),
             URLQueryItem(name: "osVersion", value: options.osVersion),
             URLQueryItem(name: "appVersion", value: options.appVersion),
-            URLQueryItem(name: "deviceId", value: options.deviceId),
             URLQueryItem(name: "sdkVersion", value: options.sdkVersion)
         ]
 

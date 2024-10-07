@@ -20,7 +20,7 @@ let package = Package(
     ],
     products: [
         .library(name: "EmbraceIO", targets: ["EmbraceIO"]),
-        .library(name: "EmbraceCore", targets: ["EmbraceCore"]),
+        .library(name: "EmbraceCore", targets: ["EmbraceCore", "EmbraceConfiguration"]),
         .library(name: "EmbraceCrash", targets: ["EmbraceCrash"]),
         .library(name: "EmbraceCrashlyticsSupport", targets: ["EmbraceCrashlyticsSupport"]),
         .library(name: "EmbraceSemantics", targets: ["EmbraceSemantics"])
@@ -80,6 +80,7 @@ let package = Package(
                 "EmbraceCaptureService",
                 "EmbraceCommonInternal",
                 "EmbraceConfigInternal",
+                "EmbraceConfiguration",
                 "EmbraceOTelInternal",
                 "EmbraceStorageInternal",
                 "EmbraceUploadInternal",
@@ -148,9 +149,24 @@ let package = Package(
 
         // config --------------------------------------------------------------------
         .target(
+            name: "EmbraceConfiguration",
+            dependencies: [],
+            plugins: targetPlugins
+        ),
+
+        .testTarget(
+            name: "EmbraceConfigurationTests",
+            dependencies: [
+                "EmbraceConfiguration"
+            ],
+            plugins: targetPlugins
+        ),
+
+        .target(
             name: "EmbraceConfigInternal",
             dependencies: [
-                "EmbraceCommonInternal"
+                "EmbraceCommonInternal",
+                "EmbraceConfiguration"
             ],
             plugins: targetPlugins
         ),
@@ -162,7 +178,7 @@ let package = Package(
                 "TestSupport"
             ],
             resources: [
-                .copy("Mocks/")
+                .copy("Fixtures")
             ],
             plugins: targetPlugins
         ),
