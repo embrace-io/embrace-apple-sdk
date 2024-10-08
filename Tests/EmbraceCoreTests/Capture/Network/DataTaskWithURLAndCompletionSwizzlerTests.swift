@@ -107,7 +107,7 @@ private extension DataTaskWithURLAndCompletionSwizzlerTests {
         url = URL(string: "https://embrace.io")!
         let mockData = "Mock Data".data(using: .utf8)!
         let mockResponse = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil)!
-        url.mockResponse = .sucessful(withData: mockData, response: mockResponse)
+        url.mockResponse = .successful(withData: mockData, response: mockResponse)
     }
 
     func givenFailedRequest() {

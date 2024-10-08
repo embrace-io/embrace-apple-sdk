@@ -20,7 +20,7 @@ final class EmbraceCoreTests: XCTestCase {
         let sessionId = embrace?.currentSessionId()
 
         // concurrentPerform performs concurrent operations in a synchronous manner on the called thread.
-        // so it seems to be good for testing as it prevents the requried
+        // so it seems to be good for testing as it prevents the required
         // use of expectations
         DispatchQueue.concurrentPerform(iterations: 100) {_ in
             let cSessionId = embrace?.currentSessionId()
@@ -34,7 +34,7 @@ final class EmbraceCoreTests: XCTestCase {
         try embrace?.start()
 
         // concurrentPerform performs concurrent operations in a synchronous manner on the called thread.
-        // so it seems to be good for testing as it prevents the requried
+        // so it seems to be good for testing as it prevents the required
         // use of expectations
         DispatchQueue.concurrentPerform(iterations: 100) {_ in
             let id = embrace?.currentSessionId()
@@ -47,7 +47,7 @@ final class EmbraceCoreTests: XCTestCase {
         let embrace = try getLocalEmbrace()
         try embrace?.start()
         // concurrentPerform performs concurrent operations in a synchronous manner on the called thread.
-        // so it seems to be good for testing as it prevents the requried
+        // so it seems to be good for testing as it prevents the required
         // use of expectations
         DispatchQueue.concurrentPerform(iterations: 100) {_ in
             let id = embrace?.currentSessionId()
@@ -56,13 +56,13 @@ final class EmbraceCoreTests: XCTestCase {
         }
     }
 
-    func test_CuncurrentEndSession() throws {
+    func test_ConcurrentEndSession() throws {
         let embrace = try getLocalEmbrace()
         try embrace?.start()
         let sessionId = embrace?.currentSessionId()
 
         // concurrentPerform performs concurrent operations in a synchronous manner on the called thread.
-        // so it seems to be good for testing as it prevents the requried
+        // so it seems to be good for testing as it prevents the required
         // use of expectations
         DispatchQueue.concurrentPerform(iterations: 100) {_ in
             embrace?.endCurrentSession()
@@ -76,13 +76,13 @@ final class EmbraceCoreTests: XCTestCase {
         XCTAssertNotEqual(cSessionId, sessionId)
     }
 
-    func test_CuncurrentStartSession() throws {
+    func test_ConcurrentStartSession() throws {
         let embrace = try getLocalEmbrace()
         try embrace?.start()
         let sessionId = embrace?.currentSessionId()
 
         // concurrentPerform performs concurrent operations in a synchronous manner on the called thread.
-        // so it seems to be good for testing as it prevents the requried
+        // so it seems to be good for testing as it prevents the required
         // use of expectations
         DispatchQueue.concurrentPerform(iterations: 100) {_ in
             embrace?.startNewSession()

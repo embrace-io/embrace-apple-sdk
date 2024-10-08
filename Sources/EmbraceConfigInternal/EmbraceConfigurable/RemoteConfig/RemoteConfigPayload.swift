@@ -29,7 +29,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         }
 
         case networkSpansForwarding = "network_span_forwarding"
-        enum NetworkSpansForwardingCodigKeys: String, CodingKey {
+        enum NetworkSpansForwardingCodingKeys: String, CodingKey {
             case threshold = "pct_enabled"
         }
 
@@ -72,12 +72,12 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         // network span forwarding
         if rootContainer.contains(.networkSpansForwarding) {
             let networkSpansForwardingContainer = try rootContainer.nestedContainer(
-                keyedBy: CodingKeys.NetworkSpansForwardingCodigKeys.self,
+                keyedBy: CodingKeys.NetworkSpansForwardingCodingKeys.self,
                 forKey: .networkSpansForwarding
             )
             networkSpansForwardingThreshold = try networkSpansForwardingContainer.decodeIfPresent(
                 Float.self,
-                forKey: CodingKeys.NetworkSpansForwardingCodigKeys.threshold
+                forKey: CodingKeys.NetworkSpansForwardingCodingKeys.threshold
             ) ?? defaultPayload.networkSpansForwardingThreshold
         } else {
             networkSpansForwardingThreshold = defaultPayload.networkSpansForwardingThreshold

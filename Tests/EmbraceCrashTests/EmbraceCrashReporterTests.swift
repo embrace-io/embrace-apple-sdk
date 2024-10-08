@@ -137,7 +137,7 @@ class EmbraceCrashReporterTests: XCTestCase {
     }
 
     func testHavingInternalAddedInfoInKSCrash_appendCrashInfo_shouldntEraseThoseValues() throws {
-        // given crash reporter with an already setted sdkVersion and sessionId
+        // given crash reporter with an already set sdkVersion and sessionId
         let crashReporter = EmbraceCrashReporter()
         let context = CrashReporterContext(
             appId: "_-_-_",
@@ -149,7 +149,7 @@ class EmbraceCrashReporterTests: XCTestCase {
         crashReporter.currentSessionId = "original_session_id"
         let ksCrash = try XCTUnwrap(crashReporter.ksCrash)
 
-        // [Intermdiate Assertion to ensure the `given` state]
+        // [Intermediate Assertion to ensure the `given` state]
         XCTAssertEqual(ksCrash.userInfo["emb-sid"] as? String, "original_session_id")
         XCTAssertEqual(ksCrash.userInfo["emb-sdk"] as? String, "1.2.3")
 

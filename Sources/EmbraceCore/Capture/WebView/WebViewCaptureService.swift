@@ -65,7 +65,7 @@ public final class WebViewCaptureService: CaptureService {
     }
 
     private func initializeSwizzlers() {
-        swizzlers.append(WKWebViewSetNativationDelegateSwizzler(proxy: proxy))
+        swizzlers.append(WKWebViewSetNavigationDelegateSwizzler(proxy: proxy))
         swizzlers.append(WKWebViewLoadRequestSwizzler())
         swizzlers.append(WKWebViewLoadHTMLStringSwizzler())
         swizzlers.append(WKWebViewLoadFileURLSwizzler())
@@ -111,7 +111,7 @@ public final class WebViewCaptureService: CaptureService {
     }
 }
 
-struct WKWebViewSetNativationDelegateSwizzler: Swizzlable {
+struct WKWebViewSetNavigationDelegateSwizzler: Swizzlable {
     typealias ImplementationType = @convention(c) (WKWebView, Selector, WKNavigationDelegate) -> Void
     typealias BlockImplementationType = @convention(block) (WKWebView, WKNavigationDelegate) -> Void
     static var selector: Selector = #selector(setter: WKWebView.navigationDelegate)
@@ -151,7 +151,7 @@ struct WKWebViewLoadRequestSwizzler: Swizzlable {
         try swizzleInstanceMethod { originalImplementation -> BlockImplementationType in
             return { webView, request in
                 if webView.navigationDelegate == nil {
-                    webView.navigationDelegate = nil // forcefuly trigger setNagivationDelegate swizzler
+                    webView.navigationDelegate = nil // forceful trigger setNavigationDelegate swizzler
                 }
 
                 return originalImplementation(webView, Self.selector, request)
@@ -174,7 +174,7 @@ struct WKWebViewLoadHTMLStringSwizzler: Swizzlable {
         try swizzleInstanceMethod { originalImplementation -> BlockImplementationType in
             return { webView, htmlString, url in
                 if webView.navigationDelegate == nil {
-                    webView.navigationDelegate = nil // forcefuly trigger setNagivationDelegate swizzler
+                    webView.navigationDelegate = nil // forcefully trigger setNavigationDelegate swizzler
                 }
 
                 return originalImplementation(webView, Self.selector, htmlString, url)
@@ -197,7 +197,7 @@ struct WKWebViewLoadFileURLSwizzler: Swizzlable {
         try swizzleInstanceMethod { originalImplementation -> BlockImplementationType in
             return { webView, fileUrl, readAccessURL in
                 if webView.navigationDelegate == nil {
-                    webView.navigationDelegate = nil // forcefuly trigger setNagivationDelegate swizzler
+                    webView.navigationDelegate = nil // forcefully trigger setNavigationDelegate swizzler
                 }
 
                 return originalImplementation(webView, Self.selector, fileUrl, readAccessURL)
@@ -222,7 +222,7 @@ struct WKWebViewLoadDataSwizzler: Swizzlable {
         try swizzleInstanceMethod { originalImplementation -> BlockImplementationType in
             return { webView, data, mimeType, encoding, url in
                 if webView.navigationDelegate == nil {
-                    webView.navigationDelegate = nil // forcefuly trigger setNagivationDelegate swizzler
+                    webView.navigationDelegate = nil // forcefully trigger setNavigationDelegate swizzler
                 }
 
                 return originalImplementation(webView, Self.selector, data, mimeType, encoding, url)

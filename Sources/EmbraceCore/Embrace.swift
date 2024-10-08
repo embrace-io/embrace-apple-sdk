@@ -251,7 +251,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         sessionLifecycle.endSession()
     }
 
-    /// Called everytime the remote config changes
+    /// Called every time the remote config changes
     @objc private func onConfigUpdated() {
         if let config = config {
             Embrace.logger.limits = config.internalLogLimits

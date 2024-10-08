@@ -58,7 +58,7 @@ class RemoteConfigFetcher {
             do {
                 let payload = try JSONDecoder().decode(RemoteConfigPayload.self, from: data)
 
-                self?.logger.info("Succesfully fetched remote config")
+                self?.logger.info("Successfully fetched remote config")
                 completion(payload)
             } catch {
                 self?.logger.error("Error decoding remote config:\n\(error.localizedDescription)")

@@ -30,7 +30,7 @@ class DummyURLSessionInitWithDelegateSwizzler: Swizzlable {
 
     class DummyURLProxy: NSObject, URLSessionDelegate {
         weak var originalDelegate: URLSessionDelegate?
-        var didForwardToTargetSuccesfully: Bool = false
+        var didForwardToTargetSuccessfully: Bool = false
         var didInvokeForwardingTarget: Bool = false
         var didInvokeRespondsTo: Bool = false
         var didForwardRespondsToSuccessfullyBool = false
@@ -43,10 +43,10 @@ class DummyURLSessionInitWithDelegateSwizzler: Swizzlable {
         override func responds(to aSelector: Selector!) -> Bool {
             didInvokeRespondsTo = true
             if super.responds(to: aSelector) {
-                didForwardToTargetSuccesfully = true
+                didForwardToTargetSuccessfully = true
                 return true
             } else if let originalDelegate = originalDelegate, originalDelegate.responds(to: aSelector) {
-                didForwardToTargetSuccesfully = true
+                didForwardToTargetSuccessfully = true
                 return true
             }
             return false
@@ -55,10 +55,10 @@ class DummyURLSessionInitWithDelegateSwizzler: Swizzlable {
         override func forwardingTarget(for aSelector: Selector!) -> Any? {
             didInvokeForwardingTarget = true
             if super.responds(to: aSelector) {
-                didForwardToTargetSuccesfully = true
+                didForwardToTargetSuccessfully = true
                 return self
             } else if let originalDelegate = originalDelegate, originalDelegate.responds(to: aSelector) {
-                didForwardToTargetSuccesfully = true
+                didForwardToTargetSuccessfully = true
                 return originalDelegate
             }
             return nil

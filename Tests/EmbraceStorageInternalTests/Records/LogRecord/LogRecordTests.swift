@@ -21,7 +21,7 @@ class LogRecordTests: XCTestCase {
     func test_tableSchema() throws {
         XCTAssertEqual(LogRecord.databaseTableName, "logs")
 
-        // then the table and its colums should be correct
+        // then the table and its columns should be correct
         try storage.dbQueue.read { db in
             XCTAssert(try db.tableExists(LogRecord.databaseTableName))
 

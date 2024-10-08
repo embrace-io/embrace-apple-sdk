@@ -54,7 +54,7 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
     func mockedURL(string: String, data: Data = Data("Mock Data".utf8)) -> URL {
         var url = URL(string: string)!
         let mockResponse = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil)!
-        url.mockResponse = .sucessful(withData: data, response: mockResponse)
+        url.mockResponse = .successful(withData: data, response: mockResponse)
 
         return url
     }
@@ -122,7 +122,7 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
 
         XCTAssertTrue(try XCTUnwrap(otherSwizzler?.proxy?.didInvokeRespondsTo))
         XCTAssertFalse(try XCTUnwrap(otherSwizzler?.proxy?.didInvokeForwardingTarget))
-        XCTAssertFalse(try XCTUnwrap(otherSwizzler?.proxy?.didForwardToTargetSuccesfully))
+        XCTAssertFalse(try XCTUnwrap(otherSwizzler?.proxy?.didForwardToTargetSuccessfully))
         XCTAssertFalse(try XCTUnwrap(otherSwizzler?.proxy?.didForwardRespondsToSuccessfullyBool))
     }
 
@@ -158,7 +158,7 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
 
         XCTAssertTrue(try XCTUnwrap(otherSwizzler?.proxy?.didInvokeRespondsTo))
         XCTAssertFalse(try XCTUnwrap(otherSwizzler?.proxy?.didInvokeForwardingTarget))
-        XCTAssertFalse(try XCTUnwrap(otherSwizzler?.proxy?.didForwardToTargetSuccesfully))
+        XCTAssertFalse(try XCTUnwrap(otherSwizzler?.proxy?.didForwardToTargetSuccessfully))
         XCTAssertFalse(try XCTUnwrap(otherSwizzler?.proxy?.didForwardRespondsToSuccessfullyBool))
     }
 

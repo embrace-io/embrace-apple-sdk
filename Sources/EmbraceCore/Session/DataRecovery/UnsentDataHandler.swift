@@ -265,7 +265,7 @@ class UnsentDataHandler {
             // since spans are only sent when included in a session
             // all of these would never be sent anymore, so they can be safely removed
             // if no session is found, all closed spans can be safely removed as well
-            let oldestSession = try storage.fetchOldestSesssion()
+            let oldestSession = try storage.fetchOldestSession()
             try storage.cleanUpSpans(date: oldestSession?.startTime)
 
         } catch {
@@ -279,7 +279,7 @@ class UnsentDataHandler {
             // we use the latest session on storage to determine the `endTime`
             // since we need to have a valid `endTime` for these spans, we default
             // to `Date()` if we don't have a session
-            let latestSession = try storage.fetchLatestSesssion(ignoringCurrentSessionId: currentSessionId)
+            let latestSession = try storage.fetchLatestSession(ignoringCurrentSessionId: currentSessionId)
             let endTime = (latestSession?.endTime ?? latestSession?.lastHeartbeatTime) ?? Date()
             try storage.closeOpenSpans(endTime: endTime)
         } catch {

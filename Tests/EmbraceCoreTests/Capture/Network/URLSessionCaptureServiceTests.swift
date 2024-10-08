@@ -56,7 +56,7 @@ class URLSessionCaptureServiceTests: XCTestCase {
         givenURLSessionCaptureService()
         whenInvokingInstall()
         whenInvokingInstall()
-        thenEachSwizzlerShoudHaveBeenInstalledOnce()
+        thenEachSwizzlerShouldHaveBeenInstalledOnce()
     }
 }
 
@@ -106,7 +106,7 @@ private extension URLSessionCaptureServiceTests {
         }
     }
 
-    func thenEachSwizzlerShoudHaveBeenInstalledOnce() {
+    func thenEachSwizzlerShouldHaveBeenInstalledOnce() {
         provider.swizzlers.forEach {
             guard let swizzler = $0 as? MockURLSessionSwizzler else {
                 XCTFail("Swizzler should be a spy")

@@ -51,11 +51,11 @@ extension Embrace {
     ///   - key: The key for the attribute.
     ///   - value: The value associated with the given key.
     public func appendCrashInfo(key: String, value: String) throws {
-        guard let crashRporter = captureServices.crashReporter else {
+        guard let crashReporter = captureServices.crashReporter else {
             throw EmbraceCrashReportError.noCrashReporterAvailable
         }
 
-        guard let extendableCrashReporter = crashRporter as? ExtendableCrashReporter else {
+        guard let extendableCrashReporter = crashReporter as? ExtendableCrashReporter else {
             throw EmbraceCrashReportError.noCrashReporterAvailable
         }
 

@@ -19,7 +19,7 @@ public class URLTestProxiedResponse {
         self.error = error
     }
 
-    public static func sucessful(
+    public static func successful(
         withData data: Data,
         response: URLResponse
     ) -> URLTestProxiedResponse {

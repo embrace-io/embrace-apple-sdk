@@ -150,7 +150,7 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
                 return
             }
 
-            // generate attributes from reponse
+            // generate attributes from response
             if let response = task.response as? HTTPURLResponse {
                 span.setAttribute(
                     key: SpanSemantics.NetworkRequest.keyStatusCode,

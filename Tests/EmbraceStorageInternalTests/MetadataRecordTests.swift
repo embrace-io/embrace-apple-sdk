@@ -515,7 +515,7 @@ class MetadataRecordTests: XCTestCase {
         try storage.addMetadata(key: "test", value: "test", type: .requiredResource, lifespan: .permanent)
 
         // when fetching it
-        let record = try storage.fetchRequriedPermanentResource(key: "test")
+        let record = try storage.fetchRequiredPermanentResource(key: "test")
 
         // then its correctly fetched
         XCTAssertNotNil(record)

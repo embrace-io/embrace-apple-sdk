@@ -228,7 +228,7 @@ extension EmbraceStorage {
     }
 
     /// Returns the permanent required resource for the given key.
-    public func fetchRequriedPermanentResource(key: String) throws -> MetadataRecord? {
+    public func fetchRequiredPermanentResource(key: String) throws -> MetadataRecord? {
         return try fetchMetadata(key: key, type: .requiredResource, lifespan: .permanent)
     }
 

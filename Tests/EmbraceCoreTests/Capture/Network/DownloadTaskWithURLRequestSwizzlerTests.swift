@@ -62,7 +62,7 @@ private extension DownloadTaskWithURLRequestSwizzlerTests {
         let request = URLRequest(url: url)
         let mockData = "Mock Data".data(using: .utf8)!
         let mockResponse = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil)!
-        url.mockResponse = .sucessful(withData: mockData, response: mockResponse)
+        url.mockResponse = .successful(withData: mockData, response: mockResponse)
         downloadTask = session.downloadTask(with: request)
         downloadTask.resume()
     }

@@ -15,7 +15,7 @@ extension TapCaptureService {
         /// Defines wether the service should capture the coordinates of the taps.
         @objc public let captureTapCoordinates: Bool
 
-        /// Delegate used to decide if each indivudual tap should be recorded or not.
+        /// Delegate used to decide if each individual tap should be recorded or not.
         @objc public let delegate: TapCaptureServiceDelegate?
 
         @objc public init(

@@ -92,7 +92,7 @@ extension Embrace {
 }
 
 internal extension Embrace.Options {
-    /// Valiate Options object to make sure it has not been configured ambiguously
+    /// Validate Options object to make sure it has not been configured ambiguously
     func validate() throws {
         try validateAppId()
         try validateGroupId()
