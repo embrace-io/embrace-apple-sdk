@@ -124,7 +124,8 @@ let package = Package(
         .target(
             name: "EmbraceSemantics",
             dependencies: [
-                "EmbraceCommonInternal"
+                "EmbraceCommonInternal",
+                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
             ],
             plugins: targetPlugins
         ),

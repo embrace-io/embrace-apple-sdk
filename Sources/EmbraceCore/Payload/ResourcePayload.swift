@@ -6,6 +6,7 @@ import Foundation
 import EmbraceStorageInternal
 import EmbraceObjCUtilsInternal
 import EmbraceCommonInternal
+import OpenTelemetrySdk
 
 struct ResourcePayload: Codable {
     var jailbroken: Bool?
@@ -146,22 +147,27 @@ struct ResourcePayload: Codable {
                     self.diskTotalCapacity = resource.integerValue
                 case .architecture:
                     self.deviceArchitecture = resource.stringValue
-                case .model:
-                    self.deviceModel = resource.stringValue
-                case .manufacturer:
-                    self.deviceManufacturer = resource.stringValue
                 case .screenResolution:
                     self.screenResolution = resource.stringValue
-                case .osVersion:
-                    self.osVersion = resource.stringValue
                 case .osBuild:
                     self.osBuild = resource.stringValue
+                case .osVariant:
+                    self.osAlternateType = resource.stringValue
+                default:
+                    break
+                }
+            } else if let key = ResourceAttributes(rawValue: resource.key) {
+                switch key {
+                case .deviceModelIdentifier:
+                    self.deviceModel = resource.stringValue
+                case .deviceManufacturer:
+                    self.deviceManufacturer = resource.stringValue
+                case .osVersion:
+                    self.osVersion = resource.stringValue
                 case .osType:
                     self.osType = resource.stringValue
                 case .osName:
                     self.osName = resource.stringValue
-                case .osVariant:
-                    self.osAlternateType = resource.stringValue
                 default:
                     break
                 }
