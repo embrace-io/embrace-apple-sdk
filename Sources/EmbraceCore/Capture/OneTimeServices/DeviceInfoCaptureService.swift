@@ -5,6 +5,7 @@
 import Foundation
 import EmbraceCommonInternal
 import EmbraceObjCUtilsInternal
+import OpenTelemetrySdk
 
 class DeviceInfoCaptureService: ResourceCaptureService {
 
@@ -35,7 +36,7 @@ class DeviceInfoCaptureService: ResourceCaptureService {
 
         // os version
         addResource(
-            key: DeviceResourceKey.osVersion.rawValue,
+            key: ResourceAttributes.osVersion.rawValue,
             value: .string(EMBDevice.operatingSystemVersion)
         )
 
@@ -55,18 +56,18 @@ class DeviceInfoCaptureService: ResourceCaptureService {
         // Should always be "darwin" as can be seen in semantic convention docs:
         // https://opentelemetry.io/docs/specs/semconv/resource/os/
         addResource(
-            key: DeviceResourceKey.osType.rawValue,
+            key: ResourceAttributes.osType.rawValue,
             value: .string("darwin")
         )
 
         addResource(
-            key: DeviceResourceKey.osName.rawValue,
+            key: ResourceAttributes.osName.rawValue,
             value: .string(EMBDevice.operatingSystemType)
         )
 
         // model
         addResource(
-            key: DeviceResourceKey.model.rawValue,
+            key: ResourceAttributes.deviceModelIdentifier.rawValue,
             value: .string(EMBDevice.model)
         )
 

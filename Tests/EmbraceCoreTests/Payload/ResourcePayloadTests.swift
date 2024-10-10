@@ -4,7 +4,7 @@
 
 import XCTest
 import EmbraceStorageInternal
-
+import OpenTelemetrySdk
 @testable import EmbraceCore
 
 class ResourcePayloadTests: XCTestCase {
@@ -27,14 +27,14 @@ class ResourcePayloadTests: XCTestCase {
             MetadataRecord.createResourceRecord(key: DeviceResourceKey.isJailbroken.rawValue, value: "true"),
             MetadataRecord.createResourceRecord(key: DeviceResourceKey.totalDiskSpace.rawValue, value: "494384795648"),
             MetadataRecord.createResourceRecord(key: DeviceResourceKey.architecture.rawValue, value: "arm64"),
-            MetadataRecord.createResourceRecord(key: DeviceResourceKey.model.rawValue, value: "arm64_model"),
-            MetadataRecord.createResourceRecord(key: DeviceResourceKey.manufacturer.rawValue, value: "Apple"),
+            MetadataRecord.createResourceRecord(key: ResourceAttributes.deviceModelIdentifier.rawValue, value: "arm64_model"),
+            MetadataRecord.createResourceRecord(key: ResourceAttributes.deviceManufacturer.rawValue, value: "Apple"),
             MetadataRecord.createResourceRecord(key: DeviceResourceKey.screenResolution.rawValue, value: "1179x2556"),
-            MetadataRecord.createResourceRecord(key: DeviceResourceKey.osVersion.rawValue, value: "17.0.1"),
+            MetadataRecord.createResourceRecord(key: ResourceAttributes.osVersion.rawValue, value: "17.0.1"),
             MetadataRecord.createResourceRecord(key: DeviceResourceKey.osBuild.rawValue, value: "23D60"),
-            MetadataRecord.createResourceRecord(key: DeviceResourceKey.osType.rawValue, value: "darwin"),
+            MetadataRecord.createResourceRecord(key: ResourceAttributes.osType.rawValue, value: "darwin"),
             MetadataRecord.createResourceRecord(key: DeviceResourceKey.osVariant.rawValue, value: "iOS_variant"),
-            MetadataRecord.createResourceRecord(key: DeviceResourceKey.osName.rawValue, value: "iPadOS"),
+            MetadataRecord.createResourceRecord(key: ResourceAttributes.osName.rawValue, value: "iPadOS"),
             MetadataRecord.createResourceRecord(key: DeviceResourceKey.locale.rawValue, value: "en_US_POSIX"),
             MetadataRecord.createResourceRecord(key: DeviceResourceKey.timezone.rawValue, value: "GMT-3:00"),
 
