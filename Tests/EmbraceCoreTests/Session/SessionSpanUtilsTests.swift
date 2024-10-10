@@ -149,7 +149,7 @@ final class SessionSpanUtilsTests: XCTestCase {
         XCTAssertEqual(payload.traceId, TestConstants.traceId)
         XCTAssertEqual(payload.spanId, TestConstants.spanId)
         XCTAssertNil(payload.parentSpanId)
-        XCTAssertEqual(payload.status, Status.ok.name)
+        XCTAssertEqual(payload.status, "error")
         XCTAssertEqual(payload.startTime, TestConstants.date.nanosecondsSince1970Truncated)
         XCTAssertEqual(payload.endTime, endTime.nanosecondsSince1970Truncated)
         XCTAssertEqual(payload.events.count, 0)
@@ -199,6 +199,46 @@ final class SessionSpanUtilsTests: XCTestCase {
             $0.key == "emb.crash_id"
         }
         XCTAssertEqual(crashIdAttribute!.value, "test")
+    }
+
+    func test_status() {
+        // test ok status
+        var session = SessionRecord(
+            id: TestConstants.sessionId,
+            state: .foreground,
+            processId: TestConstants.processId,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: TestConstants.date,
+            endTime: Date(),
+            lastHeartbeatTime: Date(),
+            crashReportId: nil,
+            coldStart: true,
+            cleanExit: false,
+            appTerminated: true
+        )
+
+        var payload = SessionSpanUtils.payload(from: session, sessionNumber: 100)
+        XCTAssertEqual(payload.status, "ok")
+
+        // test error status
+        session = SessionRecord(
+            id: TestConstants.sessionId,
+            state: .foreground,
+            processId: TestConstants.processId,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: TestConstants.date,
+            endTime: Date(),
+            lastHeartbeatTime: Date(),
+            crashReportId: "test",
+            coldStart: true,
+            cleanExit: false,
+            appTerminated: true
+        )
+
+        payload = SessionSpanUtils.payload(from: session, sessionNumber: 100)
+        XCTAssertEqual(payload.status, "error")
     }
 
     func test_payloadFromSession_shouldAddCustomePropertiesWithPrefixedKey() {

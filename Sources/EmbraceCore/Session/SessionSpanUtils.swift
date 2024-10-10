@@ -58,7 +58,7 @@ fileprivate extension SpanPayload {
         self.spanId = session.spanId
         self.parentSpanId = nil
         self.name = SpanSemantics.Session.name
-        self.status = Status.ok.name
+        self.status = session.crashReportId != nil ? Status.sessionCrashedError().name : Status.ok.name
         self.startTime = session.startTime.nanosecondsSince1970Truncated
         self.endTime = session.endTime?.nanosecondsSince1970Truncated ??
                        session.lastHeartbeatTime.nanosecondsSince1970Truncated
@@ -126,5 +126,11 @@ fileprivate extension SpanPayload {
             self.events = []
             self.links = []
         }
+    }
+}
+
+internal extension OpenTelemetryApi.Status {
+    static func sessionCrashedError() -> Status {
+        return Status.error(description: "Session crashed!")
     }
 }

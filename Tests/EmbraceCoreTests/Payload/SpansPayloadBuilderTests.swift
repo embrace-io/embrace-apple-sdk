@@ -49,6 +49,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
             name: name ?? "test-span",
             kind: .internal,
             startTime: startTime,
+            status: endTime == nil ? .unset : .ok,
             endTime: endTime ?? Date(),
             hasEnded: endTime != nil
         )
@@ -229,7 +230,9 @@ final class SpansPayloadBuilderTests: XCTestCase {
         // then the spans are retrieved correctly
         XCTAssertEqual(closed.count, 2)
         XCTAssertEqual(closed[0].name, "emb-session") // session span always first
+        XCTAssertEqual(closed[0].status, "error")
         XCTAssertEqual(closed[1], payload)
+        XCTAssertEqual(closed[1].status, "error")
         XCTAssertEqual(open.count, 0)
 
         // then the error code attribute was added
@@ -254,12 +257,41 @@ final class SpansPayloadBuilderTests: XCTestCase {
         // then the spans are retrieved correctly
         XCTAssertEqual(closed.count, 2)
         XCTAssertEqual(closed[0].name, "emb-session") // session span always first
+        XCTAssertEqual(closed[0].status, "error")
         XCTAssertEqual(closed[1], payload)
+        XCTAssertEqual(closed[1].status, "error")
         XCTAssertEqual(open.count, 0)
 
         // then the error code attribute was added
         let attribute = closed[1].attributes.first { $0.key == "emb.error_code" }
         XCTAssertEqual(attribute!.value, "failure")
+    }
+
+    func test_closedSpan_withinCrashedSession() throws {
+        // given a crashed session
+        sessionRecord.crashReportId = "test"
+
+        // given a open span that started after the crashed session
+        let span = try addSpan(
+            startTime: Date(timeIntervalSince1970: 55),
+            endTime: Date(timeIntervalSince1970: 60)
+        )
+        let payload = SpanPayload(from: span, endTime: Date(timeIntervalSince1970: 60), failed: false)
+
+        // when building the spans payload
+        let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
+
+        // then the spans are retrieved correctly
+        XCTAssertEqual(closed.count, 2)
+        XCTAssertEqual(closed[0].name, "emb-session") // session span always first
+        XCTAssertEqual(closed[0].status, "error")
+        XCTAssertEqual(closed[1], payload)
+        XCTAssertEqual(closed[1].status, "ok")
+        XCTAssertEqual(open.count, 0)
+
+        // then the error code attribute was added
+        let attribute = closed[1].attributes.first { $0.key == "emb.error_code" }
+        XCTAssertNil(attribute)
     }
 
     func test_hardLimit() throws {
