@@ -11,7 +11,7 @@ public extension SpanType {
 public extension SpanSemantics {
     struct Session {
         public static let name = "emb-session"
-        public static let keyId = "emb.session_id"
+        public static let keyId = "session.id"
         public static let keyState = "emb.state"
         public static let keyColdStart = "emb.cold_start"
         public static let keyTerminated = "emb.terminated"
