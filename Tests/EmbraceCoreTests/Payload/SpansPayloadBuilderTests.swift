@@ -229,7 +229,9 @@ final class SpansPayloadBuilderTests: XCTestCase {
         // then the spans are retrieved correctly
         XCTAssertEqual(closed.count, 2)
         XCTAssertEqual(closed[0].name, "emb-session") // session span always first
+        XCTAssertEqual(closed[0].status, "error")
         XCTAssertEqual(closed[1], payload)
+        XCTAssertEqual(closed[1].status, "error")
         XCTAssertEqual(open.count, 0)
 
         // then the error code attribute was added
@@ -254,7 +256,9 @@ final class SpansPayloadBuilderTests: XCTestCase {
         // then the spans are retrieved correctly
         XCTAssertEqual(closed.count, 2)
         XCTAssertEqual(closed[0].name, "emb-session") // session span always first
+        XCTAssertEqual(closed[0].status, "error")
         XCTAssertEqual(closed[1], payload)
+        XCTAssertEqual(closed[1].status, "error")
         XCTAssertEqual(open.count, 0)
 
         // then the error code attribute was added

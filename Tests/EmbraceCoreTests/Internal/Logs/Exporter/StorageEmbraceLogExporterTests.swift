@@ -67,7 +67,7 @@ class StorageEmbraceLogExporterTests: XCTestCase {
             str += "."
         }
         whenInvokingExport(withLogs: [randomLogData(body: str)])
-        
+
         thenBatchAdded(count: 0)
         thenResult(is: .success)
     }
