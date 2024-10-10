@@ -58,7 +58,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
     }
 
     /// Returns the current `MetadataHandler` used to store resources and session properties.
-    public let metadata: MetadataHandler
+    @objc public let metadata: MetadataHandler
 
     let config: EmbraceConfig?
     let storage: EmbraceStorage
