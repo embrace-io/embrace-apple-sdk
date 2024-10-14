@@ -14,7 +14,7 @@ SWIFT_LINT=swiftlint
 AUTO_CORRECT=1
 
 # stage fixed files automatically
-AUTO_STAGE=1
+AUTO_STAGE=0
 
 ####################################################################################################
 
@@ -45,7 +45,7 @@ fi
 
 export SCRIPT_INPUT_FILE_COUNT=$FILE_COUNT
 
-# autocorrect modified files 
+# autocorrect modified files
 if [ "$AUTO_CORRECT" -eq 1 ]; then
     FIX_RESULT=$($SWIFT_LINT lint --fix --strict --use-script-input-files --force-exclude)
 
