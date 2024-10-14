@@ -109,7 +109,7 @@ class DefaultInternalLoggerTests: XCTestCase {
         XCTAssertEqual(otel.logs.count, 1)
         XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string("sys.internal"))
         XCTAssertEqual(otel.logs[0].attributes["emb.state"], .string("foreground"))
-        XCTAssertEqual(otel.logs[0].attributes["emb.session_id"], .string(TestConstants.sessionId.toString))
+        XCTAssertEqual(otel.logs[0].attributes["session.id"], .string(TestConstants.sessionId.toString))
         XCTAssertEqual(otel.logs[0].body?.description, "trace1")
         XCTAssertEqual(otel.logs[0].severity, .trace)
     }
@@ -136,7 +136,7 @@ class DefaultInternalLoggerTests: XCTestCase {
         XCTAssertEqual(otel.logs.count, 1)
         XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string("sys.internal"))
         XCTAssertEqual(otel.logs[0].attributes["emb.state"], .string("foreground"))
-        XCTAssertEqual(otel.logs[0].attributes["emb.session_id"], .string(TestConstants.sessionId.toString))
+        XCTAssertEqual(otel.logs[0].attributes["session.id"], .string(TestConstants.sessionId.toString))
         XCTAssertEqual(otel.logs[0].body?.description, "debug1")
         XCTAssertEqual(otel.logs[0].severity, .debug)
     }
@@ -163,7 +163,7 @@ class DefaultInternalLoggerTests: XCTestCase {
         XCTAssertEqual(otel.logs.count, 1)
         XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string("sys.internal"))
         XCTAssertEqual(otel.logs[0].attributes["emb.state"], .string("foreground"))
-        XCTAssertEqual(otel.logs[0].attributes["emb.session_id"], .string(TestConstants.sessionId.toString))
+        XCTAssertEqual(otel.logs[0].attributes["session.id"], .string(TestConstants.sessionId.toString))
         XCTAssertEqual(otel.logs[0].body?.description, "info1")
         XCTAssertEqual(otel.logs[0].severity, .info)
     }
@@ -190,7 +190,7 @@ class DefaultInternalLoggerTests: XCTestCase {
         XCTAssertEqual(otel.logs.count, 1)
         XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string("sys.internal"))
         XCTAssertEqual(otel.logs[0].attributes["emb.state"], .string("foreground"))
-        XCTAssertEqual(otel.logs[0].attributes["emb.session_id"], .string(TestConstants.sessionId.toString))
+        XCTAssertEqual(otel.logs[0].attributes["session.id"], .string(TestConstants.sessionId.toString))
         XCTAssertEqual(otel.logs[0].body?.description, "warning1")
         XCTAssertEqual(otel.logs[0].severity, .warn)
     }
@@ -217,7 +217,7 @@ class DefaultInternalLoggerTests: XCTestCase {
         XCTAssertEqual(otel.logs.count, 1)
         XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string("sys.internal"))
         XCTAssertEqual(otel.logs[0].attributes["emb.state"], .string("foreground"))
-        XCTAssertEqual(otel.logs[0].attributes["emb.session_id"], .string(TestConstants.sessionId.toString))
+        XCTAssertEqual(otel.logs[0].attributes["session.id"], .string(TestConstants.sessionId.toString))
         XCTAssertEqual(otel.logs[0].body?.description, "error1")
         XCTAssertEqual(otel.logs[0].severity, .error)
     }
