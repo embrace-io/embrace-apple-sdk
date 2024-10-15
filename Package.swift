@@ -4,6 +4,19 @@
 import Foundation
 import PackageDescription
 
+#if TUIST
+    import ProjectDescription
+
+    let packageSettings = PackageSettings(
+        productTypes: [
+            "GRDB": .framework,
+            "KSCrash": .framework,
+            "OpenTelemetrySdk": .framework,
+            "OpenTelemetryApi": .framework
+        ]
+    )
+#endif
+
 let package = Package(
     name: "EmbraceIO",
     platforms: [
