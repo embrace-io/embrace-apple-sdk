@@ -5,7 +5,7 @@ This project represents a shift from the previous Embrace SDK in that it adopts 
 supports the [OpenTelemetry](https://opentelemetry.io/) standard. We have also added features that extend OpenTelemetry to
 better support mobile apps.
 
-Telemetry recorded through this SDK can be consumed on the Embrace platform for Embrace customers, but it can also be used by those who are not Embrace customers to export collected data directly to any OTel Collector, either one that they host or is hosted by other vendors. In effect, this SDK is an alternative to using the [OpenTelemetry Swift SDK](https://github.com/open-telemetry/opentelemetry-swift) directly for iOS apps that want to leverage the OpenTelemetry ecosystem for observability, but also want all the advanced telemetry capture that Embrace is known for. 
+Telemetry recorded through this SDK can be consumed on the Embrace platform for Embrace customers, but it can also be used by those who are not Embrace customers to export collected data directly to any OTel Collector, either one that they host or is hosted by other vendors. In effect, this SDK is an alternative to using the [OpenTelemetry Swift SDK](https://github.com/open-telemetry/opentelemetry-swift) directly for iOS apps that want to leverage the OpenTelemetry ecosystem for observability, but also want all the advanced telemetry capture that Embrace is known for.
 
 Currently, only Spans and Logs are supported, but other signals will be added in the future.
 
@@ -16,7 +16,7 @@ More documentation and examples can be found at [https://embrace.io/docs/](https
 ### Currently Supported Key Features
 
 * Session capture
-* Crash capture 
+* Crash capture
 * Network capture
 * OTel trace capture
 * Custom breadcrumbs
@@ -24,12 +24,11 @@ More documentation and examples can be found at [https://embrace.io/docs/](https
 * OpenTelemetry Export
 * Session properties
 * Automatic view tracking
+* Network payload capture
 
 ### Key Features Coming Soon
 
 * Metrickit capture
-* Network payload capture
-* Extensions insights
 
 ## Getting Started
 
@@ -161,12 +160,18 @@ bin/test | xcpretty
 
 ## Linting and Guidelines
 
-We use [SwiftLint](https://github.com/realm/SwiftLint) to enforce them and every pull request must satisfy them to be merged.
-SwiftLint is used as a plugin in all of our targets to get warnings and errors directly in Xcode.
+We use [SwiftLint](https://github.com/realm/SwiftLint) to enforce consistency and every pull request must pass a lint check to be merged.
 
-You can run the swiftlint plugin from the CLI as well:
+You can install SwiftLint by following the instructions in their [README](https://github.com/realm/SwiftLint/blob/main/README.md).
+We recommend homebrew:
+
 ```sh
-swift run swiftlint --fix
+brew install swiftlint
+```
+
+Once `swiftlint` is in your PATH, you can run the linter:
+```sh
+swiftlint --fix
 ```
 
 ### Using SwiftLint
@@ -182,8 +187,11 @@ For this first you'll need to install SwiftLint in your local environment. Follo
 We strongly recommend to use a pre-commit hook to make sure all the modified files follow the guidelines before pushing.
 We have provided an example pre-commit hook in `.githooks/pre-commit`. Note that depending on your local environment, you might need to edit the pre-commit file to set the path to `swiftlint`.
 
+```sh
+cp .githooks/pre-commit .git/hooks/pre-commit
+```
+
 **Alternatives on how to setup the hook:**
-* Simply copy `.githooks/pre-commit` into `.git/hooks/pre-commit`.
 * Use the `core.hooksPath` setting to change the hooks path (`git config core.hooksPath .githooks`)
 
 
@@ -209,9 +217,9 @@ To test that your changes fixed the auth issue, attempt to fetch the dependencie
 > WatchOS support does not currently include the Embrace Crash Reporter. Instrumentation and observability will be possible but the SDK will not be able to collect crash reports.
 >
 
-## Support 
+## Support
 
-We appreciate any feedback you have on the SDK and the APIs that it provides. 
+We appreciate any feedback you have on the SDK and the APIs that it provides.
 
 To contribute to this project please see our [Contribution Guidelines](https://github.com/embrace-io/embrace-apple-sdk/blob/main/CONTRIBUTING.md). After completing the Individual Contributor License Agreement (CLA), you'll be able to submit a feature request, create a bug report, or submit a pull request.
 

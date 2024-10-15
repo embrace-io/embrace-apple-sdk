@@ -35,7 +35,7 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
         whenInvokingAddSessionIdentifier()
         whenInvokingBuild()
 
-        thenResultingAttributes(is: ["emb.session_id": identifier.toString])
+        thenResultingAttributes(is: ["session.id": identifier.toString])
     }
 
     func testOnNotHavingSession_addSessionIdentifier_addsNothingToAttributes() {
