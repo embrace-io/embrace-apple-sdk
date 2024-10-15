@@ -12,3 +12,12 @@ public extension SpanEventSemantics {
         public static let name = "emb-device-low-memory"
     }
 }
+
+public extension SpanType {
+    @available(
+        *,
+         deprecated,
+         renamed: "SpanEventType.lowMemory",
+         message: "Has been moved to `SpanEventType.lowMemory`")
+    static let lowMemory = SpanType(system: "low_memory")
+}

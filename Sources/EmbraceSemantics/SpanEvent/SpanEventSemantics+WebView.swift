@@ -15,3 +15,8 @@ public extension SpanEventSemantics {
         public static let keyErrorCode = "webview.error_code"
     }
 }
+
+public extension SpanType {
+    @available(*, deprecated, renamed: "SpanEventType.webView", message: "Has been moved to `SpanEventType.webView`")
+    static let webView = SpanType(ux: "webview")
+}

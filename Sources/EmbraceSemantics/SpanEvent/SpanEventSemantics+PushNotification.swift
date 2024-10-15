@@ -23,3 +23,12 @@ public extension SpanEventSemantics {
         public static let silentType = "silent"
     }
 }
+
+public extension SpanType {
+    @available(
+        *,
+        deprecated,
+        renamed: "SpanEventType.pushNotification",
+        message: "Has been moved to `SpanEventType.pushNotification`")
+    static let pushNotification = SpanEventType(system: "push_notification")
+}

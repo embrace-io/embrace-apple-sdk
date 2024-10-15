@@ -15,3 +15,8 @@ public extension SpanEventSemantics {
         public static let keyCoordinates = "tap.coords"
     }
 }
+
+public extension SpanType {
+    @available(*, deprecated, renamed: "SpanEventType.tap", message: "Has been moved to `SpanEventType.tap`")
+    static let tap = SpanType(ux: "tap")
+}
