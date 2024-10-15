@@ -8,7 +8,7 @@ import EmbraceCommonInternal
 import EmbraceSemantics
 import OpenTelemetryApi
 
-/// Class used to represent a Breadcrum as a SpanEvent.
+/// Class used to represent a Breadcrumb as a SpanEvent.
 /// Usage example:
 /// `Embrace.client?.add(.breadcrumb("This is a breadcrumb"))`
 @objc(EMBBreadcrumb)
@@ -22,7 +22,7 @@ public class Breadcrumb: NSObject, SpanEvent {
         timestamp: Date = Date(),
         attributes: [String: AttributeValue]
     ) {
-        self.name = SpanEventSemantics.Bradcrumb.name
+        self.name = SpanEventSemantics.Breadcrumb.name
         self.timestamp = timestamp
         self.attributes = attributes
         self.attributes[SpanEventSemantics.Bradcrumb.keyMessage] = .string(message)

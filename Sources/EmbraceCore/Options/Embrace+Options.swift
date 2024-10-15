@@ -6,6 +6,8 @@ import Foundation
 import EmbraceCaptureService
 import EmbraceCommonInternal
 import EmbraceOTelInternal
+import EmbraceConfigInternal
+import EmbraceConfiguration
 
 extension Embrace {
 
@@ -20,6 +22,7 @@ extension Embrace {
         @objc public let crashReporter: CrashReporter?
         @objc public let logLevel: LogLevel
         @objc public let export: OpenTelemetryExport?
+        @objc public let runtimeConfiguration: EmbraceConfigurable?
 
         /// Default initializer for `Embrace.Options` that requires an array of `CaptureServices` to be passed.
         ///
@@ -53,6 +56,7 @@ extension Embrace {
             self.crashReporter = crashReporter
             self.logLevel = logLevel
             self.export = export
+            self.runtimeConfiguration = nil
         }
 
         /// Initializer for `Embrace.Options` that does not require an appId.
@@ -65,12 +69,14 @@ extension Embrace {
         ///   - captureServices: The `CaptureServices` to be installed.
         ///   - crashReporter: The `CrashReporter` to be installed.
         ///   - logLevel: The `LogLevel` to use for console logs.
+        ///   - runtimeConfiguration: An object to control runtime behavior of the SDK itself.
         @objc public init(
             export: OpenTelemetryExport,
             platform: Platform = .default,
             captureServices: [CaptureService],
             crashReporter: CrashReporter?,
-            logLevel: LogLevel = .default
+            logLevel: LogLevel = .default,
+            runtimeConfiguration: EmbraceConfigurable = .default
         ) {
             self.appId = nil
             self.appGroupId = nil
@@ -80,12 +86,13 @@ extension Embrace {
             self.crashReporter = crashReporter
             self.logLevel = logLevel
             self.export = export
+            self.runtimeConfiguration = runtimeConfiguration
         }
     }
 }
 
 internal extension Embrace.Options {
-    /// Valiate Options object to make sure it has not been configured ambiguously
+    /// Validate Options object to make sure it has not been configured ambiguously
     func validate() throws {
         try validateAppId()
         try validateGroupId()

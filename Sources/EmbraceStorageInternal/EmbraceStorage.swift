@@ -68,7 +68,7 @@ extension EmbraceStorage {
 
     /// Deletes a record from the storage synchronously.
     /// - Parameter record: `PersistableRecord` to delete
-    /// - Returns: Boolean indicating if the record was successfuly deleted
+    /// - Returns: Boolean indicating if the record was successfully deleted
     @discardableResult public func delete(record: PersistableRecord) throws -> Bool {
         try dbQueue.write { db in
             return try record.delete(db)
@@ -110,7 +110,7 @@ extension EmbraceStorage {
     /// - Parameters:
     ///   - record: `PersistableRecord` to delete
     ///   - completion: Completion block called with an `Error` on failure
-    /// - Returns: Boolean indicating if the record was successfuly deleted
+    /// - Returns: Boolean indicating if the record was successfully deleted
     public func deleteAsync(record: PersistableRecord, completion: ((Result<Void, Error>) -> Void)?) {
         dbWriteAsync(block: { db in
             try record.delete(db)
@@ -155,7 +155,7 @@ extension EmbraceStorage {
             try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true)
             return try EmbraceStorage.getDBQueueIfPossible(at: fileURL, logger: logger)
         } else {
-            fatalError("Unsupported storage mechansim added")
+            fatalError("Unsupported storage mechanism added")
         }
     }
 

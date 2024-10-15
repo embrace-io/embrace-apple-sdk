@@ -58,7 +58,7 @@ jobs:
         run: bin/test | xcpretty && exit ${PIPESTATUS[0]}
         timeout-minutes: 30
 
-      - uses: embrace-io/xcresulttool@v1
+      - uses: kishikawakatsumi/xcresulttool@v1
         if: always()
         with:
           path: .build/test/output.xcresult

@@ -6,6 +6,7 @@ import XCTest
 import TestSupport
 @testable import EmbraceCore
 @testable import EmbraceConfigInternal
+@testable import EmbraceConfiguration
 import EmbraceStorageInternal
 
 class URLSessionTaskCaptureRuleTests: XCTestCase {
@@ -72,7 +73,7 @@ class URLSessionTaskCaptureRuleTests: XCTestCase {
         // given a rule
         let rule = URLSessionTaskCaptureRule(rule: rule1)
 
-        // it should not trigger for a request that doesnt match
+        // it should not trigger for a request that doesn't match
         var request = URLRequest(url: URL(string: "www.test.com")!)
         request.httpMethod = "GET"
 
@@ -84,7 +85,7 @@ class URLSessionTaskCaptureRuleTests: XCTestCase {
         let rule = URLSessionTaskCaptureRule(rule: rule1)
 
         // it should not trigger for a request matches the url
-        // but doesnt match the method
+        // but doesn't match the method
         var request = URLRequest(url: URL(string: "www.test.com/user/1234")!)
         request.httpMethod = "POST"
 

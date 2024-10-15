@@ -15,7 +15,7 @@ class SessionPayloadBuilder {
 
         do {
             // fetch resource
-            resource = try storage.fetchRequriedPermanentResource(key: resourceName)
+            resource = try storage.fetchRequiredPermanentResource(key: resourceName)
         } catch {
             Embrace.logger.debug("Error fetching \(resourceName) resource!")
         }

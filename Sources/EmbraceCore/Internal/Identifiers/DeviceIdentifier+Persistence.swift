@@ -13,7 +13,7 @@ extension DeviceIdentifier {
         // retrieve from storage
         if let storage = storage {
             do {
-                if let resource = try storage.fetchRequriedPermanentResource(key: resourceKey) {
+                if let resource = try storage.fetchRequiredPermanentResource(key: resourceKey) {
                     if let uuid = resource.uuidValue {
                         return DeviceIdentifier(value: uuid)
                     }

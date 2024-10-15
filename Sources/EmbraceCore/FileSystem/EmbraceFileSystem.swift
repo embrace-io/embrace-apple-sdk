@@ -16,10 +16,10 @@ public struct EmbraceFileSystem {
 
     /// Returns the path to the system directory that is the root directory for storage.
     /// When `appGroupId` is present, will be a URL to an app group container
-    /// If not present, will be a path to the user's applicaton support directory.
+    /// If not present, will be a path to the user's application support directory.
     ///
     /// - Note: On tvOS, if `appGroupId` is not present this will be a path to the user's Cache directory.
-    ///                tvOS is an always connected system an long term persistented data is not permitted
+    ///                tvOS is an always connected system an long term persisted data is not permitted
     private static func systemDirectory(appGroupId: String? = nil) -> URL? {
         // if the app group identifier is set, we use the shared container provided by the OS
         if let appGroupId = appGroupId {
@@ -53,7 +53,8 @@ public struct EmbraceFileSystem {
     /// ```
     /// - Parameters:
     ///    - name: The name of the subdirectory
-    ///    - partitionIdentifier: The main paritition identifier to use
+    ///    - partitionIdentifier: The main partition identifier to use
+    ///     identifier to use
     ///    - appGroupId: The app group identifier if using an app group container.
     static func directoryURL(name: String, partitionId: String, appGroupId: String? = nil) -> URL? {
         guard let baseURL = systemDirectory(appGroupId: appGroupId) else {

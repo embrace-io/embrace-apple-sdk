@@ -7,6 +7,7 @@ import EmbraceCommonInternal
 import EmbraceOTelInternal
 import EmbraceStorageInternal
 import EmbraceConfigInternal
+import EmbraceConfiguration
 
 class DefaultInternalLogger: InternalLogger {
 
@@ -47,12 +48,12 @@ class DefaultInternalLogger: InternalLogger {
         NotificationCenter.default.removeObserver(self)
     }
 
-    @objc func onSessionStart(noticication: Notification) {
-        currentSession = noticication.object as? SessionRecord
+    @objc func onSessionStart(notification: Notification) {
+        currentSession = notification.object as? SessionRecord
         counter.removeAll()
     }
 
-    @objc func onSessionEnd(noticication: Notification) {
+    @objc func onSessionEnd(notification: Notification) {
         currentSession = nil
     }
 
@@ -107,7 +108,7 @@ class DefaultInternalLogger: InternalLogger {
     }
 
     private func sendOTelLog(level: LogLevel, message: String, attributes: [String: String]) {
-        let limit = limits.forLogLevel(level)
+        let limit = limits.limit(for: level)
         guard limit > 0 else {
             return
         }
@@ -145,36 +146,8 @@ class DefaultInternalLogger: InternalLogger {
     }
 }
 
-struct InternalLogLimits {
-    let trace: Int
-    let debug: Int
-    let info: Int
-    let warning: Int
-    let error: Int
-
-    init () {
-        self.init(trace: 0, debug: 0, info: 0, warning: 0, error: 3)
-    }
-
-    init(config: EmbraceConfig) {
-        self.init(
-            trace: config.internalLogsTraceLimit,
-            debug: config.internalLogsDebugLimit,
-            info: config.internalLogsInfoLimit,
-            warning: config.internalLogsWarningLimit,
-            error: config.internalLogsErrorLimit
-        )
-    }
-
-    init(trace: Int, debug: Int, info: Int, warning: Int, error: Int) {
-        self.trace = trace
-        self.debug = debug
-        self.info = info
-        self.warning = warning
-        self.error = error
-    }
-
-    func forLogLevel(_ level: LogLevel) -> Int {
+extension InternalLogLimits {
+    func limit(for level: LogLevel) -> UInt {
         switch level {
         case .trace: return trace
         case .debug: return debug

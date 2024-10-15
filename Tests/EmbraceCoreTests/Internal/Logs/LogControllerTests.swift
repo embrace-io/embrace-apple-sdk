@@ -300,7 +300,7 @@ private extension LogControllerTests {
 
         var attributes: [String: PersistableValue] = [:]
         if let sessionId = sessionId {
-            attributes["emb.session_id"] = PersistableValue(sessionId.toString)
+            attributes["session.id"] = PersistableValue(sessionId.toString)
         }
 
         return LogRecord(

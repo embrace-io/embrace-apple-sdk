@@ -90,7 +90,7 @@ class LowPowerModeCollectorTests: XCTestCase {
         // when low power mode changes
         provider.isLowPowerModeEnabled = true
 
-        // then it is captued
+        // then it is captured
         XCTAssertNotNil(service.currentSpan)
     }
 
@@ -114,7 +114,7 @@ class LowPowerModeCollectorTests: XCTestCase {
         // when low power mode changes
         provider.isLowPowerModeEnabled = true
 
-        // then it is not captued
+        // then it is not captured
         XCTAssertNil(service.currentSpan)
     }
 
@@ -176,7 +176,7 @@ class LowPowerModeCollectorTests: XCTestCase {
         let span = service.currentSpan
         XCTAssertNotNil(span)
 
-        // when the service is stoped
+        // when the service is stopped
         service.stop()
 
         // then the span is ended
@@ -197,7 +197,7 @@ class LowPowerModeCollectorTests: XCTestCase {
         let span = service.currentSpan
         XCTAssertNotNil(span)
 
-        // when the service is stoped
+        // when the service is stopped
         service.stop()
 
         // then the span is ended

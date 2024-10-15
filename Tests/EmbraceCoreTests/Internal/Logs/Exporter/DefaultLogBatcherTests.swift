@@ -15,21 +15,21 @@ class DefaultLogBatcherTests: XCTestCase {
 
     func test_addLog_alwaysTriesToCreateLogInRepository() {
         givenDefaultLogBatcher()
-        givenRepositoryCreatesLogsSucessfully()
+        givenRepositoryCreatesLogsSuccessfully()
         whenInvokingAddLogRecord(withLogRecord: randomLogRecord())
         thenLogRepositoryCreateMethodWasInvoked()
     }
 
     func testOnSuccessfulRepository_whenInvokingAddLog_thenBatchShouldntFinish() {
         givenDefaultLogBatcher()
-        givenRepositoryCreatesLogsSucessfully()
+        givenRepositoryCreatesLogsSuccessfully()
         whenInvokingAddLogRecord(withLogRecord: randomLogRecord())
         thenDelegateShouldntInvokeBatchFinished()
     }
 
     func testOnSuccessfulRepository_whenInvokingAddLogMoreTimesThanLimit_thenBatchShouldFinish() {
         givenDefaultLogBatcher(limits: .init(maxLogsPerBatch: 1))
-        givenRepositoryCreatesLogsSucessfully()
+        givenRepositoryCreatesLogsSuccessfully()
         whenInvokingAddLogRecord(withLogRecord: randomLogRecord())
         whenInvokingAddLogRecord(withLogRecord: randomLogRecord())
         thenDelegateShouldInvokeBatchFinished()
@@ -37,14 +37,14 @@ class DefaultLogBatcherTests: XCTestCase {
 
     func testAutoEndBatchAfterLifespanExpired() {
         givenDefaultLogBatcher(limits: .init(maxBatchAge: 0.1, maxLogsPerBatch: 10))
-        givenRepositoryCreatesLogsSucessfully()
+        givenRepositoryCreatesLogsSuccessfully()
         whenInvokingAddLogRecord(withLogRecord: randomLogRecord())
         thenDelegateShouldInvokeBatchFinishedAfterBatchLifespan(0.2)
     }
 
     func testAutoEndBatchAfterLifespanExpired_TimerStartsAgainAfterNewLogAdded() {
         givenDefaultLogBatcher(limits: .init(maxBatchAge: 0.1, maxLogsPerBatch: 10))
-        givenRepositoryCreatesLogsSucessfully()
+        givenRepositoryCreatesLogsSuccessfully()
         whenInvokingAddLogRecord(withLogRecord: randomLogRecord())
         thenDelegateShouldInvokeBatchFinishedAfterBatchLifespan(0.2)
         self.delegate.didCallBatchFinished = false
@@ -54,7 +54,7 @@ class DefaultLogBatcherTests: XCTestCase {
 
     func testAutoEndBatchAfterLifespanExpired_CancelWhenBatchEndedPrematurely() {
         givenDefaultLogBatcher(limits: .init(maxBatchAge: 0.1, maxLogsPerBatch: 3))
-        givenRepositoryCreatesLogsSucessfully()
+        givenRepositoryCreatesLogsSuccessfully()
         whenInvokingAddLogRecord(withLogRecord: randomLogRecord())
         whenInvokingAddLogRecord(withLogRecord: randomLogRecord())
         whenInvokingAddLogRecord(withLogRecord: randomLogRecord())
@@ -71,7 +71,7 @@ private extension DefaultLogBatcherTests {
         sut = .init(repository: repository, logLimits: limits, delegate: delegate, processorQueue: .main)
     }
 
-    func givenRepositoryCreatesLogsSucessfully(withLog log: LogRecord? = nil) {
+    func givenRepositoryCreatesLogsSuccessfully(withLog log: LogRecord? = nil) {
         let logRecord = log ?? randomLogRecord()
         repository.stubbedCreateCompletionResult = .success(logRecord)
     }

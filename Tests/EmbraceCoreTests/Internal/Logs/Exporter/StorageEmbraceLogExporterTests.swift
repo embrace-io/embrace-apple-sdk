@@ -61,7 +61,13 @@ class StorageEmbraceLogExporterTests: XCTestCase {
 
     func test_havingActiveLogExporter_onExport_whenInvalidBody_exportSucceedsButNotAddedToBatch() {
         givenStorageEmbraceLogExporter(initialState: .active)
-        whenInvokingExport(withLogs: [randomLogData(body: nil)])
+
+        var str = ""
+        for _ in 1...4001 {
+            str += "."
+        }
+        whenInvokingExport(withLogs: [randomLogData(body: str)])
+        
         thenBatchAdded(count: 0)
         thenResult(is: .success)
     }
@@ -77,7 +83,12 @@ class StorageEmbraceLogExporterTests: XCTestCase {
     func test_havingActiveLogExporter_onExportManyLogs_someValidSomeInvalid_shouldInvokeBatcherForEveryValidLog() {
         let validAmount = Int.random(in: 1..<10)
         let validLogs = randomLogs(quantity: validAmount, body: "example")
-        let invalidLogs = randomLogs(quantity: Int.random(in: 1..<10))
+
+        var str = ""
+        for _ in 1...4001 {
+            str += "."
+        }
+        let invalidLogs = randomLogs(quantity: Int.random(in: 1..<10), body: str)
 
         givenStorageEmbraceLogExporter(initialState: .active)
         whenInvokingExport(withLogs: (validLogs + invalidLogs).shuffled())

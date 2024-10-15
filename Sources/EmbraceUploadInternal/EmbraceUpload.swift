@@ -9,7 +9,7 @@ public protocol EmbraceLogUploader: AnyObject {
     func uploadLog(id: String, data: Data, completion: ((Result<(), Error>) -> Void)?)
 }
 
-/// Class in charge of uploading all the data colected by the Embrace SDK.
+/// Class in charge of uploading all the data collected by the Embrace SDK.
 public class EmbraceUpload: EmbraceLogUploader {
 
     public private(set) var options: Options
@@ -81,7 +81,7 @@ public class EmbraceUpload: EmbraceLogUploader {
     /// - Parameters:
     ///   - id: Identifier of the session
     ///   - data: Data of the session's payload
-    ///   - completion: Completion block called when the data is succesfully cached, or when an `Error` occurs
+    ///   - completion: Completion block called when the data is successfully cached, or when an `Error` occurs
     public func uploadSpans(id: String, data: Data, completion: ((Result<(), Error>) -> Void)?) {
         queue.async { [weak self] in
             self?.uploadData(id: id, data: data, type: .spans, completion: completion)
@@ -92,7 +92,7 @@ public class EmbraceUpload: EmbraceLogUploader {
     /// - Parameters:
     ///   - id: Identifier of the log batch (has no utility aside of caching)
     ///   - data: Data of the log's payload
-    ///   - completion: Completion block called when the data is succesfully cached, or when an `Error` occurs
+    ///   - completion: Completion block called when the data is successfully cached, or when an `Error` occurs
     public func uploadLog(id: String, data: Data, completion: ((Result<(), Error>) -> Void)?) {
         queue.async { [weak self] in
             self?.uploadData(id: id, data: data, type: .log, completion: completion)

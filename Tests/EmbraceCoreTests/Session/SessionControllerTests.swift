@@ -285,22 +285,10 @@ final class SessionControllerTests: XCTestCase {
         configUrlSessionconfig.httpMaximumConnectionsPerHost = .max
         configUrlSessionconfig.protocolClasses = [EmbraceHTTPMock.self]
 
-        let configTestOptions = EmbraceConfig.Options(
-            apiBaseUrl: configBaseUrl,
-            queue: DispatchQueue(label: "com.test.embrace.config.queue", attributes: .concurrent),
-            appId: TestConstants.appId,
-            deviceId: TestConstants.deviceId,
-            osVersion: TestConstants.osVersion,
-            sdkVersion: TestConstants.sdkVersion,
-            appVersion: TestConstants.appVersion,
-            userAgent: TestConstants.userAgent,
-            urlSessionConfiguration: configUrlSessionconfig
-        )
-
         let config = EmbraceConfig(
-            options: configTestOptions,
-            notificationCenter: NotificationCenter.default,
-            logger: MockLogger()
+            configurable: EditableConfig(isBackgroundSessionEnabled: true),
+            options: .init(),
+            notificationCenter: NotificationCenter.default, logger: MockLogger()
         )
         wait(delay: .defaultTimeout)
 
@@ -334,7 +322,6 @@ final class SessionControllerTests: XCTestCase {
                 .init(name: "appId", value: TestConstants.appId),
                 .init(name: "osVersion", value: TestConstants.osVersion),
                 .init(name: "appVersion", value: TestConstants.appVersion),
-                .init(name: "deviceId", value: TestConstants.deviceId),
                 .init(name: "sdkVersion", value: TestConstants.sdkVersion)
             ])
         } else {

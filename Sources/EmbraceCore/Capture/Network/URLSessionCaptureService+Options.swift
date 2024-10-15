@@ -11,7 +11,7 @@ extension URLSessionCaptureService {
         /// Defines wether or not the Embrace SDK should inject the `traceparent` header into all network requests
         @objc public let injectTracingHeader: Bool
 
-        /// `URLSessionRequestsDataSource` instance that will manipuate all network requests
+        /// `URLSessionRequestsDataSource` instance that will manipulate all network requests
         /// before the Embrace SDK captures their data.
         @objc public let requestsDataSource: URLSessionRequestsDataSource?
 

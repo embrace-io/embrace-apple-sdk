@@ -125,9 +125,9 @@ class EmbraceUploadCache {
 
     /// Deletes the cached data for the given identifier.
     /// - Parameters:
-    ///   - id: Identifiar of the data
+    ///   - id: Identifier of the data
     ///   - type: Type of the data
-    /// - Returns: Boolean indicating if the data was successfuly deleted
+    /// - Returns: Boolean indicating if the data was successfully deleted
     @discardableResult func deleteUploadData(id: String, type: EmbraceUploadType) throws -> Bool {
         guard let uploadData = try fetchUploadData(id: id, type: type) else {
             return false
@@ -138,7 +138,7 @@ class EmbraceUploadCache {
 
     /// Deletes the cached `UploadDataRecord`.
     /// - Parameter uploadData: `UploadDataRecord` to delete
-    /// - Returns: Boolean indicating if the data was successfuly deleted
+    /// - Returns: Boolean indicating if the data was successfully deleted
     func deleteUploadData(_ uploadData: UploadDataRecord) throws -> Bool {
         try dbQueue.write { db in
             return try uploadData.delete(db)

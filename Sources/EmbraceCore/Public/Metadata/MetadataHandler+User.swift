@@ -6,7 +6,7 @@ import Foundation
 import EmbraceCommonInternal
 import EmbraceStorageInternal
 
-extension MetadataHandler {
+@objc extension MetadataHandler {
 
     /// Set a 'name' for the current user.
     /// Will be set permanently until explicitly unset via the `clearUserProperties()` method.
@@ -38,7 +38,7 @@ extension MetadataHandler {
     /// Will be set permanently until explicitly unset via the `clearUserProperties()` method.
     /// - Note: No validation is done on the identifier. Be sure it matches or
     ///         can be mapped to a record in your system
-    public var userIdentifier: String? {
+    @objc public var userIdentifier: String? {
         get {
             value(for: .identifier)
         }

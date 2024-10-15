@@ -10,7 +10,7 @@ enum ProcessMetadata { }
 extension ProcessMetadata {
 
     /// The Date at which this process started
-    /// Retreived via `sysctl` and `kinfo_proc.kp_proc`
+    /// Retrieved via `sysctl` and `kinfo_proc.kp_proc`
     static var startTime: Date? = {
         // Allocate memory
         let infoPointer = UnsafeMutablePointer<kinfo_proc>.allocate(capacity: 1)

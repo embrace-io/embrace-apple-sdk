@@ -9,8 +9,14 @@ public extension SpanEventType {
 }
 
 public extension SpanEventSemantics {
-    struct Bradcrumb {
-        public static let name = "emb-breadcrumb"
-        public static let keyMessage = "message"
-    }
+    @available(*, deprecated, message: "Use Breadcrumb as this struct will be removed in future versions", renamed: "Breadcrumb")
+        struct Bradcrumb {
+            public static let name: String = Breadcrumb.name
+            public static let keyMessage: String = Breadcrumb.keyMessage
+        }
+
+        struct Breadcrumb {
+            public static let name = "emb-breadcrumb"
+            public static let keyMessage = "message"
+        }
 }

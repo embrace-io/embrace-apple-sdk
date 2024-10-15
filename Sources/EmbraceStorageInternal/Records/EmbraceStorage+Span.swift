@@ -83,7 +83,7 @@ extension EmbraceStorage {
         return span
     }
 
-    /// Synchonously removes all the closed spans older than the given date.
+    /// Synchronously removes all the closed spans older than the given date.
     /// If no date is provided, all closed spans will be removed.
     /// - Parameter date: Date used to determine which spans to remove
     public func cleanUpSpans(date: Date? = nil) throws {
@@ -100,7 +100,7 @@ extension EmbraceStorage {
 
     /// Synchronously closes all open spans with the given `endTime`.
     /// - Parameters:
-    ///   - endtime: Identifier of the trace containing this span
+    ///   - endTime: Identifier of the trace containing this span
     public func closeOpenSpans(endTime: Date) throws {
         _ = try dbQueue.write { db in
             try SpanRecord

@@ -4,6 +4,9 @@
 
 import XCTest
 import EmbraceCore
+import EmbraceConfigInternal
+import EmbraceConfiguration
+import TestSupport
 
 final class Embrace_OptionsTests: XCTestCase {
 
@@ -24,5 +27,18 @@ final class Embrace_OptionsTests: XCTestCase {
         let options = Embrace.Options(export: export, captureServices: [], crashReporter: nil)
         XCTAssertEqual(options.export, export)
         XCTAssertNil(options.appId)
+    }
+
+    func test_init_withRuntimeConfiguration_usesInjectedObject() throws {
+        let mockObj = MockEmbraceConfigurable()
+
+        let options = Embrace.Options(
+            export: OpenTelemetryExport(),
+            captureServices: [],
+            crashReporter: nil,
+            runtimeConfiguration: mockObj
+        )
+
+        XCTAssertTrue(mockObj === options.runtimeConfiguration)
     }
 }

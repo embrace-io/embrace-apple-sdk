@@ -18,7 +18,7 @@ final class CaptureServices {
 
     init(options: Embrace.Options, storage: EmbraceStorage?, upload: EmbraceUpload?) throws {
         // add required capture services
-        // adn remove duplicates
+        // and remove duplicates
         services = CaptureServiceFactory.addRequiredServices(to: options.services.unique)
 
         // create context for crash reporter

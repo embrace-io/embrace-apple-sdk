@@ -1,11 +1,53 @@
 
 
-**Features**
+## 6.4.2
+*Oct 2nd, 2024*
+* Fixes
+    * Fixed crash in `URLSessionCaptureService`.
+    * Fixed network body capture logs not being exported.
+    * Fixed logic for background sessions.
+    * Fixed linker error on simulators in iOS 17.5 and below when using cocoapods.
 
-**Updates**
+## 6.4.1
+*Sep 26th, 2024*
+* Features
+    * Updated OpenTelemetry dependencies to v1.10.1.
+* Fixes
+    * Fixed logs not having resources from the session when being recovered during the SDK startup.
+    * Fixed crash with the `gtm-session-fetcher` library.
+    * Fixed KSCrash dependency compilation issues in Xcode 16.
 
-* Adds `MigrationService` in `EmbraceStorage` target to structure DB migrations that occur. Will perform migrations 
+## 6.4.0
+*Sep 13th, 2024*
+* Features
+    * Added the option to use the SDK without an `appId` using `Embrace.Options`.
+    * Introduced a new parameter in the `log` API: `stackTraceBehavior` to specify the behavior for automatically capturing stack traces within a log.
+    * Added the capability to securely capture the body of network requests.
+* Changes
+    * Removed `-dynamic` targets from Swift Package Manager.
+    * Discontinued capturing the screen resolution of devices.
+* Fixes
+    * Updated `GRDB` to the current latest version (`6.29.1`) to support Xcode 16.
+    * Addressed issues related to our service for capturing Network Requests with the new concurrency system (aka. `async` / `await`).
+    * Fixed a crash associated with being with another player proxying `URLSession`.
+    * Resolved an issue that prevented proper forwarding of calls to the original delegate when swizzling `URLSession` due to a retention issue.
+    * Corrected the public API `recordCompletedSpan` to set `Span.Status` consistently with other `end` methods.
+
+## 6.3.0
+*Aug 7th, 2024*
+* Features
+    * Added new public target: `EmbraceSemantics` to expose constants and attributes used to extend OTel Semantic Conventions
+    * Added Cocoapods support
+    * Added logic to link an emitted `LogRecord` to the active span context
+    * Created new APIs for `W3C.traceparent` to be used to support manually instrumented network requests
+* Changes
+    * Update `Embrace` to expose `LogType` on the `log` method
+    * Renamed `LogType.default` to `LogType.message`
+    * Adds `MigrationService` in `EmbraceStorage` target to structure DB migrations that occur. Will perform migrations
 during SDK setup if any are outstanding. Converted existing DB schema to be initialized using migrations.
+* Fixes
+    * Fixed the public `addPersona(persona: String, lifespan: MetadataLifespan)` method which wasn't properly forwarding the `lifespan`
+    * Fixed a bug that caused a reentrancy issue with the database when persisting spans.
 
 ## 6.2.0
 
