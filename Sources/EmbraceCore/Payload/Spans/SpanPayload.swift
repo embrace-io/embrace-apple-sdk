@@ -38,10 +38,15 @@ struct SpanPayload: Encodable {
         self.spanId = span.spanId.hexString
         self.parentSpanId = span.parentSpanId?.hexString
         self.name = span.name
-        self.status = span.status == .ok ? span.status.name : (failed ? Status.sessionCrashedError().name : span.status.name)
         self.startTime = span.startTime.nanosecondsSince1970Truncated
         self.events = span.events.map { SpanEventPayload(from: $0) }
         self.links = span.links.map { SpanLinkPayload(from: $0) }
+
+        if span.status == .ok || !failed {
+            self.status = span.status.name
+        } else {
+            self.status = Status.sessionCrashedError().name
+        }
 
         if let endTime = endTime {
             self.endTime = endTime.nanosecondsSince1970Truncated
