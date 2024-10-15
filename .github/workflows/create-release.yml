@@ -5,8 +5,6 @@ env:
 
 on:
   push:
-    tags:
-      - '[0-9]+.[0-9]+.[0-9]+'
     branches:
       - "release/*"
 
@@ -48,17 +46,6 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
-      - name: Exctract Production Readiness
-        run: |
-          if [ -z "$IS_PRODUCTION_READY" ]; then
-            if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_type }}" == "tag" ]]; then
-              echo "IS_PRODUCTION_READY=true" >> $GITHUB_ENV
-            else
-              echo "IS_PRODUCTION_READY=false" >> $GITHUB_ENV
-            fi
-          fi
-          echo "Production readiness determined: $IS_PRODUCTION_READY"
-
       - name: Validate and Extract RC Version Number
         id: rc_version_extractor
         run: |
@@ -68,9 +55,6 @@ jobs:
             if [[ "${{ github.ref_type }}" == "branch" ]]; then
               BRANCH_VERSION=${GITHUB_REF_NAME##release/}
               RC_VERSION=$BRANCH_VERSION
-            elif [[ "${{ github.ref_type }}" == "tag" ]]; then
-              TAG_VERSION=${GITHUB_REF_NAME#refs/tags/}
-              RC_VERSION=$TAG_VERSION
             fi
           fi
 
@@ -116,18 +100,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Determine base branch for the tag
-        if: env.IS_PRODUCTION_READY == 'true'
-        run: |
-          TAG_COMMIT=$(git rev-list -n 1 $RC_VERSION)
-          BASE_BRANCH=$(git branch -r --contains $TAG_COMMIT | head -n 1 | sed 's|origin/||')
-          echo "BASE_BRANCH=$BASE_BRANCH" >> $GITHUB_ENV
-
-      - name: Checkout base branch
-        if: env.IS_PRODUCTION_READY == 'true'
-        run: |
-          git checkout $BASE_BRANCH
-
       - name: Bump Version
         run: |
           echo "Bumping version to '$RC_VERSION'"
@@ -148,12 +120,11 @@ jobs:
 
           git add EmbraceIO.podspec \
               Sources/EmbraceCommonInternal/EmbraceMeta.swift
+
           git diff --cached
+          
           git commit -m "CI/CD: Bumps version to '$RC_VERSION'"
-          if [ -z "$BASE_BRANCH" ]; then
-            git push
-          else
-            git push origin $BASE_BRANCH
+          git push
           fi
 
       - name: Select Xcode 15
@@ -189,7 +160,6 @@ jobs:
           path: xcframeworks.zip
       
       - name: Tag the release candidate version
-        if: env.IS_PRODUCTION_READY == 'false'
         run: |
           git tag $RC_VERSION
           git push origin $RC_VERSION
