@@ -71,7 +71,8 @@ let project = Project(
             deploymentTargets: .iOS("13.0"),
             sources: ["Sources/EmbraceSemantics/**"],
             dependencies: [
-                .target(name: "EmbraceCommonInternal")
+                .target(name: "EmbraceCommonInternal"),
+                .external(name: "OpenTelemetrySdk")
             ],
             settings: .settings(base: [
                 "SKIP_INSTALL": "NO",
