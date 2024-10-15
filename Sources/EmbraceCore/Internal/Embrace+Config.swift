@@ -50,7 +50,6 @@ extension Embrace {
             userAgent: EmbraceMeta.userAgent
         )
 
-        let usedDigits = UInt(6)
         return RemoteConfig(
             options: options,
             logger: logger
