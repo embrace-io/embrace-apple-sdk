@@ -5,7 +5,7 @@
 import Foundation
 
 @objc
-public final class NetworkPayloadCaptureRule: NSObject, Decodable  {
+public final class NetworkPayloadCaptureRule: NSObject, Decodable {
     public let id: String
     public let urlRegex: String
     public let statusCodes: [Int]?
