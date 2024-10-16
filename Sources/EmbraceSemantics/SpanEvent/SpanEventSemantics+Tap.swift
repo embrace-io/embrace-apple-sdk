@@ -4,8 +4,8 @@
 
 import EmbraceCommonInternal
 
-public extension SpanType {
-    static let tap = SpanType(ux: "tap")
+public extension SpanEventType {
+    static let tap = SpanEventType(ux: "tap")
 }
 
 public extension SpanEventSemantics {
@@ -14,4 +14,9 @@ public extension SpanEventSemantics {
         public static let keyViewName = "view.name"
         public static let keyCoordinates = "tap.coords"
     }
+}
+
+public extension SpanType {
+    @available(*, deprecated, renamed: "SpanEventType.tap", message: "Has been moved to `SpanEventType.tap`")
+    static let tap = SpanType(ux: "tap")
 }

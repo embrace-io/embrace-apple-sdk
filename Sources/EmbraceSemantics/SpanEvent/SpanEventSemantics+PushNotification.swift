@@ -4,8 +4,8 @@
 
 import EmbraceCommonInternal
 
-public extension SpanType {
-    static let pushNotification = SpanType(system: "push_notification")
+public extension SpanEventType {
+    static let pushNotification = SpanEventType(system: "push_notification")
 }
 
 public extension SpanEventSemantics {
@@ -22,4 +22,13 @@ public extension SpanEventSemantics {
         public static let notificationType = "notif"
         public static let silentType = "silent"
     }
+}
+
+public extension SpanType {
+    @available(
+        *,
+        deprecated,
+        renamed: "SpanEventType.pushNotification",
+        message: "Has been moved to `SpanEventType.pushNotification`")
+    static let pushNotification = SpanEventType(system: "push_notification")
 }

@@ -63,7 +63,7 @@ public class PushNotificationEvent: NSObject, SpanEvent {
         var dict: [String: AttributeValue] = [:]
 
         // set types
-        dict[SpanEventSemantics.keyEmbraceType] = .string(SpanType.pushNotification.rawValue)
+        dict[SpanEventSemantics.keyEmbraceType] = .string(SpanEventType.pushNotification.rawValue)
         dict[SpanEventSemantics.PushNotification.keyType] =
             isSilent(userInfo: apsDict) ?
             .string(SpanEventSemantics.PushNotification.silentType) :

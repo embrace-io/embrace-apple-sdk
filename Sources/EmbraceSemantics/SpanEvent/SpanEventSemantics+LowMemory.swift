@@ -3,12 +3,21 @@
 //
 import EmbraceCommonInternal
 
-public extension SpanType {
-    static let lowMemory = SpanType(system: "low_memory")
+public extension SpanEventType {
+    static let lowMemory = SpanEventType(system: "low_memory")
 }
 
 public extension SpanEventSemantics {
     struct LowMemory {
         public static let name = "emb-device-low-memory"
     }
+}
+
+public extension SpanType {
+    @available(
+        *,
+         deprecated,
+         renamed: "SpanEventType.lowMemory",
+         message: "Has been moved to `SpanEventType.lowMemory`")
+    static let lowMemory = SpanType(system: "low_memory")
 }
