@@ -23,8 +23,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/embrace-io/KSCrash.git",
       "state" : {
-        "revision" : "17ad4c5159145ed550acb04b1cff48e826547265",
-        "version" : "2.0.4"
+        "revision" : "c5769c51706312803d33913778cc381fe6b4462c",
+        "version" : "2.0.5"
       }
     },
     {
@@ -34,15 +34,6 @@
       "state" : {
         "revision" : "0dd37c4a14a6aeeb131eea40a13cb3832c7c6a97",
         "version" : "1.10.1"
-      }
-    },
-    {
-      "identity" : "opentracing-objc",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/undefinedlabs/opentracing-objc",
-      "state" : {
-        "revision" : "18c1a35ca966236cee0c5a714a51a73ff33384c1",
-        "version" : "0.5.2"
       }
     },
     {
@@ -151,15 +142,6 @@
       "state" : {
         "revision" : "6a9e38e7bd22a3b8ba80bddf395623cf68f57807",
         "version" : "1.3.1"
-      }
-    },
-    {
-      "identity" : "thrift-swift",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/undefinedlabs/Thrift-Swift",
-      "state" : {
-        "revision" : "18ff09e6b30e589ed38f90a1af23e193b8ecef8e",
-        "version" : "1.1.2"
       }
     }
   ],
