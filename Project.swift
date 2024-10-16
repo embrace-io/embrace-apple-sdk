@@ -116,6 +116,7 @@ let project = Project(
             destinations: .iOS,
             product: .framework,
             bundleId: "com.embraceio.EmbraceConfiguration",
+            deploymentTargets: .iOS("13.0"),
             sources: ["Sources/EmbraceConfiguration/**"],
             dependencies: [],
             settings: .settings(base: [
