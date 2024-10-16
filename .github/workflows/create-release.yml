@@ -187,7 +187,7 @@ jobs:
         with:
           name: Embrace-Universal Build Artifacts
           path: xcframeworks.zip
-      
+
       - name: Tag the release candidate version
         if: env.IS_PRODUCTION_READY == 'false'
         run: |
