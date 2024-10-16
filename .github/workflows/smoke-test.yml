@@ -5,6 +5,7 @@ env:
 
 on:
   workflow_dispatch:
+
 # These permissions are needed to interact with GitHub's OIDC Token endpoint
 permissions:
   id-token: write
@@ -14,7 +15,7 @@ permissions:
 jobs:
   build-smoke-tests-app:
     timeout-minutes: 40
-    runs-on: [macos-12]
+    runs-on: [macos-14]
     strategy:
       fail-fast: false
 
@@ -56,7 +57,6 @@ jobs:
     uses: embrace-io/actions/.github/workflows/smoke-test.yml@master
     secrets: inherit
     with:
-      #Host: self-hosted, macos # macos-12
       LaunchCommand: xcrun simctl launch booted
       KillAppCommand: xcrun simctl terminate booted io.embrace.BrandGame
       BundleID: io.embrace.BrandGame
