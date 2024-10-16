@@ -24,7 +24,7 @@ func main() {
     if danger.github.pullRequest.head.label.contains("release/") && !changelogChanged {
         fail("Releases must have CHANGELOG updates.")
 
-    // otherwise only throw a warning if there was code changes without a changelog update
+    // otherwise only throw a warning if there were code changes without a changelog update
     } else if !changelogChanged && sourceChanges != nil {
         warn("No CHANGELOG entry added.")
     }
