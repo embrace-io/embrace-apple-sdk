@@ -125,7 +125,6 @@ jobs:
           
           git commit -m "CI/CD: Bumps version to '$RC_VERSION'"
           git push
-          fi
 
       - name: Select Xcode 15
         run: sudo xcode-select -switch /Applications/Xcode_15.4.app
