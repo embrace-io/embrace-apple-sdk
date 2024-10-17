@@ -59,6 +59,10 @@ Pod::Spec.new do |spec|
     config.dependency "EmbraceIO/EmbraceCommonInternal"
     config.dependency "EmbraceIO/EmbraceConfiguration"
   end
+  
+  spec.subspec 'EmbraceConfiguration' do |config|
+    config.vendored_frameworks = "xcframeworks/EmbraceConfiguration.xcframework"
+  end
 
   spec.subspec 'EmbraceOTelInternal' do |otel|
     otel.vendored_frameworks = "xcframeworks/EmbraceOTelInternal.xcframework"
