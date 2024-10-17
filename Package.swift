@@ -40,7 +40,7 @@ let package = Package(
         ),
         .package(
             url: "https://github.com/groue/GRDB.swift",
-            exact: "6.29.1"
+            .upToNextMinor(from: "6.29.1")
         )
     ],
     targets: [
