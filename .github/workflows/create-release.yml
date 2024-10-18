@@ -291,17 +291,7 @@ jobs:
           cd embrace-apple-sdk
           bin/version_bump $RC_VERSION --cocoapods
 
-      - name: Check if cocoapods version exists
-        run: |
-          info=$(pod trunk info EmbraceIO)
-          if echo "$info" | grep -q "$RC_VERSION"; then
-            echo "COCOAPODS_VERSION_EXISTS=true" >> $GITHUB_ENV
-          else
-            echo "COCOAPODS_VERSION_EXISTS=false" >> $GITHUB_ENV
-          fi
-
       - name: Push EmbraceIO Podspec
-        if: env.COCOAPODS_VERSION_EXISTS == 'false'
         run: |
           pod trunk push embrace-apple-sdk/EmbraceIO.podspec --allow-warnings
 
