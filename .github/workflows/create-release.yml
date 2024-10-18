@@ -17,10 +17,6 @@ on:
         description: "Is the release candidate production ready"
         type: boolean
         default: false
-      override_version:
-        description: "Should delete previous podspec (if exist) and create a new one"
-        type: boolean
-        default: false
 
 permissions:
   id-token: write
@@ -45,6 +41,13 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
+
+      - name: Define Production Readiness
+        run: |
+          if [ -z "$IS_PRODUCTION_READY" ]; then
+              echo "IS_PRODUCTION_READY=false" >> $GITHUB_ENV
+          fi
+          echo "Production readiness determined: $IS_PRODUCTION_READY"
 
       - name: Validate and Extract RC Version Number
         id: rc_version_extractor
@@ -296,13 +299,6 @@ jobs:
           else
             echo "COCOAPODS_VERSION_EXISTS=false" >> $GITHUB_ENV
           fi
-
-      # Only can delete pre-productive releases in cocoapods
-      - name: Delete and recreate podspec
-        if: ${{ inputs.override_version }} && env.COCOAPODS_VERSION_EXISTS == 'true' && env.IS_PRODUCTION_READY == 'false'
-        run: |
-            echo "y" | pod trunk delete EmbraceIO $RC_VERSION || echo "Ignoring HTML Output"
-            echo "COCOAPODS_VERSION_EXISTS=false" >> $GITHUB_ENV
 
       - name: Push EmbraceIO Podspec
         if: env.COCOAPODS_VERSION_EXISTS == 'false'
