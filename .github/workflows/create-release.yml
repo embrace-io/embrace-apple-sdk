@@ -294,7 +294,7 @@ jobs:
       - name: Check if cocoapods version exists
         run: |
           info=$(pod trunk info EmbraceIO)
-          if echo "$info" | grep -q "$version"; then
+          if echo "$info" | grep -q "$RC_VERSION"; then
             echo "COCOAPODS_VERSION_EXISTS=true" >> $GITHUB_ENV
           else
             echo "COCOAPODS_VERSION_EXISTS=false" >> $GITHUB_ENV
