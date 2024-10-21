@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		7B005D762AD72E080073CAC4 /* App+Embrace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B005D752AD72E080073CAC4 /* App+Embrace.swift */; };
+		7B2374C42CC2BC36008860E3 /* Apollo in Frameworks */ = {isa = PBXBuildFile; productRef = 7B2374C32CC2BC36008860E3 /* Apollo */; };
 		7B3143B32AFDC2D300BA0D2F /* LeftBracketShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B3143B22AFDC2D300BA0D2F /* LeftBracketShape.swift */; };
 		7B3143B52AFDC50E00BA0D2F /* LeftDotShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B3143B42AFDC50E00BA0D2F /* LeftDotShape.swift */; };
 		7B3143B72AFDC52D00BA0D2F /* RightDotShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B3143B62AFDC52D00BA0D2F /* RightDotShape.swift */; };
@@ -35,6 +36,20 @@
 		7B62ADA52B0068960087C2AE /* SimonGameModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B62ADA42B0068960087C2AE /* SimonGameModel.swift */; };
 		7B7341E12BD4AD100026D8B8 /* LazyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B7341E02BD4AD100026D8B8 /* LazyView.swift */; };
 		7B8BE3F92C5154BC006B0BF3 /* PillText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B8BE3F82C5154BC006B0BF3 /* PillText.swift */; };
+		7BA973372CC2D167009F57DD /* FilmsConnection.graphql.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BA973292CC2D167009F57DD /* FilmsConnection.graphql.swift */; };
+		7BA973382CC2D167009F57DD /* SchemaMetadata.graphql.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BA973332CC2D167009F57DD /* SchemaMetadata.graphql.swift */; };
+		7BA973392CC2D167009F57DD /* Node.graphql.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BA973262CC2D167009F57DD /* Node.graphql.swift */; };
+		7BA9733A2CC2D167009F57DD /* Film.graphql.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BA973282CC2D167009F57DD /* Film.graphql.swift */; };
+		7BA9733B2CC2D167009F57DD /* Vehicle.graphql.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BA973302CC2D167009F57DD /* Vehicle.graphql.swift */; };
+		7BA9733C2CC2D167009F57DD /* Root.graphql.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BA9732D2CC2D167009F57DD /* Root.graphql.swift */; };
+		7BA9733D2CC2D167009F57DD /* Planet.graphql.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BA9732C2CC2D167009F57DD /* Planet.graphql.swift */; };
+		7BA9733E2CC2D167009F57DD /* Species.graphql.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BA9732E2CC2D167009F57DD /* Species.graphql.swift */; };
+		7BA9733F2CC2D167009F57DD /* Query.graphql.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BA973232CC2D167009F57DD /* Query.graphql.swift */; };
+		7BA973402CC2D167009F57DD /* FilmSpeciesConnection.graphql.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BA9732A2CC2D167009F57DD /* FilmSpeciesConnection.graphql.swift */; };
+		7BA973412CC2D167009F57DD /* Starship.graphql.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BA9732F2CC2D167009F57DD /* Starship.graphql.swift */; };
+		7BA973432CC2D167009F57DD /* Person.graphql.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BA9732B2CC2D167009F57DD /* Person.graphql.swift */; };
+		7BA973442CC2D167009F57DD /* StarWarsAPI.graphql.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BA973352CC2D167009F57DD /* StarWarsAPI.graphql.swift */; };
+		7BA973462CC2E533009F57DD /* SchemaConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BA973452CC2E533009F57DD /* SchemaConfiguration.swift */; };
 		7BBBCD582BD0205C00BC289A /* StdoutLogExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BBBCD572BD0205C00BC289A /* StdoutLogExporter.swift */; };
 		7BBBCD5B2BD07CE000BC289A /* GitInfo+InfoPlist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BBBCD5A2BD07CE000BC289A /* GitInfo+InfoPlist.swift */; };
 		7BBBCD5D2BD07DE600BC289A /* App+GitInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BBBCD5C2BD07DE600BC289A /* App+GitInfo.swift */; };
@@ -43,6 +58,10 @@
 		7BCB66282AC4742800ABD33A /* MenuList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BCB66272AC4742800ABD33A /* MenuList.swift */; };
 		7BCB662A2AC4767B00ABD33A /* MainMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BCB66292AC4767B00ABD33A /* MainMenu.swift */; };
 		7BCB662E2AC476BC00ABD33A /* NetworkStressTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BCB662D2AC476BC00ABD33A /* NetworkStressTest.swift */; };
+		7BEA28612CBF074F009E50EB /* ApolloStressTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BEA28602CBF074F009E50EB /* ApolloStressTest.swift */; };
+		7BEA28642CBF07A7009E50EB /* ApolloClientProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BEA28632CBF07A7009E50EB /* ApolloClientProvider.swift */; };
+		7BEA286B2CC15ECC009E50EB /* star-wars-swapi@current.graphqls in Resources */ = {isa = PBXBuildFile; fileRef = 7BEA286A2CC15ECC009E50EB /* star-wars-swapi@current.graphqls */; };
+		7BEA286D2CC15F01009E50EB /* AllFilmsQuery.graphql in Resources */ = {isa = PBXBuildFile; fileRef = 7BEA286C2CC15F01009E50EB /* AllFilmsQuery.graphql */; };
 		FA1114462C8A4EE30026499D /* StackTraceBehavior+AsString.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA1114452C8A4EE30026499D /* StackTraceBehavior+AsString.swift */; };
 		FA3B0A112C3C2A5600315578 /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = FA3B0A102C3C2A5600315578 /* EmbraceCore */; };
 		FA3B0A132C3C2A5600315578 /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = FA3B0A122C3C2A5600315578 /* EmbraceCrash */; };
@@ -124,6 +143,20 @@
 		7B62ADA42B0068960087C2AE /* SimonGameModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimonGameModel.swift; sourceTree = "<group>"; };
 		7B7341E02BD4AD100026D8B8 /* LazyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LazyView.swift; sourceTree = "<group>"; };
 		7B8BE3F82C5154BC006B0BF3 /* PillText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PillText.swift; sourceTree = "<group>"; };
+		7BA973232CC2D167009F57DD /* Query.graphql.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Query.graphql.swift; sourceTree = "<group>"; };
+		7BA973262CC2D167009F57DD /* Node.graphql.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Node.graphql.swift; sourceTree = "<group>"; };
+		7BA973282CC2D167009F57DD /* Film.graphql.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Film.graphql.swift; sourceTree = "<group>"; };
+		7BA973292CC2D167009F57DD /* FilmsConnection.graphql.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilmsConnection.graphql.swift; sourceTree = "<group>"; };
+		7BA9732A2CC2D167009F57DD /* FilmSpeciesConnection.graphql.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilmSpeciesConnection.graphql.swift; sourceTree = "<group>"; };
+		7BA9732B2CC2D167009F57DD /* Person.graphql.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Person.graphql.swift; sourceTree = "<group>"; };
+		7BA9732C2CC2D167009F57DD /* Planet.graphql.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Planet.graphql.swift; sourceTree = "<group>"; };
+		7BA9732D2CC2D167009F57DD /* Root.graphql.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Root.graphql.swift; sourceTree = "<group>"; };
+		7BA9732E2CC2D167009F57DD /* Species.graphql.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Species.graphql.swift; sourceTree = "<group>"; };
+		7BA9732F2CC2D167009F57DD /* Starship.graphql.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Starship.graphql.swift; sourceTree = "<group>"; };
+		7BA973302CC2D167009F57DD /* Vehicle.graphql.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Vehicle.graphql.swift; sourceTree = "<group>"; };
+		7BA973332CC2D167009F57DD /* SchemaMetadata.graphql.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaMetadata.graphql.swift; sourceTree = "<group>"; };
+		7BA973352CC2D167009F57DD /* StarWarsAPI.graphql.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StarWarsAPI.graphql.swift; sourceTree = "<group>"; };
+		7BA973452CC2E533009F57DD /* SchemaConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaConfiguration.swift; sourceTree = "<group>"; };
 		7BBBCD4D2BCEC14000BC289A /* run.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = run.sh; sourceTree = "<group>"; };
 		7BBBCD4E2BCEC14000BC289A /* upload */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = upload; sourceTree = "<group>"; };
 		7BBBCD572BD0205C00BC289A /* StdoutLogExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StdoutLogExporter.swift; sourceTree = "<group>"; };
@@ -135,6 +168,10 @@
 		7BCB66272AC4742800ABD33A /* MenuList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuList.swift; sourceTree = "<group>"; };
 		7BCB66292AC4767B00ABD33A /* MainMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainMenu.swift; sourceTree = "<group>"; };
 		7BCB662D2AC476BC00ABD33A /* NetworkStressTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkStressTest.swift; sourceTree = "<group>"; };
+		7BEA28602CBF074F009E50EB /* ApolloStressTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApolloStressTest.swift; sourceTree = "<group>"; };
+		7BEA28632CBF07A7009E50EB /* ApolloClientProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApolloClientProvider.swift; sourceTree = "<group>"; };
+		7BEA286A2CC15ECC009E50EB /* star-wars-swapi@current.graphqls */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "star-wars-swapi@current.graphqls"; sourceTree = "<group>"; };
+		7BEA286C2CC15F01009E50EB /* AllFilmsQuery.graphql */ = {isa = PBXFileReference; lastKnownFileType = text; path = AllFilmsQuery.graphql; sourceTree = "<group>"; };
 		FA1114452C8A4EE30026499D /* StackTraceBehavior+AsString.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StackTraceBehavior+AsString.swift"; sourceTree = "<group>"; };
 		FA4C5F322C486E13005C0371 /* CreateSpanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateSpanView.swift; sourceTree = "<group>"; };
 		FA4C5F342C487B45005C0371 /* AttributesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributesView.swift; sourceTree = "<group>"; };
@@ -173,6 +210,7 @@
 				FA3B0A112C3C2A5600315578 /* EmbraceCore in Frameworks */,
 				FAF85DF52C45B1C6002306FF /* EmbraceCore in Frameworks */,
 				FAF85DF92C45B1C6002306FF /* EmbraceCrashlyticsSupport in Frameworks */,
+				7B2374C42CC2BC36008860E3 /* Apollo in Frameworks */,
 				FAF85DF72C45B1C6002306FF /* EmbraceCrash in Frameworks */,
 				FAEF5A152C6BA46F00484474 /* EmbraceCrashlyticsSupport in Frameworks */,
 				FAEF5A192C6BA46F00484474 /* EmbraceSemantics in Frameworks */,
@@ -244,6 +282,7 @@
 		7B5630812ABE743400E0DF39 = {
 			isa = PBXGroup;
 			children = (
+				7BA973362CC2D167009F57DD /* StarWarsAPI */,
 				7B56308C2ABE743400E0DF39 /* BrandGame */,
 				7B56308B2ABE743400E0DF39 /* Products */,
 				7B5630AF2AC26DF300E0DF39 /* Frameworks */,
@@ -261,6 +300,8 @@
 		7B56308C2ABE743400E0DF39 /* BrandGame */ = {
 			isa = PBXGroup;
 			children = (
+				7BEA286A2CC15ECC009E50EB /* star-wars-swapi@current.graphqls */,
+				7BEA286C2CC15F01009E50EB /* AllFilmsQuery.graphql */,
 				7B4FFC2F2B1E5D68006239F7 /* Info.plist */,
 				7B4FFC2B2B1E5B68006239F7 /* Embrace */,
 				7BBBCD542BD0202C00BC289A /* OpenTelemetry */,
@@ -341,6 +382,67 @@
 			path = Simon;
 			sourceTree = "<group>";
 		};
+		7BA973242CC2D167009F57DD /* Queries */ = {
+			isa = PBXGroup;
+			children = (
+				7BA973232CC2D167009F57DD /* Query.graphql.swift */,
+			);
+			path = Queries;
+			sourceTree = "<group>";
+		};
+		7BA973252CC2D167009F57DD /* Operations */ = {
+			isa = PBXGroup;
+			children = (
+				7BA973242CC2D167009F57DD /* Queries */,
+			);
+			path = Operations;
+			sourceTree = "<group>";
+		};
+		7BA973272CC2D167009F57DD /* Interfaces */ = {
+			isa = PBXGroup;
+			children = (
+				7BA973262CC2D167009F57DD /* Node.graphql.swift */,
+			);
+			path = Interfaces;
+			sourceTree = "<group>";
+		};
+		7BA973312CC2D167009F57DD /* Objects */ = {
+			isa = PBXGroup;
+			children = (
+				7BA973282CC2D167009F57DD /* Film.graphql.swift */,
+				7BA973292CC2D167009F57DD /* FilmsConnection.graphql.swift */,
+				7BA9732A2CC2D167009F57DD /* FilmSpeciesConnection.graphql.swift */,
+				7BA9732B2CC2D167009F57DD /* Person.graphql.swift */,
+				7BA9732C2CC2D167009F57DD /* Planet.graphql.swift */,
+				7BA9732D2CC2D167009F57DD /* Root.graphql.swift */,
+				7BA9732E2CC2D167009F57DD /* Species.graphql.swift */,
+				7BA9732F2CC2D167009F57DD /* Starship.graphql.swift */,
+				7BA973302CC2D167009F57DD /* Vehicle.graphql.swift */,
+			);
+			path = Objects;
+			sourceTree = "<group>";
+		};
+		7BA973342CC2D167009F57DD /* Schema */ = {
+			isa = PBXGroup;
+			children = (
+				7BA973452CC2E533009F57DD /* SchemaConfiguration.swift */,
+				7BA973272CC2D167009F57DD /* Interfaces */,
+				7BA973312CC2D167009F57DD /* Objects */,
+				7BA973332CC2D167009F57DD /* SchemaMetadata.graphql.swift */,
+			);
+			path = Schema;
+			sourceTree = "<group>";
+		};
+		7BA973362CC2D167009F57DD /* StarWarsAPI */ = {
+			isa = PBXGroup;
+			children = (
+				7BA973252CC2D167009F57DD /* Operations */,
+				7BA973342CC2D167009F57DD /* Schema */,
+				7BA973352CC2D167009F57DD /* StarWarsAPI.graphql.swift */,
+			);
+			path = StarWarsAPI;
+			sourceTree = "<group>";
+		};
 		7BBBCD4C2BCEC0F000BC289A /* Script */ = {
 			isa = PBXGroup;
 			children = (
@@ -414,6 +516,7 @@
 		7BCB662B2AC4769900ABD33A /* StressTests */ = {
 			isa = PBXGroup;
 			children = (
+				7BEA28622CBF075C009E50EB /* ApolloGraphQL */,
 				FAFDA3D52C34267300AD17CF /* MemoryWarning */,
 				FADB905C2C333B6400079005 /* Browser */,
 				FA9505142B8663FB00562A4C /* Logging */,
@@ -431,6 +534,23 @@
 				7BC49B0E2AC7864100FF381A /* NetworkRequest.swift */,
 			);
 			path = Network;
+			sourceTree = "<group>";
+		};
+		7BEA28622CBF075C009E50EB /* ApolloGraphQL */ = {
+			isa = PBXGroup;
+			children = (
+				7BEA28652CC02488009E50EB /* Queries */,
+				7BEA28602CBF074F009E50EB /* ApolloStressTest.swift */,
+				7BEA28632CBF07A7009E50EB /* ApolloClientProvider.swift */,
+			);
+			path = ApolloGraphQL;
+			sourceTree = "<group>";
+		};
+		7BEA28652CC02488009E50EB /* Queries */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Queries;
 			sourceTree = "<group>";
 		};
 		FA4FA4F82C62DBAA00E66300 /* TextFields */ = {
@@ -551,6 +671,7 @@
 				FAEF5A142C6BA46F00484474 /* EmbraceCrashlyticsSupport */,
 				FAEF5A162C6BA46F00484474 /* EmbraceIO */,
 				FAEF5A182C6BA46F00484474 /* EmbraceSemantics */,
+				7B2374C32CC2BC36008860E3 /* Apollo */,
 			);
 			productName = BrandGame;
 			productReference = 7B56308A2ABE743400E0DF39 /* BrandGame.app */;
@@ -583,6 +704,7 @@
 			packageReferences = (
 				7B3BD1FD2BBC5A1600938444 /* XCRemoteSwiftPackageReference "opentelemetry-swift" */,
 				FAEF5A0F2C6BA46F00484474 /* XCLocalSwiftPackageReference "../.." */,
+				7B2374C22CC2BC35008860E3 /* XCRemoteSwiftPackageReference "apollo-ios" */,
 			);
 			productRefGroup = 7B56308B2ABE743400E0DF39 /* Products */;
 			projectDirPath = "";
@@ -598,6 +720,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7BEA286D2CC15F01009E50EB /* AllFilmsQuery.graphql in Resources */,
+				7BEA286B2CC15ECC009E50EB /* star-wars-swapi@current.graphqls in Resources */,
 				7B5630952ABE743500E0DF39 /* Preview Assets.xcassets in Resources */,
 				7B5630922ABE743500E0DF39 /* Assets.xcassets in Resources */,
 			);
@@ -649,6 +773,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7B3229DC2B2950D500664F04 /* BubbleMinigameView.swift in Sources */,
+				7BEA28612CBF074F009E50EB /* ApolloStressTest.swift in Sources */,
 				7BC59A902B0BE25C0001E980 /* CrashExampleTest.swift in Sources */,
 				FA910EF12C4835B100C2E2E4 /* OpenTelemetryView.swift in Sources */,
 				FA4C5F352C487B45005C0371 /* AttributesView.swift in Sources */,
@@ -669,7 +794,21 @@
 				FAB41AA22C49556100972BA9 /* PopUpViewModifier.swift in Sources */,
 				7B3143BF2AFDECCF00BA0D2F /* Icon+Meta.swift in Sources */,
 				7BCB662A2AC4767B00ABD33A /* MainMenu.swift in Sources */,
+				7BEA28642CBF07A7009E50EB /* ApolloClientProvider.swift in Sources */,
 				7B7341E12BD4AD100026D8B8 /* LazyView.swift in Sources */,
+				7BA973372CC2D167009F57DD /* FilmsConnection.graphql.swift in Sources */,
+				7BA973382CC2D167009F57DD /* SchemaMetadata.graphql.swift in Sources */,
+				7BA973392CC2D167009F57DD /* Node.graphql.swift in Sources */,
+				7BA9733A2CC2D167009F57DD /* Film.graphql.swift in Sources */,
+				7BA9733B2CC2D167009F57DD /* Vehicle.graphql.swift in Sources */,
+				7BA9733C2CC2D167009F57DD /* Root.graphql.swift in Sources */,
+				7BA9733D2CC2D167009F57DD /* Planet.graphql.swift in Sources */,
+				7BA9733E2CC2D167009F57DD /* Species.graphql.swift in Sources */,
+				7BA9733F2CC2D167009F57DD /* Query.graphql.swift in Sources */,
+				7BA973402CC2D167009F57DD /* FilmSpeciesConnection.graphql.swift in Sources */,
+				7BA973412CC2D167009F57DD /* Starship.graphql.swift in Sources */,
+				7BA973432CC2D167009F57DD /* Person.graphql.swift in Sources */,
+				7BA973442CC2D167009F57DD /* StarWarsAPI.graphql.swift in Sources */,
 				7B62AD9F2B00608A0087C2AE /* AppSettings+Environment.swift in Sources */,
 				7B5630902ABE743400E0DF39 /* ContentView.swift in Sources */,
 				FA4C5F332C486E13005C0371 /* CreateSpanView.swift in Sources */,
@@ -698,6 +837,7 @@
 				7B4FFC332B1E811B006239F7 /* UserInfo.swift in Sources */,
 				FAFDA3D22C333FC900AD17CF /* NetworkRequestBuilderView.swift in Sources */,
 				7B56308E2ABE743400E0DF39 /* BrandGameApp.swift in Sources */,
+				7BA973462CC2E533009F57DD /* SchemaConfiguration.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -919,6 +1059,14 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		7B2374C22CC2BC35008860E3 /* XCRemoteSwiftPackageReference "apollo-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apollographql/apollo-ios.git";
+			requirement = {
+				kind = exactVersion;
+				version = 1.0.6;
+			};
+		};
 		7B3BD1FD2BBC5A1600938444 /* XCRemoteSwiftPackageReference "opentelemetry-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/open-telemetry/opentelemetry-swift";
@@ -930,6 +1078,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		7B2374C32CC2BC36008860E3 /* Apollo */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7B2374C22CC2BC35008860E3 /* XCRemoteSwiftPackageReference "apollo-ios" */;
+			productName = Apollo;
+		};
 		7B3BD2182BBC5A1600938444 /* StdoutExporter */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 7B3BD1FD2BBC5A1600938444 /* XCRemoteSwiftPackageReference "opentelemetry-swift" */;

@@ -39,6 +39,10 @@ struct MenuList: View {
 
             Section("Tests") {
                 NavigationLink(
+                    "Apollo GraphQL",
+                    destination: ApolloStressTest()
+                )
+                NavigationLink(
                     "Memory Pressure Simulator",
                     destination: MemoryPressureSimulatorView()
                 )

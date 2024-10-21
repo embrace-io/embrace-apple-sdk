@@ -1,0 +1,29 @@
+{
+  "schemaName" : "StarWarsAPI",
+  "input" : {
+    "operationSearchPaths" : [
+      "**/*.graphql"
+    ],
+    "schemaSearchPaths" : [
+      "**/*.graphqls"
+    ]
+  },
+  "output" : {
+    "testMocks" : {
+      "none" : {
+      }
+    },
+    "schemaTypes" : {
+      "path" : "./StarWarsAPI",
+      "moduleType" : {
+        "embeddedInTarget" : {
+          "name" : "BrandGame"
+        }
+      }
+    },
+    "operations" : {
+      "inSchemaModule" : {
+      }
+    }
+  }
+}
