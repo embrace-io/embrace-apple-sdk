@@ -92,11 +92,11 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         }
     }
 
-    public let updateExpectation = XCTestExpectation(description: "update called")
+    public var updateCallCount = 0
     public var updateCompletionParamDidUpdate: Bool
     public var updateCompletionParamError: Error?
     public func update(completion: @escaping (Bool, (any Error)?) -> Void) {
-        updateExpectation.fulfill()
+        updateCallCount += 1
         completion(updateCompletionParamDidUpdate, updateCompletionParamError)
     }
 }

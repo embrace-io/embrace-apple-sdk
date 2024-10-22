@@ -70,11 +70,16 @@ final class CaptureServices {
         NotificationCenter.default.removeObserver(self)
     }
 
-    func start() {
+    func install() {
         crashReporter?.install(context: context, logger: Embrace.logger)
 
         for service in services {
             service.install(otel: Embrace.client, logger: Embrace.logger)
+        }
+    }
+
+    func start() {
+        for service in services {
             service.start()
         }
     }

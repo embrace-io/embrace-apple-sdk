@@ -20,6 +20,8 @@ public class EmbraceConfig {
 
     let configurable: EmbraceConfigurable
 
+    let queue: DispatchQueue
+
     public init(
         configurable: EmbraceConfigurable,
         options: Options,
@@ -30,6 +32,7 @@ public class EmbraceConfig {
         self.notificationCenter = notificationCenter
         self.logger = logger
         self.configurable = configurable
+        self.queue = DispatchQueue(label: "com.embrace.config", attributes: .concurrent)
 
         update()
 
@@ -54,21 +57,24 @@ public class EmbraceConfig {
         }
 
         update()
-        lastUpdateTime = Date().timeIntervalSince1970
         return true
     }
 
     public func update() {
-        configurable.update { [weak self] didChange, error in
-            if let error = error {
-                self?.logger.error(
-                    "Failed update in EmbraceConfig",
-                    attributes: [ "error.message": error.localizedDescription ]
-                )
-            }
+        self.queue.async { [weak self] in
+            self?.configurable.update { [weak self] didChange, error in
+                if let error = error {
+                    self?.logger.error(
+                        "Failed update in EmbraceConfig",
+                        attributes: [ "error.message": error.localizedDescription ]
+                    )
+                }
 
-            if didChange {
-                self?.notificationCenter.post(name: .embraceConfigUpdated, object: self)
+                self?.lastUpdateTime = Date().timeIntervalSince1970
+
+                if didChange {
+                    self?.notificationCenter.post(name: .embraceConfigUpdated, object: self)
+                }
             }
         }
     }
