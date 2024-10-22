@@ -64,13 +64,17 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
             // validate task
             guard
                 var request = task.originalRequest,
-                let url = request.url,
                 let otel = self.dataSource?.otel else {
                 return
             }
 
             // get modified request from data source
             request = self.dataSource?.requestsDataSource?.modifiedRequest(for: request) ?? request
+
+            // validate url after modifiedRequest
+            guard let url = request.url else {
+                return
+            }
 
             // flag as captured
             task.embraceCaptured = true

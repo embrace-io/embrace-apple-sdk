@@ -15,13 +15,9 @@ extension URLSessionCaptureService {
         /// before the Embrace SDK captures their data.
         @objc public let requestsDataSource: URLSessionRequestsDataSource?
 
-        @objc public init(injectTracingHeader: Bool, requestsDataSource: URLSessionRequestsDataSource?) {
+        @objc public init(injectTracingHeader: Bool = true, requestsDataSource: URLSessionRequestsDataSource? = nil) {
             self.injectTracingHeader = injectTracingHeader
             self.requestsDataSource = requestsDataSource
-        }
-
-        @objc public convenience override init() {
-            self.init(injectTracingHeader: true, requestsDataSource: nil)
         }
     }
 }
