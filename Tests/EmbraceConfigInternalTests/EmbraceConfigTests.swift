@@ -8,6 +8,9 @@ import TestSupport
 import EmbraceConfiguration
 
 final class EmbraceConfigTests: XCTestCase {
+
+    var config: EmbraceConfig!
+
     func buildConfig(
         configurable: EmbraceConfigurable,
         options: EmbraceConfig.Options = .init(minimumUpdateInterval: 5)
@@ -22,25 +25,23 @@ final class EmbraceConfigTests: XCTestCase {
 
     // MARK: Update if Needed
 
-    func test_updateIfNeeded_returnsTrueIfUpdateOccurs() {
+    func test_updateIfNeeded_doesNotCallUpdate_ifNotEnoughtimeHasPassed() {
         let mockConfig = MockEmbraceConfigurable()
-        mockConfig.updateExpectation.expectedFulfillmentCount = 1
 
-        let config = buildConfig(configurable: mockConfig)
+        config = buildConfig(configurable: mockConfig)
+        wait(timeout: 1) {
+            return mockConfig.updateCallCount == 1
+        }
 
-        let result1 = config.updateIfNeeded()
-        XCTAssertTrue(result1)
-        wait(for: [mockConfig.updateExpectation])
+        let result = config.updateIfNeeded()
+        XCTAssertFalse(result)
 
-        let result2 = config.updateIfNeeded()
-        XCTAssertFalse(result2)
+        XCTAssertEqual(mockConfig.updateCallCount, 1)
     }
 
-    func test_updateIfNeeded_returnsTrueIfTimeIntervalPassed() {
+    func test_updateIfNeeded_callsUpdate_ifEnoughTimeHasPassed() {
         let mockConfig = MockEmbraceConfigurable()
-        mockConfig.updateExpectation.expectedFulfillmentCount = 2
-
-        let config = buildConfig(configurable: mockConfig, options: .init(minimumUpdateInterval: 0))
+        config = buildConfig(configurable: mockConfig, options: .init(minimumUpdateInterval: 0))
 
         let result1 = config.updateIfNeeded()
         XCTAssertTrue(result1)
@@ -48,88 +49,71 @@ final class EmbraceConfigTests: XCTestCase {
         let result2 = config.updateIfNeeded()
         XCTAssertTrue(result2)
 
-        wait(for: [mockConfig.updateExpectation], timeout: 1)
+        wait(timeout: 3) {
+            return mockConfig.updateCallCount == 3
+        }
     }
 
-    func test_updateIfNeeded_postsNotificationIf_configDidChange() {
+    // MARK: Update notification
+
+    func test_postsNotificationIf_configDidChange() {
         let mockConfig = MockEmbraceConfigurable()
         mockConfig.updateCompletionParamDidUpdate = true
-        mockConfig.updateExpectation.expectedFulfillmentCount = 1
 
-        let config = buildConfig(configurable: mockConfig)
+        let notificationExpectation = expectation(forNotification: .embraceConfigUpdated, object: nil)
 
-        let notificationExpectation = expectation(forNotification: .embraceConfigUpdated, object: config)
+        config = buildConfig(configurable: mockConfig)
 
-        let result1 = config.updateIfNeeded()
-        XCTAssertTrue(result1)
-        wait(for: [notificationExpectation])
+        wait(for: [notificationExpectation], timeout: .shortTimeout)
     }
 
-    func test_updateIfNeeded_doesNot_postNotificationIf_configDidNotChange() {
+    func test_doesNot_postNotificationIf_configDidNotChange() {
         let mockConfig = MockEmbraceConfigurable()
         mockConfig.updateCompletionParamDidUpdate = false
-        mockConfig.updateExpectation.expectedFulfillmentCount = 1
 
-        let config = buildConfig(configurable: mockConfig)
-
-        let notificationExpectation = expectation(forNotification: .embraceConfigUpdated, object: config)
+        let notificationExpectation = expectation(forNotification: .embraceConfigUpdated, object: nil)
         notificationExpectation.isInverted = true
 
-        let result1 = config.updateIfNeeded()
-        XCTAssertTrue(result1)
+        config = buildConfig(configurable: mockConfig)
+
         wait(for: [notificationExpectation], timeout: .shortTimeout)
     }
 
     // MARK: appDidBecomeActive
 
-    func test_appDidBecomeActive_callsUpdate() {
+    func test_appDidBecomeActive_afterEnoughTime_callsUpdate() {
         let mockConfig = MockEmbraceConfigurable()
-        mockConfig.updateExpectation.expectedFulfillmentCount = 1
 
-        _ = buildConfig(configurable: mockConfig)
+        config = buildConfig(configurable: mockConfig, options: .init(minimumUpdateInterval: 0))
 
         NotificationCenter.default.post(
             name: NSNotification.Name("UIApplicationDidBecomeActiveNotification"),
             object: nil)
 
-        wait(for: [mockConfig.updateExpectation])
+        wait(timeout: 2) {
+            return mockConfig.updateCallCount == 2
+        }
     }
 
     func test_appDidBecomeActive_afterUpdate_doesNotCallUpdate() {
         let mockConfig = MockEmbraceConfigurable()
-        mockConfig.updateExpectation.expectedFulfillmentCount = 1
 
-        let config = buildConfig(configurable: mockConfig)
-        config.update()
-
-        NotificationCenter.default.post(
-            name: NSNotification.Name("UIApplicationDidBecomeActiveNotification"),
-            object: nil)
-
-        wait(for: [mockConfig.updateExpectation])
-    }
-
-    func test_appDidBecomeActive_afterUpdate_doesCallUpdate_ifMinimumTimePassed() {
-        let mockConfig = MockEmbraceConfigurable()
-        mockConfig.updateExpectation.expectedFulfillmentCount = 2
-
-        let config = buildConfig(configurable: mockConfig, options: .init(minimumUpdateInterval: 0))
-
-        let result1 = config.updateIfNeeded()
-        XCTAssertTrue(result1)
+        config = buildConfig(configurable: mockConfig)
+        wait(delay: 1)
 
         NotificationCenter.default.post(
             name: NSNotification.Name("UIApplicationDidBecomeActiveNotification"),
             object: nil)
+        wait(delay: 1)
 
-        wait(for: [mockConfig.updateExpectation], timeout: 1)
+        XCTAssertEqual(mockConfig.updateCallCount, 1)
     }
 
-// MARK: Configurable Delegation
+    // MARK: Configurable Delegation
 
     func test_isSDKEnabled_callsUnderlyingConfigurable() {
         let mockConfig = MockEmbraceConfigurable()
-        let config = buildConfig(configurable: mockConfig)
+        config = buildConfig(configurable: mockConfig)
 
         let result = config.isSDKEnabled
         XCTAssertEqual(result, mockConfig.isSDKEnabled)
@@ -138,7 +122,7 @@ final class EmbraceConfigTests: XCTestCase {
 
     func test_isBackgroundSessionEnabled_callsUnderlyingConfigurable() {
         let mockConfig = MockEmbraceConfigurable()
-        let config = buildConfig(configurable: mockConfig)
+        config = buildConfig(configurable: mockConfig)
 
         let result = config.isBackgroundSessionEnabled
         XCTAssertEqual(result, mockConfig.isBackgroundSessionEnabled)
@@ -147,7 +131,7 @@ final class EmbraceConfigTests: XCTestCase {
 
     func test_isNetworkSpansForwardingEnabled_callsUnderlyingConfigurable() {
         let mockConfig = MockEmbraceConfigurable()
-        let config = buildConfig(configurable: mockConfig)
+        config = buildConfig(configurable: mockConfig)
 
         let result = config.isNetworkSpansForwardingEnabled
         XCTAssertEqual(result, mockConfig.isNetworkSpansForwardingEnabled)
@@ -156,7 +140,7 @@ final class EmbraceConfigTests: XCTestCase {
 
     func test_internalLogLimits_callsUnderlyingConfigurable() {
         let mockConfig = MockEmbraceConfigurable()
-        let config = buildConfig(configurable: mockConfig)
+        config = buildConfig(configurable: mockConfig)
 
         let result = config.internalLogLimits
         XCTAssertEqual(result, mockConfig.internalLogLimits)
@@ -165,11 +149,10 @@ final class EmbraceConfigTests: XCTestCase {
 
     func test_networkPayloadCaptureRules_callsUnderlyingConfigurable() {
         let mockConfig = MockEmbraceConfigurable()
-        let config = buildConfig(configurable: mockConfig)
+        config = buildConfig(configurable: mockConfig)
 
         let result = config.networkPayloadCaptureRules
         XCTAssertEqual(result, mockConfig.networkPayloadCaptureRules)
         wait(for: [mockConfig.networkPayloadCaptureRulesExpectation])
     }
-
 }
