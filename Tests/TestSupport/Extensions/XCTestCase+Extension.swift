@@ -17,7 +17,7 @@ public extension XCTestCase {
     var testName: String {
         do {
             var testName = try XCTUnwrap(name.split(separator: " ").last)
-            if #available(iOS 16.0, tvOS 16.0, *) {
+            if #available(iOS 16.0, tvOS 16.0, watchOS 9.0, *) {
                 let pattern = try Regex("]")
                 testName = testName.replacing(pattern, with: "()")
             } else {

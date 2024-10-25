@@ -90,7 +90,7 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
         try otherSwizzler?.install()
     }
 
-    @available(iOS 15.0, *)
+    @available(iOS 15.0, watchOS 8.0, *)
     func testWithPreviousSwizzledProxy_taskWithDelegate_callsTaskDelegateOnly() throws {
         /*
          This test checks what happens when there's a delegate assigned when creating a
@@ -126,7 +126,7 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
         XCTAssertFalse(try XCTUnwrap(otherSwizzler?.proxy?.didForwardRespondsToSuccessfullyBool))
     }
 
-    @available(iOS 15.0, *)
+    @available(iOS 15.0, watchOS 8.0, *)
     func testWithProxySwizzledAfterEmbrace_taskWithDelegate_callsTaskDelegateOnly() throws {
         /*
          This test checks what happens when there's a delegate assigned when creating a
@@ -162,7 +162,7 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
         XCTAssertFalse(try XCTUnwrap(otherSwizzler?.proxy?.didForwardRespondsToSuccessfullyBool))
     }
 
-    @available(iOS 15.0, *)
+    @available(iOS 15.0, watchOS 8.0, *)
     func test_taskWithDelegate_callsTaskDelegateOnly() throws {
         givenCaptureServiceInstalled()
         givenTaskDelegate()
@@ -186,7 +186,7 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
         ], timeout: Self.timeoutQuick)
     }
 
-    @available(iOS 15.0, *)
+    @available(iOS 15.0, watchOS 8.0, *)
     func test_taskWithDelegate_thatDoesNotImplementMethods_callsSessionDelegateOnly() throws {
         givenCaptureServiceInstalled()
         givenTaskDelegate(NotImplementedURLSessionDelegate())
@@ -205,7 +205,7 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
         ], timeout: Self.timeoutQuick)
     }
 
-    @available(iOS 15.0, *)
+    @available(iOS 15.0, watchOS 8.0, *)
     func test_async_taskWithNoDelegate_callsSessionDelegate() async throws {
         givenCaptureServiceInstalled()
 
@@ -223,7 +223,7 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
         XCTAssertFalse(sessionDelegate.didCallDidCompleteWithError)
     }
 
-    @available(iOS 15.0, *)
+    @available(iOS 15.0, watchOS 8.0, *)
     func test_async_taskWithDelegate_doesNotCallSessionDelegate() async throws {
         givenCaptureServiceInstalled()
 

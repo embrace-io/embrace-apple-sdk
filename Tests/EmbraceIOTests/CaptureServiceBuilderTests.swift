@@ -20,21 +20,25 @@ class CaptureServiceBuilderTests: XCTestCase {
         // then the list contains all the default services
         let list = builder.build()
 
-#if canImport(UIKit) && !os(watchOS)
-        XCTAssertEqual(list.count, 6)
+        var count = 3
+
         XCTAssertNotNil(list.first(where: { $0 is URLSessionCaptureService }))
+
+#if canImport(UIKit) && !os(watchOS)
+        count += 2
         XCTAssertNotNil(list.first(where: { $0 is TapCaptureService }))
         XCTAssertNotNil(list.first(where: { $0 is ViewCaptureService }))
-        XCTAssertNotNil(list.first(where: { $0 is WebViewCaptureService }))
-        XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
-        XCTAssertNotNil(list.first(where: { $0 is LowPowerModeCaptureService }))
-#else
-        XCTAssertEqual(list.count, 4)
-        XCTAssertNotNil(list.first(where: { $0 is URLSessionCaptureService }))
-        XCTAssertNotNil(list.first(where: { $0 is WebViewCaptureService }))
-        XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
-        XCTAssertNotNil(list.first(where: { $0 is LowPowerModeCaptureService }))
 #endif
+#if canImport(WebKit)
+        count += 1
+        XCTAssertNotNil(list.first(where: { $0 is WebViewCaptureService }))
+#endif
+
+        XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
+        XCTAssertNotNil(list.first(where: { $0 is LowPowerModeCaptureService }))
+
+        XCTAssertEqual(list.count, count)
+
     }
 
     func test_defaultsWithNonEmptyList() throws {
@@ -51,23 +55,28 @@ class CaptureServiceBuilderTests: XCTestCase {
         // then the list contains the correct services
         let list = builder.build()
 
+        var count = 3
+
 #if canImport(UIKit) && !os(watchOS)
-        XCTAssertEqual(list.count, 6)
+        count += 2
         XCTAssertNotNil(list.first(where: { $0 is TapCaptureService }))
         XCTAssertNotNil(list.first(where: { $0 is ViewCaptureService }))
-        XCTAssertNotNil(list.first(where: { $0 is WebViewCaptureService }))
-        XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
-        XCTAssertNotNil(list.first(where: { $0 is LowPowerModeCaptureService }))
-#else
-        XCTAssertEqual(list.count, 4)
-        XCTAssertNotNil(list.first(where: { $0 is WebViewCaptureService }))
-        XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
-        XCTAssertNotNil(list.first(where: { $0 is LowPowerModeCaptureService }))
 #endif
+#if canImport(WebKit)
+        count += 1
+        XCTAssertNotNil(list.first(where: { $0 is WebViewCaptureService }))
+#endif
+
+        XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
+        XCTAssertNotNil(list.first(where: { $0 is LowPowerModeCaptureService }))
+        XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
+        XCTAssertNotNil(list.first(where: { $0 is LowPowerModeCaptureService }))
 
         let service = list.first(where: { $0 is URLSessionCaptureService }) as! URLSessionCaptureService
         XCTAssertFalse(service.options.injectTracingHeader)
         XCTAssertNil(service.options.requestsDataSource)
+
+        XCTAssertEqual(list.count, count)
     }
 
     func test_remove() throws {
@@ -88,10 +97,16 @@ class CaptureServiceBuilderTests: XCTestCase {
         // then the list contains the correct services
         let list = builder.build()
 
-        XCTAssertEqual(list.count, 3)
+        var count = 2
+
+#if canImport(WebKit)
+        count += 1
         XCTAssertNotNil(list.first(where: { $0 is WebViewCaptureService }))
+#endif
         XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
         XCTAssertNotNil(list.first(where: { $0 is LowPowerModeCaptureService }))
+
+        XCTAssertEqual(list.count, count)
     }
 
     func test_replace() {
@@ -161,6 +176,7 @@ class CaptureServiceBuilderTests: XCTestCase {
     }
 #endif
 
+#if canImport(WebKit)
     func test_addWebViewCaptureService() throws {
         // given a builder
         let builder = CaptureServiceBuilder()
@@ -176,6 +192,7 @@ class CaptureServiceBuilderTests: XCTestCase {
         let service = list[0] as! WebViewCaptureService
         XCTAssert(service.options.stripQueryParams)
     }
+#endif
 
     func test_addLowMemoryWarningCaptureService() throws {
         // given a builder

@@ -27,7 +27,7 @@ final class RemoteConfigTests: XCTestCase {
     func mockSuccessfulResponse() throws {
         var url = try XCTUnwrap(URL(string: "\(options.apiBaseUrl)/v2/config"))
 
-        if #available(iOS 16.0, *) {
+        if #available(iOS 16.0, watchOS 9.0, *) {
             url.append(queryItems: [
                 .init(name: "appId", value: options.appId),
                 .init(name: "osVersion", value: options.osVersion),
