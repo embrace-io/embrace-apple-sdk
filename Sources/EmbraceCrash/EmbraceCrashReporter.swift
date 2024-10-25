@@ -76,6 +76,7 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
     }
 
     public func install(context: CrashReporterContext, logger: InternalLogger) {
+#if !os(watchOS)
         guard ksCrash == nil else {
             logger.debug("EmbraceCrashReporter already installed!")
             return
@@ -90,6 +91,9 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
 
         updateKSCrashInfo()
         ksCrash?.install()
+#else
+        logger.error("EmbraceCrashReporter is not supported in WatchOS!!!")
+#endif
     }
 
     /// Fetches all saved `CrashReports`.

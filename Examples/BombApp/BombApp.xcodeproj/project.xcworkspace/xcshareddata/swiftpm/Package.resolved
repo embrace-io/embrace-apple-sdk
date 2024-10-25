@@ -1,5 +1,5 @@
 {
-  "originHash" : "d471a26f48de52ea4ca90915729c04354c0c18d83f037e7ebf7731d1e72c2bc2",
+  "originHash" : "f35065f67c35655933e2b4ed841314daab70232fc79185162a3eea7fe1831c3b",
   "pins" : [
     {
       "identity" : "abseil-cpp-binary",
@@ -17,24 +17,6 @@
       "state" : {
         "revision" : "3b62f154d00019ae29a71e9738800bb6f18b236d",
         "version" : "10.19.2"
-      }
-    },
-    {
-      "identity" : "collectionconcurrencykit",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/JohnSundell/CollectionConcurrencyKit.git",
-      "state" : {
-        "revision" : "b4f23e24b5a1bff301efc5e70871083ca029ff95",
-        "version" : "0.2.0"
-      }
-    },
-    {
-      "identity" : "cryptoswift",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/krzyzanowskim/CryptoSwift.git",
-      "state" : {
-        "revision" : "32f641cf24fc7abc1c591a2025e9f2f572648b0f",
-        "version" : "1.7.2"
       }
     },
     {
@@ -123,8 +105,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/embrace-io/KSCrash.git",
       "state" : {
-        "revision" : "17ad4c5159145ed550acb04b1cff48e826547265",
-        "version" : "2.0.4"
+        "revision" : "0468c294af9d271301bf8ad1942dc4aa3cf6ab08",
+        "version" : "2.0.6"
       }
     },
     {
@@ -170,24 +152,6 @@
       "state" : {
         "revision" : "540318ecedd63d883069ae7f1ed811a2df00b6ac",
         "version" : "2.4.0"
-      }
-    },
-    {
-      "identity" : "sourcekitten",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/jpsim/SourceKitten.git",
-      "state" : {
-        "revision" : "b6dc09ee51dfb0c66e042d2328c017483a1a5d56",
-        "version" : "0.34.1"
-      }
-    },
-    {
-      "identity" : "swift-argument-parser",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-argument-parser.git",
-      "state" : {
-        "revision" : "8f4d2753f0e4778c76d5f05ad16c74f707390531",
-        "version" : "1.2.3"
       }
     },
     {
@@ -290,15 +254,6 @@
       }
     },
     {
-      "identity" : "swift-syntax",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-syntax.git",
-      "state" : {
-        "revision" : "74203046135342e4a4a627476dd6caf8b28fe11b",
-        "version" : "509.0.0"
-      }
-    },
-    {
       "identity" : "swift-system",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-system.git",
@@ -308,48 +263,12 @@
       }
     },
     {
-      "identity" : "swiftlint",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/realm/SwiftLint",
-      "state" : {
-        "revision" : "6d2e58271ebc14c37bf76d7c9f4082cc15bad718",
-        "version" : "0.53.0"
-      }
-    },
-    {
-      "identity" : "swiftytexttable",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/scottrhoyt/SwiftyTextTable.git",
-      "state" : {
-        "revision" : "c6df6cf533d120716bff38f8ff9885e1ce2a4ac3",
-        "version" : "0.9.0"
-      }
-    },
-    {
-      "identity" : "swxmlhash",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/drmohundro/SWXMLHash.git",
-      "state" : {
-        "revision" : "a853604c9e9a83ad9954c7e3d2a565273982471f",
-        "version" : "7.0.2"
-      }
-    },
-    {
       "identity" : "thrift-swift",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/undefinedlabs/Thrift-Swift",
       "state" : {
         "revision" : "18ff09e6b30e589ed38f90a1af23e193b8ecef8e",
         "version" : "1.1.2"
-      }
-    },
-    {
-      "identity" : "yams",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/jpsim/Yams.git",
-      "state" : {
-        "revision" : "9234124cff5e22e178988c18d8b95a8ae8007f76",
-        "version" : "5.1.2"
       }
     }
   ],
