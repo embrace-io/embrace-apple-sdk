@@ -28,7 +28,7 @@ extension UNUserNotificationCenterDelegateProxy: UNUserNotificationCenterDelegat
         }
 
         // call original
-        if #available(iOS 14.0, tvOS 14.0, *) {
+        if #available(iOS 14.0, tvOS 14.0, watchOS 7.0, *) {
             originalDelegate?.userNotificationCenter?(
                 center,
                 willPresent: notification,
@@ -65,6 +65,7 @@ extension UNUserNotificationCenterDelegateProxy: UNUserNotificationCenterDelegat
             ?? completionHandler()
     }
 
+#if !os(watchOS)
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         openSettingsFor notification: UNNotification?
@@ -72,5 +73,6 @@ extension UNUserNotificationCenterDelegateProxy: UNUserNotificationCenterDelegat
         // call original
         originalDelegate?.userNotificationCenter?(center, openSettingsFor: notification)
     }
+#endif
 #endif
 }
