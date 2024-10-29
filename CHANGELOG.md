@@ -1,3 +1,11 @@
+## 6.5.1
+*Oct 29th, 2024*
+* Features
+    * Improved performance during the startup of the SDK.
+* Fixes
+    * Fixed compilation errors in WatchOS.
+    * Fixed visbility of `LogLevel`.
+
 ## 6.5.0
 *Oct 18th, 2024*
 * Features
