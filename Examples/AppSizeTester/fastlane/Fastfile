@@ -29,7 +29,7 @@ lane :calculate_sdk_size do
   create_ipa(scheme: "AppSizeTesterWithSDK") 
   app_size_with_sdk = AppSize.from_hash(get_app_size_from_ipa)
 
-  # Calcuate and show Embrace SDK size
+  # Calculate and show Embrace SDK size
   sdk_size = app_size_with_sdk - app_size_without_sdk 
 
   puts("\n")

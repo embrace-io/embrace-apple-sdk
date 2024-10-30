@@ -13,8 +13,7 @@ let package = Package(
     name: "AppSizeTester",
     dependencies: [
         .package(
-            url: "https://github.com/embrace-io/embrace-apple-sdk.git",
-            exact: "6.5.0"
+            path: "../../../"
         )
     ]
 )
