@@ -11,6 +11,24 @@ class WKNavigationDelegateProxy: NSObject {
 
     // callback triggered the webview loads an url or errors
     var callback: ((URL?, Int?) -> Void)?
+
+    override func responds(to aSelector: Selector!) -> Bool {
+        if super.responds(to: aSelector) {
+            return true
+        } else if let originalDelegate = originalDelegate, originalDelegate.responds(to: aSelector) {
+            return true
+        }
+        return false
+    }
+
+    override func forwardingTarget(for aSelector: Selector!) -> Any? {
+        if super.responds(to: aSelector) {
+            return self
+        } else if let originalDelegate = originalDelegate, originalDelegate.responds(to: aSelector) {
+            return originalDelegate
+        }
+        return nil
+    }
 }
 
 extension WKNavigationDelegateProxy: WKNavigationDelegate {
@@ -54,106 +72,6 @@ extension WKNavigationDelegateProxy: WKNavigationDelegate {
 
         // call original
         originalDelegate?.webView?(webView, didFail: navigation, withError: error)
-    }
-
-    // forwarded methods without capture
-    func webView(
-        _ webView: WKWebView,
-        decidePolicyFor navigationAction: WKNavigationAction,
-        decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
-    ) {
-        originalDelegate?.webView?(webView, decidePolicyFor: navigationAction, decisionHandler: decisionHandler)
-            ?? decisionHandler(.allow)
-    }
-
-    func webView(
-        _ webView: WKWebView,
-        decidePolicyFor navigationAction: WKNavigationAction,
-        preferences: WKWebpagePreferences,
-        decisionHandler: @escaping (WKNavigationActionPolicy, WKWebpagePreferences) -> Void
-    ) {
-        originalDelegate?.webView?(
-            webView,
-            decidePolicyFor: navigationAction,
-            preferences: preferences,
-            decisionHandler: decisionHandler
-        )
-            ?? decisionHandler(.allow, preferences)
-    }
-
-    func webView(
-        _ webView: WKWebView,
-        didStartProvisionalNavigation navigation: WKNavigation!
-    ) {
-         originalDelegate?.webView?(webView, didStartProvisionalNavigation: navigation)
-    }
-
-    func webView(
-        _ webView: WKWebView,
-        didReceiveServerRedirectForProvisionalNavigation navigation: WKNavigation!
-    ) {
-        originalDelegate?.webView?(webView, didReceiveServerRedirectForProvisionalNavigation: navigation)
-    }
-
-    func webView(
-        _ webView: WKWebView,
-        didCommit navigation: WKNavigation!
-    ) {
-        originalDelegate?.webView?(webView, didCommit: navigation)
-    }
-
-    func webView(
-        _ webView: WKWebView,
-        didFinish navigation: WKNavigation!
-    ) {
-        originalDelegate?.webView?(webView, didFinish: navigation)
-    }
-
-    func webView(
-        _ webView: WKWebView,
-        didReceive challenge: URLAuthenticationChallenge,
-        completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
-    ) {
-        originalDelegate?.webView?(webView, didReceive: challenge, completionHandler: completionHandler)
-            ?? completionHandler(.performDefaultHandling, nil)
-    }
-
-    func webViewWebContentProcessDidTerminate(
-        _ webView: WKWebView
-    ) {
-        originalDelegate?.webViewWebContentProcessDidTerminate?(webView)
-    }
-
-    @available(iOS 14, *)
-    func webView(
-        _ webView: WKWebView,
-        authenticationChallenge challenge: URLAuthenticationChallenge,
-        shouldAllowDeprecatedTLS decisionHandler: @escaping (Bool) -> Void
-    ) {
-        originalDelegate?.webView?(
-            webView,
-            authenticationChallenge: challenge,
-            shouldAllowDeprecatedTLS: decisionHandler
-        )
-            ?? decisionHandler(true)
-    }
-
-    @available(iOS 14.5, *)
-    func webView(
-        _ webView: WKWebView,
-        navigationAction: WKNavigationAction,
-        didBecome download: WKDownload
-    ) {
-        originalDelegate?.webView?(webView, navigationAction: navigationAction, didBecome: download)
-    }
-
-    @available(iOS 14.5, *)
-    func webView(
-        _ webView: WKWebView,
-        navigationResponse: WKNavigationResponse,
-        didBecome download: WKDownload
-    ) {
-        originalDelegate?.webView?(webView, navigationResponse: navigationResponse, didBecome: download)
     }
 }
 #endif
