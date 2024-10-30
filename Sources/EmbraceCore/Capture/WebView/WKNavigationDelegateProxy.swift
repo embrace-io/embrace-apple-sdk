@@ -135,7 +135,7 @@ extension WKNavigationDelegateProxy: WKNavigationDelegate {
             authenticationChallenge: challenge,
             shouldAllowDeprecatedTLS: decisionHandler
         )
-            ?? decisionHandler(false)
+            ?? decisionHandler(true)
     }
 
     @available(iOS 14.5, *)
