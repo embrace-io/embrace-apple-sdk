@@ -33,8 +33,8 @@ Ensure that you have the following tools installed on your system:
 3. Run the following commands:
 
     ```bash
-       bundle install
-       bundle exec fastlane calculate_sdk_size
+    bundle install
+    bundle exec fastlane calculate_sdk_size
     ```
 When the process finishes, you will be able to see a report in the terminal like this one:
 ![image](https://github.com/user-attachments/assets/78191c20-3d35-4259-94c7-a11e986de2a3)
