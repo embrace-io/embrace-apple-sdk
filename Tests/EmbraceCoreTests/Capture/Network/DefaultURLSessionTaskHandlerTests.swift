@@ -71,7 +71,7 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
 
     func test_onCreateTaskWithoutMethod_SpanNameShouldOnlyBePath() {
         givenTaskHandler()
-        givenAnURLSessionTask(urlString: "https://embrace.io/with/path/", method: "")
+        givenAnURLSessionTask(urlString: "https://embrace.io/with/path", method: "")
         whenInvokingCreate()
         thenSpanName(is: "/with/path")
     }
@@ -80,7 +80,7 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
         givenTaskHandler()
         givenAnURLSessionTask(urlString: "https://embrace-is-great.io")
         whenInvokingCreate()
-        thenSpanShouldHaveURLAttribute(withValue: "https://embrace-is-great.io")
+        thenSpanShouldHaveURLAttribute(withValue: "https://\(testName).embrace-is-great.io")
     }
 
     func test_onCreateTaskHavingMethod_HttpMethodShouldBeSetOnSpanAsAttribute() {
@@ -168,13 +168,13 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
         givenTaskHandler()
         givenRequestsDataSourceWithBlock { originalRequest in
             var request = originalRequest
-            request.url = URL(string: "http://www.test.com")
+            request.url = URL(string: "https://www.test.com")
             return request
         }
         givenAnURLSessionTask(method: "GET")
         whenInvokingCreate()
         whenInvokingFinish()
-        thenSpanHasTheCorrectPath("http://www.test.com")
+        thenSpanHasTheCorrectPath("https://www.test.com")
     }
 
     func test_requestsDataSource_method() {
@@ -230,7 +230,7 @@ private extension DefaultURLSessionTaskHandlerTests {
     }
 
     func givenAnURLSessionTask(urlString: String = "https://embrace.io", method: String? = nil, body: Data? = nil, response: URLResponse? = nil) {
-        var url = URL(string: urlString)!
+        var url = URL(string: urlString.replacingOccurrences(of: "https://", with: "https://\(testName)."))!
         var request = URLRequest(url: url)
         request.httpMethod = method
         if let body = body {
