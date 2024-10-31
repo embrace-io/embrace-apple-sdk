@@ -14,7 +14,7 @@ let project = Project(
                     "UILaunchScreen": [
                         "UIColorName": "",
                         "UIImageName": ""
-                    ],
+                    ]
                 ]
             ),
             sources: ["AppSizeTester/Sources/**"],
@@ -39,7 +39,7 @@ let project = Project(
                     "UILaunchScreen": [
                         "UIColorName": "",
                         "UIImageName": ""
-                    ],
+                    ]
                 ]
             ),
             sources: ["AppSizeTester/Sources/**"],
@@ -57,7 +57,7 @@ let project = Project(
                     .release(name: "ReleaseWithSDK")
                 ]
             )
-        ),
+        )
     ],
     schemes: [
         .scheme(
