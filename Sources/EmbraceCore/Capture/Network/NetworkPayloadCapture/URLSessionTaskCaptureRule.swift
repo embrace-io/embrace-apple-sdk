@@ -25,7 +25,7 @@ class URLSessionTaskCaptureRule {
         self.rule = rule
 
         do {
-            regex = try NSRegularExpression(pattern: rule.urlRegex, options: .caseInsensitive)
+            regex = try NSRegularExpression(pattern: rule.urlRegex.removingHttpPrefix(), options: .caseInsensitive)
         } catch {
             Embrace.logger.error("Error trying to create regex \"\(rule.urlRegex)\" for rule \(rule.id)!\n\(error.localizedDescription)")
             regex = nil
@@ -88,7 +88,8 @@ class URLSessionTaskCaptureRule {
             return false
         }
 
-        let matches = regex.matches(in: url, range: NSRange(location: 0, length: url.count))
+        let string = url.removingHttpPrefix()
+        let matches = regex.matches(in: string, range: NSRange(location: 0, length: string.count))
         return matches.count > 0
     }
 
@@ -102,5 +103,13 @@ class URLSessionTaskCaptureRule {
             .replacingOccurrences(of: "\n", with: "")
             .replacingOccurrences(of: "\t", with: "")
             .replacingOccurrences(of: " ", with: "")
+    }
+}
+
+extension String {
+    func removingHttpPrefix() -> String {
+        return self
+            .replacingOccurrences(of: "https://", with: "")
+            .replacingOccurrences(of: "http://", with: "")
     }
 }
