@@ -13,7 +13,7 @@ let project = Project(
                 with: [
                     "UILaunchScreen": [
                         "UIColorName": "",
-                        "UIImageName": "",
+                        "UIImageName": ""
                     ],
                 ]
             ),
@@ -24,7 +24,7 @@ let project = Project(
                 base: .init().automaticCodeSigning(devTeam: "L5RVT7J8CV"),
                 configurations: [
                     .debug(name: "Debug"),
-                    .release(name: "Release"),
+                    .release(name: "Release")
                 ]
             )
         ),
@@ -38,7 +38,7 @@ let project = Project(
                 with: [
                     "UILaunchScreen": [
                         "UIColorName": "",
-                        "UIImageName": "",
+                        "UIImageName": ""
                     ],
                 ]
             ),
@@ -48,13 +48,13 @@ let project = Project(
                 .external(name: "EmbraceIO"),
                 .external(name: "EmbraceCore"),
                 .external(name: "EmbraceSemantics"),
-                .external(name: "EmbraceCrash"),
+                .external(name: "EmbraceCrash")
             ],
             settings: .settings(
                 base: .init().automaticCodeSigning(devTeam: "L5RVT7J8CV"),
                 configurations: [
                     .debug(name: "DebugWithSDK"),
-                    .release(name: "ReleaseWithSDK"),
+                    .release(name: "ReleaseWithSDK")
                 ]
             )
         ),
