@@ -20,19 +20,20 @@ public class EmbraceConfig {
 
     let configurable: EmbraceConfigurable
 
-    let queue: DispatchQueue
+    let queue: DispatchableQueue
 
     public init(
         configurable: EmbraceConfigurable,
         options: Options,
         notificationCenter: NotificationCenter,
-        logger: InternalLogger
+        logger: InternalLogger,
+        queue: DispatchableQueue = DispatchQueue(label: "com.embrace.config", attributes: .concurrent)
     ) {
         self.options = options
         self.notificationCenter = notificationCenter
         self.logger = logger
         self.configurable = configurable
-        self.queue = DispatchQueue(label: "com.embrace.config", attributes: .concurrent)
+        self.queue = queue
 
         update()
 
