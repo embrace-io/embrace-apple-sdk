@@ -207,7 +207,7 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
 private extension DefaultURLSessionTaskHandlerTests {
     func givenTaskHandler() {
         dataSource.state = .active
-        sut = DefaultURLSessionTaskHandler(dataSource: dataSource)
+        sut = DefaultURLSessionTaskHandler(processingQueue: MockQueue(), dataSource: dataSource)
     }
 
     func givenStateChanged(toState: CaptureServiceState) {
