@@ -19,7 +19,8 @@ final class EmbraceConfigTests: XCTestCase {
             configurable: configurable,
             options: options,
             notificationCenter: .default,
-            logger: MockLogger()
+            logger: MockLogger(),
+            queue: MockQueue()
         )
     }
 
