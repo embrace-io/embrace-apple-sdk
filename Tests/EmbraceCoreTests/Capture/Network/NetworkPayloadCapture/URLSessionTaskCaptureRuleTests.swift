@@ -145,4 +145,17 @@ class URLSessionTaskCaptureRuleTests: XCTestCase {
 
         XCTAssert(rule.shouldTriggerFor(request: request, response: response, error: error))
     }
+
+    func test_trigger_match3() {
+        // given a rule
+        let rule = URLSessionTaskCaptureRule(rule: rule1)
+
+        // it should trigger for a request matches on everything
+        let url = URL(string: "https://www.test.com/user/1234")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        let response = HTTPURLResponse(url: url, statusCode: 500, httpVersion: nil, headerFields: nil)
+
+        XCTAssert(rule.shouldTriggerFor(request: request, response: response, error: nil))
+    }
 }
