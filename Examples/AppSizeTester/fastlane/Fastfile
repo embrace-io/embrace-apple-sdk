@@ -1,0 +1,75 @@
+default_platform(:ios)
+
+IPAS_FOLDER = "ipas"
+
+before_all do |lane, options|
+  # Hide all timestamps
+  ENV["FASTLANE_HIDE_TIMESTAMP"] = "1"
+
+  # Create the `.xcodeproj` and `.xcworkspace` with Tuist
+  sh("tuist install") 
+  sh("tuist generate --no-open --path '..'")
+end
+
+after_all do |lane, options|
+  FileUtils.rm_rf("../#{IPAS_FOLDER}")
+end
+
+desc "Calculates the size of the SDK by creating an .ipa with & without the SDK"
+desc "and analyzes the difference between sizes of those .ipas, using the generate"
+desc "'App Thinning Size Report.txt' file"
+lane :calculate_sdk_size do
+  require_relative './utilities/app_size'
+  
+  # Calculating the size of the App that doesn't depend on Embrace
+  create_ipa(scheme: "AppSizeTester") 
+  app_size_without_sdk = AppSize.from_hash(get_app_size_from_ipa)
+
+  # Calculating the size of the App that depends on Embrace
+  create_ipa(scheme: "AppSizeTesterWithSDK") 
+  app_size_with_sdk = AppSize.from_hash(get_app_size_from_ipa)
+
+  # Calculate and show Embrace SDK size
+  sdk_size = app_size_with_sdk - app_size_without_sdk 
+
+  puts("\n")
+  puts(Terminal::Table.new(
+    title: "SDK Size".green,
+    headings: ['Compressed (MB)', 'Uncompressed (MB)'],
+    rows: [[sdk_size.compressed, sdk_size.uncompressed]],
+  ))
+end 
+
+desc "Creates an .ipa for a specific scheme"
+desc "Options:"
+desc " - scheme: the scheme to build. Should be one of the ones listed with `xcodebuild -list`. Mandatory."
+lane :create_ipa do |options|
+  output_path = IPAS_FOLDER
+  case options[:scheme]
+  when "AppSizeTester"
+    output_path += "/app_without_sdk" 
+  when "AppSizeTesterWithSDK"
+    output_path += "/app_with_sdk" 
+  else 
+    UI.user_error!("Unknown scheme '${options[:scheme]}'")
+  end 
+
+  gym(
+    workspace: "AppSizeTester.xcworkspace",
+    scheme: options[:scheme],
+    clean: true,
+    silent: false,
+    output_directory: output_path,
+    output_name: "App.ipa",
+    export_options: get_export_options
+  )
+end
+
+def get_export_options
+  # Run `xcodebuild -help` and look for the `exportOptionsPlist` avilable keys to see which are the correct values for this dictionary
+  return {
+    method: "ad-hoc", # This value is deprecated in `xcodebuild` and should be replaced with `release-testing` when fastlane supports it [https://github.com/fastlane/fastlane/issues/22028]
+    stripSwiftSymbols: true,
+    thinning: "<thin-for-all-variants>"
+  }
+end 
