@@ -14,6 +14,7 @@ protocol LogBatcherDelegate: AnyObject {
 protocol LogBatcher {
     func addLogRecord(logRecord: LogRecord)
     func renewBatch(withLogs logRecords: [LogRecord])
+    func forceEndCurrentBatch()
 }
 
 class DefaultLogBatcher: LogBatcher {
@@ -52,20 +53,24 @@ class DefaultLogBatcher: LogBatcher {
 }
 
 internal extension DefaultLogBatcher {
-    func renewBatch(withLogs logRecords: [LogRecord] = []) {
+    func forceEndCurrentBatch() {
         processorQueue.async {
-            guard let batch = self.batch else {
-                return
-            }
-            self.cancelBatchDeadline()
-            self.delegate?.batchFinished(withLogs: batch.logs)
-            // TODO: Add cleanup step:
-            // --> delete reported logs
-            self.batch = .init(limits: self.logLimits, logs: logRecords)
+            self.renewBatch()
+        }
+    }
 
-            if logRecords.count > 0 {
-                self.renewBatchDeadline(with: self.logLimits)
-            }
+    func renewBatch(withLogs logRecords: [LogRecord] = []) {
+        guard let batch = self.batch else {
+            return
+        }
+        self.cancelBatchDeadline()
+        self.delegate?.batchFinished(withLogs: batch.logs)
+        // TODO: Add cleanup step:
+        // --> delete reported logs
+        self.batch = .init(limits: self.logLimits, logs: logRecords)
+
+        if logRecords.count > 0 {
+            self.renewBatchDeadline(with: self.logLimits)
         }
     }
 
