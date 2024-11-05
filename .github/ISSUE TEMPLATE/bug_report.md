@@ -11,7 +11,7 @@ A clear and concise description of what the bug is.
 ### Environment
 * iOS version:
 * Embrace SDK version:
-* Emulator or physical device:
+* Simulator or physical device:
 
 ### Additonal context
 Add any other context about the problem here.
