@@ -5,7 +5,7 @@ A clear and concise description of what the bug is.
 
 ### Steps to reproduce
 1. Calling API X
-2. Doing this in the emulator...
+2. Doing this in the simulator...
 3. Throws error A or collects wrongly data B
 
 ### Environment
