@@ -155,6 +155,8 @@ class EmbraceCrashReporterTests: XCTestCase {
             XCTAssertEqual(reports.count, 1)
             // and report shouldn't be the one with the SIGTERM signal
             XCTAssertEqual(reports[0].internalId, 1)
+            // and dropped report should have been deleted
+            self.thenShouldntExistReport(withName: "appId-report-0000000000000002.json")
 
             expectation.fulfill()
         }
@@ -203,7 +205,8 @@ class EmbraceCrashReporterTests: XCTestCase {
             XCTAssertEqual(reports.count, 1)
             // and report shouldn't be the one with the SIGABRT signal
             XCTAssertEqual(reports[0].internalId, 2)
-
+            // and dropped report should have been deleted
+            self.thenShouldntExistReport(withName: "appId-report-0000000000000001.json")
             expectation.fulfill()
         }
 
@@ -222,6 +225,15 @@ private extension EmbraceCrashReporterTests {
         }
         let report = try XCTUnwrap(Bundle.module.path(forResource: named, ofType: "json", inDirectory: "Mocks"))
         try FileManager.default.copyItem(atPath: report, toPath: basePath + toFilePath)
+    }
+
+    func thenShouldntExistReport(withName name: String) {
+        do {
+            let basePath = try XCTUnwrap(crashReporter.basePath)
+            XCTAssertFalse(FileManager.default.fileExists(atPath: basePath + "/Reports/" + name))
+        } catch let ex {
+            XCTFail(ex.localizedDescription)
+        }
     }
 
     func givenCrashReporter() {

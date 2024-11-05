@@ -146,6 +146,7 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
                 // Check if we drop crashes for a specific signal using the signalsBlockList
                 if let crashSignal = self.getCrashSignal(fromReport: report),
                    self.shouldDropCrashReport(withSignal: crashSignal) {
+                    self.deleteCrashReport(id: id.intValue)
                     continue
                 }
 
