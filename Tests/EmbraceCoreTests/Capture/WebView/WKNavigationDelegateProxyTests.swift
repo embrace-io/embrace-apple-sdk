@@ -32,22 +32,25 @@ class WKNavigationDelegateProxyTests: XCTestCase {
         proxy.webView(webView, decidePolicyFor: WKNavigationResponse(), decisionHandler: block)
         proxy.webView(webView, didFailProvisionalNavigation: navigation, withError: error)
         proxy.webView(webView, didFail: navigation, withError: error)
-        proxy.webView(webView, decidePolicyFor: WKNavigationAction(), decisionHandler: block1)
-        proxy.webView(
+
+        let delegate = proxy as WKNavigationDelegate
+        delegate.webView?(webView, decidePolicyFor: WKNavigationAction(), decisionHandler: block1)
+
+        delegate.webView?(
             webView,
             decidePolicyFor: WKNavigationAction(),
             preferences: WKWebpagePreferences(),
             decisionHandler: block2
         )
-        proxy.webView(webView, didStartProvisionalNavigation: navigation)
-        proxy.webView(webView, didReceiveServerRedirectForProvisionalNavigation: navigation)
-        proxy.webView(webView, didCommit: navigation)
-        proxy.webView(webView, didFinish: navigation)
-        proxy.webView(webView, didReceive: URLAuthenticationChallenge(), completionHandler: block3)
-        proxy.webViewWebContentProcessDidTerminate(webView)
-        proxy.webView(webView, authenticationChallenge: URLAuthenticationChallenge(), shouldAllowDeprecatedTLS: block4)
-        proxy.webView(webView, navigationAction: WKNavigationAction(), didBecome: download)
-        proxy.webView(webView, navigationResponse: WKNavigationResponse(), didBecome: download)
+        delegate.webView?(webView, didStartProvisionalNavigation: navigation)
+        delegate.webView?(webView, didReceiveServerRedirectForProvisionalNavigation: navigation)
+        delegate.webView?(webView, didCommit: navigation)
+        delegate.webView?(webView, didFinish: navigation)
+        delegate.webView?(webView, didReceive: URLAuthenticationChallenge(), completionHandler: block3)
+        delegate.webViewWebContentProcessDidTerminate?(webView)
+        delegate.webView?(webView, authenticationChallenge: URLAuthenticationChallenge(), shouldAllowDeprecatedTLS: block4)
+        delegate.webView?(webView, navigationAction: WKNavigationAction(), didBecome: download)
+        delegate.webView?(webView, navigationResponse: WKNavigationResponse(), didBecome: download)
 
         // then the delegate calls are forwarded
         XCTAssertEqual(originalDelegate.callCount, 14)
