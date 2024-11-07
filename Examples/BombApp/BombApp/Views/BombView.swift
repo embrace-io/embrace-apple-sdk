@@ -3,6 +3,7 @@
 //
 
 import SwiftUI
+import EmbraceIO
 
 struct BombView: View {
     @State private var showTooltip: Bool
@@ -21,6 +22,11 @@ struct BombView: View {
         VStack {
             List(Bomb.allCases, id: \.self) { option in
                 Button(action: {
+                    let bomb = option.case
+                    try? Embrace.client?.appendCrashInfo(
+                        key: "bomb",
+                        value: bomb.title
+                    )
                     option.case.crash()
                 }, label: {
                     VStack {

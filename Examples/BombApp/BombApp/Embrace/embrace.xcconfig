@@ -1,0 +1,16 @@
+//
+//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
+//
+
+
+// Configuration settings file format documentation can be found at:
+// https://help.apple.com/xcode/#/dev745c5c974
+
+// Do not include `http://` in config value as `//` is interpreted as a string
+// This applies even if it is in a string "http://example.com" will parse value as "http:"
+embraceBaseURL=;
+embraceDevelopmentBaseURL=;
+embraceConfigBaseURL=;
+
+embraceApiKey=;
+embraceSymbolUploadToken=;

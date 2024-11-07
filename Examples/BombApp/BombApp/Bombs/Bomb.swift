@@ -30,6 +30,8 @@ enum Bomb: String, CaseIterable {
     case swiftFatal
     case embraceTest
     case embraceTestIndexOutOfBounds
+    case embraceForceOutOfMemory
+    case embraceHangMainThread
 
     var `case`: CRLCrash {
         switch self {
@@ -58,6 +60,17 @@ enum Bomb: String, CaseIterable {
         case .swiftFatal: return SwiftFatal()
         case .embraceTest: return EmbraceTestCrash()
         case .embraceTestIndexOutOfBounds: return EmbraceTestIndexOutOfBounds()
+        case .embraceForceOutOfMemory: return EmbraceForceOutMemory()
+        case .embraceHangMainThread: return EmbraceHangMainThread()
+        }
+    }
+
+    var generatesImmediateCrash: Bool {
+        switch self {
+        case .embraceForceOutOfMemory, .embraceHangMainThread:
+            return false
+        default:
+            return true
         }
     }
 }

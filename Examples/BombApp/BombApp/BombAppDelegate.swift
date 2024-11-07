@@ -2,7 +2,9 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
+#if HAS_CRASHLYTICS
 import Firebase
+#endif
 import EmbraceIO
 import UIKit
 
@@ -12,8 +14,9 @@ class BombAppDelegate: NSObject, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
 
+        #if HAS_CRASHLYTICS
         FirebaseApp.configure()
-
+        #endif
         do {
             try Embrace
                 .setup(options: embraceOptions)
@@ -21,6 +24,7 @@ class BombAppDelegate: NSObject, UIApplicationDelegate {
         } catch let exception {
             print("Couldn't initialize embrace: \(exception.localizedDescription)")
         }
+        MetricKitSubscriber.start()
         return true
     }
 }

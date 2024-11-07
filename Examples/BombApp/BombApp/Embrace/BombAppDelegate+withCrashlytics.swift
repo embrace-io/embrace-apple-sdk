@@ -3,9 +3,18 @@
 //
 
 import EmbraceIO
+import EmbraceCrash
 import EmbraceCrashlyticsSupport
 
 extension BombAppDelegate {
+    var shouldUseCrashlytics: Bool {
+        #if HAS_CRASHLYTICS
+        true
+        #else
+        false
+        #endif
+    }
+
 #if DEBUG
     // https://dash.embrace.io/app/AK5HV
     var embraceOptions: Embrace.Options {
@@ -15,7 +24,7 @@ extension BombAppDelegate {
             platform: .default,
             endpoints: Embrace.Endpoints.fromInfoPlist(),
             captureServices: .automatic,
-            crashReporter: CrashlyticsReporter(),
+            crashReporter: shouldUseCrashlytics ? CrashlyticsReporter() : EmbraceCrashReporter(),
             logLevel: .debug
         )
     }
@@ -27,7 +36,7 @@ extension BombAppDelegate {
             appGroupId: nil,
             platform: .default,
             captureServices: .automatic,
-            crashReporter: CrashlyticsReporter()
+            crashReporter: shouldUseCrashlytics ? CrashlyticsReporter() : EmbraceCrashReporter()
         )
     }
 #endif
