@@ -41,7 +41,7 @@ class StorageEmbraceLogExporter: LogRecordExporter {
 
     @objc func onSessionEnd(noticication: Notification) {
         // forcefully start a new batch of logs when a session ends
-        logBatcher.renewBatch(withLogs: [])
+        logBatcher.forceEndCurrentBatch()
     }
 
     func export(logRecords: [ReadableLogRecord], explicitTimeout: TimeInterval?) -> ExportResult {

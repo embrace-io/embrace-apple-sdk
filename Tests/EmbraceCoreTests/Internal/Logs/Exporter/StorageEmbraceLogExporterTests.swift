@@ -197,6 +197,10 @@ class SpyLogBatcher: LogBatcher {
         logRecords.append(logRecord)
     }
 
+    func forceEndCurrentBatch() {
+        self.renewBatch(withLogs: [])
+    }
+
     private(set) var didCallRenewBatch: Bool = false
     private(set) var renewBatchInvocationCount: Int = 0
     func renewBatch(withLogs logRecords: [LogRecord]) {
