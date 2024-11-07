@@ -1,4 +1,0 @@
-module EmbraceObjCUtilsInternal {
-    umbrella "./include"
-    export *
-}
