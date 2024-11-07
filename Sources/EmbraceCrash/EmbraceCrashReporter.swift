@@ -194,7 +194,6 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
         }
     }
 
-
     /// Extracts the `CrashSignal` from the KSCrash report
     ///
     /// By default, the signal object is under `crash.error.signal` in the KSCrash report. A signal object can have:
