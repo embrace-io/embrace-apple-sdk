@@ -10,23 +10,18 @@ import KSCrashRecording
 /// Internally uses KSCrash to capture data from crashes.
 @objc(EMBEmbraceCrashReporter)
 public final class EmbraceCrashReporter: NSObject, CrashReporter {
-    private struct Constants {
-        static let providerIdentifier = "kscrash"
+    private static let providerIdentifier = "kscrash"
 
-        struct ReportKey {
-            static let user = "user"
-            static let crashReport = "report"
-            static let timestamp = "timestamp"
-            static let crash = "crash"
-            static let error = "error"
-            static let signal = "signal"
-            static let signalName = "signal"
-        }
-
-        struct UserInfoKey {
-            static let sessionId = "emb-sid"
-            static let sdkVersion = "emb-sdk"
-        }
+    struct KSCrashKey {
+        static let user = "user"
+        static let crashReport = "report"
+        static let timestamp = "timestamp"
+        static let crash = "crash"
+        static let error = "error"
+        static let signal = "signal"
+        static let signalName = "signal"
+        static let sessionId = "emb-sid"
+        static let sdkVersion = "emb-sdk"
     }
 
     @ThreadSafe
@@ -79,8 +74,8 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
             crashInfo[$0.key] = $0.value
         }
 
-        crashInfo[Constants.UserInfoKey.sdkVersion] = self.sdkVersion ?? NSNull()
-        crashInfo[Constants.UserInfoKey.sessionId] = self.currentSessionId ?? NSNull()
+        crashInfo[KSCrashKey.sdkVersion] = self.sdkVersion ?? NSNull()
+        crashInfo[KSCrashKey.sessionId] = self.currentSessionId ?? NSNull()
 
         ksCrash.userInfo = crashInfo
     }
@@ -172,21 +167,21 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
                 var sessionId: SessionIdentifier?
                 var timestamp: Date?
 
-                if let userDict = report[Constants.ReportKey.user] as? [AnyHashable: Any] {
-                    if let value = userDict[Constants.UserInfoKey.sessionId] as? String {
+                if let userDict = report[KSCrashKey.user] as? [AnyHashable: Any] {
+                    if let value = userDict[KSCrashKey.sessionId] as? String {
                         sessionId = SessionIdentifier(string: value)
                     }
                 }
 
-                if let reportDict = report[Constants.ReportKey.crashReport] as? [AnyHashable: Any],
-                   let rawTimestamp = reportDict[Constants.ReportKey.timestamp] as? String {
+                if let reportDict = report[KSCrashKey.crashReport] as? [AnyHashable: Any],
+                   let rawTimestamp = reportDict[KSCrashKey.timestamp] as? String {
                     timestamp = EmbraceCrashReporter.dateFormatter.date(from: rawTimestamp)
                 }
 
                 // add report
                 let crashReport = CrashReport(
                     payload: payload,
-                    provider: Constants.providerIdentifier,
+                    provider: EmbraceCrashReporter.providerIdentifier,
                     internalId: id.intValue,
                     sessionId: sessionId?.toString,
                     timestamp: timestamp
@@ -209,19 +204,19 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
     /// - Parameter report: Dictionary representing a KSCrash report
     /// - Returns: The `CrashSignal` of the report. Could be `nil` if not found or is an invalid report.
     func getCrashSignal(fromReport report: [String: Any]) -> CrashSignal? {
-        guard let crashPayload = report[Constants.ReportKey.crash] as? [String: Any],
-              let errorPayload = crashPayload[Constants.ReportKey.error] as? [String: Any],
-              let signalPayload = errorPayload[Constants.ReportKey.signal] as? [String: Any]
+        guard let crashPayload = report[KSCrashKey.crash] as? [String: Any],
+              let errorPayload = crashPayload[KSCrashKey.error] as? [String: Any],
+              let signalPayload = errorPayload[KSCrashKey.signal] as? [String: Any]
         else {
             return nil
         }
 
-        if let signalName = signalPayload[Constants.ReportKey.signalName] as? String,
+        if let signalName = signalPayload[KSCrashKey.signalName] as? String,
            let crashSignal = CrashSignal(rawValue: signalName) {
             return crashSignal
         }
 
-        if let signalCode = signalPayload[Constants.ReportKey.signal] as? Int,
+        if let signalCode = signalPayload[KSCrashKey.signal] as? Int,
            let crashSignal = CrashSignal.from(code: signalCode) {
             return crashSignal
         }
