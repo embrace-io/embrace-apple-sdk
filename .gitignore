@@ -14,16 +14,17 @@ embrace_*.*.*
 embrace_support.zip
 
 ## Swift Package build generated
-.build
+**/.build
+
 # .swiftpm
 
 ## Test results
 *.xcresult
 
 ## fastlane generated
-html/
-fastlane/report.xml
-fastlane/test_output/
+**/html/
+**/fastlane/report.xml
+**/fastlane/test_output/
 
 ## Various settings
 *.pbxuser
@@ -53,4 +54,8 @@ sonar-output
 ## Tuist
 *.xcworkspace
 *.xcodeproj
-Derived/
+**/Derived/
+
+## Examples
+Examples/AppSizeTester/*.xcodeproj
+Examples/AppSizeTester/*.xcworkspace

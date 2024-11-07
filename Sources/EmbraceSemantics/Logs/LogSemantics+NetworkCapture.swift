@@ -6,7 +6,6 @@ import EmbraceCommonInternal
 
 extension LogType {
     public static let networkCapture = LogType(system: "network_capture")
-
 }
 
 public extension LogSemantics {

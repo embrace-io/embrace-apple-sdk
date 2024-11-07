@@ -31,11 +31,11 @@ protocol URLSessionTaskHandlerDataSource: AnyObject {
 final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
 
     private var spans: [URLSessionTask: Span] = [:]
-    private let queue: DispatchQueue
+    private let queue: DispatchableQueue
     private let payloadCaptureHandler: NetworkPayloadCaptureHandler
     weak var dataSource: URLSessionTaskHandlerDataSource?
 
-    init(processingQueue: DispatchQueue = DefaultURLSessionTaskHandler.queue(),
+    init(processingQueue: DispatchableQueue = DefaultURLSessionTaskHandler.queue(),
          dataSource: URLSessionTaskHandlerDataSource?) {
         self.queue = processingQueue
         self.dataSource = dataSource
@@ -213,7 +213,7 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
 }
 
 private extension DefaultURLSessionTaskHandler {
-    static func queue() -> DispatchQueue {
-        .init(label: "com.embrace.URLSessionTaskHandler", qos: .utility)
+    static func queue() -> DispatchableQueue {
+        DispatchQueue(label: "com.embrace.URLSessionTaskHandler", qos: .utility)
     }
 }
