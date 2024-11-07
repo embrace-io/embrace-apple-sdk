@@ -11,6 +11,7 @@ class EmbraceCrashReporterTests: XCTestCase {
 
     let logger = MockLogger()
     var context: CrashReporterContext = .testContext
+    var crashReporter: EmbraceCrashReporter!
 
     override func setUpWithError() throws {
         try? FileManager.default.removeItem(at: context.filePathProvider.directoryURL(for: "embrace_crash_reporter")!)
@@ -21,44 +22,30 @@ class EmbraceCrashReporterTests: XCTestCase {
     }
 
     func test_currentSessionId() {
-        // given a crash reporter
-        let crashReporter = EmbraceCrashReporter()
-        crashReporter.install(context: context, logger: logger)
+        givenCrashReporter()
 
         // when setting the current session id
         let sessionId = SessionIdentifier.random
         crashReporter.currentSessionId = sessionId.toString
 
         // then KSCrash's user info is properly set
-        let key = EmbraceCrashReporter.UserInfoKey.sessionId
+        let key = "emb-sid"
         XCTAssertEqual(crashReporter.ksCrash?.userInfo[key] as? String, sessionId.toString)
     }
 
     func test_sdkVersion() {
-        // given a crash reporter
-        let crashReporter = EmbraceCrashReporter()
-
-        // sdkversion set via context
-        crashReporter.install(context: context, logger: logger)
+        givenCrashReporter()
 
         // then KSCrash's user info is properly set
-        let key = EmbraceCrashReporter.UserInfoKey.sdkVersion
+        let key = "emb-sdk"
         XCTAssertEqual(crashReporter.ksCrash?.userInfo[key] as? String, TestConstants.sdkVersion)
     }
 
     func test_fetchCrashReports() throws {
-        // given a crash reporter
-        let crashReporter = EmbraceCrashReporter()
-        crashReporter.install(context: context, logger: logger)
+        givenCrashReporter()
 
         // given some fake crash report
-        try FileManager.default.createDirectory(
-            atPath: crashReporter.basePath! + "/Reports",
-            withIntermediateDirectories: true
-        )
-        let report = Bundle.module.path(forResource: "crash_report", ofType: "json", inDirectory: "Mocks")!
-        let finalPath = crashReporter.basePath! + "/Reports/appId-report-0000000000000001.json"
-        try FileManager.default.copyItem(atPath: report, toPath: finalPath)
+        try copyReport(named: "crash_report", toFilePath: "/Reports/appId-report-0000000000000001.json")
 
         // then the report is fetched
         let expectation = XCTestExpectation()
@@ -74,20 +61,11 @@ class EmbraceCrashReporterTests: XCTestCase {
     }
 
     func test_fetchCrashReports_count() throws {
-        // given a crash reporter
-        let crashReporter = EmbraceCrashReporter()
-        crashReporter.install(context: context, logger: logger)
+        givenCrashReporter()
 
         // given some fake crash report
-        try FileManager.default.createDirectory(
-            atPath: crashReporter.basePath! + "/Reports",
-            withIntermediateDirectories: true
-        )
-        let report = Bundle.module.path(forResource: "crash_report", ofType: "json", inDirectory: "Mocks")!
-
         for i in 1...9 {
-            let finalPath = crashReporter.basePath! + "/Reports/appId-report-000000000000000\(i).json"
-            try FileManager.default.copyItem(atPath: report, toPath: finalPath)
+            try copyReport(named: "crash_report", toFilePath: "/Reports/appId-report-000000000000000\(i).json")
         }
 
         // then the report is fetched
@@ -102,8 +80,7 @@ class EmbraceCrashReporterTests: XCTestCase {
     }
 
     func test_appendCrashInfo_addsKeyValuesInKSCrashUserInfo() throws {
-        let crashReporter = EmbraceCrashReporter()
-        crashReporter.install(context: context, logger: logger)
+        givenCrashReporter()
 
         crashReporter.appendCrashInfo(key: "some", value: "value")
 
@@ -111,8 +88,7 @@ class EmbraceCrashReporterTests: XCTestCase {
     }
 
     func test_appendCrashInfo_addsDefaultInfoWhenBeingCalled() throws {
-        let crashReporter = EmbraceCrashReporter()
-        crashReporter.install(context: context, logger: logger)
+        givenCrashReporter()
 
         crashReporter.appendCrashInfo(key: "some", value: "value")
 
@@ -123,8 +99,7 @@ class EmbraceCrashReporterTests: XCTestCase {
     }
 
     func testInKSCrash_appendCrashInfo_shouldntDeletePreexistingKeys() throws {
-        let crashReporter = EmbraceCrashReporter()
-        crashReporter.install(context: context, logger: logger)
+        givenCrashReporter()
         crashReporter.ksCrash?.userInfo = ["initial_key": "one_value"]
 
         crashReporter.appendCrashInfo(key: "some", value: "value")
@@ -138,7 +113,7 @@ class EmbraceCrashReporterTests: XCTestCase {
 
     func testHavingInternalAddedInfoInKSCrash_appendCrashInfo_shouldntEraseThoseValues() throws {
         // given crash reporter with an already set sdkVersion and sessionId
-        let crashReporter = EmbraceCrashReporter()
+        crashReporter = EmbraceCrashReporter(queue: MockQueue())
         let context = CrashReporterContext(
             appId: "_-_-_",
             sdkVersion: "1.2.3",
@@ -160,5 +135,109 @@ class EmbraceCrashReporterTests: XCTestCase {
         // Then values should remain untouched
         XCTAssertEqual(ksCrash.userInfo["emb-sid"] as? String, "original_session_id")
         XCTAssertEqual(ksCrash.userInfo["emb-sdk"] as? String, "1.2.3")
+    }
+
+    // MARK: - Signal Block List Tests
+
+    func testOnHavingDefaultSignalBlockList_fetchUnsentCrashReports_SIGTERMshouldntBeReported() throws {
+        // given a crash reporter
+        givenCrashReporter()
+
+        // given some fake crash reports (non-blocked & blocked [SIGTERM])
+        try copyReport(named: "sigabrt_report", toFilePath: "/Reports/appId-report-0000000000000001.json")
+        try copyReport(named: "sigterm_report", toFilePath: "/Reports/appId-report-0000000000000002.json")
+
+        let expectation = XCTestExpectation()
+
+        // when fetching unsent crash reports
+        crashReporter.fetchUnsentCrashReports { reports in
+            // Then only one report should be present
+            XCTAssertEqual(reports.count, 1)
+            // and report shouldn't be the one with the SIGTERM signal
+            XCTAssertEqual(reports[0].internalId, 1)
+            // and dropped report should have been deleted
+            self.thenShouldntExistReport(withName: "appId-report-0000000000000002.json")
+
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
+    }
+
+    func testOnHavingEmptySignalBlockList_fetchUnsentCrashReports_SIGTERMshouldBeReported() throws {
+        // given a crash reporter with no blocklist
+        crashReporter = EmbraceCrashReporter(queue: MockQueue(), signalsBlockList: [])
+        crashReporter.install(context: context, logger: logger)
+
+        // given some fake crash reports (SIGABRT + SIGTERM)
+        try copyReport(named: "sigabrt_report", toFilePath: "/Reports/appId-report-0000000000000001.json")
+        try copyReport(named: "sigterm_report", toFilePath: "/Reports/appId-report-0000000000000002.json")
+
+        let expectation = XCTestExpectation()
+
+        // when fetching unsent crash reports
+        crashReporter.fetchUnsentCrashReports { reports in
+            // Then both reports should be present
+            XCTAssertEqual(reports.count, 2)
+            XCTAssertEqual(reports[0].internalId, 1)
+            XCTAssertEqual(reports[1].internalId, 2)
+
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
+    }
+
+    func testOnModifyingSignalBlockList_fetchUnsentCrashReports_shouldAvoidReportingBlockedSignals() throws {
+        // given a crash reporter preventing SIGABRT from being reported
+        crashReporter = EmbraceCrashReporter(queue: MockQueue(), signalsBlockList: [.SIGABRT])
+        crashReporter.install(context: context, logger: logger)
+
+        // given some fake crash reports (nonBlocked SIGTERM + blocked SIGABRT)
+        try copyReport(named: "sigabrt_report", toFilePath: "/Reports/appId-report-0000000000000001.json")
+        try copyReport(named: "sigterm_report", toFilePath: "/Reports/appId-report-0000000000000002.json")
+
+        let expectation = XCTestExpectation()
+
+        // when fetching unsent crash reports
+        crashReporter.fetchUnsentCrashReports { reports in
+            // Then only one report should be
+            XCTAssertEqual(reports.count, 1)
+            // and report shouldn't be the one with the SIGABRT signal
+            XCTAssertEqual(reports[0].internalId, 2)
+            // and dropped report should have been deleted
+            self.thenShouldntExistReport(withName: "appId-report-0000000000000001.json")
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
+    }
+}
+
+private extension EmbraceCrashReporterTests {
+    func copyReport(named: String, toFilePath: String) throws {
+        let basePath = try XCTUnwrap(crashReporter.basePath)
+        if !FileManager.default.fileExists(atPath: basePath) {
+            try FileManager.default.createDirectory(
+                atPath: basePath + "/Reports",
+                withIntermediateDirectories: true
+            )
+        }
+        let report = try XCTUnwrap(Bundle.module.path(forResource: named, ofType: "json", inDirectory: "Mocks"))
+        try FileManager.default.copyItem(atPath: report, toPath: basePath + toFilePath)
+    }
+
+    func thenShouldntExistReport(withName name: String) {
+        do {
+            let basePath = try XCTUnwrap(crashReporter.basePath)
+            XCTAssertFalse(FileManager.default.fileExists(atPath: basePath + "/Reports/" + name))
+        } catch let ex {
+            XCTFail(ex.localizedDescription)
+        }
+    }
+
+    func givenCrashReporter() {
+        crashReporter = EmbraceCrashReporter(queue: MockQueue())
+        crashReporter.install(context: context, logger: logger)
     }
 }
