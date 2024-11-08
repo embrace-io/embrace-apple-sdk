@@ -541,6 +541,7 @@
 				FAFDA3DF2C343F2100AD17CF /* Sources */,
 				FAFDA3E02C343F2100AD17CF /* Frameworks */,
 				FAFDA3E12C343F2100AD17CF /* Resources */,
+				FA0100042CDD5B64002F82D1 /* Upload Symbols - Embrace */,
 			);
 			buildRules = (
 			);
@@ -651,6 +652,24 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		FA0100042CDD5B64002F82D1 /* Upload Symbols - Embrace */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Upload Symbols - Embrace";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "EMBRACE_ID=\"kj9hd\" EMBRACE_TOKEN=\"13f327e891ad45858949004eb755b9f1\" \"$SRCROOT/embrace_support/run.sh\"\n";
+		};
 		FA01FF602CDD12A4002F82D1 /* Upload dSYMs - Firebase */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -776,7 +795,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_ASSET_PATHS = "\"BombApp/Preview Content\"";
-				DEVELOPMENT_TEAM = 6DGEL3PVWH;
+				DEVELOPMENT_TEAM = L5RVT7J8CV;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -807,7 +826,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"BombApp/Preview Content\"";
-				DEVELOPMENT_TEAM = 6DGEL3PVWH;
+				DEVELOPMENT_TEAM = L5RVT7J8CV;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -959,8 +978,9 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_ASSET_PATHS = "\"BombApp/Preview Content\"";
-				DEVELOPMENT_TEAM = 6DGEL3PVWH;
+				DEVELOPMENT_TEAM = L5RVT7J8CV;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = BombApp/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -972,7 +992,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1;
+				MARKETING_VERSION = 0.3;
 				OTHER_SWIFT_FLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = io.embrace.BombApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -991,8 +1011,9 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"BombApp/Preview Content\"";
-				DEVELOPMENT_TEAM = 6DGEL3PVWH;
+				DEVELOPMENT_TEAM = L5RVT7J8CV;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = BombApp/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -1004,7 +1025,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1;
+				MARKETING_VERSION = 0.3;
 				OTHER_SWIFT_FLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = io.embrace.BombApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
