@@ -11,7 +11,14 @@ mkdir -p "$BUILD_DIR"
 
 get_dependency_info() {
   local DEPENDENCY_NAME=$(echo "$1" | tr '[:upper:]' '[:lower:]')
-  local INFO=$(jq -r --arg NAME "$DEPENDENCY_NAME" '.pins[] | select(.identity == $NAME) | { url: .location, version: (.state.version // .state.branch) }' Package.resolved)
+  local INFO=$(jq -r --arg NAME "$DEPENDENCY_NAME" '
+    .pins[] | select(.identity == $NAME) |
+    if .state.version or .state.branch then
+      { url: .location, version: (.state.version // .state.branch) }
+    else
+      { url: .location, revision: .state.revision }
+    end
+  ' Package.resolved)
   echo "$INFO"
 }
 
@@ -19,23 +26,26 @@ for NAME in "${DEPENDENCIES[@]}"; do
   echo "Processing dependency: $NAME"
 
   INFO=$(get_dependency_info "$NAME")
-  echo $INFO
   URL=$(echo "$INFO" | jq -r '.url')
   VERSION=$(echo "$INFO" | jq -r '.version')
-
-  if [ -z "$URL" ] || [ -z "$VERSION" ]; then
-    echo "Could not find dependency $NAME in Package.resolved"
-    exit 1
-  fi
-
-  echo "URL: $URL"
-  echo "Version: $VERSION"
+  REVISION=$(echo "$INFO" | jq -r '.revision')
 
   REPO_DIR="$TEMP_DIR/$NAME"
-  if git ls-remote --tags "$URL" | grep -q "refs/tags/v${VERSION}$"; then
-    git clone --branch "v${VERSION}" "$URL" "$REPO_DIR"
+  if [ "$VERSION" != "null" ]; then
+    if git ls-remote --tags "$URL" | grep -q "refs/tags/v${VERSION}$"; then
+      git clone --branch "v${VERSION}" "$URL" "$REPO_DIR"
+    else
+      git clone --branch "$VERSION" "$URL" "$REPO_DIR"
+    fi
+  elif [ "$REVISION" != "null" ]; then
+    git clone "$URL" "$REPO_DIR"
+    cd "$REPO_DIR"
+    git fetch --depth 1 origin "$REVISION"
+    git checkout "$REVISION"
+    cd -
   else
-    git clone --branch "$VERSION" "$URL" "$REPO_DIR"
+    echo "Could not find dependency $NAME in Package.resolved"
+    exit 1
   fi
 
   LOWERCASE_NAME=$(echo "$NAME" | tr '[:upper:]' '[:lower:]')

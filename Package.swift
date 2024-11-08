@@ -36,7 +36,7 @@ let package = Package(
         ),
         .package(
             url: "https://github.com/open-telemetry/opentelemetry-swift",
-            exact: "1.10.1"
+            revision: "0cd4a4c041baead7f845325b86b57f3d1355e86b"
         ),
         .package(
             url: "https://github.com/groue/GRDB.swift",
