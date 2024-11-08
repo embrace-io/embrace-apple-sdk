@@ -56,10 +56,8 @@ class URLSessionTaskCaptureRule {
         }
 
         // check that the method matches
-        if let methods = rule.methods {
-            guard methods.contains(method) else {
-                return false
-            }
+        guard let ruleMethod = rule.method, ruleMethod == method else {
+            return false
         }
 
         // check status codes

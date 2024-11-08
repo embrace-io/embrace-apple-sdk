@@ -13,27 +13,24 @@
         "warning": 40,
         "error": 50,
     },
-    "network_payload_capture": [
+    "network_capture": [
         {
             "id": "rule1",
             "url": "www.test.com/user/*",
-            "status_code": [
+            "status_codes": [
                 200,
                 201,
                 404,
                 -1
             ],
-            "method": [
-                "GET",
-                "POST"
-            ],
-            "expiration": 1723570602,
+            "method": "GET",
+            "expires_in": 1723570602,
             "public_key": "key"
         },
         {
             "id": "rule2",
             "url": "www.test.com/test",
-            "expiration": 1723570602,
+            "expires_in": 1723570602,
             "public_key": "key"
         },
     ]

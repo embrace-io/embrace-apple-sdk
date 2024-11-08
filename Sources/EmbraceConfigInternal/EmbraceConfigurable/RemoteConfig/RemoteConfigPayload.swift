@@ -42,7 +42,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             case error
         }
 
-        case networkPayLoadCapture = "network_payload_capture"
+        case networkPayLoadCapture = "network_capture"
     }
 
     public init(from decoder: Decoder) throws {
