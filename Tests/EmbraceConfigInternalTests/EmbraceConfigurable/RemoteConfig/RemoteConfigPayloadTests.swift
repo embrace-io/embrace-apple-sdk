@@ -48,14 +48,14 @@ class RemoteConfigPayloadTests: XCTestCase {
         let rule1 = payload.networkPayloadCaptureRules.first { $0.id == "rule1" }
         XCTAssertEqual(rule1!.urlRegex, "www.test.com/user/*")
         XCTAssertEqual(rule1!.statusCodes, [200, 201, 404, -1])
-        XCTAssertEqual(rule1!.methods, ["GET", "POST"])
+        XCTAssertEqual(rule1!.method, "GET")
         XCTAssertEqual(rule1!.expiration, 1723570602)
         XCTAssertEqual(rule1!.publicKey, "key")
 
         let rule2 = payload.networkPayloadCaptureRules.first { $0.id == "rule2" }
         XCTAssertEqual(rule2!.urlRegex, "www.test.com/test")
         XCTAssertNil(rule2!.statusCodes)
-        XCTAssertNil(rule2!.methods)
+        XCTAssertNil(rule2!.method)
         XCTAssertEqual(rule2!.expiration, 1723570602)
         XCTAssertEqual(rule2!.publicKey, "key")
     }

@@ -15,7 +15,7 @@ class URLSessionTaskCaptureRuleTests: XCTestCase {
         id: "rule1",
         urlRegex: "www.test.com/user/*",
         statusCodes: [500],
-        methods: ["GET"],
+        method: "GET",
         expiration: 9999999999,
         publicKey: TestConstants.rsaSanitizedPublicKey
     )
@@ -24,7 +24,7 @@ class URLSessionTaskCaptureRuleTests: XCTestCase {
         id: "rule2",
         urlRegex: "www.test.com/test",
         statusCodes: [-1],
-        methods: ["POST"],
+        method: "POST",
         expiration: 9999999999,
         publicKey: TestConstants.rsaPublicKey
     )
@@ -33,7 +33,7 @@ class URLSessionTaskCaptureRuleTests: XCTestCase {
         id: "rule3",
         urlRegex: "www.test.com/test",
         statusCodes: [-1],
-        methods: ["POST"],
+        method: "POST",
         expiration: 1,
         publicKey: TestConstants.rsaSanitizedPublicKey
     )
