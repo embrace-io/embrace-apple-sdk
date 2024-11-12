@@ -15,11 +15,13 @@ public class EmbraceUpload: EmbraceLogUploader {
     public private(set) var options: Options
     public private(set) var logger: InternalLogger
     public private(set) var queue: DispatchQueue
+    @ThreadSafe
+    private(set) var isRetryingCache: Bool = false
 
-    let cache: EmbraceUploadCache
-    let urlSession: URLSession
-    let operationQueue: OperationQueue
-    var reachabilityMonitor: EmbraceReachabilityMonitor?
+    private let cache: EmbraceUploadCache
+    private let urlSession: URLSession
+    private let operationQueue: OperationQueue
+    private var reachabilityMonitor: EmbraceReachabilityMonitor?
 
     /// Returns an `EmbraceUpload` instance
     /// - Parameters:
@@ -54,25 +56,46 @@ public class EmbraceUpload: EmbraceLogUploader {
     /// Attempts to upload all the available cached data.
     public func retryCachedData() {
         queue.async { [weak self] in
+            guard let self = self else { return }
             do {
-                guard let cachedObjects = try self?.cache.fetchAllUploadData() else {
+                // get all the data cached first, is the only thing that could throw
+                let cachedObjects = try self.cache.fetchAllUploadData()
+
+                // in place mechanism to not retry sending cache data at the same time 
+                guard !self.isRetryingCache else {
                     return
                 }
+
+                self.isRetryingCache = true
+                defer {
+                    // on finishing everything, allow to retry cache (i.e. reconnection)
+                    self.isRetryingCache = false
+                }
+
+                // create a sempahore to allow only to send two request at a time so we don't
+                // get throttled by the backend on cases where cache has many failed requests.
+                let semaphore = DispatchSemaphore(value: 2)
 
                 for uploadData in cachedObjects {
                     guard let type = EmbraceUploadType(rawValue: uploadData.type) else {
                         continue
                     }
-
-                    self?.uploadData(
+                    self.logger.debug("[EMBRACE] Waiting \(uploadData.id)")
+                    semaphore.wait()
+                    self.logger.debug("[EMBRACE] Entering \(uploadData.id)")
+                    self.uploadData(
                         id: uploadData.id,
                         data: uploadData.data,
                         type: type,
-                        attemptCount: uploadData.attemptCount,
-                        completion: nil)
+                        waitForOperationToFinish: true,
+                        completion: { completion in
+                            self.logger.debug("[EMBRACE] Ending \(uploadData.id)")
+                            semaphore.signal()
+                        }
+                    )
                 }
             } catch {
-                self?.logger.debug("Error retrying cached upload data: \(error.localizedDescription)")
+                self.logger.debug("Error retrying cached upload data: \(error.localizedDescription)")
             }
         }
     }
@@ -84,7 +107,12 @@ public class EmbraceUpload: EmbraceLogUploader {
     ///   - completion: Completion block called when the data is successfully cached, or when an `Error` occurs
     public func uploadSpans(id: String, data: Data, completion: ((Result<(), Error>) -> Void)?) {
         queue.async { [weak self] in
-            self?.uploadData(id: id, data: data, type: .spans, completion: completion)
+            self?.uploadData(
+                id: id,
+                data: data,
+                type: .spans,
+                completion: completion
+            )
         }
     }
 
@@ -95,7 +123,12 @@ public class EmbraceUpload: EmbraceLogUploader {
     ///   - completion: Completion block called when the data is successfully cached, or when an `Error` occurs
     public func uploadLog(id: String, data: Data, completion: ((Result<(), Error>) -> Void)?) {
         queue.async { [weak self] in
-            self?.uploadData(id: id, data: data, type: .log, completion: completion)
+            self?.uploadData(
+                id: id,
+                data: data,
+                type: .log,
+                completion: completion
+            )
         }
     }
 
@@ -105,6 +138,8 @@ public class EmbraceUpload: EmbraceLogUploader {
         data: Data,
         type: EmbraceUploadType,
         attemptCount: Int = 0,
+        retryCount: Int? = nil,
+        waitForOperationToFinish: Bool = false,
         completion: ((Result<(), Error>) -> Void)?) {
 
         // validate identifier
@@ -123,7 +158,9 @@ public class EmbraceUpload: EmbraceLogUploader {
         let cacheOperation = BlockOperation { [weak self] in
             do {
                 try self?.cache.saveUploadData(id: id, type: type, data: data)
-                completion?(.success(()))
+                if !waitForOperationToFinish {
+                    completion?(.success(()))
+                }
             } catch {
                 self?.logger.debug("Error caching upload data: \(error.localizedDescription)")
                 completion?(.failure(error))
@@ -133,14 +170,18 @@ public class EmbraceUpload: EmbraceLogUploader {
         // upload operation
         let uploadOperation = EmbraceUploadOperation(
             urlSession: urlSession,
+            queue: queue,
             metadataOptions: options.metadata,
             endpoint: endpoint(for: type),
             identifier: id,
             data: data,
-            retryCount: options.redundancy.automaticRetryCount,
+            retryCount: retryCount ?? options.redundancy.automaticRetryCount,
+            exponentialBackoffBehavior: options.redundancy.exponentialBackoffBehavior,
             attemptCount: attemptCount,
             logger: logger) { [weak self] (cancelled, count, error) in
-
+                if waitForOperationToFinish {
+                    completion?(.success(()))
+                }
                 self?.queue.async { [weak self] in
                     self?.handleOperationFinished(
                         id: id,
@@ -149,7 +190,7 @@ public class EmbraceUpload: EmbraceLogUploader {
                         attemptCount: count,
                         error: error
                     )
-                    self?.cleanCacheFromStaleData()
+                    self?.clearCacheFromStaleData()
                 }
             }
 
@@ -164,8 +205,8 @@ public class EmbraceUpload: EmbraceLogUploader {
         type: EmbraceUploadType,
         cancelled: Bool,
         attemptCount: Int,
-        error: Error?) {
-
+        error: Error?
+    ) {
         // error?
         if cancelled == true || error != nil {
             // update attempt count in cache
@@ -189,7 +230,7 @@ public class EmbraceUpload: EmbraceLogUploader {
         }
     }
 
-    private func cleanCacheFromStaleData() {
+    private func clearCacheFromStaleData() {
         operationQueue.addOperation { [weak self] in
             do {
                 try self?.cache.clearStaleDataIfNeeded()
