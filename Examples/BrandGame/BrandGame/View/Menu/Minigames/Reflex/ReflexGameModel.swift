@@ -147,7 +147,6 @@ extension ReflexGameModel {
     private func buildSpan(startTime: Date) -> Span? {
         return Embrace.client?.buildSpan(name: "reflex-measure", type: .ux)
             .setStartTime(time: startTime)
-            .markAsKeySpan()
             .startSpan()
     }
 }

@@ -116,8 +116,8 @@ let embrace = try Embrace
                 .start()
 
 // later on
-embrace.buildSpan(name: "my-operation")
-  .markAsKeySpan()
+embrace
+  .buildSpan(name: "my-operation")
   .startSpan()
 ```
 
@@ -131,8 +131,8 @@ try Embrace
     .start()
 
 // later on
-Embrace.client?.buildSpan(name: "my-operation")
-  .markAsKeySpan()
+Embrace.client?
+  .buildSpan(name: "my-operation")
   .startSpan()
 ```
 
@@ -144,7 +144,6 @@ extension ReflexGameModel {
     private func buildSpan(startTime: Date) -> Span? {
         return Embrace.client?.buildSpan(name: "reflex-measure", type: .ux)
             .setStartTime(time: startTime)
-            .markAsKeySpan()
             .startSpan()
     }
 }

@@ -118,7 +118,6 @@ below, but here are some quick examples:
 ```swift
 let span = Embrace.client?
   .buildSpan(name: "my-custom-operation", type: .performance)
-  .markAsKeySpan()
   .startSpan()
 
 // perform `my-custom-operation`
