@@ -44,7 +44,7 @@ class UIViewControllerDidDisappearSwizzler: Swizzlable {
         try swizzleInstanceMethod { originalImplementation in
             return { [weak self] viewController, animated -> Void in
                 self?.onViewDidDisappear?(viewController, animated)
-                originalImplementation(viewController, UIWindowSendEventSwizzler.selector, animated)
+                originalImplementation(viewController, Self.selector, animated)
             }
         }
     }
