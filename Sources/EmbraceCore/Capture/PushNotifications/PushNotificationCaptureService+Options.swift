@@ -5,7 +5,7 @@
 import Foundation
 
 extension PushNotificationCaptureService {
-    /// Class used to setup a WebViewCaptureService.
+    /// Class used to setup a `PushNotificationCaptureService`.
     @objc(EMBPushNotificationCaptureServiceOptions)
     public final class Options: NSObject {
         /// Defines wether or not the Embrace SDK should capture the data from the push notifications
