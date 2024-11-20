@@ -5,7 +5,12 @@
 import Foundation
 import EmbraceCommonInternal
 
-typealias EmbraceUploadOperationCompletion = (_ cancelled: Bool, _ attemptCount: Int, _ error: Error?) -> Void
+enum EmbraceUploadOperationResult: Equatable {
+    case success
+    case failure(retriable: Bool)
+}
+
+typealias EmbraceUploadOperationCompletion = (_ result: EmbraceUploadOperationResult, _ attemptCount: Int) -> Void
 
 class EmbraceUploadOperation: AsyncOperation {
 
@@ -51,11 +56,10 @@ class EmbraceUploadOperation: AsyncOperation {
 
     override func cancel() {
         super.cancel()
-
         task?.cancel()
         task = nil
 
-        completion?(true, attemptCount, nil)
+        completion?(.failure(retriable: true), attemptCount)
     }
 
     override func execute() {
@@ -74,36 +78,41 @@ class EmbraceUploadOperation: AsyncOperation {
         request = updateRequest(request, attemptCount: attemptCount)
 
         task = urlSession.dataTask(with: request, completionHandler: { [weak self] _, response, error in
-            guard let self = self else {
+            guard let strongSelf = self else {
                 return
             }
-
             // retry?
-            if self.shouldRetry(basedOn: response, retryCount: retryCount, error: error) {
-                let delay = exponentialBackoffBehavior.calculateDelay(forRetryNumber: (self.retryCount - (retryCount - 1)))
-                self.logger?.debug("Will retry request in \(delay)")
-                queue.asyncAfter(deadline: .now() + .seconds(delay), execute: {
-                    self.sendRequest(request, retryCount: retryCount - 1)
+            if retryCount > 0 && strongSelf.shouldRetry(basedOn: response, error: error) {
+                // calculates the necessary delay before retrying the request
+                let delay = strongSelf.exponentialBackoffBehavior.calculateDelay(
+                    forRetryNumber: (strongSelf.retryCount - (retryCount - 1)),
+                    appending: strongSelf.getSuggestedDelay(fromResponse: response)
+                )
+
+                // retry request on the same queue after `delay`
+                strongSelf.queue.asyncAfter(deadline: .now() + .seconds(delay), execute: {
+                    strongSelf.sendRequest(request, retryCount: retryCount - 1)
                 })
                 return
             }
 
             // check success
             if let response = response as? HTTPURLResponse {
-                self.logger?.debug("Upload operation complete. Status: \(response.statusCode) URL: \(String(describing: response.url))")
+                strongSelf.logger?.debug("Upload operation complete. Status: \(response.statusCode) URL: \(String(describing: response.url))")
                 if response.statusCode >= 200 && response.statusCode < 300 {
-                    self.completion?(false, self.attemptCount, nil)
+                    strongSelf.completion?(.success, strongSelf.attemptCount)
                 } else {
-                    let returnError = EmbraceUploadError.incorrectStatusCodeError(response.statusCode)
-                    self.completion?(false, self.attemptCount, returnError)
+                    let isRetriable = strongSelf.shouldRetry(basedOn: response, error: error)
+                    strongSelf.completion?(.failure(retriable: isRetriable), strongSelf.attemptCount)
                 }
 
             // no retries left, send completion
             } else {
-                self.completion?(false, self.attemptCount, error)
+                let isRetriable = strongSelf.shouldRetry(basedOn: response, error: error)
+                strongSelf.completion?(.failure(retriable: isRetriable), strongSelf.attemptCount)
             }
 
-            self.finish()
+            strongSelf.finish()
         })
 
         task?.resume()
@@ -111,13 +120,9 @@ class EmbraceUploadOperation: AsyncOperation {
 
     private func shouldRetry(
         basedOn response: URLResponse?,
-        retryCount: Int,
         error: (any Error)?
     ) -> Bool {
-        // No retries left
-        guard retryCount > 0 else { return false }
-
-        // Handle network-related errors
+        // handle network-related errors
         if let nsError = error as? URLError {
             switch nsError.code {
             case .cancelled,
@@ -135,19 +140,38 @@ class EmbraceUploadOperation: AsyncOperation {
             }
         }
 
-        // Handle HTTP status codes:
-        // Retry only if is an error (client/server) and statusCode is not 429
+        // handle HTTP status codes:
+        // retry only if is an error (client/server) and statusCode is not 429
         if let statusCode = (response as? HTTPURLResponse)?.statusCode, statusCode >= 400 {
             switch statusCode {
-            case 429: // Too many requests; we shouldn't retry.
-                return false
-            default:
+            // this status code ("Too Many Requests") indicates that the server has applied rate limiting to protect itself from excessive requests.
+            // instead of dropping the request, we should retry this operation at a later time.
+            case 429:
                 return true
+            // server-side errors (5xx): These indicate issues on the server side that may be temporary, so retrying is appropriate.
+            case 500...599:
+                return true
+            // default case for other 4xx errors: These typically indicate client-side issues (e.g. invalid requests) and should not be retried.
+            default:
+                return false
             }
         }
 
-        // Retry for all other non-handled cases with errors
+        // retry for all other non-handled cases with errors
         return error != nil
+    }
+    
+    /// Extracts the suggested delay from `Retry-After` header from the `URLResponse` if present.
+    /// - Parameter response: the URLResponse recevied when executing a request.
+    /// - Returns:the time in seconds (as `Int`) extracted from the `Retry-After` header.
+    private func getSuggestedDelay(fromResponse response: URLResponse?) -> Int {
+        guard let httpResponse = response as? HTTPURLResponse,
+              let retryAfterHeaderValue = httpResponse.allHeaderFields["Retry-After"],
+              let retryAfterDelay = retryAfterHeaderValue as? Int else {
+            return 0
+        }
+
+        return retryAfterDelay
     }
 
     private func createRequest() -> URLRequest {

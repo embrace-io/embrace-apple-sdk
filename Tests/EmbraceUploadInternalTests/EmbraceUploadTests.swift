@@ -33,7 +33,7 @@ class EmbraceUploadTests: XCTestCase {
         )
 
         self.queue = DispatchQueue(label: "com.test.embrace.queue", attributes: .concurrent)
-        module = try EmbraceUpload(options: testOptions, logger: MockLogger(), queue: queue)
+        module = try EmbraceUpload(options: testOptions, logger: MockLogger(), queue: queue, semaphore: .init(value: .max))
     }
 
     override func tearDownWithError() throws {
@@ -188,6 +188,10 @@ class EmbraceUploadTests: XCTestCase {
         // given cached data
         _ = try module.cache.saveUploadData(id: "id1", type: .spans, data: TestConstants.data)
         _ = try module.cache.saveUploadData(id: "id2", type: .log, data: TestConstants.data)
+
+        EmbraceHTTPMock.mock(url: testSpansUrl())
+        EmbraceHTTPMock.mock(url: testLogsUrl())
+
 
         // when retrying to upload all cached data
         module.retryCachedData()
