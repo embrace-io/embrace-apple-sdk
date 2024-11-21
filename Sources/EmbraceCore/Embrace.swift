@@ -132,7 +132,8 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
 
     init(options: Embrace.Options,
          logControllable: LogControllable? = nil,
-         embraceStorage: EmbraceStorage? = nil) throws {
+         embraceStorage: EmbraceStorage? = nil,
+         embraceUpload: EmbraceUpload? = nil) throws {
         self.started = false
         self.options = options
 
@@ -140,7 +141,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
 
         self.storage = try embraceStorage ?? Embrace.createStorage(options: options)
         self.deviceId = DeviceIdentifier.retrieve(from: storage)
-        self.upload = Embrace.createUpload(options: options, deviceId: deviceId.hex)
+        self.upload = embraceUpload ?? Embrace.createUpload(options: options, deviceId: deviceId.hex)
         self.captureServices = try CaptureServices(options: options, storage: storage, upload: upload)
         self.config = Embrace.createConfig(options: options, deviceId: deviceId)
         self.sessionController = SessionController(storage: storage, upload: upload, config: config)

@@ -7,7 +7,7 @@ import EmbraceCommonInternal
 
 enum EmbraceUploadOperationResult: Equatable {
     case success
-    case failure(retriable: Bool)
+    case failure(retriable: Bool, suggestedDelay: Int = 0)
 }
 
 typealias EmbraceUploadOperationCompletion = (_ result: EmbraceUploadOperationResult, _ attemptCount: Int) -> Void
@@ -20,12 +20,11 @@ class EmbraceUploadOperation: AsyncOperation {
     private let endpoint: URL
     private let identifier: String
     private let data: Data
-    private let retryCount: Int
-    private let exponentialBackoffBehavior: EmbraceUpload.ExponentialBackoff
     private var attemptCount: Int
     private let logger: InternalLogger?
     private let completion: EmbraceUploadOperationCompletion?
 
+    private let delay: Int
     private var task: URLSessionDataTask?
 
     init(
@@ -35,8 +34,7 @@ class EmbraceUploadOperation: AsyncOperation {
         endpoint: URL,
         identifier: String,
         data: Data,
-        retryCount: Int,
-        exponentialBackoffBehavior: EmbraceUpload.ExponentialBackoff,
+        delay: Int = 0,
         attemptCount: Int,
         logger: InternalLogger? = nil,
         completion: EmbraceUploadOperationCompletion? = nil
@@ -47,8 +45,7 @@ class EmbraceUploadOperation: AsyncOperation {
         self.endpoint = endpoint
         self.identifier = identifier
         self.data = data
-        self.retryCount = retryCount
-        self.exponentialBackoffBehavior = exponentialBackoffBehavior
+        self.delay = delay
         self.attemptCount = attemptCount
         self.logger = logger
         self.completion = completion
@@ -64,11 +61,20 @@ class EmbraceUploadOperation: AsyncOperation {
 
     override func execute() {
         let request = createRequest()
+        if delay > 0 {
+            queue.asyncAfter(deadline: .now() + .seconds(delay)) { [weak self] in
+                guard let self = self else {
+                    return
+                }
+                self.sendRequest(request)
+            }
+        } else {
+            sendRequest(request)
+        }
 
-        sendRequest(request, retryCount: retryCount)
     }
 
-    private func sendRequest(_ r: URLRequest, retryCount: Int) {
+    private func sendRequest(_ r: URLRequest) {
         var request = r
 
         // increment attempt count
@@ -81,20 +87,6 @@ class EmbraceUploadOperation: AsyncOperation {
             guard let strongSelf = self else {
                 return
             }
-            // retry?
-            if retryCount > 0 && strongSelf.shouldRetry(basedOn: response, error: error) {
-                // calculates the necessary delay before retrying the request
-                let delay = strongSelf.exponentialBackoffBehavior.calculateDelay(
-                    forRetryNumber: (strongSelf.retryCount - (retryCount - 1)),
-                    appending: strongSelf.getSuggestedDelay(fromResponse: response)
-                )
-
-                // retry request on the same queue after `delay`
-                strongSelf.queue.asyncAfter(deadline: .now() + .seconds(delay), execute: {
-                    strongSelf.sendRequest(request, retryCount: retryCount - 1)
-                })
-                return
-            }
 
             // check success
             if let response = response as? HTTPURLResponse {
@@ -103,10 +95,14 @@ class EmbraceUploadOperation: AsyncOperation {
                     strongSelf.completion?(.success, strongSelf.attemptCount)
                 } else {
                     let isRetriable = strongSelf.shouldRetry(basedOn: response, error: error)
-                    strongSelf.completion?(.failure(retriable: isRetriable), strongSelf.attemptCount)
+                    let result: EmbraceUploadOperationResult = .failure(
+                        retriable: isRetriable,
+                        suggestedDelay: strongSelf.getSuggestedDelay(fromResponse: response)
+                    )
+                    strongSelf.completion?(result, strongSelf.attemptCount)
                 }
 
-            // no retries left, send completion
+            // if response is invalid, return failure
             } else {
                 let isRetriable = strongSelf.shouldRetry(basedOn: response, error: error)
                 strongSelf.completion?(.failure(retriable: isRetriable), strongSelf.attemptCount)
@@ -164,9 +160,8 @@ class EmbraceUploadOperation: AsyncOperation {
     /// Extracts the suggested delay from `Retry-After` header from the `URLResponse` if present.
     /// - Parameter response: the URLResponse recevied when executing a request.
     /// - Returns:the time in seconds (as `Int`) extracted from the `Retry-After` header.
-    private func getSuggestedDelay(fromResponse response: URLResponse?) -> Int {
-        guard let httpResponse = response as? HTTPURLResponse,
-              let retryAfterHeaderValue = httpResponse.allHeaderFields["Retry-After"],
+    private func getSuggestedDelay(fromResponse httpResponse: HTTPURLResponse) -> Int {
+        guard let retryAfterHeaderValue = httpResponse.allHeaderFields["Retry-After"],
               let retryAfterDelay = retryAfterHeaderValue as? Int else {
             return 0
         }

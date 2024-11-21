@@ -23,7 +23,7 @@ final class SessionControllerTests: XCTestCase {
         userAgent: "userAgent",
         deviceId: "12345678"
     )
-    static let testRedundancyOptions = EmbraceUpload.RedundancyOptions(automaticRetryCount: 0)
+    static let testRedundancyOptions = EmbraceUpload.RedundancyOptions(maximumAmountOfRetries: 0)
 
     var uploadTestOptions: EmbraceUpload.Options!
 

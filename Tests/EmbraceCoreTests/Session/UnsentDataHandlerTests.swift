@@ -18,7 +18,7 @@ class UnsentDataHandlerTests: XCTestCase {
     var uploadOptions: EmbraceUpload.Options!
     var queue: DispatchQueue!
 
-    static let testRedundancyOptions = EmbraceUpload.RedundancyOptions(automaticRetryCount: 0)
+    static let testRedundancyOptions = EmbraceUpload.RedundancyOptions(maximumAmountOfRetries: 0)
     static let testMetadataOptions = EmbraceUpload.MetadataOptions(
         apiKey: "apiKey",
         userAgent: "userAgent",

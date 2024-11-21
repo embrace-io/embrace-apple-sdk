@@ -28,7 +28,11 @@ extension Embrace {
         }
     }
 
-    static func createUpload(options: Embrace.Options, deviceId: String) -> EmbraceUpload? {
+    static func createUpload(
+        options: Embrace.Options,
+        deviceId: String,
+        redundancyOptions: EmbraceUpload.RedundancyOptions = .init()
+    ) -> EmbraceUpload? {
         guard let appId = options.appId else {
             return nil
         }
@@ -66,7 +70,12 @@ extension Embrace {
         )
 
         do {
-            let options = EmbraceUpload.Options(endpoints: uploadEndpoints, cache: cache, metadata: metadata)
+            let options = EmbraceUpload.Options(
+                endpoints: uploadEndpoints,
+                cache: cache,
+                metadata: metadata,
+                redundancy: redundancyOptions
+            )
             let queue = DispatchQueue(label: "com.embrace.upload", attributes: .concurrent)
 
             return try EmbraceUpload(options: options, logger: Embrace.logger, queue: queue)

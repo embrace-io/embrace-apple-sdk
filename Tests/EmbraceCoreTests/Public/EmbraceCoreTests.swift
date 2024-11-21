@@ -243,14 +243,16 @@ final class EmbraceCoreTests: XCTestCase {
                 configBaseURL: "https://embrace.\(testName).com/config"
             )
 
-            // I use random string for group id to ensure a different storage location each time
-            try Embrace.client = Embrace(options: .init(
+            let options = Embrace.Options(
                 appId: "testA",
                 appGroupId: randomString(length: 5),
                 endpoints: endpoints,
                 captureServices: [],
                 crashReporter: crashReporter
-            ), embraceStorage: storage)
+            )
+            let uploadModule = Embrace.createUpload(options: options, deviceId: .init(), redundancyOptions: .init(maximumAmountOfRetries: 0))
+            // I use random string for group id to ensure a different storage location each time
+            try Embrace.client = Embrace(options: options, embraceStorage: storage, embraceUpload: uploadModule)
             XCTAssertNotNil(Embrace.client)
             let embrace = Embrace.client
             Embrace.client = nil

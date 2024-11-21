@@ -90,8 +90,7 @@ public class EmbraceUpload: EmbraceLogUploader {
                         continue
                     }
                     self.semaphore.wait()
-
-                    self.reUploadData(
+                    self.enqueueUploadData(
                         id: uploadData.id,
                         data: uploadData.data,
                         type: type,
@@ -144,7 +143,6 @@ public class EmbraceUpload: EmbraceLogUploader {
         data: Data,
         type: EmbraceUploadType,
         attemptCount: Int = 0,
-        retryCount: Int? = nil,
         completion: ((Result<(), Error>) -> Void)?) {
 
         // validate identifier
@@ -170,90 +168,102 @@ public class EmbraceUpload: EmbraceLogUploader {
             }
         }
 
-        // upload operation
-        let uploadOperation = EmbraceUploadOperation(
-            urlSession: urlSession,
-            queue: queue,
-            metadataOptions: options.metadata,
-            endpoint: endpoint(for: type),
-            identifier: id,
+        enqueueUploadData(
+            id: id,
             data: data,
-            retryCount: retryCount ?? options.redundancy.automaticRetryCount,
-            exponentialBackoffBehavior: options.redundancy.exponentialBackoffBehavior,
+            type: type,
             attemptCount: attemptCount,
-            logger: logger) { [weak self] (result, attemptCount) in
-                self?.queue.async { [weak self] in
-                    self?.handleOperationFinished(
-                        id: id,
-                        type: type,
-                        result: result,
-                        attemptCount: attemptCount
-                    )
-                    self?.clearCacheFromStaleData()
-                }
-            }
-
-        // queue operations
-        uploadOperation.addDependency(cacheOperation)
-        operationQueue.addOperation(cacheOperation)
-        operationQueue.addOperation(uploadOperation)
+            dependency: cacheOperation
+        )
     }
 
-    func reUploadData(id: String,
-                      data: Data,
-                      type: EmbraceUploadType,
-                      attemptCount: Int,
-                      completion: @escaping (() -> Void)) {
-        let totalPendingRetries = options.redundancy.maximumAmountOfRetries - attemptCount
-        let retries = min(options.redundancy.automaticRetryCount, totalPendingRetries)
-
-        let uploadOperation = EmbraceUploadOperation(
-            urlSession: urlSession,
-            queue: queue,
-            metadataOptions: options.metadata,
-            endpoint: endpoint(for: type),
-            identifier: id,
+    func enqueueUploadData(id: String,
+                           data: Data,
+                           type: EmbraceUploadType,
+                           attemptCount: Int = 0,
+                           dependency: Operation? = nil,
+                           suggestedDelay: Int = 0,
+                           completion: (() -> Void)? = nil) {
+        let uploadOperation = createUploadOperation(
+            id: id,
             data: data,
-            retryCount: retries,
-            exponentialBackoffBehavior: options.redundancy.exponentialBackoffBehavior,
+            type: type,
             attemptCount: attemptCount,
-            logger: logger) { [weak self] (result, attemptCount) in
-                self?.queue.async { [weak self] in
-                    self?.handleOperationFinished(
-                        id: id,
-                        type: type,
-                        result: result,
-                        attemptCount: attemptCount
-                    )
-                    completion()
-                }
-            }
-        operationQueue.addOperation(uploadOperation)
-    }
+            suggestedDelay: suggestedDelay
+        ) { [weak self] result, modifiedAttempCount in
 
-    private func handleOperationFinished(
-        id: String,
-        type: EmbraceUploadType,
-        result: EmbraceUploadOperationResult,
-        attemptCount: Int
-    ) {
-        switch result {
-        case .success:
-            addDeleteUploadDataOperation(id: id, type: type)
-        case .failure(let isRetriable):
-            if isRetriable, attemptCount < options.redundancy.maximumAmountOfRetries {
-                operationQueue.addOperation { [weak self] in
-                    do {
-                        try self?.cache.updateAttemptCount(id: id, type: type, attemptCount: attemptCount)
-                    } catch {
-                        self?.logger.debug("Error updating cache: \(error.localizedDescription)")
+            self?.queue.async { [weak self] in
+                switch result {
+                case .success:
+                    self?.addDeleteUploadDataOperation(id: id, type: type)
+                    completion?()
+                case .failure(let retriable, let suggestedDelay):
+                    guard let maxAttemps = self?.options.redundancy.maximumAmountOfRetries else {
+                        return
                     }
-                }
-                return
-            }
+                    if retriable && modifiedAttempCount < maxAttemps {
+                        let updateAttemptCountOperation = BlockOperation { [weak self] in
+                            do {
+                                try self?.cache.updateAttemptCount(id: id, type: type, attemptCount: modifiedAttempCount)
+                            } catch {
+                                self?.logger.debug("Error updating cache: \(error.localizedDescription)")
+                            }
+                        }
 
-            addDeleteUploadDataOperation(id: id, type: type)
+                        self?.enqueueUploadData(
+                            id: id,
+                            data: data,
+                            type: type,
+                            attemptCount: modifiedAttempCount,
+                            dependency: updateAttemptCountOperation,
+                            suggestedDelay: suggestedDelay,
+                            completion: completion
+                        )
+
+                        return
+                    }
+                    self?.addDeleteUploadDataOperation(id: id, type: type)
+                    completion?()
+                }
+            }
         }
+
+        if let dependency = dependency {
+            uploadOperation.addDependency(dependency)
+            operationQueue.addOperation(dependency)
+        }
+        operationQueue.addOperation(uploadOperation)
+
+    }
+
+    private func createUploadOperation(
+        id: String,
+        data: Data,
+        type: EmbraceUploadType,
+        attemptCount: Int,
+        suggestedDelay: Int,
+        completion: @escaping EmbraceUploadOperationCompletion
+    ) -> EmbraceUploadOperation {
+        var delay = 0
+
+        if attemptCount > 0 {
+            delay = options.redundancy.exponentialBackoffBehavior.calculateDelay(
+                forRetryNumber: attemptCount,
+                appending: suggestedDelay
+            )
+        }
+
+        return EmbraceUploadOperation(
+            urlSession: urlSession,
+            queue: queue,
+            metadataOptions: options.metadata,
+            endpoint: endpoint(for: type),
+            identifier: id,
+            data: data,
+            delay: delay,
+            attemptCount: attemptCount,
+            completion: completion
+        )
     }
 
     private func addDeleteUploadDataOperation(id: String, type: EmbraceUploadType) {

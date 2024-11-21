@@ -49,8 +49,6 @@ class EmbraceUploadOperationTests: XCTestCase {
             endpoint: TestConstants.url,
             identifier: "id",
             data: Data(),
-            retryCount: 0,
-            exponentialBackoffBehavior: .init(),
             attemptCount: 0
         ) { _, _ in
             expectation.fulfill()
@@ -96,8 +94,6 @@ class EmbraceUploadOperationTests: XCTestCase {
             endpoint: TestConstants.url,
             identifier: "id",
             data: Data(),
-            retryCount: 0,
-            exponentialBackoffBehavior: .init(),
             attemptCount: 0
         ) { result, attemptCount in
             // then the operation should be successful
@@ -126,8 +122,6 @@ class EmbraceUploadOperationTests: XCTestCase {
             endpoint: TestConstants.url,
             identifier: "id",
             data: Data(),
-            retryCount: 0,
-            exponentialBackoffBehavior: .init(),
             attemptCount: 0
         ) { result, attemptCount in
 
@@ -156,8 +150,6 @@ class EmbraceUploadOperationTests: XCTestCase {
             endpoint: TestConstants.url,
             identifier: "id",
             data: Data(),
-            retryCount: 0,
-            exponentialBackoffBehavior: .init(),
             attemptCount: 0
         ) { result, attemptCount in
 
@@ -187,8 +179,6 @@ class EmbraceUploadOperationTests: XCTestCase {
             endpoint: TestConstants.url,
             identifier: "id",
             data: Data(),
-            retryCount: 100,
-            exponentialBackoffBehavior: .init(),
             attemptCount: 0
         ) { result, attemptCount in
 
@@ -218,8 +208,6 @@ class EmbraceUploadOperationTests: XCTestCase {
             endpoint: TestConstants.url,
             identifier: "id",
             data: Data(),
-            retryCount: 0,
-            exponentialBackoffBehavior: .init(),
             attemptCount: 0
         ) { result, attemptCount in
 
@@ -236,7 +224,7 @@ class EmbraceUploadOperationTests: XCTestCase {
 
     func test_retryCount() {
         // mock error response
-        EmbraceHTTPMock.mock(url: TestConstants.url, errorCode: 500)
+        EmbraceHTTPMock.mock(url: TestConstants.url, response: .withData(.init(), statusCode: 429))
 
         // given an upload operation that errors with a retry count of 1
         let expectation = XCTestExpectation()
@@ -248,9 +236,7 @@ class EmbraceUploadOperationTests: XCTestCase {
             endpoint: TestConstants.url,
             identifier: "id",
             data: Data(),
-            retryCount: 1,
-            exponentialBackoffBehavior: .withNoDelay(),
-            attemptCount: 0
+            attemptCount: 1
         ) { result, attemptCount in
 
             // then the operation should return the error

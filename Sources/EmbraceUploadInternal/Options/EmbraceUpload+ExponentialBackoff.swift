@@ -10,7 +10,7 @@ public extension EmbraceUpload {
         let maxDelay: Double
 
         public init(
-            baseDelay: Double = 3.0,
+            baseDelay: Double = 2.0,
             maxDelay: Double = 243.0
         ) {
             self.baseDelay = baseDelay
