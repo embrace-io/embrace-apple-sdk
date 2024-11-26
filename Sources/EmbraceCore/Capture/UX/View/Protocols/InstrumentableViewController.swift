@@ -34,7 +34,7 @@ public extension InstrumentableViewController {
         attributes: [String: String] = [:]
     ) throws -> SpanBuilder? {
         return try Embrace.client?.captureServices.buildChildSpan(
-            for: self, 
+            for: self,
             name: name,
             type: type,
             startTime: startTime,

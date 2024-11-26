@@ -70,7 +70,7 @@ class UIViewControllerHandlerTests: XCTestCase {
         handler.appDidEnterBackground()
 
         // then the cache is cleared
-        wait() {
+        wait {
             return self.cacheIsEmpty()
         }
     }
@@ -101,7 +101,7 @@ class UIViewControllerHandlerTests: XCTestCase {
         handler.appDidEnterBackground()
 
         // then all spans are ended
-        wait() {
+        wait {
             return self.otel.spanProcessor.endedSpans.count == 6
         }
     }
@@ -115,7 +115,7 @@ class UIViewControllerHandlerTests: XCTestCase {
         handler.onViewDidLoadStart(vc)
 
         // then no spans are created
-        wait() {
+        wait {
             return self.otel.spanProcessor.startedSpans.count == 0
         }
     }
@@ -129,7 +129,7 @@ class UIViewControllerHandlerTests: XCTestCase {
         handler.onViewDidLoadStart(vc)
 
         // then no spans are created
-        wait() {
+        wait {
             return self.otel.spanProcessor.startedSpans.count == 0
         }
     }
@@ -142,7 +142,7 @@ class UIViewControllerHandlerTests: XCTestCase {
         handler.onViewDidLoadStart(vc)
 
         // then no spans are created
-        wait() {
+        wait {
             return self.otel.spanProcessor.startedSpans.count == 0
         }
     }
@@ -156,7 +156,7 @@ class UIViewControllerHandlerTests: XCTestCase {
         handler.onViewDidAppearEnd(vc)
 
         // then no spans are created
-        wait() {
+        wait {
             return self.otel.spanProcessor.startedSpans.count == 0
         }
     }
@@ -172,7 +172,7 @@ class UIViewControllerHandlerTests: XCTestCase {
         validateViewDidAppearSpans(vc: vc, parentName: parentName)
 
         // then all the spans are created and ended at the right times
-        wait() {
+        wait {
             let parent = self.otel.spanProcessor.endedSpans.first(where: { $0.name.contains(parentName) })
             return parent != nil && self.cacheIsEmpty()
         }
@@ -190,7 +190,7 @@ class UIViewControllerHandlerTests: XCTestCase {
 
         handler.onViewDidDisappear(vc)
 
-        wait() {
+        wait {
             let parent = self.otel.spanProcessor.endedSpans.first(where: { $0.name.contains(parentName) })
             return parent != nil && parent!.status.isError == true && self.cacheIsEmpty()
         }
@@ -208,7 +208,7 @@ class UIViewControllerHandlerTests: XCTestCase {
 
         handler.appDidEnterBackground()
 
-        wait() {
+        wait {
             let parent = self.otel.spanProcessor.endedSpans.first(where: { $0.name.contains(parentName) })
             return parent != nil && parent!.status.isError == true && self.cacheIsEmpty()
         }
@@ -227,7 +227,7 @@ class UIViewControllerHandlerTests: XCTestCase {
 
         // when view did appear ends
         // then the ui ready span should start
-        wait () {
+        wait {
             let parent = self.otel.spanProcessor.startedSpans.first(where: { $0.name.contains(parentName) })
             let child = self.otel.spanProcessor.startedSpans.first(where: { $0.name == "ui-ready" })
 
@@ -238,9 +238,9 @@ class UIViewControllerHandlerTests: XCTestCase {
         handler.onViewBecameInteractive(vc)
 
         // then the spans are ended
-        wait() {
+        wait {
             let parent = self.otel.spanProcessor.endedSpans.first(where: { $0.name.contains(parentName) })
-            let uiReady = self.otel.spanProcessor.endedSpans.first(where: { $0.name == "ui-ready"} )
+            let uiReady = self.otel.spanProcessor.endedSpans.first(where: { $0.name == "ui-ready"})
 
             return parent != nil && uiReady != nil && self.cacheIsEmpty()
         }
@@ -260,9 +260,9 @@ class UIViewControllerHandlerTests: XCTestCase {
         validateViewDidAppearSpans(vc: vc, parentName: parentName)
 
         // then the spans are ended
-        wait() {
+        wait {
             let parent = self.otel.spanProcessor.endedSpans.first(where: { $0.name.contains(parentName) })
-            let uiReady = self.otel.spanProcessor.endedSpans.first(where: { $0.name == "ui-ready"} )
+            let uiReady = self.otel.spanProcessor.endedSpans.first(where: { $0.name == "ui-ready"})
 
             return parent != nil && uiReady != nil && self.cacheIsEmpty()
         }
@@ -280,7 +280,7 @@ class UIViewControllerHandlerTests: XCTestCase {
         handler.onViewDidDisappear(vc)
 
         // then the spans are ended
-        wait() {
+        wait {
             let parent = self.otel.spanProcessor.endedSpans.first(where: { $0.name.contains(parentName) })
             return parent != nil && parent!.status.isError == true && self.cacheIsEmpty()
         }
@@ -299,7 +299,7 @@ class UIViewControllerHandlerTests: XCTestCase {
         handler.appDidEnterBackground()
 
         // then the spans are ended
-        wait() {
+        wait {
             let parent = self.otel.spanProcessor.endedSpans.first(where: { $0.name.contains(parentName) })
             return parent != nil && parent!.status.isError == true && self.cacheIsEmpty()
         }
@@ -310,9 +310,9 @@ class UIViewControllerHandlerTests: XCTestCase {
         handler.onViewDidLoadStart(vc)
 
         // then spans are created
-        wait() {
+        wait {
             let parent = self.otel.spanProcessor.startedSpans.first(where: { $0.name.contains(parentName) })
-            let child = self.otel.spanProcessor.startedSpans.first(where: { $0.name == "emb-view-did-load"} )
+            let child = self.otel.spanProcessor.startedSpans.first(where: { $0.name == "emb-view-did-load"})
 
             return parent != nil && child!.parentSpanId == parent!.spanId
         }
@@ -321,8 +321,8 @@ class UIViewControllerHandlerTests: XCTestCase {
         handler.onViewDidLoadEnd(vc)
 
         // then the view did load span is ended
-        wait() {
-            let span = self.otel.spanProcessor.startedSpans.first(where: { $0.name == "emb-view-did-load"} )
+        wait {
+            let span = self.otel.spanProcessor.startedSpans.first(where: { $0.name == "emb-view-did-load"})
             return span != nil && self.handler.viewDidLoadSpans.isEmpty
         }
     }
@@ -332,9 +332,9 @@ class UIViewControllerHandlerTests: XCTestCase {
         handler.onViewWillAppearStart(vc)
 
         // then a child span is created
-        wait() {
+        wait {
             let parent = self.otel.spanProcessor.startedSpans.first(where: { $0.name.contains(parentName) })
-            let child = self.otel.spanProcessor.startedSpans.first(where: { $0.name == "emb-view-will-appear"} )
+            let child = self.otel.spanProcessor.startedSpans.first(where: { $0.name == "emb-view-will-appear"})
 
             return parent != nil && child!.parentSpanId == parent!.spanId
         }
@@ -343,8 +343,8 @@ class UIViewControllerHandlerTests: XCTestCase {
         handler.onViewWillAppearEnd(vc)
 
         // then the view will appear span is ended
-        wait() {
-            let span = self.otel.spanProcessor.endedSpans.first(where: { $0.name == "emb-view-will-appear"} )
+        wait {
+            let span = self.otel.spanProcessor.endedSpans.first(where: { $0.name == "emb-view-will-appear"})
             return span != nil && self.handler.viewWillAppearSpans.isEmpty
         }
     }
@@ -354,9 +354,9 @@ class UIViewControllerHandlerTests: XCTestCase {
         handler.onViewDidAppearStart(vc)
 
         // then a child span is created
-        wait() {
+        wait {
             let parent = self.otel.spanProcessor.startedSpans.first(where: { $0.name.contains(parentName) })
-            let child = self.otel.spanProcessor.startedSpans.first(where: { $0.name == "emb-view-did-appear"} )
+            let child = self.otel.spanProcessor.startedSpans.first(where: { $0.name == "emb-view-did-appear"})
 
             return parent != nil && child!.parentSpanId == parent!.spanId
         }
@@ -365,8 +365,8 @@ class UIViewControllerHandlerTests: XCTestCase {
         handler.onViewDidAppearEnd(vc)
 
         // then the view did appear span is ended
-        wait() {
-            let span = self.otel.spanProcessor.endedSpans.first(where: { $0.name == "emb-view-did-appear"} )
+        wait {
+            let span = self.otel.spanProcessor.endedSpans.first(where: { $0.name == "emb-view-did-appear"})
             return span != nil && self.handler.viewDidAppearSpans.isEmpty
         }
     }

@@ -213,7 +213,6 @@ class UIViewControllerHandler {
                 self.viewDidAppearSpans[id] = nil
             }
 
-            
             guard let parentSpan = self.parentSpans[id] else {
                 return
             }

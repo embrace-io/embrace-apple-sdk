@@ -20,7 +20,8 @@ extension CaptureServices {
     }
 
     var firstRenderInstrumentationDisabledError: ViewCaptureServiceError {
-        ViewCaptureServiceError.firstRenderInstrumentationDisabled("This instrumentation was disabled on the `ViewCaptureService`!")
+        ViewCaptureServiceError
+            .firstRenderInstrumentationDisabled("This instrumentation was disabled on the `ViewCaptureService`!")
     }
 
     var parentSpanNotFoundError: ViewCaptureServiceError {
@@ -65,7 +66,7 @@ extension CaptureServices {
         guard let builder = viewCaptureService.otel?.buildSpan(name: name, type: type, attributes: attributes) else {
             return nil
         }
-        
+
         builder.setParent(parentSpan)
 
         return builder

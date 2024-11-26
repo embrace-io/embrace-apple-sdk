@@ -15,7 +15,7 @@ class CaptureServicesUIViewControllerTests: XCTestCase {
 
     let context = CrashReporterContext(
         appId: nil,
-        sdkVersion: TestConstants.sdkVersion, 
+        sdkVersion: TestConstants.sdkVersion,
         filePathProvider: EmbraceFilePathProvider(partitionId: "test", appGroupId: nil),
         notificationCenter: NotificationCenter.default
     )
@@ -117,7 +117,7 @@ class CaptureServicesUIViewControllerTests: XCTestCase {
         _ = try captureServices.buildChildSpan(for: vc, name: "child")!.startSpan()
 
         // then the span is created under the right parent
-        let spanData = otel.spanProcessor.startedSpans.first(where: { $0.name == "child"} )
+        let spanData = otel.spanProcessor.startedSpans.first(where: { $0.name == "child" })
         XCTAssertNotNil(spanData)
         XCTAssertEqual(spanData!.parentSpanId, parent.context.spanId)
     }
@@ -178,7 +178,7 @@ class CaptureServicesUIViewControllerTests: XCTestCase {
         try captureServices.recordCompletedChildSpan(for: vc, name: "child", startTime: Date(), endTime: Date())
 
         // then the span is created under the right parent
-        let spanData = otel.spanProcessor.endedSpans.first(where: { $0.name == "child"} )
+        let spanData = otel.spanProcessor.endedSpans.first(where: { $0.name == "child" })
         XCTAssertNotNil(spanData)
         XCTAssertEqual(spanData!.parentSpanId, parent.context.spanId)
     }
