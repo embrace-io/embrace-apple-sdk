@@ -107,6 +107,7 @@ class UnsentDataHandler {
         // send otel log
         let attributes = createLogCrashAttributes(
             otel: otel,
+            storage: storage,
             report: report,
             session: session,
             timestamp: timestamp
@@ -149,6 +150,7 @@ class UnsentDataHandler {
 
     static private func createLogCrashAttributes(
         otel: EmbraceOpenTelemetry?,
+        storage: EmbraceStorage?,
         report: CrashReport,
         session: SessionRecord?,
         timestamp: Date
@@ -157,6 +159,7 @@ class UnsentDataHandler {
         let attributesBuilder = EmbraceLogAttributesBuilder(
             session: session,
             crashReport: report,
+            storage: storage,
             initialAttributes: [:]
         )
 

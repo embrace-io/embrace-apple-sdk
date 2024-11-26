@@ -28,8 +28,10 @@ class EmbraceLogAttributesBuilder {
 
     init(session: SessionRecord?,
          crashReport: CrashReport? = nil,
+         storage: EmbraceStorageMetadataFetcher? = nil,
          initialAttributes: [String: String]) {
         self.session = session
+        self.storage = storage
         self.crashReport = crashReport
         self.attributes = initialAttributes
     }
