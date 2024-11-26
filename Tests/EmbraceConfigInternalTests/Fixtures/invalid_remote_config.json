@@ -1,0 +1,40 @@
+{
+    "background": {
+        "thresholdsdasd": 0,
+        "offset": 0,
+        "mode": "full",
+        "limit": 10,
+        "interval_limit": 1000
+    },
+    "threshHold": 50,
+    "network_span_forwarding": {
+        "extra_key_pct_enabled": 25
+    },
+    "internal_log_limits": {
+        "traece": 10,
+        "debugg": 20,
+        "infiio": 30,
+        "warnifesng": 40,
+        "erroasr": 50,
+    },
+    "network_capture": [
+        {
+            "id": "1cd3e74437604d29954b45ab1d7ce016",
+            "url": "embrace-echo-api.herokuapp.com/.*/task",
+            "method": "GET",
+            "status_codes": [
+                200
+            ],
+            "duration": 2000,
+            "expires_in": 86400,
+            "max_size": 1024,
+            "max_count": 100
+        }
+    ],
+    "session_control": {
+        "enable": true
+    },
+    "console_logs": {
+        "cl": 100
+    }
+}

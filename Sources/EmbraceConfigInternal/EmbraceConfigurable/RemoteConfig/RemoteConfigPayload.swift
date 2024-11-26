@@ -124,10 +124,10 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         }
 
         // network payload capture
-        networkPayloadCaptureRules = try rootContainer.decodeIfPresent(
+        networkPayloadCaptureRules = (try? rootContainer.decodeIfPresent(
             [NetworkPayloadCaptureRule].self,
             forKey: .networkPayLoadCapture
-        ) ?? defaultPayload.networkPayloadCaptureRules
+        )) ?? defaultPayload.networkPayloadCaptureRules
     }
 
     // defaults
