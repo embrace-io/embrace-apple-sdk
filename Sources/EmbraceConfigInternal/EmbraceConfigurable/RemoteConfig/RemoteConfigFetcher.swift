@@ -62,7 +62,8 @@ class RemoteConfigFetcher {
                 completion(payload)
             } catch {
                 self?.logger.error("Error decoding remote config:\n\(error.localizedDescription)")
-                completion(nil)
+                // if a decoding issue happens, instead of returning `nil`, we provide a default `RemoteConfigPayload`
+                completion(RemoteConfigPayload())
             }
         }
 
