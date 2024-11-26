@@ -10,13 +10,14 @@ import TestSupport
 
 class RemoteConfigPayloadTests: XCTestCase {
 
-    func test_defaults() {
+    func testOnReceivingEmptyRemoteConfig_RemoteConfigPayload_shouldUseDefaultValues() throws {
         // given an empty remote config
-        let path = Bundle.module.path(forResource: "remote_config_empty", ofType: "json", inDirectory: "Fixtures")!
-        let data = try! Data(contentsOf: URL(fileURLWithPath: path))
+        let data = try getRemoteConfigData(forResource: "remote_config_empty")
+
+        // when decoding payload
+        let payload = try XCTUnwrap(try JSONDecoder().decode(RemoteConfigPayload.self, from: data))
 
         // then the default values are used
-        let payload = try! JSONDecoder().decode(RemoteConfigPayload.self, from: data)
         XCTAssertEqual(payload.sdkEnabledThreshold, 100)
         XCTAssertEqual(payload.backgroundSessionThreshold, 0)
         XCTAssertEqual(payload.networkSpansForwardingThreshold, 0)
@@ -28,13 +29,14 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssertEqual(payload.networkPayloadCaptureRules.count, 0)
     }
 
-    func test_values() {
+    func testOnHavingValidRemoteConfig_RemoteConfigPayload_shouldOverridedDefaultValuesWithProvidedOnes() throws {
         // given a valid remote config
-        let path = Bundle.module.path(forResource: "remote_config", ofType: "json", inDirectory: "Fixtures")!
-        let data = try! Data(contentsOf: URL(fileURLWithPath: path))
+        let data = try getRemoteConfigData(forResource: "remote_config")
+
+        // when decoding payload
+        let payload = try XCTUnwrap(try JSONDecoder().decode(RemoteConfigPayload.self, from: data))
 
         // then the values are correct
-        let payload = try! JSONDecoder().decode(RemoteConfigPayload.self, from: data)
         XCTAssertEqual(payload.sdkEnabledThreshold, 50)
         XCTAssertEqual(payload.backgroundSessionThreshold, 75)
         XCTAssertEqual(payload.networkSpansForwardingThreshold, 25)
@@ -48,16 +50,40 @@ class RemoteConfigPayloadTests: XCTestCase {
         let rule1 = payload.networkPayloadCaptureRules.first { $0.id == "rule1" }
         XCTAssertEqual(rule1!.urlRegex, "www.test.com/user/*")
         XCTAssertEqual(rule1!.statusCodes, [200, 201, 404, -1])
-        XCTAssertEqual(rule1!.methods, ["GET", "POST"])
+        XCTAssertEqual(rule1!.method, "GET")
         XCTAssertEqual(rule1!.expiration, 1723570602)
         XCTAssertEqual(rule1!.publicKey, "key")
 
         let rule2 = payload.networkPayloadCaptureRules.first { $0.id == "rule2" }
         XCTAssertEqual(rule2!.urlRegex, "www.test.com/test")
         XCTAssertNil(rule2!.statusCodes)
-        XCTAssertNil(rule2!.methods)
+        XCTAssertNil(rule2!.method)
         XCTAssertEqual(rule2!.expiration, 1723570602)
         XCTAssertEqual(rule2!.publicKey, "key")
+    }
+
+    func test_onHavingOldAndInvalidRemoteConfigPayload_RemoteConfigPayload_shouldBeCreatedWithDefaults() throws {
+        // given an invalid remote config
+        let data = try getRemoteConfigData(forResource: "invalid_remote_config")
+
+        // when decoding payload
+        let payload = try XCTUnwrap(try JSONDecoder().decode(RemoteConfigPayload.self, from: data))
+
+        // then the default values are used
+        XCTAssertEqual(payload.sdkEnabledThreshold, 100)
+        XCTAssertEqual(payload.backgroundSessionThreshold, 0)
+        XCTAssertEqual(payload.networkSpansForwardingThreshold, 0)
+        XCTAssertEqual(payload.internalLogsTraceLimit, 0)
+        XCTAssertEqual(payload.internalLogsDebugLimit, 0)
+        XCTAssertEqual(payload.internalLogsInfoLimit, 0)
+        XCTAssertEqual(payload.internalLogsWarningLimit, 0)
+        XCTAssertEqual(payload.internalLogsErrorLimit, 3)
+        XCTAssertEqual(payload.networkPayloadCaptureRules.count, 0)
+    }
+
+    func getRemoteConfigData(forResource resource: String) throws -> Data {
+        let path = try XCTUnwrap(Bundle.module.path(forResource: resource, ofType: "json", inDirectory: "Fixtures"))
+        return try XCTUnwrap(Data(contentsOf: URL(fileURLWithPath: path)))
     }
 }
 

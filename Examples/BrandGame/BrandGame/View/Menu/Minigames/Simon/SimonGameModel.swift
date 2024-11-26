@@ -165,7 +165,6 @@ class SimonGameModel {
 
         return embrace
             .buildSpan(name: "simon-game", type: .ux)
-            .markAsKeySpan()
             .startSpan()
     }
 

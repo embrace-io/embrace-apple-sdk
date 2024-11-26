@@ -8,9 +8,9 @@ import OpenTelemetryApi
 
 extension Span {
 
-    /// Mark this Span as important  so the backend will create aggregate metrics for it, and the UI will prioritize this span
+    @available(*, deprecated, message: "The concept of key spans is no longer supported")
     public func markAsKeySpan() {
-        setAttribute(key: SpanSemantics.keyIsKeySpan, value: "true")
+        // TODO: Remove in next major version
     }
 
     /// Mark this Span as private. This is used for observability of the SDK itself

@@ -5,7 +5,6 @@
 public struct SpanSemantics {
     public static let keyEmbraceType = "emb.type"
 
-    public static let keyIsKeySpan = "emb.key"
     public static let keyIsPrivateSpan = "emb.private"
     public static let keyErrorCode = "emb.error_code"
 

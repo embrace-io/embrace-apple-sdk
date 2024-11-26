@@ -42,7 +42,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             case error
         }
 
-        case networkPayLoadCapture = "network_payload_capture"
+        case networkPayLoadCapture = "network_capture"
     }
 
     public init(from decoder: Decoder) throws {
@@ -124,10 +124,10 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         }
 
         // network payload capture
-        networkPayloadCaptureRules = try rootContainer.decodeIfPresent(
+        networkPayloadCaptureRules = (try? rootContainer.decodeIfPresent(
             [NetworkPayloadCaptureRule].self,
             forKey: .networkPayLoadCapture
-        ) ?? defaultPayload.networkPayloadCaptureRules
+        )) ?? defaultPayload.networkPayloadCaptureRules
     }
 
     // defaults

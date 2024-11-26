@@ -139,7 +139,7 @@ final class RemoteConfigTests: XCTestCase {
             id: "test1",
             urlRegex: "https://example.com/.*",
             statusCodes: [200],
-            methods: ["GET"],
+            method: "GET",
             expiration: 0,
             publicKey: ""
         )
@@ -148,7 +148,7 @@ final class RemoteConfigTests: XCTestCase {
             id: "test2",
             urlRegex: "https://test.com/.*",
             statusCodes: [404],
-            methods: ["GET"],
+            method: "GET",
             expiration: 0,
             publicKey: ""
         )

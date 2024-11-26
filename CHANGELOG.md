@@ -1,3 +1,13 @@
+## 6.5.2
+*Nov 14th, 2024*
+* Features
+    * `EmbraceCrashReporter` now receives a list of signals to be ignored. `SIGTERM` is ignored by default now.
+* Fixes
+    * Fixed network payload capture rules not working.
+    * Fixed `WebViewCaptureService` preventing the web view delegate from receiving messages.
+    * Fixed `PushNotificationCaptureService` preventing the user notification delegate from receiving messages.
+    * Fixed log batching logic.
+
 ## 6.5.1
 *Oct 29th, 2024*
 * Features
