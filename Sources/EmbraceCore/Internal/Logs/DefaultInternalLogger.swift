@@ -126,7 +126,6 @@ class DefaultInternalLogger: InternalLogger {
 
         let attributes = attributesBuilder
             .addLogType(.internal)
-            .addApplicationProperties()
             .addApplicationState()
             .addSessionIdentifier()
             .build()
