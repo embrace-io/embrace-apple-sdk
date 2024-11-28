@@ -28,8 +28,9 @@ public class MockEmbraceOpenTelemetry: NSObject, EmbraceOpenTelemetry {
     public func buildSpan(
         name: String,
         type: SpanType,
-        attributes: [String: String]) -> SpanBuilder {
-
+        attributes: [String: String] = [:],
+        autoTerminationCode: SpanErrorCode? = nil
+    ) -> SpanBuilder {
         return EmbraceOTel()
             .buildSpan(name: name, type: type, attributes: attributes)
     }
@@ -42,7 +43,7 @@ public class MockEmbraceOpenTelemetry: NSObject, EmbraceOpenTelemetry {
         endTime: Date,
         attributes: [String: String],
         events: [RecordingSpanEvent],
-        errorCode: ErrorCode? ) {
+        errorCode: SpanErrorCode? ) {
 
     }
 

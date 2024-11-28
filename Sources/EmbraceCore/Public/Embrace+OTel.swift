@@ -30,14 +30,22 @@ extension Embrace: EmbraceOpenTelemetry {
     /// - Parameters:
     ///    - name: The name of the span.
     ///    - type: The type of the span. Will be set as the `emb.type` attribute.
+    ///    - autoTerminationCode: `SpanErrorCode` to be used to automatically close this span if the current session ends while the span is open.
     ///    - attributes: A dictionary of attributes to set on the span.
     /// - Returns: An OpenTelemetry `SpanBuilder`.
     public func buildSpan(
         name: String,
         type: SpanType = .performance,
-        attributes: [String: String] = [:]
+        attributes: [String: String] = [:],
+        autoTerminationCode: SpanErrorCode? = nil
     ) -> SpanBuilder {
-        otel.buildSpan(name: name, type: type, attributes: attributes)
+
+        if let autoTerminationCode = autoTerminationCode {
+            var attributes = attributes
+            attributes[SpanSemantics.keyAutoTerminationCode] = autoTerminationCode.rawValue
+        }
+
+        return otel.buildSpan(name: name, type: type, attributes: attributes)
     }
 
     /// Record a span after the fact
@@ -58,7 +66,7 @@ extension Embrace: EmbraceOpenTelemetry {
         endTime: Date,
         attributes: [String: String],
         events: [RecordingSpanEvent],
-        errorCode: ErrorCode?
+        errorCode: SpanErrorCode?
     ) {
         let builder = otel
             .buildSpan(name: name, type: type, attributes: attributes)
@@ -100,7 +108,7 @@ extension Embrace: EmbraceOpenTelemetry {
     /// - Parameter span: A `Span` object that implements `ReadableSpan`.
     public func flush(_ span: Span) {
         if let span = span as? ReadableSpan {
-            _ = exporter.export(spans: [span.toSpanData()])
+            EmbraceOTel.processor?.flush(span: span)
         } else {
             Embrace.logger.debug("Tried to flush a non-ReadableSpan object")
         }

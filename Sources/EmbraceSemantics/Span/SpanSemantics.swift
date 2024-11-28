@@ -10,4 +10,6 @@ public struct SpanSemantics {
 
     public static let keyNSErrorMessage = "error.message"
     public static let keyNSErrorCode = "error.code"
+
+    public static let keyAutoTerminationCode = "emb.auto_termination.code"
 }

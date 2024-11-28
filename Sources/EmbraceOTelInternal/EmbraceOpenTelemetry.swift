@@ -5,11 +5,14 @@
 import Foundation
 import OpenTelemetryApi
 import EmbraceCommonInternal
+import EmbraceSemantics
 
 public protocol EmbraceOpenTelemetry: AnyObject {
     func buildSpan(name: String,
                    type: SpanType,
-                   attributes: [String: String]) -> SpanBuilder
+                   attributes: [String: String],
+                   autoTerminationCode: SpanErrorCode?
+    ) -> SpanBuilder
 
     func recordCompletedSpan(
         name: String,
@@ -19,7 +22,7 @@ public protocol EmbraceOpenTelemetry: AnyObject {
         endTime: Date,
         attributes: [String: String],
         events: [RecordingSpanEvent],
-        errorCode: ErrorCode?
+        errorCode: SpanErrorCode?
     )
 
     func add(events: [SpanEvent])

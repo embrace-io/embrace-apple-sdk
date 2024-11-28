@@ -7,10 +7,15 @@ import XCTest
 import OpenTelemetryApi
 @testable import OpenTelemetrySdk
 import TestSupport
+import EmbraceSemantics
 
 final class SingleSpanProcessorTests: XCTestCase {
 
-    let exporter = InMemorySpanExporter()
+    var exporter: InMemorySpanExporter!
+
+    override func setUpWithError() throws {
+        exporter = InMemorySpanExporter()
+    }
 
     func createSpanData(
         processor: SpanProcessor,
@@ -18,7 +23,8 @@ final class SingleSpanProcessorTests: XCTestCase {
         spanId: SpanId = .random(),
         name: String = "example",
         startTime: Date = Date(),
-        endTime: Date? = nil
+        endTime: Date? = nil,
+        attributes: AttributesDictionary? = nil
     ) -> ReadableSpan {
 
         let span = RecordEventsReadableSpan.startSpan(
@@ -32,7 +38,7 @@ final class SingleSpanProcessorTests: XCTestCase {
             spanProcessor: processor,
             clock: MillisClock(),
             resource: Resource(),
-            attributes: .init(capacity: 10),
+            attributes: attributes ?? .init(capacity: 10),
             links: [],
             totalRecordedLinks: 0,
             startTime: startTime
@@ -43,6 +49,13 @@ final class SingleSpanProcessorTests: XCTestCase {
         }
 
         return span
+    }
+
+    func createAutoTerminatedSpan(processor: SpanProcessor) -> ReadableSpan {
+        var dict = AttributesDictionary(capacity: 10)
+        dict.attributes[SpanSemantics.keyAutoTerminationCode] = .string(SpanErrorCode.userAbandon.rawValue)
+
+        return createSpanData(processor: processor, attributes: dict)
     }
 
     func test_startSpan_callsExporter() throws {
@@ -123,7 +136,7 @@ final class SingleSpanProcessorTests: XCTestCase {
 
         let span = createSpanData(processor: processor)
 
-        span.setAttribute(key: "emb.error_code", value: ErrorCode.unknown.rawValue)
+        span.setAttribute(key: "emb.error_code", value: SpanErrorCode.unknown.rawValue)
         let endTime = Date().addingTimeInterval(2)
         span.end(time: endTime)
 
@@ -157,4 +170,37 @@ final class SingleSpanProcessorTests: XCTestCase {
         XCTAssertTrue(exporter.isShutdown)
     }
 
+    func test_autoTerminateSpans_clearsCache() throws {
+        let processor = SingleSpanProcessor(spanExporter: exporter)
+
+        _ = createAutoTerminatedSpan(processor: processor)
+        _ = createAutoTerminatedSpan(processor: processor)
+        _ = createAutoTerminatedSpan(processor: processor)
+
+        processor.autoTerminateSpans()
+
+        wait {
+            return processor.autoTerminationSpans.count == 0
+        }
+    }
+
+    func test_autoTerminateSpans_endsSpans() throws {
+        let processor = SingleSpanProcessor(spanExporter: exporter)
+
+        let span = createAutoTerminatedSpan(processor: processor)
+        print(span.context.spanId.hexString)
+
+        processor.autoTerminateSpans()
+
+        wait {
+            guard processor.autoTerminationSpans.count == 0 else {
+                return false
+            }
+
+            let exportedSpan = try XCTUnwrap(self.exporter.exportedSpans[span.context.spanId])
+            return exportedSpan.hasEnded &&
+                   exportedSpan.status.isError &&
+                   exportedSpan.attributes[SpanSemantics.keyErrorCode] == .string("userAbandon")
+        }
+    }
 }

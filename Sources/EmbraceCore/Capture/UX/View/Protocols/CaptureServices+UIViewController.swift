@@ -63,7 +63,12 @@ extension CaptureServices {
             throw parentSpanNotFoundError
         }
 
-        guard let builder = viewCaptureService.otel?.buildSpan(name: name, type: type, attributes: attributes) else {
+        guard let builder = viewCaptureService.otel?.buildSpan(
+            name: name, 
+            type: type,
+            attributes: attributes,
+            autoTerminationCode: nil
+        ) else {
             return nil
         }
 
@@ -88,7 +93,12 @@ extension CaptureServices {
             throw parentSpanNotFoundError
         }
 
-        guard let builder = viewCaptureService.otel?.buildSpan(name: name, type: type, attributes: attributes) else {
+        guard let builder = viewCaptureService.otel?.buildSpan(
+            name: name,
+            type: type,
+            attributes: attributes,
+            autoTerminationCode: nil
+        ) else {
             return
         }
 

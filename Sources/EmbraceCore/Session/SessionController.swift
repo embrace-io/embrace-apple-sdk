@@ -162,6 +162,9 @@ class SessionController: SessionControllable {
             }
             // -
 
+            // auto terminate spans
+            EmbraceOTel.processor?.autoTerminateSpans()
+
             // post notification
             notificationCenter.post(name: .embraceSessionWillEnd, object: currentSession)
 

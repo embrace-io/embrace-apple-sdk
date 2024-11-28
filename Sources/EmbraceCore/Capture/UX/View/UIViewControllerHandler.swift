@@ -322,7 +322,9 @@ class UIViewControllerHandler {
             attributes: [
                 SpanSemantics.View.keyViewTitle: vc.emb_viewName,
                 SpanSemantics.View.keyViewName: vc.className
-            ])
+            ],
+            autoTerminationCode: nil
+        )
 
         if let parent = parent {
             builder.setParent(parent)

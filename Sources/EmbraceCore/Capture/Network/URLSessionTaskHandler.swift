@@ -103,7 +103,8 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
             let networkSpan = otel.buildSpan(
                 name: name,
                 type: .networkRequest,
-                attributes: attributes
+                attributes: attributes,
+                autoTerminationCode: nil
             )
 
             // This should be modified if we start doing this for streaming tasks.
