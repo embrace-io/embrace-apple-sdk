@@ -121,12 +121,11 @@ class UIViewControllerHandler {
     func onViewDidLoadEnd(_ vc: UIViewController) {
         queue.async {
             guard let id = vc.emb_identifier,
-                  let span = self.viewDidLoadSpans[id] else {
+                  let span = self.viewDidLoadSpans.removeValue(forKey: id) else {
                 return
             }
 
             span.end()
-            self.viewDidLoadSpans[id] = nil
         }
     }
 
@@ -153,12 +152,11 @@ class UIViewControllerHandler {
     func onViewWillAppearEnd(_ vc: UIViewController) {
         queue.async {
             guard let id = vc.emb_identifier,
-                  let span = self.viewWillAppearSpans[id] else {
+                  let span = self.viewWillAppearSpans.removeValue(forKey: id) else {
                 return
             }
 
             span.end()
-            self.viewWillAppearSpans[id] = nil
         }
     }
 
@@ -208,9 +206,8 @@ class UIViewControllerHandler {
             }
 
             // end view did appear span
-            if let span = self.viewDidAppearSpans[id] {
+            if let span = self.viewDidAppearSpans.removeValue(forKey: id) {
                 span.end()
-                self.viewDidAppearSpans[id] = nil
             }
 
             guard let parentSpan = self.parentSpans[id] else {
