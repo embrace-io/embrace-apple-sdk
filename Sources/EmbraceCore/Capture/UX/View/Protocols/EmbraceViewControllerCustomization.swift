@@ -22,7 +22,7 @@ public protocol EmbraceViewControllerCustomization {
 
 /// Default implementation for `EmbraceViewControllerCustomization` methods that are intended to be optional.
 public extension EmbraceViewControllerCustomization where Self: UIViewController {
-    var nameForViewControllerInEmbrace: String? { self.title }
+    var nameForViewControllerInEmbrace: String? { nil } /// Will default to class name
     var shouldCaptureViewInEmbrace: Bool { true }
 }
 

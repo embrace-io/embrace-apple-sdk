@@ -11,7 +11,7 @@ extension XCTestCase {
     ///   - timeout: The longest time you are willing to wait
     ///   - interval: The interval in which to check the block
     ///   - block: A block to execute, return true 
-    public func wait(timeout: TimeInterval, interval: TimeInterval = 0.1, until block: @escaping () throws -> Bool) {
+    public func wait(timeout: TimeInterval = .defaultTimeout, interval: TimeInterval = 0.1, until block: @escaping () throws -> Bool) {
         let expectation = expectation(description: "wait for block to pass")
         let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { _ in
             do {
@@ -29,7 +29,7 @@ extension XCTestCase {
 
     /// Waits the given amount of seconds
     /// - Parameter delay: Seconds to wait
-    public func wait(delay: TimeInterval) {
+    public func wait(delay: TimeInterval = .defaultTimeout) {
         let expectation = XCTestExpectation()
 
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {

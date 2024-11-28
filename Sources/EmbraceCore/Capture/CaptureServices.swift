@@ -66,6 +66,12 @@ final class CaptureServices {
         )
     }
 
+    // for testing
+    init(services: [CaptureService], context: CrashReporterContext) {
+        self.services = services
+        self.context = context
+    }
+
     deinit {
         NotificationCenter.default.removeObserver(self)
     }
