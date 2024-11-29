@@ -24,7 +24,8 @@ final class SingleSpanProcessorTests: XCTestCase {
         name: String = "example",
         startTime: Date = Date(),
         endTime: Date? = nil,
-        attributes: AttributesDictionary? = nil
+        attributes: AttributesDictionary? = nil,
+        parentContext: SpanContext? = nil
     ) -> ReadableSpan {
 
         let span = RecordEventsReadableSpan.startSpan(
@@ -32,7 +33,7 @@ final class SingleSpanProcessorTests: XCTestCase {
             name: name,
             instrumentationScopeInfo: .init(),
             kind: .client,
-            parentContext: nil,
+            parentContext: parentContext,
             hasRemoteParent: false,
             spanLimits: .init(),
             spanProcessor: processor,
@@ -171,27 +172,32 @@ final class SingleSpanProcessorTests: XCTestCase {
     }
 
     func test_autoTerminateSpans_clearsCache() throws {
+        // given a processor with auto terminated spans
         let processor = SingleSpanProcessor(spanExporter: exporter)
 
         _ = createAutoTerminatedSpan(processor: processor)
         _ = createAutoTerminatedSpan(processor: processor)
         _ = createAutoTerminatedSpan(processor: processor)
 
+        // when the spans are auto terminated
         processor.autoTerminateSpans()
 
+        // then the cache is cleared
         wait {
             return processor.autoTerminationSpans.count == 0
         }
     }
 
     func test_autoTerminateSpans_endsSpans() throws {
+        // given a processor with auto terminated spans
         let processor = SingleSpanProcessor(spanExporter: exporter)
 
         let span = createAutoTerminatedSpan(processor: processor)
-        print(span.context.spanId.hexString)
 
+        // when the spans are auto terminated
         processor.autoTerminateSpans()
 
+        // then the spans are ended correctly
         wait {
             guard processor.autoTerminationSpans.count == 0 else {
                 return false
@@ -201,6 +207,35 @@ final class SingleSpanProcessorTests: XCTestCase {
             return exportedSpan.hasEnded &&
                    exportedSpan.status.isError &&
                    exportedSpan.attributes[SpanSemantics.keyErrorCode] == .string("userAbandon")
+        }
+    }
+
+    func test_autoTerminateSpans_endsChildSpans() throws {
+        // given a processor with auto terminated spans with child spans
+        let processor = SingleSpanProcessor(spanExporter: exporter)
+
+        let span = createAutoTerminatedSpan(processor: processor)
+        let childSpan1 = createSpanData(processor: processor, parentContext: span.context)
+        let childSpan2 = createSpanData(processor: processor, parentContext: childSpan1.context)
+
+        // when the spans are auto terminated
+        processor.autoTerminateSpans()
+
+        // then the spans are ended correctly
+        wait {
+            guard processor.autoTerminationSpans.count == 0 else {
+                return false
+            }
+
+            let span1 = try XCTUnwrap(self.exporter.exportedSpans[childSpan1.context.spanId])
+            let span2 = try XCTUnwrap(self.exporter.exportedSpans[childSpan2.context.spanId])
+
+            return span1.hasEnded &&
+                   span1.status.isError &&
+                   span1.attributes[SpanSemantics.keyErrorCode] == .string("userAbandon") &&
+                   span2.hasEnded &&
+                   span2.status.isError &&
+                   span2.attributes[SpanSemantics.keyErrorCode] == .string("userAbandon")
         }
     }
 }

@@ -15,7 +15,7 @@ public class SingleSpanProcessor: SpanProcessor {
     let spanExporter: SpanExporter
     private let processorQueue = DispatchQueue(label: "io.embrace.spanprocessor", qos: .utility)
 
-    @ThreadSafe var autoTerminationSpans: [String: ReadableSpan] = [:]
+    @ThreadSafe var autoTerminationSpans: [SpanId: SpanAutoTerminationData] = [:]
 
     /// Returns a new SingleSpanProcessor that converts spans to SpanData and forwards them to
     /// the given spanExporter.
@@ -25,15 +25,12 @@ public class SingleSpanProcessor: SpanProcessor {
     }
 
     public func autoTerminateSpans() {
-        for span in autoTerminationSpans.values {
-            let data = span.toSpanData()
-            guard let errorCode = data.attributes[SpanSemantics.keyAutoTerminationCode]?.description else {
-                continue
-            }
+        let now = Date()
 
-            span.setAttribute(key: SpanSemantics.keyErrorCode, value: errorCode)
-            span.status = .error(description: errorCode)
-            span.end()
+        for data in autoTerminationSpans.values {
+            data.span.setAttribute(key: SpanSemantics.keyErrorCode, value: data.code)
+            data.span.status = .error(description: data.code)
+            data.span.end(time: now)
         }
 
         autoTerminationSpans.removeAll()
@@ -49,8 +46,13 @@ public class SingleSpanProcessor: SpanProcessor {
         let data = span.toSpanData()
 
         // cache if flagged for auto termination
-        if data.attributes[SpanSemantics.keyAutoTerminationCode] != nil {
-            autoTerminationSpans[span.autoTerminationKey] = span
+        if let code = autoTerminationCode(for: data, parentId: data.parentSpanId) {
+            autoTerminationSpans[data.spanId] = SpanAutoTerminationData(
+                span: span,
+                spanData: data,
+                code: code, 
+                parentId: data.parentSpanId
+            )
         }
 
         processorQueue.async {
@@ -77,8 +79,13 @@ public class SingleSpanProcessor: SpanProcessor {
         let data = span.toSpanData()
 
         // update cache if needed
-        if data.attributes[SpanSemantics.keyAutoTerminationCode] != nil {
-            autoTerminationSpans[span.autoTerminationKey] = span
+        if let code = autoTerminationCode(for: data, parentId: data.parentSpanId) {
+            autoTerminationSpans[data.spanId] = SpanAutoTerminationData(
+                span: span,
+                spanData: data,
+                code: code,
+                parentId: data.parentSpanId
+            )
         }
 
         processorQueue.sync {
@@ -95,10 +102,33 @@ public class SingleSpanProcessor: SpanProcessor {
             spanExporter.shutdown()
         }
     }
+
+    // finds the auto termination code from the span's attributes
+    // also tries to find it from it's parent spans
+    private func autoTerminationCode(for data: SpanData, parentId: SpanId? = nil) -> String? {
+        if let code = data.attributes[SpanSemantics.keyAutoTerminationCode] {
+            return code.description
+        }
+
+        if let parentId = parentId,
+           let parentData = autoTerminationSpans[parentId] {
+            return autoTerminationCode(for: parentData.spanData, parentId: parentData.parentId)
+        }
+
+        return nil
+    }
 }
 
-extension Span {
-    var autoTerminationKey: String {
-        context.traceId.hexString + "_" + context.spanId.hexString
+struct SpanAutoTerminationData {
+    let span: ReadableSpan
+    let spanData: SpanData
+    let code: String
+    let parentId: SpanId?
+
+    init(span: ReadableSpan, spanData: SpanData, code: String, parentId: SpanId? = nil) {
+        self.span = span
+        self.spanData = spanData
+        self.code = code
+        self.parentId = parentId
     }
 }
