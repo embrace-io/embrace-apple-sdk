@@ -65,16 +65,6 @@ class URLSessionDelegateProxy: NSObject {
         toSelector selector: Selector,
         session: URLSession
     ) -> DelegateRespondsResult<T> {
-        // guard that we are not the session.delegate to prevent infinite recursion
-        guard (session.delegate as? URLSessionDelegateProxy) != self else {
-            return .doesNotRespond
-        }
-
-        // avoid forwarding the delegate if it was already swizzled by somebody else
-        // during our swizzling to prevent potential infinite recursion.
-        guard self.swizzledDelegate == nil else {
-            return .doesNotRespond
-        }
 
         // check if the originalDelegate responds to the selector
         if let originalDelegate = originalDelegate,
@@ -84,6 +74,17 @@ class URLSessionDelegateProxy: NSObject {
             } else if let object = originalDelegate as? NSObject {
                 return .respondsWithoutConformance(object: object)
             }
+        }
+
+        // guard that we are not the session.delegate to prevent infinite recursion
+        guard (session.delegate as? URLSessionDelegateProxy) != self else {
+            return .doesNotRespond
+        }
+
+        // avoid forwarding the delegate if it was already swizzled by somebody else
+        // during our swizzling to prevent potential infinite recursion.
+        guard self.swizzledDelegate == nil else {
+            return .doesNotRespond
         }
 
         // if session delegate also responds to selector, we must call it

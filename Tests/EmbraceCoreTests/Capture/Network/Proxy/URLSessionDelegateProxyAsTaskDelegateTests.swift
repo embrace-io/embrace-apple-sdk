@@ -121,9 +121,8 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
         ], timeout: Self.timeoutQuick)
 
         XCTAssertTrue(try XCTUnwrap(otherSwizzler?.proxy?.didInvokeRespondsTo))
-        XCTAssertFalse(try XCTUnwrap(otherSwizzler?.proxy?.didInvokeForwardingTarget))
-        XCTAssertFalse(try XCTUnwrap(otherSwizzler?.proxy?.didForwardToTargetSuccessfully))
-        XCTAssertFalse(try XCTUnwrap(otherSwizzler?.proxy?.didForwardRespondsToSuccessfullyBool))
+        XCTAssertTrue(try XCTUnwrap(otherSwizzler?.proxy?.didInvokeForwardingTarget))
+        XCTAssertTrue(try XCTUnwrap(otherSwizzler?.proxy?.didForwardToTargetSuccessfully))
     }
 
     @available(iOS 15.0, watchOS 8.0, *)
@@ -157,9 +156,8 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
         ], timeout: Self.timeoutQuick)
 
         XCTAssertTrue(try XCTUnwrap(otherSwizzler?.proxy?.didInvokeRespondsTo))
-        XCTAssertFalse(try XCTUnwrap(otherSwizzler?.proxy?.didInvokeForwardingTarget))
-        XCTAssertFalse(try XCTUnwrap(otherSwizzler?.proxy?.didForwardToTargetSuccessfully))
-        XCTAssertFalse(try XCTUnwrap(otherSwizzler?.proxy?.didForwardRespondsToSuccessfullyBool))
+        XCTAssertTrue(try XCTUnwrap(otherSwizzler?.proxy?.didInvokeForwardingTarget))
+        XCTAssertTrue(try XCTUnwrap(otherSwizzler?.proxy?.didForwardToTargetSuccessfully))
     }
 
     @available(iOS 15.0, watchOS 8.0, *)
