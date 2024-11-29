@@ -9,5 +9,6 @@
 #import "EMBDevice.h"
 #import "EMBStackTraceProccessor.h"
 #import "NSURLSessionTask+Embrace.h"
+#import "EMBURLSessionDelegateForwarder.h"
 
 #endif /* EmbraceObjCUtilsInternal_h */
