@@ -122,12 +122,20 @@ extension URLSessionDelegateProxy: URLSessionDelegate {
             URLSessionDelegate.urlSession(_:didBecomeInvalidWithError:)
         )
 
-        let responds: DelegateRespondsResult<URLSessionDelegate> = checkIfDelegateResponds(toSelector: selector, session: session)
+        let responds: DelegateRespondsResult<URLSessionDelegate> = checkIfDelegateResponds(
+            toSelector: selector,
+            session: session
+        )
+
         switch responds {
         case .respondsAndConforms(let delegate):
             delegate.urlSession?(session, didBecomeInvalidWithError: error)
         case .respondsWithoutConformance(let object):
-            EMBURLSessionDelegateForwarder().forward(to: object, urlSession: session, didBecomeInvalidWithError: error)
+            EMBURLSessionDelegateForwarder().forward(
+                to: object,
+                urlSession: session,
+                didBecomeInvalidWithError: error
+            )
         case .doesNotRespond:
             break
         }
@@ -144,6 +152,7 @@ extension URLSessionDelegateProxy: URLSessionDataDelegate {
         let selector = #selector(
             URLSessionDataDelegate.urlSession(_:dataTask:didReceive:)
         )
+
         if var previousData = dataTask.embraceData {
             previousData.append(data)
             dataTask.embraceData = previousData
@@ -151,13 +160,21 @@ extension URLSessionDelegateProxy: URLSessionDataDelegate {
             dataTask.embraceData = data
         }
 
+        let responds: DelegateRespondsResult<URLSessionDataDelegate> = checkIfDelegateResponds(
+            toSelector: selector,
+            session: session
+        )
 
-        let responds: DelegateRespondsResult<URLSessionDataDelegate> = checkIfDelegateResponds(toSelector: selector, session: session)
         switch responds {
         case .respondsAndConforms(let delegate):
             delegate.urlSession?(session, dataTask: dataTask, didReceive: data)
         case .respondsWithoutConformance(let object):
-            EMBURLSessionDelegateForwarder().forward(to: object, urlSession: session, dataTask: dataTask, didReceive: data)
+            EMBURLSessionDelegateForwarder().forward(
+                to: object,
+                urlSession: session,
+                dataTask: dataTask,
+                didReceive: data
+            )
         case .doesNotRespond:
             break
         }
@@ -170,16 +187,26 @@ extension URLSessionDelegateProxy: URLSessionTaskDelegate {
                     task: URLSessionTask,
                     didFinishCollecting metrics: URLSessionTaskMetrics) {
         handler.finish(task: task, data: nil, error: nil)
+
         let selector = #selector(
             URLSessionTaskDelegate.urlSession(_:task:didFinishCollecting:)
         )
 
-        let responds: DelegateRespondsResult<URLSessionTaskDelegate> = checkIfDelegateResponds(toSelector: selector, session: session)
+        let responds: DelegateRespondsResult<URLSessionTaskDelegate> = checkIfDelegateResponds(
+            toSelector: selector,
+            session: session
+        )
+
         switch responds {
         case .respondsAndConforms(let delegate):
             delegate.urlSession?(session, task: task, didFinishCollecting: metrics)
         case .respondsWithoutConformance(let object):
-            EMBURLSessionDelegateForwarder().forward(to: object, urlSession: session, task: task, didFinishCollectiongMetrics: metrics)
+            EMBURLSessionDelegateForwarder().forward(
+                to: object,
+                urlSession: session,
+                task: task,
+                didFinishCollectiongMetrics: metrics
+            )
         case .doesNotRespond:
             break
         }
@@ -193,12 +220,21 @@ extension URLSessionDelegateProxy: URLSessionTaskDelegate {
             URLSessionTaskDelegate.urlSession(_:task:didCompleteWithError:)
         )
 
-        let responds: DelegateRespondsResult<URLSessionTaskDelegate> = checkIfDelegateResponds(toSelector: selector, session: session)
+        let responds: DelegateRespondsResult<URLSessionTaskDelegate> = checkIfDelegateResponds(
+            toSelector: selector,
+            session: session
+        )
+
         switch responds {
         case .respondsAndConforms(let delegate):
             delegate.urlSession?(session, task: task, didCompleteWithError: error)
         case .respondsWithoutConformance(let object):
-            EMBURLSessionDelegateForwarder().forward(to: object, urlSession: session, task: task, didCompleteWithError: error)
+            EMBURLSessionDelegateForwarder().forward(
+                to: object,
+                urlSession: session,
+                task: task,
+                didCompleteWithError: error
+            )
         case .doesNotRespond:
             break
         }
@@ -214,12 +250,21 @@ extension URLSessionDelegateProxy: URLSessionDownloadDelegate {
             URLSessionDownloadDelegate.urlSession(_:downloadTask:didFinishDownloadingTo:)
         )
 
-        let responds: DelegateRespondsResult<URLSessionDownloadDelegate> = checkIfDelegateResponds(toSelector: selector, session: session)
+        let responds: DelegateRespondsResult<URLSessionDownloadDelegate> = checkIfDelegateResponds(
+            toSelector: selector,
+            session: session
+        )
+
         switch responds {
         case .respondsAndConforms(let delegate):
             delegate.urlSession(session, downloadTask: downloadTask, didFinishDownloadingTo: location)
         case .respondsWithoutConformance(let object):
-            EMBURLSessionDelegateForwarder().forward(to: object, urlSession: session, downloadTask: downloadTask, didFinishDownloadingTo: location)
+            EMBURLSessionDelegateForwarder().forward(
+                to: object,
+                urlSession: session,
+                downloadTask: downloadTask,
+                didFinishDownloadingTo: location
+            )
         case .doesNotRespond:
             break
         }
@@ -228,4 +273,3 @@ extension URLSessionDelegateProxy: URLSessionDownloadDelegate {
 
 // MARK: - URLSessionStreamDelegate conformance
 extension URLSessionDelegateProxy: URLSessionStreamDelegate {}
-

@@ -56,7 +56,6 @@ class URLSessionDelegateProxyToNonConformantTests: XCTestCase {
     }
 }
 
-
 private extension URLSessionDelegateProxyToNonConformantTests {
     func givenProxyContainingDelegateImplemetingMethodsButNotConformingToSpecificProtocols() {
         originalDelegate = URLSessionDelegateImplementerButWithoutConforming()
@@ -91,7 +90,6 @@ private extension URLSessionDelegateProxyToNonConformantTests {
             didFinishCollecting: URLSessionTaskMetrics()
         )
     }
-
 
     func whenInvokindDidCompleteWithError() {
         sut.urlSession(
@@ -161,4 +159,3 @@ private extension URLSessionDelegateProxyToNonConformantTests {
         return urlSession.downloadTask(with: request)
     }
 }
-
