@@ -96,7 +96,7 @@ extension CaptureService {
             return nil
         }
 
-        return otel?.buildSpan(name: name, type: type, attributes: attributes)
+        return otel?.buildSpan(name: name, type: type, attributes: attributes, autoTerminationCode: nil)
     }
 
     /// Adds the given event to the session.

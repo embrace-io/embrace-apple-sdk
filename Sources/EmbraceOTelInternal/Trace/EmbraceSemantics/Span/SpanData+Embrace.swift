@@ -20,11 +20,11 @@ extension SpanData {
         return .performance
     }
 
-    var errorCode: ErrorCode? {
+    var errorCode: SpanErrorCode? {
         guard let value = attributes[SpanSemantics.keyErrorCode] else {
             return nil
         }
-        return ErrorCode(rawValue: value.description)
+        return SpanErrorCode(rawValue: value.description)
     }
 
     public func toJSON() throws -> Data {
