@@ -15,13 +15,18 @@ extension URLSessionCaptureService {
         /// before the Embrace SDK captures their data.
         @objc public let requestsDataSource: URLSessionRequestsDataSource?
 
-        @objc public init(injectTracingHeader: Bool, requestsDataSource: URLSessionRequestsDataSource?) {
+        /// List of urls to be ignored by this service.
+        /// Any request's url that contains any of these strings will not be captured.
+        @objc public let ignoredURLs: [String]
+
+        @objc public init(injectTracingHeader: Bool, requestsDataSource: URLSessionRequestsDataSource?, ignoredURLs: [String]) {
             self.injectTracingHeader = injectTracingHeader
             self.requestsDataSource = requestsDataSource
+            self.ignoredURLs = ignoredURLs
         }
 
         @objc public convenience override init() {
-            self.init(injectTracingHeader: true, requestsDataSource: nil)
+            self.init(injectTracingHeader: true, requestsDataSource: nil, ignoredURLs: [])
         }
     }
 }

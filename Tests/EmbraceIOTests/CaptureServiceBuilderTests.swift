@@ -46,7 +46,7 @@ class CaptureServiceBuilderTests: XCTestCase {
         let builder = CaptureServiceBuilder()
 
         // when adding a URLSessionCaptureService with custom options
-        let options = URLSessionCaptureService.Options(injectTracingHeader: false, requestsDataSource: nil)
+        let options = URLSessionCaptureService.Options(injectTracingHeader: false, requestsDataSource: nil, ignoredURLs: [])
         builder.add(.urlSession(options: options))
 
         // when adding the defaults
@@ -117,7 +117,7 @@ class CaptureServiceBuilderTests: XCTestCase {
         builder.add(.urlSession())
 
         // and then adding it again
-        let options = URLSessionCaptureService.Options(injectTracingHeader: false, requestsDataSource: nil)
+        let options = URLSessionCaptureService.Options(injectTracingHeader: false, requestsDataSource: nil, ignoredURLs: [])
         builder.add(.urlSession(options: options))
 
         // then the list contains the correct services
@@ -134,7 +134,7 @@ class CaptureServiceBuilderTests: XCTestCase {
         let builder = CaptureServiceBuilder()
 
         // when adding a URLSessionCaptureService
-        let options = URLSessionCaptureService.Options(injectTracingHeader: false, requestsDataSource: nil)
+        let options = URLSessionCaptureService.Options(injectTracingHeader: false, requestsDataSource: nil, ignoredURLs: [])
         builder.add(.urlSession(options: options))
 
         // then the list contains the capture service
