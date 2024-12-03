@@ -96,7 +96,7 @@ class EmbraceUploadOperationTests: XCTestCase {
             endpoint: TestConstants.url,
             identifier: "id",
             data: Data(),
-            retryCount: 0,
+            retryCount: 5,
             exponentialBackoffBehavior: .init(),
             attemptCount: 0
         ) { result, attemptCount in
@@ -126,7 +126,46 @@ class EmbraceUploadOperationTests: XCTestCase {
             endpoint: TestConstants.url,
             identifier: "id",
             data: Data(),
-            retryCount: 0,
+            retryCount: 5,
+            exponentialBackoffBehavior: .init(),
+            attemptCount: 0
+        ) { result, attemptCount in
+
+            XCTAssertEqual(result, .failure(retriable: false))
+            XCTAssertEqual(attemptCount, 1)
+
+            expectation.fulfill()
+        }
+
+        operation.start()
+
+        wait(for: [expectation], timeout: .defaultTimeout)
+    }
+
+    func test_unsuccessfulOperation_nonRetriableError_shouldntBeRetriable() {
+        // mock unsuccessful response with unretriable URLError
+        EmbraceHTTPMock.mock(
+            url: TestConstants.url,
+            response: .withError(
+                NSError(
+                    domain: NSURLErrorDomain,
+                    code: URLError.unsupportedURL.rawValue,
+                    userInfo: [:]
+                )
+            )
+        )
+
+        // given an upload operation
+        let expectation = XCTestExpectation()
+
+        let operation = EmbraceUploadOperation(
+            urlSession: urlSession,
+            queue: queue,
+            metadataOptions: testMetadataOptions,
+            endpoint: TestConstants.url,
+            identifier: "id",
+            data: Data(),
+            retryCount: 5,
             exponentialBackoffBehavior: .init(),
             attemptCount: 0
         ) { result, attemptCount in
@@ -156,7 +195,7 @@ class EmbraceUploadOperationTests: XCTestCase {
             endpoint: TestConstants.url,
             identifier: "id",
             data: Data(),
-            retryCount: 0,
+            retryCount: 5,
             exponentialBackoffBehavior: .init(),
             attemptCount: 0
         ) { result, attemptCount in
@@ -234,9 +273,16 @@ class EmbraceUploadOperationTests: XCTestCase {
         wait(for: [expectation], timeout: .defaultTimeout)
     }
 
-    func test_retryCount() {
+    func test_onReceivingServerIssuesStatusCode_shouldRetryRequestTheAmountOfRetryCounts() throws {
         // mock error response
-        EmbraceHTTPMock.mock(url: TestConstants.url, errorCode: 500)
+        let serverSideErrorStatusCode = try XCTUnwrap((500...599).map { $0}.randomElement())
+        EmbraceHTTPMock.mock(
+            url: TestConstants.url,
+            response: .withData(
+                Data(),
+                statusCode: serverSideErrorStatusCode
+            )
+        )
 
         // given an upload operation that errors with a retry count of 1
         let expectation = XCTestExpectation()
@@ -271,6 +317,109 @@ class EmbraceUploadOperationTests: XCTestCase {
         }
 
         XCTAssertEqual(request.httpMethod, "POST")
+
+        guard let headers = request.allHTTPHeaderFields else {
+            XCTAssert(false, "Invalid request headers!")
+            return
+        }
+
+        XCTAssertEqual(headers["x-emb-retry-count"], "1")
+    }
+
+    func test_onReceivingTooManyRequestsStatusCode_shouldRetryRequestTheAmountOfRetryCounts() throws {
+        // mock error response
+        EmbraceHTTPMock.mock(
+            url: TestConstants.url,
+            response: .withData(
+                Data(),
+                statusCode: 429
+            )
+        )
+
+        // given an upload operation that errors with a retry count of 1
+        let expectation = XCTestExpectation()
+
+        let operation = EmbraceUploadOperation(
+            urlSession: urlSession,
+            queue: queue,
+            metadataOptions: testMetadataOptions,
+            endpoint: TestConstants.url,
+            identifier: "id",
+            data: Data(),
+            retryCount: 3,
+            exponentialBackoffBehavior: .withNoDelay(),
+            attemptCount: 0
+        ) { result, attemptCount in
+
+            // then the operation should return the error
+            XCTAssertEqual(result, .failure(retriable: true))
+            XCTAssertEqual(attemptCount, 4)
+
+            expectation.fulfill()
+        }
+
+        operation.start()
+
+        wait(for: [expectation], timeout: .defaultTimeout)
+
+        // then the request should have the correct headers
+        guard let request = EmbraceHTTPMock.requestsForUrl(TestConstants.url).last else {
+            XCTAssert(false, "Invalid request!")
+            return
+        }
+
+        XCTAssertEqual(request.httpMethod, "POST")
+
+        guard let headers = request.allHTTPHeaderFields else {
+            XCTAssert(false, "Invalid request headers!")
+            return
+        }
+
+        XCTAssertEqual(headers["x-emb-retry-count"], "3")
+    }
+
+    func test_onErrorWithRetryAfterHeader_shouldAppendToTheActualRetryDelay() {
+        let retryAfterDelay = 1
+        // mock unsuccessful response with retry after header
+        EmbraceHTTPMock.mock(
+            url: TestConstants.url,
+            response: .withData(
+                .init(),
+                statusCode: 429,
+                headers: ["Retry-After": "\(retryAfterDelay)"]
+            )
+        )
+        // given an upload operation that errors with a retry count of 1
+        let expectation = XCTestExpectation()
+
+        let operation = EmbraceUploadOperation(
+            urlSession: urlSession,
+            queue: queue,
+            metadataOptions: testMetadataOptions,
+            endpoint: TestConstants.url,
+            identifier: "id",
+            data: Data(),
+            retryCount: 1,
+            exponentialBackoffBehavior: .withNoDelay(),
+            attemptCount: 0
+        ) { result, attemptCount in
+
+            // then the operation should return the error
+            XCTAssertEqual(result, .failure(retriable: true))
+            XCTAssertEqual(attemptCount, 2)
+
+            expectation.fulfill()
+        }
+
+        operation.start()
+
+        wait(for: [expectation], timeout: .defaultTimeout + Double(retryAfterDelay))
+
+        // then the request should have the correct headers
+        guard let request = EmbraceHTTPMock.requestsForUrl(TestConstants.url).last else {
+            XCTAssert(false, "Invalid request!")
+            return
+        }
 
         guard let headers = request.allHTTPHeaderFields else {
             XCTAssert(false, "Invalid request headers!")

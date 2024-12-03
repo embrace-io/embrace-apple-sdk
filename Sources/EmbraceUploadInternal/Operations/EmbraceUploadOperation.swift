@@ -13,7 +13,6 @@ enum EmbraceUploadOperationResult: Equatable {
 typealias EmbraceUploadOperationCompletion = (_ result: EmbraceUploadOperationResult, _ attemptCount: Int) -> Void
 
 class EmbraceUploadOperation: AsyncOperation {
-
     private let urlSession: URLSession
     private let queue: DispatchQueue
     private let metadataOptions: EmbraceUpload.MetadataOptions
@@ -166,8 +165,8 @@ class EmbraceUploadOperation: AsyncOperation {
     /// - Returns:the time in seconds (as `Int`) extracted from the `Retry-After` header.
     private func getSuggestedDelay(fromResponse response: URLResponse?) -> Int {
         guard let httpResponse = response as? HTTPURLResponse,
-              let retryAfterHeaderValue = httpResponse.allHeaderFields["Retry-After"],
-              let retryAfterDelay = retryAfterHeaderValue as? Int else {
+              let retryAfterHeaderValue = httpResponse.allHeaderFields["Retry-After"] as? String,
+              let retryAfterDelay = Int(retryAfterHeaderValue) else {
             return 0
         }
 

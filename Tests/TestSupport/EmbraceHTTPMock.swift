@@ -33,23 +33,43 @@ public class EmbraceHTTPMock: URLProtocol {
     private static var requests = [String: [URLRequest]]()
 
     /// Adds a mocked response for a given url
-    public class func mock(url: URL, response: MockResponse) {
+    public class func mock(
+        url: URL,
+        response: MockResponse
+    ) {
         mockedResponses[createKey(fromURL: url)] = response
     }
 
     /// Adds a succesful mocked response for the given url
-    public class func mock(url: URL, data: Data? = nil, statusCode: Int = 200) {
-        mockedResponses[createKey(fromURL: url)] = MockResponse.withData(data ?? Data(), statusCode: statusCode)
+    public class func mock(
+        url: URL,
+        data: Data? = nil,
+        statusCode: Int = 200,
+        headers: [String: String]? = nil
+    ) {
+        mockedResponses[createKey(fromURL: url)] = MockResponse.withData(
+            data ?? Data(),
+            statusCode: statusCode,
+            headers: headers
+        )
     }
 
     /// Adds a mocked reponse with the given error, for the given url
-    public class func mock(url: URL, error: NSError) {
-        mockedResponses[createKey(fromURL: url)] = MockResponse.withError(error)
+    public class func mock(
+        url: URL,
+        error: NSError,
+        headers: [String: String]? = nil
+    ) {
+        mockedResponses[createKey(fromURL: url)] = MockResponse.withError(error, headers: headers)
     }
 
     /// Adds a mocked response with an error with the given error code, for the given url
-    public class func mock(url: URL, errorCode: Int) {
-        mockedResponses[createKey(fromURL: url)] = MockResponse.withErrorCode(errorCode)
+    public class func mock(
+        url: URL,
+        errorCode: Int,
+        headers: [String: String]? = nil
+    ) {
+        mockedResponses[createKey(fromURL: url)] = MockResponse.withErrorCode(errorCode, headers: headers)
     }
 
     private class func createKey(fromURL url: URL) -> String {
@@ -102,7 +122,7 @@ public class EmbraceHTTPMock: URLProtocol {
                         url: url,
                         statusCode: response.statusCode,
                         httpVersion: nil,
-                        headerFields: nil
+                        headerFields: response.headers
                     ) {
                         client?.urlProtocol(self, didReceive: httpResponse, cacheStoragePolicy: .allowed)
                     }
@@ -131,28 +151,39 @@ public struct MockResponse {
     private(set) var data: Data?
     private(set) var error: Error?
     private(set) var statusCode: Int = -1
+    private(set) var headers: [String: String]? = nil
 
-    public static func withData(_ data: Data, statusCode: Int) -> MockResponse {
+    public static func withData(
+        _ data: Data,
+        statusCode: Int,
+        headers: [String: String]? = nil
+    ) -> MockResponse {
         var response = MockResponse()
         response.data = data
         response.statusCode = statusCode
-
+        response.headers = headers
         return response
     }
 
-    public static func withError(_ error: NSError) -> MockResponse {
+    public static func withError(
+        _ error: NSError,
+        headers: [String: String]? = nil
+    ) -> MockResponse {
         var response = MockResponse()
         response.error = error
         response.statusCode = error.code
-
+        response.headers = headers
         return response
     }
 
-    public static func withErrorCode(_ code: Int) -> MockResponse {
+    public static func withErrorCode(
+        _ code: Int,
+        headers: [String: String]? = nil
+    ) -> MockResponse {
         var response = MockResponse()
         response.error = NSError(domain: TestConstants.domain, code: code)
         response.statusCode = code
-
+        response.headers = headers
         return response
     }
 }
