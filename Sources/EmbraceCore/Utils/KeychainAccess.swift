@@ -31,17 +31,16 @@ class KeychainAccess {
 
         // generate new id
         let newId = UUID()
-        let status = keychain.setValue(
+        keychain.setValue(
             service: kEmbraceKeychainService as CFString,
             account: kEmbraceDeviceId as CFString,
-            value: newId.uuidString
-        )
-
-        if status != errSecSuccess {
-            if let err = SecCopyErrorMessageString(status, nil) {
-                Embrace.logger.error("Write failed: \(err)")
+            value: newId.uuidString) { status in
+                if status != errSecSuccess {
+                    if let err = SecCopyErrorMessageString(status, nil) {
+                        Embrace.logger.error("Write failed: \(err)")
+                    }
+                }
             }
-        }
 
         return newId
     }
