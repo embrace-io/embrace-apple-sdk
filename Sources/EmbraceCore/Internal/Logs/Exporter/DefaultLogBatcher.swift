@@ -65,8 +65,6 @@ internal extension DefaultLogBatcher {
         }
         self.cancelBatchDeadline()
         self.delegate?.batchFinished(withLogs: batch.logs)
-        // TODO: Add cleanup step:
-        // --> delete reported logs
         self.batch = .init(limits: self.logLimits, logs: logRecords)
 
         if logRecords.count > 0 {

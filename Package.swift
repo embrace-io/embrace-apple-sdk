@@ -91,6 +91,7 @@ let package = Package(
             dependencies: [
                 "EmbraceCore",
                 "TestSupport",
+                "TestSupportObjc",
                 .product(name: "GRDB", package: "GRDB.swift")
             ],
             resources: [
@@ -265,7 +266,12 @@ let package = Package(
                 "EmbraceCommonInternal",
                 .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
             ],
-            path: "Tests/TestSupport"
+            path: "Tests/TestSupport",
+            exclude: ["Objc"]
+        ),
+        .target(
+            name: "TestSupportObjc",
+            path: "Tests/TestSupport/Objc"
         )
     ]
 )

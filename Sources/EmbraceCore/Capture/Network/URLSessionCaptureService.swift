@@ -61,7 +61,6 @@ public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandl
             do {
                 try $0.install()
             } catch let exception {
-                // TODO: See what to do when this kind of issues arises
                 Embrace.logger.error("Capture service couldn't be installed: \(exception.localizedDescription)")
             }
         }

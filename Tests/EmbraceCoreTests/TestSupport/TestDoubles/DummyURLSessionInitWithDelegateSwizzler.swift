@@ -29,11 +29,10 @@ class DummyURLSessionInitWithDelegateSwizzler: Swizzlable {
     }
 
     class DummyURLProxy: NSObject, URLSessionDelegate {
-        weak var originalDelegate: URLSessionDelegate?
+        var originalDelegate: URLSessionDelegate?
         var didForwardToTargetSuccessfully: Bool = false
         var didInvokeForwardingTarget: Bool = false
         var didInvokeRespondsTo: Bool = false
-        var didForwardRespondsToSuccessfullyBool = false
 
         init(originalDelegate: URLSessionDelegate?) {
             self.originalDelegate = originalDelegate
