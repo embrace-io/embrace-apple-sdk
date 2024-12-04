@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/embrace-io/KSCrash.git",
       "state" : {
-        "revision" : "0468c294af9d271301bf8ad1942dc4aa3cf6ab08",
-        "version" : "2.0.6"
+        "revision" : "6ce425727d3895c14cd7ff839f788ccb2bcf4081",
+        "version" : "2.0.7"
       }
     },
     {
@@ -33,8 +33,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/open-telemetry/opentelemetry-swift",
       "state" : {
-        "revision" : "0dd37c4a14a6aeeb131eea40a13cb3832c7c6a97",
-        "version" : "1.10.1"
+        "revision" : "f2315d8646432c02338960e85b5fe20417ad6d8d",
+        "version" : "1.12.1"
       }
     },
     {
