@@ -12,6 +12,11 @@ class WKNavigationDelegateProxy: NSObject {
     // callback triggered the webview loads an url or errors
     var callback: ((URL?, Int?) -> Void)?
 
+    init(originalDelegate: WKNavigationDelegate? = nil, callback: ((URL?, Int?) -> Void)? = nil) {
+        self.originalDelegate = originalDelegate
+        self.callback = callback
+    }
+
     override func responds(to aSelector: Selector!) -> Bool {
         if super.responds(to: aSelector) {
             return true

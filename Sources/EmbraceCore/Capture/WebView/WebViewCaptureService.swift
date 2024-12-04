@@ -18,7 +18,6 @@ public final class WebViewCaptureService: CaptureService {
     @objc public let options: WebViewCaptureService.Options
     private let lock: NSLocking
     private var swizzlers: [any Swizzlable] = []
-    var proxy: WKNavigationDelegateProxy
 
     @objc public convenience init(options: WebViewCaptureService.Options) {
         self.init(options: options, lock: NSLock())
@@ -34,13 +33,8 @@ public final class WebViewCaptureService: CaptureService {
     ) {
         self.options = options
         self.lock = lock
-        self.proxy = WKNavigationDelegateProxy()
 
         super.init()
-
-        proxy.callback = { [weak self] url, statusCode in
-            self?.createEvent(url: url, statusCode: statusCode)
-        }
     }
 
     public override func onInstall() {
@@ -65,14 +59,17 @@ public final class WebViewCaptureService: CaptureService {
     }
 
     private func initializeSwizzlers() {
-        swizzlers.append(WKWebViewSetNavigationDelegateSwizzler(proxy: proxy))
+        swizzlers.append(WKWebViewSetNavigationDelegateSwizzler(delegate: self))
         swizzlers.append(WKWebViewLoadRequestSwizzler())
         swizzlers.append(WKWebViewLoadHTMLStringSwizzler())
         swizzlers.append(WKWebViewLoadFileURLSwizzler())
         swizzlers.append(WKWebViewLoadDataSwizzler())
     }
+}
 
-    private func createEvent(url: URL?, statusCode: Int?) {
+extension WebViewCaptureService: WebViewSwizzlerDelegate {
+
+    func didLoad(url: URL?, statusCode: Int?) {
         guard let url = url else {
             return
         }
@@ -116,18 +113,23 @@ struct WKWebViewSetNavigationDelegateSwizzler: Swizzlable {
     typealias BlockImplementationType = @convention(block) (WKWebView, WKNavigationDelegate) -> Void
     static var selector: Selector = #selector(setter: WKWebView.navigationDelegate)
     var baseClass: AnyClass
-    let proxy: WKNavigationDelegateProxy
+    weak var delegate: WebViewSwizzlerDelegate?
 
-    init(proxy: WKNavigationDelegateProxy, baseClass: AnyClass = WKWebView.self) {
+    init(delegate: WebViewSwizzlerDelegate?, baseClass: AnyClass = WKWebView.self) {
         self.baseClass = baseClass
-        self.proxy = proxy
+        self.delegate = delegate
     }
 
     func install() throws {
         try swizzleInstanceMethod { originalImplementation -> BlockImplementationType in
             return { webView, delegate in
                 if !(webView.navigationDelegate is WKNavigationDelegateProxy) {
-                    proxy.originalDelegate = delegate
+                    let proxy = WKNavigationDelegateProxy(
+                        originalDelegate: delegate) { url, statusCode in
+                            self.delegate?.didLoad(url: url, statusCode: statusCode)
+                        }
+                    webView.emb_proxy = proxy
+
                     originalImplementation(webView, Self.selector, proxy)
                 } else {
                     originalImplementation(webView, Self.selector, delegate)
@@ -229,5 +231,9 @@ struct WKWebViewLoadDataSwizzler: Swizzlable {
             }
         }
     }
+}
+
+protocol WebViewSwizzlerDelegate: AnyObject {
+    func didLoad(url: URL?, statusCode: Int?)
 }
 #endif
