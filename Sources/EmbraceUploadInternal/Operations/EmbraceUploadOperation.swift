@@ -126,10 +126,8 @@ class EmbraceUploadOperation: AsyncOperation {
             switch nsError.code {
             case .cancelled,
                     .unsupportedURL,
-                    .cannotConnectToHost,
                     .badURL,
                     .userAuthenticationRequired,
-                    .notConnectedToInternet,
                     .secureConnectionFailed,
                     .serverCertificateUntrusted,
                     .dnsLookupFailed:

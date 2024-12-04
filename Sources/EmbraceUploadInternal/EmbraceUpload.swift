@@ -65,22 +65,23 @@ public class EmbraceUpload: EmbraceLogUploader {
         queue.async { [weak self] in
             guard let self = self else { return }
             do {
-                // clear data from cache that shouldn't be retried as it's stale
-                self.clearCacheFromStaleData()
-                
-                // get all the data cached first, is the only thing that could throw
-                let cachedObjects = try self.cache.fetchAllUploadData()
-
-                // in place mechanism to not retry sending cache data at the same time 
+                // in place mechanism to not retry sending cache data at the same time
                 guard !self.isRetryingCache else {
                     return
                 }
 
                 self.isRetryingCache = true
+
                 defer {
                     // on finishing everything, allow to retry cache (i.e. reconnection)
                     self.isRetryingCache = false
                 }
+
+                // clear data from cache that shouldn't be retried as it's stale
+                self.clearCacheFromStaleData()
+                
+                // get all the data cached first, is the only thing that could throw
+                let cachedObjects = try self.cache.fetchAllUploadData()
 
                 // create a sempahore to allow only to send two request at a time so we don't
                 // get throttled by the backend on cases where cache has many failed requests.
