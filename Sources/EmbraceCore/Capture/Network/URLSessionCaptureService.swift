@@ -80,6 +80,10 @@ public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandl
     var requestsDataSource: URLSessionRequestsDataSource? {
         return options.requestsDataSource
     }
+
+    var ignoredURLs: [String] {
+        return options.ignoredURLs
+    }
 }
 
 // swiftlint:disable line_length

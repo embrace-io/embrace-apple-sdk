@@ -18,6 +18,7 @@ class MockURLSessionTaskHandlerDataSource: URLSessionTaskHandlerDataSource {
 
     var injectTracingHeader = false
     var requestsDataSource: URLSessionRequestsDataSource?
+    var ignoredURLs: [String] = []
 }
 
 class MockURLSessionRequestsDataSource: NSObject, URLSessionRequestsDataSource {
@@ -43,6 +44,7 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
 
         dataSource = MockURLSessionTaskHandlerDataSource()
         dataSource.otel = otel
+        dataSource.ignoredURLs = []
     }
 
     // MARK: - Create Tests
@@ -202,6 +204,25 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
         whenInvokingFinish()
         thenSpanHasTheCorrectBodySize(4)
     }
+
+    func test_ignoredURLs_matches() {
+        givenTaskHandler()
+        givenIgnoredURLs()
+        givenAnURLSessionTask()
+        whenInvokingCreate(withoutWaiting: true)
+
+        wait {
+            return self.otel.spanProcessor.startedSpans.count == 0
+        }
+    }
+
+    func test_ignoredURLs_no_match() {
+        givenTaskHandler()
+        givenIgnoredURLs()
+        givenAnURLSessionTask(urlString: "https://ThisIsAUrl/with/some/path")
+        whenInvokingCreate()
+        thenHTTPNetworkSpanShouldBeCreated()
+    }
 }
 
 private extension DefaultURLSessionTaskHandlerTests {
@@ -222,6 +243,10 @@ private extension DefaultURLSessionTaskHandlerTests {
         let requestsDataSource = MockURLSessionRequestsDataSource()
         requestsDataSource.block = block
         dataSource.requestsDataSource = requestsDataSource
+    }
+
+    func givenIgnoredURLs() {
+        dataSource.ignoredURLs = ["embrace.io"]
     }
 
     func givenHandlerCreatedASpan(withResponse response: URLResponse? = nil) {

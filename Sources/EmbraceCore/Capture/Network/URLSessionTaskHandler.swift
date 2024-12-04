@@ -26,6 +26,7 @@ protocol URLSessionTaskHandlerDataSource: AnyObject {
 
     var injectTracingHeader: Bool { get }
     var requestsDataSource: URLSessionRequestsDataSource? { get }
+    var ignoredURLs: [String] { get }
 }
 
 final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
@@ -66,6 +67,11 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
                 var request = task.originalRequest,
                 let url = request.url,
                 let otel = self.dataSource?.otel else {
+                return
+            }
+
+            // check ignored urls
+            guard shouldCapture(url: url) else {
                 return
             }
 
@@ -210,6 +216,20 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
         }
 
         return nil
+    }
+
+    func shouldCapture(url: URL) -> Bool {
+        guard let list = dataSource?.ignoredURLs else {
+            return true
+        }
+
+        for str in list {
+            if url.absoluteString.contains(str) {
+                return false
+            }
+        }
+
+        return true
     }
 }
 
