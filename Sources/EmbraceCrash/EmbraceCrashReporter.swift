@@ -102,6 +102,7 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
 
         let bundleName = context.appId ?? "default"
         ksCrash = KSCrash.sharedInstance(withBasePath: basePath, andBundleName: bundleName)
+        ksCrash?.reportsMemoryTerminations = false // this feature seems to have many issues, disabling it for now
 
         updateKSCrashInfo()
         ksCrash?.install()
