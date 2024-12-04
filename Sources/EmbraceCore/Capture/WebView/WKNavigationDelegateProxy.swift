@@ -7,7 +7,7 @@ import WebKit
 import EmbraceOTelInternal
 
 class WKNavigationDelegateProxy: NSObject {
-    weak var originalDelegate: WKNavigationDelegate?
+    var originalDelegate: WKNavigationDelegate?
 
     // callback triggered the webview loads an url or errors
     var callback: ((URL?, Int?) -> Void)?

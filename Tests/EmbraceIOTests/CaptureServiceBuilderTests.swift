@@ -29,10 +29,6 @@ class CaptureServiceBuilderTests: XCTestCase {
         XCTAssertNotNil(list.first(where: { $0 is TapCaptureService }))
         XCTAssertNotNil(list.first(where: { $0 is ViewCaptureService }))
 #endif
-#if canImport(WebKit)
-        count += 1
-        XCTAssertNotNil(list.first(where: { $0 is WebViewCaptureService }))
-#endif
 
         XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
         XCTAssertNotNil(list.first(where: { $0 is LowPowerModeCaptureService }))
@@ -61,10 +57,6 @@ class CaptureServiceBuilderTests: XCTestCase {
         count += 2
         XCTAssertNotNil(list.first(where: { $0 is TapCaptureService }))
         XCTAssertNotNil(list.first(where: { $0 is ViewCaptureService }))
-#endif
-#if canImport(WebKit)
-        count += 1
-        XCTAssertNotNil(list.first(where: { $0 is WebViewCaptureService }))
 #endif
 
         XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
@@ -97,16 +89,10 @@ class CaptureServiceBuilderTests: XCTestCase {
         // then the list contains the correct services
         let list = builder.build()
 
-        var count = 2
-
-#if canImport(WebKit)
-        count += 1
-        XCTAssertNotNil(list.first(where: { $0 is WebViewCaptureService }))
-#endif
         XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
         XCTAssertNotNil(list.first(where: { $0 is LowPowerModeCaptureService }))
 
-        XCTAssertEqual(list.count, count)
+        XCTAssertEqual(list.count, 2)
     }
 
     func test_replace() {

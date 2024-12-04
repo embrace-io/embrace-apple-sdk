@@ -57,13 +57,6 @@ public class CaptureServiceBuilder: NSObject {
         }
 #endif
 
-#if canImport(WebKit)
-        // web view
-        if !services.contains(where: { $0 is WebViewCaptureService }) {
-            add(.webView())
-        }
-#endif
-
         // low memory
         if !services.contains(where: { $0 is LowMemoryWarningCaptureService }) {
             add(.lowMemoryWarning())

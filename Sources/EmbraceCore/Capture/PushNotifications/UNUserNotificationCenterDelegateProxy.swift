@@ -6,7 +6,7 @@ import UserNotifications
 import EmbraceOTelInternal
 
 class UNUserNotificationCenterDelegateProxy: NSObject {
-    weak var originalDelegate: UNUserNotificationCenterDelegate?
+    var originalDelegate: UNUserNotificationCenterDelegate?
     let captureData: Bool
 
     init(captureData: Bool) {
