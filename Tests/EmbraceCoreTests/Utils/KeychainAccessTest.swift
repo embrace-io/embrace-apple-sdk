@@ -12,10 +12,10 @@ class AlwaysSuccessfulKeychainInterface: KeychainInterface {
     func valueFor(service: CFString, account: CFString) -> (value: String?, status: OSStatus) {
         return (value, errSecSuccess)
     }
-
-    func setValue(service: CFString, account: CFString, value: String) -> OSStatus {
+    
+    func setValue(service: CFString, account: CFString, value: String, completion: (OSStatus) -> Void) {
         self.value = value
-        return errSecSuccess
+        completion(errSecSuccess)
     }
 
     func deleteValue(service: CFString, account: CFString) -> OSStatus {
