@@ -53,12 +53,7 @@ class EmbraceUploadCache {
     /// Removes stale data based on size or date, if they're limited in options.
     @discardableResult public func clearStaleDataIfNeeded() throws -> UInt {
         let limitDays = options.cacheDaysLimit
-        let limitSize = options.cacheSizeLimit
-        let recordsBasedOnDate = limitDays > 0 ? try fetchRecordsToDeleteBasedOnDate(maxDays: limitDays) : []
-        let recordsBasedOnSize = limitSize > 0 ? try fetchRecordsToDeleteBasedOnSize(maxSize: limitSize) : []
-
-        let recordsToDelete = Array(Set(recordsBasedOnDate + recordsBasedOnSize))
-
+        let recordsToDelete = limitDays > 0 ? try fetchRecordsToDeleteBasedOnDate(maxDays: limitDays) : []
         let deleteCount = recordsToDelete.count
 
         if deleteCount > 0 {
@@ -161,25 +156,6 @@ class EmbraceUploadCache {
             try UploadDataRecord.filter(filter)
                 .updateAll(db, UploadDataRecord.Schema.attemptCount.set(to: attemptCount))
         }
-    }
-
-    /// Sorts Upload Cache by descending order and goes through it adding the space taken by each record.
-    /// Once the __maxSize__ has been reached, all the following record IDs will be returned indicating those need to be deleted.
-    /// - Parameter maxSize: The maximum allowed size in bytes for the Database.
-    /// - Returns: An array of IDs of the oldest records which are making the DB go above the target maximum size.
-    func fetchRecordsToDeleteBasedOnSize(maxSize: UInt) throws -> [String] {
-        let sqlQuery = """
-        WITH t AS (SELECT id, date, SUM(LENGTH(data)) OVER (ORDER BY date DESC,id) total_size FROM uploads)
-        SELECT id FROM t WHERE total_size>=\(maxSize) ORDER BY date DESC;
-        """
-
-        var result: [String] = []
-
-        try dbQueue.read { db in
-            result = try String.fetchAll(db, sql: sqlQuery)
-        }
-
-        return result
     }
 
     /// Fetches all records that should be deleted based on them being older than __maxDays__ days

@@ -66,7 +66,7 @@ class UnsentDataHandlerTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         defer { try? storage.teardown() }
 
-        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue)
+        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
 
         let otel = MockEmbraceOpenTelemetry()
 
@@ -108,7 +108,7 @@ class UnsentDataHandlerTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         defer { try? storage.teardown() }
 
-        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue)
+        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
 
         let otel = MockEmbraceOpenTelemetry()
 
@@ -154,7 +154,7 @@ class UnsentDataHandlerTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         defer { try? storage.teardown() }
 
-        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue)
+        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
 
         let otel = MockEmbraceOpenTelemetry()
 
@@ -235,7 +235,7 @@ class UnsentDataHandlerTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         defer { try? storage.teardown() }
 
-        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue)
+        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
 
         let otel = MockEmbraceOpenTelemetry()
 
@@ -315,7 +315,7 @@ class UnsentDataHandlerTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         defer { try? storage.teardown() }
 
-        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue)
+        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
 
         let otel = MockEmbraceOpenTelemetry()
 
@@ -396,7 +396,7 @@ class UnsentDataHandlerTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         defer { try? storage.teardown() }
 
-        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue)
+        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
         let otel = MockEmbraceOpenTelemetry()
 
         // given a crash reporter
@@ -458,7 +458,7 @@ class UnsentDataHandlerTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         defer { try? storage.teardown() }
 
-        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue)
+        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
 
         let otel = MockEmbraceOpenTelemetry()
 
@@ -537,7 +537,7 @@ class UnsentDataHandlerTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         defer { try? storage.teardown() }
 
-        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue)
+        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
 
         let otel = MockEmbraceOpenTelemetry()
 
@@ -618,7 +618,7 @@ class UnsentDataHandlerTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         defer { try? storage.teardown() }
 
-        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue)
+        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
 
         // given an unfinished session in the storage
         let session = try storage.addSession(
@@ -670,7 +670,7 @@ class UnsentDataHandlerTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         defer { try? storage.teardown() }
 
-        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue)
+        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
 
         // given an unfinished session in the storage
         let session = try storage.addSession(
@@ -729,7 +729,7 @@ class UnsentDataHandlerTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         defer { try? storage.teardown() }
 
-        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue)
+        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
         let logController = LogController(storage: storage, upload: upload, controller: MockSessionController())
         let otel = MockEmbraceOpenTelemetry()
 
