@@ -89,6 +89,9 @@ extension RemoteConfig: EmbraceConfigurable {
 
 extension RemoteConfig {
     func isEnabled(threshold: Float) -> Bool {
+        if (threshold <= 0 || threshold > 100) {
+            return false
+        }
         return Self.isEnabled(hexValue: deviceIdHexValue, digits: Self.deviceIdUsedDigits, threshold: threshold)
     }
 
