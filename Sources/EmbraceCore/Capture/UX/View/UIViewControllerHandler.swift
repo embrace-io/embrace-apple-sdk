@@ -318,7 +318,7 @@ class UIViewControllerHandler {
     ) -> Span {
         let builder = otel.buildSpan(
             name: name,
-            type: .viewLoad,
+            type: type,
             attributes: [
                 SpanSemantics.View.keyViewTitle: vc.emb_viewName,
                 SpanSemantics.View.keyViewName: vc.className

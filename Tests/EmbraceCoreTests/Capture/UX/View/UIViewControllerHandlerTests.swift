@@ -314,7 +314,7 @@ class UIViewControllerHandlerTests: XCTestCase {
             let parent = self.otel.spanProcessor.startedSpans.first(where: { $0.name.contains(parentName) })
             let child = self.otel.spanProcessor.startedSpans.first(where: { $0.name == "emb-view-did-load"})
 
-            return parent != nil && child!.parentSpanId == parent!.spanId
+            return parent != nil && child!.parentSpanId == parent!.spanId && child!.embType == .viewLoad
         }
 
         // when view did load ends
@@ -336,7 +336,7 @@ class UIViewControllerHandlerTests: XCTestCase {
             let parent = self.otel.spanProcessor.startedSpans.first(where: { $0.name.contains(parentName) })
             let child = self.otel.spanProcessor.startedSpans.first(where: { $0.name == "emb-view-will-appear"})
 
-            return parent != nil && child!.parentSpanId == parent!.spanId
+            return parent != nil && child!.parentSpanId == parent!.spanId && child!.embType == .viewLoad
         }
 
         // when view will appear ends
@@ -358,7 +358,7 @@ class UIViewControllerHandlerTests: XCTestCase {
             let parent = self.otel.spanProcessor.startedSpans.first(where: { $0.name.contains(parentName) })
             let child = self.otel.spanProcessor.startedSpans.first(where: { $0.name == "emb-view-did-appear"})
 
-            return parent != nil && child!.parentSpanId == parent!.spanId
+            return parent != nil && child!.parentSpanId == parent!.spanId && child!.embType == .viewLoad
         }
 
         // when view did appear ends
@@ -366,8 +366,12 @@ class UIViewControllerHandlerTests: XCTestCase {
 
         // then the view did appear span is ended
         wait(timeout: .longTimeout) {
-            let span = self.otel.spanProcessor.endedSpans.first(where: { $0.name == "emb-view-did-appear"})
-            return span != nil && self.handler.viewDidAppearSpans.isEmpty
+            let span1 = self.otel.spanProcessor.endedSpans.first(where: { $0.name == "emb-view-did-appear"})
+            let span2 = self.otel.spanProcessor.startedSpans.first(where: { $0.name == "emb-screen-view"})
+
+            return span1 != nil && span1!.embType == .viewLoad &&
+                   span2 != nil && span2!.embType == .view &&
+                   self.handler.viewDidAppearSpans.isEmpty
         }
     }
 
