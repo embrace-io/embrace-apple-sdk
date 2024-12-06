@@ -89,9 +89,6 @@ extension RemoteConfig: EmbraceConfigurable {
 
 extension RemoteConfig {
     func isEnabled(threshold: Float) -> Bool {
-        if (threshold <= 0 || threshold > 100) {
-            return false
-        }
         return Self.isEnabled(hexValue: deviceIdHexValue, digits: Self.deviceIdUsedDigits, threshold: threshold)
     }
 
@@ -108,6 +105,10 @@ extension RemoteConfig {
     ///  - digits: The number of digits used to calculate the total space. Must match the number of digits used to determine the hexValue
     ///  - threshold: The percentage threshold to test against. Values between 0.0 and 100.0
     static func isEnabled(hexValue: UInt64, digits: UInt, threshold: Float) -> Bool {
+        if threshold <= 0 || threshold > 100 {
+            return false
+        }
+
         let space = powf(16, Float(digits)) - 1
         let result = (Float(hexValue) / space) * 100
 
