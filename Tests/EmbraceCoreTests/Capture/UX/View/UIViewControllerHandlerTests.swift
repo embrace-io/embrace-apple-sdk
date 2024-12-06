@@ -54,7 +54,7 @@ class UIViewControllerHandlerTests: XCTestCase {
         XCTAssertNil(parent)
     }
 
-    func test_appDidEnterBackground_clearsCache() {
+    func test_foregroundSessionDidEnd_clearsCache() {
         // given a handler with cached spans
         let id = "test"
         let span = createSpan()
@@ -66,16 +66,16 @@ class UIViewControllerHandlerTests: XCTestCase {
         handler.uiReadySpans[id] = span
         handler.alreadyFinishedUiReadyIds.insert(id)
 
-        // when appDidEnterBackground is called
-        handler.appDidEnterBackground()
+        // when foregroundSessionDidEnd is called
+        handler.foregroundSessionDidEnd()
 
         // then the cache is cleared
         wait {
-            return self.cacheIsEmpty()
+            return self.cacheIsEmpty(true)
         }
     }
 
-    func test_appDidEnterBackground_endsSpans() {
+    func test_foregroundSessionDidEnd_endsSpans() {
         // given a handler with cached spans
         let id = "test"
 
@@ -97,8 +97,8 @@ class UIViewControllerHandlerTests: XCTestCase {
         let uiReadySpan = createUiReadySpan()
         handler.uiReadySpans[id] = uiReadySpan
 
-        // when appDidEnterBackgroundz is called
-        handler.appDidEnterBackground()
+        // when appDidEnterBackground is called
+        handler.foregroundSessionDidEnd()
 
         // then all spans are ended
         wait {
@@ -206,7 +206,7 @@ class UIViewControllerHandlerTests: XCTestCase {
         validateViewDidLoadSpans(vc: vc, parentName: parentName)
         validateViewWillAppearSpans(vc: vc, parentName: parentName)
 
-        handler.appDidEnterBackground()
+        handler.foregroundSessionDidEnd()
 
         wait(timeout: .longTimeout) {
             let parent = self.otel.spanProcessor.endedSpans.first(where: { $0.name.contains(parentName) })
@@ -242,7 +242,7 @@ class UIViewControllerHandlerTests: XCTestCase {
             let parent = self.otel.spanProcessor.endedSpans.first(where: { $0.name.contains(parentName) })
             let uiReady = self.otel.spanProcessor.endedSpans.first(where: { $0.name == "ui-ready"})
 
-            return parent != nil && uiReady != nil && self.cacheIsEmpty()
+            return parent != nil && uiReady != nil && parent!.endTime == uiReady!.endTime && self.cacheIsEmpty()
         }
     }
 
@@ -264,7 +264,7 @@ class UIViewControllerHandlerTests: XCTestCase {
             let parent = self.otel.spanProcessor.endedSpans.first(where: { $0.name.contains(parentName) })
             let uiReady = self.otel.spanProcessor.endedSpans.first(where: { $0.name == "ui-ready"})
 
-            return parent != nil && uiReady != nil && self.cacheIsEmpty()
+            return parent != nil && uiReady != nil && parent!.endTime == uiReady!.endTime && self.cacheIsEmpty()
         }
     }
 
@@ -296,7 +296,7 @@ class UIViewControllerHandlerTests: XCTestCase {
         validateViewDidLoadSpans(vc: vc, parentName: parentName)
         validateViewWillAppearSpans(vc: vc, parentName: parentName)
 
-        handler.appDidEnterBackground()
+        handler.foregroundSessionDidEnd()
 
         // then the spans are ended
         wait(timeout: .longTimeout) {
@@ -375,12 +375,12 @@ class UIViewControllerHandlerTests: XCTestCase {
         }
     }
 
-    func cacheIsEmpty() -> Bool {
+    func cacheIsEmpty(_ checkVisibilitySpans: Bool = false) -> Bool {
         return handler.parentSpans.count == 0 &&
                handler.viewDidLoadSpans.count == 0 &&
                handler.viewWillAppearSpans.count == 0 &&
                handler.viewDidAppearSpans.count == 0 &&
-               handler.visibilitySpans.count == 0 &&
+               (!checkVisibilitySpans || handler.visibilitySpans.count == 0) &&
                handler.uiReadySpans.count == 0 &&
                handler.alreadyFinishedUiReadyIds.count == 0
     }

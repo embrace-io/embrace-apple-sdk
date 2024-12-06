@@ -33,16 +33,16 @@ class UIViewControllerHandler {
     @ThreadSafe var alreadyFinishedUiReadyIds: Set<String> = []
 
     init() {
-        NotificationCenter.default.addObserver(
+        Embrace.notificationCenter.addObserver(
             self,
-            selector: #selector(appDidEnterBackground),
-            name: UIApplication.didEnterBackgroundNotification,
+            selector: #selector(foregroundSessionDidEnd),
+            name: .embraceForegroundSessionDidEnd,
             object: nil
         )
     }
 
     deinit {
-        NotificationCenter.default.removeObserver(self)
+        Embrace.notificationCenter.removeObserver(self)
     }
 
     func parentSpan(for vc: UIViewController) -> Span? {
@@ -53,16 +53,18 @@ class UIViewControllerHandler {
         return parentSpans[id]
     }
 
-    @objc func appDidEnterBackground() {
+    @objc func foregroundSessionDidEnd(_ noticication: Notification? = nil) {
+        let now = noticication?.object as? Date ?? Date()
+
         // end all parent spans and visibility spans if the app enters the background
         // also clear all the cached spans
         queue.async {
             for span in self.visibilitySpans.values {
-                span.end()
+                span.end(time: now)
             }
 
             for id in self.parentSpans.keys {
-                self.forcefullyEndSpans(id: id)
+                self.forcefullyEndSpans(id: id, time: now)
             }
 
             self.parentSpans.removeAll()
@@ -206,8 +208,10 @@ class UIViewControllerHandler {
             }
 
             // end view did appear span
+            let now = Date()
+
             if let span = self.viewDidAppearSpans.removeValue(forKey: id) {
-                span.end()
+                span.end(time: now)
             }
 
             guard let parentSpan = self.parentSpans[id] else {
@@ -216,7 +220,7 @@ class UIViewControllerHandler {
 
             // end time to first render span
             if parentSpan.isTimeToFirstRender {
-                parentSpan.end()
+                parentSpan.end(time: now)
                 self.clear(id: id, vc: vc)
 
             // generate ui ready span
@@ -231,8 +235,8 @@ class UIViewControllerHandler {
                 // if the view controller was already flagged as ready to interact
                 // we end the spans right away
                 if self.alreadyFinishedUiReadyIds.contains(id) {
-                    span.end()
-                    parentSpan.end()
+                    span.end(time: now)
+                    parentSpan.end(time: now)
 
                     self.clear(id: id, vc: vc)
 
@@ -250,13 +254,16 @@ class UIViewControllerHandler {
                 return
             }
 
+            let now = Date()
+
             // end visibility span
             if let span = self.visibilitySpans[id] {
-                span.end()
+                span.end(time: now)
+                self.visibilitySpans[id] = nil
             }
 
             // force end all spans
-            self.forcefullyEndSpans(id: id)
+            self.forcefullyEndSpans(id: id, time: now)
         }
     }
 
@@ -271,8 +278,9 @@ class UIViewControllerHandler {
             // if we have a ui ready span it means that viewDidAppear already happened
             // in this case we close the spans
             if let span = self.uiReadySpans[id] {
-                span.end()
-                parentSpan.end()
+                let now = Date()
+                span.end(time: now)
+                parentSpan.end(time: now)
                 self.clear(id: id, vc: vc)
 
             // otherwise it means the view is still loading, in this case we flag
@@ -284,26 +292,26 @@ class UIViewControllerHandler {
         }
     }
 
-    private func forcefullyEndSpans(id: String) {
+    private func forcefullyEndSpans(id: String, time: Date) {
 
         if let viewDidLoadSpan = self.viewDidLoadSpans[id] {
-            viewDidLoadSpan.end(errorCode: .userAbandon)
+            viewDidLoadSpan.end(errorCode: .userAbandon, time: time)
         }
 
         if let viewWillAppearSpan = self.viewWillAppearSpans[id] {
-            viewWillAppearSpan.end(errorCode: .userAbandon)
+            viewWillAppearSpan.end(errorCode: .userAbandon, time: time)
         }
 
         if let viewDidAppearSpan = self.viewDidAppearSpans[id] {
-            viewDidAppearSpan.end(errorCode: .userAbandon)
+            viewDidAppearSpan.end(errorCode: .userAbandon, time: time)
         }
 
         if let uiReadySpan = self.uiReadySpans[id] {
-            uiReadySpan.end(errorCode: .userAbandon)
+            uiReadySpan.end(errorCode: .userAbandon, time: time)
         }
 
         if let parentSpan = self.parentSpans[id] {
-            parentSpan.end(errorCode: .userAbandon)
+            parentSpan.end(errorCode: .userAbandon, time: time)
         }
 
         self.clear(id: id)
@@ -338,7 +346,6 @@ class UIViewControllerHandler {
         self.viewDidLoadSpans[id] = nil
         self.viewWillAppearSpans[id] = nil
         self.viewDidAppearSpans[id] = nil
-        self.visibilitySpans[id] = nil
         self.uiReadySpans[id] = nil
         self.alreadyFinishedUiReadyIds.remove(id)
 
