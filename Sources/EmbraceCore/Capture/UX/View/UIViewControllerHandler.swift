@@ -53,8 +53,8 @@ class UIViewControllerHandler {
         return parentSpans[id]
     }
 
-    @objc func foregroundSessionDidEnd(_ noticication: Notification? = nil) {
-        let now = noticication?.object as? Date ?? Date()
+    @objc func foregroundSessionDidEnd(_ notification: Notification? = nil) {
+        let now = notification?.object as? Date ?? Date()
 
         // end all parent spans and visibility spans if the app enters the background
         // also clear all the cached spans
