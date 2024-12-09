@@ -46,8 +46,6 @@ class SessionController: SessionControllable {
     let queue: DispatchQueue
     var firstSession = true
 
-    internal var notificationCenter = NotificationCenter.default
-
     init(
         storage: EmbraceStorage,
         upload: EmbraceUpload?,
@@ -133,7 +131,7 @@ class SessionController: SessionControllable {
             heartbeat.start()
 
             // post notification
-            notificationCenter.post(name: .embraceSessionDidStart, object: session)
+            NotificationCenter.default.post(name: .embraceSessionDidStart, object: session)
 
             firstSession = false
 
@@ -165,14 +163,19 @@ class SessionController: SessionControllable {
             // auto terminate spans
             EmbraceOTel.processor?.autoTerminateSpans()
 
-            // post notification
-            notificationCenter.post(name: .embraceSessionWillEnd, object: currentSession)
+            // post public notification
+            NotificationCenter.default.post(name: .embraceSessionWillEnd, object: currentSession)
 
             currentSessionSpan?.end(time: now)
             SessionSpanUtils.setCleanExit(span: currentSessionSpan, cleanExit: true)
 
             currentSession?.endTime = now
             currentSession?.cleanExit = true
+
+            // post internal notification
+            if currentSession?.state == SessionState.foreground.rawValue {
+                Embrace.notificationCenter.post(name: .embraceForegroundSessionDidEnd, object: now)
+            }
 
             // save session record
             save()
@@ -241,4 +244,9 @@ extension SessionController {
         currentSession = nil
         currentSessionSpan = nil
     }
+}
+
+// internal use
+extension Notification.Name {
+    static let embraceForegroundSessionDidEnd = Notification.Name("embrace.session.foreground.end")
 }
