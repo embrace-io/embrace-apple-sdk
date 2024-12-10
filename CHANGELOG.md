@@ -1,3 +1,20 @@
+## 6.6.0
+*Dec 12th, 2024*
+* Features
+    * Added new instrumentation for the `ViewCaptureService`. Can be enabled through `ViewCaptureService.Options.instrumentFirstRender`.
+    * Added url blacklist fot the `URLSessionCaptureService`. Can be configured through `URLSessionCaptureService.Options.ignoredURLs`.
+    * Added the ability to auto terminate spans if the session ends while the span is still open.
+    * Updated the OpenTelemetry dependency to v1.12.1 which fixes some concurrency related crashes.
+    * Improved logic around Embrace data uploads and retries.
+    * Deprecated `Span.markAsKeySpan()`.
+* Fixes
+    * Fixed the remote config parse sometimes failing.
+    * Fixed the remote config cache not working properly.
+    * Fixed crash logs sometimes not containing the session properties.
+    * Fixed keychain related crash/hang during startup.
+    * Fixed issues with the `WebViewCaptureService` that could lead to a crash.
+    * Fixed issue with the `URLSessionCaptureService` when dealing with `URLSessionDelegate` objects in Objective-C responding to methods without conforming to specific protocols.
+
 ## 6.5.2
 *Nov 14th, 2024*
 * Features
