@@ -40,6 +40,7 @@ class RemoteConfigFetcherTests: XCTestCase {
             sdkVersion: sdkVersion,
             appVersion: appVersion,
             userAgent: userAgent,
+            cacheLocation: nil,
             urlSessionConfiguration: Self.urlSessionConfig
         )
     }
@@ -145,7 +146,7 @@ class RemoteConfigFetcherTests: XCTestCase {
         let fetcher = RemoteConfigFetcher(options: options, logger: logger)
 
         let expectation = expectation(description: "URL request")
-        fetcher.fetch { payload in
+        fetcher.fetch { payload, data in
             XCTAssertNotNil(payload)
             expectation.fulfill()
         }
@@ -163,7 +164,7 @@ class RemoteConfigFetcherTests: XCTestCase {
         let fetcher = RemoteConfigFetcher(options: options, logger: logger)
 
         let expectation = expectation(description: "URL request")
-        fetcher.fetch { payload in
+        fetcher.fetch { payload, data in
             XCTAssertNil(payload)
             expectation.fulfill()
         }

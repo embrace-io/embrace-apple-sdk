@@ -27,9 +27,9 @@ class RemoteConfigFetcher {
         )
     }
 
-    func fetch(completion: @escaping (RemoteConfigPayload?) -> Void) {
+    func fetch(completion: @escaping (RemoteConfigPayload?, Data?) -> Void) {
         guard let request = newRequest() else {
-            completion(nil)
+            completion(nil, nil)
             return
         }
 
@@ -38,19 +38,19 @@ class RemoteConfigFetcher {
 
             guard let data = data, error == nil else {
                 self?.logger.error("Error fetching remote config:\n\(String(describing: error?.localizedDescription))")
-                completion(nil)
+                completion(nil, nil)
                 return
             }
 
             guard let httpResponse = response as? HTTPURLResponse else {
                 self?.logger.error("Error fetching remote config - Invalid response:\n\(String(describing: response?.description))")
-                completion(nil)
+                completion(nil, nil)
                 return
             }
 
             guard httpResponse.statusCode >= 200 && httpResponse.statusCode < 300 else {
                 self?.logger.error("Error fetching remote config - Invalid response:\n\(httpResponse.description))")
-                completion(nil)
+                completion(nil, nil)
                 return
             }
 
@@ -59,11 +59,11 @@ class RemoteConfigFetcher {
                 let payload = try JSONDecoder().decode(RemoteConfigPayload.self, from: data)
 
                 self?.logger.info("Successfully fetched remote config")
-                completion(payload)
+                completion(payload, data)
             } catch {
                 self?.logger.error("Error decoding remote config:\n\(error.localizedDescription)")
                 // if a decoding issue happens, instead of returning `nil`, we provide a default `RemoteConfigPayload`
-                completion(RemoteConfigPayload())
+                completion(RemoteConfigPayload(), nil)
             }
         }
 
