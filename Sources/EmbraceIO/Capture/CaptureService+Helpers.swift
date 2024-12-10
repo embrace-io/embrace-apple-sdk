@@ -24,8 +24,10 @@ import EmbraceCaptureService
     }
 
     /// Returns a `ViewCaptureService`.
-    static func view() -> ViewCaptureService {
-        return ViewCaptureService()
+    static func view(
+        options: ViewCaptureService.Options = ViewCaptureService.Options()
+    ) -> ViewCaptureService {
+        return ViewCaptureService(options: options)
     }
 #endif
 
