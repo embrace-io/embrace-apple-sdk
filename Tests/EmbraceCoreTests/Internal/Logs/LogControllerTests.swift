@@ -8,15 +8,18 @@ import XCTest
 import EmbraceStorageInternal
 import EmbraceUploadInternal
 import EmbraceCommonInternal
+import EmbraceConfigInternal
 
 class LogControllerTests: XCTestCase {
     private var sut: LogController!
     private var storage: SpyStorage?
     private var sessionController: MockSessionController!
     private var upload: SpyEmbraceLogUploader!
+    private var config: EmbraceConfig!
 
     override func setUp() {
         givenEmbraceLogUploader()
+        givenConfig()
         givenSessionControllerWithSession()
         givenStorage()
     }
@@ -91,6 +94,15 @@ class LogControllerTests: XCTestCase {
         thenLogUploadShouldUpload(times: 1)
     }
 
+    func testSDKDisabledHavingLogsForLessThanABatch_onSetup_logUploaderShouldntSendASingleBatch() throws {
+        givenStorage(withLogs: [randomLogRecord(), randomLogRecord()])
+        givenConfig(sdkEnabled: false)
+        givenLogController()
+        whenInvokingSetup()
+        thenLogUploadShouldUpload(times: 0)
+        try thenStorageShouldntCallRemoveLogs()
+    }
+
     func testHavingLogsForMoreThanABatch_onSetup_logUploaderShouldSendTwoBatches() {
         givenStorage(withLogs: logsForMoreThanASingleBatch())
         givenLogController()
@@ -150,6 +162,13 @@ class LogControllerTests: XCTestCase {
         try thenFetchesMetadataFromStorage(sessionId: sessionController.currentSession?.id)
     }
 
+    func testSDKDisabledHavingLogs_onBatchFinished_ontTryToUploadAnything() throws {
+        givenConfig(sdkEnabled: false)
+        givenLogController()
+        whenInvokingBatchFinished(withLogs: [randomLogRecord()])
+        thenDoesntTryToUploadAnything()
+    }
+
     func testHavingThrowingStorage_onBatchFinished_wontTryToUploadAnything() {
         givenStorageThatThrowsException()
         givenLogController()
@@ -184,11 +203,21 @@ class LogControllerTests: XCTestCase {
 
 private extension LogControllerTests {
     func givenLogControllerWithNoStorage() {
-        sut = .init(storage: nil, upload: upload, controller: sessionController)
+        sut = .init(
+            storage: nil,
+            upload: upload,
+            controller: sessionController,
+            config: config
+        )
     }
 
     func givenLogController() {
-        sut = .init(storage: storage, upload: upload, controller: sessionController)
+        sut = .init(
+            storage: storage,
+            upload: upload,
+            controller: sessionController,
+            config: config
+        )
     }
 
     func givenEmbraceLogUploader() {
@@ -199,6 +228,10 @@ private extension LogControllerTests {
     func givenFailingLogUploader() {
         upload = .init()
         upload.stubbedCompletion = .failure(RandomError())
+    }
+
+    func givenConfig(sdkEnabled: Bool = true) {
+        config = EmbraceConfigMock.default(sdkEnabled: sdkEnabled)
     }
 
     func givenSessionControllerWithoutSession() {
@@ -250,7 +283,6 @@ private extension LogControllerTests {
     }
 
     func thenLogUploadShouldUpload(times: Int) {
-        XCTAssertTrue(upload.didCallUploadLog)
         XCTAssertEqual(upload.didCallUploadLogCount, times)
     }
 
