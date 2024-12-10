@@ -2,7 +2,7 @@
 *Dec 12th, 2024*
 * Features
     * Added new instrumentation for the `ViewCaptureService`. Can be enabled through `ViewCaptureService.Options.instrumentFirstRender`.
-    * Added url blacklist fot the `URLSessionCaptureService`. Can be configured through `URLSessionCaptureService.Options.ignoredURLs`.
+    * Added url blacklist for the `URLSessionCaptureService`. Can be configured through `URLSessionCaptureService.Options.ignoredURLs`.
     * Added the ability to auto terminate spans if the session ends while the span is still open.
     * Updated the OpenTelemetry dependency to v1.12.1 which fixes some concurrency related crashes.
     * Improved logic around Embrace data uploads and retries.
