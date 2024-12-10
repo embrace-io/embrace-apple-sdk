@@ -17,6 +17,8 @@ public extension RemoteConfig {
         let appVersion: String
         let userAgent: String
 
+        let cacheLocation: URL?
+
         let urlSessionConfiguration: URLSessionConfiguration
 
         public init(
@@ -28,6 +30,7 @@ public extension RemoteConfig {
             sdkVersion: String,
             appVersion: String,
             userAgent: String,
+            cacheLocation: URL?,
             urlSessionConfiguration: URLSessionConfiguration = URLSessionConfiguration.default
         ) {
             self.apiBaseUrl = apiBaseUrl
@@ -38,6 +41,7 @@ public extension RemoteConfig {
             self.sdkVersion = sdkVersion
             self.appVersion = appVersion
             self.userAgent = userAgent
+            self.cacheLocation = cacheLocation
             self.urlSessionConfiguration = urlSessionConfiguration
         }
     }

@@ -11,6 +11,7 @@ public struct EmbraceFileSystem {
     static let uploadsDirectoryName = "uploads"
     static let crashesDirectoryName = "crashes"
     static let captureDirectoryName = "capture"
+    static let configDirectoryName = "config"
 
     static let defaultPartitionId = "default"
 
@@ -53,8 +54,7 @@ public struct EmbraceFileSystem {
     /// ```
     /// - Parameters:
     ///    - name: The name of the subdirectory
-    ///    - partitionIdentifier: The main partition identifier to use
-    ///     identifier to use
+    ///    - partitionId: The main partition identifier to use
     ///    - appGroupId: The app group identifier if using an app group container.
     static func directoryURL(name: String, partitionId: String, appGroupId: String? = nil) -> URL? {
         guard let baseURL = systemDirectory(appGroupId: appGroupId) else {
@@ -100,6 +100,18 @@ public struct EmbraceFileSystem {
     static func captureDirectoryURL(partitionIdentifier: String, appGroupId: String? = nil) -> URL? {
         return directoryURL(
             name: captureDirectoryName,
+            partitionId: partitionIdentifier,
+            appGroupId: appGroupId
+        )
+    }
+
+    /// Returns the subdirectory for config cache
+    /// ```
+    /// io.embrace.data/<version>/<partition-id>/config
+    /// ```
+    static func configDirectoryURL(partitionIdentifier: String, appGroupId: String? = nil) -> URL? {
+        return directoryURL(
+            name: configDirectoryName,
             partitionId: partitionIdentifier,
             appGroupId: appGroupId
         )

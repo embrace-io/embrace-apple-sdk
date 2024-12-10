@@ -40,6 +40,7 @@ class RemoteConfigFetcherTests: XCTestCase {
             sdkVersion: sdkVersion,
             appVersion: appVersion,
             userAgent: userAgent,
+            cacheLocation: nil,
             urlSessionConfiguration: Self.urlSessionConfig
         )
     }

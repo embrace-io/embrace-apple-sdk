@@ -47,7 +47,8 @@ extension Embrace {
             osVersion: EMBDevice.appVersion ?? "",
             sdkVersion: EmbraceMeta.sdkVersion,
             appVersion: EMBDevice.operatingSystemVersion,
-            userAgent: EmbraceMeta.userAgent
+            userAgent: EmbraceMeta.userAgent,
+            cacheLocation: EmbraceFileSystem.configDirectoryURL(partitionIdentifier: appId, appGroupId: options.appGroupId)
         )
 
         return RemoteConfig(
