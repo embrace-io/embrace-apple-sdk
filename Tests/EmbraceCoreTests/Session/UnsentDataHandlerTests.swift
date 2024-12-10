@@ -730,7 +730,12 @@ class UnsentDataHandlerTests: XCTestCase {
         defer { try? storage.teardown() }
 
         let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
-        let logController = LogController(storage: storage, upload: upload, controller: MockSessionController())
+        let logController = LogController(
+            storage: storage,
+            upload: upload,
+            controller: MockSessionController(),
+            config: EmbraceConfigMock.default()
+        )
         let otel = MockEmbraceOpenTelemetry()
 
         // given logs in storage

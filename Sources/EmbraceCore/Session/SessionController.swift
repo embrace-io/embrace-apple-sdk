@@ -84,6 +84,10 @@ class SessionController: SessionControllable {
             endSession()
         }
 
+        guard isSDKEnabled else {
+            return nil
+        }
+
         // detect cold start
         let isColdStart = firstSession
 
@@ -148,6 +152,11 @@ class SessionController: SessionControllable {
             // stop heartbeat
             heartbeat.stop()
             let now = Date()
+
+            guard isSDKEnabled else {
+                delete()
+                return now
+            }
 
             // If the session is a background session and background sessions
             // are disabled in the config, we drop the session!
@@ -243,6 +252,13 @@ extension SessionController {
 
         currentSession = nil
         currentSessionSpan = nil
+    }
+    
+    private var isSDKEnabled: Bool {
+        guard let config = config else {
+            return true
+        }
+        return config.isSDKEnabled
     }
 }
 

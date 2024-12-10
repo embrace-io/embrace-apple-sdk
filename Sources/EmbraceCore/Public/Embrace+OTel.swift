@@ -39,7 +39,6 @@ extension Embrace: EmbraceOpenTelemetry {
         attributes: [String: String] = [:],
         autoTerminationCode: SpanErrorCode? = nil
     ) -> SpanBuilder {
-
         if let autoTerminationCode = autoTerminationCode {
             var attributes = attributes
             attributes[SpanSemantics.keyAutoTerminationCode] = autoTerminationCode.rawValue

@@ -60,6 +60,13 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
     /// Returns the current `MetadataHandler` used to store resources and session properties.
     @objc public let metadata: MetadataHandler
 
+    var isSDKEnabled: Bool {
+        if let config = config {
+            return config.isSDKEnabled
+        }
+        return true
+    }
+
     let config: EmbraceConfig?
     let storage: EmbraceStorage
     let upload: EmbraceUpload?
@@ -149,7 +156,8 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         self.logController = logControllable ?? LogController(
             storage: storage,
             upload: upload,
-            controller: sessionController
+            controller: sessionController,
+            config: config
         )
         super.init()
 
@@ -258,6 +266,10 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
     @objc private func onConfigUpdated() {
         if let config = config {
             Embrace.logger.limits = config.internalLogLimits
+            if !config.isSDKEnabled {
+                Embrace.logger.debug("SDK was disabled")
+                captureServices.stop()
+            }
         }
     }
 }
