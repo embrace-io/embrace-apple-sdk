@@ -97,17 +97,21 @@ extension RemoteConfig {
     /// Determine the max value for the probability `space` by using the number of `digits` (16 ^ `n`)
     /// If the `hexValue` is within the `threshold`
     /// ```
-    /// space = 16^numDigits
-    /// result = (hexValue / space) * 100.0 < threshold
+    /// space = 16^numDigits - 1
+    /// result = (hexValue / space) * 100.0 <= threshold
     /// ```
     /// - Parameters:
     ///  - hexValue: The value to test
     ///  - digits: The number of digits used to calculate the total space. Must match the number of digits used to determine the hexValue
     ///  - threshold: The percentage threshold to test against. Values between 0.0 and 100.0
     static func isEnabled(hexValue: UInt64, digits: UInt, threshold: Float) -> Bool {
-        let space = powf(16, Float(digits))
+        if threshold <= 0 || threshold > 100 {
+            return false
+        }
+
+        let space = powf(16, Float(digits)) - 1
         let result = (Float(hexValue) / space) * 100
 
-        return result < threshold
+        return result <= threshold
     }
 }
