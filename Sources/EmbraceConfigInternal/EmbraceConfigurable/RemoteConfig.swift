@@ -9,6 +9,8 @@ import EmbraceConfiguration
 /// Remote config uses the Embrace Config Service to request config values
 public class RemoteConfig {
 
+    let logger: InternalLogger
+
     // config requests
     @ThreadSafe var payload: RemoteConfigPayload
     let fetcher: RemoteConfigFetcher
@@ -18,6 +20,8 @@ public class RemoteConfig {
     let deviceIdHexValue: UInt64
 
     @ThreadSafe private(set) var updating = false
+
+    let cacheURL: URL?
 
     public convenience init(
         options: RemoteConfig.Options,
@@ -38,6 +42,42 @@ public class RemoteConfig {
         self.payload = payload
         self.fetcher = fetcher
         self.deviceIdHexValue = options.deviceId.intValue(digitCount: Self.deviceIdUsedDigits)
+        self.logger = logger
+
+        if let url = options.cacheLocation {
+            try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+            self.cacheURL = options.cacheLocation?.appendingPathComponent("cache")
+            loadFromCache()
+        } else {
+            self.cacheURL = nil
+        }
+    }
+
+    func loadFromCache() {
+        guard let url = cacheURL,
+              FileManager.default.fileExists(atPath: url.path) else {
+            return
+        }
+
+        do {
+            let data = try Data(contentsOf: url)
+            payload = try JSONDecoder().decode(RemoteConfigPayload.self, from: data)
+        } catch {
+            logger.error("Error loading cached remote config!")
+        }
+    }
+
+    func saveToCache(_ data: Data?) {
+        guard let url = cacheURL,
+              let data = data else {
+            return
+        }
+
+        do {
+            try data.write(to: url, options: .atomic)
+        } catch {
+            logger.warning("Error saving remote config cache!")
+        }
     }
 }
 
@@ -67,7 +107,7 @@ extension RemoteConfig: EmbraceConfigurable {
         }
 
         updating = true
-        fetcher.fetch { [weak self] newPayload in
+        fetcher.fetch { [weak self] newPayload, data in
             defer { self?.updating = false }
             guard let strongSelf = self else {
                 completion(false, nil)
@@ -81,6 +121,8 @@ extension RemoteConfig: EmbraceConfigurable {
 
             let didUpdate = strongSelf.payload != newPayload
             strongSelf.payload = newPayload
+
+            strongSelf.saveToCache(data)
 
             completion(didUpdate, nil)
         }

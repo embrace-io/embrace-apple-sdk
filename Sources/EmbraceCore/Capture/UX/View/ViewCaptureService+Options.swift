@@ -32,7 +32,7 @@ extension ViewCaptureService {
         }
 
         @objc public convenience override init() {
-            self.init(instrumentVisibility: true, instrumentFirstRender: true)
+            self.init(instrumentVisibility: true, instrumentFirstRender: false)
         }
     }
 }

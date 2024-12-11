@@ -16,6 +16,7 @@ final class SessionControllerTests: XCTestCase {
 
     var storage: EmbraceStorage!
     var controller: SessionController!
+    var config: EmbraceConfig!
     var upload: EmbraceUpload!
 
     static let testMetadataOptions = EmbraceUpload.MetadataOptions(
@@ -66,6 +67,22 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertNotEqual(a!.id, c!.id)
         XCTAssertNotEqual(b!.id, c!.id)
     }
+
+    func testSDKDisabled_startSession_doesntCreateASession() throws {
+        config = EmbraceConfigMock.default(sdkEnabled: false)
+        
+        controller = SessionController(
+            storage: storage,
+            upload: upload,
+            config: config
+        )
+
+        let session = controller.startSession(state: .foreground)
+
+        XCTAssertNil(session)
+        XCTAssertNil(controller.currentSessionSpan)
+    }
+
 
     func test_startSession_setsForegroundState() throws {
         let a = controller.startSession(state: .foreground)

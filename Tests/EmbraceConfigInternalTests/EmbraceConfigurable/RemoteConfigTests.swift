@@ -21,32 +21,9 @@ final class RemoteConfigTests: XCTestCase {
         sdkVersion: TestConstants.sdkVersion,
         appVersion: TestConstants.appVersion,
         userAgent: TestConstants.userAgent,
+        cacheLocation: nil,
         urlSessionConfiguration: URLSessionConfiguration.default
     )
-
-    func mockSuccessfulResponse() throws {
-        var url = try XCTUnwrap(URL(string: "\(options.apiBaseUrl)/v2/config"))
-
-        if #available(iOS 16.0, watchOS 9.0, *) {
-            url.append(queryItems: [
-                .init(name: "appId", value: options.appId),
-                .init(name: "osVersion", value: options.osVersion),
-                .init(name: "appVersion", value: options.appVersion),
-                .init(name: "deviceId", value: options.deviceId.hex),
-                .init(name: "sdkVersion", value: options.sdkVersion)
-            ])
-        } else {
-            XCTFail("This will fail on versions prior to iOS 16.0")
-        }
-
-        let path = Bundle.module.path(
-            forResource: "remote_config",
-            ofType: "json",
-            inDirectory: "Fixtures"
-        )!
-        let data = try Data(contentsOf: URL(fileURLWithPath: path))
-        EmbraceHTTPMock.mock(url: url, response: .withData(data, statusCode: 200))
-    }
 
     // MARK: Tests
 
