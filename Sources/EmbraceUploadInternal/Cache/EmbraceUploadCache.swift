@@ -208,7 +208,9 @@ extension EmbraceUploadCache {
     /// Will attempt to create or open the DB File. If first attempt fails due to GRDB error, it'll assume the existing DB is corruped and try again after deleting the existing DB file.
     private static func getDBQueueIfPossible(at fileURL: URL, logger: InternalLogger) throws -> DatabaseQueue {
         do {
-            return try DatabaseQueue(path: fileURL.path)
+            var config = GRDB.Configuration()
+            config.foreignKeysEnabled = false
+            return try DatabaseQueue(path: fileURL.path, configuration: config)
         } catch {
             if let dbError = error as? DatabaseError {
                 logger.error(
@@ -229,10 +231,10 @@ extension EmbraceUploadCache {
                 )
             }
         }
+        var config = GRDB.Configuration()
+        config.foreignKeysEnabled = false
 
-        try EmbraceUploadCache.deleteDBFile(at: fileURL, logger: logger)
-
-        return try DatabaseQueue(path: fileURL.path)
+        return try DatabaseQueue(path: fileURL.path, configuration: config)
     }
 
     /// Will attempt to delete the provided file.
