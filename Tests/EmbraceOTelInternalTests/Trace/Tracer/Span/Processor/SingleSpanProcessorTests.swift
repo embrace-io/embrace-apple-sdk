@@ -206,7 +206,7 @@ final class SingleSpanProcessorTests: XCTestCase {
             let exportedSpan = try XCTUnwrap(self.exporter.exportedSpans[span.context.spanId])
             return exportedSpan.hasEnded &&
                    exportedSpan.status.isError &&
-                   exportedSpan.attributes[SpanSemantics.keyErrorCode] == .string("userAbandon")
+                   exportedSpan.attributes[SpanSemantics.keyErrorCode] == .string("user_abandon")
         }
     }
 
@@ -232,10 +232,10 @@ final class SingleSpanProcessorTests: XCTestCase {
 
             return span1.hasEnded &&
                    span1.status.isError &&
-                   span1.attributes[SpanSemantics.keyErrorCode] == .string("userAbandon") &&
+                   span1.attributes[SpanSemantics.keyErrorCode] == .string("user_abandon") &&
                    span2.hasEnded &&
                    span2.status.isError &&
-                   span2.attributes[SpanSemantics.keyErrorCode] == .string("userAbandon")
+                   span2.attributes[SpanSemantics.keyErrorCode] == .string("user_abandon")
         }
     }
 }

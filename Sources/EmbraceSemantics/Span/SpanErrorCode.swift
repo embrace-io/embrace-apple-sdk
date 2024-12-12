@@ -8,7 +8,7 @@ public enum SpanErrorCode: String {
     case failure
 
     /// Span ended because user reverted intent
-    case userAbandon
+    case userAbandon = "user_abandon"
 
     /// Span ended in some other way
     case unknown

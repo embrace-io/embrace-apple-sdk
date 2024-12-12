@@ -72,7 +72,7 @@ final class Embrace_OTelIntegrationTests: IntegrationTestCase {
             if let result = exporter.exportedSpans.values.first(where: { value in
                 value.name == "my-example-span"
             }) {
-                XCTAssertEqual(result.status, .error(description: "userAbandon"))
+                XCTAssertEqual(result.status, .error(description: "user_abandon"))
                 expectation.fulfill()
             }
         }
