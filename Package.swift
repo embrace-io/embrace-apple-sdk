@@ -39,8 +39,8 @@ let package = Package(
             exact: "1.12.1"
         ),
         .package(
-            url: "https://github.com/groue/GRDB.swift",
-            .upToNextMinor(from: "6.29.1")
+            url: "https://github.com/embrace-io/GRDB.swift",
+            branch: "remove-exportering-sqlite-symbols"
         )
     ],
     targets: [
