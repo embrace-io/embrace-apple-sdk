@@ -6,7 +6,7 @@ import Foundation
 
 public extension EmbraceUpload {
     enum StorageMechanism {
-        case inMemory(name: String)
+        case inMemory
         case onDisk(baseURL: URL, fileName: String)
     }
 
@@ -40,7 +40,7 @@ public extension EmbraceUpload {
             cacheLimit: UInt = 0,
             cacheDaysLimit: UInt = 7
         ) {
-            self.storageMechanism = .inMemory(name: named)
+            self.storageMechanism = .inMemory
             self.cacheLimit = cacheLimit
             self.cacheDaysLimit = cacheDaysLimit
         }
@@ -48,14 +48,6 @@ public extension EmbraceUpload {
 }
 
 extension EmbraceUpload.CacheOptions {
-    /// The name of the storage item when using an inMemory storage
-    public var name: String? {
-        if case let .inMemory(name) = storageMechanism {
-            return name
-        }
-        return nil
-    }
-
     /// URL pointing to the folder where the storage will be saved
     public var baseUrl: URL? {
         if case let .onDisk(baseURL, _) = storageMechanism {
