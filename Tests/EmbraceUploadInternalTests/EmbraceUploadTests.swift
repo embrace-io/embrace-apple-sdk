@@ -4,7 +4,6 @@
 
 import XCTest
 import TestSupport
-import GRDB
 @testable import EmbraceUploadInternal
 
 class EmbraceUploadTests: XCTestCase {
