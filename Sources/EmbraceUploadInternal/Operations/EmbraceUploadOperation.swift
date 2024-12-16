@@ -157,7 +157,7 @@ class EmbraceUploadOperation: AsyncOperation {
         // retry for all other non-handled cases with errors
         return error != nil
     }
-    
+
     /// Extracts the suggested delay from `Retry-After` header from the `URLResponse` if present.
     /// - Parameter response: the URLResponse recevied when executing a request.
     /// - Returns:the time in seconds (as `Int`) extracted from the `Retry-After` header.

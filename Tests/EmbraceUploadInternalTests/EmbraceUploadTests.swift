@@ -102,24 +102,26 @@ class EmbraceUploadTests: XCTestCase {
         // given valid values
         let expectation1 = XCTestExpectation(description: "1. Data should be cached in the database")
         let expectation2 = XCTestExpectation(description: "2. Success completion callback should be called")
-        let expectation3 = XCTestExpectation(description: "4. Cache should be removed")
+        let expectation3 = XCTestExpectation(description: "3. Cache should be removed")
         var dataCached = false
 
         // then the data should be cached
-        let observation = ValueObservation.tracking(UploadDataRecord.fetchAll)
-        let cancellable = observation.start(in: module.cache.dbQueue) { error in
-            XCTAssert(false, error.localizedDescription)
-        } onChange: { records in
-            // and its data should be valid
-            if let record = records.first {
-                XCTAssertEqual(record.id, "id")
-                XCTAssertEqual(record.type, EmbraceUploadType.spans.rawValue)
-                XCTAssertEqual(record.data, TestConstants.data)
-                dataCached = true
-                expectation1.fulfill()
+        let listener = CoreDataListener()
 
-            // and it should be removed at the end
-            } else if dataCached {
+        listener.onInsertedObjects = { objects in
+            guard let record = objects.first as? UploadDataRecord else {
+                return
+            }
+
+            XCTAssertEqual(record.id, "id")
+            XCTAssertEqual(record.type, EmbraceUploadType.spans.rawValue)
+            XCTAssertEqual(record.data, TestConstants.data)
+            dataCached = true
+            expectation1.fulfill()
+        }
+
+        listener.onDeletedObjects = { objects in
+            if dataCached {
                 expectation3.fulfill()
             }
         }
@@ -139,9 +141,6 @@ class EmbraceUploadTests: XCTestCase {
         // the observability on the database seems to be inconsistent timing wise
         // so the first 2 steps are not always in the same order
         wait(for: [expectation1, expectation2, expectation3], timeout: .veryLongTimeout)
-
-        // clean up
-        cancellable.cancel()
     }
 
     func test_cacheFlowOnError() throws {
@@ -150,17 +149,17 @@ class EmbraceUploadTests: XCTestCase {
         let expectation2 = XCTestExpectation(description: "2. Sucess completion callback should be called")
 
         // then the data should be cached
-        let observation = ValueObservation.tracking(UploadDataRecord.fetchAll)
-        let cancellable = observation.start(in: module.cache.dbQueue) { error in
-            XCTAssert(false, error.localizedDescription)
-        } onChange: { records in
-            // and its data should be valid
-            if let record = records.first {
-                XCTAssertEqual(record.id, "id")
-                XCTAssertEqual(record.type, EmbraceUploadType.spans.rawValue)
-                XCTAssertEqual(record.data, TestConstants.data)
-                expectation1.fulfill()
+        let listener = CoreDataListener()
+
+        listener.onInsertedObjects = { objects in
+            guard let record = objects.first as? UploadDataRecord else {
+                return
             }
+
+            XCTAssertEqual(record.id, "id")
+            XCTAssertEqual(record.type, EmbraceUploadType.spans.rawValue)
+            XCTAssertEqual(record.data, TestConstants.data)
+            expectation1.fulfill()
         }
 
         // when uploading data
@@ -177,17 +176,14 @@ class EmbraceUploadTests: XCTestCase {
         wait(for: [expectation1, expectation2], timeout: .veryLongTimeout)
 
         // the ndata should remain cached
-        let record = try module.cache.fetchUploadData(id: "id", type: .spans)
+        let record = module.cache.fetchUploadData(id: "id", type: .spans)
         XCTAssertNotNil(record)
-
-        // clean up
-        cancellable.cancel()
     }
 
     func test_retryCachedData() throws {
         // given cached data
-        _ = try module.cache.saveUploadData(id: "id1", type: .spans, data: TestConstants.data)
-        _ = try module.cache.saveUploadData(id: "id2", type: .log, data: TestConstants.data)
+        _ = module.cache.saveUploadData(id: "id1", type: .spans, data: TestConstants.data)
+        _ = module.cache.saveUploadData(id: "id2", type: .log, data: TestConstants.data)
 
         EmbraceHTTPMock.mock(url: testSpansUrl())
         EmbraceHTTPMock.mock(url: testLogsUrl())
