@@ -22,9 +22,12 @@ class CaptureServicesUIViewControllerTests: XCTestCase {
     let enabledOptions = ViewCaptureService.Options(instrumentVisibility: true, instrumentFirstRender: true)
     let disabledOptions = ViewCaptureService.Options(instrumentVisibility: false, instrumentFirstRender: false)
 
+    let enabledConfig = EditableConfig(isUiLoadInstrumentationEnabled: true)
+    let disabledConfig = EditableConfig(isUiLoadInstrumentationEnabled: false)
+
     func test_onInteractionReady_noService() {
         // given capture services without a ViewCaptureService
-        let captureServices = CaptureServices(services: [], context: context)
+        let captureServices = CaptureServices(config: enabledConfig, services: [], context: context)
         let vc = MockViewController()
 
         // when calling onInteractionReady it throws ViewCaptureServiceError.serviceNotFound
@@ -37,7 +40,20 @@ class CaptureServicesUIViewControllerTests: XCTestCase {
     func test_onInteractionReady_instrumentationDisabled() {
         // given capture services with a ViewCaptureService with disabled instrumentation
         let service = ViewCaptureService(options: disabledOptions)
-        let captureServices = CaptureServices(services: [service], context: context)
+        let captureServices = CaptureServices(config: enabledConfig, services: [service], context: context)
+        let vc = MockViewController()
+
+        // when calling onInteractionReady it throws ViewCaptureServiceError.firstRenderInstrumentationDisabled
+        XCTAssertThrowsError(try captureServices.onInteractionReady(for: vc)) { error in
+            XCTAssert(error is ViewCaptureServiceError)
+            XCTAssertEqual((error as! ViewCaptureServiceError).errorCode, -2)
+         }
+    }
+
+    func test_onInteractionReady_remoteConfigDisabled() {
+        // given capture services with a ViewCaptureService with disabled instrumentation via remote config
+        let service = ViewCaptureService(options: enabledOptions)
+        let captureServices = CaptureServices(config: disabledConfig, services: [service], context: context)
         let vc = MockViewController()
 
         // when calling onInteractionReady it throws ViewCaptureServiceError.firstRenderInstrumentationDisabled
@@ -51,7 +67,7 @@ class CaptureServicesUIViewControllerTests: XCTestCase {
         // given capture services with a ViewCaptureService
         let handler = MockUIViewControllerHandler()
         let service = ViewCaptureService(options: enabledOptions, lock: NSLock(), handler: handler)
-        let captureServices = CaptureServices(services: [service], context: context)
+        let captureServices = CaptureServices(config: enabledConfig, services: [service], context: context)
         let vc = MockViewController()
 
         // when calling onInteractionReady
@@ -63,7 +79,7 @@ class CaptureServicesUIViewControllerTests: XCTestCase {
 
     func test_buildChildSpan_noService() {
         // given capture services without a ViewCaptureService
-        let captureServices = CaptureServices(services: [], context: context)
+        let captureServices = CaptureServices(config: enabledConfig, services: [], context: context)
         let vc = MockViewController()
 
         // when calling buildChildSpan it throws ViewCaptureServiceError.serviceNotFound
@@ -76,7 +92,20 @@ class CaptureServicesUIViewControllerTests: XCTestCase {
     func test_buildChildSpan_instrumentationDisabled() {
         // given capture services with a ViewCaptureService with disabled instrumentation
         let service = ViewCaptureService(options: disabledOptions)
-        let captureServices = CaptureServices(services: [service], context: context)
+        let captureServices = CaptureServices(config: enabledConfig, services: [service], context: context)
+        let vc = MockViewController()
+
+        // when calling buildChildSpan it throws ViewCaptureServiceError.firstRenderInstrumentationDisabled
+        XCTAssertThrowsError(try captureServices.buildChildSpan(for: vc, name: "test")) { error in
+            XCTAssert(error is ViewCaptureServiceError)
+            XCTAssertEqual((error as! ViewCaptureServiceError).errorCode, -2)
+         }
+    }
+
+    func test_buildChildSpan_remoteConfigDisabled() {
+        // given capture services with a ViewCaptureService with disabled instrumentation via remote config
+        let service = ViewCaptureService(options: enabledOptions)
+        let captureServices = CaptureServices(config: disabledConfig, services: [service], context: context)
         let vc = MockViewController()
 
         // when calling buildChildSpan it throws ViewCaptureServiceError.firstRenderInstrumentationDisabled
@@ -89,7 +118,7 @@ class CaptureServicesUIViewControllerTests: XCTestCase {
     func test_buildChildSpan_noParentSpan() {
         // given capture services with a ViewCaptureService with no active parent span
         let service = ViewCaptureService(options: enabledOptions)
-        let captureServices = CaptureServices(services: [service], context: context)
+        let captureServices = CaptureServices(config: enabledConfig, services: [service], context: context)
         let vc = MockViewController()
 
         // when calling buildChildSpan it throws ViewCaptureServiceError.parentSpanNotFound
@@ -103,7 +132,7 @@ class CaptureServicesUIViewControllerTests: XCTestCase {
         // given capture services with a ViewCaptureService with an active span
         let handler = MockUIViewControllerHandler()
         let service = ViewCaptureService(options: enabledOptions, lock: NSLock(), handler: handler)
-        let captureServices = CaptureServices(services: [service], context: context)
+        let captureServices = CaptureServices(config: enabledConfig, services: [service], context: context)
         let vc = MockViewController()
 
         let otel = MockEmbraceOpenTelemetry()
@@ -124,7 +153,7 @@ class CaptureServicesUIViewControllerTests: XCTestCase {
 
     func test_recordCompletedChildSpan_noService() {
         // given capture services without a ViewCaptureService
-        let captureServices = CaptureServices(services: [], context: context)
+        let captureServices = CaptureServices(config: enabledConfig, services: [], context: context)
         let vc = MockViewController()
 
         // when calling recordCompletedChildSpan it throws ViewCaptureServiceError.serviceNotFound
@@ -137,7 +166,7 @@ class CaptureServicesUIViewControllerTests: XCTestCase {
     func test_recordCompletedChildSpan_instrumentationDisabled() {
         // given capture services with a ViewCaptureService with disabled instrumentation
         let service = ViewCaptureService(options: disabledOptions)
-        let captureServices = CaptureServices(services: [service], context: context)
+        let captureServices = CaptureServices(config: enabledConfig, services: [service], context: context)
         let vc = MockViewController()
 
         // when calling recordCompletedChildSpan it throws ViewCaptureServiceError.firstRenderInstrumentationDisabled
@@ -150,7 +179,7 @@ class CaptureServicesUIViewControllerTests: XCTestCase {
     func test_recordCompletedChildSpan_noParentSpan() {
         // given capture services with a ViewCaptureService with no active parent span
         let service = ViewCaptureService(options: enabledOptions)
-        let captureServices = CaptureServices(services: [service], context: context)
+        let captureServices = CaptureServices(config: enabledConfig, services: [service], context: context)
         let vc = MockViewController()
 
         // when calling recordCompletedChildSpan it throws ViewCaptureServiceError.parentSpanNotFound
@@ -164,7 +193,7 @@ class CaptureServicesUIViewControllerTests: XCTestCase {
         // given capture services with a ViewCaptureService with an active span
         let handler = MockUIViewControllerHandler()
         let service = ViewCaptureService(options: enabledOptions, lock: NSLock(), handler: handler)
-        let captureServices = CaptureServices(services: [service], context: context)
+        let captureServices = CaptureServices(config: enabledConfig, services: [service], context: context)
         let vc = MockViewController()
 
         let otel = MockEmbraceOpenTelemetry()

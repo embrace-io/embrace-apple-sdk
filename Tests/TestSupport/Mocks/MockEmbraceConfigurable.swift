@@ -13,6 +13,7 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         isSDKEnabled: Bool = false,
         isBackgroundSessionEnabled: Bool = false,
         isNetworkSpansForwardingEnabled: Bool = false,
+        isUiLoadInstrumentationEnabled: Bool = false,
         internalLogLimits: InternalLogLimits = InternalLogLimits(),
         networkPayloadCaptureRules: [NetworkPayloadCaptureRule] = [],
         updateCompletionParamDidUpdate: Bool = false,
@@ -21,6 +22,7 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         self._isSDKEnabled = isSDKEnabled
         self._isBackgroundSessionEnabled = isBackgroundSessionEnabled
         self._isNetworkSpansForwardingEnabled = isNetworkSpansForwardingEnabled
+        self._isUiLoadInstrumentationEnabled = isUiLoadInstrumentationEnabled
         self._internalLogLimits = internalLogLimits
         self._networkPayloadCaptureRules = networkPayloadCaptureRules
         self.updateCompletionParamDidUpdate = updateCompletionParamDidUpdate
@@ -63,6 +65,18 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         }
         set {
             _isNetworkSpansForwardingEnabled = newValue
+        }
+    }
+
+    private var _isUiLoadInstrumentationEnabled: Bool
+    public let isUiLoadInstrumentationEnabledExpectation = XCTestExpectation(description: "isUiInstrumentationEnabled called")
+    public var isUiLoadInstrumentationEnabled: Bool {
+        get {
+            isUiLoadInstrumentationEnabledExpectation.fulfill()
+            return _isUiLoadInstrumentationEnabled
+        }
+        set {
+            _isUiLoadInstrumentationEnabled = newValue
         }
     }
 
