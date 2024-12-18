@@ -21,7 +21,7 @@ protocol UIViewControllerHandlerDataSource: AnyObject {
 class UIViewControllerHandler {
 
     weak var dataSource: UIViewControllerHandlerDataSource?
-    private let queue: DispatchableQueue = DispatchQueue(label: "com.embrace.UIViewControllerHandler", qos: .utility)
+    private let queue: DispatchableQueue = .with(label: "com.embrace.UIViewControllerHandler", qos: .utility)
 
     @ThreadSafe var parentSpans: [String: Span] = [:]
     @ThreadSafe var viewDidLoadSpans: [String: Span] = [:]
