@@ -10,7 +10,7 @@ import EmbraceCommonInternal
 /// Validates the length of ``SpanData.name``.
 /// This compares the length of the String in characters, not bytes.
 class LengthOfNameValidator: SpanDataValidator {
-    private static let whitelist: [SpanType] = [.networkRequest, .view, .viewLoad]
+    private static let allowList: [SpanType] = [.networkRequest, .view, .viewLoad]
     let allowedCharacterCount: ClosedRange<Int>
 
     init(allowedCharacterCount: ClosedRange<Int> = 1...50) {
@@ -25,6 +25,6 @@ class LengthOfNameValidator: SpanDataValidator {
     }
 
     private func shouldValidate(data: SpanData) -> Bool {
-        return !LengthOfNameValidator.whitelist.contains(data.embType)
+        return !LengthOfNameValidator.allowList.contains(data.embType)
     }
 }
