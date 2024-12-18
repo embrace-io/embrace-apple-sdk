@@ -85,12 +85,13 @@ class UIViewControllerHandler {
               let otel = dataSource?.otel else {
             return
         }
+        // We generate the id here, outside of the `queue`, to ensure we're doing it while the ViewController is still alive (renerding process).
+        // There could be a race condition and it's possible that the controller was released or is in the process of deallocation,
+        // which could cause a crash (as this feature relies on objc_setAssociatedObject).
+        let id = UUID().uuidString
+        vc.emb_identifier = id
 
         queue.async {
-            // generate id
-            let id = UUID().uuidString
-            vc.emb_identifier = id
-
             // generate parent span
             let className = vc.className
 
@@ -183,17 +184,23 @@ class UIViewControllerHandler {
     }
 
     func onViewDidAppearEnd(_ vc: UIViewController) {
+        if self.dataSource?.instrumentVisibility == true {
+            // Create id only if necessary. This could happen when `instrumentFirstRender` is `false`
+            // in those cases, the `emb_identifier` will be `nil` and we need it to instrument visibility
+            // (and in those cases that's enabled, also instrumenting the rendering process).
+            // The reason why we're doing this outside of the utility `queue` can be found on `onViewDidLoadStart`.
+            if vc.emb_identifier == nil {
+                vc.emb_identifier = UUID().uuidString
+            }
+        }
+
         queue.async {
-            guard let otel = self.dataSource?.otel else {
+            guard let otel = self.dataSource?.otel, let id = vc.emb_identifier else {
                 return
             }
 
             // check if we need to create a visibility span
             if self.dataSource?.instrumentVisibility == true {
-                // create id if necessary
-                let id = vc.emb_identifier ?? UUID().uuidString
-                vc.emb_identifier = id
-
                 let span = self.createSpan(
                     with: otel,
                     vc: vc,
@@ -201,10 +208,6 @@ class UIViewControllerHandler {
                     type: .view
                 )
                 self.visibilitySpans[id] = span
-            }
-
-            guard let id = vc.emb_identifier else {
-                return
             }
 
             // end view did appear span

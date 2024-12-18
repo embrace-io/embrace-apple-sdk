@@ -5,11 +5,12 @@
 import EmbraceOTelInternal
 import EmbraceSemantics
 import OpenTelemetrySdk
+import EmbraceCommonInternal
 
-/// Validates the length of ``SpanData.name``. 
+/// Validates the length of ``SpanData.name``.
 /// This compares the length of the String in characters, not bytes.
 class LengthOfNameValidator: SpanDataValidator {
-
+    private static let allowList: [SpanType] = [.networkRequest, .view, .viewLoad]
     let allowedCharacterCount: ClosedRange<Int>
 
     init(allowedCharacterCount: ClosedRange<Int> = 1...50) {
@@ -24,6 +25,6 @@ class LengthOfNameValidator: SpanDataValidator {
     }
 
     private func shouldValidate(data: SpanData) -> Bool {
-        return data.embType != .networkRequest
+        return !LengthOfNameValidator.allowList.contains(data.embType)
     }
 }
