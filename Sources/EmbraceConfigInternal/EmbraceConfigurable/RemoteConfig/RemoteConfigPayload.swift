@@ -11,6 +11,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
     var sdkEnabledThreshold: Float
     var backgroundSessionThreshold: Float
     var networkSpansForwardingThreshold: Float
+    var uiLoadInstrumentationThreshold: Float
 
     var internalLogsTraceLimit: Int
     var internalLogsDebugLimit: Int
@@ -19,6 +20,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
     var internalLogsErrorLimit: Int
 
     var networkPayloadCaptureRules: [NetworkPayloadCaptureRule]
+    
 
     enum CodingKeys: String, CodingKey {
         case sdkEnabledThreshold = "threshold"
@@ -32,6 +34,8 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         enum NetworkSpansForwardingCodingKeys: String, CodingKey {
             case threshold = "pct_enabled"
         }
+
+        case uiLoadInstrumentationThreshold = "ui_load_instrumentation_enabled"
 
         case internalLogLimits = "internal_log_limits"
         enum InternalLogLimitsCodingKeys: String, CodingKey {
@@ -82,6 +86,12 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         } else {
             networkSpansForwardingThreshold = defaultPayload.networkSpansForwardingThreshold
         }
+
+        // ui load instrumentation
+        uiLoadInstrumentationThreshold = try rootContainer.decodeIfPresent(
+            Float.self,
+            forKey: .uiLoadInstrumentationThreshold
+        ) ?? defaultPayload.uiLoadInstrumentationThreshold
 
         // internal logs limit
         if rootContainer.contains(.internalLogLimits) {
@@ -135,6 +145,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         sdkEnabledThreshold = 100.0
         backgroundSessionThreshold = 0.0
         networkSpansForwardingThreshold = 0.0
+        uiLoadInstrumentationThreshold = 0.0
 
         internalLogsTraceLimit = 0
         internalLogsDebugLimit = 0
