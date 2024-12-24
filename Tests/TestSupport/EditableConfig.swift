@@ -11,6 +11,8 @@ public class EditableConfig: EmbraceConfigurable {
 
     public var isNetworkSpansForwardingEnabled: Bool = false
 
+    public var isUiLoadInstrumentationEnabled: Bool = false
+
     public var internalLogLimits = InternalLogLimits()
 
     public var networkPayloadCaptureRules = [NetworkPayloadCaptureRule]()
@@ -23,12 +25,14 @@ public class EditableConfig: EmbraceConfigurable {
         isSdkEnabled: Bool = true,
         isBackgroundSessionEnabled: Bool = false,
         isNetworkSpansForwardingEnabled: Bool = false,
+        isUiLoadInstrumentationEnabled: Bool = false,
         internalLogLimits: InternalLogLimits = InternalLogLimits(),
         networkPayloadCaptureRules: [NetworkPayloadCaptureRule] = []
     ) {
         self.isSDKEnabled = isSdkEnabled
         self.isBackgroundSessionEnabled = isBackgroundSessionEnabled
-        self.isNetworkSpansForwardingEnabled = false
+        self.isNetworkSpansForwardingEnabled = isNetworkSpansForwardingEnabled
+        self.isUiLoadInstrumentationEnabled = isUiLoadInstrumentationEnabled
         self.internalLogLimits = internalLogLimits
         self.networkPayloadCaptureRules = networkPayloadCaptureRules
     }

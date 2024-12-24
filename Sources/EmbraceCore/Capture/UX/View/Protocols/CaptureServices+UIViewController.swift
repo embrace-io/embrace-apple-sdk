@@ -33,7 +33,8 @@ extension CaptureServices {
             throw serviceNotFoundError
         }
 
-        guard viewCaptureService.options.instrumentFirstRender else {
+        guard viewCaptureService.options.instrumentFirstRender,
+              config?.isUiLoadInstrumentationEnabled == true else {
             throw firstRenderInstrumentationDisabledError
         }
 

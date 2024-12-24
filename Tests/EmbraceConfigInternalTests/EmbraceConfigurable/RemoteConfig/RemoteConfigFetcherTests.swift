@@ -107,8 +107,6 @@ class RemoteConfigFetcherTests: XCTestCase {
 
         XCTAssertEqual(request.cachePolicy, .useProtocolCachePolicy)
         XCTAssertEqual(request.httpMethod, "GET")
-
-        let headers = try XCTUnwrap(request.allHTTPHeaderFields)
         XCTAssertEqual(request.value(forHTTPHeaderField: "Accept"), "application/json")
         XCTAssertEqual(request.value(forHTTPHeaderField: "User-Agent"), TestConstants.userAgent)
     }

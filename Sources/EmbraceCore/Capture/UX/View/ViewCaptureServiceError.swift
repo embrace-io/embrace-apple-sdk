@@ -8,7 +8,8 @@ public enum ViewCaptureServiceError: Error, Equatable {
     /// This error means the SDK was setup without a `ViewCaptureService`.
     case serviceNotFound(_ description: String)
 
-    /// This error means the `ViewCaptureService.Options` was configured with `instrumentFirstRender` as `false`.
+    /// This error means the `ViewCaptureService.Options` was configured with `instrumentFirstRender` as `false`,
+    /// or the remote configuration for this feature was not enabled.
     case firstRenderInstrumentationDisabled(_ description: String)
 
     /// This error could means the `time-to-first-render` /  `time-to-interactive` span has already ended,

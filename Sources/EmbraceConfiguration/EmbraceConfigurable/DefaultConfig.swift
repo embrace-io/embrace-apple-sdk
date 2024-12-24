@@ -9,6 +9,8 @@ public class DefaultConfig: EmbraceConfigurable {
 
     public let isNetworkSpansForwardingEnabled: Bool = false
 
+    public let isUiLoadInstrumentationEnabled: Bool = false
+
     public let internalLogLimits = InternalLogLimits()
 
     public let networkPayloadCaptureRules = [NetworkPayloadCaptureRule]()
