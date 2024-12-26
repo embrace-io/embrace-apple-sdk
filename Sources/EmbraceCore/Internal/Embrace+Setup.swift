@@ -67,7 +67,7 @@ extension Embrace {
 
         do {
             let options = EmbraceUpload.Options(endpoints: uploadEndpoints, cache: cache, metadata: metadata)
-            let queue = DispatchQueue(label: "com.embrace.upload", attributes: .concurrent)
+            let queue = DispatchQueue(label: "com.embrace.upload", qos: .background, attributes: .concurrent)
 
             return try EmbraceUpload(options: options, logger: Embrace.logger, queue: queue)
         } catch {
