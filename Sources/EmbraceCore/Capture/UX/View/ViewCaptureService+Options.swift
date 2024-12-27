@@ -2,9 +2,23 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
+#if canImport(UIKit) && !os(watchOS)
+import UIKit
 
 extension ViewCaptureService {
+    enum InstrumentFirstRenderMode {
+        case automatic
+        case manual(viewControllers: [UIViewController.Type])
+        case off
+
+        func isOn() -> Bool {
+            if case .off = self {
+                return false
+            }
+            return true
+        }
+    }
+
     /// Class used to setup a `ViewCaptureService`.
     @objc(EMBViewCaptureServiceOptions)
     public final class Options: NSObject {
@@ -24,11 +38,22 @@ extension ViewCaptureService {
         /// The implementers will need to call `setInteractionReady()` on the `UIViewController` to mark the end time.
         /// If the `UIViewController` disappears before the interaction is set as ready, the span status will be set to `error`
         /// with the `userAbandon` error code.
-        @objc public let instrumentFirstRender: Bool
+        @objc public var instrumentFirstRender: Bool {
+            instrumentFirstRenderMode.isOn()
+        }
 
-        @objc public init(instrumentVisibility: Bool, instrumentFirstRender: Bool) {
+        let instrumentFirstRenderMode: InstrumentFirstRenderMode
+
+        @objc public convenience init(instrumentVisibility: Bool, instrumentFirstRender: Bool) {
+            self.init(
+                instrumentVisibility: instrumentVisibility,
+                firstRenderInstrumentationMode: instrumentFirstRender ? .automatic : .off
+            )
+        }
+
+        private init(instrumentVisibility: Bool, firstRenderInstrumentationMode: InstrumentFirstRenderMode) {
             self.instrumentVisibility = instrumentVisibility
-            self.instrumentFirstRender = instrumentFirstRender
+            self.instrumentFirstRenderMode = firstRenderInstrumentationMode
         }
 
         @objc public convenience override init() {
@@ -36,3 +61,4 @@ extension ViewCaptureService {
         }
     }
 }
+#endif
