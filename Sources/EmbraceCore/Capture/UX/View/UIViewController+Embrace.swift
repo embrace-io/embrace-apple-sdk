@@ -9,12 +9,13 @@ import UIKit
 extension UIViewController {
     private struct AssociatedKeys {
         static var embraceIdentifier: Int = 0
+        static var anotherIdentifier: Int = 1
     }
 
-    var emb_identifier: String? {
+    var emb_instrumentation_state: ViewInstrumentationState? {
         get {
-            if let value = objc_getAssociatedObject(self, &AssociatedKeys.embraceIdentifier) as? NSString {
-                return value as String
+            if let value = objc_getAssociatedObject(self, &AssociatedKeys.anotherIdentifier) as? ViewInstrumentationState {
+                return value as ViewInstrumentationState
             }
 
             return nil
@@ -22,9 +23,9 @@ extension UIViewController {
 
         set {
             objc_setAssociatedObject(self,
-                                     &AssociatedKeys.embraceIdentifier,
+                                     &AssociatedKeys.anotherIdentifier,
                                      newValue,
-                                     .OBJC_ASSOCIATION_RETAIN)
+                                     .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         }
     }
 

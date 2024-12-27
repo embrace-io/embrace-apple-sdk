@@ -26,6 +26,7 @@ class UIViewControllerHandler {
     @ThreadSafe var parentSpans: [String: Span] = [:]
     @ThreadSafe var viewDidLoadSpans: [String: Span] = [:]
     @ThreadSafe var viewWillAppearSpans: [String: Span] = [:]
+    @ThreadSafe var viewIsAppearingSpans: [String: Span] = [:]
     @ThreadSafe var viewDidAppearSpans: [String: Span] = [:]
     @ThreadSafe var visibilitySpans: [String: Span] = [:]
 
@@ -46,7 +47,7 @@ class UIViewControllerHandler {
     }
 
     func parentSpan(for vc: UIViewController) -> Span? {
-        guard let id = vc.emb_identifier else {
+        guard let id = vc.emb_instrumentation_state?.identifier else {
             return nil
         }
 
@@ -70,6 +71,7 @@ class UIViewControllerHandler {
             self.parentSpans.removeAll()
             self.viewDidLoadSpans.removeAll()
             self.viewWillAppearSpans.removeAll()
+            self.viewIsAppearingSpans.removeAll()
             self.viewDidAppearSpans.removeAll()
             self.visibilitySpans.removeAll()
             self.uiReadySpans.removeAll()
@@ -77,7 +79,7 @@ class UIViewControllerHandler {
         }
     }
 
-    func onViewDidLoadStart(_ vc: UIViewController) {
+    func onViewDidLoadStart(_ vc: UIViewController, now: Date = Date()) {
 
         guard dataSource?.state == .active,
               dataSource?.instrumentFirstRender == true,
@@ -89,7 +91,10 @@ class UIViewControllerHandler {
         // There could be a race condition and it's possible that the controller was released or is in the process of deallocation,
         // which could cause a crash (as this feature relies on objc_setAssociatedObject).
         let id = UUID().uuidString
-        vc.emb_identifier = id
+        var state = ViewInstrumentationState()
+        state.viewDidLoadSpanCreated = true
+        state.identifier = id
+        vc.emb_instrumentation_state = state
 
         queue.async {
             // generate parent span
@@ -105,7 +110,8 @@ class UIViewControllerHandler {
             let parentSpan = self.createSpan(
                 with: otel,
                 vc: vc,
-                name: spanName
+                name: spanName,
+                startTime: now
             )
 
             // generate view did load span
@@ -113,6 +119,7 @@ class UIViewControllerHandler {
                 with: otel,
                 vc: vc,
                 name: SpanSemantics.View.viewDidLoadName,
+                startTime: now,
                 parent: parentSpan
             )
 
@@ -121,21 +128,22 @@ class UIViewControllerHandler {
         }
     }
 
-    func onViewDidLoadEnd(_ vc: UIViewController) {
+    func onViewDidLoadEnd(_ vc: UIViewController, now: Date = Date()) {
         queue.async {
-            guard let id = vc.emb_identifier,
+            guard let id = vc.emb_instrumentation_state?.identifier,
                   let span = self.viewDidLoadSpans.removeValue(forKey: id) else {
                 return
             }
 
-            span.end()
+            span.end(time: now)
         }
     }
 
-    func onViewWillAppearStart(_ vc: UIViewController) {
+    func onViewWillAppearStart(_ vc: UIViewController, now: Date = Date()) {
+        vc.emb_instrumentation_state?.viewWillAppearSpanCreated = true
         queue.async {
             guard let otel = self.dataSource?.otel,
-                  let id = vc.emb_identifier,
+                  let id = vc.emb_instrumentation_state?.identifier,
                   let parentSpan = self.parentSpans[id] else {
                 return
             }
@@ -145,6 +153,7 @@ class UIViewControllerHandler {
                 with: otel,
                 vc: vc,
                 name: SpanSemantics.View.viewWillAppearName,
+                startTime: now,
                 parent: parentSpan
             )
 
@@ -152,21 +161,56 @@ class UIViewControllerHandler {
         }
     }
 
-    func onViewWillAppearEnd(_ vc: UIViewController) {
+    func onViewWillAppearEnd(_ vc: UIViewController, now: Date = Date()) {
         queue.async {
-            guard let id = vc.emb_identifier,
+            guard let id = vc.emb_instrumentation_state?.identifier,
                   let span = self.viewWillAppearSpans.removeValue(forKey: id) else {
                 return
             }
 
-            span.end()
+            span.end(time: now)
         }
     }
 
-    func onViewDidAppearStart(_ vc: UIViewController) {
+    func onViewIsAppearingStart(_ vc: UIViewController, now: Date = Date()) {
+        vc.emb_instrumentation_state?.viewIsAppearingSpanCreated = true
         queue.async {
             guard let otel = self.dataSource?.otel,
-                  let id = vc.emb_identifier,
+                  let id = vc.emb_instrumentation_state?.identifier,
+                  let parentSpan = self.parentSpans[id] else {
+                return
+            }
+
+            // generate view is appearing span
+            let span = self.createSpan(
+                with: otel,
+                vc: vc,
+                name: SpanSemantics.View.viewIsAppearingName,
+                startTime: now,
+                parent: parentSpan
+            )
+
+            self.viewIsAppearingSpans[id] = span
+        }
+    }
+
+    func onViewIsAppearingEnd(_ vc: UIViewController, now: Date = Date()) {
+        queue.async {
+            guard let id = vc.emb_instrumentation_state?.identifier,
+                  let span = self.viewIsAppearingSpans.removeValue(forKey: id) else {
+                return
+            }
+
+            span.end(time: now)
+        }
+    }
+
+
+    func onViewDidAppearStart(_ vc: UIViewController, now: Date = Date()) {
+        vc.emb_instrumentation_state?.viewDidAppearSpanCreated = true
+        queue.async {
+            guard let otel = self.dataSource?.otel,
+                  let id = vc.emb_instrumentation_state?.identifier,
                   let parentSpan = self.parentSpans[id] else {
                 return
             }
@@ -176,6 +220,7 @@ class UIViewControllerHandler {
                 with: otel,
                 vc: vc,
                 name: SpanSemantics.View.viewDidAppearName,
+                startTime: now,
                 parent: parentSpan
             )
 
@@ -183,19 +228,19 @@ class UIViewControllerHandler {
         }
     }
 
-    func onViewDidAppearEnd(_ vc: UIViewController) {
+    func onViewDidAppearEnd(_ vc: UIViewController, now: Date = Date()) {
         if self.dataSource?.instrumentVisibility == true {
             // Create id only if necessary. This could happen when `instrumentFirstRender` is `false`
             // in those cases, the `emb_identifier` will be `nil` and we need it to instrument visibility
             // (and in those cases that's enabled, also instrumenting the rendering process).
             // The reason why we're doing this outside of the utility `queue` can be found on `onViewDidLoadStart`.
-            if vc.emb_identifier == nil {
-                vc.emb_identifier = UUID().uuidString
+            if vc.emb_instrumentation_state == nil {
+                vc.emb_instrumentation_state = ViewInstrumentationState(identifier: UUID().uuidString)
             }
         }
 
         queue.async {
-            guard let otel = self.dataSource?.otel, let id = vc.emb_identifier else {
+            guard let otel = self.dataSource?.otel, let id = vc.emb_instrumentation_state?.identifier else {
                 return
             }
 
@@ -205,13 +250,11 @@ class UIViewControllerHandler {
                     with: otel,
                     vc: vc,
                     name: SpanSemantics.View.screenName,
-                    type: .view
+                    type: .view,
+                    startTime: now
                 )
                 self.visibilitySpans[id] = span
             }
-
-            // end view did appear span
-            let now = Date()
 
             if let span = self.viewDidAppearSpans.removeValue(forKey: id) {
                 span.end(time: now)
@@ -232,6 +275,7 @@ class UIViewControllerHandler {
                     with: otel,
                     vc: vc,
                     name: SpanSemantics.View.uiReadyName,
+                    startTime: now,
                     parent: parentSpan
                 )
 
@@ -253,7 +297,7 @@ class UIViewControllerHandler {
 
     func onViewDidDisappear(_ vc: UIViewController) {
         queue.async {
-            guard let id = vc.emb_identifier else {
+            guard let id = vc.emb_instrumentation_state?.identifier else {
                 return
             }
 
@@ -272,7 +316,7 @@ class UIViewControllerHandler {
 
     func onViewBecameInteractive(_ vc: UIViewController) {
         queue.async {
-            guard let id = vc.emb_identifier,
+            guard let id = vc.emb_instrumentation_state?.identifier,
                   let parentSpan = self.parentSpans[id],
                   parentSpan.isTimeToInteractive else {
                 return
@@ -305,6 +349,10 @@ class UIViewControllerHandler {
             viewWillAppearSpan.end(errorCode: .userAbandon, time: time)
         }
 
+        if let viewIsAppearingSpan = self.viewIsAppearingSpans[id] {
+            viewIsAppearingSpan.end(errorCode: .userAbandon, time: time)
+        }
+
         if let viewDidAppearSpan = self.viewDidAppearSpans[id] {
             viewDidAppearSpan.end(errorCode: .userAbandon, time: time)
         }
@@ -325,6 +373,7 @@ class UIViewControllerHandler {
         vc: UIViewController,
         name: String,
         type: SpanType = .viewLoad,
+        startTime: Date,
         parent: Span? = nil
     ) -> Span {
         let builder = otel.buildSpan(
@@ -341,6 +390,8 @@ class UIViewControllerHandler {
             builder.setParent(parent)
         }
 
+        builder.setStartTime(time: startTime)
+
         return builder.startSpan()
     }
 
@@ -348,11 +399,11 @@ class UIViewControllerHandler {
         self.parentSpans[id] = nil
         self.viewDidLoadSpans[id] = nil
         self.viewWillAppearSpans[id] = nil
+        self.viewIsAppearingSpans[id] = nil
         self.viewDidAppearSpans[id] = nil
         self.uiReadySpans[id] = nil
         self.alreadyFinishedUiReadyIds.remove(id)
-
-        vc?.emb_identifier = nil
+        vc?.emb_instrumentation_state = nil
     }
 }
 
