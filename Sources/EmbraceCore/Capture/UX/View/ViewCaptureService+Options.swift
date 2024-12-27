@@ -39,9 +39,7 @@ extension ViewCaptureService {
         /// If the `UIViewController` disappears before the interaction is set as ready, the span status will be set to `error`
         /// with the `userAbandon` error code.
         @objc public var instrumentFirstRender: Bool {
-            get {
-                instrumentFirstRenderMode.isOn()
-            }
+            instrumentFirstRenderMode.isOn()
         }
 
         let instrumentFirstRenderMode: InstrumentFirstRenderMode

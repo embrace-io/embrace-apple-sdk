@@ -205,7 +205,6 @@ class UIViewControllerHandler {
         }
     }
 
-
     func onViewDidAppearStart(_ vc: UIViewController, now: Date = Date()) {
         vc.emb_instrumentation_state?.viewDidAppearSpanCreated = true
         queue.async {

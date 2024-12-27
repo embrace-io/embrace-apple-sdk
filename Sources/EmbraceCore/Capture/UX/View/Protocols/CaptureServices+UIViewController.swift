@@ -64,7 +64,7 @@ extension CaptureServices {
         }
 
         guard let builder = viewCaptureService.otel?.buildSpan(
-            name: name, 
+            name: name,
             type: type,
             attributes: attributes,
             autoTerminationCode: nil

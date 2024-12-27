@@ -235,14 +235,18 @@ private extension ViewCaptureService {
             try swizzler.swizzleDeclaredInstanceMethod(
                 in: UIViewController.self,
                 selector: selector,
-                implementationType: (@convention(c) (UIViewController, Selector, NSCoder) -> UIViewController?).self,
-                blockImplementationType: (@convention(block) (UIViewController, NSCoder) -> UIViewController?).self
+                implementationType: (
+                    @convention(c) (UIViewController, Selector, NSCoder) -> UIViewController?
+                ).self,
+                blockImplementationType: (
+                    @convention(block) (UIViewController, NSCoder) -> UIViewController?
+                ).self
             ) { originalImplementation in
                 { viewController, coder in
                     // Get the class and bundle path of the view controller being initialized and check
                     // if the view controller belongs to the main bundle (this excludes, for eaxmple, UIKit classes)
                     let viewControllerClass = type(of: viewController)
-                    let viewControllerBundlePath = Bundle(for: viewControllerClass).bundlePath;
+                    let viewControllerBundlePath = Bundle(for: viewControllerClass).bundlePath
                     guard viewControllerBundlePath.contains(self.bundlePath) else {
                         return originalImplementation(viewController, selector, coder)
                     }
@@ -268,14 +272,18 @@ private extension ViewCaptureService {
             try swizzler.swizzleDeclaredInstanceMethod(
                 in: UIViewController.self,
                 selector: selector,
-                implementationType: (@convention(c) (UIViewController, Selector, String?, Bundle?) -> UIViewController).self,
-                blockImplementationType: (@convention(block) (UIViewController, String?, Bundle?) -> UIViewController).self
+                implementationType: (
+                    @convention(c) (UIViewController, Selector, String?, Bundle?) -> UIViewController
+                ).self,
+                blockImplementationType: (
+                    @convention(block) (UIViewController, String?, Bundle?) -> UIViewController
+                ).self
             ) { originalImplementation in
                 { viewController, nibName, bundle in
                     // Get the class and bundle path of the view controller being initialized and check
                     // if the view controller belongs to the main bundle (this excludes, for eaxmple, UIKit classes)
                     let viewControllerClass = type(of: viewController)
-                    let viewControllerBundlePath = Bundle(for: viewControllerClass).bundlePath;
+                    let viewControllerBundlePath = Bundle(for: viewControllerClass).bundlePath
                     guard viewControllerBundlePath.contains(self.bundlePath) else {
                         return originalImplementation(viewController, selector, nibName, bundle)
                     }

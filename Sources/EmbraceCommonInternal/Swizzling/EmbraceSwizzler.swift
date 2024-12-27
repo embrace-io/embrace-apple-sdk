@@ -4,8 +4,9 @@
 import ObjectiveC.runtime
 
 public class EmbraceSwizzler {
-    public init() {}
-    
+    public init() {
+    }
+
     /// Swizzles a specific instance method of a given class.
     ///
     /// This method allows you to replace the implementation of an instance method in the specified class (`type`)

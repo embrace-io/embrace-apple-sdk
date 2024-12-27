@@ -14,7 +14,10 @@ extension UIViewController {
 
     var emb_instrumentation_state: ViewInstrumentationState? {
         get {
-            if let value = objc_getAssociatedObject(self, &AssociatedKeys.anotherIdentifier) as? ViewInstrumentationState {
+            if let value = objc_getAssociatedObject(
+                self,
+                &AssociatedKeys.anotherIdentifier
+            ) as? ViewInstrumentationState {
                 return value as ViewInstrumentationState
             }
 

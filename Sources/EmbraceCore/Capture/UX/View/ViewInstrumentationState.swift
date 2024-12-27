@@ -5,7 +5,7 @@
 import Foundation
 
 class ViewInstrumentationState: NSObject {
-    var identifier: String? = nil
+    var identifier: String?
     var viewDidLoadSpanCreated = false
     var viewWillAppearSpanCreated = false
     var viewIsAppearingSpanCreated = false
