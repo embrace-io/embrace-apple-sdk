@@ -34,7 +34,7 @@ class UIViewControllerHandlerTests: XCTestCase {
 
         // then it is succesfully fetched
         let vc = MockViewController()
-        vc.emb_identifier = id
+        vc.emb_instrumentation_state = .init(identifier: id)
 
         let parent = handler.parentSpan(for: vc)
         XCTAssertEqual(span.name, parent!.name)
@@ -47,7 +47,7 @@ class UIViewControllerHandlerTests: XCTestCase {
         // when fetching the parent span for a view controller
         // that doesn't have one
         let vc = MockViewController()
-        vc.emb_identifier = "test"
+        vc.emb_instrumentation_state = .init(identifier: "test")
 
         // then the result is nil
         let parent = handler.parentSpan(for: vc)
@@ -88,6 +88,9 @@ class UIViewControllerHandlerTests: XCTestCase {
         let viewWillAppearSpan = createViewWillAppearSpan()
         handler.viewWillAppearSpans[id] = viewWillAppearSpan
 
+        let viewIsAppearing = createViewWillAppearSpan()
+        handler.viewIsAppearingSpans[id] = viewIsAppearing
+
         let viewDidAppearSpan = createViewDidAppearSpan()
         handler.viewDidAppearSpans[id] = viewDidAppearSpan
 
@@ -102,7 +105,7 @@ class UIViewControllerHandlerTests: XCTestCase {
 
         // then all spans are ended
         wait {
-            return self.otel.spanProcessor.endedSpans.count == 6
+            return self.otel.spanProcessor.endedSpans.count == 7
         }
     }
 
@@ -169,6 +172,7 @@ class UIViewControllerHandlerTests: XCTestCase {
         let parentName = "time-to-first-render"
         validateViewDidLoadSpans(vc: vc, parentName: parentName)
         validateViewWillAppearSpans(vc: vc, parentName: parentName)
+        validateViewIsAppearingSpans(vc: vc, parentName: parentName)
         validateViewDidAppearSpans(vc: vc, parentName: parentName)
 
         // then all the spans are created and ended at the right times
@@ -223,6 +227,7 @@ class UIViewControllerHandlerTests: XCTestCase {
         let parentName = "time-to-interactive"
         validateViewDidLoadSpans(vc: vc, parentName: parentName)
         validateViewWillAppearSpans(vc: vc, parentName: parentName)
+        validateViewIsAppearingSpans(vc: vc, parentName: parentName)
         validateViewDidAppearSpans(vc: vc, parentName: parentName)
 
         // when view did appear ends
@@ -257,6 +262,7 @@ class UIViewControllerHandlerTests: XCTestCase {
         validateViewDidLoadSpans(vc: vc, parentName: parentName)
         handler.onViewBecameInteractive(vc)
         validateViewWillAppearSpans(vc: vc, parentName: parentName)
+        validateViewIsAppearingSpans(vc: vc, parentName: parentName)
         validateViewDidAppearSpans(vc: vc, parentName: parentName)
 
         // then the spans are ended
@@ -349,6 +355,29 @@ class UIViewControllerHandlerTests: XCTestCase {
         }
     }
 
+    func validateViewIsAppearingSpans(vc: UIViewController, parentName: String) {
+        // when view is appearing starts
+        handler.onViewIsAppearingStart(vc)
+
+        // then a child span is created
+        wait(timeout: .longTimeout) {
+            let parent = self.otel.spanProcessor.startedSpans.first(where: { $0.name.contains(parentName) })
+            let child = self.otel.spanProcessor.startedSpans.first(where: { $0.name == "emb-view-is-appearing"})
+
+            return parent != nil && child!.parentSpanId == parent!.spanId && child!.embType == .viewLoad
+        }
+
+        // when view is appearing ends
+        handler.onViewIsAppearingEnd(vc)
+
+        // then the view will appear span is ended
+        wait(timeout: .longTimeout) {
+            let span = self.otel.spanProcessor.endedSpans.first(where: { $0.name == "emb-view-is-appearing"})
+            return span != nil && self.handler.viewIsAppearingSpans.isEmpty
+        }
+    }
+
+
     func validateViewDidAppearSpans(vc: UIViewController, parentName: String) {
         // when view did appear starts
         handler.onViewDidAppearStart(vc)
@@ -377,12 +406,13 @@ class UIViewControllerHandlerTests: XCTestCase {
 
     func cacheIsEmpty(_ checkVisibilitySpans: Bool = false) -> Bool {
         return handler.parentSpans.count == 0 &&
-               handler.viewDidLoadSpans.count == 0 &&
-               handler.viewWillAppearSpans.count == 0 &&
-               handler.viewDidAppearSpans.count == 0 &&
-               (!checkVisibilitySpans || handler.visibilitySpans.count == 0) &&
-               handler.uiReadySpans.count == 0 &&
-               handler.alreadyFinishedUiReadyIds.count == 0
+        handler.viewDidLoadSpans.count == 0 &&
+        handler.viewWillAppearSpans.count == 0 &&
+        handler.viewIsAppearingSpans.count == 0 &&
+        handler.viewDidAppearSpans.count == 0 &&
+        (!checkVisibilitySpans || handler.visibilitySpans.count == 0) &&
+        handler.uiReadySpans.count == 0 &&
+        handler.alreadyFinishedUiReadyIds.count == 0
     }
 }
 
@@ -411,6 +441,10 @@ extension UIViewControllerHandlerTests {
 
     func createViewWillAppearSpan() -> Span {
         return createSpan(name: "view-will-appear")
+    }
+
+    func createViewIsAppearingSpan() -> Span {
+        return createSpan(name: "view-is-appearing")
     }
 
     func createViewDidAppearSpan() -> Span {

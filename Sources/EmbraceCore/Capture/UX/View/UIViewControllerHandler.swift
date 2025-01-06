@@ -91,7 +91,7 @@ class UIViewControllerHandler {
         // There could be a race condition and it's possible that the controller was released or is in the process of deallocation,
         // which could cause a crash (as this feature relies on objc_setAssociatedObject).
         let id = UUID().uuidString
-        var state = ViewInstrumentationState()
+        let state = ViewInstrumentationState()
         state.viewDidLoadSpanCreated = true
         state.identifier = id
         vc.emb_instrumentation_state = state

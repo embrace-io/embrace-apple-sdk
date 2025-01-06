@@ -50,7 +50,7 @@ class CaptureServicesUIViewControllerTests: XCTestCase {
     func test_onInteractionReady() throws {
         // given capture services with a ViewCaptureService
         let handler = MockUIViewControllerHandler()
-        let service = ViewCaptureService(options: enabledOptions, lock: NSLock(), handler: handler)
+        let service = ViewCaptureService(options: enabledOptions, handler: handler, lock: NSLock())
         let captureServices = CaptureServices(services: [service], context: context)
         let vc = MockViewController()
 
@@ -102,7 +102,7 @@ class CaptureServicesUIViewControllerTests: XCTestCase {
     func test_buildChildSpan() throws {
         // given capture services with a ViewCaptureService with an active span
         let handler = MockUIViewControllerHandler()
-        let service = ViewCaptureService(options: enabledOptions, lock: NSLock(), handler: handler)
+        let service = ViewCaptureService(options: enabledOptions, handler: handler, lock: NSLock())
         let captureServices = CaptureServices(services: [service], context: context)
         let vc = MockViewController()
 
@@ -163,7 +163,7 @@ class CaptureServicesUIViewControllerTests: XCTestCase {
     func recordCompletedChildSpan() throws {
         // given capture services with a ViewCaptureService with an active span
         let handler = MockUIViewControllerHandler()
-        let service = ViewCaptureService(options: enabledOptions, lock: NSLock(), handler: handler)
+        let service = ViewCaptureService(options: enabledOptions, handler: handler, lock: NSLock())
         let captureServices = CaptureServices(services: [service], context: context)
         let vc = MockViewController()
 
