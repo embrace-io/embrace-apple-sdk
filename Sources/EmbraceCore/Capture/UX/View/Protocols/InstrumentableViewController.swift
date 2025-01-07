@@ -24,7 +24,7 @@ public extension InstrumentableViewController {
     ///    - attributes: A dictionary of attributes to set on the span.
     /// - Returns: An OpenTelemetry `SpanBuilder`.
     /// - Throws: `ViewCaptureService.noServiceFound` if no `ViewCaptureService` is active.
-    /// - Throws: `ViewCaptureService.firstRenderInstrumentationDisabled` if this functionallity was not enabled when setting up the `ViewCaptureService`.
+    /// - Throws: `ViewCaptureService.firstRenderInstrumentationDisabled` if this functionallity was not enabled when setting up the `ViewCaptureService`, or the remote configuration for this feature was not enabled.
     /// - Throws: `ViewCaptureService.parentSpanNotFound` if no parent span was found for this `UIViewController`.
     ///           This could mean the `UIViewController` was already rendered / deemed interactive, or the `UIViewController` has already disappeared.
     func buildChildSpan(
@@ -50,7 +50,7 @@ public extension InstrumentableViewController {
     ///    - endTime: The end time of the span.
     ///    - attributes: A dictionary of attributes to set on the span.
     /// - Throws: `ViewCaptureService.noServiceFound` if no `ViewCaptureService` is active.
-    /// - Throws: `ViewCaptureService.firstRenderInstrumentationDisabled` if this functionallity was not enabled when setting up the `ViewCaptureService`.
+    /// - Throws: `ViewCaptureService.firstRenderInstrumentationDisabled` if this functionallity was not enabled when setting up the `ViewCaptureService`, or the remote configuration for this feature was not enabled.
     /// - Throws: `ViewCaptureService.parentSpanNotFound` if no parent span was found for this `UIViewController`.
     ///           This could mean the `UIViewController` was already rendered / deemed interactive, or the `UIViewController` has already disappeared.
     func recordCompletedChildSpan(
