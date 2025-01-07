@@ -17,7 +17,7 @@ class ViewCaptureServiceTests: XCTestCase {
 
     override func setUpWithError() throws {
         handler = MockUIViewControllerHandler()
-        service = ViewCaptureService(options: ViewCaptureService.Options(), lock: NSLock(), handler: handler)
+        service = ViewCaptureService(options: ViewCaptureService.Options(), handler: handler, lock: NSLock())
         service.install(otel: nil)
         service.start()
     }
@@ -33,15 +33,27 @@ class ViewCaptureServiceTests: XCTestCase {
         XCTAssert(handler.onViewDidLoadEndCalled)
     }
 
-    func test_viewWillAppear() {
+    func test_viewWillAppear_wontCallMethodsIfStateIsNotSet() {
+        let vc = MockViewController()
+        vc.emb_instrumentation_state = nil
+        vc.viewWillAppear(false)
+
+        XCTAssertFalse(handler.onViewWillAppearStartCalled)
+        XCTAssertFalse(handler.onViewWillAppearEndCalled)
+        XCTAssertFalse(handler.onViewIsAppearingStartCalled)
+    }
+
+    func test_viewWillAppear_wontCallsMethodsIfStateIsSet() {
         // given a ViewCaptureService
         // when viewWillAppear is called on a UIViewController
         let vc = MockViewController()
+        vc.emb_instrumentation_state = .init()
         vc.viewWillAppear(false)
 
         // then the appropiate methods are called on the handler
-        XCTAssert(handler.onViewWillAppearStartCalled)
-        XCTAssert(handler.onViewWillAppearEndCalled)
+        XCTAssertTrue(handler.onViewWillAppearStartCalled)
+        XCTAssertTrue(handler.onViewWillAppearEndCalled)
+        XCTAssertTrue(handler.onViewIsAppearingStartCalled)
     }
 
     func test_viewDidAppear() {

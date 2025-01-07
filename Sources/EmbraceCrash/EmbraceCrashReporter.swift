@@ -56,7 +56,7 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
     /// Unused in this KSCrash implementation
     public var onNewReport: ((CrashReport) -> Void)?
 
-    public init(queue: DispatchableQueue = DispatchQueue(label: "com.embrace.crashreporter"),
+    public init(queue: DispatchableQueue = .with(label: "com.embrace.crashreporter"),
                 signalsBlockList: [CrashSignal] = [.SIGTERM]
     ) {
         self.queue = queue
