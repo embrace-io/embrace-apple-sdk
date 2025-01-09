@@ -20,7 +20,6 @@ public struct RemoteConfigPayload: Decodable, Equatable {
     var internalLogsErrorLimit: Int
 
     var networkPayloadCaptureRules: [NetworkPayloadCaptureRule]
-    
 
     enum CodingKeys: String, CodingKey {
         case sdkEnabledThreshold = "threshold"

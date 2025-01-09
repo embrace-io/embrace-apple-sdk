@@ -21,7 +21,7 @@ final class CaptureServices {
 
     init(options: Embrace.Options, config: EmbraceConfigurable?, storage: EmbraceStorage?, upload: EmbraceUpload?) throws {
         self.config = config
-        
+
         // add required capture services
         // and remove duplicates
         services = CaptureServiceFactory.addRequiredServices(to: options.services.unique)
