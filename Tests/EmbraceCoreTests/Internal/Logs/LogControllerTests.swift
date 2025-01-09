@@ -222,12 +222,12 @@ private extension LogControllerTests {
 
     func givenEmbraceLogUploader() {
         upload = .init()
-        upload.stubbedCompletion = .success(())
+        upload.stubbedLogCompletion = .success(())
     }
 
     func givenFailingLogUploader() {
         upload = .init()
-        upload.stubbedCompletion = .failure(RandomError())
+        upload.stubbedLogCompletion = .failure(RandomError())
     }
 
     func givenConfig(sdkEnabled: Bool = true) {

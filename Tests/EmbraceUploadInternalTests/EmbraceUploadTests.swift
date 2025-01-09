@@ -248,10 +248,15 @@ private extension EmbraceUploadTests {
         URL(string: "https://embrace.\(testName).com/upload/logs")!
     }
 
+    func testAttachmentsUrl(testName: String = #function) -> URL {
+        URL(string: "https://embrace.\(testName).com/upload/attachments")!
+    }
+
     func testEndpointOptions(testName: String) -> EmbraceUpload.EndpointOptions {
         .init(
             spansURL: testSpansUrl(testName: testName),
-            logsURL: testLogsUrl(testName: testName)
+            logsURL: testLogsUrl(testName: testName),
+            attachmentsURL: testAttachmentsUrl(testName: testName)
         )
     }
 }

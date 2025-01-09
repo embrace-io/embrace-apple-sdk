@@ -31,14 +31,14 @@ class LogController: LogControllable {
     private weak var upload: EmbraceLogUploader?
     private weak var config: EmbraceConfig?
 
+    var otel: EmbraceOTelBridge = EmbraceOTel() // var so we can inject a mock for testing
+
     /// This will probably be injected eventually.
     /// For consistency, I created a constant
     static let maxLogsPerBatch: Int = 20
 
     static let attachmentLimit: Int = 5
     static let attachmentSizeLimit: Int = 1048576 // 1 MiB
-
-    var otel: EmbraceOTel { EmbraceOTel() }
 
     private var isSDKEnabled: Bool {
         guard let config = config else {
@@ -142,7 +142,7 @@ class LogController: LogControllable {
                         finalAttributes[LogSemantics.keyAttachmentErrorCode] = LogSemantics.attachmentFailedUpload
                     }
 
-                    self?.otel.log(message, severity: severity, attributes: finalAttributes)
+                    self?.otel.log(message, severity: severity, timestamp: timestamp, attributes: finalAttributes)
                 })
             }
         }
@@ -156,7 +156,7 @@ class LogController: LogControllable {
         }
 
         if send {
-            otel.log(message, severity: severity, attributes: finalAttributes)
+            otel.log(message, severity: severity, timestamp: timestamp, attributes: finalAttributes)
         }
     }
 }

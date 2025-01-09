@@ -8,12 +8,24 @@ import EmbraceUploadInternal
 class SpyEmbraceLogUploader: EmbraceLogUploader {
     var didCallUploadLog = false
     var didCallUploadLogCount = 0
-    var stubbedCompletion: (Result<(), Error>)?
+    var stubbedLogCompletion: (Result<(), Error>)?
     func uploadLog(id: String, data: Data, completion: ((Result<(), Error>) -> Void)?) {
         didCallUploadLogCount += 1
         didCallUploadLog = true
-        if let result = stubbedCompletion {
+        if let result = stubbedLogCompletion {
             completion?(result)
         }
     }
+
+    var didCallUploadAttachment = false
+    var didCallUploadAttachmentCount = 0
+    var stubbedAttachmentCompletion: (Result<(), Error>)?
+    func uploadAttachment(id: String, data: Data, completion: ((Result<(), any Error>) -> Void)?) {
+        didCallUploadAttachmentCount += 1
+        didCallUploadAttachment = true
+        if let result = stubbedAttachmentCompletion {
+            completion?(result)
+        }
+    }
+
 }
