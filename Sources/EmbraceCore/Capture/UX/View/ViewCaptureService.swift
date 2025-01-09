@@ -27,10 +27,6 @@ public final class ViewCaptureService: CaptureService, UIViewControllerHandlerDa
         return options.instrumentFirstRender
     }
 
-    var instrumentationFirstRenderMode: ViewCaptureService.InstrumentFirstRenderMode {
-        return options.instrumentFirstRenderMode
-    }
-
     @objc public convenience init(options: ViewCaptureService.Options) {
         self.init(options: options, lock: NSLock())
     }
@@ -80,16 +76,8 @@ public final class ViewCaptureService: CaptureService, UIViewControllerHandlerDa
         handler.dataSource = self
 
         if instrumentFirstRender {
-            switch instrumentationFirstRenderMode {
-            case .automatic:
-                instrumentInitWithCoder()
-                instrumentInitWithNibAndBundle()
-            case .manual(let viewControllers):
-                for viewController in viewControllers {
-                    instrumentRender(of: viewController)
-                }
-            default: break
-            }
+            instrumentInitWithCoder()
+            instrumentInitWithNibAndBundle()
         }
 
         if instrumentVisibility || instrumentFirstRender {
@@ -295,7 +283,8 @@ private extension ViewCaptureService {
                     }
 
                     // return the result of the original implementation
-                    return originalImplementation(viewController, selector, nibName, bundle)                }
+                    return originalImplementation(viewController, selector, nibName, bundle)
+                }
             }
         } catch let exception {
             Embrace.logger.error("Error swizzling init(nibName:bundle:): \(exception.localizedDescription)")

@@ -109,6 +109,21 @@ extension CaptureServices {
         let span = builder.startSpan()
         span.end(time: endTime)
     }
+
+    func addAttributesToTrace(
+        for viewController: UIViewController,
+        attributes: [String: String]
+    ) throws {
+        guard let viewCaptureService = try validateCaptureService() else {
+            return
+        }
+
+        guard let parentSpan = viewCaptureService.parentSpan(for: viewController) else {
+            throw parentSpanNotFoundError
+        }
+
+        attributes.forEach { parentSpan.setAttribute(key: $0.key, value: .string($0.value)) }
+    }
 }
 
 #endif

@@ -88,7 +88,7 @@ extension RemoteConfig: EmbraceConfigurable {
 
     public var isNetworkSpansForwardingEnabled: Bool { isEnabled(threshold: payload.networkSpansForwardingThreshold) }
 
-    public var isUiLoadInstrumentationEnabled: Bool { isEnabled(threshold: payload.uiLoadInstrumentationThreshold) }
+    public var isUiLoadInstrumentationEnabled: Bool { payload.uiLoadInstrumentationEnabled }
 
     public var networkPayloadCaptureRules: [NetworkPayloadCaptureRule] { payload.networkPayloadCaptureRules }
 

@@ -67,6 +67,23 @@ public extension InstrumentableViewController {
             startTime: startTime,
             endTime: endTime,
             attributes: attributes
+        )	
+    }
+
+    /// Method used to add attributes to the active trace associated with the render process of a `UIViewController`.
+    /// These attributes will be appended to the ongoing trace handled by the `ViewCaptureService`.
+    ///
+    /// - Parameters:
+    ///   - attributes: A dictionary of attributes to add to the trace. Each key-value pair represents an attribute.
+    /// - Throws: `ViewCaptureService.serviceNotFound` if no `ViewCaptureService` is active.
+    /// - Throws: `ViewCaptureService.firstRenderInstrumentationDisabled` if this functionallity was not enabled when setting up the `ViewCaptureService`, or the remote configuration for this feature was not enabled.
+    /// - Throws: `ViewCaptureService.parentSpanNotFound` if no parent span was found for this `UIViewController`.
+    ///            This could mean the `UIViewController` was already rendered / deemed interactive, or the `UIViewController` has already disappeared.
+    /// - Note: Attributes added using this method are specific to the ongoing trace associated with this `UIViewController`.
+    func addAttributesToTrace(_ attributes: [String: String]) throws {
+        try Embrace.client?.captureServices.addAttributesToTrace(
+            for: self,
+            attributes: attributes
         )
     }
 }
