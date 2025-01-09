@@ -12,9 +12,13 @@ public extension EmbraceUpload {
         /// URL for the logs upload endpoint
         public let logsURL: URL
 
-        public init(spansURL: URL, logsURL: URL) {
+        /// URL for the attachments upload endpoint
+        public let attachmentsURL: URL
+
+        public init(spansURL: URL, logsURL: URL, attachmentsURL: URL) {
             self.spansURL = spansURL
             self.logsURL = logsURL
+            self.attachmentsURL = attachmentsURL
         }
     }
 }

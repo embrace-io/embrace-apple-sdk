@@ -45,4 +45,25 @@ public protocol EmbraceOpenTelemetry: AnyObject {
         attributes: [String: String],
         stackTraceBehavior: StackTraceBehavior
     )
+
+    func log(
+        _ message: String,
+        severity: LogSeverity,
+        type: LogType,
+        timestamp: Date,
+        attachment: Data,
+        attributes: [String: String],
+        stackTraceBehavior: StackTraceBehavior
+    )
+
+    func log(
+        _ message: String,
+        severity: LogSeverity,
+        type: LogType,
+        timestamp: Date,
+        attachmentId: String,
+        attachmentUrl: URL,
+        attributes: [String: String],
+        stackTraceBehavior: StackTraceBehavior
+    )
 }

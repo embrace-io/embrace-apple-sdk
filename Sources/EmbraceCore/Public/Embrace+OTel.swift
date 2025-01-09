@@ -17,7 +17,7 @@ extension Embrace: EmbraceOpenTelemetry {
         )
     }
 
-    private var otel: EmbraceOTel { EmbraceOTel() }
+    var otel: EmbraceOTel { EmbraceOTel() }
 
     /// - Parameters:
     ///    - instrumentationName: The name of the instrumentation library requesting the tracer.
@@ -118,6 +118,7 @@ extension Embrace: EmbraceOpenTelemetry {
     ///   - message: Body of the log.
     ///   - severity: `LogSeverity` for the log.
     ///   - attributes: Attributes for the log.
+    ///   - stackTraceBehavior: Defines if the stack trace information should be added to the log
     public func log(
         _ message: String,
         severity: LogSeverity,
@@ -141,37 +142,90 @@ extension Embrace: EmbraceOpenTelemetry {
     ///   - severity: `LogSeverity` for the log.
     ///   - timestamp: Timestamp for the log.
     ///   - attributes: Attributes for the log.
+    ///   - stackTraceBehavior: Defines if the stack trace information should be added to the log
     public func log(
         _ message: String,
         severity: LogSeverity,
         type: LogType = .message,
         timestamp: Date,
+        attributes: [String: String] = [:],
+        stackTraceBehavior: StackTraceBehavior = .default
+    ) {
+        logController.createLog(
+            message,
+            severity: severity,
+            type: type,
+            timestamp: timestamp,
+            attachment: nil,
+            attachmentId: nil,
+            attachmentUrl: nil,
+            attributes: attributes,
+            stackTraceBehavior: stackTraceBehavior
+        )
+    }
+
+    /// Creates and adds a log with the given data as an attachment for the current session span.
+    /// The attachment will be hosted by Embrace and will be accessible through the dashboard.
+    /// - Parameters:
+    ///   - message: Body of the log.
+    ///   - severity: `LogSeverity` for the log.
+    ///   - timestamp: Timestamp for the log.
+    ///   - attachment: Data of the attachment
+    ///   - attributes: Attributes for the log.
+    ///   - stackTraceBehavior: Defines if the stack trace information should be added to the log
+    public func log(
+        _ message: String,
+        severity: LogSeverity,
+        type: LogType = .message,
+        timestamp: Date = Date(),
+        attachment: Data,
+        attributes: [String: String] = [:],
+        stackTraceBehavior: StackTraceBehavior = .default
+    ) {
+        logController.createLog(
+            message,
+            severity: severity,
+            type: type,
+            timestamp: timestamp,
+            attachment: attachment,
+            attachmentId: nil,
+            attachmentUrl: nil,
+            attributes: attributes,
+            stackTraceBehavior: stackTraceBehavior
+        )
+    }
+
+    /// Creates and adds a log with the given attachment info for the current session span.
+    /// Use this method for attachments hosted outside of Embrace.
+    /// - Parameters:
+    ///   - message: Body of the log.
+    ///   - severity: `LogSeverity` for the log.
+    ///   - timestamp: Timestamp for the log.
+    ///   - attachmentId: Identifier of the attachment
+    ///   - attachmentUrl: URL to dowload the attachment data
+    ///   - attributes: Attributes for the log.
+    ///   - stackTraceBehavior: Defines if the stack trace information should be added to the log
+    public func log(
+        _ message: String,
+        severity: LogSeverity,
+        type: LogType = .message,
+        timestamp: Date = Date(),
+        attachmentId: String,
+        attachmentUrl: URL,
         attributes: [String: String],
         stackTraceBehavior: StackTraceBehavior = .default
     ) {
-        let attributesBuilder = EmbraceLogAttributesBuilder(
-            storage: storage,
-            sessionControllable: sessionController,
-            initialAttributes: attributes
+        logController.createLog(
+            message,
+            severity: severity,
+            type: type,
+            timestamp: timestamp,
+            attachment: nil,
+            attachmentId: attachmentId,
+            attachmentUrl: attachmentUrl,
+            attributes: attributes,
+            stackTraceBehavior: stackTraceBehavior
         )
-
-        /*
-         If we want to keep this method cleaner, we could move this log to `EmbraceLogAttributesBuilder`
-         However that would cause to always add a frame to the stacktrace.
-         */
-        if stackTraceBehavior == .default && (severity == .warn || severity == .error) {
-            let stackTrace: [String] = Thread.callStackSymbols
-            attributesBuilder.addStackTrace(stackTrace)
-        }
-
-        let finalAttributes = attributesBuilder
-            .addLogType(type)
-            .addApplicationState()
-            .addApplicationProperties()
-            .addSessionIdentifier()
-            .build()
-
-        otel.log(message, severity: severity, attributes: finalAttributes)
     }
 }
 
