@@ -81,7 +81,7 @@ class EmbraceUploadOperation: AsyncOperation {
         // update request's attempt count header
         request = updateRequest(request, attemptCount: attemptCount)
 
-        task = urlSession.dataTask(with: request, completionHandler: { [weak self] data, response, error in
+        task = urlSession.dataTask(with: request, completionHandler: { [weak self] _, response, error in
             guard let strongSelf = self else {
                 return
             }
@@ -162,7 +162,7 @@ class EmbraceUploadOperation: AsyncOperation {
         // retry for all other non-handled cases with errors
         return error != nil
     }
-    
+
     /// Extracts the suggested delay from `Retry-After` header from the `URLResponse` if present.
     /// - Parameter response: the URLResponse recevied when executing a request.
     /// - Returns:the time in seconds (as `Int`) extracted from the `Retry-After` header.

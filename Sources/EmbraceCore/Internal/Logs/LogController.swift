@@ -140,7 +140,7 @@ class LogController: LogControllable {
                     switch result {
                     case .success:
                         self?.sessionController?.increaseAttachmentCount()
-                    case .failure(_):
+                    case .failure:
                         finalAttributes[LogSemantics.keyAttachmentErrorCode] = LogSemantics.attachmentFailedUpload
                     }
 

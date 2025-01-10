@@ -80,7 +80,7 @@ public class EmbraceUpload: EmbraceLogUploader {
 
                 // clear data from cache that shouldn't be retried as it's stale
                 self.clearCacheFromStaleData()
-                
+
                 // get all the data cached first, is the only thing that could throw
                 let cachedObjects = try self.cache.fetchAllUploadData()
 
@@ -162,8 +162,7 @@ public class EmbraceUpload: EmbraceLogUploader {
         data: Data,
         type: EmbraceUploadType,
         attemptCount: Int = 0,
-        completion: ((Result<(), Error>) -> Void)?) 
-    {
+        completion: ((Result<(), Error>) -> Void)?) {
         // validate identifier
         guard id.isEmpty == false else {
             completion?(.failure(EmbraceUploadError.internalError(.invalidMetadata)))
@@ -199,7 +198,7 @@ public class EmbraceUpload: EmbraceLogUploader {
         let uploadOperation = createUploadOperation(
             id: id,
             type: type,
-            urlSession: urlSession, 
+            urlSession: urlSession,
             data: data,
             retryCount: retryCount,
             attemptCount: attemptCount) { [weak self] (result, attemptCount) in
@@ -209,7 +208,7 @@ public class EmbraceUpload: EmbraceLogUploader {
                 if type == .attachment {
                     switch result {
                     case .success: completion?(.success(()))
-                    case .failure(_): completion?(.failure(EmbraceUploadError.internalError(.attachmentUploadFailed)))
+                    case .failure: completion?(.failure(EmbraceUploadError.internalError(.attachmentUploadFailed)))
                     }
                 } else {
                     self?.handleOperationFinished(

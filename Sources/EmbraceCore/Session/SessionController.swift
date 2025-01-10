@@ -261,7 +261,7 @@ extension SessionController {
         currentSession = nil
         currentSessionSpan = nil
     }
-    
+
     private var isSDKEnabled: Bool {
         guard let config = config else {
             return true

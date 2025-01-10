@@ -11,7 +11,6 @@ import OpenTelemetrySdk
 public class MockEmbraceOTelBridge: EmbraceOTelBridge {
 
     public let otel = MockEmbraceOpenTelemetry()
-    public var logs: [ReadableLogRecord] = []
 
     public init() {}
 

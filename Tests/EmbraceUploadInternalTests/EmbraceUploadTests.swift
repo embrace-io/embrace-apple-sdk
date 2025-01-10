@@ -201,6 +201,7 @@ class EmbraceUploadTests: XCTestCase {
         // then requests are made
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 1)
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 1)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testAttachmentsUrl()).count, 0)
     }
 
     func test_retryCachedData_emptyCache() throws {
@@ -214,6 +215,7 @@ class EmbraceUploadTests: XCTestCase {
         // then no requests are made
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 0)
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 0)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testAttachmentsUrl()).count, 0)
     }
 
     func test_spansEndpoint() throws {
@@ -225,6 +227,7 @@ class EmbraceUploadTests: XCTestCase {
         // then a request to the right endpoint is made
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 1)
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 0)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testAttachmentsUrl()).count, 0)
     }
 
     func test_logsEndpoint() throws {
@@ -236,6 +239,19 @@ class EmbraceUploadTests: XCTestCase {
         // then a request to the right endpoint is made
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 0)
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 1)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testAttachmentsUrl()).count, 0)
+    }
+
+    func test_attachmentsEndpoint() throws {
+        // when uploading attachment data
+        module.uploadLog(id: "id", data: TestConstants.data, completion: nil)
+
+        wait(delay: .defaultTimeout)
+
+        // then a request to the right endpoint is made
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 0)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 0)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testAttachmentsUrl()).count, 1)
     }
 }
 
