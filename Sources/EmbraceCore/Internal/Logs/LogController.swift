@@ -20,6 +20,7 @@ protocol LogControllable: LogBatcherDelegate {
         attachment: Data?,
         attachmentId: String?,
         attachmentUrl: URL?,
+        attachmentSize: Int?,
         attributes: [String: String],
         stackTraceBehavior: StackTraceBehavior
     )
@@ -80,6 +81,7 @@ class LogController: LogControllable {
         attachment: Data? = nil,
         attachmentId: String? = nil,
         attachmentUrl: URL? = nil,
+        attachmentSize: Int? = nil,
         attributes: [String: String] = [:],
         stackTraceBehavior: StackTraceBehavior = .default
     ) {
@@ -153,6 +155,10 @@ class LogController: LogControllable {
 
             finalAttributes[LogSemantics.keyAttachmentId] = attachmentId
             finalAttributes[LogSemantics.keyAttachmentUrl] = attachmentUrl.absoluteString
+
+            if let attachmentSize = attachmentSize {
+                finalAttributes[LogSemantics.keyAttachmentSize] = String(attachmentSize)
+            }
         }
 
         if send {

@@ -120,6 +120,7 @@ public class MockEmbraceOpenTelemetry: NSObject, EmbraceOpenTelemetry {
         timestamp: Date = Date(),
         attachmentId: String,
         attachmentUrl: URL,
+        attachmentSize: Int?,
         attributes: [String : String] = [:],
         stackTraceBehavior: StackTraceBehavior = .default
     ) {

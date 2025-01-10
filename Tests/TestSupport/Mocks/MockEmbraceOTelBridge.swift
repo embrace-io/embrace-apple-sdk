@@ -13,6 +13,8 @@ public class MockEmbraceOTelBridge: EmbraceOTelBridge {
     public let otel = MockEmbraceOpenTelemetry()
     public var logs: [ReadableLogRecord] = []
 
+    public init() {}
+
     public func buildSpan(name: String, type: SpanType, attributes: [String : String]) -> any SpanBuilder {
         return otel.buildSpan(name: name, type: type, attributes: attributes)
     }
