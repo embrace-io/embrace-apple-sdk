@@ -144,7 +144,7 @@ public class EmbraceUpload: EmbraceLogUploader {
     /// - Parameters:
     ///   - id: Identifier of the attachment
     ///   - data: The attachment's data
-    ///   - completion: Completion block called when the data is successfully cached, or when an `Error` occurs
+    ///   - completion: Completion block called when the data is successfully uploaded, or when an `Error` occurs
     public func uploadAttachment(id: String, data: Data, completion: ((Result<(), Error>) -> Void)?) {
         queue.async { [weak self] in
             self?.uploadData(
