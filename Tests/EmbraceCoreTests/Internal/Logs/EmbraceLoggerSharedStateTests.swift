@@ -7,14 +7,10 @@ import XCTest
 @testable import EmbraceOTelInternal
 @testable import EmbraceStorageInternal
 import OpenTelemetrySdk
+import TestSupport
 
 class DummyEmbraceResourceProvider: EmbraceResourceProvider {
     func getResource() -> Resource { Resource() }
-}
-
-class DummyLogControllable: LogControllable {
-    func uploadAllPersistedLogs() {}
-    func batchFinished(withLogs logs: [LogRecord]) {}
 }
 
 class EmbraceLoggerSharedStateTests: XCTestCase {

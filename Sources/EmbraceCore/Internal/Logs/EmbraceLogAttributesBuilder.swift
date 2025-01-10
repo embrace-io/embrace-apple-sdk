@@ -18,7 +18,7 @@ class EmbraceLogAttributesBuilder {
         session ?? sessionControllable?.currentSession
     }
 
-    init(storage: EmbraceStorageMetadataFetcher,
+    init(storage: EmbraceStorageMetadataFetcher?,
          sessionControllable: SessionControllable,
          initialAttributes: [String: String]) {
         self.storage = storage

@@ -15,10 +15,10 @@ public extension EmbraceUpload {
         let storageMechanism: StorageMechanism
 
         /// Determines the maximum amount of cached requests that will be cached. Use 0 to disable.
-        public var cacheLimit: UInt
+        public let cacheLimit: UInt
 
         /// Determines the maximum amount of days a request will be cached. Use 0 to disable.
-        public var cacheDaysLimit: UInt
+        public let cacheDaysLimit: UInt
 
         public init?(
             cacheBaseUrl: URL,
