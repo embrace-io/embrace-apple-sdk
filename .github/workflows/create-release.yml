@@ -294,6 +294,22 @@ jobs:
       - name: Push EmbraceIO Podspec
         run: |
           pod trunk push embrace-apple-sdk/EmbraceIO.podspec --allow-warnings
+  
+  create_internal_release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs:
+      - create_github_release 
+    env:
+      RC_VERSION: ${{ needs.extractor.outputs.rc_version }}
+      IS_PRODUCTION_READY: ${{ needs.extractor.outputs.is_production_ready }}
+
+    steps:
+      - name: Record SDK Version History
+        if: env.IS_PRODUCTION_READY == 'true'
+        run: |
+          curl -f -X POST ${{ vars.SDK_VERSION_URL }}/ios/version/ -H 'X-Embrace-CI: ${{ secrets.SDK_VERSION_TOKEN }}' -H 'Content-Type: application/json' -d '{"version": "${{ RC_VERSION }}"}'
+
 
 # Note: missing/removed steps from old sdk
 # - dsyms work
