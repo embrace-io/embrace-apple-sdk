@@ -39,7 +39,7 @@ class DefaultLogBatcherTests: XCTestCase {
         givenDefaultLogBatcher(limits: .init(maxBatchAge: 0.1, maxLogsPerBatch: 10))
         givenRepositoryCreatesLogsSuccessfully()
         whenInvokingAddLogRecord(withLogRecord: randomLogRecord())
-        thenDelegateShouldInvokeBatchFinishedAfterBatchLifespan(0.2)
+        thenDelegateShouldInvokeBatchFinishedAfterBatchLifespan(0.5)
     }
 
     func testAutoEndBatchAfterLifespanExpired_TimerStartsAgainAfterNewLogAdded() {

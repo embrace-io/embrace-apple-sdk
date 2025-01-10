@@ -16,6 +16,7 @@ public extension SpanSemantics {
         public static let timeToInteractiveName = "emb-NAME-time-to-interactive"
         public static let viewDidLoadName = "emb-view-did-load"
         public static let viewWillAppearName = "emb-view-will-appear"
+        public static let viewIsAppearingName = "emb-view-is-appearing"
         public static let viewDidAppearName = "emb-view-did-appear"
         public static let uiReadyName = "ui-ready"
         public static let keyViewTitle = "view.title"

@@ -13,6 +13,8 @@ import Foundation
 
     var isNetworkSpansForwardingEnabled: Bool { get }
 
+    var isUiLoadInstrumentationEnabled: Bool { get }
+
     var internalLogLimits: InternalLogLimits { get }
 
     var networkPayloadCaptureRules: [NetworkPayloadCaptureRule] { get }
