@@ -1,9 +1,8 @@
 ## 6.7.0
 *Jan 10th, 2025**
-* Features:
+* Features
     * Improvements to the Automatic View Capture functionality, allowing attributes to be added to traces (`TTFR` and `TTI`) using the `addAttributesToTrace(_:)` method.
-
-* Fixes:
+* Fixes
     * Fixed an issue causing crashes in views controllers with very short lifecycles (particularly in hosting controllers acting as internal bridges in SwiftUI).
     * Fixed a bug causing compilation issues related to the use of `DispatchQueue`.
 
