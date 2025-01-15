@@ -244,16 +244,20 @@ final class EmbraceCoreTests: XCTestCase {
             )
 
             // I use random string for group id to ensure a different storage location each time
-            try Embrace.client = Embrace(options: .init(
+            let options = Embrace.Options(
                 appId: "testA",
                 appGroupId: randomString(length: 5),
                 endpoints: endpoints,
                 captureServices: [],
                 crashReporter: crashReporter
-            ), embraceStorage: storage)
+            )
+
+            try Embrace.client = Embrace(options: options, embraceStorage: storage)
             XCTAssertNotNil(Embrace.client)
+
             let embrace = Embrace.client
             Embrace.client = nil
+            
             return embrace
         }
     }

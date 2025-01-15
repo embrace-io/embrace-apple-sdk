@@ -37,6 +37,7 @@ class SessionController: SessionControllable {
     weak var storage: EmbraceStorage?
     weak var upload: EmbraceUpload?
     weak var config: EmbraceConfig?
+    weak var sdkStateProvider: EmbraceSDKStateProvider?
 
     private var backgroundSessionsEnabled: Bool {
         return config?.isBackgroundSessionEnabled == true
@@ -72,6 +73,10 @@ class SessionController: SessionControllable {
         heartbeat.stop()
     }
 
+    func clear() {
+        delete()
+    }
+
     @discardableResult
     func startSession(state: SessionState) -> SessionRecord? {
         return startSession(state: state, startTime: Date())
@@ -84,7 +89,7 @@ class SessionController: SessionControllable {
             endSession()
         }
 
-        guard isSDKEnabled else {
+        guard sdkStateProvider?.isEnabled == true else {
             return nil
         }
 
@@ -153,7 +158,7 @@ class SessionController: SessionControllable {
             heartbeat.stop()
             let now = Date()
 
-            guard isSDKEnabled else {
+            guard sdkStateProvider?.isEnabled == true else {
                 delete()
                 return now
             }
@@ -252,13 +257,6 @@ extension SessionController {
 
         currentSession = nil
         currentSessionSpan = nil
-    }
-    
-    private var isSDKEnabled: Bool {
-        guard let config = config else {
-            return true
-        }
-        return config.isSDKEnabled
     }
 }
 

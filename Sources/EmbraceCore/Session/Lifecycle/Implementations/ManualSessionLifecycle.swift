@@ -7,23 +7,33 @@ import Foundation
 class ManualSessionLifecycle: SessionLifecycle {
 
     weak var controller: SessionControllable?
+    var active = false
 
     init(controller: SessionControllable) {
         self.controller = controller
     }
 
     func setup() {
+        active = true
     }
 
-    func start() {
-
+    func stop() { 
+        active = false
     }
 
     func startSession() {
+        guard active else {
+            return
+        }
+
         controller?.startSession(state: .foreground)
     }
 
     func endSession() {
+        guard active else {
+            return
+        }
+
         controller?.endSession()
     }
 }

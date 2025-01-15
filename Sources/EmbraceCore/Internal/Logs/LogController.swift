@@ -7,7 +7,6 @@ import EmbraceStorageInternal
 import EmbraceUploadInternal
 import EmbraceCommonInternal
 import EmbraceSemantics
-import EmbraceConfigInternal
 
 protocol LogControllable: LogBatcherDelegate {
     func uploadAllPersistedLogs()
@@ -17,26 +16,19 @@ class LogController: LogControllable {
     private(set) weak var sessionController: SessionControllable?
     private weak var storage: Storage?
     private weak var upload: EmbraceLogUploader?
-    private weak var config: EmbraceConfig?
+
+    weak var sdkStateProvider: EmbraceSDKStateProvider?
+
     /// This will probably be injected eventually.
     /// For consistency, I created a constant
     static let maxLogsPerBatch: Int = 20
 
-    private var isSDKEnabled: Bool {
-        guard let config = config else {
-            return true
-        }
-        return config.isSDKEnabled
-    }
-
     init(storage: Storage?,
          upload: EmbraceLogUploader?,
-         controller: SessionControllable,
-         config: EmbraceConfig?) {
+         controller: SessionControllable) {
         self.storage = storage
         self.upload = upload
         self.sessionController = controller
-        self.config = config
     }
 
     func uploadAllPersistedLogs() {
@@ -57,7 +49,7 @@ class LogController: LogControllable {
 
 extension LogController {
     func batchFinished(withLogs logs: [LogRecord]) {
-        guard isSDKEnabled else {
+        guard sdkStateProvider?.isEnabled == true else {
             return
         }
 
@@ -76,7 +68,7 @@ extension LogController {
 
 private extension LogController {
     func send(batches: [LogsBatch]) {
-        guard isSDKEnabled else {
+        guard sdkStateProvider?.isEnabled == true else {
             return
         }
 
