@@ -308,7 +308,7 @@ jobs:
       - name: Record SDK Version History
         if: env.IS_PRODUCTION_READY == 'true'
         run: |
-          curl -f -X POST ${{ vars.SDK_VERSION_URL }}/ios/version/ -H 'X-Embrace-CI: ${{ secrets.SDK_VERSION_TOKEN }}' -H 'Content-Type: application/json' -d '{"version": "${{ RC_VERSION }}"}'
+          curl -f -X POST ${{ vars.SDK_VERSION_URL }}/ios/version/ -H 'X-Embrace-CI: ${{ secrets.SDK_VERSION_TOKEN }}' -H 'Content-Type: application/json' -d '{"version": "${{ env.RC_VERSION }}"}'
 
 
 # Note: missing/removed steps from old sdk
