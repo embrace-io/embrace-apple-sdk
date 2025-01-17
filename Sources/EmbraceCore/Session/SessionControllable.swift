@@ -20,4 +20,6 @@ protocol SessionControllable: AnyObject {
 
     func update(state: SessionState)
     func update(appTerminated: Bool)
+
+    func clear()
 }

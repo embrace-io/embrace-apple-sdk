@@ -15,13 +15,16 @@ public class SingleSpanProcessor: SpanProcessor {
     let spanExporter: SpanExporter
     private let processorQueue = DispatchQueue(label: "io.embrace.spanprocessor", qos: .utility)
 
+    weak var sdkStateProvider: EmbraceSDKStateProvider?
+
     @ThreadSafe var autoTerminationSpans: [SpanId: SpanAutoTerminationData] = [:]
 
     /// Returns a new SingleSpanProcessor that converts spans to SpanData and forwards them to
     /// the given spanExporter.
     /// - Parameter spanExporter: the SpanExporter to where the Spans are pushed.
-    public init(spanExporter: SpanExporter) {
+    public init(spanExporter: SpanExporter, sdkStateProvider: EmbraceSDKStateProvider) {
         self.spanExporter = spanExporter
+        self.sdkStateProvider = sdkStateProvider
     }
 
     public func autoTerminateSpans() {
@@ -41,6 +44,10 @@ public class SingleSpanProcessor: SpanProcessor {
     public let isEndRequired: Bool = true
 
     public func onStart(parentContext: SpanContext?, span: OpenTelemetrySdk.ReadableSpan) {
+        guard sdkStateProvider?.isEnabled == true else {
+            return
+        }
+
         let exporter = self.spanExporter
 
         let data = span.toSpanData()
@@ -50,7 +57,7 @@ public class SingleSpanProcessor: SpanProcessor {
             autoTerminationSpans[data.spanId] = SpanAutoTerminationData(
                 span: span,
                 spanData: data,
-                code: code, 
+                code: code,
                 parentId: data.parentSpanId
             )
         }
@@ -61,6 +68,10 @@ public class SingleSpanProcessor: SpanProcessor {
     }
 
     public func onEnd(span: OpenTelemetrySdk.ReadableSpan) {
+        guard sdkStateProvider?.isEnabled == true else {
+            return
+        }
+
         var data = span.toSpanData()
         if data.hasEnded && data.status == .unset {
             if let errorCode = data.errorCode {
@@ -76,6 +87,10 @@ public class SingleSpanProcessor: SpanProcessor {
     }
 
     public func flush(span: OpenTelemetrySdk.ReadableSpan) {
+        guard sdkStateProvider?.isEnabled == true else {
+            return
+        }
+
         let data = span.toSpanData()
 
         // update cache if needed
@@ -94,6 +109,10 @@ public class SingleSpanProcessor: SpanProcessor {
     }
 
     public func forceFlush(timeout: TimeInterval?) {
+        guard sdkStateProvider?.isEnabled == true else {
+            return
+        }
+
         _ = processorQueue.sync { spanExporter.flush() }
     }
 

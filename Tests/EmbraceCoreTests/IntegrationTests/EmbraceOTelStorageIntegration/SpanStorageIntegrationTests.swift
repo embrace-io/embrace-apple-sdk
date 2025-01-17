@@ -14,12 +14,13 @@ import TestSupport
 final class SpanStorageIntegrationTests: IntegrationTestCase {
 
     var storage: EmbraceStorage!
+    let sdkStateProvider = MockEmbraceSDKStateProvider()
 
     override func setUpWithError() throws {
         storage = try EmbraceStorage.createInMemoryDb()
         let exporter = StorageSpanExporter(options: .init(storage: storage), logger: MockLogger())
 
-        EmbraceOTel.setup(spanProcessors: [SingleSpanProcessor(spanExporter: exporter)])
+        EmbraceOTel.setup(spanProcessors: [SingleSpanProcessor(spanExporter: exporter, sdkStateProvider: sdkStateProvider)])
     }
 
     override func tearDownWithError() throws {

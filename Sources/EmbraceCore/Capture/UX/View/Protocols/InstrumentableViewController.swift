@@ -67,7 +67,7 @@ public extension InstrumentableViewController {
             startTime: startTime,
             endTime: endTime,
             attributes: attributes
-        )	
+        )
     }
 
     /// Method used to add attributes to the active trace associated with the render process of a `UIViewController`.

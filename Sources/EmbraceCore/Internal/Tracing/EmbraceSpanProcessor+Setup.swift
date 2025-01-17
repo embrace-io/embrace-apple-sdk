@@ -5,16 +5,22 @@
 import Foundation
 import EmbraceOTelInternal
 import EmbraceStorageInternal
+import EmbraceCommonInternal
 import OpenTelemetrySdk
 
 extension Collection where Element == SpanProcessor {
-    static func processors(for storage: EmbraceStorage, export: OpenTelemetryExport?) -> [SpanProcessor] {
+    static func processors(
+        for storage: EmbraceStorage,
+        export: OpenTelemetryExport?,
+        sdkStateProvider: EmbraceSDKStateProvider
+    ) -> [SpanProcessor] {
         var processors: [SpanProcessor] = [
             SingleSpanProcessor(
                 spanExporter: StorageSpanExporter(
                     options: .init(storage: storage),
                     logger: Embrace.logger
-                )
+                ),
+                sdkStateProvider: sdkStateProvider
             )
         ]
 

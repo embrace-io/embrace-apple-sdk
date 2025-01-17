@@ -20,6 +20,8 @@ class MockSessionController: SessionControllable {
 
     var currentSession: SessionRecord?
 
+    func clear() { }
+
     @discardableResult
     func startSession(state: SessionState) -> SessionRecord? {
         return startSession(state: state, startTime: Date())

@@ -11,6 +11,9 @@ import OpenTelemetryApi
 import OpenTelemetrySdk
 
 final class GenericLogExporterTests: XCTestCase {
+
+    let sdkStateProvider = MockEmbraceSDKStateProvider()
+
     class DummyLogControllable: LogControllable {
         func uploadAllPersistedLogs() {}
         func batchFinished(withLogs logs: [LogRecord]) {}
@@ -21,7 +24,8 @@ final class GenericLogExporterTests: XCTestCase {
         let sharedState = DefaultEmbraceLogSharedState.create(
             storage: try .createInMemoryDb(),
             controller: DummyLogControllable(),
-            exporter: exporter
+            exporter: exporter,
+            sdkStateProvider: sdkStateProvider
         )
         EmbraceOTel.setup(logSharedState: sharedState)
 

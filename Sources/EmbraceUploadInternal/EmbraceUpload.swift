@@ -79,7 +79,7 @@ public class EmbraceUpload: EmbraceLogUploader {
 
                 // clear data from cache that shouldn't be retried as it's stale
                 self.clearCacheFromStaleData()
-                
+
                 // get all the data cached first, is the only thing that could throw
                 let cachedObjects = try self.cache.fetchAllUploadData()
 

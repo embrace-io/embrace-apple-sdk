@@ -14,6 +14,7 @@ import UIKit
 final class iOSSessionLifecycle: SessionLifecycle {
 // swiftlint:enable type_name
 
+    var active: Bool = false
     weak var controller: SessionControllable?
     var currentState: SessionState = .background
 
@@ -31,17 +32,27 @@ final class iOSSessionLifecycle: SessionLifecycle {
 
         let appState = UIApplication.shared.applicationState
         currentState = appState == .background ? .background : .foreground
+
+        active = true
     }
 
-    func start() {
-        startSession()
+    func stop() {
+        active = false
     }
 
     func startSession() {
+        guard active else {
+            return
+        }
+
         controller?.startSession(state: currentState)
     }
 
     func endSession() {
+        guard active else {
+            return
+        }
+
         // there's always an active session!
         // starting a new session will end the current one (if any)
         controller?.startSession(state: currentState)
@@ -81,7 +92,8 @@ extension iOSSessionLifecycle {
     @objc func appDidBecomeActive() {
         currentState = .foreground
 
-        guard let controller = controller else {
+        guard let controller = controller,
+            active else {
             return
         }
 
@@ -113,7 +125,8 @@ extension iOSSessionLifecycle {
     @objc func appDidEnterBackground() {
         currentState = .background
 
-        guard let controller = controller else {
+        guard let controller = controller,
+            active else {
             return
         }
 

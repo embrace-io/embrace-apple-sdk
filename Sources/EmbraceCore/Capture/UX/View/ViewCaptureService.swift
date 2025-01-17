@@ -106,8 +106,7 @@ private extension ViewCaptureService {
                 selector: selector,
                 implementationType: (@convention(c) (UIViewController, Selector) -> Void).self,
                 blockImplementationType: (@convention(block) (UIViewController) -> Void).self
-            ) { originalImplementation in
-                { viewController in
+            ) { originalImplementation in { viewController in
                     // If the state was already fulfilled, then call the original implementation.
                     if let state = viewController.emb_instrumentation_state, state.viewDidLoadSpanCreated {
                         originalImplementation(viewController, selector)
@@ -133,8 +132,7 @@ private extension ViewCaptureService {
                 selector: selector,
                 implementationType: (@convention(c) (UIViewController, Selector, Bool) -> Void).self,
                 blockImplementationType: (@convention(block) (UIViewController, Bool) -> Void).self
-            ) { originalImplementation in
-                { viewController, animated in
+            ) { originalImplementation in { viewController, animated in
                     // If by this time (`viewWillAppear` being called) there's no `emb_instrumentation_state` associated
                     // to the viewController, then we don't swizzle as the "instrument render" feature might be disabled.
                     if let state = viewController.emb_instrumentation_state {
@@ -173,8 +171,7 @@ private extension ViewCaptureService {
                 selector: selector,
                 implementationType: (@convention(c) (UIViewController, Selector, Bool) -> Void).self,
                 blockImplementationType: (@convention(block) (UIViewController, Bool) -> Void).self
-            ) { originalImplementation in
-                { viewController, animated in
+            ) { originalImplementation in { viewController, animated in
                     // If the state was already fulfilled, then call the original implementation.
                     if let state = viewController.emb_instrumentation_state, state.viewDidAppearSpanCreated {
                         originalImplementation(viewController, selector, animated)
@@ -206,8 +203,7 @@ private extension ViewCaptureService {
                 selector: selector,
                 implementationType: (@convention(c) (UIViewController, Selector, Bool) -> Void).self,
                 blockImplementationType: (@convention(block) (UIViewController, Bool) -> Void).self
-            ) { originalImplementation in
-                { viewController, animated in
+            ) { originalImplementation in { viewController, animated in
                     self.handler.onViewDidDisappear(viewController)
                     originalImplementation(viewController, selector, animated)
                 }
@@ -229,8 +225,7 @@ private extension ViewCaptureService {
                 blockImplementationType: (
                     @convention(block) (UIViewController, NSCoder) -> UIViewController?
                 ).self
-            ) { originalImplementation in
-                { viewController, coder in
+            ) { originalImplementation in { viewController, coder in
                     // Get the class and bundle path of the view controller being initialized and check
                     // if the view controller belongs to the main bundle (this excludes, for eaxmple, UIKit classes)
                     let viewControllerClass = type(of: viewController)
@@ -266,8 +261,7 @@ private extension ViewCaptureService {
                 blockImplementationType: (
                     @convention(block) (UIViewController, String?, Bundle?) -> UIViewController
                 ).self
-            ) { originalImplementation in
-                { viewController, nibName, bundle in
+            ) { originalImplementation in { viewController, nibName, bundle in
                     // Get the class and bundle path of the view controller being initialized and check
                     // if the view controller belongs to the main bundle (this excludes, for eaxmple, UIKit classes)
                     let viewControllerClass = type(of: viewController)
