@@ -244,7 +244,7 @@ class EmbraceUploadTests: XCTestCase {
 
     func test_attachmentsEndpoint() throws {
         // when uploading attachment data
-        module.uploadLog(id: "id", data: TestConstants.data, completion: nil)
+        module.uploadAttachment(id: "id", data: TestConstants.data, completion: nil)
 
         wait(delay: .defaultTimeout)
 

@@ -9,7 +9,6 @@ public enum EmbraceUploadErrorCode: Int {
     case invalidMetadata = 1000
     case invalidData = 1001
     case operationCancelled = 1002
-    case attachmentUploadFailed = 1003
 }
 
 public enum EmbraceUploadError: Error, Equatable {

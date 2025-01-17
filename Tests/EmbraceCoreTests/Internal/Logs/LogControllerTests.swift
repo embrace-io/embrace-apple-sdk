@@ -236,7 +236,7 @@ class LogControllerTests: XCTestCase {
         givenFailingLogUploader()
         givenLogController()
         whenCreatingLogWithAttachment()
-        thenLogWithUnsuccessfulAttachmentIsCreatedCorrectly(errorCode: "UNSUCCESSFUL_UPLOAD")
+        thenLogWithUnsuccessfulAttachmentIsCreatedCorrectly(errorCode: nil)
     }
 
     func test_createLogWithPreuploadedAttachment() throws {
@@ -431,13 +431,13 @@ private extension LogControllerTests {
         }
     }
 
-    func thenLogWithUnsuccessfulAttachmentIsCreatedCorrectly(errorCode: String) {
+    func thenLogWithUnsuccessfulAttachmentIsCreatedCorrectly(errorCode: String?) {
         wait {
             let log = self.otelBridge.otel.logs.first
 
             let attachmentIdFound = log!.attributes["emb.attachment_id"] != nil
             let attachmentSizeFound = log!.attributes["emb.attachment_size"] != nil
-            let attachmentErrorFound = log!.attributes["emb.attachment_error_code"]!.description == errorCode
+            let attachmentErrorFound = errorCode == nil || log!.attributes["emb.attachment_error_code"]!.description == errorCode
 
             return attachmentIdFound && attachmentSizeFound && attachmentErrorFound
         }

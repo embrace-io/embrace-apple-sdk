@@ -112,10 +112,10 @@ class LogController: LogControllable {
             .addSessionIdentifier()
             .build()
 
-        var send = true
-
         // handle attachment data
         if let attachment = attachment {
+
+            sessionController.increaseAttachmentCount()
 
             let id = UUID().withoutHyphen
             finalAttributes[LogSemantics.keyAttachmentId] = id
@@ -134,18 +134,7 @@ class LogController: LogControllable {
 
             // upload attachment
             else {
-                send = false
-
-                upload?.uploadAttachment(id: id, data: attachment, completion: { [weak self] result in
-                    switch result {
-                    case .success:
-                        self?.sessionController?.increaseAttachmentCount()
-                    case .failure:
-                        finalAttributes[LogSemantics.keyAttachmentErrorCode] = LogSemantics.attachmentFailedUpload
-                    }
-
-                    self?.otel.log(message, severity: severity, timestamp: timestamp, attributes: finalAttributes)
-                })
+                upload?.uploadAttachment(id: id, data: attachment, completion: nil)
             }
         }
 
@@ -161,9 +150,7 @@ class LogController: LogControllable {
             }
         }
 
-        if send {
-            otel.log(message, severity: severity, timestamp: timestamp, attributes: finalAttributes)
-        }
+        otel.log(message, severity: severity, timestamp: timestamp, attributes: finalAttributes)
     }
 }
 

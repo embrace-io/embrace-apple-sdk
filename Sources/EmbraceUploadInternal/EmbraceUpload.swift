@@ -162,7 +162,9 @@ public class EmbraceUpload: EmbraceLogUploader {
         data: Data,
         type: EmbraceUploadType,
         attemptCount: Int = 0,
-        completion: ((Result<(), Error>) -> Void)?) {
+        completion: ((Result<(), Error>) -> Void)?
+    ) {
+
         // validate identifier
         guard id.isEmpty == false else {
             completion?(.failure(EmbraceUploadError.internalError(.invalidMetadata)))
@@ -176,59 +178,41 @@ public class EmbraceUpload: EmbraceLogUploader {
         }
 
         // cache operation
-        var cacheOperation: BlockOperation?
-
-        if type != .attachment {
-            cacheOperation = BlockOperation { [weak self] in
-                do {
-                    try self?.cache.saveUploadData(id: id, type: type, data: data)
-                    completion?(.success(()))
-                } catch {
-                    self?.logger.debug("Error caching upload data: \(error.localizedDescription)")
-                    completion?(.failure(error))
-                }
+        let cacheOperation = BlockOperation { [weak self] in
+            do {
+                try self?.cache.saveUploadData(id: id, type: type, data: data)
+                completion?(.success(()))
+            } catch {
+                self?.logger.debug("Error caching upload data: \(error.localizedDescription)")
+                completion?(.failure(error))
             }
         }
 
         // upload operation
-        let retryCount = type != .attachment ?
-            options.redundancy.automaticRetryCount :
-            options.redundancy.attachmentRetryCount
-
         let uploadOperation = createUploadOperation(
             id: id,
             type: type,
             urlSession: urlSession,
             data: data,
-            retryCount: retryCount,
+            retryCount: options.redundancy.automaticRetryCount,
             attemptCount: attemptCount) { [weak self] (result, attemptCount) in
 
             self?.queue.async { [weak self] in
 
-                if type == .attachment {
-                    switch result {
-                    case .success: completion?(.success(()))
-                    case .failure: completion?(.failure(EmbraceUploadError.internalError(.attachmentUploadFailed)))
-                    }
-                } else {
-                    self?.handleOperationFinished(
-                        id: id,
-                        type: type,
-                        result: result,
-                        attemptCount: attemptCount
-                    )
+                self?.handleOperationFinished(
+                    id: id,
+                    type: type,
+                    result: result,
+                    attemptCount: attemptCount
+                )
 
-                    self?.clearCacheFromStaleData()
-                }
+                self?.clearCacheFromStaleData()
             }
         }
 
         // queue operations
-        if let cacheOperation = cacheOperation {
-            uploadOperation.addDependency(cacheOperation)
-            operationQueue.addOperation(cacheOperation)
-        }
-
+        uploadOperation.addDependency(cacheOperation)
+        operationQueue.addOperation(cacheOperation)
         operationQueue.addOperation(uploadOperation)
     }
 

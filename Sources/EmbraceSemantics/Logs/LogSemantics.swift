@@ -19,6 +19,5 @@ public struct LogSemantics {
     public static let keyAttachmentErrorCode = "emb.attachment_error_code"
 
     public static let attachmentTooLarge = "ATTACHMENT_TOO_LARGE"
-    public static let attachmentFailedUpload = "UNSUCCESSFUL_UPLOAD"
     public static let attachmentLimitReached = "OVER_MAX_ATTACHMENTS"
 }

@@ -15,9 +15,6 @@ public extension EmbraceUpload {
         /// Enable to automatically try to send any unsent cached data when the phone regains internet connection.
         public let retryOnInternetConnected: Bool
 
-        /// The amount of times an attachment upload can be retried
-        public let attachmentRetryCount: Int
-
         /// Defines the behavior to use when retrying requests
         public let exponentialBackoffBehavior: ExponentialBackoff
 
@@ -25,13 +22,11 @@ public extension EmbraceUpload {
             automaticRetryCount: Int = 3,
             maximumAmountOfRetries: Int = 20,
             retryOnInternetConnected: Bool = true,
-            attachmentRetryCount: Int = 3,
             exponentialBackoffBehavior: ExponentialBackoff = .init()
         ) {
             self.automaticRetryCount = automaticRetryCount
             self.maximumAmountOfRetries = maximumAmountOfRetries
             self.retryOnInternetConnected = retryOnInternetConnected
-            self.attachmentRetryCount = attachmentRetryCount
             self.exponentialBackoffBehavior = exponentialBackoffBehavior
         }
     }
