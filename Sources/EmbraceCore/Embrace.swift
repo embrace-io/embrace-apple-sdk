@@ -9,7 +9,6 @@ import EmbraceOTelInternal
 import EmbraceStorageInternal
 import EmbraceUploadInternal
 import EmbraceObjCUtilsInternal
-import OpenTelemetryApi
 
 /**
  Main class used to interact with the Embrace SDK.
@@ -40,8 +39,14 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
     /// The `Embrace.Options` that were used to configure the SDK.
     @objc public private(set) var options: Embrace.Options
 
+    /// Returns the current state of the SDK.
+    @objc public private(set) var state: EmbraceSDKState = .notInitialized
+
     /// Returns whether the SDK was started.
-    @objc public private(set) var started: Bool
+    @available(*, deprecated, message: "Use `state` instead.")
+    @objc public var started: Bool {
+        return state == .started
+    }
 
     /// Returns the `DeviceIdentifier` used by Embrace for the current device.
     public private(set) var deviceId: DeviceIdentifier
@@ -56,7 +61,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
     /// Returns true if the SDK is started and was not disabled through remote configurations.
     @objc public var isSDKEnabled: Bool {
         let remoteConfigEnabled = config?.isSDKEnabled ?? true
-        return started && remoteConfigEnabled
+        return state == .started && remoteConfigEnabled
     }
 
     /// Returns the version of the Embrace SDK.
@@ -76,8 +81,6 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
 
     let sessionController: SessionController
     let sessionLifecycle: SessionLifecycle
-
-    var isFirstStart: Bool = true
 
     private let processingQueue = DispatchQueue(
         label: "com.embrace.processing",
@@ -122,6 +125,8 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
             try options.validate()
 
             client = try Embrace(options: options)
+            client?.state = .initialized
+
             if let client = client {
                 client.recordSetupSpan(startTime: startTime)
                 return client
@@ -142,9 +147,8 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
     init(options: Embrace.Options,
          logControllable: LogControllable? = nil,
          embraceStorage: EmbraceStorage? = nil) throws {
-        self.started = false
-        self.options = options
 
+        self.options = options
         self.logLevel = options.logLevel
 
         self.storage = try embraceStorage ?? Embrace.createStorage(options: options)
@@ -180,7 +184,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         logController?.sdkStateProvider = self
 
         // setup otel
-        EmbraceOTel.setup(spanProcessors: .processors(for: storage, export: options.export))
+        EmbraceOTel.setup(spanProcessors: .processors(for: storage, export: options.export, sdkStateProvider: self))
         let logSharedState = DefaultEmbraceLogSharedState.create(
             storage: self.storage,
             controller: self.logController,
@@ -212,8 +216,8 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         sessionLifecycle.setup()
 
         Embrace.synchronizationQueue.sync {
-            guard started == false else {
-                Embrace.logger.warning("Embrace was already started!")
+            guard state == .initialized else {
+                Embrace.logger.warning("The Embrace SDK can only be started once!")
                 return
             }
 
@@ -222,52 +226,34 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
                 return
             }
 
-            let first = isFirstStart
-            isFirstStart = false
+            let processStartSpan = createProcessStartSpan()
+            defer { processStartSpan.end() }
 
-            let processStartSpan: Span? = first ? createProcessStartSpan() : nil
-            defer { processStartSpan?.end() }
+            recordSpan(name: "emb-sdk-start", parent: processStartSpan, type: .performance) { _ in
+                state = .started
 
-            let block: ()->Void = {
-                self.started = true
-
-                self.sessionLifecycle.startSession()
-
-                if first {
-                    self.captureServices.install()
-                }
+                sessionLifecycle.startSession()
+                captureServices.install()
 
                 self.processingQueue.async { [weak self] in
 
                     self?.captureServices.start()
 
-                    if first {
-                        // fetch crash reports and link them to sessions
-                        // then upload them
-                        UnsentDataHandler.sendUnsentData(
-                            storage: self?.storage,
-                            upload: self?.upload,
-                            otel: self,
-                            logController: self?.logController,
-                            currentSessionId: self?.sessionController.currentSession?.id,
-                            crashReporter: self?.captureServices.crashReporter
-                        )
-                    }
+                    // fetch crash reports and link them to sessions
+                    // then upload them
+                    UnsentDataHandler.sendUnsentData(
+                        storage: self?.storage,
+                        upload: self?.upload,
+                        otel: self,
+                        logController: self?.logController,
+                        currentSessionId: self?.sessionController.currentSession?.id,
+                        crashReporter: self?.captureServices.crashReporter
+                    )
 
                     // retry any remaining cached upload data
                     self?.upload?.retryCachedData()
                 }
             }
-
-            if first {
-                recordSpan(name: "emb-sdk-start", parent: processStartSpan, type: .performance) { _ in
-                    block()
-                }
-            } else {
-                block()
-            }
-
-            isFirstStart = false
         }
 
         return self
@@ -276,6 +262,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
     /// Method used to stop the Embrace SDK from capturing and generating data.
     /// - Throws: `EmbraceSetupError.invalidThread` if not called from the main thread.
     /// - Note: This method won't do anything if the Embrace SDK was already stopped.
+    /// - Note: The SDK can't be started again once stopped.
     /// - Returns: The `Embrace` client instance.
     @discardableResult
     @objc public func stop() throws -> Embrace {
@@ -284,12 +271,17 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         }
 
         Embrace.synchronizationQueue.sync {
-            guard started == true else {
+            guard state != .stopped else {
                 Embrace.logger.warning("Embrace was already stopped!")
                 return
             }
 
-            started = false
+            guard state == .started else {
+                Embrace.logger.warning("Embrace was not started so it can't be stopped!")
+                return
+            }
+
+            state = .stopped
 
             sessionLifecycle.stop()
             sessionController.clear()

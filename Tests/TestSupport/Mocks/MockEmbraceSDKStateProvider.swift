@@ -3,7 +3,7 @@
 //
 
 import Foundation
-@testable import EmbraceCore
+import EmbraceCommonInternal
 
 public class MockEmbraceSDKStateProvider: EmbraceSDKStateProvider {
     public var isEnabled: Bool = true

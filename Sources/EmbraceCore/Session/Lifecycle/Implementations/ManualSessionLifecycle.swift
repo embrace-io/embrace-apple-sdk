@@ -17,7 +17,7 @@ class ManualSessionLifecycle: SessionLifecycle {
         active = true
     }
 
-    func stop() { 
+    func stop() {
         active = false
     }
 
