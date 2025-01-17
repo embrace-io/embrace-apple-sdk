@@ -125,8 +125,6 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
             try options.validate()
 
             client = try Embrace(options: options)
-            client?.state = .initialized
-
             if let client = client {
                 client.recordSetupSpan(startTime: startTime)
                 return client
@@ -200,6 +198,8 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
             selector: #selector(onConfigUpdated),
             name: .embraceConfigUpdated, object: nil
         )
+
+        state = .initialized
     }
 
     /// Method used to start the Embrace SDK.
