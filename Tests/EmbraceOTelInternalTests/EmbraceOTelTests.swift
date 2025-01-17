@@ -10,6 +10,8 @@ import TestSupport
 
 final class EmbraceOTelTests: XCTestCase {
 
+    let sdkStateProvider = MockEmbraceSDKStateProvider()
+
     class DummyLogControllable: LogControllable {
         func uploadAllPersistedLogs() {}
         func batchFinished(withLogs logs: [LogRecord]) {}
@@ -23,7 +25,8 @@ final class EmbraceOTelTests: XCTestCase {
         EmbraceOTel.setup(logSharedState: DefaultEmbraceLogSharedState.create(
             storage: try .createInMemoryDb(),
             controller: DummyLogControllable(),
-            exporter: logExporter
+            exporter: logExporter,
+            sdkStateProvider: sdkStateProvider
         ))
     }
 
