@@ -62,7 +62,12 @@ class EmbraceUploadOperation: AsyncOperation {
     }
 
     override func execute() {
-        let request = createRequest()
+        let request = createRequest(
+            endpoint: endpoint,
+            data: data,
+            identifier: identifier,
+            metadataOptions: metadataOptions
+        )
 
         sendRequest(request, retryCount: retryCount)
     }
@@ -157,7 +162,7 @@ class EmbraceUploadOperation: AsyncOperation {
         // retry for all other non-handled cases with errors
         return error != nil
     }
-    
+
     /// Extracts the suggested delay from `Retry-After` header from the `URLResponse` if present.
     /// - Parameter response: the URLResponse recevied when executing a request.
     /// - Returns:the time in seconds (as `Int`) extracted from the `Retry-After` header.
@@ -171,7 +176,13 @@ class EmbraceUploadOperation: AsyncOperation {
         return retryAfterDelay
     }
 
-    private func createRequest() -> URLRequest {
+    func createRequest(
+        endpoint: URL,
+        data: Data,
+        identifier: String,
+        metadataOptions: EmbraceUpload.MetadataOptions
+    ) -> URLRequest {
+
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.httpBody = data

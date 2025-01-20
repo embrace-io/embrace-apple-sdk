@@ -54,22 +54,9 @@ public final class EmbraceOTel: NSObject {
             instrumentationVersion: instrumentationVersion
         )
     }
+}
 
-    // MARK: - Tracing
-
-    public func recordSpan<T>(
-        name: String,
-        type: SpanType,
-        attributes: [String: String] = [:],
-        spanOperation: () -> T
-    ) -> T {
-        let span = buildSpan(name: name, type: type, attributes: attributes)
-                        .startSpan()
-        let result = spanOperation()
-        span.end()
-
-        return result
-    }
+extension EmbraceOTel: EmbraceOTelBridge {
 
     public func buildSpan(
         name: String,
@@ -90,16 +77,6 @@ public final class EmbraceOTel: NSObject {
         return builder
     }
 
-    // MARK: - Logging
-
-    public func log(
-        _ message: String,
-        severity: LogSeverity,
-        attributes: [String: String]
-    ) {
-        log(message, severity: severity, timestamp: Date(), attributes: attributes)
-    }
-
     public func log(
         _ message: String,
         severity: LogSeverity,
@@ -117,4 +94,19 @@ public final class EmbraceOTel: NSObject {
             .setSeverity(Severity.fromLogSeverity(severity) ?? .info)
             .emit()
     }
+}
+
+public protocol EmbraceOTelBridge: AnyObject {
+    func buildSpan(
+        name: String,
+        type: SpanType,
+        attributes: [String: String]
+    ) -> SpanBuilder
+
+    func log(
+        _ message: String,
+        severity: LogSeverity,
+        timestamp: Date,
+        attributes: [String: String]
+    )
 }

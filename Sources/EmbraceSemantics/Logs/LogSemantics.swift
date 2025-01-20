@@ -12,4 +12,12 @@ public struct LogSemantics {
     public static let keySessionId = "session.id"
     public static let keyStackTrace = "emb.stacktrace.ios"
     public static let keyPropertiesPrefix = "emb.properties.%@"
+
+    public static let keyAttachmentId = "emb.attachment_id"
+    public static let keyAttachmentSize = "emb.attachment_size"
+    public static let keyAttachmentUrl = "emb.attachment_url"
+    public static let keyAttachmentErrorCode = "emb.attachment_error_code"
+
+    public static let attachmentTooLarge = "ATTACHMENT_TOO_LARGE"
+    public static let attachmentLimitReached = "OVER_MAX_ATTACHMENTS"
 }

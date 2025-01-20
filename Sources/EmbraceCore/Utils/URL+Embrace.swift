@@ -18,4 +18,8 @@ extension URL {
     static func logsEndpoint(basePath: String) -> URL? {
         return endpoint(basePath: basePath, apiPath: "/v2/logs")
     }
+
+    static func attachmentsEndpoint(basePath: String) -> URL? {
+        return endpoint(basePath: basePath, apiPath: "/v2/attachments")
+    }
 }

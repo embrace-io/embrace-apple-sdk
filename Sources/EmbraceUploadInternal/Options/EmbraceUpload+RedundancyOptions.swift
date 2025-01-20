@@ -7,16 +7,16 @@ import Foundation
 public extension EmbraceUpload {
     class RedundancyOptions {
         /// Total amount of times a request will be immediately retried in case of error. Use 0 to disable.
-        public var automaticRetryCount: Int
+        public let automaticRetryCount: Int
 
         /// Total amount of times a request could be retried.
-        public var maximumAmountOfRetries: Int
+        public let maximumAmountOfRetries: Int
 
         /// Enable to automatically try to send any unsent cached data when the phone regains internet connection.
-        public var retryOnInternetConnected: Bool
+        public let retryOnInternetConnected: Bool
 
         /// Defines the behavior to use when retrying requests
-        public var exponentialBackoffBehavior: ExponentialBackoff
+        public let exponentialBackoffBehavior: ExponentialBackoff
 
         public init(
             automaticRetryCount: Int = 3,
