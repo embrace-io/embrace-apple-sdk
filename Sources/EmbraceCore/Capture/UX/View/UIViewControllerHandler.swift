@@ -90,26 +90,31 @@ class UIViewControllerHandler {
         // We generate the id here, outside of the `queue`, to ensure we're doing it while the ViewController is still alive (renerding process).
         // There could be a race condition and it's possible that the controller was released or is in the process of deallocation,
         // which could cause a crash (as this feature relies on objc_setAssociatedObject).
+        // This kind of operation should be done _for anything_ that accesses the UIViewController.
         let id = UUID().uuidString
         let state = ViewInstrumentationState()
         state.viewDidLoadSpanCreated = true
         state.identifier = id
         vc.emb_instrumentation_state = state
 
+        let className = vc.className
+        let viewName = vc.emb_viewName
+
+        // check if with need to measure time-to-render or time-to-interactive
+        let nameFormat = vc is InteractableViewController ?
+            SpanSemantics.View.timeToInteractiveName :
+            SpanSemantics.View.timeToFirstRenderName
+
         queue.async {
             // generate parent span
-            let className = vc.className
 
-            // check if with need to measure time-to-render or time-to-interactive
-            let nameFormat = vc is InteractableViewController ?
-                SpanSemantics.View.timeToInteractiveName :
-                SpanSemantics.View.timeToFirstRenderName
 
             let spanName = nameFormat.replacingOccurrences(of: "NAME", with: className)
 
             let parentSpan = self.createSpan(
                 with: otel,
-                vc: vc,
+                viewName: viewName,
+                className: className,
                 name: spanName,
                 startTime: now
             )
@@ -117,7 +122,8 @@ class UIViewControllerHandler {
             // generate view did load span
             let viewDidLoadSpan = self.createSpan(
                 with: otel,
-                vc: vc,
+                viewName: viewName,
+                className: className,
                 name: SpanSemantics.View.viewDidLoadName,
                 startTime: now,
                 parent: parentSpan
@@ -129,9 +135,11 @@ class UIViewControllerHandler {
     }
 
     func onViewDidLoadEnd(_ vc: UIViewController, now: Date = Date()) {
+        guard let id = vc.emb_instrumentation_state?.identifier else {
+            return
+        }
         queue.async {
-            guard let id = vc.emb_instrumentation_state?.identifier,
-                  let span = self.viewDidLoadSpans.removeValue(forKey: id) else {
+            guard let span = self.viewDidLoadSpans.removeValue(forKey: id) else {
                 return
             }
 
@@ -140,10 +148,17 @@ class UIViewControllerHandler {
     }
 
     func onViewWillAppearStart(_ vc: UIViewController, now: Date = Date()) {
+        guard let id = vc.emb_instrumentation_state?.identifier else {
+            return
+        }
+
         vc.emb_instrumentation_state?.viewWillAppearSpanCreated = true
+
+        let className = vc.className
+        let viewName = vc.emb_viewName
+
         queue.async {
             guard let otel = self.dataSource?.otel,
-                  let id = vc.emb_instrumentation_state?.identifier,
                   let parentSpan = self.parentSpans[id] else {
                 return
             }
@@ -151,7 +166,8 @@ class UIViewControllerHandler {
             // generate view will appear span
             let span = self.createSpan(
                 with: otel,
-                vc: vc,
+                viewName: viewName,
+                className: className,
                 name: SpanSemantics.View.viewWillAppearName,
                 startTime: now,
                 parent: parentSpan
@@ -162,9 +178,11 @@ class UIViewControllerHandler {
     }
 
     func onViewWillAppearEnd(_ vc: UIViewController, now: Date = Date()) {
+        guard let id = vc.emb_instrumentation_state?.identifier else {
+            return
+        }
         queue.async {
-            guard let id = vc.emb_instrumentation_state?.identifier,
-                  let span = self.viewWillAppearSpans.removeValue(forKey: id) else {
+            guard let span = self.viewWillAppearSpans.removeValue(forKey: id) else {
                 return
             }
 
@@ -173,10 +191,17 @@ class UIViewControllerHandler {
     }
 
     func onViewIsAppearingStart(_ vc: UIViewController, now: Date = Date()) {
+        guard let id = vc.emb_instrumentation_state?.identifier else {
+            return
+        }
+
         vc.emb_instrumentation_state?.viewIsAppearingSpanCreated = true
+
+        let className = vc.className
+        let viewName = vc.emb_viewName
+
         queue.async {
             guard let otel = self.dataSource?.otel,
-                  let id = vc.emb_instrumentation_state?.identifier,
                   let parentSpan = self.parentSpans[id] else {
                 return
             }
@@ -184,7 +209,8 @@ class UIViewControllerHandler {
             // generate view is appearing span
             let span = self.createSpan(
                 with: otel,
-                vc: vc,
+                viewName: viewName,
+                className: className,
                 name: SpanSemantics.View.viewIsAppearingName,
                 startTime: now,
                 parent: parentSpan
@@ -206,10 +232,17 @@ class UIViewControllerHandler {
     }
 
     func onViewDidAppearStart(_ vc: UIViewController, now: Date = Date()) {
+        guard let id = vc.emb_instrumentation_state?.identifier else {
+            return
+        }
+
         vc.emb_instrumentation_state?.viewDidAppearSpanCreated = true
+
+        let className = vc.className
+        let viewName = vc.emb_viewName
+
         queue.async {
             guard let otel = self.dataSource?.otel,
-                  let id = vc.emb_instrumentation_state?.identifier,
                   let parentSpan = self.parentSpans[id] else {
                 return
             }
@@ -217,7 +250,8 @@ class UIViewControllerHandler {
             // generate view did appear span
             let span = self.createSpan(
                 with: otel,
-                vc: vc,
+                viewName: viewName,
+                className: className,
                 name: SpanSemantics.View.viewDidAppearName,
                 startTime: now,
                 parent: parentSpan
@@ -238,8 +272,16 @@ class UIViewControllerHandler {
             }
         }
 
+        guard let id = vc.emb_instrumentation_state?.identifier else {
+            // This should never happen
+            return
+        }
+
+        let className = vc.className
+        let viewName = vc.emb_viewName
+
         queue.async {
-            guard let otel = self.dataSource?.otel, let id = vc.emb_instrumentation_state?.identifier else {
+            guard let otel = self.dataSource?.otel else {
                 return
             }
 
@@ -247,7 +289,8 @@ class UIViewControllerHandler {
             if self.dataSource?.instrumentVisibility == true {
                 let span = self.createSpan(
                     with: otel,
-                    vc: vc,
+                    viewName: viewName,
+                    className: className,
                     name: SpanSemantics.View.screenName,
                     type: .view,
                     startTime: now
@@ -266,13 +309,14 @@ class UIViewControllerHandler {
             // end time to first render span
             if parentSpan.isTimeToFirstRender {
                 parentSpan.end(time: now)
-                self.clear(id: id, vc: vc)
+                self.clear(id: id)
 
             // generate ui ready span
             } else {
                 let span = self.createSpan(
                     with: otel,
-                    vc: vc,
+                    viewName: viewName,
+                    className: className,
                     name: SpanSemantics.View.uiReadyName,
                     startTime: now,
                     parent: parentSpan
@@ -284,7 +328,7 @@ class UIViewControllerHandler {
                     span.end(time: now)
                     parentSpan.end(time: now)
 
-                    self.clear(id: id, vc: vc)
+                    self.clear(id: id)
 
                 // otherwise we save it to close it later
                 } else {
@@ -295,11 +339,11 @@ class UIViewControllerHandler {
     }
 
     func onViewDidDisappear(_ vc: UIViewController) {
-        queue.async {
-            guard let id = vc.emb_instrumentation_state?.identifier else {
-                return
-            }
+        guard let id = vc.emb_instrumentation_state?.identifier else {
+            return
+        }
 
+        queue.async {
             let now = Date()
 
             // end visibility span
@@ -314,9 +358,12 @@ class UIViewControllerHandler {
     }
 
     func onViewBecameInteractive(_ vc: UIViewController) {
+        guard let id = vc.emb_instrumentation_state?.identifier else {
+            return
+        }
+
         queue.async {
-            guard let id = vc.emb_instrumentation_state?.identifier,
-                  let parentSpan = self.parentSpans[id],
+            guard let parentSpan = self.parentSpans[id],
                   parentSpan.isTimeToInteractive else {
                 return
             }
@@ -327,7 +374,7 @@ class UIViewControllerHandler {
                 let now = Date()
                 span.end(time: now)
                 parentSpan.end(time: now)
-                self.clear(id: id, vc: vc)
+                self.clear(id: id)
 
             // otherwise it means the view is still loading, in this case we flag
             // the view controller so we can close the spans as soon as
@@ -369,7 +416,8 @@ class UIViewControllerHandler {
 
     private func createSpan(
         with otel: EmbraceOpenTelemetry,
-        vc: UIViewController,
+        viewName: String,
+        className: String,
         name: String,
         type: SpanType = .viewLoad,
         startTime: Date,
@@ -379,8 +427,8 @@ class UIViewControllerHandler {
             name: name,
             type: type,
             attributes: [
-                SpanSemantics.View.keyViewTitle: vc.emb_viewName,
-                SpanSemantics.View.keyViewName: vc.className
+                SpanSemantics.View.keyViewTitle: viewName,
+                SpanSemantics.View.keyViewName: className
             ],
             autoTerminationCode: nil
         )
@@ -394,7 +442,7 @@ class UIViewControllerHandler {
         return builder.startSpan()
     }
 
-    private func clear(id: String, vc: UIViewController? = nil) {
+    private func clear(id: String) {
         self.parentSpans[id] = nil
         self.viewDidLoadSpans[id] = nil
         self.viewWillAppearSpans[id] = nil
@@ -402,7 +450,6 @@ class UIViewControllerHandler {
         self.viewDidAppearSpans[id] = nil
         self.uiReadySpans[id] = nil
         self.alreadyFinishedUiReadyIds.remove(id)
-        vc?.emb_instrumentation_state = nil
     }
 }
 
