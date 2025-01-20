@@ -16,6 +16,9 @@ import OpenTelemetryApi
 public final class WebViewCaptureService: CaptureService {
 
     @objc public let options: WebViewCaptureService.Options
+    private static let knownBadProxies = [
+        "SafeDKWKNavigationDelegateInterceptor"
+    ]
     private let lock: NSLocking
     private var swizzlers: [any Swizzlable] = []
 
@@ -77,8 +80,10 @@ public final class WebViewCaptureService: CaptureService {
     // To err on the side of caution we will not inject if we detect these problematic classes in memory.
     // Currently the only known bad-actor is SafeDK/AppLovin.
     private func shouldPreventFromKnownSwizzlingErrors() -> Bool {
-        if (NSClassFromString("SafeDKWKNavigationDelegateInterceptor") != nil) {
-            return false
+        for proxy in WebViewCaptureService.knownBadProxies {
+            if NSClassFromString(proxy) != nil {
+                return false
+            }
         }
         return true
     }
