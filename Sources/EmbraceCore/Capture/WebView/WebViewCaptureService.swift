@@ -16,6 +16,9 @@ import OpenTelemetryApi
 public final class WebViewCaptureService: CaptureService {
 
     @objc public let options: WebViewCaptureService.Options
+    private static let knownBadProxies = [
+        "SafeDKWKNavigationDelegateInterceptor"
+    ]
     private let lock: NSLocking
     private var swizzlers: [any Swizzlable] = []
 
@@ -59,11 +62,30 @@ public final class WebViewCaptureService: CaptureService {
     }
 
     private func initializeSwizzlers() {
-        swizzlers.append(WKWebViewSetNavigationDelegateSwizzler(delegate: self))
-        swizzlers.append(WKWebViewLoadRequestSwizzler())
-        swizzlers.append(WKWebViewLoadHTMLStringSwizzler())
-        swizzlers.append(WKWebViewLoadFileURLSwizzler())
-        swizzlers.append(WKWebViewLoadDataSwizzler())
+        if shouldPreventFromKnownSwizzlingErrors() {
+            swizzlers.append(WKWebViewSetNavigationDelegateSwizzler(delegate: self))
+            swizzlers.append(WKWebViewLoadRequestSwizzler())
+            swizzlers.append(WKWebViewLoadHTMLStringSwizzler())
+            swizzlers.append(WKWebViewLoadFileURLSwizzler())
+            swizzlers.append(WKWebViewLoadDataSwizzler())
+        }
+    }
+
+    // Embrace wants to track internal navigation events in `WKWebViews` to assist our customers with debugging.
+    // To do so, we forcefully set a nil `WKNavigationDelegate` to be injected into the `WKWebView` when the delegate is already nil.
+    // This is safe because any other player is free to overwrite our delegate with their own (and we'd swizzle and track their delegate).
+    // Occasionally, players doing something similar (proxying) implement their logic poorly and fail to recognize that they must overwrite
+    // our delegate, or they could have weird validations that prevent from calling the original delegate.
+    // In this case it is not safe for us to inject as we are likely to break application functionality.
+    // To err on the side of caution we will not inject if we detect these problematic classes in memory.
+    // Currently the only known bad-actor is SafeDK/AppLovin.
+    private func shouldPreventFromKnownSwizzlingErrors() -> Bool {
+        for proxy in WebViewCaptureService.knownBadProxies {
+            if NSClassFromString(proxy) != nil {
+                return false
+            }
+        }
+        return true
     }
 }
 
