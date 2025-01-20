@@ -9,36 +9,12 @@ on:
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: ubuntu-latest
     name: "Run Danger"
     steps:
       - uses: actions/checkout@v4
 
-      - name: Select Xcode
-        # See https://github.com/actions/runner-images/blob/main/images/macos/macos-14-Readme.md
-        run: |
-          sudo xcode-select -s /Applications/Xcode_15.4.app
-          xcodebuild -version
-
-      - name: Install Danger Swift
-        run: |
-          if ! which danger-swift > /dev/null; then
-            echo "Danger-swift is not installed; We'll try to install it."
-
-            if ! which brew > /dev/null; then
-              echo "Brew is not installed; cannot proceed with Danger installation."
-            fi
-
-            brew bundle --verbose
-
-            echo "Danger was installed successfully"
-          else
-            echo "Danger-swift is already installed"
-          fi
-
-          danger-swift --version
-
-      - name: Run Danger
-        run: danger-swift ci
+      - name: Run Danger Swift
+        uses: danger/swift@3.20.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
