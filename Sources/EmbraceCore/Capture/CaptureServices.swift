@@ -7,6 +7,7 @@ import EmbraceCaptureService
 import EmbraceCommonInternal
 import EmbraceStorageInternal
 import EmbraceUploadInternal
+import EmbraceConfiguration
 
 final class CaptureServices {
 
@@ -16,7 +17,11 @@ final class CaptureServices {
     var context: CrashReporterContext
     weak var crashReporter: CrashReporter?
 
-    init(options: Embrace.Options, storage: EmbraceStorage?, upload: EmbraceUpload?) throws {
+    weak var config: EmbraceConfigurable?
+
+    init(options: Embrace.Options, config: EmbraceConfigurable?, storage: EmbraceStorage?, upload: EmbraceUpload?) throws {
+        self.config = config
+
         // add required capture services
         // and remove duplicates
         services = CaptureServiceFactory.addRequiredServices(to: options.services.unique)
@@ -67,7 +72,8 @@ final class CaptureServices {
     }
 
     // for testing
-    init(services: [CaptureService], context: CrashReporterContext) {
+    init(config: EmbraceConfigurable?, services: [CaptureService], context: CrashReporterContext) {
+        self.config = config
         self.services = services
         self.context = context
     }

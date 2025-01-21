@@ -196,6 +196,7 @@ class EmbraceUploadTests: XCTestCase {
         // then requests are made
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 1)
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 1)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testAttachmentsUrl()).count, 0)
     }
 
     func test_retryCachedData_emptyCache() throws {
@@ -209,6 +210,7 @@ class EmbraceUploadTests: XCTestCase {
         // then no requests are made
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 0)
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 0)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testAttachmentsUrl()).count, 0)
     }
 
     func test_spansEndpoint() throws {
@@ -220,6 +222,7 @@ class EmbraceUploadTests: XCTestCase {
         // then a request to the right endpoint is made
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 1)
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 0)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testAttachmentsUrl()).count, 0)
     }
 
     func test_logsEndpoint() throws {
@@ -231,6 +234,19 @@ class EmbraceUploadTests: XCTestCase {
         // then a request to the right endpoint is made
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 0)
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 1)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testAttachmentsUrl()).count, 0)
+    }
+
+    func test_attachmentsEndpoint() throws {
+        // when uploading attachment data
+        module.uploadAttachment(id: "id", data: TestConstants.data, completion: nil)
+
+        wait(delay: .defaultTimeout)
+
+        // then a request to the right endpoint is made
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 0)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 0)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testAttachmentsUrl()).count, 1)
     }
 }
 
@@ -243,10 +259,15 @@ private extension EmbraceUploadTests {
         URL(string: "https://embrace.\(testName).com/upload/logs")!
     }
 
+    func testAttachmentsUrl(testName: String = #function) -> URL {
+        URL(string: "https://embrace.\(testName).com/upload/attachments")!
+    }
+
     func testEndpointOptions(testName: String) -> EmbraceUpload.EndpointOptions {
         .init(
             spansURL: testSpansUrl(testName: testName),
-            logsURL: testLogsUrl(testName: testName)
+            logsURL: testLogsUrl(testName: testName),
+            attachmentsURL: testAttachmentsUrl(testName: testName)
         )
     }
 }

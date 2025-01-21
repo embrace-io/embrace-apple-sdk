@@ -5,6 +5,7 @@
 import XCTest
 import Foundation
 import OpenTelemetrySdk
+import TestSupport
 
 @testable import EmbraceOTelInternal
 
@@ -12,6 +13,23 @@ class SingleLogRecordProcessorTests: XCTestCase {
     private var sut: SingleLogRecordProcessor!
     private var exporter: SpyEmbraceLogRecordExporter!
     private var result: ExportResult!
+    private var sdkStateProvider: MockEmbraceSDKStateProvider!
+
+    func test_emit_sdkDisabled() throws {
+        givenProcessorWithAnExporter()
+        givenDisabledSDK()
+        whenInvokingEmit(withLog: .log(withTestId: "12345"))
+        thenExportDoesNotInvokeExport()
+        thenExporterReceivesNoLogs()
+    }
+
+    func test_forceFlush_sdkDisabled() throws {
+        givenProcessorWithAnExporter()
+        givenDisabledSDK()
+        whenInvokingForceFlush()
+        thenExportDoesNotInvokeForceFlush()
+        thenExporterReceivesNoLogs()
+    }
 
     func testHavingAtLeastOneProcessor_onEmit_shouldPassLogRecordToExporterAsAnArray() throws {
         givenProcessorWithAnExporter()
@@ -68,7 +86,12 @@ private extension SingleLogRecordProcessorTests {
     }
 
     func givenProcessor(withExporters exporters: [LogRecordExporter]) {
-        sut = .init(exporters: exporters)
+        sdkStateProvider = MockEmbraceSDKStateProvider()
+        sut = .init(exporters: exporters, sdkStateProvider: sdkStateProvider)
+    }
+
+    func givenDisabledSDK() {
+        sdkStateProvider.isEnabled = false
     }
 
     func whenInvokingEmit(withLog log: ReadableLogRecord) {
@@ -95,8 +118,20 @@ private extension SingleLogRecordProcessorTests {
         XCTAssertTrue(exporter.didCallExport)
     }
 
+    func thenExportDoesNotInvokeExport() {
+        XCTAssertFalse(exporter.didCallExport)
+    }
+
+    func thenExportDoesNotInvokeForceFlush() {
+        XCTAssertFalse(exporter.didCallForceFlush)
+    }
+
     func thenExporterReceivesOneLog() {
         XCTAssertEqual(exporter.exportLogRecordsReceivedParameter.count, 1)
+    }
+
+    func thenExporterReceivesNoLogs() {
+        XCTAssertEqual(exporter.exportLogRecordsReceivedParameter.count, 0)
     }
 
     func thenExportResult(is resultValue: ExportResult) {

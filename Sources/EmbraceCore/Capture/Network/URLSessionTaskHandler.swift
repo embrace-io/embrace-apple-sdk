@@ -235,6 +235,6 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
 
 private extension DefaultURLSessionTaskHandler {
     static func queue() -> DispatchableQueue {
-        DispatchQueue(label: "com.embrace.URLSessionTaskHandler", qos: .utility)
+        .with(label: "com.embrace.URLSessionTaskHandler", qos: .utility)
     }
 }

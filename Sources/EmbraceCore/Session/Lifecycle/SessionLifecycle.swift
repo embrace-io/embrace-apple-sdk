@@ -13,8 +13,8 @@ protocol SessionLifecycle {
     /// Method called during ``Embrace.init``
     func setup()
 
-    /// Method called during ``Embrace.start`` for initialization purposes
-    func start()
+    /// Prevents the lifecycle from starting new sessions
+    func stop()
 
     /// An explicit method to create a new session
     func startSession()

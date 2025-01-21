@@ -4,13 +4,37 @@
 
 import Foundation
 
-public protocol DispatchableQueue: AnyObject {
+public protocol DispatchableQueue {
     func async(_ block: @escaping () -> Void)
     func sync(execute block: () -> Void)
 }
 
-extension DispatchQueue: DispatchableQueue {
+public class DefaultDispatchableQueue: DispatchableQueue {
+    private let queue: DispatchQueue
+
+    init(queue: DispatchQueue) {
+        self.queue = queue
+    }
+
     public func async(_ block: @escaping () -> Void) {
-        async(group: nil, execute: block)
+        queue.async(group: nil, execute: block)
+    }
+
+    public func sync(execute block: () -> Void) {
+        queue.sync(execute: block)
+    }
+
+    public static func with(label: String) -> DispatchableQueue {
+        DefaultDispatchableQueue(queue: .init(label: label))
+    }
+}
+
+public extension DispatchableQueue where Self == DefaultDispatchableQueue {
+    static func with(
+        label: String,
+        qos: DispatchQoS = .unspecified,
+        attributes: DispatchQueue.Attributes = []
+    ) -> DispatchableQueue {
+        DefaultDispatchableQueue(queue: .init(label: label, qos: qos, attributes: attributes))
     }
 }

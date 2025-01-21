@@ -39,8 +39,14 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
     /// The `Embrace.Options` that were used to configure the SDK.
     @objc public private(set) var options: Embrace.Options
 
+    /// Returns the current state of the SDK.
+    @objc public private(set) var state: EmbraceSDKState = .notInitialized
+
     /// Returns whether the SDK was started.
-    @objc public private(set) var started: Bool
+    @available(*, deprecated, message: "Use `state` instead.")
+    @objc public var started: Bool {
+        return state == .started
+    }
 
     /// Returns the `DeviceIdentifier` used by Embrace for the current device.
     public private(set) var deviceId: DeviceIdentifier
@@ -52,6 +58,12 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         }
     }
 
+    /// Returns true if the SDK is started and was not disabled through remote configurations.
+    @objc public var isSDKEnabled: Bool {
+        let remoteConfigEnabled = config?.isSDKEnabled ?? true
+        return state == .started && remoteConfigEnabled
+    }
+
     /// Returns the version of the Embrace SDK.
     @objc public class var sdkVersion: String {
         return EmbraceMeta.sdkVersion
@@ -59,13 +71,6 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
 
     /// Returns the current `MetadataHandler` used to store resources and session properties.
     @objc public let metadata: MetadataHandler
-
-    var isSDKEnabled: Bool {
-        if let config = config {
-            return config.isSDKEnabled
-        }
-        return true
-    }
 
     let config: EmbraceConfig?
     let storage: EmbraceStorage
@@ -140,33 +145,49 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
     init(options: Embrace.Options,
          logControllable: LogControllable? = nil,
          embraceStorage: EmbraceStorage? = nil) throws {
-        self.started = false
-        self.options = options
 
+        self.options = options
         self.logLevel = options.logLevel
 
         self.storage = try embraceStorage ?? Embrace.createStorage(options: options)
         self.deviceId = DeviceIdentifier.retrieve(from: storage)
         self.upload = Embrace.createUpload(options: options, deviceId: deviceId.hex)
-        self.captureServices = try CaptureServices(options: options, storage: storage, upload: upload)
         self.config = Embrace.createConfig(options: options, deviceId: deviceId)
+        self.captureServices = try CaptureServices(
+            options: options,
+            config: config?.configurable,
+            storage: storage,
+            upload: upload
+        )
         self.sessionController = SessionController(storage: storage, upload: upload, config: config)
         self.sessionLifecycle = Embrace.createSessionLifecycle(controller: sessionController)
         self.metadata = MetadataHandler(storage: storage, sessionController: sessionController)
-        self.logController = logControllable ?? LogController(
-            storage: storage,
-            upload: upload,
-            controller: sessionController,
-            config: config
-        )
+
+        var logController: LogController?
+        if let logControllable = logControllable {
+            self.logController = logControllable
+        } else {
+            let controller = LogController(
+                storage: storage,
+                upload: upload,
+                controller: sessionController
+            )
+            logController = controller
+            self.logController = controller
+        }
+
         super.init()
 
+        sessionController.sdkStateProvider = self
+        logController?.sdkStateProvider = self
+
         // setup otel
-        EmbraceOTel.setup(spanProcessors: .processors(for: storage, export: options.export))
+        EmbraceOTel.setup(spanProcessors: .processors(for: storage, export: options.export, sdkStateProvider: self))
         let logSharedState = DefaultEmbraceLogSharedState.create(
             storage: self.storage,
-            controller: logController,
-            exporter: options.export?.logExporter
+            controller: self.logController,
+            exporter: options.export?.logExporter,
+            sdkStateProvider: self
         )
         EmbraceOTel.setup(logSharedState: logSharedState)
         sessionLifecycle.setup()
@@ -178,6 +199,8 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
             selector: #selector(onConfigUpdated),
             name: .embraceConfigUpdated, object: nil
         )
+
+        state = .initialized
     }
 
     /// Method used to start the Embrace SDK.
@@ -194,8 +217,8 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         sessionLifecycle.setup()
 
         Embrace.synchronizationQueue.sync {
-            guard started == false else {
-                Embrace.logger.warning("Embrace was already started!")
+            guard state == .initialized else {
+                Embrace.logger.warning("The Embrace SDK can only be started once!")
                 return
             }
 
@@ -208,12 +231,12 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
             defer { processStartSpan.end() }
 
             recordSpan(name: "emb-sdk-start", parent: processStartSpan, type: .performance) { _ in
-                started = true
+                state = .started
 
-                sessionLifecycle.start()
+                sessionLifecycle.startSession()
                 captureServices.install()
 
-                processingQueue.async { [weak self] in
+                self.processingQueue.async { [weak self] in
 
                     self?.captureServices.start()
 
@@ -237,9 +260,41 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         return self
     }
 
+    /// Method used to stop the Embrace SDK from capturing and generating data.
+    /// - Throws: `EmbraceSetupError.invalidThread` if not called from the main thread.
+    /// - Note: This method won't do anything if the Embrace SDK was already stopped.
+    /// - Note: The SDK can't be started again once stopped.
+    /// - Returns: The `Embrace` client instance.
+    @discardableResult
+    @objc public func stop() throws -> Embrace {
+        guard Thread.isMainThread else {
+            throw EmbraceSetupError.invalidThread("Embrace must be stopped on the main thread")
+        }
+
+        Embrace.synchronizationQueue.sync {
+            guard state != .stopped else {
+                Embrace.logger.warning("Embrace was already stopped!")
+                return
+            }
+
+            guard state == .started else {
+                Embrace.logger.warning("Embrace was not started so it can't be stopped!")
+                return
+            }
+
+            state = .stopped
+
+            sessionLifecycle.stop()
+            sessionController.clear()
+            captureServices.stop()
+        }
+
+        return self
+    }
+
     /// Returns the current session identifier, if any.
     @objc public func currentSessionId() -> String? {
-        guard config == nil || config?.isSDKEnabled == true else {
+        guard isSDKEnabled else {
             return nil
         }
 
@@ -253,12 +308,22 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
 
     /// Forces the Embrace SDK to start a new session.
     /// - Note: If there was a session running, it will be ended before starting a new one.
+    /// - Note: This method won't do anything if the SDK is stopped.
     @objc public func startNewSession() {
+        guard isSDKEnabled else {
+            return
+        }
+
         sessionLifecycle.startSession()
     }
 
-    /// Force the Embrace SDK to stop the current session, if any.
+    /// Forces the Embrace SDK to stop the current session, if any.
+    /// - Note: This method won't do anything if the SDK is stopped.
     @objc public func endCurrentSession() {
+        guard isSDKEnabled else {
+            return
+        }
+
         sessionLifecycle.endSession()
     }
 
@@ -266,6 +331,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
     @objc private func onConfigUpdated() {
         if let config = config {
             Embrace.logger.limits = config.internalLogLimits
+
             if !config.isSDKEnabled {
                 Embrace.logger.debug("SDK was disabled")
                 captureServices.stop()

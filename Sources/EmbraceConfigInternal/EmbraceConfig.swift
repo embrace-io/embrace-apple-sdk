@@ -18,7 +18,7 @@ public class EmbraceConfig {
 
     @ThreadSafe private var lastUpdateTime: TimeInterval = Date(timeIntervalSince1970: 0).timeIntervalSince1970
 
-    let configurable: EmbraceConfigurable
+    public let configurable: EmbraceConfigurable
 
     let queue: DispatchableQueue
 
@@ -27,7 +27,7 @@ public class EmbraceConfig {
         options: Options,
         notificationCenter: NotificationCenter,
         logger: InternalLogger,
-        queue: DispatchableQueue = DispatchQueue(label: "com.embrace.config", attributes: .concurrent)
+        queue: DispatchableQueue = .with(label: "com.embrace.config", attributes: .concurrent)
     ) {
         self.options = options
         self.notificationCenter = notificationCenter
@@ -97,6 +97,10 @@ extension EmbraceConfig /* EmbraceConfigurable delegation */ {
 
     public var isNetworkSpansForwardingEnabled: Bool {
         return configurable.isNetworkSpansForwardingEnabled
+    }
+
+    public var isUiLoadInstrumentationEnabled: Bool {
+        return configurable.isUiLoadInstrumentationEnabled
     }
 
     public var internalLogLimits: InternalLogLimits {

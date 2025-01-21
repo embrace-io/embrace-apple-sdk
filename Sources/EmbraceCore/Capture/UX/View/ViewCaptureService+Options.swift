@@ -2,7 +2,8 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
+#if canImport(UIKit) && !os(watchOS)
+import UIKit
 
 extension ViewCaptureService {
     /// Class used to setup a `ViewCaptureService`.
@@ -24,7 +25,7 @@ extension ViewCaptureService {
         /// The implementers will need to call `setInteractionReady()` on the `UIViewController` to mark the end time.
         /// If the `UIViewController` disappears before the interaction is set as ready, the span status will be set to `error`
         /// with the `userAbandon` error code.
-        @objc public let instrumentFirstRender: Bool
+        @objc public var instrumentFirstRender: Bool
 
         @objc public init(instrumentVisibility: Bool, instrumentFirstRender: Bool) {
             self.instrumentVisibility = instrumentVisibility
@@ -32,7 +33,8 @@ extension ViewCaptureService {
         }
 
         @objc public convenience override init() {
-            self.init(instrumentVisibility: true, instrumentFirstRender: false)
+            self.init(instrumentVisibility: true, instrumentFirstRender: true)
         }
     }
 }
+#endif

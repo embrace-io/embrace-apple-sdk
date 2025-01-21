@@ -8,35 +8,46 @@ import EmbraceUploadInternal
 import EmbraceCommonInternal
 import EmbraceSemantics
 import EmbraceConfigInternal
+import EmbraceOTelInternal
 
 protocol LogControllable: LogBatcherDelegate {
     func uploadAllPersistedLogs()
+    func createLog(
+        _ message: String,
+        severity: LogSeverity,
+        type: LogType,
+        timestamp: Date,
+        attachment: Data?,
+        attachmentId: String?,
+        attachmentUrl: URL?,
+        attachmentSize: Int?,
+        attributes: [String: String],
+        stackTraceBehavior: StackTraceBehavior
+    )
 }
 
 class LogController: LogControllable {
     private(set) weak var sessionController: SessionControllable?
     private weak var storage: Storage?
     private weak var upload: EmbraceLogUploader?
-    private weak var config: EmbraceConfig?
+
+    weak var sdkStateProvider: EmbraceSDKStateProvider?
+
+    var otel: EmbraceOTelBridge = EmbraceOTel() // var so we can inject a mock for testing
+
     /// This will probably be injected eventually.
     /// For consistency, I created a constant
     static let maxLogsPerBatch: Int = 20
 
-    private var isSDKEnabled: Bool {
-        guard let config = config else {
-            return true
-        }
-        return config.isSDKEnabled
-    }
+    static let attachmentLimit: Int = 5
+    static let attachmentSizeLimit: Int = 1048576 // 1 MiB
 
     init(storage: Storage?,
          upload: EmbraceLogUploader?,
-         controller: SessionControllable,
-         config: EmbraceConfig?) {
+         controller: SessionControllable) {
         self.storage = storage
         self.upload = upload
         self.sessionController = controller
-        self.config = config
     }
 
     func uploadAllPersistedLogs() {
@@ -53,11 +64,91 @@ class LogController: LogControllable {
             try? storage.removeAllLogs()
         }
     }
+
+    public func createLog(
+        _ message: String,
+        severity: LogSeverity,
+        type: LogType = .message,
+        timestamp: Date = Date(),
+        attachment: Data? = nil,
+        attachmentId: String? = nil,
+        attachmentUrl: URL? = nil,
+        attachmentSize: Int? = nil,
+        attributes: [String: String] = [:],
+        stackTraceBehavior: StackTraceBehavior = .default
+    ) {
+        guard let sessionController = sessionController else {
+            return
+        }
+
+        // generate attributes
+        let attributesBuilder = EmbraceLogAttributesBuilder(
+            storage: storage,
+            sessionControllable: sessionController,
+            initialAttributes: attributes
+        )
+
+        /*
+         If we want to keep this method cleaner, we could move this log to `EmbraceLogAttributesBuilder`
+         However that would cause to always add a frame to the stacktrace.
+         */
+        if stackTraceBehavior == .default && (severity == .warn || severity == .error) {
+            let stackTrace: [String] = Thread.callStackSymbols
+            attributesBuilder.addStackTrace(stackTrace)
+        }
+
+        var finalAttributes = attributesBuilder
+            .addLogType(type)
+            .addApplicationState()
+            .addApplicationProperties()
+            .addSessionIdentifier()
+            .build()
+
+        // handle attachment data
+        if let attachment = attachment {
+
+            sessionController.increaseAttachmentCount()
+
+            let id = UUID().withoutHyphen
+            finalAttributes[LogSemantics.keyAttachmentId] = id
+
+            let size = attachment.count
+            finalAttributes[LogSemantics.keyAttachmentSize] = String(size)
+
+            // check attachment count limit
+            if sessionController.attachmentCount >= Self.attachmentLimit {
+                finalAttributes[LogSemantics.keyAttachmentErrorCode] = LogSemantics.attachmentLimitReached
+
+            // check attachment size limit
+            } else if size > Self.attachmentSizeLimit {
+                finalAttributes[LogSemantics.keyAttachmentErrorCode] = LogSemantics.attachmentTooLarge
+            }
+
+            // upload attachment
+            else {
+                upload?.uploadAttachment(id: id, data: attachment, completion: nil)
+            }
+        }
+
+        // handle pre-uploaded attachment
+        else if let attachmentId = attachmentId,
+                let attachmentUrl = attachmentUrl {
+
+            finalAttributes[LogSemantics.keyAttachmentId] = attachmentId
+            finalAttributes[LogSemantics.keyAttachmentUrl] = attachmentUrl.absoluteString
+
+            if let attachmentSize = attachmentSize {
+                finalAttributes[LogSemantics.keyAttachmentSize] = String(attachmentSize)
+            }
+        }
+
+        otel.log(message, severity: severity, timestamp: timestamp, attributes: finalAttributes)
+    }
 }
 
 extension LogController {
     func batchFinished(withLogs logs: [LogRecord]) {
-        guard isSDKEnabled else {
+        guard sdkStateProvider?.isEnabled == true else {
             return
         }
 
@@ -76,7 +167,7 @@ extension LogController {
 
 private extension LogController {
     func send(batches: [LogsBatch]) {
-        guard isSDKEnabled else {
+        guard sdkStateProvider?.isEnabled == true else {
             return
         }
 
