@@ -31,6 +31,9 @@ class SessionController: SessionControllable {
     @ThreadSafe
     private(set) var currentSessionSpan: Span?
 
+    @ThreadSafe
+    private(set) var attachmentCount: Int = 0
+
     // Lock used for session boundaries. Will be shared at both start/end of session
     private let lock = UnfairLock()
 
@@ -138,6 +141,7 @@ class SessionController: SessionControllable {
             NotificationCenter.default.post(name: .embraceSessionDidStart, object: session)
 
             firstSession = false
+            attachmentCount = 0
 
             return session
         }
@@ -222,6 +226,10 @@ class SessionController: SessionControllable {
             UnsentDataHandler.sendSession(session, storage: storage, upload: upload)
         }
     }
+
+    func increaseAttachmentCount() {
+        attachmentCount += 1
+    }
 }
 
 extension SessionController {
@@ -253,7 +261,7 @@ extension SessionController {
         currentSession = nil
         currentSessionSpan = nil
     }
-    
+
     private var isSDKEnabled: Bool {
         guard let config = config else {
             return true

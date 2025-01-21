@@ -50,7 +50,7 @@ public class SingleSpanProcessor: SpanProcessor {
             autoTerminationSpans[data.spanId] = SpanAutoTerminationData(
                 span: span,
                 spanData: data,
-                code: code, 
+                code: code,
                 parentId: data.parentSpanId
             )
         }

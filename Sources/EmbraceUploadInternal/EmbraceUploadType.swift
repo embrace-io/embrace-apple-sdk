@@ -5,4 +5,5 @@
 enum EmbraceUploadType: Int {
     case spans = 0
     case log
+    case attachment
 }
