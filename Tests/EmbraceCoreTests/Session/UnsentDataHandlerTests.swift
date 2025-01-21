@@ -766,7 +766,8 @@ private extension UnsentDataHandlerTests {
     func testEndpointOptions(forTest testName: String) -> EmbraceUpload.EndpointOptions {
         .init(
             spansURL: testSpansUrl(forTest: testName),
-            logsURL: testLogsUrl(forTest: testName)
+            logsURL: testLogsUrl(forTest: testName),
+            attachmentsURL: testAttachmentsUrl(forTest: testName)
         )
     }
 
@@ -778,6 +779,12 @@ private extension UnsentDataHandlerTests {
 
     func testLogsUrl(forTest testName: String = #function) -> URL {
         var url = URL(string: "https://embrace.test.com/logs")!
+        url.testName = testName
+        return url
+    }
+
+    func testAttachmentsUrl(forTest testName: String = #function) -> URL {
+        var url = URL(string: "https://embrace.test.com/attachments")!
         url.testName = testName
         return url
     }

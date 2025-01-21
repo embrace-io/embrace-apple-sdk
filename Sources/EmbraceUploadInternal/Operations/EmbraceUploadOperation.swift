@@ -62,7 +62,12 @@ class EmbraceUploadOperation: AsyncOperation {
     }
 
     override func execute() {
-        let request = createRequest()
+        let request = createRequest(
+            endpoint: endpoint,
+            data: data,
+            identifier: identifier,
+            metadataOptions: metadataOptions
+        )
 
         sendRequest(request, retryCount: retryCount)
     }
@@ -171,7 +176,13 @@ class EmbraceUploadOperation: AsyncOperation {
         return retryAfterDelay
     }
 
-    private func createRequest() -> URLRequest {
+    func createRequest(
+        endpoint: URL,
+        data: Data,
+        identifier: String,
+        metadataOptions: EmbraceUpload.MetadataOptions
+    ) -> URLRequest {
+
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.httpBody = data

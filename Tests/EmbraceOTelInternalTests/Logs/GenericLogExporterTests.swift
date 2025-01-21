@@ -14,11 +14,6 @@ final class GenericLogExporterTests: XCTestCase {
 
     let sdkStateProvider = MockEmbraceSDKStateProvider()
 
-    class DummyLogControllable: LogControllable {
-        func uploadAllPersistedLogs() {}
-        func batchFinished(withLogs logs: [LogRecord]) {}
-    }
-
     func test_genericExporter_isCalled_whenConfiguredInSharedState() throws {
         let exporter = InMemoryLogRecordExporter()
         let sharedState = DefaultEmbraceLogSharedState.create(

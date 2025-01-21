@@ -10,7 +10,7 @@ import OpenTelemetryApi
 import OpenTelemetrySdk
 import EmbraceSemantics
 
-public class MockEmbraceOpenTelemetry: NSObject, EmbraceOpenTelemetry {
+public class MockEmbraceOpenTelemetry: NSObject, EmbraceOpenTelemetry {   
     private(set) public var spanProcessor = MockSpanProcessor()
     private(set) public var events: [SpanEvent] = []
     private(set) public var logs: [ReadableLogRecord] = []
@@ -99,5 +99,31 @@ public class MockEmbraceOpenTelemetry: NSObject, EmbraceOpenTelemetry {
         )
 
         logs.append(log)
+    }
+
+    public func log(
+        _ message: String,
+        severity: LogSeverity,
+        type: LogType = .performance,
+        timestamp: Date = Date(),
+        attachment: Data,
+        attributes: [String : String] = [:],
+        stackTraceBehavior: StackTraceBehavior = .default
+    ) {
+
+    }
+
+    public func log(
+        _ message: String,
+        severity: LogSeverity,
+        type: LogType = .performance,
+        timestamp: Date = Date(),
+        attachmentId: String,
+        attachmentUrl: URL,
+        attachmentSize: Int?,
+        attributes: [String : String] = [:],
+        stackTraceBehavior: StackTraceBehavior = .default
+    ) {
+
     }
 }

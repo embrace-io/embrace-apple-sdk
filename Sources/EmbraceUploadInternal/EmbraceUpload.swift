@@ -7,6 +7,7 @@ import EmbraceCommonInternal
 
 public protocol EmbraceLogUploader: AnyObject {
     func uploadLog(id: String, data: Data, completion: ((Result<(), Error>) -> Void)?)
+    func uploadAttachment(id: String, data: Data, completion: ((Result<(), Error>) -> Void)?)
 }
 
 /// Class in charge of uploading all the data collected by the Embrace SDK.
@@ -139,14 +140,30 @@ public class EmbraceUpload: EmbraceLogUploader {
         }
     }
 
+    /// Uploads the given attachment data
+    /// - Parameters:
+    ///   - id: Identifier of the attachment
+    ///   - data: The attachment's data
+    ///   - completion: Completion block called when the data is successfully uploaded, or when an `Error` occurs
+    public func uploadAttachment(id: String, data: Data, completion: ((Result<(), Error>) -> Void)?) {
+        queue.async { [weak self] in
+            self?.uploadData(
+                id: id,
+                data: data,
+                type: .attachment,
+                completion: completion
+            )
+        }
+    }
+
     // MARK: - Internal
     private func uploadData(
         id: String,
         data: Data,
         type: EmbraceUploadType,
         attemptCount: Int = 0,
-        retryCount: Int? = nil,
-        completion: ((Result<(), Error>) -> Void)?) {
+        completion: ((Result<(), Error>) -> Void)?
+    ) {
 
         // validate identifier
         guard id.isEmpty == false else {
@@ -164,7 +181,7 @@ public class EmbraceUpload: EmbraceLogUploader {
         let cacheOperation = BlockOperation { [weak self] in
             do {
                 try self?.cache.saveUploadData(id: id, type: type, data: data)
-                    completion?(.success(()))
+                completion?(.success(()))
             } catch {
                 self?.logger.debug("Error caching upload data: \(error.localizedDescription)")
                 completion?(.failure(error))
@@ -172,27 +189,26 @@ public class EmbraceUpload: EmbraceLogUploader {
         }
 
         // upload operation
-        let uploadOperation = EmbraceUploadOperation(
+        let uploadOperation = createUploadOperation(
+            id: id,
+            type: type,
             urlSession: urlSession,
-            queue: queue,
-            metadataOptions: options.metadata,
-            endpoint: endpoint(for: type),
-            identifier: id,
             data: data,
-            retryCount: retryCount ?? options.redundancy.automaticRetryCount,
-            exponentialBackoffBehavior: options.redundancy.exponentialBackoffBehavior,
-            attemptCount: attemptCount,
-            logger: logger) { [weak self] (result, attemptCount) in
-                self?.queue.async { [weak self] in
-                    self?.handleOperationFinished(
-                        id: id,
-                        type: type,
-                        result: result,
-                        attemptCount: attemptCount
-                    )
-                    self?.clearCacheFromStaleData()
-                }
+            retryCount: options.redundancy.automaticRetryCount,
+            attemptCount: attemptCount) { [weak self] (result, attemptCount) in
+
+            self?.queue.async { [weak self] in
+
+                self?.handleOperationFinished(
+                    id: id,
+                    type: type,
+                    result: result,
+                    attemptCount: attemptCount
+                )
+
+                self?.clearCacheFromStaleData()
             }
+        }
 
         // queue operations
         uploadOperation.addDependency(cacheOperation)
@@ -230,6 +246,47 @@ public class EmbraceUpload: EmbraceLogUploader {
                 }
             }
         operationQueue.addOperation(uploadOperation)
+    }
+
+    private func createUploadOperation(
+        id: String,
+        type: EmbraceUploadType,
+        urlSession: URLSession,
+        data: Data,
+        retryCount: Int,
+        attemptCount: Int,
+        completion: @escaping EmbraceUploadOperationCompletion
+    ) -> EmbraceUploadOperation {
+
+        if type == .attachment {
+            return EmbraceAttachmentUploadOperation(
+                urlSession: urlSession,
+                queue: queue,
+                metadataOptions: options.metadata,
+                endpoint: endpoint(for: type),
+                identifier: id,
+                data: data,
+                retryCount: retryCount,
+                exponentialBackoffBehavior: options.redundancy.exponentialBackoffBehavior,
+                attemptCount: attemptCount,
+                logger: logger,
+                completion: completion
+            )
+        }
+
+        return EmbraceUploadOperation(
+            urlSession: urlSession,
+            queue: queue,
+            metadataOptions: options.metadata,
+            endpoint: endpoint(for: type),
+            identifier: id,
+            data: data,
+            retryCount: retryCount,
+            exponentialBackoffBehavior: options.redundancy.exponentialBackoffBehavior,
+            attemptCount: attemptCount,
+            logger: logger,
+            completion: completion
+        )
     }
 
     private func handleOperationFinished(
@@ -282,6 +339,7 @@ public class EmbraceUpload: EmbraceLogUploader {
         switch type {
         case .spans: return options.endpoints.spansURL
         case .log: return options.endpoints.logsURL
+        case .attachment: return options.endpoints.attachmentsURL
         }
     }
 }

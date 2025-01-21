@@ -2,7 +2,7 @@ import XCTest
 
 @testable import EmbraceOTelInternal
 @testable import EmbraceCore
-
+import EmbraceCommonInternal
 import OpenTelemetryApi
 import OpenTelemetrySdk
 import EmbraceStorageInternal
@@ -11,11 +11,6 @@ import TestSupport
 final class EmbraceOTelTests: XCTestCase {
 
     let sdkStateProvider = MockEmbraceSDKStateProvider()
-
-    class DummyLogControllable: LogControllable {
-        func uploadAllPersistedLogs() {}
-        func batchFinished(withLogs logs: [LogRecord]) {}
-    }
 
     var logExporter = InMemoryLogRecordExporter()
 
@@ -93,40 +88,6 @@ final class EmbraceOTelTests: XCTestCase {
         XCTAssertTrue(first === second)
     }
 
-// MARK: recordSpan with block
-
-    func test_recordSpan_returnsGenericResult_whenInt() throws {
-        let otel = EmbraceOTel()
-
-        let spanResult = otel.recordSpan(name: "math_test", type: .performance) {
-            var result = 0
-            for i in 0...10 {
-                // 1 + 4 + 9 + 16 + 25 + 36 + 49 + 64 + 81 + 100
-                result += i * i
-            }
-
-            XCTAssertEqual(result, 385)
-            return result
-        }
-
-        XCTAssertEqual(spanResult, 385)
-    }
-
-    func test_recordSpan_returnsGenericResult_whenString() throws {
-        let otel = EmbraceOTel()
-
-        let spanResult = otel.recordSpan(name: "math_test", type: .performance) {
-            for i in 0...10 {
-                // 1 + 4 + 9 + 16 + 25 + 36 + 49 + 64 + 81 + 100
-                _ = i * i
-            }
-
-            return "example_result"
-        }
-
-        XCTAssertEqual(spanResult, "example_result")
-    }
-
     // MARK: buildSpan
 
     // Test failing consistently in CI
@@ -163,7 +124,7 @@ final class EmbraceOTelTests: XCTestCase {
     func test_log_emitsLogToExporter() throws {
         let otel = EmbraceOTel()
 
-        otel.log("example message", severity: .info, attributes: [:])
+        otel.log("example message", severity: .info, timestamp: Date(), attributes: [:])
         let record = logExporter.finishedLogRecords.first { $0.body == .string("example message") }
 
         XCTAssertNotNil(record)

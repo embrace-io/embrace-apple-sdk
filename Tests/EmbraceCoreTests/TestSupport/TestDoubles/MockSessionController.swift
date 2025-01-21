@@ -71,4 +71,10 @@ class MockSessionController: SessionControllable {
     func onUpdateSession(_ callback: @escaping ((SessionRecord?, SessionState?, Bool?) -> Void)) {
         updateSessionCallback = callback
     }
+
+    var attachmentCount: Int = 0
+
+    func increaseAttachmentCount() {
+        attachmentCount += 1
+    }
 }

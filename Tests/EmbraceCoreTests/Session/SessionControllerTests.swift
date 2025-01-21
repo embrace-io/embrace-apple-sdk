@@ -411,7 +411,8 @@ private extension SessionControllerTests {
     func testEndpointOptions(testName: String) -> EmbraceUpload.EndpointOptions {
         .init(
             spansURL: testSessionsUrl(testName: testName),
-            logsURL: testLogsUrl(testName: testName)
+            logsURL: testLogsUrl(testName: testName),
+            attachmentsURL: testAttachmentsUrl(testName: testName)
         )
     }
 
@@ -421,6 +422,10 @@ private extension SessionControllerTests {
 
     func testLogsUrl(testName: String = #function) -> URL {
         URL(string: "https://embrace.\(testName).com/session_controller/logs")!
+    }
+
+    func testAttachmentsUrl(testName: String = #function) -> URL {
+        URL(string: "https://embrace.\(testName).com/session_controller/attachments")!
     }
 
     private var configBaseUrl: String {
