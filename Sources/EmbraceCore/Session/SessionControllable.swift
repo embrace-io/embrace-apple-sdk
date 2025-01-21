@@ -23,4 +23,6 @@ protocol SessionControllable: AnyObject {
 
     var attachmentCount: Int { get }
     func increaseAttachmentCount()
+
+    func clear()
 }

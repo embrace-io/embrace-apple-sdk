@@ -10,6 +10,8 @@ import TestSupport
 
 final class EmbraceOTelTests: XCTestCase {
 
+    let sdkStateProvider = MockEmbraceSDKStateProvider()
+
     var logExporter = InMemoryLogRecordExporter()
 
     override func setUpWithError() throws {
@@ -18,7 +20,8 @@ final class EmbraceOTelTests: XCTestCase {
         EmbraceOTel.setup(logSharedState: DefaultEmbraceLogSharedState.create(
             storage: try .createInMemoryDb(),
             controller: DummyLogControllable(),
-            exporter: logExporter
+            exporter: logExporter,
+            sdkStateProvider: sdkStateProvider
         ))
     }
 

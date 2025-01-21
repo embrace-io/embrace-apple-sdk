@@ -18,6 +18,7 @@ final class SessionControllerTests: XCTestCase {
     var controller: SessionController!
     var config: EmbraceConfig!
     var upload: EmbraceUpload!
+    let sdkStateProvider = MockEmbraceSDKStateProvider()
 
     static let testMetadataOptions = EmbraceUpload.MetadataOptions(
         apiKey: "apiKey",
@@ -48,8 +49,11 @@ final class SessionControllerTests: XCTestCase {
         upload = try EmbraceUpload(options: uploadTestOptions, logger: MockLogger(), queue: queue, semaphore: .init(value: .max))
         storage = try EmbraceStorage.createInMemoryDb()
 
+        sdkStateProvider.isEnabled = true
+
         // we pass nil so we only use the upload/config module in the relevant tests
         controller = SessionController(storage: storage, upload: nil, config: nil)
+        controller.sdkStateProvider = sdkStateProvider
     }
 
     override func tearDownWithError() throws {
@@ -70,12 +74,14 @@ final class SessionControllerTests: XCTestCase {
 
     func testSDKDisabled_startSession_doesntCreateASession() throws {
         config = EmbraceConfigMock.default(sdkEnabled: false)
-        
+        sdkStateProvider.isEnabled = false
+
         controller = SessionController(
             storage: storage,
             upload: upload,
             config: config
         )
+        controller.sdkStateProvider = sdkStateProvider
 
         let session = controller.startSession(state: .foreground)
 
@@ -195,6 +201,7 @@ final class SessionControllerTests: XCTestCase {
 
         // given a started session
         let controller = SessionController(storage: storage, upload: upload, config: nil)
+        controller.sdkStateProvider = sdkStateProvider
         controller.startSession(state: .foreground)
 
         // when ending the session
@@ -219,6 +226,7 @@ final class SessionControllerTests: XCTestCase {
 
         // given a started session
         let controller = SessionController(storage: storage, upload: upload, config: nil)
+        controller.sdkStateProvider = sdkStateProvider
         controller.startSession(state: .foreground)
 
         // when ending the session and the upload fails
@@ -314,6 +322,7 @@ final class SessionControllerTests: XCTestCase {
             upload: nil,
             config: config
         )
+        controller.sdkStateProvider = sdkStateProvider
 
         // when starting a cold start session in the background
         let session = controller.startSession(state: .background)
@@ -362,6 +371,7 @@ final class SessionControllerTests: XCTestCase {
             upload: nil,
             config: nil
         )
+        controller.sdkStateProvider = sdkStateProvider
 
         // when starting a cold start session in the background
         let session = controller.startSession(state: .background)
@@ -382,6 +392,7 @@ final class SessionControllerTests: XCTestCase {
     func test_heartbeat() throws {
         // given a session controller with a 1 second heartbeat invertal
         let controller = SessionController(storage: storage, upload: nil, config: nil, heartbeatInterval: 1)
+        controller.sdkStateProvider = sdkStateProvider
 
         // when starting a session
         let session = controller.startSession(state: .foreground)

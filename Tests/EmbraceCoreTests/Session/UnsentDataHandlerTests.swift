@@ -17,6 +17,7 @@ class UnsentDataHandlerTests: XCTestCase {
     var context: CrashReporterContext!
     var uploadOptions: EmbraceUpload.Options!
     var queue: DispatchQueue!
+    let sdkStateProvider = MockEmbraceSDKStateProvider()
 
     static let testRedundancyOptions = EmbraceUpload.RedundancyOptions(automaticRetryCount: 0)
     static let testMetadataOptions = EmbraceUpload.MetadataOptions(
@@ -733,9 +734,9 @@ class UnsentDataHandlerTests: XCTestCase {
         let logController = LogController(
             storage: storage,
             upload: upload,
-            controller: MockSessionController(),
-            config: EmbraceConfigMock.default()
+            controller: MockSessionController()
         )
+        logController.sdkStateProvider = sdkStateProvider
         let otel = MockEmbraceOpenTelemetry()
 
         // given logs in storage

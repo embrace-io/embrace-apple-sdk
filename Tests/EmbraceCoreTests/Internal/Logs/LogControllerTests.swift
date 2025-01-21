@@ -16,13 +16,13 @@ class LogControllerTests: XCTestCase {
     private var storage: SpyStorage?
     private var sessionController: MockSessionController!
     private var upload: SpyEmbraceLogUploader!
-    private var config: EmbraceConfig!
+    private let sdkStateProvider = MockEmbraceSDKStateProvider()
     private var otelBridge: MockEmbraceOTelBridge!
 
     override func setUp() {
         givenOTelBridge()
         givenEmbraceLogUploader()
-        givenConfig()
+        givenSDKEnabled()
         givenSessionControllerWithSession()
         givenStorage()
     }
@@ -99,7 +99,7 @@ class LogControllerTests: XCTestCase {
 
     func testSDKDisabledHavingLogsForLessThanABatch_onSetup_logUploaderShouldntSendASingleBatch() throws {
         givenStorage(withLogs: [randomLogRecord(), randomLogRecord()])
-        givenConfig(sdkEnabled: false)
+        givenSDKEnabled(false)
         givenLogController()
         whenInvokingSetup()
         thenLogUploadShouldUpload(times: 0)
@@ -166,7 +166,7 @@ class LogControllerTests: XCTestCase {
     }
 
     func testSDKDisabledHavingLogs_onBatchFinished_ontTryToUploadAnything() throws {
-        givenConfig(sdkEnabled: false)
+        givenSDKEnabled(false)
         givenLogController()
         whenInvokingBatchFinished(withLogs: [randomLogRecord()])
         thenDoesntTryToUploadAnything()
@@ -251,10 +251,10 @@ private extension LogControllerTests {
         sut = .init(
             storage: nil,
             upload: upload,
-            controller: sessionController,
-            config: config
+            controller: sessionController
         )
 
+        sut.sdkStateProvider = sdkStateProvider
         sut.otel = otelBridge
     }
 
@@ -262,10 +262,10 @@ private extension LogControllerTests {
         sut = .init(
             storage: storage,
             upload: upload,
-            controller: sessionController,
-            config: config
+            controller: sessionController
         )
 
+        sut.sdkStateProvider = sdkStateProvider
         sut.otel = otelBridge
     }
 
@@ -281,8 +281,8 @@ private extension LogControllerTests {
         upload.stubbedAttachmentCompletion = .failure(RandomError())
     }
 
-    func givenConfig(sdkEnabled: Bool = true) {
-        config = EmbraceConfigMock.default(sdkEnabled: sdkEnabled)
+    func givenSDKEnabled(_ sdkEnabled: Bool = true) {
+        sdkStateProvider.isEnabled = sdkEnabled
     }
 
     func givenOTelBridge() {

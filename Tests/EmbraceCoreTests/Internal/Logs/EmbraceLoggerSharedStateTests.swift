@@ -15,6 +15,8 @@ class DummyEmbraceResourceProvider: EmbraceResourceProvider {
 
 class EmbraceLoggerSharedStateTests: XCTestCase {
     private var sut: DefaultEmbraceLogSharedState!
+    let sdkStateProvider = MockEmbraceSDKStateProvider()
+
 
     func test_default_hasDefaultEmbraceLoggerConfig() throws {
         try whenInvokingDefaultEmbraceLoggerSharedState()
@@ -50,7 +52,11 @@ private extension EmbraceLoggerSharedStateTests {
     }
 
     func whenInvokingDefaultEmbraceLoggerSharedState() throws {
-        sut = try .create(storage: EmbraceStorage.createInMemoryDb(), controller: DummyLogControllable())
+        sut = try .create(
+            storage: EmbraceStorage.createInMemoryDb(),
+            controller: DummyLogControllable(),
+            sdkStateProvider: sdkStateProvider
+        )
     }
 
     func thenConfig(is config: any EmbraceLoggerConfig) {
