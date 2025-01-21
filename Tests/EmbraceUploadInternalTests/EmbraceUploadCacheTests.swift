@@ -22,12 +22,12 @@ class EmbraceUploadCacheTests: XCTestCase {
     }
 
     func test_fetchUploadData() throws {
-        let options = EmbraceUpload.CacheOptions(named: testName)
+        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName))
         let cache = try EmbraceUploadCache(options: options, logger: logger)
 
         // given inserted upload data
         let original = UploadDataRecord.create(
-            context: cache.context,
+            context: cache.coreData.context,
             id: "id",
             type: EmbraceUploadType.spans.rawValue,
             data: Data(),
@@ -35,7 +35,7 @@ class EmbraceUploadCacheTests: XCTestCase {
             date: Date()
         )
 
-        cache.save()
+        cache.coreData.save()
 
         // when fetching the upload data
         let uploadData = cache.fetchUploadData(id: "id", type: .spans)
@@ -46,36 +46,36 @@ class EmbraceUploadCacheTests: XCTestCase {
     }
 
     func test_fetchAllUploadData() throws {
-        let options = EmbraceUpload.CacheOptions(named: testName)
+        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName))
         let cache = try EmbraceUploadCache(options: options, logger: logger)
 
         // given inserted upload datas
         let data1 = UploadDataRecord.create(
-            context: cache.context, 
-            id: "id1", 
+            context: cache.coreData.context,
+            id: "id1",
             type: 0, 
             data: Data(), 
             attemptCount: 0, 
             date: Date()
         )
         let data2 = UploadDataRecord.create(
-            context: cache.context, 
-            id: "id2", 
+            context: cache.coreData.context,
+            id: "id2",
             type: 0, 
             data: Data(), 
             attemptCount: 0, 
             date: Date()
         )
         let data3 = UploadDataRecord.create(
-            context: cache.context, 
-            id: "id3", 
+            context: cache.coreData.context,
+            id: "id3",
             type: 0, 
             data: Data(), 
             attemptCount: 0, 
             date: Date()
         )
 
-        cache.save()
+        cache.coreData.save()
 
         // when fetching the upload datas
         let datas = try cache.fetchAllUploadData()
@@ -87,7 +87,7 @@ class EmbraceUploadCacheTests: XCTestCase {
     }
 
     func test_saveUploadData() throws {
-        let options = EmbraceUpload.CacheOptions(named: testName)
+        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName))
         let cache = try EmbraceUploadCache(options: options, logger: logger)
 
         // given inserted upload data
@@ -99,9 +99,9 @@ class EmbraceUploadCacheTests: XCTestCase {
         let request = NSFetchRequest<UploadDataRecord>(entityName: UploadDataRecord.entityName)
         request.predicate = NSPredicate(format: "id == %@ AND type == %i", "id", EmbraceUploadType.spans.rawValue)
 
-        cache.context.perform {
+        cache.coreData.context.perform {
             do {
-                let result = try cache.context.fetch(request)
+                let result = try cache.coreData.context.fetch(request)
                 if result.count > 0 {
                     expectation.fulfill()
                 }
@@ -113,7 +113,7 @@ class EmbraceUploadCacheTests: XCTestCase {
 
     func test_saveUploadData_limit() throws {
         // given a cache with a limit of 1
-        let options = EmbraceUpload.CacheOptions(named: testName, cacheLimit: 1)
+        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName), cacheLimit: 1)
         let cache = try EmbraceUploadCache(options: options, logger: logger)
 
         // given inserted upload datas
@@ -126,9 +126,9 @@ class EmbraceUploadCacheTests: XCTestCase {
 
         let request = NSFetchRequest<UploadDataRecord>(entityName: UploadDataRecord.entityName)
 
-        cache.context.perform {
+        cache.coreData.context.perform {
             do {
-                let result = try cache.context.fetch(request)
+                let result = try cache.coreData.context.fetch(request)
                 if result.count == 1,
                    result.first?.id == "id3" {
                     expectation.fulfill()
@@ -140,12 +140,12 @@ class EmbraceUploadCacheTests: XCTestCase {
     }
 
     func test_deleteUploadData() throws {
-        let options = EmbraceUpload.CacheOptions(named: testName)
+        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName))
         let cache = try EmbraceUploadCache(options: options, logger: logger)
 
         // given inserted upload data
         _ = UploadDataRecord.create(
-            context: cache.context,
+            context: cache.coreData.context,
             id: "id",
             type: EmbraceUploadType.spans.rawValue,
             data: Data(),
@@ -153,7 +153,7 @@ class EmbraceUploadCacheTests: XCTestCase {
             date: Date()
         )
 
-        cache.save()
+        cache.coreData.save()
 
         // when deleting the data
         cache.deleteUploadData(id: "id", type: .spans)
@@ -163,9 +163,9 @@ class EmbraceUploadCacheTests: XCTestCase {
 
         let request = NSFetchRequest<UploadDataRecord>(entityName: UploadDataRecord.entityName)
 
-        cache.context.perform {
+        cache.coreData.context.perform {
             do {
-                let result = try cache.context.fetch(request)
+                let result = try cache.coreData.context.fetch(request)
                 if result.count == 0 {
                     expectation.fulfill()
                 }
@@ -176,12 +176,12 @@ class EmbraceUploadCacheTests: XCTestCase {
     }
 
     func test_updateAttemptCount() throws {
-        let options = EmbraceUpload.CacheOptions(named: testName)
+        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName))
         let cache = try EmbraceUploadCache(options: options, logger: logger)
 
         // given inserted upload data
         _ = UploadDataRecord.create(
-            context: cache.context,
+            context: cache.coreData.context,
             id: "id",
             type: EmbraceUploadType.spans.rawValue,
             data: Data(),
@@ -189,7 +189,7 @@ class EmbraceUploadCacheTests: XCTestCase {
             date: Date()
         )
 
-        cache.save()
+        cache.coreData.save()
 
         // when updating the attempt count
         cache.updateAttemptCount(id: "id", type: .spans, attemptCount: 10)
@@ -199,9 +199,9 @@ class EmbraceUploadCacheTests: XCTestCase {
 
         let request = NSFetchRequest<UploadDataRecord>(entityName: UploadDataRecord.entityName)
 
-        cache.context.perform {
+        cache.coreData.context.perform {
             do {
-                let result = try cache.context.fetch(request)
+                let result = try cache.coreData.context.fetch(request)
                 if result.count == 1,
                    result.first?.id == "id",
                    result.first?.attemptCount == 10 {

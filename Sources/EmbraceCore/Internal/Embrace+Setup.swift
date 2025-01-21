@@ -56,12 +56,16 @@ extension Embrace {
         guard let cacheUrl = EmbraceFileSystem.uploadsDirectoryPath(
             partitionIdentifier: appId,
             appGroupId: options.appGroupId
-        ),
-              let cache = EmbraceUpload.CacheOptions(cacheBaseUrl: cacheUrl)
-        else {
+        ) else {
             Embrace.logger.error("Failed to initialize upload cache!")
             return nil
         }
+
+        let storageMechanism = StorageMechanism.onDisk(
+            name: "EmbraceUploadStorage",
+            baseURL: cacheUrl
+        )
+        let cache = EmbraceUpload.CacheOptions(storageMechanism: storageMechanism)
 
         // metadata
         let metadata = EmbraceUpload.MetadataOptions(

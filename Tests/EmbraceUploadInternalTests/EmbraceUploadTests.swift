@@ -25,7 +25,7 @@ class EmbraceUploadTests: XCTestCase {
 
         testOptions = EmbraceUpload.Options(
             endpoints: testEndpointOptions(testName: testName),
-            cache: EmbraceUpload.CacheOptions(named: testName),
+            cache: EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName)),
             metadata: EmbraceUploadTests.testMetadataOptions,
             redundancy: EmbraceUploadTests.testRedundancyOptions,
             urlSessionConfiguration: urlSessionconfig
