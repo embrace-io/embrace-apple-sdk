@@ -17,6 +17,7 @@ class UnsentDataHandlerTests: XCTestCase {
     var context: CrashReporterContext!
     var uploadOptions: EmbraceUpload.Options!
     var queue: DispatchQueue!
+    let sdkStateProvider = MockEmbraceSDKStateProvider()
 
     static let testRedundancyOptions = EmbraceUpload.RedundancyOptions(automaticRetryCount: 0)
     static let testMetadataOptions = EmbraceUpload.MetadataOptions(
@@ -733,9 +734,9 @@ class UnsentDataHandlerTests: XCTestCase {
         let logController = LogController(
             storage: storage,
             upload: upload,
-            controller: MockSessionController(),
-            config: EmbraceConfigMock.default()
+            controller: MockSessionController()
         )
+        logController.sdkStateProvider = sdkStateProvider
         let otel = MockEmbraceOpenTelemetry()
 
         // given logs in storage
@@ -765,7 +766,8 @@ private extension UnsentDataHandlerTests {
     func testEndpointOptions(forTest testName: String) -> EmbraceUpload.EndpointOptions {
         .init(
             spansURL: testSpansUrl(forTest: testName),
-            logsURL: testLogsUrl(forTest: testName)
+            logsURL: testLogsUrl(forTest: testName),
+            attachmentsURL: testAttachmentsUrl(forTest: testName)
         )
     }
 
@@ -777,6 +779,12 @@ private extension UnsentDataHandlerTests {
 
     func testLogsUrl(forTest testName: String = #function) -> URL {
         var url = URL(string: "https://embrace.test.com/logs")!
+        url.testName = testName
+        return url
+    }
+
+    func testAttachmentsUrl(forTest testName: String = #function) -> URL {
+        var url = URL(string: "https://embrace.test.com/attachments")!
         url.testName = testName
         return url
     }

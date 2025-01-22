@@ -31,12 +31,16 @@ class SessionController: SessionControllable {
     @ThreadSafe
     private(set) var currentSessionSpan: Span?
 
+    @ThreadSafe
+    private(set) var attachmentCount: Int = 0
+
     // Lock used for session boundaries. Will be shared at both start/end of session
     private let lock = UnfairLock()
 
     weak var storage: EmbraceStorage?
     weak var upload: EmbraceUpload?
     weak var config: EmbraceConfig?
+    weak var sdkStateProvider: EmbraceSDKStateProvider?
 
     private var backgroundSessionsEnabled: Bool {
         return config?.isBackgroundSessionEnabled == true
@@ -72,6 +76,10 @@ class SessionController: SessionControllable {
         heartbeat.stop()
     }
 
+    func clear() {
+        delete()
+    }
+
     @discardableResult
     func startSession(state: SessionState) -> SessionRecord? {
         return startSession(state: state, startTime: Date())
@@ -84,7 +92,7 @@ class SessionController: SessionControllable {
             endSession()
         }
 
-        guard isSDKEnabled else {
+        guard sdkStateProvider?.isEnabled == true else {
             return nil
         }
 
@@ -138,6 +146,7 @@ class SessionController: SessionControllable {
             NotificationCenter.default.post(name: .embraceSessionDidStart, object: session)
 
             firstSession = false
+            attachmentCount = 0
 
             return session
         }
@@ -153,7 +162,7 @@ class SessionController: SessionControllable {
             heartbeat.stop()
             let now = Date()
 
-            guard isSDKEnabled else {
+            guard sdkStateProvider?.isEnabled == true else {
                 delete()
                 return now
             }
@@ -222,6 +231,10 @@ class SessionController: SessionControllable {
             UnsentDataHandler.sendSession(session, storage: storage, upload: upload)
         }
     }
+
+    func increaseAttachmentCount() {
+        attachmentCount += 1
+    }
 }
 
 extension SessionController {
@@ -252,13 +265,6 @@ extension SessionController {
 
         currentSession = nil
         currentSessionSpan = nil
-    }
-    
-    private var isSDKEnabled: Bool {
-        guard let config = config else {
-            return true
-        }
-        return config.isSDKEnabled
     }
 }
 

@@ -9,17 +9,20 @@ import EmbraceStorageInternal
 import EmbraceUploadInternal
 import EmbraceCommonInternal
 import EmbraceConfigInternal
+import TestSupport
 
 class LogControllerTests: XCTestCase {
     private var sut: LogController!
     private var storage: SpyStorage?
     private var sessionController: MockSessionController!
     private var upload: SpyEmbraceLogUploader!
-    private var config: EmbraceConfig!
+    private let sdkStateProvider = MockEmbraceSDKStateProvider()
+    private var otelBridge: MockEmbraceOTelBridge!
 
     override func setUp() {
+        givenOTelBridge()
         givenEmbraceLogUploader()
-        givenConfig()
+        givenSDKEnabled()
         givenSessionControllerWithSession()
         givenStorage()
     }
@@ -96,7 +99,7 @@ class LogControllerTests: XCTestCase {
 
     func testSDKDisabledHavingLogsForLessThanABatch_onSetup_logUploaderShouldntSendASingleBatch() throws {
         givenStorage(withLogs: [randomLogRecord(), randomLogRecord()])
-        givenConfig(sdkEnabled: false)
+        givenSDKEnabled(false)
         givenLogController()
         whenInvokingSetup()
         thenLogUploadShouldUpload(times: 0)
@@ -163,7 +166,7 @@ class LogControllerTests: XCTestCase {
     }
 
     func testSDKDisabledHavingLogs_onBatchFinished_ontTryToUploadAnything() throws {
-        givenConfig(sdkEnabled: false)
+        givenSDKEnabled(false)
         givenLogController()
         whenInvokingBatchFinished(withLogs: [randomLogRecord()])
         thenDoesntTryToUploadAnything()
@@ -199,6 +202,48 @@ class LogControllerTests: XCTestCase {
             XCTAssertTrue(convertedError.userInfo.isEmpty)
         }
     }
+
+    // MARK: - createLog
+    func test_createLog() throws {
+        givenLogController()
+        whenCreatingLog()
+        thenLogIsCreatedCorrectly()
+    }
+
+    func test_createLogWithAttachment_success() throws {
+        givenEmbraceLogUploader()
+        givenLogController()
+        whenCreatingLogWithAttachment()
+        thenLogWithSuccessfulAttachmentIsCreatedCorrectly()
+    }
+
+    func test_createLogWithAttachment_tooLarge() throws {
+        givenEmbraceLogUploader()
+        givenLogController()
+        whenCreatingLogWithBigAttachment()
+        thenLogWithUnsuccessfulAttachmentIsCreatedCorrectly(errorCode: "ATTACHMENT_TOO_LARGE")
+    }
+
+    func test_createLogWithAttachment_limitReached() throws {
+        givenEmbraceLogUploader()
+        givenLogController()
+        whenAttachmentLimitIsReached()
+        whenCreatingLogWithAttachment()
+        thenLogWithUnsuccessfulAttachmentIsCreatedCorrectly(errorCode: "OVER_MAX_ATTACHMENTS")
+    }
+
+    func test_createLogWithAttachment_serverError() throws {
+        givenFailingLogUploader()
+        givenLogController()
+        whenCreatingLogWithAttachment()
+        thenLogWithUnsuccessfulAttachmentIsCreatedCorrectly(errorCode: nil)
+    }
+
+    func test_createLogWithPreuploadedAttachment() throws {
+        givenLogController()
+        whenCreatingLogWithPreUploadedAttachment()
+        thenLogWithPreuploadedAttachmentIsCreatedCorrectly()
+    }
 }
 
 private extension LogControllerTests {
@@ -206,32 +251,42 @@ private extension LogControllerTests {
         sut = .init(
             storage: nil,
             upload: upload,
-            controller: sessionController,
-            config: config
+            controller: sessionController
         )
+
+        sut.sdkStateProvider = sdkStateProvider
+        sut.otel = otelBridge
     }
 
     func givenLogController() {
         sut = .init(
             storage: storage,
             upload: upload,
-            controller: sessionController,
-            config: config
+            controller: sessionController
         )
+
+        sut.sdkStateProvider = sdkStateProvider
+        sut.otel = otelBridge
     }
 
     func givenEmbraceLogUploader() {
         upload = .init()
-        upload.stubbedCompletion = .success(())
+        upload.stubbedLogCompletion = .success(())
+        upload.stubbedAttachmentCompletion = .success(())
     }
 
     func givenFailingLogUploader() {
         upload = .init()
-        upload.stubbedCompletion = .failure(RandomError())
+        upload.stubbedLogCompletion = .failure(RandomError())
+        upload.stubbedAttachmentCompletion = .failure(RandomError())
     }
 
-    func givenConfig(sdkEnabled: Bool = true) {
-        config = EmbraceConfigMock.default(sdkEnabled: sdkEnabled)
+    func givenSDKEnabled(_ sdkEnabled: Bool = true) {
+        sdkStateProvider.isEnabled = sdkEnabled
+    }
+
+    func givenOTelBridge() {
+        otelBridge = MockEmbraceOTelBridge()
     }
 
     func givenSessionControllerWithoutSession() {
@@ -265,6 +320,35 @@ private extension LogControllerTests {
 
     func whenInvokingBatchFinished(withLogs logs: [LogRecord]) {
         sut.batchFinished(withLogs: logs)
+    }
+
+    func whenAttachmentLimitIsReached() {
+        sut.sessionController?.increaseAttachmentCount()
+        sut.sessionController?.increaseAttachmentCount()
+        sut.sessionController?.increaseAttachmentCount()
+        sut.sessionController?.increaseAttachmentCount()
+        sut.sessionController?.increaseAttachmentCount()
+    }
+
+    func whenCreatingLog() {
+        sut.createLog("test", severity: .info)
+    }
+
+    func whenCreatingLogWithAttachment() {
+        sut.createLog("test", severity: .info, attachment: TestConstants.data)
+    }
+
+    func whenCreatingLogWithBigAttachment() {
+        var str = ""
+        for _ in 1...1048600 {
+            str += "."
+        }
+        sut.createLog("test", severity: .info, attachment: str.data(using: .utf8)!)
+    }
+
+    func whenCreatingLogWithPreUploadedAttachment() {
+        let url = URL(string: "http//embrace.test.com/attachment/123", testName: testName)!
+        sut.createLog("test", severity: .info, attachmentId: UUID().withoutHyphen, attachmentUrl: url, attachmentSize: 12345)
     }
 
     func thenDoesntTryToUploadAnything() {
@@ -326,6 +410,49 @@ private extension LogControllerTests {
         let unwrappedStorage = try XCTUnwrap(storage)
         XCTAssertTrue(unwrappedStorage.didCallFetchPersonaTagsForProcessId)
         XCTAssertEqual(unwrappedStorage.fetchPersonaTagsForProcessIdReceivedParameter, processId)
+    }
+
+    func thenLogIsCreatedCorrectly() {
+        let log = otelBridge.otel.logs.first
+        XCTAssertNotNil(log)
+        XCTAssertEqual(log!.body!.description, "test")
+        XCTAssertEqual(log!.severity, .info)
+        XCTAssertEqual(log!.attributes["emb.type"]!.description, "sys.log")
+    }
+
+    func thenLogWithSuccessfulAttachmentIsCreatedCorrectly() {
+        wait {
+            let log = self.otelBridge.otel.logs.first
+
+            let attachmentIdFound = log!.attributes["emb.attachment_id"] != nil
+            let attachmentSizeFound = log!.attributes["emb.attachment_size"] != nil
+
+            return attachmentIdFound && attachmentSizeFound
+        }
+    }
+
+    func thenLogWithUnsuccessfulAttachmentIsCreatedCorrectly(errorCode: String?) {
+        wait {
+            let log = self.otelBridge.otel.logs.first
+
+            let attachmentIdFound = log!.attributes["emb.attachment_id"] != nil
+            let attachmentSizeFound = log!.attributes["emb.attachment_size"] != nil
+            let attachmentErrorFound = errorCode == nil || log!.attributes["emb.attachment_error_code"]!.description == errorCode
+
+            return attachmentIdFound && attachmentSizeFound && attachmentErrorFound
+        }
+    }
+
+    func thenLogWithPreuploadedAttachmentIsCreatedCorrectly() {
+        wait {
+            let log = self.otelBridge.otel.logs.first
+
+            let attachmentIdFound = log!.attributes["emb.attachment_id"] != nil
+            let attachmentUrlFound = log!.attributes["emb.attachment_url"] != nil
+            let attachmentSizeFound = log!.attributes["emb.attachment_size"] != nil
+
+            return attachmentIdFound && attachmentUrlFound && attachmentSizeFound
+        }
     }
 
     func randomLogRecord(sessionId: SessionIdentifier? = nil) -> LogRecord {

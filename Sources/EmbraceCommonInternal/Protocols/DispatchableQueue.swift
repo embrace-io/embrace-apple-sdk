@@ -23,7 +23,7 @@ public class DefaultDispatchableQueue: DispatchableQueue {
     public func sync(execute block: () -> Void) {
         queue.sync(execute: block)
     }
-    
+
     public static func with(label: String) -> DispatchableQueue {
         DefaultDispatchableQueue(queue: .init(label: label))
     }

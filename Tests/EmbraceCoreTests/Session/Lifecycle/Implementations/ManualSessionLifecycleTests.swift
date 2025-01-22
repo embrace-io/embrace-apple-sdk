@@ -13,6 +13,7 @@ final class ManualSessionLifecycleTests: XCTestCase {
 
     override func setUpWithError() throws {
         lifecycle = ManualSessionLifecycle(controller: mockController)
+        lifecycle.setup()
     }
 
     override func tearDownWithError() throws {
@@ -30,6 +31,7 @@ final class ManualSessionLifecycleTests: XCTestCase {
     func test_startSession_ifControllerIsNil_doesNothing() throws {
         var controller: MockSessionController? = MockSessionController()
         lifecycle = ManualSessionLifecycle(controller: controller!)
+        lifecycle.setup()
         controller = nil
 
         lifecycle.startSession()
@@ -42,6 +44,7 @@ final class ManualSessionLifecycleTests: XCTestCase {
     func test_endSession_ifControllerIsNil_doesNothing() throws {
         var controller: MockSessionController? = MockSessionController()
         lifecycle = ManualSessionLifecycle(controller: controller!)
+        lifecycle.setup()
         controller = nil
 
         lifecycle.endSession()

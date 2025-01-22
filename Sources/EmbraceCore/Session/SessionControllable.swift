@@ -20,4 +20,9 @@ protocol SessionControllable: AnyObject {
 
     func update(state: SessionState)
     func update(appTerminated: Bool)
+
+    var attachmentCount: Int { get }
+    func increaseAttachmentCount()
+
+    func clear()
 }

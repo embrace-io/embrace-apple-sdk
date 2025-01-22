@@ -4,22 +4,34 @@
 
 import Foundation
 import OpenTelemetrySdk
+import EmbraceCommonInternal
 
 class SingleLogRecordProcessor: LogRecordProcessor {
 
     private let exporters: [LogRecordExporter]
 
-    init(exporters: [LogRecordExporter]) {
+    weak var sdkStateProvider: EmbraceSDKStateProvider?
+
+    init(exporters: [LogRecordExporter], sdkStateProvider: EmbraceSDKStateProvider) {
         self.exporters = exporters
+        self.sdkStateProvider = sdkStateProvider
     }
 
     func onEmit(logRecord: ReadableLogRecord) {
+        guard sdkStateProvider?.isEnabled == true else {
+            return
+        }
+
         exporters.forEach {
             _ = $0.export(logRecords: [logRecord])
         }
     }
 
     func forceFlush(explicitTimeout: TimeInterval?) -> ExportResult {
+        guard sdkStateProvider?.isEnabled == true else {
+            return .failure
+        }
+
         let resultSet = Set(exporters.map { $0.forceFlush() })
         if let firstResult = resultSet.first {
             return resultSet.count > 1 ? .failure : firstResult
