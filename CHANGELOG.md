@@ -4,6 +4,7 @@
     * Fixed an issue that caused the crash `'Cannot form weak reference to instance X of class Y'`.
 	* Fixed an issue that prevented enabling/disabling certain functionalities.
 	* Fixed incompatibility issues with AppLovin.
+
 ## 6.7.0
 *Jan 10th, 2025**
 * Features
