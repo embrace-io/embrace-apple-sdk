@@ -7,7 +7,7 @@ import CoreData
 import EmbraceCommonInternal
 
 public class CoreDataWrapper {
-    
+
     public let options: CoreDataWrapper.Options
 
     let container: NSPersistentContainer
@@ -28,7 +28,7 @@ public class CoreDataWrapper {
         self.container = NSPersistentContainer(name: name, managedObjectModel: model)
 
         switch options.storageMechanism {
-        case .inMemory(_):
+        case .inMemory:
             let description = NSPersistentStoreDescription()
             description.type = NSInMemoryStoreType
             self.container.persistentStoreDescriptions = [description]
@@ -62,7 +62,7 @@ public class CoreDataWrapper {
     }
 
     /// Synchronously fetches the records that satisfy the given request
-    public func fetch<T>(withRequest request: NSFetchRequest<T>) -> [T] where T : NSManagedObject {
+    public func fetch<T>(withRequest request: NSFetchRequest<T>) -> [T] where T: NSManagedObject {
         var result: [T] = []
         context.performAndWait {
             do {
@@ -73,12 +73,12 @@ public class CoreDataWrapper {
     }
 
     /// Asynchronously deletes record from the database
-    public func deleteRecord<T>(_ record: T) where T : NSManagedObject {
+    public func deleteRecord<T>(_ record: T) where T: NSManagedObject {
         deleteRecords([record])
     }
 
     /// Asynchronously deletes requested records from the database
-    public func deleteRecords<T>(_ records: [T]) where T : NSManagedObject {
+    public func deleteRecords<T>(_ records: [T]) where T: NSManagedObject {
         context.perform { [weak self] in
             for record in records {
                 self?.context.delete(record)

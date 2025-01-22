@@ -19,6 +19,11 @@ class EmbraceUploadCache {
         self.options = options
         self.logger = logger
 
+        // remove old GRDB sqlite file
+        if let url = options.storageMechanism.baseUrl?.appendingPathComponent("db.sqlite") {
+            try? FileManager.default.removeItem(at: url)
+        }
+
         // create core data stack
         let coreDataOptions = CoreDataWrapper.Options(
             storageMechanism: options.storageMechanism,
