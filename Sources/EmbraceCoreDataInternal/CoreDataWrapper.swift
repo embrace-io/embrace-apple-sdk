@@ -56,7 +56,8 @@ public class CoreDataWrapper {
             do {
                 try self?.context.save()
             } catch {
-                self?.logger.warning("Erro saving EmbraceUploadCache: \(error.localizedDescription)")
+                let name = self?.context.name ?? "???"
+                self?.logger.warning("Error saving CoreData \"\(name)\": \(error.localizedDescription)")
             }
         }
     }
