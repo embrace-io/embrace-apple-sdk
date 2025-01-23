@@ -50,7 +50,7 @@ public class CoreDataWrapper {
         self.context.persistentStoreCoordinator = self.container.persistentStoreCoordinator
     }
 
-    /// Synchronously saves all changes on the current context to disk
+    /// Asynchronously saves all changes on the current context to disk
     public func save() {
         context.perform { [weak self] in
             do {
