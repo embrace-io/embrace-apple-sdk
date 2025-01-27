@@ -228,43 +228,6 @@ class EmbraceStorageTests: XCTestCase {
         XCTAssert(records.contains(span2))
     }
 
-    func test_executeQuery() throws {
-        // given inserted record
-        let span = SpanRecord(
-            id: "id",
-            name: "a name",
-            traceId: "traceId",
-            type: .performance,
-            data: Data(),
-            startTime: Date()
-        )
-
-        try storage.dbQueue.write { db in
-            try span.insert(db)
-        }
-
-        // then record should exist in storage
-        let expectation1 = XCTestExpectation()
-        try storage.dbQueue.read { db in
-            XCTAssert(try span.exists(db))
-            expectation1.fulfill()
-        }
-
-        wait(for: [expectation1], timeout: .defaultTimeout)
-
-        // when executing custom query to delete record
-        try storage.executeQuery("DELETE FROM \(SpanRecord.databaseTableName) WHERE id='id' AND trace_id='traceId'", arguments: nil)
-
-        // then record should not exist in storage
-        let expectation2 = XCTestExpectation()
-        try storage.dbQueue.read { db in
-            XCTAssertFalse(try span.exists(db))
-            expectation2.fulfill()
-        }
-
-        wait(for: [expectation2], timeout: .defaultTimeout)
-    }
-
     func test_corruptedDbAction() {
         guard let corruptedDb = EmbraceStorageTests.prepareCorruptedDBForTest() else {
             return XCTFail("\(#function): Failed to create corrupted DB for test")

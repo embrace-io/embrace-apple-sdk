@@ -73,12 +73,23 @@ public class CoreDataWrapper {
         return result
     }
 
-    /// Asynchronously deletes record from the database
+    /// Synchronously fetches the count of records that satisfy the given request
+    public func count<T>(withRequest request: NSFetchRequest<T>) -> Int where T: NSManagedObject {
+        var result: Int = 0
+        context.performAndWait {
+            do {
+                result = try context.count(for: request)
+            } catch { }
+        }
+        return result
+    }
+
+    /// Asynchronously deletes record from the database and saves
     public func deleteRecord<T>(_ record: T) where T: NSManagedObject {
         deleteRecords([record])
     }
 
-    /// Asynchronously deletes requested records from the database
+    /// Asynchronously deletes requested records from the database and saves
     public func deleteRecords<T>(_ records: [T]) where T: NSManagedObject {
         context.perform { [weak self] in
             for record in records {

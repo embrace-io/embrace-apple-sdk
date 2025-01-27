@@ -30,11 +30,32 @@ extension EmbraceStorage {
         endTime: Date? = nil,
         lastHeartbeatTime: Date? = nil,
         crashReportId: String? = nil
-    ) throws -> SessionRecord {
-        let session = SessionRecord(
+    ) -> SessionRecord {
+
+        // update existing?
+        if let session = fetchSession(id: id) {
+            session.state = state.rawValue
+            session.processIdRaw = processId.hex
+            session.traceId = traceId
+            session.spanId = spanId
+            session.startTime = startTime
+            session.endTime = endTime
+            session.crashReportId = crashReportId
+
+            if let lastHeartbeatTime = lastHeartbeatTime {
+                session.lastHeartbeatTime = lastHeartbeatTime
+            }
+
+            coreData.save()
+            return session
+        }
+
+        // create new
+        let session = SessionRecord.create(
+            context: coreData.context,
             id: id,
-            state: state,
             processId: processId,
+            state: state,
             traceId: traceId,
             spanId: spanId,
             startTime: startTime,
@@ -42,60 +63,44 @@ extension EmbraceStorage {
             lastHeartbeatTime: lastHeartbeatTime
         )
 
-        try upsertSession(session)
+        coreData.save()
 
         return session
-    }
-
-    /// Adds or updates a `SessionRecord` to the storage synchronously.
-    /// - Parameter record: `SessionRecord` to insert
-    public func upsertSession(_ session: SessionRecord) throws {
-        try dbQueue.write { db in
-            try session.insert(db)
-        }
     }
 
     /// Fetches the stored `SessionRecord` synchronously with the given identifier, if any.
     /// - Parameters:
     ///   - id: Identifier of the session
     /// - Returns: The stored `SessionRecord`, if any
+    public func fetchSession(id: SessionIdentifier) -> SessionRecord? {
+        let request = SessionRecord.createFetchRequest()
+        request.fetchLimit = 1
+        request.predicate = NSPredicate(format: "idRaw == %@", id.toString)
 
-    public func fetchSession(id: SessionIdentifier) throws -> SessionRecord? {
-        try dbQueue.read { db in
-            return try SessionRecord.fetchOne(db, key: id)
-        }
+        return coreData.fetch(withRequest: request).first
     }
 
     /// Synchronously fetches the newest session in the storage, ignoring the current session if it exists.
     /// - Returns: The newest stored `SessionRecord`, if any
-    public func fetchLatestSession(
-        ignoringCurrentSessionId sessionId: SessionIdentifier? = nil
-    ) throws -> SessionRecord? {
-        var session: SessionRecord?
-        try dbQueue.read { db in
+    public func fetchLatestSession(ignoringCurrentSessionId sessionId: SessionIdentifier? = nil) -> SessionRecord? {
+        let request = SessionRecord.createFetchRequest()
+        request.fetchLimit = 1
+        request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: false)]
 
-            var filter = SessionRecord.order(SessionRecord.Schema.startTime.desc)
-
-            if let sessionId = sessionId {
-                filter = filter.filter(SessionRecord.Schema.id != sessionId)
-            }
-
-            session = try filter.fetchOne(db)
+        if let sessionId = sessionId {
+            request.predicate = NSPredicate(format: "idRaw != %@", sessionId.toString)
         }
 
-        return session
+        return coreData.fetch(withRequest: request).first
     }
 
     /// Synchronously fetches the oldest session in the storage, if any.
     /// - Returns: The oldest stored `SessionRecord`, if any
-    public func fetchOldestSession() throws -> SessionRecord? {
-        var session: SessionRecord?
-        try dbQueue.read { db in
-            session = try SessionRecord
-                .order(SessionRecord.Schema.startTime.asc)
-                .fetchOne(db)
-        }
+    public func fetchOldestSession() -> SessionRecord? {
+        let request = SessionRecord.createFetchRequest()
+        request.fetchLimit = 1
+        request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: true)]
 
-        return session
+        return coreData.fetch(withRequest: request).first
     }
 }

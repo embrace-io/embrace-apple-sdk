@@ -5,13 +5,14 @@
 import Foundation
 import EmbraceCommonInternal
 import EmbraceSemantics
+import CoreData
 import GRDB
 
 extension EmbraceStorage {
 
     static let defaultSpanLimitByType = 1500
 
-    /// Adds a span to the storage synchronously.
+    /// Adds or updates a span to the storage synchronously.
     /// - Parameters:
     ///   - id: Identifier of the span
     ///   - name: name of the span
@@ -22,7 +23,7 @@ extension EmbraceStorage {
     ///   - endTime: Date of when the span ended (optional)
     /// - Returns: The newly stored `SpanRecord`
     @discardableResult
-    public func addSpan(
+    public func upsertSpan(
         id: String,
         name: String,
         traceId: String,
@@ -31,9 +32,27 @@ extension EmbraceStorage {
         startTime: Date,
         endTime: Date? = nil,
         processIdentifier: ProcessIdentifier = .current
-    ) throws -> SpanRecord {
+    ) -> SpanRecord {
 
-        let span = SpanRecord(
+        // update existing?
+        if let span = fetchSpan(id: id, traceId: traceId) {
+            span.name = name
+            span.typeRaw = type.rawValue
+            span.data = data
+            span.startTime = startTime
+            span.endTime = endTime
+            span.processIdRaw = processIdentifier.hex
+
+            coreData.save()
+            return span
+        }
+
+        // make space if needed
+        removeOldSpanIfNeeded(forType: type)
+
+        // add new
+        let span = SpanRecord.create(
+            context: coreData.context,
             id: id,
             name: name,
             traceId: traceId,
@@ -43,24 +62,10 @@ extension EmbraceStorage {
             endTime: endTime,
             processIdentifier: processIdentifier
         )
-        try upsertSpan(span)
+
+        coreData.save()
 
         return span
-    }
-
-    /// Adds or updates a `SpanRecord` to the storage synchronously.
-    /// - Parameter record: `SpanRecord` to upsert
-    public func upsertSpan(_ span: SpanRecord) throws {
-        do {
-            try dbQueue.write { [weak self] db in
-                try self?.upsertSpan(db: db, span: span)
-            }
-        } catch let exception as DatabaseError {
-            throw EmbraceStorageError.cannotUpsertSpan(
-                spanName: span.name,
-                message: exception.message ?? "[empty message]"
-            )
-        }
     }
 
     /// Fetches the stored `SpanRecord` synchronously with the given identifiers, if any.
@@ -68,48 +73,44 @@ extension EmbraceStorage {
     ///   - id: Identifier of the span
     ///   - traceId: Identifier of the trace containing this span
     /// - Returns: The stored `SpanRecord`, if any
-    public func fetchSpan(id: String, traceId: String) throws -> SpanRecord? {
-        var span: SpanRecord?
-        try dbQueue.read { db in
-            span = try SpanRecord.fetchOne(
-                db,
-                key: [
-                    SpanRecord.Schema.traceId.name: traceId,
-                    SpanRecord.Schema.id.name: id
-                ]
-            )
-        }
+    public func fetchSpan(id: String, traceId: String) -> SpanRecord? {
+        let request = SpanRecord.createFetchRequest()
+        request.fetchLimit = 1
+        request.predicate = NSPredicate(format: "id == %@ AND traceId == %i", id, traceId)
 
-        return span
+        return coreData.fetch(withRequest: request).first
     }
 
     /// Synchronously removes all the closed spans older than the given date.
     /// If no date is provided, all closed spans will be removed.
     /// - Parameter date: Date used to determine which spans to remove
-    public func cleanUpSpans(date: Date? = nil) throws {
-        _ = try dbQueue.write { db in
-            var filter = SpanRecord.filter(SpanRecord.Schema.endTime != nil)
+    public func cleanUpSpans(date: Date? = nil) {
+        let request = SpanRecord.createFetchRequest()
 
-            if let date = date {
-                filter = filter.filter(SpanRecord.Schema.endTime < date)
-            }
-
-            try filter.deleteAll(db)
+        if let date = date {
+            request.predicate = NSPredicate(format: "date != nil AND date < %@", date as NSDate)
+        } else {
+            request.predicate = NSPredicate(format: "date != nil")
         }
+
+        let spans = coreData.fetch(withRequest: request)
+        coreData.deleteRecords(spans)
     }
 
     /// Synchronously closes all open spans with the given `endTime`.
     /// - Parameters:
     ///   - endTime: Identifier of the trace containing this span
-    public func closeOpenSpans(endTime: Date) throws {
-        _ = try dbQueue.write { db in
-            try SpanRecord
-                .filter(
-                    SpanRecord.Schema.endTime == nil &&
-                    SpanRecord.Schema.processIdentifier != ProcessIdentifier.current
-                )
-                .updateAll(db, SpanRecord.Schema.endTime.set(to: endTime))
+    public func closeOpenSpans(endTime: Date) {
+        let request = SpanRecord.createFetchRequest()
+        request.predicate = NSPredicate(format: "date = nil")
+
+        let spans = coreData.fetch(withRequest: request)
+
+        for span in spans {
+            span.endTime = endTime
         }
+
+        coreData.save()
     }
 
     /// Fetch spans for the given session record
@@ -122,119 +123,70 @@ extension EmbraceStorage {
         for sessionRecord: SessionRecord,
         ignoreSessionSpans: Bool = true,
         limit: Int = 1000
-    ) throws -> [SpanRecord] {
-        return try dbQueue.read { db in
-            var query = SpanRecord.filter(for: sessionRecord)
+    ) -> [SpanRecord] {
 
-            if ignoreSessionSpans {
-                query = query.filter(SpanRecord.Schema.type != SpanType.session)
-            }
+        let request = SpanRecord.createFetchRequest()
+        request.fetchLimit = limit
 
-            return try query
-                .limit(limit)
-                .fetchAll(db)
+        let endTime = (sessionRecord.endTime ?? sessionRecord.lastHeartbeatTime) as NSDate
+
+        // special case for cold start sessions
+        // we grab spans that might have started before the session but within the same process
+        if sessionRecord.coldStart {
+            request.predicate = NSPredicate(
+                format: "processIdRaw == %@ AND startTime <= %@",
+                sessionRecord.processIdRaw,
+                endTime
+            )
         }
+
+        // otherwise we check if the span is within the boundaries of the session
+        else {
+            let startTime = sessionRecord.startTime as NSDate
+
+            // span starts within session and
+            //   - ends before session ends or
+            //   - hasn't ended yet
+            let predicate1 = NSPredicate(
+                format: "(startTime >= %@ AND (endTime = nil OR endTime <= %@)",
+                startTime,
+                endTime
+            )
+
+            // span starts before session and
+            //   - ends within session or
+            //   - hasn't ended yet
+            let predicate2 = NSPredicate(
+                format: "(startTime < %@ AND (endTime = nil OR (endTime >= %@ AND endTime <= %@))",
+                startTime,
+                startTime,
+                endTime
+            )
+
+            request.predicate = NSCompoundPredicate(type: .or, subpredicates: [predicate1, predicate2])
+        }
+
+        return coreData.fetch(withRequest: request)
     }
 }
 
 // MARK: - Database operations
 fileprivate extension EmbraceStorage {
-    func upsertSpan(db: Database, span: SpanRecord) throws {
-        // update if its already stored
-        if try span.exists(db) {
-            try span.update(db)
-            return
-        }
-
+    func removeOldSpanIfNeeded(forType type: SpanType) {
         // check limit and delete if necessary
         // default to 1500 if limit is not set
-        let limit = options.spanLimits[span.type, default: Self.defaultSpanLimitByType]
+        let limit = options.spanLimits[type, default: Self.defaultSpanLimitByType]
 
-        let count = try spanCount(db: db, type: span.type)
+        let request = SpanRecord.createFetchRequest()
+        request.predicate = NSPredicate(format: "typeRaw == %@", type.rawValue)
+        let count = coreData.count(withRequest: request)
+
         if count >= limit {
-            let spansToDelete = try fetchSpans(
-                db: db,
-                type: span.type,
-                limit: count - limit + 1
-            )
+            request.fetchLimit = count - limit + 1
+            request.sortDescriptors = [ NSSortDescriptor(key: "startTime", ascending: true) ]
 
-            for spanToDelete in spansToDelete {
-                try spanToDelete.delete(db)
-            }
+            let spansToDelete = coreData.fetch(withRequest: request)
+            coreData.deleteRecords(spansToDelete)
         }
-
-        try span.insert(db)
-    }
-
-    func requestSpans(of type: SpanType) -> QueryInterfaceRequest<SpanRecord> {
-        return SpanRecord.filter(SpanRecord.Schema.type == type.rawValue)
-    }
-
-    func spanCount(db: Database, type: SpanType) throws -> Int {
-        return try requestSpans(of: type)
-            .fetchCount(db)
-    }
-
-    func fetchSpans(db: Database, type: SpanType, limit: Int?) throws -> [SpanRecord] {
-        var request = requestSpans(of: type)
-            .order(SpanRecord.Schema.startTime)
-
-        if let limit = limit {
-            request = request.limit(limit)
-        }
-
-        return try request.fetchAll(db)
-    }
-
-    func spanInTimeFrameByTypeRequest(
-        startTime: Date,
-        endTime: Date,
-        includeOlder: Bool,
-        ignoreSessionSpans: Bool
-    ) -> QueryInterfaceRequest<SpanRecord> {
-
-        // end_time is nil
-        // or end_time is between parameters (start_time, end_time)
-        var filter = SpanRecord.filter(
-            SpanRecord.Schema.endTime == nil ||
-            (SpanRecord.Schema.endTime <= endTime && SpanRecord.Schema.endTime >= startTime)
-        )
-
-        // if we don't include old spans
-        // select where start_time is greater than parameter (start_time)
-        if includeOlder == false {
-            filter = filter.filter(SpanRecord.Schema.startTime >= startTime)
-        }
-
-        // if ignoring session span
-        // select where type is not session span
-        if ignoreSessionSpans == true {
-            filter = filter.filter(SpanRecord.Schema.type != SpanType.session.rawValue)
-        }
-
-        return filter
-    }
-
-    func fetchSpans(
-        db: Database,
-        startTime: Date,
-        endTime: Date,
-        includeOlder: Bool,
-        ignoreSessionSpans: Bool,
-        limit: Int?
-    ) throws -> [SpanRecord] {
-
-        var request = spanInTimeFrameByTypeRequest(
-            startTime: startTime,
-            endTime: endTime,
-            includeOlder: includeOlder,
-            ignoreSessionSpans: ignoreSessionSpans
-        ).order(SpanRecord.Schema.startTime)
-
-        if let limit = limit {
-            request = request.limit(limit)
-        }
-
-        return try request.fetchAll(db)
     }
 }
