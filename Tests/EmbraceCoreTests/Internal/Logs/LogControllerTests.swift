@@ -348,7 +348,7 @@ private extension LogControllerTests {
 
     func whenCreatingLogWithPreUploadedAttachment() {
         let url = URL(string: "http//embrace.test.com/attachment/123", testName: testName)!
-        sut.createLog("test", severity: .info, attachmentId: UUID().withoutHyphen, attachmentUrl: url, attachmentSize: 12345)
+        sut.createLog("test", severity: .info, attachmentId: UUID().withoutHyphen, attachmentUrl: url)
     }
 
     func thenDoesntTryToUploadAnything() {
@@ -449,9 +449,8 @@ private extension LogControllerTests {
 
             let attachmentIdFound = log!.attributes["emb.attachment_id"] != nil
             let attachmentUrlFound = log!.attributes["emb.attachment_url"] != nil
-            let attachmentSizeFound = log!.attributes["emb.attachment_size"] != nil
 
-            return attachmentIdFound && attachmentUrlFound && attachmentSizeFound
+            return attachmentIdFound && attachmentUrlFound
         }
     }
 
