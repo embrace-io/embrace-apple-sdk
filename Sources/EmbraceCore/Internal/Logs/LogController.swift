@@ -107,8 +107,6 @@ class LogController: LogControllable {
         // handle attachment data
         if let attachment = attachment {
 
-            sessionController.increaseAttachmentCount()
-
             let id = UUID().withoutHyphen
             finalAttributes[LogSemantics.keyAttachmentId] = id
 
@@ -128,6 +126,8 @@ class LogController: LogControllable {
             else {
                 upload?.uploadAttachment(id: id, data: attachment, completion: nil)
             }
+
+            sessionController.increaseAttachmentCount()
         }
 
         // handle pre-uploaded attachment
