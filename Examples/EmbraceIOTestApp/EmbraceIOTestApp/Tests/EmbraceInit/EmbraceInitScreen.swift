@@ -90,7 +90,8 @@ private extension EmbraceInitScreen {
         do {
             showProgressview = true
             let services = CaptureServiceBuilder()
-                .add(.view(options: ViewCaptureService.Options(instrumentVisibility: true, instrumentFirstRender: true)))
+                .add(.view(options: ViewCaptureService.Options(instrumentVisibility: true,
+                                                               instrumentFirstRender: true)))
                 .addDefaults()
                 .build()
             try Embrace

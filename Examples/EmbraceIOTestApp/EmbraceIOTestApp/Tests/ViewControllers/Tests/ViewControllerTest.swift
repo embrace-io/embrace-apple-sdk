@@ -11,7 +11,7 @@ class ViewControllerViewDidLoadTest: PayloadTest {
     func test(spans: [OpenTelemetrySdk.SpanData]) -> TestReport {
         var testItems = [TestReportItem]()
         let spanName = "emb-view-did-load"
-        guard let viewDidLoadSpan = spans.first (where: { $0.name == spanName })
+        guard let viewDidLoadSpan = spans.first (where: { $0.name == spanName && $0.attributes["view.name"]?.description == "TestViewController" })
         else {
             testItems.append(.init(target: spanName, expected: "exists", recorded: "missing", result: .fail))
             return .init(result: .fail, items: testItems)
