@@ -5,9 +5,9 @@
 //
 
 struct TestReport {
-    var result: TestResult
+    var result: TestResult = .unknown
 
-    let testItems: [TestItem]
+    var items: [TestReportItem] = []
 
     var passed: Bool {
         result == .success

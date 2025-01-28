@@ -32,7 +32,7 @@ struct TestReportCard: View {
                 }
             }
             .padding(.leading, 5)
-            List(report.testItems) { item in
+            List(report.items) { item in
                 VStack(alignment: .leading) {
                     HStack {
                         Text(item.target)
@@ -60,8 +60,8 @@ struct TestReportCard: View {
 
 #Preview {
     @Previewable @State var reports: TestReport =
-        .init(result: .fail, testItems: [
-            .init(target: "viewDidLoad", expected: "viewDidLoad", recorded: "found", result: .pass),
+        .init(result: .fail, items: [
+            .init(target: "viewDidLoad", expected: "viewDidLoad", recorded: "found", result: .success),
             .init(target: "customViewName", expected: "A custom Name", recorded: "View Controller", result: .fail)
         ])
     @Previewable @State var presented: Bool = false

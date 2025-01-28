@@ -8,8 +8,8 @@ import SwiftUI
 
 struct MetadataTestUIComponent: View {
     @EnvironmentObject var spanExporter: TestSpanExporter
-    @State var setupTestReport: TestReport = .init(result: .unknown, testItems: [])
-    @State var startTestReport: TestReport = .init(result: .unknown, testItems: [])
+    @State var setupTestReport = TestReport()
+    @State var startTestReport = TestReport()
     @State var readyToTest: Bool = false
     @State private var startReportPresented: Bool = false
     @State private var setupReportPresented: Bool = false

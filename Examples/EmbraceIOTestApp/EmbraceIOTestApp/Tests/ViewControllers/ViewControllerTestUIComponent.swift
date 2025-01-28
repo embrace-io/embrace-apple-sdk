@@ -8,7 +8,7 @@ import SwiftUI
 
 struct ViewControllerTestUIComponent: View {
     @EnvironmentObject var spanExporter: TestSpanExporter
-    @State private var testReport: TestReport = .init(result: .unknown, testItems: [])
+    @State private var testReport = TestReport()
     @State private var readyToTest: Bool = false
     @State private var viewDidLoadSimulated: Bool = false
     @State private var reportPresented: Bool = false
