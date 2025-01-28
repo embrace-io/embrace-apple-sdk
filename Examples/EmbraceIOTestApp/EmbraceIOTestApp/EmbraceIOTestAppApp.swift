@@ -1,0 +1,23 @@
+//
+//  EmbraceIOTestAppApp.swift
+//  EmbraceIOTestApp
+//
+//
+
+import SwiftUI
+import EmbraceIO
+import OpenTelemetrySdk
+
+@main
+struct EmbraceIOTestAppApp: App {
+    let spanExporter = TestSpanExporter()
+    var body: some Scene {
+        WindowGroup {
+            NavigationView {
+                ContentView()
+                    .preferredColorScheme(.dark)
+                    .environmentObject(spanExporter)
+            }
+        }
+    }
+}

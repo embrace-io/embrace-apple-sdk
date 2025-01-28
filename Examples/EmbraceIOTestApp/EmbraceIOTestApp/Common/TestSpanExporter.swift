@@ -1,0 +1,63 @@
+//
+//  TestSpanExporter.swift
+//  EmbraceIOTestApp
+//
+//
+
+import SwiftUI
+import OpenTelemetrySdk
+
+
+/// `waiting`: The Span Exporter has not yet received any payloads.
+/// `ready`: One or more spans have been exported and are ready to be tested
+/// `testing`: Tests are currently being performed
+/// `clear`: All previous cached spans have been cleared out so there's nothing to test.
+enum TestSpanExporterState {
+    case waiting
+    case ready
+    case testing
+    case clear
+}
+
+class TestSpanExporter: SpanExporter, ObservableObject {
+    /// Perform actions that would trigger a span export and monitor changes on this property. When `state` is set to `ready`, you can perform tests on the cached spans.
+    @Published var state: TestSpanExporterState = .waiting
+
+    var cachedExportedSpans: [OpenTelemetrySdk.SpanData] = []
+
+    func clearAll() {
+        cachedExportedSpans.removeAll()
+        state = .clear
+    }
+
+    func shutdown(explicitTimeout: TimeInterval?) {}
+
+    func flush(explicitTimeout: TimeInterval?) -> OpenTelemetrySdk.SpanExporterResultCode {
+        return .success
+    }
+
+    func export(spans: [OpenTelemetrySdk.SpanData], explicitTimeout: TimeInterval?) -> OpenTelemetrySdk.SpanExporterResultCode {
+        spans.forEach { cachedExportedSpans.append($0) }
+        DispatchQueue.main.async { [weak self] in
+            self?.state = .ready
+        }
+        return .success
+    }
+
+    // Will perform the provided test on the cached spans.
+    /// `test`: The test to perform.
+    /// `clearAfterTest`: By default all cached spans will be discarded after the test finishes. If you need to perform aditional tests on the same spans, set this parameter to `false`
+    func performTest(_ test: PayloadTest, clearAfterTest: Bool = true) -> TestReport {
+        state = .testing
+        let result = test.test(spans:cachedExportedSpans)
+        if clearAfterTest {
+            cachedExportedSpans.removeAll()
+            state = .clear
+        } else {
+            state = .ready
+        }
+
+        return result
+    }
+
+}
