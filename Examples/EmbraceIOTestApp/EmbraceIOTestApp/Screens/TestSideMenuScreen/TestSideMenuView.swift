@@ -22,12 +22,8 @@ struct TestSideMenuView: View {
             HStack {
                 VStack(alignment: .center, spacing: 30) {
                     TestMenuHeaderView()
-                    List(TestMenuOptionDataModel.allCases, id: \.rawValue, selection: $selectedOption) {
-                        Text($0.title)
-                            .font(.embraceFont(size: 15))
-                            .foregroundStyle(.embraceSilver)
-                            .listRowBackground($0.rawValue == selectedOption ? Color.embracePurple : Color.embraceLead)
-                            .accessibilityIdentifier($0.identifier)
+                    List(TestMenuOptionDataModel.allCases, id: \.rawValue, selection: $selectedOption) { item in
+                        TestSideMenuListItem(item: item, selected: item.rawValue == selectedOption)
                     }
                     .listStyle(.plain)
                     .background(.embraceLead)
