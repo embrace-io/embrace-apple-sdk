@@ -1,5 +1,5 @@
 //
-//  TestResultsScreen.swift
+//  TestReportCard.swift
 //  EmbraceIOTestApp
 //
 //
@@ -14,9 +14,10 @@ struct TestReportCard: View {
     var body: some View {
         VStack {
             Text(report.passed ? "PASS" : "FAIL")
-                .font(.largeTitle)
-                .foregroundStyle(.white)
+                .font(.embraceFont(size: 35))
+                .foregroundStyle(report.passed ? .green : .red)
                 .padding(.bottom, 60)
+                .padding(.top, 20)
             VStack{
                 HStack {
                     Text("Target")
@@ -59,21 +60,39 @@ struct TestReportCard: View {
 }
 
 #Preview {
-    @Previewable @State var reports: TestReport =
+    @Previewable @State var passReport: TestReport =
+        .init(result: .success, items: [
+            .init(target: "viewDidLoad", expected: "viewDidLoad", recorded: "found", result: .success),
+            .init(target: "customViewName", expected: "A custom Name", recorded: "View Controller", result: .success)
+        ])
+    @Previewable @State var failReport: TestReport =
         .init(result: .fail, items: [
             .init(target: "viewDidLoad", expected: "viewDidLoad", recorded: "found", result: .success),
             .init(target: "customViewName", expected: "A custom Name", recorded: "View Controller", result: .fail)
         ])
-    @Previewable @State var presented: Bool = false
+
+    @Previewable @State var passedPresented: Bool = false
+    @Previewable @State var failPresented: Bool = false
+
     VStack {
         Button {
-            presented.toggle()
+            passedPresented.toggle()
         } label: {
-            Text("Display Report")
+            Text("PASSED Report")
+        }
+        .padding(.bottom, 60)
+        Button {
+            failPresented.toggle()
+        } label: {
+            Text("FAIL Report")
         }
     }
-    .sheet(isPresented: $presented) {
-        TestReportCard(report: $reports)
+    .sheet(isPresented: $passedPresented) {
+        TestReportCard(report: $passReport)
     }
+    .sheet(isPresented: $failPresented) {
+        TestReportCard(report: $failReport)
+    }
+    .preferredColorScheme(.dark)
 
 }
