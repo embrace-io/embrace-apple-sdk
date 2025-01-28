@@ -23,6 +23,7 @@ struct MetadataTestUIComponent: View {
                     startTestReport = spanExporter.performTest(MetadataStartTest(), clearAfterTest: false)
                     startReportPresented.toggle()
                 })
+            .accessibilityIdentifier("startupTestButton")
             TestComponentView(
                 testResult: $setupTestReport.result,
                 readyForTest: $readyToTest,
@@ -31,6 +32,7 @@ struct MetadataTestUIComponent: View {
                     setupTestReport = spanExporter.performTest(MetadataSetupTest(), clearAfterTest: false)
                     setupReportPresented.toggle()
                 })
+            .accessibilityIdentifier("setupTestButton")
         }
         .onChange(of: spanExporter.state) { _, newValue in
             readyToTest = newValue == .ready

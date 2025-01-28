@@ -17,7 +17,7 @@ struct EmbraceInitScreen: View {
     @State private var configBaseURL: String = "http://127.0.0.1:8989/api"
 
     private var embraceHasInitialized: Bool {
-        Embrace.client?.started ?? false
+        Embrace.client?.state == .started
     }
     private var formDisabled: Bool {
         showProgressview || embraceHasInitialized

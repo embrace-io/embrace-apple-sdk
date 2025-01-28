@@ -33,5 +33,13 @@ final class EmbraceIOTestAppUITests: XCTestCase {
 
         let sideMenuButton = app.buttons["SideMenuButton"]
         sideMenuButton.tap()
+
+        app.staticTexts["metadata"].tap()
+        let startupButton = app.buttons["startupTestButton"]
+        XCTAssertTrue(startupButton.wait(for: \.isEnabled, toEqual: true, timeout: 5.0))
+
+        startupButton.tap()
+        XCTAssertTrue(app.staticTexts["PASS"].exists)
+        XCTAssertFalse(app.staticTexts["FAIL"].exists)
     }
 }
