@@ -14,7 +14,7 @@ struct ViewControllerTestUIComponent: View {
     @State private var reportPresented: Bool = false
     var body: some View {
         TestComponentView(
-            testResult: .constant(testReport.result),
+            testResult: $testReport.result,
             readyForTest: $readyToTest,
             testName: "Perform ViewController Test",
             testAction: {

@@ -16,7 +16,7 @@ struct MetadataTestUIComponent: View {
     var body: some View {
         VStack {
             TestComponentView(
-                testResult: .constant(startTestReport.result),
+                testResult: $startTestReport.result,
                 readyForTest: $readyToTest,
                 testName: "Startup Test",
                 testAction: {
@@ -24,7 +24,7 @@ struct MetadataTestUIComponent: View {
                     startReportPresented.toggle()
                 })
             TestComponentView(
-                testResult: .constant(setupTestReport.result),
+                testResult: $setupTestReport.result,
                 readyForTest: $readyToTest,
                 testName: "Setup Test",
                 testAction: {
