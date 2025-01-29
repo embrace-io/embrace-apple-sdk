@@ -149,13 +149,13 @@ extension RemoteConfig {
     ///  - digits: The number of digits used to calculate the total space. Must match the number of digits used to determine the hexValue
     ///  - threshold: The percentage threshold to test against. Values between 0.0 and 100.0
     static func isEnabled(hexValue: UInt64, digits: UInt, threshold: Float) -> Bool {
-        if threshold <= 0 || threshold > 100 {
+        guard threshold > 0 else {
             return false
         }
 
         let space = powf(16, Float(digits)) - 1
         let result = (Float(hexValue) / space) * 100
 
-        return result <= threshold
+        return result <= min(100, threshold)
     }
 }

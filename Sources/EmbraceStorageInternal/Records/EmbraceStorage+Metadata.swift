@@ -91,7 +91,8 @@ extension EmbraceStorage {
         key: String,
         value: String,
         type: MetadataRecordType,
-        lifespan: MetadataRecordLifespan
+        lifespan: MetadataRecordLifespan,
+        lifespanId: String
     ) throws {
 
         try dbQueue.write { db in
@@ -99,7 +100,8 @@ extension EmbraceStorage {
                 .filter(
                     MetadataRecord.Schema.key == key &&
                     MetadataRecord.Schema.type == type.rawValue &&
-                    MetadataRecord.Schema.lifespan == lifespan.rawValue
+                    MetadataRecord.Schema.lifespan == lifespan.rawValue &&
+                    MetadataRecord.Schema.lifespanId == lifespanId
                 )
                     .fetchOne(db) else {
                 return

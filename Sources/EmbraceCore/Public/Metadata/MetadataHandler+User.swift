@@ -73,15 +73,7 @@ extension MetadataHandler {
     private func update(key: UserResourceKey, value: String?) {
         if let value = value {
             do {
-                let record = MetadataRecord(
-                    key: key.rawValue,
-                    value: .string(value),
-                    type: .customProperty,
-                    lifespan: .permanent,
-                    lifespanId: MetadataRecord.lifespanIdForPermanent
-                )
-
-                _ = try storage?.addMetadata(record)
+                try addProperty(key: key.rawValue, value: value, lifespan: .permanent)
             } catch {
                 Embrace.logger.warning("Unable to update user metadata!")
             }

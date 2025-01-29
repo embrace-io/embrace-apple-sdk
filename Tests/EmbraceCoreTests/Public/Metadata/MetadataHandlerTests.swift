@@ -7,6 +7,7 @@ import XCTest
 import EmbraceStorageInternal
 import EmbraceCommonInternal
 import TestSupport
+import CoreData
 
 // swiftlint:disable force_cast
 
@@ -327,6 +328,31 @@ final class MetadataHandlerTests: XCTestCase {
         XCTAssertNil(result)
     }
 
+    // MARK: tmp core data
+    func test_coreDataClone() throws {
+        // given stored metadata
+        for i in 1...3 {
+            try storage.addMetadata(key: "resource\(i)", value: "test", type: .resource, lifespan: .permanent)
+            try storage.addMetadata(key: "property\(i)", value: "test", type: .customProperty, lifespan: .permanent)
+        }
+
+        // when initializing a metadata handler
+        let handler = MetadataHandler(storage: storage, sessionController: sessionController)
+
+        // the data is cloned into a temporal core data stack
+        XCTAssertNotNil(handler.coreData)
+
+        let request = NSFetchRequest<MetadataRecordTmp>(entityName: MetadataRecordTmp.entityName)
+        let result = handler.coreData!.fetch(withRequest: request)
+
+        XCTAssertEqual(result.count, 6)
+        XCTAssertNotNil(result.first(where: { $0.key == "resource1" }))
+        XCTAssertNotNil(result.first(where: { $0.key == "resource2" }))
+        XCTAssertNotNil(result.first(where: { $0.key == "resource3" }))
+        XCTAssertNotNil(result.first(where: { $0.key == "property1" }))
+        XCTAssertNotNil(result.first(where: { $0.key == "property2" }))
+        XCTAssertNotNil(result.first(where: { $0.key == "property3" }))
+    }
 }
 
 // swiftlint:enable force_cast

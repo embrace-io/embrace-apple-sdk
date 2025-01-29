@@ -644,6 +644,16 @@
                ReferencedContainer = "container:">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EmbraceCoreDataInternalTests"
+               BuildableName = "EmbraceCoreDataInternalTests"
+               BlueprintName = "EmbraceCoreDataInternalTests"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

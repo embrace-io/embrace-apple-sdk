@@ -179,11 +179,16 @@ public class EmbraceUpload: EmbraceLogUploader {
 
         // cache operation
         let cacheOperation = BlockOperation { [weak self] in
-            do {
-                try self?.cache.saveUploadData(id: id, type: type, data: data)
+            guard let strongSelf = self else {
+                return
+            }
+
+            if strongSelf.cache.saveUploadData(id: id, type: type, data: data) {
                 completion?(.success(()))
-            } catch {
-                self?.logger.debug("Error caching upload data: \(error.localizedDescription)")
+            } else {
+                strongSelf.logger.debug("Error caching upload data!")
+
+                let error = NSError(domain: "com.embrace.upload", code: 5000)
                 completion?(.failure(error))
             }
         }
@@ -301,11 +306,7 @@ public class EmbraceUpload: EmbraceLogUploader {
         case .failure(let isRetriable):
             if isRetriable, attemptCount < options.redundancy.maximumAmountOfRetries {
                 operationQueue.addOperation { [weak self] in
-                    do {
-                        try self?.cache.updateAttemptCount(id: id, type: type, attemptCount: attemptCount)
-                    } catch {
-                        self?.logger.debug("Error updating cache: \(error.localizedDescription)")
-                    }
+                    self?.cache.updateAttemptCount(id: id, type: type, attemptCount: attemptCount)
                 }
                 return
             }
@@ -316,13 +317,8 @@ public class EmbraceUpload: EmbraceLogUploader {
 
     private func addDeleteUploadDataOperation(id: String, type: EmbraceUploadType) {
         operationQueue.addOperation { [weak self] in
-            do {
-                try self?.cache.deleteUploadData(id: id, type: type)
-            } catch {
-                self?.logger.debug("Error deleting cache: \(error.localizedDescription)")
-            }
+            self?.cache.deleteUploadData(id: id, type: type)
         }
-
     }
 
     private func clearCacheFromStaleData() {
