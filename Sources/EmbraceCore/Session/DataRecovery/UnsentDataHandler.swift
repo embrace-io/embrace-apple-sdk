@@ -196,13 +196,7 @@ class UnsentDataHandler {
         closeOpenSpans(storage: storage, currentSessionId: currentSessionId)
 
         // fetch all sessions in the storage
-        var sessions: [SessionRecord]
-        do {
-            sessions = try storage.fetchAll()
-        } catch {
-            Embrace.logger.warning("Error fetching unsent sessions:\n\(error.localizedDescription)")
-            return
-        }
+        let sessions: [SessionRecord] = storage.fetchAll()
 
         for session in sessions {
             // ignore current session
@@ -243,61 +237,43 @@ class UnsentDataHandler {
         upload.uploadSpans(id: session.idRaw, data: payloadData) { result in
             switch result {
             case .success:
-                do {
-                    // remove session from storage
-                    // we can remove this immediately because the upload module will cache it until the upload succeeds
-                    storage.delete(session)
+                // remove session from storage
+                // we can remove this immediately because the upload module will cache it until the upload succeeds
+                storage.delete(session)
 
-                    if performCleanUp {
-                        cleanOldSpans(storage: storage)
-                        cleanMetadata(storage: storage)
-                    }
-
-                } catch {
-                    Embrace.logger.debug("Error trying to remove session \(session.id):\n\(error.localizedDescription)")
+                if performCleanUp {
+                    cleanOldSpans(storage: storage)
+                    cleanMetadata(storage: storage)
                 }
 
             case .failure(let error):
-                Embrace.logger.warning("Error trying to upload session \(session.id):\n\(error.localizedDescription)")
+                Embrace.logger.warning("Error trying to upload session \(session.idRaw):\n\(error.localizedDescription)")
             }
         }
     }
 
     static private func cleanOldSpans(storage: EmbraceStorage) {
-        do {
-            // first we delete any span record that is closed and its older
-            // than the oldest session we have on storage
-            // since spans are only sent when included in a session
-            // all of these would never be sent anymore, so they can be safely removed
-            // if no session is found, all closed spans can be safely removed as well
-            let oldestSession = try storage.fetchOldestSession()
-            try storage.cleanUpSpans(date: oldestSession?.startTime)
-
-        } catch {
-            Embrace.logger.warning("Error cleaning old spans:\n\(error.localizedDescription)")
-        }
+        // first we delete any span record that is closed and its older
+        // than the oldest session we have on storage
+        // since spans are only sent when included in a session
+        // all of these would never be sent anymore, so they can be safely removed
+        // if no session is found, all closed spans can be safely removed as well
+        let oldestSession = storage.fetchOldestSession()
+        storage.cleanUpSpans(date: oldestSession?.startTime)
     }
 
     static private func closeOpenSpans(storage: EmbraceStorage, currentSessionId: SessionIdentifier?) {
-        do {
-            // then we need to close any remaining open spans
-            // we use the latest session on storage to determine the `endTime`
-            // since we need to have a valid `endTime` for these spans, we default
-            // to `Date()` if we don't have a session
-            let latestSession = try storage.fetchLatestSession(ignoringCurrentSessionId: currentSessionId)
-            let endTime = (latestSession?.endTime ?? latestSession?.lastHeartbeatTime) ?? Date()
-            try storage.closeOpenSpans(endTime: endTime)
-        } catch {
-            Embrace.logger.warning("Error closing open spans:\n\(error.localizedDescription)")
-        }
+        // then we need to close any remaining open spans
+        // we use the latest session on storage to determine the `endTime`
+        // since we need to have a valid `endTime` for these spans, we default
+        // to `Date()` if we don't have a session
+        let latestSession = storage.fetchLatestSession(ignoringCurrentSessionId: currentSessionId)
+        let endTime = (latestSession?.endTime ?? latestSession?.lastHeartbeatTime) ?? Date()
+        storage.closeOpenSpans(endTime: endTime)
     }
 
     static private func cleanMetadata(storage: EmbraceStorage, currentSessionId: String? = nil) {
-        do {
-            let sessionId = currentSessionId ?? Embrace.client?.currentSessionId()
-            try storage.cleanMetadata(currentSessionId: sessionId, currentProcessId: ProcessIdentifier.current.hex)
-        } catch {
-            Embrace.logger.warning("Error cleaning up metadata:\n\(error.localizedDescription)")
-        }
+        let sessionId = currentSessionId ?? Embrace.client?.currentSessionId()
+        storage.cleanMetadata(currentSessionId: sessionId, currentProcessId: ProcessIdentifier.current.hex)
     }
 }

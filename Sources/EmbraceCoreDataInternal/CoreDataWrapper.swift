@@ -36,6 +36,7 @@ public class CoreDataWrapper {
         case let .onDisk(_, baseURL):
             try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true)
             let description = NSPersistentStoreDescription()
+            description.type = NSSQLiteStoreType
             description.url = options.storageMechanism.fileURL
             self.container.persistentStoreDescriptions = [description]
         }
@@ -48,6 +49,23 @@ public class CoreDataWrapper {
 
         self.context = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
         self.context.persistentStoreCoordinator = self.container.persistentStoreCoordinator
+    }
+
+    /// Removes the database file
+    public func destroy() {
+        switch options.storageMechanism {
+        case .onDisk:
+            if let url = options.storageMechanism.fileURL {
+                do {
+                    try container.persistentStoreCoordinator.destroyPersistentStore(at: url, ofType: NSSQLiteStoreType)
+                    try FileManager.default.removeItem(at: url)
+                } catch {
+                    logger.error("Error destroying CoreData stack!:\n\(error.localizedDescription)")
+                }
+            }
+
+        default: return
+        }
     }
 
     /// Asynchronously saves all changes on the current context to disk

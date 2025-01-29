@@ -12,16 +12,12 @@ extension DeviceIdentifier {
     static func retrieve(from storage: EmbraceStorage?) -> DeviceIdentifier {
         // retrieve from storage
         if let storage = storage {
-            do {
-                if let resource = try storage.fetchRequiredPermanentResource(key: resourceKey) {
-                    if let uuid = UUID(withoutHyphen: resource.value) {
-                        return DeviceIdentifier(value: uuid)
-                    }
-
-                    Embrace.logger.warning("Failed to convert device.id back into a UUID. Possibly corrupted!")
+            if let resource = storage.fetchRequiredPermanentResource(key: resourceKey) {
+                if let uuid = UUID(withoutHyphen: resource.value) {
+                    return DeviceIdentifier(value: uuid)
                 }
-            } catch let e {
-                Embrace.logger.error("Failed to fetch device id from database \(e.localizedDescription)")
+
+                Embrace.logger.warning("Failed to convert device.id back into a UUID. Possibly corrupted!")
             }
         }
 
@@ -29,18 +25,12 @@ extension DeviceIdentifier {
         let uuid = KeychainAccess.deviceId
         let deviceId = DeviceIdentifier(value: uuid)
 
-        if let storage = storage {
-            do {
-                try storage.addMetadata(
-                    key: resourceKey,
-                    value: deviceId.hex,
-                    type: .requiredResource,
-                    lifespan: .permanent
-                )
-            } catch let e {
-                Embrace.logger.error("Failed to add device id to database \(e.localizedDescription)")
-            }
-        }
+        storage?.addMetadata(
+            key: resourceKey,
+            value: deviceId.hex,
+            type: .requiredResource,
+            lifespan: .permanent
+        )
 
         return deviceId
     }

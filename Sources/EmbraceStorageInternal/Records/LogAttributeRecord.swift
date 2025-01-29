@@ -50,9 +50,9 @@ public class LogAttributeRecord: NSManagedObject {
 
     private static func typeForValue(_ value: AttributeValue) -> LogAttributeType {
         switch value {
-        case .int(_): return .int
-        case .double(_): return .double
-        case .bool(_): return .bool
+        case .int: return .int
+        case .double: return .double
+        case .bool: return .bool
         default: return .string
         }
     }

@@ -6,12 +6,12 @@ import Foundation
 import EmbraceCommonInternal
 
 public protocol EmbraceStorageMetadataFetcher: AnyObject {
-    func fetchAllResources() throws -> [MetadataRecord]
-    func fetchResourcesForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord]
-    func fetchResourcesForProcessId(_ processId: ProcessIdentifier) throws -> [MetadataRecord]
-    func fetchCustomPropertiesForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord]
-    func fetchPersonaTagsForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord]
-    func fetchPersonaTagsForProcessId(_ processId: ProcessIdentifier) throws -> [MetadataRecord]
+    func fetchAllResources() -> [MetadataRecord]
+    func fetchResourcesForSessionId(_ sessionId: SessionIdentifier) -> [MetadataRecord]
+    func fetchResourcesForProcessId(_ processId: ProcessIdentifier) -> [MetadataRecord]
+    func fetchCustomPropertiesForSessionId(_ sessionId: SessionIdentifier) -> [MetadataRecord]
+    func fetchPersonaTagsForSessionId(_ sessionId: SessionIdentifier) -> [MetadataRecord]
+    func fetchPersonaTagsForProcessId(_ processId: ProcessIdentifier) -> [MetadataRecord]
 }
 
 extension EmbraceStorage {
@@ -25,7 +25,7 @@ extension EmbraceStorage {
         type: MetadataRecordType,
         lifespan: MetadataRecordLifespan,
         lifespanId: String = ""
-    ) throws -> MetadataRecord? {
+    ) -> MetadataRecord? {
 
         // update existing?
         if let metadata = updateMetadata(
@@ -57,7 +57,6 @@ extension EmbraceStorage {
         return metadata
     }
 
-
     /// Returns the `MetadataRecord` for the given values.
     public func fetchMetadata(
         key: String,
@@ -81,6 +80,7 @@ extension EmbraceStorage {
 
     /// Updates the `MetadataRecord` for the given key, type and lifespan with a new given value.
     /// - Returns: The updated record, if any
+    @discardableResult
     public func updateMetadata(
         key: String,
         value: String,
@@ -132,7 +132,7 @@ extension EmbraceStorage {
         type: MetadataRecordType,
         lifespan: MetadataRecordLifespan,
         lifespanId: String
-    ) throws {
+    ) {
 
         guard let metadata = fetchMetadata(key: key, type: type, lifespan: lifespan, lifespanId: lifespanId) else {
             return
@@ -195,7 +195,7 @@ extension EmbraceStorage {
     }
 
     /// Returns all records with types `.requiredResource` or `.resource`
-    public func fetchAllResources() throws -> [MetadataRecord] {
+    public func fetchAllResources() -> [MetadataRecord] {
         let request = MetadataRecord.createFetchRequest()
         request.predicate = NSPredicate(
             format: "typeRaw == %@ OR typeRaw == %@",
@@ -216,7 +216,7 @@ extension EmbraceStorage {
         let request = MetadataRecord.createFetchRequest()
         request.predicate = NSCompoundPredicate(
             type: .and,
-            subpredicates:[
+            subpredicates: [
                 resourcePredicate(),
                 lifespanPredicate(session: session)
             ]
@@ -231,7 +231,7 @@ extension EmbraceStorage {
         let request = MetadataRecord.createFetchRequest()
         request.predicate = NSCompoundPredicate(
             type: .and,
-            subpredicates:[
+            subpredicates: [
                 resourcePredicate(),
                 lifespanPredicate(processId: processId)
             ]
@@ -249,7 +249,7 @@ extension EmbraceStorage {
         let request = MetadataRecord.createFetchRequest()
         request.predicate = NSCompoundPredicate(
             type: .and,
-            subpredicates:[
+            subpredicates: [
                 customPropertyPredicate(),
                 lifespanPredicate(session: session)
             ]
@@ -267,7 +267,7 @@ extension EmbraceStorage {
         let request = MetadataRecord.createFetchRequest()
         request.predicate = NSCompoundPredicate(
             type: .and,
-            subpredicates:[
+            subpredicates: [
                 personaTagPredicate(),
                 lifespanPredicate(session: session)
             ]
@@ -282,7 +282,7 @@ extension EmbraceStorage {
         let request = MetadataRecord.createFetchRequest()
         request.predicate = NSCompoundPredicate(
             type: .and,
-            subpredicates:[
+            subpredicates: [
                 personaTagPredicate(),
                 lifespanPredicate(processId: processId)
             ]

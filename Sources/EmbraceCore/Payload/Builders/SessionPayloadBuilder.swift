@@ -15,34 +15,22 @@ class SessionPayloadBuilder {
             return nil
         }
 
-        var resource: MetadataRecord?
-
-        do {
-            // fetch resource
-            resource = try storage.fetchRequiredPermanentResource(key: resourceName)
-        } catch {
-            Embrace.logger.debug("Error fetching \(resourceName) resource!")
-        }
-
         // increment counter or create resource if needed
+        var resource = storage.fetchRequiredPermanentResource(key: resourceName)
         var counter: Int = -1
 
-        do {
-            if var resource = resource {
-                counter = (Int(resource.value) ?? 0) + 1
-                resource.value = String(counter)
-                storage.save()
-            } else {
-                resource = try storage.addMetadata(
-                    key: resourceName,
-                    value: "1",
-                    type: .requiredResource,
-                    lifespan: .permanent
-                )
-                counter = 1
-            }
-        } catch {
-            Embrace.logger.debug("Error updating \(resourceName) resource!")
+        if let resource = resource {
+            counter = (Int(resource.value) ?? 0) + 1
+            resource.value = String(counter)
+            storage.save()
+        } else {
+            resource = storage.addMetadata(
+                key: resourceName,
+                value: "1",
+                type: .requiredResource,
+                lifespan: .permanent
+            )
+            counter = 1
         }
 
         // build spans

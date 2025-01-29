@@ -36,20 +36,16 @@ struct LogPayloadBuilder {
         var metadata: [MetadataRecord] = []
 
         if let storage = storage {
-            do {
-                if let sessionId = sessionId {
-                    resources = try storage.fetchResourcesForSessionId(sessionId)
+            if let sessionId = sessionId {
+                resources = storage.fetchResourcesForSessionId(sessionId)
 
-                    let properties = try storage.fetchCustomPropertiesForSessionId(sessionId)
-                    let tags = try storage.fetchPersonaTagsForSessionId(sessionId)
-                    metadata.append(contentsOf: properties)
-                    metadata.append(contentsOf: tags)
-                } else {
-                    resources = try storage.fetchResourcesForProcessId(ProcessIdentifier.current)
-                    metadata = try storage.fetchPersonaTagsForProcessId(ProcessIdentifier.current)
-                }
-            } catch {
-                Embrace.logger.error("Error fetching resources for crash log.")
+                let properties = storage.fetchCustomPropertiesForSessionId(sessionId)
+                let tags = storage.fetchPersonaTagsForSessionId(sessionId)
+                metadata.append(contentsOf: properties)
+                metadata.append(contentsOf: tags)
+            } else {
+                resources = storage.fetchResourcesForProcessId(ProcessIdentifier.current)
+                metadata = storage.fetchPersonaTagsForProcessId(ProcessIdentifier.current)
             }
         }
 

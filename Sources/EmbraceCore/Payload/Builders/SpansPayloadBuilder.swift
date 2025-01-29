@@ -19,16 +19,10 @@ class SpansPayloadBuilder {
     ) -> (spans: [SpanPayload], spanSnapshots: [SpanPayload]) {
 
         let endTime = sessionRecord.endTime ?? sessionRecord.lastHeartbeatTime
-        var records: [SpanRecord] = []
 
         // fetch spans that started during the session
         // ignore spans where emb.type == session
-        do {
-            records = try storage.fetchSpans(for: sessionRecord, ignoreSessionSpans: true, limit: spanCountLimit)
-        } catch {
-            Embrace.logger.error("Error fetching spans for session \(sessionRecord.id):\n\(error.localizedDescription)")
-            return ([], [])
-        }
+        let records = storage.fetchSpans(for: sessionRecord, ignoreSessionSpans: true, limit: spanCountLimit)
 
         // decode spans and separate them by closed/open
         var spans: [SpanPayload] = []

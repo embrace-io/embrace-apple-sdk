@@ -28,7 +28,7 @@ extension EmbraceStorage {
         severity: LogSeverity,
         body: String,
         timestamp: Date,
-        attributes: [String : OpenTelemetryApi.AttributeValue]
+        attributes: [String: OpenTelemetryApi.AttributeValue]
     ) -> LogRecord {
         return LogRecord.create(
             context: coreData.context,

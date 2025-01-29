@@ -54,14 +54,10 @@ class LogController: LogControllable {
         guard let storage = storage else {
             return
         }
-        do {
-            let logs: [LogRecord] = try storage.fetchAll(excludingProcessIdentifier: .current)
-            if logs.count > 0 {
-                send(batches: divideInBatches(logs))
-            }
-        } catch let exception {
-            Error.couldntAccessBatches(reason: exception.localizedDescription).log()
-            try? storage.removeAllLogs()
+
+        let logs: [LogRecord] = storage.fetchAll(excludingProcessIdentifier: .current)
+        if logs.count > 0 {
+            send(batches: divideInBatches(logs))
         }
     }
 
@@ -236,7 +232,7 @@ private extension LogController {
                     return
                 }
 
-                try? self.storage?.remove(logs: logs)
+                self.storage?.remove(logs: logs)
             }
         } catch let exception {
             Error.couldntCreatePayload(reason: exception.localizedDescription).log()
@@ -277,9 +273,9 @@ private extension LogController {
         var resources: [MetadataRecord] = []
 
         if let sessionId = sessionId {
-            resources = try storage.fetchResourcesForSessionId(sessionId)
+            resources = storage.fetchResourcesForSessionId(sessionId)
         } else {
-            resources = try storage.fetchResourcesForProcessId(processId)
+            resources = storage.fetchResourcesForProcessId(processId)
         }
 
         return ResourcePayload(from: resources)
@@ -295,12 +291,12 @@ private extension LogController {
         var metadata: [MetadataRecord] = []
 
         if let sessionId = sessionId {
-            let properties = try storage.fetchCustomPropertiesForSessionId(sessionId)
-            let tags = try storage.fetchPersonaTagsForSessionId(sessionId)
+            let properties = storage.fetchCustomPropertiesForSessionId(sessionId)
+            let tags = storage.fetchPersonaTagsForSessionId(sessionId)
             metadata.append(contentsOf: properties)
             metadata.append(contentsOf: tags)
         } else {
-            metadata = try storage.fetchPersonaTagsForProcessId(processId)
+            metadata = storage.fetchPersonaTagsForProcessId(processId)
         }
 
         return MetadataPayload(from: metadata)

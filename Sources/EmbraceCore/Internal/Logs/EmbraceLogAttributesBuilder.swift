@@ -69,18 +69,19 @@ class EmbraceLogAttributesBuilder {
               let storage = storage else {
             return self
         }
-        if let customProperties = try? storage.fetchCustomPropertiesForSessionId(sessionId) {
-            customProperties.forEach { record in
-                guard UserResourceKey(rawValue: record.key) == nil else {
-                    // prevent UserResource keys from appearing in properties
-                    // will be sent in MetadataPayload instead
-                    return
-                }
 
-                let key = String(format: LogSemantics.keyPropertiesPrefix, record.key)
-                attributes[key] = record.value
+        let customProperties = storage.fetchCustomPropertiesForSessionId(sessionId)
+        customProperties.forEach { record in
+            guard UserResourceKey(rawValue: record.key) == nil else {
+                // prevent UserResource keys from appearing in properties
+                // will be sent in MetadataPayload instead
+                return
             }
+
+            let key = String(format: LogSemantics.keyPropertiesPrefix, record.key)
+            attributes[key] = record.value
         }
+        
         return self
     }
 

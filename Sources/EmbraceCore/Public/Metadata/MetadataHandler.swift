@@ -35,23 +35,25 @@ public class MetadataHandler: NSObject {
         self.sessionController = sessionController
 
         // tmp core data stack
+        // only created if the db file is found
+        // the entire data gets migrated to the real db and the file is removed
+        // that means this should only be executed once
         let coreDataStackName = "EmbraceMetadataTmp"
-        var storageMechanism: StorageMechanism = .inMemory(name: coreDataStackName) // in memory only used for tests
+        if let url = storage?.options.storageMechanism.baseUrl,
+           FileManager.default.fileExists(atPath: url.appendingPathComponent(coreDataStackName + ".sqlite").path) {
 
-        if let storage = storage,
-           let url = storage.options.storageMechanism.baseUrl {
-            storageMechanism = .onDisk(name: coreDataStackName, baseURL: url)
-        }
+            let options = CoreDataWrapper.Options(
+                storageMechanism: .onDisk(name: coreDataStackName, baseURL: url),
+                entities: [MetadataRecordTmp.entityDescription]
+            )
 
-        let options = CoreDataWrapper.Options(
-            storageMechanism: storageMechanism,
-            entities: [MetadataRecordTmp.entityDescription]
-        )
-
-        do {
-            self.coreData = try CoreDataWrapper(options: options, logger: Embrace.logger)
-        } catch {
-            Embrace.logger.error("Error setting up temp metadata database!:\n\(error.localizedDescription)")
+            do {
+                self.coreData = try CoreDataWrapper(options: options, logger: Embrace.logger)
+            } catch {
+                Embrace.logger.error("Error setting up temp metadata database!:\n\(error.localizedDescription)")
+                self.coreData = nil
+            }
+        } else {
             self.coreData = nil
         }
 
@@ -98,7 +100,7 @@ public class MetadataHandler: NSObject {
 
         let lifespanContext = try currentContext(for: lifespan.recordLifespan)
 
-        let record = try storage.addMetadata(
+        let record = storage.addMetadata(
             key: key,
             value: validateValue(value),
             type: type,
@@ -136,7 +138,7 @@ public class MetadataHandler: NSObject {
         type: MetadataRecordType,
         lifespan: MetadataLifespan = .session
     ) throws {
-        try storage?.updateMetadata(
+        storage?.updateMetadata(
             key: key,
             value: validateValue(value),
             type: type,
@@ -169,7 +171,7 @@ public class MetadataHandler: NSObject {
     ///
     ///  - Throws: `MetadataError.invalidSession` if a metadata with a `.session` lifespan is removed when there's no active session.
     func remove(key: String, type: MetadataRecordType, lifespan: MetadataLifespan = .session) throws {
-        try storage?.removeMetadata(
+        storage?.removeMetadata(
             key: key,
             type: type,
             lifespan: lifespan.recordLifespan,
@@ -192,7 +194,7 @@ public class MetadataHandler: NSObject {
     }
 
     func removeAll(type: MetadataRecordType, lifespans: [MetadataLifespan]) throws {
-        try storage?.removeAllMetadata(
+        storage?.removeAllMetadata(
             type: type,
             lifespans: lifespans.map { $0.recordLifespan }
         )
@@ -239,34 +241,23 @@ extension MetadataLifespan {
 // tmp core data stack
 extension MetadataHandler {
     func cloneDataBase() {
-//        guard let coreData = coreData,
-//              let storage = storage else {
-//            return
-//        }
-//
-//        let request = NSFetchRequest<MetadataRecordTmp>(entityName: MetadataRecordTmp.entityName)
-//        let oldRecords = coreData.fetch(withRequest: request)
-//        coreData.deleteRecords(oldRecords)
-//
-//        do {
-//            var newRecords: [MetadataRecord] = []
-//            try storage.dbQueue.read { db in
-//                newRecords = try MetadataRecord.fetchAll(db)
-//            }
-//
-//            coreData.context.perform {
-//                for record in newRecords {
-//                    _ = MetadataRecordTmp.create(context: coreData.context, record: record)
-//                }
-//
-//                do {
-//                    try coreData.context.save()
-//                } catch {
-//                    Embrace.logger.error("Error saving metadata core data!:\n\(error.localizedDescription)")
-//                }
-//            }
-//        } catch {
-//            Embrace.logger.error("Error cloning metadata!:\n\(error.localizedDescription)")
-//        }
+        guard let coreData = coreData,
+              let storage = storage else {
+            return
+        }
+
+        let request = NSFetchRequest<MetadataRecordTmp>(entityName: MetadataRecordTmp.entityName)
+        let oldRecords = coreData.fetch(withRequest: request)
+
+        for record in oldRecords {
+            guard let type = MetadataRecordType(rawValue: record.type),
+                  let lifespan = MetadataRecordLifespan(rawValue: record.lifespan) else {
+                continue
+            }
+
+            storage.addMetadata(key: record.key, value: record.value, type: type, lifespan: lifespan)
+        }
+
+        coreData.destroy()
     }
 }
