@@ -4,6 +4,7 @@
 //
 //
 
+import EmbraceIO
 import SwiftUI
 
 struct LoggingTestLogMessageUIComponent: View {
@@ -12,27 +13,42 @@ struct LoggingTestLogMessageUIComponent: View {
     @State private var readyToTest: Bool = false
     @State private var viewDidLoadSimulated: Bool = false
     @State private var reportPresented: Bool = false
+    @State private var logMessage: String = "A Test Message"
     var body: some View {
-        TestComponentView(
-            testResult: $testReport.result,
-            readyForTest: $readyToTest,
-            testName: "Perform Log Message Test",
-            testAction: {
-                readyToTest = false
-                testReport.result = .testing
-            })
+        VStack(alignment: .leading) {
+            Text("Logging Message")
+                .font(.embraceFont(size: 15))
+                .foregroundStyle(.embraceSteel)
+                .padding([.leading, .bottom], 5)
+            TextField("Enter a message to log", text: $logMessage)
+                .font(.embraceFont(size: 18))
+                .backgroundStyle(.red)
+                .foregroundStyle(.embraceSilver)
+                .padding([.leading, .trailing,], 5)
+                .textFieldStyle(RoundedStyle())
+
+            TestComponentView(
+                testResult: $testReport.result,
+                readyForTest: .constant(true),
+                testName: "Perform ERROR Log Message Test",
+                testAction: {
+                    readyToTest = false
+                    testReport.result = .testing
+                    logExporter.clearAll()
+                })
+        }
+
         .onChange(of: logExporter.state) { _, newValue in
             switch newValue {
             case .clear:
                 if testReport.result == .testing {
-//                    let a = TestViewController()
-//                    a.viewDidLoad()
+                    Embrace.client?.log(logMessage, severity: .error)
                 } else {
                     readyToTest = true
                 }
             case .ready:
                 if testReport.result == .testing {
-                    //testReport = logExporter.performTest(ViewControllerViewDidLoadTest())
+                    testReport = logExporter.performTest(LoggingErrorMessageTest(logMessage))
                     reportPresented.toggle()
                 } else {
                     readyToTest = true

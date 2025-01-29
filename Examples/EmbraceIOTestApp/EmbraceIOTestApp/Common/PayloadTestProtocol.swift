@@ -9,6 +9,7 @@ import OpenTelemetryApi
 
 protocol PayloadTest {
     func test(spans: [OpenTelemetrySdk.SpanData]) -> TestReport
+    func test(logs: [ReadableLogRecord]) -> TestReport
     func evaluate(_ target: String, expecting: String, on: [String: AttributeValue]) -> TestReportItem
     func testResult(from items: [TestReportItem]) -> TestResult
 }
@@ -27,4 +28,8 @@ extension PayloadTest {
     func testResult(from items: [TestReportItem]) -> TestResult {
         items.contains(where: { $0.result == .fail }) ? .fail : .success
     }
+
+    func test(spans: [OpenTelemetrySdk.SpanData]) -> TestReport { .init() }
+
+    func test(logs: [ReadableLogRecord]) -> TestReport { .init() }
 }
