@@ -29,26 +29,23 @@ struct LoggingTestLogMessageUIComponent: View {
 
             TestComponentView(
                 testResult: $testReport.result,
-                readyForTest: .constant(true),
+                readyForTest: .constant(testReport.result != .testing),
                 testName: "Perform ERROR Log Message Test",
                 testAction: {
                     readyToTest = false
                     testReport.result = .testing
                     logExporter.clearAll()
+                    Embrace.client?.log(logMessage, severity: .error)
                 })
         }
-
         .onChange(of: logExporter.state) { _, newValue in
             switch newValue {
             case .clear:
-                if testReport.result == .testing {
-                    Embrace.client?.log(logMessage, severity: .error)
-                } else {
-                    readyToTest = true
-                }
+                readyToTest = testReport.result != .testing
             case .ready:
                 if testReport.result == .testing {
                     testReport = logExporter.performTest(LoggingErrorMessageTest(logMessage))
+                    print("Log Exported")
                     reportPresented.toggle()
                 } else {
                     readyToTest = true
@@ -58,7 +55,7 @@ struct LoggingTestLogMessageUIComponent: View {
             }
         }
         .onAppear() {
-            readyToTest = logExporter.state != .waiting
+            readyToTest = Embrace.client?.state == .started
         }
         .sheet(isPresented: $reportPresented) {
             TestReportCard(report: $testReport)
