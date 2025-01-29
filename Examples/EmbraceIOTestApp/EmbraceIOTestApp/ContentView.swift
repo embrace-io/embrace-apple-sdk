@@ -11,6 +11,7 @@ import OpenTelemetrySdk
 
 struct ContentView: View {
     @EnvironmentObject var spanExporter: TestSpanExporter
+    @EnvironmentObject var logExporter: TestLogRecordExporter
     @State private var currentSelectedTest: TestMenuOptionDataModel = .embraceInit
     @State private var selected = TestMenuOptionDataModel.embraceInit.tag
     @State private var initialized: Bool = false
@@ -23,6 +24,7 @@ struct ContentView: View {
                     ForEach(TestMenuOptionDataModel.allCases, id:\.rawValue) {
                         $0.screen
                             .environmentObject(spanExporter)
+                            .environmentObject(logExporter)
                             .tag($0.tag)
                     }
                 }
@@ -53,8 +55,10 @@ struct ContentView: View {
 
 #Preview {
     let spanExporter = TestSpanExporter()
+    let logExporter = TestLogRecordExporter()
     NavigationView {
         ContentView()
             .environmentObject(spanExporter)
+            .environmentObject(logExporter)
     }
 }
