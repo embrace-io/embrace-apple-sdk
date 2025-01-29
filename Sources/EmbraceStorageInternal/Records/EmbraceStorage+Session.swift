@@ -4,7 +4,6 @@
 
 import Foundation
 import EmbraceCommonInternal
-import GRDB
 
 extension EmbraceStorage {
     /// Adds a session to the storage synchronously.

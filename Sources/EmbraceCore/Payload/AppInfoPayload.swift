@@ -40,21 +40,21 @@ struct AppInfoPayload: Codable {
 
             switch key {
             case .bundleVersion:
-                self.bundleVersion = resource.stringValue
+                self.bundleVersion = resource.value
             case .environment:
-                self.environment = resource.stringValue
+                self.environment = resource.value
             case .detailedEnvironment:
-                self.detailedEnvironment = resource.stringValue
+                self.detailedEnvironment = resource.value
             case .framework:
-                self.framework = resource.integerValue
+                self.framework = Int(resource.value)
             case .launchCount:
-                self.launchCount = resource.integerValue
+                self.launchCount = Int(resource.value)
             case .sdkVersion:
-                self.sdkVersion = resource.stringValue
+                self.sdkVersion = resource.value
             case .appVersion:
-                self.appVersion = resource.stringValue
+                self.appVersion = resource.value
             case .buildID:
-                self.buildID = resource.stringValue
+                self.buildID = resource.value
             default: break
             }
         }

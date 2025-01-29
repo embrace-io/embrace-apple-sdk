@@ -96,6 +96,10 @@ class SessionController: SessionControllable {
             return nil
         }
 
+        guard let storage = storage else {
+            return nil
+        }
+
         // detect cold start
         let isColdStart = firstSession
 
@@ -125,7 +129,7 @@ class SessionController: SessionControllable {
             currentSessionSpan = span
 
             // create session record
-            var session = SessionRecord(
+            let session = storage.addSession(
                 id: newId,
                 state: state,
                 processId: ProcessIdentifier.current,
@@ -239,30 +243,15 @@ class SessionController: SessionControllable {
 
 extension SessionController {
     private func save() {
-        guard let storage = storage,
-              let session = currentSession else {
-            return
-        }
-
-        do {
-            try storage.upsertSession(session)
-        } catch {
-            Embrace.logger.warning("Error trying to update session:\n\(error.localizedDescription)")
-        }
+        storage?.save()
     }
 
     private func delete() {
-        guard let storage = storage,
-              let session = currentSession else {
+        guard let session = currentSession else {
             return
         }
 
-        do {
-            try storage.delete(record: session)
-        } catch {
-            Embrace.logger.warning("Error trying to delete session:\n\(error.localizedDescription)")
-        }
-
+        storage?.delete(session)
         currentSession = nil
         currentSessionSpan = nil
     }

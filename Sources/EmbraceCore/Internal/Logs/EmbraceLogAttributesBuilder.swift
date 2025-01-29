@@ -77,10 +77,8 @@ class EmbraceLogAttributesBuilder {
                     return
                 }
 
-                if let value = record.stringValue {
-                    let key = String(format: LogSemantics.keyPropertiesPrefix, record.key)
-                    attributes[key] = value
-                }
+                let key = String(format: LogSemantics.keyPropertiesPrefix, record.key)
+                attributes[key] = record.value
             }
         }
         return self

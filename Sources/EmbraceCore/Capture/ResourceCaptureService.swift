@@ -23,13 +23,11 @@ extension EmbraceStorage: ResourceCaptureServiceHandler {
     func addResource(key: String, value: AttributeValue) {
         do {
             _ = try addMetadata(
-                MetadataRecord(
-                    key: key,
-                    value: value,
-                    type: .requiredResource,
-                    lifespan: .process,
-                    lifespanId: ProcessIdentifier.current.hex
-                )
+                key: key,
+                value: value.description,
+                type: .requiredResource,
+                lifespan: .process,
+                lifespanId: ProcessIdentifier.current.hex
             )
         } catch {
             Embrace.logger.error("Failed to capture resource: \(error.localizedDescription)")

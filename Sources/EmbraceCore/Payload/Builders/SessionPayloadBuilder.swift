@@ -10,7 +10,11 @@ class SessionPayloadBuilder {
 
     static var resourceName = "emb.session.upload_index"
 
-    class func build(for sessionRecord: SessionRecord, storage: EmbraceStorage) -> PayloadEnvelope<[SpanPayload]> {
+    class func build(for sessionRecord: SessionRecord, storage: EmbraceStorage) -> PayloadEnvelope<[SpanPayload]>? {
+        guard let sessionId = sessionRecord.id else {
+            return nil
+        }
+
         var resource: MetadataRecord?
 
         do {
@@ -25,9 +29,9 @@ class SessionPayloadBuilder {
 
         do {
             if var resource = resource {
-                counter = (resource.integerValue ?? 0) + 1
-                resource.value = .string(String(counter))
-                try storage.updateMetadata(resource)
+                counter = (Int(resource.value) ?? 0) + 1
+                resource.value = String(counter)
+                storage.save()
             } else {
                 resource = try storage.addMetadata(
                     key: resourceName,
@@ -49,24 +53,15 @@ class SessionPayloadBuilder {
         )
 
         // build resources payload
-        var resources: [MetadataRecord] = []
-        do {
-            resources = try storage.fetchResourcesForSessionId(sessionRecord.id)
-        } catch {
-            Embrace.logger.error("Error fetching resources for session \(sessionRecord.id.toString)")
-        }
+        let resources: [MetadataRecord] = storage.fetchResourcesForSessionId(sessionId)
         let resourcePayload =  ResourcePayload(from: resources)
 
         // build metadata payload
         var metadata: [MetadataRecord] = []
-        do {
-            let properties = try storage.fetchCustomPropertiesForSessionId(sessionRecord.id)
-            let tags = try storage.fetchPersonaTagsForSessionId(sessionRecord.id)
-            metadata.append(contentsOf: properties)
-            metadata.append(contentsOf: tags)
-        } catch {
-            Embrace.logger.error("Error fetching custom properties for session \(sessionRecord.id.toString)")
-        }
+        let properties = storage.fetchCustomPropertiesForSessionId(sessionId)
+        let tags = storage.fetchPersonaTagsForSessionId(sessionId)
+        metadata.append(contentsOf: properties)
+        metadata.append(contentsOf: tags)
         let metadataPayload =  MetadataPayload(from: metadata)
 
         // build payload

@@ -3,16 +3,17 @@
 //
 
 import Foundation
-
 import EmbraceStorageInternal
 import EmbraceCommonInternal
+import OpenTelemetryApi
+import OpenTelemetrySdk
 
 protocol LogBatcherDelegate: AnyObject {
     func batchFinished(withLogs logs: [LogRecord])
 }
 
 protocol LogBatcher {
-    func addLogRecord(logRecord: LogRecord)
+    func addLogRecord(logRecord: ReadableLogRecord)
     func renewBatch(withLogs logRecords: [LogRecord])
     func forceEndCurrentBatch()
 }
@@ -38,16 +39,17 @@ class DefaultLogBatcher: LogBatcher {
         self.delegate = delegate
     }
 
-    func addLogRecord(logRecord: LogRecord) {
+    func addLogRecord(logRecord: ReadableLogRecord) {
         processorQueue.async {
-            self.repository.create(logRecord) { result in
-                switch result {
-                case .success:
-                    self.addLogToBatch(logRecord)
-                case .failure(let error):
-                    Embrace.logger.error(error.localizedDescription)
-                }
-            }
+            let record = self.repository.create(
+                id: LogIdentifier(),
+                processId: ProcessIdentifier.current,
+                severity: logRecord.severity?.toLogSeverity() ?? .info,
+                body: logRecord.body?.description ?? "",
+                timestamp: logRecord.timestamp,
+                attributes: logRecord.attributes
+            )
+            self.addLogToBatch(record)
         }
     }
 }

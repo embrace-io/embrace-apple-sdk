@@ -3,7 +3,6 @@
 //
 
 import Foundation
-import GRDB
 import EmbraceCommonInternal
 
 public protocol EmbraceStorageMetadataFetcher: AnyObject {
@@ -191,7 +190,7 @@ extension EmbraceStorage {
     }
 
     /// Returns the permanent required resource for the given key.
-    public func fetchRequiredPermanentResource(key: String) throws -> MetadataRecord? {
+    public func fetchRequiredPermanentResource(key: String) -> MetadataRecord? {
         return fetchMetadata(key: key, type: .requiredResource, lifespan: .permanent)
     }
 
@@ -208,7 +207,7 @@ extension EmbraceStorage {
     }
 
     /// Returns all records with types `.requiredResource` or `.resource` that are tied to a given session id
-    public func fetchResourcesForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord] {
+    public func fetchResourcesForSessionId(_ sessionId: SessionIdentifier) -> [MetadataRecord] {
 
         guard let session = fetchSession(id: sessionId) else {
             return []
@@ -227,7 +226,7 @@ extension EmbraceStorage {
     }
 
     /// Returns all records with types `.requiredResource` or `.resource` that are tied to a given process id
-    public func fetchResourcesForProcessId(_ processId: ProcessIdentifier) throws -> [MetadataRecord] {
+    public func fetchResourcesForProcessId(_ processId: ProcessIdentifier) -> [MetadataRecord] {
 
         let request = MetadataRecord.createFetchRequest()
         request.predicate = NSCompoundPredicate(
@@ -242,7 +241,7 @@ extension EmbraceStorage {
     }
 
     /// Returns all records of the `.customProperty` type that are tied to a given session id
-    public func fetchCustomPropertiesForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord] {
+    public func fetchCustomPropertiesForSessionId(_ sessionId: SessionIdentifier) -> [MetadataRecord] {
         guard let session = fetchSession(id: sessionId) else {
             return []
         }
@@ -260,7 +259,7 @@ extension EmbraceStorage {
     }
 
     /// Returns all records of the `.personaTag` type that are tied to a given session id
-    public func fetchPersonaTagsForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord] {
+    public func fetchPersonaTagsForSessionId(_ sessionId: SessionIdentifier) -> [MetadataRecord] {
         guard let session = fetchSession(id: sessionId) else {
             return []
         }
@@ -278,7 +277,7 @@ extension EmbraceStorage {
     }
 
     /// Returns all records of the `.personaTag` type that are tied to a given process id
-    public func fetchPersonaTagsForProcessId(_ processId: ProcessIdentifier) throws -> [MetadataRecord] {
+    public func fetchPersonaTagsForProcessId(_ processId: ProcessIdentifier) -> [MetadataRecord] {
 
         let request = MetadataRecord.createFetchRequest()
         request.predicate = NSCompoundPredicate(

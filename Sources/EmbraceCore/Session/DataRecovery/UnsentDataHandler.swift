@@ -53,25 +53,23 @@ class UnsentDataHandler {
         crashReports: [CrashReport]
     ) {
         // send crash reports
+        var save = false
+
         for report in crashReports {
 
             // link session with crash report if possible
             var session: SessionRecord?
 
             if let sessionId = SessionIdentifier(string: report.sessionId) {
-                do {
-                    session = try storage.fetchSession(id: sessionId)
-                    if var session = session {
-                        // update session's end time with the crash report timestamp
-                        session.endTime = report.timestamp ?? session.endTime
+                session = storage.fetchSession(id: sessionId)
+                if let session = session {
+                    // update session's end time with the crash report timestamp
+                    session.endTime = report.timestamp ?? session.endTime
 
-                        // update crash report id
-                        session.crashReportId = report.id.uuidString
+                    // update crash report id
+                    session.crashReportId = report.id.uuidString
 
-                        try storage.update(record: session)
-                    }
-                } catch {
-                    Embrace.logger.warning("Error updating session \(sessionId) with crashReportId \(report.id)!")
+                    save = true
                 }
             }
 
@@ -84,6 +82,10 @@ class UnsentDataHandler {
                 upload: upload,
                 otel: otel
             )
+        }
+
+        if save {
+            storage.save()
         }
 
         // send sessions
@@ -229,7 +231,7 @@ class UnsentDataHandler {
         do {
             payloadData = try JSONEncoder().encode(payload).gzipped()
         } catch {
-            Embrace.logger.warning("Error encoding session \(session.id.toString):\n" + error.localizedDescription)
+            Embrace.logger.warning("Error encoding session \(session.idRaw):\n" + error.localizedDescription)
             return
         }
 
@@ -238,13 +240,13 @@ class UnsentDataHandler {
         }
 
         // upload session spans
-        upload.uploadSpans(id: session.id.toString, data: payloadData) { result in
+        upload.uploadSpans(id: session.idRaw, data: payloadData) { result in
             switch result {
             case .success:
                 do {
                     // remove session from storage
                     // we can remove this immediately because the upload module will cache it until the upload succeeds
-                    try storage.delete(record: session)
+                    storage.delete(session)
 
                     if performCleanUp {
                         cleanOldSpans(storage: storage)

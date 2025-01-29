@@ -7,5 +7,4 @@ import CoreData
 
 public protocol EmbraceStorageRecord: NSManagedObject {
     static var entityName: String { get }
-    static var entityDescription: NSEntityDescription { get }
 }

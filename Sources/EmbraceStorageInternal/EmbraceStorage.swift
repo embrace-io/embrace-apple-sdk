@@ -6,13 +6,12 @@ import Foundation
 import EmbraceCommonInternal
 import EmbraceCoreDataInternal
 import CoreData
-import GRDB
 
 public typealias Storage = EmbraceStorageMetadataFetcher & LogRepository
 
 /// Class in charge of storing all the data captured by the Embrace SDK.
-/// It provides an abstraction layer over a GRDB SQLite database.
-public class EmbraceStorage: Storage {
+/// It provides an abstraction layer over a CoreData database.
+public class EmbraceStorage: Storage {    
     public private(set) var options: Options
     public private(set) var logger: InternalLogger
     public private(set) var coreData: CoreDataWrapper
@@ -31,14 +30,16 @@ public class EmbraceStorage: Storage {
         }
 
         // create core data stack
+        var entities: [NSEntityDescription] = [
+            SessionRecord.entityDescription,
+            SpanRecord.entityDescription,
+            MetadataRecord.entityDescription
+        ]
+        entities.append(contentsOf: LogRecord.entityDescriptions)
+
         let coreDataOptions = CoreDataWrapper.Options(
             storageMechanism: options.storageMechanism,
-            entities: [
-                SessionRecord.entityDescription,
-                SpanRecord.entityDescription,
-                MetadataRecord.entityDescription,
-                LogRecord.entityDescriptio
-            ]
+            entities: entities
         )
         self.coreData = try CoreDataWrapper(options: coreDataOptions, logger: logger)
     }
@@ -53,13 +54,19 @@ public class EmbraceStorage: Storage {
 extension EmbraceStorage {
     /// Deletes a record from the storage synchronously.
     /// - Parameter record: `NSManagedObject` to delete
-    public func delete<T: EmbraceStorageRecord>(_ record: T) throws {
+    public func delete<T: EmbraceStorageRecord>(_ record: T) {
         coreData.deleteRecord(record)
+    }
+
+    /// Deletes records from the storage synchronously.
+    /// - Parameter record: `NSManagedObject` to delete
+    public func delete<T: EmbraceStorageRecord>(_ records: [T]) {
+        coreData.deleteRecords(records)
     }
 
     /// Fetches all the records of the given type in the storage synchronously.
     /// - Returns: Array containing all the records of the given type
-    public func fetchAll<T: EmbraceStorageRecord>() throws -> [T] {
+    public func fetchAll<T: EmbraceStorageRecord>() -> [T] {
         let request = NSFetchRequest<T>(entityName: T.entityName)
         return coreData.fetch(withRequest: request)
     }

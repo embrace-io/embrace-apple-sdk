@@ -181,6 +181,10 @@ private extension LogController {
                     continue
                 }
 
+                guard let processId = batch.logs[0].processId else {
+                    return
+                }
+
                 // Since we always end batches when a session ends
                 // all the logs still in storage when the app starts should come
                 // from the last session before the app closes.
@@ -191,11 +195,9 @@ private extension LogController {
                 // If we can't find a sessionId, we use the processId instead
 
                 var sessionId: SessionIdentifier?
-                if let log = batch.logs.first(where: { $0.attributes[LogSemantics.keySessionId] != nil }) {
-                    sessionId = SessionIdentifier(string: log.attributes[LogSemantics.keySessionId]?.description)
+                if let log = batch.logs.first(where: { $0.attribute(forKey: LogSemantics.keySessionId) != nil }) {
+                    sessionId = SessionIdentifier(string: log.attribute(forKey: LogSemantics.keySessionId)?.valueRaw)
                 }
-
-                let processId = batch.logs[0].processIdentifier
 
                 let resourcePayload = try createResourcePayload(sessionId: sessionId, processId: processId)
                 let metadataPayload = try createMetadataPayload(sessionId: sessionId, processId: processId)

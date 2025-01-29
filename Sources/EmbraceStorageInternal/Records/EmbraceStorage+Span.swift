@@ -6,7 +6,6 @@ import Foundation
 import EmbraceCommonInternal
 import EmbraceSemantics
 import CoreData
-import GRDB
 
 extension EmbraceStorage {
 

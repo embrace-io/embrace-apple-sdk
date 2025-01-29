@@ -70,7 +70,7 @@ fileprivate extension SpanPayload {
             ),
             Attribute(
                 key: SpanSemantics.Session.keyId,
-                value: session.id.toString
+                value: session.idRaw
             ),
             Attribute(
                 key: SpanSemantics.Session.keyState,

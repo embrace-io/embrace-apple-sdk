@@ -9,7 +9,6 @@ import PackageDescription
 
     let packageSettings = PackageSettings(
         productTypes: [
-            "GRDB": .framework,
             "KSCrash": .framework,
             "OpenTelemetrySdk": .framework,
             "OpenTelemetryApi": .framework
@@ -37,10 +36,6 @@ let package = Package(
         .package(
             url: "https://github.com/open-telemetry/opentelemetry-swift",
             exact: "1.12.1"
-        ),
-        .package(
-            url: "https://github.com/groue/GRDB.swift",
-            .upToNextMinor(from: "6.29.1")
         )
     ],
     targets: [
@@ -62,8 +57,7 @@ let package = Package(
                 "EmbraceIO",
                 "EmbraceCore",
                 "EmbraceCrash",
-                "TestSupport",
-                .product(name: "GRDB", package: "GRDB.swift")
+                "TestSupport"
             ]
         ),
 
@@ -91,8 +85,7 @@ let package = Package(
             dependencies: [
                 "EmbraceCore",
                 "TestSupport",
-                "TestSupportObjc",
-                .product(name: "GRDB", package: "GRDB.swift")
+                "TestSupportObjc"
             ],
             resources: [
                 .copy("Mocks/")
@@ -190,8 +183,7 @@ let package = Package(
             name: "EmbraceStorageInternal",
             dependencies: [
                 "EmbraceCommonInternal",
-                "EmbraceSemantics",
-                .product(name: "GRDB", package: "GRDB.swift")
+                "EmbraceSemantics"
             ]
         ),
         .testTarget(
@@ -208,8 +200,7 @@ let package = Package(
             dependencies: [
                 "EmbraceCommonInternal",
                 "EmbraceOTelInternal",
-                "EmbraceCoreDataInternal",
-                .product(name: "GRDB", package: "GRDB.swift")
+                "EmbraceCoreDataInternal"
             ]
         ),
         .testTarget(

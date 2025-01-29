@@ -3,7 +3,6 @@
 //
 
 import Foundation
-import GRDB
 import CoreData
 
 /// Represents a cached upload data in the storage

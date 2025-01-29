@@ -39,7 +39,7 @@ public class MetadataHandler: NSObject {
         var storageMechanism: StorageMechanism = .inMemory(name: coreDataStackName) // in memory only used for tests
 
         if let storage = storage,
-           let url = storage.options.baseUrl {
+           let url = storage.options.storageMechanism.baseUrl {
             storageMechanism = .onDisk(name: coreDataStackName, baseURL: url)
         }
 
@@ -213,7 +213,7 @@ extension MetadataHandler {
 extension MetadataHandler {
     private func currentContext(for lifespan: MetadataRecordLifespan) throws -> String {
         if lifespan == .session {
-            guard let sessionId = sessionController?.currentSession?.id.toString else {
+            guard let sessionId = sessionController?.currentSession?.id?.toString else {
                 throw MetadataError.invalidSession("Can't add a session property if there's no active session!")
             }
             return sessionId
@@ -239,34 +239,34 @@ extension MetadataLifespan {
 // tmp core data stack
 extension MetadataHandler {
     func cloneDataBase() {
-        guard let coreData = coreData,
-              let storage = storage else {
-            return
-        }
-
-        let request = NSFetchRequest<MetadataRecordTmp>(entityName: MetadataRecordTmp.entityName)
-        let oldRecords = coreData.fetch(withRequest: request)
-        coreData.deleteRecords(oldRecords)
-
-        do {
-            var newRecords: [MetadataRecord] = []
-            try storage.dbQueue.read { db in
-                newRecords = try MetadataRecord.fetchAll(db)
-            }
-
-            coreData.context.perform {
-                for record in newRecords {
-                    _ = MetadataRecordTmp.create(context: coreData.context, record: record)
-                }
-
-                do {
-                    try coreData.context.save()
-                } catch {
-                    Embrace.logger.error("Error saving metadata core data!:\n\(error.localizedDescription)")
-                }
-            }
-        } catch {
-            Embrace.logger.error("Error cloning metadata!:\n\(error.localizedDescription)")
-        }
+//        guard let coreData = coreData,
+//              let storage = storage else {
+//            return
+//        }
+//
+//        let request = NSFetchRequest<MetadataRecordTmp>(entityName: MetadataRecordTmp.entityName)
+//        let oldRecords = coreData.fetch(withRequest: request)
+//        coreData.deleteRecords(oldRecords)
+//
+//        do {
+//            var newRecords: [MetadataRecord] = []
+//            try storage.dbQueue.read { db in
+//                newRecords = try MetadataRecord.fetchAll(db)
+//            }
+//
+//            coreData.context.perform {
+//                for record in newRecords {
+//                    _ = MetadataRecordTmp.create(context: coreData.context, record: record)
+//                }
+//
+//                do {
+//                    try coreData.context.save()
+//                } catch {
+//                    Embrace.logger.error("Error saving metadata core data!:\n\(error.localizedDescription)")
+//                }
+//            }
+//        } catch {
+//            Embrace.logger.error("Error cloning metadata!:\n\(error.localizedDescription)")
+//        }
     }
 }

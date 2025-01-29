@@ -24,20 +24,20 @@ struct MetadataPayload: Codable {
             if let key = UserResourceKey(rawValue: record.key) {
                 switch key {
                 case .name:
-                    self.username = record.stringValue
+                    self.username = record.value
                 case .email:
-                    self.email = record.stringValue
+                    self.email = record.value
                 case .identifier:
-                    self.userId = record.stringValue
+                    self.userId = record.value
                 }
             }
 
             if let key = DeviceResourceKey(rawValue: record.key) {
                 switch key {
                 case .locale:
-                    self.locale = record.stringValue
+                    self.locale = record.value
                 case .timezone:
-                    self.timezoneDescription = record.stringValue
+                    self.timezoneDescription = record.value
                 default:
                     break
                 }

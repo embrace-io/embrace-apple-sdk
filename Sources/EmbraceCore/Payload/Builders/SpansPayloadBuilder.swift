@@ -76,13 +76,16 @@ class SpansPayloadBuilder {
     ) -> SpanPayload? {
         do {
             var spanData: SpanData?
-            let sessionSpan = try storage.fetchSpan(id: sessionRecord.spanId, traceId: sessionRecord.traceId)
+            let sessionSpan = storage.fetchSpan(id: sessionRecord.spanId, traceId: sessionRecord.traceId)
 
             if let rawData = sessionSpan?.data {
                 spanData = try JSONDecoder().decode(SpanData.self, from: rawData)
             }
 
-            let properties = try storage.fetchCustomPropertiesForSessionId(sessionRecord.id)
+            var properties: [MetadataRecord] = []
+            if let sessionId = sessionRecord.id {
+                properties = storage.fetchCustomPropertiesForSessionId(sessionId)
+            }
 
             return SessionSpanUtils.payload(
                 from: sessionRecord,
@@ -92,7 +95,7 @@ class SpansPayloadBuilder {
             )
 
         } catch {
-            Embrace.logger.warning("Error fetching span for session \(sessionRecord.id):\n\(error.localizedDescription)")
+            Embrace.logger.warning("Error fetching span for session \(sessionRecord.idRaw):\n\(error.localizedDescription)")
         }
 
         return nil

@@ -104,7 +104,7 @@ final class CaptureServices {
 
     @objc func onSessionStart(notification: Notification) {
         if let session = notification.object as? SessionRecord {
-            crashReporter?.currentSessionId = session.id.toString
+            crashReporter?.currentSessionId = session.idRaw
         }
     }
 }
