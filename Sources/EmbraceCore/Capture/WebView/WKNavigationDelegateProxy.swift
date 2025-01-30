@@ -78,5 +78,15 @@ extension WKNavigationDelegateProxy: WKNavigationDelegate {
         // call original
         originalDelegate?.webView?(webView, didFail: navigation, withError: error)
     }
+
+    func webView(_ webView: WKWebView,
+        didFinish navigation: WKNavigation!
+    ) {
+        // Capture navigation event
+        callback?(webView.url, nil)
+
+        // Call original delegate's implementation if available
+        originalDelegate?.webView?(webView, didFinish: navigation)
+    }
 }
 #endif
