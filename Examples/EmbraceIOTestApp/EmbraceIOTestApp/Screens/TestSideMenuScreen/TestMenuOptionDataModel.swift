@@ -52,7 +52,7 @@ enum TestMenuOptionDataModel: Int, CaseIterable {
         case .viewController:
             ViewControllerTestScreen()
         case .networking:
-            EmptyView()
+            NetworkingTestScreen()
         case .logging:
             LoggingTestScreen()
         }
