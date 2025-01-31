@@ -16,22 +16,6 @@ class WKNavigationDelegateProxy: NSObject {
         self.originalDelegate = originalDelegate
         self.callback = callback
     }
-
-    // 1. remove this first then have the client test
-    // Test this first on a test app!
-//    override func responds(to aSelector: Selector!) -> Bool {
-//        if super.responds(to: aSelector) {
-//            return true
-//        } else if let originalDelegate = originalDelegate, originalDelegate.responds(to: aSelector) {
-//            return true
-//        }
-//        return false
-//    }
-
-    // webview with delegate method that implements this methods
-    // webview capture service
-    // are they using third party web view libraries
-    
     
     override func forwardingTarget(for aSelector: Selector!) -> Any? {
         if super.responds(to: aSelector) {
@@ -84,16 +68,6 @@ extension WKNavigationDelegateProxy: WKNavigationDelegate {
 
         // call original
         originalDelegate?.webView?(webView, didFail: navigation, withError: error)
-    }
-
-    func webView(_ webView: WKWebView,
-        didFinish navigation: WKNavigation!
-    ) {
-        // Capture navigation event
-        callback?(webView.url, nil)
-
-        // Call original delegate's implementation if available
-        originalDelegate?.webView?(webView, didFinish: navigation)
     }
 }
 #endif
