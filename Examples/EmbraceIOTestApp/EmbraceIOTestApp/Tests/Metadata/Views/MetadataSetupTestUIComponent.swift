@@ -8,17 +8,18 @@ import SwiftUI
 
 struct MetadataSetupTestUIComponent: View {
     @EnvironmentObject var spanExporter: TestSpanExporter
-    @State var report = TestReport()
+    @State private var testResult: TestResult = .unknown
+    @State var report = TestReport(items: [])
     @State var readyToTest: Bool = false
     @State private var reportPresented: Bool = false
     var body: some View {
         VStack {
             TestComponentView(
-                testResult: $report.result,
+                testResult: $testResult,
                 readyForTest: $readyToTest,
                 testName: "Setup Test",
                 testAction: {
-                    report = spanExporter.performTest(MetadataSetupTest(), clearAfterTest: false)
+                    report = spanExporter.performTest(MetadataSetupTest())
                     reportPresented.toggle()
                 })
             .accessibilityIdentifier("setupTestButton")

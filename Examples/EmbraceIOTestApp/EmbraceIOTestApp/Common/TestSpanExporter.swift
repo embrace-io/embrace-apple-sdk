@@ -11,7 +11,7 @@ class TestSpanExporter: SpanExporter, ObservableObject {
     /// Perform actions that would trigger a span export and monitor changes on this property. When `state` is set to `ready`, you can perform tests on the cached spans.
     @Published var state: TestMockExporterState = .waiting
 
-    var cachedExportedSpans: [OpenTelemetrySdk.SpanData] = []
+    var cachedExportedSpans: [String: [OpenTelemetrySdk.SpanData]] = [:]
 
     func clearAll() {
         cachedExportedSpans.removeAll()
@@ -25,7 +25,12 @@ class TestSpanExporter: SpanExporter, ObservableObject {
     }
 
     func export(spans: [OpenTelemetrySdk.SpanData], explicitTimeout: TimeInterval?) -> OpenTelemetrySdk.SpanExporterResultCode {
-        spans.forEach { cachedExportedSpans.append($0) }
+        spans.forEach {
+            if cachedExportedSpans[$0.name] == nil {
+                cachedExportedSpans[$0.name] = []
+            }
+            cachedExportedSpans[$0.name]?.append($0)
+        }
         DispatchQueue.main.async { [weak self] in
             self?.state = .ready
         }
@@ -37,7 +42,8 @@ class TestSpanExporter: SpanExporter, ObservableObject {
     /// `clearAfterTest`: By default all cached spans will be discarded after the test finishes. If you need to perform aditional tests on the same spans, set this parameter to `false`
     func performTest(_ test: PayloadTest, clearAfterTest: Bool = true) -> TestReport {
         state = .testing
-        let result = test.test(spans:cachedExportedSpans)
+        let testRelevantSpans = cachedExportedSpans[test.testRelevantSpanName] ?? []
+        let result = test.test(spans: testRelevantSpans)
         if clearAfterTest {
             cachedExportedSpans.removeAll()
             state = .clear

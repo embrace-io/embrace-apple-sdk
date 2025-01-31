@@ -27,12 +27,12 @@ struct TestReportCard: View {
 
 #Preview {
     @Previewable @State var passReport: TestReport =
-        .init(result: .success, items: [
+        .init(items: [
             .init(target: "viewDidLoad", expected: "viewDidLoad", recorded: "found", result: .success),
             .init(target: "customViewName", expected: "A custom Name", recorded: "View Controller", result: .success)
         ])
     @Previewable @State var failReport: TestReport =
-        .init(result: .fail, items: [
+        .init(items: [
             .init(target: "viewDidLoad", expected: "viewDidLoad", recorded: "found", result: .success),
             .init(target: "customViewName", expected: "A custom Name", recorded: "View Controller", result: .fail)
         ])

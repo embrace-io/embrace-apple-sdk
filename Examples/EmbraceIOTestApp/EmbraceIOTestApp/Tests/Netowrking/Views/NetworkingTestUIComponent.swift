@@ -8,7 +8,8 @@ import SwiftUI
 
 struct NetworkingTestUIComponent: View {
     @EnvironmentObject var spanExporter: TestSpanExporter
-    @State private var testReport = TestReport()
+    @State private var testResult: TestResult = .unknown
+    @State private var testReport = TestReport(items: [])
     @State private var readyToTest: Bool = false
     @State private var viewDidLoadSimulated: Bool = false
     @State private var reportPresented: Bool = false
@@ -26,18 +27,18 @@ struct NetworkingTestUIComponent: View {
 
     var body: some View {
         TestComponentView(
-            testResult: $testReport.result,
+            testResult: $testResult,
             readyForTest: $readyToTest,
             testName: "Perform Network Call Test",
             testAction: {
                 readyToTest = false
-                testReport.result = .testing
+                testResult = .testing
                 spanExporter.clearAll()
             })
         .onChange(of: spanExporter.state) { _, newValue in
             switch newValue {
             case .clear:
-                if testReport.result == .testing {
+                if testResult == .testing {
                     Task {
                         await client.makeTestNetworkCall(to: testURL)
                     }
@@ -45,7 +46,7 @@ struct NetworkingTestUIComponent: View {
                     readyToTest = true
                 }
             case .ready:
-                if testReport.result == .testing {
+                if testResult == .testing {
                     testReport = spanExporter.performTest(NetworkingTest(testURL: testURL, statusCode: statusCode))
                     reportPresented.toggle()
                 } else {

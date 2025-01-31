@@ -7,6 +7,7 @@
 import OpenTelemetrySdk
 
 class LoggingErrorMessageTest: PayloadTest {
+    var testRelevantSpanName: String { "" }
     var loggedMessage: String
 
     init(_ loggedMessage: String) {
@@ -19,11 +20,11 @@ class LoggingErrorMessageTest: PayloadTest {
         guard let log = logs.first (where: { $0.body?.description == loggedMessage })
         else {
             testItems.append(.init(target: loggedMessage, expected: "exists", recorded: "missing", result: .fail))
-            return .init(result: .fail, items: testItems)
+            return .init(items: testItems)
         }
 
         testItems.append(.init(target: loggedMessage, expected: "exists", recorded: "exists", result: .success))
-        return .init(result: testResult(from: testItems), items: testItems)
+        return .init(items: testItems)
     }
 
 }

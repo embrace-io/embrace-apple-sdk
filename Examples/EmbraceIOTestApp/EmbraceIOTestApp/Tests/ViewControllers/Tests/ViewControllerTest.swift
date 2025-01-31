@@ -8,20 +8,20 @@ import OpenTelemetrySdk
 import OpenTelemetryApi
 
 class ViewControllerViewDidLoadTest: PayloadTest {
+    var testRelevantSpanName: String { "emb-view-did-load" }
     func test(spans: [OpenTelemetrySdk.SpanData]) -> TestReport {
         var testItems = [TestReportItem]()
-        let spanName = "emb-view-did-load"
-        guard let viewDidLoadSpan = spans.first (where: { $0.name == spanName && $0.attributes["view.name"]?.description == "TestViewController" })
-        else {
-            testItems.append(.init(target: spanName, expected: "exists", recorded: "missing", result: .fail))
-            return .init(result: .fail, items: testItems)
+
+        let (existenceReport, viewDidLoadSpan) = evaluateSpanExistence(identifiedBy: "TestViewController", underAttributeKey: "view.name", on: spans)
+        testItems.append(existenceReport)
+        guard let viewDidLoadSpan = viewDidLoadSpan else {
+            return .init(items: testItems)
         }
 
-        testItems.append(.init(target: spanName, expected: "exists", recorded: "exists", result: .success))
         testItems.append(evaluate("emb.type", expecting: "perf.ui_load", on: viewDidLoadSpan.attributes))
         testItems.append(evaluate("view.title", expecting: "TestViewController", on: viewDidLoadSpan.attributes))
         testItems.append(evaluate("view.name", expecting: "TestViewController", on: viewDidLoadSpan.attributes))
 
-        return .init(result: testResult(from: testItems), items: testItems)
+        return .init(items: testItems)
     }
 }

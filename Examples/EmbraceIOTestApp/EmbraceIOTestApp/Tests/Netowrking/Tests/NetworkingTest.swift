@@ -14,20 +14,21 @@ class NetworkingTest: PayloadTest {
         self.testURL = testURL
         self.statusCode = statusCode
     }
-
+    var testRelevantSpanName: String { "GET " }
     func test(spans: [SpanData]) -> TestReport {
         var testItems = [TestReportItem]()
-        let spanName = "GET "
-        guard let networkCallSpan = spans.first (where: { $0.name == spanName && $0.attributes["url.full"]?.description == testURL }) else {
-            testItems.append(.init(target: "\(spanName)\(testURL)", expected: "exists", recorded: "missing", result: .fail))
-            return .init(result: .fail, items: testItems)
+
+        let (existenceReportItem, networkCallSpan) = evaluateSpanExistence(identifiedBy: testURL, underAttributeKey: "url.full", on: spans)
+        testItems.append(existenceReportItem)
+
+        guard let networkCallSpan = networkCallSpan else {
+            return .init(items: testItems)
         }
 
-        testItems.append(.init(target: "\(spanName)\(testURL)", expected: "exists", recorded: "exists", result: .success))
         testItems.append(evaluate("emb.type", expecting: "perf.network_request", on: networkCallSpan.attributes))
         testItems.append(evaluate("http.request.method", expecting: "GET", on: networkCallSpan.attributes))
         testItems.append(evaluate("http.response.status_code", expecting: "\(statusCode)", on: networkCallSpan.attributes))
 
-        return .init(result: testResult(from: testItems), items: testItems)
+        return .init(items: testItems)
     }
 }

@@ -8,32 +8,34 @@ import SwiftUI
 
 struct ViewControllerTestUIComponent: View {
     @EnvironmentObject var spanExporter: TestSpanExporter
-    @State private var testReport = TestReport()
+    @State private var testResult: TestResult = .unknown
+    @State private var testReport = TestReport(items: [])
     @State private var readyToTest: Bool = false
     @State private var viewDidLoadSimulated: Bool = false
     @State private var reportPresented: Bool = false
     var body: some View {
         TestComponentView(
-            testResult: $testReport.result,
+            testResult: $testResult,
             readyForTest: $readyToTest,
             testName: "Perform ViewController Test",
             testAction: {
                 readyToTest = false
-                testReport.result = .testing
+                testResult = .testing
                 spanExporter.clearAll()
             })
         .onChange(of: spanExporter.state) { _, newValue in
             switch newValue {
             case .clear:
-                if testReport.result == .testing {
+                if testResult == .testing {
                     let a = TestViewController()
                     a.viewDidLoad()
                 } else {
                     readyToTest = true
                 }
             case .ready:
-                if testReport.result == .testing {
+                if testResult == .testing {
                     testReport = spanExporter.performTest(ViewControllerViewDidLoadTest())
+                    testResult = testReport.result
                     reportPresented.toggle()
                 } else {
                     readyToTest = true
