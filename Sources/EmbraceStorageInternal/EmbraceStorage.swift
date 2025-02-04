@@ -33,7 +33,7 @@ public class EmbraceStorage: Storage {
         var entities: [NSEntityDescription] = [
             SessionRecord.entityDescription,
             SpanRecord.entityDescription,
-            MetadataRecord.entityDescription
+            MetadataRecord.entityDescription,
         ]
         entities.append(contentsOf: LogRecord.entityDescriptions)
 

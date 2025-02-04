@@ -5,6 +5,7 @@
 import Foundation
 import EmbraceStorageInternal
 import EmbraceCommonInternal
+import OpenTelemetryApi
 
 class RandomError: Error, CustomNSError {
     static var errorDomain: String = "Embrace"
@@ -13,118 +14,98 @@ class RandomError: Error, CustomNSError {
 }
 
 class SpyStorage: Storage {
-    private let shouldThrow: Bool
-
-    init(shouldThrow: Bool = false) {
-        self.shouldThrow = shouldThrow
-    }
 
     var didCallFetchAllResources = false
     var stubbedFetchAllResources: [MetadataRecord] = []
-    func fetchAllResources() throws -> [MetadataRecord] {
+    func fetchAllResources() -> [MetadataRecord] {
         didCallFetchAllResources = true
-        guard !shouldThrow else {
-            throw RandomError()
-        }
         return stubbedFetchAllResources
     }
 
     var didCallFetchResourcesForSessionId = false
     var fetchResourcesForSessionIdReceivedParameter: SessionIdentifier!
     var stubbedFetchResourcesForSessionId: [MetadataRecord] = []
-    func fetchResourcesForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord] {
+    func fetchResourcesForSessionId(_ sessionId: SessionIdentifier) -> [MetadataRecord] {
         didCallFetchResourcesForSessionId = true
         fetchResourcesForSessionIdReceivedParameter = sessionId
-        guard !shouldThrow else {
-            throw RandomError()
-        }
         return stubbedFetchResourcesForSessionId
     }
 
     var didCallFetchResourcesForProcessId = false
     var fetchResourcesForProcessIdReceivedParameter: ProcessIdentifier!
     var stubbedFetchResourcesForProcessId: [MetadataRecord] = []
-    func fetchResourcesForProcessId(_ processId: ProcessIdentifier) throws -> [MetadataRecord] {
+    func fetchResourcesForProcessId(_ processId: ProcessIdentifier) -> [MetadataRecord] {
         didCallFetchResourcesForProcessId = true
         fetchResourcesForProcessIdReceivedParameter = processId
-        guard !shouldThrow else {
-            throw RandomError()
-        }
         return stubbedFetchResourcesForProcessId
     }
 
     var didCallFetchCustomPropertiesForSessionId = false
     var fetchCustomPropertiesForSessionIdReceivedParameter: SessionIdentifier!
     var stubbedFetchCustomPropertiesForSessionId: [MetadataRecord] = []
-    func fetchCustomPropertiesForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord] {
+    func fetchCustomPropertiesForSessionId(_ sessionId: SessionIdentifier) -> [MetadataRecord] {
         didCallFetchCustomPropertiesForSessionId = true
         fetchCustomPropertiesForSessionIdReceivedParameter = sessionId
-        guard !shouldThrow else {
-            throw RandomError()
-        }
         return stubbedFetchCustomPropertiesForSessionId
     }
 
     var didCallFetchPersonaTagsForSessionId = false
     var fetchPersonaTagsForSessionIdReceivedParameter: SessionIdentifier!
     var stubbedFetchPersonaTagsForSessionId: [MetadataRecord] = []
-    func fetchPersonaTagsForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord] {
+    func fetchPersonaTagsForSessionId(_ sessionId: SessionIdentifier) -> [MetadataRecord] {
         didCallFetchPersonaTagsForSessionId = true
         fetchPersonaTagsForSessionIdReceivedParameter = sessionId
-        guard !shouldThrow else {
-            throw RandomError()
-        }
         return stubbedFetchPersonaTagsForSessionId
     }
 
     var didCallFetchPersonaTagsForProcessId = false
     var fetchPersonaTagsForProcessIdReceivedParameter: ProcessIdentifier!
     var stubbedFetchPersonaTagsForProcessId: [MetadataRecord] = []
-    func fetchPersonaTagsForProcessId(_ processId: ProcessIdentifier) throws -> [MetadataRecord] {
+    func fetchPersonaTagsForProcessId(_ processId: ProcessIdentifier) -> [MetadataRecord] {
         didCallFetchPersonaTagsForProcessId = true
         fetchPersonaTagsForProcessIdReceivedParameter = processId
-        guard !shouldThrow else {
-            throw RandomError()
-        }
         return stubbedFetchPersonaTagsForProcessId
     }
 
     var didCallCreate = false
-    var stubbedCreateResult: Result<LogRecord, Error>?
-    func create(_ log: LogRecord, completion: (Result<LogRecord, Error>) -> Void) {
+    func createLog(
+        id: LogIdentifier,
+        processId: ProcessIdentifier,
+        severity: LogSeverity,
+        body: String,
+        timestamp: Date,
+        attributes: [String : AttributeValue]
+    ) -> LogRecord {
         didCallCreate = true
-        if let result = stubbedCreateResult {
-            completion(result)
-        }
+
+        return LogRecord(
+            id: id,
+            processId: processId,
+            severity: severity,
+            body: body,
+            timestamp: timestamp,
+            attributes: attributes
+        )
     }
 
     var didCallFetchAllExcludingProcessIdentifier = false
     var stubbedFetchAllExcludingProcessIdentifier: [LogRecord] = []
     var fetchAllExcludingProcessIdentifierReceivedParameter: ProcessIdentifier!
-    func fetchAll(excludingProcessIdentifier processIdentifier: ProcessIdentifier) throws -> [LogRecord] {
+    func fetchAll(excludingProcessIdentifier processIdentifier: ProcessIdentifier) -> [LogRecord] {
         didCallFetchAllExcludingProcessIdentifier = true
-        guard !shouldThrow else {
-            throw RandomError()
-        }
         fetchAllExcludingProcessIdentifierReceivedParameter = processIdentifier
         return stubbedFetchAllExcludingProcessIdentifier
     }
 
     var didCallRemoveLogs = false
     var removeLogsReceivedParameter: [LogRecord] = []
-    func remove(logs: [LogRecord]) throws {
+    func remove(logs: [LogRecord]) {
         didCallRemoveLogs = true
         removeLogsReceivedParameter = logs
-        guard !shouldThrow else {
-            throw RandomError()
-        }
     }
 
     var didCallRemoveAllLogs = false
-    func removeAllLogs() throws {
+    func removeAllLogs() {
         didCallRemoveAllLogs = true
-        guard !shouldThrow else {
-            throw RandomError()
-        }
     }
 }

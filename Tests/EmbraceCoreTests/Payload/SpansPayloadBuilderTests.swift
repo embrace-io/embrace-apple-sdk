@@ -21,8 +21,8 @@ final class SpansPayloadBuilderTests: XCTestCase {
 
         sessionRecord = SessionRecord(
             id: TestConstants.sessionId,
-            state: .foreground,
             processId: .random,
+            state: .foreground,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSince1970: 50),
@@ -31,14 +31,8 @@ final class SpansPayloadBuilderTests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
-        try storage.dbQueue.write { db in
-            try SessionRecord.deleteAll(db)
-            try SpanRecord.deleteAll(db)
-        }
-
         sessionRecord = nil
-
-        try storage.teardown()
+        storage.coreData.destroy()
     }
 
     func testSpan(startTime: Date, endTime: Date?, name: String?) -> SpanData {
@@ -66,7 +60,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
         let spanData = testSpan(startTime: startTime, endTime: endTime, name: name)
         let data = try spanData.toJSON()
 
-        let record = SpanRecord(
+        storage.upsertSpan(
             id: id ?? spanData.spanId.hexString,
             name: spanData.name,
             traceId: traceId ?? spanData.traceId.hexString,
@@ -76,8 +70,6 @@ final class SpansPayloadBuilderTests: XCTestCase {
             endTime: spanData.hasEnded ? spanData.endTime : nil
         )
 
-        try storage.upsertSpan(record)
-
         return spanData
     }
 
@@ -85,8 +77,8 @@ final class SpansPayloadBuilderTests: XCTestCase {
         // given no session span and a session record with nil end time
         let record = SessionRecord(
             id: TestConstants.sessionId,
-            state: .foreground,
             processId: .random,
+            state: .foreground,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSince1970: 50),

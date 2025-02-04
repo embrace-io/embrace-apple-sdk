@@ -12,9 +12,9 @@ final class PayloadUtilTests: XCTestCase {
     func test_fetchResources() throws {
         // given
         let mockResources: [MetadataRecord] = [
-            .init(
+            MetadataRecord(
                 key: "fake_res",
-                value: .string("fake_value"),
+                value: "fake_value",
                 type: .requiredResource,
                 lifespan: .process,
                 lifespanId: ProcessIdentifier.current.hex
@@ -68,7 +68,7 @@ final class PayloadUtilTests: XCTestCase {
         let mockResources: [MetadataRecord] = [
             .init(
                 key: "fake_res",
-                value: .string("fake_value"),
+                value: "fake_value",
                 type: .customProperty,
                 lifespan: .session,
                 lifespanId: sessionId.toString

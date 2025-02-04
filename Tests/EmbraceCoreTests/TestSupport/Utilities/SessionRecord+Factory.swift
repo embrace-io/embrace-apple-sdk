@@ -8,10 +8,10 @@ import EmbraceCommonInternal
 
 extension SessionRecord {
     static func with(id: SessionIdentifier, state: SessionState) -> SessionRecord {
-        .init(
+        SessionRecord(
             id: id,
-            state: state,
             processId: .random,
+            state: state,
             traceId: "",
             spanId: "",
             startTime: Date()

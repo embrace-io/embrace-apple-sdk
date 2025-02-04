@@ -10,6 +10,7 @@ import EmbraceUploadInternal
 import EmbraceCommonInternal
 import EmbraceConfigInternal
 import TestSupport
+import OpenTelemetryApi
 
 class LogControllerTests: XCTestCase {
     private var sut: LogController!
@@ -79,7 +80,7 @@ class LogControllerTests: XCTestCase {
         givenStorage(withLogs: [log])
         givenLogController()
         whenInvokingSetup()
-        try thenFetchesResourcesFromStorage(processId: log.processIdentifier)
+        try thenFetchesResourcesFromStorage(processId: log.processId!)
     }
 
     func testHavingLogsWithNoSessionId_onSetup_fetchesMetadataFromStorage() throws {
@@ -87,7 +88,7 @@ class LogControllerTests: XCTestCase {
         givenStorage(withLogs: [log])
         givenLogController()
         whenInvokingSetup()
-        try thenFetchesMetadataFromStorage(processId: log.processIdentifier)
+        try thenFetchesMetadataFromStorage(processId: log.processId!)
     }
 
     func testHavingLogsForLessThanABatch_onSetup_logUploaderShouldSendASingleBatch() {
@@ -297,8 +298,8 @@ private extension LogControllerTests {
         sessionController = .init()
         sessionController.currentSession = .init(
             id: .random,
-            state: .foreground,
             processId: .random,
+            state: .foreground,
             traceId: UUID().uuidString,
             spanId: UUID().uuidString,
             startTime: Date()
@@ -311,7 +312,7 @@ private extension LogControllerTests {
     }
 
     func givenStorageThatThrowsException() {
-        storage = .init(SpyStorage(shouldThrow: true))
+        storage = .init(SpyStorage())
     }
 
     func whenInvokingSetup() {
@@ -457,14 +458,14 @@ private extension LogControllerTests {
 
     func randomLogRecord(sessionId: SessionIdentifier? = nil) -> LogRecord {
 
-        var attributes: [String: PersistableValue] = [:]
+        var attributes: [String: AttributeValue] = [:]
         if let sessionId = sessionId {
-            attributes["session.id"] = PersistableValue(sessionId.toString)
+            attributes["session.id"] = AttributeValue(sessionId.toString)
         }
 
         return LogRecord(
-            identifier: .random,
-            processIdentifier: .random,
+            id: .random,
+            processId: .random,
             severity: .info,
             body: UUID().uuidString,
             attributes: attributes
@@ -475,11 +476,5 @@ private extension LogControllerTests {
         return (1...LogController.maxLogsPerBatch + 1).map { _ in
             randomLogRecord()
         }
-    }
-}
-
-extension LogRecord: Equatable {
-    public static func == (lhs: LogRecord, rhs: LogRecord) -> Bool {
-        lhs.identifier == rhs.identifier
     }
 }

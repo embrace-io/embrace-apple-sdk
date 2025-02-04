@@ -19,7 +19,7 @@ final class MetadataHandler_UserTests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
-        try storage.teardown()
+        storage.coreData.destroy()
         sessionController = nil
     }
 

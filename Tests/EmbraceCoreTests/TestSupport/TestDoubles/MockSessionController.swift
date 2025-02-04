@@ -18,6 +18,7 @@ class MockSessionController: SessionControllable {
 
     private var updateSessionCallback: ((SessionRecord?, SessionState?, Bool?) -> Void)?
 
+    weak var storage: EmbraceStorage?
     var currentSession: SessionRecord?
 
     func clear() { }
@@ -33,10 +34,10 @@ class MockSessionController: SessionControllable {
             endSession()
         }
 
-        let session = SessionRecord(
+        let session = storage?.addSession(
             id: nextSessionId ?? .random,
-            state: state,
             processId: ProcessIdentifier.current,
+            state: state,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: startTime

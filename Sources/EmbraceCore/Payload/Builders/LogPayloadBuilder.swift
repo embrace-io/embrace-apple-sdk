@@ -10,7 +10,7 @@ import EmbraceSemantics
 struct LogPayloadBuilder {
     static func build(log: LogRecord) -> LogPayload {
         var finalAttributes: [Attribute] = log.attributes.map { entry in
-            Attribute(key: entry.key, value: entry.value.description)
+            Attribute(key: entry.key, value: entry.valueRaw)
         }
 
         finalAttributes.append(.init(key: LogSemantics.keyId, value: log.idRaw))

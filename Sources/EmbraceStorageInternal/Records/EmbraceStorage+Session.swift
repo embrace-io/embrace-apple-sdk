@@ -9,8 +9,8 @@ extension EmbraceStorage {
     /// Adds a session to the storage synchronously.
     /// - Parameters:
     ///   - id: Identifier of the session
-    ///   - state: `SessionState` of the session
     ///   - processId: `ProcessIdentifier` of the session
+    ///   - state: `SessionState` of the session
     ///   - traceId: String representing the trace identifier of the corresponding session span
     ///   - spanId: String representing the span identifier of the corresponding session span
     ///   - startTime: `Date` of when the session started
@@ -21,14 +21,17 @@ extension EmbraceStorage {
     @discardableResult
     public func addSession(
         id: SessionIdentifier,
-        state: SessionState,
         processId: ProcessIdentifier,
+        state: SessionState,
         traceId: String,
         spanId: String,
         startTime: Date,
         endTime: Date? = nil,
         lastHeartbeatTime: Date? = nil,
-        crashReportId: String? = nil
+        crashReportId: String? = nil,
+        coldStart: Bool = false,
+        cleanExit: Bool = false,
+        appTerminated: Bool = false
     ) -> SessionRecord {
 
         // update existing?
@@ -40,6 +43,9 @@ extension EmbraceStorage {
             session.startTime = startTime
             session.endTime = endTime
             session.crashReportId = crashReportId
+            session.coldStart = coldStart
+            session.cleanExit = cleanExit
+            session.appTerminated = appTerminated
 
             if let lastHeartbeatTime = lastHeartbeatTime {
                 session.lastHeartbeatTime = lastHeartbeatTime
@@ -59,7 +65,10 @@ extension EmbraceStorage {
             spanId: spanId,
             startTime: startTime,
             endTime: endTime,
-            lastHeartbeatTime: lastHeartbeatTime
+            lastHeartbeatTime: lastHeartbeatTime,
+            coldStart: coldStart,
+            cleanExit: cleanExit,
+            appTerminated: appTerminated
         )
 
         coreData.save()

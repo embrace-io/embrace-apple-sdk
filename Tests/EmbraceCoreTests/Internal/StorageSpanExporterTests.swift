@@ -43,10 +43,10 @@ final class StorageSpanExporterTests: XCTestCase {
                                              hasEnded: false )
 
         // When spans are exported
-        exporter.export(spans: [closedSpanData])
-        exporter.export(spans: [updated_closedSpanData])
+        _ = exporter.export(spans: [closedSpanData])
+        _ = exporter.export(spans: [updated_closedSpanData])
 
-        let exportedSpans: [SpanRecord] = try storage.fetchAll()
+        let exportedSpans: [SpanRecord] = storage.fetchAll()
         XCTAssertTrue(exportedSpans.count == 1)
 
         let exportedSpan = try XCTUnwrap(exportedSpans.first)
@@ -87,10 +87,10 @@ final class StorageSpanExporterTests: XCTestCase {
                                              hasEnded: false )
 
         // When spans are exported
-        exporter.export(spans: [openSpanData])
-        exporter.export(spans: [updated_openSpanData])
+        _ = exporter.export(spans: [openSpanData])
+        _ = exporter.export(spans: [updated_openSpanData])
 
-        let exportedSpans: [SpanRecord] = try storage.fetchAll()
+        let exportedSpans: [SpanRecord] = storage.fetchAll()
         XCTAssertTrue(exportedSpans.count == 1)
 
         let exportedSpan = exportedSpans.first

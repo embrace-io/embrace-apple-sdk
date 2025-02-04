@@ -13,9 +13,9 @@ extension MetadataRecord {
         value: AttributeValue,
         sessionId: SessionIdentifier = .random
     ) -> MetadataRecord {
-        self.init(
+        MetadataRecord(
             key: key,
-            value: value,
+            value: value.description,
             type: .customProperty,
             lifespan: .session,
             lifespanId: sessionId.toString
@@ -23,9 +23,9 @@ extension MetadataRecord {
     }
 
     static func userMetadata(key: String, value: String) -> MetadataRecord {
-        .init(
+        MetadataRecord(
             key: key,
-            value: .string(value),
+            value: value,
             type: .customProperty,
             lifespan: .session,
             lifespanId: .random()
@@ -33,9 +33,9 @@ extension MetadataRecord {
     }
 
     static func createResourceRecord(key: String, value: String) -> MetadataRecord {
-        .init(
+        MetadataRecord(
             key: key,
-            value: .string(value),
+            value: value,
             type: .resource,
             lifespan: .session,
             lifespanId: .random()
@@ -43,9 +43,9 @@ extension MetadataRecord {
     }
 
     static func createPersonaTagRecord(value: String) -> MetadataRecord {
-        .init(
+        MetadataRecord(
             key: value,
-            value: .string(value),
+            value: value,
             type: .personaTag,
             lifespan: .session,
             lifespanId: .random()

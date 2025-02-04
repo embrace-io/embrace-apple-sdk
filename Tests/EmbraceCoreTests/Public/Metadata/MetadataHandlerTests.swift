@@ -21,10 +21,10 @@ final class MetadataHandlerTests: XCTestCase {
         sessionController = MockSessionController()
         sessionController.startSession(state: .foreground)
 
-        try storage.addSession(
-            id: sessionController.currentSession!.id,
-            state: .foreground,
+        storage.addSession(
+            id: sessionController.currentSession!.id!,
             processId: .current,
+            state: .foreground,
             traceId: .random(),
             spanId: .random(),
             startTime: Date()
@@ -32,7 +32,7 @@ final class MetadataHandlerTests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
-        try storage.teardown()
+        storage.coreData.destroy()
         sessionController = nil
     }
 
@@ -84,20 +84,14 @@ final class MetadataHandlerTests: XCTestCase {
         }
 
         // when adding metadata with invalid values
-        let expectation = XCTestExpectation()
         try handler.addResource(key: "test", value: invalidValue, lifespan: .permanent)
         try handler.addProperty(key: "test", value: invalidValue, lifespan: .permanent)
 
         // then the values are truncated
-        try storage.dbQueue.read { db in
-            let records = try MetadataRecord.fetchAll(db)
-            for metadata in records {
-                XCTAssertEqual(metadata.stringValue!.count, MetadataHandler.maxValueLength)
-            }
-            expectation.fulfill()
-        }
-
-        wait(for: [expectation], timeout: .defaultTimeout)
+        let metadata: [MetadataRecord] = storage.fetchAll()
+        XCTAssertEqual(metadata.count, 2)
+        XCTAssertEqual(metadata[0].value.count, MetadataHandler.maxValueLength)
+        XCTAssertEqual(metadata[1].value.count, MetadataHandler.maxValueLength)
     }
 
     func test_currentSession_validation() throws {
@@ -142,11 +136,11 @@ final class MetadataHandlerTests: XCTestCase {
 
         // given limits reached on metadata
         for i in 1...storage.options.resourcesLimit {
-            try storage.addMetadata(key: "resource\(i)", value: "test", type: .resource, lifespan: .permanent)
+            storage.addMetadata(key: "resource\(i)", value: "test", type: .resource, lifespan: .permanent)
         }
 
         for i in 1...storage.options.customPropertiesLimit {
-            try storage.addMetadata(key: "resource\(i)", value: "test", type: .customProperty, lifespan: .permanent)
+            storage.addMetadata(key: "resource\(i)", value: "test", type: .customProperty, lifespan: .permanent)
         }
 
         // when adding a resource
@@ -186,7 +180,7 @@ final class MetadataHandlerTests: XCTestCase {
         // when added
         try handler.addProperty(key: "foo", value: "bar", lifespan: .session)
 
-        let firstFetch = try storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
+        let firstFetch = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id!)
         let item = firstFetch.first { record in
             record.key == "foo"
         }
@@ -195,7 +189,7 @@ final class MetadataHandlerTests: XCTestCase {
         // When removed
         try handler.removeProperty(key: "foo", lifespan: .session)
 
-        let secondFetch = try storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
+        let secondFetch = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id!)
         let result = secondFetch.first { record in
             record.key == "foo"
         }
@@ -205,23 +199,23 @@ final class MetadataHandlerTests: XCTestCase {
     func test_remove_doesNot_removeMetadataWithSessionLifespan_whenSessionChanges() throws {
         let handler = MetadataHandler(storage: storage, sessionController: sessionController)
 
-        let firstSessionId = sessionController.currentSession!.id
+        let firstSessionId = sessionController.currentSession!.id!
         // when added to first session
         try handler.addProperty(key: "foo", value: "bar", lifespan: .session)
 
         // start new session
         let newSession = sessionController.startSession(state: .foreground)
-        let secondSessionId = newSession!.id
-        try storage.addSession(
+        let secondSessionId = newSession!.id!
+        storage.addSession(
             id: secondSessionId,
-            state: .foreground,
             processId: .current,
+            state: .foreground,
             traceId: .random(),
             spanId: .random(),
             startTime: Date()
         )
 
-        let fetch1 = try storage.fetchCustomPropertiesForSessionId(firstSessionId)
+        let fetch1 = storage.fetchCustomPropertiesForSessionId(firstSessionId)
         let result1 = fetch1.first { record in
             record.key == "foo"
         }
@@ -230,13 +224,13 @@ final class MetadataHandlerTests: XCTestCase {
         // When removed
         try handler.removeProperty(key: "foo", lifespan: .session)
 
-        let fetch2 = try storage.fetchCustomPropertiesForSessionId(secondSessionId)
+        let fetch2 = storage.fetchCustomPropertiesForSessionId(secondSessionId)
         let result2 = fetch2.first { record in
             record.key == "foo"
         }
         XCTAssertNil(result2)    // not present from second session
 
-        let fetch3 = try storage.fetchCustomPropertiesForSessionId(firstSessionId)
+        let fetch3 = storage.fetchCustomPropertiesForSessionId(firstSessionId)
         let result3 = fetch3.first { record in
             record.key == "foo"
         }
@@ -249,7 +243,7 @@ final class MetadataHandlerTests: XCTestCase {
         // when added
         try handler.addProperty(key: "foo", value: "bar", lifespan: .process)
 
-        let firstFetch = try storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
+        let firstFetch = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id!)
         let item = firstFetch.first { record in
             record.key == "foo"
         }
@@ -258,7 +252,7 @@ final class MetadataHandlerTests: XCTestCase {
         // When removed
         try handler.removeProperty(key: "foo", lifespan: .process)
 
-        let secondFetch = try storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
+        let secondFetch = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id!)
         let result = secondFetch.first { record in
             record.key == "foo"
         }
@@ -270,17 +264,17 @@ final class MetadataHandlerTests: XCTestCase {
 
         let otherProcessId = ProcessIdentifier.random
         let otherSessionId = SessionIdentifier.random
-        try storage.addSession(
+        storage.addSession(
             id: otherSessionId,
-            state: .foreground,
             processId: otherProcessId,
+            state: .foreground,
             traceId: .random(),
             spanId: .random(),
             startTime: Date()
         )
 
         // when added to process that occurred "before"
-        try storage.addMetadata(
+        storage.addMetadata(
             key: "foo",
             value: "bar",
             type: .customProperty,
@@ -292,14 +286,14 @@ final class MetadataHandlerTests: XCTestCase {
         try handler.removeProperty(key: "foo", lifespan: .process)
 
         // exists in other session
-        let fetch1 = try storage.fetchCustomPropertiesForSessionId(otherSessionId)
+        let fetch1 = storage.fetchCustomPropertiesForSessionId(otherSessionId)
         let result1 = fetch1.first { record in
             record.key == "foo"
         }
         XCTAssertNotNil(result1)
 
         // does not exist in current session
-        let fetch2 = try storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
+        let fetch2 = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id!)
         let result2 = fetch2.first { record in
             record.key == "foo"
         }
@@ -312,7 +306,7 @@ final class MetadataHandlerTests: XCTestCase {
         // when added
         try handler.addProperty(key: "foo", value: "bar", lifespan: .permanent)
 
-        let firstFetch = try storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
+        let firstFetch = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id!)
         let item = firstFetch.first { record in
             record.key == "foo"
         }
@@ -321,7 +315,7 @@ final class MetadataHandlerTests: XCTestCase {
         // When removed
         try handler.removeProperty(key: "foo", lifespan: .permanent)
 
-        let secondFetch = try storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
+        let secondFetch = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id!)
         let result = secondFetch.first { record in
             record.key == "foo"
         }
@@ -332,8 +326,8 @@ final class MetadataHandlerTests: XCTestCase {
     func test_coreDataClone() throws {
         // given stored metadata
         for i in 1...3 {
-            try storage.addMetadata(key: "resource\(i)", value: "test", type: .resource, lifespan: .permanent)
-            try storage.addMetadata(key: "property\(i)", value: "test", type: .customProperty, lifespan: .permanent)
+            storage.addMetadata(key: "resource\(i)", value: "test", type: .resource, lifespan: .permanent)
+            storage.addMetadata(key: "property\(i)", value: "test", type: .customProperty, lifespan: .permanent)
         }
 
         // when initializing a metadata handler

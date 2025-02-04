@@ -53,6 +53,8 @@ public class CoreDataWrapper {
 
     /// Removes the database file
     public func destroy() {
+        context.reset()
+
         switch options.storageMechanism {
         case .onDisk:
             if let url = options.storageMechanism.fileURL {
@@ -65,6 +67,14 @@ public class CoreDataWrapper {
             }
 
         default: return
+        }
+
+        if let store = container.persistentStoreCoordinator.persistentStores.first {
+            do {
+                try container.persistentStoreCoordinator.remove(store)
+            } catch {
+                logger.error("Error removing CoreData store!:\n\(error.localizedDescription)")
+            }
         }
     }
 

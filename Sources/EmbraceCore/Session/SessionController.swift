@@ -131,8 +131,8 @@ class SessionController: SessionControllable {
             // create session record
             let session = storage.addSession(
                 id: newId,
-                state: state,
                 processId: ProcessIdentifier.current,
+                state: state,
                 traceId: span.context.traceId.hexString,
                 spanId: span.context.spanId.hexString,
                 startTime: startTime

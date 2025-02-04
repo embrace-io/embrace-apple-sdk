@@ -3,29 +3,25 @@
 //
 
 import Foundation
+import EmbraceCommonInternal
 @testable import EmbraceStorageInternal
 
 public extension EmbraceStorage {
     static func createInMemoryDb(runMigrations: Bool = true) throws -> EmbraceStorage {
-        let storage = try EmbraceStorage(options: .init(named: UUID().uuidString), logger: MockLogger())
-        if runMigrations { try storage.performMigration() }
+        let storage = try EmbraceStorage(
+            options: .init(storageMechanism: .inMemory(name: UUID().uuidString)),
+            logger: MockLogger()
+        )
         return storage
     }
 
-    static func createInDiskDb(runMigrations: Bool = true) throws -> EmbraceStorage {
+    static func createInDiskDb(fileName: String) throws -> EmbraceStorage {
         let url = URL(fileURLWithPath: NSTemporaryDirectory())
         let storage = try EmbraceStorage(
-            options: .init(baseUrl: url, fileName: "\(UUID().uuidString).sqlite"),
+            options: .init(storageMechanism: .onDisk(name: fileName, baseURL: url)),
             logger: MockLogger()
         )
 
-        if runMigrations { try storage.performMigration() }
         return storage
-    }
-}
-
-public extension EmbraceStorage {
-    func teardown() throws {
-        try dbQueue.close()
     }
 }

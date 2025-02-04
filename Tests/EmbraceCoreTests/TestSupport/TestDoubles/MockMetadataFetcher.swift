@@ -13,17 +13,17 @@ class MockMetadataFetcher: EmbraceStorageMetadataFetcher {
         self.metadata = metadata
     }
 
-    func fetchAllResources() throws -> [MetadataRecord] {
+    func fetchAllResources() -> [MetadataRecord] {
         return metadata
     }
 
-    func fetchResourcesForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord] {
+    func fetchResourcesForSessionId(_ sessionId: SessionIdentifier) -> [MetadataRecord] {
         return metadata.filter { record in
             (record.type == .resource || record.type == .requiredResource)
         }
     }
 
-    func fetchResourcesForProcessId(_ processId: ProcessIdentifier) throws -> [MetadataRecord] {
+    func fetchResourcesForProcessId(_ processId: ProcessIdentifier) -> [MetadataRecord] {
         return metadata.filter { record in
             (record.type == .resource || record.type == .requiredResource) &&
             record.lifespan == .process &&
@@ -31,7 +31,7 @@ class MockMetadataFetcher: EmbraceStorageMetadataFetcher {
         }
     }
 
-    func fetchCustomPropertiesForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord] {
+    func fetchCustomPropertiesForSessionId(_ sessionId: SessionIdentifier) -> [MetadataRecord] {
         return metadata.filter { record in
             record.type == .customProperty &&
             record.lifespan == .session &&
@@ -39,7 +39,7 @@ class MockMetadataFetcher: EmbraceStorageMetadataFetcher {
         }
     }
 
-    func fetchPersonaTagsForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord] {
+    func fetchPersonaTagsForSessionId(_ sessionId: SessionIdentifier) -> [MetadataRecord] {
         return metadata.filter { record in
             record.type == .personaTag &&
             record.lifespan == .session &&
@@ -47,7 +47,7 @@ class MockMetadataFetcher: EmbraceStorageMetadataFetcher {
         }
     }
 
-    func fetchPersonaTagsForProcessId(_ processId: ProcessIdentifier) throws -> [MetadataRecord] {
+    func fetchPersonaTagsForProcessId(_ processId: ProcessIdentifier) -> [MetadataRecord] {
         return metadata.filter { record in
             record.type == .personaTag &&
             record.lifespan == .process &&

@@ -128,8 +128,8 @@ final class SessionSpanUtilsTests: XCTestCase {
 
         let session = SessionRecord(
             id: TestConstants.sessionId,
-            state: .foreground,
             processId: TestConstants.processId,
+            state: .foreground,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: TestConstants.date,
@@ -205,8 +205,8 @@ final class SessionSpanUtilsTests: XCTestCase {
         // test ok status
         var session = SessionRecord(
             id: TestConstants.sessionId,
-            state: .foreground,
             processId: TestConstants.processId,
+            state: .foreground,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: TestConstants.date,
@@ -224,8 +224,8 @@ final class SessionSpanUtilsTests: XCTestCase {
         // test error status
         session = SessionRecord(
             id: TestConstants.sessionId,
-            state: .foreground,
             processId: TestConstants.processId,
+            state: .foreground,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: TestConstants.date,
@@ -311,8 +311,8 @@ private extension SessionSpanUtilsTests {
 
         return SessionRecord(
             id: TestConstants.sessionId,
-            state: .foreground,
             processId: TestConstants.processId,
+            state: .foreground,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: TestConstants.date,
@@ -325,6 +325,12 @@ private extension SessionSpanUtilsTests {
     }
 
     func givenCustomProperty(withKey key: String, value: String, lifespan: MetadataRecordLifespan) -> MetadataRecord {
-        .init(key: key, value: .string(value), type: .customProperty, lifespan: lifespan, lifespanId: .random())
+        MetadataRecord(
+            key: key,
+            value: value,
+            type: .customProperty,
+            lifespan: lifespan,
+            lifespanId: .random()
+        )
     }
 }

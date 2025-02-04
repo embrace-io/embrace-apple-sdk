@@ -7,7 +7,7 @@ import EmbraceCommonInternal
 import OpenTelemetryApi
 
 public protocol LogRepository {
-    func create(
+    func createLog(
         id: LogIdentifier,
         processId: ProcessIdentifier,
         severity: LogSeverity,
@@ -22,12 +22,13 @@ public protocol LogRepository {
 
 extension EmbraceStorage {
 
-    public func create(
+    @discardableResult
+    public func createLog(
         id: LogIdentifier,
         processId: ProcessIdentifier,
         severity: LogSeverity,
         body: String,
-        timestamp: Date,
+        timestamp: Date = Date(),
         attributes: [String: OpenTelemetryApi.AttributeValue]
     ) -> LogRecord {
         return LogRecord.create(
@@ -49,15 +50,11 @@ extension EmbraceStorage {
     }
 
     public func removeAllLogs() {
-        remove(logs: getAll())
+        let logs: [LogRecord] = fetchAll()
+        remove(logs: logs)
     }
 
     public func remove(logs: [LogRecord]) {
         coreData.deleteRecords(logs)
-    }
-
-    public func getAll() -> [LogRecord] {
-        let request = LogRecord.createFetchRequest()
-        return coreData.fetch(withRequest: request)
     }
 }

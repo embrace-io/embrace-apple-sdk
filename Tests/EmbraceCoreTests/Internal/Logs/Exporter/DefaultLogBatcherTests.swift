@@ -7,6 +7,7 @@ import XCTest
 @testable import EmbraceCore
 import EmbraceStorageInternal
 import TestSupport
+import OpenTelemetrySdk
 
 class DefaultLogBatcherTests: XCTestCase {
     private var sut: DefaultLogBatcher!
@@ -15,21 +16,18 @@ class DefaultLogBatcherTests: XCTestCase {
 
     func test_addLog_alwaysTriesToCreateLogInRepository() {
         givenDefaultLogBatcher()
-        givenRepositoryCreatesLogsSuccessfully()
         whenInvokingAddLogRecord(withLogRecord: randomLogRecord())
         thenLogRepositoryCreateMethodWasInvoked()
     }
 
     func testOnSuccessfulRepository_whenInvokingAddLog_thenBatchShouldntFinish() {
         givenDefaultLogBatcher()
-        givenRepositoryCreatesLogsSuccessfully()
         whenInvokingAddLogRecord(withLogRecord: randomLogRecord())
         thenDelegateShouldntInvokeBatchFinished()
     }
 
     func testOnSuccessfulRepository_whenInvokingAddLogMoreTimesThanLimit_thenBatchShouldFinish() {
         givenDefaultLogBatcher(limits: .init(maxLogsPerBatch: 1))
-        givenRepositoryCreatesLogsSuccessfully()
         whenInvokingAddLogRecord(withLogRecord: randomLogRecord())
         whenInvokingAddLogRecord(withLogRecord: randomLogRecord())
         thenDelegateShouldInvokeBatchFinished()
@@ -37,14 +35,12 @@ class DefaultLogBatcherTests: XCTestCase {
 
     func testAutoEndBatchAfterLifespanExpired() {
         givenDefaultLogBatcher(limits: .init(maxBatchAge: 0.1, maxLogsPerBatch: 10))
-        givenRepositoryCreatesLogsSuccessfully()
         whenInvokingAddLogRecord(withLogRecord: randomLogRecord())
         thenDelegateShouldInvokeBatchFinishedAfterBatchLifespan(0.5)
     }
 
     func testAutoEndBatchAfterLifespanExpired_TimerStartsAgainAfterNewLogAdded() {
         givenDefaultLogBatcher(limits: .init(maxBatchAge: 0.1, maxLogsPerBatch: 10))
-        givenRepositoryCreatesLogsSuccessfully()
         whenInvokingAddLogRecord(withLogRecord: randomLogRecord())
         thenDelegateShouldInvokeBatchFinishedAfterBatchLifespan(0.2)
         self.delegate.didCallBatchFinished = false
@@ -54,7 +50,6 @@ class DefaultLogBatcherTests: XCTestCase {
 
     func testAutoEndBatchAfterLifespanExpired_CancelWhenBatchEndedPrematurely() {
         givenDefaultLogBatcher(limits: .init(maxBatchAge: 0.1, maxLogsPerBatch: 3))
-        givenRepositoryCreatesLogsSuccessfully()
         whenInvokingAddLogRecord(withLogRecord: randomLogRecord())
         whenInvokingAddLogRecord(withLogRecord: randomLogRecord())
         whenInvokingAddLogRecord(withLogRecord: randomLogRecord())
@@ -71,22 +66,16 @@ private extension DefaultLogBatcherTests {
         sut = .init(repository: repository, logLimits: limits, delegate: delegate, processorQueue: .main)
     }
 
-    func givenRepositoryCreatesLogsSuccessfully(withLog log: LogRecord? = nil) {
-        let logRecord = log ?? randomLogRecord()
-        repository.stubbedCreateCompletionResult = .success(logRecord)
-    }
-
-    func randomLogRecord() -> LogRecord {
-        .init(
-            identifier: .init(),
-            processIdentifier: .random,
-            severity: .info,
-            body: UUID().uuidString,
+    func randomLogRecord() -> ReadableLogRecord {
+        return ReadableLogRecord(
+            resource: Resource(), 
+            instrumentationScopeInfo: InstrumentationScopeInfo(), 
+            timestamp: Date(),
             attributes: [:]
         )
     }
 
-    func whenInvokingAddLogRecord(withLogRecord logRecord: LogRecord) {
+    func whenInvokingAddLogRecord(withLogRecord logRecord: ReadableLogRecord) {
         sut.addLogRecord(logRecord: logRecord)
     }
 

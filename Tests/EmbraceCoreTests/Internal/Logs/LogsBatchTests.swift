@@ -106,12 +106,12 @@ private extension LogsBatchTests {
 
     func randomLog(date: Date = Date()) -> LogRecord {
         let recentLog = LogRecord(
-            identifier: .init(),
-            processIdentifier: .random,
+            id: .init(),
+            processId: .random,
             severity: .info,
             body: UUID().uuidString,
-            attributes: [:],
-            timestamp: date
+            timestamp: date,
+            attributes: [:]
         )
         return recentLog
     }
