@@ -111,6 +111,11 @@ struct URLSessionInitWithDelegateSwizzler: URLSessionSwizzler {
                     return originalImplementation(urlSession, Self.selector, configuration, delegate, queue)
                 }
 
+                // Add protection against re-proxying our own proxy
+                guard !(proxiedDelegate is URLSessionDelegateProxy) else {
+                    return originalImplementation(urlSession, Self.selector, configuration, delegate, queue)
+                }
+
                 let newDelegate = URLSessionDelegateProxy(originalDelegate: proxiedDelegate, handler: handler)
                 let session = originalImplementation(urlSession, Self.selector, configuration, newDelegate, queue)
 
