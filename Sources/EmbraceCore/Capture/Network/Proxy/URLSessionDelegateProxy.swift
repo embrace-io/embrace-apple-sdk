@@ -65,10 +65,10 @@ class URLSessionDelegateProxy: NSObject {
         toSelector selector: Selector,
         session: URLSession
     ) -> DelegateRespondsResult<T> {
-
-        // check if the originalDelegate responds to the selector
+        // First check if originalDelegate is not self to prevent recursion
         if let originalDelegate = originalDelegate,
-            originalDelegate.responds(to: selector) {
+           !(originalDelegate is URLSessionDelegateProxy),
+           originalDelegate.responds(to: selector) {
             if let delegateAsT = originalDelegate as? T {
                 return .respondsAndConforms(as: delegateAsT)
             } else if let object = originalDelegate as? NSObject {
@@ -76,8 +76,10 @@ class URLSessionDelegateProxy: NSObject {
             }
         }
 
-        // guard that we are not the session.delegate to prevent infinite recursion
-        guard (session.delegate as? URLSessionDelegateProxy) != self else {
+        // Guard against self-referential delegation
+        guard let sessionDelegate = session.delegate,
+              !(sessionDelegate is URLSessionDelegateProxy),
+              sessionDelegate.responds(to: selector) else {
             return .doesNotRespond
         }
 
@@ -88,13 +90,10 @@ class URLSessionDelegateProxy: NSObject {
         }
 
         // if session delegate also responds to selector, we must call it
-        if let sessionDelegate = session.delegate,
-           sessionDelegate.responds(to: selector) {
-            if let sessionDelegateAsT = sessionDelegate as? T {
-                return .respondsAndConforms(as: sessionDelegateAsT)
-            } else if let object = sessionDelegate as? NSObject {
-                return .respondsWithoutConformance(object: object)
-            }
+        if let sessionDelegateAsT = sessionDelegate as? T {
+            return .respondsAndConforms(as: sessionDelegateAsT)
+        } else if let object = sessionDelegate as? NSObject {
+            return .respondsWithoutConformance(object: object)
         }
 
         // If no case applies
