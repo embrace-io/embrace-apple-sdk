@@ -68,7 +68,12 @@ class URLSessionDelegateProxy: NSObject {
 
         // check if the originalDelegate responds to the selector
         if let originalDelegate = originalDelegate,
-            originalDelegate.responds(to: selector) {
+           originalDelegate.responds(to: selector) {
+            // Add protection against self-delegation
+            guard !(originalDelegate is URLSessionDelegateProxy) else {
+                return .doesNotRespond
+            }
+            
             if let delegateAsT = originalDelegate as? T {
                 return .respondsAndConforms(as: delegateAsT)
             } else if let object = originalDelegate as? NSObject {
@@ -90,6 +95,17 @@ class URLSessionDelegateProxy: NSObject {
         // if session delegate also responds to selector, we must call it
         if let sessionDelegate = session.delegate,
            sessionDelegate.responds(to: selector) {
+            // Guard that we are not the session.delegate to prevent infinite recursion
+            guard (sessionDelegate as? URLSessionDelegateProxy) != self,
+                  !(sessionDelegate is URLSessionDelegateProxy) else {
+                return .doesNotRespond
+            }
+
+            // Avoid forwarding if already swizzled
+            guard self.swizzledDelegate == nil else {
+                return .doesNotRespond
+            }
+            
             if let sessionDelegateAsT = sessionDelegate as? T {
                 return .respondsAndConforms(as: sessionDelegateAsT)
             } else if let object = sessionDelegate as? NSObject {
