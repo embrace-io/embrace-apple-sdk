@@ -43,7 +43,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         uploadOptions = EmbraceUpload.Options(
             endpoints: testEndpointOptions(forTest: testName),
-            cache: EmbraceUpload.CacheOptions(named: testName),
+            cache: EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName)),
             metadata: UnsentDataHandlerTests.testMetadataOptions,
             redundancy: UnsentDataHandlerTests.testRedundancyOptions,
             urlSessionConfiguration: urlSessionconfig
