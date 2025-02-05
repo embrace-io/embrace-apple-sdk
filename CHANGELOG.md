@@ -1,3 +1,9 @@
+## 6.8.0
+*Feb 6th, 2025*
+* Fixes
+    * Fixed an issue causing `WKWebView`s to crash when calling the delegate method `webView(_:didFinish:)` when `WebViewCaptureService` is enabled.
+    * Fixed some potential issues with different features using proxy mechanisms (e.g. `URLSession` & `UNUserNotificationCenter` instrumentation).
+
 ## 6.7.1
 *Jan 22nd, 2025**
 * Fixes
