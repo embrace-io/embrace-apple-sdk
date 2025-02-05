@@ -1,6 +1,6 @@
 Pod::Spec.new do |spec|
   spec.name                           = "EmbraceIO"
-  spec.version                        = "6.8.0-rc1"
+  spec.version                        = "6.8.0-rc2"
   spec.summary                        = "Visibility into your users that you didn't have before."
   spec.description                    = <<-DESC
                       Embrace is the only performance monitoring platform focused solely on mobile. We are built
@@ -80,7 +80,7 @@ Pod::Spec.new do |spec|
 
   spec.subspec 'EmbraceCoreDataInternal' do |coreData|
     coreData.vendored_frameworks = "xcframeworks/EmbraceCoreDataInternal.xcframework"
-    coreData.dependency = "EmbraceIO/EmbraceCommonInternal"
+    coreData.dependency "EmbraceIO/EmbraceCommonInternal"
   end
 
   spec.subspec 'EmbraceUploadInternal' do |upload|
