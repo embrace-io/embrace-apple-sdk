@@ -116,10 +116,10 @@ extension EmbraceStorage {
     /// Will retrieve all spans that overlap with session record start / end (or last heartbeat)
     /// that occur within the same process. For cold start sessions, will include spans that occur before the session starts.
     /// Parameters:
-    /// - sessionRecord: The session record to fetch spans for
+    /// - session: The session record to fetch spans for
     /// - ignoreSessionSpans: Whether to ignore the session's (or any other session's) own span
     public func fetchSpans(
-        for sessionRecord: SessionRecord,
+        for session: EmbraceSession,
         ignoreSessionSpans: Bool = true,
         limit: Int = 1000
     ) -> [SpanRecord] {
@@ -127,21 +127,21 @@ extension EmbraceStorage {
         let request = SpanRecord.createFetchRequest()
         request.fetchLimit = limit
 
-        let endTime = (sessionRecord.endTime ?? sessionRecord.lastHeartbeatTime) as NSDate
+        let endTime = (session.endTime ?? session.lastHeartbeatTime) as NSDate
 
         // special case for cold start sessions
         // we grab spans that might have started before the session but within the same process
-        if sessionRecord.coldStart {
+        if session.coldStart {
             request.predicate = NSPredicate(
                 format: "processIdRaw == %@ AND startTime <= %@",
-                sessionRecord.processIdRaw,
+                session.processIdRaw,
                 endTime
             )
         }
 
         // otherwise we check if the span is within the boundaries of the session
         else {
-            let startTime = sessionRecord.startTime as NSDate
+            let startTime = session.startTime as NSDate
 
             // span starts within session and
             //   - ends before session ends or

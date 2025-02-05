@@ -5,7 +5,7 @@
 import XCTest
 import EmbraceStorageInternal
 import EmbraceCommonInternal
-
+import TestSupport
 @testable import EmbraceCore
 
 class EmbraceLogAttributesBuilderTests: XCTestCase {
@@ -55,10 +55,10 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
         let sessionId = SessionIdentifier.random
         givenSessionController(sessionWithId: sessionId)
         givenMetadataFetcher(with: [
-            .createSessionPropertyRecord(key: "custom_prop_int", value: .int(1), sessionId: sessionId),
-            .createSessionPropertyRecord(key: "custom_prop_bool", value: .bool(false), sessionId: sessionId),
-            .createSessionPropertyRecord(key: "custom_prop_double", value: .double(3.0), sessionId: sessionId),
-            .createSessionPropertyRecord(key: "custom_prop_string", value: .string("hello"), sessionId: sessionId)]
+            MockMetadata.createSessionPropertyRecord(key: "custom_prop_int", value: .int(1), sessionId: sessionId),
+            MockMetadata.createSessionPropertyRecord(key: "custom_prop_bool", value: .bool(false), sessionId: sessionId),
+            MockMetadata.createSessionPropertyRecord(key: "custom_prop_double", value: .double(3.0), sessionId: sessionId),
+            MockMetadata.createSessionPropertyRecord(key: "custom_prop_string", value: .string("hello"), sessionId: sessionId)]
         )
         givenEmbraceLogAttributesBuilder()
 
@@ -88,7 +88,7 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
         givenSessionControllerWithNoSession()
         // Shouldnt happen to have custom session properties with no session, but just in case :)
         givenMetadataFetcher(with: [
-            .createSessionPropertyRecord(key: "custom_prop_string", value: .string("hello"))
+            MockMetadata.createSessionPropertyRecord(key: "custom_prop_string", value: .string("hello"))
         ])
         givenEmbraceLogAttributesBuilder()
 
@@ -178,14 +178,14 @@ private extension EmbraceLogAttributesBuilderTests {
         sessionState: SessionState = .foreground
     ) {
         controller = MockSessionController()
-        controller.currentSession = .with(id: sessionId, state: sessionState)
+        controller.currentSession = MockSession.with(id: sessionId, state: sessionState)
     }
 
     func givenSessionControllerWithNoSession() {
         controller = MockSessionController()
     }
 
-    func givenMetadataFetcher(with metadata: [MetadataRecord]? = nil) {
+    func givenMetadataFetcher(with metadata: [EmbraceMetadata]? = nil) {
         storage = .init(metadata: metadata ?? [])
     }
 

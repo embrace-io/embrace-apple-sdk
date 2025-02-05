@@ -14,7 +14,7 @@ extension MetadataHandler {
             return []
         }
 
-        var records: [MetadataRecord] = []
+        var records: [EmbraceMetadata] = []
         if let sessionId = sessionController?.currentSession?.id {
             records = storage.fetchPersonaTagsForSessionId(sessionId)
         } else {

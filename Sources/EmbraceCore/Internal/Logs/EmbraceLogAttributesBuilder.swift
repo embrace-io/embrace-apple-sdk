@@ -10,11 +10,11 @@ import EmbraceSemantics
 class EmbraceLogAttributesBuilder {
     private weak var storage: EmbraceStorageMetadataFetcher?
     private weak var sessionControllable: SessionControllable?
-    private var session: SessionRecord?
+    private var session: EmbraceSession?
     private var crashReport: CrashReport?
     private var attributes: [String: String]
 
-    private var currentSession: SessionRecord? {
+    private var currentSession: EmbraceSession? {
         session ?? sessionControllable?.currentSession
     }
 
@@ -26,7 +26,7 @@ class EmbraceLogAttributesBuilder {
         self.attributes = initialAttributes
     }
 
-    init(session: SessionRecord?,
+    init(session: EmbraceSession?,
          crashReport: CrashReport? = nil,
          storage: EmbraceStorageMetadataFetcher? = nil,
          initialAttributes: [String: String]) {

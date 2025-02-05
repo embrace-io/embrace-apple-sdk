@@ -296,7 +296,7 @@ private extension LogControllerTests {
 
     func givenSessionControllerWithSession() {
         sessionController = .init()
-        sessionController.currentSession = .init(
+        sessionController.currentSession = MockSession(
             id: .random,
             processId: .random,
             state: .foreground,
@@ -306,7 +306,7 @@ private extension LogControllerTests {
         )
     }
 
-    func givenStorage(withLogs logs: [LogRecord] = []) {
+    func givenStorage(withLogs logs: [EmbraceLog] = []) {
         storage = .init()
         storage?.stubbedFetchAllExcludingProcessIdentifier = logs
     }
@@ -319,7 +319,7 @@ private extension LogControllerTests {
         sut.uploadAllPersistedLogs()
     }
 
-    func whenInvokingBatchFinished(withLogs logs: [LogRecord]) {
+    func whenInvokingBatchFinished(withLogs logs: [EmbraceLog]) {
         sut.batchFinished(withLogs: logs)
     }
 
@@ -375,10 +375,13 @@ private extension LogControllerTests {
         XCTAssertTrue(upload.didCallUploadLog)
     }
 
-    func thenStorageShouldCallRemove(withLogs logs: [LogRecord]) throws {
+    func thenStorageShouldCallRemove(withLogs logs: [EmbraceLog]) throws {
         let unwrappedStorage = try XCTUnwrap(storage)
         wait(timeout: 1.0) {
-            unwrappedStorage.didCallRemoveLogs && unwrappedStorage.removeLogsReceivedParameter == logs
+            let expectedIds = logs.map { $0.idRaw }
+            let ids = unwrappedStorage.removeLogsReceivedParameter.map { $0.idRaw }
+
+            return unwrappedStorage.didCallRemoveLogs && expectedIds == ids
         }
     }
 
@@ -456,14 +459,14 @@ private extension LogControllerTests {
         }
     }
 
-    func randomLogRecord(sessionId: SessionIdentifier? = nil) -> LogRecord {
+    func randomLogRecord(sessionId: SessionIdentifier? = nil) -> EmbraceLog {
 
         var attributes: [String: AttributeValue] = [:]
         if let sessionId = sessionId {
             attributes["session.id"] = AttributeValue(sessionId.toString)
         }
 
-        return LogRecord(
+        return MockLog(
             id: .random,
             processId: .random,
             severity: .info,
@@ -472,7 +475,7 @@ private extension LogControllerTests {
         )
     }
 
-    func logsForMoreThanASingleBatch() -> [LogRecord] {
+    func logsForMoreThanASingleBatch() -> [EmbraceLog] {
         return (1...LogController.maxLogsPerBatch + 1).map { _ in
             randomLogRecord()
         }

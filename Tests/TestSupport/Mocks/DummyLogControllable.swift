@@ -26,5 +26,5 @@ public class DummyLogControllable: LogControllable {
         stackTraceBehavior: StackTraceBehavior
     ) { }
 
-    public func batchFinished(withLogs logs: [LogRecord]) {}
+    public func batchFinished(withLogs logs: [EmbraceLog]) {}
 }

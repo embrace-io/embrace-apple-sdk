@@ -58,11 +58,11 @@ class UnsentDataHandler {
         for report in crashReports {
 
             // link session with crash report if possible
-            var session: SessionRecord?
+            var session: EmbraceSession?
 
             if let sessionId = SessionIdentifier(string: report.sessionId) {
                 session = storage.fetchSession(id: sessionId)
-                if let session = session {
+                if var session = session {
                     // update session's end time with the crash report timestamp
                     session.endTime = report.timestamp ?? session.endTime
 
@@ -99,7 +99,7 @@ class UnsentDataHandler {
     static public func sendCrashLog(
         report: CrashReport,
         reporter: CrashReporter?,
-        session: SessionRecord?,
+        session: EmbraceSession?,
         storage: EmbraceStorage?,
         upload: EmbraceUpload?,
         otel: EmbraceOpenTelemetry?
@@ -154,7 +154,7 @@ class UnsentDataHandler {
         otel: EmbraceOpenTelemetry?,
         storage: EmbraceStorage?,
         report: CrashReport,
-        session: SessionRecord?,
+        session: EmbraceSession?,
         timestamp: Date
     ) -> [String: String] {
 
@@ -213,7 +213,7 @@ class UnsentDataHandler {
     }
 
     static public func sendSession(
-        _ session: SessionRecord,
+        _ session: EmbraceSession,
         storage: EmbraceStorage,
         upload: EmbraceUpload,
         performCleanUp: Bool = true
@@ -239,7 +239,9 @@ class UnsentDataHandler {
             case .success:
                 // remove session from storage
                 // we can remove this immediately because the upload module will cache it until the upload succeeds
-                storage.delete(session)
+                if let record = session as? SessionRecord {
+                    storage.delete(record)
+                }
 
                 if performCleanUp {
                     cleanOldSpans(storage: storage)

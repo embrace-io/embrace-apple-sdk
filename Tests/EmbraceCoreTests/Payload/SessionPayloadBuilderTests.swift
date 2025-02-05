@@ -11,12 +11,12 @@ import TestSupport
 final class SessionPayloadBuilderTests: XCTestCase {
 
     var storage: EmbraceStorage!
-    var sessionRecord: SessionRecord!
+    var sessionRecord: MockSession!
 
     override func setUpWithError() throws {
         storage = try EmbraceStorage.createInMemoryDb()
 
-        sessionRecord = SessionRecord(
+        sessionRecord = MockSession(
             id: TestConstants.sessionId,
             processId: ProcessIdentifier.current,
             state: .foreground,

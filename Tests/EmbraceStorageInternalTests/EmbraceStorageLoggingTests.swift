@@ -90,7 +90,7 @@ class EmbraceStorageLoggingTests: XCTestCase {
 
 private extension EmbraceStorageLoggingTests {
     @discardableResult
-    func createInfoLog(withId id: UUID = UUID(), pid: ProcessIdentifier = .random) -> LogRecord {
+    func createInfoLog(withId id: UUID = UUID(), pid: ProcessIdentifier = .random) -> EmbraceLog {
         return sut.createLog(
             id: LogIdentifier.init(value: id),
             processId: pid,

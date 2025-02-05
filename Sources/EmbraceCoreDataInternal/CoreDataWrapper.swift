@@ -10,8 +10,8 @@ public class CoreDataWrapper {
 
     public let options: CoreDataWrapper.Options
 
-    let container: NSPersistentContainer
-    public let context: NSManagedObjectContext
+    var container: NSPersistentContainer!
+    public private(set) var context: NSManagedObjectContext!
 
     let logger: InternalLogger
 
@@ -52,7 +52,9 @@ public class CoreDataWrapper {
     }
 
     /// Removes the database file
+    /// - Note: Only used in tests!!!
     public func destroy() {
+#if canImport(XCTest)
         context.reset()
 
         switch options.storageMechanism {
@@ -76,6 +78,10 @@ public class CoreDataWrapper {
                 logger.error("Error removing CoreData store!:\n\(error.localizedDescription)")
             }
         }
+
+        container = nil
+        context = nil
+#endif
     }
 
     /// Asynchronously saves all changes on the current context to disk

@@ -30,9 +30,11 @@ class DefaultInternalLoggerTests: XCTestCase {
 
     override func tearDownWithError() throws {
         storage.coreData.destroy()
+        storage = nil
     }
 
     func test_none() {
+
         let logger = DefaultInternalLogger()
         logger.level = .none
 
@@ -42,6 +44,7 @@ class DefaultInternalLoggerTests: XCTestCase {
         XCTAssertFalse(logger.warning("warning"))
         XCTAssertFalse(logger.error("error"))
     }
+
 
     func test_trace() {
         let logger = DefaultInternalLogger()

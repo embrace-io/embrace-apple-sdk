@@ -6,18 +6,19 @@ import Foundation
 import EmbraceStorageInternal
 import EmbraceCommonInternal
 import OpenTelemetryApi
+import TestSupport
 
 class SpyLogRepository: LogRepository {
 
     var didCallFetchAll = false
-    var stubbedFetchAllResult: [LogRecord] = []
-    func fetchAll(excludingProcessIdentifier processIdentifier: ProcessIdentifier) -> [LogRecord] {
+    var stubbedFetchAllResult: [EmbraceLog] = []
+    func fetchAll(excludingProcessIdentifier processIdentifier: ProcessIdentifier) -> [EmbraceLog] {
         didCallFetchAll = true
         return stubbedFetchAllResult
     }
 
     var didCallRemoveLogs = false
-    func remove(logs: [LogRecord]) {
+    func remove(logs: [EmbraceLog]) {
         didCallRemoveLogs = true
     }
 
@@ -34,10 +35,10 @@ class SpyLogRepository: LogRepository {
         body: String,
         timestamp: Date,
         attributes: [String : AttributeValue]
-    ) -> LogRecord {
+    ) -> EmbraceLog {
         didCallCreate = true
 
-        return LogRecord(
+        return MockLog(
             id: id,
             processId: processId,
             severity: severity,

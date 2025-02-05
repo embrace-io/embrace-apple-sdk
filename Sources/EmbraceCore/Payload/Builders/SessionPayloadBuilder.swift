@@ -10,8 +10,8 @@ class SessionPayloadBuilder {
 
     static var resourceName = "emb.session.upload_index"
 
-    class func build(for sessionRecord: SessionRecord, storage: EmbraceStorage) -> PayloadEnvelope<[SpanPayload]>? {
-        guard let sessionId = sessionRecord.id else {
+    class func build(for session: EmbraceSession, storage: EmbraceStorage) -> PayloadEnvelope<[SpanPayload]>? {
+        guard let sessionId = session.id else {
             return nil
         }
 
@@ -35,17 +35,17 @@ class SessionPayloadBuilder {
 
         // build spans
         let (spans, spanSnapshots) = SpansPayloadBuilder.build(
-            for: sessionRecord,
+            for: session,
             storage: storage,
             sessionNumber: counter
         )
 
         // build resources payload
-        let resources: [MetadataRecord] = storage.fetchResourcesForSessionId(sessionId)
+        let resources: [EmbraceMetadata] = storage.fetchResourcesForSessionId(sessionId)
         let resourcePayload =  ResourcePayload(from: resources)
 
         // build metadata payload
-        var metadata: [MetadataRecord] = []
+        var metadata: [EmbraceMetadata] = []
         let properties = storage.fetchCustomPropertiesForSessionId(sessionId)
         let tags = storage.fetchPersonaTagsForSessionId(sessionId)
         metadata.append(contentsOf: properties)

@@ -8,8 +8,8 @@ import EmbraceCommonInternal
 import EmbraceSemantics
 
 struct LogPayloadBuilder {
-    static func build(log: LogRecord) -> LogPayload {
-        var finalAttributes: [Attribute] = log.attributes.map { entry in
+    static func build(log: EmbraceLog) -> LogPayload {
+        var finalAttributes: [Attribute] = log.allAttributes().map { entry in
             Attribute(key: entry.key, value: entry.valueRaw)
         }
 
@@ -32,8 +32,8 @@ struct LogPayloadBuilder {
     ) -> PayloadEnvelope<[LogPayload]> {
 
         // build resources and metadata payloads
-        var resources: [MetadataRecord] = []
-        var metadata: [MetadataRecord] = []
+        var resources: [EmbraceMetadata] = []
+        var metadata: [EmbraceMetadata] = []
 
         if let storage = storage {
             if let sessionId = sessionId {

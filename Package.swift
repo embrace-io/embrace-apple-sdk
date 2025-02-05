@@ -94,7 +94,10 @@ let package = Package(
 
         // common --------------------------------------------------------------------
         .target(
-            name: "EmbraceCommonInternal"
+            name: "EmbraceCommonInternal",
+            dependencies: [
+                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
+            ]
         ),
         .testTarget(
             name: "EmbraceCommonInternalTests",
@@ -183,6 +186,7 @@ let package = Package(
             name: "EmbraceStorageInternal",
             dependencies: [
                 "EmbraceCommonInternal",
+                "EmbraceCoreDataInternal",
                 "EmbraceSemantics"
             ]
         ),

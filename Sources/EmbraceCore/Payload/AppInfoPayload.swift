@@ -30,7 +30,7 @@ struct AppInfoPayload: Codable {
         case appBundleId = "bid"
     }
 
-    init (with resources: [MetadataRecord]) {
+    init (with resources: [EmbraceMetadata]) {
         self.appBundleId = Bundle.main.bundleIdentifier
 
         resources.forEach { resource in

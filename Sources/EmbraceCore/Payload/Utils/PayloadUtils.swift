@@ -10,7 +10,7 @@ class PayloadUtils {
     static func fetchResources(
         from fetcher: EmbraceStorageMetadataFetcher,
         sessionId: SessionIdentifier?
-    ) -> [MetadataRecord] {
+    ) -> [EmbraceMetadata] {
 
         guard let sessionId = sessionId else {
             return []
@@ -22,7 +22,7 @@ class PayloadUtils {
     static func fetchCustomProperties(
         from fetcher: EmbraceStorageMetadataFetcher,
         sessionId: SessionIdentifier?
-    ) -> [MetadataRecord] {
+    ) -> [EmbraceMetadata] {
 
         guard let sessionId = sessionId else {
             return []

@@ -7,7 +7,7 @@ import EmbraceCommonInternal
 import CoreData
 
 /// Represents a span in the storage
-public class SpanRecord: NSManagedObject {
+public class SpanRecord: NSManagedObject, EmbraceSpan {
     @NSManaged public var id: String
     @NSManaged public var name: String
     @NSManaged public var traceId: String
@@ -16,14 +16,6 @@ public class SpanRecord: NSManagedObject {
     @NSManaged public var startTime: Date
     @NSManaged public var endTime: Date?
     @NSManaged public var processIdRaw: String // ProcessIdentifier
-
-    public var type: SpanType? {
-        return SpanType(rawValue: typeRaw)
-    }
-
-    public var processId: ProcessIdentifier? {
-        return ProcessIdentifier(hex: processIdRaw)
-    }
 
     class func create(
         context: NSManagedObjectContext,

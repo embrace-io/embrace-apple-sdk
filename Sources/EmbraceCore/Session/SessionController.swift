@@ -26,7 +26,7 @@ public extension Notification.Name {
 class SessionController: SessionControllable {
 
     @ThreadSafe
-    private(set) var currentSession: SessionRecord?
+    private(set) var currentSession: EmbraceSession?
 
     @ThreadSafe
     private(set) var currentSessionSpan: Span?
@@ -81,12 +81,12 @@ class SessionController: SessionControllable {
     }
 
     @discardableResult
-    func startSession(state: SessionState) -> SessionRecord? {
+    func startSession(state: SessionState) -> EmbraceSession? {
         return startSession(state: state, startTime: Date())
     }
 
     @discardableResult
-    func startSession(state: SessionState, startTime: Date = Date()) -> SessionRecord? {
+    func startSession(state: SessionState, startTime: Date = Date()) -> EmbraceSession? {
         // end current session first
         if currentSession != nil {
             endSession()
@@ -251,7 +251,10 @@ extension SessionController {
             return
         }
 
-        storage?.delete(session)
+        if let record = session as? SessionRecord {
+            storage?.delete(record)
+        }
+
         currentSession = nil
         currentSessionSpan = nil
     }

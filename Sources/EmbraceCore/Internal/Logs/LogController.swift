@@ -55,7 +55,7 @@ class LogController: LogControllable {
             return
         }
 
-        let logs: [LogRecord] = storage.fetchAll(excludingProcessIdentifier: .current)
+        let logs: [EmbraceLog] = storage.fetchAll(excludingProcessIdentifier: .current)
         if logs.count > 0 {
             send(batches: divideInBatches(logs))
         }
@@ -143,7 +143,7 @@ class LogController: LogControllable {
 }
 
 extension LogController {
-    func batchFinished(withLogs logs: [LogRecord]) {
+    func batchFinished(withLogs logs: [EmbraceLog]) {
         guard sdkStateProvider?.isEnabled == true else {
             return
         }
@@ -210,7 +210,7 @@ private extension LogController {
     }
 
     func send(
-        logs: [LogRecord],
+        logs: [EmbraceLog],
         resourcePayload: ResourcePayload,
         metadataPayload: MetadataPayload
     ) {
@@ -239,11 +239,11 @@ private extension LogController {
         }
     }
 
-    func divideInBatches(_ logs: [LogRecord]) -> [LogsBatch] {
+    func divideInBatches(_ logs: [EmbraceLog]) -> [LogsBatch] {
         var batches: [LogsBatch] = []
         var batch: LogsBatch = .init(limits: .init(maxBatchAge: .infinity, maxLogsPerBatch: Self.maxLogsPerBatch))
         for log in logs {
-            let result = batch.add(logRecord: log)
+            let result = batch.add(log: log)
             switch result {
             case .success(let batchState):
                 if batchState == .closed {
@@ -270,7 +270,7 @@ private extension LogController {
             throw Error.couldntAccessStorageModule
         }
 
-        var resources: [MetadataRecord] = []
+        var resources: [EmbraceMetadata] = []
 
         if let sessionId = sessionId {
             resources = storage.fetchResourcesForSessionId(sessionId)
@@ -288,7 +288,7 @@ private extension LogController {
             throw Error.couldntAccessStorageModule
         }
 
-        var metadata: [MetadataRecord] = []
+        var metadata: [EmbraceMetadata] = []
 
         if let sessionId = sessionId {
             let properties = storage.fetchCustomPropertiesForSessionId(sessionId)

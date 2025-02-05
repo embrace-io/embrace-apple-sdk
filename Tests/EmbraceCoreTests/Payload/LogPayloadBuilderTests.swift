@@ -12,11 +12,13 @@ import OpenTelemetryApi
 class LogPayloadBuilderTests: XCTestCase {
     func test_build_addsLogIdAttribute() throws {
         let logId = LogIdentifier(value: try XCTUnwrap(UUID(uuidString: "53B55EDD-889A-4876-86BA-6798288B609C")))
-        let record = LogRecord(id: logId,
-                               processId: .random,
-                               severity: .info,
-                               body: "Hello World",
-                               attributes: .empty())
+        let record = MockLog(
+            id: logId,
+            processId: .random,
+            severity: .info,
+            body: "Hello World",
+            attributes: .empty()
+        )
 
         let payload = LogPayloadBuilder.build(log: record)
 
@@ -32,11 +34,13 @@ class LogPayloadBuilderTests: XCTestCase {
             "boolean_attribute": .bool(false),
             "double_attribute": .double(5.0)
         ]
-        let record = LogRecord(id: .random,
-                               processId: .random,
-                               severity: .info,
-                               body: .random(),
-                               attributes: originalAttributes)
+        let record = MockLog(
+            id: .random,
+            processId: .random,
+            severity: .info,
+            body: .random(),
+            attributes: originalAttributes
+        )
 
         let payload = LogPayloadBuilder.build(log: record)
 

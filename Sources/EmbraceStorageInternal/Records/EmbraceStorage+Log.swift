@@ -14,9 +14,9 @@ public protocol LogRepository {
         body: String,
         timestamp: Date,
         attributes: [String: AttributeValue]
-    ) -> LogRecord
-    func fetchAll(excludingProcessIdentifier processIdentifier: ProcessIdentifier) -> [LogRecord]
-    func remove(logs: [LogRecord])
+    ) -> EmbraceLog
+    func fetchAll(excludingProcessIdentifier processIdentifier: ProcessIdentifier) -> [EmbraceLog]
+    func remove(logs: [EmbraceLog])
     func removeAllLogs()
 }
 
@@ -30,7 +30,7 @@ extension EmbraceStorage {
         body: String,
         timestamp: Date = Date(),
         attributes: [String: OpenTelemetryApi.AttributeValue]
-    ) -> LogRecord {
+    ) -> EmbraceLog {
         return LogRecord.create(
             context: coreData.context,
             id: id,
@@ -42,7 +42,7 @@ extension EmbraceStorage {
         )
     }
 
-    public func fetchAll(excludingProcessIdentifier processIdentifier: ProcessIdentifier) -> [LogRecord] {
+    public func fetchAll(excludingProcessIdentifier processIdentifier: ProcessIdentifier) -> [EmbraceLog] {
         let request = LogRecord.createFetchRequest()
         request.predicate = NSPredicate(format: "processIdRaw != %@", processIdentifier.hex)
 
@@ -54,7 +54,8 @@ extension EmbraceStorage {
         remove(logs: logs)
     }
 
-    public func remove(logs: [LogRecord]) {
-        coreData.deleteRecords(logs)
+    public func remove(logs: [EmbraceLog]) {
+        let records = logs.compactMap( { $0 as? LogRecord } )
+        coreData.deleteRecords(records)
     }
 }

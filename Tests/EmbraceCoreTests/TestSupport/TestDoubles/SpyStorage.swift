@@ -6,6 +6,7 @@ import Foundation
 import EmbraceStorageInternal
 import EmbraceCommonInternal
 import OpenTelemetryApi
+import TestSupport
 
 class RandomError: Error, CustomNSError {
     static var errorDomain: String = "Embrace"
@@ -16,16 +17,16 @@ class RandomError: Error, CustomNSError {
 class SpyStorage: Storage {
 
     var didCallFetchAllResources = false
-    var stubbedFetchAllResources: [MetadataRecord] = []
-    func fetchAllResources() -> [MetadataRecord] {
+    var stubbedFetchAllResources: [EmbraceMetadata] = []
+    func fetchAllResources() -> [EmbraceMetadata] {
         didCallFetchAllResources = true
         return stubbedFetchAllResources
     }
 
     var didCallFetchResourcesForSessionId = false
     var fetchResourcesForSessionIdReceivedParameter: SessionIdentifier!
-    var stubbedFetchResourcesForSessionId: [MetadataRecord] = []
-    func fetchResourcesForSessionId(_ sessionId: SessionIdentifier) -> [MetadataRecord] {
+    var stubbedFetchResourcesForSessionId: [EmbraceMetadata] = []
+    func fetchResourcesForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata] {
         didCallFetchResourcesForSessionId = true
         fetchResourcesForSessionIdReceivedParameter = sessionId
         return stubbedFetchResourcesForSessionId
@@ -33,8 +34,8 @@ class SpyStorage: Storage {
 
     var didCallFetchResourcesForProcessId = false
     var fetchResourcesForProcessIdReceivedParameter: ProcessIdentifier!
-    var stubbedFetchResourcesForProcessId: [MetadataRecord] = []
-    func fetchResourcesForProcessId(_ processId: ProcessIdentifier) -> [MetadataRecord] {
+    var stubbedFetchResourcesForProcessId: [EmbraceMetadata] = []
+    func fetchResourcesForProcessId(_ processId: ProcessIdentifier) -> [EmbraceMetadata] {
         didCallFetchResourcesForProcessId = true
         fetchResourcesForProcessIdReceivedParameter = processId
         return stubbedFetchResourcesForProcessId
@@ -42,8 +43,8 @@ class SpyStorage: Storage {
 
     var didCallFetchCustomPropertiesForSessionId = false
     var fetchCustomPropertiesForSessionIdReceivedParameter: SessionIdentifier!
-    var stubbedFetchCustomPropertiesForSessionId: [MetadataRecord] = []
-    func fetchCustomPropertiesForSessionId(_ sessionId: SessionIdentifier) -> [MetadataRecord] {
+    var stubbedFetchCustomPropertiesForSessionId: [EmbraceMetadata] = []
+    func fetchCustomPropertiesForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata] {
         didCallFetchCustomPropertiesForSessionId = true
         fetchCustomPropertiesForSessionIdReceivedParameter = sessionId
         return stubbedFetchCustomPropertiesForSessionId
@@ -51,8 +52,8 @@ class SpyStorage: Storage {
 
     var didCallFetchPersonaTagsForSessionId = false
     var fetchPersonaTagsForSessionIdReceivedParameter: SessionIdentifier!
-    var stubbedFetchPersonaTagsForSessionId: [MetadataRecord] = []
-    func fetchPersonaTagsForSessionId(_ sessionId: SessionIdentifier) -> [MetadataRecord] {
+    var stubbedFetchPersonaTagsForSessionId: [EmbraceMetadata] = []
+    func fetchPersonaTagsForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata] {
         didCallFetchPersonaTagsForSessionId = true
         fetchPersonaTagsForSessionIdReceivedParameter = sessionId
         return stubbedFetchPersonaTagsForSessionId
@@ -60,8 +61,8 @@ class SpyStorage: Storage {
 
     var didCallFetchPersonaTagsForProcessId = false
     var fetchPersonaTagsForProcessIdReceivedParameter: ProcessIdentifier!
-    var stubbedFetchPersonaTagsForProcessId: [MetadataRecord] = []
-    func fetchPersonaTagsForProcessId(_ processId: ProcessIdentifier) -> [MetadataRecord] {
+    var stubbedFetchPersonaTagsForProcessId: [EmbraceMetadata] = []
+    func fetchPersonaTagsForProcessId(_ processId: ProcessIdentifier) -> [EmbraceMetadata] {
         didCallFetchPersonaTagsForProcessId = true
         fetchPersonaTagsForProcessIdReceivedParameter = processId
         return stubbedFetchPersonaTagsForProcessId
@@ -75,10 +76,10 @@ class SpyStorage: Storage {
         body: String,
         timestamp: Date,
         attributes: [String : AttributeValue]
-    ) -> LogRecord {
+    ) -> EmbraceLog {
         didCallCreate = true
 
-        return LogRecord(
+        return MockLog(
             id: id,
             processId: processId,
             severity: severity,
@@ -89,17 +90,17 @@ class SpyStorage: Storage {
     }
 
     var didCallFetchAllExcludingProcessIdentifier = false
-    var stubbedFetchAllExcludingProcessIdentifier: [LogRecord] = []
+    var stubbedFetchAllExcludingProcessIdentifier: [EmbraceLog] = []
     var fetchAllExcludingProcessIdentifierReceivedParameter: ProcessIdentifier!
-    func fetchAll(excludingProcessIdentifier processIdentifier: ProcessIdentifier) -> [LogRecord] {
+    func fetchAll(excludingProcessIdentifier processIdentifier: ProcessIdentifier) -> [EmbraceLog] {
         didCallFetchAllExcludingProcessIdentifier = true
         fetchAllExcludingProcessIdentifierReceivedParameter = processIdentifier
         return stubbedFetchAllExcludingProcessIdentifier
     }
 
     var didCallRemoveLogs = false
-    var removeLogsReceivedParameter: [LogRecord] = []
-    func remove(logs: [LogRecord]) {
+    var removeLogsReceivedParameter: [EmbraceLog] = []
+    func remove(logs: [EmbraceLog]) {
         didCallRemoveLogs = true
         removeLogsReceivedParameter = logs
     }

@@ -203,7 +203,7 @@ class SpyLogBatcher: LogBatcher {
 
     private(set) var didCallRenewBatch: Bool = false
     private(set) var renewBatchInvocationCount: Int = 0
-    func renewBatch(withLogs logRecords: [LogRecord]) {
+    func renewBatch(withLogs logs: [EmbraceLog]) {
         didCallRenewBatch = true
         renewBatchInvocationCount += 1
     }

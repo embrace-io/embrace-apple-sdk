@@ -259,7 +259,7 @@ final class SessionControllerTests: XCTestCase {
     }
 
     func test_update_assignsAppTerminated_toFalse_whenPresent() throws {
-        let session = controller.startSession(state: .foreground)
+        var session = controller.startSession(state: .foreground)
         session!.appTerminated = true
 
         controller.update(appTerminated: false)
@@ -267,7 +267,7 @@ final class SessionControllerTests: XCTestCase {
     }
 
     func test_update_assignsAppTerminated_toTrue_whenPresent() throws {
-        let session = controller.startSession(state: .foreground)
+        var session = controller.startSession(state: .foreground)
         session!.appTerminated = false
 
         controller.update(appTerminated: true)
@@ -275,7 +275,7 @@ final class SessionControllerTests: XCTestCase {
     }
 
     func test_update_changesTo_appTerminated_saveInStorage() throws {
-        let session = controller.startSession(state: .foreground)
+        var session = controller.startSession(state: .foreground)
         session!.appTerminated = false
 
         controller.update(appTerminated: true)
@@ -288,7 +288,7 @@ final class SessionControllerTests: XCTestCase {
     }
 
     func test_update_changesTo_sessionState_saveInStorage() throws {
-        let session = controller.startSession(state: .foreground)
+        var session = controller.startSession(state: .foreground)
         session!.appTerminated = false
 
         controller.update(state: .background)

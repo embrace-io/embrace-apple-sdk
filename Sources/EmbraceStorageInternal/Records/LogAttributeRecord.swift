@@ -4,35 +4,14 @@
 
 import Foundation
 import CoreData
+import EmbraceCommonInternal
 import OpenTelemetryApi
 
-public enum LogAttributeType: Int {
-    case string, int, double, bool
-}
-
-public class LogAttributeRecord: NSManagedObject {
+public class LogAttributeRecord: NSManagedObject, EmbraceLogAttribute {
     @NSManaged public var key: String
     @NSManaged public var valueRaw: String
     @NSManaged public var typeRaw: Int // LogAttributeType
     @NSManaged public var log: LogRecord
-
-    public var value: AttributeValue {
-        get {
-            let type = LogAttributeType(rawValue: typeRaw) ?? .string
-
-            switch  type {
-            case .int: return AttributeValue(Int(valueRaw) ?? 0)
-            case .double: return AttributeValue(Double(valueRaw) ?? 0)
-            case .bool: return AttributeValue(Bool(valueRaw) ?? false)
-            default: return AttributeValue(valueRaw)
-            }
-        }
-
-        set {
-            valueRaw = newValue.description
-            typeRaw = Self.typeForValue(newValue).rawValue
-        }
-    }
 
     public static func create(
         context: NSManagedObjectContext,
@@ -40,21 +19,12 @@ public class LogAttributeRecord: NSManagedObject {
         value: AttributeValue,
         log: LogRecord
     ) -> LogAttributeRecord {
-        let record = LogAttributeRecord(context: context)
+        var record = LogAttributeRecord(context: context)
         record.key = key
         record.value = value
         record.log = log
 
         return record
-    }
-
-    private static func typeForValue(_ value: AttributeValue) -> LogAttributeType {
-        switch value {
-        case .int: return .int
-        case .double: return .double
-        case .bool: return .bool
-        default: return .string
-        }
     }
 }
 

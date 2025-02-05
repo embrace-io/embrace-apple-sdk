@@ -16,20 +16,20 @@ class MockSessionController: SessionControllable {
     var didCallEndSession: Bool = false
     var didCallUpdateSession: Bool = false
 
-    private var updateSessionCallback: ((SessionRecord?, SessionState?, Bool?) -> Void)?
+    private var updateSessionCallback: ((EmbraceSession?, SessionState?, Bool?) -> Void)?
 
     weak var storage: EmbraceStorage?
-    var currentSession: SessionRecord?
+    var currentSession: EmbraceSession?
 
     func clear() { }
 
     @discardableResult
-    func startSession(state: SessionState) -> SessionRecord? {
+    func startSession(state: SessionState) -> EmbraceSession? {
         return startSession(state: state, startTime: Date())
     }
 
     @discardableResult
-    func startSession(state: SessionState, startTime: Date = Date()) -> SessionRecord? {
+    func startSession(state: SessionState, startTime: Date = Date()) -> EmbraceSession? {
         if currentSession != nil {
             endSession()
         }
@@ -69,7 +69,7 @@ class MockSessionController: SessionControllable {
         updateSessionCallback?(currentSession, nil, appTerminated)
     }
 
-    func onUpdateSession(_ callback: @escaping ((SessionRecord?, SessionState?, Bool?) -> Void)) {
+    func onUpdateSession(_ callback: @escaping ((EmbraceSession?, SessionState?, Bool?) -> Void)) {
         updateSessionCallback = callback
     }
 

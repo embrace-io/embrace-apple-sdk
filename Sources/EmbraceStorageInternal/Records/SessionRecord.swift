@@ -7,7 +7,7 @@ import EmbraceCommonInternal
 import CoreData
 
 /// Represents a session in the storage
-public class SessionRecord: NSManagedObject {
+public class SessionRecord: NSManagedObject, EmbraceSession {
     @NSManaged public var idRaw: String // SessionIdentifier
     @NSManaged public var processIdRaw: String // ProcessIdentifier
     @NSManaged public var state: String
@@ -26,14 +26,6 @@ public class SessionRecord: NSManagedObject {
 
     /// Used to mark the session that is active when the application was explicitly terminated by the user and/or system
     @NSManaged public var appTerminated: Bool
-
-    public var id: SessionIdentifier? {
-        return SessionIdentifier(string: idRaw)
-    }
-
-    public var processId: ProcessIdentifier? {
-        return ProcessIdentifier(hex: processIdRaw)
-    }
 
     public static func create(
         context: NSManagedObjectContext,
@@ -73,7 +65,7 @@ public class SessionRecord: NSManagedObject {
 }
 
 extension SessionRecord: EmbraceStorageRecord {
-    public static var entityName = "SessionRecord"
+    public static var entityName = "Session"
 
     static public var entityDescription: NSEntityDescription {
         let entity = NSEntityDescription()

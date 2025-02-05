@@ -7,21 +7,13 @@ import EmbraceCommonInternal
 import OpenTelemetryApi
 import CoreData
 
-public class LogRecord: NSManagedObject {
+public class LogRecord: NSManagedObject, EmbraceLog {
     @NSManaged public var idRaw: String // LogIdentifier
     @NSManaged public var processIdRaw: String // ProcessIdentifier
     @NSManaged public var severityRaw: Int // LogSeverity
     @NSManaged public var body: String
     @NSManaged public var timestamp: Date
     @NSManaged public var attributes: [LogAttributeRecord]
-
-    public var processId: ProcessIdentifier? {
-        return ProcessIdentifier(hex: processIdRaw)
-    }
-
-    public var severity: LogSeverity {
-        return LogSeverity(rawValue: severityRaw) ?? .info
-    }
 
     static func create(
         context: NSManagedObjectContext,
@@ -55,16 +47,19 @@ public class LogRecord: NSManagedObject {
     static func createFetchRequest() -> NSFetchRequest<LogRecord> {
         return NSFetchRequest<LogRecord>(entityName: entityName)
     }
-}
 
-extension LogRecord {
-    public func attribute(forKey key: String) -> LogAttributeRecord? {
+    public func allAttributes() -> [any EmbraceLogAttribute] {
+        return attributes
+    }
+
+    public func attribute(forKey key: String) -> EmbraceLogAttribute? {
         return attributes.first(where: { $0.key == key })
     }
 
     public func setAttributeValue(value: AttributeValue, forKey key: String) {
-        if let attribute = attribute(forKey: key) {
+        if var attribute = attribute(forKey: key) {
             attribute.value = value
+            return
         }
 
         guard let context = managedObjectContext else {

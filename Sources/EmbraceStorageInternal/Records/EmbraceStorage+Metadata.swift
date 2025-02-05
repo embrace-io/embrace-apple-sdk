@@ -6,12 +6,12 @@ import Foundation
 import EmbraceCommonInternal
 
 public protocol EmbraceStorageMetadataFetcher: AnyObject {
-    func fetchAllResources() -> [MetadataRecord]
-    func fetchResourcesForSessionId(_ sessionId: SessionIdentifier) -> [MetadataRecord]
-    func fetchResourcesForProcessId(_ processId: ProcessIdentifier) -> [MetadataRecord]
-    func fetchCustomPropertiesForSessionId(_ sessionId: SessionIdentifier) -> [MetadataRecord]
-    func fetchPersonaTagsForSessionId(_ sessionId: SessionIdentifier) -> [MetadataRecord]
-    func fetchPersonaTagsForProcessId(_ processId: ProcessIdentifier) -> [MetadataRecord]
+    func fetchAllResources() -> [EmbraceMetadata]
+    func fetchResourcesForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata]
+    func fetchResourcesForProcessId(_ processId: ProcessIdentifier) -> [EmbraceMetadata]
+    func fetchCustomPropertiesForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata]
+    func fetchPersonaTagsForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata]
+    func fetchPersonaTagsForProcessId(_ processId: ProcessIdentifier) -> [EmbraceMetadata]
 }
 
 extension EmbraceStorage {
@@ -195,7 +195,7 @@ extension EmbraceStorage {
     }
 
     /// Returns all records with types `.requiredResource` or `.resource`
-    public func fetchAllResources() -> [MetadataRecord] {
+    public func fetchAllResources() -> [EmbraceMetadata] {
         let request = MetadataRecord.createFetchRequest()
         request.predicate = NSPredicate(
             format: "typeRaw == %@ OR typeRaw == %@",
@@ -207,7 +207,7 @@ extension EmbraceStorage {
     }
 
     /// Returns all records with types `.requiredResource` or `.resource` that are tied to a given session id
-    public func fetchResourcesForSessionId(_ sessionId: SessionIdentifier) -> [MetadataRecord] {
+    public func fetchResourcesForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata] {
 
         guard let session = fetchSession(id: sessionId) else {
             return []
@@ -226,7 +226,7 @@ extension EmbraceStorage {
     }
 
     /// Returns all records with types `.requiredResource` or `.resource` that are tied to a given process id
-    public func fetchResourcesForProcessId(_ processId: ProcessIdentifier) -> [MetadataRecord] {
+    public func fetchResourcesForProcessId(_ processId: ProcessIdentifier) -> [EmbraceMetadata] {
 
         let request = MetadataRecord.createFetchRequest()
         request.predicate = NSCompoundPredicate(
@@ -241,7 +241,7 @@ extension EmbraceStorage {
     }
 
     /// Returns all records of the `.customProperty` type that are tied to a given session id
-    public func fetchCustomPropertiesForSessionId(_ sessionId: SessionIdentifier) -> [MetadataRecord] {
+    public func fetchCustomPropertiesForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata] {
         guard let session = fetchSession(id: sessionId) else {
             return []
         }
@@ -259,7 +259,7 @@ extension EmbraceStorage {
     }
 
     /// Returns all records of the `.personaTag` type that are tied to a given session id
-    public func fetchPersonaTagsForSessionId(_ sessionId: SessionIdentifier) -> [MetadataRecord] {
+    public func fetchPersonaTagsForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata] {
         guard let session = fetchSession(id: sessionId) else {
             return []
         }
@@ -277,7 +277,7 @@ extension EmbraceStorage {
     }
 
     /// Returns all records of the `.personaTag` type that are tied to a given process id
-    public func fetchPersonaTagsForProcessId(_ processId: ProcessIdentifier) -> [MetadataRecord] {
+    public func fetchPersonaTagsForProcessId(_ processId: ProcessIdentifier) -> [EmbraceMetadata] {
 
         let request = MetadataRecord.createFetchRequest()
         request.predicate = NSCompoundPredicate(

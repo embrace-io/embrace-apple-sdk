@@ -103,7 +103,7 @@ struct ResourcePayload: Codable {
         }
     }
 
-    init(from resources: [MetadataRecord]) {
+    init(from resources: [EmbraceMetadata]) {
 
         // bundle_id is constant and won't change over app install lifetime
         self.appBundleId = Bundle.main.bundleIdentifier
