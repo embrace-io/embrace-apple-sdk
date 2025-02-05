@@ -80,7 +80,7 @@ Pod::Spec.new do |spec|
 
   spec.subspec 'EmbraceCoreDataInternal' do |coreData|
     coreData.vendored_frameworks = "xcframeworks/EmbraceCoreDataInternal.xcframework"
-    coreData.dependency = "EmbraceIO/EmbraceCommonInternal"
+    coreData.dependency "EmbraceIO/EmbraceCommonInternal"
   end
 
   spec.subspec 'EmbraceUploadInternal' do |upload|
