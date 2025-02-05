@@ -169,6 +169,7 @@ let project = Project(
             dependencies: [
                 .target(name: "EmbraceCommonInternal"),
                 .target(name: "EmbraceOTelInternal"),
+                .target(name: "EmbraceCoreDataInternal"),
                 .external(name: "GRDB")
             ],
             settings: .settings(base: [
@@ -204,6 +205,21 @@ let project = Project(
             ],
             settings: .settings(base: [
                 "OTHER_LDFLAGS": ["-lc++"],
+                "SKIP_INSTALL": "NO",
+                "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES"
+            ])
+        ),
+        .target(
+            name: "EmbraceCoreDataInternal",
+            destinations: .iOS,
+            product: .framework,
+            bundleId: "com.embraceio.EmbraceCoreDataInternal",
+            deploymentTargets: .iOS("13.0"),
+            sources: ["Sources/EmbraceCoreDataInternal/**"],
+            dependencies: [
+                .target(name: "EmbraceCommonInternal"),
+            ],
+            settings: .settings(base: [
                 "SKIP_INSTALL": "NO",
                 "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES"
             ])
