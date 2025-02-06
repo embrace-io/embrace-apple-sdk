@@ -173,10 +173,7 @@ class UnsentDataHandlerTests: XCTestCase {
             endTime: Date()
         )
 
-        // when sending unsent sessions
-        UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel, crashReporter: crashReporter)
-
-        // then the crash report id is set on the session
+        // the crash report id is set on the session
         let listener = CoreDataListener()
         let expectation1 = XCTestExpectation()
         listener.onUpdatedObjects = { records in
@@ -185,6 +182,10 @@ class UnsentDataHandlerTests: XCTestCase {
                 expectation1.fulfill()
             }
         }
+
+        // when sending unsent sessions
+        UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel, crashReporter: crashReporter)
+
         wait(for: [expectation1], timeout: .veryLongTimeout)
 
         // then a crash report was sent

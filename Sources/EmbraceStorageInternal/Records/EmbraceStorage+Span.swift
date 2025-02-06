@@ -152,23 +152,18 @@ extension EmbraceStorage {
         else {
             let startTime = session.startTime as NSDate
 
-            // span starts within session and
-            //   - ends before session ends or
-            //   - hasn't ended yet
+            // span starts within session
             let predicate1 = NSPredicate(
-                format: "startTime >= %@ AND (endTime = nil OR endTime <= %@)",
+                format: "startTime >= %@ AND startTime <= %@",
                 startTime,
                 endTime
             )
 
-            // span starts before session and
-            //   - ends within session or
-            //   - hasn't ended yet
+            // span starts before session and doesn't end before session starts
             let predicate2 = NSPredicate(
-                format: "startTime < %@ AND (endTime = nil OR (endTime >= %@ AND endTime <= %@))",
+                format: "startTime < %@ AND (endTime = nil OR endTime >= %@)",
                 startTime,
-                startTime,
-                endTime
+                startTime
             )
 
             predicate = NSCompoundPredicate(type: .or, subpredicates: [predicate1, predicate2])
