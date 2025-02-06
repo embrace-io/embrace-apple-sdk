@@ -21,20 +21,12 @@ class ResourceCaptureServiceTests: XCTestCase {
         service.addResource(key: "test", value: .string("value"))
 
         // then the resource is added to the storage
-        let expectation = XCTestExpectation()
-        try handler.dbQueue.read { db in
-            XCTAssertEqual(try MetadataRecord.fetchCount(db), 1)
-
-            let record = try MetadataRecord.fetchOne(db)
-            XCTAssertEqual(record!.key, "test")
-            XCTAssertEqual(record!.value, .string("value"))
-            XCTAssertEqual(record!.type, .requiredResource)
-            XCTAssertEqual(record!.lifespan, .process)
-            XCTAssertEqual(record!.lifespanId, ProcessIdentifier.current.hex)
-
-            expectation.fulfill()
-        }
-
-        wait(for: [expectation], timeout: .defaultTimeout)
+        let metadata: [MetadataRecord] = handler.fetchAll()
+        XCTAssertEqual(metadata.count, 1)
+        XCTAssertEqual(metadata[0].key, "test")
+        XCTAssertEqual(metadata[0].value, "value")
+        XCTAssertEqual(metadata[0].type, .requiredResource)
+        XCTAssertEqual(metadata[0].lifespan, .process)
+        XCTAssertEqual(metadata[0].lifespanId, ProcessIdentifier.current.hex)
     }
 }

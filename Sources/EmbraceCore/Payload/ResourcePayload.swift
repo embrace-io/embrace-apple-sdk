@@ -103,7 +103,7 @@ struct ResourcePayload: Codable {
         }
     }
 
-    init(from resources: [MetadataRecord]) {
+    init(from resources: [EmbraceMetadata]) {
 
         // bundle_id is constant and won't change over app install lifetime
         self.appBundleId = Bundle.main.bundleIdentifier
@@ -116,63 +116,63 @@ struct ResourcePayload: Codable {
             if let key = AppResourceKey(rawValue: resource.key) {
                 switch key {
                 case .bundleVersion:
-                    self.bundleVersion = resource.stringValue
+                    self.bundleVersion = resource.value
                 case .environment:
-                    self.environment = resource.stringValue
+                    self.environment = resource.value
                 case .detailedEnvironment:
-                    self.environmentDetail = resource.stringValue
+                    self.environmentDetail = resource.value
                 case .framework:
-                    self.appFramework = resource.integerValue
+                    self.appFramework = Int(resource.value)
                 case .launchCount:
-                    self.launchCount = resource.integerValue
+                    self.launchCount = Int(resource.value)
                 case .sdkVersion:
-                    self.sdkVersion = resource.stringValue
+                    self.sdkVersion = resource.value
                 case .appVersion:
-                    self.appVersion = resource.stringValue
+                    self.appVersion = resource.value
                 case .processIdentifier:
-                    self.processIdentifier = resource.stringValue
+                    self.processIdentifier = resource.value
                 case .buildID:
-                    self.buildId = resource.stringValue
+                    self.buildId = resource.value
                 case .processStartTime:
-                    self.processStartTime = resource.integerValue
+                    self.processStartTime = Int(resource.value)
                 case .processPreWarm:
-                    self.processPreWarm = resource.boolValue
+                    self.processPreWarm = Bool(resource.value)
                 }
 
             } else if let key = DeviceResourceKey(rawValue: resource.key) {
                 switch key {
                 case .isJailbroken:
-                    self.jailbroken = resource.boolValue
+                    self.jailbroken = Bool(resource.value)
                 case .totalDiskSpace:
-                    self.diskTotalCapacity = resource.integerValue
+                    self.diskTotalCapacity = Int(resource.value)
                 case .architecture:
-                    self.deviceArchitecture = resource.stringValue
+                    self.deviceArchitecture = resource.value
                 case .screenResolution:
-                    self.screenResolution = resource.stringValue
+                    self.screenResolution = resource.value
                 case .osBuild:
-                    self.osBuild = resource.stringValue
+                    self.osBuild = resource.value
                 case .osVariant:
-                    self.osAlternateType = resource.stringValue
+                    self.osAlternateType = resource.value
                 default:
                     break
                 }
             } else if let key = ResourceAttributes(rawValue: resource.key) {
                 switch key {
                 case .deviceModelIdentifier:
-                    self.deviceModel = resource.stringValue
+                    self.deviceModel = resource.value
                 case .deviceManufacturer:
-                    self.deviceManufacturer = resource.stringValue
+                    self.deviceManufacturer = resource.value
                 case .osVersion:
-                    self.osVersion = resource.stringValue
+                    self.osVersion = resource.value
                 case .osType:
-                    self.osType = resource.stringValue
+                    self.osType = resource.value
                 case .osName:
-                    self.osName = resource.stringValue
+                    self.osName = resource.value
                 default:
                     break
                 }
-            } else if let value = resource.stringValue {
-                self.additionalResources[resource.key] = value
+            } else {
+                self.additionalResources[resource.key] = resource.value
             }
         }
     }

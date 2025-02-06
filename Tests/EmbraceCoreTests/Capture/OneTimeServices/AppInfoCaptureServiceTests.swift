@@ -13,7 +13,7 @@ final class AppInfoCaptureServiceTests: XCTestCase {
     func test_started() throws {
         // given an app info capture service
         let service = AppInfoCaptureService()
-        let handler = try EmbraceStorage.createInDiskDb()
+        let handler = try EmbraceStorage.createInMemoryDb()
         service.handler = handler
 
         // when the service is installed and started
@@ -24,92 +24,87 @@ final class AppInfoCaptureServiceTests: XCTestCase {
         let processId = ProcessIdentifier.current.hex
 
         // bundle version
-        let bundleVersion = try handler.fetchMetadata(
+        let bundleVersion = handler.fetchMetadata(
             key: AppResourceKey.bundleVersion.rawValue,
             type: .requiredResource,
             lifespan: .process,
             lifespanId: processId
         )
         XCTAssertNotNil(bundleVersion)
-        XCTAssertEqual(bundleVersion!.stringValue, EMBDevice.bundleVersion)
+        XCTAssertEqual(bundleVersion!.value, EMBDevice.bundleVersion)
 
         // environment
-        let environment = try handler.fetchMetadata(
+        let environment = handler.fetchMetadata(
             key: AppResourceKey.environment.rawValue,
             type: .requiredResource,
             lifespan: .process,
             lifespanId: processId
         )
         XCTAssertNotNil(environment)
-        XCTAssertEqual(environment!.stringValue, EMBDevice.environment)
+        XCTAssertEqual(environment!.value, EMBDevice.environment)
 
         // environment detail
-        let environmentDetail = try handler.fetchMetadata(
+        let environmentDetail = handler.fetchMetadata(
             key: AppResourceKey.detailedEnvironment.rawValue,
             type: .requiredResource,
             lifespan: .process,
             lifespanId: processId
         )
         XCTAssertNotNil(environmentDetail)
-        XCTAssertEqual(environmentDetail!.stringValue, EMBDevice.environmentDetail)
+        XCTAssertEqual(environmentDetail!.value, EMBDevice.environmentDetail)
 
         // framework
-        let framework = try handler.fetchMetadata(
+        let framework = handler.fetchMetadata(
             key: AppResourceKey.framework.rawValue,
             type: .requiredResource,
             lifespan: .process,
             lifespanId: processId
         )
         XCTAssertNotNil(framework)
-        XCTAssertEqual(framework!.integerValue, -1)
+        XCTAssertEqual(framework!.value, "-1")
 
         // sdk version
-        let sdkVersion = try handler.fetchMetadata(
+        let sdkVersion = handler.fetchMetadata(
             key: AppResourceKey.sdkVersion.rawValue,
             type: .requiredResource,
             lifespan: .process,
             lifespanId: processId
         )
         XCTAssertNotNil(sdkVersion)
-        XCTAssertEqual(sdkVersion!.stringValue, EmbraceMeta.sdkVersion)
+        XCTAssertEqual(sdkVersion!.value, EmbraceMeta.sdkVersion)
 
         // app version
-        let appVersion = try handler.fetchMetadata(
+        let appVersion = handler.fetchMetadata(
             key: AppResourceKey.appVersion.rawValue,
             type: .requiredResource,
             lifespan: .process,
             lifespanId: processId
         )
         XCTAssertNotNil(appVersion)
-        XCTAssertEqual(appVersion!.stringValue, EMBDevice.appVersion)
+        XCTAssertEqual(appVersion!.value, EMBDevice.appVersion)
 
         // process identifier
-        let processIdentifier = try handler.fetchMetadata(
+        let processIdentifier = handler.fetchMetadata(
             key: AppResourceKey.processIdentifier.rawValue,
             type: .requiredResource,
             lifespan: .process,
             lifespanId: processId
         )
         XCTAssertNotNil(processIdentifier)
-        XCTAssertEqual(processIdentifier!.stringValue, ProcessIdentifier.current.hex)
+        XCTAssertEqual(processIdentifier!.value, ProcessIdentifier.current.hex)
     }
 
     func test_notStarted() throws {
         // given an app info capture service
         let service = AppInfoCaptureService()
-        let handler = try EmbraceStorage.createInDiskDb()
+        let handler = try EmbraceStorage.createInMemoryDb()
         service.handler = handler
 
         // when the service is installed but not started
         service.install(otel: nil)
 
         // then no resources are captured
-        let expectation = XCTestExpectation()
-        try handler.dbQueue.read { db in
-            XCTAssertEqual(try MetadataRecord.fetchCount(db), 0)
-            expectation.fulfill()
-        }
-
-        wait(for: [expectation], timeout: .defaultTimeout)
+        let metadata: [MetadataRecord] = handler.fetchAll()
+        XCTAssertEqual(metadata.count, 0)
     }
 }

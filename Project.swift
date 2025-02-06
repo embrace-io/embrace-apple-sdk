@@ -151,8 +151,7 @@ let project = Project(
             dependencies: [
                 .target(name: "EmbraceCommonInternal"),
                 .target(name: "EmbraceSemantics"),
-                .external(name: "OpenTelemetryApi"),
-                .external(name: "GRDB")
+                .external(name: "OpenTelemetryApi")
             ],
             settings: .settings(base: [
                 "SKIP_INSTALL": "NO",
@@ -168,8 +167,7 @@ let project = Project(
             sources: ["Sources/EmbraceUploadInternal/**"],
             dependencies: [
                 .target(name: "EmbraceCommonInternal"),
-                .target(name: "EmbraceOTelInternal"),
-                .external(name: "GRDB")
+                .target(name: "EmbraceOTelInternal")
             ],
             settings: .settings(base: [
                 "SKIP_INSTALL": "NO",
