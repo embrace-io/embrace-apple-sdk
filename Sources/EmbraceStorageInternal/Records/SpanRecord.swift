@@ -26,9 +26,13 @@ public class SpanRecord: NSManagedObject, EmbraceSpan {
         data: Data,
         startTime: Date,
         endTime: Date? = nil,
-        processIdentifier: ProcessIdentifier
-    ) -> SpanRecord {
-        let record = SpanRecord(context: context)
+        processId: ProcessIdentifier
+    ) -> SpanRecord? {
+        guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
+            return nil
+        }
+
+        let record = SpanRecord(entity: description, insertInto: context)
         record.id = id
         record.name = name
         record.traceId = traceId
@@ -36,7 +40,7 @@ public class SpanRecord: NSManagedObject, EmbraceSpan {
         record.data = data
         record.startTime = startTime
         record.endTime = endTime
-        record.processIdRaw = processIdentifier.hex
+        record.processIdRaw = processId.hex
 
         return record
     }

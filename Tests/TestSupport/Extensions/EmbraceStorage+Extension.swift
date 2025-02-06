@@ -7,7 +7,7 @@ import EmbraceCommonInternal
 @testable import EmbraceStorageInternal
 
 public extension EmbraceStorage {
-    static func createInMemoryDb(runMigrations: Bool = true) throws -> EmbraceStorage {
+    static func createInMemoryDb() throws -> EmbraceStorage {
         let storage = try EmbraceStorage(
             options: .init(storageMechanism: .inMemory(name: UUID().uuidString)),
             logger: MockLogger()

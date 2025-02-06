@@ -42,8 +42,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
             data: Data(),
             startTime: startTime,
             endTime: endTime,
-            processIdentifier: processIdentifier
-        )
+            processId: processIdentifier
+        )!
     }
 
     func sessionRecord(
@@ -65,7 +65,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
             endTime: endTime,
             lastHeartbeatTime: lastHeartBeat ?? startTime,
             coldStart: coldStart
-        )
+        )!
     }
 
     // MARK: Tests

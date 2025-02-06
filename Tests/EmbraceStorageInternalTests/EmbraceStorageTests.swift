@@ -26,7 +26,7 @@ class EmbraceStorageTests: XCTestCase {
             type: .performance,
             data: Data(),
             startTime: Date()
-        )
+        )!
 
         // then record should exist in storage
         var spans: [SpanRecord] = storage.fetchAll()
@@ -50,7 +50,7 @@ class EmbraceStorageTests: XCTestCase {
             type: .performance,
             data: Data(),
             startTime: Date()
-        )
+        )!
         let span2 = storage.upsertSpan(
             id: "id2",
             name: "a name 2",
@@ -58,7 +58,7 @@ class EmbraceStorageTests: XCTestCase {
             type: .performance,
             data: Data(),
             startTime: Date()
-        )
+        )!
 
         // when fetching all records
         let records: [SpanRecord] = storage.fetchAll()

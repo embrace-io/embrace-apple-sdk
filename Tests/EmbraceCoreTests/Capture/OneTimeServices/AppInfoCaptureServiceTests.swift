@@ -13,7 +13,7 @@ final class AppInfoCaptureServiceTests: XCTestCase {
     func test_started() throws {
         // given an app info capture service
         let service = AppInfoCaptureService()
-        let handler = try EmbraceStorage.createInDiskDb(fileName: testName)
+        let handler = try EmbraceStorage.createInMemoryDb()
         service.handler = handler
 
         // when the service is installed and started
@@ -97,7 +97,7 @@ final class AppInfoCaptureServiceTests: XCTestCase {
     func test_notStarted() throws {
         // given an app info capture service
         let service = AppInfoCaptureService()
-        let handler = try EmbraceStorage.createInDiskDb(fileName: testName)
+        let handler = try EmbraceStorage.createInMemoryDb()
         service.handler = handler
 
         // when the service is installed but not started

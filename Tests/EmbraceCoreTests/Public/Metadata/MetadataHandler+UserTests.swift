@@ -15,6 +15,7 @@ final class MetadataHandler_UserTests: XCTestCase {
     override func setUpWithError() throws {
         storage = try EmbraceStorage.createInMemoryDb()
         sessionController = MockSessionController()
+        sessionController.storage = storage
         sessionController.startSession(state: .foreground)
     }
 

@@ -23,8 +23,12 @@ public class LogRecord: NSManagedObject, EmbraceLog {
         body: String,
         timestamp: Date = Date(),
         attributes: [String: AttributeValue]
-    ) -> LogRecord {
-        let record = LogRecord(context: context)
+    ) -> LogRecord? {
+        guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
+            return nil
+        }
+
+        let record = LogRecord(entity: description, insertInto: context)
         record.idRaw = id.toString
         record.processIdRaw = processId.hex
         record.severityRaw = severity.rawValue
@@ -32,13 +36,14 @@ public class LogRecord: NSManagedObject, EmbraceLog {
         record.timestamp = timestamp
 
         for (key, value) in attributes {
-            let attribute = LogAttributeRecord.create(
+            if let attribute = LogAttributeRecord.create(
                 context: context,
                 key: key,
                 value: value,
                 log: record
-            )
-            record.attributes.append(attribute)
+            ) {
+                record.attributes.append(attribute)
+            }
         }
 
         return record
@@ -66,8 +71,9 @@ public class LogRecord: NSManagedObject, EmbraceLog {
             return
         }
 
-        let attribute = LogAttributeRecord.create(context: context, key: key, value: value, log: self)
-        attributes.append(attribute)
+        if let attribute = LogAttributeRecord.create(context: context, key: key, value: value, log: self) {
+            attributes.append(attribute)
+        }
     }
 }
 

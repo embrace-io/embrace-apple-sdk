@@ -34,16 +34,30 @@ class MockSessionController: SessionControllable {
             endSession()
         }
 
-        let session = storage?.addSession(
-            id: nextSessionId ?? .random,
-            processId: ProcessIdentifier.current,
-            state: state,
-            traceId: TestConstants.traceId,
-            spanId: TestConstants.spanId,
-            startTime: startTime
-        )
-
         didCallStartSession = true
+
+        var session: EmbraceSession?
+
+        if let storage = storage {
+            session = storage.addSession(
+                id: nextSessionId ?? .random,
+                processId: ProcessIdentifier.current,
+                state: state,
+                traceId: TestConstants.traceId,
+                spanId: TestConstants.spanId,
+                startTime: startTime
+            )
+        } else {
+            session = MockSession(
+                id: nextSessionId ?? .random,
+                processId: ProcessIdentifier.current,
+                state: state,
+                traceId: TestConstants.traceId,
+                spanId: TestConstants.spanId,
+                startTime: startTime
+            )
+        }
+
         currentSession = session
 
         return session

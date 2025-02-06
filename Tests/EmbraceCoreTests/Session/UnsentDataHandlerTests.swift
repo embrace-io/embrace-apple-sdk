@@ -474,7 +474,7 @@ class UnsentDataHandlerTests: XCTestCase {
             type: .performance,
             data: Data(),
             startTime: Date(timeIntervalSinceNow: -50),
-            processIdentifier: TestConstants.processId
+            processId: TestConstants.processId
         )
 
         // when sending unsent sessions
@@ -593,7 +593,7 @@ class UnsentDataHandlerTests: XCTestCase {
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSinceNow: -60)
-        )
+        )!
 
         // given old closed span in storage
         storage.upsertSpan(
@@ -637,7 +637,7 @@ class UnsentDataHandlerTests: XCTestCase {
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSinceNow: -60)
-        )
+        )!
 
         // given metadata in storage
         storage.addMetadata(

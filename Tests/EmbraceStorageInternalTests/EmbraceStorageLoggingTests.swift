@@ -97,6 +97,6 @@ private extension EmbraceStorageLoggingTests {
             severity: .info,
             body: "a log message",
             attributes: .empty()
-        )
+        )!
     }
 }

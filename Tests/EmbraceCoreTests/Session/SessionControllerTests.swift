@@ -58,6 +58,7 @@ final class SessionControllerTests: XCTestCase {
 
     override func tearDownWithError() throws {
         storage.coreData.destroy()
+        upload.cache.coreData.destroy()
         upload = nil
         controller = nil
     }

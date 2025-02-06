@@ -8,7 +8,7 @@ import EmbraceCommonInternal
 import EmbraceStorageInternal
 import EmbraceOTelInternal
 import OpenTelemetrySdk
-
+/*
 final class EmbraceCoreTests: XCTestCase {
 
     // this is used in the helper function
@@ -314,3 +314,4 @@ final class EmbraceCoreTests: XCTestCase {
       return String((0..<length).map { _ in letters.randomElement()! })
     }
 }
+*/

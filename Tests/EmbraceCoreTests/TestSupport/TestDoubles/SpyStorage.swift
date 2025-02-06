@@ -76,7 +76,7 @@ class SpyStorage: Storage {
         body: String,
         timestamp: Date,
         attributes: [String : AttributeValue]
-    ) -> EmbraceLog {
+    ) -> EmbraceLog? {
         didCallCreate = true
 
         return MockLog(

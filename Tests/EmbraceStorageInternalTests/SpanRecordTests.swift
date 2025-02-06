@@ -156,7 +156,7 @@ class SpanRecordTests: XCTestCase {
             type: .performance,
             data: Data(),
             startTime: Date(timeIntervalSince1970: 1),
-            processIdentifier: TestConstants.processId
+            processId: TestConstants.processId
         )
         storage.upsertSpan(
             id: "id3",

@@ -30,8 +30,8 @@ extension EmbraceStorage {
         data: Data,
         startTime: Date,
         endTime: Date? = nil,
-        processIdentifier: ProcessIdentifier = .current
-    ) -> SpanRecord {
+        processId: ProcessIdentifier = .current
+    ) -> SpanRecord? {
 
         // update existing?
         if let span = fetchSpan(id: id, traceId: traceId) {
@@ -40,7 +40,7 @@ extension EmbraceStorage {
             span.data = data
             span.startTime = startTime
             span.endTime = endTime
-            span.processIdRaw = processIdentifier.hex
+            span.processIdRaw = processId.hex
 
             coreData.save()
             return span
@@ -50,7 +50,7 @@ extension EmbraceStorage {
         removeOldSpanIfNeeded(forType: type)
 
         // add new
-        let span = SpanRecord.create(
+        if let span = SpanRecord.create(
             context: coreData.context,
             id: id,
             name: name,
@@ -59,12 +59,13 @@ extension EmbraceStorage {
             data: data,
             startTime: startTime,
             endTime: endTime,
-            processIdentifier: processIdentifier
-        )
+            processId: processId
+        ) {
+            coreData.save()
+            return span
+        }
 
-        coreData.save()
-
-        return span
+        return nil
     }
 
     /// Fetches the stored `SpanRecord` synchronously with the given identifiers, if any.
@@ -147,7 +148,7 @@ extension EmbraceStorage {
             //   - ends before session ends or
             //   - hasn't ended yet
             let predicate1 = NSPredicate(
-                format: "(startTime >= %@ AND (endTime = nil OR endTime <= %@)",
+                format: "startTime >= %@ AND (endTime = nil OR endTime <= %@)",
                 startTime,
                 endTime
             )
@@ -156,7 +157,7 @@ extension EmbraceStorage {
             //   - ends within session or
             //   - hasn't ended yet
             let predicate2 = NSPredicate(
-                format: "(startTime < %@ AND (endTime = nil OR (endTime >= %@ AND endTime <= %@))",
+                format: "startTime < %@ AND (endTime = nil OR (endTime >= %@ AND endTime <= %@))",
                 startTime,
                 startTime,
                 endTime

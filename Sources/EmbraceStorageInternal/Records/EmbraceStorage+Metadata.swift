@@ -43,18 +43,19 @@ extension EmbraceStorage {
             return nil
         }
 
-        let metadata = MetadataRecord.create(
+        if let metadata = MetadataRecord.create(
             context: coreData.context,
             key: key,
             value: value,
             type: type,
             lifespan: lifespan,
             lifespanId: lifespanId
-        )
+        ) {
+            coreData.save()
+            return metadata
+        }
 
-        coreData.save()
-
-        return metadata
+        return nil
     }
 
     /// Returns the `MetadataRecord` for the given values.

@@ -41,15 +41,16 @@ class DefaultLogBatcher: LogBatcher {
 
     func addLogRecord(logRecord: ReadableLogRecord) {
         processorQueue.async {
-            let record = self.repository.createLog(
+            if let record = self.repository.createLog(
                 id: LogIdentifier(),
                 processId: ProcessIdentifier.current,
                 severity: logRecord.severity?.toLogSeverity() ?? .info,
                 body: logRecord.body?.description ?? "",
                 timestamp: logRecord.timestamp,
                 attributes: logRecord.attributes
-            )
-            self.addLogToBatch(record)
+            ) {
+                self.addLogToBatch(record)
+            }
         }
     }
 }

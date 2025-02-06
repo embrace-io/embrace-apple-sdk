@@ -41,8 +41,12 @@ public class SessionRecord: NSManagedObject, EmbraceSession {
         coldStart: Bool = false,
         cleanExit: Bool = false,
         appTerminated: Bool = false
-    ) -> SessionRecord {
-        let record = SessionRecord(context: context)
+    ) -> SessionRecord? {
+        guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
+            return nil
+        }
+
+        let record = SessionRecord(entity: description, insertInto: context)
         record.idRaw = id.toString
         record.processIdRaw = processId.hex
         record.state = state.rawValue

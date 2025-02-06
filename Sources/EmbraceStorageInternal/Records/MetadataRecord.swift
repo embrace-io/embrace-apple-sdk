@@ -23,8 +23,12 @@ public class MetadataRecord: NSManagedObject, EmbraceMetadata {
         lifespan: MetadataRecordLifespan,
         lifespanId: String,
         collectedAt: Date = Date()
-    ) -> MetadataRecord {
-        let record = MetadataRecord(context: context)
+    ) -> MetadataRecord? {
+        guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
+            return nil
+        }
+
+        let record = MetadataRecord(entity: description, insertInto: context)
         record.key = key
         record.value = value
         record.typeRaw = type.rawValue

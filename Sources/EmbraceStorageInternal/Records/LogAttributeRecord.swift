@@ -18,8 +18,12 @@ public class LogAttributeRecord: NSManagedObject, EmbraceLogAttribute {
         key: String,
         value: AttributeValue,
         log: LogRecord
-    ) -> LogAttributeRecord {
-        var record = LogAttributeRecord(context: context)
+    ) -> LogAttributeRecord? {
+        guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
+            return nil
+        }
+
+        var record = LogAttributeRecord(entity: description, insertInto: context)
         record.key = key
         record.value = value
         record.log = log

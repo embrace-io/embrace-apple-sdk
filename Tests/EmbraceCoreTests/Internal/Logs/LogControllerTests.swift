@@ -48,13 +48,6 @@ class LogControllerTests: XCTestCase {
         thenDoesntTryToUploadAnything()
     }
 
-    func testHavingThrowingFetchAll_onSetup_shouldRemoveAllLogs() throws {
-        givenStorageThatThrowsException()
-        givenLogController()
-        whenInvokingSetup()
-        try thenStorageShouldHaveRemoveAllLogs()
-    }
-
     func testHavingLogs_onSetup_fetchesResourcesFromStorage() throws {
         let sessionId = SessionIdentifier.random
         let log = randomLogRecord(sessionId: sessionId)
@@ -168,13 +161,6 @@ class LogControllerTests: XCTestCase {
 
     func testSDKDisabledHavingLogs_onBatchFinished_ontTryToUploadAnything() throws {
         givenSDKEnabled(false)
-        givenLogController()
-        whenInvokingBatchFinished(withLogs: [randomLogRecord()])
-        thenDoesntTryToUploadAnything()
-    }
-
-    func testHavingThrowingStorage_onBatchFinished_wontTryToUploadAnything() {
-        givenStorageThatThrowsException()
         givenLogController()
         whenInvokingBatchFinished(withLogs: [randomLogRecord()])
         thenDoesntTryToUploadAnything()
@@ -309,10 +295,6 @@ private extension LogControllerTests {
     func givenStorage(withLogs logs: [EmbraceLog] = []) {
         storage = .init()
         storage?.stubbedFetchAllExcludingProcessIdentifier = logs
-    }
-
-    func givenStorageThatThrowsException() {
-        storage = .init(SpyStorage())
     }
 
     func whenInvokingSetup() {

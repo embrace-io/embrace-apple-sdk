@@ -32,7 +32,7 @@ extension EmbraceStorage {
         coldStart: Bool = false,
         cleanExit: Bool = false,
         appTerminated: Bool = false
-    ) -> SessionRecord {
+    ) -> SessionRecord? {
 
         // update existing?
         if let session = fetchSession(id: id) {
@@ -56,7 +56,7 @@ extension EmbraceStorage {
         }
 
         // create new
-        let session = SessionRecord.create(
+        if let session = SessionRecord.create(
             context: coreData.context,
             id: id,
             processId: processId,
@@ -69,11 +69,12 @@ extension EmbraceStorage {
             coldStart: coldStart,
             cleanExit: cleanExit,
             appTerminated: appTerminated
-        )
+        ) {
+            coreData.save()
+            return session
+        }
 
-        coreData.save()
-
-        return session
+        return nil
     }
 
     /// Fetches the stored `SessionRecord` synchronously with the given identifier, if any.

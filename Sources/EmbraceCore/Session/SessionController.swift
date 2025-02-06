@@ -137,7 +137,7 @@ class SessionController: SessionControllable {
                 spanId: span.context.spanId.hexString,
                 startTime: startTime
             )
-            session.coldStart = isColdStart
+            session?.coldStart = isColdStart
             currentSession = session
 
             // save session record
