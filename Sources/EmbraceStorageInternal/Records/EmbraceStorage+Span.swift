@@ -35,6 +35,12 @@ extension EmbraceStorage {
 
         // update existing?
         if let span = fetchSpan(id: id, traceId: traceId) {
+            
+            // prevent modifications on closed spans!
+            guard span.endTime == nil else {
+                return span
+            }
+
             span.name = name
             span.typeRaw = type.rawValue
             span.data = data
@@ -76,7 +82,7 @@ extension EmbraceStorage {
     public func fetchSpan(id: String, traceId: String) -> SpanRecord? {
         let request = SpanRecord.createFetchRequest()
         request.fetchLimit = 1
-        request.predicate = NSPredicate(format: "id == %@ AND traceId == %i", id, traceId)
+        request.predicate = NSPredicate(format: "id == %@ AND traceId == %@", id, traceId)
 
         return coreData.fetch(withRequest: request).first
     }
@@ -88,9 +94,9 @@ extension EmbraceStorage {
         let request = SpanRecord.createFetchRequest()
 
         if let date = date {
-            request.predicate = NSPredicate(format: "date != nil AND date < %@", date as NSDate)
+            request.predicate = NSPredicate(format: "endTime != nil AND endTime < %@", date as NSDate)
         } else {
-            request.predicate = NSPredicate(format: "date != nil")
+            request.predicate = NSPredicate(format: "endTime != nil")
         }
 
         let spans = coreData.fetch(withRequest: request)
@@ -102,7 +108,7 @@ extension EmbraceStorage {
     ///   - endTime: Identifier of the trace containing this span
     public func closeOpenSpans(endTime: Date) {
         let request = SpanRecord.createFetchRequest()
-        request.predicate = NSPredicate(format: "date = nil")
+        request.predicate = NSPredicate(format: "endTime = nil")
 
         let spans = coreData.fetch(withRequest: request)
 

@@ -52,6 +52,7 @@ final class StorageSpanExporterTests: XCTestCase {
         let exportedSpan = try XCTUnwrap(exportedSpans.first)
         XCTAssertEqual(exportedSpan.traceId, traceId.hexString)
         XCTAssertEqual(exportedSpan.id, spanId.hexString)
+        XCTAssertEqual(exportedSpan.startTime.timeIntervalSince1970, startTime.timeIntervalSince1970, accuracy: 0.01)
         XCTAssertEqual(exportedSpan.endTime!.timeIntervalSince1970, endTime.timeIntervalSince1970, accuracy: 0.01)
     }
 
