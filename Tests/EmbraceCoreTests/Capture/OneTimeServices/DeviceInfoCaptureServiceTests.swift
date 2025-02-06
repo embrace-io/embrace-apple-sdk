@@ -24,81 +24,81 @@ final class DeviceInfoCaptureServiceTests: XCTestCase {
         // then the app info resources are correctly stored
         let processId = ProcessIdentifier.current.hex
 
-        let resources = handler.fetchResourcesForProcessId(.current)
+        let resources = try handler.fetchResourcesForProcessId(.current)
         XCTAssertEqual(resources.count, 11)
 
         // jailbroken
-        let jailbroken = handler.fetchMetadata(
+        let jailbroken = try handler.fetchMetadata(
             key: DeviceResourceKey.isJailbroken.rawValue,
             type: .requiredResource,
             lifespan: .process,
             lifespanId: processId
         )
         XCTAssertNotNil(jailbroken)
-        XCTAssertEqual(jailbroken!.value, "false")
+        XCTAssertEqual(jailbroken!.stringValue, "false")
 
         // locale
-        let locale = handler.fetchMetadata(
+        let locale = try handler.fetchMetadata(
             key: DeviceResourceKey.locale.rawValue,
             type: .requiredResource,
             lifespan: .process,
             lifespanId: processId
         )
         XCTAssertNotNil(locale)
-        XCTAssertEqual(locale!.value, EMBDevice.locale)
+        XCTAssertEqual(locale!.stringValue, EMBDevice.locale)
 
         // timezone
-        let timezone = handler.fetchMetadata(
+        let timezone = try handler.fetchMetadata(
             key: DeviceResourceKey.timezone.rawValue,
             type: .requiredResource,
             lifespan: .process,
             lifespanId: processId
         )
         XCTAssertNotNil(timezone)
-        XCTAssertEqual(timezone!.value, EMBDevice.timezoneDescription)
+        XCTAssertEqual(timezone!.stringValue, EMBDevice.timezoneDescription)
 
         // disk space
-        let diskSpace = handler.fetchMetadata(
+        let diskSpace = try handler.fetchMetadata(
             key: DeviceResourceKey.totalDiskSpace.rawValue,
             type: .requiredResource,
             lifespan: .process,
             lifespanId: processId
         )
         XCTAssertNotNil(diskSpace)
-        XCTAssertEqual(diskSpace!.value, String(EMBDevice.totalDiskSpace.intValue))
+        XCTAssertEqual(diskSpace!.integerValue, EMBDevice.totalDiskSpace.intValue)
 
         // os version
-        let osVersion = handler.fetchMetadata(
+        let osVersion = try handler.fetchMetadata(
             key: ResourceAttributes.osVersion.rawValue,
             type: .requiredResource,
             lifespan: .process,
             lifespanId: processId
         )
         XCTAssertNotNil(osVersion)
-        XCTAssertEqual(osVersion!.value, EMBDevice.operatingSystemVersion)
+        XCTAssertEqual(osVersion!.stringValue, EMBDevice.operatingSystemVersion)
 
         // os build
-        let osBuild = handler.fetchMetadata(
+        let osBuild = try handler.fetchMetadata(
             key: DeviceResourceKey.osBuild.rawValue,
             type: .requiredResource,
             lifespan: .process,
             lifespanId: processId
         )
         XCTAssertNotNil(osBuild)
-        XCTAssertEqual(osBuild!.value, EMBDevice.operatingSystemBuild)
+        XCTAssertEqual(osBuild!.stringValue, EMBDevice.operatingSystemBuild)
 
         // os variant
-        let osVariant = handler.fetchMetadata(
+        let osVariant = try handler.fetchMetadata(
             key: DeviceResourceKey.osVariant.rawValue,
             type: .requiredResource,
             lifespan: .process,
             lifespanId: processId
         )
         XCTAssertNotNil(osVariant)
-        XCTAssertEqual(osVariant!.value, EMBDevice.operatingSystemType)
+        XCTAssertEqual(osVariant!.stringValue, EMBDevice.operatingSystemType)
 
         // model
-        let model = handler.fetchMetadata(
+        let model = try handler.fetchMetadata(
             key: ResourceAttributes.deviceModelIdentifier.rawValue,
             type: .requiredResource,
             lifespan: .process,
@@ -106,37 +106,37 @@ final class DeviceInfoCaptureServiceTests: XCTestCase {
         )
 
         XCTAssertNotNil(model)
-        XCTAssertEqual(model!.value, EMBDevice.model)
+        XCTAssertEqual(model!.stringValue, EMBDevice.model)
 
         // osType
-        let osType = handler.fetchMetadata(
+        let osType = try handler.fetchMetadata(
             key: ResourceAttributes.osType.rawValue,
             type: .requiredResource,
             lifespan: .process,
             lifespanId: processId
         )
         XCTAssertNotNil(osType)
-        XCTAssertEqual(osType!.value, "darwin")
+        XCTAssertEqual(try XCTUnwrap(osType?.stringValue), "darwin")
 
         // osName
-        let osName = handler.fetchMetadata(
+        let osName = try handler.fetchMetadata(
             key: ResourceAttributes.osName.rawValue,
             type: .requiredResource,
             lifespan: .process,
             lifespanId: processId
         )
         XCTAssertNotNil(osName)
-        XCTAssertEqual(osName!.value, EMBDevice.operatingSystemType)
+        XCTAssertEqual(try XCTUnwrap(osName?.stringValue), EMBDevice.operatingSystemType)
 
         // osName
-        let architecture = handler.fetchMetadata(
+        let architecture = try handler.fetchMetadata(
             key: DeviceResourceKey.architecture.rawValue,
             type: .requiredResource,
             lifespan: .process,
             lifespanId: processId
         )
         XCTAssertNotNil(architecture)
-        XCTAssertEqual(architecture!.value, EMBDevice.architecture)
+        XCTAssertEqual(try XCTUnwrap(architecture?.stringValue), EMBDevice.architecture)
     }
 
     func test_notStarted() throws {
@@ -149,7 +149,12 @@ final class DeviceInfoCaptureServiceTests: XCTestCase {
         service.install(otel: nil)
 
         // then no resources are captured
-        let metadata: [MetadataRecord] = handler.fetchAll()
-        XCTAssertEqual(metadata.count, 0)
+        let expectation = XCTestExpectation()
+        try handler.dbQueue.read { db in
+            XCTAssertEqual(try MetadataRecord.fetchCount(db), 0)
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 }

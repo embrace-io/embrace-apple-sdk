@@ -11,15 +11,15 @@ import TestSupport
 final class SessionPayloadBuilderTests: XCTestCase {
 
     var storage: EmbraceStorage!
-    var sessionRecord: MockSession!
+    var sessionRecord: SessionRecord!
 
     override func setUpWithError() throws {
         storage = try EmbraceStorage.createInMemoryDb()
 
-        sessionRecord = MockSession(
+        sessionRecord = SessionRecord(
             id: TestConstants.sessionId,
-            processId: ProcessIdentifier.current,
             state: .foreground,
+            processId: ProcessIdentifier.current,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSince1970: 0),
@@ -28,13 +28,18 @@ final class SessionPayloadBuilderTests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
+        try storage.dbQueue.write { db in
+            try SessionRecord.deleteAll(db)
+            try MetadataRecord.deleteAll(db)
+        }
+
         sessionRecord = nil
-        storage.coreData.destroy()
+        try storage.teardown()
     }
 
     func test_counterMissing() throws {
         // given no existing counter in storage
-        var resource = storage.fetchMetadata(
+        var resource = try storage.fetchMetadata(
             key: SessionPayloadBuilder.resourceName,
             type: .requiredResource,
             lifespan: .permanent
@@ -45,25 +50,25 @@ final class SessionPayloadBuilderTests: XCTestCase {
         _ = SessionPayloadBuilder.build(for: sessionRecord, storage: storage)
 
         // then a resource is created with the correct value
-        resource = storage.fetchMetadata(
+        resource = try storage.fetchMetadata(
             key: SessionPayloadBuilder.resourceName,
             type: .requiredResource,
             lifespan: .permanent
         )
 
-        XCTAssertEqual(resource!.value, "1")
+        XCTAssertEqual(resource!.value, .string("1"))
     }
 
     func test_existingCounter() throws {
         // given existing counter in storage
-        storage.addMetadata(
+        try storage.addMetadata(
             key: SessionPayloadBuilder.resourceName,
             value: "10",
             type: .requiredResource,
             lifespan: .permanent
         )
 
-        var resource = storage.fetchMetadata(
+        var resource = try storage.fetchMetadata(
             key: SessionPayloadBuilder.resourceName,
             type: .requiredResource,
             lifespan: .permanent
@@ -74,12 +79,12 @@ final class SessionPayloadBuilderTests: XCTestCase {
         _ = SessionPayloadBuilder.build(for: sessionRecord, storage: storage)
 
         // then the counter is updated correctly
-        resource = storage.fetchMetadata(
+        resource = try storage.fetchMetadata(
             key: SessionPayloadBuilder.resourceName,
             type: .requiredResource,
             lifespan: .permanent
         )
 
-        XCTAssertEqual(resource!.value, "11")
+        XCTAssertEqual(resource!.value, .string("11"))
     }
 }

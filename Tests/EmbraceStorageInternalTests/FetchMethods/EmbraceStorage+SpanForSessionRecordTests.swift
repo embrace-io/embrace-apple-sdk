@@ -24,7 +24,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
-        storage.coreData.destroy()
+        try storage.teardown()
     }
 
     func addSpanRecord(
@@ -33,8 +33,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         processIdentifier: ProcessIdentifier = .current,
         startTime: Date,
         endTime: Date? = nil
-    ) -> SpanRecord {
-        return storage.upsertSpan(
+    ) throws -> SpanRecord {
+        let span = SpanRecord(
             id: SpanId.random().hexString,
             name: name,
             traceId: TraceId.random().hexString,
@@ -42,8 +42,11 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
             data: Data(),
             startTime: startTime,
             endTime: endTime,
-            processId: processIdentifier
-        )!
+            processIdentifier: processIdentifier
+        )
+        try storage.upsertSpan(span)
+
+        return span
     }
 
     func sessionRecord(
@@ -55,17 +58,17 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         traceId: TraceId = .random(),
         spanId: SpanId = .random()
     ) -> SessionRecord {
-        return storage.addSession(
+        return SessionRecord(
             id: .random,
-            processId: processIdentifier,
             state: .foreground,
+            processId: processIdentifier,
             traceId: traceId.hexString,
             spanId: spanId.hexString,
             startTime: startTime,
             endTime: endTime,
             lastHeartbeatTime: lastHeartBeat ?? startTime,
             coldStart: coldStart
-        )!
+        )
     }
 
     // MARK: Tests
@@ -77,7 +80,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
             startTime: .relative(-20),
             endTime: .relative(-5)
         )
-        let results = storage.fetchSpans(for: session)
+        let results = try storage.fetchSpans(for: session)
         XCTAssertTrue(results.isEmpty)
     }
 
@@ -89,8 +92,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
             endTime: .relative(-5)
         )
 
-        _ = addSpanRecord(startTime: .relative(-30), endTime: .relative(-25))
-        let results = storage.fetchSpans(for: session)
+        _ = try addSpanRecord(startTime: .relative(-30), endTime: .relative(-25))
+        let results = try storage.fetchSpans(for: session)
 
         XCTAssertTrue(results.isEmpty)
     }
@@ -104,8 +107,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
             coldStart: true
         )
 
-        let span = addSpanRecord(startTime: .relative(-30), endTime: .relative(-25))
-        let results = storage.fetchSpans(for: session)
+        let span = try addSpanRecord(startTime: .relative(-30), endTime: .relative(-25))
+        let results = try storage.fetchSpans(for: session)
 
         XCTAssertEqual(results.count, 1)
         XCTAssertTrue(results.contains(span))
@@ -119,8 +122,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
             endTime: .relative(-5)
         )
 
-        _ = addSpanRecord(startTime: .relative(-2), endTime: Date())
-        let results = storage.fetchSpans(for: session)
+        _ = try addSpanRecord(startTime: .relative(-2), endTime: Date())
+        let results = try storage.fetchSpans(for: session)
 
         XCTAssertTrue(results.isEmpty)
     }
@@ -133,8 +136,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
             endTime: .relative(-5)
         )
 
-        let span = addSpanRecord(startTime: .relative(-22), endTime: .relative(-18))
-        let results = storage.fetchSpans(for: session)
+        let span = try addSpanRecord(startTime: .relative(-22), endTime: .relative(-18))
+        let results = try storage.fetchSpans(for: session)
 
         XCTAssertEqual(results.count, 1)
         XCTAssertTrue(results.contains(span))
@@ -148,8 +151,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
             endTime: .relative(-5)
         )
 
-        let span = addSpanRecord(startTime: .relative(-7), endTime: .relative(-2))
-        let results = storage.fetchSpans(for: session)
+        let span = try addSpanRecord(startTime: .relative(-7), endTime: .relative(-2))
+        let results = try storage.fetchSpans(for: session)
 
         XCTAssertEqual(results.count, 1)
         XCTAssertTrue(results.contains(span))
@@ -163,8 +166,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
             endTime: .relative(-10)
         )
 
-        let span = addSpanRecord(startTime: .relative(-25), endTime: .relative(-5))
-        let results = storage.fetchSpans(for: session)
+        let span = try addSpanRecord(startTime: .relative(-25), endTime: .relative(-5))
+        let results = try storage.fetchSpans(for: session)
 
         XCTAssertEqual(results.count, 1)
         XCTAssertTrue(results.contains(span))
@@ -179,8 +182,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
             endTime: .relative(-5)
         )
 
-        let span = addSpanRecord(startTime: .relative(-22), endTime: nil)
-        let results = storage.fetchSpans(for: session)
+        let span = try addSpanRecord(startTime: .relative(-22), endTime: nil)
+        let results = try storage.fetchSpans(for: session)
 
         XCTAssertEqual(results.count, 1)
         XCTAssertTrue(results.contains(span))
@@ -194,8 +197,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
             endTime: .relative(-5)
         )
 
-        let span = addSpanRecord(startTime: .relative(-10), endTime: nil)
-        let results = storage.fetchSpans(for: session)
+        let span = try addSpanRecord(startTime: .relative(-10), endTime: nil)
+        let results = try storage.fetchSpans(for: session)
 
         XCTAssertEqual(results.count, 1)
         XCTAssertTrue(results.contains(span))
@@ -210,8 +213,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
             coldStart: true
         )
 
-        let span = addSpanRecord(startTime: .relative(-22), endTime: nil)
-        let results = storage.fetchSpans(for: session)
+        let span = try addSpanRecord(startTime: .relative(-22), endTime: nil)
+        let results = try storage.fetchSpans(for: session)
 
         XCTAssertEqual(results.count, 1)
         XCTAssertTrue(results.contains(span))
@@ -226,8 +229,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
             coldStart: true
         )
 
-        let span = addSpanRecord(startTime: .relative(-10), endTime: nil)
-        let results = storage.fetchSpans(for: session)
+        let span = try addSpanRecord(startTime: .relative(-10), endTime: nil)
+        let results = try storage.fetchSpans(for: session)
 
         XCTAssertEqual(results.count, 1)
         XCTAssertTrue(results.contains(span))
@@ -242,8 +245,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
             coldStart: true
         )
 
-        _ = addSpanRecord(startTime: .relative(-2), endTime: nil)
-        let results = storage.fetchSpans(for: session)
+        _ = try addSpanRecord(startTime: .relative(-2), endTime: nil)
+        let results = try storage.fetchSpans(for: session)
 
         XCTAssertTrue(results.isEmpty)
     }
@@ -258,10 +261,10 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
             coldStart: true
         )
 
-        let spanA = addSpanRecord(name: "span-a", startTime: .relative(-22), endTime: .relative(-18))
-        let spanB = addSpanRecord(name: "span-b", startTime: .relative(-16), endTime: .relative(-12))
-        let spanC = addSpanRecord(name: "span-c", startTime: .relative(-6), endTime: .relative(-2))
-        let results = storage.fetchSpans(for: session)
+        let spanA = try addSpanRecord(name: "span-a", startTime: .relative(-22), endTime: .relative(-18))
+        let spanB = try addSpanRecord(name: "span-b", startTime: .relative(-16), endTime: .relative(-12))
+        let spanC = try addSpanRecord(name: "span-c", startTime: .relative(-6), endTime: .relative(-2))
+        let results = try storage.fetchSpans(for: session)
 
         XCTAssertTrue(results.contains(spanA))
         XCTAssertTrue(results.contains(spanB))
@@ -277,10 +280,10 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
             coldStart: true
         )
 
-        let spanA = addSpanRecord(name: "span-a", startTime: .relative(-28), endTime: .relative(-22))
-        let spanB = addSpanRecord(name: "span-b", startTime: .relative(-16), endTime: .relative(-12))
-        let spanC = addSpanRecord(name: "span-c", startTime: .relative(-6), endTime: .relative(-2))
-        let results = storage.fetchSpans(for: session)
+        let spanA = try addSpanRecord(name: "span-a", startTime: .relative(-28), endTime: .relative(-22))
+        let spanB = try addSpanRecord(name: "span-b", startTime: .relative(-16), endTime: .relative(-12))
+        let spanC = try addSpanRecord(name: "span-c", startTime: .relative(-6), endTime: .relative(-2))
+        let results = try storage.fetchSpans(for: session)
 
         XCTAssertTrue(results.contains(spanA))
         XCTAssertTrue(results.contains(spanB))
@@ -296,10 +299,10 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
             coldStart: false
         )
 
-        let spanA = addSpanRecord(name: "span-a", startTime: .relative(-28), endTime: .relative(-22))
-        let spanB = addSpanRecord(name: "span-b", startTime: .relative(-16), endTime: .relative(-12))
-        let spanC = addSpanRecord(name: "span-c", startTime: .relative(-6), endTime: .relative(-2))
-        let results = storage.fetchSpans(for: session)
+        let spanA = try addSpanRecord(name: "span-a", startTime: .relative(-28), endTime: .relative(-22))
+        let spanB = try addSpanRecord(name: "span-b", startTime: .relative(-16), endTime: .relative(-12))
+        let spanC = try addSpanRecord(name: "span-c", startTime: .relative(-6), endTime: .relative(-2))
+        let results = try storage.fetchSpans(for: session)
 
         XCTAssertFalse(results.contains(spanA))
         XCTAssertTrue(results.contains(spanB))
@@ -317,8 +320,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
             endTime: .relative(-5)
         )
 
-        let span = addSpanRecord(startTime: .relative(-30), endTime: boundary)
-        let results = storage.fetchSpans(for: session)
+        let span = try addSpanRecord(startTime: .relative(-30), endTime: boundary)
+        let results = try storage.fetchSpans(for: session)
 
         XCTAssertTrue(results.contains(span))
     }
@@ -334,8 +337,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
             coldStart: true
         )
 
-        let span = addSpanRecord(startTime: .relative(-30), endTime: boundary)
-        let results = storage.fetchSpans(for: session)
+        let span = try addSpanRecord(startTime: .relative(-30), endTime: boundary)
+        let results = try storage.fetchSpans(for: session)
 
         XCTAssertTrue(results.contains(span))
     }
@@ -350,8 +353,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
             endTime: boundary
         )
 
-        let span = addSpanRecord(startTime: boundary, endTime: .relative(0))
-        let results = storage.fetchSpans(for: session)
+        let span = try addSpanRecord(startTime: boundary, endTime: .relative(0))
+        let results = try storage.fetchSpans(for: session)
 
         XCTAssertTrue(results.contains(span))
     }
@@ -364,13 +367,13 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
             endTime: .relative(-10)
         )
 
-        _ = addSpanRecord(
+        _ = try addSpanRecord(
             type: .session,
             startTime: session.startTime,
             endTime: session.endTime
         )
 
-        let results = storage.fetchSpans(for: session, ignoreSessionSpans: true)
+        let results = try storage.fetchSpans(for: session, ignoreSessionSpans: true)
         XCTAssertTrue(results.isEmpty)
     }
 
@@ -382,13 +385,13 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
             endTime: .relative(-10)
         )
 
-        let span = addSpanRecord(
+        let span = try addSpanRecord(
             type: .session,
             startTime: session.startTime,
             endTime: session.endTime
         )
 
-        let results = storage.fetchSpans(for: session, ignoreSessionSpans: false)
+        let results = try storage.fetchSpans(for: session, ignoreSessionSpans: false)
         XCTAssertTrue(results.contains(span))
     }
 }

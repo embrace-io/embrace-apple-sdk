@@ -29,22 +29,10 @@ class StorageSpanExporter: SpanExporter {
         var result = SpanExporterResultCode.success
         for var spanData in spans {
 
-            if validation.execute(spanData: &spanData) {
+            let isValid = validation.execute(spanData: &spanData)
+            if isValid, let record = buildRecord(from: spanData) {
                 do {
-                    let data = try spanData.toJSON()
-
-                    // spanData endTime is non-optional and will be set during `toSpanData()`
-                    let endTime = spanData.hasEnded ? spanData.endTime : nil
-
-                    storage.upsertSpan(
-                        id: spanData.spanId.hexString,
-                        name: spanData.name,
-                        traceId: spanData.traceId.hexString,
-                        type: spanData.embType,
-                        data: data,
-                        startTime: spanData.startTime,
-                        endTime: endTime
-                    )
+                    try storage.upsertSpan(record)
                 } catch let exception {
                     self.logger?.error(exception.localizedDescription)
                     result = .failure
@@ -66,4 +54,24 @@ class StorageSpanExporter: SpanExporter {
         _ = flush()
     }
 
+}
+
+extension StorageSpanExporter {
+    private func buildRecord(from spanData: SpanData) -> SpanRecord? {
+        guard let data = try? spanData.toJSON() else {
+            return nil
+        }
+
+        // spanData endTime is non-optional and will be set during `toSpanData()`
+        let endTime = spanData.hasEnded ? spanData.endTime : nil
+
+        return SpanRecord(
+            id: spanData.spanId.hexString,
+            name: spanData.name,
+            traceId: spanData.traceId.hexString,
+            type: spanData.embType,
+            data: data,
+            startTime: spanData.startTime,
+            endTime: endTime )
+    }
 }

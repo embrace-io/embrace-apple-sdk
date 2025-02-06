@@ -79,7 +79,7 @@ class NetworkPayloadCaptureHandler {
         active = true
         rulesTriggeredMap.removeAll()
 
-        currentSessionId = (notification.object as? EmbraceSession)?.id
+        currentSessionId = (notification.object as? SessionRecord)?.id
     }
 
     @objc func onSessionEnd() {

@@ -13,16 +13,22 @@ class SpansPayloadBuilder {
     static let spanCountLimit = 1000
 
     class func build(
-        for session: EmbraceSession,
+        for sessionRecord: SessionRecord,
         storage: EmbraceStorage,
         sessionNumber: Int = -1
     ) -> (spans: [SpanPayload], spanSnapshots: [SpanPayload]) {
 
-        let endTime = session.endTime ?? session.lastHeartbeatTime
+        let endTime = sessionRecord.endTime ?? sessionRecord.lastHeartbeatTime
+        var records: [SpanRecord] = []
 
         // fetch spans that started during the session
         // ignore spans where emb.type == session
-        let records = storage.fetchSpans(for: session, ignoreSessionSpans: true, limit: spanCountLimit)
+        do {
+            records = try storage.fetchSpans(for: sessionRecord, ignoreSessionSpans: true, limit: spanCountLimit)
+        } catch {
+            Embrace.logger.error("Error fetching spans for session \(sessionRecord.id):\n\(error.localizedDescription)")
+            return ([], [])
+        }
 
         // decode spans and separate them by closed/open
         var spans: [SpanPayload] = []
@@ -30,7 +36,7 @@ class SpansPayloadBuilder {
 
         // fetch and add session span first
         if let sessionSpanPayload = buildSessionSpanPayload(
-            for: session,
+            for: sessionRecord,
             storage: storage,
             sessionNumber: sessionNumber
         ) {
@@ -45,7 +51,7 @@ class SpansPayloadBuilder {
                 /// during the recovery process in `UnsentDataHandler`.
                 /// In other words it was an open span at the time the app crashed, and thus it must be closed and flagged as failed.
                 /// The nil check is just a sanity check to cover all bases.
-                let failed = session.crashReportId != nil && (record.endTime == nil || record.endTime == endTime)
+                let failed = sessionRecord.crashReportId != nil && (record.endTime == nil || record.endTime == endTime)
 
                 let span = try JSONDecoder().decode(SpanData.self, from: record.data)
                 let payload = SpanPayload(from: span, endTime: failed ? endTime : record.endTime, failed: failed)
@@ -64,32 +70,29 @@ class SpansPayloadBuilder {
     }
 
     class func buildSessionSpanPayload(
-        for session: EmbraceSession,
+        for sessionRecord: SessionRecord,
         storage: EmbraceStorage,
         sessionNumber: Int
     ) -> SpanPayload? {
         do {
             var spanData: SpanData?
-            let sessionSpan = storage.fetchSpan(id: session.spanId, traceId: session.traceId)
+            let sessionSpan = try storage.fetchSpan(id: sessionRecord.spanId, traceId: sessionRecord.traceId)
 
             if let rawData = sessionSpan?.data {
                 spanData = try JSONDecoder().decode(SpanData.self, from: rawData)
             }
 
-            var properties: [EmbraceMetadata] = []
-            if let sessionId = session.id {
-                properties = storage.fetchCustomPropertiesForSessionId(sessionId)
-            }
+            let properties = try storage.fetchCustomPropertiesForSessionId(sessionRecord.id)
 
             return SessionSpanUtils.payload(
-                from: session,
+                from: sessionRecord,
                 spanData: spanData,
                 properties: properties,
                 sessionNumber: sessionNumber
             )
 
         } catch {
-            Embrace.logger.warning("Error fetching span for session \(session.idRaw):\n\(error.localizedDescription)")
+            Embrace.logger.warning("Error fetching span for session \(sessionRecord.id):\n\(error.localizedDescription)")
         }
 
         return nil

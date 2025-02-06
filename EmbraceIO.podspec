@@ -75,12 +75,14 @@ Pod::Spec.new do |spec|
     storage.vendored_frameworks = "xcframeworks/EmbraceStorageInternal.xcframework"
     storage.dependency "EmbraceIO/EmbraceCommonInternal"
     storage.dependency "EmbraceIO/EmbraceSemantics"
+    storage.dependency "EmbraceIO/GRDB"
   end
 
   spec.subspec 'EmbraceUploadInternal' do |upload|
     upload.vendored_frameworks = "xcframeworks/EmbraceUploadInternal.xcframework"
     upload.dependency "EmbraceIO/EmbraceCommonInternal"
     upload.dependency "EmbraceIO/EmbraceOTelInternal"
+    upload.dependency "EmbraceIO/GRDB"
   end
 
   spec.subspec 'EmbraceCrashlyticsSupport' do |cs|
@@ -106,6 +108,10 @@ Pod::Spec.new do |spec|
   spec.subspec 'OpenTelemetrySdk' do |otelSdk|
     otelSdk.vendored_frameworks = "xcframeworks/OpenTelemetrySdk.xcframework"
     otelSdk.dependency "EmbraceIO/OpenTelemetryApi"
+  end
+
+  spec.subspec 'GRDB' do |grdb|
+    grdb.vendored_frameworks = "xcframeworks/GRDB.xcframework"
   end
 
   spec.subspec 'KSCrash' do |kscrash|

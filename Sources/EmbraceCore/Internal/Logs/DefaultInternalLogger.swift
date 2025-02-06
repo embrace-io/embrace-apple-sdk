@@ -26,7 +26,7 @@ class DefaultInternalLogger: InternalLogger {
     private var counter: [LogLevel: Int] = [:]
 
     @ThreadSafe
-    private var currentSession: EmbraceSession?
+    private var currentSession: SessionRecord?
 
     init() {
         NotificationCenter.default.addObserver(
@@ -49,7 +49,7 @@ class DefaultInternalLogger: InternalLogger {
     }
 
     @objc func onSessionStart(notification: Notification) {
-        currentSession = notification.object as? EmbraceSession
+        currentSession = notification.object as? SessionRecord
         counter.removeAll()
     }
 

@@ -53,23 +53,25 @@ class UnsentDataHandler {
         crashReports: [CrashReport]
     ) {
         // send crash reports
-        var save = false
-
         for report in crashReports {
 
             // link session with crash report if possible
-            var session: EmbraceSession?
+            var session: SessionRecord?
 
             if let sessionId = SessionIdentifier(string: report.sessionId) {
-                session = storage.fetchSession(id: sessionId)
-                if var session = session {
-                    // update session's end time with the crash report timestamp
-                    session.endTime = report.timestamp ?? session.endTime
+                do {
+                    session = try storage.fetchSession(id: sessionId)
+                    if var session = session {
+                        // update session's end time with the crash report timestamp
+                        session.endTime = report.timestamp ?? session.endTime
 
-                    // update crash report id
-                    session.crashReportId = report.id.uuidString
+                        // update crash report id
+                        session.crashReportId = report.id.uuidString
 
-                    save = true
+                        try storage.update(record: session)
+                    }
+                } catch {
+                    Embrace.logger.warning("Error updating session \(sessionId) with crashReportId \(report.id)!")
                 }
             }
 
@@ -84,10 +86,6 @@ class UnsentDataHandler {
             )
         }
 
-        if save {
-            storage.save()
-        }
-
         // send sessions
         sendSessions(
             storage: storage,
@@ -99,7 +97,7 @@ class UnsentDataHandler {
     static public func sendCrashLog(
         report: CrashReport,
         reporter: CrashReporter?,
-        session: EmbraceSession?,
+        session: SessionRecord?,
         storage: EmbraceStorage?,
         upload: EmbraceUpload?,
         otel: EmbraceOpenTelemetry?
@@ -154,7 +152,7 @@ class UnsentDataHandler {
         otel: EmbraceOpenTelemetry?,
         storage: EmbraceStorage?,
         report: CrashReport,
-        session: EmbraceSession?,
+        session: SessionRecord?,
         timestamp: Date
     ) -> [String: String] {
 
@@ -196,7 +194,13 @@ class UnsentDataHandler {
         closeOpenSpans(storage: storage, currentSessionId: currentSessionId)
 
         // fetch all sessions in the storage
-        let sessions: [SessionRecord] = storage.fetchAll()
+        var sessions: [SessionRecord]
+        do {
+            sessions = try storage.fetchAll()
+        } catch {
+            Embrace.logger.warning("Error fetching unsent sessions:\n\(error.localizedDescription)")
+            return
+        }
 
         for session in sessions {
             // ignore current session
@@ -213,7 +217,7 @@ class UnsentDataHandler {
     }
 
     static public func sendSession(
-        _ session: EmbraceSession,
+        _ session: SessionRecord,
         storage: EmbraceStorage,
         upload: EmbraceUpload,
         performCleanUp: Bool = true
@@ -225,7 +229,7 @@ class UnsentDataHandler {
         do {
             payloadData = try JSONEncoder().encode(payload).gzipped()
         } catch {
-            Embrace.logger.warning("Error encoding session \(session.idRaw):\n" + error.localizedDescription)
+            Embrace.logger.warning("Error encoding session \(session.id.toString):\n" + error.localizedDescription)
             return
         }
 
@@ -234,48 +238,64 @@ class UnsentDataHandler {
         }
 
         // upload session spans
-        upload.uploadSpans(id: session.idRaw, data: payloadData) { result in
+        upload.uploadSpans(id: session.id.toString, data: payloadData) { result in
             switch result {
             case .success:
-                // remove session from storage
-                // we can remove this immediately because the upload module will cache it until the upload succeeds
-                if let record = session as? SessionRecord {
-                    storage.delete(record)
-                }
+                do {
+                    // remove session from storage
+                    // we can remove this immediately because the upload module will cache it until the upload succeeds
+                    try storage.delete(record: session)
 
-                if performCleanUp {
-                    cleanOldSpans(storage: storage)
-                    cleanMetadata(storage: storage)
+                    if performCleanUp {
+                        cleanOldSpans(storage: storage)
+                        cleanMetadata(storage: storage)
+                    }
+
+                } catch {
+                    Embrace.logger.debug("Error trying to remove session \(session.id):\n\(error.localizedDescription)")
                 }
 
             case .failure(let error):
-                Embrace.logger.warning("Error trying to upload session \(session.idRaw):\n\(error.localizedDescription)")
+                Embrace.logger.warning("Error trying to upload session \(session.id):\n\(error.localizedDescription)")
             }
         }
     }
 
     static private func cleanOldSpans(storage: EmbraceStorage) {
-        // first we delete any span record that is closed and its older
-        // than the oldest session we have on storage
-        // since spans are only sent when included in a session
-        // all of these would never be sent anymore, so they can be safely removed
-        // if no session is found, all closed spans can be safely removed as well
-        let oldestSession = storage.fetchOldestSession()
-        storage.cleanUpSpans(date: oldestSession?.startTime)
+        do {
+            // first we delete any span record that is closed and its older
+            // than the oldest session we have on storage
+            // since spans are only sent when included in a session
+            // all of these would never be sent anymore, so they can be safely removed
+            // if no session is found, all closed spans can be safely removed as well
+            let oldestSession = try storage.fetchOldestSession()
+            try storage.cleanUpSpans(date: oldestSession?.startTime)
+
+        } catch {
+            Embrace.logger.warning("Error cleaning old spans:\n\(error.localizedDescription)")
+        }
     }
 
     static private func closeOpenSpans(storage: EmbraceStorage, currentSessionId: SessionIdentifier?) {
-        // then we need to close any remaining open spans
-        // we use the latest session on storage to determine the `endTime`
-        // since we need to have a valid `endTime` for these spans, we default
-        // to `Date()` if we don't have a session
-        let latestSession = storage.fetchLatestSession(ignoringCurrentSessionId: currentSessionId)
-        let endTime = (latestSession?.endTime ?? latestSession?.lastHeartbeatTime) ?? Date()
-        storage.closeOpenSpans(endTime: endTime)
+        do {
+            // then we need to close any remaining open spans
+            // we use the latest session on storage to determine the `endTime`
+            // since we need to have a valid `endTime` for these spans, we default
+            // to `Date()` if we don't have a session
+            let latestSession = try storage.fetchLatestSession(ignoringCurrentSessionId: currentSessionId)
+            let endTime = (latestSession?.endTime ?? latestSession?.lastHeartbeatTime) ?? Date()
+            try storage.closeOpenSpans(endTime: endTime)
+        } catch {
+            Embrace.logger.warning("Error closing open spans:\n\(error.localizedDescription)")
+        }
     }
 
     static private func cleanMetadata(storage: EmbraceStorage, currentSessionId: String? = nil) {
-        let sessionId = currentSessionId ?? Embrace.client?.currentSessionId()
-        storage.cleanMetadata(currentSessionId: sessionId, currentProcessId: ProcessIdentifier.current.hex)
+        do {
+            let sessionId = currentSessionId ?? Embrace.client?.currentSessionId()
+            try storage.cleanMetadata(currentSessionId: sessionId, currentProcessId: ProcessIdentifier.current.hex)
+        } catch {
+            Embrace.logger.warning("Error cleaning up metadata:\n\(error.localizedDescription)")
+        }
     }
 }

@@ -30,10 +30,12 @@ class ResourceStorageExporter: EmbraceResourceProvider {
             return Resource()
         }
 
-        let records = storage.fetchAllResources()
+        guard let records = try? storage.fetchAllResources() else {
+            return Resource()
+        }
 
         var attributes: [String: AttributeValue] = records.reduce(into: [:]) { partialResult, record in
-            partialResult[record.key] = .string(record.value)
+            partialResult[record.key] = record.value
         }
 
         if attributes[ResourceAttributes.serviceName.rawValue] == nil {

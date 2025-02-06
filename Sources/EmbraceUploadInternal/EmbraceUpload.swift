@@ -65,42 +65,45 @@ public class EmbraceUpload: EmbraceLogUploader {
     public func retryCachedData() {
         queue.async { [weak self] in
             guard let self = self else { return }
-
-            // in place mechanism to not retry sending cache data at the same time
-            guard !self.isRetryingCache else {
-                return
-            }
-
-            self.isRetryingCache = true
-
-            defer {
-                // on finishing everything, allow to retry cache (i.e. reconnection)
-                self.isRetryingCache = false
-            }
-
-            // clear data from cache that shouldn't be retried as it's stale
-            self.clearCacheFromStaleData()
-
-            // get all the data cached first, is the only thing that could throw
-            let cachedObjects = self.cache.fetchAllUploadData()
-
-            // create a sempahore to allow only to send two request at a time so we don't
-            // get throttled by the backend on cases where cache has many failed requests.
-
-            for uploadData in cachedObjects {
-                guard let type = EmbraceUploadType(rawValue: uploadData.type) else {
-                    continue
+            do {
+                // in place mechanism to not retry sending cache data at the same time
+                guard !self.isRetryingCache else {
+                    return
                 }
-                self.semaphore.wait()
 
-                self.reUploadData(
-                    id: uploadData.id,
-                    data: uploadData.data,
-                    type: type,
-                    attemptCount: uploadData.attemptCount
-                ) {
-                    self.semaphore.signal()
+                self.isRetryingCache = true
+
+                defer {
+                    // on finishing everything, allow to retry cache (i.e. reconnection)
+                    self.isRetryingCache = false
                 }
+
+                // clear data from cache that shouldn't be retried as it's stale
+                self.clearCacheFromStaleData()
+
+                // get all the data cached first, is the only thing that could throw
+                let cachedObjects = try self.cache.fetchAllUploadData()
+
+                // create a sempahore to allow only to send two request at a time so we don't
+                // get throttled by the backend on cases where cache has many failed requests.
+
+                for uploadData in cachedObjects {
+                    guard let type = EmbraceUploadType(rawValue: uploadData.type) else {
+                        continue
+                    }
+                    self.semaphore.wait()
+
+                    self.reUploadData(
+                        id: uploadData.id,
+                        data: uploadData.data,
+                        type: type,
+                        attemptCount: uploadData.attemptCount
+                    ) {
+                        self.semaphore.signal()
+                    }
+                }
+            } catch {
+                self.logger.debug("Error retrying cached upload data: \(error.localizedDescription)")
             }
         }
     }
@@ -320,7 +323,11 @@ public class EmbraceUpload: EmbraceLogUploader {
 
     private func clearCacheFromStaleData() {
         operationQueue.addOperation { [weak self] in
-            self?.cache.clearStaleDataIfNeeded()
+            do {
+                try self?.cache.clearStaleDataIfNeeded()
+            } catch {
+                self?.logger.debug("Error clearing stale date from cache: \(error.localizedDescription)")
+            }
         }
     }
 

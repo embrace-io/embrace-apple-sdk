@@ -9,6 +9,7 @@ import EmbraceCommonInternal
 @testable import EmbraceStorageInternal
 @testable import EmbraceUploadInternal
 import TestSupport
+import GRDB
 
 class UnsentDataHandlerTests: XCTestCase {
     let logger = MockLogger()
@@ -64,17 +65,17 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // given a storage and upload modules
         let storage = try EmbraceStorage.createInMemoryDb()
-        defer { storage.coreData.destroy() }
+        defer { try? storage.teardown() }
 
         let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
 
         let otel = MockEmbraceOpenTelemetry()
 
         // given a finished session in the storage
-        storage.addSession(
+        try storage.addSession(
             id: TestConstants.sessionId,
-            processId: ProcessIdentifier.current,
             state: .foreground,
+            processId: ProcessIdentifier.current,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSinceNow: -60),
@@ -89,11 +90,11 @@ class UnsentDataHandlerTests: XCTestCase {
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 1)
 
         // then the session is no longer on storage
-        let session = storage.fetchSession(id: TestConstants.sessionId)
+        let session = try storage.fetchSession(id: TestConstants.sessionId)
         XCTAssertNil(session)
 
         // then the session upload data is no longer cached
-        let uploadData = upload.cache.fetchAllUploadData()
+        let uploadData = try upload.cache.fetchAllUploadData()
         XCTAssertEqual(uploadData.count, 0)
 
         // then no log was sent
@@ -106,17 +107,17 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // given a storage and upload modules
         let storage = try EmbraceStorage.createInMemoryDb()
-        defer { storage.coreData.destroy() }
+        defer { try? storage.teardown() }
 
         let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
 
         let otel = MockEmbraceOpenTelemetry()
 
         // given a finished session in the storage
-        storage.addSession(
+        try storage.addSession(
             id: TestConstants.sessionId,
-            processId: ProcessIdentifier.current,
             state: .foreground,
+            processId: ProcessIdentifier.current,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSinceNow: -60),
@@ -134,11 +135,11 @@ class UnsentDataHandlerTests: XCTestCase {
         XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 1)
 
         // then the session is no longer on storage
-        let session = storage.fetchSession(id: TestConstants.sessionId)
+        let session = try storage.fetchSession(id: TestConstants.sessionId)
         XCTAssertNil(session)
 
         // then the session upload data cached
-        let uploadData = upload.cache.fetchAllUploadData()
+        let uploadData = try upload.cache.fetchAllUploadData()
         XCTAssertEqual(uploadData.count, 1)
 
         // then no log was sent
@@ -152,7 +153,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // given a storage and upload modules
         let storage = try EmbraceStorage.createInMemoryDb()
-        defer { storage.coreData.destroy() }
+        defer { try? storage.teardown() }
 
         let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
 
@@ -163,30 +164,33 @@ class UnsentDataHandlerTests: XCTestCase {
         let report = crashReporter.mockReports[0]
 
         // given a finished session in the storage
-        storage.addSession(
+        try storage.addSession(
             id: TestConstants.sessionId,
-            processId: ProcessIdentifier.current,
             state: .foreground,
+            processId: ProcessIdentifier.current,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSinceNow: -60),
             endTime: Date()
         )
 
-        // the crash report id is set on the session
-        let listener = CoreDataListener()
-        let expectation1 = XCTestExpectation()
-        listener.onUpdatedObjects = { records in
-            if let record = records.first as? SessionRecord,
-               record.crashReportId != nil {
-                expectation1.fulfill()
-            }
-        }
-
         // when sending unsent sessions
         UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel, crashReporter: crashReporter)
 
+        // then the crash report id is set on the session
+        let expectation1 = XCTestExpectation()
+        let observation = ValueObservation.tracking(SessionRecord.fetchAll)
+        let cancellable = observation.start(in: storage.dbQueue) { error in
+            XCTAssert(false, error.localizedDescription)
+        } onChange: { records in
+            if let record = records.first {
+                if record.crashReportId != nil {
+                    expectation1.fulfill()
+                }
+            }
+        }
         wait(for: [expectation1], timeout: .veryLongTimeout)
+        cancellable.cancel()
 
         // then a crash report was sent
         // then a session request was sent
@@ -199,11 +203,11 @@ class UnsentDataHandlerTests: XCTestCase {
         XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 2)
 
         // then the session is no longer on storage
-        let session = storage.fetchSession(id: TestConstants.sessionId)
+        let session = try storage.fetchSession(id: TestConstants.sessionId)
         XCTAssertNil(session)
 
         // then the session and crash report upload data is no longer cached
-        let uploadData = upload.cache.fetchAllUploadData()
+        let uploadData = try upload.cache.fetchAllUploadData()
         XCTAssertEqual(uploadData.count, 0)
 
         // then the crash is not longer stored
@@ -219,6 +223,9 @@ class UnsentDataHandlerTests: XCTestCase {
         XCTAssertEqual(otel.logs.count, 1)
         XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string(LogType.crash.rawValue))
         XCTAssertEqual(otel.logs[0].timestamp, report.timestamp)
+
+        // clean up
+        cancellable.cancel()
     }
 
     func test_withCrashReporter_error() throws {
@@ -227,7 +234,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // given a storage and upload modules
         let storage = try EmbraceStorage.createInMemoryDb()
-        defer { storage.coreData.destroy() }
+        defer { try? storage.teardown() }
 
         let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
 
@@ -238,20 +245,23 @@ class UnsentDataHandlerTests: XCTestCase {
         let report = crashReporter.mockReports[0]
 
         // then the crash report id is set on the session
-        let listener = CoreDataListener()
         let didSendCrashesExpectation = XCTestExpectation()
-        listener.onUpdatedObjects = { records in
-            if let record = records.first as? SessionRecord,
-                record.crashReportId != nil {
-                didSendCrashesExpectation.fulfill()
+        let observation = ValueObservation.tracking(SessionRecord.fetchAll)
+        let cancellable = observation.start(in: storage.dbQueue) { error in
+            XCTAssert(false, error.localizedDescription)
+        } onChange: { records in
+            if let record = records.first {
+                if record.crashReportId != nil {
+                    didSendCrashesExpectation.fulfill()
+                }
             }
         }
 
         // given a finished session in the storage
-        storage.addSession(
+        try storage.addSession(
             id: TestConstants.sessionId,
-            processId: ProcessIdentifier.current,
             state: .foreground,
+            processId: ProcessIdentifier.current,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSinceNow: -60),
@@ -262,6 +272,7 @@ class UnsentDataHandlerTests: XCTestCase {
         UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel, crashReporter: crashReporter)
 
         wait(for: [didSendCrashesExpectation], timeout: .veryLongTimeout)
+        cancellable.cancel()
 
         // then a crash report request was attempted
         // then a session request was attempted
@@ -274,11 +285,11 @@ class UnsentDataHandlerTests: XCTestCase {
         XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 2)
 
         // then the session is no longer on storage
-        let session = storage.fetchSession(id: TestConstants.sessionId)
+        let session = try storage.fetchSession(id: TestConstants.sessionId)
         XCTAssertNil(session)
 
         // then the session and crash report upload data are still cached
-        let uploadData = upload.cache.fetchAllUploadData()
+        let uploadData = try upload.cache.fetchAllUploadData()
         XCTAssertEqual(uploadData.count, 2)
 
         // then the crash is not longer stored
@@ -303,7 +314,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // given a storage and upload modules
         let storage = try EmbraceStorage.createInMemoryDb()
-        defer { storage.coreData.destroy() }
+        defer { try? storage.teardown() }
 
         let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
 
@@ -314,23 +325,25 @@ class UnsentDataHandlerTests: XCTestCase {
         let report = crashReporter.mockReports[0]
 
         // given an unfinished session in the storage
-        storage.addSession(
+        try storage.addSession(
             id: TestConstants.sessionId,
-            processId: ProcessIdentifier.current,
             state: .foreground,
+            processId: ProcessIdentifier.current,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSinceNow: -60)
         )
 
         // the crash report id and timestamp is set on the session
-        let listener = CoreDataListener()
         let expectation1 = XCTestExpectation()
-        listener.onUpdatedObjects = { records in
-            if let record = records.first as? SessionRecord,
-               record.crashReportId != nil,
-               record.endTime != nil {
-                expectation1.fulfill()
+        let observation = ValueObservation.tracking(SessionRecord.fetchAll).print()
+        let cancellable = observation.start(in: storage.dbQueue) { error in
+            XCTAssert(false, error.localizedDescription)
+        } onChange: { records in
+            if let record = records.first {
+                if record.crashReportId != nil && record.endTime != nil {
+                    expectation1.fulfill()
+                }
             }
         }
 
@@ -338,6 +351,7 @@ class UnsentDataHandlerTests: XCTestCase {
         UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel, crashReporter: crashReporter)
 
         wait(for: [expectation1], timeout: 5000)
+        cancellable.cancel()
 
         // then a crash report was sent
         // then a session request was sent
@@ -350,12 +364,12 @@ class UnsentDataHandlerTests: XCTestCase {
         XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 2)
 
         // then the session is no longer on storage
-        let session = storage.fetchSession(id: TestConstants.sessionId)
+        let session = try storage.fetchSession(id: TestConstants.sessionId)
         XCTAssertNil(session)
 
         // then the session and crash report upload data is no longer cached
         wait(timeout: .veryLongTimeout) {
-            upload.cache.fetchAllUploadData().count == 0
+            try upload.cache.fetchAllUploadData().count == 0
         }
 
         let expectation = XCTestExpectation()
@@ -370,6 +384,9 @@ class UnsentDataHandlerTests: XCTestCase {
         XCTAssertEqual(otel.logs.count, 1)
         XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string(LogType.crash.rawValue))
         XCTAssertEqual(otel.logs[0].timestamp, report.timestamp)
+
+        // clean up
+        cancellable.cancel()
     }
 
     func test_sendCrashLog() throws {
@@ -378,7 +395,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // given a storage and upload modules
         let storage = try EmbraceStorage.createInMemoryDb()
-        defer { storage.coreData.destroy() }
+        defer { try? storage.teardown() }
 
         let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
         let otel = MockEmbraceOpenTelemetry()
@@ -388,10 +405,10 @@ class UnsentDataHandlerTests: XCTestCase {
         let report = crashReporter.mockReports[0]
 
         // given a finished session in the storage
-        let session = storage.addSession(
+        let session = try storage.addSession(
             id: TestConstants.sessionId,
-            processId: ProcessIdentifier.current,
             state: .foreground,
+            processId: ProcessIdentifier.current,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSinceNow: -60),
@@ -417,7 +434,7 @@ class UnsentDataHandlerTests: XCTestCase {
         XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 1)
 
         // then the crash log upload data is no longer cached
-        let uploadData = upload.cache.fetchAllUploadData()
+        let uploadData = try upload.cache.fetchAllUploadData()
         XCTAssertEqual(uploadData.count, 0)
 
         // then the raw crash log was constructed correctly
@@ -440,24 +457,24 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // given a storage and upload modules
         let storage = try EmbraceStorage.createInMemoryDb()
-        defer { storage.coreData.destroy() }
+        defer { try? storage.teardown() }
 
         let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
 
         let otel = MockEmbraceOpenTelemetry()
 
         // given an unfinished session in the storage
-        storage.addSession(
+        try storage.addSession(
             id: TestConstants.sessionId,
-            processId: ProcessIdentifier.current,
             state: .foreground,
+            processId: ProcessIdentifier.current,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSinceNow: -60)
         )
 
         // given old closed span in storage
-        storage.upsertSpan(
+        let oldSpan = try storage.addSpan(
             id: "oldSpan",
             name: "test",
             traceId: "traceId",
@@ -468,14 +485,14 @@ class UnsentDataHandlerTests: XCTestCase {
         )
 
         // given open span in storage
-        storage.upsertSpan(
+        _ = try storage.addSpan(
             id: TestConstants.spanId,
             name: "test",
             traceId: TestConstants.traceId,
             type: .performance,
             data: Data(),
             startTime: Date(timeIntervalSinceNow: -50),
-            processId: TestConstants.processId
+            processIdentifier: TestConstants.processId
         )
 
         // when sending unsent sessions
@@ -484,19 +501,32 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // then the old closed span was removed
         // and the open span was closed
-        var spans: [SpanRecord] = storage.fetchAll()
-        XCTAssertEqual(spans.count, 1)
-        XCTAssertEqual(spans[0].id, TestConstants.spanId)
-        XCTAssertEqual(spans[0].traceId, TestConstants.traceId)
-        XCTAssertNotNil(spans[0].endTime)
+        let expectation1 = XCTestExpectation()
+        try storage.dbQueue.read { db in
+            XCTAssertFalse(try oldSpan.exists(db))
+
+            let span = try SpanRecord.fetchOne(db)
+            XCTAssertEqual(span!.id, TestConstants.spanId)
+            XCTAssertEqual(span!.traceId, TestConstants.traceId)
+            XCTAssertNotNil(span!.endTime)
+
+            expectation1.fulfill()
+        }
+
+        wait(for: [expectation1], timeout: .defaultTimeout)
 
         // when sending unsent sessions again
         UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel)
 
         // then the span that was closed for the last session
         // is not valid anymore, and therefore removed
-        spans = storage.fetchAll()
-        XCTAssertEqual(spans.count, 0)
+        let expectation2 = XCTestExpectation()
+        try storage.dbQueue.read { db in
+            XCTAssertEqual(try SpanRecord.fetchCount(db), 0)
+            expectation2.fulfill()
+        }
+
+        wait(for: [expectation2], timeout: .defaultTimeout)
     }
 
     func test_metadataCleanUp_sendUnsendData() throws {
@@ -506,52 +536,52 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // given a storage and upload modules
         let storage = try EmbraceStorage.createInMemoryDb()
-        defer { storage.coreData.destroy() }
+        defer { try? storage.teardown() }
 
         let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
 
         let otel = MockEmbraceOpenTelemetry()
 
         // given an unfinished session in the storage
-        storage.addSession(
+        try storage.addSession(
             id: TestConstants.sessionId,
-            processId: ProcessIdentifier.current,
             state: .foreground,
+            processId: ProcessIdentifier.current,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSinceNow: -60)
         )
 
         // given metadata in storage
-        storage.addMetadata(
-            key: "permanent",
+        let permanentMetadata = try storage.addMetadata(
+            key: "test",
             value: "test",
             type: .requiredResource,
             lifespan: .permanent
         )
-        storage.addMetadata(
-            key: "sameSessionId",
+        let sameSessionId = try storage.addMetadata(
+            key: "test",
             value: "test",
             type: .requiredResource,
             lifespan: .session,
             lifespanId: TestConstants.sessionId.toString
         )
-        storage.addMetadata(
-            key: "sameProcessId",
+        let sameProcessId = try storage.addMetadata(
+            key: "test",
             value: "test",
             type: .requiredResource,
             lifespan: .process,
             lifespanId: ProcessIdentifier.current.hex
         )
-        storage.addMetadata(
-            key: "differentSessionId",
+        let differentSessionId = try storage.addMetadata(
+            key: "test",
             value: "test",
             type: .requiredResource,
             lifespan: .session,
             lifespanId: "test"
         )
-        storage.addMetadata(
-            key: "differentProcessId",
+        let differentProcessId = try storage.addMetadata(
+            key: "test",
             value: "test",
             type: .requiredResource,
             lifespan: .process,
@@ -567,12 +597,17 @@ class UnsentDataHandlerTests: XCTestCase {
         )
 
         // then all metadata is cleaned up
-        let records: [MetadataRecord] = storage.fetchAll()
-        XCTAssertNotNil(records.first(where: { $0.key == "permanent"}))
-        XCTAssertNotNil(records.first(where: { $0.key == "sameSessionId"}))
-        XCTAssertNotNil(records.first(where: { $0.key == "sameProcessId"}))
-        XCTAssertNil(records.first(where: { $0.key == "differentSessionId"}))
-        XCTAssertNil(records.first(where: { $0.key == "differentProcessId"}))
+        let expectation = XCTestExpectation()
+        try storage.dbQueue.read { db in
+            XCTAssert(try permanentMetadata!.exists(db))
+            XCTAssert(try sameSessionId!.exists(db))
+            XCTAssert(try sameProcessId!.exists(db))
+            XCTAssertFalse(try differentSessionId!.exists(db))
+            XCTAssertFalse(try differentProcessId!.exists(db))
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_spanCleanUp_uploadSession() throws {
@@ -582,22 +617,22 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // given a storage and upload modules
         let storage = try EmbraceStorage.createInMemoryDb()
-        defer { storage.coreData.destroy() }
+        defer { try? storage.teardown() }
 
         let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
 
         // given an unfinished session in the storage
-        let session = storage.addSession(
+        let session = try storage.addSession(
             id: TestConstants.sessionId,
-            processId: ProcessIdentifier.current,
             state: .foreground,
+            processId: ProcessIdentifier.current,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSinceNow: -60)
-        )!
+        )
 
         // given old closed span in storage
-        storage.upsertSpan(
+        let oldSpan = try storage.addSpan(
             id: "oldSpan",
             name: "test",
             traceId: "traceId",
@@ -613,10 +648,18 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // then the old closed span was removed
         // and the session was removed
-        let spans: [SpanRecord] = storage.fetchAll()
-        let sessions: [SessionRecord] = storage.fetchAll()
-        XCTAssertEqual(spans.count, 0)
-        XCTAssertEqual(sessions.count, 0)
+        let expectation = XCTestExpectation()
+        try storage.dbQueue.read { db in
+            XCTAssertFalse(try oldSpan.exists(db))
+            XCTAssertEqual(try SpanRecord.fetchCount(db), 0)
+
+            XCTAssertFalse(try session.exists(db))
+            XCTAssertEqual(try SessionRecord.fetchCount(db), 0)
+
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_metadataCleanUp_uploadSession() throws {
@@ -626,36 +669,36 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // given a storage and upload modules
         let storage = try EmbraceStorage.createInMemoryDb()
-        defer { storage.coreData.destroy() }
+        defer { try? storage.teardown() }
 
         let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
 
         // given an unfinished session in the storage
-        let session = storage.addSession(
+        let session = try storage.addSession(
             id: TestConstants.sessionId,
-            processId: ProcessIdentifier.current,
             state: .foreground,
+            processId: ProcessIdentifier.current,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSinceNow: -60)
-        )!
+        )
 
         // given metadata in storage
-        storage.addMetadata(
-            key: "permanent",
+        let permanentMetadata = try storage.addMetadata(
+            key: "test",
             value: "test",
             type: .requiredResource,
             lifespan: .permanent
         )
-        storage.addMetadata(
-            key: "sameProcessId",
+        let sameProcessId = try storage.addMetadata(
+            key: "test",
             value: "test",
             type: .requiredResource,
             lifespan: .process,
             lifespanId: ProcessIdentifier.current.hex
         )
-        storage.addMetadata(
-            key: "differentProcessId",
+        let differentProcessId = try storage.addMetadata(
+            key: "test",
             value: "test",
             type: .requiredResource,
             lifespan: .process,
@@ -667,10 +710,15 @@ class UnsentDataHandlerTests: XCTestCase {
         wait(delay: .longTimeout)
 
         // then metadata is correctly cleaned up
-        let records: [MetadataRecord] = storage.fetchAll()
-        XCTAssertNotNil(records.first(where: { $0.key == "permanent"}))
-        XCTAssertNotNil(records.first(where: { $0.key == "sameProcessId"}))
-        XCTAssertNil(records.first(where: { $0.key == "differentProcessId"}))
+        let expectation = XCTestExpectation()
+        try storage.dbQueue.read { db in
+            XCTAssert(try permanentMetadata!.exists(db))
+            XCTAssert(try sameProcessId!.exists(db))
+            XCTAssertFalse(try differentProcessId!.exists(db))
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_logsUpload() throws {
@@ -680,7 +728,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // given a storage and upload modules
         let storage = try EmbraceStorage.createInMemoryDb()
-        defer { storage.coreData.destroy() }
+        defer { try? storage.teardown() }
 
         let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
         let logController = LogController(
@@ -693,13 +741,13 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // given logs in storage
         for _ in 0...5 {
-            storage.createLog(
-                id: LogIdentifier.random,
-                processId: TestConstants.processId,
+            try storage.writeLog(LogRecord(
+                identifier: LogIdentifier.random,
+                processIdentifier: TestConstants.processId,
                 severity: .debug,
                 body: "test",
                 attributes: [:]
-            )
+            ))
         }
 
         // when sending unsent data

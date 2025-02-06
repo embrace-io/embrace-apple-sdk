@@ -4,28 +4,28 @@
 
 import XCTest
 import EmbraceStorageInternal
-import TestSupport
+
 @testable import EmbraceCore
 
 class MetadataPayloadTests: XCTestCase {
     func test_encodeToJSONProperly() throws {
         let payloadStruct = MetadataPayload(from: [
             // wser Resources
-            MockMetadata.createUserMetadata(key: UserResourceKey.email.rawValue, value: "email@domain.com"),
-            MockMetadata.createUserMetadata(key: UserResourceKey.identifier.rawValue, value: "12345"),
-            MockMetadata.createUserMetadata(key: UserResourceKey.name.rawValue, value: "embrace_user"),
+            MetadataRecord.userMetadata(key: UserResourceKey.email.rawValue, value: "email@domain.com"),
+            MetadataRecord.userMetadata(key: UserResourceKey.identifier.rawValue, value: "12345"),
+            MetadataRecord.userMetadata(key: UserResourceKey.name.rawValue, value: "embrace_user"),
 
             // device Resources
-            MockMetadata.createResourceRecord(key: DeviceResourceKey.locale.rawValue, value: "en_US_POSIX"),
-            MockMetadata.createResourceRecord(key: DeviceResourceKey.timezone.rawValue, value: "GMT-3:00"),
+            MetadataRecord.createResourceRecord(key: DeviceResourceKey.locale.rawValue, value: "en_US_POSIX"),
+            MetadataRecord.createResourceRecord(key: DeviceResourceKey.timezone.rawValue, value: "GMT-3:00"),
 
             // random properties
-            MockMetadata.createUserMetadata(key: "random_user_metadata_property", value: "value"),
-            MockMetadata.createResourceRecord(key: "random_resource_property", value: "value"),
+            MetadataRecord.userMetadata(key: "random_user_metadata_property", value: "value"),
+            MetadataRecord.createResourceRecord(key: "random_resource_property", value: "value"),
 
             // persona tags
-            MockMetadata.createPersonaTagRecord(value: "tag1"),
-            MockMetadata.createPersonaTagRecord(value: "tag2")
+            MetadataRecord.createPersonaTagRecord(value: "tag1"),
+            MetadataRecord.createPersonaTagRecord(value: "tag2")
         ])
 
         let jsonData = try JSONEncoder().encode(payloadStruct)
