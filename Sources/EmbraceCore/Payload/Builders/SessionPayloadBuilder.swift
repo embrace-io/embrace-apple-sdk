@@ -10,63 +10,46 @@ class SessionPayloadBuilder {
 
     static var resourceName = "emb.session.upload_index"
 
-    class func build(for sessionRecord: SessionRecord, storage: EmbraceStorage) -> PayloadEnvelope<[SpanPayload]> {
-        var resource: MetadataRecord?
-
-        do {
-            // fetch resource
-            resource = try storage.fetchRequiredPermanentResource(key: resourceName)
-        } catch {
-            Embrace.logger.debug("Error fetching \(resourceName) resource!")
+    class func build(for session: EmbraceSession, storage: EmbraceStorage) -> PayloadEnvelope<[SpanPayload]>? {
+        guard let sessionId = session.id else {
+            return nil
         }
 
         // increment counter or create resource if needed
+        var resource = storage.fetchRequiredPermanentResource(key: resourceName)
         var counter: Int = -1
 
-        do {
-            if var resource = resource {
-                counter = (resource.integerValue ?? 0) + 1
-                resource.value = .string(String(counter))
-                try storage.updateMetadata(resource)
-            } else {
-                resource = try storage.addMetadata(
-                    key: resourceName,
-                    value: "1",
-                    type: .requiredResource,
-                    lifespan: .permanent
-                )
-                counter = 1
-            }
-        } catch {
-            Embrace.logger.debug("Error updating \(resourceName) resource!")
+        if let resource = resource {
+            counter = (Int(resource.value) ?? 0) + 1
+            resource.value = String(counter)
+            storage.save()
+        } else {
+            resource = storage.addMetadata(
+                key: resourceName,
+                value: "1",
+                type: .requiredResource,
+                lifespan: .permanent
+            )
+            counter = 1
         }
 
         // build spans
         let (spans, spanSnapshots) = SpansPayloadBuilder.build(
-            for: sessionRecord,
+            for: session,
             storage: storage,
             sessionNumber: counter
         )
 
         // build resources payload
-        var resources: [MetadataRecord] = []
-        do {
-            resources = try storage.fetchResourcesForSessionId(sessionRecord.id)
-        } catch {
-            Embrace.logger.error("Error fetching resources for session \(sessionRecord.id.toString)")
-        }
+        let resources: [EmbraceMetadata] = storage.fetchResourcesForSessionId(sessionId)
         let resourcePayload =  ResourcePayload(from: resources)
 
         // build metadata payload
-        var metadata: [MetadataRecord] = []
-        do {
-            let properties = try storage.fetchCustomPropertiesForSessionId(sessionRecord.id)
-            let tags = try storage.fetchPersonaTagsForSessionId(sessionRecord.id)
-            metadata.append(contentsOf: properties)
-            metadata.append(contentsOf: tags)
-        } catch {
-            Embrace.logger.error("Error fetching custom properties for session \(sessionRecord.id.toString)")
-        }
+        var metadata: [EmbraceMetadata] = []
+        let properties = storage.fetchCustomPropertiesForSessionId(sessionId)
+        let tags = storage.fetchPersonaTagsForSessionId(sessionId)
+        metadata.append(contentsOf: properties)
+        metadata.append(contentsOf: tags)
         let metadataPayload =  MetadataPayload(from: metadata)
 
         // build payload

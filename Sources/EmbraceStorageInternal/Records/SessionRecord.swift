@@ -4,33 +4,34 @@
 
 import Foundation
 import EmbraceCommonInternal
-import GRDB
+import CoreData
 
 /// Represents a session in the storage
-public struct SessionRecord: Codable {
-    public var id: SessionIdentifier
-    public var processId: ProcessIdentifier
-    public var state: String
-    public var traceId: String
-    public var spanId: String
-    public var startTime: Date
-    public var endTime: Date?
-    public var lastHeartbeatTime: Date
-    public var crashReportId: String?
+public class SessionRecord: NSManagedObject, EmbraceSession {
+    @NSManaged public var idRaw: String // SessionIdentifier
+    @NSManaged public var processIdRaw: String // ProcessIdentifier
+    @NSManaged public var state: String
+    @NSManaged public var traceId: String
+    @NSManaged public var spanId: String
+    @NSManaged public var startTime: Date
+    @NSManaged public var endTime: Date?
+    @NSManaged public var lastHeartbeatTime: Date
+    @NSManaged public var crashReportId: String?
 
     /// Used to mark if the session is the first to occur during this process
-    public var coldStart: Bool
+    @NSManaged public var coldStart: Bool
 
     /// Used to mark the session ended in an expected manner
-    public var cleanExit: Bool
+    @NSManaged public var cleanExit: Bool
 
     /// Used to mark the session that is active when the application was explicitly terminated by the user and/or system
-    public var appTerminated: Bool
+    @NSManaged public var appTerminated: Bool
 
-    public init(
+    public static func create(
+        context: NSManagedObjectContext,
         id: SessionIdentifier,
-        state: SessionState,
         processId: ProcessIdentifier,
+        state: SessionState,
         traceId: String,
         spanId: String,
         startTime: Date,
@@ -39,50 +40,105 @@ public struct SessionRecord: Codable {
         crashReportId: String? = nil,
         coldStart: Bool = false,
         cleanExit: Bool = false,
-        appTerminated: Bool = false) {
+        appTerminated: Bool = false
+    ) -> SessionRecord? {
+        guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
+            return nil
+        }
 
-        self.id = id
-        self.state = state.rawValue
-        self.processId = processId
-        self.traceId = traceId
-        self.spanId = spanId
-        self.startTime = startTime
-        self.endTime = endTime
-        self.lastHeartbeatTime = lastHeartbeatTime ?? startTime
-        self.crashReportId = crashReportId
-        self.coldStart = coldStart
-        self.cleanExit = cleanExit
-        self.appTerminated = appTerminated
+        let record = SessionRecord(entity: description, insertInto: context)
+        record.idRaw = id.toString
+        record.processIdRaw = processId.hex
+        record.state = state.rawValue
+        record.traceId = traceId
+        record.spanId = spanId
+        record.startTime = startTime
+        record.endTime = endTime
+        record.lastHeartbeatTime = lastHeartbeatTime ?? startTime
+        record.crashReportId = crashReportId
+        record.coldStart = coldStart
+        record.cleanExit = cleanExit
+        record.appTerminated = appTerminated
+
+        return record
+    }
+
+    static func createFetchRequest() -> NSFetchRequest<SessionRecord> {
+        return NSFetchRequest<SessionRecord>(entityName: entityName)
     }
 }
 
-extension SessionRecord {
-    struct Schema {
-        static var id: Column { Column("id") }
-        static var state: Column { Column("state") }
-        static var processId: Column { Column("process_id") }
-        static var traceId: Column { Column("trace_id") }
-        static var spanId: Column { Column("span_id") }
-        static var startTime: Column { Column("start_time") }
-        static var endTime: Column { Column("end_time") }
-        static var lastHeartbeatTime: Column { Column("last_heartbeat_time") }
-        static var crashReportId: Column { Column("crash_report_id") }
-        static var coldStart: Column { Column("cold_start") }
-        static var cleanExit: Column { Column("clean_exit") }
-        static var appTerminated: Column { Column("app_terminated") }
-    }
-}
+extension SessionRecord: EmbraceStorageRecord {
+    public static var entityName = "Session"
 
-extension SessionRecord: FetchableRecord, PersistableRecord, MutablePersistableRecord {
-    public static let databaseTableName: String = "sessions"
+    static public var entityDescription: NSEntityDescription {
+        let entity = NSEntityDescription()
+        entity.name = entityName
+        entity.managedObjectClassName = NSStringFromClass(SessionRecord.self)
 
-    public static let databaseColumnDecodingStrategy = DatabaseColumnDecodingStrategy.convertFromSnakeCase
-    public static let databaseColumnEncodingStrategy = DatabaseColumnEncodingStrategy.convertToSnakeCase
-    public static let persistenceConflictPolicy = PersistenceConflictPolicy(insert: .replace, update: .replace)
-}
+        let idAttribute = NSAttributeDescription()
+        idAttribute.name = "idRaw"
+        idAttribute.attributeType = .stringAttributeType
 
-extension SessionRecord: Equatable {
-    public static func == (lhs: Self, rhs: Self) -> Bool {
-        return lhs.id == rhs.id
+        let processIdAttribute = NSAttributeDescription()
+        processIdAttribute.name = "processIdRaw"
+        processIdAttribute.attributeType = .stringAttributeType
+
+        let stateAttribute = NSAttributeDescription()
+        stateAttribute.name = "state"
+        stateAttribute.attributeType = .stringAttributeType
+
+        let traceIdAttribute = NSAttributeDescription()
+        traceIdAttribute.name = "traceId"
+        traceIdAttribute.attributeType = .stringAttributeType
+
+        let spanIdAttribute = NSAttributeDescription()
+        spanIdAttribute.name = "spanId"
+        spanIdAttribute.attributeType = .stringAttributeType
+
+        let startTimeAttribute = NSAttributeDescription()
+        startTimeAttribute.name = "startTime"
+        startTimeAttribute.attributeType = .dateAttributeType
+
+        let endTimeAttribute = NSAttributeDescription()
+        endTimeAttribute.name = "endTime"
+        endTimeAttribute.attributeType = .dateAttributeType
+
+        let lastHeartbeatTimeAttribute = NSAttributeDescription()
+        lastHeartbeatTimeAttribute.name = "lastHeartbeatTime"
+        lastHeartbeatTimeAttribute.attributeType = .dateAttributeType
+
+        let crashReportIdAttribute = NSAttributeDescription()
+        crashReportIdAttribute.name = "crashReportId"
+        crashReportIdAttribute.attributeType = .stringAttributeType
+
+        let coldStartAttribute = NSAttributeDescription()
+        coldStartAttribute.name = "coldStart"
+        coldStartAttribute.attributeType = .booleanAttributeType
+
+        let cleanExitAttribute = NSAttributeDescription()
+        cleanExitAttribute.name = "cleanExit"
+        cleanExitAttribute.attributeType = .booleanAttributeType
+
+        let appTerminatedAttribute = NSAttributeDescription()
+        appTerminatedAttribute.name = "appTerminated"
+        appTerminatedAttribute.attributeType = .booleanAttributeType
+
+        entity.properties = [
+            idAttribute,
+            processIdAttribute,
+            stateAttribute,
+            traceIdAttribute,
+            spanIdAttribute,
+            startTimeAttribute,
+            endTimeAttribute,
+            lastHeartbeatTimeAttribute,
+            crashReportIdAttribute,
+            coldStartAttribute,
+            cleanExitAttribute,
+            appTerminatedAttribute
+        ]
+
+        return entity
     }
 }
