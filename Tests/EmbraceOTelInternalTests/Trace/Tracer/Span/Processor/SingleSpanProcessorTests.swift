@@ -71,7 +71,7 @@ final class SingleSpanProcessorTests: XCTestCase {
             expectation.fulfill()
         }
 
-        _ = createSpanData(processor: processor) // DEV: `startSpan` called in this method
+        let span = createSpanData(processor: processor) // DEV: `startSpan` called in this method
         wait(for: [expectation], timeout: .defaultTimeout)
 
         XCTAssertEqual(exporter.exportedSpans.count, 0)

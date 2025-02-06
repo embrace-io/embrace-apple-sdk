@@ -12,29 +12,16 @@ import OpenTelemetryApi
 
 class DefaultInternalLoggerTests: XCTestCase {
 
-    var session: SessionRecord!
-    var storage: EmbraceStorage!
-
-    override func setUpWithError() throws {
-        storage = try EmbraceStorage.createInMemoryDb()
-
-        session = storage.addSession(
-            id: TestConstants.sessionId,
-            processId: TestConstants.processId,
-            state: .foreground,
-            traceId: TestConstants.traceId,
-            spanId: TestConstants.spanId,
-            startTime: Date()
-        )
-    }
-
-    override func tearDownWithError() throws {
-        storage.coreData.destroy()
-        storage = nil
-    }
+    let session = SessionRecord(
+        id: TestConstants.sessionId,
+        state: .foreground,
+        processId: TestConstants.processId,
+        traceId: TestConstants.traceId,
+        spanId: TestConstants.spanId,
+        startTime: Date()
+    )
 
     func test_none() {
-
         let logger = DefaultInternalLogger()
         logger.level = .none
 
@@ -44,7 +31,6 @@ class DefaultInternalLoggerTests: XCTestCase {
         XCTAssertFalse(logger.warning("warning"))
         XCTAssertFalse(logger.error("error"))
     }
-
 
     func test_trace() {
         let logger = DefaultInternalLogger()

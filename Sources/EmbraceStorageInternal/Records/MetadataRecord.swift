@@ -4,88 +4,82 @@
 
 import Foundation
 import EmbraceCommonInternal
-import CoreData
+import GRDB
 import OpenTelemetryApi
 
-public class MetadataRecord: NSManagedObject, EmbraceMetadata {
-    @NSManaged public var key: String
-    @NSManaged public var value: String
-    @NSManaged public var typeRaw: String // MetadataRecordType
-    @NSManaged public var lifespanRaw: String // MetadataRecordLifespan
-    @NSManaged public var lifespanId: String
-    @NSManaged public var collectedAt: Date
+public enum MetadataRecordType: String, Codable {
+    /// Resource that is attached to session and logs data
+    case resource
 
-    public static func create(
-        context: NSManagedObjectContext,
+    /// Embrace-generated resource that is deemed required and cannot be removed by the user of the SDK
+    case requiredResource
+
+    /// Custom property attached to session and logs data and that can be manipulated by the user of the SDK
+    case customProperty
+
+    /// Persona tag attached to session and logs data and that can be manipulated by the user of the SDK
+    case personaTag
+}
+
+public enum MetadataRecordLifespan: String, Codable {
+    /// Value tied to a specific session
+    case session
+
+    /// Value tied to multiple sessions within a single process
+    case process
+
+    /// Value tied to all sessions until explicitly removed
+    case permanent
+}
+
+public struct MetadataRecord: Codable {
+    public let key: String
+    public var value: AttributeValue
+    public let type: MetadataRecordType
+    public let lifespan: MetadataRecordLifespan
+    public let lifespanId: String
+    public let collectedAt: Date
+
+    /// Main initializer for the MetadataRecord
+    public init(
         key: String,
-        value: String,
+        value: AttributeValue,
         type: MetadataRecordType,
         lifespan: MetadataRecordLifespan,
         lifespanId: String,
         collectedAt: Date = Date()
-    ) -> MetadataRecord? {
-        guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
-            return nil
-        }
-
-        let record = MetadataRecord(entity: description, insertInto: context)
-        record.key = key
-        record.value = value
-        record.typeRaw = type.rawValue
-        record.lifespanRaw = lifespan.rawValue
-        record.lifespanId = lifespanId
-        record.collectedAt = collectedAt
-
-        return record
-    }
-
-    static func createFetchRequest() -> NSFetchRequest<MetadataRecord> {
-        return NSFetchRequest<MetadataRecord>(entityName: entityName)
+    ) {
+        self.key = key
+        self.value = value
+        self.type = type
+        self.lifespan = lifespan
+        self.lifespanId = lifespanId
+        self.collectedAt = collectedAt
     }
 }
 
-extension MetadataRecord: EmbraceStorageRecord {
-    public static var entityName = "MetadataRecord"
+extension MetadataRecord {
+    struct Schema {
+        static var key: Column { Column("key") }
+        static var value: Column { Column("value") }
+        static var type: Column { Column("type") }
+        static var lifespan: Column { Column("lifespan") }
+        static var lifespanId: Column { Column("lifespan_id") }
+        static var collectedAt: Column { Column("collected_at") }
+    }
+}
 
-    static public var entityDescription: NSEntityDescription {
-        let entity = NSEntityDescription()
-        entity.name = entityName
-        entity.managedObjectClassName = NSStringFromClass(MetadataRecord.self)
+extension MetadataRecord: FetchableRecord, PersistableRecord, MutablePersistableRecord {
+    public static let databaseTableName: String = "metadata"
 
-        let keyAttribute = NSAttributeDescription()
-        keyAttribute.name = "key"
-        keyAttribute.attributeType = .stringAttributeType
+    public static let databaseColumnDecodingStrategy = DatabaseColumnDecodingStrategy.convertFromSnakeCase
+    public static let databaseColumnEncodingStrategy = DatabaseColumnEncodingStrategy.convertToSnakeCase
+    public static let persistenceConflictPolicy = PersistenceConflictPolicy(insert: .replace, update: .replace)
+}
 
-        let valueAttribute = NSAttributeDescription()
-        valueAttribute.name = "value"
-        valueAttribute.attributeType = .stringAttributeType
-
-        let typeAttribute = NSAttributeDescription()
-        typeAttribute.name = "typeRaw"
-        typeAttribute.attributeType = .stringAttributeType
-
-        let lifespanAttribute = NSAttributeDescription()
-        lifespanAttribute.name = "lifespanRaw"
-        lifespanAttribute.attributeType = .stringAttributeType
-
-        let lifespanIdAttribute = NSAttributeDescription()
-        lifespanIdAttribute.name = "lifespanId"
-        lifespanIdAttribute.attributeType = .stringAttributeType
-
-        let collectedAtAttribute = NSAttributeDescription()
-        collectedAtAttribute.name = "collectedAt"
-        collectedAtAttribute.attributeType = .dateAttributeType
-
-        entity.properties = [
-            keyAttribute,
-            valueAttribute,
-            typeAttribute,
-            lifespanAttribute,
-            lifespanIdAttribute,
-            collectedAtAttribute
-        ]
-
-        return entity
+extension MetadataRecord: Equatable {
+    public static func == (lhs: Self, rhs: Self) -> Bool {
+        return lhs.key == rhs.key
     }
 }
 

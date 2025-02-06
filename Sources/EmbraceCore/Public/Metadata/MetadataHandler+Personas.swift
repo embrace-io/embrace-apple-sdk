@@ -14,11 +14,15 @@ extension MetadataHandler {
             return []
         }
 
-        var records: [EmbraceMetadata] = []
-        if let sessionId = sessionController?.currentSession?.id {
-            records = storage.fetchPersonaTagsForSessionId(sessionId)
-        } else {
-            records = storage.fetchPersonaTagsForProcessId(ProcessIdentifier.current)
+        var records: [MetadataRecord] = []
+        do {
+            if let sessionId = sessionController?.currentSession?.id {
+                records = try storage.fetchPersonaTagsForSessionId(sessionId)
+            } else {
+                records = try storage.fetchPersonaTagsForProcessId(ProcessIdentifier.current)
+            }
+        } catch {
+            Embrace.logger.error("Error fetching persona tags!\n\(error.localizedDescription)")
         }
 
         return records.map { PersonaTag($0.key) }

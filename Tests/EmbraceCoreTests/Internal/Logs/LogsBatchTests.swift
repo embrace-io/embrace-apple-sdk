@@ -4,7 +4,7 @@
 
 import Foundation
 import XCTest
-import TestSupport
+
 import EmbraceCommonInternal
 import EmbraceStorageInternal
 
@@ -76,7 +76,7 @@ private extension LogsBatchTests {
         limits = .init(maxBatchAge: maxBatchAge, maxLogsPerBatch: maxLogsPerBatch)
     }
 
-    func givenLogBatch(logs: [EmbraceLog] = []) {
+    func givenLogBatch(logs: [LogRecord] = []) {
         sut = .init(limits: limits, logs: logs)
     }
 
@@ -84,8 +84,8 @@ private extension LogsBatchTests {
         givenLogBatch(logs: [])
     }
 
-    func whenAddingLog(_ log: EmbraceLog) {
-        batchingResult = sut.add(log: log)
+    func whenAddingLog(_ log: LogRecord) {
+        batchingResult = sut.add(logRecord: log)
     }
 
     func thenResult(is result: LogsBatch.BatchingResult) {
@@ -100,19 +100,20 @@ private extension LogsBatchTests {
         XCTAssertEqual(sut.batchState, state)
     }
 
-    func recentLog() -> EmbraceLog {
+    func recentLog() -> LogRecord {
         randomLog(date: Date())
     }
 
-    func randomLog(date: Date = Date()) -> EmbraceLog {
-        return MockLog(
-            id: .init(),
-            processId: .random,
+    func randomLog(date: Date = Date()) -> LogRecord {
+        let recentLog = LogRecord(
+            identifier: .init(),
+            processIdentifier: .random,
             severity: .info,
             body: UUID().uuidString,
-            timestamp: date,
-            attributes: [:]
+            attributes: [:],
+            timestamp: date
         )
+        return recentLog
     }
 }
 

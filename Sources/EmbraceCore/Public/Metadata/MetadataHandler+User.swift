@@ -50,15 +50,24 @@ import EmbraceStorageInternal
     /// Clear all user properties.
     /// This will clear all user properties set via the `userName`, `userEmail` and `userIdentifier` properties.
     public func clearUserProperties() {
-        storage?.removeAllMetadata(keys: UserResourceKey.allValues, lifespan: .permanent)
+        do {
+            try storage?.removeAllMetadata(keys: UserResourceKey.allValues, lifespan: .permanent)
+        } catch {
+            Embrace.logger.warning("Unable to clear user metadata")
+        }
     }
 }
 
 extension MetadataHandler {
 
     private func value(for key: UserResourceKey) -> String? {
-        let record = storage?.fetchMetadata(key: key.rawValue, type: .customProperty, lifespan: .permanent)
-        return record?.value
+        do {
+            let record = try storage?.fetchMetadata(key: key.rawValue, type: .customProperty, lifespan: .permanent)
+            return record?.stringValue
+        } catch {
+            Embrace.logger.warning("Unable to read user metadata!")
+        }
+        return nil
     }
 
     private func update(key: UserResourceKey, value: String?) {

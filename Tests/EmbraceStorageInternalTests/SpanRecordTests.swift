@@ -6,6 +6,7 @@ import XCTest
 import TestSupport
 import EmbraceCommonInternal
 @testable import EmbraceStorageInternal
+import GRDB
 
 class SpanRecordTests: XCTestCase {
     var storage: EmbraceStorage!
@@ -15,12 +16,123 @@ class SpanRecordTests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
-        storage.coreData.destroy()
+        try storage.teardown()
+    }
+
+    func test_tableSchema() throws {
+        XCTAssertEqual(SpanRecord.databaseTableName, "spans")
+
+        // then the table and its columns should be correct
+        try storage.dbQueue.read { db in
+            XCTAssert(try db.tableExists(SpanRecord.databaseTableName))
+
+            let columns = try db.columns(in: SpanRecord.databaseTableName)
+            XCTAssertEqual(columns.count, 8)
+
+            // primary key
+            XCTAssert(try db.table(
+                SpanRecord.databaseTableName,
+                hasUniqueKey: [
+                    SpanRecord.Schema.traceId.name,
+                    SpanRecord.Schema.id.name
+                ]
+            ))
+
+            // id
+            let idColumn = columns.first(where: { $0.name == SpanRecord.Schema.id.name })
+            if let idColumn = idColumn {
+                XCTAssertEqual(idColumn.type, "TEXT")
+                XCTAssert(idColumn.isNotNull)
+            } else {
+                XCTAssert(false, "id column not found!")
+            }
+
+            // name
+            let nameColumn = columns.first(where: { $0.name == SpanRecord.Schema.name.name })
+            if let nameColumn = nameColumn {
+                XCTAssertEqual(nameColumn.type, "TEXT")
+                XCTAssert(nameColumn.isNotNull)
+            } else {
+                XCTAssert(false, "name column not found!")
+            }
+
+            // trace_id
+            let traceIdColumn = columns.first(where: { $0.name == SpanRecord.Schema.traceId.name })
+            if let traceIdColumn = traceIdColumn {
+                XCTAssertEqual(traceIdColumn.type, "TEXT")
+                XCTAssert(traceIdColumn.isNotNull)
+            } else {
+                XCTAssert(false, "trace_id column not found!")
+            }
+
+            // type
+            let typeColumn = columns.first(where: { $0.name == SpanRecord.Schema.type.name })
+            if let typeColumn = typeColumn {
+                XCTAssertEqual(typeColumn.type, "TEXT")
+                XCTAssert(typeColumn.isNotNull)
+            } else {
+                XCTAssert(false, "type column not found!")
+            }
+
+            // start_time
+            let startTimeColumn = columns.first(where: { $0.name == SpanRecord.Schema.startTime.name })
+            if let startTimeColumn = startTimeColumn {
+                XCTAssertEqual(startTimeColumn.type, "DATETIME")
+                XCTAssert(startTimeColumn.isNotNull)
+            } else {
+                XCTAssert(false, "start_time column not found!")
+            }
+
+            // end_time
+            let endTimeColumn = columns.first(where: { $0.name == SpanRecord.Schema.endTime.name })
+            if let endTimeColumn = endTimeColumn {
+                XCTAssertEqual(endTimeColumn.type, "DATETIME")
+            } else {
+                XCTAssert(false, "end_time column not found!")
+            }
+
+            // data
+            let dataColumn = columns.first(where: { $0.name == SpanRecord.Schema.data.name })
+            if let dataColumn = dataColumn {
+                XCTAssertEqual(dataColumn.type, "BLOB")
+                XCTAssert(dataColumn.isNotNull)
+            } else {
+                XCTAssert(false, "data column not found!")
+            }
+
+            // processIdentifier
+            let processIdentifierColumn = columns.first(where: { $0.name == SpanRecord.Schema.processIdentifier.name })
+            if let processIdentifierColumn = processIdentifierColumn {
+                XCTAssertEqual(processIdentifierColumn.type, "TEXT")
+                XCTAssert(processIdentifierColumn.isNotNull)
+            } else {
+                XCTAssert(false, "process_identifier column not found!")
+            }
+        }
+    }
+
+    func test_addSpan() throws {
+        // given inserted span
+        let span = try storage.addSpan(
+            id: "id",
+            name: "a name",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: Date(),
+            endTime: nil
+        )
+        XCTAssertNotNil(span)
+
+        // then span should exist in storage
+        try storage.dbQueue.read { db in
+            XCTAssert(try span.exists(db))
+        }
     }
 
     func test_upsertSpan() throws {
         // given inserted span
-        storage.upsertSpan(
+        let span = SpanRecord(
             id: "id",
             name: "a name",
             traceId: "tradeId",
@@ -28,16 +140,21 @@ class SpanRecordTests: XCTestCase {
             data: Data(),
             startTime: Date()
         )
+        try storage.upsertSpan(span)
 
         // then span should exist in storage
-        let spans: [SpanRecord] = storage.fetchAll()
-        XCTAssertEqual(spans.count, 1)
-        XCTAssertEqual(spans[0].id, "id")
+        let expectation = XCTestExpectation()
+        try storage.dbQueue.read { db in
+            XCTAssert(try span.exists(db))
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_fetchSpan() throws {
         // given inserted span
-        let original = storage.upsertSpan(
+        let original = try storage.addSpan(
             id: "id",
             name: "a name",
             traceId: TestConstants.traceId,
@@ -48,7 +165,7 @@ class SpanRecordTests: XCTestCase {
         )
 
         // when fetching the span
-        let span = storage.fetchSpan(id: "id", traceId: TestConstants.traceId)
+        let span = try storage.fetchSpan(id: "id", traceId: TestConstants.traceId)
 
         // then the span should be valid
         XCTAssertNotNil(span)
@@ -57,7 +174,7 @@ class SpanRecordTests: XCTestCase {
 
     func test_cleanUpSpans() throws {
         // given inserted spans
-        storage.upsertSpan(
+        _ = try storage.addSpan(
             id: "id1",
             name: "a name 1",
             traceId: TestConstants.traceId,
@@ -66,7 +183,7 @@ class SpanRecordTests: XCTestCase {
             startTime: Date(timeIntervalSince1970: 0),
             endTime: Date(timeIntervalSince1970: 10)
         )
-        storage.upsertSpan(
+        _ = try storage.addSpan(
             id: "id2",
             name: "a name 2",
             traceId: TestConstants.traceId,
@@ -75,7 +192,7 @@ class SpanRecordTests: XCTestCase {
             startTime: Date(timeIntervalSince1970: 0),
             endTime: Date(timeIntervalSince1970: 20)
         )
-        storage.upsertSpan(
+        _ = try storage.addSpan(
             id: "id3",
             name: "a name 3",
             traceId: TestConstants.traceId,
@@ -85,23 +202,30 @@ class SpanRecordTests: XCTestCase {
         )
 
         // when cleaning up spans with a date
-        storage.cleanUpSpans(date: Date(timeIntervalSince1970: 15))
+        try storage.cleanUpSpans(date: Date(timeIntervalSince1970: 15))
 
         // then closed spans older than that date are removed
         // and open spans remain untouched
-        let spans: [SpanRecord] = storage.fetchAll()
-        XCTAssertEqual(spans.count, 2)
-        XCTAssertNil(spans.first(where: { $0.id == "id1" }))
-        XCTAssertNotNil(spans.first(where: { $0.id == "id2" }))
+        let expectation = XCTestExpectation()
+        try storage.dbQueue.read { db in
+            let spans = try SpanRecord
+                .order(SpanRecord.Schema.startTime.asc)
+                .fetchAll(db)
 
-        let span3 = spans.first(where: { $0.id == "id3" })
-        XCTAssertNotNil(span3)
-        XCTAssertNil(span3!.endTime)
+            XCTAssertEqual(spans.count, 2)
+            XCTAssertEqual(spans[0].id, "id2")
+            XCTAssertEqual(spans[1].id, "id3")
+            XCTAssertNil(spans[1].endTime)
+
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_cleanUpSpans_noDate() throws {
         // given insterted spans
-        storage.upsertSpan(
+        _ = try storage.addSpan(
             id: "id1",
             name: "a name 1",
             traceId: TestConstants.traceId,
@@ -110,7 +234,7 @@ class SpanRecordTests: XCTestCase {
             startTime: Date(timeIntervalSince1970: 0),
             endTime: Date(timeIntervalSince1970: 10)
         )
-        storage.upsertSpan(
+        _ = try storage.addSpan(
             id: "id2",
             name: "a name 2",
             traceId: TestConstants.traceId,
@@ -119,7 +243,7 @@ class SpanRecordTests: XCTestCase {
             startTime: Date(timeIntervalSince1970: 0),
             endTime: Date(timeIntervalSince1970: 20)
         )
-        storage.upsertSpan(
+        _ = try storage.addSpan(
             id: "id3",
             name: "a name 3",
             traceId: TestConstants.traceId,
@@ -129,19 +253,27 @@ class SpanRecordTests: XCTestCase {
         )
 
         // when cleaning up spans without a date
-        storage.cleanUpSpans(date: nil)
+        try storage.cleanUpSpans(date: nil)
 
         // then all closed spans are removed
         // and open spans remain untouched
-        let spans: [SpanRecord] = storage.fetchAll()
-        XCTAssertEqual(spans.count, 1)
-        XCTAssertEqual(spans[0].id, "id3")
-        XCTAssertNil(spans[0].endTime)
+        let expectation = XCTestExpectation()
+        try storage.dbQueue.read { db in
+            let spans = try SpanRecord.fetchAll(db)
+
+            XCTAssertEqual(spans.count, 1)
+            XCTAssertEqual(spans[0].id, "id3")
+            XCTAssertNil(spans[0].endTime)
+
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_closeOpenSpans() throws {
         // given insterted spans
-        storage.upsertSpan(
+        _ = try storage.addSpan(
             id: "id1",
             name: "a name 1",
             traceId: TestConstants.traceId,
@@ -149,16 +281,16 @@ class SpanRecordTests: XCTestCase {
             startTime: Date(timeIntervalSince1970: 0),
             endTime: Date(timeIntervalSince1970: 10)
         )
-        storage.upsertSpan(
+        _ = try storage.addSpan(
             id: "id2",
             name: "a name 2",
             traceId: TestConstants.traceId,
             type: .performance,
             data: Data(),
             startTime: Date(timeIntervalSince1970: 1),
-            processId: TestConstants.processId
+            processIdentifier: TestConstants.processId
         )
-        storage.upsertSpan(
+        _ = try storage.addSpan(
             id: "id3",
             name: "a name 3",
             traceId: TestConstants.traceId,
@@ -169,20 +301,24 @@ class SpanRecordTests: XCTestCase {
 
         // when closing the spans
         let now = Date()
-        storage.closeOpenSpans(endTime: now)
+        try storage.closeOpenSpans(endTime: now)
 
         // then all spans are correctly closed
-        let spans: [SpanRecord] = storage.fetchAll()
-        XCTAssertEqual(spans.count, 3)
+        let expectation = XCTestExpectation()
+        try storage.dbQueue.read { db in
+            let spans = try SpanRecord
+                .order(SpanRecord.Schema.startTime.asc)
+                .fetchAll(db)
 
-        let span1 = spans.first(where: { $0.id == "id1" })
-        XCTAssertNotNil(span1!.endTime)
-        XCTAssertNotEqual(span1!.endTime!.timeIntervalSince1970, now.timeIntervalSince1970, accuracy: 0.1)
+            XCTAssertEqual(spans.count, 3)
+            XCTAssertNotNil(spans[0].endTime)
+            XCTAssertNotEqual(spans[0].endTime!.timeIntervalSince1970, now.timeIntervalSince1970, accuracy: 0.1)
+            XCTAssertEqual(spans[1].endTime!.timeIntervalSince1970, now.timeIntervalSince1970, accuracy: 0.1)
+            XCTAssertNil(spans[2].endTime)
 
-        let span2 = spans.first(where: { $0.id == "id2" })
-        XCTAssertEqual(span2!.endTime!.timeIntervalSince1970, now.timeIntervalSince1970, accuracy: 0.1)
+            expectation.fulfill()
+        }
 
-        let span3 = spans.first(where: { $0.id == "id3" })
-        XCTAssertNil(span3!.endTime)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 }

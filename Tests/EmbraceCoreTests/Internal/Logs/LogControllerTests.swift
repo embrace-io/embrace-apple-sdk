@@ -10,7 +10,6 @@ import EmbraceUploadInternal
 import EmbraceCommonInternal
 import EmbraceConfigInternal
 import TestSupport
-import OpenTelemetryApi
 
 class LogControllerTests: XCTestCase {
     private var sut: LogController!
@@ -48,6 +47,13 @@ class LogControllerTests: XCTestCase {
         thenDoesntTryToUploadAnything()
     }
 
+    func testHavingThrowingFetchAll_onSetup_shouldRemoveAllLogs() throws {
+        givenStorageThatThrowsException()
+        givenLogController()
+        whenInvokingSetup()
+        try thenStorageShouldHaveRemoveAllLogs()
+    }
+
     func testHavingLogs_onSetup_fetchesResourcesFromStorage() throws {
         let sessionId = SessionIdentifier.random
         let log = randomLogRecord(sessionId: sessionId)
@@ -73,7 +79,7 @@ class LogControllerTests: XCTestCase {
         givenStorage(withLogs: [log])
         givenLogController()
         whenInvokingSetup()
-        try thenFetchesResourcesFromStorage(processId: log.processId!)
+        try thenFetchesResourcesFromStorage(processId: log.processIdentifier)
     }
 
     func testHavingLogsWithNoSessionId_onSetup_fetchesMetadataFromStorage() throws {
@@ -81,7 +87,7 @@ class LogControllerTests: XCTestCase {
         givenStorage(withLogs: [log])
         givenLogController()
         whenInvokingSetup()
-        try thenFetchesMetadataFromStorage(processId: log.processId!)
+        try thenFetchesMetadataFromStorage(processId: log.processIdentifier)
     }
 
     func testHavingLogsForLessThanABatch_onSetup_logUploaderShouldSendASingleBatch() {
@@ -161,6 +167,13 @@ class LogControllerTests: XCTestCase {
 
     func testSDKDisabledHavingLogs_onBatchFinished_ontTryToUploadAnything() throws {
         givenSDKEnabled(false)
+        givenLogController()
+        whenInvokingBatchFinished(withLogs: [randomLogRecord()])
+        thenDoesntTryToUploadAnything()
+    }
+
+    func testHavingThrowingStorage_onBatchFinished_wontTryToUploadAnything() {
+        givenStorageThatThrowsException()
         givenLogController()
         whenInvokingBatchFinished(withLogs: [randomLogRecord()])
         thenDoesntTryToUploadAnything()
@@ -282,26 +295,30 @@ private extension LogControllerTests {
 
     func givenSessionControllerWithSession() {
         sessionController = .init()
-        sessionController.currentSession = MockSession(
+        sessionController.currentSession = .init(
             id: .random,
-            processId: .random,
             state: .foreground,
+            processId: .random,
             traceId: UUID().uuidString,
             spanId: UUID().uuidString,
             startTime: Date()
         )
     }
 
-    func givenStorage(withLogs logs: [EmbraceLog] = []) {
+    func givenStorage(withLogs logs: [LogRecord] = []) {
         storage = .init()
         storage?.stubbedFetchAllExcludingProcessIdentifier = logs
+    }
+
+    func givenStorageThatThrowsException() {
+        storage = .init(SpyStorage(shouldThrow: true))
     }
 
     func whenInvokingSetup() {
         sut.uploadAllPersistedLogs()
     }
 
-    func whenInvokingBatchFinished(withLogs logs: [EmbraceLog]) {
+    func whenInvokingBatchFinished(withLogs logs: [LogRecord]) {
         sut.batchFinished(withLogs: logs)
     }
 
@@ -357,13 +374,10 @@ private extension LogControllerTests {
         XCTAssertTrue(upload.didCallUploadLog)
     }
 
-    func thenStorageShouldCallRemove(withLogs logs: [EmbraceLog]) throws {
+    func thenStorageShouldCallRemove(withLogs logs: [LogRecord]) throws {
         let unwrappedStorage = try XCTUnwrap(storage)
         wait(timeout: 1.0) {
-            let expectedIds = logs.map { $0.idRaw }
-            let ids = unwrappedStorage.removeLogsReceivedParameter.map { $0.idRaw }
-
-            return unwrappedStorage.didCallRemoveLogs && expectedIds == ids
+            unwrappedStorage.didCallRemoveLogs && unwrappedStorage.removeLogsReceivedParameter == logs
         }
     }
 
@@ -440,25 +454,31 @@ private extension LogControllerTests {
         }
     }
 
-    func randomLogRecord(sessionId: SessionIdentifier? = nil) -> EmbraceLog {
+    func randomLogRecord(sessionId: SessionIdentifier? = nil) -> LogRecord {
 
-        var attributes: [String: AttributeValue] = [:]
+        var attributes: [String: PersistableValue] = [:]
         if let sessionId = sessionId {
-            attributes["session.id"] = AttributeValue(sessionId.toString)
+            attributes["session.id"] = PersistableValue(sessionId.toString)
         }
 
-        return MockLog(
-            id: .random,
-            processId: .random,
+        return LogRecord(
+            identifier: .random,
+            processIdentifier: .random,
             severity: .info,
             body: UUID().uuidString,
             attributes: attributes
         )
     }
 
-    func logsForMoreThanASingleBatch() -> [EmbraceLog] {
+    func logsForMoreThanASingleBatch() -> [LogRecord] {
         return (1...LogController.maxLogsPerBatch + 1).map { _ in
             randomLogRecord()
         }
+    }
+}
+
+extension LogRecord: Equatable {
+    public static func == (lhs: LogRecord, rhs: LogRecord) -> Bool {
+        lhs.identifier == rhs.identifier
     }
 }

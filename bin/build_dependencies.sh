@@ -1,7 +1,7 @@
 #!/bin/bash
 set -x
 
-DEPENDENCIES=("KSCrash" "opentelemetry-swift")
+DEPENDENCIES=("KSCrash" "GRDB.swift" "opentelemetry-swift")
 SCRIPT_DIR=$(dirname $0)
 DEPENDENCIES_DIR="${SCRIPT_DIR}/dependencies"
 TEMP_DIR="${DEPENDENCIES_DIR}/temp"

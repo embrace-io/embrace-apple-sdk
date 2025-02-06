@@ -9,6 +9,7 @@ import PackageDescription
 
     let packageSettings = PackageSettings(
         productTypes: [
+            "GRDB": .framework,
             "KSCrash": .framework,
             "OpenTelemetrySdk": .framework,
             "OpenTelemetryApi": .framework
@@ -36,6 +37,10 @@ let package = Package(
         .package(
             url: "https://github.com/open-telemetry/opentelemetry-swift",
             exact: "1.13.0"
+        ),
+        .package(
+            url: "https://github.com/groue/GRDB.swift",
+            .upToNextMinor(from: "6.29.1")
         )
     ],
     targets: [
@@ -57,7 +62,8 @@ let package = Package(
                 "EmbraceIO",
                 "EmbraceCore",
                 "EmbraceCrash",
-                "TestSupport"
+                "TestSupport",
+                .product(name: "GRDB", package: "GRDB.swift")
             ]
         ),
 
@@ -85,7 +91,8 @@ let package = Package(
             dependencies: [
                 "EmbraceCore",
                 "TestSupport",
-                "TestSupportObjc"
+                "TestSupportObjc",
+                .product(name: "GRDB", package: "GRDB.swift")
             ],
             resources: [
                 .copy("Mocks/")
@@ -94,10 +101,7 @@ let package = Package(
 
         // common --------------------------------------------------------------------
         .target(
-            name: "EmbraceCommonInternal",
-            dependencies: [
-                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
-            ]
+            name: "EmbraceCommonInternal"
         ),
         .testTarget(
             name: "EmbraceCommonInternalTests",
@@ -186,8 +190,8 @@ let package = Package(
             name: "EmbraceStorageInternal",
             dependencies: [
                 "EmbraceCommonInternal",
-                "EmbraceCoreDataInternal",
-                "EmbraceSemantics"
+                "EmbraceSemantics",
+                .product(name: "GRDB", package: "GRDB.swift")
             ]
         ),
         .testTarget(
@@ -204,7 +208,8 @@ let package = Package(
             dependencies: [
                 "EmbraceCommonInternal",
                 "EmbraceOTelInternal",
-                "EmbraceCoreDataInternal"
+                "EmbraceCoreDataInternal",
+                .product(name: "GRDB", package: "GRDB.swift")
             ]
         ),
         .testTarget(
