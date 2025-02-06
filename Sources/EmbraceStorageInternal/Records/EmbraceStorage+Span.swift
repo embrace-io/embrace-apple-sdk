@@ -136,10 +136,12 @@ extension EmbraceStorage {
 
         let endTime = (session.endTime ?? session.lastHeartbeatTime) as NSDate
 
+        var predicate: NSPredicate
+
         // special case for cold start sessions
         // we grab spans that might have started before the session but within the same process
         if session.coldStart {
-            request.predicate = NSPredicate(
+            predicate = NSPredicate(
                 format: "processIdRaw == %@ AND startTime <= %@",
                 session.processIdRaw,
                 endTime
@@ -169,7 +171,15 @@ extension EmbraceStorage {
                 endTime
             )
 
-            request.predicate = NSCompoundPredicate(type: .or, subpredicates: [predicate1, predicate2])
+            predicate = NSCompoundPredicate(type: .or, subpredicates: [predicate1, predicate2])
+        }
+
+        // ignore session spans?
+        if ignoreSessionSpans {
+            let sessionTypePredicate = NSPredicate(format: "typeRaw != %@", SpanType.session.rawValue)
+            request.predicate = NSCompoundPredicate(type: .and, subpredicates: [sessionTypePredicate, predicate])
+        } else {
+            request.predicate = predicate
         }
 
         return coreData.fetch(withRequest: request)
