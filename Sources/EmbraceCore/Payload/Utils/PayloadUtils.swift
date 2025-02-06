@@ -10,25 +10,37 @@ class PayloadUtils {
     static func fetchResources(
         from fetcher: EmbraceStorageMetadataFetcher,
         sessionId: SessionIdentifier?
-    ) -> [EmbraceMetadata] {
+    ) -> [MetadataRecord] {
 
         guard let sessionId = sessionId else {
             return []
         }
 
-        return fetcher.fetchResourcesForSessionId(sessionId)
+        do {
+            return try fetcher.fetchResourcesForSessionId(sessionId)
+        } catch let e {
+            Embrace.logger.error("Failed to fetch resource records from storage: \(e.localizedDescription)")
+        }
+
+        return []
     }
 
     static func fetchCustomProperties(
         from fetcher: EmbraceStorageMetadataFetcher,
         sessionId: SessionIdentifier?
-    ) -> [EmbraceMetadata] {
+    ) -> [MetadataRecord] {
 
         guard let sessionId = sessionId else {
             return []
         }
 
-        return fetcher.fetchCustomPropertiesForSessionId(sessionId)
+        do {
+            return try fetcher.fetchCustomPropertiesForSessionId(sessionId)
+        } catch let e {
+            Embrace.logger.error("Failed to fetch custom properties from storage: \(e.localizedDescription)")
+        }
+
+        return []
     }
 
     static func convertSpanAttributes(_ attributes: [String: AttributeValue]) -> [Attribute] {

@@ -1,6 +1,15 @@
 {
   "pins" : [
     {
+      "identity" : "grdb.swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/groue/GRDB.swift.git",
+      "state" : {
+        "revision" : "dd6b98ce04eda39aa22f066cd421c24d7236ea8a",
+        "version" : "6.29.1"
+      }
+    },
+    {
       "identity" : "grpc-swift",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/grpc/grpc-swift.git",
@@ -23,8 +32,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/open-telemetry/opentelemetry-swift",
       "state" : {
-        "revision" : "f2315d8646432c02338960e85b5fe20417ad6d8d",
-        "version" : "1.12.1"
+        "revision" : "2ffffae2a027e2159dbf3fd53de1f25ba6d2d11d",
+        "version" : "1.13.0"
       }
     },
     {

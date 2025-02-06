@@ -7,18 +7,15 @@ import EmbraceStorageInternal
 import EmbraceCommonInternal
 import TestSupport
 @testable import EmbraceCore
-import OpenTelemetryApi
 
 class LogPayloadBuilderTests: XCTestCase {
     func test_build_addsLogIdAttribute() throws {
         let logId = LogIdentifier(value: try XCTUnwrap(UUID(uuidString: "53B55EDD-889A-4876-86BA-6798288B609C")))
-        let record = MockLog(
-            id: logId,
-            processId: .random,
-            severity: .info,
-            body: "Hello World",
-            attributes: .empty()
-        )
+        let record = LogRecord(identifier: logId,
+                               processIdentifier: .random,
+                               severity: .info,
+                               body: "Hello World",
+                               attributes: .empty())
 
         let payload = LogPayloadBuilder.build(log: record)
 
@@ -28,37 +25,36 @@ class LogPayloadBuilderTests: XCTestCase {
     }
 
     func test_buildLogRecordWithAttributes_mapsKeyValuesAsAttributeStruct() {
-        let originalAttributes: [String: AttributeValue] = [
+        let originalAttributes: [String: PersistableValue] = [
             "string_attribute": .string("string"),
             "integer_attribute": .int(1),
             "boolean_attribute": .bool(false),
             "double_attribute": .double(5.0)
         ]
-        let record = MockLog(
-            id: .random,
-            processId: .random,
-            severity: .info,
-            body: .random(),
-            attributes: originalAttributes
-        )
+        let record = LogRecord(identifier: .random,
+                               processIdentifier: .random,
+                               severity: .info,
+                               body: .random(),
+                               attributes: originalAttributes)
 
         let payload = LogPayloadBuilder.build(log: record)
 
         XCTAssertGreaterThanOrEqual(payload.attributes.count, originalAttributes.count)
-
-        for (key, value) in originalAttributes {
-            let attribute = payload.attributes.first(where: { $0.key == key && $0.value == value.description })
-            XCTAssertNotNil(attribute)
+        originalAttributes.forEach { originalAttributeKey, originalAttributeValue in
+            let originalAttributeWasMigrated = payload.attributes.contains { attribute in
+                attribute.key == originalAttributeKey && attribute.value == originalAttributeValue.description
+            }
+            XCTAssertTrue(originalAttributeWasMigrated)
         }
     }
 
     func test_manualBuild() throws {
         // given a session in storage
         let storage = try EmbraceStorage.createInMemoryDb()
-        storage.addSession(
+        try storage.addSession(
             id: TestConstants.sessionId,
-            processId: TestConstants.processId,
             state: .foreground,
+            processId: TestConstants.processId,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSince1970: 0),
@@ -66,26 +62,26 @@ class LogPayloadBuilderTests: XCTestCase {
         )
 
         // given metadata in storage of that session
-        storage.addMetadata(
+        try storage.addMetadata(
             key: AppResourceKey.appVersion.rawValue,
             value: "1.0.0",
             type: .requiredResource,
             lifespan: .permanent
         )
-        storage.addMetadata(
+        try storage.addMetadata(
             key: UserResourceKey.name.rawValue,
             value: "test",
             type: .customProperty,
             lifespan: .session,
             lifespanId: TestConstants.sessionId.toString
         )
-        storage.addMetadata(
+        try storage.addMetadata(
             key: "tag1",
             value: "tag1",
             type: .personaTag,
             lifespan: .permanent
         )
-        storage.addMetadata(
+        try storage.addMetadata(
             key: "tag2",
             value: "tag2",
             type: .personaTag,

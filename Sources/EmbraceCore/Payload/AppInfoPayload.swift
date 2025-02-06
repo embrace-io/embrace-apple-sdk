@@ -30,7 +30,7 @@ struct AppInfoPayload: Codable {
         case appBundleId = "bid"
     }
 
-    init (with resources: [EmbraceMetadata]) {
+    init (with resources: [MetadataRecord]) {
         self.appBundleId = Bundle.main.bundleIdentifier
 
         resources.forEach { resource in
@@ -40,21 +40,21 @@ struct AppInfoPayload: Codable {
 
             switch key {
             case .bundleVersion:
-                self.bundleVersion = resource.value
+                self.bundleVersion = resource.stringValue
             case .environment:
-                self.environment = resource.value
+                self.environment = resource.stringValue
             case .detailedEnvironment:
-                self.detailedEnvironment = resource.value
+                self.detailedEnvironment = resource.stringValue
             case .framework:
-                self.framework = Int(resource.value)
+                self.framework = resource.integerValue
             case .launchCount:
-                self.launchCount = Int(resource.value)
+                self.launchCount = resource.integerValue
             case .sdkVersion:
-                self.sdkVersion = resource.value
+                self.sdkVersion = resource.stringValue
             case .appVersion:
-                self.appVersion = resource.value
+                self.appVersion = resource.stringValue
             case .buildID:
-                self.buildID = resource.value
+                self.buildID = resource.stringValue
             default: break
             }
         }

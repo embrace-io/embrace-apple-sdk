@@ -7,23 +7,23 @@ import XCTest
 import EmbraceCommonInternal
 
 class MockMetadataFetcher: EmbraceStorageMetadataFetcher {
-    var metadata: [EmbraceMetadata]
+    var metadata: [MetadataRecord]
 
-    init(metadata: [EmbraceMetadata] = []) {
+    init(metadata: [MetadataRecord] = []) {
         self.metadata = metadata
     }
 
-    func fetchAllResources() -> [EmbraceMetadata] {
+    func fetchAllResources() throws -> [MetadataRecord] {
         return metadata
     }
 
-    func fetchResourcesForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata] {
+    func fetchResourcesForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord] {
         return metadata.filter { record in
             (record.type == .resource || record.type == .requiredResource)
         }
     }
 
-    func fetchResourcesForProcessId(_ processId: ProcessIdentifier) -> [EmbraceMetadata] {
+    func fetchResourcesForProcessId(_ processId: ProcessIdentifier) throws -> [MetadataRecord] {
         return metadata.filter { record in
             (record.type == .resource || record.type == .requiredResource) &&
             record.lifespan == .process &&
@@ -31,7 +31,7 @@ class MockMetadataFetcher: EmbraceStorageMetadataFetcher {
         }
     }
 
-    func fetchCustomPropertiesForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata] {
+    func fetchCustomPropertiesForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord] {
         return metadata.filter { record in
             record.type == .customProperty &&
             record.lifespan == .session &&
@@ -39,7 +39,7 @@ class MockMetadataFetcher: EmbraceStorageMetadataFetcher {
         }
     }
 
-    func fetchPersonaTagsForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata] {
+    func fetchPersonaTagsForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord] {
         return metadata.filter { record in
             record.type == .personaTag &&
             record.lifespan == .session &&
@@ -47,7 +47,7 @@ class MockMetadataFetcher: EmbraceStorageMetadataFetcher {
         }
     }
 
-    func fetchPersonaTagsForProcessId(_ processId: ProcessIdentifier) -> [EmbraceMetadata] {
+    func fetchPersonaTagsForProcessId(_ processId: ProcessIdentifier) throws -> [MetadataRecord] {
         return metadata.filter { record in
             record.type == .personaTag &&
             record.lifespan == .process &&

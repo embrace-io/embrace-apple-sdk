@@ -16,48 +16,33 @@ class MockSessionController: SessionControllable {
     var didCallEndSession: Bool = false
     var didCallUpdateSession: Bool = false
 
-    private var updateSessionCallback: ((EmbraceSession?, SessionState?, Bool?) -> Void)?
+    private var updateSessionCallback: ((SessionRecord?, SessionState?, Bool?) -> Void)?
 
-    weak var storage: EmbraceStorage?
-    var currentSession: EmbraceSession?
+    var currentSession: SessionRecord?
 
     func clear() { }
 
     @discardableResult
-    func startSession(state: SessionState) -> EmbraceSession? {
+    func startSession(state: SessionState) -> SessionRecord? {
         return startSession(state: state, startTime: Date())
     }
 
     @discardableResult
-    func startSession(state: SessionState, startTime: Date = Date()) -> EmbraceSession? {
+    func startSession(state: SessionState, startTime: Date = Date()) -> SessionRecord? {
         if currentSession != nil {
             endSession()
         }
 
+        let session = SessionRecord(
+            id: nextSessionId ?? .random,
+            state: state,
+            processId: ProcessIdentifier.current,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: startTime
+        )
+
         didCallStartSession = true
-
-        var session: EmbraceSession?
-
-        if let storage = storage {
-            session = storage.addSession(
-                id: nextSessionId ?? .random,
-                processId: ProcessIdentifier.current,
-                state: state,
-                traceId: TestConstants.traceId,
-                spanId: TestConstants.spanId,
-                startTime: startTime
-            )
-        } else {
-            session = MockSession(
-                id: nextSessionId ?? .random,
-                processId: ProcessIdentifier.current,
-                state: state,
-                traceId: TestConstants.traceId,
-                spanId: TestConstants.spanId,
-                startTime: startTime
-            )
-        }
-
         currentSession = session
 
         return session
@@ -83,7 +68,7 @@ class MockSessionController: SessionControllable {
         updateSessionCallback?(currentSession, nil, appTerminated)
     }
 
-    func onUpdateSession(_ callback: @escaping ((EmbraceSession?, SessionState?, Bool?) -> Void)) {
+    func onUpdateSession(_ callback: @escaping ((SessionRecord?, SessionState?, Bool?) -> Void)) {
         updateSessionCallback = callback
     }
 

@@ -18,7 +18,7 @@ struct LogsBatch {
     }
 
     @ThreadSafe
-    private(set) var logs: [EmbraceLog]
+    private(set) var logs: [LogRecord]
     private let limits: LogBatchLimits
 
     private var creationDate: Date? {
@@ -36,16 +36,16 @@ struct LogsBatch {
         return .open
     }
 
-    init(limits: LogBatchLimits, logs: [EmbraceLog] = []) {
+    init(limits: LogBatchLimits, logs: [LogRecord] = []) {
         self.logs = logs
         self.limits = limits
     }
 
-    func add(log: EmbraceLog) -> BatchingResult {
+    func add(logRecord: LogRecord) -> BatchingResult {
         guard batchState == .open else {
             return .failure
         }
-        logs.append(log)
+        logs.append(logRecord)
         return .success(batchState: batchState)
     }
 }

@@ -17,31 +17,31 @@ class DeviceIdentifier_PersistenceTests: XCTestCase {
         KeychainAccess.keychain = AlwaysSuccessfulKeychainInterface()
 
         // delete the resource if we already have it
-        if let resource = storage.fetchRequiredPermanentResource(key: DeviceIdentifier.resourceKey) {
-            storage.delete(resource)
+        if let resource = try storage.fetchRequiredPermanentResource(key: DeviceIdentifier.resourceKey) {
+            try storage.delete(record: resource)
         }
     }
 
     override func tearDownWithError() throws {
-        storage.coreData.destroy()
+        try storage.teardown()
     }
 
     func test_retrieve_withNoRecordInStorage_shouldCreateNewPermanentRecord() throws {
         let result = DeviceIdentifier.retrieve(from: storage)
 
-        let resourceRecord = storage.fetchRequiredPermanentResource(key: DeviceIdentifier.resourceKey)
+        let resourceRecord = try storage.fetchRequiredPermanentResource(key: DeviceIdentifier.resourceKey)
         XCTAssertNotNil(resourceRecord)
         XCTAssertEqual(resourceRecord?.lifespan, .permanent)
 
-        let storedDeviceId = UUID(withoutHyphen: resourceRecord!.value)!
+        let storedDeviceId = try XCTUnwrap(resourceRecord?.uuidValue)
         XCTAssertEqual(result, DeviceIdentifier(value: storedDeviceId))
     }
 
     func test_retrieve_withNoRecordInStorage_shouldRequestFromKeychain() throws {
         // because of our setup we could assume there is no database entry but lets make sure
         // to delete the resource if we already have it
-        if let resource = storage.fetchRequiredPermanentResource(key: DeviceIdentifier.resourceKey) {
-            storage.delete(resource)
+        if let resource = try storage.fetchRequiredPermanentResource(key: DeviceIdentifier.resourceKey) {
+            try storage.delete(record: resource)
         }
         let keychainDeviceId = KeychainAccess.deviceId
 
@@ -55,7 +55,7 @@ class DeviceIdentifier_PersistenceTests: XCTestCase {
 
         let deviceId = DeviceIdentifier(value: UUID())
 
-        storage.addMetadata(
+        try storage.addMetadata(
             key: DeviceIdentifier.resourceKey,
             value: deviceId.hex,
             type: .requiredResource,

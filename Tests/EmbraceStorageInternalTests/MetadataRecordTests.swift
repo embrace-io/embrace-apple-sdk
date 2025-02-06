@@ -15,26 +15,106 @@ class MetadataRecordTests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
-        storage.coreData.destroy()
+        try storage.teardown()
+    }
+
+    func test_tableSchema() throws {
+        XCTAssertEqual(MetadataRecord.databaseTableName, "metadata")
+
+        // then the table and its colums should be correct
+        try storage.dbQueue.read { db in
+            XCTAssert(try db.tableExists(MetadataRecord.databaseTableName))
+
+            // primary key
+            XCTAssert(try db.table(
+                MetadataRecord.databaseTableName,
+                hasUniqueKey: [
+                    MetadataRecord.Schema.key.name,
+                    MetadataRecord.Schema.type.name,
+                    MetadataRecord.Schema.lifespan.name,
+                    MetadataRecord.Schema.lifespanId.name
+                ]
+            ))
+
+            // column count
+            let columns = try db.columns(in: MetadataRecord.databaseTableName)
+            XCTAssertEqual(columns.count, 6)
+
+            // id
+            let keyColumn = columns.first(where: { $0.name == MetadataRecord.Schema.key.name })
+            if let keyColumn = keyColumn {
+                XCTAssertEqual(keyColumn.type, "TEXT")
+                XCTAssert(keyColumn.isNotNull)
+            } else {
+                XCTAssert(false, "key column not found!")
+            }
+
+            // state
+            let valueColumn = columns.first(where: { $0.name == MetadataRecord.Schema.value.name })
+            if let valueColumn = valueColumn {
+                XCTAssertEqual(valueColumn.type, "TEXT")
+                XCTAssert(valueColumn.isNotNull)
+            } else {
+                XCTAssert(false, "value column not found!")
+            }
+
+            // type
+            let typeColumn = columns.first(where: { $0.name == MetadataRecord.Schema.type.name })
+            if let typeColumn = typeColumn {
+                XCTAssertEqual(typeColumn.type, "TEXT")
+                XCTAssert(typeColumn.isNotNull)
+            } else {
+                XCTAssert(false, "type column not found!")
+            }
+
+            // collected_at
+            let collectedAtColumn = columns.first(where: { $0.name == MetadataRecord.Schema.collectedAt.name })
+            if let collectedAtColumn = collectedAtColumn {
+                XCTAssertEqual(collectedAtColumn.type, "DATETIME")
+                XCTAssert(collectedAtColumn.isNotNull)
+            } else {
+                XCTAssert(false, "collected_at column not found!")
+            }
+
+            // lifepsan
+            let lifespanColumn = columns.first(where: { $0.name == MetadataRecord.Schema.lifespan.name })
+            if let lifespanColumn = lifespanColumn {
+                XCTAssertEqual(lifespanColumn.type, "TEXT")
+                XCTAssert(lifespanColumn.isNotNull)
+            } else {
+                XCTAssert(false, "lifespan column not found!")
+            }
+
+            // lifepsan id
+            let lifespanIdColumn = columns.first(where: { $0.name == MetadataRecord.Schema.lifespanId.name })
+            if let lifespanIdColumn = lifespanIdColumn {
+                XCTAssertEqual(lifespanIdColumn.type, "TEXT")
+                XCTAssert(lifespanIdColumn.isNotNull)
+            } else {
+                XCTAssert(false, "lifespan_id column not found!")
+            }
+        }
     }
 
     func test_addMetadata() throws {
         // given inserted metadata
-        let metadata = storage.addMetadata(key: "test", value: "test", type: .resource, lifespan: .permanent)
+        let metadata = try storage.addMetadata(key: "test", value: "test", type: .resource, lifespan: .permanent)
         XCTAssertNotNil(metadata)
 
         // then the record should exist in storage
-        let records: [MetadataRecord] = storage.fetchAll()
-        XCTAssertEqual(records.count, 1)
-        XCTAssertEqual(records[0].key, "test")
-        XCTAssertEqual(records[0].type, .resource)
-        XCTAssertEqual(records[0].lifespan, .permanent)
+        let expectation = XCTestExpectation()
+        try storage.dbQueue.read { db in
+            XCTAssert(try metadata!.exists(db))
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_addMetadata_resourceLimit() throws {
         // given limit reached on resources
         for i in 1...storage.options.resourcesLimit {
-            storage.addMetadata(
+            try storage.addMetadata(
                 key: "metadata_\(i)",
                 value: "test",
                 type: .resource,
@@ -43,20 +123,25 @@ class MetadataRecordTests: XCTestCase {
         }
 
         // when inserting a new resource
-        let resource = storage.addMetadata(key: "test", value: "test", type: .resource, lifespan: .permanent)
+        let resource = try storage.addMetadata(key: "test", value: "test", type: .resource, lifespan: .permanent)
 
         // then it should not be inserted
         XCTAssertNil(resource)
 
         // then the record count should be the limit
-        let records: [MetadataRecord] = storage.fetchAll()
-        XCTAssertEqual(records.count,  storage.options.resourcesLimit)
+        let expectation = XCTestExpectation()
+        try storage.dbQueue.read { db in
+            XCTAssertEqual(try MetadataRecord.fetchCount(db), storage.options.resourcesLimit)
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_addMetadata_customPropertiesLimit() throws {
         // given limit reached on custom properties
         for i in 1...storage.options.customPropertiesLimit {
-            storage.addMetadata(
+            try storage.addMetadata(
                 key: "metadata_\(i)",
                 value: "test",
                 type: .customProperty,
@@ -65,21 +150,26 @@ class MetadataRecordTests: XCTestCase {
         }
 
         // when inserting a new custom property
-        let resource = storage.addMetadata(key: "test", value: "test", type: .customProperty, lifespan: .permanent)
+        let resource = try storage.addMetadata(key: "test", value: "test", type: .customProperty, lifespan: .permanent)
 
         // then it should not be inserted
         XCTAssertNil(resource)
 
         // then the record count should be the limit
-        let records: [MetadataRecord] = storage.fetchAll()
-        XCTAssertEqual(records.count,  storage.options.customPropertiesLimit)
+        let expectation = XCTestExpectation()
+        try storage.dbQueue.read { db in
+            XCTAssertEqual(try MetadataRecord.fetchCount(db), storage.options.customPropertiesLimit)
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_addMetadata_resourceLimit_lifespanId() throws {
         // given resources in storage that in total surpass the limit
         // but they correspond to different lifespan ids
         for i in 1...storage.options.resourcesLimit {
-            storage.addMetadata(
+            try storage.addMetadata(
                 key: "metadata_\(i)",
                 value: "test",
                 type: .resource,
@@ -87,7 +177,7 @@ class MetadataRecordTests: XCTestCase {
                 lifespanId: i % 2 == 0 ? TestConstants.sessionId.toString : "test"
             )
 
-            storage.addMetadata(
+            try storage.addMetadata(
                 key: "metadata_\(i)",
                 value: "test",
                 type: .resource,
@@ -97,15 +187,15 @@ class MetadataRecordTests: XCTestCase {
         }
 
         // when inserting new resources
-        let resource1 = storage.addMetadata(
-            key: "test1",
+        let resource1 = try storage.addMetadata(
+            key: "test",
             value: "test",
             type: .resource,
             lifespan: .session,
             lifespanId: TestConstants.sessionId.toString
         )
-        let resource2 = storage.addMetadata(
-            key: "test2",
+        let resource2 = try storage.addMetadata(
+            key: "test",
             value: "test",
             type: .resource,
             lifespan: .process,
@@ -117,17 +207,22 @@ class MetadataRecordTests: XCTestCase {
         XCTAssertNotNil(resource2)
 
         // then the record count should be the limit
-        let records: [MetadataRecord] = storage.fetchAll()
-        XCTAssertEqual(records.count, storage.options.resourcesLimit * 2 + 2)
-        XCTAssertNotNil(records.first(where: { $0.key == "test1" }))
-        XCTAssertNotNil(records.first(where: { $0.key == "test2" }))
+        let expectation = XCTestExpectation()
+        try storage.dbQueue.read { db in
+            XCTAssertEqual(try MetadataRecord.fetchCount(db), storage.options.customPropertiesLimit * 2 + 2)
+            XCTAssert(try resource1!.exists(db))
+            XCTAssert(try resource2!.exists(db))
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_addMetadata_customPropertiesLimit_lifespanId() throws {
         // given custom properties in storage that in total surpass the limit
         // but they correspond to different lifespan ids
         for i in 1...storage.options.customPropertiesLimit {
-            storage.addMetadata(
+            try storage.addMetadata(
                 key: "metadata_\(i)",
                 value: "test",
                 type: .customProperty,
@@ -135,7 +230,7 @@ class MetadataRecordTests: XCTestCase {
                 lifespanId: i % 2 == 0 ? TestConstants.sessionId.toString : "test"
             )
 
-            storage.addMetadata(
+            try storage.addMetadata(
                 key: "metadata_\(i)",
                 value: "test",
                 type: .customProperty,
@@ -145,15 +240,15 @@ class MetadataRecordTests: XCTestCase {
         }
 
         // when inserting new custom properties
-        let property1 = storage.addMetadata(
-            key: "test1",
+        let property1 = try storage.addMetadata(
+            key: "test",
             value: "test",
             type: .customProperty,
             lifespan: .session,
             lifespanId: TestConstants.sessionId.toString
         )
-        let property2 = storage.addMetadata(
-            key: "test2",
+        let property2 = try storage.addMetadata(
+            key: "test",
             value: "test",
             type: .customProperty,
             lifespan: .process,
@@ -165,21 +260,26 @@ class MetadataRecordTests: XCTestCase {
         XCTAssertNotNil(property2)
 
         // then the record count should be the limit
-        let records: [MetadataRecord] = storage.fetchAll()
-        XCTAssertEqual(records.count, storage.options.customPropertiesLimit * 2 + 2)
-        XCTAssertNotNil(records.first(where: { $0.key == "test1" }))
-        XCTAssertNotNil(records.first(where: { $0.key == "test2" }))
+        let expectation = XCTestExpectation()
+        try storage.dbQueue.read { db in
+            XCTAssertEqual(try MetadataRecord.fetchCount(db), storage.options.customPropertiesLimit * 2 + 2)
+            XCTAssert(try property1!.exists(db))
+            XCTAssert(try property2!.exists(db))
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_addMetadata_requiredResource() throws {
         // given limit reached on resources and custom properties
         for i in 0...storage.options.resourcesLimit {
-            storage.addMetadata(key: "resource_\(i)", value: "test", type: .resource, lifespan: .permanent)
-            storage.addMetadata(key: "property_\(i)", value: "test", type: .customProperty, lifespan: .permanent)
+            try storage.addMetadata(key: "resource_\(i)", value: "test", type: .resource, lifespan: .permanent)
+            try storage.addMetadata(key: "property_\(i)", value: "test", type: .customProperty, lifespan: .permanent)
         }
 
         // when inserting a new required resource
-        let requiredResource = storage.addMetadata(
+        let requiredResource = try storage.addMetadata(
             key: "test",
             value: "test",
             type: .requiredResource,
@@ -189,48 +289,62 @@ class MetadataRecordTests: XCTestCase {
         // then it should be inserted despite the limits
         XCTAssertNotNil(requiredResource)
 
-        let records: [MetadataRecord] = storage.fetchAll()
-        XCTAssertEqual(records.count, storage.options.resourcesLimit + storage.options.customPropertiesLimit + 1)
-        XCTAssertNotNil(records.first(where: { $0.key == "test" }))
+        let expectation = XCTestExpectation()
+        try storage.dbQueue.read { db in
+            XCTAssertEqual(
+                try MetadataRecord.fetchCount(db),
+                storage.options.resourcesLimit + storage.options.customPropertiesLimit + 1
+            )
+            XCTAssert(try requiredResource!.exists(db))
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_updateMetadata() throws {
         // given inserted record
-        storage.addMetadata(key: "test", value: "test", type: .resource, lifespan: .permanent)
+        try storage.addMetadata(key: "test", value: "test", type: .resource, lifespan: .permanent)
 
         // when updating its value
-        storage.updateMetadata(key: "test", value: "value", type: .resource, lifespan: .permanent, lifespanId: "")
+        try storage.updateMetadata(key: "test", value: "value", type: .resource, lifespan: .permanent, lifespanId: "")
 
         // then record should exist in storage with the correct value
-        let records: [MetadataRecord] = storage.fetchAll()
-        XCTAssertEqual(records.count, 1)
-        XCTAssertEqual(records[0].value, "value")
+        let expectation = XCTestExpectation()
+        try storage.dbQueue.read { db in
+            XCTAssertEqual(try MetadataRecord.fetchCount(db), 1)
+            let record = try MetadataRecord.fetchOne(db)
+            XCTAssertEqual(record!.value, .string("value"))
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_cleanMetadata() throws {
         // given inserted records
-        storage.addMetadata(
+        let metadata1 = try storage.addMetadata(
             key: "test1",
             value: "test",
             type: .resource,
             lifespan: .session,
             lifespanId: TestConstants.sessionId.toString
         )
-        storage.addMetadata(
+        let metadata2 = try storage.addMetadata(
             key: "test2",
             value: "test",
             type: .resource,
             lifespan: .session,
             lifespanId: "test"
         )
-        storage.addMetadata(
+        let metadata3 = try storage.addMetadata(
             key: "test3",
             value: "test",
             type: .resource,
             lifespan: .process,
             lifespanId: TestConstants.processId.hex
         )
-        storage.addMetadata(
+        let metadata4 = try storage.addMetadata(
             key: "test4",
             value: "test",
             type: .resource,
@@ -239,23 +353,28 @@ class MetadataRecordTests: XCTestCase {
         )
 
         // when cleaning old metadata
-        storage.cleanMetadata(
+        try storage.cleanMetadata(
             currentSessionId: TestConstants.sessionId.toString,
             currentProcessId: TestConstants.processId.hex
         )
 
         // then only the correct records should be removed
-        let records: [MetadataRecord] = storage.fetchAll()
-        XCTAssertEqual(records.count, 2)
-        XCTAssertNotNil(records.first(where: { $0.key == "test1" }))
-        XCTAssertNil(records.first(where: { $0.key == "test2" }))
-        XCTAssertNotNil(records.first(where: { $0.key == "test3" }))
-        XCTAssertNil(records.first(where: { $0.key == "test4" }))
+        let expectation = XCTestExpectation()
+        try storage.dbQueue.read { db in
+            XCTAssertEqual(try MetadataRecord.fetchCount(db), 2)
+            XCTAssert(try metadata1!.exists(db))
+            XCTAssertFalse(try metadata2!.exists(db))
+            XCTAssert(try metadata3!.exists(db))
+            XCTAssertFalse(try metadata4!.exists(db))
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_removeMetadata() throws {
         // given inserted record
-        storage.addMetadata(
+        let metadata = try storage.addMetadata(
             key: "test",
             value: "test",
             type: .resource,
@@ -264,43 +383,49 @@ class MetadataRecordTests: XCTestCase {
         )
 
         // when removing it
-        storage.removeMetadata(key: "test", type: .resource, lifespan: .session, lifespanId: "test")
+        try storage.removeMetadata(key: "test", type: .resource, lifespan: .session, lifespanId: "test")
 
         // then record should not exist in storage
-        let records: [MetadataRecord] = storage.fetchAll()
-        XCTAssertEqual(records.count, 0)
+        let expectation = XCTestExpectation()
+        try storage.dbQueue.read { db in
+            XCTAssertEqual(try MetadataRecord.fetchCount(db), 0)
+            XCTAssertFalse(try metadata!.exists(db))
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_removeAllMetadata_severalLifespans() throws {
         // given inserted records
-        storage.addMetadata(
+        let metadata1 = try storage.addMetadata(
             key: "test1",
             value: "test",
             type: .resource,
             lifespan: .session,
             lifespanId: "test"
         )
-        storage.addMetadata(
+        let metadata2 = try storage.addMetadata(
             key: "test2",
             value: "test",
             type: .resource,
             lifespan: .process,
             lifespanId: "test"
         )
-        storage.addMetadata(
+        let metadata3 = try storage.addMetadata(
             key: "test3",
             value: "test",
             type: .resource,
             lifespan: .session,
             lifespanId: "test"
         )
-        storage.addMetadata(
+        let metadata4 = try storage.addMetadata(
             key: "test4",
             value: "test",
             type: .resource,
             lifespan: .permanent
         )
-        storage.addMetadata(
+        let required = try storage.addMetadata(
             key: "test5",
             value: "test",
             type: .requiredResource,
@@ -309,43 +434,48 @@ class MetadataRecordTests: XCTestCase {
         )
 
         // when removing all by type and lifespans
-        storage.removeAllMetadata(type: .resource, lifespans: [.session, .process])
+        try storage.removeAllMetadata(type: .resource, lifespans: [.session, .process])
 
         // then only the correct records should be removed
-        let records: [MetadataRecord] = storage.fetchAll()
-        XCTAssertEqual(records.count, 2)
-        XCTAssertNil(records.first(where: { $0.key == "test1" }))
-        XCTAssertNil(records.first(where: { $0.key == "test2" }))
-        XCTAssertNil(records.first(where: { $0.key == "test3" }))
-        XCTAssertNotNil(records.first(where: { $0.key == "test4" }))
-        XCTAssertNotNil(records.first(where: { $0.key == "test5" }))
+        let expectation = XCTestExpectation()
+        try storage.dbQueue.read { db in
+            XCTAssertEqual(try MetadataRecord.fetchCount(db), 2)
+            XCTAssertFalse(try metadata1!.exists(db))
+            XCTAssertFalse(try metadata2!.exists(db))
+            XCTAssertFalse(try metadata3!.exists(db))
+            XCTAssert(try metadata4!.exists(db))
+            XCTAssert(try required!.exists(db))
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_removeAllMetadata_severalKeys() throws {
         // given inserted records
-        storage.addMetadata(
+        let metadata1 = try storage.addMetadata(
             key: "test1",
             value: "test",
             type: .resource,
             lifespan: .process,
             lifespanId: "test"
         )
-        storage.addMetadata(
+        let metadata2 = try storage.addMetadata(
             key: "test2",
             value: "test",
             type: .resource,
             lifespan: .process,
             lifespanId: "test"
         )
-        storage.addMetadata(
+        let metadata3 = try storage.addMetadata(
             key: "test3",
             value: "test",
             type: .resource,
             lifespan: .process,
             lifespanId: "test"
         )
-        storage.addMetadata(
-            key: "test4",
+        let required = try storage.addMetadata(
+            key: "test5",
             value: "test",
             type: .requiredResource,
             lifespan: .process,
@@ -353,23 +483,28 @@ class MetadataRecordTests: XCTestCase {
         )
 
         // when removing all by keys and lifespan
-        storage.removeAllMetadata(keys: ["test1", "test3", "test4"], lifespan: .process)
+        try storage.removeAllMetadata(keys: ["test1", "test3", "test5"], lifespan: .process)
 
         // then only the correct records should be removed
-        let records: [MetadataRecord] = storage.fetchAll()
-        XCTAssertEqual(records.count, 2)
-        XCTAssertNil(records.first(where: { $0.key == "test1" }))
-        XCTAssertNotNil(records.first(where: { $0.key == "test2" }))
-        XCTAssertNil(records.first(where: { $0.key == "test3" }))
-        XCTAssertNotNil(records.first(where: { $0.key == "test4" }))
+        let expectation = XCTestExpectation()
+        try storage.dbQueue.read { db in
+            XCTAssertEqual(try MetadataRecord.fetchCount(db), 2)
+            XCTAssertFalse(try metadata1!.exists(db))
+            XCTAssert(try metadata2!.exists(db))
+            XCTAssertFalse(try metadata3!.exists(db))
+            XCTAssert(try required!.exists(db))
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_fetchMetadata() throws {
         // given inserted record
-        storage.addMetadata(key: "test", value: "test", type: .resource, lifespan: .permanent)
+        try storage.addMetadata(key: "test", value: "test", type: .resource, lifespan: .permanent)
 
         // when fetching it
-        let record = storage.fetchMetadata(key: "test", type: .resource, lifespan: .permanent)
+        let record = try storage.fetchMetadata(key: "test", type: .resource, lifespan: .permanent)
 
         // then its correctly fetched
         XCTAssertNotNil(record)
@@ -377,10 +512,10 @@ class MetadataRecordTests: XCTestCase {
 
     func test_fetchRequiredPermanentResource() throws {
         // given inserted permanent required resource
-        storage.addMetadata(key: "test", value: "test", type: .requiredResource, lifespan: .permanent)
+        try storage.addMetadata(key: "test", value: "test", type: .requiredResource, lifespan: .permanent)
 
         // when fetching it
-        let record = storage.fetchRequiredPermanentResource(key: "test")
+        let record = try storage.fetchRequiredPermanentResource(key: "test")
 
         // then its correctly fetched
         XCTAssertNotNil(record)
@@ -388,42 +523,42 @@ class MetadataRecordTests: XCTestCase {
 
     func test_fetchAllResources() throws {
         // given inserted records
-        storage.addMetadata(
+        let resource1 = try storage.addMetadata(
             key: "test1",
             value: "test",
             type: .resource,
             lifespan: .process,
             lifespanId: "test"
         )
-        storage.addMetadata(
+        let resource2 = try storage.addMetadata(
             key: "test2",
             value: "test",
             type: .requiredResource,
             lifespan: .process,
             lifespanId: "test"
         )
-        storage.addMetadata(
+        let resource3 = try storage.addMetadata(
             key: "test3",
             value: "test",
             type: .resource,
             lifespan: .process,
             lifespanId: "test"
         )
-        storage.addMetadata(
+        let property1 = try storage.addMetadata(
             key: "test4",
             value: "test",
             type: .customProperty,
             lifespan: .session,
             lifespanId: "test"
         )
-        storage.addMetadata(
+        let property2 = try storage.addMetadata(
             key: "test5",
             value: "test",
             type: .customProperty,
             lifespan: .session,
             lifespanId: "test"
         )
-        storage.addMetadata(
+        let property3 = try storage.addMetadata(
             key: "test6",
             value: "test",
             type: .customProperty,
@@ -432,72 +567,72 @@ class MetadataRecordTests: XCTestCase {
         )
 
         // when fetching all resources
-        let resources = storage.fetchAllResources()
+        let resources = try storage.fetchAllResources()
 
         // then the correct records are fetched
         XCTAssertEqual(resources.count, 3)
-        XCTAssertNotNil(resources.first(where: { $0.key == "test1" }))
-        XCTAssertNotNil(resources.first(where: { $0.key == "test2" }))
-        XCTAssertNotNil(resources.first(where: { $0.key == "test3" }))
-        XCTAssertNil(resources.first(where: { $0.key == "test4" }))
-        XCTAssertNil(resources.first(where: { $0.key == "test5" }))
-        XCTAssertNil(resources.first(where: { $0.key == "test6" }))
+        XCTAssert(resources.contains(resource1!))
+        XCTAssert(resources.contains(resource2!))
+        XCTAssert(resources.contains(resource3!))
+        XCTAssertFalse(resources.contains(property1!))
+        XCTAssertFalse(resources.contains(property2!))
+        XCTAssertFalse(resources.contains(property3!))
     }
 
     func test_fetchResourcesForSessionId() throws {
         // given a session in storage
-        storage.addSession(
+        try storage.addSession(
             id: TestConstants.sessionId,
-            processId: TestConstants.processId,
             state: .foreground,
+            processId: TestConstants.processId,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: Date()
         )
 
         // given inserted records
-        storage.addMetadata(
+        let resource1 = try storage.addMetadata(
             key: "test1",
             value: "test",
             type: .resource,
             lifespan: .process,
             lifespanId: TestConstants.processId.hex
         )
-        storage.addMetadata(
+        let resource2 = try storage.addMetadata(
             key: "test2",
             value: "test",
             type: .resource,
             lifespan: .process,
             lifespanId: "test"
         )
-        storage.addMetadata(
+        let resource3 = try storage.addMetadata(
             key: "test3",
             value: "test",
             type: .resource,
             lifespan: .session,
             lifespanId: TestConstants.sessionId.toString
         )
-        storage.addMetadata(
+        let resource4 = try storage.addMetadata(
             key: "test4",
             value: "test",
             type: .resource,
             lifespan: .session,
             lifespanId: "test"
         )
-        storage.addMetadata(
+        let resource5 = try storage.addMetadata(
             key: "test5",
             value: "test",
             type: .resource,
             lifespan: .permanent
         )
-        storage.addMetadata(
+        let property1 = try storage.addMetadata(
             key: "test6",
             value: "test",
             type: .customProperty,
             lifespan: .process,
             lifespanId: TestConstants.processId.hex
         )
-        storage.addMetadata(
+        let property2 = try storage.addMetadata(
             key: "test7",
             value: "test",
             type: .customProperty,
@@ -506,73 +641,73 @@ class MetadataRecordTests: XCTestCase {
         )
 
         // when fetching all resources by session id
-        let resources = storage.fetchResourcesForSessionId(TestConstants.sessionId)
+        let resources = try storage.fetchResourcesForSessionId(TestConstants.sessionId)
 
         // then the correct records are fetched
         XCTAssertEqual(resources.count, 3)
-        XCTAssertNotNil(resources.first(where: { $0.key == "test1" }))
-        XCTAssertNil(resources.first(where: { $0.key == "test2" }))
-        XCTAssertNotNil(resources.first(where: { $0.key == "test3" }))
-        XCTAssertNil(resources.first(where: { $0.key == "test4" }))
-        XCTAssertNotNil(resources.first(where: { $0.key == "test5" }))
-        XCTAssertNil(resources.first(where: { $0.key == "test6" }))
-        XCTAssertNil(resources.first(where: { $0.key == "test7" }))
+        XCTAssert(resources.contains(resource1!))
+        XCTAssertFalse(resources.contains(resource2!))
+        XCTAssert(resources.contains(resource3!))
+        XCTAssertFalse(resources.contains(resource4!))
+        XCTAssert(resources.contains(resource5!))
+        XCTAssertFalse(resources.contains(property1!))
+        XCTAssertFalse(resources.contains(property2!))
     }
 
     func test_fetchCustomPropertiesForSessionId() throws {
         // given a session in storage
-        storage.addSession(
+        try storage.addSession(
             id: TestConstants.sessionId,
-            processId: TestConstants.processId,
             state: .foreground,
+            processId: TestConstants.processId,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: Date()
         )
 
         // given inserted records
-        storage.addMetadata(
+        let property1 = try storage.addMetadata(
             key: "test1",
             value: "test",
             type: .customProperty,
             lifespan: .process,
             lifespanId: TestConstants.processId.hex
         )
-        storage.addMetadata(
+        let property2 = try storage.addMetadata(
             key: "test2",
             value: "test",
             type: .customProperty,
             lifespan: .process,
             lifespanId: "test"
         )
-        storage.addMetadata(
+        let property3 = try storage.addMetadata(
             key: "test3",
             value: "test",
             type: .customProperty,
             lifespan: .session,
             lifespanId: TestConstants.sessionId.toString
         )
-        storage.addMetadata(
+        let property4 = try storage.addMetadata(
             key: "test4",
             value: "test",
             type: .customProperty,
             lifespan: .session,
             lifespanId: "test"
         )
-        storage.addMetadata(
+        let property5 = try storage.addMetadata(
             key: "test5",
             value: "test",
             type: .customProperty,
             lifespan: .permanent
         )
-        storage.addMetadata(
+        let resource1 = try storage.addMetadata(
             key: "test6",
             value: "test",
             type: .resource,
             lifespan: .process,
             lifespanId: TestConstants.processId.hex
         )
-        storage.addMetadata(
+        let resource2 = try storage.addMetadata(
             key: "test7",
             value: "test",
             type: .resource,
@@ -581,16 +716,16 @@ class MetadataRecordTests: XCTestCase {
         )
 
         // when fetching all resources by session id
-        let resources = storage.fetchCustomPropertiesForSessionId(TestConstants.sessionId)
+        let resources = try storage.fetchCustomPropertiesForSessionId(TestConstants.sessionId)
 
         // then the correct records are fetched
         XCTAssertEqual(resources.count, 3)
-        XCTAssertNotNil(resources.first(where: { $0.key == "test1" }))
-        XCTAssertNil(resources.first(where: { $0.key == "test2" }))
-        XCTAssertNotNil(resources.first(where: { $0.key == "test3" }))
-        XCTAssertNil(resources.first(where: { $0.key == "test4" }))
-        XCTAssertNotNil(resources.first(where: { $0.key == "test5" }))
-        XCTAssertNil(resources.first(where: { $0.key == "test6" }))
-        XCTAssertNil(resources.first(where: { $0.key == "test7" }))
+        XCTAssert(resources.contains(property1!))
+        XCTAssertFalse(resources.contains(property2!))
+        XCTAssert(resources.contains(property3!))
+        XCTAssertFalse(resources.contains(property4!))
+        XCTAssert(resources.contains(property5!))
+        XCTAssertFalse(resources.contains(resource1!))
+        XCTAssertFalse(resources.contains(resource2!))
     }
 }

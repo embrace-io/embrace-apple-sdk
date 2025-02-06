@@ -7,15 +7,14 @@ import XCTest
 @testable import EmbraceStorageInternal
 @testable import EmbraceCommonInternal
 import OpenTelemetryApi
-import TestSupport
 
 final class PayloadUtilTests: XCTestCase {
     func test_fetchResources() throws {
         // given
-        let mockResources: [EmbraceMetadata] = [
-            MockMetadata(
+        let mockResources: [MetadataRecord] = [
+            .init(
                 key: "fake_res",
-                value: "fake_value",
+                value: .string("fake_value"),
                 type: .requiredResource,
                 lifespan: .process,
                 lifespanId: ProcessIdentifier.current.hex
@@ -27,12 +26,7 @@ final class PayloadUtilTests: XCTestCase {
         let fetchedResources = PayloadUtils.fetchResources(from: fetcher, sessionId: .random)
 
         // then the session payload contains the necessary keys
-        XCTAssertEqual(fetchedResources.count, 1)
-        XCTAssertEqual(fetchedResources[0].key, mockResources[0].key)
-        XCTAssertEqual(fetchedResources[0].value, mockResources[0].value)
-        XCTAssertEqual(fetchedResources[0].type, mockResources[0].type)
-        XCTAssertEqual(fetchedResources[0].lifespan, mockResources[0].lifespan)
-        XCTAssertEqual(fetchedResources[0].lifespanId, mockResources[0].lifespanId)
+        XCTAssertEqual(mockResources, fetchedResources)
     }
 
     func test_convertSpanAttributes() throws {
@@ -71,10 +65,10 @@ final class PayloadUtilTests: XCTestCase {
     func test_fetchCustomProperties() throws {
         // given
         let sessionId = SessionIdentifier.random
-        let mockResources: [EmbraceMetadata] = [
-            MockMetadata(
+        let mockResources: [MetadataRecord] = [
+            .init(
                 key: "fake_res",
-                value: "fake_value",
+                value: .string("fake_value"),
                 type: .customProperty,
                 lifespan: .session,
                 lifespanId: sessionId.toString
@@ -86,11 +80,6 @@ final class PayloadUtilTests: XCTestCase {
         let fetchedResources = PayloadUtils.fetchCustomProperties(from: fetcher, sessionId: sessionId)
 
         // then the session payload contains the necessary keys
-        XCTAssertEqual(fetchedResources.count, 1)
-        XCTAssertEqual(fetchedResources[0].key, mockResources[0].key)
-        XCTAssertEqual(fetchedResources[0].value, mockResources[0].value)
-        XCTAssertEqual(fetchedResources[0].type, mockResources[0].type)
-        XCTAssertEqual(fetchedResources[0].lifespan, mockResources[0].lifespan)
-        XCTAssertEqual(fetchedResources[0].lifespanId, mockResources[0].lifespanId)
+        XCTAssertEqual(mockResources, fetchedResources)
     }
 }

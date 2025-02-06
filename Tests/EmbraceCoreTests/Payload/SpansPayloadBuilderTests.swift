@@ -14,15 +14,15 @@ import OpenTelemetryApi
 final class SpansPayloadBuilderTests: XCTestCase {
 
     var storage: EmbraceStorage!
-    var sessionRecord: MockSession!
+    var sessionRecord: SessionRecord!
 
     override func setUpWithError() throws {
         storage = try EmbraceStorage.createInMemoryDb()
 
-        sessionRecord = MockSession(
+        sessionRecord = SessionRecord(
             id: TestConstants.sessionId,
-            processId: .random,
             state: .foreground,
+            processId: .random,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSince1970: 50),
@@ -31,8 +31,14 @@ final class SpansPayloadBuilderTests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
+        try storage.dbQueue.write { db in
+            try SessionRecord.deleteAll(db)
+            try SpanRecord.deleteAll(db)
+        }
+
         sessionRecord = nil
-        storage.coreData.destroy()
+
+        try storage.teardown()
     }
 
     func testSpan(startTime: Date, endTime: Date?, name: String?) -> SpanData {
@@ -60,7 +66,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
         let spanData = testSpan(startTime: startTime, endTime: endTime, name: name)
         let data = try spanData.toJSON()
 
-        storage.upsertSpan(
+        let record = SpanRecord(
             id: id ?? spanData.spanId.hexString,
             name: spanData.name,
             traceId: traceId ?? spanData.traceId.hexString,
@@ -70,15 +76,17 @@ final class SpansPayloadBuilderTests: XCTestCase {
             endTime: spanData.hasEnded ? spanData.endTime : nil
         )
 
+        try storage.upsertSpan(record)
+
         return spanData
     }
 
     func test_noSessionSpan() throws {
         // given no session span and a session record with nil end time
-        let record = MockSession(
+        let record = SessionRecord(
             id: TestConstants.sessionId,
-            processId: .random,
             state: .foreground,
+            processId: .random,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSince1970: 50),

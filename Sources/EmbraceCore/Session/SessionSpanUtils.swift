@@ -38,9 +38,9 @@ struct SessionSpanUtils {
     }
 
     static func payload(
-        from session: EmbraceSession,
+        from session: SessionRecord,
         spanData: SpanData? = nil,
-        properties: [EmbraceMetadata] = [],
+        properties: [MetadataRecord] = [],
         sessionNumber: Int
     ) -> SpanPayload {
         return SpanPayload(from: session, spanData: spanData, properties: properties, sessionNumber: sessionNumber)
@@ -49,9 +49,9 @@ struct SessionSpanUtils {
 
 fileprivate extension SpanPayload {
     init(
-        from session: EmbraceSession,
+        from session: SessionRecord,
         spanData: SpanData? = nil,
-        properties: [EmbraceMetadata],
+        properties: [MetadataRecord],
         sessionNumber: Int
     ) {
         self.traceId = session.traceId
@@ -70,7 +70,7 @@ fileprivate extension SpanPayload {
             ),
             Attribute(
                 key: SpanSemantics.Session.keyId,
-                value: session.idRaw
+                value: session.id.toString
             ),
             Attribute(
                 key: SpanSemantics.Session.keyState,

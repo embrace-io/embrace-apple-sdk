@@ -4,13 +4,14 @@
 
 import Foundation
 import EmbraceCommonInternal
+import GRDB
 
 extension EmbraceStorage {
     /// Adds a session to the storage synchronously.
     /// - Parameters:
     ///   - id: Identifier of the session
-    ///   - processId: `ProcessIdentifier` of the session
     ///   - state: `SessionState` of the session
+    ///   - processId: `ProcessIdentifier` of the session
     ///   - traceId: String representing the trace identifier of the corresponding session span
     ///   - spanId: String representing the span identifier of the corresponding session span
     ///   - startTime: `Date` of when the session started
@@ -21,95 +22,80 @@ extension EmbraceStorage {
     @discardableResult
     public func addSession(
         id: SessionIdentifier,
-        processId: ProcessIdentifier,
         state: SessionState,
+        processId: ProcessIdentifier,
         traceId: String,
         spanId: String,
         startTime: Date,
         endTime: Date? = nil,
         lastHeartbeatTime: Date? = nil,
-        crashReportId: String? = nil,
-        coldStart: Bool = false,
-        cleanExit: Bool = false,
-        appTerminated: Bool = false
-    ) -> SessionRecord? {
-
-        // update existing?
-        if let session = fetchSession(id: id) {
-            session.state = state.rawValue
-            session.processIdRaw = processId.hex
-            session.traceId = traceId
-            session.spanId = spanId
-            session.startTime = startTime
-            session.endTime = endTime
-            session.crashReportId = crashReportId
-            session.coldStart = coldStart
-            session.cleanExit = cleanExit
-            session.appTerminated = appTerminated
-
-            if let lastHeartbeatTime = lastHeartbeatTime {
-                session.lastHeartbeatTime = lastHeartbeatTime
-            }
-
-            coreData.save()
-            return session
-        }
-
-        // create new
-        if let session = SessionRecord.create(
-            context: coreData.context,
+        crashReportId: String? = nil
+    ) throws -> SessionRecord {
+        let session = SessionRecord(
             id: id,
-            processId: processId,
             state: state,
+            processId: processId,
             traceId: traceId,
             spanId: spanId,
             startTime: startTime,
             endTime: endTime,
-            lastHeartbeatTime: lastHeartbeatTime,
-            coldStart: coldStart,
-            cleanExit: cleanExit,
-            appTerminated: appTerminated
-        ) {
-            coreData.save()
-            return session
-        }
+            lastHeartbeatTime: lastHeartbeatTime
+        )
 
-        return nil
+        try upsertSession(session)
+
+        return session
+    }
+
+    /// Adds or updates a `SessionRecord` to the storage synchronously.
+    /// - Parameter record: `SessionRecord` to insert
+    public func upsertSession(_ session: SessionRecord) throws {
+        try dbQueue.write { db in
+            try session.insert(db)
+        }
     }
 
     /// Fetches the stored `SessionRecord` synchronously with the given identifier, if any.
     /// - Parameters:
     ///   - id: Identifier of the session
     /// - Returns: The stored `SessionRecord`, if any
-    public func fetchSession(id: SessionIdentifier) -> SessionRecord? {
-        let request = SessionRecord.createFetchRequest()
-        request.fetchLimit = 1
-        request.predicate = NSPredicate(format: "idRaw == %@", id.toString)
 
-        return coreData.fetch(withRequest: request).first
+    public func fetchSession(id: SessionIdentifier) throws -> SessionRecord? {
+        try dbQueue.read { db in
+            return try SessionRecord.fetchOne(db, key: id)
+        }
     }
 
     /// Synchronously fetches the newest session in the storage, ignoring the current session if it exists.
     /// - Returns: The newest stored `SessionRecord`, if any
-    public func fetchLatestSession(ignoringCurrentSessionId sessionId: SessionIdentifier? = nil) -> SessionRecord? {
-        let request = SessionRecord.createFetchRequest()
-        request.fetchLimit = 1
-        request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: false)]
+    public func fetchLatestSession(
+        ignoringCurrentSessionId sessionId: SessionIdentifier? = nil
+    ) throws -> SessionRecord? {
+        var session: SessionRecord?
+        try dbQueue.read { db in
 
-        if let sessionId = sessionId {
-            request.predicate = NSPredicate(format: "idRaw != %@", sessionId.toString)
+            var filter = SessionRecord.order(SessionRecord.Schema.startTime.desc)
+
+            if let sessionId = sessionId {
+                filter = filter.filter(SessionRecord.Schema.id != sessionId)
+            }
+
+            session = try filter.fetchOne(db)
         }
 
-        return coreData.fetch(withRequest: request).first
+        return session
     }
 
     /// Synchronously fetches the oldest session in the storage, if any.
     /// - Returns: The oldest stored `SessionRecord`, if any
-    public func fetchOldestSession() -> SessionRecord? {
-        let request = SessionRecord.createFetchRequest()
-        request.fetchLimit = 1
-        request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: true)]
+    public func fetchOldestSession() throws -> SessionRecord? {
+        var session: SessionRecord?
+        try dbQueue.read { db in
+            session = try SessionRecord
+                .order(SessionRecord.Schema.startTime.asc)
+                .fetchOne(db)
+        }
 
-        return coreData.fetch(withRequest: request).first
+        return session
     }
 }
