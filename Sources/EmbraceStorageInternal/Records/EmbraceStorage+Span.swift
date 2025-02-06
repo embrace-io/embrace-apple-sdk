@@ -103,12 +103,15 @@ extension EmbraceStorage {
         coreData.deleteRecords(spans)
     }
 
-    /// Synchronously closes all open spans with the given `endTime`.
+    /// Synchronously closes all open spans from previous processes with the given `endTime`.
     /// - Parameters:
     ///   - endTime: Identifier of the trace containing this span
     public func closeOpenSpans(endTime: Date) {
         let request = SpanRecord.createFetchRequest()
-        request.predicate = NSPredicate(format: "endTime = nil")
+        request.predicate = NSPredicate(
+            format: "endTime = nil AND processIdRaw != %@",
+            ProcessIdentifier.current.hex
+        )
 
         let spans = coreData.fetch(withRequest: request)
 
