@@ -57,7 +57,8 @@ final class SessionControllerTests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
-        try storage.teardown()
+        storage.coreData.destroy()
+        upload.cache.coreData.destroy()
         upload = nil
         controller = nil
     }
@@ -115,7 +116,7 @@ final class SessionControllerTests: XCTestCase {
     func test_startSession_saves_foregroundSession() throws {
         let session = controller.startSession(state: .foreground)
 
-        let sessions: [SessionRecord] = try storage.fetchAll()
+        let sessions: [SessionRecord] = storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
         XCTAssertEqual(sessions.first?.id, session!.id)
         XCTAssertEqual(sessions.first?.state, "foreground")
@@ -160,7 +161,7 @@ final class SessionControllerTests: XCTestCase {
 
         let endTime = controller.endSession()
 
-        let sessions: [SessionRecord] = try storage.fetchAll()
+        let sessions: [SessionRecord] = storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
         XCTAssertEqual(sessions.first!.endTime!.timeIntervalSince1970, endTime.timeIntervalSince1970, accuracy: 0.1)
 
@@ -176,7 +177,7 @@ final class SessionControllerTests: XCTestCase {
 
         let endTime = controller.endSession()
 
-        let sessions: [SessionRecord] = try storage.fetchAll()
+        let sessions: [SessionRecord] = storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
         XCTAssertEqual(sessions.first!.id, session!.id)
         XCTAssertEqual(sessions.first!.state, "foreground")
@@ -212,11 +213,11 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count, 1)
 
         // then the session is no longer on storage
-        let session = try storage.fetchSession(id: TestConstants.sessionId)
+        let session = storage.fetchSession(id: TestConstants.sessionId)
         XCTAssertNil(session)
 
         // then the session upload data is no longer cached
-        let uploadData = try upload.cache.fetchAllUploadData()
+        let uploadData = upload.cache.fetchAllUploadData()
         XCTAssertEqual(uploadData.count, 0)
     }
 
@@ -240,11 +241,11 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 1)
 
         // then the session is no longer on storage
-        let session = try storage.fetchSession(id: TestConstants.sessionId)
+        let session = storage.fetchSession(id: TestConstants.sessionId)
         XCTAssertNil(session)
 
         // then the session upload data cached
-        let uploadData = try upload.cache.fetchAllUploadData()
+        let uploadData = upload.cache.fetchAllUploadData()
         XCTAssertEqual(uploadData.count, 1)
     }
 
@@ -280,7 +281,7 @@ final class SessionControllerTests: XCTestCase {
 
         controller.update(appTerminated: true)
 
-        let sessions: [SessionRecord] = try storage.fetchAll()
+        let sessions: [SessionRecord] = storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
         XCTAssertEqual(sessions.first?.id, session!.id)
         XCTAssertEqual(sessions.first?.state, "foreground")
@@ -293,7 +294,7 @@ final class SessionControllerTests: XCTestCase {
 
         controller.update(state: .background)
 
-        let sessions: [SessionRecord] = try storage.fetchAll()
+        let sessions: [SessionRecord] = storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
         XCTAssertEqual(sessions.first?.id, session!.id)
         XCTAssertEqual(sessions.first?.state, "background")
@@ -334,7 +335,7 @@ final class SessionControllerTests: XCTestCase {
         controller.endSession()
 
         // then the session is stored
-        let sessions: [SessionRecord] = try storage.fetchAll()
+        let sessions: [SessionRecord] = storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
         XCTAssertEqual(sessions.first?.id, session!.id)
         XCTAssertEqual(sessions.first?.state, "background")
@@ -383,7 +384,7 @@ final class SessionControllerTests: XCTestCase {
         controller.endSession()
 
         // then the session is not stored
-        let sessions: [SessionRecord] = try storage.fetchAll()
+        let sessions: [SessionRecord] = storage.fetchAll()
         XCTAssertEqual(sessions.count, 0)
     }
 

@@ -3,16 +3,15 @@
 //
 
 import Foundation
-import GRDB
 import EmbraceCommonInternal
 
 public protocol EmbraceStorageMetadataFetcher: AnyObject {
-    func fetchAllResources() throws -> [MetadataRecord]
-    func fetchResourcesForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord]
-    func fetchResourcesForProcessId(_ processId: ProcessIdentifier) throws -> [MetadataRecord]
-    func fetchCustomPropertiesForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord]
-    func fetchPersonaTagsForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord]
-    func fetchPersonaTagsForProcessId(_ processId: ProcessIdentifier) throws -> [MetadataRecord]
+    func fetchAllResources() -> [EmbraceMetadata]
+    func fetchResourcesForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata]
+    func fetchResourcesForProcessId(_ processId: ProcessIdentifier) -> [EmbraceMetadata]
+    func fetchCustomPropertiesForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata]
+    func fetchPersonaTagsForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata]
+    func fetchPersonaTagsForProcessId(_ processId: ProcessIdentifier) -> [EmbraceMetadata]
 }
 
 extension EmbraceStorage {
@@ -26,55 +25,300 @@ extension EmbraceStorage {
         type: MetadataRecordType,
         lifespan: MetadataRecordLifespan,
         lifespanId: String = ""
-    ) throws -> MetadataRecord? {
+    ) -> MetadataRecord? {
 
-        let metadata = MetadataRecord(
+        // update existing?
+        if let metadata = updateMetadata(
             key: key,
-            value: .string(value),
+            value: value,
             type: type,
             lifespan: lifespan,
             lifespanId: lifespanId
-        )
+        ) {
+            return metadata
+        }
 
-        if try addMetadata(metadata) {
+        // create new
+        guard shouldAddMetadata(type: type, lifespanId: lifespanId) else {
+            return nil
+        }
+
+        if let metadata = MetadataRecord.create(
+            context: coreData.context,
+            key: key,
+            value: value,
+            type: type,
+            lifespan: lifespan,
+            lifespanId: lifespanId
+        ) {
+            coreData.save()
             return metadata
         }
 
         return nil
     }
 
+    /// Returns the `MetadataRecord` for the given values.
+    public func fetchMetadata(
+        key: String,
+        type: MetadataRecordType,
+        lifespan: MetadataRecordLifespan,
+        lifespanId: String = ""
+    ) -> MetadataRecord? {
+
+        let request = MetadataRecord.createFetchRequest()
+        request.fetchLimit = 1
+        request.predicate = NSPredicate(
+            format: "key == %@ AND typeRaw == %@ AND lifespanRaw == %@ AND lifespanId == %@",
+            key,
+            type.rawValue,
+            lifespan.rawValue,
+            lifespanId
+        )
+
+        return coreData.fetch(withRequest: request).first
+    }
+
+    /// Updates the `MetadataRecord` for the given key, type and lifespan with a new given value.
+    /// - Returns: The updated record, if any
+    @discardableResult
+    public func updateMetadata(
+        key: String,
+        value: String,
+        type: MetadataRecordType,
+        lifespan: MetadataRecordLifespan,
+        lifespanId: String
+    ) -> MetadataRecord? {
+
+        guard let metadata = fetchMetadata(key: key, type: type, lifespan: lifespan, lifespanId: lifespanId) else {
+            return nil
+        }
+
+        metadata.value = value
+        coreData.save()
+
+        return metadata
+    }
+
+    /// Removes all `MetadataRecords` that don't correspond to the given session and process ids.
+    /// Permanent metadata is not removed.
+    public func cleanMetadata(currentSessionId: String?, currentProcessId: String) {
+        let request = MetadataRecord.createFetchRequest()
+
+        let processIdPredicate = NSPredicate(
+            format: "lifespanRaw == %@ AND lifespanId != %@",
+            MetadataRecordLifespan.process.rawValue,
+            currentProcessId
+        )
+
+        if let currentSessionId = currentSessionId {
+            let sessionIdPredicate = NSPredicate(
+                format: "lifespanRaw == %@ AND lifespanId != %@",
+                MetadataRecordLifespan.session.rawValue,
+                currentSessionId
+            )
+
+            request.predicate = NSCompoundPredicate(type: .or, subpredicates: [sessionIdPredicate, processIdPredicate])
+        } else {
+            request.predicate = processIdPredicate
+        }
+
+        let records = coreData.fetch(withRequest: request)
+        coreData.deleteRecords(records)
+    }
+
+    /// Removes the `MetadataRecord` for the given values.
+    public func removeMetadata(
+        key: String,
+        type: MetadataRecordType,
+        lifespan: MetadataRecordLifespan,
+        lifespanId: String
+    ) {
+
+        guard let metadata = fetchMetadata(key: key, type: type, lifespan: lifespan, lifespanId: lifespanId) else {
+            return
+        }
+
+        coreData.deleteRecord(metadata)
+    }
+
+    /// Removes all `MetadataRecords` for the given type and lifespans.
+    /// - Note: This method is inteded to be indirectly used by implementers of the SDK
+    ///         For this reason records of the `.requiredResource` type are not removed.
+    public func removeAllMetadata(type: MetadataRecordType, lifespans: [MetadataRecordLifespan]) {
+        guard type != .requiredResource && lifespans.count > 0 else {
+            return
+        }
+
+        let request = MetadataRecord.createFetchRequest()
+        let typePredicate = NSPredicate(format: "typeRaw == %@", type.rawValue)
+
+        var lifespanPredicates: [NSPredicate] = []
+        for lifespan in lifespans {
+            let predicate = NSPredicate(format: "lifespanRaw == %@", lifespan.rawValue)
+            lifespanPredicates.append(predicate)
+        }
+        let lifespansPredicate = NSCompoundPredicate(type: .or, subpredicates: lifespanPredicates)
+
+        request.predicate = NSCompoundPredicate(type: .and, subpredicates: [typePredicate, lifespansPredicate])
+
+        let records = coreData.fetch(withRequest: request)
+        coreData.deleteRecords(records)
+    }
+
+    /// Removes all `MetadataRecords` for the given keys and timespan.
+    /// - Note: This method is inteded to be indirectly used by implementers of the SDK
+    ///         For this reason records of the `.requiredResource` type are not removed.
+    public func removeAllMetadata(keys: [String], lifespan: MetadataRecordLifespan) {
+        guard keys.count > 0 else {
+            return
+        }
+
+        let request = MetadataRecord.createFetchRequest()
+        let typePredicate = NSPredicate(format: "typeRaw != %@", MetadataRecordType.requiredResource.rawValue)
+
+        var keyPredicates: [NSPredicate] = []
+        for key in keys {
+            let predicate = NSPredicate(format: "key == %@", key)
+            keyPredicates.append(predicate)
+        }
+        let keyPredicate = NSCompoundPredicate(type: .or, subpredicates: keyPredicates)
+
+        request.predicate = NSCompoundPredicate(type: .and, subpredicates: [typePredicate, keyPredicate])
+
+        let records = coreData.fetch(withRequest: request)
+        coreData.deleteRecords(records)
+    }
+
+    /// Returns the permanent required resource for the given key.
+    public func fetchRequiredPermanentResource(key: String) -> MetadataRecord? {
+        return fetchMetadata(key: key, type: .requiredResource, lifespan: .permanent)
+    }
+
+    /// Returns all records with types `.requiredResource` or `.resource`
+    public func fetchAllResources() -> [EmbraceMetadata] {
+        let request = MetadataRecord.createFetchRequest()
+        request.predicate = NSPredicate(
+            format: "typeRaw == %@ OR typeRaw == %@",
+            MetadataRecordType.resource.rawValue,
+            MetadataRecordType.requiredResource.rawValue
+        )
+
+        return coreData.fetch(withRequest: request)
+    }
+
+    /// Returns all records with types `.requiredResource` or `.resource` that are tied to a given session id
+    public func fetchResourcesForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata] {
+
+        guard let session = fetchSession(id: sessionId) else {
+            return []
+        }
+
+        let request = MetadataRecord.createFetchRequest()
+        request.predicate = NSCompoundPredicate(
+            type: .and,
+            subpredicates: [
+                resourcePredicate(),
+                lifespanPredicate(session: session)
+            ]
+        )
+
+        return coreData.fetch(withRequest: request)
+    }
+
+    /// Returns all records with types `.requiredResource` or `.resource` that are tied to a given process id
+    public func fetchResourcesForProcessId(_ processId: ProcessIdentifier) -> [EmbraceMetadata] {
+
+        let request = MetadataRecord.createFetchRequest()
+        request.predicate = NSCompoundPredicate(
+            type: .and,
+            subpredicates: [
+                resourcePredicate(),
+                lifespanPredicate(processId: processId)
+            ]
+        )
+
+        return coreData.fetch(withRequest: request)
+    }
+
+    /// Returns all records of the `.customProperty` type that are tied to a given session id
+    public func fetchCustomPropertiesForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata] {
+        guard let session = fetchSession(id: sessionId) else {
+            return []
+        }
+
+        let request = MetadataRecord.createFetchRequest()
+        request.predicate = NSCompoundPredicate(
+            type: .and,
+            subpredicates: [
+                customPropertyPredicate(),
+                lifespanPredicate(session: session)
+            ]
+        )
+
+        return coreData.fetch(withRequest: request)
+    }
+
+    /// Returns all records of the `.personaTag` type that are tied to a given session id
+    public func fetchPersonaTagsForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata] {
+        guard let session = fetchSession(id: sessionId) else {
+            return []
+        }
+
+        let request = MetadataRecord.createFetchRequest()
+        request.predicate = NSCompoundPredicate(
+            type: .and,
+            subpredicates: [
+                personaTagPredicate(),
+                lifespanPredicate(session: session)
+            ]
+        )
+
+        return coreData.fetch(withRequest: request)
+    }
+
+    /// Returns all records of the `.personaTag` type that are tied to a given process id
+    public func fetchPersonaTagsForProcessId(_ processId: ProcessIdentifier) -> [EmbraceMetadata] {
+
+        let request = MetadataRecord.createFetchRequest()
+        request.predicate = NSCompoundPredicate(
+            type: .and,
+            subpredicates: [
+                personaTagPredicate(),
+                lifespanPredicate(processId: processId)
+            ]
+        )
+
+        return coreData.fetch(withRequest: request)
+    }
+}
+
+extension EmbraceStorage {
+
     /// Adds a new `MetadataRecord`.
     /// Fails and returns nil if the metadata limit was reached.
-    public func addMetadata(_ metadata: MetadataRecord) throws -> Bool {
-        try dbQueue.write { db in
+    public func shouldAddMetadata(type: MetadataRecordType, lifespanId: String) -> Bool {
 
-            // required resources are always inserted
-            if metadata.type == .requiredResource {
-                try metadata.insert(db)
-                return true
-            }
-
-            // check limit for the metadata type
-            // only records of the same type with the same lifespan id
-            // or permanent records of the same type
-            // this means a resource will not count towards the custom property limit, and viceversa
-            // this also means metadata from other sessions/processes will not count for the limit either
-
-            let limit = limitForType(metadata.type)
-            let count = try MetadataRecord.filter(
-                MetadataRecord.Schema.type == metadata.type.rawValue &&
-                (MetadataRecord.Schema.lifespan == MetadataRecordLifespan.permanent.rawValue ||
-                 MetadataRecord.Schema.lifespanId == metadata.lifespanId)
-            ).fetchCount(db)
-
-            guard count < limit else {
-                // TODO: limit could be applied incorrectly if at max limit and updating an existing record
-                return false
-            }
-
-            try metadata.insert(db)
+        // required resources are always inserted
+        if type == .requiredResource {
             return true
         }
+
+        // check limit for the metadata type
+        // only records of the same type with the same lifespan id
+        // or permanent records of the same type
+        // this means a resource will not count towards the custom property limit, and viceversa
+        // this also means metadata from other sessions/processes will not count for the limit either
+        let request = MetadataRecord.createFetchRequest()
+        request.predicate = NSPredicate(
+            format: "typeRaw == %@ AND (lifespanRaw == %@ OR lifespanId == %@)",
+            type.rawValue,
+            MetadataRecordLifespan.permanent.rawValue,
+            lifespanId
+        )
+
+        let limit = limitForType(type)
+        return coreData.count(withRequest: request) < limit
     }
 
     private func limitForType(_ type: MetadataRecordType) -> Int {
@@ -86,272 +330,71 @@ extension EmbraceStorage {
         }
     }
 
-    /// Updates the `MetadataRecord` for the given key, type and lifespan with a new given value.
-    public func updateMetadata(
-        key: String,
-        value: String,
-        type: MetadataRecordType,
-        lifespan: MetadataRecordLifespan,
-        lifespanId: String
-    ) throws {
-
-        try dbQueue.write { db in
-            guard var record = try MetadataRecord
-                .filter(
-                    MetadataRecord.Schema.key == key &&
-                    MetadataRecord.Schema.type == type.rawValue &&
-                    MetadataRecord.Schema.lifespan == lifespan.rawValue &&
-                    MetadataRecord.Schema.lifespanId == lifespanId
-                )
-                    .fetchOne(db) else {
-                return
-            }
-
-            record.value = .string(value)
-            try record.update(db)
-        }
+    private func resourcePredicate() -> NSPredicate {
+        return NSPredicate(
+            format: "typeRaw == %@ OR typeRaw == %@",
+            MetadataRecordType.resource.rawValue,
+            MetadataRecordType.requiredResource.rawValue
+        )
     }
 
-    /// Updates the given `MetadataRecord`.
-    public func updateMetadata(_ record: MetadataRecord) throws {
-        try dbQueue.write { db in
-            try record.update(db)
-        }
+    private func customPropertyPredicate() -> NSPredicate {
+        return NSPredicate(format: "typeRaw == %@", MetadataRecordType.customProperty.rawValue)
     }
 
-    /// Removes all `MetadataRecords` that don't corresponde to the given session and process ids.
-    /// Permanent metadata is not removed.
-    public func cleanMetadata(
-        currentSessionId: String?,
-        currentProcessId: String
-    ) throws {
-        _ = try dbQueue.write { db in
-            if let currentSessionId = currentSessionId {
-                try MetadataRecord.filter(
-                    (MetadataRecord.Schema.lifespan == MetadataRecordLifespan.session.rawValue &&
-                     MetadataRecord.Schema.lifespanId != currentSessionId) ||
-                    (MetadataRecord.Schema.lifespan == MetadataRecordLifespan.process.rawValue &&
-                     MetadataRecord.Schema.lifespanId != currentProcessId)
-                )
-                .deleteAll(db)
-            } else {
-                try MetadataRecord.filter(
-                    MetadataRecord.Schema.lifespan == MetadataRecordLifespan.process.rawValue &&
-                    MetadataRecord.Schema.lifespanId != currentProcessId
-                )
-                .deleteAll(db)
-            }
-        }
+    private func personaTagPredicate() -> NSPredicate {
+        return NSPredicate(format: "typeRaw == %@", MetadataRecordType.personaTag.rawValue)
     }
 
-    /// Removes the `MetadataRecord` for the given values.
-    public func removeMetadata(
-        key: String,
-        type: MetadataRecordType,
-        lifespan: MetadataRecordLifespan,
-        lifespanId: String
-    ) throws {
-        _ = try dbQueue.write { db in
-            try MetadataRecord
-                .filter(
-                    MetadataRecord.Schema.key == key &&
-                    MetadataRecord.Schema.type == type.rawValue &&
-                    MetadataRecord.Schema.lifespan == lifespan.rawValue &&
-                    MetadataRecord.Schema.lifespanId == lifespanId
-                )
-                .deleteAll(db)
-        }
+    private func lifespanPredicate(session: SessionRecord) -> NSPredicate {
+        // match the session id
+        let sessionIdPredicate = NSPredicate(
+            format: "lifespanRaw == %@ AND lifespanId == %@",
+            MetadataRecordLifespan.session.rawValue,
+            session.idRaw
+        )
+        // or match the process id
+        let processIdPredicate = NSPredicate(
+            format: "lifespanRaw == %@ AND lifespanId == %@",
+            MetadataRecordLifespan.process.rawValue,
+            session.processIdRaw
+        )
+        // or are permanent
+        let permanentPredicate = NSPredicate(
+            format: "lifespanRaw == %@",
+            MetadataRecordLifespan.permanent.rawValue
+        )
+
+        return NSCompoundPredicate(
+            type: .or,
+            subpredicates: [
+                sessionIdPredicate,
+                processIdPredicate,
+                permanentPredicate
+            ]
+        )
     }
 
-    /// Removes all `MetadataRecords` for the given lifespans.
-    /// - Note: This method is inteded to be indirectly used by implementers of the SDK
-    ///         For this reason records of the `.requiredResource` type are not removed.
-    public func removeAllMetadata(type: MetadataRecordType, lifespans: [MetadataRecordLifespan]) throws {
-        guard type != .requiredResource && lifespans.count > 0 else {
-            return
-        }
+    private func lifespanPredicate(processId: ProcessIdentifier) -> NSPredicate {
+        // match the process id
+        let processIdPredicate = NSPredicate(
+            format: "lifespanRaw == %@ AND lifespanId == %@",
+            MetadataRecordLifespan.process.rawValue,
+            processId.hex
+        )
+        // or are permanent
+        let permanentPredicate = NSPredicate(
+            format: "lifespanRaw == %@",
+            MetadataRecordLifespan.permanent.rawValue
+        )
 
-        try dbQueue.write { db in
-            let request = MetadataRecord.filter(MetadataRecord.Schema.type == type.rawValue)
-
-            var expressions: [SQLExpression] = []
-            for lifespan in lifespans {
-                expressions.append(MetadataRecord.Schema.lifespan == lifespan.rawValue)
-            }
-
-            try request
-                .filter(expressions.joined(operator: .or))
-                .deleteAll(db)
-        }
+        return NSCompoundPredicate(
+            type: .or,
+            subpredicates: [
+                processIdPredicate,
+                permanentPredicate
+            ]
+        )
     }
 
-    /// Removes all `MetadataRecords` for the given keys and timespan.
-    /// Note that this method is inteded to be indirectly used by implementers of the SDK
-    /// For this reason records of the `.requiredResource` type are not removed.
-    public func removeAllMetadata(keys: [String], lifespan: MetadataRecordLifespan) throws {
-        guard keys.count > 0 else {
-            return
-        }
-
-        try dbQueue.write { db in
-            let request = MetadataRecord.filter(
-                MetadataRecord.Schema.type != MetadataRecordType.requiredResource.rawValue
-            )
-
-            var expressions: [SQLExpression] = []
-            for key in keys {
-                expressions.append(MetadataRecord.Schema.key == key)
-            }
-
-            try request
-                .filter(expressions.joined(operator: .or))
-                .deleteAll(db)
-        }
-    }
-
-    /// Returns the `MetadataRecord` for the given values.
-    public func fetchMetadata(
-        key: String,
-        type: MetadataRecordType,
-        lifespan: MetadataRecordLifespan,
-        lifespanId: String = ""
-    ) throws -> MetadataRecord? {
-
-        try dbQueue.read { db in
-            return try MetadataRecord
-                .filter(
-                    MetadataRecord.Schema.key == key &&
-                    MetadataRecord.Schema.type == type.rawValue &&
-                    MetadataRecord.Schema.lifespan == lifespan.rawValue &&
-                    MetadataRecord.Schema.lifespanId == lifespanId
-                )
-                .fetchOne(db)
-        }
-    }
-
-    /// Returns the permanent required resource for the given key.
-    public func fetchRequiredPermanentResource(key: String) throws -> MetadataRecord? {
-        return try fetchMetadata(key: key, type: .requiredResource, lifespan: .permanent)
-    }
-
-    /// Returns all records with types `.requiredResource` or `.resource`
-    public func fetchAllResources() throws -> [MetadataRecord] {
-        try dbQueue.read { db in
-            return try resourcesFilter().fetchAll(db)
-        }
-    }
-
-    /// Returns all records with types `.requiredResource` or `.resource` that are tied to a given session id
-    public func fetchResourcesForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord] {
-        try dbQueue.read { db in
-            guard let session = try SessionRecord.fetchOne(db, key: sessionId.toString) else {
-                return []
-            }
-
-            return try resourcesFilter()
-                .filter(
-                    (
-                        MetadataRecord.Schema.lifespan == MetadataRecordLifespan.session.rawValue &&
-                        MetadataRecord.Schema.lifespanId == session.id.toString
-                    ) || (
-                        MetadataRecord.Schema.lifespan == MetadataRecordLifespan.process.rawValue &&
-                        MetadataRecord.Schema.lifespanId == session.processId.hex
-                    ) ||
-                        MetadataRecord.Schema.lifespan == MetadataRecordLifespan.permanent.rawValue
-                )
-                .fetchAll(db)
-        }
-    }
-
-    /// Returns all records with types `.requiredResource` or `.resource` that are tied to a given process id
-    public func fetchResourcesForProcessId(_ processId: ProcessIdentifier) throws -> [MetadataRecord] {
-        try dbQueue.read { db in
-
-            return try resourcesFilter()
-                .filter(
-                    (
-                        MetadataRecord.Schema.lifespan == MetadataRecordLifespan.process.rawValue &&
-                        MetadataRecord.Schema.lifespanId == processId.hex
-                    ) ||
-                        MetadataRecord.Schema.lifespan == MetadataRecordLifespan.permanent.rawValue
-                )
-                .fetchAll(db)
-        }
-    }
-
-    /// Returns all records of the `.customProperty` type that are tied to a given session id
-    public func fetchCustomPropertiesForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord] {
-        try dbQueue.read { db in
-            guard let session = try SessionRecord.fetchOne(db, key: sessionId.toString) else {
-                return []
-            }
-
-            return try customPropertiesFilter()
-                .filter(
-                    (
-                        MetadataRecord.Schema.lifespan == MetadataRecordLifespan.session.rawValue &&
-                        MetadataRecord.Schema.lifespanId == session.id.toString
-                    ) || (
-                        MetadataRecord.Schema.lifespan == MetadataRecordLifespan.process.rawValue &&
-                        MetadataRecord.Schema.lifespanId == session.processId.hex
-                    ) ||
-                        MetadataRecord.Schema.lifespan == MetadataRecordLifespan.permanent.rawValue
-                )
-                .fetchAll(db)
-        }
-    }
-
-    /// Returns all records of the `.personaTag` type that are tied to a given session id
-    public func fetchPersonaTagsForSessionId(_ sessionId: SessionIdentifier) throws -> [MetadataRecord] {
-        try dbQueue.read { db in
-            guard let session = try SessionRecord.fetchOne(db, key: sessionId.toString) else {
-                return []
-            }
-
-            return try personaTagsFilter()
-                .filter(
-                    (
-                        MetadataRecord.Schema.lifespan == MetadataRecordLifespan.session.rawValue &&
-                        MetadataRecord.Schema.lifespanId == session.id.toString
-                    ) || (
-                        MetadataRecord.Schema.lifespan == MetadataRecordLifespan.process.rawValue &&
-                        MetadataRecord.Schema.lifespanId == session.processId.hex
-                    ) ||
-                        MetadataRecord.Schema.lifespan == MetadataRecordLifespan.permanent.rawValue
-                )
-                .fetchAll(db)
-        }
-    }
-
-    /// Returns all records of the `.personaTag` type that are tied to a given process id
-    public func fetchPersonaTagsForProcessId(_ processId: ProcessIdentifier) throws -> [MetadataRecord] {
-        try dbQueue.read { db in
-
-            return try personaTagsFilter()
-                .filter(
-                    (
-                        MetadataRecord.Schema.lifespan == MetadataRecordLifespan.process.rawValue &&
-                        MetadataRecord.Schema.lifespanId == processId.hex
-                    ) ||
-                        MetadataRecord.Schema.lifespan == MetadataRecordLifespan.permanent.rawValue
-                )
-                .fetchAll(db)
-        }
-    }
-}
-
-extension EmbraceStorage {
-    private func resourcesFilter() -> QueryInterfaceRequest<MetadataRecord> {
-        MetadataRecord.filter(
-            MetadataRecord.Schema.type == MetadataRecordType.requiredResource.rawValue ||
-            MetadataRecord.Schema.type == MetadataRecordType.resource.rawValue)
-    }
-
-    private func customPropertiesFilter() -> QueryInterfaceRequest<MetadataRecord> {
-        MetadataRecord.filter(MetadataRecord.Schema.type == MetadataRecordType.customProperty.rawValue)
-    }
-
-    private func personaTagsFilter() -> QueryInterfaceRequest<MetadataRecord> {
-        MetadataRecord.filter(MetadataRecord.Schema.type == MetadataRecordType.personaTag.rawValue)
-    }
 }

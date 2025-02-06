@@ -34,18 +34,6 @@ public class MetadataRecordTmp: NSManagedObject {
 
         return record
     }
-
-    class func create(context: NSManagedObjectContext, record: MetadataRecord) -> MetadataRecordTmp {
-        return create(
-            context: context,
-            key: record.key,
-            value: record.value.description,
-            type: record.type.rawValue,
-            lifespan: record.lifespan.rawValue,
-            lifespanId: record.lifespanId,
-            collectedAt: record.collectedAt
-        )
-    }
 }
 
 extension MetadataRecordTmp {

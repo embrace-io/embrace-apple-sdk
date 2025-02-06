@@ -57,7 +57,7 @@ class EmbraceUploadCacheTests: XCTestCase {
             data: Data(), 
             attemptCount: 0, 
             date: Date()
-        )
+        )!
         let data2 = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id2",
@@ -65,7 +65,7 @@ class EmbraceUploadCacheTests: XCTestCase {
             data: Data(), 
             attemptCount: 0, 
             date: Date()
-        )
+        )!
         let data3 = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id3",
@@ -73,12 +73,12 @@ class EmbraceUploadCacheTests: XCTestCase {
             data: Data(), 
             attemptCount: 0, 
             date: Date()
-        )
+        )!
 
         cache.coreData.save()
 
         // when fetching the upload datas
-        let datas = try cache.fetchAllUploadData()
+        let datas = cache.fetchAllUploadData()
 
         // then the fetched datas are valid
         XCTAssert(datas.contains(data1))
