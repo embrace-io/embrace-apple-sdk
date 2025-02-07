@@ -13,6 +13,17 @@ class UNUserNotificationCenterDelegateProxy: NSObject {
         self.captureData = captureData
     }
 
+    override func responds(to aSelector: Selector!) -> Bool {
+        // We will only respond to the given selectors if and only if the `originalDelegate` we are proxying also implements them.
+        // If this condition is not met, we risk stealing the notification from the app, which is undesirable.
+        if super.responds(to: aSelector),
+           let originalDelegate = originalDelegate,
+           originalDelegate.responds(to: aSelector) {
+            return true
+        }
+        return false
+    }
+
     override func forwardingTarget(for aSelector: Selector!) -> Any? {
         if super.responds(to: aSelector) {
             return self
