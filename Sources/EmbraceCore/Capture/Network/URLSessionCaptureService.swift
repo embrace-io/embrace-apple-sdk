@@ -5,6 +5,7 @@
 import Foundation
 import EmbraceCaptureService
 import EmbraceCommonInternal
+import EmbraceObjCUtilsInternal
 
 typealias URLSessionCompletion = (Data?, URLResponse?, Error?) -> Void
 typealias DownloadTaskCompletion = (URL?, URLResponse?, Error?) -> Void
@@ -111,7 +112,7 @@ struct URLSessionInitWithDelegateSwizzler: URLSessionSwizzler {
                     return originalImplementation(urlSession, Self.selector, configuration, delegate, queue)
                 }
 
-                let newDelegate = URLSessionDelegateProxy(originalDelegate: proxiedDelegate, handler: handler)
+                let newDelegate = EMBURLSessionDelegateProxy(delegate: proxiedDelegate, handler: handler)
                 let session = originalImplementation(urlSession, Self.selector, configuration, newDelegate, queue)
 
                 // If we have already been swizzled by another player, we notify our proxied delegate,
@@ -171,7 +172,7 @@ struct SessionTaskResumeSwizzler: URLSessionSwizzler {
         if #available(iOS 15.0, tvOS 15.0, macOS 12, watchOS 8, *) {
             try swizzleInstanceMethod { originalImplementation -> BlockImplementationType in
                 return { [weak handler = self.handler] task in
-                    let handled = handler?.create(task: task) ?? true
+                    let handled = handler?.create(task) ?? true
 
                     // if the task was handled by this swizzler
                     // by the time resume was called it probably means
@@ -179,7 +180,8 @@ struct SessionTaskResumeSwizzler: URLSessionSwizzler {
                     // we set a proxy delegate to get a callback when the task finishes
                     if handled, let handler = handler {
                         let originalDelegate = task.delegate
-                        task.delegate = URLSessionDelegateProxy(originalDelegate: originalDelegate, handler: handler)
+                        task.delegate = EMBURLSessionDelegateProxy(delegate: originalDelegate, handler: handler)
+//                        task.delegate = URLSessionDelegateProxy(originalDelegate: originalDelegate, handler: handler)
                     }
 
                     // call original
@@ -235,7 +237,7 @@ struct DataTaskWithURLRequestSwizzler: URLSessionSwizzler {
             return { [weak handler = self.handler] urlSession, urlRequest -> URLSessionDataTask in
                 let request = urlRequest.addEmbraceHeaders()
                 let dataTask = originalImplementation(urlSession, Self.selector, request)
-                handler?.create(task: dataTask)
+                handler?.create(dataTask)
                 return dataTask
             }
         }
@@ -294,7 +296,7 @@ struct DataTaskWithURLRequestAndCompletionSwizzler: URLSessionSwizzler {
 
                 guard let completion = completion else {
                     let task = originalImplementation(urlSession, Self.selector, request, completion)
-                    handler?.create(task: task)
+                    handler?.create(task)
                     return task
                 }
 
@@ -302,13 +304,13 @@ struct DataTaskWithURLRequestAndCompletionSwizzler: URLSessionSwizzler {
 
                 let dataTask = originalImplementation(urlSession, Self.selector, request) { data, response, error in
                     if let task = originalTask {
-                        handler?.finish(task: task, data: data, error: error)
+                        handler?.finish(task, data: data, error: error)
                     }
                     completion(data, response, error)
                 }
 
                 originalTask = dataTask
-                handler?.create(task: dataTask)
+                handler?.create(dataTask)
                 return dataTask
             }
         }
@@ -335,7 +337,7 @@ struct UploadTaskWithRequestFromDataSwizzler: URLSessionSwizzler {
             return { [weak handler = self.handler] urlSession, urlRequest, data -> URLSessionUploadTask in
                 let request = urlRequest.addEmbraceHeaders()
                 let dataTask = originalImplementation(urlSession, Self.selector, request, data)
-                handler?.create(task: dataTask)
+                handler?.create(dataTask)
                 return dataTask
             }
         }
@@ -364,7 +366,7 @@ struct UploadTaskWithRequestFromDataWithCompletionSwizzler: URLSessionSwizzler {
 
                 guard let completion = completion else {
                     let task = originalImplementation(urlSession, Self.selector, urlRequest, uploadData, completion)
-                    handler?.create(task: task)
+                    handler?.create(task)
                     return task
                 }
 
@@ -372,13 +374,13 @@ struct UploadTaskWithRequestFromDataWithCompletionSwizzler: URLSessionSwizzler {
                 var originalTask: URLSessionUploadTask?
                 let uploadTask = originalImplementation(urlSession, Self.selector, request, uploadData) { data, response, error in
                     if let task = originalTask {
-                        handler?.finish(task: task, data: data, error: error)
+                        handler?.finish(task, data: data, error: error)
                     }
                     completion(data, response, error)
                 }
 
                 originalTask = uploadTask
-                handler?.create(task: uploadTask)
+                handler?.create(uploadTask)
                 return uploadTask
             }
         }
@@ -405,7 +407,7 @@ struct UploadTaskWithRequestFromFileSwizzler: URLSessionSwizzler {
             return { [weak handler = self.handler] urlSession, urlRequest, url -> URLSessionUploadTask in
                 let request = urlRequest.addEmbraceHeaders()
                 let uploadTask = originalImplementation(urlSession, Self.selector, request, url)
-                handler?.create(task: uploadTask)
+                handler?.create(uploadTask)
                 return uploadTask
             }
         }
@@ -435,19 +437,19 @@ struct UploadTaskWithRequestFromFileWithCompletionSwizzler: URLSessionSwizzler {
 
                 guard let completion = completion else {
                     let task = originalImplementation(urlSession, Self.selector, request, url, completion)
-                    handler?.create(task: task)
+                    handler?.create(task)
                     return task
                 }
 
                 var originalTask: URLSessionUploadTask?
                 let uploadTask = originalImplementation(urlSession, Self.selector, request, url) { data, response, error in
                     if let task = originalTask {
-                        handler?.finish(task: task, data: data, error: error)
+                        handler?.finish(task, data: data, error: error)
                     }
                     completion(data, response, error)
                 }
                 originalTask = uploadTask
-                handler?.create(task: uploadTask)
+                handler?.create(uploadTask)
                 return uploadTask
             }
         }
@@ -475,7 +477,7 @@ struct DownloadTaskWithURLRequestSwizzler: URLSessionSwizzler {
             return { [weak handler = self.handler] urlSession, urlRequest -> URLSessionDownloadTask in
                 let request = urlRequest.addEmbraceHeaders()
                 let downloadTask = originalImplementation(urlSession, Self.selector, request)
-                handler?.create(task: downloadTask)
+                handler?.create(downloadTask)
                 return downloadTask
             }
         }
@@ -506,7 +508,7 @@ struct DownloadTaskWithURLRequestWithCompletionSwizzler: URLSessionSwizzler {
 
                 guard let completion = completion else {
                     let task = originalImplementation(urlSession, Self.selector, request, completion)
-                    handler?.create(task: task)
+                    handler?.create(task)
                     return task
                 }
 
@@ -517,12 +519,12 @@ struct DownloadTaskWithURLRequestWithCompletionSwizzler: URLSessionSwizzler {
                         if let url = url, let dataFromURL = try? Data(contentsOf: url) {
                             data = dataFromURL
                         }
-                        handler?.finish(task: task, data: data, error: error)
+                        handler?.finish(task, data: data, error: error)
                     }
                     completion(url, response, error)
                 }
                 originalTask = downloadTask
-                handler?.create(task: downloadTask)
+                handler?.create(downloadTask)
                 return downloadTask
             }
         }
@@ -550,7 +552,7 @@ struct UploadTaskWithStreamedRequestSwizzler: URLSessionSwizzler {
             return { [weak handler = self.handler] urlSession, urlRequest -> URLSessionUploadTask in
                 let request = urlRequest.addEmbraceHeaders()
                 let uploadTask = originalImplementation(urlSession, UploadTaskWithStreamedRequestSwizzler.selector, request)
-                handler?.create(task: uploadTask)
+                handler?.create(uploadTask)
                 return uploadTask
             }
         }

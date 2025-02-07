@@ -1,5 +1,8 @@
 ## 6.8.0
 *Feb 6th, 2025*
+* Features
+    * Possibility to add attachments to logs
+    * Possibility to stop the Embrace SDK from capturing and generating data
 * Fixes
     * Fixed an issue causing `WKWebView`s to crash when calling the delegate method `webView(_:didFinish:)` when `WebViewCaptureService` is enabled.
     * Fixed some potential issues with different features using proxy mechanisms (e.g. `URLSession` & `UNUserNotificationCenter` instrumentation).

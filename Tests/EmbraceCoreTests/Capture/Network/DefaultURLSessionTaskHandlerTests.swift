@@ -251,7 +251,7 @@ private extension DefaultURLSessionTaskHandlerTests {
 
     func givenHandlerCreatedASpan(withResponse response: URLResponse? = nil) {
         givenAnURLSessionTask(response: response)
-        sut.create(task: task)
+        sut.create(task)
     }
 
     func givenAnURLSessionTask(urlString: String = "https://embrace.io", method: String? = nil, body: Data? = nil, response: URLResponse? = nil) {
@@ -267,7 +267,7 @@ private extension DefaultURLSessionTaskHandlerTests {
     }
 
     func whenInvokingCreate(withoutWaiting: Bool = false) {
-        sut.create(task: task)
+        sut.create(task)
         if !withoutWaiting {
             waitForCreationToEnd()
         }
@@ -276,7 +276,7 @@ private extension DefaultURLSessionTaskHandlerTests {
     func whenInvokingFinish(withData data: Data? = nil, error: Error? = nil, withoutWaiting: Bool = false) {
         task.resume()
         waitForRequestToFinish()
-        sut.finish(task: task, data: data, error: error)
+        sut.finish(task, data: data, error: error)
         if !withoutWaiting {
             waitForFinishMethodToEnd()
         }

@@ -1,0 +1,28 @@
+//
+//  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
+//
+    
+
+#import <Foundation/Foundation.h>
+
+NS_ASSUME_NONNULL_BEGIN
+
+@protocol URLSessionTaskHandler <NSObject>
+
+- (BOOL)create:(NSURLSessionTask *)task;
+- (void)finish:(NSURLSessionTask *)task data:(nullable NSData *)data error:(nullable NSError *)error;
+- (void)addData:(NSData *)data dataTask:(NSURLSessionDataTask *)dataTask;
+
+@end
+
+@interface EMBURLSessionDelegateProxy : NSProxy<NSURLSessionDelegate, NSURLSessionTaskDelegate, NSURLSessionDataDelegate, NSURLSessionDownloadDelegate, NSURLSessionStreamDelegate>
+
+@property (nonatomic, strong, nullable) id originalDelegate;
+@property (nonatomic, weak, nullable) id<NSURLSessionDelegate> swizzledDelegate;
+@property (nonatomic, strong, nullable) id<URLSessionTaskHandler> handler;
+
+- (instancetype)initWithDelegate:(id<NSURLSessionDelegate> _Nullable)delegate handler:(id<URLSessionTaskHandler>)handler;
+
+@end
+
+NS_ASSUME_NONNULL_END

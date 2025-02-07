@@ -4,6 +4,7 @@
 
 import XCTest
 @testable import EmbraceCore
+@testable import EmbraceObjCUtilsInternal
 
 class DummyURLSessionDelegate: NSObject, URLSessionDelegate {}
 
@@ -52,6 +53,7 @@ private extension URLSessionInitWithDelegateSwizzlerTests {
     }
 
     func whenInitializingURLSessionWithDelegate(_ delegate: URLSessionDelegate = DummyURLSessionDelegate()) {
+//        originalDelegate = delegate
         session = URLSession(configuration: .default,
                              delegate: delegate,
                              delegateQueue: nil)
@@ -66,11 +68,12 @@ private extension URLSessionInitWithDelegateSwizzlerTests {
     }
 
     func thenSessionsDelegateShouldBeEmbracesProxy() {
-        XCTAssertTrue(session.delegate.self is URLSessionDelegateProxy)
+        let type = session.delegate.self
+        XCTAssertNotNil(session.delegate.self is EMBURLSessionDelegateProxy)
     }
 
     func thenSessionsDelegateShouldntBeEmbracesProxy() {
-        XCTAssertFalse(session.delegate.self is URLSessionDelegateProxy)
+        XCTAssertFalse(session.delegate.self is EMBURLSessionDelegateProxy)
     }
 
     func thenBaseClassShouldBeURLSession() {

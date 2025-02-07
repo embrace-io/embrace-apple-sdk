@@ -4,10 +4,11 @@
 
 import XCTest
 @testable import EmbraceCore
+@testable import EmbraceObjCUtilsInternal
 
 class URLSessionDelegateProxyTests: XCTestCase {
     private var originalDelegate: FullyImplementedURLSessionDelegate!
-    private var sut: URLSessionDelegateProxy!
+    private var sut: EMBURLSessionDelegateProxy!
     private var handler: MockURLSessionTaskHandler!
 
     func test_onExecuteDidCompleteWithError_shouldCallBothProxyAndOriginalDelegate() throws {
@@ -140,7 +141,8 @@ private extension URLSessionDelegateProxyTests {
     func givenProxyWithFullyImplementedOriginalDelegate() {
         handler = .init()
         originalDelegate = .init()
-        sut = .init(originalDelegate: originalDelegate, handler: handler)
+        sut = EMBURLSessionDelegateProxy(delegate: originalDelegate, handler: handler)
+//        sut = .init(originalDelegate: originalDelegate, handler: handler)
     }
 
     func whenInvokingDidBecomeInvalidWithError() throws {
