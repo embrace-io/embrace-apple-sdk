@@ -67,7 +67,7 @@ private extension URLSessionInitWithDelegateSwizzlerTests {
     }
 
     func thenSessionsDelegateShouldBeEmbracesProxy() {
-        XCTAssertNotNil(session.delegate.self is EMBURLSessionDelegateProxy)
+        XCTAssertTrue(session.delegate.self is EMBURLSessionDelegateProxy)
     }
 
     func thenSessionsDelegateShouldntBeEmbracesProxy() {

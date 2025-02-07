@@ -46,7 +46,18 @@
 }
 
 - (void)forwardInvocation:(NSInvocation *)invocation {
+    NSLog(@"%@", invocation.description);
     [invocation invokeWithTarget:self.originalDelegate];
+}
+
+- (BOOL)isKindOfClass:(Class)aClass
+{
+    return aClass == [EMBURLSessionDelegateProxy class];
+}
+
+- (BOOL)isMemberOfClass:(Class)aClass
+{
+    return aClass == [EMBURLSessionDelegateProxy class];
 }
 
 #pragma mark - NSURLSessionDelegate Methods
@@ -56,7 +67,7 @@
         return self.originalDelegate;
     }
 
-    if ([session.delegate isKindOfClass:[self class]]) {
+    if ([session.delegate isEqual:self]) {
         return nil;
     }
 
