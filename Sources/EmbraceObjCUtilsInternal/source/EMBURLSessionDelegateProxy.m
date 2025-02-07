@@ -80,7 +80,7 @@
 #pragma mark - NSURLSessionTaskDelegate Methods
 
 - (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error {
-    [self.handler finish:task data:nil error:error];
+    [self.handler finishWithTask:task data:nil error:error];
     id target = [self getTargetForSelector:DID_COMPLETE_WITH_ERROR session:session];
 
     if (target) {
@@ -89,7 +89,7 @@
 }
 
 - (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didFinishCollectingMetrics:(NSURLSessionTaskMetrics *)metrics {
-    [self.handler finish:task data:nil error:nil];
+    [self.handler finishWithTask:task data:nil error:nil];
     id target = [self getTargetForSelector:DID_FINISH_COLLECTING_METRICS session:session];
 
     if (target) {

@@ -177,7 +177,7 @@ extension URLSessionDelegateProxy: URLSessionTaskDelegate {
     func urlSession(_ session: URLSession,
                     task: URLSessionTask,
                     didFinishCollecting metrics: URLSessionTaskMetrics) {
-        handler.finish(task, data: nil, error: nil)
+        handler.finish(task: task, data: nil, error: nil)
 
         let selector = #selector(
             URLSessionTaskDelegate.urlSession(_:task:didFinishCollecting:)
@@ -206,7 +206,7 @@ extension URLSessionDelegateProxy: URLSessionTaskDelegate {
     func urlSession(_ session: URLSession,
                     task: URLSessionTask,
                     didCompleteWithError error: Error?) {
-        handler.finish(task, data: nil, error: error)
+        handler.finish(task: task, data: nil, error: error)
         let selector = #selector(
             URLSessionTaskDelegate.urlSession(_:task:didCompleteWithError:)
         )

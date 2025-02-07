@@ -37,7 +37,7 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
     }
 
     @discardableResult
-    func create(_ task: URLSessionTask) -> Bool {
+    func create(task: URLSessionTask) -> Bool {
 
         var handled = false
 
@@ -125,7 +125,7 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
         return handled
     }
 
-    func finish(_ task: URLSessionTask, data: Data?, error: (any Error)?) {
+    func finish(task: URLSessionTask, data: Data?, error: (any Error)?) {
         queue.async {
             // save end time for payload capture
             task.embraceEndTime = Date()
@@ -190,7 +190,7 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
         }
     }
 
-    func add(_ data: Data, dataTask: URLSessionDataTask) {
+    func addData(_ data: Data, dataTask: URLSessionDataTask) {
         if var previousData = dataTask.embraceData {
             previousData.append(data)
             dataTask.embraceData = previousData

@@ -9,9 +9,11 @@ NS_ASSUME_NONNULL_BEGIN
 
 @protocol URLSessionTaskHandler <NSObject>
 
-- (BOOL)create:(NSURLSessionTask *)task;
-- (void)finish:(NSURLSessionTask *)task data:(nullable NSData *)data error:(nullable NSError *)error;
-- (void)addData:(NSData *)data dataTask:(NSURLSessionDataTask *)dataTask;
+- (BOOL)createWithTask:(NSURLSessionTask *)task NS_SWIFT_NAME(create(task:));
+- (void)finishWithTask:(NSURLSessionTask *)task
+                  data:(nullable NSData *)data
+                 error:(nullable NSError *)error NS_SWIFT_NAME(finish(task:data:error:));
+- (void)addData:(NSData *)data dataTask:(NSURLSessionDataTask *)dataTask NS_SWIFT_NAME(addData(_:dataTask:));
 
 @end
 
