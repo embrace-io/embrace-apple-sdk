@@ -142,7 +142,6 @@ private extension URLSessionDelegateProxyTests {
         handler = .init()
         originalDelegate = .init()
         sut = EMBURLSessionDelegateProxy(delegate: originalDelegate, handler: handler)
-//        sut = .init(originalDelegate: originalDelegate, handler: handler)
     }
 
     func whenInvokingDidBecomeInvalidWithError() throws {

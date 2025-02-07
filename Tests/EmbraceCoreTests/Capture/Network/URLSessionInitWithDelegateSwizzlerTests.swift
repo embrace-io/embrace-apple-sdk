@@ -53,7 +53,6 @@ private extension URLSessionInitWithDelegateSwizzlerTests {
     }
 
     func whenInitializingURLSessionWithDelegate(_ delegate: URLSessionDelegate = DummyURLSessionDelegate()) {
-//        originalDelegate = delegate
         session = URLSession(configuration: .default,
                              delegate: delegate,
                              delegateQueue: nil)
@@ -68,7 +67,6 @@ private extension URLSessionInitWithDelegateSwizzlerTests {
     }
 
     func thenSessionsDelegateShouldBeEmbracesProxy() {
-        let type = session.delegate.self
         XCTAssertNotNil(session.delegate.self is EMBURLSessionDelegateProxy)
     }
 
