@@ -14,6 +14,8 @@ protocol URLSessionSwizzler: Swizzlable {
     init(handler: URLSessionTaskHandler, baseClass: AnyClass)
 }
 
+class EmbraceDummyURLSessionDelegate: NSObject, URLSessionDelegate {}
+
 /// Service that generates OpenTelemetry spans for network requests that use `URLSession`.
 @objc(EMBURLSessionCaptureService)
 public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandlerDataSource {
@@ -109,6 +111,11 @@ struct URLSessionInitWithDelegateSwizzler: URLSessionSwizzler {
 
                 // check if we support proxying this type of delegate
                 guard isDelegateSupported(proxiedDelegate) else {
+                    return originalImplementation(urlSession, Self.selector, configuration, delegate, queue)
+                }
+
+                // Add protection against re-proxying our own proxy
+                guard !(proxiedDelegate is EMBURLSessionDelegateProxy) else {
                     return originalImplementation(urlSession, Self.selector, configuration, delegate, queue)
                 }
 

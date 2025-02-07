@@ -9,8 +9,10 @@ import Foundation
 
 class MockURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
     var didInvokeAddData = false
+    var receivedData: Data! = nil
     func addData(_ data: Data, dataTask: URLSessionDataTask) {
         didInvokeAddData = true
+        receivedData = data
     }
 
     var shouldHandleTasks = true

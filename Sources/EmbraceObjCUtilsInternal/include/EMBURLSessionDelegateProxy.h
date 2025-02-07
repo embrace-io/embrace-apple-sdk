@@ -20,7 +20,11 @@ NS_ASSUME_NONNULL_BEGIN
 @interface EMBURLSessionDelegateProxy : NSProxy<NSURLSessionDelegate, NSURLSessionTaskDelegate, NSURLSessionDataDelegate, NSURLSessionDownloadDelegate, NSURLSessionStreamDelegate>
 
 @property (nonatomic, strong, nullable) id originalDelegate;
+
+/// This helps to determine if, during the creation of the `URLSessionDelegateProxy`,
+/// another player or SDK has already swizzled or proxied NSURLSession/URLSession.
 @property (nonatomic, weak, nullable) id<NSURLSessionDelegate> swizzledDelegate;
+
 @property (nonatomic, strong, nullable) id<URLSessionTaskHandler> handler;
 
 - (instancetype)initWithDelegate:(id<NSURLSessionDelegate> _Nullable)delegate handler:(id<URLSessionTaskHandler>)handler;

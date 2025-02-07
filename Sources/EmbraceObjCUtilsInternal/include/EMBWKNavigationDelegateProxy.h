@@ -12,6 +12,8 @@ NS_ASSUME_NONNULL_BEGIN
 @interface EMBWKNavigationDelegateProxy: NSProxy <WKNavigationDelegate>
 
 @property (nonatomic, weak, nullable) id<WKNavigationDelegate> originalDelegate;
+
+/// callback triggered the webview loads an url or errors
 @property (copy, nullable) void (^callback)(NSURL * _Nullable, NSInteger);
 
 - (instancetype)initWithOriginalDelegate:(id<WKNavigationDelegate> _Nullable)originalDelegate

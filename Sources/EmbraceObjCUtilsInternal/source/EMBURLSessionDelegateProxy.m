@@ -63,21 +63,28 @@
 #pragma mark - NSURLSessionDelegate Methods
 
 - (id)getTargetForSelector:(SEL)selector session:(NSURLSession *)session {
+    // check if the originalDelegate responds to the selector
     if ((self.originalDelegate) && ([self.originalDelegate respondsToSelector:selector])) {
         return self.originalDelegate;
     }
 
+    // check that we are not the `session.delegate` to prevent infinite recursion
     if ([session.delegate isEqual:self]) {
         return nil;
     }
 
+    // avoid forwarding the delegate if it was already swizzled by somebody else
+    // during our swizzling to prevent potential infinite recursion.
     if (self.swizzledDelegate) {
         return nil;
     }
 
+    // if session delegate also responds to selector, we must call it
     if ((session.delegate) && ([session.delegate respondsToSelector:selector])) {
         return session.delegate;
     }
+
+    // If no case applies
     return nil;
 }
 
