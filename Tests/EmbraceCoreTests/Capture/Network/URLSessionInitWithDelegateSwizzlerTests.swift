@@ -12,38 +12,47 @@ class URLSessionInitWithDelegateSwizzlerTests: XCTestCase {
     private var sut: URLSessionInitWithDelegateSwizzler!
     private var session: URLSession!
     private var originalDelegate: URLSessionDelegate!
+    private var previouslySwizzledProxy: EMBURLSessionDelegateProxy!
 
     func testAfterInstall_onCreateURLSessionWithDelegate_originalShouldBeWrapped() throws {
-        givenDataTaskWithURLRequestSwizzler()
+        givenURLSessionInitWithDelegateSwizzler()
         try givenSwizzlingWasDone()
         whenInitializingURLSessionWithDelegate()
         thenSessionsDelegateShouldntBeDummyDelegate()
-        thenSessionsDelegateShouldBeEmbracesProxy()
+        thenSessionsDelegateShouldBeAnEmbracesProxy()
     }
 
     func testAfterInstall_onCreateURLSessionWithoutDelegate_delegateShouldntBeNil() throws {
-        givenDataTaskWithURLRequestSwizzler()
+        givenURLSessionInitWithDelegateSwizzler()
         try givenSwizzlingWasDone()
         whenInitializingURLSessionWithoutDelegate()
-        thenSessionsDelegateShouldBeEmbracesProxy()
+        thenSessionsDelegateShouldBeAnEmbracesProxy()
     }
 
     func test_onInitWithHandler_defaultBaseClassIsURLSession() throws {
-        givenDataTaskWithURLRequestSwizzler()
+        givenURLSessionInitWithDelegateSwizzler()
         thenBaseClassShouldBeURLSession()
     }
 
     func test_unsupportedDelegates() throws {
-        givenDataTaskWithURLRequestSwizzler()
+        givenURLSessionInitWithDelegateSwizzler()
         try givenSwizzlingWasDone()
         whenInitializingURLSessionWithDelegate(GTMSessionFetcher())
         thenSessionsDelegateShouldntBeEmbracesProxy()
         XCTAssertTrue(session.delegate.self is GTMSessionFetcher)
     }
+
+    func test_preventProxyingOurselves() throws {
+        givenURLSessionInitWithDelegateSwizzler()
+        try givenSwizzlingWasDone()
+        whenInitializingURLSessionWithPreviouslySwizzledProxy()
+        thenSessionsDelegateShouldBeAnEmbracesProxy()
+        thenSessionDelegateShouldBePreviouslySwizzledProxy()
+    }
 }
 
 private extension URLSessionInitWithDelegateSwizzlerTests {
-    func givenDataTaskWithURLRequestSwizzler() {
+    func givenURLSessionInitWithDelegateSwizzler() {
         let handler = MockURLSessionTaskHandler()
         sut = URLSessionInitWithDelegateSwizzler(handler: handler)
     }
@@ -58,6 +67,11 @@ private extension URLSessionInitWithDelegateSwizzlerTests {
                              delegateQueue: nil)
     }
 
+    func whenInitializingURLSessionWithPreviouslySwizzledProxy() {
+        previouslySwizzledProxy = .init(delegate: nil, handler: MockURLSessionTaskHandler())
+        whenInitializingURLSessionWithDelegate(previouslySwizzledProxy)
+    }
+
     func whenInitializingURLSessionWithoutDelegate() {
         session = URLSession(configuration: .default)
     }
@@ -66,12 +80,16 @@ private extension URLSessionInitWithDelegateSwizzlerTests {
         XCTAssertFalse(session.delegate.self is DummyURLSessionDelegate)
     }
 
-    func thenSessionsDelegateShouldBeEmbracesProxy() {
+    func thenSessionsDelegateShouldBeAnEmbracesProxy() {
         XCTAssertTrue(session.delegate.self is EMBURLSessionDelegateProxy)
     }
 
     func thenSessionsDelegateShouldntBeEmbracesProxy() {
         XCTAssertFalse(session.delegate.self is EMBURLSessionDelegateProxy)
+    }
+
+    func thenSessionDelegateShouldBePreviouslySwizzledProxy() {
+        XCTAssertTrue(session.delegate === previouslySwizzledProxy)
     }
 
     func thenBaseClassShouldBeURLSession() {
