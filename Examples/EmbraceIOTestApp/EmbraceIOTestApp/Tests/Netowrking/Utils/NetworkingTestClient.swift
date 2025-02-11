@@ -7,7 +7,7 @@
 import Foundation
 
 @MainActor
-class NetworkingTestClient: ObservableObject {
+@Observable class NetworkingTestClient {
     enum Status {
         case idle
         case fetching
@@ -20,7 +20,7 @@ class NetworkingTestClient: ObservableObject {
         case invalidResponse
     }
 
-    @Published private(set) var status = Status.idle
+    private(set) var status = Status.idle
 
     func makeTestNetworkCall(to urlString: String) async {
         self.status = .fetching

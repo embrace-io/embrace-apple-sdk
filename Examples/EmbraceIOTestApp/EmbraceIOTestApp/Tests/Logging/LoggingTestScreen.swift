@@ -7,14 +7,14 @@
 import SwiftUI
 
 struct LoggingTestScreen: View {
-    @EnvironmentObject var logExporter: TestLogRecordExporter
+    @Environment(TestLogRecordExporter.self) private var logExporter
     var body: some View {
         ScrollView {
             ZStack {
                 Spacer().containerRelativeFrame([.horizontal, .vertical])
                 VStack {
                     LoggingTestLogMessageUIComponent()
-                        .environmentObject(logExporter)
+                        .environment(logExporter)
                 }
             }
         }
@@ -24,5 +24,5 @@ struct LoggingTestScreen: View {
 #Preview {
     let logExporter = TestLogRecordExporter()
     LoggingTestScreen()
-        .environmentObject(logExporter)
+        .environment(logExporter)
 }

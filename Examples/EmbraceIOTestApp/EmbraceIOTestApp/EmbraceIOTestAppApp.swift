@@ -17,8 +17,8 @@ struct EmbraceIOTestAppApp: App {
             NavigationView {
                 ContentView()
                     .preferredColorScheme(.dark)
-                    .environmentObject(spanExporter)
-                    .environmentObject(logExporter)
+                    .environment(spanExporter)
+                    .environment(logExporter)
             }
         }
     }

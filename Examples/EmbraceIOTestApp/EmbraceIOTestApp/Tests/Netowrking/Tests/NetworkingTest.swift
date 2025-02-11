@@ -15,6 +15,7 @@ class NetworkingTest: PayloadTest {
         self.statusCode = statusCode
     }
     var testRelevantSpanName: String { "GET " }
+    var testType: TestType { .Spans }
     func test(spans: [SpanData]) -> TestReport {
         var testItems = [TestReportItem]()
 

@@ -8,7 +8,7 @@ import EmbraceIO
 import SwiftUI
 
 struct LoggingTestLogMessageUIComponent: View {
-    @EnvironmentObject var logExporter: TestLogRecordExporter
+    @Environment(TestLogRecordExporter.self) private var logExporter
     @State private var testResult: TestResult = .unknown
     @State private var testReport = TestReport(items: [])
     @State private var readyToTest: Bool = false
@@ -28,16 +28,16 @@ struct LoggingTestLogMessageUIComponent: View {
                 .padding([.leading, .trailing,], 5)
                 .textFieldStyle(RoundedStyle())
 
-            TestComponentView(
-                testResult: $testResult,
-                readyForTest: .constant(testResult != .testing),
-                testName: "Perform ERROR Log Message Test",
-                testAction: {
-                    readyToTest = false
-                    testResult = .testing
-                    logExporter.clearAll()
-                    Embrace.client?.log(logMessage, severity: .error)
-                })
+//            TestComponentView(
+//                testResult: $testResult,
+//                readyForTest: .constant(testResult != .testing),
+//                testName: "Perform ERROR Log Message Test",
+//                testAction: {
+//                    readyToTest = false
+//                    testResult = .testing
+//                    logExporter.clearAll()
+//                    Embrace.client?.log(logMessage, severity: .error)
+//                })
         }
         .onChange(of: logExporter.state) { _, newValue in
             switch newValue {
@@ -59,7 +59,7 @@ struct LoggingTestLogMessageUIComponent: View {
             readyToTest = Embrace.client?.state == .started
         }
         .sheet(isPresented: $reportPresented) {
-            TestReportCard(report: $testReport)
+            TestReportCard(report: testReport)
         }
     }
 }
@@ -67,5 +67,5 @@ struct LoggingTestLogMessageUIComponent: View {
 #Preview {
     let logExporter = TestLogRecordExporter()
     LoggingTestLogMessageUIComponent()
-        .environmentObject(logExporter)
+        .environment(logExporter)
 }

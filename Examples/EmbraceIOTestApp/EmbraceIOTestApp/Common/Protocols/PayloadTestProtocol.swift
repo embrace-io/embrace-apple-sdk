@@ -9,11 +9,13 @@ import OpenTelemetryApi
 
 protocol PayloadTest {
     var testRelevantSpanName: String { get }
+    var testType: TestType { get }
     func test(spans: [OpenTelemetrySdk.SpanData]) -> TestReport
     func test(logs: [ReadableLogRecord]) -> TestReport
     func evaluate(_ target: String, expecting: String, on: [String: AttributeValue]) -> TestReportItem
     func evaluateSpanExistence(identifiedBy id: String, underAttributeKey key: String, on spans: [SpanData]) -> (TestReportItem, SpanData?)
     func evaluateLogExistence(withMessage message: String, on logs: [ReadableLogRecord]) -> (TestReportItem, ReadableLogRecord?)
+    func runTestPreparations()
 }
 
 extension PayloadTest {
@@ -46,4 +48,6 @@ extension PayloadTest {
     func test(spans: [OpenTelemetrySdk.SpanData]) -> TestReport { .init(items: []) }
 
     func test(logs: [ReadableLogRecord]) -> TestReport { .init(items: []) }
+
+    func runTestPreparations() { }
 }

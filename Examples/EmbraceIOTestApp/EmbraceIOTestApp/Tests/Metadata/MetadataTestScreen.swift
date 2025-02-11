@@ -7,16 +7,16 @@
 import SwiftUI
 
 struct MetadataTestScreen: View {
-    @EnvironmentObject var spanExporter: TestSpanExporter
+    @Environment(TestSpanExporter.self) private var spanExporter
     var body: some View {
         ScrollView {
             ZStack {
                 Spacer().containerRelativeFrame([.horizontal, .vertical])
                 VStack {
                     MetadataSetupTestUIComponent()
-                        .environmentObject(spanExporter)
+                        .environment(spanExporter)
                     MetadataStartTestUIComponent()
-                        .environmentObject(spanExporter)
+                        .environment(spanExporter)
                 }
             }
         }
@@ -26,5 +26,5 @@ struct MetadataTestScreen: View {
 #Preview {
     let spanExporter = TestSpanExporter()
     MetadataTestScreen()
-        .environmentObject(spanExporter)
+        .environment(spanExporter)
 }

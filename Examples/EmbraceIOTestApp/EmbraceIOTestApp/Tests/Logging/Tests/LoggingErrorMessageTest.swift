@@ -8,6 +8,7 @@ import OpenTelemetrySdk
 
 class LoggingErrorMessageTest: PayloadTest {
     var testRelevantSpanName: String { "" }
+    var testType: TestType { .Logs }
     var loggedMessage: String
 
     init(_ loggedMessage: String) {

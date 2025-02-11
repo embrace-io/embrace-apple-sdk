@@ -7,7 +7,7 @@
 import SwiftUI
 
 struct NetworkingTestUIComponent: View {
-    @EnvironmentObject var spanExporter: TestSpanExporter
+    @Environment(TestSpanExporter.self) private var spanExporter
     @State private var testResult: TestResult = .unknown
     @State private var testReport = TestReport(items: [])
     @State private var readyToTest: Bool = false
@@ -26,47 +26,48 @@ struct NetworkingTestUIComponent: View {
     }
 
     var body: some View {
-        TestComponentView(
-            testResult: $testResult,
-            readyForTest: $readyToTest,
-            testName: "Perform Network Call Test",
-            testAction: {
-                readyToTest = false
-                testResult = .testing
-                spanExporter.clearAll()
-            })
-        .onChange(of: spanExporter.state) { _, newValue in
-            switch newValue {
-            case .clear:
-                if testResult == .testing {
-                    Task {
-                        await client.makeTestNetworkCall(to: testURL)
-                    }
-                } else {
-                    readyToTest = true
-                }
-            case .ready:
-                if testResult == .testing {
-                    testReport = spanExporter.performTest(NetworkingTest(testURL: testURL, statusCode: statusCode))
-                    reportPresented.toggle()
-                } else {
-                    readyToTest = true
-                }
-            case .testing, .waiting:
-                readyToTest = false
-            }
-        }
-        .onAppear() {
-            readyToTest = spanExporter.state != .waiting
-        }
-        .sheet(isPresented: $reportPresented) {
-            TestReportCard(report: $testReport)
-        }
+        VStack {}
+//        TestComponentView(
+//            testResult: $testResult,
+//            readyForTest: $readyToTest,
+//            testName: "Perform Network Call Test",
+//            testAction: {
+//                readyToTest = false
+//                testResult = .testing
+//                spanExporter.clearAll()
+//            })
+//        .onChange(of: spanExporter.state) { _, newValue in
+//            switch newValue {
+//            case .clear:
+//                if testResult == .testing {
+//                    Task {
+//                        await client.makeTestNetworkCall(to: testURL)
+//                    }
+//                } else {
+//                    readyToTest = true
+//                }
+//            case .ready:
+//                if testResult == .testing {
+//                    testReport = spanExporter.performTest(NetworkingTest(testURL: testURL, statusCode: statusCode))
+//                    reportPresented.toggle()
+//                } else {
+//                    readyToTest = true
+//                }
+//            case .testing, .waiting:
+//                readyToTest = false
+//            }
+//        }
+//        .onAppear() {
+//            readyToTest = spanExporter.state != .waiting
+//        }
+//        .sheet(isPresented: $reportPresented) {
+//            TestReportCard(report: $testReport)
+//        }
     }
 }
 
 #Preview {
     let spanExporter = TestSpanExporter()
     NetworkingTestUIComponent()
-        .environmentObject(spanExporter)
+        .environment(spanExporter)
 }

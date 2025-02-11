@@ -1,14 +1,14 @@
 //
-//  TestComponentView.swift
+//  TestScreenButtonView.swift
 //  EmbraceIOTestApp
 //
 //
 
 import SwiftUI
 
-struct TestComponentView<ViewModel: UIComponentViewModelType>: View {
-    var viewModel: ViewModel
-
+struct TestScreenButtonView: View {
+    var viewModel: any UIComponentViewModelType
+    @State private var presentReport = false
     var body: some View {
         HStack {
             Button {
@@ -18,14 +18,23 @@ struct TestComponentView<ViewModel: UIComponentViewModelType>: View {
                     .foregroundStyle(.embraceSilver.opacity(viewModel.readyToTest ? 1.0 : 0.5))
             }
             .disabled(!viewModel.readyToTest)
+            .accessibilityIdentifier(viewModel.dataModel.identifier)
         }
         .frame(height: 60)
         .background(viewModel.testResult.resultColor)
+        .sheet(isPresented: $presentReport) {
+            TestReportCard(report: viewModel.testReport)
+        }
+        .onChange(of: viewModel.presentReport) { oldValue, newValue in
+            self.presentReport = newValue
+        }
     }
 }
 
 #Preview {
+    let spanExporter = TestSpanExporter()
     VStack {
+        TestScreenButtonView(viewModel: SpanTestUIComponentViewModel(dataModel: ViewControllerTestsDataModel.viewDidLoad))
 //        TestComponentView(testResult: .constant(.unknown),
 //                          readyForTest: .constant(true),
 //                          testName: "Test",

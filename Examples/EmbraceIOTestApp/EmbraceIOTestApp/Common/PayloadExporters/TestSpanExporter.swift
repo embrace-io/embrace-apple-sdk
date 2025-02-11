@@ -7,24 +7,28 @@
 import SwiftUI
 import OpenTelemetrySdk
 
-class TestSpanExporter: SpanExporter, ObservableObject {
+@Observable class TestSpanExporter: SpanExporter {
     /// Perform actions that would trigger a span export and monitor changes on this property. When `state` is set to `ready`, you can perform tests on the cached spans.
-    @Published var state: TestMockExporterState = .waiting
+    var state: TestMockExporterState = .waiting
 
-    var cachedExportedSpans: [String: [OpenTelemetrySdk.SpanData]] = [:]
+    private(set) var cachedExportedSpans: [String: [SpanData]] = [:]
 
-    func clearAll() {
-        cachedExportedSpans.removeAll()
-        state = .clear
+    func clearAll(_ specific: String? = nil) {
+        guard let specific = specific else {
+            cachedExportedSpans.removeAll()
+            state = .clear
+            return
+        }
+        cachedExportedSpans[specific]?.removeAll()
     }
 
     func shutdown(explicitTimeout: TimeInterval?) {}
 
-    func flush(explicitTimeout: TimeInterval?) -> OpenTelemetrySdk.SpanExporterResultCode {
+    func flush(explicitTimeout: TimeInterval?) -> SpanExporterResultCode {
         return .success
     }
 
-    func export(spans: [OpenTelemetrySdk.SpanData], explicitTimeout: TimeInterval?) -> OpenTelemetrySdk.SpanExporterResultCode {
+    func export(spans: [SpanData], explicitTimeout: TimeInterval?) -> SpanExporterResultCode {
         spans.forEach {
             if cachedExportedSpans[$0.name] == nil {
                 cachedExportedSpans[$0.name] = []
@@ -34,6 +38,9 @@ class TestSpanExporter: SpanExporter, ObservableObject {
         DispatchQueue.main.async { [weak self] in
             self?.state = .ready
         }
+
+        NotificationCenter.default.post(name: NSNotification.Name("TestSpanExporter.SpansUpdated"), object: nil)
+
         return .success
     }
 

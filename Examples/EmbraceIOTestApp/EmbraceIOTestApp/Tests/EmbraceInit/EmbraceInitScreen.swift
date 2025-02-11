@@ -10,8 +10,8 @@ import EmbraceIO
 import OpenTelemetrySdk
 
 struct EmbraceInitScreen: View {
-    @EnvironmentObject var spanExporter: TestSpanExporter
-    @EnvironmentObject var logExporter: TestLogRecordExporter
+    @Environment(TestSpanExporter.self) private var spanExporter
+    @Environment(TestLogRecordExporter.self) private var logExporter
     @State private var appId: String = "AK5HV"
     @State private var baseURL: String = "http://127.0.0.1:8989/api"
     @State private var devBaseURL: String = "http://127.0.0.1:8989/api"

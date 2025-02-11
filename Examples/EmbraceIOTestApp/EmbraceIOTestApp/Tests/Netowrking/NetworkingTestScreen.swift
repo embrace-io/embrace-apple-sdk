@@ -7,14 +7,14 @@
 import SwiftUI
 
 struct NetworkingTestScreen: View {
-    @EnvironmentObject var spanExporter: TestSpanExporter
+    @Environment(TestSpanExporter.self) private var spanExporter
     var body: some View {
         ScrollView {
             ZStack {
                 Spacer().containerRelativeFrame([.horizontal, .vertical])
                 VStack {
                     NetworkingTestUIComponent()
-                        .environmentObject(spanExporter)
+                        .environment(spanExporter)
                 }
             }
         }
@@ -24,5 +24,5 @@ struct NetworkingTestScreen: View {
 #Preview {
     let spanExporter = TestSpanExporter()
     NetworkingTestScreen()
-        .environmentObject(spanExporter)
+        .environment(spanExporter)
 }

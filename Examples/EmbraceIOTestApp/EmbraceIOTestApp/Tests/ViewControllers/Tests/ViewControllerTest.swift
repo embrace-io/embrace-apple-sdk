@@ -6,9 +6,17 @@
 
 import OpenTelemetrySdk
 import OpenTelemetryApi
+import SwiftUI
 
 class ViewControllerViewDidLoadTest: PayloadTest {
     var testRelevantSpanName: String { "emb-view-did-load" }
+    var testType: TestType { .Spans }
+
+    func runTestPreparations() {
+        let a = TestViewController()
+        a.viewDidLoad()
+    }
+
     func test(spans: [OpenTelemetrySdk.SpanData]) -> TestReport {
         var testItems = [TestReportItem]()
 
@@ -23,5 +31,11 @@ class ViewControllerViewDidLoadTest: PayloadTest {
         testItems.append(evaluate("view.name", expecting: "TestViewController", on: viewDidLoadSpan.attributes))
 
         return .init(items: testItems)
+    }
+}
+
+class TestViewController: UIViewController {
+    override func viewDidLoad() {
+        super.viewDidLoad()
     }
 }

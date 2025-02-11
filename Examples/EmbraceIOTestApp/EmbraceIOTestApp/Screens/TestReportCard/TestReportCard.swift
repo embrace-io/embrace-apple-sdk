@@ -8,7 +8,7 @@ import SwiftUI
 
 struct TestReportCard: View {
     @Environment(\.dismiss) private var dismiss
-    @Binding var report: TestReport
+    var report: TestReport
     var body: some View {
         VStack {
             TestReportCardHeaderView(passed: report.passed)
@@ -54,10 +54,10 @@ struct TestReportCard: View {
         }
     }
     .sheet(isPresented: $passedPresented) {
-        TestReportCard(report: $passReport)
+        TestReportCard(report: passReport)
     }
     .sheet(isPresented: $failPresented) {
-        TestReportCard(report: $failReport)
+        TestReportCard(report: failReport)
     }
     .preferredColorScheme(.dark)
 
