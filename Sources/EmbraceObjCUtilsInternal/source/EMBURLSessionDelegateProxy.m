@@ -36,7 +36,7 @@
         return YES;
     }
     BOOL result = [self.originalDelegate respondsToSelector:aSelector];
-    NSLog(@"[EMBRACE] respondsToSelector: %@ is %b", NSStringFromSelector(aSelector), result);
+    NSLog(@"[EMBRACE] respondsToSelector: %@ is %d", NSStringFromSelector(aSelector), result);
     return result;
 }
 
