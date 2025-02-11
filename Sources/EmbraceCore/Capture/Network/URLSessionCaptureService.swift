@@ -108,16 +108,16 @@ struct URLSessionInitWithDelegateSwizzler: URLSessionSwizzler {
         try swizzleClassMethod { originalImplementation -> BlockImplementationType in
             return { urlSession, configuration, delegate, queue -> URLSession in
                 let proxiedDelegate = (delegate != nil) ? delegate : EmbraceDummyURLSessionDelegate()
-                print("Proxied delegate is: \(String(describing: proxiedDelegate))")
+                print("[EMBRACE] Proxied delegate is: \(String(describing: proxiedDelegate))")
                 // check if we support proxying this type of delegate
                 guard isDelegateSupported(proxiedDelegate) else {
-                    print("Proxied delegate is not supported")
+                    print("[EMBRACE] Proxied delegate is not supported")
                     return originalImplementation(urlSession, Self.selector, configuration, delegate, queue)
                 }
 
                 // Add protection against re-proxying our own proxy
                 guard !(proxiedDelegate is EMBURLSessionDelegateProxy) else {
-                    print("We're re-proxying")
+                    print("[EMBRACE] We're re-proxying")
                     return originalImplementation(urlSession, Self.selector, configuration, delegate, queue)
                 }
 
@@ -128,7 +128,7 @@ struct URLSessionInitWithDelegateSwizzler: URLSessionSwizzler {
                 // as this will later help determine whether or not to forward the invocation of various
                 // `URLSessionDelegate` methods.
                 if session.delegate !== newDelegate {
-                    print("Proxy was swizzled by \(String(describing: session.delegate))")
+                    print("[EMBRACE] Proxy was swizzled by \(String(describing: session.delegate))")
                     newDelegate.swizzledDelegate = session.delegate
                 }
 
