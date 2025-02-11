@@ -42,7 +42,7 @@ struct DefaultURLSessionSwizzlerProvider: URLSessionSwizzlerProvider {
         }
 
         swizzlers.append(URLSessionInitWithDelegateSwizzler(handler: handler))
-        swizzlers.append(SessionTaskResumeSwizzler(handler: handler))
+//        swizzlers.append(SessionTaskResumeSwizzler(handler: handler))
 
         return swizzlers
     }

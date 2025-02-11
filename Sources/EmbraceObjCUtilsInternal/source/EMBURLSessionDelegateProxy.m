@@ -38,6 +38,7 @@
 }
 
 - (id)forwardingTargetForSelector:(SEL)aSelector {
+    NSLog(@"Fowrading Selector: %@", NSStringFromSelector(aSelector));
     return self.originalDelegate;
 }
 
@@ -64,6 +65,8 @@
 
 - (id)getTargetForSelector:(SEL)selector session:(NSURLSession *)session {
     // check if the originalDelegate responds to the selector
+    NSLog(@"Selector: %@", NSStringFromSelector(selector));
+
     if ((self.originalDelegate) && ([self.originalDelegate respondsToSelector:selector])) {
         return self.originalDelegate;
     }
