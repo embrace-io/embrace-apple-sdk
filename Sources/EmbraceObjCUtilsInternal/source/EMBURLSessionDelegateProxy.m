@@ -32,22 +32,26 @@
         sel_isEqual(aSelector, DID_FINISH_DOWNLOADING) ||
         sel_isEqual(aSelector, DID_COMPLETE_WITH_ERROR) ||
         sel_isEqual(aSelector, DID_BECOME_INVALID_WITH_ERROR)) {
+        NSLog(@"[EMBRACE] respondsToSelector: %@ is YES", NSStringFromSelector(aSelector));
         return YES;
     }
-    return [self.originalDelegate respondsToSelector:aSelector];
+    BOOL result = [self.originalDelegate respondsToSelector:aSelector];
+    NSLog(@"[EMBRACE] respondsToSelector: %@ is %b", NSStringFromSelector(aSelector), result);
+    return result;
 }
 
 - (id)forwardingTargetForSelector:(SEL)aSelector {
-    NSLog(@"Fowrading Selector: %@", NSStringFromSelector(aSelector));
+    NSLog(@"[EMBRACE] Forwarding Selector: %@", NSStringFromSelector(aSelector));
     return self.originalDelegate;
 }
 
 - (NSMethodSignature *)methodSignatureForSelector:(SEL)selector {
+    NSLog(@"[EMBRACE] Signature for Selector: %@", NSStringFromSelector(selector));
     return [(NSObject *)self.originalDelegate methodSignatureForSelector:selector];
 }
 
 - (void)forwardInvocation:(NSInvocation *)invocation {
-    NSLog(@"%@", invocation.description);
+    NSLog(@"[EMBRACE] Forwarding invocation of %@", invocation.description);
     [invocation invokeWithTarget:self.originalDelegate];
 }
 
@@ -65,29 +69,32 @@
 
 - (id)getTargetForSelector:(SEL)selector session:(NSURLSession *)session {
     // check if the originalDelegate responds to the selector
-    NSLog(@"Selector: %@", NSStringFromSelector(selector));
-
     if ((self.originalDelegate) && ([self.originalDelegate respondsToSelector:selector])) {
+        NSLog(@"[EMBRACE] Getting target for Selector %@ is %@", NSStringFromSelector(selector), self.originalDelegate);
         return self.originalDelegate;
     }
 
     // check that we are not the `session.delegate` to prevent infinite recursion
     if ([session.delegate isEqual:self]) {
+        NSLog(@"[EMBRACE] Getting target for Selector %@ and is self, so return nil", NSStringFromSelector(selector));
         return nil;
     }
 
     // avoid forwarding the delegate if it was already swizzled by somebody else
     // during our swizzling to prevent potential infinite recursion.
     if (self.swizzledDelegate) {
+        NSLog(@"[EMBRACE] Getting target for Selector %@ and is swizzledDelegate, so return nil", NSStringFromSelector(selector));
         return nil;
     }
 
     // if session delegate also responds to selector, we must call it
     if ((session.delegate) && ([session.delegate respondsToSelector:selector])) {
+        NSLog(@"[EMBRACE] Getting target for Selector %@ and is session.delegate %@", NSStringFromSelector(selector), session.delegate);
         return session.delegate;
     }
 
     // If no case applies
+    NSLog(@"[EMBRACE] Getting target for Selector %@ no case applies", NSStringFromSelector(selector));
     return nil;
 }
 
