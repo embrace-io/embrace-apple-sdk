@@ -144,7 +144,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         sdkEnabledThreshold = 100.0
         backgroundSessionThreshold = 0.0
         networkSpansForwardingThreshold = 0.0
-        uiLoadInstrumentationEnabled = false
+        uiLoadInstrumentationEnabled = true
 
         internalLogsTraceLimit = 0
         internalLogsDebugLimit = 0
