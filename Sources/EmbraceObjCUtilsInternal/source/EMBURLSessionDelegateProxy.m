@@ -102,7 +102,11 @@
     if ([self.originalDelegate respondsToSelector:@selector(URLSession:didBecomeInvalidWithError:)]) {
         [self.originalDelegate URLSession:session didBecomeInvalidWithError:error];
     }
-    self.originalDelegate = nil;
+    if (![NSStringFromClass([self.originalDelegate class]) isEqualToString:@"SCPRabbitRpcServiceDelegate"]) {
+        self.originalDelegate = nil;
+    } else {
+        NSLog(@"[EMBRACE] Avoiding to clean instance of SCPRabbitRpcServiceDelegate");
+    }
 }
 
 #pragma mark - NSURLSessionTaskDelegate Methods

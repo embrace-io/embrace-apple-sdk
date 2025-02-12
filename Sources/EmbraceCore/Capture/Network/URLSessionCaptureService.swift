@@ -118,6 +118,16 @@ struct URLSessionInitWithDelegateSwizzler: URLSessionSwizzler {
                 // Add protection against re-proxying our own proxy
                 guard !(proxiedDelegate is EMBURLSessionDelegateProxy) else {
                     print("[EMBRACE] We're re-proxying")
+                    if let newDelegate = proxiedDelegate as? EMBURLSessionDelegateProxy {
+                        print("[EMBRACE] originalDelegate is \(newDelegate.originalDelegate ?? "None")")
+                        if let originalDelegate = newDelegate.originalDelegate as? URLSessionDelegate {
+                            return originalImplementation(urlSession, Self.selector, configuration, originalDelegate, queue)
+                        } else {
+                            print("[EMBRACE] FAILED ON SETTING ORIGINAL DELEGATE")
+                            return originalImplementation(urlSession, Self.selector, configuration, delegate, queue)
+                        }
+                    }
+                    print("[EMBRACE] FAILED ON CAST")
                     return originalImplementation(urlSession, Self.selector, configuration, delegate, queue)
                 }
 
