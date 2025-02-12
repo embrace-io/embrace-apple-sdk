@@ -1,3 +1,12 @@
+## 6.8.1
+*Feb 12th, 2025*
+* Features
+    * Enabled Automatic View Capture functionallity by default.
+* Fixes
+    * Fixed an issue that causes incompatibilities with libraries/apps reusing the same `URLSessionDelegate` across multiple `URLSession` objects.
+* Changes
+    * Refactored the way we create proxy objects for `WKWebView` and `URLSession` instrumentation functionalities.
+
 ## 6.8.0
 *Feb 6th, 2025*
 * Features
