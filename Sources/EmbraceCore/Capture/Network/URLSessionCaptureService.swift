@@ -119,6 +119,16 @@ struct URLSessionInitWithDelegateSwizzler: URLSessionSwizzler {
                     return originalImplementation(urlSession, Self.selector, configuration, delegate, queue)
                 }
 
+                guard !(proxiedDelegate is EMBURLSessionDelegateProxy) else {
+                    if let newDelegate = proxiedDelegate as? EMBURLSessionDelegateProxy,
+                       let originalDelegate = newDelegate.originalDelegate as? URLSessionDelegate {
+                        return originalImplementation(urlSession, Self.selector, configuration, originalDelegate, queue)
+                    } else {
+                        return originalImplementation(urlSession, Self.selector, configuration, delegate, queue)
+                    }
+                    return originalImplementation(urlSession, Self.selector, configuration, delegate, queue)
+                }
+
                 let newDelegate = EMBURLSessionDelegateProxy(delegate: proxiedDelegate, handler: handler)
                 let session = originalImplementation(urlSession, Self.selector, configuration, newDelegate, queue)
 
