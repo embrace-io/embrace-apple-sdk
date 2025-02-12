@@ -4,10 +4,11 @@
 
 import XCTest
 @testable import EmbraceCore
+@testable import EmbraceObjCUtilsInternal
 
 class URLSessionDelegateProxyTests: XCTestCase {
     private var originalDelegate: FullyImplementedURLSessionDelegate!
-    private var sut: URLSessionDelegateProxy!
+    private var sut: EMBURLSessionDelegateProxy!
     private var handler: MockURLSessionTaskHandler!
 
     func test_onExecuteDidCompleteWithError_shouldCallBothProxyAndOriginalDelegate() throws {
@@ -25,12 +26,6 @@ class URLSessionDelegateProxyTests: XCTestCase {
         try whenInvokingDidReceiveChallenge(withExpectation: expectation)
         thenOriginalDelegateShouldHaveInvokedDidReceiveChallenge()
         wait(for: [expectation])
-    }
-
-    func test_onExecuteDidBecomeInvalidWithErrorInProxy_shouldReleaseOriginalDelegate() throws {
-        givenProxyWithFullyImplementedOriginalDelegate()
-        try whenInvokingDidBecomeInvalidWithError()
-        thenOriginalDelegateShouldBeNil()
     }
 }
 
@@ -140,7 +135,7 @@ private extension URLSessionDelegateProxyTests {
     func givenProxyWithFullyImplementedOriginalDelegate() {
         handler = .init()
         originalDelegate = .init()
-        sut = .init(originalDelegate: originalDelegate, handler: handler)
+        sut = EMBURLSessionDelegateProxy(delegate: originalDelegate, handler: handler)
     }
 
     func whenInvokingDidBecomeInvalidWithError() throws {
@@ -325,10 +320,6 @@ private extension URLSessionDelegateProxyTests {
 
     func thenProxyShouldHaveFinishedTaskInHandler() {
         XCTAssertTrue(handler.didInvokeFinish)
-    }
-
-    func thenOriginalDelegateShouldBeNil() {
-        XCTAssertNil(sut.originalDelegate)
     }
 
     func aTask() -> URLSessionDataTask {

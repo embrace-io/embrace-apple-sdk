@@ -5,6 +5,7 @@
 import Foundation
 import EmbraceCaptureService
 import EmbraceCommonInternal
+import EmbraceObjCUtilsInternal
 
 typealias URLSessionCompletion = (Data?, URLResponse?, Error?) -> Void
 typealias DownloadTaskCompletion = (URL?, URLResponse?, Error?) -> Void
@@ -12,6 +13,8 @@ typealias DownloadTaskCompletion = (URL?, URLResponse?, Error?) -> Void
 protocol URLSessionSwizzler: Swizzlable {
     init(handler: URLSessionTaskHandler, baseClass: AnyClass)
 }
+
+class EmbraceDummyURLSessionDelegate: NSObject, URLSessionDelegate {}
 
 /// Service that generates OpenTelemetry spans for network requests that use `URLSession`.
 @objc(EMBURLSessionCaptureService)
@@ -111,7 +114,22 @@ struct URLSessionInitWithDelegateSwizzler: URLSessionSwizzler {
                     return originalImplementation(urlSession, Self.selector, configuration, delegate, queue)
                 }
 
-                let newDelegate = URLSessionDelegateProxy(originalDelegate: proxiedDelegate, handler: handler)
+                // Add protection against re-proxying our own proxy
+                guard !(proxiedDelegate is EMBURLSessionDelegateProxy) else {
+                    return originalImplementation(urlSession, Self.selector, configuration, delegate, queue)
+                }
+
+                guard !(proxiedDelegate is EMBURLSessionDelegateProxy) else {
+                    if let newDelegate = proxiedDelegate as? EMBURLSessionDelegateProxy,
+                       let originalDelegate = newDelegate.originalDelegate as? URLSessionDelegate {
+                        return originalImplementation(urlSession, Self.selector, configuration, originalDelegate, queue)
+                    } else {
+                        return originalImplementation(urlSession, Self.selector, configuration, delegate, queue)
+                    }
+                    return originalImplementation(urlSession, Self.selector, configuration, delegate, queue)
+                }
+
+                let newDelegate = EMBURLSessionDelegateProxy(delegate: proxiedDelegate, handler: handler)
                 let session = originalImplementation(urlSession, Self.selector, configuration, newDelegate, queue)
 
                 // If we have already been swizzled by another player, we notify our proxied delegate,
@@ -179,7 +197,7 @@ struct SessionTaskResumeSwizzler: URLSessionSwizzler {
                     // we set a proxy delegate to get a callback when the task finishes
                     if handled, let handler = handler {
                         let originalDelegate = task.delegate
-                        task.delegate = URLSessionDelegateProxy(originalDelegate: originalDelegate, handler: handler)
+                        task.delegate = EMBURLSessionDelegateProxy(delegate: originalDelegate, handler: handler)
                     }
 
                     // call original

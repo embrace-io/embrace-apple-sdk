@@ -4,6 +4,7 @@
 
 #if canImport(WebKit)
 @testable import EmbraceCore
+@testable import EmbraceObjCUtilsInternal
 import WebKit
 import XCTest
 import TestSupport
@@ -29,7 +30,7 @@ class WebViewCaptureServiceTests: XCTestCase {
         webView.navigationDelegate = originalDelegate
 
         // then a proxy delegate is correctly set
-        XCTAssert(webView.navigationDelegate!.isKind(of: WKNavigationDelegateProxy.self))
+        XCTAssert(webView.navigationDelegate!.isKind(of: EMBWKNavigationDelegateProxy.self))
         XCTAssertNotNil(webView.emb_proxy!.originalDelegate)
         XCTAssert(webView.emb_proxy!.originalDelegate!.isKind(of: MockWKNavigationDelegate.self))
     }

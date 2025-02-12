@@ -206,7 +206,6 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
     @available(iOS 15.0, watchOS 8.0, *)
     func test_async_taskWithNoDelegate_callsSessionDelegate() async throws {
         givenCaptureServiceInstalled()
-
         givenSessionDelegate()
         givenURLSession(delegate: sessionDelegate)
 
