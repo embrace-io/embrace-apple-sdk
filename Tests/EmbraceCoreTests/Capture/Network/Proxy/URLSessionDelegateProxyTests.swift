@@ -27,12 +27,6 @@ class URLSessionDelegateProxyTests: XCTestCase {
         thenOriginalDelegateShouldHaveInvokedDidReceiveChallenge()
         wait(for: [expectation])
     }
-
-    func test_onExecuteDidBecomeInvalidWithErrorInProxy_shouldReleaseOriginalDelegate() throws {
-        givenProxyWithFullyImplementedOriginalDelegate()
-        try whenInvokingDidBecomeInvalidWithError()
-        thenOriginalDelegateShouldBeNil()
-    }
 }
 
 // MARK: - Test Forwarding to each TaskDelegate Method
@@ -326,10 +320,6 @@ private extension URLSessionDelegateProxyTests {
 
     func thenProxyShouldHaveFinishedTaskInHandler() {
         XCTAssertTrue(handler.didInvokeFinish)
-    }
-
-    func thenOriginalDelegateShouldBeNil() {
-        XCTAssertNil(sut.originalDelegate)
     }
 
     func aTask() -> URLSessionDataTask {

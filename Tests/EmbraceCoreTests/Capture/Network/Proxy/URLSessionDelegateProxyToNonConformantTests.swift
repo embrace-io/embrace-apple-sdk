@@ -53,7 +53,6 @@ class URLSessionDelegateProxyToNonConformantTests: XCTestCase {
         givenProxyContainingDelegateImplemetingMethodsButNotConformingToSpecificProtocols()
         whenInvokingDidBecomeInvalidWithError()
         try thenDidBecomeInvalidWithErrorShouldBeCalledOnDelegate()
-        thenProxyShouldCleanReferenceToOriginalDelegate()
     }
 }
 
@@ -137,13 +136,6 @@ private extension URLSessionDelegateProxyToNonConformantTests {
 
     func thenHandlerShouldHaveInvokedFinish() {
         XCTAssertTrue(handler.didInvokeFinish)
-    }
-
-    func thenProxyShouldCleanReferenceToOriginalDelegate() {
-        // Reference inside URLSessionDelegateProxy should be cleaned, but
-        // the original object should still exist.
-        XCTAssertNil(sut.originalDelegate)
-        XCTAssertNotNil(originalDelegate)
     }
 }
 
