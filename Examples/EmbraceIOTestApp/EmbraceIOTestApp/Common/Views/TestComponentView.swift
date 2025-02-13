@@ -7,14 +7,15 @@
 import SwiftUI
 
 struct TestComponentView<ViewModel: UIComponentViewModelType>: View {
-    var viewModel: ViewModel
+    @StateObject var viewModel: ViewModel
 
     var body: some View {
         HStack {
             Button {
                 viewModel.testButtonPressed()
             } label: {
-                TestComponentViewLabel(text: viewModel.dataModel.title, result: .constant(viewModel.testResult))
+                TestComponentViewLabel(text: viewModel.dataModel.title,
+                                       state: viewModel.state)
                     .foregroundStyle(.embraceSilver.opacity(viewModel.readyToTest ? 1.0 : 0.5))
             }
             .disabled(!viewModel.readyToTest)

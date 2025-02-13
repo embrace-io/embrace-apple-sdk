@@ -24,9 +24,9 @@ struct MetadataStartTestUIComponent: View {
 //                })
 //            .accessibilityIdentifier("startupTestButton")
         }
-        .onChange(of: spanExporter.state) { _, newValue in
-            readyToTest = newValue == .ready
-        }
+//        .onChange(of: spanExporter.state) { _, newValue in
+//            readyToTest = newValue == .ready
+//        }
         .sheet(isPresented: $reportPresented) {
             TestReportCard(report: report)
         }

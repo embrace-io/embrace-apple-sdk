@@ -7,14 +7,15 @@
 import SwiftUI
 
 struct TestScreenButtonView: View {
-    var viewModel: any UIComponentViewModelType
-    @State private var presentReport = false
+    @State var viewModel: any UIComponentViewModelType
+    @State var presentReport: Bool = false
     var body: some View {
         HStack {
             Button {
                 viewModel.testButtonPressed()
             } label: {
-                TestComponentViewLabel(text: viewModel.dataModel.title, result: .constant(viewModel.testResult))
+                TestComponentViewLabel(text: viewModel.dataModel.title,
+                                       state: viewModel.state)
                     .foregroundStyle(.embraceSilver.opacity(viewModel.readyToTest ? 1.0 : 0.5))
             }
             .disabled(!viewModel.readyToTest)
@@ -22,11 +23,13 @@ struct TestScreenButtonView: View {
         }
         .frame(height: 60)
         .background(viewModel.testResult.resultColor)
+        .onChange(of: viewModel.state, { oldValue, newValue in
+            if case .testComplete(_) = newValue {
+                presentReport = true
+            }
+        })
         .sheet(isPresented: $presentReport) {
             TestReportCard(report: viewModel.testReport)
-        }
-        .onChange(of: viewModel.presentReport) { oldValue, newValue in
-            self.presentReport = newValue
         }
     }
 }

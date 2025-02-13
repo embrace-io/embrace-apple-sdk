@@ -8,11 +8,23 @@ import SwiftUI
 
 struct TestComponentViewLabel: View {
     var text: String
-    @Binding var result: TestResult
+    var state: TestViewModelState
 
     private var isTesting: Bool {
-        result == .testing
+        state == .testing
     }
+
+    private var result: TestResult {
+        switch state {
+        case .idle:
+                .unknown
+        case .testing:
+                .testing
+        case .testComplete(let result):
+            result
+        }
+    }
+
     var body: some View {
         HStack {
             Text(text)
@@ -21,7 +33,7 @@ struct TestComponentViewLabel: View {
                 .padding(.trailing, 60)
             Spacer()
             ZStack {
-                TextComponentViewResult(result: $result)
+                TextComponentViewResult(result: .constant(result))
                     .opacity(isTesting ? 0 : 1.0)
                 ProgressView()
                     .controlSize(.large)
@@ -34,9 +46,10 @@ struct TestComponentViewLabel: View {
 
 #Preview {
     VStack {
-        TestComponentViewLabel(text: "Test", result: .constant(.success))
-        TestComponentViewLabel(text: "Test", result: .constant(.testing))
-        TestComponentViewLabel(text: "Test", result: .constant(.unknown))
-        TestComponentViewLabel(text: "Test", result: .constant(.fail))
+        TestComponentViewLabel(text: "Test", state: .testComplete(.success))
+        TestComponentViewLabel(text: "Test", state: .testing)
+        TestComponentViewLabel(text: "Test", state: .idle(false))
+        TestComponentViewLabel(text: "Test", state: .idle(true))
+        TestComponentViewLabel(text: "Test", state: .testComplete(.fail))
     }
 }
