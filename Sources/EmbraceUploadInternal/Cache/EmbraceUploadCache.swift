@@ -122,7 +122,7 @@ class EmbraceUploadCache {
                 if let record = record {
                     coreData.context.delete(record)
                 }
-                
+
                 result = false
             }
         }

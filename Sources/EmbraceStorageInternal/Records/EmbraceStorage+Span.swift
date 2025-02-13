@@ -35,7 +35,7 @@ extension EmbraceStorage {
 
         // update existing?
         if let span = fetchSpan(id: id, traceId: traceId) {
-            
+
             // prevent modifications on closed spans!
             guard span.endTime == nil else {
                 return span

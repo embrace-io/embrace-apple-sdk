@@ -144,7 +144,7 @@ public class CoreDataWrapper {
                 for record in records {
                     self?.context.delete(record)
                 }
-                
+
                 try? self?.context.save()
             }
         }

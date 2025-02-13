@@ -255,9 +255,19 @@ extension MetadataHandler {
                 continue
             }
 
-            storage.addMetadata(key: record.key, value: record.value, type: type, lifespan: lifespan)
+            storage.addMetadata(key: record.key, value: record.value, type: type, lifespan: lifespan, lifespanId: record.lifespanId)
         }
 
-        coreData.destroy()
+        // remove temporary db file
+        switch coreData.options.storageMechanism {
+        case .onDisk:
+            if let url =  coreData.options.storageMechanism.fileURL {
+                do {
+                    try FileManager.default.removeItem(at: url)
+                } catch { }
+            }
+
+        default: return
+        }
     }
 }

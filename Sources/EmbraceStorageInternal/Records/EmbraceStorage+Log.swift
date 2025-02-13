@@ -60,7 +60,7 @@ extension EmbraceStorage {
     }
 
     public func remove(logs: [EmbraceLog]) {
-        let records = logs.compactMap( { $0 as? LogRecord } )
+        let records = logs.compactMap({ $0 as? LogRecord })
         coreData.deleteRecords(records)
     }
 }

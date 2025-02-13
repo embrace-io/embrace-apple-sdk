@@ -315,29 +315,82 @@ final class MetadataHandlerTests: XCTestCase {
     }
 
     // MARK: tmp core data
-    func skip_test_coreDataClone() throws {
-        // given stored metadata
-        for i in 1...3 {
-            storage.addMetadata(key: "resource\(i)", value: "test", type: .resource, lifespan: .permanent)
-            storage.addMetadata(key: "property\(i)", value: "test", type: .customProperty, lifespan: .permanent)
-        }
+    func test_coreDataClone() throws {
+        // given previously stored metadata
+        let baseUrl = URL(fileURLWithPath: NSTemporaryDirectory())
+        let sqliteFile = Bundle.module.path(forResource: "tmp_db", ofType: "sqlite", inDirectory: "Mocks")!
+        let sqliteShmFile = Bundle.module.path(forResource: "tmp_db", ofType: "sqlite-shm", inDirectory: "Mocks")!
+        let sqliteWalFile = Bundle.module.path(forResource: "tmp_db", ofType: "sqlite-wal", inDirectory: "Mocks")!
+
+        try? FileManager.default.removeItem(atPath: baseUrl.appendingPathComponent("EmbraceMetadataTmp.sqlite").path)
+        try FileManager.default.copyItem(
+            atPath: sqliteFile,
+            toPath: baseUrl.appendingPathComponent("EmbraceMetadataTmp.sqlite").path
+        )
+
+        try? FileManager.default.removeItem(atPath: baseUrl.appendingPathComponent("EmbraceMetadataTmp.sqlite-shm").path)
+        try FileManager.default.copyItem(
+            atPath: sqliteShmFile,
+            toPath: baseUrl.appendingPathComponent("EmbraceMetadataTmp.sqlite-shm").path
+        )
+
+        try? FileManager.default.removeItem(atPath: baseUrl.appendingPathComponent("EmbraceMetadataTmp.sqlite-wal").path)
+        try FileManager.default.copyItem(
+            atPath: sqliteWalFile,
+            toPath: baseUrl.appendingPathComponent("EmbraceMetadataTmp.sqlite-wal").path
+        )
+
+        storage = try EmbraceStorage.createInDiskDb(fileName: testName)
 
         // when initializing a metadata handler
-        let handler = MetadataHandler(storage: storage, sessionController: sessionController)
+        _ = MetadataHandler(storage: storage, sessionController: sessionController)
 
-        // the data is cloned into a temporal core data stack
-        XCTAssertNotNil(handler.coreData)
+        // the temporary db data is cloned into the real storage
+        let metadata: [MetadataRecord] = storage.fetchAll()
+        XCTAssertEqual(metadata.count, 4)
 
-        let request = NSFetchRequest<MetadataRecordTmp>(entityName: MetadataRecordTmp.entityName)
-        let result = handler.coreData!.fetch(withRequest: request)
+        let requiredResource = metadata.first(where: { $0.typeRaw == "requiredResource" })
+        XCTAssertNotNil(requiredResource)
+        XCTAssertEqual(requiredResource!.key, "required_resource")
+        XCTAssertEqual(requiredResource!.value, "test")
+        XCTAssertEqual(requiredResource!.lifespanRaw, "permanent")
+        XCTAssertEqual(requiredResource!.lifespanId, "")
 
-        XCTAssertEqual(result.count, 6)
-        XCTAssertNotNil(result.first(where: { $0.key == "resource1" }))
-        XCTAssertNotNil(result.first(where: { $0.key == "resource2" }))
-        XCTAssertNotNil(result.first(where: { $0.key == "resource3" }))
-        XCTAssertNotNil(result.first(where: { $0.key == "property1" }))
-        XCTAssertNotNil(result.first(where: { $0.key == "property2" }))
-        XCTAssertNotNil(result.first(where: { $0.key == "property3" }))
+        let resource = metadata.first(where: { $0.typeRaw == "resource" })
+        XCTAssertNotNil(resource)
+        XCTAssertEqual(resource!.key, "resource")
+        XCTAssertEqual(resource!.value, "test")
+        XCTAssertEqual(resource!.lifespanRaw, "process")
+        XCTAssertEqual(resource!.lifespanId, "12345")
+
+        let property = metadata.first(where: { $0.typeRaw == "customProperty" })
+        XCTAssertNotNil(property)
+        XCTAssertEqual(property!.key, "property")
+        XCTAssertEqual(property!.value, "test")
+        XCTAssertEqual(property!.lifespanRaw, "session")
+        XCTAssertEqual(property!.lifespanId, "54321")
+
+        let personaTag = metadata.first(where: { $0.typeRaw == "personaTag" })
+        XCTAssertNotNil(personaTag)
+        XCTAssertEqual(personaTag!.key, "persona_tag")
+        XCTAssertEqual(personaTag!.value, "test")
+        XCTAssertEqual(personaTag!.lifespanRaw, "session")
+        XCTAssertEqual(property!.lifespanId, "54321")
+
+        // and the temporary db file is removed
+        XCTAssertFalse(FileManager.default.fileExists(atPath: baseUrl.appendingPathComponent("EmbraceMetadataTmp.sqlite").path))
+    }
+
+    func test_coreDataClone_noFile() throws {
+        // given no previously stored metadata
+        storage = try EmbraceStorage.createInDiskDb(fileName: testName)
+
+        // when initializing a metadata handler
+        _ = MetadataHandler(storage: storage, sessionController: sessionController)
+
+        // no data is cloned
+        let metadata: [MetadataRecord] = storage.fetchAll()
+        XCTAssertEqual(metadata.count, 0)
     }
 }
 
