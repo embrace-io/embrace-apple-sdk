@@ -69,6 +69,7 @@ tuist generate --no-open
 
 create_xcframework EmbraceCommonInternal
 create_xcframework EmbraceObjCUtilsInternal
+create_xcframework EmbraceCoreDataInternal
 create_xcframework EmbraceStorageInternal
 create_xcframework EmbraceOTelInternal
 create_xcframework EmbraceUploadInternal

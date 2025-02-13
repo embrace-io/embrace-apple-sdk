@@ -4,6 +4,7 @@
 
 #if canImport(WebKit)
 @testable import EmbraceCore
+@testable import EmbraceObjCUtilsInternal
 import WebKit
 import XCTest
 
@@ -17,8 +18,7 @@ class WKNavigationDelegateProxyTests: XCTestCase {
     func test_forwarding() {
         // given a proxy with an original delegate
         let originalDelegate = MockWKNavigationDelegate()
-        let proxy = WKNavigationDelegateProxy()
-        proxy.originalDelegate = originalDelegate
+        let proxy = EMBWKNavigationDelegateProxy(originalDelegate: originalDelegate)
 
         // when calls are made to the proxy
         let webView = WKWebView()
@@ -58,7 +58,7 @@ class WKNavigationDelegateProxyTests: XCTestCase {
 
     func test_callback() {
         // given a proxy with a callback
-        let proxy = WKNavigationDelegateProxy()
+        let proxy = EMBWKNavigationDelegateProxy(originalDelegate: nil)
 
         var callCount: Int = 0
         proxy.callback = { _, _ in
