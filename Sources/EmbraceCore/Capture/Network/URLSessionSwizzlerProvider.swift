@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import EmbraceObjCUtilsInternal
 
 protocol URLSessionSwizzlerProvider {
     func getAll(usingHandler handler: URLSessionTaskHandler) -> [any URLSessionSwizzler]

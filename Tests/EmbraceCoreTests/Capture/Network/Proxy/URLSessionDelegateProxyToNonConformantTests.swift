@@ -5,6 +5,7 @@
 import XCTest
 import TestSupportObjc
 @testable import EmbraceCore
+@testable import EmbraceObjCUtilsInternal
 
 /// The purpose of these tests is to verify that the forwarding mechanism in `URLSessionDelegateProxy` works correctly for cases where an object (aka `NSObject`)
 /// implements multiple methods (or responds to multiple selectors) of `NSURLSessionDelegate` but does not conform to the subprotocols (such as `NSURLSessionDataDelegate` or
@@ -15,7 +16,7 @@ import TestSupportObjc
 /// Therefore, the goal is to confirm that the redirection mechanism functions properly even under the worst-case conditions
 class URLSessionDelegateProxyToNonConformantTests: XCTestCase {
     private var originalDelegate: URLSessionDelegateImplementerButWithoutConforming?
-    private var sut: URLSessionDelegateProxy!
+    private var sut: EMBURLSessionDelegateProxy!
     private var handler: MockURLSessionTaskHandler!
     private var dataTask: URLSessionDataTask!
     private var urlSession: URLSession!
@@ -52,7 +53,6 @@ class URLSessionDelegateProxyToNonConformantTests: XCTestCase {
         givenProxyContainingDelegateImplemetingMethodsButNotConformingToSpecificProtocols()
         whenInvokingDidBecomeInvalidWithError()
         try thenDidBecomeInvalidWithErrorShouldBeCalledOnDelegate()
-        thenProxyShouldCleanReferenceToOriginalDelegate()
     }
 }
 
@@ -61,7 +61,7 @@ private extension URLSessionDelegateProxyToNonConformantTests {
         originalDelegate = URLSessionDelegateImplementerButWithoutConforming()
         handler = .init()
         urlSession = URLSession(configuration: .ephemeral)
-        sut = .init(originalDelegate: originalDelegate, handler: handler)
+        sut = EMBURLSessionDelegateProxy(delegate: originalDelegate, handler: handler)
     }
 
     func whenInvokingDidReceiveData(_ data: Data) {
@@ -131,18 +131,11 @@ private extension URLSessionDelegateProxyToNonConformantTests {
     }
 
     func thenTaskShouldHaveAddedEmbraceData(equalsTo data: Data) {
-        XCTAssertEqual(dataTask.embraceData, data)
+        XCTAssertEqual(handler.receivedData, data)
     }
 
     func thenHandlerShouldHaveInvokedFinish() {
         XCTAssertTrue(handler.didInvokeFinish)
-    }
-
-    func thenProxyShouldCleanReferenceToOriginalDelegate() {
-        // Reference inside URLSessionDelegateProxy should be cleaned, but
-        // the original object should still exist.
-        XCTAssertNil(sut.originalDelegate)
-        XCTAssertNotNil(originalDelegate)
     }
 }
 

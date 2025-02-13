@@ -10,5 +10,7 @@
 #import "EMBStackTraceProccessor.h"
 #import "NSURLSessionTask+Embrace.h"
 #import "EMBURLSessionDelegateForwarder.h"
+#import "EMBURLSessionDelegateProxy.h"
+#import "EMBWKNavigationDelegateProxy.h"
 
 #endif /* EmbraceObjCUtilsInternal_h */
