@@ -10,6 +10,7 @@ import OpenTelemetryApi
 protocol PayloadTest {
     var testRelevantSpanName: String { get }
     var requiresCleanup: Bool { get }
+    var runImmediatelyIfSpansFound: Bool { get }
     func test(spans: [OpenTelemetrySdk.SpanData]) -> TestReport
     func test(logs: [ReadableLogRecord]) -> TestReport
     func evaluate(_ target: String, expecting: String, on: [String: AttributeValue]) -> TestReportItem
@@ -52,4 +53,6 @@ extension PayloadTest {
     func runTestPreparations() { }
 
     var requiresCleanup: Bool { true }
+
+    var runImmediatelyIfSpansFound: Bool { false }
 }

@@ -9,6 +9,7 @@ import OpenTelemetrySdk
 class MetadataStartTest: PayloadTest {
     var testRelevantSpanName: String { "emb-sdk-start" }
     var requiresCleanup: Bool { false }
+    var runImmediatelyIfSpansFound: Bool { true }
     var testType: TestType { .Spans }
     func test(spans: [OpenTelemetrySdk.SpanData]) -> TestReport {
         var testItems = [TestReportItem]()
@@ -26,6 +27,7 @@ class MetadataStartTest: PayloadTest {
 class MetadataSetupTest: PayloadTest {
     var testRelevantSpanName: String { "emb-setup" }
     var requiresCleanup: Bool { false }
+    var runImmediatelyIfSpansFound: Bool { true }
     var testType: TestType { .Spans }
     func test(spans: [OpenTelemetrySdk.SpanData]) -> TestReport {
         var testItems = [TestReportItem]()
