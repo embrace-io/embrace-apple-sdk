@@ -55,8 +55,8 @@ import EmbraceIO
         self.state = .testComplete(report.result)
     }
 
-    func testButtonPressed(_ clearBeforeBegin: Bool = true) {
-        self.state = .testing
+    func testButtonPressed() {
+        testStarted()
     }
 
     private func checkEmbraceStatus() {

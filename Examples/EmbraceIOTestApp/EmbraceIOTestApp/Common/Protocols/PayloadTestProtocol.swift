@@ -9,6 +9,7 @@ import OpenTelemetryApi
 
 protocol PayloadTest {
     var testRelevantSpanName: String { get }
+    var requiresCleanup: Bool { get }
     func test(spans: [OpenTelemetrySdk.SpanData]) -> TestReport
     func test(logs: [ReadableLogRecord]) -> TestReport
     func evaluate(_ target: String, expecting: String, on: [String: AttributeValue]) -> TestReportItem
@@ -49,4 +50,6 @@ extension PayloadTest {
     func test(logs: [ReadableLogRecord]) -> TestReport { .init(items: []) }
 
     func runTestPreparations() { }
+
+    var requiresCleanup: Bool { true }
 }

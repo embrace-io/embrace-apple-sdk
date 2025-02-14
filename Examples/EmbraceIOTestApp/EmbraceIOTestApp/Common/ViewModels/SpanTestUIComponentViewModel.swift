@@ -10,8 +10,8 @@ class SpanTestUIComponentViewModel: UIComponentViewModelBase {
     var spanExporter: TestSpanExporter = .init()
     private weak var observingObject: NSObjectProtocol?
 
-    override func testButtonPressed(_ clearBeforeBegin: Bool = true) {
-        if clearBeforeBegin {
+    override func testButtonPressed() {
+        if self.dataModel.payloadTestObject.requiresCleanup {
             self.spanExporter.clearAll(self.dataModel.payloadTestObject.testRelevantSpanName)
         }
 

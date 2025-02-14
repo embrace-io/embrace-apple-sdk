@@ -48,7 +48,7 @@ enum TestMenuOptionDataModel: Int, CaseIterable {
         case .embraceInit:
             EmbraceInitScreen()
         case .metadata:
-            MetadataTestScreen()
+            TestScreen<MetadataTestsDataModel>()
         case .viewController:
             TestScreen<ViewControllerTestsDataModel>()
         case .networking:
