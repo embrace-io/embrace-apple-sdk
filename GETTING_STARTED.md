@@ -13,20 +13,20 @@ of an app using the Embrace SDK.
 ### Opening the BrandGame Example Project
 
 The BrandGame Xcode project can be found at
-[`Examples/BrandGame/BrandGame.xcodeproj`](./Examples/BrandGame/BrandGame.xcodeproj/). This is a great project to read through to get an idea on how the Embrace team would go about instrumenting
+[`Examples/BrandGame/BrandGame.xcodeproj`](./Examples/BrandGame/BrandGame.xcodeproj/). This is a great project to read through to get an idea of how the Embrace team would go about instrumenting
  an app.
 
 ### Defining the SPM Package dependency
 
 The BrandGame example app has the luxury of being within the same repo as the EmbraceIO package. So in its
-Xcode project settings it defines an SPM package dependency locally using a relative path.
+Xcode project settings, it defines an SPM package dependency locally using a relative path.
 
-For your project, you'll want to add a package dependency in Xcode. Select `File > Add Package Dependencies...`
+For your project, you'll want to add the Embrace Apple SDK package dependency in Xcode. Select `File > Add Package Dependencies...`
 and enter the repository URL `https://github.com/embrace-io/embrace-apple-sdk.git` into the search bar.
 
 Be sure to set the Dependency Rule to a recent release. When "Choose Package Products for embrace-apple-sdk" appears,
-Xcode will add all libraries to your application by default. For the most straightforward installation, select either
-`EmbraceIO` or `EmbraceIO-Dynamic` to add to your application target. For all other package products, do not add these
+Xcode will add all libraries to your application by default. For the most straightforward installation, select
+`EmbraceIO` to add to your application target. For all other package products, do not add these
 to your target by selecting `None`.
 
 ![Screenshot of Xcode 15.2 "Choose Package Products" pane](Documentation/assets/GettingStarted/package-products.png)
@@ -37,18 +37,18 @@ to your target by selecting `None`.
 
 Here's a quick summary of the 3 products this package contains:
 
-1. **EmbraceIO** - This is the recommend product to install for quick
+1. **EmbraceIO** - This is the recommended product for quick
  integration. It provides a convenience layer over `EmbraceCore` to
  simplify the setup interface.
-2. **EmbraceCore** - This is the implementation of the Embrace SDK.
+2. **EmbraceCore** - This is the main implementation of the Embrace SDK.
 If you'd like to customize your integration, this product allows you to.
 3. **EmbraceCrash** - This contains the Embrace Crash Reporter. We keep this
 as a separate target for those apps that may not want crash reporting enabled,
 or may want to use a separate crash reporter. It is included as a dependency of
 `EmbraceIO`, but not `EmbraceCore`.
+4. **EmbraceCrashlyticsSupport** - This product enables Crashlytics/Firebase as your primary crash reporter. Embrace will continue to mirror reports sent to Crashlytics, ensuring that data is still available in the Embrace Dashboard. This is an optional product for those who specifically need Crashlytics as their crash reporter but also want to leverage the Embrace Dashboard.
+5. **EmbraceSemantics** - This module contains constants and attributes used internally to extend OTel Semantic Conventions.
 
-We also distribute each product statically and dynamically. The `*-Dynamic` products should
-be used if you prefer dynamic libraries.
 
 ### Initializing the Embrace Client
 
