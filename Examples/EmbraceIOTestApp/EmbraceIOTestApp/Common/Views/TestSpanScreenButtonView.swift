@@ -15,9 +15,5 @@ struct TestSpanScreenButtonView: View {
             .onAppear {
                 viewModel.spanExporter = spanExporter
             }
-//            .onChange(of: spanExporter.state) { _, _ in
-//                viewModel.spanExporterUpdated()
-//            }
-            
     }
 }

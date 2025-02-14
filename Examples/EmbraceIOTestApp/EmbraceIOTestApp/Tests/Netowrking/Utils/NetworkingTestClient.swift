@@ -6,7 +6,6 @@
 
 import Foundation
 
-@MainActor
 @Observable class NetworkingTestClient {
     enum Status {
         case idle

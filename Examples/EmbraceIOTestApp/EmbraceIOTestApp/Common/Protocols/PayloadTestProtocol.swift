@@ -9,7 +9,6 @@ import OpenTelemetryApi
 
 protocol PayloadTest {
     var testRelevantSpanName: String { get }
-    var testType: TestType { get }
     func test(spans: [OpenTelemetrySdk.SpanData]) -> TestReport
     func test(logs: [ReadableLogRecord]) -> TestReport
     func evaluate(_ target: String, expecting: String, on: [String: AttributeValue]) -> TestReportItem

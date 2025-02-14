@@ -8,14 +8,16 @@ import SwiftUI
 import OpenTelemetrySdk
 
 class NetworkingTest: PayloadTest {
-    var testURL: String
-    var statusCode: Int
-    init(testURL: String, statusCode: Int) {
-        self.testURL = testURL
-        self.statusCode = statusCode
-    }
+    private var testURL: String = "https://embrace.io"
+    private var client = NetworkingTestClient()
     var testRelevantSpanName: String { "GET " }
-    var testType: TestType { .Spans }
+
+    func runTestPreparations() {
+        Task {
+            await client.makeTestNetworkCall(to: testURL)
+        }
+    }
+
     func test(spans: [SpanData]) -> TestReport {
         var testItems = [TestReportItem]()
 
@@ -28,7 +30,7 @@ class NetworkingTest: PayloadTest {
 
         testItems.append(evaluate("emb.type", expecting: "perf.network_request", on: networkCallSpan.attributes))
         testItems.append(evaluate("http.request.method", expecting: "GET", on: networkCallSpan.attributes))
-        testItems.append(evaluate("http.response.status_code", expecting: "\(statusCode)", on: networkCallSpan.attributes))
+        testItems.append(evaluate("http.response.status_code", expecting: "200", on: networkCallSpan.attributes))
 
         return .init(items: testItems)
     }
