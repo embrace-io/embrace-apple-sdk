@@ -14,6 +14,11 @@ class URLSessionInitWithDelegateSwizzlerTests: XCTestCase {
     private var originalDelegate: URLSessionDelegate!
     private var previouslySwizzledProxy: EMBURLSessionDelegateProxy!
 
+    override func tearDownWithError() throws {
+        try? sut.unswizzleInstanceMethod()
+        try? sut.unswizzleClassMethod()
+    }
+
     func testAfterInstall_onCreateURLSessionWithDelegate_originalShouldBeWrapped() throws {
         givenURLSessionInitWithDelegateSwizzler()
         try givenSwizzlingWasDone()
