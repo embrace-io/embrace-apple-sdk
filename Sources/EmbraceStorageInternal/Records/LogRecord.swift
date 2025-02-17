@@ -13,7 +13,7 @@ public class LogRecord: NSManagedObject, EmbraceLog {
     @NSManaged public var severityRaw: Int // LogSeverity
     @NSManaged public var body: String
     @NSManaged public var timestamp: Date
-    @NSManaged public var attributes: [LogAttributeRecord]
+    @NSManaged public var attributes: Set<LogAttributeRecord>
 
     static func create(
         context: NSManagedObjectContext,
@@ -34,6 +34,7 @@ public class LogRecord: NSManagedObject, EmbraceLog {
         record.severityRaw = severity.rawValue
         record.body = body
         record.timestamp = timestamp
+        record.attributes = Set()
 
         for (key, value) in attributes {
             if let attribute = LogAttributeRecord.create(
@@ -42,7 +43,7 @@ public class LogRecord: NSManagedObject, EmbraceLog {
                 value: value,
                 log: record
             ) {
-                record.attributes.append(attribute)
+                record.attributes.insert(attribute)
             }
         }
 
@@ -54,7 +55,7 @@ public class LogRecord: NSManagedObject, EmbraceLog {
     }
 
     public func allAttributes() -> [any EmbraceLogAttribute] {
-        return attributes
+        return Array(attributes)
     }
 
     public func attribute(forKey key: String) -> EmbraceLogAttribute? {
@@ -72,7 +73,7 @@ public class LogRecord: NSManagedObject, EmbraceLog {
         }
 
         if let attribute = LogAttributeRecord.create(context: context, key: key, value: value, log: self) {
-            attributes.append(attribute)
+            attributes.insert(attribute)
         }
     }
 }
