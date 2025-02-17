@@ -15,7 +15,7 @@ final class EmbraceStorage_SpanTests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
-        try storage.teardown()
+        storage.coreData.destroy()
         storage = nil
     }
 
@@ -24,7 +24,7 @@ final class EmbraceStorage_SpanTests: XCTestCase {
 
         for i in 0..<3 {
             // given inserted record
-            let span = SpanRecord(
+            storage.upsertSpan(
                 id: SpanId.random().hexString,
                 name: "example \(i)",
                 traceId: TraceId.random().hexString,
@@ -32,24 +32,21 @@ final class EmbraceStorage_SpanTests: XCTestCase {
                 data: Data(),
                 startTime: Date()
             )
-
-            try storage.upsertSpan(span)
         }
 
-        try storage.upsertSpan(
-            SpanRecord(
-                id: SpanId.random().hexString,
-                name: "newest",
-                traceId: TraceId.random().hexString,
-                type: .performance,
-                data: Data(),
-                startTime: Date()
-            )
+        storage.upsertSpan(
+            id: SpanId.random().hexString,
+            name: "newest",
+            traceId: TraceId.random().hexString,
+            type: .performance,
+            data: Data(),
+            startTime: Date()
         )
 
-        let allRecords = try storage.dbQueue.read { db in
-            try SpanRecord.order(SpanRecord.Schema.startTime).fetchAll(db)
-        }
+        let request = SpanRecord.createFetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: true)]
+        let allRecords: [SpanRecord] = storage.coreData.fetch(withRequest: request)
+
         XCTAssertEqual(allRecords.count, 3)
         XCTAssertEqual(allRecords.map(\.name), ["example 1", "example 2", "newest"])
     }
@@ -60,7 +57,7 @@ final class EmbraceStorage_SpanTests: XCTestCase {
 
         // insert 3 .performance spans
         for i in 0..<3 {
-            let span = SpanRecord(
+            storage.upsertSpan(
                 id: SpanId.random().hexString,
                 name: "performance \(i)",
                 traceId: TraceId.random().hexString,
@@ -68,13 +65,11 @@ final class EmbraceStorage_SpanTests: XCTestCase {
                 data: Data(),
                 startTime: Date()
             )
-
-            try storage.upsertSpan(span)
         }
 
         // insert 3 .networkHTTP spans
         for i in 0..<3 {
-            let span = SpanRecord(
+            storage.upsertSpan(
                 id: SpanId.random().hexString,
                 name: "network \(i)",
                 traceId: TraceId.random().hexString,
@@ -82,13 +77,12 @@ final class EmbraceStorage_SpanTests: XCTestCase {
                 data: Data(),
                 startTime: Date()
             )
-
-            try storage.upsertSpan(span)
         }
 
-        let allRecords = try storage.dbQueue.read { db in
-            try SpanRecord.order(SpanRecord.Schema.startTime).fetchAll(db)
-        }
+        let request = SpanRecord.createFetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: true)]
+        let allRecords: [SpanRecord] = storage.coreData.fetch(withRequest: request)
+
         XCTAssertEqual(allRecords.count, 4)
         XCTAssertEqual(
             allRecords.map(\.name),
@@ -104,7 +98,7 @@ final class EmbraceStorage_SpanTests: XCTestCase {
     func test_upsertSpan_appliesDefaultLimit() throws {
         for i in 0..<(EmbraceStorage.defaultSpanLimitByType + 10) {
             // given inserted record
-            let span = SpanRecord(
+            storage.upsertSpan(
                 id: SpanId.random().hexString,
                 name: "example \(i)",
                 traceId: TraceId.random().hexString,
@@ -112,24 +106,21 @@ final class EmbraceStorage_SpanTests: XCTestCase {
                 data: Data(),
                 startTime: Date()
             )
-
-            try storage.upsertSpan(span)
         }
 
-        try storage.upsertSpan(
-            SpanRecord(
-                id: SpanId.random().hexString,
-                name: "newest",
-                traceId: TraceId.random().hexString,
-                type: .performance,
-                data: Data(),
-                startTime: Date()
-            )
+        storage.upsertSpan(
+            id: SpanId.random().hexString,
+            name: "newest",
+            traceId: TraceId.random().hexString,
+            type: .performance,
+            data: Data(),
+            startTime: Date()
         )
 
-        let allRecords = try storage.dbQueue.read { db in
-            try SpanRecord.order(SpanRecord.Schema.startTime).fetchAll(db)
-        }
+        let request = SpanRecord.createFetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: true)]
+        let allRecords: [SpanRecord] = storage.coreData.fetch(withRequest: request)
+
         XCTAssertEqual(allRecords.count, EmbraceStorage.defaultSpanLimitByType) // 1500 is default limit
     }
 
