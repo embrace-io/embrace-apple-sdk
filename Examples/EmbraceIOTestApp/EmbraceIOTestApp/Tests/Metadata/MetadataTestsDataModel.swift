@@ -30,17 +30,10 @@ enum MetadataTestsDataModel: Int, TestScreenDataModel, CaseIterable {
 
     @ViewBuilder var uiComponent: some View {
         switch self {
-        case .setup, .start:
-            TestSpanScreenButtonView(viewModel: .init(dataModel: self))
-        }
-    }
-
-    var payloadTestObject: PayloadTest {
-        switch self {
         case .setup:
-            MetadataSetupTest()
+            TestSpanScreenButtonView(viewModel: .init(dataModel: self, payloadTestObject: MetadataSetupTest()))
         case .start:
-            MetadataStartTest()
+            TestSpanScreenButtonView(viewModel: .init(dataModel: self, payloadTestObject: MetadataStartTest()))
         }
     }
 }

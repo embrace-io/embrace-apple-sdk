@@ -26,6 +26,7 @@ import EmbraceIO
         }
     }
 
+    private(set) var payloadTestObject: any PayloadTest
     private(set) var dataModel: any TestScreenDataModel
 
     var state: TestViewModelState = .idle(false) {
@@ -40,8 +41,9 @@ import EmbraceIO
         }
     }
 
-    init(dataModel: any TestScreenDataModel) {
+    init(dataModel: any TestScreenDataModel, payloadTestObject: any PayloadTest) {
         self.dataModel = dataModel
+        self.payloadTestObject = payloadTestObject
         super.init()
         self.checkEmbraceStatus()
     }

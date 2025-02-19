@@ -54,7 +54,7 @@ enum TestMenuOptionDataModel: Int, CaseIterable {
         case .networking:
             TestScreen<NetworkingTestsDataModel>()
         case .logging:
-            LoggingTestScreen()
+            TestScreen<LoggingTestScreenDataModel>()
         }
     }
 

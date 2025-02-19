@@ -12,24 +12,22 @@ class SpanTestUIComponentViewModel: UIComponentViewModelBase {
 
     override func testButtonPressed() {
         super.testButtonPressed()
-
-        let testObject = dataModel.payloadTestObject
         
         // if test object requirest tests to be run immediately if relevant spans are already present
-        guard !testObject.runImmediatelyIfSpansFound || (spanExporter.cachedExportedSpans[testObject.testRelevantSpanName]?.count ?? 0) == 0 else {
+        guard !payloadTestObject.runImmediatelyIfSpansFound || (spanExporter.cachedExportedSpans[payloadTestObject.testRelevantSpanName]?.count ?? 0) == 0 else {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
                 self?.performTest()
             }
             return
         }
 
-        if testObject.requiresCleanup {
-            spanExporter.clearAll(testObject.testRelevantSpanName)
+        if payloadTestObject.requiresCleanup {
+            spanExporter.clearAll(payloadTestObject.testRelevantSpanName)
         }
 
         registerForNotification()
 
-        testObject.runTestPreparations()
+        payloadTestObject.runTestPreparations()
     }
 
     private func registerForNotification() {
@@ -40,11 +38,11 @@ class SpanTestUIComponentViewModel: UIComponentViewModelBase {
 
     private func performTest() {
         guard
-            let spans = spanExporter.cachedExportedSpans[dataModel.payloadTestObject.testRelevantSpanName],
+            let spans = spanExporter.cachedExportedSpans[payloadTestObject.testRelevantSpanName],
             !spans.isEmpty
         else { return }
 
-        let testReport = dataModel.payloadTestObject.test(spans: spans)
+        let testReport = payloadTestObject.test(spans: spans)
         testFinished(with: testReport)
     }
 

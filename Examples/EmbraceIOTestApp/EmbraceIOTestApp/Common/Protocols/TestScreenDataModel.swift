@@ -11,5 +11,4 @@ protocol TestScreenDataModel {
     var title: String { get }
     var identifier: String { get }
     @ViewBuilder var uiComponent: UIComponent { get }
-    var payloadTestObject: PayloadTest { get }
 }

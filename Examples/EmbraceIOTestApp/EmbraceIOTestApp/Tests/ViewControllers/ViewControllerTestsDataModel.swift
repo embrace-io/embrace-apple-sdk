@@ -26,14 +26,7 @@ enum ViewControllerTestsDataModel: Int, TestScreenDataModel, CaseIterable {
     @ViewBuilder var uiComponent: some View {
         switch self {
         case .viewDidLoad:
-            TestSpanScreenButtonView(viewModel: .init(dataModel: self))
-        }
-    }
-
-    var payloadTestObject: PayloadTest {
-        switch self {
-        case .viewDidLoad:
-            ViewControllerViewDidLoadTest()
+            TestSpanScreenButtonView(viewModel: .init(dataModel: self, payloadTestObject: ViewControllerViewDidLoadTest()))
         }
     }
 }

@@ -12,6 +12,7 @@ import OpenTelemetrySdk
 
     private(set) var cachedExportedSpans: [String: [SpanData]] = [:]
     private var embraceStarted = false
+
     func clearAll(_ specific: String? = nil) {
         guard let specific = specific else {
             cachedExportedSpans.removeAll()
@@ -43,18 +44,4 @@ import OpenTelemetrySdk
 
         return .success
     }
-
-    // Will perform the provided test on the cached spans.
-    /// `test`: The test to perform.
-    /// `clearAfterTest`: By default all cached spans will be discarded after the test finishes. If you need to perform aditional tests on the same spans, set this parameter to `false`
-    func performTest(_ test: PayloadTest, clearAfterTest: Bool = true) -> TestReport {
-        let testRelevantSpans = cachedExportedSpans[test.testRelevantSpanName] ?? []
-        let result = test.test(spans: testRelevantSpans)
-        if clearAfterTest {
-            cachedExportedSpans.removeAll()
-        }
-
-        return result
-    }
-
 }
