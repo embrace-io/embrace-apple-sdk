@@ -7,11 +7,13 @@
 import SwiftUI
 
 enum TestMenuOptionDataModel: Int, CaseIterable {
-    case embraceInit = 1001
-    case metadata = 1002
-    case viewController = 1003
-    case networking = 1004
-    case logging = 1005
+    case embraceInit = 1000
+    case metadata
+    case viewController
+    case crashes
+    case networking
+    case logging
+
 
     var title: String {
         switch self {
@@ -25,6 +27,8 @@ enum TestMenuOptionDataModel: Int, CaseIterable {
             "Networking Tests"
         case .logging:
             "Logging Tests"
+        case .crashes:
+            "Crashes Tests"
         }
     }
 
@@ -40,6 +44,8 @@ enum TestMenuOptionDataModel: Int, CaseIterable {
             "networking"
         case .logging:
             "logging"
+        case .crashes:
+            "crashes"
         }
     }
 
@@ -55,6 +61,8 @@ enum TestMenuOptionDataModel: Int, CaseIterable {
             TestScreen<NetworkingTestsDataModel>()
         case .logging:
             TestScreen<LoggingTestScreenDataModel>()
+        case .crashes:
+            TestScreen<CrashesTestsDataModel>()
         }
     }
 

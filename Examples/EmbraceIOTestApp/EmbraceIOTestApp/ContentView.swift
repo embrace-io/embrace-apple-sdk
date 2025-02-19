@@ -28,6 +28,7 @@ struct ContentView: View {
                             .tag($0.tag)
                     }
                 }
+                .tabViewStyle(.page(indexDisplayMode: .never))
                 .offset(x: displayTestMenu ? 250 : 0, y: 0)
                 .animation(.easeInOut, value: displayTestMenu)
                 TestSideMenuView(isPresented: $displayTestMenu, selectedTestOption: $currentSelectedTest)
