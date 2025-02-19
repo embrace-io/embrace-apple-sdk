@@ -3,7 +3,6 @@
 //
 
 import XCTest
-
 @testable import EmbraceCore
 import EmbraceCommonInternal
 import EmbraceStorageInternal
@@ -126,10 +125,10 @@ final class SessionSpanUtilsTests: XCTestCase {
         let endTime = Date(timeIntervalSince1970: 60)
         let heartbeat = Date(timeIntervalSince1970: 58)
 
-        let session = SessionRecord(
+        let session = MockSession(
             id: TestConstants.sessionId,
-            state: .foreground,
             processId: TestConstants.processId,
+            state: .foreground,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: TestConstants.date,
@@ -203,10 +202,10 @@ final class SessionSpanUtilsTests: XCTestCase {
 
     func test_status() {
         // test ok status
-        var session = SessionRecord(
+        var session = MockSession(
             id: TestConstants.sessionId,
-            state: .foreground,
             processId: TestConstants.processId,
+            state: .foreground,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: TestConstants.date,
@@ -222,10 +221,10 @@ final class SessionSpanUtilsTests: XCTestCase {
         XCTAssertEqual(payload.status, "ok")
 
         // test error status
-        session = SessionRecord(
+        session = MockSession(
             id: TestConstants.sessionId,
-            state: .foreground,
             processId: TestConstants.processId,
+            state: .foreground,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: TestConstants.date,
@@ -272,7 +271,7 @@ final class SessionSpanUtilsTests: XCTestCase {
 
     func test_payloadFromSession_attributesShouldntIncludeUserProperties() {
         let session = givenSessionRecord()
-        var properties: [MetadataRecord] = []
+        var properties: [EmbraceMetadata] = []
         properties.append(
             givenCustomProperty(
                 withKey: "emb.user.username",
@@ -305,14 +304,14 @@ final class SessionSpanUtilsTests: XCTestCase {
 }
 
 private extension SessionSpanUtilsTests {
-    func givenSessionRecord() -> SessionRecord {
+    func givenSessionRecord() -> MockSession {
         let endTime = Date(timeIntervalSince1970: 60)
         let heartbeat = Date(timeIntervalSince1970: 58)
 
-        return SessionRecord(
+        return MockSession(
             id: TestConstants.sessionId,
-            state: .foreground,
             processId: TestConstants.processId,
+            state: .foreground,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: TestConstants.date,
@@ -324,7 +323,13 @@ private extension SessionSpanUtilsTests {
             appTerminated: .random())
     }
 
-    func givenCustomProperty(withKey key: String, value: String, lifespan: MetadataRecordLifespan) -> MetadataRecord {
-        .init(key: key, value: .string(value), type: .customProperty, lifespan: lifespan, lifespanId: .random())
+    func givenCustomProperty(withKey key: String, value: String, lifespan: MetadataRecordLifespan) -> MockMetadata {
+        MockMetadata(
+            key: key,
+            value: value,
+            type: .customProperty,
+            lifespan: lifespan,
+            lifespanId: .random()
+        )
     }
 }
