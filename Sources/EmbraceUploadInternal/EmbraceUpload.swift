@@ -81,23 +81,26 @@ public class EmbraceUpload: EmbraceLogUploader {
                 // clear data from cache that shouldn't be retried as it's stale
                 self.clearCacheFromStaleData()
 
-                // get all the data cached first, is the only thing that could throw
+                // Use the fetchAllUploadData method which handles the CoreData context properly
                 let cachedObjects = try self.cache.fetchAllUploadData()
-
-                // create a sempahore to allow only to send two request at a time so we don't
-                // get throttled by the backend on cases where cache has many failed requests.
-
-                for uploadData in cachedObjects {
-                    guard let type = EmbraceUploadType(rawValue: uploadData.type) else {
-                        continue
+                
+                // Create value types from managed objects
+                let uploadTasks = cachedObjects.map { record -> (id: String, data: Data, type: EmbraceUploadType, attemptCount: Int)? in
+                    guard let type = EmbraceUploadType(rawValue: record.type) else {
+                        return nil
                     }
+                    return (record.id, record.data, type, record.attemptCount)
+                }.compactMap { $0 }
+                
+                // Process the value types
+                for task in uploadTasks {
                     self.semaphore.wait()
 
                     self.reUploadData(
-                        id: uploadData.id,
-                        data: uploadData.data,
-                        type: type,
-                        attemptCount: uploadData.attemptCount
+                        id: task.id,
+                        data: task.data,
+                        type: task.type,
+                        attemptCount: task.attemptCount
                     ) {
                         self.semaphore.signal()
                     }
