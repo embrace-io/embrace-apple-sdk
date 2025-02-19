@@ -10,10 +10,9 @@ enum TestMenuOptionDataModel: Int, CaseIterable {
     case embraceInit = 1000
     case metadata
     case viewController
-    case crashes
     case networking
     case logging
-
+    case crashes
 
     var title: String {
         switch self {
