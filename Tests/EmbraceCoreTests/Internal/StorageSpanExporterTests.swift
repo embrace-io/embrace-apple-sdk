@@ -15,7 +15,8 @@ final class StorageSpanExporterTests: XCTestCase {
     func test_DB_preventsClosedSpan_fromUpdatingEndTime() throws {
         // Given
         let storage = try EmbraceStorage.createInMemoryDb()
-        let exporter = StorageSpanExporter(options: .init(storage: storage), logger: MockLogger())
+        let sessionController = MockSessionController()
+        let exporter = StorageSpanExporter(options: .init(storage: storage, sessionController: sessionController), logger: MockLogger())
 
         let traceId = TraceId.random()
         let spanId = SpanId.random()
@@ -58,7 +59,8 @@ final class StorageSpanExporterTests: XCTestCase {
     func test_DB_allowsOpenSpan_toUpdateAttributes() throws {
         // Given
         let storage = try EmbraceStorage.createInMemoryDb()
-        let exporter = StorageSpanExporter(options: .init(storage: storage), logger: MockLogger())
+        let sessionController = MockSessionController()
+        let exporter = StorageSpanExporter(options: .init(storage: storage, sessionController: sessionController), logger: MockLogger())
 
         let traceId = TraceId.random()
         let spanId = SpanId.random()

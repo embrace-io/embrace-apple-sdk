@@ -11,13 +11,14 @@ import OpenTelemetrySdk
 extension Collection where Element == SpanProcessor {
     static func processors(
         for storage: EmbraceStorage,
+        sessionController: SessionControllable,
         export: OpenTelemetryExport?,
         sdkStateProvider: EmbraceSDKStateProvider
     ) -> [SpanProcessor] {
         var processors: [SpanProcessor] = [
             SingleSpanProcessor(
                 spanExporter: StorageSpanExporter(
-                    options: .init(storage: storage),
+                    options: .init(storage: storage, sessionController: sessionController),
                     logger: Embrace.logger
                 ),
                 sdkStateProvider: sdkStateProvider
