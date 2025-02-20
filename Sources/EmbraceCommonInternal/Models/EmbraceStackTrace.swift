@@ -38,18 +38,17 @@ public struct EmbraceStackTrace: Equatable {
         /*
          Regular expression pattern breakdown:
 
-         ^\s*                 → Allows optional leading spaces at the beginning
-         (\d+)                → Captures the frame index (a sequence of digits)
-         \s+                  → One or more whitespaces
-         (.*?)                → Captures the module name (non-greedy/lazy to allow spaces)
-         \s+                  → One or more whitespaces
-         (0x[0-9A-Fa-f]+)     → Captures the memory address hex (must start with `0x`)
-         \s+                  → One or more whitespaces
-         (.+?)                → Captures the function/method symbol (non-greedy/lazy)
-         (?:\s+\+\s+(\d+))?   → Optionally captures the slide offset as it might not always be present (`+ <numbers>`)
+         ^\s*                   -> Allows optional leading spaces at the beginning
+         (\d+)                  -> Captures the frame index (a sequence of digits)
+         \s+                    -> One or more whitespaces
+         ([^\s]+(?:\s+[^\s]+)*) -> Captures the module name, allowing spaces between words but not at the edges
+         \s+                    -> One or more whitespaces
+         (0x[0-9A-Fa-f]+)       -> Captures the memory address hex (must start with `0x`)
+         \s+                    -> One or more whitespaces
+         (\S.+?)                -> Captures the function/method symbol ensuring it's not empty (non-greedy/lazy)
+         (?:\s+\+\s+(\d+))?     -> Optionally captures the slide offset as it might not always be present (`+ <numbers>`)
         */
-        let pattern = #"^\s*(\d+)\s+(.*?)\s+(0x[0-9A-Fa-f]+)\s+(.+?)(?:\s+\+\s+(\d+))?$"#
-
+        let pattern = #"^\s*(\d+)\s+([^\s]+(?:\s+[^\s]+)*)\s+(0x[0-9A-Fa-f]+)\s+(\S.+?)(?:\s+\+\s+(\d+))?$"#
         return frame.range(of: pattern, options: .regularExpression) != nil
     }
 }
