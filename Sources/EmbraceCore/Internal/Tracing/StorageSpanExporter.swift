@@ -74,6 +74,8 @@ extension StorageSpanExporter {
             type: spanData.embType,
             data: data,
             startTime: spanData.startTime,
-            endTime: endTime )
+            endTime: endTime,
+            sessionIdentifier: sessionController?.currentSession?.id
+        )
     }
 }

@@ -16,6 +16,7 @@ final class StorageSpanExporterTests: XCTestCase {
         // Given
         let storage = try EmbraceStorage.createInMemoryDb()
         let sessionController = MockSessionController()
+        sessionController.startSession(state: .foreground)
         let exporter = StorageSpanExporter(options: .init(storage: storage, sessionController: sessionController), logger: MockLogger())
 
         let traceId = TraceId.random()
@@ -44,8 +45,8 @@ final class StorageSpanExporterTests: XCTestCase {
                                              hasEnded: false )
 
         // When spans are exported
-        exporter.export(spans: [closedSpanData])
-        exporter.export(spans: [updated_closedSpanData])
+        _ = exporter.export(spans: [closedSpanData])
+        _ = exporter.export(spans: [updated_closedSpanData])
 
         let exportedSpans: [SpanRecord] = try storage.fetchAll()
         XCTAssertTrue(exportedSpans.count == 1)
@@ -54,12 +55,16 @@ final class StorageSpanExporterTests: XCTestCase {
         XCTAssertEqual(exportedSpan.traceId, traceId.hexString)
         XCTAssertEqual(exportedSpan.id, spanId.hexString)
         XCTAssertEqual(exportedSpan.endTime!.timeIntervalSince1970, endTime.timeIntervalSince1970, accuracy: 0.01)
+
+        XCTAssertNotNil(exportedSpan.sessionIdentifier)
+        XCTAssertEqual(exportedSpan.sessionIdentifier, sessionController.currentSession?.id)
     }
 
     func test_DB_allowsOpenSpan_toUpdateAttributes() throws {
         // Given
         let storage = try EmbraceStorage.createInMemoryDb()
         let sessionController = MockSessionController()
+        sessionController.startSession(state: .foreground)
         let exporter = StorageSpanExporter(options: .init(storage: storage, sessionController: sessionController), logger: MockLogger())
 
         let traceId = TraceId.random()
@@ -89,8 +94,8 @@ final class StorageSpanExporterTests: XCTestCase {
                                              hasEnded: false )
 
         // When spans are exported
-        exporter.export(spans: [openSpanData])
-        exporter.export(spans: [updated_openSpanData])
+        _ = exporter.export(spans: [openSpanData])
+        _ = exporter.export(spans: [updated_openSpanData])
 
         let exportedSpans: [SpanRecord] = try storage.fetchAll()
         XCTAssertTrue(exportedSpans.count == 1)
@@ -98,6 +103,9 @@ final class StorageSpanExporterTests: XCTestCase {
         let exportedSpan = exportedSpans.first
         XCTAssertEqual(exportedSpan?.traceId, traceId.hexString)
         XCTAssertEqual(exportedSpan?.id, spanId.hexString)
+
+        XCTAssertNotNil(exportedSpan!.sessionIdentifier)
+        XCTAssertEqual(exportedSpan!.sessionIdentifier, sessionController.currentSession?.id)
 
         let spanData = try JSONDecoder().decode(SpanData.self, from: exportedSpan!.data)
         XCTAssertEqual(spanData.attributes, ["foo": .string("baz")])
