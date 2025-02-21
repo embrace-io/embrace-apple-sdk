@@ -97,7 +97,9 @@ class LogController: LogControllable {
                 attributesBuilder.addStackTrace(stackTrace)
             }
         case .custom(let customStackTrace):
-            attributesBuilder.addStackTrace(customStackTrace.frames)
+            if severity == .warn || severity == .error {
+                attributesBuilder.addStackTrace(customStackTrace.frames)
+            }
         case .notIncluded:
             break
         }

@@ -276,20 +276,30 @@ class LogControllerTests: XCTestCase {
         thenLogHasntGotAnEmbbededStackTraceInTheAttributes()
     }
 
-    func testAnyLog_createLogByWithCustomStacktrace_alwaysAddStackTraceToAttributes() throws {
+    func testWarnAndErrorLogs_createLogByWithCustomStacktrace_alwaysAddStackTraceToAttributes() throws {
         givenLogController()
         let customStackTrace = try EmbraceStackTrace(frames: Thread.callStackSymbols)
         whenCreatingLog(
-            severity: randomSeverity(),
+            severity: [.warn, .error].randomElement()!,
             stackTraceBehavior: .custom(customStackTrace)
         )
         thenLogHasAnEmbbededStackTraceInTheAttributes()
     }
+
+    func testInfoLogs_createLogByWithCustomStacktrace_wontAddStackTraceToAttributes() throws {
+        givenLogController()
+        let customStackTrace = try EmbraceStackTrace(frames: Thread.callStackSymbols)
+        whenCreatingLog(
+            severity: .info,
+            stackTraceBehavior: .custom(customStackTrace)
+        )
+        thenLogHasntGotAnEmbbededStackTraceInTheAttributes()
+    }
 }
 
 private extension LogControllerTests {
-    func randomSeverity() -> LogSeverity {
-        [LogSeverity.error, LogSeverity.warn, LogSeverity.info].randomElement()!
+    func randomSeverity(from severities: [LogSeverity]) -> LogSeverity {
+        severities.randomElement()!
     }
 
     func givenLogControllerWithNoStorage() {
