@@ -16,8 +16,8 @@ class UNUserNotificationCenterDelegateProxy: NSObject {
     override func responds(to aSelector: Selector!) -> Bool {
         // We will only respond to the given selectors if and only if the `originalDelegate` we are proxying also implements them.
         // If this condition is not met, we risk stealing the notification from the app, which is undesirable.
-        // Additionally, if the user doesn't implement any of these methods, we ensure that the push notification is still captured by
-        // swizzling `UIApplicationDelegate.application(_:didReceiveRemoteNotification:fetchCompletionHandler:)`
+        // Additionally, if the user doesn't implement any of these methods, we ensure that the push notification is still
+        // captured by swizzling `UIApplicationDelegate.application(_:didReceiveRemoteNotification:fetchCompletionHandler:)`
         if super.responds(to: aSelector),
            let originalDelegate = originalDelegate,
            originalDelegate.responds(to: aSelector) {

@@ -18,19 +18,6 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
     static let timeoutQuick = 0.2
 
     // MARK: - Setup
-
-    override func tearDown() async throws {
-        do {
-            urlSessionCaptureService.swizzlers.forEach { swizzler in
-                try? swizzler.unswizzleClassMethod()
-                try? swizzler.unswizzleInstanceMethod()
-            }
-            try otherSwizzler?.unswizzleClassMethod()
-        } catch let exception {
-            print(exception)
-        }
-    }
-
     func givenCaptureServiceInstalled() {
         urlSessionCaptureService = URLSessionCaptureService(options: .init())
         openTelemetry = MockEmbraceOpenTelemetry()
@@ -59,6 +46,18 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
         return url
     }
 
+    func unswizzleDefaultCaptureService() {
+        urlSessionCaptureService.swizzlers.forEach { swizzler in
+            try? swizzler.unswizzleClassMethod()
+            try? swizzler.unswizzleInstanceMethod()
+        }
+    }
+
+    func unswizzleOtherSwizzler() {
+        try? otherSwizzler?.unswizzleClassMethod()
+        try? otherSwizzler?.unswizzleInstanceMethod()
+    }
+
     // MARK: - Assertions
 
     /// Methods dealing with URLSessionTaskDelegate
@@ -83,6 +82,8 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
             sessionDelegate.didReceiveDataExpectation,
             sessionDelegate.didCompleteWithErrorExpectation
         ], timeout: Self.timeoutQuick)
+
+        unswizzleDefaultCaptureService()
     }
 
     func givenSomebodyElseSwizzlesURLSessionInit() throws {
@@ -123,6 +124,9 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
         XCTAssertTrue(try XCTUnwrap(otherSwizzler?.proxy?.didInvokeRespondsTo))
         XCTAssertTrue(try XCTUnwrap(otherSwizzler?.proxy?.didInvokeForwardingTarget))
         XCTAssertTrue(try XCTUnwrap(otherSwizzler?.proxy?.didForwardToTargetSuccessfully))
+
+        unswizzleDefaultCaptureService()
+        unswizzleOtherSwizzler()
     }
 
     @available(iOS 15.0, watchOS 8.0, *)
@@ -158,6 +162,9 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
         XCTAssertTrue(try XCTUnwrap(otherSwizzler?.proxy?.didInvokeRespondsTo))
         XCTAssertTrue(try XCTUnwrap(otherSwizzler?.proxy?.didInvokeForwardingTarget))
         XCTAssertTrue(try XCTUnwrap(otherSwizzler?.proxy?.didForwardToTargetSuccessfully))
+
+        unswizzleOtherSwizzler()
+        unswizzleDefaultCaptureService()
     }
 
     @available(iOS 15.0, watchOS 8.0, *)
@@ -182,6 +189,7 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
             taskDelegate.didReceiveDataExpectation,
             taskDelegate.didCompleteWithErrorExpectation
         ], timeout: Self.timeoutQuick)
+        unswizzleDefaultCaptureService()
     }
 
     @available(iOS 15.0, watchOS 8.0, *)
@@ -201,12 +209,13 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
             sessionDelegate.didReceiveDataExpectation,
             sessionDelegate.didCompleteWithErrorExpectation
         ], timeout: Self.timeoutQuick)
+        
+        unswizzleDefaultCaptureService()
     }
 
     @available(iOS 15.0, watchOS 8.0, *)
     func test_async_taskWithNoDelegate_callsSessionDelegate() async throws {
         givenCaptureServiceInstalled()
-
         givenSessionDelegate()
         givenURLSession(delegate: sessionDelegate)
 
@@ -219,6 +228,8 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
 
         // DEV: async/await calls do not call `didCompleteWithError` method as response is handled inline
         XCTAssertFalse(sessionDelegate.didCallDidCompleteWithError)
+
+        unswizzleDefaultCaptureService()
     }
 
     @available(iOS 15.0, watchOS 8.0, *)
@@ -243,5 +254,7 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
         XCTAssertFalse(sessionDelegate.didCallDidFinishCollecting)
         // DEV: async/await calls do not call `didCompleteWithError` method as response is handled inline
         XCTAssertFalse(sessionDelegate.didCallDidCompleteWithError)
+
+        unswizzleDefaultCaptureService()
     }
 }

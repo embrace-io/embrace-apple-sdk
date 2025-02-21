@@ -21,7 +21,6 @@ public class DummyLogControllable: LogControllable {
         attachment: Data?,
         attachmentId: String?,
         attachmentUrl: URL?,
-        attachmentSize: Int?,
         attributes: [String : String],
         stackTraceBehavior: StackTraceBehavior
     ) { }

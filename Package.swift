@@ -36,7 +36,7 @@ let package = Package(
         ),
         .package(
             url: "https://github.com/open-telemetry/opentelemetry-swift",
-            exact: "1.12.1"
+            exact: "1.13.0"
         ),
         .package(
             url: "https://github.com/groue/GRDB.swift",
@@ -208,6 +208,7 @@ let package = Package(
             dependencies: [
                 "EmbraceCommonInternal",
                 "EmbraceOTelInternal",
+                "EmbraceCoreDataInternal",
                 .product(name: "GRDB", package: "GRDB.swift")
             ]
         ),
@@ -216,6 +217,22 @@ let package = Package(
             dependencies: [
                 "EmbraceUploadInternal",
                 "EmbraceOTelInternal",
+                "EmbraceCoreDataInternal",
+                "TestSupport"
+            ]
+        ),
+
+        // core data -----------------------------------------------------------------
+        .target(
+            name: "EmbraceCoreDataInternal",
+            dependencies: [
+                "EmbraceCommonInternal"
+            ]
+        ),
+        .testTarget(
+            name: "EmbraceCoreDataInternalTests",
+            dependencies: [
+                "EmbraceCommonInternal",
                 "TestSupport"
             ]
         ),

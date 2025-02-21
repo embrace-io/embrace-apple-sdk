@@ -14,12 +14,6 @@ extension Notification.Name {
     static let networkRequestCaptured = Notification.Name("networkRequestCaptured")
 }
 
-protocol URLSessionTaskHandler: AnyObject {
-    @discardableResult
-    func create(task: URLSessionTask) -> Bool
-    func finish(task: URLSessionTask, data: Data?, error: (any Error)?)
-}
-
 protocol URLSessionTaskHandlerDataSource: AnyObject {
     var state: CaptureServiceState { get }
     var otel: EmbraceOpenTelemetry? { get }
@@ -29,8 +23,7 @@ protocol URLSessionTaskHandlerDataSource: AnyObject {
     var ignoredURLs: [String] { get }
 }
 
-final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
-
+final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
     private var spans: [URLSessionTask: Span] = [:]
     private let queue: DispatchableQueue
     private let payloadCaptureHandler: NetworkPayloadCaptureHandler
@@ -194,6 +187,15 @@ final class DefaultURLSessionTaskHandler: URLSessionTaskHandler {
 
             // internal notification with the captured request
             Embrace.notificationCenter.post(name: .networkRequestCaptured, object: task)
+        }
+    }
+
+    func addData(_ data: Data, dataTask: URLSessionDataTask) {
+        if var previousData = dataTask.embraceData {
+            previousData.append(data)
+            dataTask.embraceData = previousData
+        } else {
+            dataTask.embraceData = data
         }
     }
 

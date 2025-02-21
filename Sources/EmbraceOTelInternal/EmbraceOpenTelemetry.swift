@@ -63,7 +63,6 @@ public protocol EmbraceOpenTelemetry: AnyObject {
         timestamp: Date,
         attachmentId: String,
         attachmentUrl: URL,
-        attachmentSize: Int?,
         attributes: [String: String],
         stackTraceBehavior: StackTraceBehavior
     )

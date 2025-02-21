@@ -3,6 +3,7 @@
 //
 
 #if canImport(WebKit)
+import EmbraceObjCUtilsInternal
 import Foundation
 import WebKit
 
@@ -11,10 +12,10 @@ extension WKWebView {
         static var embraceProxy: Int = 0
     }
 
-    var emb_proxy: WKNavigationDelegateProxy? {
+    var emb_proxy: EMBWKNavigationDelegateProxy? {
         get {
-            if let value = objc_getAssociatedObject(self, &AssociatedKeys.embraceProxy) as? WKNavigationDelegateProxy {
-                return value as WKNavigationDelegateProxy
+            if let value = objc_getAssociatedObject(self, &AssociatedKeys.embraceProxy) as? EMBWKNavigationDelegateProxy {
+                return value as EMBWKNavigationDelegateProxy
             }
 
             return nil
