@@ -15,7 +15,9 @@ final class StorageSpanExporterTests: XCTestCase {
     func test_DB_preventsClosedSpan_fromUpdatingEndTime() throws {
         // Given
         let storage = try EmbraceStorage.createInMemoryDb()
-        let exporter = StorageSpanExporter(options: .init(storage: storage), logger: MockLogger())
+        let sessionController = MockSessionController()
+        sessionController.startSession(state: .foreground)
+        let exporter = StorageSpanExporter(options: .init(storage: storage, sessionController: sessionController), logger: MockLogger())
 
         let traceId = TraceId.random()
         let spanId = SpanId.random()
@@ -54,12 +56,17 @@ final class StorageSpanExporterTests: XCTestCase {
         XCTAssertEqual(exportedSpan.id, spanId.hexString)
         XCTAssertEqual(exportedSpan.startTime.timeIntervalSince1970, startTime.timeIntervalSince1970, accuracy: 0.01)
         XCTAssertEqual(exportedSpan.endTime!.timeIntervalSince1970, endTime.timeIntervalSince1970, accuracy: 0.01)
+
+        XCTAssertNotNil(exportedSpan.sessionIdentifier)
+        XCTAssertEqual(exportedSpan.sessionIdentifier, sessionController.currentSession?.id)
     }
 
     func test_DB_allowsOpenSpan_toUpdateAttributes() throws {
         // Given
         let storage = try EmbraceStorage.createInMemoryDb()
-        let exporter = StorageSpanExporter(options: .init(storage: storage), logger: MockLogger())
+        let sessionController = MockSessionController()
+        sessionController.startSession(state: .foreground)
+        let exporter = StorageSpanExporter(options: .init(storage: storage, sessionController: sessionController), logger: MockLogger())
 
         let traceId = TraceId.random()
         let spanId = SpanId.random()
@@ -97,6 +104,9 @@ final class StorageSpanExporterTests: XCTestCase {
         let exportedSpan = exportedSpans.first
         XCTAssertEqual(exportedSpan?.traceId, traceId.hexString)
         XCTAssertEqual(exportedSpan?.id, spanId.hexString)
+
+        XCTAssertNotNil(exportedSpan!.sessionIdentifier)
+        XCTAssertEqual(exportedSpan!.sessionIdentifier, sessionController.currentSession?.id)
 
         let spanData = try JSONDecoder().decode(SpanData.self, from: exportedSpan!.data)
         XCTAssertEqual(spanData.attributes, ["foo": .string("baz")])

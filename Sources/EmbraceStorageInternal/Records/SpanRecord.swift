@@ -16,6 +16,7 @@ public class SpanRecord: NSManagedObject, EmbraceSpan {
     @NSManaged public var startTime: Date
     @NSManaged public var endTime: Date?
     @NSManaged public var processIdRaw: String // ProcessIdentifier
+    @NSManaged public var sessionIdRaw: String? // SessionIdentifier
 
     class func create(
         context: NSManagedObjectContext,
@@ -26,7 +27,8 @@ public class SpanRecord: NSManagedObject, EmbraceSpan {
         data: Data,
         startTime: Date,
         endTime: Date? = nil,
-        processId: ProcessIdentifier
+        processId: ProcessIdentifier,
+        sessionId: SessionIdentifier? = nil
     ) -> SpanRecord? {
         guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
             return nil
@@ -41,6 +43,7 @@ public class SpanRecord: NSManagedObject, EmbraceSpan {
         record.startTime = startTime
         record.endTime = endTime
         record.processIdRaw = processId.hex
+        record.sessionIdRaw = sessionId?.toString
 
         return record
     }
@@ -85,10 +88,16 @@ extension SpanRecord: EmbraceStorageRecord {
         let endTimeAttribute = NSAttributeDescription()
         endTimeAttribute.name = "endTime"
         endTimeAttribute.attributeType = .dateAttributeType
+        endTimeAttribute.isOptional = true
 
         let processIdAttribute = NSAttributeDescription()
         processIdAttribute.name = "processIdRaw"
         processIdAttribute.attributeType = .stringAttributeType
+
+        let sessionIdAttribute = NSAttributeDescription()
+        sessionIdAttribute.name = "sessionIdRaw"
+        sessionIdAttribute.attributeType = .stringAttributeType
+        sessionIdAttribute.isOptional = true
 
         entity.properties = [
             idAttribute,

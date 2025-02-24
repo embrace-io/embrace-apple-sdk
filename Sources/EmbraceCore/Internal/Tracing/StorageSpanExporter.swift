@@ -11,12 +11,14 @@ import OpenTelemetrySdk
 class StorageSpanExporter: SpanExporter {
 
     private(set) weak var storage: EmbraceStorage?
+    private(set) weak var sessionController: SessionControllable?
     private weak var logger: InternalLogger?
 
     let validation: SpanDataValidation
 
     init(options: Options, logger: InternalLogger) {
         self.storage = options.storage
+        self.sessionController = options.sessionController
         self.validation = SpanDataValidation(validators: options.validators)
         self.logger = logger
     }
@@ -43,7 +45,8 @@ class StorageSpanExporter: SpanExporter {
                         type: spanData.embType,
                         data: data,
                         startTime: spanData.startTime,
-                        endTime: endTime
+                        endTime: endTime,
+                        sessionId: sessionController?.currentSession?.id
                     )
                 } catch let exception {
                     self.logger?.error(exception.localizedDescription)

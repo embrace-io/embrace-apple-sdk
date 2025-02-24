@@ -20,6 +20,8 @@ extension EmbraceStorage {
     ///   - data: Data of the span
     ///   - startTime: Date of when the span started
     ///   - endTime: Date of when the span ended (optional)
+    ///   - processId: Identifier of the process in which this span was created
+    ///   - sessionId: Identifier of the session containing this span (optional)
     /// - Returns: The newly stored `SpanRecord`
     @discardableResult
     public func upsertSpan(
@@ -30,7 +32,8 @@ extension EmbraceStorage {
         data: Data,
         startTime: Date,
         endTime: Date? = nil,
-        processId: ProcessIdentifier = .current
+        processId: ProcessIdentifier = .current,
+        sessionId: SessionIdentifier? = nil
     ) -> SpanRecord? {
 
         // update existing?
@@ -47,6 +50,7 @@ extension EmbraceStorage {
             span.startTime = startTime
             span.endTime = endTime
             span.processIdRaw = processId.hex
+            span.sessionIdRaw = sessionId?.toString
 
             coreData.save()
             return span
@@ -65,7 +69,8 @@ extension EmbraceStorage {
             data: data,
             startTime: startTime,
             endTime: endTime,
-            processId: processId
+            processId: processId,
+            sessionId: sessionId
         ) {
             coreData.save()
             return span

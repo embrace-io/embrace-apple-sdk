@@ -103,6 +103,7 @@ extension SessionRecord: EmbraceStorageRecord {
         let endTimeAttribute = NSAttributeDescription()
         endTimeAttribute.name = "endTime"
         endTimeAttribute.attributeType = .dateAttributeType
+        endTimeAttribute.isOptional = true
 
         let lastHeartbeatTimeAttribute = NSAttributeDescription()
         lastHeartbeatTimeAttribute.name = "lastHeartbeatTime"
@@ -111,6 +112,7 @@ extension SessionRecord: EmbraceStorageRecord {
         let crashReportIdAttribute = NSAttributeDescription()
         crashReportIdAttribute.name = "crashReportId"
         crashReportIdAttribute.attributeType = .stringAttributeType
+        crashReportIdAttribute.isOptional = true
 
         let coldStartAttribute = NSAttributeDescription()
         coldStartAttribute.name = "coldStart"
