@@ -8,7 +8,7 @@ public struct EmbraceStackTrace: Equatable {
     /// The maximum amount of characters a stack trace frame can have.
     private static let maximumFrameLength = 10000
 
-    /// The maximum amount of frames a stacktrace we support.
+    /// The maximum amount of frames we support in a stacktrace.
     private static let maximumAmountOfFrames = 200
 
     /// The captured stack frames, following the format of `Thread.callStackSymbols`.
