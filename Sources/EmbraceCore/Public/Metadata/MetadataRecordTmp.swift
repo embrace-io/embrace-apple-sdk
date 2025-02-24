@@ -23,8 +23,12 @@ public class MetadataRecordTmp: NSManagedObject {
         lifespan: String,
         lifespanId: String,
         collectedAt: Date = Date()
-    ) -> MetadataRecordTmp {
-        let record = MetadataRecordTmp(context: context)
+    ) -> MetadataRecordTmp? {
+        guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
+            return nil
+        }
+
+        let record = MetadataRecordTmp(entity: description, insertInto: context)
         record.key = key
         record.value = value
         record.type = type
@@ -33,18 +37,6 @@ public class MetadataRecordTmp: NSManagedObject {
         record.collectedAt = collectedAt
 
         return record
-    }
-
-    class func create(context: NSManagedObjectContext, record: MetadataRecord) -> MetadataRecordTmp {
-        return create(
-            context: context,
-            key: record.key,
-            value: record.value.description,
-            type: record.type.rawValue,
-            lifespan: record.lifespan.rawValue,
-            lifespanId: record.lifespanId,
-            collectedAt: record.collectedAt
-        )
     }
 }
 
