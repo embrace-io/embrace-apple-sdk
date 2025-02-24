@@ -5,6 +5,12 @@
 import Foundation
 
 public struct EmbraceStackTrace: Equatable {
+    /// The maximum amount of characters a stack trace frame can have.
+    private static let maximumFrameLength = 10000
+
+    /// The maximum amount of frames a stacktrace we support.
+    private static let maximumAmountOfFrames = 200
+
     /// The captured stack frames, following the format of `Thread.callStackSymbols`.
     public private(set) var frames: [String]
 
@@ -23,18 +29,40 @@ public struct EmbraceStackTrace: Equatable {
     /// ```
     ///
     /// - Parameter frames: An array of frames strings, following the format of `Thread.callStackSymbols`.
-    /// - Throws: An `EmbraceStackTraceError.invalidFormat` if any of the frames are not in the expected format.
+    /// - Throws: An `EmbraceStackTraceError.invalidFormat` if any of the frames are not in the expected format 
+    /// - Throws: An `EmbraceStackTraceError.frameIsTooLong` if any of the frames has more than the `maximumFrameLength` (10.000 characters).
+    ///
+    /// - Important: a stacktrace can't have more than `maximumAmountOfFrames` (200); if that happens, we'll trim the exceeding frames.
     public init(frames: [String]) throws {
-        guard frames.allSatisfy(EmbraceStackTrace.isValidStackFrame) else {
-            throw EmbraceStackTraceError.invalidFormat
+        let trimmedStackTrace = EmbraceStackTrace.trimStackTrace(frames)
+        try EmbraceStackTrace.validateStackFrames(trimmedStackTrace)
+        self.frames = trimmedStackTrace
+    }
+
+    private static func validateStackFrames(_ frames: [String]) throws {
+        try frames.forEach {
+            if $0.count >= maximumFrameLength {
+                throw EmbraceStackTraceError.frameIsTooLong
+            }
+            if !isValidStackFrameFormat($0) {
+                throw EmbraceStackTraceError.invalidFormat
+            }
         }
-        self.frames = frames
+    }
+
+    /// Generates a stack trace with up to `maximumAmountOfFrames` frames.
+    ///
+    /// - Important: A stack trace can't have more than `maximumAmountOfFrames` (200);
+    ///   if that happens, we'll trim the exceeding frames.
+    /// - Returns: An array of stack frames as `String`.
+    private static func trimStackTrace(_ stackFrames: [String]) -> [String] {
+        return Array(stackFrames.prefix(maximumAmountOfFrames))
     }
 
     /// Validates if a given frame string follows the required format.
     /// - Parameter frame: a stack trace frame.
     /// - Returns: whether the format is valid or invalid.
-    private static func isValidStackFrame(_ frame: String) -> Bool {
+    private static func isValidStackFrameFormat(_ frame: String) -> Bool {
         /*
          Regular expression pattern breakdown:
 

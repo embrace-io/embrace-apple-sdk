@@ -85,6 +85,13 @@ class EmbraceStackTraceTests: XCTestCase {
         }
     }
 
+    func test_initWithHugeStackTrace_shouldTrimToTwoHundredFrames() throws {
+        let stackTrace = try EmbraceStackTrace(frames: generateRandomStackFrames(numberOfFrames: .random(in: 201...10000)))
+        XCTAssertEqual(stackTrace.frames.count, 200)
+        XCTAssertTrue(stackTrace.frames.first!.starts(with: "0"))
+        XCTAssertTrue(stackTrace.frames.last!.starts(with: "199"))
+    }
+
     // MARK: - Regex
 
     func test_stackFrame_shouldStartWithNumber() {
@@ -122,6 +129,11 @@ class EmbraceStackTraceTests: XCTestCase {
 
     func test_stackFrame_shouldAllowSpacesInModuleName() {
         let validFrame = "0   Embrace SDK    0x0000000001234abc  -[MyClass myMethod] + 48"
+        XCTAssertNoThrow(try EmbraceStackTrace(frames: [validFrame]))
+    }
+
+    func test_stackFrame_shouldAllowUnicodeCharsInModuleName() {
+        let validFrame = "0   xx    0x0000000001234abc  -[MyClass myMethod] + 48"
         XCTAssertNoThrow(try EmbraceStackTrace(frames: [validFrame]))
     }
 
@@ -174,5 +186,28 @@ class EmbraceStackTraceTests: XCTestCase {
         let symbolWithoutSlideOffsetFrame = "0   EmbraceApp    0x0000000001234abc  + 48"
         XCTAssertNoThrow(try EmbraceStackTrace(frames: [symbolWithSlideOffsetFrame]))
         XCTAssertNoThrow(try EmbraceStackTrace(frames: [symbolWithoutSlideOffsetFrame]))
+    }
+
+    func test_stackFrame_cantHaveMoreThanTenThousandCharacters() {
+        let longFrame = String(repeating: "A", count: 10001)
+        XCTAssertThrowsError(try EmbraceStackTrace(frames: [longFrame])) { error in
+            if let error = error as? EmbraceStackTraceError {
+                XCTAssertTrue(error == .frameIsTooLong)
+            } else {
+                XCTFail("Error should be `EmbraceStackTraceError.invalidFormat`")
+            }
+        }
+    }
+}
+
+private extension EmbraceStackTraceTests {
+    func generateRandomStackFrames(numberOfFrames: Int = 30) -> [String] {
+        return (0..<numberOfFrames).map { index in
+            let randomHex = String(format: "0x%08x", Int.random(in: 0x10000000...0xFFFFFFFF))
+            let randomClass = UUID().uuidString
+            let randomMethod = UUID().uuidString
+
+            return "\(index) BrandGame \(randomHex) [\(randomClass) \(randomMethod)] + 48"
+        }
     }
 }
