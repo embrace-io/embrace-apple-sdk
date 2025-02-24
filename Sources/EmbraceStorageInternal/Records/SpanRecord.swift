@@ -107,7 +107,8 @@ extension SpanRecord: EmbraceStorageRecord {
             dataAttribute,
             startTimeAttribute,
             endTimeAttribute,
-            processIdAttribute
+            processIdAttribute,
+            sessionIdAttribute
         ]
 
         return entity

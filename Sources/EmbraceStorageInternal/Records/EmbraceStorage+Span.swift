@@ -160,6 +160,12 @@ extension EmbraceStorage {
         else {
             let startTime = session.startTime as NSDate
 
+            // span matches session id
+            let sessionPredicate = NSPredicate(
+                format: "sessionIdRaw != nil AND sessionIdRaw == %@",
+                session.idRaw
+            )
+
             // span starts within session
             let predicate1 = NSPredicate(
                 format: "startTime >= %@ AND startTime <= %@",
@@ -174,7 +180,7 @@ extension EmbraceStorage {
                 startTime
             )
 
-            predicate = NSCompoundPredicate(type: .or, subpredicates: [predicate1, predicate2])
+            predicate = NSCompoundPredicate(type: .or, subpredicates: [sessionPredicate, predicate1, predicate2])
         }
 
         // ignore session spans?

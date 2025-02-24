@@ -3,7 +3,6 @@
 //
 
 import XCTest
-
 @testable import EmbraceCore
 @testable import EmbraceOTelInternal
 @testable import OpenTelemetrySdk
@@ -57,8 +56,8 @@ final class StorageSpanExporterTests: XCTestCase {
         XCTAssertEqual(exportedSpan.startTime.timeIntervalSince1970, startTime.timeIntervalSince1970, accuracy: 0.01)
         XCTAssertEqual(exportedSpan.endTime!.timeIntervalSince1970, endTime.timeIntervalSince1970, accuracy: 0.01)
 
-        XCTAssertNotNil(exportedSpan.sessionIdentifier)
-        XCTAssertEqual(exportedSpan.sessionIdentifier, sessionController.currentSession?.id)
+        XCTAssertNotNil(exportedSpan.sessionIdRaw)
+        XCTAssertEqual(exportedSpan.sessionIdRaw, sessionController.currentSession?.id?.toString)
     }
 
     func test_DB_allowsOpenSpan_toUpdateAttributes() throws {
@@ -105,8 +104,8 @@ final class StorageSpanExporterTests: XCTestCase {
         XCTAssertEqual(exportedSpan?.traceId, traceId.hexString)
         XCTAssertEqual(exportedSpan?.id, spanId.hexString)
 
-        XCTAssertNotNil(exportedSpan!.sessionIdentifier)
-        XCTAssertEqual(exportedSpan!.sessionIdentifier, sessionController.currentSession?.id)
+        XCTAssertNotNil(exportedSpan!.sessionIdRaw)
+        XCTAssertEqual(exportedSpan!.sessionIdRaw, sessionController.currentSession?.id?.toString)
 
         let spanData = try JSONDecoder().decode(SpanData.self, from: exportedSpan!.data)
         XCTAssertEqual(spanData.attributes, ["foo": .string("baz")])
