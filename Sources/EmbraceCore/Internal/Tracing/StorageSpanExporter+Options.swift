@@ -8,10 +8,16 @@ extension StorageSpanExporter {
     class Options {
 
         let storage: EmbraceStorage
+        let sessionController: SessionControllable
         let validators: [SpanDataValidator]
 
-        init(storage: EmbraceStorage, validators: [SpanDataValidator] = .default) {
+        init(
+            storage: EmbraceStorage,
+            sessionController: SessionControllable,
+            validators: [SpanDataValidator] = .default
+        ) {
             self.storage = storage
+            self.sessionController = sessionController
             self.validators = validators
         }
     }

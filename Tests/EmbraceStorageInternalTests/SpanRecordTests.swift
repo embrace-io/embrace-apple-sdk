@@ -27,7 +27,7 @@ class SpanRecordTests: XCTestCase {
             XCTAssert(try db.tableExists(SpanRecord.databaseTableName))
 
             let columns = try db.columns(in: SpanRecord.databaseTableName)
-            XCTAssertEqual(columns.count, 8)
+            XCTAssertEqual(columns.count, 9)
 
             // primary key
             XCTAssert(try db.table(
@@ -107,6 +107,14 @@ class SpanRecordTests: XCTestCase {
                 XCTAssert(processIdentifierColumn.isNotNull)
             } else {
                 XCTAssert(false, "process_identifier column not found!")
+            }
+
+            // sessionIdentifier
+            let sessionIdentifierColumn = columns.first(where: { $0.name == SpanRecord.Schema.sessionIdentifier.name })
+            if let sessionIdentifierColumn = sessionIdentifierColumn {
+                XCTAssertEqual(sessionIdentifierColumn.type, "TEXT")
+            } else {
+                XCTAssert(false, "session_identifier column not found!")
             }
         }
     }
