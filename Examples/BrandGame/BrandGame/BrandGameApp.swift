@@ -5,6 +5,7 @@
 import SwiftUI
 
 import EmbraceIO
+import EmbraceCommon
 
 @main
 struct BrandGameApp: App {
@@ -12,6 +13,7 @@ struct BrandGameApp: App {
     @State var settings: AppSettings = AppSettings()
 
     init() {
+        print(HelloWorld_iosKt.kmpString())
         do {
             try Embrace
                 .setup(options: embraceOptions)
