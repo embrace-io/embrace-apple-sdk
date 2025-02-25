@@ -18,11 +18,27 @@
 		7BD9014A2B63041900053B1E /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = 7BD901492B63041900053B1E /* EmbraceCore */; };
 		7BD9014C2B63041900053B1E /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = 7BD9014B2B63041900053B1E /* EmbraceCrash */; };
 		7BD9014E2B63041900053B1E /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = 7BD9014D2B63041900053B1E /* EmbraceIO */; };
+		E79162A52D6E075B00A8E4A9 /* EmbraceCommon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E79162A32D6E075000A8E4A9 /* EmbraceCommon.framework */; };
+		E79162A62D6E075B00A8E4A9 /* EmbraceCommon.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E79162A32D6E075000A8E4A9 /* EmbraceCommon.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		FA716C752C45B89600AD0161 /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = FA716C742C45B89600AD0161 /* EmbraceCore */; };
 		FA716C772C45B89600AD0161 /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = FA716C762C45B89600AD0161 /* EmbraceCrash */; };
 		FA716C792C45B89600AD0161 /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = FA716C782C45B89600AD0161 /* EmbraceCrashlyticsSupport */; };
 		FA716C7B2C45B89600AD0161 /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = FA716C7A2C45B89600AD0161 /* EmbraceIO */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		E791629C2D6E018F00A8E4A9 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				E79162A62D6E075B00A8E4A9 /* EmbraceCommon.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		3E85AADF2AE1D3A30055FC36 /* DemoObjectiveC.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DemoObjectiveC.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -37,6 +53,7 @@
 		3E85AAF12AE1D3A50055FC36 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		3E85AAF32AE1D3A50055FC36 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		3E85AAF42AE1D3A50055FC36 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
+		E79162A32D6E075000A8E4A9 /* EmbraceCommon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = EmbraceCommon.framework; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -51,6 +68,7 @@
 				FA716C752C45B89600AD0161 /* EmbraceCore in Frameworks */,
 				FA716C772C45B89600AD0161 /* EmbraceCrash in Frameworks */,
 				7BD9014A2B63041900053B1E /* EmbraceCore in Frameworks */,
+				E79162A52D6E075B00A8E4A9 /* EmbraceCommon.framework in Frameworks */,
 				FA716C792C45B89600AD0161 /* EmbraceCrashlyticsSupport in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -96,6 +114,7 @@
 		3E85AB032AE1D7BC0055FC36 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				E79162A32D6E075000A8E4A9 /* EmbraceCommon.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -110,6 +129,7 @@
 				3E85AADB2AE1D3A30055FC36 /* Sources */,
 				3E85AADC2AE1D3A30055FC36 /* Frameworks */,
 				3E85AADD2AE1D3A30055FC36 /* Resources */,
+				E791629C2D6E018F00A8E4A9 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -330,6 +350,10 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = L5RVT7J8CV;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = DemoObjectiveC/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -357,6 +381,10 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = L5RVT7J8CV;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = DemoObjectiveC/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

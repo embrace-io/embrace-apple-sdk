@@ -5,6 +5,7 @@
 //  Created by Jonathon Copeland on 10/19/23.
 //
 @import EmbraceIO;
+@import EmbraceCommon;
 
 #import "AppDelegate.h"
 
@@ -16,6 +17,8 @@
 
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    NSString *msg = [EmbraceCommonHelloWorld_iosKt kmpString];
+    NSLog(@"%@", msg);
     
     EMBOptions* options = [[EMBOptions alloc] initWithAppId:@"myApp"
                                                  appGroupId:nil
@@ -33,6 +36,8 @@
         NSLog(@"Failed to start embrace %@", error.localizedDescription);
         return NO;
     }
+    
+    NSLog(@"Started Embrace!");
     
     return YES;
 }

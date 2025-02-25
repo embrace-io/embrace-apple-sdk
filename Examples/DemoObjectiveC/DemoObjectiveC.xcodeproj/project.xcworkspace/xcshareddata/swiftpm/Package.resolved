@@ -1,5 +1,5 @@
 {
-  "originHash" : "30bf3f1af4d312afac34bcff9ba35cc3f452c81988789fae8ce52c8747bfec81",
+  "originHash" : "ab0083bb96edadf33544097fde9de53f530aec8dd0b23a9bd990ad6d6db40251",
   "pins" : [
     {
       "identity" : "grdb.swift",
@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/grpc/grpc-swift.git",
       "state" : {
-        "revision" : "07123ed731671e800ab8d641006613612e954746",
-        "version" : "1.23.1"
+        "revision" : "8c5e99d0255c373e0330730d191a3423c57373fb",
+        "version" : "1.24.2"
       }
     },
     {
@@ -33,8 +33,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/open-telemetry/opentelemetry-swift",
       "state" : {
-        "revision" : "f2315d8646432c02338960e85b5fe20417ad6d8d",
-        "version" : "1.12.1"
+        "revision" : "2ffffae2a027e2159dbf3fd53de1f25ba6d2d11d",
+        "version" : "1.13.0"
       }
     },
     {
