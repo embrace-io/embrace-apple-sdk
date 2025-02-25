@@ -1,0 +1,8 @@
+framework module "EmbraceCommon" {
+    umbrella header "EmbraceCommon.h"
+
+    export *
+    module * { export * }
+
+    use Foundation
+}
