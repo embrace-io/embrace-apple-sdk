@@ -14,6 +14,14 @@ class LogTestUIComponentViewModel: UIComponentViewModelBase {
     override func testButtonPressed() {
         super.testButtonPressed()
 
+        // if test object requirest tests to be run immediately if relevant spans are already present
+        guard !payloadTestObject.runImmediatelyIfLogsFound || logExporter.cachedExportedLogs.count == 0 else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                self?.performTest()
+            }
+            return
+        }
+
         if payloadTestObject.requiresCleanup {
             logExporter.clearAll(payloadTestObject.testRelevantSpanName)
         }

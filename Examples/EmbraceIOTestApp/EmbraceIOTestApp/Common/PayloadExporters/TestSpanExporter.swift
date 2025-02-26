@@ -8,8 +8,6 @@ import SwiftUI
 import OpenTelemetrySdk
 
 @Observable class TestSpanExporter: SpanExporter {
-    /// Perform actions that would trigger a span export and monitor changes on this property. When `state` is set to `ready`, you can perform tests on the cached spans.
-
     private(set) var cachedExportedSpans: [String: [SpanData]] = [:]
     private var embraceStarted = false
 

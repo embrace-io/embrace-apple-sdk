@@ -11,11 +11,14 @@ protocol PayloadTest {
     var testRelevantSpanName: String { get }
     var requiresCleanup: Bool { get }
     var runImmediatelyIfSpansFound: Bool { get }
+    var runImmediatelyIfLogsFound: Bool { get }
     func test(spans: [OpenTelemetrySdk.SpanData]) -> TestReport
     func test(logs: [ReadableLogRecord]) -> TestReport
+    func test(spans: [OpenTelemetrySdk.SpanData], logs: [ReadableLogRecord]) -> TestReport
     func evaluate(_ target: String, expecting: String, on: [String: AttributeValue]) -> TestReportItem
+    func evaluate(_ target: String, contains: String, on: [String: AttributeValue]) -> TestReportItem
     func evaluateSpanExistence(identifiedBy id: String, underAttributeKey key: String, on spans: [SpanData]) -> (TestReportItem, SpanData?)
-    func evaluateLogExistence(withMessage message: String, on logs: [ReadableLogRecord]) -> (TestReportItem, ReadableLogRecord?)
+    func evaluateLogExistence(withMessage: String, on logs: [ReadableLogRecord]) -> (TestReportItem, ReadableLogRecord?)
     func runTestPreparations()
 }
 
@@ -46,13 +49,27 @@ extension PayloadTest {
         return (.init(target: "\(message)'s log", expected: "exists", recorded: "exists", result: .success), log)
     }
 
+    func evaluate(_ target: String, contains substring: String, on attributes: [String: AttributeValue]) -> TestReportItem {
+        guard let value = attributes[target] else {
+            return .init(target: target, expected: target, recorded: "missing", result: .fail)
+        }
+        let recorded = value.description
+        let result: TestResult = recorded.contains(substring) ? .success : .fail
+
+        return .init(target: target, expected: "contains \(substring)", recorded: result == .success ? "found" : "missing", result: result)
+    }
+
     func test(spans: [OpenTelemetrySdk.SpanData]) -> TestReport { .init(items: []) }
 
     func test(logs: [ReadableLogRecord]) -> TestReport { .init(items: []) }
+
+    func test(spans: [OpenTelemetrySdk.SpanData], logs: [ReadableLogRecord]) -> TestReport { .init(items: []) }
 
     func runTestPreparations() { }
 
     var requiresCleanup: Bool { true }
 
     var runImmediatelyIfSpansFound: Bool { false }
+
+    var runImmediatelyIfLogsFound: Bool { false }
 }

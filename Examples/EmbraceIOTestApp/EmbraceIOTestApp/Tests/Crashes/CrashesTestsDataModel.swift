@@ -26,7 +26,7 @@ enum CrashesTestsDataModel: Int, TestScreenDataModel, CaseIterable {
     @ViewBuilder var uiComponent: some View {
         switch self {
         case .nullReference:
-            TestSpanScreenButtonView(viewModel: .init(dataModel: self, payloadTestObject: CrashesTests()))
+            TestLogScreenButtonView(viewModel: .init(dataModel: self, payloadTestObject: CrashesTests()))
         }
     }
 }
