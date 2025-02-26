@@ -120,7 +120,7 @@ extension Embrace: EmbraceOpenTelemetry {
     ///   - attributes: Attributes for the log.
     ///   - stackTraceBehavior: Defines if the stack trace information should be added to the log
     ///
-    /// - Important: `.info` logs will _never_ have stacktraces.   
+    /// - Important: Only `warn` and `error` logs will have stacktraces.
     public func log(
         _ message: String,
         severity: LogSeverity,
@@ -146,7 +146,7 @@ extension Embrace: EmbraceOpenTelemetry {
     ///   - attributes: Attributes for the log.
     ///   - stackTraceBehavior: Defines if the stack trace information should be added to the log
     ///
-    /// - Important: `.info` logs will _never_ have stacktraces.
+    /// - Important: Only `warn` and `error` logs will have stacktraces.
     public func log(
         _ message: String,
         severity: LogSeverity,
@@ -178,7 +178,7 @@ extension Embrace: EmbraceOpenTelemetry {
     ///   - attributes: Attributes for the log.
     ///   - stackTraceBehavior: Defines if the stack trace information should be added to the log
     ///
-    /// - Important: `.info` logs will _never_ have stacktraces.
+    /// - Important: Only `warn` and `error` logs will have stacktraces.
     public func log(
         _ message: String,
         severity: LogSeverity,
@@ -212,7 +212,7 @@ extension Embrace: EmbraceOpenTelemetry {
     ///   - attributes: Attributes for the log.
     ///   - stackTraceBehavior: Defines if the stack trace information should be added to the log
     ///
-    /// - Important: `.info` logs will _never_ have stacktraces.
+    /// - Important: Only `warn` and `error` logs will have stacktraces.
     public func log(
         _ message: String,
         severity: LogSeverity,
