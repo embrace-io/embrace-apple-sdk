@@ -292,7 +292,6 @@ final class EmbraceCoreTests: XCTestCase {
             // use fake endpoints
             let endpoints = Embrace.Endpoints(
                 baseURL: "https://embrace.\(testName).com/api",
-                developmentBaseURL: "https://embrace.\(testName).com/api-dev",
                 configBaseURL: "https://embrace.\(testName).com/config"
             )
 
