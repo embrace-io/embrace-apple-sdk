@@ -80,4 +80,3 @@ public struct EmbraceStackTrace: Equatable {
         return frame.range(of: pattern, options: .regularExpression) != nil
     }
 }
-
