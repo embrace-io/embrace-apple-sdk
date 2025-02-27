@@ -28,7 +28,7 @@ extension SpanRecord {
 
         } else {
             return SpanRecord.filter(
-                matchingSessionId(session.id) || 
+                matchingSessionId(session.id) ||
                 overlappingStart(startTime: session.startTime) ||
                 entirelyWithin(startTime: session.startTime, endTime: sessionEndTime) ||
                 overlappingEnd(endTime: sessionEndTime) ||

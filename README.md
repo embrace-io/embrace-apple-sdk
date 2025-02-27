@@ -175,6 +175,12 @@ swiftlint --fix
 
 ### Using SwiftLint
 
+The SwiftLint Xcode plugin can be optionally enabled during development by using an environmental variable when opening the project from the commandline. 
+```
+EMBRACE_ENABLE_SWIFTLINT=1 open Package.swift
+```
+Note: Xcode must be completely closed before running the above command, close Xcode using `⌘Q` or running `killall xcode` in the commandline. 
+
 Aside from the warnings and errors that will appear directly in Xcode, you can use SwiftLint to automatically correct some issues.
 For this first you'll need to install SwiftLint in your local environment. Follow [SwiftLint's GitHub page](https://github.com/realm/SwiftLint) to see all available options.
 

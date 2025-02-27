@@ -108,7 +108,6 @@ class UIViewControllerHandler {
         queue.async {
             // generate parent span
 
-
             let spanName = nameFormat.replacingOccurrences(of: "NAME", with: className)
 
             let parentSpan = self.createSpan(

@@ -19,7 +19,11 @@ extension URLSessionCaptureService {
         /// Any request's url that contains any of these strings will not be captured.
         @objc public let ignoredURLs: [String]
 
-        @objc public init(injectTracingHeader: Bool, requestsDataSource: URLSessionRequestsDataSource?, ignoredURLs: [String]) {
+        @objc public init(
+            injectTracingHeader: Bool,
+            requestsDataSource: URLSessionRequestsDataSource?,
+            ignoredURLs: [String]
+        ) {
             self.injectTracingHeader = injectTracingHeader
             self.requestsDataSource = requestsDataSource
             self.ignoredURLs = ignoredURLs

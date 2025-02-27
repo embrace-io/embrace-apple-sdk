@@ -48,7 +48,6 @@ class StorageSpanExporter: SpanExporter {
     }
 
     public func flush(explicitTimeout: TimeInterval?) -> SpanExporterResultCode {
-        // TODO: do we need to make sure storage writes are finished?
         return .success
     }
 
