@@ -7,6 +7,7 @@ import EmbraceCommonInternal
 import CoreData
 
 /// Represents a span in the storage
+@objc(EMBSpanRecord)
 public class SpanRecord: NSManagedObject, EmbraceSpan {
     @NSManaged public var id: String
     @NSManaged public var name: String
@@ -30,20 +31,24 @@ public class SpanRecord: NSManagedObject, EmbraceSpan {
         processId: ProcessIdentifier,
         sessionId: SessionIdentifier? = nil
     ) -> SpanRecord? {
-        guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
-            return nil
-        }
+        var record: SpanRecord?
 
-        let record = SpanRecord(entity: description, insertInto: context)
-        record.id = id
-        record.name = name
-        record.traceId = traceId
-        record.typeRaw = type.rawValue
-        record.data = data
-        record.startTime = startTime
-        record.endTime = endTime
-        record.processIdRaw = processId.hex
-        record.sessionIdRaw = sessionId?.toString
+        context.performAndWait {
+            guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
+                return
+            }
+
+            record = SpanRecord(entity: description, insertInto: context)
+            record?.id = id
+            record?.name = name
+            record?.traceId = traceId
+            record?.typeRaw = type.rawValue
+            record?.data = data
+            record?.startTime = startTime
+            record?.endTime = endTime
+            record?.processIdRaw = processId.hex
+            record?.sessionIdRaw = sessionId?.toString
+        }
 
         return record
     }

@@ -7,6 +7,7 @@ import EmbraceCommonInternal
 import EmbraceStorageInternal
 import CoreData
 
+@objc(EMBMetadataRecordTmp)
 public class MetadataRecordTmp: NSManagedObject {
     @NSManaged var key: String
     @NSManaged var value: String
@@ -24,17 +25,21 @@ public class MetadataRecordTmp: NSManagedObject {
         lifespanId: String,
         collectedAt: Date = Date()
     ) -> MetadataRecordTmp? {
-        guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
-            return nil
-        }
+        var record: MetadataRecordTmp?
 
-        let record = MetadataRecordTmp(entity: description, insertInto: context)
-        record.key = key
-        record.value = value
-        record.type = type
-        record.lifespan = lifespan
-        record.lifespanId = lifespanId
-        record.collectedAt = collectedAt
+        context.performAndWait {
+            guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
+                return
+            }
+
+            record = MetadataRecordTmp(entity: description, insertInto: context)
+            record?.key = key
+            record?.value = value
+            record?.type = type
+            record?.lifespan = lifespan
+            record?.lifespanId = lifespanId
+            record?.collectedAt = collectedAt
+        }
 
         return record
     }

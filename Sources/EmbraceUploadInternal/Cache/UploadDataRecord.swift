@@ -6,6 +6,7 @@ import Foundation
 import CoreData
 
 /// Represents a cached upload data in the storage
+@objc(EMBUploadDataRecord)
 public class UploadDataRecord: NSManagedObject {
     @NSManaged var id: String
     @NSManaged var type: Int
@@ -22,16 +23,20 @@ public class UploadDataRecord: NSManagedObject {
         Int,
         date: Date
     ) -> UploadDataRecord? {
-        guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
-            return nil
-        }
+        var record: UploadDataRecord?
 
-        let record = UploadDataRecord(entity: description, insertInto: context)
-        record.id = id
-        record.type = type
-        record.data = data
-        record.attemptCount = attemptCount
-        record.date = date
+        context.performAndWait {
+            guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
+                return
+            }
+
+            record = UploadDataRecord(entity: description, insertInto: context)
+            record?.id = id
+            record?.type = type
+            record?.data = data
+            record?.attemptCount = attemptCount
+            record?.date = date
+        }
 
         return record
     }

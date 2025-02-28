@@ -7,6 +7,7 @@ import EmbraceCommonInternal
 import CoreData
 
 /// Represents a session in the storage
+@objc(EMBSessionRecord)
 public class SessionRecord: NSManagedObject, EmbraceSession {
     @NSManaged public var idRaw: String // SessionIdentifier
     @NSManaged public var processIdRaw: String // ProcessIdentifier
@@ -27,7 +28,7 @@ public class SessionRecord: NSManagedObject, EmbraceSession {
     /// Used to mark the session that is active when the application was explicitly terminated by the user and/or system
     @NSManaged public var appTerminated: Bool
 
-    public static func create(
+    class func create(
         context: NSManagedObjectContext,
         id: SessionIdentifier,
         processId: ProcessIdentifier,
@@ -42,23 +43,27 @@ public class SessionRecord: NSManagedObject, EmbraceSession {
         cleanExit: Bool = false,
         appTerminated: Bool = false
     ) -> SessionRecord? {
-        guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
-            return nil
-        }
+        var record: SessionRecord?
 
-        let record = SessionRecord(entity: description, insertInto: context)
-        record.idRaw = id.toString
-        record.processIdRaw = processId.hex
-        record.state = state.rawValue
-        record.traceId = traceId
-        record.spanId = spanId
-        record.startTime = startTime
-        record.endTime = endTime
-        record.lastHeartbeatTime = lastHeartbeatTime ?? startTime
-        record.crashReportId = crashReportId
-        record.coldStart = coldStart
-        record.cleanExit = cleanExit
-        record.appTerminated = appTerminated
+        context.performAndWait {
+            guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
+                return
+            }
+
+            record = SessionRecord(entity: description, insertInto: context)
+            record?.idRaw = id.toString
+            record?.processIdRaw = processId.hex
+            record?.state = state.rawValue
+            record?.traceId = traceId
+            record?.spanId = spanId
+            record?.startTime = startTime
+            record?.endTime = endTime
+            record?.lastHeartbeatTime = lastHeartbeatTime ?? startTime
+            record?.crashReportId = crashReportId
+            record?.coldStart = coldStart
+            record?.cleanExit = cleanExit
+            record?.appTerminated = appTerminated
+        }
 
         return record
     }

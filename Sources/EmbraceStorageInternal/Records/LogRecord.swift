@@ -7,6 +7,7 @@ import EmbraceCommonInternal
 import OpenTelemetryApi
 import CoreData
 
+@objc(EMBLogRecord)
 public class LogRecord: NSManagedObject, EmbraceLog {
     @NSManaged public var idRaw: String // LogIdentifier
     @NSManaged public var processIdRaw: String // ProcessIdentifier
@@ -15,7 +16,7 @@ public class LogRecord: NSManagedObject, EmbraceLog {
     @NSManaged public var timestamp: Date
     @NSManaged public var attributes: Set<LogAttributeRecord>
 
-    static func create(
+    class func create(
         context: NSManagedObjectContext,
         id: LogIdentifier,
         processId: ProcessIdentifier,
@@ -24,26 +25,30 @@ public class LogRecord: NSManagedObject, EmbraceLog {
         timestamp: Date = Date(),
         attributes: [String: AttributeValue]
     ) -> LogRecord? {
-        guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
-            return nil
-        }
+        var record: LogRecord?
 
-        let record = LogRecord(entity: description, insertInto: context)
-        record.idRaw = id.toString
-        record.processIdRaw = processId.hex
-        record.severityRaw = severity.rawValue
-        record.body = body
-        record.timestamp = timestamp
-        record.attributes = Set()
+        context.performAndWait {
+            guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
+                return
+            }
 
-        for (key, value) in attributes {
-            if let attribute = LogAttributeRecord.create(
-                context: context,
-                key: key,
-                value: value,
-                log: record
-            ) {
-                record.attributes.insert(attribute)
+            record = LogRecord(entity: description, insertInto: context)
+            record?.idRaw = id.toString
+            record?.processIdRaw = processId.hex
+            record?.severityRaw = severity.rawValue
+            record?.body = body
+            record?.timestamp = timestamp
+            record?.attributes = Set()
+
+            for (key, value) in attributes {
+                if let attribute = LogAttributeRecord.create(
+                    context: context,
+                    key: key,
+                    value: value,
+                    log: record
+                ) {
+                    record?.attributes.insert(attribute)
+                }
             }
         }
 
