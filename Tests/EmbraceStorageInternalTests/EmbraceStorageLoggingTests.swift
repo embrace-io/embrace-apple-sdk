@@ -15,152 +15,88 @@ class EmbraceStorageLoggingTests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
-        try sut.teardown()
+        sut.coreData.destroy()
     }
 
     // MARK: - CreateLog
 
     func test_createLog_shouldCreateItInDataBase() throws {
-        let expectation = expectation(description: #function)
-        let log = LogRecord(identifier: .random,
-                            processIdentifier: .random,
-                            severity: .info,
-                            body: "log message",
-                            attributes: .empty()
+        let id = LogIdentifier.random
+        sut.createLog(
+            id: id,
+            processId: .random,
+            severity: .info,
+            body: "log message",
+            attributes: .empty()
         )
 
-        sut.create(log) { result in
-            if case let Result.success(persistedLog) = result {
-                XCTAssertEqual(log.identifier, persistedLog.identifier)
-            } else {
-                XCTFail("Couldn't persist log")
-            }
-
-            do {
-                try sut.dbQueue.read { db in
-                    XCTAssertTrue(try log.exists(db))
-                    expectation.fulfill()
-                }
-            } catch let exception {
-                XCTFail(exception.localizedDescription)
-            }
-        }
-
-        wait(for: [expectation], timeout: .defaultTimeout)
-    }
-
-    // MARK: - GetAll
-
-    func testFilledDb_getAll_shouldGetAlllogsFromDatabase() throws {
-        let logs: [LogRecord] = [.infoLog(), .infoLog(), .infoLog(), .infoLog()]
-        givenDatabase(withLogs: logs)
-
-        let result = try sut.getAll()
-
-        XCTAssertEqual(result, logs)
-    }
-
-    func testEmptyDb_getAll_shouldGetAlllogsFromDatabase() throws {
-        givenDatabase(withLogs: [])
-
-        let result = try sut.getAll()
-
-        XCTAssertTrue(result.isEmpty)
+        let logs: [LogRecord] = sut.fetchAll()
+        XCTAssertEqual(logs.count, 1)
+        XCTAssertNotNil(logs.first(where: { $0.idRaw == id.toString }))
     }
 
     // MARK: - Fetch All Excluding Process Identifier
 
     func test_fetchAllExcludingProcessIdentifier_shouldFilterLogsProperly() throws {
         let pid = ProcessIdentifier(value: 12345)
-        let log1 = LogRecord.infoLog(pid: pid)
-        let log2 = LogRecord.infoLog(pid: pid)
-        givenDatabase(withLogs: [
-            .infoLog(),
-            log1,
-            .infoLog(),
-            log2
-        ])
+        createInfoLog(pid: pid)
+        createInfoLog()
+        createInfoLog(pid: pid)
+        createInfoLog()
 
-        let result = try sut.fetchAll(excludingProcessIdentifier: pid)
+        let result = sut.fetchAll(excludingProcessIdentifier: pid)
 
         XCTAssertEqual(result.count, 2)
-        XCTAssertTrue(!result.contains(where: { $0.processIdentifier == pid }))
+        XCTAssertTrue(!result.contains(where: { $0.processIdRaw == pid.hex }))
     }
 
     // MARK: - RemoveAllLogs
 
     func testFilledDb_removeAllLogs_shouldCleanDb() throws {
-        let expectation = expectation(description: #function)
-        let logs: [LogRecord] = [.infoLog(), .infoLog(), .infoLog()]
-        givenDatabase(withLogs: logs)
+        createInfoLog()
+        createInfoLog()
+        createInfoLog()
 
-        try sut.removeAllLogs()
+        sut.removeAllLogs()
 
-        try sut.dbQueue.read { db in
-            try logs.forEach {
-                XCTAssertFalse(try $0.exists(db))
-            }
-            expectation.fulfill()
-        }
-        wait(for: [expectation])
+        let logs: [LogRecord] = sut.fetchAll()
+        XCTAssertEqual(logs.count, 0)
     }
 
     // MARK: - Remove Specific Logs
 
     func testFilledDb_removeSpecificLog_shouldDeleteJustTheSpecificLog() throws {
-        let expectation = expectation(description: #function)
-        let firstLogToDelete: LogRecord = .infoLog()
-        let secondLogToDelete: LogRecord = .infoLog()
-        let nonDeletedLog: LogRecord = .infoLog()
-        let logs: [LogRecord] = [
-            firstLogToDelete,
-            secondLogToDelete,
-            nonDeletedLog
-        ]
+        let uuid1 = UUID()
+        let firstLogToDelete = createInfoLog(withId: uuid1)
 
-        givenDatabase(withLogs: logs)
+        let uuid2 = UUID()
+        let secondLogToDelete = createInfoLog(withId: uuid2)
 
-        try sut.remove(logs: [
+        let uuid3 = UUID()
+        createInfoLog(withId: uuid3)
+
+        sut.remove(logs: [
             firstLogToDelete,
             secondLogToDelete
         ])
 
-        try sut.dbQueue.read { db in
-            XCTAssertFalse(try firstLogToDelete.exists(db))
-            XCTAssertFalse(try secondLogToDelete.exists(db))
-            XCTAssertTrue(try nonDeletedLog.exists(db))
-            expectation.fulfill()
-        }
-        wait(for: [expectation])
+        let logs: [LogRecord] = sut.fetchAll()
+        XCTAssertEqual(logs.count, 1)
+        XCTAssertNil(logs.first(where: { $0.idRaw == uuid1.withoutHyphen }))
+        XCTAssertNil(logs.first(where: { $0.idRaw == uuid2.withoutHyphen }))
+        XCTAssertNotNil(logs.first(where: { $0.idRaw == uuid3.withoutHyphen }))
     }
 }
 
 private extension EmbraceStorageLoggingTests {
-    func givenDatabase(withLogs logs: [LogRecord]) {
-        do {
-            try logs.forEach { log in
-                try sut.dbQueue.write { db in
-                    try log.insert(db)
-                }
-            }
-        } catch let exception {
-            XCTFail("Couldn't create logs: \(exception.localizedDescription)")
-        }
-    }
-}
-
-extension LogRecord {
-    static func infoLog(withId id: UUID = UUID(), pid: ProcessIdentifier = .random) -> LogRecord {
-        .init(identifier: LogIdentifier.init(value: id),
-              processIdentifier: pid,
-              severity: .info,
-              body: "a log message",
-              attributes: .empty())
-    }
-}
-
-extension LogRecord: Equatable {
-    public static func == (lhs: LogRecord, rhs: LogRecord) -> Bool {
-        lhs.identifier == rhs.identifier
+    @discardableResult
+    func createInfoLog(withId id: UUID = UUID(), pid: ProcessIdentifier = .random) -> EmbraceLog {
+        return sut.createLog(
+            id: LogIdentifier.init(value: id),
+            processId: pid,
+            severity: .info,
+            body: "a log message",
+            attributes: .empty()
+        )!
     }
 }
