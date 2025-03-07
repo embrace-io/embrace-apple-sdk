@@ -41,6 +41,11 @@ public class MetadataHandler: NSObject {
         if let storage = storage,
            let url = storage.options.baseUrl {
             storageMechanism = .onDisk(name: coreDataStackName, baseURL: url)
+
+            // always delete old tmp db before cloning metadata
+            if let fileURL = storageMechanism.fileURL {
+                try? FileManager.default.removeItem(at: fileURL)
+            }
         }
 
         let options = CoreDataWrapper.Options(
@@ -244,17 +249,13 @@ extension MetadataHandler {
             return
         }
 
-        let request = NSFetchRequest<MetadataRecordTmp>(entityName: MetadataRecordTmp.entityName)
-        let oldRecords = coreData.fetch(withRequest: request)
-        coreData.deleteRecords(oldRecords)
-
         do {
             var newRecords: [MetadataRecord] = []
             try storage.dbQueue.read { db in
                 newRecords = try MetadataRecord.fetchAll(db)
             }
 
-            coreData.context.perform {
+            coreData.context.performAndWait {
                 for record in newRecords {
                     _ = MetadataRecordTmp.create(context: coreData.context, record: record)
                 }
