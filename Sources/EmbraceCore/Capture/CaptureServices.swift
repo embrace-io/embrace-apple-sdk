@@ -19,7 +19,12 @@ final class CaptureServices {
 
     weak var config: EmbraceConfigurable?
 
-    init(options: Embrace.Options, config: EmbraceConfigurable?, storage: EmbraceStorage?, upload: EmbraceUpload?) throws {
+    init(
+        options: Embrace.Options,
+        config: EmbraceConfigurable?,
+        storage: EmbraceStorage?,
+        upload: EmbraceUpload?
+    ) throws {
         self.config = config
 
         // add required capture services

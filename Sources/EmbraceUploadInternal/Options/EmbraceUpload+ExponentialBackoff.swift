@@ -14,7 +14,9 @@ public extension EmbraceUpload {
             maxDelay: Double = 32.0
         ) {
             self.baseDelay = baseDelay
-            self.maxDelay = max(maxDelay, baseDelay) // prevent somebody from adding a baseDelay larger than the maxDelay
+
+            // prevent somebody from adding a baseDelay larger than the maxDelay
+            self.maxDelay = max(maxDelay, baseDelay)
         }
 
         /// Calculates the exponential backoff delay based on the given `retryNumber`.

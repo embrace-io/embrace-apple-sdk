@@ -287,3 +287,15 @@ let package = Package(
         )
     ]
 )
+
+if ProcessInfo.processInfo.environment["EMBRACE_ENABLE_SWIFTLINT"] != nil {
+  package.dependencies.append(contentsOf: [
+    .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", from: "0.58.2")
+  ])
+
+  for target in package.targets {
+    target.plugins = [
+      .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins"),
+    ]
+  }
+}

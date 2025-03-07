@@ -38,10 +38,9 @@ extension Embrace {
             return nil
         }
 
-        let baseUrl = EMBDevice.isDebuggerAttached ? endpoints.developmentBaseURL : endpoints.baseURL
-        guard let spansURL = URL.spansEndpoint(basePath: baseUrl),
-              let logsURL = URL.logsEndpoint(basePath: baseUrl),
-              let attachmentsURL = URL.attachmentsEndpoint(basePath: baseUrl) else {
+        guard let spansURL = URL.spansEndpoint(basePath: endpoints.baseURL),
+              let logsURL = URL.logsEndpoint(basePath: endpoints.baseURL),
+              let attachmentsURL = URL.attachmentsEndpoint(basePath: endpoints.baseURL) else {
             Embrace.logger.error("Failed to initialize endpoints!")
             return nil
         }

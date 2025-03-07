@@ -9,7 +9,7 @@ import EmbraceCommonInternal
 struct LoggingView: View {
     @State private var logMessage: String = "This is the log message..."
     @State private var severity: Int = LogSeverity.info.rawValue
-    @State private var behavior: Int = StackTraceBehavior.default.rawValue
+    @State private var behavior: Int = Behavior.default.rawValue
     @State private var key: String = ""
     @State private var value: String = ""
     @State private var attributes: [String: String] = [:]
@@ -19,8 +19,8 @@ struct LoggingView: View {
         [.info, .warn, .error]
     }()
 
-    private let behaviors: [StackTraceBehavior] = {
-        [.default, .notIncluded]
+    private let behaviors: [Behavior] = {
+        [.default, .notIncluded, .custom]
     }()
 
     var body: some View {
@@ -86,12 +86,36 @@ private extension LoggingView {
             print("Wrong severity number")
             return
         }
-        guard let behavior = StackTraceBehavior(rawValue: behavior) else {
-            print("Wrong behavior")
+        guard let stackTraceBehavior = try? getStackTraceBehavior() else {
+            print("Wrong stacktrace behavior")
             return
         }
-        Embrace.client?.log(logMessage, severity: severity, attributes: attributes, stackTraceBehavior: behavior)
+        Embrace.client?.log(
+            logMessage,
+            severity: severity,
+            attributes: attributes,
+            stackTraceBehavior: stackTraceBehavior
+        )
         cleanUpFields()
+    }
+
+    func getStackTraceBehavior() throws -> StackTraceBehavior {
+        switch Behavior(rawValue: behavior) {
+        case .default:
+            return .default
+        case .notIncluded:
+            return .notIncluded
+        case .custom:
+            return .custom(try EmbraceStackTrace(
+                frames: [
+                    "0 BrandGame 0x0000000005678def [SomeClass method] + 48",
+                    "1 Random Library 0x0000000001234abc [Random init]",
+                    "2 \(UUID().uuidString) 0x0000000001234abc [\(UUID().uuidString) \(UUID().uuidString))]"
+                ])
+            )
+        case .none:
+            throw NSError(domain: "BrandGame", code: -1, userInfo: [:])
+        }
     }
 
     func cleanUpFields() {
@@ -102,6 +126,36 @@ private extension LoggingView {
         key = ""
         value = ""
         attributes = [:]
+    }
+}
+
+extension LoggingView {
+    enum Behavior: Int {
+        case notIncluded
+        case `default`
+        case custom
+
+        static func from(_ stackTraceBehavior: StackTraceBehavior) -> Self {
+            switch stackTraceBehavior {
+            case .notIncluded:
+                return .notIncluded
+            case .default:
+                return .default
+            case .custom(_):
+                return .custom
+            }
+        }
+
+        func asString() -> String {
+            return switch self {
+            case .notIncluded:
+                "Not included"
+            case .default:
+                "Default"
+            case .custom:
+                "Custom"
+            }
+        }
     }
 }
 

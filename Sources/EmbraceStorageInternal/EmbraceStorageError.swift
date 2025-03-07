@@ -6,7 +6,6 @@ import Foundation
 
 public enum EmbraceStorageError: Error, Equatable {
     case cannotUpsertSpan(spanName: String, message: String)
-    // TODO: Add missing errors in here
 }
 
 extension EmbraceStorageError: LocalizedError, CustomNSError {
