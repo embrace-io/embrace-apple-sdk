@@ -39,6 +39,11 @@ extension Embrace {
             return DefaultConfig()
         }
 
+        let cacheLocation = EmbraceFileSystem.configDirectoryURL(
+            partitionIdentifier: appId,
+            appGroupId: options.appGroupId
+        )
+
         let options = RemoteConfig.Options(
             apiBaseUrl: configBaseURL,
             queue: DispatchQueue(label: "com.embrace.config"),
@@ -48,7 +53,7 @@ extension Embrace {
             sdkVersion: EmbraceMeta.sdkVersion,
             appVersion: EMBDevice.operatingSystemVersion,
             userAgent: EmbraceMeta.userAgent,
-            cacheLocation: EmbraceFileSystem.configDirectoryURL(partitionIdentifier: appId, appGroupId: options.appGroupId)
+            cacheLocation: cacheLocation
         )
 
         return RemoteConfig(

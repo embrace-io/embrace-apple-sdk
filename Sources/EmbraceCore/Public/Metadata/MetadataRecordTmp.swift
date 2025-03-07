@@ -80,7 +80,15 @@ extension MetadataRecordTmp {
         dateAttribute.name = "collectedAt"
         dateAttribute.attributeType = .dateAttributeType
 
-        entity.properties = [keyAttribute, valueAttribute, typeAttribute, lifespanAttribute, lifespanIdAttribute, dateAttribute]
+        entity.properties = [
+            keyAttribute,
+            valueAttribute,
+            typeAttribute,
+            lifespanAttribute,
+            lifespanIdAttribute,
+            dateAttribute
+        ]
+
         return entity
     }
 }
