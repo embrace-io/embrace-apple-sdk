@@ -29,13 +29,24 @@ struct LoggingTestLogMessageUIComponent: View {
                 .foregroundStyle(.embraceSilver)
                 .padding([.leading, .trailing,], 5)
                 .textFieldStyle(RoundedStyle())
-            Picker("", selection: $viewModel.logSeverity) {
-                ForEach(viewModel.logSeverities, id: \.self) { option in
-                    Text(option.text)
+            Section("Severity Type") {
+                Picker("", selection: $viewModel.logSeverity) {
+                    ForEach(viewModel.logSeverities, id: \.self) { option in
+                        Text(option.text)
+                    }
                 }
+                .pickerStyle(SegmentedPickerStyle())
+                .padding(.bottom, 20)
             }
-            .pickerStyle(SegmentedPickerStyle())
-            .padding(.bottom, 20)
+            Section("Stack Trace") {
+                Picker("", selection: $viewModel.stacktraceBehavior) {
+                    ForEach(viewModel.stacktraceBehaviors, id: \.self) { option in
+                        Text(option.text)
+                    }
+                }
+                .pickerStyle(SegmentedPickerStyle())
+                .padding(.bottom, 20)
+            }
             TestScreenButtonView(viewModel: viewModel)
                 .onAppear {
                     viewModel.logExporter = logExporter

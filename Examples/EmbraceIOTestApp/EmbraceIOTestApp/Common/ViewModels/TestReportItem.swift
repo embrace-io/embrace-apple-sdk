@@ -21,6 +21,14 @@ struct TestReportItem: Identifiable {
         self.result = result
     }
 
+    init<T>(target: String, expected: T, recorded: T) where T: Equatable {
+        let result: TestResult = expected == recorded ? .success : .fail
+        let expectedStr = expected as? String ?? String(describing: expected)
+        let recordedStr = recorded as? String ?? String(describing: recorded)
+        
+        self.init(target: target, expected: expectedStr, recorded: recordedStr, result: result)
+    }
+
     let target: String
     let expected: String
     let recorded: String

@@ -9,10 +9,16 @@ import EmbraceIO
 import EmbraceCommonInternal
 
 class LoggingErrorMessageTest: PayloadTest {
-    var testRelevantSpanName: String { "" }
+    var testRelevantSpanName: String = ""
     var testType: TestType { .Logs }
-    var loggedMessage: String
+    var requiresCleanup: Bool { true }
+    var loggedMessage: String {
+        didSet {
+            testRelevantSpanName = loggedMessage
+        }
+    }
     var loggedMessageSeverity: LogSeverity
+    var stackTraceBehavior: StackTraceBehavior = .default
 
     init(_ loggedMessage: String, severity: LogSeverity) {
         self.loggedMessage = loggedMessage
@@ -20,7 +26,7 @@ class LoggingErrorMessageTest: PayloadTest {
     }
 
     func runTestPreparations() {
-        Embrace.client?.log(loggedMessage, severity: loggedMessageSeverity)
+        Embrace.client?.log(loggedMessage, severity: loggedMessageSeverity, stackTraceBehavior: stackTraceBehavior)
     }
 
     func test(logs: [ReadableLogRecord]) -> TestReport {
@@ -34,9 +40,25 @@ class LoggingErrorMessageTest: PayloadTest {
 
         testItems.append(.init(target: loggedMessage, expected: "exists", recorded: "exists", result: .success))
 
-        testItems.append(.init(target: "Severity", expected: loggedMessageSeverity.text, recorded: log.severity?.description ?? "", result: log.severity?.description == loggedMessageSeverity.text ? .success : .fail))
+        testItems.append(.init(target: "Severity", expected: loggedMessageSeverity.text, recorded: log.severity?.description))
+
+        testItems.append(.init(target: "Stacktrace", expected: stacktraceExpected ? "found" : "missing", recorded: log.attributes["emb.stacktrace.ios"] != nil ? "found" : "missing"))
 
         return .init(items: testItems)
+    }
+
+    private var stacktraceExpected: Bool {
+        switch stackTraceBehavior {
+        case .notIncluded:
+            return false
+        case .default:
+            switch loggedMessageSeverity {
+            case .trace, .debug, .info, .fatal:
+                return false
+            case .warn, .error:
+                return true
+            }
+        }
     }
 
 }

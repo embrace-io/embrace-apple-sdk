@@ -20,8 +20,18 @@ class LoggingTestMessageViewModel: LogTestUIComponentViewModel {
         }
     }
 
+    @Published var stacktraceBehavior: StackTraceBehavior = .default {
+        didSet {
+            testObject.stackTraceBehavior = stacktraceBehavior
+        }
+    }
+
     var logSeverities: [LogSeverity] {
         LogSeverity.allCases
+    }
+
+    var stacktraceBehaviors: [StackTraceBehavior] {
+        StackTraceBehavior.allCases
     }
 
     private var testObject = LoggingErrorMessageTest("", severity: .info)
@@ -35,5 +45,20 @@ class LoggingTestMessageViewModel: LogTestUIComponentViewModel {
 extension LogSeverity: @retroactive CaseIterable {
     public static var allCases: [LogSeverity] {
         [.trace, .debug, .info, .warn, .error, .fatal]
+    }
+}
+
+extension StackTraceBehavior: @retroactive CaseIterable {
+    public static var allCases: [StackTraceBehavior] {
+        [.default, .notIncluded]
+    }
+
+    var text: String {
+        switch self {
+        case .default:
+            "Default"
+        case .notIncluded:
+            "Not Included"
+        }
     }
 }
