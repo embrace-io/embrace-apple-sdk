@@ -7,6 +7,7 @@ import EmbraceCommonInternal
 import OpenTelemetryApi
 import CoreData
 
+@objc(LogRecord)
 public class LogRecord: NSManagedObject, EmbraceLog {
     @NSManaged public var idRaw: String // LogIdentifier
     @NSManaged public var processIdRaw: String // ProcessIdentifier

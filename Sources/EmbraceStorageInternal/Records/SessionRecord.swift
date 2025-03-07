@@ -7,6 +7,7 @@ import EmbraceCommonInternal
 import CoreData
 
 /// Represents a session in the storage
+@objc(SessionRecord)
 public class SessionRecord: NSManagedObject, EmbraceSession {
     @NSManaged public var idRaw: String // SessionIdentifier
     @NSManaged public var processIdRaw: String // ProcessIdentifier

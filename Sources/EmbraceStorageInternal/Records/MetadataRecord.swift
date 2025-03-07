@@ -7,6 +7,7 @@ import EmbraceCommonInternal
 import CoreData
 import OpenTelemetryApi
 
+@objc(MetadataRecord)
 public class MetadataRecord: NSManagedObject, EmbraceMetadata {
     @NSManaged public var key: String
     @NSManaged public var value: String

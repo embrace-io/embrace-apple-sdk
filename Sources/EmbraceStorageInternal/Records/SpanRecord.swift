@@ -7,6 +7,7 @@ import EmbraceCommonInternal
 import CoreData
 
 /// Represents a span in the storage
+@objc(SpanRecord)
 public class SpanRecord: NSManagedObject, EmbraceSpan {
     @NSManaged public var id: String
     @NSManaged public var name: String

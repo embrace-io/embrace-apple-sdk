@@ -7,6 +7,7 @@ import EmbraceCommonInternal
 import EmbraceStorageInternal
 import CoreData
 
+@objc(MetadataRecordTmp)
 public class MetadataRecordTmp: NSManagedObject {
     @NSManaged var key: String
     @NSManaged var value: String

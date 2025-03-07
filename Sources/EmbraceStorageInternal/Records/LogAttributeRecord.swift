@@ -7,6 +7,7 @@ import CoreData
 import EmbraceCommonInternal
 import OpenTelemetryApi
 
+@objc(LogAttributeRecord)
 public class LogAttributeRecord: NSManagedObject, EmbraceLogAttribute {
     @NSManaged public var key: String
     @NSManaged public var valueRaw: String
