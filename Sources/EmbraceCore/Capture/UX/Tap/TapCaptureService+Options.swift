@@ -22,7 +22,7 @@ extension TapCaptureService {
 
         /// Converts the `TapPhase` enum into its corresponding `UITouch.Phase` value.
         ///
-        /// - Returns: the  equivalent`UITouch.Phase`
+        /// - Returns: the equivalent `UITouch.Phase`
         func asUITouchPhase() -> UITouch.Phase {
             switch self {
             case .onStart:
