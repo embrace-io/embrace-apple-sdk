@@ -6,44 +6,45 @@ import XCTest
 import EmbraceStorageInternal
 import OpenTelemetrySdk
 @testable import EmbraceCore
+import TestSupport
 
 class ResourcePayloadTests: XCTestCase {
     func test_encodeToJSONProperly() throws {
         let payloadStruct = ResourcePayload(from: [
             // App Resources that should be present
-            MetadataRecord.userMetadata(key: AppResourceKey.bundleVersion.rawValue, value: "9.8.7"),
-            MetadataRecord.userMetadata(key: AppResourceKey.environment.rawValue, value: "dev"),
-            MetadataRecord.userMetadata(key: AppResourceKey.detailedEnvironment.rawValue, value: "si"),
-            MetadataRecord.userMetadata(key: AppResourceKey.framework.rawValue, value: "111"),
-            MetadataRecord.userMetadata(key: AppResourceKey.launchCount.rawValue, value: "123"),
-            MetadataRecord.userMetadata(key: AppResourceKey.appVersion.rawValue, value: "1.2.3"),
-            MetadataRecord.userMetadata(key: AppResourceKey.sdkVersion.rawValue, value: "3.2.1"),
-            MetadataRecord.userMetadata(key: AppResourceKey.processIdentifier.rawValue, value: "12345"),
-            MetadataRecord.userMetadata(key: AppResourceKey.buildID.rawValue, value: "fakebuilduuidnohyphen"),
-            MetadataRecord.userMetadata(key: AppResourceKey.processStartTime.rawValue, value: "12345"),
-            MetadataRecord.userMetadata(key: AppResourceKey.processPreWarm.rawValue, value: "true"),
+            MockMetadata.createUserMetadata(key: AppResourceKey.bundleVersion.rawValue, value: "9.8.7"),
+            MockMetadata.createUserMetadata(key: AppResourceKey.environment.rawValue, value: "dev"),
+            MockMetadata.createUserMetadata(key: AppResourceKey.detailedEnvironment.rawValue, value: "si"),
+            MockMetadata.createUserMetadata(key: AppResourceKey.framework.rawValue, value: "111"),
+            MockMetadata.createUserMetadata(key: AppResourceKey.launchCount.rawValue, value: "123"),
+            MockMetadata.createUserMetadata(key: AppResourceKey.appVersion.rawValue, value: "1.2.3"),
+            MockMetadata.createUserMetadata(key: AppResourceKey.sdkVersion.rawValue, value: "3.2.1"),
+            MockMetadata.createUserMetadata(key: AppResourceKey.processIdentifier.rawValue, value: "12345"),
+            MockMetadata.createUserMetadata(key: AppResourceKey.buildID.rawValue, value: "fakebuilduuidnohyphen"),
+            MockMetadata.createUserMetadata(key: AppResourceKey.processStartTime.rawValue, value: "12345"),
+            MockMetadata.createUserMetadata(key: AppResourceKey.processPreWarm.rawValue, value: "true"),
 
             // Device Resources that should be present
-            MetadataRecord.createResourceRecord(key: DeviceResourceKey.isJailbroken.rawValue, value: "true"),
-            MetadataRecord.createResourceRecord(key: DeviceResourceKey.totalDiskSpace.rawValue, value: "494384795648"),
-            MetadataRecord.createResourceRecord(key: DeviceResourceKey.architecture.rawValue, value: "arm64"),
-            MetadataRecord.createResourceRecord(key: ResourceAttributes.deviceModelIdentifier.rawValue, value: "arm64_model"),
-            MetadataRecord.createResourceRecord(key: ResourceAttributes.deviceManufacturer.rawValue, value: "Apple"),
-            MetadataRecord.createResourceRecord(key: DeviceResourceKey.screenResolution.rawValue, value: "1179x2556"),
-            MetadataRecord.createResourceRecord(key: ResourceAttributes.osVersion.rawValue, value: "17.0.1"),
-            MetadataRecord.createResourceRecord(key: DeviceResourceKey.osBuild.rawValue, value: "23D60"),
-            MetadataRecord.createResourceRecord(key: ResourceAttributes.osType.rawValue, value: "darwin"),
-            MetadataRecord.createResourceRecord(key: DeviceResourceKey.osVariant.rawValue, value: "iOS_variant"),
-            MetadataRecord.createResourceRecord(key: ResourceAttributes.osName.rawValue, value: "iPadOS"),
-            MetadataRecord.createResourceRecord(key: DeviceResourceKey.locale.rawValue, value: "en_US_POSIX"),
-            MetadataRecord.createResourceRecord(key: DeviceResourceKey.timezone.rawValue, value: "GMT-3:00"),
+            MockMetadata.createResourceRecord(key: DeviceResourceKey.isJailbroken.rawValue, value: "true"),
+            MockMetadata.createResourceRecord(key: DeviceResourceKey.totalDiskSpace.rawValue, value: "494384795648"),
+            MockMetadata.createResourceRecord(key: DeviceResourceKey.architecture.rawValue, value: "arm64"),
+            MockMetadata.createResourceRecord(key: ResourceAttributes.deviceModelIdentifier.rawValue, value: "arm64_model"),
+            MockMetadata.createResourceRecord(key: ResourceAttributes.deviceManufacturer.rawValue, value: "Apple"),
+            MockMetadata.createResourceRecord(key: DeviceResourceKey.screenResolution.rawValue, value: "1179x2556"),
+            MockMetadata.createResourceRecord(key: ResourceAttributes.osVersion.rawValue, value: "17.0.1"),
+            MockMetadata.createResourceRecord(key: DeviceResourceKey.osBuild.rawValue, value: "23D60"),
+            MockMetadata.createResourceRecord(key: ResourceAttributes.osType.rawValue, value: "darwin"),
+            MockMetadata.createResourceRecord(key: DeviceResourceKey.osVariant.rawValue, value: "iOS_variant"),
+            MockMetadata.createResourceRecord(key: ResourceAttributes.osName.rawValue, value: "iPadOS"),
+            MockMetadata.createResourceRecord(key: DeviceResourceKey.locale.rawValue, value: "en_US_POSIX"),
+            MockMetadata.createResourceRecord(key: DeviceResourceKey.timezone.rawValue, value: "GMT-3:00"),
 
             // session counter
-            MetadataRecord.createResourceRecord(key: SessionPayloadBuilder.resourceName, value: "10"),
+            MockMetadata.createResourceRecord(key: SessionPayloadBuilder.resourceName, value: "10"),
 
             // Random properties that should be used
-            MetadataRecord.userMetadata(key: "random_user_metadata_property", value: "value1"),
-            MetadataRecord.createResourceRecord(key: "random_resource_property", value: "value2")
+            MockMetadata.createUserMetadata(key: "random_user_metadata_property", value: "value1"),
+            MockMetadata.createResourceRecord(key: "random_resource_property", value: "value2")
         ])
 
         let jsonData = try JSONEncoder().encode(payloadStruct)
