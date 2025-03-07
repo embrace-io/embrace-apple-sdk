@@ -7,6 +7,7 @@ import GRDB
 import CoreData
 
 /// Represents a cached upload data in the storage
+@objc(UploadDataRecord)
 public class UploadDataRecord: NSManagedObject {
     @NSManaged var id: String
     @NSManaged var type: Int
@@ -22,8 +23,12 @@ public class UploadDataRecord: NSManagedObject {
         attemptCount:
         Int,
         date: Date
-    ) -> UploadDataRecord {
-        let record = UploadDataRecord(context: context)
+    ) -> UploadDataRecord? {
+        guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
+            return nil
+        }
+
+        let record = UploadDataRecord(entity: description, insertInto: context)
         record.id = id
         record.type = type
         record.data = data

@@ -23,7 +23,7 @@ extension EmbraceUploadCacheTests {
             data: Data(repeating: 3, count: 1),
             attemptCount: 0,
             date: Date(timeInterval: -1300, since: now)
-        )
+        )!
         let record2 = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id2",
@@ -31,7 +31,7 @@ extension EmbraceUploadCacheTests {
             data: Data(repeating: 3, count: 1),
             attemptCount: 0,
             date: oldDate
-        )
+        )!
         let record3 = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id3",
@@ -39,7 +39,7 @@ extension EmbraceUploadCacheTests {
             data: Data(repeating: 3, count: 1),
             attemptCount: 0,
             date: oldDate
-        )
+        )!
         let record4 = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id4",
@@ -47,7 +47,7 @@ extension EmbraceUploadCacheTests {
             data: Data(repeating: 3, count: 300),
             attemptCount: 0,
             date: Date(timeInterval: -1200, since: now)
-        )
+        )!
         let record5 = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id5",
@@ -55,7 +55,7 @@ extension EmbraceUploadCacheTests {
             data: Data(repeating: 3, count: 400),
             attemptCount: 0,
             date: Date(timeInterval: -1100, since: now)
-        )
+        )!
         let record6 = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id6",
@@ -63,7 +63,7 @@ extension EmbraceUploadCacheTests {
             data: Data(repeating: 3, count: 100),
             attemptCount: 0,
             date: Date(timeInterval: -1000, since: now)
-        )
+        )!
 
         cache.coreData.context.performAndWait {
             do {
@@ -109,35 +109,35 @@ extension EmbraceUploadCacheTests {
             type: 0,
             data: Data(repeating: 3, count: 1),
             attemptCount: 0, date: Date(timeInterval: -1300, since: now)
-        )
+        )!
         let record2 = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id2",
             type: 0,
             data: Data(repeating: 3, count: 1),
             attemptCount: 0, date: oldDate
-        )
+        )!
         let record3 = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id3",
             type: 0,
             data: Data(repeating: 3, count: 1),
             attemptCount: 0, date: oldDate
-        )
+        )!
         let record4 = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id4",
             type: 0,
             data: Data(repeating: 3, count: 300),
             attemptCount: 0, date: Date(timeInterval: -1200, since: now)
-        )
+        )!
         let record5 = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id5",
             type: 0,
             data: Data(repeating: 3, count: 400),
             attemptCount: 0, date: Date(timeInterval: -1100, since: now)
-        )
+        )!
         let record6 = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id6",
@@ -145,7 +145,7 @@ extension EmbraceUploadCacheTests {
             data: Data(repeating: 3, count: 100),
             attemptCount: 0,
             date: Date(timeInterval: -1000, since: now)
-        )
+        )!
 
         cache.coreData.context.performAndWait {
             do {
@@ -194,7 +194,7 @@ extension EmbraceUploadCacheTests {
             data: Data(repeating: 3, count: 1),
             attemptCount: 0,
             date: Date(timeInterval: -1300, since: now)
-        )
+        )!
         let record2 = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id2",
@@ -202,7 +202,7 @@ extension EmbraceUploadCacheTests {
             data: Data(repeating: 3, count: 1),
             attemptCount: 0,
             date: oldDate
-        )
+        )!
         let record3 = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id3",
@@ -210,7 +210,7 @@ extension EmbraceUploadCacheTests {
             data: Data(repeating: 3, count: 1),
             attemptCount: 0,
             date: oldDate
-        )
+        )!
         let record4 = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id4",
@@ -218,7 +218,7 @@ extension EmbraceUploadCacheTests {
             data: Data(repeating: 3, count: 300),
             attemptCount: 0,
             date: Date(timeInterval: -1200, since: now)
-        )
+        )!
         let record5 = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id5",
@@ -226,7 +226,7 @@ extension EmbraceUploadCacheTests {
             data: Data(repeating: 3, count: 400),
             attemptCount: 0,
             date: Date(timeInterval: -1100, since: now)
-        )
+        )!
         let record6 = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id6",
@@ -234,7 +234,7 @@ extension EmbraceUploadCacheTests {
             data: Data(repeating: 3, count: 100),
             attemptCount: 0,
             date: Date(timeInterval: -1000, since: now)
-        )
+        )!
 
         cache.coreData.context.performAndWait {
             do {
