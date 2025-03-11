@@ -18,6 +18,7 @@ class LoggingErrorMessageTest: PayloadTest {
         }
     }
     var loggedMessageSeverity: LogSeverity
+    var logProperties: [String: String] = [:]
     var stackTraceBehavior: StackTraceBehavior = .default
 
     init(_ loggedMessage: String, severity: LogSeverity) {
@@ -26,7 +27,7 @@ class LoggingErrorMessageTest: PayloadTest {
     }
 
     func runTestPreparations() {
-        Embrace.client?.log(loggedMessage, severity: loggedMessageSeverity, stackTraceBehavior: stackTraceBehavior)
+        Embrace.client?.log(loggedMessage, severity: loggedMessageSeverity, attributes: logProperties, stackTraceBehavior: stackTraceBehavior)
     }
 
     func test(logs: [ReadableLogRecord]) -> TestReport {
@@ -43,6 +44,10 @@ class LoggingErrorMessageTest: PayloadTest {
         testItems.append(.init(target: "Severity", expected: loggedMessageSeverity.text, recorded: log.severity?.description))
 
         testItems.append(.init(target: "Stacktrace", expected: stacktraceExpected ? "found" : "missing", recorded: log.attributes["emb.stacktrace.ios"] != nil ? "found" : "missing"))
+
+        logProperties.forEach { property in
+            testItems.append(evaluate(property.key, expecting: property.value, on: log.attributes))
+        }
 
         return .init(items: testItems)
     }

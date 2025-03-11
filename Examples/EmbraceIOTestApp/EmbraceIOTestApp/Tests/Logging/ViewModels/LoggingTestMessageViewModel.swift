@@ -40,6 +40,10 @@ class LoggingTestMessageViewModel: LogTestUIComponentViewModel {
         super.init(dataModel: dataModel, payloadTestObject: self.testObject)
         self.message = message
     }
+
+    func addLogAttribute(key: String, value: String) {
+        testObject.logProperties[key.replacingOccurrences(of: " ", with: "")] = value
+    }
 }
 
 extension LogSeverity: @retroactive CaseIterable {
