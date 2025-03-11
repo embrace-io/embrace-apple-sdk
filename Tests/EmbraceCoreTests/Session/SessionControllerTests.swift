@@ -68,9 +68,9 @@ final class SessionControllerTests: XCTestCase {
         let b = controller.startSession(state: .foreground)
         let c = controller.startSession(state: .foreground)
 
-        XCTAssertNotEqual(a!.id, b!.id)
-        XCTAssertNotEqual(a!.id, c!.id)
-        XCTAssertNotEqual(b!.id, c!.id)
+        XCTAssertNotEqual(a, b)
+        XCTAssertNotEqual(a, c)
+        XCTAssertNotEqual(b, c)
     }
 
     func testSDKDisabled_startSession_doesntCreateASession() throws {
@@ -92,8 +92,8 @@ final class SessionControllerTests: XCTestCase {
 
 
     func test_startSession_setsForegroundState() throws {
-        let a = controller.startSession(state: .foreground)
-        XCTAssertEqual(a!.state, "foreground")
+        controller.startSession(state: .foreground)
+        XCTAssertEqual(controller.currentSessionState, SessionState.foreground)
     }
 
     // MARK: startSession
@@ -101,24 +101,24 @@ final class SessionControllerTests: XCTestCase {
     func test_startSession_setsCurrentSession_andPostsDidStartNotification() throws {
         let notificationExpectation = expectation(forNotification: .embraceSessionDidStart, object: nil)
 
-        let session = controller.startSession(state: .foreground)!
-        XCTAssertNotNil(session.startTime)
+        let sessionId = controller.startSession(state: .foreground)!
+        XCTAssertNotNil(sessionId)
         XCTAssertNotNil(controller.currentSessionSpan)
-        XCTAssertEqual(controller.currentSession?.id, session.id)
+        XCTAssertEqual(controller.currentSessionId, sessionId)
         wait(for: [notificationExpectation])
     }
 
     func test_startSession_ifStartAtIsSoonAfterProcessStart_marksSessionAsColdStartTrue() throws {
         controller.startSession(state: .foreground, startTime: ProcessMetadata.startTime!)
-        XCTAssertTrue(controller.currentSession!.coldStart)
+        XCTAssertTrue(controller.currentSessionColdStart!)
     }
 
     func test_startSession_saves_foregroundSession() throws {
-        let session = controller.startSession(state: .foreground)
+        let sessionId = controller.startSession(state: .foreground)
 
         let sessions: [SessionRecord] = storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
-        XCTAssertEqual(sessions.first?.id, session!.id)
+        XCTAssertEqual(sessions.first?.id, sessionId)
         XCTAssertEqual(sessions.first?.state, "foreground")
     }
 
@@ -126,12 +126,15 @@ final class SessionControllerTests: XCTestCase {
         let spanProcessor = MockSpanProcessor()
         EmbraceOTel.setup(spanProcessors: [spanProcessor])
 
-        let session = controller.startSession(state: .foreground)
+        controller.startSession(state: .foreground)
+
+        let sessions: [SessionRecord] = storage.fetchAll()
+        let session = sessions[0]
 
         if let spanData = spanProcessor.startedSpans.first {
             XCTAssertEqual(
                 spanData.startTime.timeIntervalSince1970,
-                session!.startTime.timeIntervalSince1970,
+                session.startTime.timeIntervalSince1970,
                 accuracy: 0.001
             )
             XCTAssertFalse(spanData.hasEnded)
@@ -141,12 +144,12 @@ final class SessionControllerTests: XCTestCase {
     }
 
     func test_startSession_onlyFirstOneIsColdStart() throws {
-        var session = controller.startSession(state: .foreground)
-        XCTAssertTrue(session!.coldStart)
+        controller.startSession(state: .foreground)
+        XCTAssertTrue(controller.currentSessionColdStart!)
 
         for _ in 1...10 {
-            session = controller.startSession(state: .foreground)
-            XCTAssertFalse(session!.coldStart)
+            controller.startSession(state: .foreground)
+            XCTAssertFalse(controller.currentSessionColdStart!)
         }
     }
 
@@ -155,31 +158,35 @@ final class SessionControllerTests: XCTestCase {
     func test_endSession_setsCurrentSessionToNil_andPostsWillEndNotification() throws {
         let notificationExpectation = expectation(forNotification: .embraceSessionWillEnd, object: nil)
 
-        let session = controller.startSession(state: .foreground)
+        controller.startSession(state: .foreground)
         XCTAssertNotNil(controller.currentSessionSpan)
-        XCTAssertNil(session!.endTime)
+
+        var sessions: [SessionRecord] = storage.fetchAll()
+        XCTAssertNil(sessions[0].endTime)
 
         let endTime = controller.endSession()
 
-        let sessions: [SessionRecord] = storage.fetchAll()
+        sessions = storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
         XCTAssertEqual(sessions.first!.endTime!.timeIntervalSince1970, endTime.timeIntervalSince1970, accuracy: 0.1)
 
-        XCTAssertNil(controller.currentSession)
+        XCTAssertNil(controller.currentSessionId)
         XCTAssertNil(controller.currentSessionSpan)
 
         wait(for: [notificationExpectation])
     }
 
     func test_endSession_saves_foregroundSession() throws {
-        let session = controller.startSession(state: .foreground)
-        XCTAssertNil(session!.endTime)
+        let sessionId = controller.startSession(state: .foreground)
+
+        var sessions: [SessionRecord] = storage.fetchAll()
+        XCTAssertNil(sessions[0].endTime)
 
         let endTime = controller.endSession()
 
-        let sessions: [SessionRecord] = storage.fetchAll()
+        sessions = storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
-        XCTAssertEqual(sessions.first!.id, session!.id)
+        XCTAssertEqual(sessions.first!.id, sessionId)
         XCTAssertEqual(sessions.first!.state, "foreground")
         XCTAssertEqual(sessions.first!.endTime!.timeIntervalSince1970, endTime.timeIntervalSince1970, accuracy: 0.001)
     }
@@ -253,50 +260,41 @@ final class SessionControllerTests: XCTestCase {
 
     func test_update_assignsState_toBackground_whenPresent() throws {
         controller.startSession(state: .foreground)
-        XCTAssertEqual(controller.currentSession?.state, "foreground")
+        XCTAssertEqual(controller.currentSessionState, SessionState.foreground)
 
         controller.update(state: .background)
-        XCTAssertEqual(controller.currentSession?.state, "background")
+        XCTAssertEqual(controller.currentSessionState, SessionState.background)
     }
 
     func test_update_assignsAppTerminated_toFalse_whenPresent() throws {
-        var session = controller.startSession(state: .foreground)
-        session!.appTerminated = true
+        let sessionId = controller.startSession(state: .foreground)
+        storage.update(sessionId: sessionId!, appTerminated: true)
 
         controller.update(appTerminated: false)
-        XCTAssertEqual(controller.currentSession?.appTerminated, false)
+
+        let sessions: [SessionRecord] = storage.fetchAll()
+        XCTAssertEqual(sessions[0].appTerminated, false)
     }
 
     func test_update_assignsAppTerminated_toTrue_whenPresent() throws {
-        var session = controller.startSession(state: .foreground)
-        session!.appTerminated = false
-
-        controller.update(appTerminated: true)
-        XCTAssertEqual(controller.currentSession?.appTerminated, true)
-    }
-
-    func test_update_changesTo_appTerminated_saveInStorage() throws {
-        var session = controller.startSession(state: .foreground)
-        session!.appTerminated = false
+        let sessionId = controller.startSession(state: .foreground)
+        storage.update(sessionId: sessionId!, appTerminated: false)
 
         controller.update(appTerminated: true)
 
         let sessions: [SessionRecord] = storage.fetchAll()
-        XCTAssertEqual(sessions.count, 1)
-        XCTAssertEqual(sessions.first?.id, session!.id)
-        XCTAssertEqual(sessions.first?.state, "foreground")
-        XCTAssertEqual(sessions.first?.appTerminated, true)
+        XCTAssertEqual(sessions[0].appTerminated, true)
     }
 
     func test_update_changesTo_sessionState_saveInStorage() throws {
-        var session = controller.startSession(state: .foreground)
-        session!.appTerminated = false
+        let sessionId = controller.startSession(state: .foreground)
+        storage.update(sessionId: sessionId!, appTerminated: false)
 
         controller.update(state: .background)
 
         let sessions: [SessionRecord] = storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
-        XCTAssertEqual(sessions.first?.id, session!.id)
+        XCTAssertEqual(sessions.first?.id, sessionId)
         XCTAssertEqual(sessions.first?.state, "background")
         XCTAssertEqual(sessions.first?.appTerminated, false)
     }
@@ -326,10 +324,10 @@ final class SessionControllerTests: XCTestCase {
         controller.sdkStateProvider = sdkStateProvider
 
         // when starting a cold start session in the background
-        let session = controller.startSession(state: .background)
+        let sessionId = controller.startSession(state: .background)
 
         // then the session is created
-        XCTAssertNotNil(session)
+        XCTAssertNotNil(sessionId)
 
         // when the session ends
         controller.endSession()
@@ -337,7 +335,7 @@ final class SessionControllerTests: XCTestCase {
         // then the session is stored
         let sessions: [SessionRecord] = storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
-        XCTAssertEqual(sessions.first?.id, session!.id)
+        XCTAssertEqual(sessions.first?.id, sessionId)
         XCTAssertEqual(sessions.first?.state, "background")
     }
 
@@ -396,14 +394,15 @@ final class SessionControllerTests: XCTestCase {
         controller.sdkStateProvider = sdkStateProvider
 
         // when starting a session
-        let session = controller.startSession(state: .foreground)
-        var lastDate = session!.lastHeartbeatTime
+        let sessionId = controller.startSession(state: .foreground)
+        var lastDate = storage.fetchSession(id: sessionId!)!.lastHeartbeatTime
 
         // then the heartbeat time is updated every second
         for _ in 1...3 {
             wait(delay: 1)
-            XCTAssertNotEqual(lastDate, controller.currentSession!.lastHeartbeatTime)
-            lastDate = controller.currentSession!.lastHeartbeatTime
+            let newDate = storage.fetchSession(id: sessionId!)!.lastHeartbeatTime
+            XCTAssertNotEqual(lastDate, newDate)
+            lastDate = newDate
         }
     }
 }

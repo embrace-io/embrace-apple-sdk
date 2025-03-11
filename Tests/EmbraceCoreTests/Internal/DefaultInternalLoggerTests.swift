@@ -9,29 +9,9 @@ import EmbraceStorageInternal
 import EmbraceConfigInternal
 import EmbraceConfiguration
 import OpenTelemetryApi
+import EmbraceCommonInternal
 
 class DefaultInternalLoggerTests: XCTestCase {
-
-    var session: SessionRecord!
-    var storage: EmbraceStorage!
-
-    override func setUpWithError() throws {
-        storage = try EmbraceStorage.createInMemoryDb()
-
-        session = storage.addSession(
-            id: TestConstants.sessionId,
-            processId: TestConstants.processId,
-            state: .foreground,
-            traceId: TestConstants.traceId,
-            spanId: TestConstants.spanId,
-            startTime: Date()
-        )
-    }
-
-    override func tearDownWithError() throws {
-        storage.coreData.destroy()
-        storage = nil
-    }
 
     func test_none() {
 
@@ -104,12 +84,15 @@ class DefaultInternalLoggerTests: XCTestCase {
     func test_internal_trace() {
         // given "cha logger with limtis
         let otel = MockEmbraceOpenTelemetry()
+        let sessionController = MockSessionController()
         let logger = DefaultInternalLogger()
         logger.otel = otel
         logger.limits = InternalLogLimits(trace: 1, debug: 0, info: 0, warning: 0, error: 0)
+        logger.sessionController = sessionController
 
         // given a session started
-        NotificationCenter.default.post(name: .embraceSessionDidStart, object: session)
+        sessionController.currentSessionId = TestConstants.sessionId
+        sessionController.currentSessionState = SessionState.foreground
 
         // when sending logs
         logger.trace("trace1")
@@ -131,12 +114,15 @@ class DefaultInternalLoggerTests: XCTestCase {
     func test_internal_debug() {
         // given "cha logger with limtis
         let otel = MockEmbraceOpenTelemetry()
+        let sessionController = MockSessionController()
         let logger = DefaultInternalLogger()
         logger.otel = otel
         logger.limits = InternalLogLimits(trace: 0, debug: 1, info: 0, warning: 0, error: 0)
+        logger.sessionController = sessionController
 
         // given a session started
-        NotificationCenter.default.post(name: .embraceSessionDidStart, object: session)
+        sessionController.currentSessionId = TestConstants.sessionId
+        sessionController.currentSessionState = SessionState.foreground
 
         // when sending logs
         logger.trace("trace")
@@ -158,12 +144,15 @@ class DefaultInternalLoggerTests: XCTestCase {
     func test_internal_info() {
         // given "cha logger with limtis
         let otel = MockEmbraceOpenTelemetry()
+        let sessionController = MockSessionController()
         let logger = DefaultInternalLogger()
         logger.otel = otel
         logger.limits = InternalLogLimits(trace: 0, debug: 0, info: 1, warning: 0, error: 0)
+        logger.sessionController = sessionController
 
         // given a session started
-        NotificationCenter.default.post(name: .embraceSessionDidStart, object: session)
+        sessionController.currentSessionId = TestConstants.sessionId
+        sessionController.currentSessionState = SessionState.foreground
 
         // when sending logs
         logger.trace("trace")
@@ -185,12 +174,15 @@ class DefaultInternalLoggerTests: XCTestCase {
     func test_internal_warning() {
         // given "cha logger with limtis
         let otel = MockEmbraceOpenTelemetry()
+        let sessionController = MockSessionController()
         let logger = DefaultInternalLogger()
         logger.otel = otel
         logger.limits = InternalLogLimits(trace: 0, debug: 0, info: 0, warning: 1, error: 0)
+        logger.sessionController = sessionController
 
         // given a session started
-        NotificationCenter.default.post(name: .embraceSessionDidStart, object: session)
+        sessionController.currentSessionId = TestConstants.sessionId
+        sessionController.currentSessionState = SessionState.foreground
 
         // when sending logs
         logger.trace("trace")
@@ -212,12 +204,15 @@ class DefaultInternalLoggerTests: XCTestCase {
     func test_internal_error() {
         // given "cha logger with limtis
         let otel = MockEmbraceOpenTelemetry()
+        let sessionController = MockSessionController()
         let logger = DefaultInternalLogger()
         logger.otel = otel
         logger.limits = InternalLogLimits(trace: 0, debug: 0, info: 0, warning: 0, error: 1)
+        logger.sessionController = sessionController
 
         // given a session started
-        NotificationCenter.default.post(name: .embraceSessionDidStart, object: session)
+        sessionController.currentSessionId = TestConstants.sessionId
+        sessionController.currentSessionState = SessionState.foreground
 
         // when sending logs
         logger.trace("trace")
@@ -239,12 +234,15 @@ class DefaultInternalLoggerTests: XCTestCase {
     func test_internal_mixed() {
         // given "cha logger with limtis
         let otel = MockEmbraceOpenTelemetry()
+        let sessionController = MockSessionController()
         let logger = DefaultInternalLogger()
         logger.otel = otel
         logger.limits = InternalLogLimits(trace: 2, debug: 3, info: 1, warning: 0, error: 4)
+        logger.sessionController = sessionController
 
         // given a session started
-        NotificationCenter.default.post(name: .embraceSessionDidStart, object: session)
+        sessionController.currentSessionId = TestConstants.sessionId
+        sessionController.currentSessionState = SessionState.foreground
 
         // when sending logs
         logger.trace("trace1")

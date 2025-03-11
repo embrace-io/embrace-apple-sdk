@@ -21,10 +21,14 @@ public protocol EmbraceSession {
 
 public extension EmbraceSession {
     var id: SessionIdentifier? {
-        return SessionIdentifier(string: idRaw)
+        SessionIdentifier(string: idRaw)
     }
 
     var processId: ProcessIdentifier? {
-        return ProcessIdentifier(hex: processIdRaw)
+        ProcessIdentifier(hex: processIdRaw)
+    }
+
+    var sessionState: SessionState? {
+        SessionState(rawValue: state)
     }
 }

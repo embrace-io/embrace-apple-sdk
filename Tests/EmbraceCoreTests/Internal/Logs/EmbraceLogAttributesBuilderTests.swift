@@ -178,7 +178,8 @@ private extension EmbraceLogAttributesBuilderTests {
         sessionState: SessionState = .foreground
     ) {
         controller = MockSessionController()
-        controller.currentSession = MockSession.with(id: sessionId, state: sessionState)
+        controller.currentSessionId = sessionId
+        controller.currentSessionState = sessionState
     }
 
     func givenSessionControllerWithNoSession() {

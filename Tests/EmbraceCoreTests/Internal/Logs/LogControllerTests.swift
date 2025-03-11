@@ -144,19 +144,19 @@ class LogControllerTests: XCTestCase {
     func testHavingLogs_onBatchFinished_fetchesResourcesFromStorage() throws {
         givenLogController()
         whenInvokingBatchFinished(withLogs: [randomLogRecord()])
-        try thenFetchesResourcesFromStorage(sessionId: sessionController.currentSession?.id)
+        try thenFetchesResourcesFromStorage(sessionId: sessionController.currentSessionId)
     }
 
     func testHavingLogs_onBatchFinished_fetchesMetadataFromStorage() throws {
         givenLogController()
         whenInvokingBatchFinished(withLogs: [randomLogRecord()])
-        try thenFetchesMetadataFromStorage(sessionId: sessionController.currentSession?.id)
+        try thenFetchesMetadataFromStorage(sessionId: sessionController.currentSessionId)
     }
 
     func testHavingLogs_onBatchFinished_logUploaderShouldSendASingleBatch() throws {
         givenLogController()
         whenInvokingBatchFinished(withLogs: [randomLogRecord()])
-        try thenFetchesMetadataFromStorage(sessionId: sessionController.currentSession?.id)
+        try thenFetchesMetadataFromStorage(sessionId: sessionController.currentSessionId)
     }
 
     func testSDKDisabledHavingLogs_onBatchFinished_ontTryToUploadAnything() throws {
@@ -337,14 +337,9 @@ private extension LogControllerTests {
 
     func givenSessionControllerWithSession() {
         sessionController = .init()
-        sessionController.currentSession = MockSession(
-            id: .random,
-            processId: .random,
-            state: .foreground,
-            traceId: UUID().uuidString,
-            spanId: UUID().uuidString,
-            startTime: Date()
-        )
+        sessionController.currentSessionId = .random
+        sessionController.currentSessionState = .foreground
+        sessionController.currentSessionColdStart = false
     }
 
     func givenStorage(withLogs logs: [EmbraceLog] = []) {

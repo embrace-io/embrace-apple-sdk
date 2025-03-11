@@ -215,7 +215,7 @@ extension MetadataHandler {
 extension MetadataHandler {
     private func currentContext(for lifespan: MetadataRecordLifespan) throws -> String {
         if lifespan == .session {
-            guard let sessionId = sessionController?.currentSession?.id?.toString else {
+            guard let sessionId = sessionController?.currentSessionId?.toString else {
                 throw MetadataError.invalidSession("Can't add a session property if there's no active session!")
             }
             return sessionId

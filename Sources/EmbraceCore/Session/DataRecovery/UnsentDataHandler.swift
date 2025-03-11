@@ -159,7 +159,8 @@ class UnsentDataHandler {
     ) -> [String: String] {
 
         let attributesBuilder = EmbraceLogAttributesBuilder(
-            session: session,
+            sessionId: session?.id,
+            sessionState: session?.sessionState,
             crashReport: report,
             storage: storage,
             initialAttributes: [:]

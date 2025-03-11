@@ -98,7 +98,7 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
             value: PersonaTag.metadataValue,
             type: .personaTag,
             lifespan: .session,
-            lifespanId: sessionController.currentSession!.idRaw
+            lifespanId: sessionController.currentSessionId!.toString
         )
 
         // when fetching the current persona tags
@@ -132,7 +132,7 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
             value: "session",
             type: .personaTag,
             lifespan: .session,
-            lifespanId: sessionController.currentSession!.idRaw
+            lifespanId: sessionController.currentSessionId!.toString
         )
 
         // when fetching the current persona tags
@@ -166,7 +166,7 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
             value: "session",
             type: .personaTag,
             lifespan: .session,
-            lifespanId: sessionController.currentSession!.idRaw
+            lifespanId: sessionController.currentSessionId!.toString
         )
 
         // when fetching the current persona tags
@@ -200,7 +200,7 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
             value: PersonaTag.metadataValue,
             type: .personaTag,
             lifespan: .session,
-            lifespanId: sessionController.currentSession!.idRaw
+            lifespanId: sessionController.currentSessionId!.toString
         )
 
         storage.removeMetadata(key: "permanent", type: .personaTag, lifespan: .permanent, lifespanId: "")
@@ -238,14 +238,14 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
             value: PersonaTag.metadataValue,
             type: .personaTag,
             lifespan: .session,
-            lifespanId: sessionController.currentSession!.idRaw
+            lifespanId: sessionController.currentSessionId!.toString
         )
 
         // when removing a persona tag
         try handler.remove(persona: "session", lifespan: .session)
 
         // then the persona tag is removed
-        let tags = storage.fetchPersonaTagsForSessionId(sessionController.currentSession!.id!)
+        let tags = storage.fetchPersonaTagsForSessionId(sessionController.currentSessionId!)
         XCTAssertEqual(tags.count, 2)
         XCTAssertEqual(Set(tags.map(\.key)), Set(["permanent", "process"]))
     }
@@ -273,14 +273,14 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
             value: PersonaTag.metadataValue,
             type: .personaTag,
             lifespan: .session,
-            lifespanId: sessionController.currentSession!.idRaw
+            lifespanId: sessionController.currentSessionId!.toString
         )
 
         // when removing a persona tag
         try handler.remove(persona: "permanent", lifespan: .session)
 
         // then the persona tag is removed
-        let tags = storage.fetchPersonaTagsForSessionId(sessionController.currentSession!.id!)
+        let tags = storage.fetchPersonaTagsForSessionId(sessionController.currentSessionId!)
         XCTAssertEqual(tags.count, 3)
         XCTAssertEqual(Set(tags.map(\.key)), Set(["permanent", "process", "session"]))
     }
@@ -309,14 +309,14 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
             value: PersonaTag.metadataValue,
             type: .personaTag,
             lifespan: .session,
-            lifespanId: sessionController.currentSession!.idRaw
+            lifespanId: sessionController.currentSessionId!.toString
         )
 
         // when removing all persona tags
         try handler.removeAllPersonas()
 
         // then the persona tags are removed
-        let tags = storage.fetchPersonaTagsForSessionId(sessionController.currentSession!.id!)
+        let tags = storage.fetchPersonaTagsForSessionId(sessionController.currentSessionId!)
         XCTAssertEqual(tags.count, 0)
     }
 
@@ -343,14 +343,14 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
             value: PersonaTag.metadataValue,
             type: .personaTag,
             lifespan: .session,
-            lifespanId: sessionController.currentSession!.idRaw
+            lifespanId: sessionController.currentSessionId!.toString
         )
 
         // when removing all persona tags
         try handler.removeAllPersonas(lifespans: [.permanent])
 
         // then the persona tags are removed
-        let tags = storage.fetchPersonaTagsForSessionId(sessionController.currentSession!.id!)
+        let tags = storage.fetchPersonaTagsForSessionId(sessionController.currentSessionId!)
         XCTAssertEqual(tags.count, 2)
         XCTAssertEqual(Set(tags.map(\.key)), Set(["process", "session"]))
     }

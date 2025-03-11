@@ -26,36 +26,7 @@ class DefaultInternalLogger: InternalLogger {
     private var counter: [LogLevel: Int] = [:]
 
     @ThreadSafe
-    private var currentSession: EmbraceSession?
-
-    init() {
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(onSessionStart),
-            name: .embraceSessionDidStart,
-            object: nil
-        )
-
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(onSessionEnd),
-            name: .embraceSessionWillEnd,
-            object: nil
-        )
-    }
-
-    deinit {
-        NotificationCenter.default.removeObserver(self)
-    }
-
-    @objc func onSessionStart(notification: Notification) {
-        currentSession = notification.object as? EmbraceSession
-        counter.removeAll()
-    }
-
-    @objc func onSessionEnd(notification: Notification) {
-        currentSession = nil
-    }
+    var sessionController: SessionControllable?
 
     @discardableResult func log(level: LogLevel, message: String, attributes: [String: String]) -> Bool {
 
@@ -120,7 +91,8 @@ class DefaultInternalLogger: InternalLogger {
 
         // build attributes
         let attributesBuilder = EmbraceLogAttributesBuilder(
-            session: currentSession,
+            sessionId: sessionController?.currentSessionId,
+            sessionState: sessionController?.currentSessionState,
             initialAttributes: attributes
         )
 

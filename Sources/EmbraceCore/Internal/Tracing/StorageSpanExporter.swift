@@ -46,7 +46,7 @@ class StorageSpanExporter: SpanExporter {
                         data: data,
                         startTime: spanData.startTime,
                         endTime: endTime,
-                        sessionId: sessionController?.currentSession?.id
+                        sessionId: sessionController?.currentSessionId
                     )
                 } catch let exception {
                     self.logger?.error(exception.localizedDescription)

@@ -97,15 +97,15 @@ extension iOSSessionLifecycle {
             return
         }
 
-        if let currentSession = controller.currentSession,
-           let currentState = SessionState(rawValue: currentSession.state) {
+        if let coldStart = controller.currentSessionColdStart,
+           let state = controller.currentSessionState {
 
-            if currentState == .foreground {
+            if state == .foreground {
                 // if current session is already foreground, do nothing
                 return
             }
 
-            if currentSession.coldStart {
+            if coldStart {
                 // check if current session is cold start
                 // flip state to foreground if so
                 controller.update(state: .foreground)
@@ -131,8 +131,7 @@ extension iOSSessionLifecycle {
         }
 
         // if current session is already background, do nothing
-        if let currentSession = controller.currentSession,
-           SessionState(rawValue: currentSession.state) == SessionState.background {
+        if controller.currentSessionState == SessionState.background {
             return
         }
 

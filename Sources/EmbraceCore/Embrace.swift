@@ -162,6 +162,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         self.sessionController = SessionController(storage: storage, upload: upload, config: config)
         self.sessionLifecycle = Embrace.createSessionLifecycle(controller: sessionController)
         self.metadata = MetadataHandler(storage: storage, sessionController: sessionController)
+        Embrace.logger.sessionController = sessionController
 
         var logController: LogController?
         if let logControllable = logControllable {
@@ -252,7 +253,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
                         upload: self?.upload,
                         otel: self,
                         logController: self?.logController,
-                        currentSessionId: self?.sessionController.currentSession?.id,
+                        currentSessionId: self?.sessionController.currentSessionId,
                         crashReporter: self?.captureServices.crashReporter
                     )
 
@@ -303,7 +304,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
             return nil
         }
 
-        return sessionController.currentSession?.idRaw
+        return sessionController.currentSessionId?.toString
     }
 
     /// Returns the current device identifier.

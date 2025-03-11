@@ -152,7 +152,7 @@ extension LogController {
         }
 
         do {
-            guard let sessionId = sessionController?.currentSession?.id, logs.count > 0 else {
+            guard let sessionId = sessionController?.currentSessionId, logs.count > 0 else {
                 return
             }
             let resourcePayload = try createResourcePayload(sessionId: sessionId)

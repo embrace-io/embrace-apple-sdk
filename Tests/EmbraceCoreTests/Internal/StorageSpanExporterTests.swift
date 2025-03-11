@@ -57,7 +57,7 @@ final class StorageSpanExporterTests: XCTestCase {
         XCTAssertEqual(exportedSpan.endTime!.timeIntervalSince1970, endTime.timeIntervalSince1970, accuracy: 0.01)
 
         XCTAssertNotNil(exportedSpan.sessionIdRaw)
-        XCTAssertEqual(exportedSpan.sessionIdRaw, sessionController.currentSession?.id?.toString)
+        XCTAssertEqual(exportedSpan.sessionIdRaw, sessionController.currentSessionId?.toString)
     }
 
     func test_DB_allowsOpenSpan_toUpdateAttributes() throws {
@@ -105,7 +105,7 @@ final class StorageSpanExporterTests: XCTestCase {
         XCTAssertEqual(exportedSpan?.id, spanId.hexString)
 
         XCTAssertNotNil(exportedSpan!.sessionIdRaw)
-        XCTAssertEqual(exportedSpan!.sessionIdRaw, sessionController.currentSession?.id?.toString)
+        XCTAssertEqual(exportedSpan!.sessionIdRaw, sessionController.currentSessionId?.toString)
 
         let spanData = try JSONDecoder().decode(SpanData.self, from: exportedSpan!.data)
         XCTAssertEqual(spanData.attributes, ["foo": .string("baz")])

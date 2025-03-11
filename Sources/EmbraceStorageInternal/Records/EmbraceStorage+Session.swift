@@ -112,4 +112,46 @@ extension EmbraceStorage {
 
         return coreData.fetch(withRequest: request).first
     }
+
+    /// Updates values for the given session id
+    public func update(
+        sessionId: SessionIdentifier,
+        state: SessionState? = nil,
+        lastHeartbeatTime: Date? = nil,
+        endTime: Date? = nil,
+        cleanExit: Bool? = nil,
+        appTerminated: Bool? = nil
+    ) {
+        guard let session = fetchSession(id: sessionId) else {
+            return
+        }
+
+        coreData.context.performAndWait {
+            if let state = state {
+                session.state = state.rawValue
+            }
+
+            if let lastHeartbeatTime = lastHeartbeatTime {
+                session.lastHeartbeatTime = lastHeartbeatTime
+            }
+
+            if let endTime = endTime {
+                session.endTime = endTime
+            }
+
+            if let cleanExit = cleanExit {
+                session.cleanExit = cleanExit
+            }
+
+            if let appTerminated = appTerminated {
+                session.appTerminated = appTerminated
+            }
+
+            do {
+                try coreData.context.save()
+            } catch {
+                logger.error("Error updating session \(sessionId.toString)!")
+            }
+        }
+    }
 }
