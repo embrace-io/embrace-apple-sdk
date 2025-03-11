@@ -3,17 +3,18 @@
 //
 
 import Foundation
-
 import EmbraceStorageInternal
 import EmbraceCommonInternal
+import OpenTelemetryApi
+import OpenTelemetrySdk
 
 protocol LogBatcherDelegate: AnyObject {
-    func batchFinished(withLogs logs: [LogRecord])
+    func batchFinished(withLogs logs: [EmbraceLog])
 }
 
 protocol LogBatcher {
-    func addLogRecord(logRecord: LogRecord)
-    func renewBatch(withLogs logRecords: [LogRecord])
+    func addLogRecord(logRecord: ReadableLogRecord)
+    func renewBatch(withLogs logRecords: [EmbraceLog])
     func forceEndCurrentBatch()
 }
 
@@ -38,15 +39,17 @@ class DefaultLogBatcher: LogBatcher {
         self.delegate = delegate
     }
 
-    func addLogRecord(logRecord: LogRecord) {
+    func addLogRecord(logRecord: ReadableLogRecord) {
         processorQueue.async {
-            self.repository.create(logRecord) { result in
-                switch result {
-                case .success:
-                    self.addLogToBatch(logRecord)
-                case .failure(let error):
-                    Embrace.logger.error(error.localizedDescription)
-                }
+            if let record = self.repository.createLog(
+                id: LogIdentifier(),
+                processId: ProcessIdentifier.current,
+                severity: logRecord.severity?.toLogSeverity() ?? .info,
+                body: logRecord.body?.description ?? "",
+                timestamp: logRecord.timestamp,
+                attributes: logRecord.attributes
+            ) {
+                self.addLogToBatch(record)
             }
         }
     }
@@ -59,23 +62,23 @@ internal extension DefaultLogBatcher {
         }
     }
 
-    func renewBatch(withLogs logRecords: [LogRecord] = []) {
+    func renewBatch(withLogs logs: [EmbraceLog] = []) {
         guard let batch = self.batch else {
             return
         }
         self.cancelBatchDeadline()
         self.delegate?.batchFinished(withLogs: batch.logs)
-        self.batch = .init(limits: self.logLimits, logs: logRecords)
+        self.batch = .init(limits: self.logLimits, logs: logs)
 
-        if logRecords.count > 0 {
+        if logs.count > 0 {
             self.renewBatchDeadline(with: self.logLimits)
         }
     }
 
-    func addLogToBatch(_ log: LogRecord) {
+    func addLogToBatch(_ log: EmbraceLog) {
         processorQueue.async {
             if let batch = self.batch {
-                let result = batch.add(logRecord: log)
+                let result = batch.add(log: log)
                 switch result {
                 case .success(let state):
                     if state == .closed {
