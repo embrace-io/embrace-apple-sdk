@@ -56,7 +56,7 @@ struct ResourcePayload: Codable {
         case deviceManufacturer = "device_manufacturer"
         case screenResolution = "screen_resolution"
         case buildId = "build_id"
-        case bundleVersion = "bundle_version"
+        case bundleVersion = "build"
         case environmentDetail = "environment_detail"
         case appFramework = "app_framework"
         case launchCount = "launch_count"
