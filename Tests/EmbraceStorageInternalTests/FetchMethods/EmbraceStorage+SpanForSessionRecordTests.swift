@@ -403,10 +403,10 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
             coldStart: false
         )
 
-        let spanA = try addSpanRecord(name: "span-a", startTime: .relative(-28), endTime: .relative(-22), sessionIdentifier: session.id)
-        let spanB = try addSpanRecord(name: "span-b", startTime: .relative(-16), endTime: .relative(-12), sessionIdentifier: SessionIdentifier.random)
-        let spanC = try addSpanRecord(name: "span-c", startTime: .relative(-6), endTime: .relative(-2), sessionIdentifier: session.id)
-        let results = try storage.fetchSpans(for: session)
+        let spanA = addSpanRecord(name: "span-a", startTime: .relative(-28), endTime: .relative(-22), sessionIdentifier: session.id)
+        let spanB = addSpanRecord(name: "span-b", startTime: .relative(-16), endTime: .relative(-12), sessionIdentifier: SessionIdentifier.random)
+        let spanC = addSpanRecord(name: "span-c", startTime: .relative(-6), endTime: .relative(-2), sessionIdentifier: session.id)
+        let results = storage.fetchSpans(for: session)
 
         XCTAssertTrue(results.contains(spanA))
         XCTAssertTrue(results.contains(spanB))

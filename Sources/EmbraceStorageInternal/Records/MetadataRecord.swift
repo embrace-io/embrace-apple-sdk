@@ -16,7 +16,7 @@ public class MetadataRecord: NSManagedObject, EmbraceMetadata {
     @NSManaged public var lifespanId: String
     @NSManaged public var collectedAt: Date
 
-    public static func create(
+    class func create(
         context: NSManagedObjectContext,
         key: String,
         value: String,
@@ -25,17 +25,21 @@ public class MetadataRecord: NSManagedObject, EmbraceMetadata {
         lifespanId: String,
         collectedAt: Date = Date()
     ) -> MetadataRecord? {
-        guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
-            return nil
-        }
+        var record: MetadataRecord?
 
-        let record = MetadataRecord(entity: description, insertInto: context)
-        record.key = key
-        record.value = value
-        record.typeRaw = type.rawValue
-        record.lifespanRaw = lifespan.rawValue
-        record.lifespanId = lifespanId
-        record.collectedAt = collectedAt
+        context.performAndWait {
+            guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
+                return
+            }
+
+            record = MetadataRecord(entity: description, insertInto: context)
+            record?.key = key
+            record?.value = value
+            record?.typeRaw = type.rawValue
+            record?.lifespanRaw = lifespan.rawValue
+            record?.lifespanId = lifespanId
+            record?.collectedAt = collectedAt
+        }
 
         return record
     }

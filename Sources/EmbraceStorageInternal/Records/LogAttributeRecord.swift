@@ -12,22 +12,26 @@ public class LogAttributeRecord: NSManagedObject, EmbraceLogAttribute {
     @NSManaged public var key: String
     @NSManaged public var valueRaw: String
     @NSManaged public var typeRaw: Int // LogAttributeType
-    @NSManaged public var log: LogRecord
+    @NSManaged public var log: LogRecord?
 
-    public static func create(
+    class func create(
         context: NSManagedObjectContext,
         key: String,
         value: AttributeValue,
-        log: LogRecord
+        log: LogRecord?
     ) -> LogAttributeRecord? {
-        guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
-            return nil
-        }
+        var record: LogAttributeRecord?
 
-        var record = LogAttributeRecord(entity: description, insertInto: context)
-        record.key = key
-        record.value = value
-        record.log = log
+        context.performAndWait {
+            guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
+                return
+            }
+
+            record = LogAttributeRecord(entity: description, insertInto: context)
+            record?.key = key
+            record?.value = value
+            record?.log = log
+        }
 
         return record
     }
