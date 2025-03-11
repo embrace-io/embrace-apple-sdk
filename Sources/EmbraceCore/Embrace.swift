@@ -115,6 +115,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         }
 
         let startTime = Date()
+        EMBStartupTracker.shared().sdkSetupStartTime = startTime
 
         return try Embrace.synchronizationQueue.sync {
             if let client = client {
@@ -127,6 +128,8 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
             client = try Embrace(options: options)
             if let client = client {
                 client.recordSetupSpan(startTime: startTime)
+                EMBStartupTracker.shared().sdkSetupEndTime = Date()
+
                 return client
             } else {
                 throw EmbraceSetupError.unableToInitialize("Unable to initialize Embrace.client")
@@ -198,11 +201,22 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         sessionLifecycle.setup()
         Embrace.logger.otel = self
 
+        // startup tracking
+        EMBStartupTracker.shared().internalNotificationCenter = Embrace.notificationCenter
+        EMBStartupTracker.shared().trackDidFinishLaunching()
+        Embrace.notificationCenter.addObserver(
+            self,
+            selector: #selector(onStartupFinished),
+            name: .EMBDidRenderFirstFrame,
+            object: nil
+        )
+
         // config update event
         Embrace.notificationCenter.addObserver(
             self,
             selector: #selector(onConfigUpdated),
-            name: .embraceConfigUpdated, object: nil
+            name: .embraceConfigUpdated, 
+            object: nil
         )
 
         state = .initialized
@@ -217,6 +231,8 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         guard Thread.isMainThread else {
             throw EmbraceSetupError.invalidThread("Embrace must be started on the main thread")
         }
+
+        EMBStartupTracker.shared().sdkStartStartTime = Date()
 
         // must be called on main thread in order to fetch the app state
         sessionLifecycle.setup()
@@ -261,6 +277,8 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
                 }
             }
         }
+
+        EMBStartupTracker.shared().sdkStartEndTime = Date()
 
         return self
     }
@@ -342,5 +360,10 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
                 captureServices.stop()
             }
         }
+    }
+
+    /// Called when the app's first frame is rendered
+    @objc private func onStartupFinished() {
+        addStartupTraces()
     }
 }

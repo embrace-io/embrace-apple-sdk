@@ -13,4 +13,8 @@
 #import "EMBURLSessionDelegateProxy.h"
 #import "EMBWKNavigationDelegateProxy.h"
 
+#import "EMBLoaderClass.h"
+#import "EMBDisplayLinkProxy.h"
+#import "EMBStartupTracker.h"
+
 #endif /* EmbraceObjCUtilsInternal_h */
