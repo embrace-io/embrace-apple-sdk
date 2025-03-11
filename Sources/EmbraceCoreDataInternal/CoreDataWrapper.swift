@@ -14,7 +14,6 @@ public class CoreDataWrapper {
     public private(set) var context: NSManagedObjectContext!
 
     let logger: InternalLogger
-    let lock = NSLock()
 
     public init(options: CoreDataWrapper.Options, logger: InternalLogger) throws {
         self.options = options
@@ -56,80 +55,70 @@ public class CoreDataWrapper {
     /// - Note: Only used in tests!!!
     public func destroy() {
 #if canImport(XCTest)
-        lock.withLock {
-            context.performAndWait {
+        context.performAndWait {
 
-                context.reset()
+            context.reset()
 
-                switch options.storageMechanism {
-                case .onDisk:
-                    if let url = options.storageMechanism.fileURL {
-                        do {
-                            try container.persistentStoreCoordinator.destroyPersistentStore(at: url, ofType: NSSQLiteStoreType)
-                            try FileManager.default.removeItem(at: url)
-                        } catch {
-                            logger.error("Error destroying CoreData stack!:\n\(error.localizedDescription)")
-                        }
-                    }
-
-                default: return
-                }
-
-                if let store = container.persistentStoreCoordinator.persistentStores.first {
+            switch options.storageMechanism {
+            case .onDisk:
+                if let url = options.storageMechanism.fileURL {
                     do {
-                        try container.persistentStoreCoordinator.remove(store)
+                        try container.persistentStoreCoordinator.destroyPersistentStore(at: url, ofType: NSSQLiteStoreType)
+                        try FileManager.default.removeItem(at: url)
                     } catch {
-                        logger.error("Error removing CoreData store!:\n\(error.localizedDescription)")
+                        logger.error("Error destroying CoreData stack!:\n\(error.localizedDescription)")
                     }
                 }
 
-                container = nil
-                context = nil
+            default: return
             }
+
+            if let store = container.persistentStoreCoordinator.persistentStores.first {
+                do {
+                    try container.persistentStoreCoordinator.remove(store)
+                } catch {
+                    logger.error("Error removing CoreData store!:\n\(error.localizedDescription)")
+                }
+            }
+
+            container = nil
+            context = nil
         }
 #endif
     }
 
     /// Synchronously saves all changes on the current context to disk
     public func save() {
-        lock.withLock {
-            context.performAndWait { [weak self] in
-                do {
-                    try self?.context.save()
-                } catch {
-                    let name = self?.context.name ?? "???"
-                    self?.logger.warning("Error saving CoreData \"\(name)\": \(error.localizedDescription)")
-                }
+        context.performAndWait { [weak self] in
+            do {
+                try self?.context.save()
+            } catch {
+                let name = self?.context.name ?? "???"
+                self?.logger.warning("Error saving CoreData \"\(name)\": \(error.localizedDescription)")
             }
         }
     }
 
     /// Synchronously fetches the records that satisfy the given request
     public func fetch<T>(withRequest request: NSFetchRequest<T>) -> [T] where T: NSManagedObject {
-        return lock.withLock {
-
-            var result: [T] = []
-            context.performAndWait {
-                do {
-                    result = try context.fetch(request)
-                } catch { }
-            }
-            return result
+        var result: [T] = []
+        context.performAndWait {
+            do {
+                result = try context.fetch(request)
+            } catch { }
         }
+        return result
     }
 
     /// Synchronously fetches the count of records that satisfy the given request
     public func count<T>(withRequest request: NSFetchRequest<T>) -> Int where T: NSManagedObject {
-        return lock.withLock {
-
-            var result: Int = 0
-            context.performAndWait {
-                do {
-                    result = try context.count(for: request)
-                } catch { }
-            }
-            return result
+        var result: Int = 0
+        context.performAndWait {
+            do {
+                result = try context.count(for: request)
+            } catch { }
         }
+        return result
     }
 
     /// Synchronously deletes record from the database and saves
@@ -139,14 +128,12 @@ public class CoreDataWrapper {
 
     /// Synchronously deletes requested records from the database and saves
     public func deleteRecords<T>(_ records: [T]) where T: NSManagedObject {
-        lock.withLock {
-            context.performAndWait { [weak self] in
-                for record in records {
-                    self?.context.delete(record)
-                }
-
-                try? self?.context.save()
+        context.performAndWait { [weak self] in
+            for record in records {
+                self?.context.delete(record)
             }
+
+            try? self?.context.save()
         }
     }
 }

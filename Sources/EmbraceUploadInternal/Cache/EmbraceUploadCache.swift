@@ -92,7 +92,7 @@ class EmbraceUploadCache {
         if let record = fetchUploadData(id: id, type: type) {
             coreData.context.performAndWait { [weak self] in
                 record.data = data
-                try? self?.coreData.context.save()
+                self?.coreData.save()
             }
 
             return true
@@ -105,24 +105,22 @@ class EmbraceUploadCache {
         var result = true
 
         coreData.context.performAndWait {
-            let record = UploadDataRecord.create(
+            if let record = UploadDataRecord.create(
                 context: coreData.context,
                 id: id,
                 type: type.rawValue,
                 data: data,
                 attemptCount: 0,
                 date: Date()
-            )
+            ) {
 
-            do {
-                try coreData.context.save()
-            } catch {
-                logger.error("Error saving cache data!:\n\(error.localizedDescription)")
-
-                if let record = record {
+                do {
+                    try coreData.context.save()
+                } catch {
                     coreData.context.delete(record)
+                    result = false
                 }
-
+            } else {
                 result = false
             }
         }
@@ -155,7 +153,7 @@ class EmbraceUploadCache {
                         strongSelf.coreData.context.delete(uploadData)
                     }
 
-                    try strongSelf.coreData.context.save()
+                    strongSelf.coreData.save()
                 }
             } catch { }
         }
@@ -190,7 +188,7 @@ class EmbraceUploadCache {
 
         coreData.context.performAndWait { [weak self] in
             uploadData.attemptCount = attemptCount
-            try? self?.coreData.context.save()
+            self?.coreData.save()
         }
     }
 

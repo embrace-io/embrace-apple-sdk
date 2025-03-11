@@ -59,9 +59,17 @@ public final class TapCaptureService: CaptureService {
         guard event.type == .touches,
               let allTouches = event.allTouches,
               let touch = allTouches.first,
-              touch.phase == .began,
+              touch.phase == options.tapPhase.asUITouchPhase(),
               let target = touch.view else {
             return
+        }
+
+        // If we are handling `.ended`, verify that the touch ended inside the original target
+        if touch.phase == .ended {
+            let touchLocation = touch.location(in: target)
+            guard target.bounds.contains(touchLocation) else {
+                return
+            }
         }
 
         // check if the view type should be ignored
