@@ -2,7 +2,6 @@
 //  LoggingTestsSeverityTypeView.swift
 //  EmbraceIOTestApp
 //
-//  Created by Fernando Draghi on 11/03/2025.
 //
 
 import SwiftUI
