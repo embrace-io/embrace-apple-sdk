@@ -11,6 +11,7 @@
 #define DID_FINISH_DOWNLOADING @selector(URLSession:downloadTask:didFinishDownloading:)
 #define DID_COMPLETE_WITH_ERROR @selector(URLSession:task:didCompleteWithError:)
 #define DID_BECOME_INVALID_WITH_ERROR @selector(URLSession:didBecomeInvalidWithError:)
+#define DID_RECEIVE_DATA_TASK_RESPONSE_SELECTOR @selector(URLSession:dataTask:didReceiveResponse:completionHandler:)
 
 @interface EMBURLSessionDelegateProxy ()
 
@@ -31,7 +32,8 @@
         sel_isEqual(aSelector, DID_RECEIVE_DATA_SELECTOR) ||
         sel_isEqual(aSelector, DID_FINISH_DOWNLOADING) ||
         sel_isEqual(aSelector, DID_COMPLETE_WITH_ERROR) ||
-        sel_isEqual(aSelector, DID_BECOME_INVALID_WITH_ERROR)) {
+        sel_isEqual(aSelector, DID_BECOME_INVALID_WITH_ERROR) ||
+        sel_isEqual(aSelector, DID_RECEIVE_DATA_TASK_RESPONSE_SELECTOR)) {
         return YES;
     }
     return [self.originalDelegate respondsToSelector:aSelector];
@@ -123,6 +125,17 @@
 
     if (target) {
         [(id<NSURLSessionDataDelegate>)target URLSession:session dataTask:dataTask didReceiveData:data];
+    }
+}
+
+- (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveResponse:(NSURLResponse *)response completionHandler:(void (^)(NSURLSessionResponseDisposition))completionHandler {
+    id target = [self getTargetForSelector:DID_RECEIVE_DATA_TASK_RESPONSE_SELECTOR session:session];
+
+    if (target) {
+        [(id<NSURLSessionDataDelegate>)target URLSession:session dataTask:dataTask didReceiveResponse:response completionHandler:completionHandler];
+    } else {
+        // If no target is found, we need to call the completion handler ourselves
+        completionHandler(NSURLSessionResponseAllow);
     }
 }
 
