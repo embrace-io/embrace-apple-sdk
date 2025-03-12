@@ -7,25 +7,25 @@
 import SwiftUI
 
 enum LoggingTestScreenDataModel: Int, TestScreenDataModel, CaseIterable {
-    case errorLogMessage = 0
+    case logMessage = 0
 
     var title: String {
         switch self {
-        case .errorLogMessage:
-            "Error Log Message Capture"
+        case .logMessage:
+            "Log Message Capture"
         }
     }
 
     var identifier: String {
         switch self {
-        case .errorLogMessage:
-            "errorLogMessageCaptureTestButton"
+        case .logMessage:
+            "logMessageCaptureTestButton"
         }
     }
 
     @ViewBuilder var uiComponent: some View {
         switch self {
-        case .errorLogMessage:
+        case .logMessage:
             LoggingTestLogMessageUIComponent(dataModel: self)
         }
     }

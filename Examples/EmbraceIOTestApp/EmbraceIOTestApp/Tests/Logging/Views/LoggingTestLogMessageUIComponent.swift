@@ -28,6 +28,7 @@ struct LoggingTestLogMessageUIComponent: View {
                 .foregroundStyle(.embraceSilver)
                 .padding([.leading, .trailing,], 5)
                 .textFieldStyle(RoundedStyle())
+                .accessibilityIdentifier("LogTests_LogMessage")
             Section("Severity Type") {
                 LoggingTestsSeverityTypeView(logSeverity: $viewModel.logSeverity)
             }
@@ -49,6 +50,6 @@ struct LoggingTestLogMessageUIComponent: View {
 
 #Preview {
     let logExporter = TestLogRecordExporter()
-    LoggingTestLogMessageUIComponent(dataModel: LoggingTestScreenDataModel.errorLogMessage)
+    LoggingTestLogMessageUIComponent(dataModel: LoggingTestScreenDataModel.logMessage)
         .environment(logExporter)
 }

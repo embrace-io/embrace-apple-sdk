@@ -24,6 +24,7 @@ struct LoggingTestsLogAttributesView: View {
                         .foregroundStyle(.embraceSilver)
                         .padding([.leading, .trailing,], 5)
                         .textFieldStyle(RoundedStyle())
+                        .accessibilityIdentifier("LogTestsAttributes_Key")
                 }
                 HStack {
                     Spacer()
@@ -35,6 +36,7 @@ struct LoggingTestsLogAttributesView: View {
                         .foregroundStyle(.embraceSilver)
                         .padding([.leading, .trailing,], 5)
                         .textFieldStyle(RoundedStyle())
+                        .accessibilityIdentifier("LogTestsAttributes_Value")
                 }
                 Button {
                     addAttributeAction(attributeKey, attributeValue)
@@ -44,6 +46,7 @@ struct LoggingTestsLogAttributesView: View {
                     Text("Insert Attribute")
                         .frame(height: 40)
                 }
+                .accessibilityIdentifier("LogTestsAttributes_Insert_Button")
             }
         }
     }

@@ -13,10 +13,28 @@ struct LoggingTestsSeverityTypeView: View {
         Picker("", selection: $logSeverity) {
             ForEach(LogSeverity.allCases, id: \.self) { option in
                 Text(option.text)
+                    .accessibilityIdentifier(identifier(for: option))
             }
         }
         .pickerStyle(SegmentedPickerStyle())
         .padding(.bottom, 20)
+    }
+
+    private func identifier(for severity: LogSeverity) -> String {
+        switch severity {
+        case .trace:
+            return "LogSeverity_Trace"
+        case .debug:
+            return "LogSeverity_Debug"
+        case .info:
+            return "LogSeverity_Info"
+        case .warn:
+            return "LogSeverity_Warn"
+        case .error:
+            return "LogSeverity_Error"
+        case .fatal:
+            return "LogSeverity_Fatal"
+        }
     }
 }
 
