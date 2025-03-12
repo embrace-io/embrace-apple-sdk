@@ -11,8 +11,7 @@ struct LoggingTestLogMessageUIComponent: View {
     @Environment(TestLogRecordExporter.self) private var logExporter
     @State var dataModel: any TestScreenDataModel
     @State private var viewModel: LoggingTestMessageViewModel
-    @State private var attributeKey: String = ""
-    @State private var attributeValue: String = ""
+
     init(dataModel: any TestScreenDataModel) {
         self.dataModel = dataModel
         viewModel = .init(dataModel: dataModel)
@@ -30,55 +29,14 @@ struct LoggingTestLogMessageUIComponent: View {
                 .padding([.leading, .trailing,], 5)
                 .textFieldStyle(RoundedStyle())
             Section("Severity Type") {
-                Picker("", selection: $viewModel.logSeverity) {
-                    ForEach(viewModel.logSeverities, id: \.self) { option in
-                        Text(option.text)
-                    }
-                }
-                .pickerStyle(SegmentedPickerStyle())
-                .padding(.bottom, 20)
+                LoggingTestsSeverityTypeView(logSeverity: $viewModel.logSeverity)
             }
             Section("Stack Trace") {
-                Picker("", selection: $viewModel.stacktraceBehavior) {
-                    ForEach(viewModel.stacktraceBehaviors, id: \.self) { option in
-                        Text(option.text)
-                    }
-                }
-                .pickerStyle(SegmentedPickerStyle())
-                .padding(.bottom, 20)
+                LoggingTestsStackTraceSelectionView(stacktraceBehavior: $viewModel.stacktraceBehavior)
             }
             Section("Log Attributes") {
-                VStack {
-                    HStack {
-                        Spacer()
-                        Text("Key")
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                        TextField("A key", text: $attributeKey)
-                            .font(.embraceFont(size: 18))
-                            .foregroundStyle(.embraceSilver)
-                            .padding([.leading, .trailing,], 5)
-                            .textFieldStyle(RoundedStyle())
-                    }
-                    HStack {
-                        Spacer()
-                        Text("Value")
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                        TextField("A value", text: $attributeValue)
-                            .font(.embraceFont(size: 18))
-                            .foregroundStyle(.embraceSilver)
-                            .padding([.leading, .trailing,], 5)
-                            .textFieldStyle(RoundedStyle())
-                    }
-                    Button {
-                        viewModel.addLogAttribute(key: attributeKey, value: attributeValue)
-                        attributeKey = ""
-                        attributeValue = ""
-                    } label: {
-                        Text("Insert Attribute")
-                            .frame(height: 40)
-                    }
+                LoggingTestsLogAttributesView { key, value in
+                    viewModel.addLogAttribute(key: key, value: value)
                 }
             }
             TestScreenButtonView(viewModel: viewModel)
