@@ -42,7 +42,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         logMessageTextField.typeText(XCUIKeyboardKey.return.rawValue)
     }
 
-    @objc private func selectSeverityButton(_ severity: LogSeverity) {
+    private func selectSeverityButton(_ severity: LogSeverity) {
         var identifier: String = ""
         switch severity {
         case .trace:
@@ -57,6 +57,18 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
             identifier = "LogSeverity_Error"
         case .fatal:
             identifier = "LogSeverity_Fatal"
+        }
+
+        app.buttons[identifier].tap()
+    }
+
+    private func selectStackTraceBehavior(_ behavior: StackTraceBehavior) {
+        var identifier = ""
+        switch behavior {
+        case .default:
+            identifier = "stackTraceBehavior_Default"
+        case .notIncluded:
+            identifier = "stackTraceBehavior_notIncluded"
         }
 
         app.buttons[identifier].tap()
@@ -121,6 +133,58 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         enterCustomMessage()
 
         selectSeverityButton(.fatal)
+
+        runLogTest()
+    }
+
+    /// No Stack Trace
+
+    func testLogCapture_warn_noStack() {
+
+        enterCustomMessage()
+
+        selectSeverityButton(.warn)
+        selectStackTraceBehavior(.notIncluded)
+        runLogTest()
+    }
+
+    func testLogCapture_error_noStack() {
+
+        enterCustomMessage()
+
+        selectSeverityButton(.error)
+        selectStackTraceBehavior(.notIncluded)
+        runLogTest()
+    }
+
+    /// Adding a property
+
+    func testLogCapture_withProperty() {
+
+        enterCustomMessage()
+        selectSeverityButton(.warn)
+
+        let logMessageAttributeKeyTextField = app.textFields["LogTestsAttributes_Key"]
+        logMessageAttributeKeyTextField.tap()
+
+        _ = waitUntilElementHasFocus(element: logMessageAttributeKeyTextField)
+
+        logMessageAttributeKeyTextField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: (logMessageAttributeKeyTextField.value as? String ?? "").count))
+
+        logMessageAttributeKeyTextField.typeText("SomeCustomKey")
+        logMessageAttributeKeyTextField.typeText(XCUIKeyboardKey.return.rawValue)
+
+        let logMessageAttributeValueTextField = app.textFields["LogTestsAttributes_Value"]
+        logMessageAttributeValueTextField.tap()
+
+        _ = waitUntilElementHasFocus(element: logMessageAttributeValueTextField)
+
+        logMessageAttributeValueTextField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: (logMessageAttributeValueTextField.value as? String ?? "").count))
+
+        logMessageAttributeValueTextField.typeText("Some Custom Value")
+        logMessageAttributeValueTextField.typeText(XCUIKeyboardKey.return.rawValue)
+
+        app.buttons["LogTestsAttributes_Insert_Button"].tap()
 
         runLogTest()
     }
