@@ -52,7 +52,7 @@ class ResourcePayloadTests: XCTestCase {
         XCTAssertEqual(json["app_bundle_id"] as? String, Bundle.main.bundleIdentifier)
         XCTAssertEqual(json["build_id"] as? String, "fakebuilduuidnohyphen")
 
-        XCTAssertEqual(json["bundle_version"] as? String, "9.8.7")
+        XCTAssertEqual(json["build"] as? String, "9.8.7")
         XCTAssertEqual(json["environment"] as? String, "dev")
         XCTAssertEqual(json["environment_detail"] as? String, "si")
         XCTAssertEqual(json["app_framework"] as? Int, 111)
