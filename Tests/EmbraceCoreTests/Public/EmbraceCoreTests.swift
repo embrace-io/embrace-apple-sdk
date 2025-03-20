@@ -37,9 +37,16 @@ final class EmbraceCoreTests: XCTestCase {
         // so it seems to be good for testing as it prevents the required
         // use of expectations
         DispatchQueue.concurrentPerform(iterations: 100) {_ in
-            let id = embrace?.currentSessionId()
             embrace?.endCurrentSession()
+            let id = embrace?.currentSessionId()
+#if os(iOS)
+            // iOS lifecycle restarts the session on every endCurrentSession call
+            // so id should never be nil
             XCTAssertNotNil(id)
+#else
+            // Non-iOS lifecycle does not restart session so id should be nil
+            XCTAssertNil(id)
+#endif
         }
     }
 
@@ -116,7 +123,8 @@ final class EmbraceCoreTests: XCTestCase {
 
         DispatchQueue.global().async {
             // with the do / catch we get a warning but without it there is an error.
-            // Not sure the correct thing to do here but this works at least for now
+            // known bug - https://github.com/swiftlang/swift/issues/57281
+            // best workaround is to use do / catch
 
             do {
                 XCTAssertThrowsError(try embrace?.start()) { error in
