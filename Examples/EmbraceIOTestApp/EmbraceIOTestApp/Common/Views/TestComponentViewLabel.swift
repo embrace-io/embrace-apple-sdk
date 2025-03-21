@@ -51,5 +51,6 @@ struct TestComponentViewLabel: View {
         TestComponentViewLabel(text: "Test", state: .idle(false))
         TestComponentViewLabel(text: "Test", state: .idle(true))
         TestComponentViewLabel(text: "Test", state: .testComplete(.fail))
+        TestComponentViewLabel(text: "A very, very large multiline text", state: .idle(false))
     }
 }

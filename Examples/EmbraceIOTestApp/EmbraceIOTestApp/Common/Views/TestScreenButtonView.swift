@@ -16,7 +16,8 @@ struct TestScreenButtonView: View {
             } label: {
                 TestComponentViewLabel(text: viewModel.dataModel.title,
                                        state: viewModel.state)
-                    .foregroundStyle(.embraceSilver.opacity(viewModel.readyToTest ? 1.0 : 0.5))
+                .multilineTextAlignment(.leading)
+                .foregroundStyle(.embraceSilver.opacity(viewModel.readyToTest ? 1.0 : 0.5))
             }
             .disabled(!viewModel.readyToTest)
             .accessibilityIdentifier(viewModel.dataModel.identifier)
@@ -37,7 +38,7 @@ struct TestScreenButtonView: View {
 #Preview {
     let spanExporter = TestSpanExporter()
     VStack {
-        TestScreenButtonView(viewModel: SpanTestUIComponentViewModel(dataModel: ViewControllerTestsDataModel.viewDidLoad,
+        TestScreenButtonView(viewModel: SpanTestUIComponentViewModel(dataModel: ViewControllerTestsDataModel.viewDidAppearMeasurement,
                                                                      payloadTestObject: ViewControllerViewDidLoadTest()))
     }
 }
