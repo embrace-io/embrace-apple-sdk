@@ -9,14 +9,10 @@ import EmbraceIO
 import EmbraceCommonInternal
 
 class LoggingErrorMessageTest: PayloadTest {
-    var testRelevantSpanName: String = ""
+    var testRelevantPayloadNames: [String] { [loggedMessage] }
     var testType: TestType { .Logs }
     var requiresCleanup: Bool { true }
-    var loggedMessage: String {
-        didSet {
-            testRelevantSpanName = loggedMessage
-        }
-    }
+    var loggedMessage: String
     var loggedMessageSeverity: LogSeverity
     var logProperties: [String: String] = [:]
     var stackTraceBehavior: StackTraceBehavior = .default

@@ -8,7 +8,7 @@ import OpenTelemetrySdk
 import OpenTelemetryApi
 
 protocol PayloadTest {
-    var testRelevantSpanName: String { get }
+    var testRelevantPayloadNames: [String] { get }
     var requiresCleanup: Bool { get }
     var runImmediatelyIfSpansFound: Bool { get }
     var runImmediatelyIfLogsFound: Bool { get }

@@ -20,6 +20,10 @@ import OpenTelemetrySdk
         return .success
     }
 
+    func clearAll(_ specifics: [String]) {
+        specifics.forEach { clearAll($0) }
+    }
+
     func clearAll(_ specific: String? = nil) {
         guard let specific = specific else {
             cachedExportedLogs.removeAll()

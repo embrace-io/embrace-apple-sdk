@@ -11,12 +11,16 @@ import OpenTelemetrySdk
     private(set) var cachedExportedSpans: [String: [SpanData]] = [:]
     private var embraceStarted = false
 
+    func clearAll(_ specifics: [String]) {
+        specifics.forEach { clearAll($0) }
+    }
+
     func clearAll(_ specific: String? = nil) {
         guard let specific = specific else {
             cachedExportedSpans.removeAll()
             return
         }
-        cachedExportedSpans[specific]?.removeAll()
+        cachedExportedSpans[specific] = nil
     }
 
     func shutdown(explicitTimeout: TimeInterval?) {}

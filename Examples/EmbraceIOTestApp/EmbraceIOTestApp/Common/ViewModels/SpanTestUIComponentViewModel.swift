@@ -5,6 +5,7 @@
 //
 
 import SwiftUI
+import OpenTelemetrySdk
 
 class SpanTestUIComponentViewModel: UIComponentViewModelBase {
     var spanExporter: TestSpanExporter = .init()
@@ -14,7 +15,7 @@ class SpanTestUIComponentViewModel: UIComponentViewModelBase {
         super.testButtonPressed()
         
         // if test object requirest tests to be run immediately if relevant spans are already present
-        guard !payloadTestObject.runImmediatelyIfSpansFound || (spanExporter.cachedExportedSpans[payloadTestObject.testRelevantSpanName]?.count ?? 0) == 0 else {
+        guard !payloadTestObject.runImmediatelyIfSpansFound || !allRevelantSpansAreAlreadyCached else {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
                 self?.performTest()
             }
@@ -22,12 +23,27 @@ class SpanTestUIComponentViewModel: UIComponentViewModelBase {
         }
 
         if payloadTestObject.requiresCleanup {
-            spanExporter.clearAll(payloadTestObject.testRelevantSpanName)
+            spanExporter.clearAll(payloadTestObject.testRelevantPayloadNames)
         }
 
         registerForNotification()
 
         payloadTestObject.runTestPreparations()
+    }
+
+    private var allRevelantSpansAreAlreadyCached: Bool {
+        payloadTestObject.testRelevantPayloadNames.allSatisfy { spanName in
+            (spanExporter.cachedExportedSpans[spanName] ?? []).count > 0
+        }
+    }
+
+    private var relevantSpans: [SpanData] {
+        var spans = [SpanData]()
+        payloadTestObject.testRelevantPayloadNames.forEach { spanName in
+            guard let span = spanExporter.cachedExportedSpans[spanName] else { return }
+            spans.append(contentsOf: span)
+        }
+        return spans
     }
 
     private func registerForNotification() {
@@ -37,16 +53,17 @@ class SpanTestUIComponentViewModel: UIComponentViewModelBase {
     }
 
     private func performTest() {
+        let spans = relevantSpans
         guard
-            let spans = spanExporter.cachedExportedSpans[payloadTestObject.testRelevantSpanName],
             !spans.isEmpty
         else { return }
 
         let testReport = payloadTestObject.test(spans: spans)
         testFinished(with: testReport)
+        unregisterNotification()
     }
 
-    private func testHasFinished() {
+    private func unregisterNotification() {
         guard let observingObject = observingObject else { return }
 
         NotificationCenter.default.removeObserver(observingObject, name: .init("TestSpanExporter.SpansUpdated"), object: nil)

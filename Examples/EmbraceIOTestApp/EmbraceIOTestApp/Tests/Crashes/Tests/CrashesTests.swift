@@ -10,7 +10,7 @@ import EmbraceIO
 import SwiftUI
 
 class CrashesTests: PayloadTest {
-    var testRelevantSpanName: String { "" }
+    var testRelevantPayloadNames: [String] { [] }
     var requiresCleanup: Bool { false }
     var runImmediatelyIfLogsFound: Bool { crashTriggered }
 

@@ -23,7 +23,7 @@ class LogTestUIComponentViewModel: UIComponentViewModelBase {
         }
 
         if payloadTestObject.requiresCleanup {
-            logExporter.clearAll(payloadTestObject.testRelevantSpanName)
+            logExporter.clearAll(payloadTestObject.testRelevantPayloadNames)
         }
 
         registerForNotification()
@@ -42,9 +42,10 @@ class LogTestUIComponentViewModel: UIComponentViewModelBase {
     private func performTest() {
         let testReport = payloadTestObject.test(logs: logExporter.cachedExportedLogs)
         testFinished(with: testReport)
+        unregisterNotification()
     }
 
-    private func testHasFinished() {
+    private func unregisterNotification() {
         guard let observingObject = observingObject else { return }
 
         NotificationCenter.default.removeObserver(observingObject, name: .init("TestLogRecordExporter.LogsUpdated"), object: nil)

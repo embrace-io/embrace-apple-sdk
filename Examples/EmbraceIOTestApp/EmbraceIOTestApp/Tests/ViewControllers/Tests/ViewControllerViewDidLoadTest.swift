@@ -1,5 +1,5 @@
 //
-//  ViewControllerTest.swift
+//  ViewControllerViewDidLoadTest.swift
 //  EmbraceIOTestApp
 //
 //
@@ -9,7 +9,7 @@ import OpenTelemetryApi
 import SwiftUI
 
 class ViewControllerViewDidLoadTest: PayloadTest {
-    var testRelevantSpanName: String { "emb-view-did-load" }
+    var testRelevantPayloadNames: [String] { ["emb-view-did-load"] }
     var testType: TestType { .Spans }
 
     func runTestPreparations() {

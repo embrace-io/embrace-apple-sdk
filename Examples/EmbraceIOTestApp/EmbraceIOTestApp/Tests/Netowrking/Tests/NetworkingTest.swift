@@ -10,7 +10,7 @@ import OpenTelemetrySdk
 class NetworkingTest: PayloadTest {
     private var testURL: String = "https://embrace.io"
     private var client = NetworkingTestClient()
-    var testRelevantSpanName: String { "GET " }
+    var testRelevantPayloadNames: [String] { ["GET "] }
 
     func runTestPreparations() {
         Task {
