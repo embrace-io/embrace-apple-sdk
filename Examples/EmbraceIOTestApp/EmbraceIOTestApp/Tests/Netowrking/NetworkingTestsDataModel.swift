@@ -26,7 +26,7 @@ enum NetworkingTestsDataModel: Int, TestScreenDataModel, CaseIterable {
     @ViewBuilder var uiComponent: some View {
         switch self {
         case .networkCall:
-            TestSpanScreenButtonView(viewModel: .init(dataModel: self, payloadTestObject: NetworkingTest()))
+            NetworkingTestUIComponent(dataModel: self)
         }
     }
 }

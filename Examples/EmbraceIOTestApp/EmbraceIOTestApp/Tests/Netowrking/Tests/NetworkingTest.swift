@@ -8,10 +8,10 @@ import SwiftUI
 import OpenTelemetrySdk
 
 class NetworkingTest: PayloadTest {
-    private var testURL: String = "https://embrace.io"
+    var testURL: String = "https://embrace.io"
     private var client = NetworkingTestClient()
-    var testRelevantPayloadNames: [String] { ["GET "] }
-
+    var testRelevantPayloadNames: [String] { [requestMethod.text] }
+    var requestMethod: URLRequestMethod = .get
     func runTestPreparations() {
         Task {
             await client.makeTestNetworkCall(to: testURL)
