@@ -118,7 +118,7 @@ decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler {
     if ([self.originalDelegate respondsToSelector:@selector(webView:decidePolicyForNavigationAction:decisionHandler:)]) {
         [self.originalDelegate webView:webView decidePolicyForNavigationAction:navigationAction decisionHandler:decisionHandler];
     } else {
-        decisionHandler(WKNavigationActionPolicyCancel);
+        decisionHandler(WKNavigationActionPolicyAllow);
     }
 }
 
@@ -140,9 +140,8 @@ decisionHandler:(void (^)(WKNavigationActionPolicy, WKWebpagePreferences *))deci
         [self.originalDelegate webView:webView decidePolicyForNavigationAction:navigationAction decisionHandler:^(WKNavigationActionPolicy policy) {
             decisionHandler(policy, preferences);
         }];
-
     } else {
-        decisionHandler(WKNavigationActionPolicyCancel, preferences);
+        decisionHandler(WKNavigationActionPolicyAllow, preferences);
     }
 }
 
