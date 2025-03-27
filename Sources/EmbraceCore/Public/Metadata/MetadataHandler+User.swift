@@ -12,11 +12,11 @@ import EmbraceStorageInternal
     /// Will be set permanently until explicitly unset via the `clearUserProperties()` method.
     /// - Note: No validation is done on the username. Be sure it matches or
     ///         can be mapped to a record in your system
-    public var userName: String? {
-        get {
+    @objc public var userName: String? {
+        @objc get {
             value(for: .name)
         }
-        set {
+        @objc set {
             update(key: .name, value: newValue)
         }
     }
@@ -25,11 +25,11 @@ import EmbraceStorageInternal
     /// Will be set permanently  until explicitly unset via the `clearUserProperties()` method.
     /// - Note: No validation is done on the email address. Be sure it matches or
     ///         can be mapped to a record in your system
-    public var userEmail: String? {
-        get {
+    @objc public var userEmail: String? {
+        @objc get {
             value(for: .email)
         }
-        set {
+        @objc set {
             update(key: .email, value: newValue)
         }
     }
@@ -38,18 +38,18 @@ import EmbraceStorageInternal
     /// Will be set permanently until explicitly unset via the `clearUserProperties()` method.
     /// - Note: No validation is done on the identifier. Be sure it matches or
     ///         can be mapped to a record in your system
-    public var userIdentifier: String? {
-        get {
+    @objc public var userIdentifier: String? {
+        @objc get {
             value(for: .identifier)
         }
-        set {
+        @objc set {
             update(key: .identifier, value: newValue)
         }
     }
 
     /// Clear all user properties.
     /// This will clear all user properties set via the `userName`, `userEmail` and `userIdentifier` properties.
-    public func clearUserProperties() {
+    @objc public func clearUserProperties() {
         do {
             try storage?.removeAllMetadata(keys: UserResourceKey.allValues, lifespan: .permanent)
         } catch {
