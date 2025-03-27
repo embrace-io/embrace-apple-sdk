@@ -13,7 +13,7 @@ struct NetworkingTestMethodTypeView: View {
     var body: some View {
         Picker("", selection: $requestMethod) {
             ForEach(URLRequestMethod.allCases, id: \.self) { method in
-                Text(method.text)
+                Text(method.description)
                     .accessibilityIdentifier(identifier(for: method))
             }
         }

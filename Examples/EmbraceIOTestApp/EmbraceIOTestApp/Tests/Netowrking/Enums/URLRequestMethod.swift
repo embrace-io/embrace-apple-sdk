@@ -10,16 +10,20 @@ enum URLRequestMethod: Int, CaseIterable {
     case put
     case delete
 
-    var text: String {
+    var description: String {
         switch self {
         case .get:
-            "GET "
+            "GET"
         case .post:
-            "POST "
+            "POST"
         case .put:
-            "PUT "
+            "PUT"
         case .delete:
-            "DELETE "
+            "DELETE"
         }
+    }
+
+    func description(withApi api: String) -> String {
+        "\(description) \(api)"
     }
 }

@@ -16,6 +16,12 @@ class NetworkingTestViewModel: SpanTestUIComponentViewModel {
         }
     }
 
+    @Published var api: String = "" {
+        didSet {
+            testObject.api = api
+        }
+    }
+
     @Published var requestMethod: URLRequestMethod = .get {
         didSet {
             testObject.requestMethod = requestMethod
@@ -24,5 +30,9 @@ class NetworkingTestViewModel: SpanTestUIComponentViewModel {
 
     init(dataModel: any TestScreenDataModel) {
         super.init(dataModel: dataModel, payloadTestObject: self.testObject)
+    }
+
+    func addBodyProperty(key: String, value: String) {
+        testObject.requestBody[key.replacingOccurrences(of: " ", with: "").lowercased()] = value
     }
 }
