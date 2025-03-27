@@ -15,11 +15,6 @@ class DeviceIdentifier_PersistenceTests: XCTestCase {
     override func setUpWithError() throws {
         storage = try EmbraceStorage.createInMemoryDb()
         KeychainAccess.keychain = AlwaysSuccessfulKeychainInterface()
-
-        // delete the resource if we already have it
-        if let resource = storage.fetchRequiredPermanentResource(key: DeviceIdentifier.resourceKey) {
-            storage.delete(resource)
-        }
     }
 
     override func tearDownWithError() throws {
@@ -38,11 +33,6 @@ class DeviceIdentifier_PersistenceTests: XCTestCase {
     }
 
     func test_retrieve_withNoRecordInStorage_shouldRequestFromKeychain() throws {
-        // because of our setup we could assume there is no database entry but lets make sure
-        // to delete the resource if we already have it
-        if let resource = storage.fetchRequiredPermanentResource(key: DeviceIdentifier.resourceKey) {
-            storage.delete(resource)
-        }
         let keychainDeviceId = KeychainAccess.deviceId
 
         let result = DeviceIdentifier.retrieve(from: storage)

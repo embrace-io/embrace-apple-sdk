@@ -19,19 +19,20 @@ class EmbraceStorageTests: XCTestCase {
 
     func test_delete() throws {
         // given inserted record
-        let span = storage.upsertSpan(
+        storage.upsertSpan(
             id: "id",
             name: "a name",
             traceId: "traceId",
             type: .performance,
             data: Data(),
             startTime: Date()
-        )!
+        )
 
         // then record should exist in storage
         var spans: [SpanRecord] = storage.fetchAll()
         XCTAssertEqual(spans.count, 1)
         XCTAssertNotNil(spans.first(where: { $0.name == "a name"}))
+        let span = spans[0]
 
         // when deleting record
         storage.delete(span)
@@ -43,29 +44,29 @@ class EmbraceStorageTests: XCTestCase {
 
     func test_fetchAll() throws {
         // given inserted records
-        let span1 = storage.upsertSpan(
+        storage.upsertSpan(
             id: "id1",
             name: "a name 1",
             traceId: "traceId",
             type: .performance,
             data: Data(),
             startTime: Date()
-        )!
-        let span2 = storage.upsertSpan(
+        )
+        storage.upsertSpan(
             id: "id2",
             name: "a name 2",
             traceId: "traceId",
             type: .performance,
             data: Data(),
             startTime: Date()
-        )!
+        )
 
         // when fetching all records
         let records: [SpanRecord] = storage.fetchAll()
 
         // then all records should be successfully fetched
         XCTAssert(records.count == 2)
-        XCTAssert(records.contains(span1))
-        XCTAssert(records.contains(span2))
+        XCTAssertNotNil(records.first(where: { $0.id == "id1" }))
+        XCTAssertNotNil(records.first(where: { $0.id == "id2" }))
     }
 }

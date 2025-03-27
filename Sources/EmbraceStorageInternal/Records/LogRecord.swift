@@ -8,7 +8,7 @@ import OpenTelemetryApi
 import CoreData
 
 @objc(LogRecord)
-public class LogRecord: NSManagedObject, EmbraceLog {
+public class LogRecord: NSManagedObject {
     @NSManaged public var idRaw: String // LogIdentifier
     @NSManaged public var processIdRaw: String // ProcessIdentifier
     @NSManaged public var severityRaw: Int // LogSeverity
@@ -24,21 +24,21 @@ public class LogRecord: NSManagedObject, EmbraceLog {
         body: String,
         timestamp: Date = Date(),
         attributes: [String: AttributeValue]
-    ) -> LogRecord? {
-        var record: LogRecord?
+    ) -> EmbraceLog? {
+        var result: EmbraceLog?
 
         context.performAndWait {
             guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
                 return
             }
 
-            record = LogRecord(entity: description, insertInto: context)
-            record?.idRaw = id.toString
-            record?.processIdRaw = processId.hex
-            record?.severityRaw = severity.rawValue
-            record?.body = body
-            record?.timestamp = timestamp
-            record?.attributes = Set()
+            let record = LogRecord(entity: description, insertInto: context)
+            record.idRaw = id.toString
+            record.processIdRaw = processId.hex
+            record.severityRaw = severity.rawValue
+            record.body = body
+            record.timestamp = timestamp
+            record.attributes = Set()
 
             for (key, value) in attributes {
                 if let attribute = LogAttributeRecord.create(
@@ -47,39 +47,31 @@ public class LogRecord: NSManagedObject, EmbraceLog {
                     value: value,
                     log: record
                 ) {
-                    record?.attributes.insert(attribute)
+                    record.attributes.insert(attribute)
                 }
             }
+
+            result = record.toImmutable()
         }
 
-        return record
+        return result
     }
 
     static func createFetchRequest() -> NSFetchRequest<LogRecord> {
         return NSFetchRequest<LogRecord>(entityName: entityName)
     }
 
-    public func allAttributes() -> [any EmbraceLogAttribute] {
-        return Array(attributes)
-    }
+    func toImmutable() -> EmbraceLog {
+        let attributes = attributes.map { $0.toImmutable() }
 
-    public func attribute(forKey key: String) -> EmbraceLogAttribute? {
-        return attributes.first(where: { $0.key == key })
-    }
-
-    public func setAttributeValue(value: AttributeValue, forKey key: String) {
-        if var attribute = attribute(forKey: key) {
-            attribute.value = value
-            return
-        }
-
-        guard let context = managedObjectContext else {
-            return
-        }
-
-        if let attribute = LogAttributeRecord.create(context: context, key: key, value: value, log: self) {
-            attributes.insert(attribute)
-        }
+        return ImmutableLogRecord(
+            idRaw: idRaw,
+            processIdRaw: processIdRaw,
+            severityRaw: severityRaw,
+            body: body,
+            timestamp: timestamp,
+            attributes: attributes
+        )
     }
 }
 
@@ -162,5 +154,22 @@ extension LogRecord: EmbraceStorageRecord {
         ]
 
         return [entity, child]
+    }
+}
+
+struct ImmutableLogRecord: EmbraceLog {
+    let idRaw: String
+    let processIdRaw: String
+    let severityRaw: Int
+    let body: String
+    let timestamp: Date
+    let attributes: [EmbraceLogAttribute]
+
+    func allAttributes() -> [any EmbraceCommonInternal.EmbraceLogAttribute] {
+        return attributes
+    }
+
+    func attribute(forKey key: String) -> (any EmbraceCommonInternal.EmbraceLogAttribute)? {
+        return attributes.first(where: { $0.key == key })
     }
 }

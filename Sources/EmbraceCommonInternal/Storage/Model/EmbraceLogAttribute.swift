@@ -10,9 +10,9 @@ public enum EmbraceLogAttributeType: Int {
 }
 
 public protocol EmbraceLogAttribute {
-    var key: String { get set }
-    var valueRaw: String { get set }
-    var typeRaw: Int { get set }
+    var key: String { get }
+    var valueRaw: String { get }
+    var typeRaw: Int { get }
 }
 
 public extension EmbraceLogAttribute {
@@ -27,20 +27,6 @@ public extension EmbraceLogAttribute {
             case .bool: return AttributeValue(Bool(valueRaw) ?? false)
             default: return AttributeValue(valueRaw)
             }
-        }
-
-        set {
-            valueRaw = newValue.description
-            typeRaw = typeForValue(newValue).rawValue
-        }
-    }
-
-    func typeForValue(_ value: AttributeValue) -> EmbraceLogAttributeType {
-        switch value {
-        case .int: return .int
-        case .double: return .double
-        case .bool: return .bool
-        default: return .string
         }
     }
 }

@@ -25,23 +25,27 @@ final class StorageSpanExporterTests: XCTestCase {
         let startTime = Date()
         let endTime = startTime.addingTimeInterval(2000)
 
-        let closedSpanData = SpanData(traceId: traceId,
-                                             spanId: spanId,
-                                             parentSpanId: nil,
-                                             name: name,
-                                             kind: .internal,
-                                             startTime: startTime,
-                                             endTime: endTime,
-                                             hasEnded: true )
+        let closedSpanData = SpanData(
+            traceId: traceId,
+            spanId: spanId,
+            parentSpanId: nil,
+            name: name,
+            kind: .internal,
+            startTime: startTime,
+            endTime: endTime,
+            hasEnded: true
+        )
 
-        let updated_closedSpanData = SpanData(traceId: traceId,
-                                             spanId: spanId,
-                                             parentSpanId: nil,
-                                             name: name,
-                                             kind: .internal,
-                                             startTime: startTime.addingTimeInterval(1000),
-                                             endTime: startTime.addingTimeInterval(-10000),
-                                             hasEnded: false )
+        let updated_closedSpanData = SpanData(
+            traceId: traceId,
+            spanId: spanId,
+            parentSpanId: nil,
+            name: name,
+            kind: .internal,
+            startTime: startTime.addingTimeInterval(1000),
+            endTime: startTime.addingTimeInterval(-10000),
+            hasEnded: false
+        )
 
         // When spans are exported
         _ = exporter.export(spans: [closedSpanData])
@@ -73,25 +77,29 @@ final class StorageSpanExporterTests: XCTestCase {
 
         let startTime = Date()
 
-        let openSpanData = SpanData(traceId: traceId,
-                                    spanId: spanId,
-                                    parentSpanId: nil,
-                                    name: name,
-                                    kind: .internal,
-                                    startTime: startTime,
-                                    attributes: ["foo": .string("bar")],
-                                    endTime: Date(),
-                                    hasEnded: false )
+        let openSpanData = SpanData(
+            traceId: traceId,
+            spanId: spanId,
+            parentSpanId: nil,
+            name: name,
+            kind: .internal,
+            startTime: startTime,
+            attributes: ["foo": .string("bar")],
+            endTime: Date(),
+            hasEnded: false
+        )
 
-        let updated_openSpanData = SpanData(traceId: traceId,
-                                             spanId: spanId,
-                                             parentSpanId: nil,
-                                             name: name,
-                                             kind: .internal,
-                                             startTime: startTime.addingTimeInterval(1000),
-                                             attributes: ["foo": .string("baz")],
-                                             endTime: Date(),
-                                             hasEnded: false )
+        let updated_openSpanData = SpanData(
+            traceId: traceId,
+            spanId: spanId,
+            parentSpanId: nil,
+            name: name,
+            kind: .internal,
+            startTime: startTime.addingTimeInterval(1000),
+            attributes: ["foo": .string("baz")],
+            endTime: Date(),
+            hasEnded: false
+        )
 
         // When spans are exported
         _ = exporter.export(spans: [openSpanData])

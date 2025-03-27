@@ -53,24 +53,20 @@ class UnsentDataHandler {
         crashReports: [CrashReport]
     ) {
         // send crash reports
-        var save = false
-
         for report in crashReports {
 
             // link session with crash report if possible
             var session: EmbraceSession?
 
+            // set crash reportId on session
             if let sessionId = SessionIdentifier(string: report.sessionId) {
+                storage.updateSession(
+                    sessionId: sessionId,
+                    endTime: report.timestamp,
+                    crashReportId: report.id.uuidString
+                )
+
                 session = storage.fetchSession(id: sessionId)
-                if var session = session {
-                    // update session's end time with the crash report timestamp
-                    session.endTime = report.timestamp ?? session.endTime
-
-                    // update crash report id
-                    session.crashReportId = report.id.uuidString
-
-                    save = true
-                }
             }
 
             // send crash log
@@ -82,10 +78,6 @@ class UnsentDataHandler {
                 upload: upload,
                 otel: otel
             )
-        }
-
-        if save {
-            storage.save()
         }
 
         // send sessions
@@ -196,7 +188,7 @@ class UnsentDataHandler {
         closeOpenSpans(storage: storage, currentSessionId: currentSessionId)
 
         // fetch all sessions in the storage
-        let sessions: [SessionRecord] = storage.fetchAll()
+        let sessions: [EmbraceSession] = storage.fetchAllSessions()
 
         for session in sessions {
             // ignore current session
@@ -239,8 +231,8 @@ class UnsentDataHandler {
             case .success:
                 // remove session from storage
                 // we can remove this immediately because the upload module will cache it until the upload succeeds
-                if let record = session as? SessionRecord {
-                    storage.delete(record)
+                if let sessionId = session.id {
+                    storage.deleteSession(id: sessionId)
                 }
 
                 if performCleanUp {

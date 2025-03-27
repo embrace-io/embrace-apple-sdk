@@ -16,22 +16,7 @@ class SessionPayloadBuilder {
         }
 
         // increment counter or create resource if needed
-        var resource = storage.fetchRequiredPermanentResource(key: resourceName)
-        var counter: Int = -1
-
-        if let resource = resource {
-            counter = (Int(resource.value) ?? 0) + 1
-            resource.value = String(counter)
-            storage.save()
-        } else {
-            resource = storage.addMetadata(
-                key: resourceName,
-                value: "1",
-                type: .requiredResource,
-                lifespan: .permanent
-            )
-            counter = 1
-        }
+        let counter = storage.incrementCountForPermanentResource(key: resourceName)
 
         // build spans
         let (spans, spanSnapshots) = SpansPayloadBuilder.build(

@@ -52,7 +52,11 @@ class SessionRecordTests: XCTestCase {
 
         // then the session should be valid
         XCTAssertNotNil(session)
-        XCTAssertEqual(original, session)
+        XCTAssertEqual(original!.id, session!.id)
+        XCTAssertEqual(original!.traceId, session!.traceId)
+        XCTAssertEqual(original!.spanId, session!.spanId)
+        XCTAssertEqual(original!.processIdRaw, session!.processIdRaw)
+        XCTAssertEqual(original!.state, session!.state)
     }
 
     func test_fetchLatestSesssion() throws {
@@ -86,7 +90,11 @@ class SessionRecordTests: XCTestCase {
         let session = storage.fetchLatestSession()
 
         // then the fetched session is valid
-        XCTAssertEqual(session, session3)
+        XCTAssertEqual(session!.id, session3!.id)
+        XCTAssertEqual(session!.traceId, session3!.traceId)
+        XCTAssertEqual(session!.spanId, session3!.spanId)
+        XCTAssertEqual(session!.processIdRaw, session3!.processIdRaw)
+        XCTAssertEqual(session!.state, session3!.state)
     }
 
     func test_fetchOldestSession() throws {
@@ -120,6 +128,9 @@ class SessionRecordTests: XCTestCase {
         let session = storage.fetchOldestSession()
 
         // then the fetched session is valid
-        XCTAssertEqual(session, session1)
-    }
+        XCTAssertEqual(session!.id, session1!.id)
+        XCTAssertEqual(session!.traceId, session1!.traceId)
+        XCTAssertEqual(session!.spanId, session1!.spanId)
+        XCTAssertEqual(session!.processIdRaw, session1!.processIdRaw)
+        XCTAssertEqual(session!.state, session1!.state)    }
 }

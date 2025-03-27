@@ -8,7 +8,7 @@ import EmbraceCommonInternal
 import OpenTelemetryApi
 
 @objc(LogAttributeRecord)
-public class LogAttributeRecord: NSManagedObject, EmbraceLogAttribute {
+public class LogAttributeRecord: NSManagedObject {
     @NSManaged public var key: String
     @NSManaged public var valueRaw: String
     @NSManaged public var typeRaw: Int // LogAttributeType
@@ -29,14 +29,42 @@ public class LogAttributeRecord: NSManagedObject, EmbraceLogAttribute {
 
             record = LogAttributeRecord(entity: description, insertInto: context)
             record?.key = key
-            record?.value = value
+            record?.setValue(value)
             record?.log = log
         }
 
         return record
     }
+
+    func setValue(_ value: AttributeValue) {
+        valueRaw = value.description
+        typeRaw = typeForValue(value).rawValue
+    }
+
+    func typeForValue(_ value: AttributeValue) -> EmbraceLogAttributeType {
+        switch value {
+        case .int: return .int
+        case .double: return .double
+        case .bool: return .bool
+        default: return .string
+        }
+    }
+
+    func toImmutable() -> EmbraceLogAttribute {
+        return ImmutableLogAttributeRecord(
+            key: key,
+            valueRaw: valueRaw,
+            typeRaw: typeRaw
+        )
+    }
 }
 
 extension LogAttributeRecord: EmbraceStorageRecord {
     public static var entityName = "LogAttributeRecord"
+}
+
+struct ImmutableLogAttributeRecord: EmbraceLogAttribute {
+    let key: String
+    let valueRaw: String
+    let typeRaw: Int
 }

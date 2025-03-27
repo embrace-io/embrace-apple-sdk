@@ -5,18 +5,18 @@
 import Foundation
 
 public protocol EmbraceSession {
-    var idRaw: String { get set }
-    var processIdRaw: String { get set }
-    var state: String { get set }
-    var traceId: String { get set }
-    var spanId: String { get set }
-    var startTime: Date { get set }
-    var endTime: Date? { get set }
-    var lastHeartbeatTime: Date { get set }
-    var crashReportId: String? { get set }
-    var coldStart: Bool { get set }
-    var cleanExit: Bool { get set }
-    var appTerminated: Bool { get set }
+    var idRaw: String { get }
+    var processIdRaw: String { get }
+    var state: String { get }
+    var traceId: String { get }
+    var spanId: String { get }
+    var startTime: Date { get }
+    var endTime: Date? { get }
+    var lastHeartbeatTime: Date { get }
+    var crashReportId: String? { get }
+    var coldStart: Bool { get }
+    var cleanExit: Bool { get }
+    var appTerminated: Bool { get }
 }
 
 public extension EmbraceSession {

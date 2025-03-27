@@ -8,7 +8,7 @@ import CoreData
 
 /// Represents a span in the storage
 @objc(SpanRecord)
-public class SpanRecord: NSManagedObject, EmbraceSpan {
+public class SpanRecord: NSManagedObject {
     @NSManaged public var id: String
     @NSManaged public var name: String
     @NSManaged public var traceId: String
@@ -30,31 +30,46 @@ public class SpanRecord: NSManagedObject, EmbraceSpan {
         endTime: Date? = nil,
         processId: ProcessIdentifier,
         sessionId: SessionIdentifier? = nil
-    ) -> SpanRecord? {
-        var record: SpanRecord?
+    ) -> EmbraceSpan? {
+        var result: EmbraceSpan?
 
         context.performAndWait {
             guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
                 return
             }
 
-            record = SpanRecord(entity: description, insertInto: context)
-            record?.id = id
-            record?.name = name
-            record?.traceId = traceId
-            record?.typeRaw = type.rawValue
-            record?.data = data
-            record?.startTime = startTime
-            record?.endTime = endTime
-            record?.processIdRaw = processId.hex
-            record?.sessionIdRaw = sessionId?.toString
+            let record = SpanRecord(entity: description, insertInto: context)
+            record.id = id
+            record.name = name
+            record.traceId = traceId
+            record.typeRaw = type.rawValue
+            record.data = data
+            record.startTime = startTime
+            record.endTime = endTime
+            record.processIdRaw = processId.hex
+            record.sessionIdRaw = sessionId?.toString
+
+            result = record.toImmutable()
         }
 
-        return record
+        return result
     }
 
     static func createFetchRequest() -> NSFetchRequest<SpanRecord> {
         return NSFetchRequest<SpanRecord>(entityName: entityName)
+    }
+
+    func toImmutable() -> EmbraceSpan {
+        return ImmutableSpanRecord(
+            id: id,
+            name: name,
+            traceId: traceId,
+            typeRaw: typeRaw,
+            data: data,
+            startTime: startTime,
+            endTime: endTime,
+            processIdRaw: processIdRaw
+        )
     }
 }
 
@@ -118,4 +133,15 @@ extension SpanRecord: EmbraceStorageRecord {
 
         return entity
     }
+}
+
+struct ImmutableSpanRecord: EmbraceSpan {
+    let id: String
+    let name: String
+    let traceId: String
+    let typeRaw: String
+    let data: Data
+    let startTime: Date
+    let endTime: Date?
+    let processIdRaw: String
 }

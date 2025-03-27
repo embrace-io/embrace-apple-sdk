@@ -37,7 +37,7 @@ class SpanRecordTests: XCTestCase {
 
     func test_fetchSpan() throws {
         // given inserted span
-        let original = storage.upsertSpan(
+        storage.upsertSpan(
             id: "id",
             name: "a name",
             traceId: TestConstants.traceId,
@@ -52,7 +52,11 @@ class SpanRecordTests: XCTestCase {
 
         // then the span should be valid
         XCTAssertNotNil(span)
-        XCTAssertEqual(original, span)
+        XCTAssertEqual(span!.id, "id")
+        XCTAssertEqual(span!.traceId, TestConstants.traceId)
+        XCTAssertEqual(span!.name, "a name")
+        XCTAssertEqual(span!.type, .performance)
+        XCTAssertNil(span!.endTime)
     }
 
     func test_cleanUpSpans() throws {

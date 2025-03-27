@@ -43,16 +43,6 @@ public class MockLog: EmbraceLog {
     public func attribute(forKey key: String) -> (any EmbraceLogAttribute)? {
         return attributes.first(where: { $0.key == key })
     }
-
-    public func setAttributeValue(value: AttributeValue, forKey key: String) {
-        if var attribute = attribute(forKey: key) {
-            attribute.value = value
-            return
-        }
-
-        let attribute = MockLogAttribute(key: key, value: value)
-        attributes.append(attribute)
-    }
 }
 
 public class MockLogAttribute: EmbraceLogAttribute {
@@ -64,5 +54,14 @@ public class MockLogAttribute: EmbraceLogAttribute {
         self.key = key
         self.valueRaw = value.description
         self.typeRaw = typeForValue(value).rawValue
+    }
+
+    func typeForValue(_ value: AttributeValue) -> EmbraceLogAttributeType {
+        switch value {
+        case .int: return .int
+        case .double: return .double
+        case .bool: return .bool
+        default: return .string
+        }
     }
 }

@@ -9,10 +9,11 @@ import EmbraceStorageInternal
 import EmbraceConfigInternal
 import EmbraceConfiguration
 import OpenTelemetryApi
+import EmbraceCommonInternal
 
 class DefaultInternalLoggerTests: XCTestCase {
 
-    var session: SessionRecord!
+    var session: EmbraceSession!
     var storage: EmbraceStorage!
 
     override func setUpWithError() throws {
