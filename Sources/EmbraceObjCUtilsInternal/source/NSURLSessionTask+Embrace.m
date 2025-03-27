@@ -7,6 +7,11 @@
 
 @implementation NSURLSessionTask (Embrace)
 
+__attribute__((constructor))
+static void ensure_category_linked() {
+    NSLog(@"[Embrace] NSURLSessionTask+Embrace loaded");
+}
+
 - (BOOL)injectHeaderWithKey:(NSString *)key value:(NSString *)value {
     if (key == nil || value == nil) {
         return NO;
