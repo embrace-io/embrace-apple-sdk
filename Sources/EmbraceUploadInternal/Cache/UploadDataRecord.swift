@@ -4,50 +4,70 @@
 
 import Foundation
 import GRDB
+import CoreData
 
 /// Represents a cached upload data in the storage
-public struct UploadDataRecord: Codable {
-    var id: String
-    var type: Int
-    var data: Data
-    var attemptCount: Int
-    var date: Date
-}
+@objc(UploadDataRecord)
+public class UploadDataRecord: NSManagedObject {
+    @NSManaged var id: String
+    @NSManaged var type: Int
+    @NSManaged var data: Data
+    @NSManaged var attemptCount: Int
+    @NSManaged var date: Date
 
-extension UploadDataRecord: FetchableRecord, PersistableRecord, MutablePersistableRecord {
-    public static let databaseColumnDecodingStrategy = DatabaseColumnDecodingStrategy.convertFromSnakeCase
-    public static let databaseColumnEncodingStrategy = DatabaseColumnEncodingStrategy.convertToSnakeCase
-    public static let persistenceConflictPolicy = PersistenceConflictPolicy(insert: .replace, update: .replace)
+    class func create(
+        context: NSManagedObjectContext,
+        id: String,
+        type: Int,
+        data: Data,
+        attemptCount:
+        Int,
+        date: Date
+    ) -> UploadDataRecord? {
+        guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
+            return nil
+        }
+
+        let record = UploadDataRecord(entity: description, insertInto: context)
+        record.id = id
+        record.type = type
+        record.data = data
+        record.attemptCount = attemptCount
+        record.date = date
+
+        return record
+    }
 }
 
 extension UploadDataRecord {
-    struct Schema {
-        static var id: Column { Column("id") }
-        static var type: Column { Column("type") }
-        static var data: Column { Column("data") }
-        static var attemptCount: Column { Column("attempt_count") }
-        static var date: Column { Column("date") }
-    }
-}
+    static let entityName = "UploadData"
 
-extension UploadDataRecord: TableRecord {
-    public static let databaseTableName: String = "uploads"
+    static var entityDescription: NSEntityDescription {
+        let entity = NSEntityDescription()
+        entity.name = entityName
+        entity.managedObjectClassName = NSStringFromClass(UploadDataRecord.self)
 
-    internal static func defineTable(db: Database) throws {
-        try db.create(table: UploadDataRecord.databaseTableName, options: .ifNotExists) { t in
-            t.column(Schema.id.name, .text).notNull()
-            t.column(Schema.type.name, .integer).notNull()
-            t.primaryKey([Schema.id.name, Schema.type.name])
+        let idAttribute = NSAttributeDescription()
+        idAttribute.name = "id"
+        idAttribute.attributeType = .stringAttributeType
 
-            t.column(Schema.data.name, .blob).notNull()
-            t.column(Schema.attemptCount.name, .integer).notNull()
-            t.column(Schema.date.name, .datetime).notNull()
-        }
-    }
-}
+        let typeAttribute = NSAttributeDescription()
+        typeAttribute.name = "type"
+        typeAttribute.attributeType = .integer64AttributeType
 
-extension UploadDataRecord: Equatable {
-    public static func == (lhs: Self, rhs: Self) -> Bool {
-        return lhs.id == rhs.id && lhs.type == rhs.type
+        let dataAttribute = NSAttributeDescription()
+        dataAttribute.name = "data"
+        dataAttribute.attributeType = .binaryDataAttributeType
+
+        let attemptCountAttribute = NSAttributeDescription()
+        attemptCountAttribute.name = "attemptCount"
+        attemptCountAttribute.attributeType = .integer64AttributeType
+
+        let dateAttribute = NSAttributeDescription()
+        dateAttribute.name = "date"
+        dateAttribute.attributeType = .dateAttributeType
+
+        entity.properties = [idAttribute, typeAttribute, dataAttribute, attemptCountAttribute, dateAttribute]
+        return entity
     }
 }

@@ -4,6 +4,7 @@
 
 import XCTest
 @testable import EmbraceCore
+@testable import EmbraceObjCUtilsInternal
 
 /// The purpose of these tests is to prevent any crashes/errors related to the proxy's forwarding mechanism.
 /// Some of these tests might not have an assertion. This is intentional.
@@ -12,7 +13,7 @@ import XCTest
 /// More tests on the specific forwarding behavior for each method can be found in the `URLSessionDelegateProxyTests` class.
 class URLSessionDelegateProxyForwardingTests: XCTestCase {
     private var originalDelegate: NotImplementedURLSessionDelegate!
-    private var sut: URLSessionDelegateProxy!
+    private var sut: EMBURLSessionDelegateProxy!
     private var handler: MockURLSessionTaskHandler!
 
     func test_onExecutingMethodImplementedOnlyInProxy_shouldExecuteJustTheProxy() {
@@ -37,7 +38,7 @@ private extension URLSessionDelegateProxyForwardingTests {
     func givenProxyContainingDelegateWithoutImplementingMethods() {
         originalDelegate = .init()
         handler = .init()
-        sut = .init(originalDelegate: originalDelegate, handler: handler)
+        sut = EMBURLSessionDelegateProxy(delegate: originalDelegate, handler: handler)
     }
 
     func whenInvokingDidCompleteWithError() {

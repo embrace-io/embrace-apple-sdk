@@ -6,7 +6,7 @@
     "network_span_forwarding": {
         "pct_enabled": 25
     },
-    "ui_load_instrumentation_enabled": true,
+    "ui_load_instrumentation_enabled": false,
     "internal_log_limits": {
         "trace": 10,
         "debug": 20,

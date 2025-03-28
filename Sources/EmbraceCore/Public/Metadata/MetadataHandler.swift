@@ -5,6 +5,8 @@
 import Foundation
 import EmbraceCommonInternal
 import EmbraceStorageInternal
+import EmbraceCoreDataInternal
+import CoreData
 
 @objc public enum MetadataLifespan: Int {
     /// The resource will be removed when the session ends.
@@ -26,9 +28,41 @@ public class MetadataHandler: NSObject {
     weak var storage: EmbraceStorage?
     weak var sessionController: SessionControllable?
 
+    let coreData: CoreDataWrapper?
+
     init(storage: EmbraceStorage?, sessionController: SessionControllable?) {
         self.storage = storage
         self.sessionController = sessionController
+
+        // tmp core data stack
+        let coreDataStackName = "EmbraceMetadataTmp"
+        var storageMechanism: StorageMechanism = .inMemory(name: coreDataStackName) // in memory only used for tests
+
+        if let storage = storage,
+           let url = storage.options.baseUrl {
+            storageMechanism = .onDisk(name: coreDataStackName, baseURL: url)
+
+            // always delete old tmp db before cloning metadata
+            if let fileURL = storageMechanism.fileURL {
+                try? FileManager.default.removeItem(at: fileURL)
+            }
+        }
+
+        let options = CoreDataWrapper.Options(
+            storageMechanism: storageMechanism,
+            entities: [MetadataRecordTmp.entityDescription]
+        )
+
+        do {
+            self.coreData = try CoreDataWrapper(options: options, logger: Embrace.logger)
+        } catch {
+            Embrace.logger.error("Error setting up temp metadata database!:\n\(error.localizedDescription)")
+            self.coreData = nil
+        }
+
+        super.init()
+
+        cloneDataBase()
     }
 
     /// Adds a resource with the given key, value and lifespan.
@@ -111,7 +145,8 @@ public class MetadataHandler: NSObject {
             key: key,
             value: validateValue(value),
             type: type,
-            lifespan: lifespan.recordLifespan
+            lifespan: lifespan.recordLifespan,
+            lifespanId: try currentContext(for: lifespan.recordLifespan)
         )
     }
 
@@ -202,6 +237,37 @@ extension MetadataLifespan {
         case .session: return .session
         case .process: return .process
         case .permanent: return .permanent
+        }
+    }
+}
+
+// tmp core data stack
+extension MetadataHandler {
+    func cloneDataBase() {
+        guard let coreData = coreData,
+              let storage = storage else {
+            return
+        }
+
+        do {
+            var newRecords: [MetadataRecord] = []
+            try storage.dbQueue.read { db in
+                newRecords = try MetadataRecord.fetchAll(db)
+            }
+
+            coreData.context.performAndWait {
+                for record in newRecords {
+                    _ = MetadataRecordTmp.create(context: coreData.context, record: record)
+                }
+
+                do {
+                    try coreData.context.save()
+                } catch {
+                    Embrace.logger.error("Error saving metadata core data!:\n\(error.localizedDescription)")
+                }
+            }
+        } catch {
+            Embrace.logger.error("Error cloning metadata!:\n\(error.localizedDescription)")
         }
     }
 }

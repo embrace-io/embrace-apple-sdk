@@ -307,7 +307,7 @@ class MetadataRecordTests: XCTestCase {
         try storage.addMetadata(key: "test", value: "test", type: .resource, lifespan: .permanent)
 
         // when updating its value
-        try storage.updateMetadata(key: "test", value: "value", type: .resource, lifespan: .permanent)
+        try storage.updateMetadata(key: "test", value: "value", type: .resource, lifespan: .permanent, lifespanId: "")
 
         // then record should exist in storage with the correct value
         let expectation = XCTestExpectation()

@@ -6,6 +6,7 @@ import XCTest
 import TestSupport
 import EmbraceOTelInternal
 @testable import EmbraceUploadInternal
+import CoreData
 
 class EmbraceUploadCacheTests: XCTestCase {
     let logger = MockLogger()
@@ -20,90 +21,24 @@ class EmbraceUploadCacheTests: XCTestCase {
 
     }
 
-    func test_tableSchema() throws {
-        // given new cache
-        let options = EmbraceUpload.CacheOptions(named: testName)
-        let cache = try EmbraceUploadCache(options: options, logger: logger)
-
-        let expectation = XCTestExpectation()
-
-        // then the table and its columns should be correct
-        try cache.dbQueue.read { db in
-            XCTAssert(try db.tableExists(UploadDataRecord.databaseTableName))
-
-            let columns = try db.columns(in: UploadDataRecord.databaseTableName)
-
-            XCTAssert(try db.table(UploadDataRecord.databaseTableName, hasUniqueKey: ["id", "type"]))
-
-            // id
-            let idColumn = columns.first(where: { $0.name == "id" })
-            if let idColumn = idColumn {
-                XCTAssertEqual(idColumn.type, "TEXT")
-                XCTAssert(idColumn.isNotNull)
-            } else {
-                XCTAssert(false, "id column not found!")
-            }
-
-            // type
-            let typeColumn = columns.first(where: { $0.name == "type" })
-            if let typeColumn = typeColumn {
-                XCTAssertEqual(typeColumn.type, "INTEGER")
-                XCTAssert(typeColumn.isNotNull)
-            } else {
-                XCTAssert(false, "type column not found!")
-            }
-
-            // data
-            let dataColumn = columns.first(where: { $0.name == "data" })
-            if let dataColumn = dataColumn {
-                XCTAssertEqual(dataColumn.type, "BLOB")
-                XCTAssert(dataColumn.isNotNull)
-            } else {
-                XCTAssert(false, "data column not found!")
-            }
-
-            // attemptCount
-            let attemptCountColumn = columns.first(where: { $0.name == "attempt_count" })
-            if let attemptCountColumn = attemptCountColumn {
-                XCTAssertEqual(attemptCountColumn.type, "INTEGER")
-                XCTAssert(attemptCountColumn.isNotNull)
-            } else {
-                XCTAssert(false, "attempt_count column not found!")
-            }
-
-            // date
-            let dateColumn = columns.first(where: { $0.name == "date" })
-            if let dateColumn = dateColumn {
-                XCTAssertEqual(dateColumn.type, "DATETIME")
-                XCTAssert(dateColumn.isNotNull)
-            } else {
-                XCTAssert(false, "date column not found!")
-            }
-
-            expectation.fulfill()
-        }
-
-        wait(for: [expectation], timeout: .defaultTimeout)
-    }
-
     func test_fetchUploadData() throws {
-        let options = EmbraceUpload.CacheOptions(named: testName)
+        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName))
         let cache = try EmbraceUploadCache(options: options, logger: logger)
 
         // given inserted upload data
-        let original = UploadDataRecord(
+        let original = UploadDataRecord.create(
+            context: cache.coreData.context,
             id: "id",
             type: EmbraceUploadType.spans.rawValue,
             data: Data(),
             attemptCount: 0,
             date: Date()
         )
-        try cache.dbQueue.write { db in
-            try original.insert(db)
-        }
+
+        cache.coreData.save()
 
         // when fetching the upload data
-        let uploadData = try cache.fetchUploadData(id: "id", type: .spans)
+        let uploadData = cache.fetchUploadData(id: "id", type: .spans)
 
         // then the upload data should be valid
         XCTAssertNotNil(uploadData)
@@ -111,19 +46,36 @@ class EmbraceUploadCacheTests: XCTestCase {
     }
 
     func test_fetchAllUploadData() throws {
-        let options = EmbraceUpload.CacheOptions(named: testName)
+        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName))
         let cache = try EmbraceUploadCache(options: options, logger: logger)
 
         // given inserted upload datas
-        let data1 = UploadDataRecord(id: "id1", type: 0, data: Data(), attemptCount: 0, date: Date())
-        let data2 = UploadDataRecord(id: "id2", type: 0, data: Data(), attemptCount: 0, date: Date())
-        let data3 = UploadDataRecord(id: "id3", type: 0, data: Data(), attemptCount: 0, date: Date())
+        let data1 = UploadDataRecord.create(
+            context: cache.coreData.context,
+            id: "id1",
+            type: 0, 
+            data: Data(), 
+            attemptCount: 0, 
+            date: Date()
+        )!
+        let data2 = UploadDataRecord.create(
+            context: cache.coreData.context,
+            id: "id2",
+            type: 0, 
+            data: Data(), 
+            attemptCount: 0, 
+            date: Date()
+        )!
+        let data3 = UploadDataRecord.create(
+            context: cache.coreData.context,
+            id: "id3",
+            type: 0, 
+            data: Data(), 
+            attemptCount: 0, 
+            date: Date()
+        )!
 
-        try cache.dbQueue.write { db in
-            try data1.insert(db)
-            try data2.insert(db)
-            try data3.insert(db)
-        }
+        cache.coreData.save()
 
         // when fetching the upload datas
         let datas = try cache.fetchAllUploadData()
@@ -135,17 +87,25 @@ class EmbraceUploadCacheTests: XCTestCase {
     }
 
     func test_saveUploadData() throws {
-        let options = EmbraceUpload.CacheOptions(named: testName)
+        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName))
         let cache = try EmbraceUploadCache(options: options, logger: logger)
 
         // given inserted upload data
-        let data = try cache.saveUploadData(id: "id", type: .spans, data: Data())
+        _ = cache.saveUploadData(id: "id", type: .spans, data: Data())
 
         // then the upload data should exist
         let expectation = XCTestExpectation()
-        try cache.dbQueue.read { db in
-            XCTAssert(try data.exists(db))
-            expectation.fulfill()
+
+        let request = NSFetchRequest<UploadDataRecord>(entityName: UploadDataRecord.entityName)
+        request.predicate = NSPredicate(format: "id == %@ AND type == %i", "id", EmbraceUploadType.spans.rawValue)
+
+        cache.coreData.context.perform {
+            do {
+                let result = try cache.coreData.context.fetch(request)
+                if result.count > 0 {
+                    expectation.fulfill()
+                }
+            } catch { }
         }
 
         wait(for: [expectation], timeout: .defaultTimeout)
@@ -153,86 +113,101 @@ class EmbraceUploadCacheTests: XCTestCase {
 
     func test_saveUploadData_limit() throws {
         // given a cache with a limit of 1
-        let options = EmbraceUpload.CacheOptions(named: testName, cacheLimit: 1)
+        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName), cacheLimit: 1)
         let cache = try EmbraceUploadCache(options: options, logger: logger)
 
         // given inserted upload datas
-        let data1 = try cache.saveUploadData(id: "id1", type: .spans, data: Data())
-        let data2 = try cache.saveUploadData(id: "id2", type: .spans, data: Data())
-        let data3 = try cache.saveUploadData(id: "id3", type: .spans, data: Data())
+        _ = cache.saveUploadData(id: "id1", type: .spans, data: Data())
+        _ = cache.saveUploadData(id: "id2", type: .spans, data: Data())
+        _ = cache.saveUploadData(id: "id3", type: .spans, data: Data())
 
         // then only the last data should exist
         let expectation = XCTestExpectation()
-        try cache.dbQueue.read { db in
-            XCTAssertFalse(try data1.exists(db))
-            XCTAssertFalse(try data2.exists(db))
-            XCTAssert(try data3.exists(db))
 
-            expectation.fulfill()
+        let request = NSFetchRequest<UploadDataRecord>(entityName: UploadDataRecord.entityName)
+
+        cache.coreData.context.perform {
+            do {
+                let result = try cache.coreData.context.fetch(request)
+                if result.count == 1,
+                   result.first?.id == "id3" {
+                    expectation.fulfill()
+                }
+            } catch { }
         }
 
         wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_deleteUploadData() throws {
-        let options = EmbraceUpload.CacheOptions(named: testName)
+        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName))
         let cache = try EmbraceUploadCache(options: options, logger: logger)
 
         // given inserted upload data
-        let data = UploadDataRecord(
+        _ = UploadDataRecord.create(
+            context: cache.coreData.context,
             id: "id",
             type: EmbraceUploadType.spans.rawValue,
             data: Data(),
             attemptCount: 0,
             date: Date()
         )
-        try cache.dbQueue.write { db in
-            try data.insert(db)
-        }
+
+        cache.coreData.save()
 
         // when deleting the data
-        let success = try cache.deleteUploadData(id: "id", type: .spans)
-        XCTAssert(success)
+        cache.deleteUploadData(id: "id", type: .spans)
 
         // then the upload data should not exist
         let expectation = XCTestExpectation()
-        try cache.dbQueue.read { db in
-            XCTAssertFalse(try data.exists(db))
-            expectation.fulfill()
+
+        let request = NSFetchRequest<UploadDataRecord>(entityName: UploadDataRecord.entityName)
+
+        cache.coreData.context.perform {
+            do {
+                let result = try cache.coreData.context.fetch(request)
+                if result.count == 0 {
+                    expectation.fulfill()
+                }
+            } catch { }
         }
 
         wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_updateAttemptCount() throws {
-        let options = EmbraceUpload.CacheOptions(named: testName)
+        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName))
         let cache = try EmbraceUploadCache(options: options, logger: logger)
 
         // given inserted upload data
-        let original = UploadDataRecord(
+        _ = UploadDataRecord.create(
+            context: cache.coreData.context,
             id: "id",
             type: EmbraceUploadType.spans.rawValue,
             data: Data(),
             attemptCount: 0,
             date: Date()
         )
-        try cache.dbQueue.write { db in
-            try original.insert(db)
-        }
+
+        cache.coreData.save()
 
         // when updating the attempt count
-        _ = try cache.updateAttemptCount(id: "id", type: .spans, attemptCount: 10)
+        cache.updateAttemptCount(id: "id", type: .spans, attemptCount: 10)
 
         // then the data is updated successfully
         let expectation = XCTestExpectation()
 
-        try cache.dbQueue.read { db in
-            if let data = try UploadDataRecord.fetchOne(db) {
-                XCTAssertEqual(data.attemptCount, 10)
-                expectation.fulfill()
-            } else {
-                XCTAssert(false, "Invalid data!")
-            }
+        let request = NSFetchRequest<UploadDataRecord>(entityName: UploadDataRecord.entityName)
+
+        cache.coreData.context.perform {
+            do {
+                let result = try cache.coreData.context.fetch(request)
+                if result.count == 1,
+                   result.first?.id == "id",
+                   result.first?.attemptCount == 10 {
+                    expectation.fulfill()
+                }
+            } catch { }
         }
 
         wait(for: [expectation], timeout: .defaultTimeout)

@@ -12,7 +12,7 @@ import OpenTelemetrySdk
 extension Embrace: EmbraceOpenTelemetry {
     private var exporter: SpanExporter {
         StorageSpanExporter(
-            options: .init(storage: storage),
+            options: .init(storage: storage, sessionController: sessionController),
             logger: Embrace.logger
         )
     }
@@ -119,6 +119,8 @@ extension Embrace: EmbraceOpenTelemetry {
     ///   - severity: `LogSeverity` for the log.
     ///   - attributes: Attributes for the log.
     ///   - stackTraceBehavior: Defines if the stack trace information should be added to the log
+    ///
+    /// - Important: Only `warn` and `error` logs will have stacktraces.
     public func log(
         _ message: String,
         severity: LogSeverity,
@@ -143,6 +145,8 @@ extension Embrace: EmbraceOpenTelemetry {
     ///   - timestamp: Timestamp for the log.
     ///   - attributes: Attributes for the log.
     ///   - stackTraceBehavior: Defines if the stack trace information should be added to the log
+    ///
+    /// - Important: Only `warn` and `error` logs will have stacktraces.
     public func log(
         _ message: String,
         severity: LogSeverity,
@@ -159,7 +163,6 @@ extension Embrace: EmbraceOpenTelemetry {
             attachment: nil,
             attachmentId: nil,
             attachmentUrl: nil,
-            attachmentSize: nil,
             attributes: attributes,
             stackTraceBehavior: stackTraceBehavior
         )
@@ -174,6 +177,8 @@ extension Embrace: EmbraceOpenTelemetry {
     ///   - attachment: Data of the attachment
     ///   - attributes: Attributes for the log.
     ///   - stackTraceBehavior: Defines if the stack trace information should be added to the log
+    ///
+    /// - Important: Only `warn` and `error` logs will have stacktraces.
     public func log(
         _ message: String,
         severity: LogSeverity,
@@ -191,7 +196,6 @@ extension Embrace: EmbraceOpenTelemetry {
             attachment: attachment,
             attachmentId: nil,
             attachmentUrl: nil,
-            attachmentSize: nil,
             attributes: attributes,
             stackTraceBehavior: stackTraceBehavior
         )
@@ -205,9 +209,10 @@ extension Embrace: EmbraceOpenTelemetry {
     ///   - timestamp: Timestamp for the log.
     ///   - attachmentId: Identifier of the attachment
     ///   - attachmentUrl: URL to dowload the attachment data
-    ///   - attachmentSize: Size of the attachment (optional)
     ///   - attributes: Attributes for the log.
     ///   - stackTraceBehavior: Defines if the stack trace information should be added to the log
+    ///
+    /// - Important: Only `warn` and `error` logs will have stacktraces.
     public func log(
         _ message: String,
         severity: LogSeverity,
@@ -215,7 +220,6 @@ extension Embrace: EmbraceOpenTelemetry {
         timestamp: Date = Date(),
         attachmentId: String,
         attachmentUrl: URL,
-        attachmentSize: Int? = nil,
         attributes: [String: String],
         stackTraceBehavior: StackTraceBehavior = .default
     ) {
@@ -227,7 +231,6 @@ extension Embrace: EmbraceOpenTelemetry {
             attachment: nil,
             attachmentId: attachmentId,
             attachmentUrl: attachmentUrl,
-            attachmentSize: attachmentSize,
             attributes: attributes,
             stackTraceBehavior: stackTraceBehavior
         )

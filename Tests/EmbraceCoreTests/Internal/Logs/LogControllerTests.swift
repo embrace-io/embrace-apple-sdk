@@ -244,9 +244,64 @@ class LogControllerTests: XCTestCase {
         whenCreatingLogWithPreUploadedAttachment()
         thenLogWithPreuploadedAttachmentIsCreatedCorrectly()
     }
+
+    func testInfoLog_createLogByDefault_doesntAddStackTraceToAttributes() throws {
+        givenLogController()
+        whenCreatingLog(severity: .info)
+        thenLogHasntGotAnEmbbededStackTraceInTheAttributes()
+    }
+
+    func testWarningLog_createLogByDefault_addsStackTraceToAttributes() throws {
+        givenLogController()
+        whenCreatingLog(severity: .warn)
+        thenLogHasAnEmbbededStackTraceInTheAttributes()
+    }
+
+    func testErrorLog_createLogByDefault_addsStackTraceToAttributes() throws {
+        givenLogController()
+        whenCreatingLog(severity: .error)
+        thenLogHasAnEmbbededStackTraceInTheAttributes()
+    }
+
+    func testWarningLog_createLogByWithNotIncludedStacktrace_doesntAddStackTraceToAttributes() throws {
+        givenLogController()
+        whenCreatingLog(severity: .warn, stackTraceBehavior: .notIncluded)
+        thenLogHasntGotAnEmbbededStackTraceInTheAttributes()
+    }
+
+
+    func testErrorLog_createLogByWithNotIncludedStacktrace_doesntAddStackTraceToAttributes() throws {
+        givenLogController()
+        whenCreatingLog(severity: .error, stackTraceBehavior: .notIncluded)
+        thenLogHasntGotAnEmbbededStackTraceInTheAttributes()
+    }
+
+    func testWarnAndErrorLogs_createLogByWithCustomStacktrace_alwaysAddStackTraceToAttributes() throws {
+        givenLogController()
+        let customStackTrace = try EmbraceStackTrace(frames: Thread.callStackSymbols)
+        whenCreatingLog(
+            severity: [.warn, .error].randomElement()!,
+            stackTraceBehavior: .custom(customStackTrace)
+        )
+        thenLogHasAnEmbbededStackTraceInTheAttributes()
+    }
+
+    func testInfoLogs_createLogByWithCustomStacktrace_wontAddStackTraceToAttributes() throws {
+        givenLogController()
+        let customStackTrace = try EmbraceStackTrace(frames: Thread.callStackSymbols)
+        whenCreatingLog(
+            severity: .info,
+            stackTraceBehavior: .custom(customStackTrace)
+        )
+        thenLogHasntGotAnEmbbededStackTraceInTheAttributes()
+    }
 }
 
 private extension LogControllerTests {
+    func randomSeverity(from severities: [LogSeverity]) -> LogSeverity {
+        severities.randomElement()!
+    }
+
     func givenLogControllerWithNoStorage() {
         sut = .init(
             storage: nil,
@@ -330,8 +385,11 @@ private extension LogControllerTests {
         sut.sessionController?.increaseAttachmentCount()
     }
 
-    func whenCreatingLog() {
-        sut.createLog("test", severity: .info)
+    func whenCreatingLog(
+        severity: LogSeverity = .info,
+        stackTraceBehavior: StackTraceBehavior = .default
+    ) {
+        sut.createLog("test", severity: severity, stackTraceBehavior: stackTraceBehavior)
     }
 
     func whenCreatingLogWithAttachment() {
@@ -348,7 +406,7 @@ private extension LogControllerTests {
 
     func whenCreatingLogWithPreUploadedAttachment() {
         let url = URL(string: "http//embrace.test.com/attachment/123", testName: testName)!
-        sut.createLog("test", severity: .info, attachmentId: UUID().withoutHyphen, attachmentUrl: url, attachmentSize: 12345)
+        sut.createLog("test", severity: .info, attachmentId: UUID().withoutHyphen, attachmentUrl: url)
     }
 
     func thenDoesntTryToUploadAnything() {
@@ -420,6 +478,22 @@ private extension LogControllerTests {
         XCTAssertEqual(log!.attributes["emb.type"]!.description, "sys.log")
     }
 
+    func thenLogHasAnEmbbededStackTraceInTheAttributes() {
+        wait {
+            let log = self.otelBridge.otel.logs.first
+
+            return log!.attributes["emb.stacktrace.ios"] != nil
+        }
+    }
+
+    func thenLogHasntGotAnEmbbededStackTraceInTheAttributes() {
+        wait {
+            let log = self.otelBridge.otel.logs.first
+
+            return log!.attributes["emb.stacktrace.ios"] == nil
+        }
+    }
+
     func thenLogWithSuccessfulAttachmentIsCreatedCorrectly() {
         wait {
             let log = self.otelBridge.otel.logs.first
@@ -449,9 +523,8 @@ private extension LogControllerTests {
 
             let attachmentIdFound = log!.attributes["emb.attachment_id"] != nil
             let attachmentUrlFound = log!.attributes["emb.attachment_url"] != nil
-            let attachmentSizeFound = log!.attributes["emb.attachment_size"] != nil
 
-            return attachmentIdFound && attachmentUrlFound && attachmentSizeFound
+            return attachmentIdFound && attachmentUrlFound
         }
     }
 

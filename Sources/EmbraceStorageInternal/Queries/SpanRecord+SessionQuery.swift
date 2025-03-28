@@ -4,6 +4,7 @@
 
 import Foundation
 import GRDB
+import EmbraceCommonInternal
 
 extension SpanRecord {
     /// Build QueryInterfaceRequest for SpanRecord that will query for:
@@ -27,12 +28,18 @@ extension SpanRecord {
 
         } else {
             return SpanRecord.filter(
+                matchingSessionId(session.id) ||
                 overlappingStart(startTime: session.startTime) ||
                 entirelyWithin(startTime: session.startTime, endTime: sessionEndTime) ||
                 overlappingEnd(endTime: sessionEndTime) ||
                 entirelyOverlapped(startTime: session.startTime, endTime: sessionEndTime)
             )
         }
+    }
+
+    /// Check sessionId mathcing
+    private static func matchingSessionId(_ sessionId: SessionIdentifier) -> SQLExpression {
+        SpanRecord.Schema.sessionIdentifier != nil && SpanRecord.Schema.sessionIdentifier == sessionId
     }
 
     /// Where `Span.startTime` occurs before session start and `Span.endTime` occurs after session start or has not ended

@@ -12,7 +12,6 @@ final class EmbraceEndpointsTests: XCTestCase {
 
         // then the URLs have the correct domains
         XCTAssert(endpoints.baseURL.contains("a-appId"))
-        XCTAssertFalse(endpoints.developmentBaseURL.contains("a-appId"))
         XCTAssert(endpoints.configBaseURL.contains("a-appId"))
     }
 }

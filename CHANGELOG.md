@@ -1,3 +1,38 @@
+## 6.8.3
+*Mar 18th, 2025*
+* Fixes
+    * Fixed some methods from `NSURLSessionDataDelegate` and `NSURLSessionDownloadDelegate` not being called when using a `URLSessionCaptureService`.
+
+## 6.8.2
+*Mar 10th, 2025*
+* Features
+    * Added the ability to add custom stack traces to logs with `StackTraceBehavior.custom`.
+    * The `TapCaptureService` can now be configured to capture taps on either start or end.
+* Fixes
+    * Potential fixes for core data related crashes.
+* Changes
+    * Deprecated `Embrace.Endpoints.developmentBaseURL`.
+
+## 6.8.1
+*Feb 12th, 2025*
+* Features
+    * Enabled Automatic View Capture functionallity by default.
+* Fixes
+    * Fixed an issue that causes incompatibilities with libraries/apps reusing the same `URLSessionDelegate` across multiple `URLSession` objects.
+* Changes
+    * Refactored the way we create proxy objects for `WKWebView` and `URLSession` instrumentation functionalities.
+
+## 6.8.0
+*Feb 6th, 2025*
+* Features
+    * Possibility to add attachments to logs
+    * Possibility to stop the Embrace SDK from capturing and generating data
+* Fixes
+    * Fixed an issue causing `WKWebView`s to crash when calling the delegate method `webView(_:didFinish:)` when `WebViewCaptureService` is enabled.
+    * Fixed some potential issues with different features using proxy mechanisms (e.g. `URLSession` & `UNUserNotificationCenter` instrumentation).
+* Changes
+    * Beginning the migration to a new way of storing data.
+
 ## 6.7.1
 *Jan 22nd, 2025**
 * Fixes

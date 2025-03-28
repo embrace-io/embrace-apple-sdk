@@ -14,7 +14,7 @@ public extension EmbraceStorage {
     /// Class used to configure a EmbraceStorage instance
     class Options {
         /// Determines where the db is going to be
-        let storageMechanism: StorageMechanism
+        public let storageMechanism: StorageMechanism
 
         /// Dictionary containing the storage limits per span type
         public var spanLimits: [SpanType: Int] = [:]

@@ -12,14 +12,15 @@ final class Migrations_CurrentTests: XCTestCase {
         let migrations: [Migration] = .current
         let identifiers = migrations.map(\.identifier)
 
-        XCTAssertEqual(migrations.count, 5)
+        XCTAssertEqual(migrations.count, 6)
         XCTAssertEqual(identifiers, [
             // add identifiers here
             "CreateSpanRecordTable",
             "CreateSessionRecordTable",
             "CreateMetadataRecordTable",
             "CreateLogRecordTable",
-            "AddProcessIdentifierToSpanRecord"
+            "AddProcessIdentifierToSpanRecord",
+            "AddSessionIdentifierToSpanRecord"
         ])
     }
 

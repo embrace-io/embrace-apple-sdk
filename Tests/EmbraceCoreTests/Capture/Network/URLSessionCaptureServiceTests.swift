@@ -21,6 +21,13 @@ class URLSessionCaptureServiceTests: XCTestCase {
         givenURLSessionSwizzlerProvider()
     }
 
+    override func tearDown() {
+        sut.swizzlers.forEach {
+            try? $0.unswizzleClassMethod()
+            try? $0.unswizzleInstanceMethod()
+        }
+    }
+
     func test_onInit_collectorIsUninstalled() {
         whenInitializingURLSessionCaptureService()
         thenCaptureServiceStatus(is: .uninstalled)

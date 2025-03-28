@@ -38,10 +38,9 @@ extension Embrace {
             return nil
         }
 
-        let baseUrl = EMBDevice.isDebuggerAttached ? endpoints.developmentBaseURL : endpoints.baseURL
-        guard let spansURL = URL.spansEndpoint(basePath: baseUrl),
-              let logsURL = URL.logsEndpoint(basePath: baseUrl),
-              let attachmentsURL = URL.attachmentsEndpoint(basePath: baseUrl) else {
+        guard let spansURL = URL.spansEndpoint(basePath: endpoints.baseURL),
+              let logsURL = URL.logsEndpoint(basePath: endpoints.baseURL),
+              let attachmentsURL = URL.attachmentsEndpoint(basePath: endpoints.baseURL) else {
             Embrace.logger.error("Failed to initialize endpoints!")
             return nil
         }
@@ -56,12 +55,16 @@ extension Embrace {
         guard let cacheUrl = EmbraceFileSystem.uploadsDirectoryPath(
             partitionIdentifier: appId,
             appGroupId: options.appGroupId
-        ),
-              let cache = EmbraceUpload.CacheOptions(cacheBaseUrl: cacheUrl)
-        else {
+        ) else {
             Embrace.logger.error("Failed to initialize upload cache!")
             return nil
         }
+
+        let storageMechanism = StorageMechanism.onDisk(
+            name: "EmbraceUploadStorage",
+            baseURL: cacheUrl
+        )
+        let cache = EmbraceUpload.CacheOptions(storageMechanism: storageMechanism)
 
         // metadata
         let metadata = EmbraceUpload.MetadataOptions(
@@ -72,7 +75,7 @@ extension Embrace {
 
         do {
             let options = EmbraceUpload.Options(endpoints: uploadEndpoints, cache: cache, metadata: metadata)
-            let queue = DispatchQueue(label: "com.embrace.upload", attributes: .concurrent)
+            let queue = DispatchQueue(label: "com.embrace.upload", qos: .background, attributes: .concurrent)
 
             return try EmbraceUpload(options: options, logger: Embrace.logger, queue: queue)
         } catch {

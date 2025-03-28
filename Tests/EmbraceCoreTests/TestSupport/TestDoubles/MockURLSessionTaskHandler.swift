@@ -5,11 +5,17 @@
 import Foundation
 @testable import EmbraceCore
 @testable import EmbraceCommonInternal
+@testable import EmbraceObjCUtilsInternal
 
-class MockURLSessionTaskHandler: URLSessionTaskHandler {
+class MockURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
+    var didInvokeAddData = false
+    var receivedData: Data! = nil
+    func addData(_ data: Data, dataTask: URLSessionDataTask) {
+        didInvokeAddData = true
+        receivedData = data
+    }
 
     var shouldHandleTasks = true
-
     var didInvokeCreate = false
     var createReceivedTask: URLSessionTask?
     func create(task: URLSessionTask) -> Bool {
