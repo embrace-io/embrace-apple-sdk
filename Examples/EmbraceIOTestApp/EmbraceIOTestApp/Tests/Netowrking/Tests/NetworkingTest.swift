@@ -24,7 +24,7 @@ class NetworkingTest: PayloadTest {
         Task {
             switch requestMethod {
             case .get:
-                await client.makeTestNetworkCall(to: testURL)
+                await client.makeTestNetworkCall(to: fullURL)
             default:
                 await client.makeTestUploadRequest(to: fullURL, method: requestMethod, body: requestBody)
             }
