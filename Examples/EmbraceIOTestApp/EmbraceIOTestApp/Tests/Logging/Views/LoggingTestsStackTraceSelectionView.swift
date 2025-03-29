@@ -26,6 +26,8 @@ struct LoggingTestsStackTraceSelectionView: View {
             return "stackTraceBehavior_Default"
         case .notIncluded:
             return "stackTraceBehavior_notIncluded"
+        case .custom:
+            return "stackTraceBehavior_custom"
         }
     }
 }

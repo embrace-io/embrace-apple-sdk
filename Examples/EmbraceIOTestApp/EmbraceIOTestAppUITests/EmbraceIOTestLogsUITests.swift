@@ -69,6 +69,8 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
             identifier = "stackTraceBehavior_Default"
         case .notIncluded:
             identifier = "stackTraceBehavior_notIncluded"
+        case .custom:
+            identifier = "stackTraceBehavior_custom"
         }
 
         app.buttons[identifier].tap()
@@ -155,6 +157,28 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         selectSeverityButton(.error)
         selectStackTraceBehavior(.notIncluded)
         runLogTest()
+    }
+
+    /// Custom Stack Trace
+
+    func testLogCapture_debug_customStack() {
+
+        enterCustomMessage()
+
+        selectSeverityButton(.debug)
+
+        do {
+            let stackTrace = try EmbraceStackTrace(frames: [
+                "0 EmbraceIOTestApp 0x0000000005678def [SomeClass method] + 48",
+                "1 Random Library 0x0000000001234abc [Random init]"
+            ])
+
+            selectStackTraceBehavior(.custom(stackTrace))
+            runLogTest()
+        } catch {
+            XCTFail("testLogCapture_debug_customStack: Failed to create custom EmbraceStackTrace for test")
+        }
+
     }
 
     /// Adding a property

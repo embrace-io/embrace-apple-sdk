@@ -59,6 +59,8 @@ class LoggingErrorMessageTest: PayloadTest {
             case .warn, .error:
                 return true
             }
+        case .custom:
+            return true
         }
     }
 

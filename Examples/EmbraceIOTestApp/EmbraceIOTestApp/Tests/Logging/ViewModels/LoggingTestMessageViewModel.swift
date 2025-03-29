@@ -54,7 +54,7 @@ extension LogSeverity: @retroactive CaseIterable {
 
 extension StackTraceBehavior: @retroactive CaseIterable {
     public static var allCases: [StackTraceBehavior] {
-        [.default, .notIncluded]
+        [.default, .notIncluded, .custom(customStackTrace)]
     }
 
     var text: String {
@@ -63,6 +63,31 @@ extension StackTraceBehavior: @retroactive CaseIterable {
             "Default"
         case .notIncluded:
             "Not Included"
+        case .custom:
+            "Custom"
+        }
+    }
+
+    private static var customStackTrace: EmbraceStackTrace {
+        do {
+            let stackTrace = try EmbraceStackTrace(frames: [
+                "0 EmbraceIOTestApp 0x0000000005678def [SomeClass method] + 48",
+                "1 Random Library 0x0000000001234abc [Random init]"
+            ])
+            return stackTrace
+        } catch {
+            fatalError()
+        }
+    }
+}
+
+extension StackTraceBehavior: @retroactive Hashable {
+    public func hash(into hasher: inout Hasher) {
+        switch self {
+        case .custom(let st):
+            hasher.combine(st.frames)
+        default:
+            break
         }
     }
 }
