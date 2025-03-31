@@ -160,25 +160,68 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
     }
 
     /// Custom Stack Trace
+    ///
 
-    func testLogCapture_debug_customStack() {
+    ///Force try is unsafe but this hardcoded scenario *should* always work.
+    private var customStackTrace: EmbraceStackTrace {
+        try! EmbraceStackTrace(frames: [
+            "0 EmbraceIOTestApp 0x0000000005678def [SomeClass method] + 48",
+            "1 Random Library 0x0000000001234abc [Random init]"
+        ])
+    }
 
+    func testLogCapture_trace_customStack_notExpected() {
+        enterCustomMessage()
+
+        selectSeverityButton(.trace)
+
+        selectStackTraceBehavior(.custom(customStackTrace))
+        runLogTest()
+    }
+
+    func testLogCapture_debug_customStack_notExpected() {
         enterCustomMessage()
 
         selectSeverityButton(.debug)
 
-        do {
-            let stackTrace = try EmbraceStackTrace(frames: [
-                "0 EmbraceIOTestApp 0x0000000005678def [SomeClass method] + 48",
-                "1 Random Library 0x0000000001234abc [Random init]"
-            ])
+        selectStackTraceBehavior(.custom(customStackTrace))
+        runLogTest()
+    }
 
-            selectStackTraceBehavior(.custom(stackTrace))
-            runLogTest()
-        } catch {
-            XCTFail("testLogCapture_debug_customStack: Failed to create custom EmbraceStackTrace for test")
-        }
+    func testLogCapture_info_customStack_notExpected() {
+        enterCustomMessage()
 
+        selectSeverityButton(.info)
+
+        selectStackTraceBehavior(.custom(customStackTrace))
+        runLogTest()
+    }
+
+    func testLogCapture_warn_customStack_expected() {
+        enterCustomMessage()
+
+        selectSeverityButton(.warn)
+
+        selectStackTraceBehavior(.custom(customStackTrace))
+        runLogTest()
+    }
+
+    func testLogCapture_error_customStack_expected() {
+        enterCustomMessage()
+
+        selectSeverityButton(.error)
+
+        selectStackTraceBehavior(.custom(customStackTrace))
+        runLogTest()
+    }
+
+    func testLogCapture_fatal_customStack_notExpected() {
+        enterCustomMessage()
+
+        selectSeverityButton(.fatal)
+
+        selectStackTraceBehavior(.custom(customStackTrace))
+        runLogTest()
     }
 
     /// Adding a property

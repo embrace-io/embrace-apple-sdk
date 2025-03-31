@@ -52,15 +52,13 @@ class LoggingErrorMessageTest: PayloadTest {
         switch stackTraceBehavior {
         case .notIncluded:
             return false
-        case .default:
+        case .default, .custom:
             switch loggedMessageSeverity {
             case .trace, .debug, .info, .fatal:
                 return false
             case .warn, .error:
                 return true
             }
-        case .custom:
-            return true
         }
     }
 
