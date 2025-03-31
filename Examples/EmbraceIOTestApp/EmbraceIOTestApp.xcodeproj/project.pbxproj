@@ -32,6 +32,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		4D0154C32D9B07FF001B775A /* Exceptions for "EmbraceIOTestApp" folder in "EmbraceIOTestAppUITests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Tests/Netowrking/Enums/URLRequestMethod.swift,
+			);
+			target = 4D94F2522D429257008DECEE /* EmbraceIOTestAppUITests */;
+		};
 		4D5977FA2D4AC5FD0067FCE3 /* Exceptions for "EmbraceIOTestApp" folder in "EmbraceIOTestApp" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -51,6 +58,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				4D5977FA2D4AC5FD0067FCE3 /* Exceptions for "EmbraceIOTestApp" folder in "EmbraceIOTestApp" target */,
+				4D0154C32D9B07FF001B775A /* Exceptions for "EmbraceIOTestApp" folder in "EmbraceIOTestAppUITests" target */,
 			);
 			path = EmbraceIOTestApp;
 			sourceTree = "<group>";

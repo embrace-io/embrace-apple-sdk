@@ -50,7 +50,7 @@ class NetworkingTest: PayloadTest {
             testItems.append(.init(target: "Request Status Code", expected: "Found", recorded: "Missing"))
         }
 
-        if requestBody.keys.count > 0 {
+        if requestMethod != .get && requestBody.keys.count > 0 {
             let bodySize = Int(networkCallSpan.attributes["http.request.body.size"]?.description ?? "") ?? 0
             testItems.append(.init(target: "http.request.body.size", expected: "Bigger than 0", recorded: "\(bodySize)", result: bodySize > 0 ? .success : .fail))
         }

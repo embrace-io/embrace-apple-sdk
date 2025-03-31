@@ -40,7 +40,7 @@ struct NetworkingTestUIComponent: View {
                 .padding([.leading, .trailing,], 5)
                 .textFieldStyle(RoundedStyle())
                 .autocorrectionDisabled()
-                .accessibilityIdentifier("networkingTests_URLTextField")
+                .accessibilityIdentifier("networkingTests_APITextField")
             Section("Method") {
                 NetworkingTestMethodTypeView(requestMethod: $viewModel.requestMethod)
             }
