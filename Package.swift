@@ -17,6 +17,12 @@ import PackageDescription
     )
 #endif
 
+var linkerSettings: [LinkerSetting]? = nil
+
+if ProcessInfo.processInfo.environment["EMBRACE_ENABLE_TUIST_OBJC_LINK"] != nil {
+    linkerSettings = [.unsafeFlags(["-ObjC"])]
+}
+
 let package = Package(
     name: "EmbraceIO",
     platforms: [
@@ -53,7 +59,8 @@ let package = Package(
                 "EmbraceCommonInternal",
                 "EmbraceCrash",
                 "EmbraceSemantics"
-            ]
+            ],
+            linkerSettings: linkerSettings
         ),
 
         .testTarget(
@@ -83,7 +90,8 @@ let package = Package(
             ],
             resources: [
                 .copy("PrivacyInfo.xcprivacy")
-            ]
+           ],
+           linkerSettings: linkerSettings
         ),
 
         .testTarget(
