@@ -15,18 +15,23 @@
         return NO;
     }
 
-    if (![task.originalRequest isKindOfClass:[NSMutableURLRequest class]] ||
-        ![task.currentRequest isKindOfClass:[NSMutableURLRequest class]]) {
-        return NO;
+    BOOL didInjectHeader = NO;
+
+    NSURLRequest *originalRequest = task.originalRequest;
+    if (originalRequest != nil && [originalRequest isKindOfClass:[NSMutableURLRequest class]]) {
+        NSMutableURLRequest *mutableOriginal = (NSMutableURLRequest *)originalRequest;
+        [mutableOriginal setValue:value forHTTPHeaderField:key];
+        didInjectHeader = YES;
     }
 
-    NSMutableURLRequest *originalRequest = (NSMutableURLRequest *)task.originalRequest;
-    [originalRequest setValue:value forHTTPHeaderField:key];
+    NSURLRequest *currentRequest = task.currentRequest;
+    if (currentRequest != nil && [currentRequest isKindOfClass:[NSMutableURLRequest class]]) {
+        NSMutableURLRequest *mutableCurrent = (NSMutableURLRequest *)currentRequest;
+        [mutableCurrent setValue:value forHTTPHeaderField:key];
+        didInjectHeader = YES;
+    }
 
-    NSMutableURLRequest *currentRequest = (NSMutableURLRequest *)task.currentRequest;
-    [currentRequest setValue:value forHTTPHeaderField:key];
-
-    return YES;
+    return didInjectHeader;
 }
 
 @end
