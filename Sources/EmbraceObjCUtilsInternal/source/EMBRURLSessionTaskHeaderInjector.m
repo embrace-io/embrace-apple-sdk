@@ -11,24 +11,30 @@
                       value:(NSString *)value
                     intoTask:(NSURLSessionTask *)task
 {
-    if (key == nil || value == nil) {
+    if (key == nil || value == nil || task == nil) {
         return NO;
     }
 
     BOOL didInjectHeader = NO;
 
-    NSURLRequest *originalRequest = task.originalRequest;
-    if (originalRequest != nil && [originalRequest isKindOfClass:[NSMutableURLRequest class]]) {
-        NSMutableURLRequest *mutableOriginal = (NSMutableURLRequest *)originalRequest;
-        [mutableOriginal setValue:value forHTTPHeaderField:key];
-        didInjectHeader = YES;
+    if ([task respondsToSelector:@selector(originalRequest)]) {
+        NSURLRequest *originalRequest = task.originalRequest;
+        if (originalRequest != nil &&
+            [originalRequest isKindOfClass:[NSMutableURLRequest class]]) {
+            NSMutableURLRequest *mutableOriginal = (NSMutableURLRequest *)originalRequest;
+            [mutableOriginal setValue:value forHTTPHeaderField:key];
+            didInjectHeader = YES;
+        }
     }
 
-    NSURLRequest *currentRequest = task.currentRequest;
-    if (currentRequest != nil && [currentRequest isKindOfClass:[NSMutableURLRequest class]]) {
-        NSMutableURLRequest *mutableCurrent = (NSMutableURLRequest *)currentRequest;
-        [mutableCurrent setValue:value forHTTPHeaderField:key];
-        didInjectHeader = YES;
+    if ([task respondsToSelector:@selector(currentRequest)]) {
+        NSURLRequest *currentRequest = task.currentRequest;
+        if (currentRequest != nil &&
+            [currentRequest isKindOfClass:[NSMutableURLRequest class]]) {
+            NSMutableURLRequest *mutableCurrent = (NSMutableURLRequest *)currentRequest;
+            [mutableCurrent setValue:value forHTTPHeaderField:key];
+            didInjectHeader = YES;
+        }
     }
 
     return didInjectHeader;
