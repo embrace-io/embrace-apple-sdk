@@ -9,7 +9,7 @@ set -e
 
 CLONED_SOURCE_PACKAGES_DIR_PATH=".build"    # This matches spm location `swift run` uses
 DERIVED_DATA_PATH=".build/DerivedData"
-XCRESULT_PATH=".build/test/output.xcresult"
+XCRESULT_PATH=".build/test/output"
 
 if [ -d "$XCRESULT_PATH" ]; then
     rm -rf $XCRESULT_PATH
