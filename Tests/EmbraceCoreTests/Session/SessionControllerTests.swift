@@ -340,7 +340,7 @@ final class SessionControllerTests: XCTestCase {
     func mockSuccessfulResponse() throws {
         var url = try XCTUnwrap(URL(string: "\(configBaseUrl)/v2/config"))
 
-        if #available(iOS 16.0, watchOS 9.0, *) {
+        if #available(iOS 16.0, watchOS 9.0, tvOS 16.0, *) {
             url.append(queryItems: [
                 .init(name: "appId", value: TestConstants.appId),
                 .init(name: "osVersion", value: TestConstants.osVersion),
