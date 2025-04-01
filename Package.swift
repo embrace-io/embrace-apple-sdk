@@ -19,6 +19,9 @@ import PackageDescription
 
 var linkerSettings: [LinkerSetting]? = nil
 
+// This applies only to targets like EmbraceCore and EmbraceIO that contain `@objc extensions`.
+// When linked statically (as Tuist tends to do when installing Embrace via SPM packages),
+// selectors from these extensions are stripped unless `-ObjC` is passed explicitly to the linker.
 if ProcessInfo.processInfo.environment["EMBRACE_ENABLE_TUIST_OBJC_LINK"] != nil {
     linkerSettings = [.unsafeFlags(["-ObjC"])]
 }
