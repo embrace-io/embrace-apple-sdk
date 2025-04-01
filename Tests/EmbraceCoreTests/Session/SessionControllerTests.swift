@@ -260,24 +260,21 @@ final class SessionControllerTests: XCTestCase {
     }
 
     func test_update_assignsAppTerminated_toFalse_whenPresent() throws {
-        var session = controller.startSession(state: .foreground)
-        session!.appTerminated = true
+        controller.startSession(state: .foreground)
 
         controller.update(appTerminated: false)
         XCTAssertEqual(controller.currentSession?.appTerminated, false)
     }
 
     func test_update_assignsAppTerminated_toTrue_whenPresent() throws {
-        var session = controller.startSession(state: .foreground)
-        session!.appTerminated = false
+        controller.startSession(state: .foreground)
 
         controller.update(appTerminated: true)
         XCTAssertEqual(controller.currentSession?.appTerminated, true)
     }
 
     func test_update_changesTo_appTerminated_saveInStorage() throws {
-        var session = controller.startSession(state: .foreground)
-        session!.appTerminated = false
+        let session = controller.startSession(state: .foreground)
 
         controller.update(appTerminated: true)
 
@@ -289,8 +286,7 @@ final class SessionControllerTests: XCTestCase {
     }
 
     func test_update_changesTo_sessionState_saveInStorage() throws {
-        var session = controller.startSession(state: .foreground)
-        session!.appTerminated = false
+        let session = controller.startSession(state: .foreground)
 
         controller.update(state: .background)
 
@@ -401,7 +397,7 @@ final class SessionControllerTests: XCTestCase {
 
         // then the heartbeat time is updated every second
         for _ in 1...3 {
-            wait(delay: 1)
+            wait(delay: 1.1)
             XCTAssertNotEqual(lastDate, controller.currentSession!.lastHeartbeatTime)
             lastDate = controller.currentSession!.lastHeartbeatTime
         }

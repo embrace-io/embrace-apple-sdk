@@ -34,26 +34,34 @@ extension EmbraceStorage {
         endTime: Date? = nil,
         processId: ProcessIdentifier = .current,
         sessionId: SessionIdentifier? = nil
-    ) -> SpanRecord? {
+    ) -> EmbraceSpan? {
 
         // update existing?
-        if let span = fetchSpan(id: id, traceId: traceId) {
+        if let span = fetchSpanRecord(id: id, traceId: traceId) {
+            var result: EmbraceSpan?
 
-            // prevent modifications on closed spans!
-            guard span.endTime == nil else {
-                return span
+            coreData.context.performAndWait {
+                // prevent modifications on closed spans!
+                if span.endTime == nil {
+                    span.name = name
+                    span.typeRaw = type.rawValue
+                    span.data = data
+                    span.startTime = startTime
+                    span.endTime = endTime
+                    span.processIdRaw = processId.hex
+                    span.sessionIdRaw = sessionId?.toString
+
+                    do {
+                        try coreData.context.save()
+                    } catch {
+                        logger.error("Error updating span \(id)!")
+                    }
+                }
+
+                result = span.toImmutable()
             }
 
-            span.name = name
-            span.typeRaw = type.rawValue
-            span.data = data
-            span.startTime = startTime
-            span.endTime = endTime
-            span.processIdRaw = processId.hex
-            span.sessionIdRaw = sessionId?.toString
-
-            coreData.save()
-            return span
+            return result
         }
 
         // make space if needed
@@ -84,12 +92,29 @@ extension EmbraceStorage {
     ///   - id: Identifier of the span
     ///   - traceId: Identifier of the trace containing this span
     /// - Returns: The stored `SpanRecord`, if any
-    public func fetchSpan(id: String, traceId: String) -> SpanRecord? {
+    func fetchSpanRecord(id: String, traceId: String) -> SpanRecord? {
         let request = SpanRecord.createFetchRequest()
         request.fetchLimit = 1
         request.predicate = NSPredicate(format: "id == %@ AND traceId == %@", id, traceId)
 
         return coreData.fetch(withRequest: request).first
+    }
+
+    /// Fetches the stored `SpanRecord` synchronously with the given identifiers, if any.
+    /// - Parameters:
+    ///   - id: Identifier of the span
+    ///   - traceId: Identifier of the trace containing this span
+    /// - Returns: Immutable copy of rhe stored `SpanRecord`, if any
+    public func fetchSpan(id: String, traceId: String) -> EmbraceSpan? {
+        guard let record = fetchSpanRecord(id: id, traceId: traceId) else {
+            return nil
+        }
+
+        var result: EmbraceSpan?
+        coreData.context.performAndWait {
+            result = record.toImmutable()
+        }
+        return result
     }
 
     /// Synchronously removes all the closed spans older than the given date.
@@ -112,32 +137,39 @@ extension EmbraceStorage {
     /// - Parameters:
     ///   - endTime: Identifier of the trace containing this span
     public func closeOpenSpans(endTime: Date) {
-        let request = SpanRecord.createFetchRequest()
-        request.predicate = NSPredicate(
-            format: "endTime = nil AND processIdRaw != %@",
-            ProcessIdentifier.current.hex
-        )
+        coreData.context.performAndWait {
+            do {
+                let request = SpanRecord.createFetchRequest()
+                request.predicate = NSPredicate(
+                    format: "endTime = nil AND processIdRaw != %@",
+                    ProcessIdentifier.current.hex
+                )
 
-        let spans = coreData.fetch(withRequest: request)
+                let spans = try coreData.context.fetch(request)
+                for span in spans {
+                    span.endTime = endTime
+                }
 
-        for span in spans {
-            span.endTime = endTime
+                try coreData.context.save()
+            } catch {
+                logger.error("Error closing open spans!")
+            }
         }
-
-        coreData.save()
     }
 
     /// Fetch spans for the given session record
     /// Will retrieve all spans that overlap with session record start / end (or last heartbeat)
     /// that occur within the same process. For cold start sessions, will include spans that occur before the session starts.
-    /// Parameters:
-    /// - session: The session record to fetch spans for
-    /// - ignoreSessionSpans: Whether to ignore the session's (or any other session's) own span
+    /// - Parameters:
+    ///   - session: The session record to fetch spans for
+    ///   - ignoreSessionSpans: Whether to ignore the session's (or any other session's) own span
+    ///   - limit: Limit of the amount of spans to be retrieved
+    /// - Returns: Array containing the immutable copies of the spans.
     public func fetchSpans(
         for session: EmbraceSession,
         ignoreSessionSpans: Bool = true,
         limit: Int = 1000
-    ) -> [SpanRecord] {
+    ) -> [EmbraceSpan] {
 
         let request = SpanRecord.createFetchRequest()
         request.fetchLimit = limit
@@ -191,7 +223,16 @@ extension EmbraceStorage {
             request.predicate = predicate
         }
 
-        return coreData.fetch(withRequest: request)
+        // fetch
+        let records = coreData.fetch(withRequest: request)
+
+        // convert to immutable structs
+        var result: [EmbraceSpan] = []
+        coreData.context.performAndWait {
+            result = records.map { $0.toImmutable() }
+        }
+
+        return result
     }
 }
 

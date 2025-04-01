@@ -12,6 +12,9 @@ class MockSessionController: SessionControllable {
 
     // Properties for mocking
     var nextSessionId: SessionIdentifier?
+    var nextSessionColdStart: Bool = false
+    var nextSessionAppTerminated: Bool = false
+
     var didCallStartSession: Bool = false
     var didCallEndSession: Bool = false
     var didCallUpdateSession: Bool = false
@@ -45,7 +48,9 @@ class MockSessionController: SessionControllable {
                 state: state,
                 traceId: TestConstants.traceId,
                 spanId: TestConstants.spanId,
-                startTime: startTime
+                startTime: startTime,
+                coldStart: nextSessionColdStart,
+                appTerminated: nextSessionAppTerminated
             )
         } else {
             session = MockSession(
@@ -54,7 +59,9 @@ class MockSessionController: SessionControllable {
                 state: state,
                 traceId: TestConstants.traceId,
                 spanId: TestConstants.spanId,
-                startTime: startTime
+                startTime: startTime,
+                coldStart: nextSessionColdStart,
+                appTerminated: nextSessionAppTerminated
             )
         }
 

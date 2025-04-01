@@ -8,7 +8,7 @@ import CoreData
 import OpenTelemetryApi
 
 @objc(MetadataRecord)
-public class MetadataRecord: NSManagedObject, EmbraceMetadata {
+public class MetadataRecord: NSManagedObject {
     @NSManaged public var key: String
     @NSManaged public var value: String
     @NSManaged public var typeRaw: String // MetadataRecordType
@@ -24,28 +24,41 @@ public class MetadataRecord: NSManagedObject, EmbraceMetadata {
         lifespan: MetadataRecordLifespan,
         lifespanId: String,
         collectedAt: Date = Date()
-    ) -> MetadataRecord? {
-        var record: MetadataRecord?
+    ) -> EmbraceMetadata? {
+        var result: EmbraceMetadata?
 
         context.performAndWait {
             guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
                 return
             }
 
-            record = MetadataRecord(entity: description, insertInto: context)
-            record?.key = key
-            record?.value = value
-            record?.typeRaw = type.rawValue
-            record?.lifespanRaw = lifespan.rawValue
-            record?.lifespanId = lifespanId
-            record?.collectedAt = collectedAt
+            let record = MetadataRecord(entity: description, insertInto: context)
+            record.key = key
+            record.value = value
+            record.typeRaw = type.rawValue
+            record.lifespanRaw = lifespan.rawValue
+            record.lifespanId = lifespanId
+            record.collectedAt = collectedAt
+
+            result = record.toImmutable()
         }
 
-        return record
+        return result
     }
 
     static func createFetchRequest() -> NSFetchRequest<MetadataRecord> {
         return NSFetchRequest<MetadataRecord>(entityName: entityName)
+    }
+
+    func toImmutable() -> EmbraceMetadata {
+        return ImmutableMetadataRecord(
+            key: key,
+            value: value,
+            typeRaw: typeRaw,
+            lifespanRaw: lifespanRaw,
+            lifespanId: lifespanId,
+            collectedAt: collectedAt
+        )
     }
 }
 
@@ -96,4 +109,13 @@ extension MetadataRecord: EmbraceStorageRecord {
 
 extension MetadataRecord {
     public static let lifespanIdForPermanent = ""
+}
+
+struct ImmutableMetadataRecord: EmbraceMetadata {
+    let key: String
+    let value: String
+    let typeRaw: String
+    let lifespanRaw: String
+    let lifespanId: String
+    let collectedAt: Date
 }

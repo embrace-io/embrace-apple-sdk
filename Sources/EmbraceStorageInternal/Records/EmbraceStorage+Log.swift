@@ -47,20 +47,43 @@ extension EmbraceStorage {
         return nil
     }
 
+    func fetchLogRecord(id: String, processId: String) -> LogRecord? {
+        let request = LogRecord.createFetchRequest()
+        request.predicate = NSPredicate(format: "idRaw == %@ AND processIdRaw == %@", id, processId)
+
+        return coreData.fetch(withRequest: request).first
+    }
+
     public func fetchAll(excludingProcessIdentifier processIdentifier: ProcessIdentifier) -> [EmbraceLog] {
         let request = LogRecord.createFetchRequest()
         request.predicate = NSPredicate(format: "processIdRaw != %@", processIdentifier.hex)
 
-        return coreData.fetch(withRequest: request)
+        // fetch
+        let records = coreData.fetch(withRequest: request)
+
+        // convert to immutable structs
+        var result: [EmbraceLog] = []
+        coreData.context.performAndWait {
+            result = records.map { $0.toImmutable() }
+        }
+
+        return result
     }
 
     public func removeAllLogs() {
-        let logs: [LogRecord] = fetchAll()
-        remove(logs: logs)
+        let records: [LogRecord] = fetchAll()
+        coreData.deleteRecords(records)
     }
 
     public func remove(logs: [EmbraceLog]) {
-        let records = logs.compactMap({ $0 as? LogRecord })
+        var records: [LogRecord] = []
+
+        for log in logs {
+            if let record = fetchLogRecord(id: log.idRaw, processId: log.processIdRaw) {
+                records.append(record)
+            }
+        }
+        
         coreData.deleteRecords(records)
     }
 }

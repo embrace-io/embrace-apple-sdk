@@ -32,27 +32,38 @@ extension EmbraceStorage {
         coldStart: Bool = false,
         cleanExit: Bool = false,
         appTerminated: Bool = false
-    ) -> SessionRecord? {
+    ) -> EmbraceSession? {
 
         // update existing?
-        if let session = fetchSession(id: id) {
-            session.state = state.rawValue
-            session.processIdRaw = processId.hex
-            session.traceId = traceId
-            session.spanId = spanId
-            session.startTime = startTime
-            session.endTime = endTime
-            session.crashReportId = crashReportId
-            session.coldStart = coldStart
-            session.cleanExit = cleanExit
-            session.appTerminated = appTerminated
+        if let session = fetchSessionRecord(id: id) {
+            var result: EmbraceSession?
 
-            if let lastHeartbeatTime = lastHeartbeatTime {
-                session.lastHeartbeatTime = lastHeartbeatTime
+            coreData.context.performAndWait {
+                session.state = state.rawValue
+                session.processIdRaw = processId.hex
+                session.traceId = traceId
+                session.spanId = spanId
+                session.startTime = startTime
+                session.endTime = endTime
+                session.crashReportId = crashReportId
+                session.coldStart = coldStart
+                session.cleanExit = cleanExit
+                session.appTerminated = appTerminated
+
+                if let lastHeartbeatTime = lastHeartbeatTime {
+                    session.lastHeartbeatTime = lastHeartbeatTime
+                }
+
+                result = session.toImmutable()
+
+                do {
+                    try coreData.context.save()
+                } catch {
+                    logger.error("Error updating session \(id.toString)!")
+                }
             }
 
-            coreData.save()
-            return session
+            return result
         }
 
         // create new
@@ -81,7 +92,7 @@ extension EmbraceStorage {
     /// - Parameters:
     ///   - id: Identifier of the session
     /// - Returns: The stored `SessionRecord`, if any
-    public func fetchSession(id: SessionIdentifier) -> SessionRecord? {
+    func fetchSessionRecord(id: SessionIdentifier) -> SessionRecord? {
         let request = SessionRecord.createFetchRequest()
         request.fetchLimit = 1
         request.predicate = NSPredicate(format: "idRaw == %@", id.toString)
@@ -89,9 +100,34 @@ extension EmbraceStorage {
         return coreData.fetch(withRequest: request).first
     }
 
+    /// Fetches the stored `SessionRecord` synchronously with the given identifier, if any.
+    /// - Parameters:
+    ///   - id: Identifier of the session
+    /// - Returns: Immutable copy of the stored `SessionRecord`, if any
+    public func fetchSession(id: SessionIdentifier) -> EmbraceSession? {
+        guard let record = fetchSessionRecord(id: id) else {
+            return nil
+        }
+
+        var result: EmbraceSession?
+        coreData.context.performAndWait {
+            result = record.toImmutable()
+        }
+        return result
+    }
+
+    /// Synchronously deletes the given session from the storage
+    public func deleteSession(id: SessionIdentifier) {
+        guard let record = fetchSessionRecord(id: id) else {
+            return
+        }
+
+        coreData.deleteRecord(record)
+    }
+
     /// Synchronously fetches the newest session in the storage, ignoring the current session if it exists.
-    /// - Returns: The newest stored `SessionRecord`, if any
-    public func fetchLatestSession(ignoringCurrentSessionId sessionId: SessionIdentifier? = nil) -> SessionRecord? {
+    /// - Returns: Immutable copy of the newest stored `SessionRecord`, if any
+    public func fetchLatestSession(ignoringCurrentSessionId sessionId: SessionIdentifier? = nil) -> EmbraceSession? {
         let request = SessionRecord.createFetchRequest()
         request.fetchLimit = 1
         request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: false)]
@@ -100,16 +136,104 @@ extension EmbraceStorage {
             request.predicate = NSPredicate(format: "idRaw != %@", sessionId.toString)
         }
 
-        return coreData.fetch(withRequest: request).first
+        guard let record = coreData.fetch(withRequest: request).first else {
+            return nil
+        }
+
+        var result: EmbraceSession?
+        coreData.context.performAndWait {
+            result = record.toImmutable()
+        }
+        return result
     }
 
     /// Synchronously fetches the oldest session in the storage, if any.
-    /// - Returns: The oldest stored `SessionRecord`, if any
-    public func fetchOldestSession() -> SessionRecord? {
+    /// - Returns: Immutable copy of the oldest stored `SessionRecord`, if any
+    public func fetchOldestSession() -> EmbraceSession? {
         let request = SessionRecord.createFetchRequest()
         request.fetchLimit = 1
         request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: true)]
 
-        return coreData.fetch(withRequest: request).first
+        guard let record = coreData.fetch(withRequest: request).first else {
+            return nil
+        }
+
+        var result: EmbraceSession?
+        coreData.context.performAndWait {
+            result = record.toImmutable()
+        }
+        return result
+    }
+
+    /// Synchronously fetches all the sessions in the storage, if any
+    /// - Returns: Immutable copies of all the stored sessions
+    public func fetchAllSessions() -> [EmbraceSession] {
+        let request = SessionRecord.createFetchRequest()
+
+        // fetch
+        let records = coreData.fetch(withRequest: request)
+
+        // convert to immutable structs
+        var result: [EmbraceSession] = []
+        coreData.context.performAndWait {
+            result = records.map { $0.toImmutable() }
+        }
+
+        return result
+    }
+    
+    /// Updates values for the given session id
+    /// - Returns: Immutable copy of the modified `SessionRecord`, if any
+    @discardableResult
+    public func updateSession(
+        sessionId: SessionIdentifier,
+        state: SessionState? = nil,
+        lastHeartbeatTime: Date? = nil,
+        endTime: Date? = nil,
+        cleanExit: Bool? = nil,
+        appTerminated: Bool? = nil,
+        crashReportId: String? = nil
+    ) -> EmbraceSession? {
+        guard let session = fetchSessionRecord(id: sessionId) else {
+            return nil
+        }
+
+        var result: EmbraceSession?
+
+        coreData.context.performAndWait {
+            if let state = state {
+                session.state = state.rawValue
+            }
+
+            if let lastHeartbeatTime = lastHeartbeatTime {
+                session.lastHeartbeatTime = lastHeartbeatTime
+            }
+
+            if let endTime = endTime {
+                session.endTime = endTime
+            }
+
+            if let cleanExit = cleanExit {
+                session.cleanExit = cleanExit
+            }
+
+            if let appTerminated = appTerminated {
+                session.appTerminated = appTerminated
+            }
+
+            if let crashReportId = crashReportId {
+                session.crashReportId = crashReportId
+            }
+
+            result = session.toImmutable()
+
+            do {
+                try coreData.context.save()
+            } catch {
+                logger.error("Error updating session \(sessionId.toString)!")
+            }
+        }
+
+        return result
     }
 }

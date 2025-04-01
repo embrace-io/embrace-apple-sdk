@@ -8,7 +8,7 @@ import CoreData
 
 /// Represents a session in the storage
 @objc(SessionRecord)
-public class SessionRecord: NSManagedObject, EmbraceSession {
+public class SessionRecord: NSManagedObject {
     @NSManaged public var idRaw: String // SessionIdentifier
     @NSManaged public var processIdRaw: String // ProcessIdentifier
     @NSManaged public var state: String
@@ -42,34 +42,53 @@ public class SessionRecord: NSManagedObject, EmbraceSession {
         coldStart: Bool = false,
         cleanExit: Bool = false,
         appTerminated: Bool = false
-    ) -> SessionRecord? {
-        var record: SessionRecord?
+    ) -> EmbraceSession? {
+        var result: EmbraceSession?
 
         context.performAndWait {
             guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
                 return
             }
 
-            record = SessionRecord(entity: description, insertInto: context)
-            record?.idRaw = id.toString
-            record?.processIdRaw = processId.hex
-            record?.state = state.rawValue
-            record?.traceId = traceId
-            record?.spanId = spanId
-            record?.startTime = startTime
-            record?.endTime = endTime
-            record?.lastHeartbeatTime = lastHeartbeatTime ?? startTime
-            record?.crashReportId = crashReportId
-            record?.coldStart = coldStart
-            record?.cleanExit = cleanExit
-            record?.appTerminated = appTerminated
+            let record = SessionRecord(entity: description, insertInto: context)
+            record.idRaw = id.toString
+            record.processIdRaw = processId.hex
+            record.state = state.rawValue
+            record.traceId = traceId
+            record.spanId = spanId
+            record.startTime = startTime
+            record.endTime = endTime
+            record.lastHeartbeatTime = lastHeartbeatTime ?? startTime
+            record.crashReportId = crashReportId
+            record.coldStart = coldStart
+            record.cleanExit = cleanExit
+            record.appTerminated = appTerminated
+
+            result = record.toImmutable()
         }
 
-        return record
+        return result
     }
 
     static func createFetchRequest() -> NSFetchRequest<SessionRecord> {
         return NSFetchRequest<SessionRecord>(entityName: entityName)
+    }
+
+    func toImmutable() -> EmbraceSession {
+        return ImmutableSessionRecord(
+            idRaw: idRaw,
+            processIdRaw: processIdRaw,
+            state: state,
+            traceId: traceId,
+            spanId: spanId,
+            startTime: startTime,
+            endTime: endTime,
+            lastHeartbeatTime: lastHeartbeatTime,
+            crashReportId: crashReportId,
+            coldStart: coldStart,
+            cleanExit: cleanExit,
+            appTerminated: appTerminated
+        )
     }
 }
 
@@ -148,4 +167,19 @@ extension SessionRecord: EmbraceStorageRecord {
 
         return entity
     }
+}
+
+struct ImmutableSessionRecord: EmbraceSession {
+    let idRaw: String
+    let processIdRaw: String
+    let state: String
+    let traceId: String
+    let spanId: String
+    let startTime: Date
+    let endTime: Date?
+    let lastHeartbeatTime: Date
+    let crashReportId: String?
+    let coldStart: Bool
+    let cleanExit: Bool
+    let appTerminated: Bool
 }

@@ -6,15 +6,14 @@ import Foundation
 import OpenTelemetryApi
 
 public protocol EmbraceLog {
-    var idRaw: String { get set }
-    var processIdRaw: String { get set }
-    var severityRaw: Int { get set }
-    var body: String { get set }
-    var timestamp: Date { get set }
+    var idRaw: String { get }
+    var processIdRaw: String { get }
+    var severityRaw: Int { get }
+    var body: String { get }
+    var timestamp: Date { get }
 
     func allAttributes() -> [EmbraceLogAttribute]
     func attribute(forKey key: String) -> EmbraceLogAttribute?
-    func setAttributeValue(value: AttributeValue, forKey key: String)
 }
 
 public extension EmbraceLog {

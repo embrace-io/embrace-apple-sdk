@@ -5,14 +5,14 @@
 import Foundation
 
 public protocol EmbraceSpan {
-    var id: String { get set }
-    var name: String { get set }
-    var traceId: String { get set }
-    var typeRaw: String { get set }
-    var data: Data { get set }
-    var startTime: Date { get set }
-    var endTime: Date? { get set }
-    var processIdRaw: String { get set }
+    var id: String { get }
+    var name: String { get }
+    var traceId: String { get }
+    var typeRaw: String { get }
+    var data: Data { get }
+    var startTime: Date { get }
+    var endTime: Date? { get }
+    var processIdRaw: String { get }
 }
 
 public extension EmbraceSpan {

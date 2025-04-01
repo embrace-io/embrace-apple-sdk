@@ -34,7 +34,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         startTime: Date,
         endTime: Date? = nil,
         sessionIdentifier: SessionIdentifier? = nil
-    ) -> SpanRecord {
+    ) -> EmbraceSpan {
         return storage.upsertSpan(
             id: SpanId.random().hexString,
             name: name,
@@ -56,7 +56,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         processIdentifier: ProcessIdentifier = .current,
         traceId: TraceId = .random(),
         spanId: SpanId = .random()
-    ) -> SessionRecord {
+    ) -> EmbraceSession {
         return storage.addSession(
             id: .random,
             processId: processIdentifier,
@@ -110,7 +110,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         let results = storage.fetchSpans(for: session)
 
         XCTAssertEqual(results.count, 1)
-        XCTAssertTrue(results.contains(span))
+        XCTAssertEqual(results[0].id, span.id)
     }
 
     func test_withSpanAfterSession_returnsEmptyArray() throws {
@@ -139,7 +139,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         let results = storage.fetchSpans(for: session)
 
         XCTAssertEqual(results.count, 1)
-        XCTAssertTrue(results.contains(span))
+        XCTAssertEqual(results[0].id, span.id)
     }
 
     func test_withSpanOverlapsSessionEnd_returnsSpanInArray() throws {
@@ -154,7 +154,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         let results = storage.fetchSpans(for: session)
 
         XCTAssertEqual(results.count, 1)
-        XCTAssertTrue(results.contains(span))
+        XCTAssertEqual(results[0].id, span.id)
     }
 
     func test_withSpanOverlapsSessionEntirely_returnsSpanInArray() throws {
@@ -169,7 +169,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         let results = storage.fetchSpans(for: session)
 
         XCTAssertEqual(results.count, 1)
-        XCTAssertTrue(results.contains(span))
+        XCTAssertEqual(results[0].id, span.id)
     }
 
 // MARK: - Test Open Spans
@@ -185,7 +185,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         let results = storage.fetchSpans(for: session)
 
         XCTAssertEqual(results.count, 1)
-        XCTAssertTrue(results.contains(span))
+        XCTAssertEqual(results[0].id, span.id)
     }
 
     func test_withOpenSpan_startedAfterSession_returnsSpanInArray() throws {
@@ -200,7 +200,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         let results = storage.fetchSpans(for: session)
 
         XCTAssertEqual(results.count, 1)
-        XCTAssertTrue(results.contains(span))
+        XCTAssertEqual(results[0].id, span.id)
     }
 
     func test_withOpenSpan_startedBeforeColdStartSession_returnsSpanInArray() throws {
@@ -216,7 +216,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         let results = storage.fetchSpans(for: session)
 
         XCTAssertEqual(results.count, 1)
-        XCTAssertTrue(results.contains(span))
+        XCTAssertEqual(results[0].id, span.id)
     }
 
     func test_withOpenSpan_startedAfterColdStartSession_returnsSpanInArray() throws {
@@ -232,7 +232,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         let results = storage.fetchSpans(for: session)
 
         XCTAssertEqual(results.count, 1)
-        XCTAssertTrue(results.contains(span))
+        XCTAssertEqual(results[0].id, span.id)
     }
 
     func test_withOpenSpan_startedAfterColdStartSessionEnds_returnsEmptyArray() throws {
@@ -265,9 +265,9 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         let spanC = addSpanRecord(name: "span-c", startTime: .relative(-6), endTime: .relative(-2))
         let results = storage.fetchSpans(for: session)
 
-        XCTAssertTrue(results.contains(spanA))
-        XCTAssertTrue(results.contains(spanB))
-        XCTAssertFalse(results.contains(spanC))
+        XCTAssertNotNil(results.first(where: { $0.id == spanA.id && $0.name == "span-a" }))
+        XCTAssertNotNil(results.first(where: { $0.id == spanB.id && $0.name == "span-b" }))
+        XCTAssertNil(results.first(where: { $0.id == spanC.id && $0.name == "span-c" }))
     }
 
     func test_withMultipleSpans_oneBeforeColdStartSessionBegins_returnsRelevantSpansOnly() throws {
@@ -284,9 +284,9 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         let spanC = addSpanRecord(name: "span-c", startTime: .relative(-6), endTime: .relative(-2))
         let results = storage.fetchSpans(for: session)
 
-        XCTAssertTrue(results.contains(spanA))
-        XCTAssertTrue(results.contains(spanB))
-        XCTAssertFalse(results.contains(spanC))
+        XCTAssertNotNil(results.first(where: { $0.id == spanA.id && $0.name == "span-a" }))
+        XCTAssertNotNil(results.first(where: { $0.id == spanB.id && $0.name == "span-b" }))
+        XCTAssertNil(results.first(where: { $0.id == spanC.id && $0.name == "span-c" }))
     }
 
     func test_withMultipleSpans_oneBeforeWarmStartSessionBegins_returnsRelevantSpansOnly() throws {
@@ -303,9 +303,9 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         let spanC = addSpanRecord(name: "span-c", startTime: .relative(-6), endTime: .relative(-2))
         let results = storage.fetchSpans(for: session)
 
-        XCTAssertFalse(results.contains(spanA))
-        XCTAssertTrue(results.contains(spanB))
-        XCTAssertFalse(results.contains(spanC))
+        XCTAssertNil(results.first(where: { $0.id == spanA.id && $0.name == "span-a" }))
+        XCTAssertNotNil(results.first(where: { $0.id == spanB.id && $0.name == "span-b" }))
+        XCTAssertNil(results.first(where: { $0.id == spanC.id && $0.name == "span-c" }))
     }
 
     // MARK: Tests when spans match session boundary
@@ -322,7 +322,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         let span = addSpanRecord(startTime: .relative(-30), endTime: boundary)
         let results = storage.fetchSpans(for: session)
 
-        XCTAssertTrue(results.contains(span))
+        XCTAssertEqual(results[0].id, span.id)
     }
 
     func test_withSpanEndAtIsEqualToSessionStart_whenColdStart_returnsSpan() throws {
@@ -339,7 +339,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         let span = addSpanRecord(startTime: .relative(-30), endTime: boundary)
         let results = storage.fetchSpans(for: session)
 
-        XCTAssertTrue(results.contains(span))
+        XCTAssertEqual(results[0].id, span.id)
     }
 
     func test_withSpanStartAtIsEqualToSessionEnd_returnsEmptyArray() throws {
@@ -355,7 +355,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         let span = addSpanRecord(startTime: boundary, endTime: .relative(0))
         let results = storage.fetchSpans(for: session)
 
-        XCTAssertTrue(results.contains(span))
+        XCTAssertEqual(results[0].id, span.id)
     }
 
     func test_ignoreSessionSpanFlag_whenTrue_doesNotReturnSessionSpan() throws {
@@ -391,7 +391,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         )
 
         let results = storage.fetchSpans(for: session, ignoreSessionSpans: false)
-        XCTAssertTrue(results.contains(span))
+        XCTAssertEqual(results[0].id, span.id)
     }
 
     func test_spansWithSessionId() throws {
@@ -408,8 +408,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         let spanC = addSpanRecord(name: "span-c", startTime: .relative(-6), endTime: .relative(-2), sessionIdentifier: session.id)
         let results = storage.fetchSpans(for: session)
 
-        XCTAssertTrue(results.contains(spanA))
-        XCTAssertTrue(results.contains(spanB))
-        XCTAssertTrue(results.contains(spanC))
+        XCTAssertNotNil(results.first(where: { $0.id == spanA.id && $0.name == "span-a" }))
+        XCTAssertNotNil(results.first(where: { $0.id == spanB.id && $0.name == "span-b" }))
+        XCTAssertNotNil(results.first(where: { $0.id == spanC.id && $0.name == "span-c" }))
     }
 }

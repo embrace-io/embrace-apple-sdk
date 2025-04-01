@@ -30,12 +30,12 @@ public enum MetadataRecordLifespan: String, Codable {
 }
 
 public protocol EmbraceMetadata {
-    var key: String { get set }
-    var value: String { get set }
-    var typeRaw: String { get set }
-    var lifespanRaw: String { get set }
-    var lifespanId: String { get set }
-    var collectedAt: Date { get set }
+    var key: String { get }
+    var value: String { get }
+    var typeRaw: String { get }
+    var lifespanRaw: String { get }
+    var lifespanId: String { get }
+    var collectedAt: Date { get }
 }
 
 public extension EmbraceMetadata {
