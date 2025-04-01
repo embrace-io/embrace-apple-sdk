@@ -480,7 +480,16 @@
             </BuildableReference>
             <SkippedTests>
                <Test
+                  Identifier = "CaptureServicesUIViewControllerTests">
+               </Test>
+               <Test
                   Identifier = "EmbraceCoreTests">
+               </Test>
+               <Test
+                  Identifier = "UIViewControllerHandlerTests">
+               </Test>
+               <Test
+                  Identifier = "ViewCaptureServiceTests">
                </Test>
             </SkippedTests>
          </TestableReference>
