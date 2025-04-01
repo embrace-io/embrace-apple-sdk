@@ -53,8 +53,11 @@ jobs:
         timeout-minutes: 2
         continue-on-error: true
 
+      - name: Install xcbeautify
+        run: brew install xcbeautify
+
       - name: Run Tests
-        run: bin/test | xcpretty && exit ${PIPESTATUS[0]}
+        run: bin/test | xcbeautify && exit ${PIPESTATUS[0]}
         timeout-minutes: 30
 
         #- uses: kishikawakatsumi/xcresulttool@v1
