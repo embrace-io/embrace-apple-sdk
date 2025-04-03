@@ -53,18 +53,28 @@ jobs:
         timeout-minutes: 2
         continue-on-error: true
 
+      - name: Install xcbeautify
+        run: brew install xcbeautify
+
       - name: Run Tests
-        run: bin/test | xcpretty && exit ${PIPESTATUS[0]}
+        run: bin/test | xcbeautify && exit ${PIPESTATUS[0]}
         timeout-minutes: 30
+
+      - name: Upload xcresult Bundle Manually
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: output_xcresult
+          path: .build/test/output.xcresult
 
       - uses: kishikawakatsumi/xcresulttool@v1
         if: always()
         with:
-          path: .build/test/output.xcresult
+          path: .build/test/output
           title: "Test Results"
           show-passed-tests: true
           show-code-coverage: true
-          upload-bundles: true
+          upload-bundles: "never" # Uploading the `xcresult` using the xcresultool action seems to fail; 
 
       - name: Convert results for Codecov
         run: |
