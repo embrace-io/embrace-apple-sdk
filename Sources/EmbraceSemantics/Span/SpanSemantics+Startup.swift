@@ -10,8 +10,7 @@ public extension SpanType {
 
 public extension SpanSemantics {
     struct Startup {
-        public static let parentColdName = "emb-screen-view"
-        public static let parentWarmName = "emb-screen-view"
+        public static let parentName = "emb-app-startup"
 
         public static let preMainInitName = "emb-app-pre-main-init"
         public static let appInitName = "emb-app-startup-app-init"

@@ -215,7 +215,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         Embrace.notificationCenter.addObserver(
             self,
             selector: #selector(onConfigUpdated),
-            name: .embraceConfigUpdated, 
+            name: .embraceConfigUpdated,
             object: nil
         )
 
@@ -364,6 +364,9 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
 
     /// Called when the app's first frame is rendered
     @objc private func onStartupFinished() {
-        addStartupTraces()
+        StartupInstrumentation.buildSpans(
+            startupDataProvider: DefaultStartupDataProvider(),
+            otel: self
+        )
     }
 }
