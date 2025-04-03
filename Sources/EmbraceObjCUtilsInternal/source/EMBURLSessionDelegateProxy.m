@@ -8,9 +8,10 @@
 
 #define DID_FINISH_COLLECTING_METRICS @selector(URLSession:task:didFinishCollectingMetrics:)
 #define DID_RECEIVE_DATA_SELECTOR @selector(URLSession:dataTask:didReceiveData:)
-#define DID_FINISH_DOWNLOADING @selector(URLSession:downloadTask:didFinishDownloading:)
+#define DID_FINISH_DOWNLOADING @selector(URLSession:downloadTask:didFinishDownloadingToURL:)
 #define DID_COMPLETE_WITH_ERROR @selector(URLSession:task:didCompleteWithError:)
 #define DID_BECOME_INVALID_WITH_ERROR @selector(URLSession:didBecomeInvalidWithError:)
+#define DID_RECEIVE_RESPONSE @selector(URLSession:dataTask:didReceiveResponse:completionHandler:)
 
 @interface EMBURLSessionDelegateProxy ()
 
@@ -46,7 +47,6 @@
 }
 
 - (void)forwardInvocation:(NSInvocation *)invocation {
-    NSLog(@"%@", invocation.description);
     [invocation invokeWithTarget:self.originalDelegate];
 }
 
@@ -126,12 +126,25 @@
     }
 }
 
+- (void)URLSession:(NSURLSession *)session
+          dataTask:(NSURLSessionDataTask *)dataTask
+didReceiveResponse:(NSURLResponse *)response
+ completionHandler:(void (^)(NSURLSessionResponseDisposition))completionHandler {
+
+    id target = [self getTargetForSelector:DID_RECEIVE_RESPONSE session:session];
+
+    if (target) {
+        [(id<NSURLSessionDataDelegate>)target URLSession:session dataTask:dataTask didReceiveResponse:response completionHandler:completionHandler];
+    }
+}
+
 #pragma mark - NSURLSessionDownloadDelegate Methods
 
 - (void)URLSession:(NSURLSession *)session
      downloadTask:(NSURLSessionDownloadTask *)downloadTask
 didFinishDownloadingToURL:(NSURL *)location {
-    id target = [self getTargetForSelector:DID_FINISH_COLLECTING_METRICS session:session];
+
+    id target = [self getTargetForSelector:DID_FINISH_DOWNLOADING session:session];
 
     if (target) {
         [(id<NSURLSessionDownloadDelegate>)target URLSession:session

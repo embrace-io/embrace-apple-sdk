@@ -168,7 +168,7 @@ private extension URLSessionDelegateProxyTests {
     }
 
     func whenInvokingDidCreateTask() throws {
-        if #available(iOS 16.0, watchOS 10.0, *) {
+        if #available(iOS 16.0, watchOS 10.0, tvOS 16.0, *) {
             (sut as URLSessionTaskDelegate).urlSession?(.shared, didCreateTask: aTask())
         } else {
             throw XCTSkip("This test applies only for iOS 16 and above")
@@ -188,7 +188,7 @@ private extension URLSessionDelegateProxyTests {
     }
 
     func whenInvokingDidReceiveInformationalResponse() throws {
-        if #available(iOS 17.0, *), #available(macOS 14.0, *), #available(watchOS 10.0, *) {
+        if #available(iOS 17.0, macOS 14.0, watchOS 10.0, tvOS 17.0, *) {
             (sut as URLSessionTaskDelegate).urlSession?(.shared,
                                                         task: aTask(),
                                                         didReceiveInformationalResponse: .init())
