@@ -21,11 +21,24 @@ struct TestReportCardItemView: View {
                     .font(.embraceFont(size: 11))
                     .frame(width: 100, alignment: .leading)
                 Spacer()
-                Image(systemName: item.passed ? "checkmark" : "xmark")
-                    .foregroundStyle(item.passed ? .green : .red)
+                Image(systemName: iconName(for: item.result))
+                    .foregroundStyle(item.result.resultColor)
                     .frame(width: 20, alignment: .trailing)
                     .padding(.trailing, 5)
             }
+        }
+    }
+
+    private func iconName(for result: TestResult) -> String {
+        switch result {
+        case .fail:
+            "xmark"
+        case .success:
+            "checkmark"
+        case .warning:
+            "exclamationmark"
+        default:
+            "questionmark"
         }
     }
 }
@@ -33,7 +46,10 @@ struct TestReportCardItemView: View {
 #Preview {
     @Previewable var passedItem: TestReportItem = .init(target: "viewDidLoad", expected: "viewDidLoad", recorded: "found", result: .success)
     @Previewable var failItem: TestReportItem = .init(target: "viewDidLoad", expected: "viewDidLoad", recorded: "not found", result: .fail)
+    @Previewable var warningItem: TestReportItem = .init(target: "viewDidLoad", expected: "viewDidLoad", recorded: "not found", result: .warning)
     TestReportCardItemView(item: passedItem)
         .padding(.bottom, 40)
     TestReportCardItemView(item: failItem)
+        .padding(.bottom, 40)
+    TestReportCardItemView(item: warningItem)
 }

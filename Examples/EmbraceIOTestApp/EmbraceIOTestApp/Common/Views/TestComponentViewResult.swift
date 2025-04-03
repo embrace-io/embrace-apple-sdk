@@ -14,6 +14,8 @@ struct TextComponentViewResult: View {
             "xmark.circle.fill"
         case .unknown, .testing:
             "questionmark.circle.fill"
+        case .warning:
+            "exclamationmark.circle.fill"
         case .success:
             "checkmark.circle.fill"
         }
