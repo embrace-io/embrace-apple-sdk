@@ -17,6 +17,7 @@ protocol PayloadTest {
     func test(spans: [OpenTelemetrySdk.SpanData], logs: [ReadableLogRecord]) -> TestReport
     func evaluate(_ target: String, expecting: String, on: [String: AttributeValue]) -> TestReportItem
     func evaluate(_ target: String, contains: String, on: [String: AttributeValue]) -> TestReportItem
+    func evaluate(_ target: String, expectedToExist: Bool, on: [String: AttributeValue]) -> TestReportItem
     func evaluateSpanExistence(identifiedBy id: String, underAttributeKey key: String, on spans: [SpanData]) -> (TestReportItem, SpanData?)
     func evaluateLogExistence(withMessage: String, on logs: [ReadableLogRecord]) -> (TestReportItem, ReadableLogRecord?)
     func runTestPreparations()
@@ -57,6 +58,15 @@ extension PayloadTest {
         let result: TestResult = recorded.contains(substring) ? .success : .fail
 
         return .init(target: target, expected: "contains \(substring)", recorded: result == .success ? "found" : "missing", result: result)
+    }
+
+    func evaluate(_ target: String, expectedToExist: Bool = true, on attributes: [String: AttributeValue]) -> TestReportItem {
+        let value = attributes[target]
+        
+        let expected = expectedToExist ? "exists" : "missing"
+        let recorded = value != nil ? "exists" : "missing"
+
+        return .init(target: target, expected: expected, recorded: recorded)
     }
 
     func test(spans: [OpenTelemetrySdk.SpanData]) -> TestReport { .init(items: []) }

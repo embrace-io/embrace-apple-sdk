@@ -45,6 +45,8 @@ class LoggingErrorMessageTest: PayloadTest {
             testItems.append(evaluate(property.key, expecting: property.value, on: log.attributes))
         }
 
+        MetadataResourceTest.testMetadataInclussion(on: log.resource, testItems: &testItems)
+
         return .init(items: testItems)
     }
 
