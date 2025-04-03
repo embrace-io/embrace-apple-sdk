@@ -30,6 +30,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (class, readonly)  BOOL isJailbroken;
 @property (class, readonly)  BOOL isDebuggerAttached;
 
+@property (class, readonly)  NSNumber *bootTime;
+
 @end
 
 NS_ASSUME_NONNULL_END
