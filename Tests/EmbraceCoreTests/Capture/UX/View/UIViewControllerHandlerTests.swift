@@ -10,6 +10,7 @@ import XCTest
 import OpenTelemetryApi
 import EmbraceOTelInternal
 import TestSupport
+import EmbraceCommonInternal
 
 class UIViewControllerHandlerTests: XCTestCase {
 
@@ -21,7 +22,7 @@ class UIViewControllerHandlerTests: XCTestCase {
 
     override func setUpWithError() throws {
         dataSource = MockUIViewControllerHandlerDataSource()
-        handler = UIViewControllerHandler()
+        handler = UIViewControllerHandler(queue: DispatchQueue.main)
         handler.dataSource = dataSource
     }
 
