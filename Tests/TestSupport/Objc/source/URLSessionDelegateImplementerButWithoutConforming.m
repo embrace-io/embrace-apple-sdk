@@ -23,12 +23,14 @@ didFinishCollectingMetrics:(NSURLSessionTaskMetrics *)metrics {
     self.didInvokeDidFinishCollectingMetrics = YES;
 }
 
-- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task
+- (void)URLSession:(NSURLSession *)session 
+              task:(NSURLSessionTask *)task
 didCompleteWithError:(nullable NSError *)error {
     self.didInvokedDidCompleteWithError = YES;
 }
 
-- (void)URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask
+- (void)URLSession:(NSURLSession *)session 
+      downloadTask:(NSURLSessionDownloadTask *)downloadTask
 didFinishDownloadingToURL:(NSURL *)location {
     self.didInvokedDidFinishDownloadingToURL = YES;
 }

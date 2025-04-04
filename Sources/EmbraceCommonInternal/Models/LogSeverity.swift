@@ -10,7 +10,7 @@ import Foundation
     case info = 9
     case warn = 13
     case error = 17
-    case fatal = 24
+    case fatal = 21
 
     /// The value provided is compliant with what SeverityText is for OTel
     /// More info: https://opentelemetry.io/docs/specs/otel/logs/data-model/
