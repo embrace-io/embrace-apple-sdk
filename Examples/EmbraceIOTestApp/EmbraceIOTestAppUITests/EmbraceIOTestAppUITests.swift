@@ -7,116 +7,69 @@
 import XCTest
 
 final class EmbraceIOTestAppUITests: XCTestCase {
+    /// UI Tests do not run the same way Unit Test do. Doing this is MUCH easier than adding the whole source file list, plus their dependencies, to the UI Test target.
+    /// An app that exports its source as a library and then includes it can work around this issue for for now, a simple copy/paste will do.
+    enum Test: Int, CaseIterable {
+        case setup = 0
+        case start
+        case resourceMetadata
 
+        var identifier: String {
+            switch self {
+            case .setup:
+                "setupPayloadTestButton"
+            case .start:
+                "startPayloadTestButton"
+            case .resourceMetadata:
+                "payloadResourceAttributesTestButton"
+            }
+        }
+    }
+
+    var app = XCUIApplication()
     override func setUpWithError() throws {
-        continueAfterFailure = false
+        app.launch()
+        let initButton = app.buttons["EmbraceInitButton"]
+        initButton.tap()
+
+        XCTAssertTrue(initButton.wait(for: \.label, toEqual: "EmbraceIO has started!", timeout: 5.0))
+
+        let sideMenuButton = app.buttons["SideMenuButton"]
+        sideMenuButton.tap()
+
+        app.staticTexts["metadata"].tap()
+        //sleep(4)
+        continueAfterFailure = true
     }
 
     override func tearDownWithError() throws {
 
     }
 
-    func testInitMetadataStartupPayload() {
-        let app = XCUIApplication()
+    private func selectMetadataTest(_ test: Test) {
+        let button = app.buttons[test.identifier]
+        XCTAssertTrue(button.wait(for: \.isEnabled, toEqual: true, timeout: 5.0))
+        button.tap()
+    }
 
-        app.launch()
-        let initButton = app.buttons["EmbraceInitButton"]
-        initButton.tap()
-
-        XCTAssertTrue(initButton.wait(for: \.label, toEqual: "EmbraceIO has started!", timeout: 5.0))
-
-        let sideMenuButton = app.buttons["SideMenuButton"]
-        sideMenuButton.tap()
-
-        app.staticTexts["metadata"].tap()
-        let startupButton = app.buttons["startupTestButton"]
-        XCTAssertTrue(startupButton.wait(for: \.isEnabled, toEqual: true, timeout: 5.0))
-
-        startupButton.tap()
+    private func evaluateResults() {
+        sleep(2)
         XCTAssertTrue(app.staticTexts["PASS"].exists)
         XCTAssertFalse(app.staticTexts["FAIL"].exists)
+    }
+
+    func testInitMetadataStartupPayload() {
+        selectMetadataTest(.start)
+        evaluateResults()
     }
 
     func testInitMetadataSetupPayload() {
-        let app = XCUIApplication()
-
-        app.launch()
-        let initButton = app.buttons["EmbraceInitButton"]
-        initButton.tap()
-
-        XCTAssertTrue(initButton.wait(for: \.label, toEqual: "EmbraceIO has started!", timeout: 5.0))
-
-        let sideMenuButton = app.buttons["SideMenuButton"]
-        sideMenuButton.tap()
-
-        app.staticTexts["metadata"].tap()
-        let startupButton = app.buttons["setupTestButton"]
-        XCTAssertTrue(startupButton.wait(for: \.isEnabled, toEqual: true, timeout: 5.0))
-
-        startupButton.tap()
-        XCTAssertTrue(app.staticTexts["PASS"].exists)
-        XCTAssertFalse(app.staticTexts["FAIL"].exists)
+        selectMetadataTest(.setup)
+        evaluateResults()
     }
 
-    func testCrashPayload() {
-        let app = XCUIApplication()
-
-        app.launch()
-        let initButton = app.buttons["EmbraceInitButton"]
-        initButton.tap()
-
-        XCTAssertTrue(initButton.wait(for: \.label, toEqual: "EmbraceIO has started!", timeout: 5.0))
-
-        let sideMenuButton = app.buttons["SideMenuButton"]
-        sideMenuButton.tap()
-
-        app.staticTexts["crashes"].tap()
-        let crashButton = app.buttons["nullReferenceCrashCaptureTestButton"]
-        XCTAssertTrue(crashButton.wait(for: \.isEnabled, toEqual: true, timeout: 5.0))
-
-        crashButton.tap()
-
-        sleep(3)
-
-        app.launch()
-        initButton.tap()
-
-        XCTAssertTrue(initButton.wait(for: \.label, toEqual: "EmbraceIO has started!", timeout: 5.0))
-
-        sideMenuButton.tap()
-
-        app.staticTexts["crashes"].tap()
-
-        XCTAssertTrue(crashButton.wait(for: \.isEnabled, toEqual: true, timeout: 5.0))
-
-        crashButton.tap()
-
-        sleep(3)
-
-        XCTAssertTrue(app.staticTexts["PASS"].exists)
-        XCTAssertFalse(app.staticTexts["FAIL"].exists)
-    }
-}
-
-extension XCUIElement {
-    var hasFocus: Bool { value(forKey: "hasKeyboardFocus") as? Bool ?? false }
-}
-
-extension XCTestCase {
-    func waitUntilElementHasFocus(element: XCUIElement, timeout: TimeInterval = 600, file: StaticString = #file, line: UInt = #line) -> XCUIElement {
-        let expectation = expectation(description: "waiting for element \(element) to have focus")
-
-        let timer = Timer(timeInterval: 1, repeats: true) { timer in
-            guard element.hasFocus else { return }
-
-            expectation.fulfill()
-            timer.invalidate()
-        }
-
-        RunLoop.current.add(timer, forMode: .common)
-
-        wait(for: [expectation], timeout: timeout)
-
-        return element
+    func testResourceMetadataItems() {
+        selectMetadataTest(.resourceMetadata)
+        evaluateResults()
     }
 }
