@@ -118,7 +118,7 @@ final class SessionControllerTests: XCTestCase {
 
         let sessions: [SessionRecord] = storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
-        XCTAssertEqual(sessions.first?.id, session!.id)
+        XCTAssertEqual(sessions.first?.idRaw, session!.idRaw)
         XCTAssertEqual(sessions.first?.state, "foreground")
     }
 
@@ -179,7 +179,7 @@ final class SessionControllerTests: XCTestCase {
 
         let sessions: [SessionRecord] = storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
-        XCTAssertEqual(sessions.first!.id, session!.id)
+        XCTAssertEqual(sessions.first!.idRaw, session!.idRaw)
         XCTAssertEqual(sessions.first!.state, "foreground")
         XCTAssertEqual(sessions.first!.endTime!.timeIntervalSince1970, endTime.timeIntervalSince1970, accuracy: 0.001)
     }
@@ -280,7 +280,7 @@ final class SessionControllerTests: XCTestCase {
 
         let sessions: [SessionRecord] = storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
-        XCTAssertEqual(sessions.first?.id, session!.id)
+        XCTAssertEqual(sessions.first?.idRaw, session!.idRaw)
         XCTAssertEqual(sessions.first?.state, "foreground")
         XCTAssertEqual(sessions.first?.appTerminated, true)
     }
@@ -292,7 +292,7 @@ final class SessionControllerTests: XCTestCase {
 
         let sessions: [SessionRecord] = storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
-        XCTAssertEqual(sessions.first?.id, session!.id)
+        XCTAssertEqual(sessions.first?.idRaw, session!.idRaw)
         XCTAssertEqual(sessions.first?.state, "background")
         XCTAssertEqual(sessions.first?.appTerminated, false)
     }
@@ -333,7 +333,7 @@ final class SessionControllerTests: XCTestCase {
         // then the session is stored
         let sessions: [SessionRecord] = storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
-        XCTAssertEqual(sessions.first?.id, session!.id)
+        XCTAssertEqual(sessions.first?.idRaw, session!.idRaw)
         XCTAssertEqual(sessions.first?.state, "background")
     }
 

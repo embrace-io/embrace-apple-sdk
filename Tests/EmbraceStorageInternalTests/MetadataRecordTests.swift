@@ -27,8 +27,8 @@ class MetadataRecordTests: XCTestCase {
         let records: [MetadataRecord] = storage.fetchAll()
         XCTAssertEqual(records.count, 1)
         XCTAssertEqual(records[0].key, "test")
-        XCTAssertEqual(records[0].type, .resource)
-        XCTAssertEqual(records[0].lifespan, .permanent)
+        XCTAssertEqual(records[0].typeRaw, "resource")
+        XCTAssertEqual(records[0].lifespanRaw, "permanent")
     }
 
     func test_addMetadata_resourceLimit() throws {

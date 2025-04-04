@@ -25,8 +25,8 @@ class ResourceCaptureServiceTests: XCTestCase {
         XCTAssertEqual(metadata.count, 1)
         XCTAssertEqual(metadata[0].key, "test")
         XCTAssertEqual(metadata[0].value, "value")
-        XCTAssertEqual(metadata[0].type, .requiredResource)
-        XCTAssertEqual(metadata[0].lifespan, .process)
+        XCTAssertEqual(metadata[0].typeRaw, "requiredResource")
+        XCTAssertEqual(metadata[0].lifespanRaw, "process")
         XCTAssertEqual(metadata[0].lifespanId, ProcessIdentifier.current.hex)
     }
 }
