@@ -443,7 +443,7 @@ class UnsentDataHandlerTests: XCTestCase {
         XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string(LogType.crash.rawValue))
         XCTAssertEqual(otel.logs[0].timestamp, report.timestamp)
         XCTAssertEqual(otel.logs[0].body?.description, "")
-        XCTAssertEqual(otel.logs[0].severity, .fatal4)
+        XCTAssertEqual(otel.logs[0].severity, .fatal)
         XCTAssertEqual(otel.logs[0].attributes["session.id"], .string(TestConstants.sessionId.toString))
         XCTAssertEqual(otel.logs[0].attributes["emb.state"], .string(SessionState.foreground.rawValue))
         XCTAssertEqual(otel.logs[0].attributes["log.record.uid"], .string(report.id.withoutHyphen))
