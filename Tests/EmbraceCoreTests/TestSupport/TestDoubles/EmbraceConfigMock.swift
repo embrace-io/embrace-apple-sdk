@@ -4,6 +4,7 @@
 
 @testable import EmbraceConfigInternal
 import TestSupport
+import Foundation
 
 class EmbraceConfigMock {
     static func `default`(sdkEnabled: Bool = true) -> EmbraceConfig {
@@ -11,7 +12,8 @@ class EmbraceConfigMock {
             configurable: MockEmbraceConfigurable(isSDKEnabled: sdkEnabled),
             options: .init(minimumUpdateInterval: .infinity),
             notificationCenter: .default,
-            logger: MockLogger()
+            logger: MockLogger(),
+            queue: DispatchQueue.main
         )
     }
 }

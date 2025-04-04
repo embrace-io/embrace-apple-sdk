@@ -47,22 +47,23 @@ class SessionController: SessionControllable {
     }
 
     let heartbeat: SessionHeartbeat
-    let queue: DispatchQueue
+    let queue: DispatchableQueue
     var firstSession = true
 
     init(
         storage: EmbraceStorage,
         upload: EmbraceUpload?,
         config: EmbraceConfig?,
-        heartbeatInterval: TimeInterval = SessionHeartbeat.defaultInterval
+        heartbeatInterval: TimeInterval = SessionHeartbeat.defaultInterval,
+        queue: DispatchableQueue = .with(label: "com.embrace.session_controller_upload"),
+        heartbeatQueue: DispatchQueue = DispatchQueue(label: "com.embrace.session_heartbeat")
     ) {
         self.storage = storage
         self.upload = upload
         self.config = config
 
-        let heartbeatQueue = DispatchQueue(label: "com.embrace.session_heartbeat")
         self.heartbeat = SessionHeartbeat(queue: heartbeatQueue, interval: heartbeatInterval)
-        self.queue = DispatchQueue(label: "com.embrace.session_controller_upload")
+        self.queue = queue
 
         self.heartbeat.callback = { [weak self] in
             let heartbeat = Date()
