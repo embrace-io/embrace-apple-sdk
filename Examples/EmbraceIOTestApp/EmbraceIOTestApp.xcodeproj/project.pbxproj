@@ -1,0 +1,549 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		4D6CDF342D84BBB000BB957F /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4D6CDF332D84BBB000BB957F /* EmbraceCore */; };
+		4D6CDF362D84BBB000BB957F /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = 4D6CDF352D84BBB000BB957F /* EmbraceIO */; };
+		4DF12A332D302CBE00C93E62 /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4DF12A322D302CBE00C93E62 /* EmbraceCore */; };
+		4DF12A352D302CBE00C93E62 /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = 4DF12A342D302CBE00C93E62 /* EmbraceCrash */; };
+		4DF12A372D302CBE00C93E62 /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 4DF12A362D302CBE00C93E62 /* EmbraceCrashlyticsSupport */; };
+		4DF12A392D302CBE00C93E62 /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = 4DF12A382D302CBE00C93E62 /* EmbraceIO */; };
+		4DF12A3B2D302CBE00C93E62 /* EmbraceSemantics in Frameworks */ = {isa = PBXBuildFile; productRef = 4DF12A3A2D302CBE00C93E62 /* EmbraceSemantics */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		4D94F2592D429257008DECEE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4DF12A182D302C3200C93E62 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4DF12A1F2D302C3200C93E62;
+			remoteInfo = EmbraceIOTestApp;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		4D94F2532D429257008DECEE /* EmbraceIOTestAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EmbraceIOTestAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		4DF12A202D302C3200C93E62 /* EmbraceIOTestApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = EmbraceIOTestApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		4D0154C32D9B07FF001B775A /* Exceptions for "EmbraceIOTestApp" folder in "EmbraceIOTestAppUITests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Tests/Netowrking/Enums/URLRequestMethod.swift,
+			);
+			target = 4D94F2522D429257008DECEE /* EmbraceIOTestAppUITests */;
+		};
+		4D5977FA2D4AC5FD0067FCE3 /* Exceptions for "EmbraceIOTestApp" folder in "EmbraceIOTestApp" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 4DF12A1F2D302C3200C93E62 /* EmbraceIOTestApp */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		4D94F2542D429257008DECEE /* EmbraceIOTestAppUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = EmbraceIOTestAppUITests;
+			sourceTree = "<group>";
+		};
+		4DF12A222D302C3200C93E62 /* EmbraceIOTestApp */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				4D5977FA2D4AC5FD0067FCE3 /* Exceptions for "EmbraceIOTestApp" folder in "EmbraceIOTestApp" target */,
+				4D0154C32D9B07FF001B775A /* Exceptions for "EmbraceIOTestApp" folder in "EmbraceIOTestAppUITests" target */,
+			);
+			path = EmbraceIOTestApp;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		4D94F2502D429257008DECEE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4D6CDF362D84BBB000BB957F /* EmbraceIO in Frameworks */,
+				4D6CDF342D84BBB000BB957F /* EmbraceCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4DF12A1D2D302C3200C93E62 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4DF12A392D302CBE00C93E62 /* EmbraceIO in Frameworks */,
+				4DF12A352D302CBE00C93E62 /* EmbraceCrash in Frameworks */,
+				4DF12A332D302CBE00C93E62 /* EmbraceCore in Frameworks */,
+				4DF12A372D302CBE00C93E62 /* EmbraceCrashlyticsSupport in Frameworks */,
+				4DF12A3B2D302CBE00C93E62 /* EmbraceSemantics in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		4D6CDF322D84BBB000BB957F /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		4DF12A172D302C3200C93E62 = {
+			isa = PBXGroup;
+			children = (
+				4DF12A222D302C3200C93E62 /* EmbraceIOTestApp */,
+				4D94F2542D429257008DECEE /* EmbraceIOTestAppUITests */,
+				4D6CDF322D84BBB000BB957F /* Frameworks */,
+				4DF12A212D302C3200C93E62 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		4DF12A212D302C3200C93E62 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				4DF12A202D302C3200C93E62 /* EmbraceIOTestApp.app */,
+				4D94F2532D429257008DECEE /* EmbraceIOTestAppUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		4D94F2522D429257008DECEE /* EmbraceIOTestAppUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4D94F25B2D429257008DECEE /* Build configuration list for PBXNativeTarget "EmbraceIOTestAppUITests" */;
+			buildPhases = (
+				4D94F24F2D429257008DECEE /* Sources */,
+				4D94F2502D429257008DECEE /* Frameworks */,
+				4D94F2512D429257008DECEE /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4D94F25A2D429257008DECEE /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				4D94F2542D429257008DECEE /* EmbraceIOTestAppUITests */,
+			);
+			name = EmbraceIOTestAppUITests;
+			packageProductDependencies = (
+				4D6CDF332D84BBB000BB957F /* EmbraceCore */,
+				4D6CDF352D84BBB000BB957F /* EmbraceIO */,
+			);
+			productName = EmbraceIOTestAppUITests;
+			productReference = 4D94F2532D429257008DECEE /* EmbraceIOTestAppUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		4DF12A1F2D302C3200C93E62 /* EmbraceIOTestApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4DF12A2E2D302C3300C93E62 /* Build configuration list for PBXNativeTarget "EmbraceIOTestApp" */;
+			buildPhases = (
+				4DF12A1C2D302C3200C93E62 /* Sources */,
+				4DF12A1D2D302C3200C93E62 /* Frameworks */,
+				4DF12A1E2D302C3200C93E62 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				4DF12A222D302C3200C93E62 /* EmbraceIOTestApp */,
+			);
+			name = EmbraceIOTestApp;
+			packageProductDependencies = (
+				4DF12A322D302CBE00C93E62 /* EmbraceCore */,
+				4DF12A342D302CBE00C93E62 /* EmbraceCrash */,
+				4DF12A362D302CBE00C93E62 /* EmbraceCrashlyticsSupport */,
+				4DF12A382D302CBE00C93E62 /* EmbraceIO */,
+				4DF12A3A2D302CBE00C93E62 /* EmbraceSemantics */,
+			);
+			productName = EmbraceIOTestApp;
+			productReference = 4DF12A202D302C3200C93E62 /* EmbraceIOTestApp.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		4DF12A182D302C3200C93E62 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1620;
+				LastUpgradeCheck = 1620;
+				TargetAttributes = {
+					4D94F2522D429257008DECEE = {
+						CreatedOnToolsVersion = 16.2;
+						TestTargetID = 4DF12A1F2D302C3200C93E62;
+					};
+					4DF12A1F2D302C3200C93E62 = {
+						CreatedOnToolsVersion = 16.2;
+					};
+				};
+			};
+			buildConfigurationList = 4DF12A1B2D302C3200C93E62 /* Build configuration list for PBXProject "EmbraceIOTestApp" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 4DF12A172D302C3200C93E62;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				4D7DCDC42D487FDF009561A3 /* XCLocalSwiftPackageReference "../../../Embrace-ios-sdk" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 4DF12A212D302C3200C93E62 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				4DF12A1F2D302C3200C93E62 /* EmbraceIOTestApp */,
+				4D94F2522D429257008DECEE /* EmbraceIOTestAppUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		4D94F2512D429257008DECEE /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4DF12A1E2D302C3200C93E62 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		4D94F24F2D429257008DECEE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4DF12A1C2D302C3200C93E62 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		4D94F25A2D429257008DECEE /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4DF12A1F2D302C3200C93E62 /* EmbraceIOTestApp */;
+			targetProxy = 4D94F2592D429257008DECEE /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		4D94F25C2D429257008DECEE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(BUILT_PRODUCTS_DIR)/EmbraceIOTestApp.app/EmbraceIOTestApp";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.embrace.EmbraceIOTestAppUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUINDLE_LOADER)";
+				TEST_TARGET_NAME = EmbraceIOTestApp;
+			};
+			name = Debug;
+		};
+		4D94F25D2D429257008DECEE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(BUILT_PRODUCTS_DIR)/EmbraceIOTestApp.app/EmbraceIOTestApp";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.embrace.EmbraceIOTestAppUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUINDLE_LOADER)";
+				TEST_TARGET_NAME = EmbraceIOTestApp;
+			};
+			name = Release;
+		};
+		4DF12A2C2D302C3300C93E62 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		4DF12A2D2D302C3300C93E62 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		4DF12A2F2D302C3300C93E62 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"EmbraceIOTestApp/Preview Content\"";
+				DEVELOPMENT_TEAM = SH999985NQ;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = EmbraceIOTestApp/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fernandod.embrace.EmbraceIOTestApp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		4DF12A302D302C3300C93E62 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"EmbraceIOTestApp/Preview Content\"";
+				DEVELOPMENT_TEAM = SH999985NQ;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = EmbraceIOTestApp/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fernandod.embrace.EmbraceIOTestApp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		4D94F25B2D429257008DECEE /* Build configuration list for PBXNativeTarget "EmbraceIOTestAppUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4D94F25C2D429257008DECEE /* Debug */,
+				4D94F25D2D429257008DECEE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4DF12A1B2D302C3200C93E62 /* Build configuration list for PBXProject "EmbraceIOTestApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4DF12A2C2D302C3300C93E62 /* Debug */,
+				4DF12A2D2D302C3300C93E62 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4DF12A2E2D302C3300C93E62 /* Build configuration list for PBXNativeTarget "EmbraceIOTestApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4DF12A2F2D302C3300C93E62 /* Debug */,
+				4DF12A302D302C3300C93E62 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		4D7DCDC42D487FDF009561A3 /* XCLocalSwiftPackageReference "../../../Embrace-ios-sdk" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../../../Embrace-ios-sdk";
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		4D6CDF332D84BBB000BB957F /* EmbraceCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4D7DCDC42D487FDF009561A3 /* XCLocalSwiftPackageReference "../../../Embrace-ios-sdk" */;
+			productName = EmbraceCore;
+		};
+		4D6CDF352D84BBB000BB957F /* EmbraceIO */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4D7DCDC42D487FDF009561A3 /* XCLocalSwiftPackageReference "../../../Embrace-ios-sdk" */;
+			productName = EmbraceIO;
+		};
+		4DF12A322D302CBE00C93E62 /* EmbraceCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EmbraceCore;
+		};
+		4DF12A342D302CBE00C93E62 /* EmbraceCrash */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EmbraceCrash;
+		};
+		4DF12A362D302CBE00C93E62 /* EmbraceCrashlyticsSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EmbraceCrashlyticsSupport;
+		};
+		4DF12A382D302CBE00C93E62 /* EmbraceIO */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EmbraceIO;
+		};
+		4DF12A3A2D302CBE00C93E62 /* EmbraceSemantics */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EmbraceSemantics;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 4DF12A182D302C3200C93E62 /* Project object */;
+}
