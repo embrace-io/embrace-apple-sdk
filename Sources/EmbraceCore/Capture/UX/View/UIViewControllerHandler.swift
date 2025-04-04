@@ -21,7 +21,7 @@ protocol UIViewControllerHandlerDataSource: AnyObject {
 class UIViewControllerHandler {
 
     weak var dataSource: UIViewControllerHandlerDataSource?
-    private let queue: DispatchableQueue = .with(label: "com.embrace.UIViewControllerHandler", qos: .utility)
+    private let queue: DispatchableQueue
 
     @ThreadSafe var parentSpans: [String: Span] = [:]
     @ThreadSafe var viewDidLoadSpans: [String: Span] = [:]
@@ -33,7 +33,8 @@ class UIViewControllerHandler {
     @ThreadSafe var uiReadySpans: [String: Span] = [:]
     @ThreadSafe var alreadyFinishedUiReadyIds: Set<String> = []
 
-    init() {
+    init(queue: DispatchableQueue = .with(label: "com.embrace.UIViewControllerHandler", qos: .utility)) {
+        self.queue = queue
         Embrace.notificationCenter.addObserver(
             self,
             selector: #selector(foregroundSessionDidEnd),
@@ -107,7 +108,6 @@ class UIViewControllerHandler {
 
         queue.async {
             // generate parent span
-
 
             let spanName = nameFormat.replacingOccurrences(of: "NAME", with: className)
 

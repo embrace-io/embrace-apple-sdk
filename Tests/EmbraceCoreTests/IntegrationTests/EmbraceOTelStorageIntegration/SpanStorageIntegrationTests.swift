@@ -18,7 +18,8 @@ final class SpanStorageIntegrationTests: IntegrationTestCase {
 
     override func setUpWithError() throws {
         storage = try EmbraceStorage.createInMemoryDb()
-        let exporter = StorageSpanExporter(options: .init(storage: storage), logger: MockLogger())
+        let sessionController = MockSessionController()
+        let exporter = StorageSpanExporter(options: .init(storage: storage, sessionController: sessionController), logger: MockLogger())
 
         EmbraceOTel.setup(spanProcessors: [SingleSpanProcessor(spanExporter: exporter, sdkStateProvider: sdkStateProvider)])
     }

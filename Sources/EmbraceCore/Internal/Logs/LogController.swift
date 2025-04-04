@@ -90,9 +90,18 @@ class LogController: LogControllable {
          If we want to keep this method cleaner, we could move this log to `EmbraceLogAttributesBuilder`
          However that would cause to always add a frame to the stacktrace.
          */
-        if stackTraceBehavior == .default && (severity == .warn || severity == .error) {
-            let stackTrace: [String] = Thread.callStackSymbols
-            attributesBuilder.addStackTrace(stackTrace)
+        switch stackTraceBehavior {
+        case .default:
+            if severity == .warn || severity == .error {
+                let stackTrace: [String] = Thread.callStackSymbols
+                attributesBuilder.addStackTrace(stackTrace)
+            }
+        case .custom(let customStackTrace):
+            if severity == .warn || severity == .error {
+                attributesBuilder.addStackTrace(customStackTrace.frames)
+            }
+        case .notIncluded:
+            break
         }
 
         var finalAttributes = attributesBuilder

@@ -14,7 +14,8 @@ extension Array where Element == Migration {
             AddSessionRecordMigration(),
             AddMetadataRecordMigration(),
             AddLogRecordMigration(),
-            AddProcessIdentifierToSpanRecordMigration()
+            AddProcessIdentifierToSpanRecordMigration(),
+            AddSessionIdentifierToSpanRecordMigration()
         ]
     }
 }

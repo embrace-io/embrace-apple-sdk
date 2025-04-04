@@ -182,7 +182,12 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         logController?.sdkStateProvider = self
 
         // setup otel
-        EmbraceOTel.setup(spanProcessors: .processors(for: storage, export: options.export, sdkStateProvider: self))
+        EmbraceOTel.setup(spanProcessors: .processors(
+            for: storage,
+            sessionController: sessionController,
+            export: options.export,
+            sdkStateProvider: self
+        ))
         let logSharedState = DefaultEmbraceLogSharedState.create(
             storage: self.storage,
             controller: self.logController,

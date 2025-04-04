@@ -59,9 +59,17 @@ public final class TapCaptureService: CaptureService {
         guard event.type == .touches,
               let allTouches = event.allTouches,
               let touch = allTouches.first,
-              touch.phase == .began,
+              touch.phase == options.tapPhase.asUITouchPhase(),
               let target = touch.view else {
             return
+        }
+
+        // If we are handling `.ended`, verify that the touch ended inside the original target
+        if touch.phase == .ended {
+            let touchLocation = touch.location(in: target)
+            guard target.bounds.contains(touchLocation) else {
+                return
+            }
         }
 
         // check if the view type should be ignored
@@ -134,7 +142,7 @@ class UIWindowSendEventSwizzler: Swizzlable {
     var onEvent: ((UIEvent) -> Void)?
 
     func install() throws {
-        try swizzleInstanceMethod { originalImplementation in { [weak self] uiWindow, uiEvent -> Void in
+        try swizzleInstanceMethod { originalImplementation in { [weak self] uiWindow, uiEvent in
                 self?.onEvent?(uiEvent)
                 originalImplementation(uiWindow, UIWindowSendEventSwizzler.selector, uiEvent)
             }
