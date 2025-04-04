@@ -213,7 +213,12 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
         }
 
         let value = W3C.traceparent(from: span.context)
-        if task.injectHeader(withKey: W3C.traceparentHeaderName, value: value) {
+
+        if EMBRURLSessionTaskHeaderInjector.injectHeader(
+            withKey: W3C.traceparentHeaderName,
+            value: value,
+            into: task
+        ) {
             return value
         }
 
