@@ -130,8 +130,9 @@ final class iOSSessionLifecycleTests: XCTestCase {
     }
 
     func test_appDidBecomeActive_hasCurrentSession_coldStartTrue_callsUpdateToForegroundState_keepsSameSession() {
+        mockController.nextSessionColdStart = true
         mockController.startSession(state: .background)
-        mockController.currentSession?.coldStart = true
+
         let session = mockController.currentSession
         mockController.didCallStartSession = false
 
@@ -150,8 +151,9 @@ final class iOSSessionLifecycleTests: XCTestCase {
     }
 
     func test_appDidBecomeActive_hasCurrentSession_withColdStartFalse_createsNewForegroundSession() {
+        mockController.nextSessionColdStart = false
         mockController.startSession(state: .background)
-        mockController.currentSession?.coldStart = false
+
         let session = mockController.currentSession
 
         lifecycle.appDidBecomeActive()
@@ -232,8 +234,8 @@ final class iOSSessionLifecycleTests: XCTestCase {
     }
 
     func test_appWillTerminate_hasCurrentForegroundSession_marksItAsAppTerminated() {
+        mockController.nextSessionAppTerminated = false
         mockController.startSession(state: .foreground)
-        mockController.currentSession?.appTerminated = false
 
         mockController.onUpdateSession { session, state, appTerminated in
             XCTAssertEqual(session?.id, self.mockController.currentSession?.id)
@@ -251,8 +253,8 @@ final class iOSSessionLifecycleTests: XCTestCase {
     }
 
     func test_appWillTerminate_hasCurrentBackgroundSession_marksItAsAppTerminated() {
+        mockController.nextSessionAppTerminated = false
         mockController.startSession(state: .background)
-        mockController.currentSession?.appTerminated = false
 
         mockController.onUpdateSession { session, state, appTerminated in
             XCTAssertEqual(session?.id, self.mockController.currentSession?.id)

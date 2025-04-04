@@ -15,34 +15,24 @@ class DeviceIdentifier_PersistenceTests: XCTestCase {
     override func setUpWithError() throws {
         storage = try EmbraceStorage.createInMemoryDb()
         KeychainAccess.keychain = AlwaysSuccessfulKeychainInterface()
-
-        // delete the resource if we already have it
-        if let resource = try storage.fetchRequiredPermanentResource(key: DeviceIdentifier.resourceKey) {
-            try storage.delete(record: resource)
-        }
     }
 
     override func tearDownWithError() throws {
-        try storage.teardown()
+        storage.coreData.destroy()
     }
 
     func test_retrieve_withNoRecordInStorage_shouldCreateNewPermanentRecord() throws {
         let result = DeviceIdentifier.retrieve(from: storage)
 
-        let resourceRecord = try storage.fetchRequiredPermanentResource(key: DeviceIdentifier.resourceKey)
+        let resourceRecord = storage.fetchRequiredPermanentResource(key: DeviceIdentifier.resourceKey)
         XCTAssertNotNil(resourceRecord)
         XCTAssertEqual(resourceRecord?.lifespan, .permanent)
 
-        let storedDeviceId = try XCTUnwrap(resourceRecord?.uuidValue)
+        let storedDeviceId = UUID(withoutHyphen: resourceRecord!.value)!
         XCTAssertEqual(result, DeviceIdentifier(value: storedDeviceId))
     }
 
     func test_retrieve_withNoRecordInStorage_shouldRequestFromKeychain() throws {
-        // because of our setup we could assume there is no database entry but lets make sure
-        // to delete the resource if we already have it
-        if let resource = try storage.fetchRequiredPermanentResource(key: DeviceIdentifier.resourceKey) {
-            try storage.delete(record: resource)
-        }
         let keychainDeviceId = KeychainAccess.deviceId
 
         let result = DeviceIdentifier.retrieve(from: storage)
@@ -55,7 +45,7 @@ class DeviceIdentifier_PersistenceTests: XCTestCase {
 
         let deviceId = DeviceIdentifier(value: UUID())
 
-        try storage.addMetadata(
+        storage.addMetadata(
             key: DeviceIdentifier.resourceKey,
             value: deviceId.hex,
             type: .requiredResource,

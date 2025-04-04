@@ -161,8 +161,8 @@ private extension StorageEmbraceLogExporterTests {
         XCTAssertEqual(batcher.addLogRecordInvocationCount, logCount)
     }
 
-    func thenRecordMatches(record: LogRecord, body: String, attributes: [String: PersistableValue]) {
-        XCTAssertEqual(record.body, body)
+    func thenRecordMatches(record: ReadableLogRecord, body: String, attributes: [String: AttributeValue]) {
+        XCTAssertEqual(record.body!.description, body)
         XCTAssertEqual(record.attributes, attributes)
     }
 
@@ -189,9 +189,9 @@ private extension StorageEmbraceLogExporterTests {
 class SpyLogBatcher: LogBatcher {
     private(set) var didCallAddLogRecord: Bool = false
     private(set) var addLogRecordInvocationCount: Int = 0
-    private(set) var logRecords = [LogRecord]()
+    private(set) var logRecords = [ReadableLogRecord]()
 
-    func addLogRecord(logRecord: LogRecord) {
+    func addLogRecord(logRecord: ReadableLogRecord) {
         didCallAddLogRecord = true
         addLogRecordInvocationCount += 1
         logRecords.append(logRecord)
@@ -203,7 +203,7 @@ class SpyLogBatcher: LogBatcher {
 
     private(set) var didCallRenewBatch: Bool = false
     private(set) var renewBatchInvocationCount: Int = 0
-    func renewBatch(withLogs logRecords: [LogRecord]) {
+    func renewBatch(withLogs logs: [EmbraceLog]) {
         didCallRenewBatch = true
         renewBatchInvocationCount += 1
     }

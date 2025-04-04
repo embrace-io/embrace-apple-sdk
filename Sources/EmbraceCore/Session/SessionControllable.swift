@@ -10,10 +10,10 @@ import EmbraceStorageInternal
 /// See ``SessionController`` for main conformance
 protocol SessionControllable: AnyObject {
 
-    var currentSession: SessionRecord? { get }
+    var currentSession: EmbraceSession? { get }
 
     @discardableResult
-    func startSession(state: SessionState) -> SessionRecord?
+    func startSession(state: SessionState) -> EmbraceSession?
 
     @discardableResult
     func endSession() -> Date
