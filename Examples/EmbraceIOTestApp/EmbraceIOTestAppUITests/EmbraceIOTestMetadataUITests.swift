@@ -1,12 +1,12 @@
 //
-//  EmbraceIOTestAppUITests.swift
-//  EmbraceIOTestAppUITests
+//  EmbraceIOTestMetadataUITests.swift
+//  EmbraceIOTestMetadataUITests
 //
 //
 
 import XCTest
 
-final class EmbraceIOTestAppUITests: XCTestCase {
+final class EmbraceIOTestMetadataUITests: XCTestCase {
     /// UI Tests do not run the same way Unit Test do. Doing this is MUCH easier than adding the whole source file list, plus their dependencies, to the UI Test target.
     /// An app that exports its source as a library and then includes it can work around this issue for for now, a simple copy/paste will do.
     enum Test: Int, CaseIterable {
