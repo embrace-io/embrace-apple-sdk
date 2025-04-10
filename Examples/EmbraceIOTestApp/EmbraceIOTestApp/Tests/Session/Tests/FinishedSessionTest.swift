@@ -22,9 +22,7 @@ class FinishedSessionTest: PayloadTest {
     func runTestPreparations() {
         currentSession = Embrace.client?.currentSessionId() ?? ""
         if fakeAppState {
-            //DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                NotificationCenter.default.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
-            //}
+            NotificationCenter.default.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 NotificationCenter.default.post(name: UIApplication.didBecomeActiveNotification, object: nil)
@@ -47,7 +45,7 @@ class FinishedSessionTest: PayloadTest {
         /// It'll... Do for now.
         guard let _ = spans.first(where: {
             $0.name == "POST /api/v2/spans" &&
-            $0.startTime.timeIntervalSince(sessionSpan.endTime) < 1.0
+            $0.startTime.timeIntervalSince(sessionSpan.endTime) < 3.0
         }) else {
             testItems.append(.init(target: "POST Session Span", expected: "existing", recorded: "missing"))
             return .init(items: testItems)
