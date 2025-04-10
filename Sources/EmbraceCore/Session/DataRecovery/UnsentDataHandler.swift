@@ -15,7 +15,7 @@ class UnsentDataHandler {
         otel: EmbraceOpenTelemetry?,
         logController: LogControllable? = nil,
         currentSessionId: SessionIdentifier? = nil,
-        crashReporter: CrashReporter? = nil
+        crashReporter: EmbraceCrashReporterPlugin? = nil
     ) {
 
         guard let storage = storage,
@@ -49,8 +49,8 @@ class UnsentDataHandler {
         upload: EmbraceUpload,
         otel: EmbraceOpenTelemetry?,
         currentSessionId: SessionIdentifier?,
-        crashReporter: CrashReporter,
-        crashReports: [CrashReport]
+        crashReporter: EmbraceCrashReporterPlugin,
+        crashReports: [EmbraceCrashReport]
     ) {
         // send crash reports
         for report in crashReports {
@@ -95,8 +95,8 @@ class UnsentDataHandler {
     }
 
     static public func sendCrashLog(
-        report: CrashReport,
-        reporter: CrashReporter?,
+        report: EmbraceCrashReport,
+        reporter: EmbraceCrashReporterPlugin?,
         session: SessionRecord?,
         storage: EmbraceStorage?,
         upload: EmbraceUpload?,
@@ -134,6 +134,7 @@ class UnsentDataHandler {
                 case .success:
                     // remove crash report
                     // we can remove this immediately because the upload module will cache it until the upload succeeds
+                    // TODO: Should we delete the report or let the app decide ??
                     if let internalId = report.internalId {
                         reporter?.deleteCrashReport(id: internalId)
                     }
@@ -151,7 +152,7 @@ class UnsentDataHandler {
     static private func createLogCrashAttributes(
         otel: EmbraceOpenTelemetry?,
         storage: EmbraceStorage?,
-        report: CrashReport,
+        report: EmbraceCrashReport,
         session: SessionRecord?,
         timestamp: Date
     ) -> [String: String] {

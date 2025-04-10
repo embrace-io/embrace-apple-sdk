@@ -13,13 +13,13 @@ final class EmbraceSetupCaptureServicesTests: XCTestCase {
     class ExampleCaptureService: CaptureService {
     }
 
-    class ExampleCrashReporter: CrashReporter {
+    class ExampleCrashReporter: EmbraceCrashReporterPlugin {
         var currentSessionId: String?
         func install(context: CrashReporterContext, logger: InternalLogger) { }
         func getLastRunState() -> LastRunState { return .cleanExit }
-        func fetchUnsentCrashReports(completion: @escaping ([CrashReport]) -> Void) { }
+        func fetchUnsentCrashReports(completion: @escaping ([EmbraceCrashReport]) -> Void) { }
+        var onNewReport: ((EmbraceCrashReport) -> Void)?
         func deleteCrashReport(id: Int) { }
-        var onNewReport: ((CrashReport) -> Void)?
     }
 
     override func tearDown() {

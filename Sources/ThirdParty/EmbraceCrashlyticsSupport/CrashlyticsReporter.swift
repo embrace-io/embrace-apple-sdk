@@ -7,7 +7,7 @@ import EmbraceCommonInternal
 
 /// Special `CrashReporter` implementation that captures crash data from Crashlytics reports.
 @objc(EMBCrashlyticsReporter)
-public final class CrashlyticsReporter: NSObject, CrashReporter {
+public final class CrashlyticsReporter: NSObject, EmbraceCrashReporterPlugin {
 
     static let providerIdentifier = "crashlytics"
 
@@ -47,7 +47,7 @@ public final class CrashlyticsReporter: NSObject, CrashReporter {
     }
 
     /// Block called when there's a new report to upload
-    public var onNewReport: ((CrashReport) -> Void)?
+    public var onNewReport: ((EmbraceCrashReport) -> Void)?
 
     /// Always returns `.invalid`
     public func getLastRunState() -> LastRunState {
@@ -89,7 +89,7 @@ public final class CrashlyticsReporter: NSObject, CrashReporter {
             return
         }
 
-        let report = CrashReport(
+        let report = EmbraceCrashReport(
             payload: body.base64EncodedString(),
             provider: CrashlyticsReporter.providerIdentifier
         )
@@ -97,17 +97,16 @@ public final class CrashlyticsReporter: NSObject, CrashReporter {
     }
 
     /// Unused
-    public func fetchUnsentCrashReports(completion: @escaping ([CrashReport]) -> Void) {
+    public func fetchUnsentCrashReports(completion: @escaping ([EmbraceCrashReport]) -> Void) {
         completion([])
     }
-
+    
     /// Unused
     public func deleteCrashReport(id: Int) {
-
     }
 }
 
-extension CrashlyticsReporter: ExtendableCrashReporter {
+extension CrashlyticsReporter: EmbraceExtendableCrashReporterPlugin {
     public func appendCrashInfo(key: String, value: String) {
         wrapper.setCustomValue(key: key, value: value)
     }

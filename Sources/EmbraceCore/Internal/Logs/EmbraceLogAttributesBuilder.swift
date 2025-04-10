@@ -11,7 +11,7 @@ class EmbraceLogAttributesBuilder {
     private weak var storage: EmbraceStorageMetadataFetcher?
     private weak var sessionControllable: SessionControllable?
     private var session: SessionRecord?
-    private var crashReport: CrashReport?
+    private var crashReport: EmbraceCrashReport?
     private var attributes: [String: String]
 
     private var currentSession: SessionRecord? {
@@ -27,7 +27,7 @@ class EmbraceLogAttributesBuilder {
     }
 
     init(session: SessionRecord?,
-         crashReport: CrashReport? = nil,
+         crashReport: EmbraceCrashReport? = nil,
          storage: EmbraceStorageMetadataFetcher? = nil,
          initialAttributes: [String: String]) {
         self.session = session
