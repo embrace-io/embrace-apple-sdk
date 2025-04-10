@@ -3,9 +3,11 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceOTelInternal
 import EmbraceCommonInternal
 import EmbraceSemantics
+#endif
 import OpenTelemetryApi
 
 /// Class used to represent a Breadcrumb as a SpanEvent.

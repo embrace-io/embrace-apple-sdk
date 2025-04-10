@@ -3,8 +3,10 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
 import EmbraceCoreDataInternal
+#endif
 import CoreData
 
 public typealias Storage = EmbraceStorageMetadataFetcher & LogRepository

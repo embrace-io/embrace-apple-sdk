@@ -4,8 +4,10 @@
 
 import Foundation
 import OpenTelemetryApi
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
 import EmbraceSemantics
+#endif
 
 public protocol EmbraceOpenTelemetry: AnyObject {
     func buildSpan(name: String,

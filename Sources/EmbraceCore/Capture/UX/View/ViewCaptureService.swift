@@ -4,9 +4,11 @@
 #if canImport(UIKit) && !os(watchOS)
 import UIKit
 import SwiftUI
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCaptureService
 import EmbraceCommonInternal
 import EmbraceOTelInternal
+#endif
 import OpenTelemetryApi
 import Foundation
 

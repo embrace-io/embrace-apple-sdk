@@ -4,7 +4,9 @@
 
 import Foundation
 import CoreData
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
+#endif
 import OpenTelemetryApi
 
 @objc(LogAttributeRecord)

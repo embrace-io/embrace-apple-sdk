@@ -3,12 +3,14 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
 import EmbraceConfigInternal
 import EmbraceOTelInternal
 import EmbraceStorageInternal
 import EmbraceUploadInternal
 import EmbraceObjCUtilsInternal
+#endif
 import OpenTelemetryApi
 
 extension Embrace {
