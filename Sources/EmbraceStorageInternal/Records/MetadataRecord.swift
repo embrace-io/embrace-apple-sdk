@@ -3,9 +3,11 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
-import CoreData
+#endif
 import OpenTelemetryApi
+import CoreData
 
 @objc(MetadataRecord)
 public class MetadataRecord: NSManagedObject {

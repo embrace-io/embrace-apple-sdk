@@ -3,10 +3,12 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCaptureService
 import EmbraceCommonInternal
 import EmbraceOTelInternal
 import EmbraceSemantics
+#endif
 import OpenTelemetryApi
 
 /// Service that generates OpenTelemetry spans when the phone is running in low power mode.

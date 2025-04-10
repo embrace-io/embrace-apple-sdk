@@ -3,7 +3,9 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
+#endif
 
 public protocol EmbraceLogUploader: AnyObject {
     func uploadLog(id: String, data: Data, completion: ((Result<(), Error>) -> Void)?)

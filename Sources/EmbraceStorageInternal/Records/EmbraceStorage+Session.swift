@@ -3,7 +3,10 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
+#endif
+import CoreData
 
 extension EmbraceStorage {
     /// Adds a session to the storage synchronously.
