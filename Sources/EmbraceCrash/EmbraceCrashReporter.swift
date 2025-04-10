@@ -105,7 +105,8 @@ public final class EmbraceCrashReporter: NSObject, EmbraceCrashReporterPlugin {
         let config = KSCrashConfiguration()
         config.enableSigTermMonitoring = false
         config.installPath = context.filePathProvider.directoryURL(for: "embrace_crash_reporter")?.path
-
+        config.reportStoreConfiguration.appName = context.appId ?? "default"
+        
         ksCrash = KSCrash.shared
 
         updateKSCrashInfo()
