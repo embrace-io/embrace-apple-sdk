@@ -22,9 +22,7 @@ class FinishedSessionTest: PayloadTest {
     func runTestPreparations() {
         currentSession = Embrace.client?.currentSessionId() ?? ""
         if fakeAppState {
-            //DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                NotificationCenter.default.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
-            //}
+            NotificationCenter.default.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 NotificationCenter.default.post(name: UIApplication.didBecomeActiveNotification, object: nil)
