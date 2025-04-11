@@ -26,7 +26,7 @@ enum SessionTestsDataModel: Int, TestScreenDataModel, CaseIterable {
     @ViewBuilder var uiComponent: some View {
         switch self {
         case .finishedSessionPayload:
-            TestSpanScreenButtonView(viewModel: .init(dataModel: self, payloadTestObject: FinishedSessionTest()))
+            SessionTestFinishedSessionUIComponent(dataModel: self)
         }
     }
 }
