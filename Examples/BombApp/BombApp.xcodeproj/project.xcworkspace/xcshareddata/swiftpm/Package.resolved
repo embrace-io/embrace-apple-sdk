@@ -1,5 +1,5 @@
 {
-  "originHash" : "f35065f67c35655933e2b4ed841314daab70232fc79185162a3eea7fe1831c3b",
+  "originHash" : "9d11cfed04eb3633d8f66c311bb8239286d56617298cde6d90b548b5615c946d",
   "pins" : [
     {
       "identity" : "abseil-cpp-binary",
@@ -78,8 +78,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/grpc/grpc-swift.git",
       "state" : {
-        "revision" : "6a90b7e77e29f9bda6c2b3a4165a40d6c02cfda1",
-        "version" : "1.23.0"
+        "revision" : "8c5e99d0255c373e0330730d191a3423c57373fb",
+        "version" : "1.24.2"
       }
     },
     {
@@ -103,10 +103,10 @@
     {
       "identity" : "kscrash",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/embrace-io/KSCrash.git",
+      "location" : "https://github.com/kstenerud/KSCrash",
       "state" : {
-        "revision" : "6ce425727d3895c14cd7ff839f788ccb2bcf4081",
-        "version" : "2.0.7"
+        "revision" : "b87a3ef5b0b84e2a34a546b9836813756cd362a9",
+        "version" : "2.0.0"
       }
     },
     {
@@ -132,8 +132,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/open-telemetry/opentelemetry-swift",
       "state" : {
-        "revision" : "f2315d8646432c02338960e85b5fe20417ad6d8d",
-        "version" : "1.12.1"
+        "revision" : "2ffffae2a027e2159dbf3fd53de1f25ba6d2d11d",
+        "version" : "1.13.0"
       }
     },
     {
@@ -213,8 +213,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-nio-extras.git",
       "state" : {
-        "revision" : "05c36b57453d23ea63785d58a7dbc7b70ba1745e",
-        "version" : "1.23.0"
+        "revision" : "2e9746cfc57554f70b650b021b6ae4738abef3e6",
+        "version" : "1.24.1"
       }
     },
     {
@@ -249,8 +249,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-protobuf.git",
       "state" : {
-        "revision" : "9f0c76544701845ad98716f3f6a774a892152bcb",
-        "version" : "1.26.0"
+        "revision" : "d72aed98f8253ec1aa9ea1141e28150f408cf17f",
+        "version" : "1.29.0"
       }
     },
     {
