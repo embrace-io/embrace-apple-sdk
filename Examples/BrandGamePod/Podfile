@@ -1,0 +1,14 @@
+# Uncomment the next line to define a global platform for your project
+platform :ios, '13.0'
+
+target 'BrandGame' do
+  # Comment the next line if you don't want to use dynamic frameworks
+  use_frameworks!
+
+  # Pods for BrandGame
+  #pod 'EmbraceIO', :path => '~/Documents/Code/Github/embrace-apple-sdk'
+  #pod 'EmbraceIO/EmbraceCore', :path => '~/Documents/Code/Github/embrace-apple-sdk'
+
+  pod 'EmbraceIO', :git => 'https://github.com/embrace-io/embrace-apple-sdk.git', :branch => 'acohen/kscrash-target-main'
+  pod 'EmbraceIO/EmbraceCore', :git => 'https://github.com/embrace-io/embrace-apple-sdk.git', :branch => 'acohen/kscrash-target-main'
+end
