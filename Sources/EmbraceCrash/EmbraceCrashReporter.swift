@@ -4,7 +4,11 @@
 
 import Foundation
 import EmbraceCommonInternal
-import KSCrashRecording
+#if canImport(KSCrashRecording)
+    import KSCrashRecording
+#elseif canImport(KSCrash)
+    import KSCrash
+#endif
 
 /// Default `CrashReporter` used by the Embrace SDK.
 /// Internally uses KSCrash to capture data from crashes.

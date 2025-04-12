@@ -41,7 +41,7 @@ let package = Package(
     dependencies: [
         .package(
              url: "https://github.com/kstenerud/KSCrash",
-             from: "2.0.0"
+             .upToNextMinor(from: "2.0.0")
         ),
         .package(
             url: "https://github.com/open-telemetry/opentelemetry-swift",
