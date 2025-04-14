@@ -3,9 +3,11 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceOTelInternal
 import EmbraceStorageInternal
 import EmbraceCommonInternal
+#endif
 import OpenTelemetrySdk
 
 extension Collection where Element == SpanProcessor {

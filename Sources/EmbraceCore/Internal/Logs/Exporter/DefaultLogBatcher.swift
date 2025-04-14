@@ -4,8 +4,10 @@
 
 import Foundation
 
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceStorageInternal
 import EmbraceCommonInternal
+#endif
 
 protocol LogBatcherDelegate: AnyObject {
     func batchFinished(withLogs logs: [LogRecord])

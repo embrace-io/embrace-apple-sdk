@@ -3,7 +3,10 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
+#endif
+
 #if canImport(KSCrashRecording)
     import KSCrashRecording
 #elseif canImport(KSCrash)

@@ -3,7 +3,9 @@
 //
 
 import UserNotifications
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceOTelInternal
+#endif
 
 class UNUserNotificationCenterDelegateProxy: NSObject {
     weak var originalDelegate: UNUserNotificationCenterDelegate?

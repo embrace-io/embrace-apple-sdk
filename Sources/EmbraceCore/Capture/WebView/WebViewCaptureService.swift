@@ -5,12 +5,14 @@
 #if canImport(WebKit)
 import Foundation
 import WebKit
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
 import EmbraceOTelInternal
 import EmbraceCaptureService
 import EmbraceSemantics
-import OpenTelemetryApi
 import EmbraceObjCUtilsInternal
+#endif
+import OpenTelemetryApi
 
 /// Service that generates OpenTelemetry span events when a `WKWebView` loads an URL or throws an error.
 @objc(EMBWebViewCaptureService)

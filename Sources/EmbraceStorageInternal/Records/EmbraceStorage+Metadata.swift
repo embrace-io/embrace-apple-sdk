@@ -4,7 +4,9 @@
 
 import Foundation
 import GRDB
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
+#endif
 
 public protocol EmbraceStorageMetadataFetcher: AnyObject {
     func fetchAllResources() throws -> [MetadataRecord]

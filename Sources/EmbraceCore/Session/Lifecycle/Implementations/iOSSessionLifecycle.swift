@@ -4,7 +4,9 @@
 
 #if os(iOS)
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
+#endif
 import UIKit
 
 // ignoring linting rule to have a lowercase letter first on the class name

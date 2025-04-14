@@ -3,7 +3,9 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceStorageInternal
+#endif
 
 struct MetadataPayload: Codable {
     var locale: String?

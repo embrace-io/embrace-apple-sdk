@@ -3,8 +3,10 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
 import EmbraceConfiguration
+#endif
 
 public extension Notification.Name {
     static let embraceConfigUpdated = Notification.Name("embraceConfigUpdated")

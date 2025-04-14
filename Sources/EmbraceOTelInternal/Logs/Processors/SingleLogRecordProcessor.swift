@@ -4,7 +4,9 @@
 
 import Foundation
 import OpenTelemetrySdk
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
+#endif
 
 class SingleLogRecordProcessor: LogRecordProcessor {
 

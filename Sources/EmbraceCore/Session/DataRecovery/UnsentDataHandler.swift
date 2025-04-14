@@ -3,10 +3,12 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
 import EmbraceStorageInternal
 import EmbraceUploadInternal
 import EmbraceOTelInternal
+#endif
 
 class UnsentDataHandler {
     static func sendUnsentData(

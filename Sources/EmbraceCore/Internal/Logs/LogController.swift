@@ -3,12 +3,14 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceStorageInternal
 import EmbraceUploadInternal
 import EmbraceCommonInternal
 import EmbraceSemantics
 import EmbraceConfigInternal
 import EmbraceOTelInternal
+#endif
 
 protocol LogControllable: LogBatcherDelegate {
     func uploadAllPersistedLogs()
