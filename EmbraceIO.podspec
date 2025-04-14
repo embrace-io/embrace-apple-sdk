@@ -10,7 +10,7 @@ Pod::Spec.new do |spec|
   spec.documentation_url                 = "https://embrace.io/docs/"
   spec.license                        = { :type => "Apache 2.0" }
   spec.author                         = "Embrace.io"
-  spec.source                         = { "git" => "https://github.com/embrace-io/embrace-apple-sdk.git", "tag": spec.version }
+  spec.source                         = { :git => "https://github.com/embrace-io/embrace-apple-sdk.git", :tag => spec.version }
   spec.preserve_paths                 = [ "run.sh", "embrace_symbol_upload.darwin" ]
   spec.requires_arc                   = true
   spec.ios.deployment_target          = "13.0"
