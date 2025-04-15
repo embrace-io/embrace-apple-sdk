@@ -13,7 +13,7 @@ final class EmbraceSetupCaptureServicesTests: XCTestCase {
     class ExampleCaptureService: CaptureService {
     }
 
-    class ExampleCrashReporter: EmbraceCrashReporterPlugin {
+    class ExampleCrashReporter: CrashReporter {
         var currentSessionId: String?
         func install(context: CrashReporterContext, logger: InternalLogger) { }
         func getLastRunState() -> LastRunState { return .cleanExit }

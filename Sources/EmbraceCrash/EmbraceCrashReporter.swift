@@ -16,7 +16,7 @@ import EmbraceCommonInternal
 /// Default `CrashReporter` used by the Embrace SDK.
 /// Internally uses KSCrash to capture data from crashes.
 @objc(EMBEmbraceCrashReporter)
-public final class EmbraceCrashReporter: NSObject, EmbraceCrashReporterPlugin {
+public final class EmbraceCrashReporter: NSObject, CrashReporter {
     private static let providerIdentifier = "kscrash"
 
     struct KSCrashKey {
@@ -266,7 +266,7 @@ public final class EmbraceCrashReporter: NSObject, EmbraceCrashReporterPlugin {
 }
 
 // MARK: - ExtendableCrashReporter related methods
-extension EmbraceCrashReporter: EmbraceExtendableCrashReporterPlugin {
+extension EmbraceCrashReporter: ExtendableCrashReporter {
     public func appendCrashInfo(key: String, value: String) {
         extraInfo[key] = value
     }

@@ -17,7 +17,7 @@ final class CaptureServices {
     var services: [CaptureService]
 
     var context: CrashReporterContext
-    weak var crashReporter: EmbraceCrashReporterPlugin?
+    weak var crashReporter: CrashReporter?
 
     weak var config: EmbraceConfigurable?
 

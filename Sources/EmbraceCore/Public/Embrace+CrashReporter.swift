@@ -57,7 +57,7 @@ extension Embrace {
             throw EmbraceCrashReportError.noCrashReporterAvailable
         }
 
-        guard let extendableCrashReporter = crashReporter as? EmbraceExtendableCrashReporterPlugin else {
+        guard let extendableCrashReporter = crashReporter as? ExtendableCrashReporter else {
             throw EmbraceCrashReportError.noCrashReporterAvailable
         }
 

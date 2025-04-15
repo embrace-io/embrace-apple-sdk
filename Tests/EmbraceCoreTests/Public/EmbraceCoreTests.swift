@@ -293,7 +293,7 @@ final class EmbraceCoreTests: XCTestCase {
     }
 
     // MARK: - Helper Methods
-    func getLocalEmbrace(storage: EmbraceStorage? = nil, crashReporter: EmbraceCrashReporterPlugin? = nil) throws -> Embrace? {
+    func getLocalEmbrace(storage: EmbraceStorage? = nil, crashReporter: CrashReporter? = nil) throws -> Embrace? {
         // to ensure that each test gets it's own instance of embrace.
         return try lock.locked {
 

@@ -5,7 +5,7 @@
 import Foundation
 import EmbraceCommonInternal
 
-class ExtendableCrashReporterMock: EmbraceExtendableCrashReporterPlugin {
+class ExtendableCrashReporterMock: ExtendableCrashReporter {
     var didCallAppendCrashInfo: Bool = false
     func appendCrashInfo(key: String, value: String) {
         didCallAppendCrashInfo = true

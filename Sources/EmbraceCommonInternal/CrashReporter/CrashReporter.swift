@@ -8,7 +8,7 @@ import Foundation
     case unavailable, crash, cleanExit
 }
 
-@objc public protocol EmbraceCrashReporterPlugin {
+@objc public protocol CrashReporter {
     @objc var currentSessionId: String? { get set }
 
     @objc func install(context: CrashReporterContext, logger: InternalLogger)
@@ -26,7 +26,7 @@ import Foundation
 ///
 /// Implementing this protocol is optional and should only be considered in cases where
 /// additional customization in error reporting is required.
-public protocol EmbraceExtendableCrashReporterPlugin: EmbraceCrashReporterPlugin {
+public protocol ExtendableCrashReporter: CrashReporter {
     func appendCrashInfo(key: String, value: String)
 }
 

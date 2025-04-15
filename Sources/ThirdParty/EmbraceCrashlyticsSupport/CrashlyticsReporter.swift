@@ -7,7 +7,7 @@ import EmbraceCommonInternal
 
 /// Special `CrashReporter` implementation that captures crash data from Crashlytics reports.
 @objc(EMBCrashlyticsReporter)
-public final class CrashlyticsReporter: NSObject, EmbraceCrashReporterPlugin {
+public final class CrashlyticsReporter: NSObject, CrashReporter {
 
     static let providerIdentifier = "crashlytics"
 
@@ -106,7 +106,7 @@ public final class CrashlyticsReporter: NSObject, EmbraceCrashReporterPlugin {
     }
 }
 
-extension CrashlyticsReporter: EmbraceExtendableCrashReporterPlugin {
+extension CrashlyticsReporter: ExtendableCrashReporter {
     public func appendCrashInfo(key: String, value: String) {
         wrapper.setCustomValue(key: key, value: value)
     }

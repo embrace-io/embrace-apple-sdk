@@ -5,7 +5,7 @@
 import Foundation
 import EmbraceCommonInternal
 
-class CrashReporterMock: EmbraceCrashReporterPlugin {
+class CrashReporterMock: CrashReporter {
 
     var currentSessionId: String?
     var mockReports: [EmbraceCrashReport]

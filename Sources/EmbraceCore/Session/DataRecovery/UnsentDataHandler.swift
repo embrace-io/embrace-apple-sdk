@@ -17,7 +17,7 @@ class UnsentDataHandler {
         otel: EmbraceOpenTelemetry?,
         logController: LogControllable? = nil,
         currentSessionId: SessionIdentifier? = nil,
-        crashReporter: EmbraceCrashReporterPlugin? = nil
+        crashReporter: CrashReporter? = nil
     ) {
 
         guard let storage = storage,
@@ -51,7 +51,7 @@ class UnsentDataHandler {
         upload: EmbraceUpload,
         otel: EmbraceOpenTelemetry?,
         currentSessionId: SessionIdentifier?,
-        crashReporter: EmbraceCrashReporterPlugin,
+        crashReporter: CrashReporter,
         crashReports: [EmbraceCrashReport]
     ) {
         // send crash reports
@@ -98,7 +98,7 @@ class UnsentDataHandler {
 
     static public func sendCrashLog(
         report: EmbraceCrashReport,
-        reporter: EmbraceCrashReporterPlugin?,
+        reporter: CrashReporter?,
         session: SessionRecord?,
         storage: EmbraceStorage?,
         upload: EmbraceUpload?,

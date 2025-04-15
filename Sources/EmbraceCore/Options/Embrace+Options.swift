@@ -21,7 +21,7 @@ extension Embrace {
         @objc public let platform: Platform
         @objc public let endpoints: Embrace.Endpoints?
         @objc public let services: [CaptureService]
-        @objc public let crashReporter: EmbraceCrashReporterPlugin?
+        @objc public let crashReporter: CrashReporter?
         @objc public let logLevel: LogLevel
         @objc public let export: OpenTelemetryExport?
         @objc public let runtimeConfiguration: EmbraceConfigurable?
@@ -46,7 +46,7 @@ extension Embrace {
             platform: Platform = .default,
             endpoints: Embrace.Endpoints? = nil,
             captureServices: [CaptureService],
-            crashReporter: EmbraceCrashReporterPlugin?,
+            crashReporter: CrashReporter?,
             logLevel: LogLevel = .default,
             export: OpenTelemetryExport? = nil
         ) {
@@ -76,7 +76,7 @@ extension Embrace {
             export: OpenTelemetryExport,
             platform: Platform = .default,
             captureServices: [CaptureService],
-            crashReporter: EmbraceCrashReporterPlugin?,
+            crashReporter: CrashReporter?,
             logLevel: LogLevel = .default,
             runtimeConfiguration: EmbraceConfigurable = .default
         ) {
