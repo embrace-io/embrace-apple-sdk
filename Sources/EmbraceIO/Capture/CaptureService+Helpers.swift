@@ -51,6 +51,7 @@ import EmbraceCaptureService
         return LowPowerModeCaptureService()
     }
 
+#if os(iOS)
     /// Adds a `PushNotificationCaptureService` with the given `PushNotificationCaptureService.Options`.
     /// - Parameter options: `PushNotificationCaptureService.Options` used to configure the service.
     static func pushNotification(
@@ -58,4 +59,5 @@ import EmbraceCaptureService
     ) -> PushNotificationCaptureService {
         return PushNotificationCaptureService(options: options)
     }
+#endif
 }
