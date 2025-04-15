@@ -53,10 +53,10 @@ class NetworkPayloadCaptureHandlerTests: XCTestCase {
         handler.currentSessionId = nil
 
         // when a session starts
-        let session = SessionRecord(
+        let session = MockSession(
             id: TestConstants.sessionId,
-            state: .foreground,
             processId: TestConstants.processId,
+            state: .foreground,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: Date()

@@ -19,9 +19,9 @@ extension Embrace {
             partitionId: partitionId,
             appGroupId: options.appGroupId
         ) {
-            let storageOptions = EmbraceStorage.Options(baseUrl: storageUrl, fileName: "db.sqlite")
+            let storageMechanism: StorageMechanism = .onDisk(name: "EmbraceStorage", baseURL: storageUrl)
+            let storageOptions = EmbraceStorage.Options(storageMechanism: storageMechanism)
             let storage = try EmbraceStorage(options: storageOptions, logger: Embrace.logger)
-            try storage.performMigration()
             return storage
         } else {
             throw EmbraceSetupError.failedStorageCreation(partitionId: partitionId, appGroupId: options.appGroupId)
