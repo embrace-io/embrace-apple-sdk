@@ -48,7 +48,10 @@ class SpanTestUIComponentViewModel: UIComponentViewModelBase {
 
     private func registerForNotification() {
         observingObject = NotificationCenter.default.addObserver(forName: .init("TestSpanExporter.SpansUpdated"), object: nil, queue: nil) { [weak self] _ in
-            self?.performTest()
+            guard let self = self else { return }
+            if self.allRevelantSpansAreAlreadyCached {
+                self.performTest()
+            }
         }
     }
 
