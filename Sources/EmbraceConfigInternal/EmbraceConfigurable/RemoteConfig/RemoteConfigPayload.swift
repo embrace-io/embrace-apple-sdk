@@ -34,7 +34,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             case threshold = "pct_enabled"
         }
 
-        case uiLoadInstrumentationEnabled = "ui_load_instrumentation_enabled"
+        case uiLoadInstrumentationEnabled = "ui_load_instrumentation_enabled_v2"
 
         case internalLogLimits = "internal_log_limits"
         enum InternalLogLimitsCodingKeys: String, CodingKey {
