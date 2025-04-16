@@ -1,3 +1,11 @@
+## 6.8.5
+*Apr 16th, 2025*
+* Fixes
+	* Fixed a crash that could occur when injecting the `traceparent` header into certain types of `NSURLSessionTask`.
+	* Fixed a compatibility issue that could arise in specific conditions when our URLSession capture service was isa-swizzled by other libraries.
+* Changes
+	* Added support for passing the `-ObjC` linker flag via SPM by setting the environment variable `EMBRACE_ENABLE_TUIST_OBJC_LINK`, which is required when using the SDK in Tuist-generated projects.
+
 ## 6.8.4
 *Apr 1st, 2025*
 * Fixes
