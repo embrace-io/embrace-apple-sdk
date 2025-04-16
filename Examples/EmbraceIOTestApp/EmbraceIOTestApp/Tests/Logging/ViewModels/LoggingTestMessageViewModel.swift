@@ -34,7 +34,7 @@ class LoggingTestMessageViewModel: LogTestUIComponentViewModel {
             }
         }
     }
-
+    ///This is a controlled test app. Make sure hardcoded file sizes are powers of 2.
     @Published var attachmentSize: Float = 8192 {
         didSet {
             testObject.attachmentSize = Int(attachmentSize)

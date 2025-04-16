@@ -9,6 +9,8 @@ import SwiftUI
 struct LoggingTestsAttachmentView: View {
     @Binding var addAttachment: Bool
     @Binding var attachmentSize: Float
+    ///This is a controlled test app. Make sure hardcoded file sizes are powers of 2.
+    ///If values here are tweaked, please update the UI Test app to set the correct normalized slider position to match the max file size.
     private var step: Float { 8192 }
     private var maxAllowedSize: Float { 1048576 }
     private var maxSize: Float { step * 150 }
