@@ -26,6 +26,21 @@ class LoggingTestMessageViewModel: LogTestUIComponentViewModel {
         }
     }
 
+    @Published var includeAttachment: Bool = false {
+        didSet {
+            testObject.includeAttachment = includeAttachment
+            if includeAttachment {
+                testObject.attachmentSize = Int(attachmentSize)
+            }
+        }
+    }
+    ///This is a controlled test app. Make sure hardcoded file sizes are powers of 2.
+    @Published var attachmentSize: Float = 8192 {
+        didSet {
+            testObject.attachmentSize = Int(attachmentSize)
+        }
+    }
+
     var logSeverities: [LogSeverity] {
         LogSeverity.allCases
     }

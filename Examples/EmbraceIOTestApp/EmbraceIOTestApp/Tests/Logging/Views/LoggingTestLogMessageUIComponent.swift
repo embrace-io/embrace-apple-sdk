@@ -35,6 +35,9 @@ struct LoggingTestLogMessageUIComponent: View {
             Section("Stack Trace") {
                 LoggingTestsStackTraceSelectionView(stacktraceBehavior: $viewModel.stacktraceBehavior)
             }
+            Section("Custom File Attachment") {
+                LoggingTestsAttachmentView(addAttachment: $viewModel.includeAttachment, attachmentSize: $viewModel.attachmentSize)
+            }
             Section("Log Attributes") {
                 LoggingTestsLogAttributesView { key, value in
                     viewModel.addLogAttribute(key: key, value: value)
