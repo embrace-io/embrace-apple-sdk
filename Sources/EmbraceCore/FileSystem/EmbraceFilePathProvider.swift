@@ -3,7 +3,9 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
+#endif
 
 /// Class used to provide file paths to help when capturing data.
 /// It can be beneficial to pass a filepath to an external instrumentation, like crash reports,

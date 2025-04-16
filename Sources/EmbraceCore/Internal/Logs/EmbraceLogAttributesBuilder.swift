@@ -2,16 +2,18 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceStorageInternal
 import EmbraceObjCUtilsInternal
 import EmbraceCommonInternal
 import EmbraceSemantics
+#endif
 
 class EmbraceLogAttributesBuilder {
     private weak var storage: EmbraceStorageMetadataFetcher?
     private weak var sessionControllable: SessionControllable?
     private var session: SessionRecord?
-    private var crashReport: CrashReport?
+    private var crashReport: EmbraceCrashReport?
     private var attributes: [String: String]
 
     private var currentSession: SessionRecord? {
@@ -27,7 +29,7 @@ class EmbraceLogAttributesBuilder {
     }
 
     init(session: SessionRecord?,
-         crashReport: CrashReport? = nil,
+         crashReport: EmbraceCrashReport? = nil,
          storage: EmbraceStorageMetadataFetcher? = nil,
          initialAttributes: [String: String]) {
         self.session = session

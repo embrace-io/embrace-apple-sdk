@@ -3,7 +3,9 @@
 //
 #if canImport(UIKit) && !os(watchOS)
 import UIKit
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
+#endif
 
 class ViewCaptureServiceSwizzlerCache {
     @ThreadSafe

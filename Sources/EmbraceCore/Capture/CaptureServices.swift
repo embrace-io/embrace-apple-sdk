@@ -3,11 +3,13 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCaptureService
 import EmbraceCommonInternal
 import EmbraceStorageInternal
 import EmbraceUploadInternal
 import EmbraceConfiguration
+#endif
 
 final class CaptureServices {
 

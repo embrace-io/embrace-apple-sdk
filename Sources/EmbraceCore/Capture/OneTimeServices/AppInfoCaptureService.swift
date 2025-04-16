@@ -3,9 +3,11 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
 import OpenTelemetryApi
 import EmbraceObjCUtilsInternal
+#endif
 
 class AppInfoCaptureService: ResourceCaptureService {
 

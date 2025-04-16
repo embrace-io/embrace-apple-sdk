@@ -6,8 +6,10 @@
 import Foundation
 import UIKit
 import OpenTelemetryApi
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
 import EmbraceSemantics
+#endif
 
 extension CaptureServices {
 

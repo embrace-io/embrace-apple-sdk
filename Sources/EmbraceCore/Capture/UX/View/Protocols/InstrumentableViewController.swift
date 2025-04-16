@@ -6,9 +6,11 @@
 
 import Foundation
 import UIKit
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
-import OpenTelemetryApi
 import EmbraceSemantics
+#endif
+import OpenTelemetryApi
 
 public protocol InstrumentableViewController: UIViewController {
 

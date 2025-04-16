@@ -4,7 +4,9 @@
 
 import Foundation
 import GRDB
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
+#endif
 
 extension SpanRecord {
     /// Build QueryInterfaceRequest for SpanRecord that will query for:

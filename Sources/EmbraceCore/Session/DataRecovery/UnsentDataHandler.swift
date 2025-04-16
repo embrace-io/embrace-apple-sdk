@@ -3,10 +3,12 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
 import EmbraceStorageInternal
 import EmbraceUploadInternal
 import EmbraceOTelInternal
+#endif
 
 class UnsentDataHandler {
     static func sendUnsentData(
@@ -50,7 +52,7 @@ class UnsentDataHandler {
         otel: EmbraceOpenTelemetry?,
         currentSessionId: SessionIdentifier?,
         crashReporter: CrashReporter,
-        crashReports: [CrashReport]
+        crashReports: [EmbraceCrashReport]
     ) {
         // send crash reports
         for report in crashReports {
@@ -95,7 +97,7 @@ class UnsentDataHandler {
     }
 
     static public func sendCrashLog(
-        report: CrashReport,
+        report: EmbraceCrashReport,
         reporter: CrashReporter?,
         session: SessionRecord?,
         storage: EmbraceStorage?,
@@ -134,6 +136,7 @@ class UnsentDataHandler {
                 case .success:
                     // remove crash report
                     // we can remove this immediately because the upload module will cache it until the upload succeeds
+                    // TODO: Should we delete the report or let the app decide ??
                     if let internalId = report.internalId {
                         reporter?.deleteCrashReport(id: internalId)
                     }
@@ -151,7 +154,7 @@ class UnsentDataHandler {
     static private func createLogCrashAttributes(
         otel: EmbraceOpenTelemetry?,
         storage: EmbraceStorage?,
-        report: CrashReport,
+        report: EmbraceCrashReport,
         session: SessionRecord?,
         timestamp: Date
     ) -> [String: String] {

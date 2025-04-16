@@ -3,7 +3,9 @@
 //
 
 import GRDB
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
+#endif
 
 public protocol MigrationServiceProtocol {
     func perform(_ dbQueue: DatabaseWriter, migrations: [Migration]) throws

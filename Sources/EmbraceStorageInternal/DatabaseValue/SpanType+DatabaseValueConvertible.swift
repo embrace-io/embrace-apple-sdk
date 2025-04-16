@@ -3,7 +3,9 @@
 //
 
 import GRDB
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
+#endif
 
 extension SpanType: DatabaseValueConvertible {
     public var databaseValue: DatabaseValue {

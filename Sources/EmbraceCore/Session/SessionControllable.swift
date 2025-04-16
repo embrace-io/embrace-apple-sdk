@@ -3,8 +3,10 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
 import EmbraceStorageInternal
+#endif
 
 /// Protocol for managing sessions.
 /// See ``SessionController`` for main conformance
