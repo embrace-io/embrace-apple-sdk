@@ -28,10 +28,12 @@ class LoggingErrorMessageTest: PayloadTest {
             Embrace.client?.log(loggedMessage,
                                 severity: loggedMessageSeverity,
                                 attachment: createDummyDataOfSize(attachmentSize),
+                                attributes: logProperties,
                                 stackTraceBehavior: stackTraceBehavior)
         } else {
             Embrace.client?.log(loggedMessage,
                                 severity: loggedMessageSeverity,
+                                attributes: logProperties,
                                 stackTraceBehavior: stackTraceBehavior)
         }
     }
