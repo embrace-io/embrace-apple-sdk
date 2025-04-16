@@ -17,6 +17,7 @@ struct LoggingTestsAttachmentView: View {
             Toggle("Include Attachment", isOn: $addAttachment)
                 .tint(.embracePurple)
                 .padding([.leading, .trailing, .bottom], 5)
+                .accessibilityIdentifier("attachmentToggle")
             Text("Attachment size: \(formattedSize(UInt32(attachmentSize)))")
                 .foregroundStyle(attachmentSize > maxAllowedSize ? .embracePink : .embraceSteel)
             Slider(value: $attachmentSize, in: step...maxSize, step: step) {
@@ -28,6 +29,7 @@ struct LoggingTestsAttachmentView: View {
                 Text("1.17 MB")
             }
             .tint(.embracePurple)
+            .accessibilityIdentifier("attachmentSizeSlider")
             Text("Max allowed size: 1MB")
         }
     }
