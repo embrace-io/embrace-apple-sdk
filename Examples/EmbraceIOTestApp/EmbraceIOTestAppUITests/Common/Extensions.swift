@@ -27,4 +27,10 @@ extension XCTestCase {
 
         return element
     }
+
+    func evaluateTestResults(_ app: XCUIApplication) {
+        XCTAssertTrue(app.staticTexts["TEST RESULT:"].waitForExistence(timeout: 60))
+        XCTAssertTrue(app.staticTexts["PASS"].exists)
+        XCTAssertFalse(app.staticTexts["FAIL"].exists)
+    }
 }
