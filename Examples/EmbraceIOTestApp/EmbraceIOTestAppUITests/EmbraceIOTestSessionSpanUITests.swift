@@ -36,17 +36,10 @@ final class EmbraceIOTestSessionSpanUITests: XCTestCase {
         app.buttons["finishedSessionPayloadTestButton"].tap()
     }
 
-    private func evaluateTestResults() {
-        XCTAssertTrue(app.staticTexts["PASS"].exists)
-        XCTAssertFalse(app.staticTexts["FAIL"].exists)
-    }
-
     func testSendFinishedSessionSpan() {
-        sleep(3)
         runSessionSpanTest()
         sleep(2)
         backgroundAndReopenApp()
-        sleep(5)
-        evaluateTestResults()
+        evaluateTestResults(app)
     }
 }
