@@ -62,6 +62,8 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssertNil(rule2!.method)
         XCTAssertEqual(rule2!.expiration, 1723570602)
         XCTAssertEqual(rule2!.publicKey, "key")
+
+        XCTAssertEqual(payload.metricKitThreshold, 55)
     }
 
     func test_onHavingOldAndInvalidRemoteConfigPayload_RemoteConfigPayload_shouldBeCreatedWithDefaults() throws {
@@ -82,6 +84,7 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssertEqual(payload.internalLogsWarningLimit, 0)
         XCTAssertEqual(payload.internalLogsErrorLimit, 3)
         XCTAssertEqual(payload.networkPayloadCaptureRules.count, 0)
+        XCTAssertEqual(payload.metricKitThreshold, 100)
     }
 
     func getRemoteConfigData(forResource resource: String) throws -> Data {

@@ -16,6 +16,7 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         isUiLoadInstrumentationEnabled: Bool = false,
         internalLogLimits: InternalLogLimits = InternalLogLimits(),
         networkPayloadCaptureRules: [NetworkPayloadCaptureRule] = [],
+        isMetricKitEnabeld: Bool = false,
         updateCompletionParamDidUpdate: Bool = false,
         updateCompletionParamError: Error? = nil
     ) {
@@ -25,6 +26,7 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         self._isUiLoadInstrumentationEnabled = isUiLoadInstrumentationEnabled
         self._internalLogLimits = internalLogLimits
         self._networkPayloadCaptureRules = networkPayloadCaptureRules
+        self._isMetricKitEnabled = isMetricKitEnabeld
         self.updateCompletionParamDidUpdate = updateCompletionParamDidUpdate
         self.updateCompletionParamError = updateCompletionParamError
     }
@@ -103,6 +105,18 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         }
         set {
             _networkPayloadCaptureRules = newValue
+        }
+    }
+
+    private var _isMetricKitEnabled: Bool
+    public let isMetricKitEnabledExpectation = XCTestExpectation(description: "isMetricKitEnabled called")
+    public var isMetricKitEnabled: Bool {
+        get {
+            isMetricKitEnabledExpectation.fulfill()
+            return _isMetricKitEnabled
+        }
+        set {
+            _isMetricKitEnabled = newValue
         }
     }
 

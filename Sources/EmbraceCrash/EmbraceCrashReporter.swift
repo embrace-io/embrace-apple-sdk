@@ -53,6 +53,11 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
         }
     }
 
+    /// We combine MetricKit reports with KSCrash reports
+    public var disableMetricKitReports: Bool {
+        return false
+    }
+
     /// Unused in this KSCrash implementation
     public var onNewReport: ((CrashReport) -> Void)?
 

@@ -56,6 +56,10 @@ final class CaptureServices {
                     otel: Embrace.client
                 )
             }
+
+            if crashReporter.disableMetricKitReports == false {
+                services.append(MetricKitCrashCaptureService())
+            }
         }
 
         // pass storage reference to capture services

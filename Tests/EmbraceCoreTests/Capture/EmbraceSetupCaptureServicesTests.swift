@@ -20,6 +20,7 @@ final class EmbraceSetupCaptureServicesTests: XCTestCase {
         func fetchUnsentCrashReports(completion: @escaping ([CrashReport]) -> Void) { }
         func deleteCrashReport(id: Int) { }
         var onNewReport: ((CrashReport) -> Void)?
+        var disableMetricKitReports: Bool { false }
     }
 
     override func tearDown() {
