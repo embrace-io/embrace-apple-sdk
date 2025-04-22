@@ -83,7 +83,7 @@ extension EmbraceStorage {
                 records.append(record)
             }
         }
-        
+
         coreData.deleteRecords(records)
     }
 }

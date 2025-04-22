@@ -79,7 +79,9 @@ class EmbraceLogAttributesBuilder {
             }
 
             let key = String(format: LogSemantics.keyPropertiesPrefix, record.key)
-            attributes[key] = record.value
+            if attributes[key] == nil {
+                attributes[key] = record.value
+            }
         }
 
         return self
@@ -87,7 +89,8 @@ class EmbraceLogAttributesBuilder {
 
     @discardableResult
     func addApplicationState() -> Self {
-        guard let state = currentSession?.state else {
+        guard let state = currentSession?.state,
+              attributes[LogSemantics.keyState] == nil else {
             return self
         }
         attributes[LogSemantics.keyState] = state
@@ -96,7 +99,8 @@ class EmbraceLogAttributesBuilder {
 
     @discardableResult
     func addSessionIdentifier() -> Self {
-        guard let sessionId = currentSession?.id else {
+        guard let sessionId = currentSession?.id,
+              attributes[LogSemantics.keySessionId] == nil else {
             return self
         }
         attributes[LogSemantics.keySessionId] = sessionId.toString
