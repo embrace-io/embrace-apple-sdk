@@ -10,10 +10,10 @@ public extension CoreDataWrapper {
 
     class Options {
         /// Determines where the db is going to be stored
-        let storageMechanism: StorageMechanism
+        public let storageMechanism: StorageMechanism
 
         /// Array on NSEntityDescriptions that define the db model
-        let entities: [NSEntityDescription]
+        public let entities: [NSEntityDescription]
 
         public init(
             storageMechanism: StorageMechanism,

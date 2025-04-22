@@ -3,7 +3,6 @@
 //
 
 import Foundation
-import GRDB
 
 public enum EmbraceStorageError: Error, Equatable {
     case cannotUpsertSpan(spanName: String, message: String)

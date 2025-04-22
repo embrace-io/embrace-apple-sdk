@@ -72,10 +72,10 @@ extension EmbraceUploadCacheTests {
         }
 
         // when attempting to remove data over the allowed days
-        let removedRecords = try cache.clearStaleDataIfNeeded()
+        let removedRecords = cache.clearStaleDataIfNeeded()
 
         // the expected records should've been removed.
-        let records = try cache.fetchAllUploadData()
+        let records = cache.fetchAllUploadData()
         XCTAssertEqual(removedRecords, 2)
         XCTAssert(!records.contains(record2))
         XCTAssert(!records.contains(record3))
@@ -154,10 +154,10 @@ extension EmbraceUploadCacheTests {
         }
 
         // when attempting to remove data over the allowed days
-        let removedRecords = try cache.clearStaleDataIfNeeded()
+        let removedRecords = cache.clearStaleDataIfNeeded()
 
         // no records should've been removed
-        let records = try cache.fetchAllUploadData()
+        let records = cache.fetchAllUploadData()
         XCTAssertEqual(removedRecords, 0)
         XCTAssert(records.contains(record2))
         XCTAssert(records.contains(record3))
@@ -173,7 +173,7 @@ extension EmbraceUploadCacheTests {
         let cache = try EmbraceUploadCache(options: options, logger: MockLogger())
 
         // when attempting to remove data from an empty cache
-        let removedRecords = try cache.clearStaleDataIfNeeded()
+        let removedRecords = cache.clearStaleDataIfNeeded()
 
         // no records should've been removed
         XCTAssertEqual(removedRecords, 0)
@@ -243,10 +243,10 @@ extension EmbraceUploadCacheTests {
         }
 
         // when attempting to remove data over the allowed days
-        let removedRecords = try cache.clearStaleDataIfNeeded()
+        let removedRecords = cache.clearStaleDataIfNeeded()
 
         // no records should've been removed
-        let records = try cache.fetchAllUploadData()
+        let records = cache.fetchAllUploadData()
         XCTAssertEqual(removedRecords, 0)
         XCTAssert(records.contains(record2))
         XCTAssert(records.contains(record3))

@@ -26,7 +26,7 @@ public extension Notification.Name {
 class SessionController: SessionControllable {
 
     @ThreadSafe
-    private(set) var currentSession: SessionRecord?
+    private(set) var currentSession: EmbraceSession?
 
     @ThreadSafe
     private(set) var currentSessionSpan: Span?
@@ -66,10 +66,7 @@ class SessionController: SessionControllable {
         self.queue = queue
 
         self.heartbeat.callback = { [weak self] in
-            let heartbeat = Date()
-            self?.currentSession?.lastHeartbeatTime = heartbeat
-            SessionSpanUtils.setHeartbeat(span: self?.currentSessionSpan, heartbeat: heartbeat)
-            self?.save()
+            self?.update(heartbeat: Date())
         }
     }
 
@@ -82,18 +79,22 @@ class SessionController: SessionControllable {
     }
 
     @discardableResult
-    func startSession(state: SessionState) -> SessionRecord? {
+    func startSession(state: SessionState) -> EmbraceSession? {
         return startSession(state: state, startTime: Date())
     }
 
     @discardableResult
-    func startSession(state: SessionState, startTime: Date = Date()) -> SessionRecord? {
+    func startSession(state: SessionState, startTime: Date = Date()) -> EmbraceSession? {
         // end current session first
         if currentSession != nil {
             endSession()
         }
 
         guard sdkStateProvider?.isEnabled == true else {
+            return nil
+        }
+
+        guard let storage = storage else {
             return nil
         }
 
@@ -126,15 +127,15 @@ class SessionController: SessionControllable {
             currentSessionSpan = span
 
             // create session record
-            var session = SessionRecord(
+            let session = storage.addSession(
                 id: newId,
-                state: state,
                 processId: ProcessIdentifier.current,
+                state: state,
                 traceId: span.context.traceId.hexString,
                 spanId: span.context.spanId.hexString,
-                startTime: startTime
+                startTime: startTime,
+                coldStart: isColdStart
             )
-            session.coldStart = isColdStart
             currentSession = session
 
             // save session record
@@ -158,6 +159,10 @@ class SessionController: SessionControllable {
     /// - Returns: The `endTime` of the session
     @discardableResult
     func endSession() -> Date {
+        guard let session = currentSession else {
+            return Date()
+        }
+
         return lock.locked {
             // stop heartbeat
             heartbeat.stop()
@@ -171,8 +176,8 @@ class SessionController: SessionControllable {
             // If the session is a background session and background sessions
             // are disabled in the config, we drop the session!
             // +
-            if currentSession?.coldStart == true &&
-               currentSession?.state == SessionState.background.rawValue &&
+            if session.coldStart == true &&
+               session.state == SessionState.background.rawValue &&
                backgroundSessionsEnabled == false {
                 delete()
                 return now
@@ -188,11 +193,12 @@ class SessionController: SessionControllable {
             currentSessionSpan?.end(time: now)
             SessionSpanUtils.setCleanExit(span: currentSessionSpan, cleanExit: true)
 
-            currentSession?.endTime = now
-            currentSession?.cleanExit = true
+            if let sessionId = session.id {
+                storage?.updateSession(sessionId: sessionId, endTime: now, cleanExit: true)
+            }
 
             // post internal notification
-            if currentSession?.state == SessionState.foreground.rawValue {
+            if session.state == SessionState.foreground.rawValue {
                 Embrace.notificationCenter.post(name: .embraceForegroundSessionDidEnd, object: now)
             }
 
@@ -210,15 +216,42 @@ class SessionController: SessionControllable {
     }
 
     func update(state: SessionState) {
-        SessionSpanUtils.setState(span: currentSessionSpan, state: state)
-        currentSession?.state = state.rawValue
-        save()
+        guard let currentSessionId = currentSession?.id else {
+            return
+        }
+
+        currentSession = storage?.updateSession(sessionId: currentSessionId, state: state)
+
+        if let span = currentSessionSpan {
+            SessionSpanUtils.setState(span: span, state: state)
+            Embrace.client?.flush(span)
+        }
     }
 
     func update(appTerminated: Bool) {
-        SessionSpanUtils.setTerminated(span: currentSessionSpan, terminated: appTerminated)
-        currentSession?.appTerminated = appTerminated
-        save()
+        guard let currentSessionId = currentSession?.id else {
+            return
+        }
+
+        currentSession = storage?.updateSession(sessionId: currentSessionId, appTerminated: appTerminated)
+
+        if let span = currentSessionSpan {
+            SessionSpanUtils.setTerminated(span: span, terminated: appTerminated)
+            Embrace.client?.flush(span)
+        }
+    }
+
+    func update(heartbeat: Date) {
+        guard let currentSessionId = currentSession?.id else {
+            return
+        }
+
+        currentSession = storage?.updateSession(sessionId: currentSessionId, lastHeartbeatTime: heartbeat)
+
+        if let span = currentSessionSpan {
+            SessionSpanUtils.setHeartbeat(span: span, heartbeat: heartbeat)
+            Embrace.client?.flush(span)
+        }
     }
 
     func uploadSession() {
@@ -240,28 +273,16 @@ class SessionController: SessionControllable {
 
 extension SessionController {
     private func save() {
-        guard let storage = storage,
-              let session = currentSession else {
-            return
-        }
-
-        do {
-            try storage.upsertSession(session)
-        } catch {
-            Embrace.logger.warning("Error trying to update session:\n\(error.localizedDescription)")
-        }
+        storage?.save()
     }
 
     private func delete() {
-        guard let storage = storage,
-              let session = currentSession else {
+        guard let session = currentSession else {
             return
         }
 
-        do {
-            try storage.delete(record: session)
-        } catch {
-            Embrace.logger.warning("Error trying to delete session:\n\(error.localizedDescription)")
+        if let sessionId = session.id {
+            storage?.deleteSession(id: sessionId)
         }
 
         currentSession = nil

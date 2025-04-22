@@ -326,11 +326,7 @@ public class EmbraceUpload: EmbraceLogUploader {
 
     private func clearCacheFromStaleData() {
         operationQueue.addOperation { [weak self] in
-            do {
-                try self?.cache.clearStaleDataIfNeeded()
-            } catch {
-                self?.logger.debug("Error clearing stale date from cache: \(error.localizedDescription)")
-            }
+            self?.cache.clearStaleDataIfNeeded()
         }
     }
 

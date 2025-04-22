@@ -78,7 +78,7 @@ class EmbraceUploadCacheTests: XCTestCase {
         cache.coreData.save()
 
         // when fetching the upload datas
-        let datas = try cache.fetchAllUploadData()
+        let datas = cache.fetchAllUploadData()
 
         // then the fetched datas are valid
         XCTAssert(datas.contains(data1))

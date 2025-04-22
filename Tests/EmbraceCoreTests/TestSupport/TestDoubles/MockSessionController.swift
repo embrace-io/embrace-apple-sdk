@@ -12,37 +12,59 @@ class MockSessionController: SessionControllable {
 
     // Properties for mocking
     var nextSessionId: SessionIdentifier?
+    var nextSessionColdStart: Bool = false
+    var nextSessionAppTerminated: Bool = false
+
     var didCallStartSession: Bool = false
     var didCallEndSession: Bool = false
     var didCallUpdateSession: Bool = false
 
-    private var updateSessionCallback: ((SessionRecord?, SessionState?, Bool?) -> Void)?
+    private var updateSessionCallback: ((EmbraceSession?, SessionState?, Bool?) -> Void)?
 
-    var currentSession: SessionRecord?
+    weak var storage: EmbraceStorage?
+    var currentSession: EmbraceSession?
 
     func clear() { }
 
     @discardableResult
-    func startSession(state: SessionState) -> SessionRecord? {
+    func startSession(state: SessionState) -> EmbraceSession? {
         return startSession(state: state, startTime: Date())
     }
 
     @discardableResult
-    func startSession(state: SessionState, startTime: Date = Date()) -> SessionRecord? {
+    func startSession(state: SessionState, startTime: Date = Date()) -> EmbraceSession? {
         if currentSession != nil {
             endSession()
         }
 
-        let session = SessionRecord(
-            id: nextSessionId ?? .random,
-            state: state,
-            processId: ProcessIdentifier.current,
-            traceId: TestConstants.traceId,
-            spanId: TestConstants.spanId,
-            startTime: startTime
-        )
-
         didCallStartSession = true
+
+        var session: EmbraceSession?
+
+        if let storage = storage {
+            session = storage.addSession(
+                id: nextSessionId ?? .random,
+                processId: ProcessIdentifier.current,
+                state: state,
+                traceId: TestConstants.traceId,
+                spanId: TestConstants.spanId,
+                startTime: startTime,
+                coldStart: nextSessionColdStart,
+                appTerminated: nextSessionAppTerminated
+            )
+        } else {
+            session = MockSession(
+                id: nextSessionId ?? .random,
+                processId: ProcessIdentifier.current,
+                state: state,
+                traceId: TestConstants.traceId,
+                spanId: TestConstants.spanId,
+                startTime: startTime,
+                coldStart: nextSessionColdStart,
+                appTerminated: nextSessionAppTerminated
+            )
+        }
+
         currentSession = session
 
         return session
@@ -68,7 +90,7 @@ class MockSessionController: SessionControllable {
         updateSessionCallback?(currentSession, nil, appTerminated)
     }
 
-    func onUpdateSession(_ callback: @escaping ((SessionRecord?, SessionState?, Bool?) -> Void)) {
+    func onUpdateSession(_ callback: @escaping ((EmbraceSession?, SessionState?, Bool?) -> Void)) {
         updateSessionCallback = callback
     }
 
