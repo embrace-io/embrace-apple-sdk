@@ -53,14 +53,19 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
         }
     }
 
+    /// Use this to prevent MetricKit reports to be used along with this crash reporter
+    public let disableMetricKitReports: Bool
+
     /// Unused in this KSCrash implementation
     public var onNewReport: ((CrashReport) -> Void)?
 
     public init(queue: DispatchableQueue = .with(label: "com.embrace.crashreporter"),
-                signalsBlockList: [CrashSignal] = [.SIGTERM]
+                signalsBlockList: [CrashSignal] = [.SIGTERM],
+                disableMetricKitReports: Bool = false
     ) {
         self.queue = queue
         self.signalsBlockList = signalsBlockList
+        self.disableMetricKitReports = disableMetricKitReports
     }
 
     private func updateKSCrashInfo() {

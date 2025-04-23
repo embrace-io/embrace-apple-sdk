@@ -19,6 +19,8 @@ import Foundation
     @objc func deleteCrashReport(id: Int)
 
     @objc var onNewReport: ((CrashReport) -> Void)? { get set }
+
+    @objc var disableMetricKitReports: Bool { get }
 }
 
 /// This protocol that extends the functionality of a `CrashReporter` and it allows

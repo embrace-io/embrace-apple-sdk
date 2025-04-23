@@ -20,6 +20,7 @@ final class EmbraceSetupCaptureServicesTests: XCTestCase {
         func fetchUnsentCrashReports(completion: @escaping ([CrashReport]) -> Void) { }
         func deleteCrashReport(id: Int) { }
         var onNewReport: ((CrashReport) -> Void)?
+        var disableMetricKitReports: Bool = true
     }
 
     override func tearDown() {
@@ -39,6 +40,40 @@ final class EmbraceSetupCaptureServicesTests: XCTestCase {
 
         let crashReporter = Embrace.client!.captureServices.crashReporter
         XCTAssertNotNil(crashReporter)
+    }
+
+    func test_setup_include_metrickit() throws {
+        let crashReporter = ExampleCrashReporter()
+        crashReporter.disableMetricKitReports = false
+
+        let options = Embrace.Options(
+            appId: "myAPP",
+            captureServices: [ ExampleCaptureService() ],
+            crashReporter: crashReporter
+        )
+        try Embrace.setup(options: options)
+
+        let services = Embrace.client!.captureServices.services
+        XCTAssertEqual(services.count, 4)
+        XCTAssertTrue(services.contains { $0 is ExampleCaptureService })
+        XCTAssertTrue(services.contains { $0 is MetricKitCrashCaptureService })
+    }
+
+    func test_setup_do_not_include_metrickit() throws {
+        let crashReporter = ExampleCrashReporter()
+        crashReporter.disableMetricKitReports = true
+
+        let options = Embrace.Options(
+            appId: "myAPP",
+            captureServices: [ ExampleCaptureService() ],
+            crashReporter: crashReporter
+        )
+        try Embrace.setup(options: options)
+
+        let services = Embrace.client!.captureServices.services
+        XCTAssertEqual(services.count, 3)
+        XCTAssertTrue(services.contains { $0 is ExampleCaptureService })
+        XCTAssertFalse(services.contains { $0 is MetricKitCrashCaptureService })
     }
 
     func test_duplicatedServices() throws {

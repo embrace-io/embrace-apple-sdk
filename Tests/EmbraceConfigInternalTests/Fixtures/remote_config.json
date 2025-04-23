@@ -34,5 +34,6 @@
             "expires_in": 1723570602,
             "public_key": "key"
         },
-    ]
+    ],
+    "metric_kit_threshold": 55
 }

@@ -102,6 +102,8 @@ extension RemoteConfig: EmbraceConfigurable {
         )
     }
 
+    public var isMetricKitEnabled: Bool { isEnabled(threshold: payload.metricKitThreshold) }
+
     public func update(completion: @escaping (Bool, (any Error)?) -> Void) {
         guard updating == false else {
             completion(false, nil)

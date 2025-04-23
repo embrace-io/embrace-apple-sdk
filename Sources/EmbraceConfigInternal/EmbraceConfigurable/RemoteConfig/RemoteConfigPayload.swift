@@ -21,6 +21,8 @@ public struct RemoteConfigPayload: Decodable, Equatable {
 
     var networkPayloadCaptureRules: [NetworkPayloadCaptureRule]
 
+    var metricKitThreshold: Float
+
     enum CodingKeys: String, CodingKey {
         case sdkEnabledThreshold = "threshold"
 
@@ -46,6 +48,8 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         }
 
         case networkPayLoadCapture = "network_capture"
+
+        case metricKitThreshold = "metric_kit_threshold"
     }
 
     public init(from decoder: Decoder) throws {
@@ -137,6 +141,13 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             [NetworkPayloadCaptureRule].self,
             forKey: .networkPayLoadCapture
         )) ?? defaultPayload.networkPayloadCaptureRules
+
+        // metric kit
+
+        metricKitThreshold = try rootContainer.decodeIfPresent(
+            Float.self,
+            forKey: .metricKitThreshold
+        ) ?? defaultPayload.metricKitThreshold
     }
 
     // defaults
@@ -153,6 +164,8 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         internalLogsErrorLimit = 3
 
         networkPayloadCaptureRules = []
+
+        metricKitThreshold = 100.0
     }
 }
 
