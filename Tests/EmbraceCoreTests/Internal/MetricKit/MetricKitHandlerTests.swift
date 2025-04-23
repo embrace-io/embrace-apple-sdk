@@ -1,6 +1,9 @@
 //
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
+
+#if !os(tvOS)
+
 import XCTest
 @testable import EmbraceCore
 import TestSupport
@@ -109,3 +112,5 @@ class MetricKitHandlerTests: XCTestCase {
         XCTAssertNil(listener.sessionId)
     }
 }
+
+#endif

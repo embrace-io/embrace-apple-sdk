@@ -6,7 +6,7 @@ import Foundation
 import MetricKit
 import EmbraceCommonInternal
 
-@objc class MetricKitHandler: NSObject, MXMetricManagerSubscriber, MetricKitCrashPayloadProvider {
+@objc class MetricKitHandler: NSObject, MetricKitCrashPayloadProvider {
 
     @ThreadSafe
     var listeners: [MetricKitCrashPayloadListener] = []
@@ -17,22 +17,15 @@ import EmbraceCommonInternal
     let sessionLinkGracePeriod: TimeInterval = 5
 
     func install() {
+#if !os(tvOS)
         MXMetricManager.shared.add(self)
+#endif
     }
 
     func uninstall() {
+#if !os(tvOS)
         MXMetricManager.shared.remove(self)
-    }
-
-    func didReceive(_ payloads: [MXMetricPayload]) {
-        // noop for now
-    }
-
-    @available(iOS 14.0, *)
-    func didReceive(_ payloads: [MXDiagnosticPayload]) {
-        for payload in payloads {
-            handlePayload(MetricKitDiagnosticPayload(payload: payload))
-        }
+#endif
     }
 
     func handlePayload(_ payload: MetricKitDiagnosticPayload) {
@@ -68,6 +61,21 @@ import EmbraceCommonInternal
     }
 }
 
+#if !os(tvOS)
+extension MetricKitHandler: MXMetricManagerSubscriber {
+    func didReceive(_ payloads: [MXMetricPayload]) {
+        // noop for now
+    }
+
+    @available(iOS 14.0, *)
+    func didReceive(_ payloads: [MXDiagnosticPayload]) {
+        for payload in payloads {
+            handlePayload(MetricKitDiagnosticPayload(payload: payload))
+        }
+    }
+}
+#endif
+
 // abstraction for injection during tests
 class MetricKitDiagnosticPayload {
     let startTime: Date
@@ -80,6 +88,7 @@ class MetricKitDiagnosticPayload {
         self.crashes = crashes
     }
 
+#if !os(tvOS)
     @available(iOS 14.0, *)
     init(payload: MXDiagnosticPayload) {
         self.startTime = payload.timeStampBegin
@@ -88,6 +97,7 @@ class MetricKitDiagnosticPayload {
             MetricKitCrashData(data: $0.jsonRepresentation(), signal: $0.signal?.intValue ?? 0)
         }) ?? []
     }
+#endif
 }
 
 struct MetricKitCrashData {
