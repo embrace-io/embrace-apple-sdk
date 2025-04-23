@@ -46,6 +46,11 @@ public final class CrashlyticsReporter: NSObject, CrashReporter {
         }
     }
 
+    /// We let Crashlytics handle MetricKit
+    public var disableMetricKitReports: Bool {
+        return true
+    }
+
     /// Block called when there's a new report to upload
     public var onNewReport: ((CrashReport) -> Void)?
 

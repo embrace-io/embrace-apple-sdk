@@ -21,13 +21,16 @@ public class EditableConfig: EmbraceConfigurable {
         completion(false, nil)
     }
 
+    public var isMetricKitEnabled: Bool = true
+
     public init(
         isSdkEnabled: Bool = true,
         isBackgroundSessionEnabled: Bool = false,
         isNetworkSpansForwardingEnabled: Bool = false,
         isUiLoadInstrumentationEnabled: Bool = false,
         internalLogLimits: InternalLogLimits = InternalLogLimits(),
-        networkPayloadCaptureRules: [NetworkPayloadCaptureRule] = []
+        networkPayloadCaptureRules: [NetworkPayloadCaptureRule] = [],
+        isMetricKitEnabled: Bool = true
     ) {
         self.isSDKEnabled = isSdkEnabled
         self.isBackgroundSessionEnabled = isBackgroundSessionEnabled
@@ -35,6 +38,7 @@ public class EditableConfig: EmbraceConfigurable {
         self.isUiLoadInstrumentationEnabled = isUiLoadInstrumentationEnabled
         self.internalLogLimits = internalLogLimits
         self.networkPayloadCaptureRules = networkPayloadCaptureRules
+        self.isMetricKitEnabled = isMetricKitEnabled
     }
 }
 

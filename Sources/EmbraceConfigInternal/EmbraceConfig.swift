@@ -110,4 +110,8 @@ extension EmbraceConfig /* EmbraceConfigurable delegation */ {
     public var networkPayloadCaptureRules: [NetworkPayloadCaptureRule] {
         return configurable.networkPayloadCaptureRules
     }
+
+    public var isMetrickKitEnabled: Bool {
+        return configurable.isMetricKitEnabled
+    }
 }

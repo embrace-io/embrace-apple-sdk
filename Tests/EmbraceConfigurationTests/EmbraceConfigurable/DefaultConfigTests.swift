@@ -15,5 +15,6 @@ final class DefaultConfigTests: XCTestCase {
         XCTAssertFalse(config.isNetworkSpansForwardingEnabled)
         XCTAssertEqual(config.internalLogLimits, InternalLogLimits())
         XCTAssertTrue(config.networkPayloadCaptureRules.isEmpty)
+        XCTAssertTrue(config.isMetricKitEnabled)
     }
 }

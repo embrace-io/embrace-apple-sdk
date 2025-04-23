@@ -19,6 +19,8 @@ import Foundation
 
     var networkPayloadCaptureRules: [NetworkPayloadCaptureRule] { get }
 
+    var isMetricKitEnabled: Bool { get }
+
     /// Tell the configurable implementation it should update if possible.
     /// - Parameters:
     ///     - completion: A completion block that takes two parameters (didChange, error). Completion block should pass `true` 
