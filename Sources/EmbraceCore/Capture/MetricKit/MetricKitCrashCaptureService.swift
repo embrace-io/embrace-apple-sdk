@@ -41,7 +41,7 @@ class MetricKitCrashCaptureService: CaptureService, MetricKitCrashPayloadListene
         let attributesBuilder = EmbraceLogAttributesBuilder(
             session: nil,
             crashReport: nil,
-            storage: Embrace.client?.storage,
+            storage: options.metadataFetcher,
             initialAttributes: [:]
         )
 
@@ -59,7 +59,7 @@ class MetricKitCrashCaptureService: CaptureService, MetricKitCrashPayloadListene
             type: .crash,
             timestamp: Date(),
             attributes: attributes,
-            stackTraceBehavior: .default
+            stackTraceBehavior: .notIncluded
         )
     }
 }

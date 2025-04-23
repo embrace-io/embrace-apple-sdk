@@ -3,19 +3,30 @@
 //
 
 import Foundation
+import EmbraceStorageInternal
 
 extension MetricKitCrashCaptureService {
     final class Options: NSObject {
         let provider: MetricKitCrashPayloadProvider?
+        let metadataFetcher: EmbraceStorageMetadataFetcher?
         let signals: [Int]
 
-        init(provider: MetricKitCrashPayloadProvider?, signals: [Int]) {
+        init(
+            provider: MetricKitCrashPayloadProvider?,
+            metadataFetcher: EmbraceStorageMetadataFetcher?,
+            signals: [Int]
+        ) {
             self.provider = provider
+            self.metadataFetcher = metadataFetcher
             self.signals = signals
         }
 
         convenience override init() {
-            self.init(provider: Embrace.client?.metricKit, signals: [ 9 ]) // SIGKILL
+            self.init(
+                provider: Embrace.client?.metricKit,
+                metadataFetcher: Embrace.client?.storage,
+                signals: [ 9 ] // SIGKILL
+            )
         }
     }
 }
