@@ -62,7 +62,7 @@ private extension URLSessionDelegateProxyForwardingTests {
     }
 
     func thenProxyShouldHaveFinishedTaskInHandler() {
-        XCTAssertTrue(handler.didInvokeFinish)
+        XCTAssertTrue(handler.didInvokeFinishWithData)
     }
 
     func aTask() -> URLSessionDataTask {
