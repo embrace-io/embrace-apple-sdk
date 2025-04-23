@@ -191,11 +191,13 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
     }
 
     func addData(_ data: Data, dataTask: URLSessionDataTask) {
-        if var previousData = dataTask.embraceData {
-            previousData.append(data)
-            dataTask.embraceData = previousData
-        } else {
-            dataTask.embraceData = data
+        if payloadCaptureHandler.isEnabled() {
+            if var previousData = dataTask.embraceData {
+                previousData.append(data)
+                dataTask.embraceData = previousData
+            } else {
+                dataTask.embraceData = data
+            }
         }
     }
 

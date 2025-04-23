@@ -39,7 +39,7 @@ extension URLSessionTask {
             objc_setAssociatedObject(self,
                                      &AssociatedKeys.embraceData,
                                      newValue,
-                                     .OBJC_ASSOCIATION_RETAIN)
+                                     .OBJC_ASSOCIATION_COPY)
         }
     }
 
