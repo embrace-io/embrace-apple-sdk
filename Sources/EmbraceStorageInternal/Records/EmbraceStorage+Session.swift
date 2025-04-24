@@ -181,7 +181,7 @@ extension EmbraceStorage {
 
         return result
     }
-    
+
     /// Updates values for the given session id
     /// - Returns: Immutable copy of the modified `SessionRecord`, if any
     @discardableResult
