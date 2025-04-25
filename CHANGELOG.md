@@ -1,3 +1,8 @@
+## 6.9.1
+*Apr 25th, 2025*
+* Fixed
+    * Fixed potential threading issues with Core Data.
+
 ## 6.9.0
 *Apr 22th, 2025*
 * Changes
