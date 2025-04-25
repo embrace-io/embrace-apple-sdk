@@ -104,7 +104,7 @@ Pod::Spec.new do |spec|
   spec.subspec 'EmbraceCrash' do |subs|
     subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
     subs.dependency "EmbraceIO/EmbraceCommonInternal"
-    subs.dependency "KSCrash"
+    subs.dependency "EmbraceIO/EmbraceKSCrash"
   end
 
   spec.subspec 'EmbraceObjCUtilsInternal' do |subs|
@@ -112,6 +112,10 @@ Pod::Spec.new do |spec|
   end
 
   # External
+  spec.subspec 'EmbraceKSCrash' do |subs|
+    subs.dependency "KSCrash", "~> 2.0.0"
+  end
+
   spec.subspec 'OpenTelemetrySdk' do |subs|
     subs.dependency "OpenTelemetry-Swift-Sdk"
   end
