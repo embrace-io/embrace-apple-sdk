@@ -249,13 +249,15 @@ extension MetadataHandler {
         let request = NSFetchRequest<MetadataRecordTmp>(entityName: MetadataRecordTmp.entityName)
         let oldRecords = coreData.fetch(withRequest: request)
 
-        for record in oldRecords {
-            guard let type = MetadataRecordType(rawValue: record.type),
-                  let lifespan = MetadataRecordLifespan(rawValue: record.lifespan) else {
-                continue
-            }
+        coreData.context.performAndWait {
+            for record in oldRecords {
+                guard let type = MetadataRecordType(rawValue: record.type),
+                      let lifespan = MetadataRecordLifespan(rawValue: record.lifespan) else {
+                    continue
+                }
 
-            storage.addMetadata(key: record.key, value: record.value, type: type, lifespan: lifespan, lifespanId: record.lifespanId)
+                storage.addMetadata(key: record.key, value: record.value, type: type, lifespan: lifespan, lifespanId: record.lifespanId)
+            }
         }
 
         // remove temporary db file
