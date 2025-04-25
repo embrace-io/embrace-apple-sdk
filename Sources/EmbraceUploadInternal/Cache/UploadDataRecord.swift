@@ -40,6 +40,16 @@ public class UploadDataRecord: NSManagedObject {
 
         return record
     }
+
+    func toImmutable() -> ImmutableUploadDataRecord {
+        return ImmutableUploadDataRecord(
+            id: id,
+            type: type,
+            data: data,
+            attemptCount: attemptCount,
+            date: date
+        )
+    }
 }
 
 extension UploadDataRecord {
@@ -73,4 +83,12 @@ extension UploadDataRecord {
         entity.properties = [idAttribute, typeAttribute, dataAttribute, attemptCountAttribute, dateAttribute]
         return entity
     }
+}
+
+struct ImmutableUploadDataRecord {
+    let id: String
+    let type: Int
+    let data: Data
+    let attemptCount: Int
+    let date: Date
 }
