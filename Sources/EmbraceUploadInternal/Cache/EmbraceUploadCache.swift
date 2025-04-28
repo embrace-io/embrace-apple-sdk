@@ -46,13 +46,20 @@ class EmbraceUploadCache {
 
     /// Fetches all the cached upload data.
     /// - Returns: An array containing all the cached `UploadDataRecords`
-    public func fetchAllUploadData() throws -> [UploadDataRecord] {
+    public func fetchAllUploadData() -> [ImmutableUploadDataRecord] {
         let request = NSFetchRequest<UploadDataRecord>(entityName: UploadDataRecord.entityName)
-        return coreData.fetch(withRequest: request)
+        let records = coreData.fetch(withRequest: request)
+
+        var result: [ImmutableUploadDataRecord] = []
+        coreData.context.performAndWait {
+            result = records.map { $0.toImmutable() }
+        }
+
+        return result
     }
 
     /// Removes stale data based on size or date, if they're limited in options.
-    @discardableResult public func clearStaleDataIfNeeded() throws -> UInt {
+    @discardableResult public func clearStaleDataIfNeeded() -> UInt {
         guard options.cacheDaysLimit > 0 else {
             return 0
         }

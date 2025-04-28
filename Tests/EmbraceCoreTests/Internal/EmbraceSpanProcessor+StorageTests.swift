@@ -17,9 +17,8 @@ final class EmbraceSpanProcessor_StorageTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         let sessionController = MockSessionController()
 
-        defer {
-            try? storage.teardown()
-        }
+        defer { storage.coreData.destroy() }
+        
         let processor = SingleSpanProcessor(
             spanExporter: StorageSpanExporter(
                 options: .init(storage: storage, sessionController: sessionController),

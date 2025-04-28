@@ -135,6 +135,8 @@ didReceiveResponse:(NSURLResponse *)response
 
     if (target) {
         [(id<NSURLSessionDataDelegate>)target URLSession:session dataTask:dataTask didReceiveResponse:response completionHandler:completionHandler];
+    } else {
+        completionHandler(NSURLSessionResponseAllow);
     }
 }
 
