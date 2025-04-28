@@ -26,12 +26,15 @@ protocol URLSessionTaskHandlerDataSource: AnyObject {
 final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
     private var spans: [URLSessionTask: Span] = [:]
     private let queue: DispatchableQueue
+    private let capturedDataQueue: DispatchableQueue
     private let payloadCaptureHandler: NetworkPayloadCaptureHandler
     weak var dataSource: URLSessionTaskHandlerDataSource?
 
     init(processingQueue: DispatchableQueue = DefaultURLSessionTaskHandler.queue(),
+         capturedDataQueue: DispatchableQueue = DefaultURLSessionTaskHandler.capturedDataQueue(),
          dataSource: URLSessionTaskHandlerDataSource?) {
         self.queue = processingQueue
+        self.capturedDataQueue = capturedDataQueue
         self.dataSource = dataSource
         self.payloadCaptureHandler = NetworkPayloadCaptureHandler(otel: dataSource?.otel)
     }
@@ -132,17 +135,20 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
         queue.async {
             // process payload capture
             if self.payloadCaptureHandler.isEnabled() {
+                var data: Data?
+                self.capturedDataQueue.sync {
+                    data = task.embraceData
+                }
+
                 self.payloadCaptureHandler.process(
                     request: task.currentRequest ?? task.originalRequest,
                     response: task.response,
-                    data: task.embraceData,
+                    data: data,
                     error: error,
                     startTime: task.embraceStartTime,
                     endTime: embraceEndTime
                 )
             }
-
-            self.handleTaskFinished(task, bodySize: bodySize, error: error)
         }
     }
 
@@ -153,10 +159,18 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
         queue.async {
             // process payload capture
             if self.payloadCaptureHandler.isEnabled() {
+                // performing this logic to prevent any issues accessing `task.embraceData`
+                var capturedData = data
+                if capturedData == nil {
+                    self.capturedDataQueue.sync {
+                        capturedData = task.embraceData
+                    }
+                }
+
                 self.payloadCaptureHandler.process(
                     request: task.currentRequest ?? task.originalRequest,
                     response: task.response,
-                    data: data ?? task.embraceData,
+                    data: capturedData,
                     error: error,
                     startTime: task.embraceStartTime,
                     endTime: embraceEndTime
@@ -219,11 +233,13 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
 
     func addData(_ data: Data, dataTask: URLSessionDataTask) {
         if payloadCaptureHandler.isEnabled() {
-            if var previousData = dataTask.embraceData {
-                previousData.append(data)
-                dataTask.embraceData = previousData
-            } else {
-                dataTask.embraceData = data
+            capturedDataQueue.sync {
+                if var previousData = dataTask.embraceData {
+                    previousData.append(data)
+                    dataTask.embraceData = previousData
+                } else {
+                    dataTask.embraceData = data
+                }
             }
         }
     }
@@ -271,5 +287,9 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
 private extension DefaultURLSessionTaskHandler {
     static func queue() -> DispatchableQueue {
         .with(label: "com.embrace.URLSessionTaskHandler", qos: .utility)
+    }
+
+    static func capturedDataQueue() -> DispatchableQueue {
+        .with(label: "com.embrace.URLSessionTask.embraceData", qos: .utility)
     }
 }
