@@ -110,6 +110,17 @@ public class CoreDataWrapper {
         return result
     }
 
+    public func fetchAndPerform<T>(
+        withRequest request: NSFetchRequest<T>,
+        block: (([T]) -> Void)) where T: NSManagedObject {
+        context.performAndWait {
+            do {
+                let result = try context.fetch(request)
+                block(result)
+            } catch { }
+        }
+    }
+
     /// Synchronously fetches the count of records that satisfy the given request
     public func count<T>(withRequest request: NSFetchRequest<T>) -> Int where T: NSManagedObject {
         var result: Int = 0
@@ -134,6 +145,24 @@ public class CoreDataWrapper {
             }
 
             try? self?.context.save()
+        }
+    }
+
+    public func deleteRecords<T>(withRequest request: NSFetchRequest<T>)where T: NSManagedObject {
+        context.performAndWait { [weak self] in
+            guard let strongSelf = self else {
+                return
+            }
+
+            guard let records = try? strongSelf.context.fetch(request) else {
+                return
+            }
+
+            for record in records {
+                strongSelf.context.delete(record)
+            }
+
+            try? strongSelf.context.save()
         }
     }
 }

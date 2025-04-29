@@ -87,16 +87,21 @@ extension EmbraceStorage {
         return nil
     }
 
+    func fetchSpanRequest(id: String, traceId: String) -> NSFetchRequest<SpanRecord> {
+        let request = SpanRecord.createFetchRequest()
+        request.fetchLimit = 1
+        request.predicate = NSPredicate(format: "id == %@ AND traceId == %@", id, traceId)
+
+        return request
+    }
+
     /// Fetches the stored `SpanRecord` synchronously with the given identifiers, if any.
     /// - Parameters:
     ///   - id: Identifier of the span
     ///   - traceId: Identifier of the trace containing this span
     /// - Returns: The stored `SpanRecord`, if any
     func fetchSpanRecord(id: String, traceId: String) -> SpanRecord? {
-        let request = SpanRecord.createFetchRequest()
-        request.fetchLimit = 1
-        request.predicate = NSPredicate(format: "id == %@ AND traceId == %@", id, traceId)
-
+        let request = fetchSpanRequest(id: id, traceId: traceId)
         return coreData.fetch(withRequest: request).first
     }
 
@@ -106,13 +111,16 @@ extension EmbraceStorage {
     ///   - traceId: Identifier of the trace containing this span
     /// - Returns: Immutable copy of rhe stored `SpanRecord`, if any
     public func fetchSpan(id: String, traceId: String) -> EmbraceSpan? {
-        guard let record = fetchSpanRecord(id: id, traceId: traceId) else {
-            return nil
-        }
-
+        
+        // fetch
+        let request = fetchSpanRequest(id: id, traceId: traceId)
         var result: EmbraceSpan?
-        coreData.context.performAndWait {
-            result = record.toImmutable()
+        
+        coreData.fetchAndPerform(withRequest: request) {
+            records in
+
+            // convert to immutable struct
+            result = records.first?.toImmutable()
         }
         return result
     }
@@ -129,31 +137,28 @@ extension EmbraceStorage {
             request.predicate = NSPredicate(format: "endTime != nil")
         }
 
-        let spans = coreData.fetch(withRequest: request)
-        coreData.deleteRecords(spans)
+        coreData.deleteRecords(withRequest: request)
     }
 
     /// Synchronously closes all open spans from previous processes with the given `endTime`.
     /// - Parameters:
     ///   - endTime: Identifier of the trace containing this span
     public func closeOpenSpans(endTime: Date) {
-        coreData.context.performAndWait {
-            do {
-                let request = SpanRecord.createFetchRequest()
-                request.predicate = NSPredicate(
-                    format: "endTime = nil AND processIdRaw != %@",
-                    ProcessIdentifier.current.hex
-                )
 
-                let spans = try coreData.context.fetch(request)
-                for span in spans {
-                    span.endTime = endTime
-                }
+        let request = SpanRecord.createFetchRequest()
+        request.predicate = NSPredicate(
+            format: "endTime = nil AND processIdRaw != %@",
+            ProcessIdentifier.current.hex
+        )
 
-                try coreData.context.save()
-            } catch {
-                logger.error("Error closing open spans!")
+        coreData.fetchAndPerform(withRequest: request) {
+            spans in
+
+            for span in spans {
+                span.endTime = endTime
             }
+
+            try? coreData.context.save()
         }
     }
 
@@ -224,11 +229,11 @@ extension EmbraceStorage {
         }
 
         // fetch
-        let records = coreData.fetch(withRequest: request)
-
-        // convert to immutable structs
         var result: [EmbraceSpan] = []
-        coreData.context.performAndWait {
+        coreData.fetchAndPerform(withRequest: request) {
+            records in
+
+            // convert to immutable struct
             result = records.map { $0.toImmutable() }
         }
 
@@ -251,8 +256,7 @@ fileprivate extension EmbraceStorage {
             request.fetchLimit = count - limit + 1
             request.sortDescriptors = [ NSSortDescriptor(key: "startTime", ascending: true) ]
 
-            let spansToDelete = coreData.fetch(withRequest: request)
-            coreData.deleteRecords(spansToDelete)
+            coreData.deleteRecords(withRequest: request)
         }
     }
 }
