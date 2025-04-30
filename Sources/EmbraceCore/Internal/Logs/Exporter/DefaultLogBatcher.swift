@@ -56,14 +56,30 @@ class DefaultLogBatcher: LogBatcher {
 }
 
 internal extension DefaultLogBatcher {
-    func forceEndCurrentBatch() {
+    /// Forces the current batch to end and renews it, optionally waiting for completion.
+    ///
+    /// This method ensures that any pending logs are flushed by rewewing the batch.
+    /// If `waitUntilFinished` is `true`, the method blocks the calling thread until the operation on the internal queue completes.
+    ///
+    /// - Parameters:
+    ///   - waitUntilFinished: indicates whether the method should block until the batch operation finishes. Default is `true`.
+    func forceEndCurrentBatch(waitUntilFinished: Bool = true) {
         let group = DispatchGroup()
-        group.enter()
+
+        if waitUntilFinished {
+            group.enter()
+        }
+
         processorQueue.async {
             self.renewBatch()
-            group.leave()
+            if waitUntilFinished {
+                group.leave()
+            }
         }
-        group.wait()
+
+        if waitUntilFinished {
+            group.wait()
+        }
     }
 
     func renewBatch(withLogs logs: [EmbraceLog] = []) {
