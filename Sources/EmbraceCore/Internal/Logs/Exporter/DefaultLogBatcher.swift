@@ -12,7 +12,7 @@ protocol LogBatcherDelegate: AnyObject {
     func batchFinished(withLogs logs: [EmbraceLog])
 }
 
-protocol LogBatcher {
+protocol LogBatcher: AnyObject {
     func addLogRecord(logRecord: ReadableLogRecord)
     func renewBatch(withLogs logRecords: [EmbraceLog])
     func forceEndCurrentBatch()
@@ -57,9 +57,13 @@ class DefaultLogBatcher: LogBatcher {
 
 internal extension DefaultLogBatcher {
     func forceEndCurrentBatch() {
+        let group = DispatchGroup()
+        group.enter()
         processorQueue.async {
             self.renewBatch()
+            group.leave()
         }
+        group.wait()
     }
 
     func renewBatch(withLogs logs: [EmbraceLog] = []) {

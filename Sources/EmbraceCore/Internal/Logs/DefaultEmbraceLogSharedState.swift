@@ -31,17 +31,13 @@ class DefaultEmbraceLogSharedState: EmbraceLogSharedState {
 extension DefaultEmbraceLogSharedState {
     static func create(
         storage: EmbraceStorage,
-        controller: LogControllable,
+        batcher: LogBatcher,
         exporter: LogRecordExporter? = nil,
         sdkStateProvider: EmbraceSDKStateProvider
     ) -> DefaultEmbraceLogSharedState {
         var exporters: [LogRecordExporter] = [
             StorageEmbraceLogExporter(
-                logBatcher: DefaultLogBatcher(
-                    repository: storage,
-                    logLimits: .init(),
-                    delegate: controller
-                )
+                logBatcher: batcher
             )
         ]
 
