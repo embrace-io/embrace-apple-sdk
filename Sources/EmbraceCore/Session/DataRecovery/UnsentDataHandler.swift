@@ -225,6 +225,11 @@ class UnsentDataHandler {
             return
         }
 
+        if performCleanUp {
+            cleanOldSpans(storage: storage)
+            cleanMetadata(storage: storage)
+        }
+
         // upload session spans
         upload.uploadSpans(id: session.idRaw, data: payloadData) { result in
             switch result {
@@ -233,11 +238,6 @@ class UnsentDataHandler {
                 // we can remove this immediately because the upload module will cache it until the upload succeeds
                 if let sessionId = session.id {
                     storage.deleteSession(id: sessionId)
-                }
-
-                if performCleanUp {
-                    cleanOldSpans(storage: storage)
-                    cleanMetadata(storage: storage)
                 }
 
             case .failure(let error):
