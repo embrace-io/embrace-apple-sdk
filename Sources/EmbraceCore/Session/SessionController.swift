@@ -36,7 +36,7 @@ class SessionController: SessionControllable {
 
     // Lock used for session boundaries. Will be shared at both start/end of session
     private let lock = UnfairLock()
-
+    private weak var logBatcher: LogBatcher?
     weak var storage: EmbraceStorage?
     weak var upload: EmbraceUpload?
     weak var config: EmbraceConfig?
@@ -76,6 +76,10 @@ class SessionController: SessionControllable {
 
     func clear() {
         delete()
+    }
+
+    func setLogBatcher(_ batcher: LogBatcher) {
+        self.logBatcher = batcher
     }
 
     @discardableResult
@@ -189,6 +193,9 @@ class SessionController: SessionControllable {
 
             // post public notification
             NotificationCenter.default.post(name: .embraceSessionWillEnd, object: currentSession)
+
+            // end log batches
+            logBatcher?.forceEndCurrentBatch(waitUntilFinished: true)
 
             currentSessionSpan?.end(time: now)
             SessionSpanUtils.setCleanExit(span: currentSessionSpan, cleanExit: true)

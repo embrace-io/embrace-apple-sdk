@@ -188,12 +188,22 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
             export: options.export,
             sdkStateProvider: self
         ))
+
+        let logBatcher = DefaultLogBatcher(
+            repository: storage,
+            logLimits: .init(),
+            delegate: self.logController
+        )
+
+        sessionController.setLogBatcher(logBatcher)
+
         let logSharedState = DefaultEmbraceLogSharedState.create(
             storage: self.storage,
-            controller: self.logController,
+            batcher: logBatcher,
             exporter: options.export?.logExporter,
             sdkStateProvider: self
         )
+
         EmbraceOTel.setup(logSharedState: logSharedState)
         sessionLifecycle.setup()
         Embrace.logger.otel = self
