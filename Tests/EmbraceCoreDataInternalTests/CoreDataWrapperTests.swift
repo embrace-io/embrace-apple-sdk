@@ -54,6 +54,40 @@ class CoreDataWrapperTests: XCTestCase {
         XCTAssertEqual(result.first!.id, "test")
     }
 
+    func test_fetchAndPerform() throws {
+        // given a wrapper with data
+        _ = MockRecord.create(context: wrapper.context, id: "test")
+        wrapper.save()
+
+        // when fetching data and performing a block
+        let request = NSFetchRequest<MockRecord>(entityName: MockRecord.entityName)
+        request.predicate = NSPredicate(format: "id == %@", "test")
+
+        wrapper.fetchAndPerform(withRequest: request) { records in
+
+            // then the data is correct
+            XCTAssertEqual(records.count, 1)
+            XCTAssertEqual(records[0].id, "test")
+        }
+    }
+
+    func test_fetchFirstAndPerform() throws {
+        // given a wrapper with data
+        _ = MockRecord.create(context: wrapper.context, id: "a")
+        _ = MockRecord.create(context: wrapper.context, id: "z")
+        wrapper.save()
+
+        // when fetching data and performing a block
+        let request = NSFetchRequest<MockRecord>(entityName: MockRecord.entityName)
+        request.sortDescriptors = [NSSortDescriptor(key: "id", ascending: true)]
+
+        wrapper.fetchFirstAndPerform(withRequest: request) { record in
+
+            // then the data is correct
+            XCTAssertEqual(record!.id, "a")
+        }
+    }
+
     func test_count() throws {
         // given a wrapper with data
         _ = MockRecord.create(context: wrapper.context, id: "test1")
@@ -96,7 +130,22 @@ class CoreDataWrapperTests: XCTestCase {
         // then the record is deleted
         let request = NSFetchRequest<MockRecord>(entityName: MockRecord.entityName)
         let result = wrapper.fetch(withRequest: request)
-        
+
+        XCTAssertEqual(result.count, 0)
+    }
+
+    func test_deleteRecords_withRequest() throws {
+        // given a wrapper with data
+        let record1 = MockRecord.create(context: wrapper.context, id: "test1")
+        let record2 = MockRecord.create(context: wrapper.context, id: "test2")
+        wrapper.save()
+
+        // when deleting the record
+        let request = NSFetchRequest<MockRecord>(entityName: MockRecord.entityName)
+        wrapper.deleteRecords(withRequest: request)
+
+        // then the record is deleted
+        let result = wrapper.fetch(withRequest: request)
         XCTAssertEqual(result.count, 0)
     }
 }

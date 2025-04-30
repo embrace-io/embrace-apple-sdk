@@ -62,7 +62,9 @@ public class LogRecord: NSManagedObject {
     }
 
     func toImmutable() -> EmbraceLog {
-        let attributes = attributes.map { $0.toImmutable() }
+        let attributes = attributes.map {
+            $0.toImmutable()
+        }
 
         return ImmutableLogRecord(
             idRaw: idRaw,

@@ -59,12 +59,13 @@ extension EmbraceStorage {
         request.predicate = NSPredicate(format: "processIdRaw != %@", processIdentifier.hex)
 
         // fetch
-        let records = coreData.fetch(withRequest: request)
-
-        // convert to immutable structs
         var result: [EmbraceLog] = []
-        coreData.context.performAndWait {
-            result = records.map { $0.toImmutable() }
+        coreData.fetchAndPerform(withRequest: request) { records in
+
+            // convert to immutable structs
+            result = records.map {
+                $0.toImmutable()
+            }
         }
 
         return result
