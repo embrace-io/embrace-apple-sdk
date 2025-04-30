@@ -183,7 +183,11 @@ class SpyLogBatcher: LogBatcher {
         logRecords.append(logRecord)
     }
 
+    private(set) var didCallForceEndCurrentBatch: Bool = false
+    private(set) var forceEndCurrentBatchParameters: (Bool)?
     func forceEndCurrentBatch(waitUntilFinished: Bool) {
+        forceEndCurrentBatchParameters = (waitUntilFinished)
+        didCallForceEndCurrentBatch = true
         self.renewBatch(withLogs: [])
     }
 
