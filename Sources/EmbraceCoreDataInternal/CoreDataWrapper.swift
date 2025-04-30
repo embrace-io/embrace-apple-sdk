@@ -63,7 +63,10 @@ public class CoreDataWrapper {
             case .onDisk:
                 if let url = options.storageMechanism.fileURL {
                     do {
-                        try container.persistentStoreCoordinator.destroyPersistentStore(at: url, ofType: NSSQLiteStoreType)
+                        try container.persistentStoreCoordinator.destroyPersistentStore(
+                            at: url,
+                            ofType: NSSQLiteStoreType
+                        )
                         try FileManager.default.removeItem(at: url)
                     } catch {
                         logger.error("Error destroying CoreData stack!:\n\(error.localizedDescription)")
@@ -94,29 +97,79 @@ public class CoreDataWrapper {
                 try self?.context.save()
             } catch {
                 let name = self?.context.name ?? "???"
-                self?.logger.warning("Error saving CoreData \"\(name)\": \(error.localizedDescription)")
+                self?.logger.error("Error saving CoreData \"\(name)\": \(error.localizedDescription)")
             }
         }
     }
 
     /// Synchronously fetches the records that satisfy the given request
     public func fetch<T>(withRequest request: NSFetchRequest<T>) -> [T] where T: NSManagedObject {
+
         var result: [T] = []
-        context.performAndWait {
+        context.performAndWait { [weak self] in
+            guard let self else {
+                return
+            }
+
             do {
                 result = try context.fetch(request)
-            } catch { }
+            } catch {
+                self.logger.error("Error fetching!!!:\n\(error.localizedDescription)")
+            }
         }
         return result
     }
 
+    public func fetchAndPerform<T>(
+            withRequest request: NSFetchRequest<T>,
+            block: (([T]) -> Void)) where T: NSManagedObject {
+
+            context.performAndWait { [weak self] in
+                guard let self else {
+                    return
+                }
+
+                do {
+                    let result = try self.context.fetch(request)
+                    block(result)
+                } catch {
+                    self.logger.error("Error fetching with perform!!!:\n\(error.localizedDescription)")
+                }
+            }
+        }
+
+        public func fetchFirstAndPerform<T>(
+            withRequest request: NSFetchRequest<T>,
+            block: ((T?) -> Void)) where T: NSManagedObject {
+
+            context.performAndWait { [weak self] in
+                guard let self else {
+                    return
+                }
+
+                do {
+                    let result = try self.context.fetch(request)
+                    block(result.first)
+                } catch {
+                    self.logger.error("Error fetching first with perform!!!:\n\(error.localizedDescription)")
+                }
+            }
+        }
+
     /// Synchronously fetches the count of records that satisfy the given request
     public func count<T>(withRequest request: NSFetchRequest<T>) -> Int where T: NSManagedObject {
+
         var result: Int = 0
-        context.performAndWait {
+        context.performAndWait { [weak self] in
+            guard let self else {
+                return
+            }
+
             do {
                 result = try context.count(for: request)
-            } catch { }
+            } catch {
+                self.logger.error("Error fetching count!!!:\n\(error.localizedDescription)")
+            }
         }
         return result
     }
@@ -132,8 +185,30 @@ public class CoreDataWrapper {
             for record in records {
                 self?.context.delete(record)
             }
+            do {
+                try self?.context.save()
+            } catch {
+                self?.logger.error("Error deleting records!!!:\n\(error.localizedDescription)")
+            }
+        }
+    }
 
-            try? self?.context.save()
+    public func deleteRecords<T>(withRequest request: NSFetchRequest<T>)where T: NSManagedObject {
+        context.performAndWait { [weak self] in
+            guard let self else {
+                return
+            }
+
+            do {
+                let records = try self.context.fetch(request)
+                for record in records {
+                    self.context.delete(record)
+                }
+
+                try self.context.save()
+            } catch {
+                self.logger.error("Error deleting records with request:\n\(error.localizedDescription)")
+            }
         }
     }
 }
