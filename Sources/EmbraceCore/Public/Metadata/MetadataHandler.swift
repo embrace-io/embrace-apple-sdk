@@ -247,7 +247,6 @@ extension MetadataHandler {
         }
 
         let request = NSFetchRequest<MetadataRecordTmp>(entityName: MetadataRecordTmp.entityName)
-        let oldRecords = coreData.fetch(withRequest: request)
 
         coreData.fetchAndPerform(withRequest: request) { oldRecords in
             for record in oldRecords {
