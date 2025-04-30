@@ -196,7 +196,7 @@ class SessionController: SessionControllable {
 
             // end log batches
             logBatcher?.forceEndCurrentBatch()
-            
+
             currentSessionSpan?.end(time: now)
             SessionSpanUtils.setCleanExit(span: currentSessionSpan, cleanExit: true)
 

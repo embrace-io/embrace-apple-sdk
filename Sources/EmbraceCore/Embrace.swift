@@ -203,7 +203,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
             exporter: options.export?.logExporter,
             sdkStateProvider: self
         )
-        
+
         EmbraceOTel.setup(logSharedState: logSharedState)
         sessionLifecycle.setup()
         Embrace.logger.otel = self
