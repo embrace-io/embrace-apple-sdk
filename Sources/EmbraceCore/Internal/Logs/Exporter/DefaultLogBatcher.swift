@@ -31,7 +31,7 @@ class DefaultLogBatcher: LogBatcher {
         repository: LogRepository,
         logLimits: LogBatchLimits,
         delegate: LogBatcherDelegate,
-        processorQueue: DispatchQueue = .init(label: "io.embrace.logBatcher", qos: .utility)
+        processorQueue: DispatchQueue = .init(label: "io.embrace.logBatcher")
     ) {
         self.repository = repository
         self.logLimits = logLimits
