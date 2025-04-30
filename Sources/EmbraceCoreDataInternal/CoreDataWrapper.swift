@@ -166,7 +166,7 @@ public class CoreDataWrapper {
             }
 
             do {
-                result = try context.count(for: request)
+                result = try self.context.count(for: request)
             } catch {
                 self.logger.error("Error fetching count!!!:\n\(error.localizedDescription)")
             }
