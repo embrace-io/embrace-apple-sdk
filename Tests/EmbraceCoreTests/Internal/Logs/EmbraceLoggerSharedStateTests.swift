@@ -54,7 +54,7 @@ private extension EmbraceLoggerSharedStateTests {
     func whenInvokingDefaultEmbraceLoggerSharedState() throws {
         sut = try .create(
             storage: EmbraceStorage.createInMemoryDb(),
-            controller: DummyLogControllable(),
+            batcher: SpyLogBatcher(),
             sdkStateProvider: sdkStateProvider
         )
     }

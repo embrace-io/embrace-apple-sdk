@@ -195,7 +195,7 @@ class SessionController: SessionControllable {
             NotificationCenter.default.post(name: .embraceSessionWillEnd, object: currentSession)
 
             // end log batches
-            logBatcher?.forceEndCurrentBatch()
+            logBatcher?.forceEndCurrentBatch(waitUntilFinished: true)
 
             currentSessionSpan?.end(time: now)
             SessionSpanUtils.setCleanExit(span: currentSessionSpan, cleanExit: true)

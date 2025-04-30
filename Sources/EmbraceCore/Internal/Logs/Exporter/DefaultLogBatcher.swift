@@ -15,7 +15,7 @@ protocol LogBatcherDelegate: AnyObject {
 protocol LogBatcher: AnyObject {
     func addLogRecord(logRecord: ReadableLogRecord)
     func renewBatch(withLogs logRecords: [EmbraceLog])
-    func forceEndCurrentBatch()
+    func forceEndCurrentBatch(waitUntilFinished: Bool)
 }
 
 class DefaultLogBatcher: LogBatcher {
