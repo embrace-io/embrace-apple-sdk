@@ -93,11 +93,15 @@ public class CoreDataWrapper {
     /// Synchronously saves all changes on the current context to disk
     public func save() {
         context.performAndWait { [weak self] in
+            guard let self else {
+                return
+            }
+
             do {
-                try self?.context.save()
+                try self.context.save()
             } catch {
-                let name = self?.context.name ?? "???"
-                self?.logger.error("Error saving CoreData \"\(name)\": \(error.localizedDescription)")
+                let name = self.context.name ?? "???"
+                self.logger.error("Error saving CoreData \"\(name)\": \(error.localizedDescription)")
             }
         }
     }
@@ -182,13 +186,18 @@ public class CoreDataWrapper {
     /// Synchronously deletes requested records from the database and saves
     public func deleteRecords<T>(_ records: [T]) where T: NSManagedObject {
         context.performAndWait { [weak self] in
-            for record in records {
-                self?.context.delete(record)
+            guard let self else {
+                return
             }
+
+            for record in records {
+                self.context.delete(record)
+            }
+
             do {
-                try self?.context.save()
+                try self.context.save()
             } catch {
-                self?.logger.error("Error deleting records!!!:\n\(error.localizedDescription)")
+                self.logger.error("Error deleting records!!!:\n\(error.localizedDescription)")
             }
         }
     }
