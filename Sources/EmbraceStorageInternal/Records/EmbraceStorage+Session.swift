@@ -115,11 +115,11 @@ extension EmbraceStorage {
         // fetch
         let request = fetchSessionRequest(id: id)
         var result: EmbraceSession?
-        coreData.fetchAndPerform(withRequest: request) {
-            records in
+        coreData.fetchFirstAndPerform(withRequest: request) {
+            record in
 
             // convert to immutable struct
-            result = records.first?.toImmutable()
+            result = record?.toImmutable()
         }
 
         return result
@@ -144,11 +144,11 @@ extension EmbraceStorage {
 
         // fetch
         var result: EmbraceSession?
-        coreData.fetchAndPerform(withRequest: request) {
-            records in
+        coreData.fetchFirstAndPerform(withRequest: request) {
+            record in
 
             // convert to immutable struct
-            result = records.first?.toImmutable()
+            result = record?.toImmutable()
         }
 
         return result
@@ -163,11 +163,11 @@ extension EmbraceStorage {
 
         // fetch
         var result: EmbraceSession?
-        coreData.fetchAndPerform(withRequest: request) {
-            records in
+        coreData.fetchFirstAndPerform(withRequest: request) {
+            record in
 
             // convert to immutable struct
-            result = records.first?.toImmutable()
+            result = record?.toImmutable()
         }
 
         return result
@@ -206,8 +206,8 @@ extension EmbraceStorage {
         let request = fetchSessionRequest(id: sessionId)
         var result: EmbraceSession?
 
-        coreData.fetchAndPerform(withRequest: request) { records in
-            guard let session = records.first else {
+        coreData.fetchFirstAndPerform(withRequest: request) { session in
+            guard let session else {
                 return
             }
 

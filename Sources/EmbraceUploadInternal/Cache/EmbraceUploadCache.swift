@@ -197,16 +197,20 @@ class EmbraceUploadCache {
     ) {
 
         let request = fetchUploadDataRequest(id: id, type: type)
-        coreData.fetchAndPerform(withRequest: request) { 
-            [weak self] records in
+        coreData.fetchFirstAndPerform(withRequest: request) {
+            [weak self] record in
 
-            guard let uploadData = records.first else {
+            guard let uploadData = record else {
                 return
             }
 
             uploadData.attemptCount = attemptCount
             
-            try? self?.coreData.context.save()
+            do {
+                try self?.coreData.context.save()
+            } catch {
+                self?.logger.warning("Error upading attempt count:\n\(error.localizedDescription)")
+            }
         }
     }
 

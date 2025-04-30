@@ -71,6 +71,23 @@ class CoreDataWrapperTests: XCTestCase {
         }
     }
 
+    func test_fetchFirstAndPerform() throws {
+        // given a wrapper with data
+        _ = MockRecord.create(context: wrapper.context, id: "a")
+        _ = MockRecord.create(context: wrapper.context, id: "z")
+        wrapper.save()
+
+        // when fetching data and performing a block
+        let request = NSFetchRequest<MockRecord>(entityName: MockRecord.entityName)
+        request.sortDescriptors = [NSSortDescriptor(key: "id", ascending: true)]
+
+        wrapper.fetchFirstAndPerform(withRequest: request) { record in
+
+            // then the data is correct
+            XCTAssertEqual(record!.id, "a")
+        }
+    }
+
     func test_count() throws {
         // given a wrapper with data
         _ = MockRecord.create(context: wrapper.context, id: "test1")

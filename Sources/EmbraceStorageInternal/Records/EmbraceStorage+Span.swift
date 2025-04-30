@@ -116,11 +116,11 @@ extension EmbraceStorage {
         let request = fetchSpanRequest(id: id, traceId: traceId)
         var result: EmbraceSpan?
         
-        coreData.fetchAndPerform(withRequest: request) {
-            records in
+        coreData.fetchFirstAndPerform(withRequest: request) {
+            record in
 
             // convert to immutable struct
-            result = records.first?.toImmutable()
+            result = record?.toImmutable()
         }
         return result
     }
@@ -151,14 +151,18 @@ extension EmbraceStorage {
             ProcessIdentifier.current.hex
         )
 
-        coreData.fetchAndPerform(withRequest: request) {
+        coreData.fetchAndPerform(withRequest: request) { [weak self]
             spans in
 
             for span in spans {
                 span.endTime = endTime
             }
 
-            try? coreData.context.save()
+            do {
+                try self?.coreData.context.save()
+            } catch {
+                self?.logger.warning("Error closing open spans:\n\(error.localizedDescription)")
+            }
         }
     }
 
