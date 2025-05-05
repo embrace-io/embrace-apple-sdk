@@ -3,7 +3,9 @@
 //
 
 #if canImport(WebKit)
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceObjCUtilsInternal
+#endif
 import Foundation
 import WebKit
 

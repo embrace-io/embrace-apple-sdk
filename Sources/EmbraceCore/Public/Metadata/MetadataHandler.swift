@@ -3,9 +3,11 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
 import EmbraceStorageInternal
 import EmbraceCoreDataInternal
+#endif
 import CoreData
 
 @objc public enum MetadataLifespan: Int {

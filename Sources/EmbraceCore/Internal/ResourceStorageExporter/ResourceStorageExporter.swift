@@ -3,8 +3,10 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceStorageInternal
 import EmbraceOTelInternal
+#endif
 import OpenTelemetryApi
 import OpenTelemetrySdk
 

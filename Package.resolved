@@ -12,10 +12,10 @@
     {
       "identity" : "kscrash",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/embrace-io/KSCrash.git",
+      "location" : "https://github.com/kstenerud/KSCrash",
       "state" : {
-        "revision" : "6ce425727d3895c14cd7ff839f788ccb2bcf4081",
-        "version" : "2.0.7"
+        "revision" : "b87a3ef5b0b84e2a34a546b9836813756cd362a9",
+        "version" : "2.0.0"
       }
     },
     {

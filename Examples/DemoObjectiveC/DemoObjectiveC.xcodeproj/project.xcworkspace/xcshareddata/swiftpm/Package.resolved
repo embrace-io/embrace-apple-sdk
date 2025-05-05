@@ -1,5 +1,5 @@
 {
-  "originHash" : "30bf3f1af4d312afac34bcff9ba35cc3f452c81988789fae8ce52c8747bfec81",
+  "originHash" : "bb70b483fef313cd54fc768bb26e9804ff5e5d600c9cfdd1093e56b71c8c2fe3",
   "pins" : [
     {
       "identity" : "grdb.swift",
@@ -15,17 +15,17 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/grpc/grpc-swift.git",
       "state" : {
-        "revision" : "07123ed731671e800ab8d641006613612e954746",
-        "version" : "1.23.1"
+        "revision" : "8c5e99d0255c373e0330730d191a3423c57373fb",
+        "version" : "1.24.2"
       }
     },
     {
       "identity" : "kscrash",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/embrace-io/KSCrash.git",
+      "location" : "https://github.com/kstenerud/KSCrash",
       "state" : {
-        "revision" : "6ce425727d3895c14cd7ff839f788ccb2bcf4081",
-        "version" : "2.0.7"
+        "revision" : "b87a3ef5b0b84e2a34a546b9836813756cd362a9",
+        "version" : "2.0.0"
       }
     },
     {
@@ -33,8 +33,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/open-telemetry/opentelemetry-swift",
       "state" : {
-        "revision" : "f2315d8646432c02338960e85b5fe20417ad6d8d",
-        "version" : "1.12.1"
+        "revision" : "2ffffae2a027e2159dbf3fd53de1f25ba6d2d11d",
+        "version" : "1.13.0"
       }
     },
     {

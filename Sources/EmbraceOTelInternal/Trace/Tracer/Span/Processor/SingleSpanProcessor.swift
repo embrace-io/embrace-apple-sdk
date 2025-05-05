@@ -5,8 +5,10 @@
 import Foundation
 import OpenTelemetryApi
 import OpenTelemetrySdk
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceSemantics
 import EmbraceCommonInternal
+#endif
 
 /// A really simple implementation of the SpanProcessor that converts the ExportableSpan to SpanData
 /// and passes it to the configured exporter in both `onStart` and `onEnd`

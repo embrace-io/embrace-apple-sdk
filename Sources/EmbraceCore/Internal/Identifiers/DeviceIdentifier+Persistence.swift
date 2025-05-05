@@ -3,8 +3,10 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
 import EmbraceStorageInternal
+#endif
 
 extension DeviceIdentifier {
     static let resourceKey = "emb.device_id"
