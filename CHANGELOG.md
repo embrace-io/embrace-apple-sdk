@@ -1,3 +1,9 @@
+## 6.9.2
+*Apr 30, 2025*
+* Fixed
+	* Improved Core Data fetches and cleanup routines to prevent potential crashes.
+	* Fixed a crash that could occur when ending and restarting sessions.
+
 ## 6.9.1
 *Apr 25th, 2025*
 * Fixed
