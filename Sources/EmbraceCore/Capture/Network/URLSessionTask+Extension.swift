@@ -30,6 +30,12 @@ extension URLSessionTask {
         }
     }
 
+    /// Stores the accumulated response body data for a `URLSessionTask`.
+    ///
+    /// This is primarily used when network body capture is enabled.
+    ///
+    /// - Warning: Access to this property must be synchronized externally (e.g., using `DispatchQueue` or `UnfairLock`)
+    /// to ensure thread safety, since `URLSessionTask` is shared across threads.
     var embraceData: Data? {
         get {
             return objc_getAssociatedObject(self,
@@ -39,7 +45,7 @@ extension URLSessionTask {
             objc_setAssociatedObject(self,
                                      &AssociatedKeys.embraceData,
                                      newValue,
-                                     .OBJC_ASSOCIATION_RETAIN)
+                                     .OBJC_ASSOCIATION_COPY)
         }
     }
 

@@ -153,4 +153,8 @@ class NetworkPayloadCaptureHandler {
             rulesTriggeredMap[rule.id] = true
         }
     }
+
+    func isEnabled() -> Bool {
+        active && rules.count > 0
+    }
 }
