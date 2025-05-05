@@ -7,7 +7,10 @@
 import SwiftUI
 
 struct TestSpanScreenButtonView: View {
-    @Environment(TestSpanExporter.self) private var spanExporter
+    @Environment(DataCollector.self) private var dataCollector
+    private var spanExporter: TestSpanExporter {
+        dataCollector.spanExporter
+    }
     @State var viewModel: SpanTestUIComponentViewModel
 
     var body: some View {

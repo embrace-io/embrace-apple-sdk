@@ -7,7 +7,10 @@
 import SwiftUI
 
 struct SessionTestFinishedSessionUIComponent: View {
-    @Environment(TestSpanExporter.self) private var spanExporter
+    @Environment(DataCollector.self) private var dataCollector
+    private var spanExporter: TestSpanExporter {
+        dataCollector.spanExporter
+    }
     @State var dataModel: any TestScreenDataModel
     @State private var viewModel: SessionTestFinishedSessionTestViewModel
 

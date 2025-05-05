@@ -10,8 +10,7 @@ import EmbraceIO
 import OpenTelemetrySdk
 
 struct ContentView: View {
-    @Environment(TestSpanExporter.self) private var spanExporter
-    @Environment(TestLogRecordExporter.self) private var logExporter
+    @Environment(DataCollector.self) private var dataCollector
     @State private var currentSelectedTest: TestMenuOptionDataModel = .embraceInit
     @State private var selected = TestMenuOptionDataModel.embraceInit.tag
     @State private var initialized: Bool = false
@@ -23,8 +22,7 @@ struct ContentView: View {
                 TabView(selection: $selected) {
                     ForEach(TestMenuOptionDataModel.allCases, id:\.rawValue) {
                         $0.screen
-                            .environment(spanExporter)
-                            .environment(logExporter)
+                            .environment(dataCollector)
                             .tag($0.tag)
                     }
                 }
@@ -55,11 +53,9 @@ struct ContentView: View {
 }
 
 #Preview {
-    let spanExporter = TestSpanExporter()
-    let logExporter = TestLogRecordExporter()
+    let dataCollector = DataCollector()
     NavigationView {
         ContentView()
-            .environment(spanExporter)
-            .environment(logExporter)
+            .environment(dataCollector)
     }
 }

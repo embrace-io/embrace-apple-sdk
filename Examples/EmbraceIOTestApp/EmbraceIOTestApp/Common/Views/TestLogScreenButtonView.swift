@@ -7,7 +7,10 @@
 import SwiftUI
 
 struct TestLogScreenButtonView: View {
-    @Environment(TestLogRecordExporter.self) private var logRecordExporter
+    @Environment(DataCollector.self) private var dataCollector
+    private var logRecordExporter: TestLogRecordExporter {
+        dataCollector.logExporter
+    }
     @State var viewModel: LogTestUIComponentViewModel
 
     var body: some View {
