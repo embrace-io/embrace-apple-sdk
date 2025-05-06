@@ -40,7 +40,7 @@ let package = Package(
     dependencies: [
         .package(
              url: "https://github.com/kstenerud/KSCrash",
-             .upToNextMinor(from: "2.0.0")
+             .upToNextMinor(from: "2.1.0")
         ),
         .package(
             url: "https://github.com/open-telemetry/opentelemetry-swift",
