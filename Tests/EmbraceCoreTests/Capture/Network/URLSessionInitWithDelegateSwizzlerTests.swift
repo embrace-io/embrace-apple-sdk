@@ -4,7 +4,7 @@
 
 import XCTest
 @testable import EmbraceCore
-@testable import EmbraceObjCUtilsInternal
+@testable @_implementationOnly import EmbraceObjCUtilsInternal
 
 class DummyURLSessionDelegate: NSObject, URLSessionDelegate {}
 

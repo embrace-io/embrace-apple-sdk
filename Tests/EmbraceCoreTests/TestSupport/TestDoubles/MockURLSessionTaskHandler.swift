@@ -5,7 +5,7 @@
 import Foundation
 @testable import EmbraceCore
 @testable import EmbraceCommonInternal
-@testable import EmbraceObjCUtilsInternal
+@testable @_implementationOnly import EmbraceObjCUtilsInternal
 
 class MockURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
     var didInvokeAddData = false
