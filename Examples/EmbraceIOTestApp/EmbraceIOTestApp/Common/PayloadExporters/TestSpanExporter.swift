@@ -9,6 +9,8 @@ import OpenTelemetrySdk
 
 @Observable class TestSpanExporter: SpanExporter {
     private(set) var cachedExportedSpans: [String: [SpanData]] = [:]
+    private(set) var latestExporterSpans: [SpanData] = []
+
     private var embraceStarted = false
 
     func clearAll(_ specifics: [String]) {
@@ -30,6 +32,7 @@ import OpenTelemetrySdk
     }
 
     func export(spans: [SpanData], explicitTimeout: TimeInterval?) -> SpanExporterResultCode {
+        latestExporterSpans = spans
         spans.forEach {
             if cachedExportedSpans[$0.name] == nil {
                 cachedExportedSpans[$0.name] = []
