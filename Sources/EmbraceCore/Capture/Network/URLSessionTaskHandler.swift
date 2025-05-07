@@ -4,11 +4,13 @@
 
 import Foundation
 import OpenTelemetryApi
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCaptureService
 import EmbraceCommonInternal
 import EmbraceOTelInternal
 import EmbraceObjCUtilsInternal
 import EmbraceSemantics
+#endif
 
 extension Notification.Name {
     static let networkRequestCaptured = Notification.Name("networkRequestCaptured")
@@ -149,6 +151,8 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
                     endTime: embraceEndTime
                 )
             }
+
+            self.handleTaskFinished(task, bodySize: bodySize, error: error)
         }
     }
 

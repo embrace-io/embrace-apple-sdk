@@ -76,6 +76,33 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         app.buttons[identifier].tap()
     }
 
+    private func setAttachmentEnabled(_ enabled: Bool) {
+        let toggle = app.switches["attachmentToggle"]
+
+        if (toggle.value as? String == "1") != enabled {
+            toggle.tap()
+        }
+    }
+
+    private enum AttachmentSize: Int {
+        case safe
+        case maxAllowed
+        case overMaxAllowed
+    }
+
+    private func setAttachmentSize(_ size: AttachmentSize) {
+        let slider = app.sliders["attachmentSizeSlider"]
+
+        switch size {
+        case .safe:
+            slider.adjust(toNormalizedSliderPosition: 0.25)
+        case .maxAllowed:
+            slider.adjust(toNormalizedSliderPosition: 0.82)
+        case .overMaxAllowed:
+            slider.adjust(toNormalizedSliderPosition: 1.0)
+        }
+    }
+
     private func runLogTest() {
         app.buttons["logMessageCaptureTestButton"].tap()
 
@@ -162,7 +189,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
     /// Custom Stack Trace
     ///
 
-    ///Force try is unsafe but this hardcoded scenario *should* always work.
+    /// Force try is unsafe but this hardcoded scenario *should* always work.
     private var customStackTrace: EmbraceStackTrace {
         try! EmbraceStackTrace(frames: [
             "0 EmbraceIOTestApp 0x0000000005678def [SomeClass method] + 48",
@@ -252,6 +279,32 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         logMessageAttributeValueTextField.typeText(XCUIKeyboardKey.return.rawValue)
 
         app.buttons["LogTestsAttributes_Insert_Button"].tap()
+
+        runLogTest()
+    }
+
+    /// File Attachment
+
+    func testLogCapture_withNormalFileSize() {
+        enterCustomMessage()
+        setAttachmentEnabled(true)
+        setAttachmentSize(.safe)
+
+        runLogTest()
+    }
+
+    func testLogCapture_withMaxFileSize() {
+        enterCustomMessage()
+        setAttachmentEnabled(true)
+        setAttachmentSize(.maxAllowed)
+
+        runLogTest()
+    }
+
+    func testLogCapture_withOversizeFileSize() {
+        enterCustomMessage()
+        setAttachmentEnabled(true)
+        setAttachmentSize(.overMaxAllowed)
 
         runLogTest()
     }

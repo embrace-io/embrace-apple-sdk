@@ -3,10 +3,12 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceObjCUtilsInternal
 import EmbraceConfigInternal
 import EmbraceCommonInternal
 import EmbraceConfiguration
+#endif
 
 extension Embrace {
 

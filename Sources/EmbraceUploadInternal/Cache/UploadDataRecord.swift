@@ -3,7 +3,6 @@
 //
 
 import Foundation
-import GRDB
 import CoreData
 
 /// Represents a cached upload data in the storage
@@ -24,18 +23,32 @@ public class UploadDataRecord: NSManagedObject {
         Int,
         date: Date
     ) -> UploadDataRecord? {
-        guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
-            return nil
+        var record: UploadDataRecord?
+
+        context.performAndWait {
+            guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
+                return
+            }
+
+            record = UploadDataRecord(entity: description, insertInto: context)
+            record?.id = id
+            record?.type = type
+            record?.data = data
+            record?.attemptCount = attemptCount
+            record?.date = date
         }
 
-        let record = UploadDataRecord(entity: description, insertInto: context)
-        record.id = id
-        record.type = type
-        record.data = data
-        record.attemptCount = attemptCount
-        record.date = date
-
         return record
+    }
+
+    func toImmutable() -> ImmutableUploadDataRecord {
+        return ImmutableUploadDataRecord(
+            id: id,
+            type: type,
+            data: data,
+            attemptCount: attemptCount,
+            date: date
+        )
     }
 }
 
@@ -70,4 +83,12 @@ extension UploadDataRecord {
         entity.properties = [idAttribute, typeAttribute, dataAttribute, attemptCountAttribute, dateAttribute]
         return entity
     }
+}
+
+struct ImmutableUploadDataRecord {
+    let id: String
+    let type: Int
+    let data: Data
+    let attemptCount: Int
+    let date: Date
 }

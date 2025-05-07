@@ -16,54 +16,54 @@ extension EmbraceUploadCacheTests {
         // given some upload cache
         let oldDate = Calendar.current.date(byAdding: .day, value: -16, to: Date())!
         let now = Date()
-        let record1 = UploadDataRecord.create(
+        _ = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id1",
             type: 0,
             data: Data(repeating: 3, count: 1),
             attemptCount: 0,
             date: Date(timeInterval: -1300, since: now)
-        )!
-        let record2 = UploadDataRecord.create(
+        )
+        _ = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id2",
             type: 0,
             data: Data(repeating: 3, count: 1),
             attemptCount: 0,
             date: oldDate
-        )!
-        let record3 = UploadDataRecord.create(
+        )
+        _ = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id3",
             type: 0,
             data: Data(repeating: 3, count: 1),
             attemptCount: 0,
             date: oldDate
-        )!
-        let record4 = UploadDataRecord.create(
+        )
+        _ = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id4",
             type: 0,
             data: Data(repeating: 3, count: 300),
             attemptCount: 0,
             date: Date(timeInterval: -1200, since: now)
-        )!
-        let record5 = UploadDataRecord.create(
+        )
+        _ = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id5",
             type: 0,
             data: Data(repeating: 3, count: 400),
             attemptCount: 0,
             date: Date(timeInterval: -1100, since: now)
-        )!
-        let record6 = UploadDataRecord.create(
+        )
+        _ = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id6",
             type: 0,
             data: Data(repeating: 3, count: 100),
             attemptCount: 0,
             date: Date(timeInterval: -1000, since: now)
-        )!
+        )
 
         cache.coreData.context.performAndWait {
             do {
@@ -72,17 +72,17 @@ extension EmbraceUploadCacheTests {
         }
 
         // when attempting to remove data over the allowed days
-        let removedRecords = try cache.clearStaleDataIfNeeded()
+        let removedRecords = cache.clearStaleDataIfNeeded()
 
         // the expected records should've been removed.
-        let records = try cache.fetchAllUploadData()
+        let records = cache.fetchAllUploadData()
         XCTAssertEqual(removedRecords, 2)
-        XCTAssert(!records.contains(record2))
-        XCTAssert(!records.contains(record3))
-        XCTAssert(records.contains(record1))
-        XCTAssert(records.contains(record4))
-        XCTAssert(records.contains(record5))
-        XCTAssert(records.contains(record6))
+        XCTAssertNotNil(records.first(where: { $0.id == "id1" }))
+        XCTAssertNil(records.first(where: { $0.id == "id2" }))
+        XCTAssertNil(records.first(where: { $0.id == "id3" }))
+        XCTAssertNotNil(records.first(where: { $0.id == "id4" }))
+        XCTAssertNotNil(records.first(where: { $0.id == "id5" }))
+        XCTAssertNotNil(records.first(where: { $0.id == "id6" }))
 
         // make sure the vacuum performance span was added
         let spans = spanProcessor.endedSpans
@@ -103,49 +103,49 @@ extension EmbraceUploadCacheTests {
         // given some upload cache
         let oldDate = Calendar.current.date(byAdding: .day, value: -16, to: Date())!
         let now = Date()
-        let record1 = UploadDataRecord.create(
+        _ = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id1",
             type: 0,
             data: Data(repeating: 3, count: 1),
             attemptCount: 0, date: Date(timeInterval: -1300, since: now)
-        )!
-        let record2 = UploadDataRecord.create(
+        )
+        _ = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id2",
             type: 0,
             data: Data(repeating: 3, count: 1),
             attemptCount: 0, date: oldDate
-        )!
-        let record3 = UploadDataRecord.create(
+        )
+        _ = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id3",
             type: 0,
             data: Data(repeating: 3, count: 1),
             attemptCount: 0, date: oldDate
-        )!
-        let record4 = UploadDataRecord.create(
+        )
+        _ = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id4",
             type: 0,
             data: Data(repeating: 3, count: 300),
             attemptCount: 0, date: Date(timeInterval: -1200, since: now)
-        )!
-        let record5 = UploadDataRecord.create(
+        )
+        _ = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id5",
             type: 0,
             data: Data(repeating: 3, count: 400),
             attemptCount: 0, date: Date(timeInterval: -1100, since: now)
-        )!
-        let record6 = UploadDataRecord.create(
+        )
+        _ = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id6",
             type: 0,
             data: Data(repeating: 3, count: 100),
             attemptCount: 0,
             date: Date(timeInterval: -1000, since: now)
-        )!
+        )
 
         cache.coreData.context.performAndWait {
             do {
@@ -154,17 +154,17 @@ extension EmbraceUploadCacheTests {
         }
 
         // when attempting to remove data over the allowed days
-        let removedRecords = try cache.clearStaleDataIfNeeded()
+        let removedRecords = cache.clearStaleDataIfNeeded()
 
         // no records should've been removed
-        let records = try cache.fetchAllUploadData()
+        let records = cache.fetchAllUploadData()
         XCTAssertEqual(removedRecords, 0)
-        XCTAssert(records.contains(record2))
-        XCTAssert(records.contains(record3))
-        XCTAssert(records.contains(record1))
-        XCTAssert(records.contains(record4))
-        XCTAssert(records.contains(record5))
-        XCTAssert(records.contains(record6))
+        XCTAssertNotNil(records.first(where: { $0.id == "id1" }))
+        XCTAssertNotNil(records.first(where: { $0.id == "id2" }))
+        XCTAssertNotNil(records.first(where: { $0.id == "id3" }))
+        XCTAssertNotNil(records.first(where: { $0.id == "id4" }))
+        XCTAssertNotNil(records.first(where: { $0.id == "id5" }))
+        XCTAssertNotNil(records.first(where: { $0.id == "id6" }))
     }
 
     func test_clearStaleDataIfNeeded_basedOn_date_noRecords() throws {
@@ -173,7 +173,7 @@ extension EmbraceUploadCacheTests {
         let cache = try EmbraceUploadCache(options: options, logger: MockLogger())
 
         // when attempting to remove data from an empty cache
-        let removedRecords = try cache.clearStaleDataIfNeeded()
+        let removedRecords = cache.clearStaleDataIfNeeded()
 
         // no records should've been removed
         XCTAssertEqual(removedRecords, 0)
@@ -187,54 +187,54 @@ extension EmbraceUploadCacheTests {
         // given some upload cache
         let oldDate = Calendar.current.date(byAdding: .day, value: -16, to: Date())!
         let now = Date()
-        let record1 = UploadDataRecord.create(
+        _ = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id1",
             type: 0,
             data: Data(repeating: 3, count: 1),
             attemptCount: 0,
             date: Date(timeInterval: -1300, since: now)
-        )!
-        let record2 = UploadDataRecord.create(
+        )
+        _ = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id2",
             type: 0,
             data: Data(repeating: 3, count: 1),
             attemptCount: 0,
             date: oldDate
-        )!
-        let record3 = UploadDataRecord.create(
+        )
+        _ = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id3",
             type: 0,
             data: Data(repeating: 3, count: 1),
             attemptCount: 0,
             date: oldDate
-        )!
-        let record4 = UploadDataRecord.create(
+        )
+        _ = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id4",
             type: 0,
             data: Data(repeating: 3, count: 300),
             attemptCount: 0,
             date: Date(timeInterval: -1200, since: now)
-        )!
-        let record5 = UploadDataRecord.create(
+        )
+        _ = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id5",
             type: 0,
             data: Data(repeating: 3, count: 400),
             attemptCount: 0,
             date: Date(timeInterval: -1100, since: now)
-        )!
-        let record6 = UploadDataRecord.create(
+        )
+        _ = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id6",
             type: 0,
             data: Data(repeating: 3, count: 100),
             attemptCount: 0,
             date: Date(timeInterval: -1000, since: now)
-        )!
+        )
 
         cache.coreData.context.performAndWait {
             do {
@@ -243,16 +243,16 @@ extension EmbraceUploadCacheTests {
         }
 
         // when attempting to remove data over the allowed days
-        let removedRecords = try cache.clearStaleDataIfNeeded()
+        let removedRecords = cache.clearStaleDataIfNeeded()
 
         // no records should've been removed
-        let records = try cache.fetchAllUploadData()
+        let records = cache.fetchAllUploadData()
         XCTAssertEqual(removedRecords, 0)
-        XCTAssert(records.contains(record2))
-        XCTAssert(records.contains(record3))
-        XCTAssert(records.contains(record1))
-        XCTAssert(records.contains(record4))
-        XCTAssert(records.contains(record5))
-        XCTAssert(records.contains(record6))
+        XCTAssertNotNil(records.first(where: { $0.id == "id1" }))
+        XCTAssertNotNil(records.first(where: { $0.id == "id2" }))
+        XCTAssertNotNil(records.first(where: { $0.id == "id3" }))
+        XCTAssertNotNil(records.first(where: { $0.id == "id4" }))
+        XCTAssertNotNil(records.first(where: { $0.id == "id5" }))
+        XCTAssertNotNil(records.first(where: { $0.id == "id6" }))
     }
 }

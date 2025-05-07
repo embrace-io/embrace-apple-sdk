@@ -9,7 +9,6 @@ import PackageDescription
 
     let packageSettings = PackageSettings(
         productTypes: [
-            "GRDB": .framework,
             "KSCrash": .framework,
             "OpenTelemetrySdk": .framework,
             "OpenTelemetryApi": .framework
@@ -17,7 +16,7 @@ import PackageDescription
     )
 #endif
 
-var linkerSettings: [LinkerSetting]? = nil
+var linkerSettings: [LinkerSetting]?
 
 // This applies only to targets like EmbraceCore and EmbraceIO that contain `@objc extensions`.
 // When linked statically (as Tuist tends to do when installing Embrace via SPM packages),
@@ -40,16 +39,12 @@ let package = Package(
     ],
     dependencies: [
         .package(
-             url: "https://github.com/embrace-io/KSCrash.git",
-             exact: "2.0.7"
+             url: "https://github.com/kstenerud/KSCrash",
+             .upToNextMinor(from: "2.0.0")
         ),
         .package(
             url: "https://github.com/open-telemetry/opentelemetry-swift",
             exact: "1.13.0"
-        ),
-        .package(
-            url: "https://github.com/groue/GRDB.swift",
-            .upToNextMinor(from: "6.29.1")
         )
     ],
     targets: [
@@ -72,8 +67,7 @@ let package = Package(
                 "EmbraceIO",
                 "EmbraceCore",
                 "EmbraceCrash",
-                "TestSupport",
-                .product(name: "GRDB", package: "GRDB.swift")
+                "TestSupport"
             ]
         ),
 
@@ -102,8 +96,7 @@ let package = Package(
             dependencies: [
                 "EmbraceCore",
                 "TestSupport",
-                "TestSupportObjc",
-                .product(name: "GRDB", package: "GRDB.swift")
+                "TestSupportObjc"
             ],
             resources: [
                 .copy("Mocks/")
@@ -112,7 +105,10 @@ let package = Package(
 
         // common --------------------------------------------------------------------
         .target(
-            name: "EmbraceCommonInternal"
+            name: "EmbraceCommonInternal",
+            dependencies: [
+                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
+            ]
         ),
         .testTarget(
             name: "EmbraceCommonInternalTests",
@@ -201,8 +197,8 @@ let package = Package(
             name: "EmbraceStorageInternal",
             dependencies: [
                 "EmbraceCommonInternal",
-                "EmbraceSemantics",
-                .product(name: "GRDB", package: "GRDB.swift")
+                "EmbraceCoreDataInternal",
+                "EmbraceSemantics"
             ]
         ),
         .testTarget(
@@ -219,8 +215,7 @@ let package = Package(
             dependencies: [
                 "EmbraceCommonInternal",
                 "EmbraceOTelInternal",
-                "EmbraceCoreDataInternal",
-                .product(name: "GRDB", package: "GRDB.swift")
+                "EmbraceCoreDataInternal"
             ]
         ),
         .testTarget(
@@ -311,7 +306,7 @@ if ProcessInfo.processInfo.environment["EMBRACE_ENABLE_SWIFTLINT"] != nil {
 
   for target in package.targets {
     target.plugins = [
-      .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins"),
+      .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
     ]
   }
 }

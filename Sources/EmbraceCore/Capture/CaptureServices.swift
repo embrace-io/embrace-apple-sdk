@@ -3,11 +3,13 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCaptureService
 import EmbraceCommonInternal
 import EmbraceStorageInternal
 import EmbraceUploadInternal
 import EmbraceConfiguration
+#endif
 
 final class CaptureServices {
 
@@ -108,8 +110,8 @@ final class CaptureServices {
     }
 
     @objc func onSessionStart(notification: Notification) {
-        if let session = notification.object as? SessionRecord {
-            crashReporter?.currentSessionId = session.id.toString
+        if let session = notification.object as? EmbraceSession {
+            crashReporter?.currentSessionId = session.idRaw
         }
     }
 }

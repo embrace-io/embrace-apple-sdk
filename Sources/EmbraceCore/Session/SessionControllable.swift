@@ -3,17 +3,19 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
 import EmbraceStorageInternal
+#endif
 
 /// Protocol for managing sessions.
 /// See ``SessionController`` for main conformance
 protocol SessionControllable: AnyObject {
 
-    var currentSession: SessionRecord? { get }
+    var currentSession: EmbraceSession? { get }
 
     @discardableResult
-    func startSession(state: SessionState) -> SessionRecord?
+    func startSession(state: SessionState) -> EmbraceSession?
 
     @discardableResult
     func endSession() -> Date

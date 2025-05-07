@@ -1,6 +1,6 @@
 Pod::Spec.new do |spec|
   spec.name                           = "EmbraceIO"
-  spec.version                        = "6.8.4"
+  spec.version                        = "6.9.2"
   spec.summary                        = "Visibility into your users that you didn't have before."
   spec.description                    = <<-DESC
                       Embrace is the only performance monitoring platform focused solely on mobile. We are built
@@ -10,133 +10,113 @@ Pod::Spec.new do |spec|
   spec.documentation_url                 = "https://embrace.io/docs/"
   spec.license                        = { :type => "Apache 2.0" }
   spec.author                         = "Embrace.io"
-  spec.source                         = { "http" => "https://github.com/embrace-io/embrace-apple-sdk/releases/download/#{spec.version}/embrace_#{spec.version}.zip" }
+  spec.source                         = { :git => "https://github.com/embrace-io/embrace-apple-sdk.git", :tag => spec.version }
   spec.preserve_paths                 = [ "run.sh", "embrace_symbol_upload.darwin" ]
   spec.requires_arc                   = true
   spec.ios.deployment_target          = "13.0"
   spec.default_subspec = "EmbraceIO"
 
-  spec.subspec 'EmbraceIO' do |io|
-    io.vendored_frameworks = "xcframeworks/EmbraceIO.xcframework"
-    io.dependency "EmbraceIO/EmbraceCaptureService"
-    io.dependency "EmbraceIO/EmbraceCore"
-    io.dependency "EmbraceIO/EmbraceCommonInternal"
-    io.dependency "EmbraceIO/EmbraceCrash"
-    io.dependency "EmbraceIO/EmbraceSemantics"
+  ## Tell the Swift source code to not import subspecs as modules.
+  spec.pod_target_xcconfig = {
+    'SWIFT_ACTIVE_COMPILATION_CONDITIONS' => 'EMBRACE_COCOAPOD_BUILDING_SDK'
+  }
+
+  spec.subspec 'EmbraceIO' do |subs|
+    subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
+    subs.dependency "EmbraceIO/EmbraceCaptureService"
+    subs.dependency "EmbraceIO/EmbraceCore"
+    subs.dependency "EmbraceIO/EmbraceCommonInternal"
+    subs.dependency "EmbraceIO/EmbraceCrash"
+    subs.dependency "EmbraceIO/EmbraceSemantics"
   end
 
-  spec.subspec 'EmbraceCore' do |core|
-    core.vendored_frameworks = "xcframeworks/EmbraceCore.xcframework"
-    core.dependency "EmbraceIO/EmbraceCaptureService"
-    core.dependency "EmbraceIO/EmbraceCommonInternal"
-    core.dependency "EmbraceIO/EmbraceConfigInternal"
-    core.dependency "EmbraceIO/EmbraceOTelInternal"
-    core.dependency "EmbraceIO/EmbraceStorageInternal"
-    core.dependency "EmbraceIO/EmbraceUploadInternal"
-    core.dependency "EmbraceIO/EmbraceObjCUtilsInternal"
-    core.dependency "EmbraceIO/EmbraceSemantics"
-    core.dependency "EmbraceIO/EmbraceConfiguration"
+  spec.subspec 'EmbraceCore' do |subs|
+    subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
+    subs.dependency "EmbraceIO/EmbraceCaptureService"
+    subs.dependency "EmbraceIO/EmbraceCommonInternal"
+    subs.dependency "EmbraceIO/EmbraceConfigInternal"
+    subs.dependency "EmbraceIO/EmbraceOTelInternal"
+    subs.dependency "EmbraceIO/EmbraceStorageInternal"
+    subs.dependency "EmbraceIO/EmbraceUploadInternal"
+    subs.dependency "EmbraceIO/EmbraceObjCUtilsInternal"
+    subs.dependency "EmbraceIO/EmbraceSemantics"
+    subs.dependency "EmbraceIO/EmbraceConfiguration"
   end
 
-  spec.subspec 'EmbraceCommonInternal' do |common|
-    common.vendored_frameworks = "xcframeworks/EmbraceCommonInternal.xcframework"
+  spec.subspec 'EmbraceCommonInternal' do |subs|
+    subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
+    subs.dependency "EmbraceIO/OpenTelemetrySdk"
   end
 
-  spec.subspec 'EmbraceSemantics' do |semantics|
-    semantics.vendored_frameworks = "xcframeworks/EmbraceSemantics.xcframework"
-    semantics.dependency "EmbraceIO/EmbraceCommonInternal"
-    semantics.dependency "EmbraceIO/OpenTelemetrySdk"
+  spec.subspec 'EmbraceSemantics' do |subs|
+    subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
+    subs.dependency "EmbraceIO/EmbraceCommonInternal"
+    subs.dependency "EmbraceIO/OpenTelemetrySdk"
   end
 
-  spec.subspec 'EmbraceCaptureService' do |capture|
-    capture.vendored_frameworks = "xcframeworks/EmbraceCaptureService.xcframework"
-    capture.dependency "EmbraceIO/EmbraceOTelInternal"
-    capture.dependency "EmbraceIO/OpenTelemetrySdk"
+  spec.subspec 'EmbraceCaptureService' do |subs|
+    subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
+    subs.dependency "EmbraceIO/EmbraceOTelInternal"
+    subs.dependency "EmbraceIO/OpenTelemetrySdk"
   end
 
-  spec.subspec 'EmbraceConfigInternal' do |config|
-    config.vendored_frameworks = "xcframeworks/EmbraceConfigInternal.xcframework"
-    config.dependency "EmbraceIO/EmbraceCommonInternal"
-    config.dependency "EmbraceIO/EmbraceConfiguration"
-  end
-  
-  spec.subspec 'EmbraceConfiguration' do |config|
-    config.vendored_frameworks = "xcframeworks/EmbraceConfiguration.xcframework"
+  spec.subspec 'EmbraceConfigInternal' do |subs|
+   subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
+   subs.dependency "EmbraceIO/EmbraceCommonInternal"
+   subs.dependency "EmbraceIO/EmbraceConfiguration"
   end
 
-  spec.subspec 'EmbraceOTelInternal' do |otel|
-    otel.vendored_frameworks = "xcframeworks/EmbraceOTelInternal.xcframework"
-    otel.dependency "EmbraceIO/EmbraceCommonInternal"
-    otel.dependency "EmbraceIO/EmbraceSemantics"
-    otel.dependency "EmbraceIO/OpenTelemetrySdk"
+  spec.subspec 'EmbraceConfiguration' do |subs|
+    subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
   end
 
-  spec.subspec 'EmbraceStorageInternal' do |storage|
-    storage.vendored_frameworks = "xcframeworks/EmbraceStorageInternal.xcframework"
-    storage.dependency "EmbraceIO/EmbraceCommonInternal"
-    storage.dependency "EmbraceIO/EmbraceSemantics"
-    storage.dependency "EmbraceIO/GRDB"
+  spec.subspec 'EmbraceOTelInternal' do |subs|
+    subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
+    subs.dependency "EmbraceIO/EmbraceCommonInternal"
+    subs.dependency "EmbraceIO/EmbraceSemantics"
+    subs.dependency "EmbraceIO/OpenTelemetrySdk"
   end
 
-  spec.subspec 'EmbraceCoreDataInternal' do |coreData|
-    coreData.vendored_frameworks = "xcframeworks/EmbraceCoreDataInternal.xcframework"
-    coreData.dependency "EmbraceIO/EmbraceCommonInternal"
+  spec.subspec 'EmbraceStorageInternal' do |subs|
+    subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
+    subs.dependency "EmbraceIO/EmbraceCommonInternal"
+    subs.dependency "EmbraceIO/EmbraceSemantics"
+    subs.dependency "EmbraceIO/EmbraceCoreDataInternal"
   end
 
-  spec.subspec 'EmbraceUploadInternal' do |upload|
-    upload.vendored_frameworks = "xcframeworks/EmbraceUploadInternal.xcframework"
-    upload.dependency "EmbraceIO/EmbraceCommonInternal"
-    upload.dependency "EmbraceIO/EmbraceCoreDataInternal"
-    upload.dependency "EmbraceIO/EmbraceOTelInternal"
-    upload.dependency "EmbraceIO/GRDB"
+  spec.subspec 'EmbraceCoreDataInternal' do |subs|
+    subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
+    subs.dependency "EmbraceIO/EmbraceCommonInternal"
   end
 
-  spec.subspec 'EmbraceCrashlyticsSupport' do |cs|
-    cs.vendored_frameworks = "xcframeworks/EmbraceCrashlyticsSupport.xcframework"
-    cs.dependency "EmbraceIO/EmbraceCommonInternal"
+  spec.subspec 'EmbraceUploadInternal' do |subs|
+    subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
+    subs.dependency "EmbraceIO/EmbraceCommonInternal"
+    subs.dependency "EmbraceIO/EmbraceCoreDataInternal"
+    subs.dependency "EmbraceIO/EmbraceOTelInternal"
   end
 
-  spec.subspec 'EmbraceCrash' do |crash|
-    crash.vendored_frameworks = "xcframeworks/EmbraceCrash.xcframework"
-    crash.dependency "EmbraceIO/EmbraceCommonInternal"
-    crash.dependency "EmbraceIO/KSCrash"
+  spec.subspec 'EmbraceCrashlyticsSupport' do |subs|
+    subs.source_files = "Sources/ThirdParty/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
+    subs.dependency "EmbraceIO/EmbraceCommonInternal"
   end
 
-  spec.subspec 'EmbraceObjCUtilsInternal' do |objc|
-    objc.vendored_frameworks = "xcframeworks/EmbraceObjCUtilsInternal.xcframework"
+  spec.subspec 'EmbraceCrash' do |subs|
+    subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
+    subs.dependency "EmbraceIO/EmbraceCommonInternal"
+    subs.dependency "EmbraceIO/EmbraceKSCrash"
+  end
+
+  spec.subspec 'EmbraceObjCUtilsInternal' do |subs|
+    subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
   end
 
   # External
-  spec.subspec 'OpenTelemetryApi' do |otelApi|
-    otelApi.vendored_frameworks = "xcframeworks/OpenTelemetryApi.xcframework"
+  spec.subspec 'EmbraceKSCrash' do |subs|
+    subs.dependency "KSCrash", "~> 2.0.0"
   end
 
-  spec.subspec 'OpenTelemetrySdk' do |otelSdk|
-    otelSdk.vendored_frameworks = "xcframeworks/OpenTelemetrySdk.xcframework"
-    otelSdk.dependency "EmbraceIO/OpenTelemetryApi"
-  end
-
-  spec.subspec 'GRDB' do |grdb|
-    grdb.vendored_frameworks = "xcframeworks/GRDB.xcframework"
-  end
-
-  spec.subspec 'KSCrash' do |kscrash|
-    kscrash.dependency "EmbraceIO/KSCrashCore"
-    kscrash.dependency "EmbraceIO/KSCrashRecording"
-    kscrash.dependency "EmbraceIO/KSCrashRecordingCore"
-  end
-
-  spec.subspec 'KSCrashCore' do |kscrashCore|
-    kscrashCore.vendored_frameworks = "xcframeworks/KSCrashCore.xcframework"
-  end
-
-  spec.subspec 'KSCrashRecording' do |kscrashRecording|
-    kscrashRecording.vendored_frameworks = "xcframeworks/KSCrashRecording.xcframework"
-    kscrashRecording.dependency "EmbraceIO/KSCrashRecordingCore"
-  end
-
-  spec.subspec 'KSCrashRecordingCore' do |kscrashRecordingCore|
-    kscrashRecordingCore.vendored_frameworks = "xcframeworks/KSCrashRecordingCore.xcframework"
-    kscrashRecordingCore.dependency "EmbraceIO/KSCrashCore"
+  spec.subspec 'OpenTelemetrySdk' do |subs|
+    subs.dependency "OpenTelemetry-Swift-Sdk"
   end
 end

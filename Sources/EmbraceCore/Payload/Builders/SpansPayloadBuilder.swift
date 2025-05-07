@@ -3,9 +3,11 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
 import EmbraceStorageInternal
 import EmbraceOTelInternal
+#endif
 import OpenTelemetrySdk
 
 class SpansPayloadBuilder {
@@ -13,22 +15,16 @@ class SpansPayloadBuilder {
     static let spanCountLimit = 1000
 
     class func build(
-        for sessionRecord: SessionRecord,
+        for session: EmbraceSession,
         storage: EmbraceStorage,
         sessionNumber: Int = -1
     ) -> (spans: [SpanPayload], spanSnapshots: [SpanPayload]) {
 
-        let endTime = sessionRecord.endTime ?? sessionRecord.lastHeartbeatTime
-        var records: [SpanRecord] = []
+        let endTime = session.endTime ?? session.lastHeartbeatTime
 
         // fetch spans that started during the session
         // ignore spans where emb.type == session
-        do {
-            records = try storage.fetchSpans(for: sessionRecord, ignoreSessionSpans: true, limit: spanCountLimit)
-        } catch {
-            Embrace.logger.error("Error fetching spans for session \(sessionRecord.id):\n\(error.localizedDescription)")
-            return ([], [])
-        }
+        let records = storage.fetchSpans(for: session, ignoreSessionSpans: true, limit: spanCountLimit)
 
         // decode spans and separate them by closed/open
         var spans: [SpanPayload] = []
@@ -36,7 +32,7 @@ class SpansPayloadBuilder {
 
         // fetch and add session span first
         if let sessionSpanPayload = buildSessionSpanPayload(
-            for: sessionRecord,
+            for: session,
             storage: storage,
             sessionNumber: sessionNumber
         ) {
@@ -51,7 +47,7 @@ class SpansPayloadBuilder {
                 /// during the recovery process in `UnsentDataHandler`.
                 /// In other words it was an open span at the time the app crashed, and thus it must be closed and flagged as failed.
                 /// The nil check is just a sanity check to cover all bases.
-                let failed = sessionRecord.crashReportId != nil && (record.endTime == nil || record.endTime == endTime)
+                let failed = session.crashReportId != nil && (record.endTime == nil || record.endTime == endTime)
 
                 let span = try JSONDecoder().decode(SpanData.self, from: record.data)
                 let payload = SpanPayload(from: span, endTime: failed ? endTime : record.endTime, failed: failed)
@@ -70,29 +66,32 @@ class SpansPayloadBuilder {
     }
 
     class func buildSessionSpanPayload(
-        for sessionRecord: SessionRecord,
+        for session: EmbraceSession,
         storage: EmbraceStorage,
         sessionNumber: Int
     ) -> SpanPayload? {
         do {
             var spanData: SpanData?
-            let sessionSpan = try storage.fetchSpan(id: sessionRecord.spanId, traceId: sessionRecord.traceId)
+            let sessionSpan = storage.fetchSpan(id: session.spanId, traceId: session.traceId)
 
             if let rawData = sessionSpan?.data {
                 spanData = try JSONDecoder().decode(SpanData.self, from: rawData)
             }
 
-            let properties = try storage.fetchCustomPropertiesForSessionId(sessionRecord.id)
+            var properties: [EmbraceMetadata] = []
+            if let sessionId = session.id {
+                properties = storage.fetchCustomPropertiesForSessionId(sessionId)
+            }
 
             return SessionSpanUtils.payload(
-                from: sessionRecord,
+                from: session,
                 spanData: spanData,
                 properties: properties,
                 sessionNumber: sessionNumber
             )
 
         } catch {
-            Embrace.logger.warning("Error fetching span for session \(sessionRecord.id):\n\(error.localizedDescription)")
+            Embrace.logger.warning("Error fetching span for session \(session.idRaw):\n\(error.localizedDescription)")
         }
 
         return nil

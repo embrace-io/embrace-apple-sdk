@@ -30,7 +30,7 @@ class EmbraceCrashReporterTests: XCTestCase {
 
         // then KSCrash's user info is properly set
         let key = "emb-sid"
-        XCTAssertEqual(crashReporter.ksCrash?.userInfo[key] as? String, sessionId.toString)
+        XCTAssertEqual(crashReporter.ksCrash?.userInfo?[key] as? String, sessionId.toString)
     }
 
     func test_sdkVersion() {
@@ -38,7 +38,7 @@ class EmbraceCrashReporterTests: XCTestCase {
 
         // then KSCrash's user info is properly set
         let key = "emb-sdk"
-        XCTAssertEqual(crashReporter.ksCrash?.userInfo[key] as? String, TestConstants.sdkVersion)
+        XCTAssertEqual(crashReporter.ksCrash?.userInfo?[key] as? String, TestConstants.sdkVersion)
     }
 
     func test_fetchCrashReports() throws {
@@ -84,7 +84,7 @@ class EmbraceCrashReporterTests: XCTestCase {
 
         crashReporter.appendCrashInfo(key: "some", value: "value")
 
-        XCTAssertEqual(try XCTUnwrap(crashReporter.ksCrash?.userInfo["some"]) as? String, "value")
+        XCTAssertEqual(try XCTUnwrap(crashReporter.ksCrash?.userInfo?["some"]) as? String, "value")
     }
 
     func test_appendCrashInfo_addsDefaultInfoWhenBeingCalled() throws {
@@ -94,21 +94,21 @@ class EmbraceCrashReporterTests: XCTestCase {
 
         let ksCrash = try XCTUnwrap(crashReporter.ksCrash)
         for expectedKey in [ "emb-sdk", "emb-sid" ] {
-            XCTAssertTrue(ksCrash.userInfo.keys.contains(AnyHashable(expectedKey)))
+            XCTAssertTrue(ksCrash.userInfo?.keys.contains(expectedKey) ?? false)
         }
     }
-
+    
     func testInKSCrash_appendCrashInfo_shouldntDeletePreexistingKeys() throws {
         givenCrashReporter()
         crashReporter.ksCrash?.userInfo = ["initial_key": "one_value"]
-
+        
         crashReporter.appendCrashInfo(key: "some", value: "value")
-
+        
         let ksCrash = try XCTUnwrap(crashReporter.ksCrash)
         for expectedKey in [ "emb-sdk", "emb-sid" ] {
-            XCTAssertTrue(ksCrash.userInfo.keys.contains(AnyHashable(expectedKey)))
+            XCTAssertTrue(ksCrash.userInfo?.keys.contains(expectedKey) ?? false)
         }
-        XCTAssertEqual(ksCrash.userInfo["initial_key"] as? String, "one_value")
+        XCTAssertEqual(ksCrash.userInfo?["initial_key"] as? String, "one_value")
     }
 
     func testHavingInternalAddedInfoInKSCrash_appendCrashInfo_shouldntEraseThoseValues() throws {
@@ -125,16 +125,16 @@ class EmbraceCrashReporterTests: XCTestCase {
         let ksCrash = try XCTUnwrap(crashReporter.ksCrash)
 
         // [Intermediate Assertion to ensure the `given` state]
-        XCTAssertEqual(ksCrash.userInfo["emb-sid"] as? String, "original_session_id")
-        XCTAssertEqual(ksCrash.userInfo["emb-sdk"] as? String, "1.2.3")
+        XCTAssertEqual(ksCrash.userInfo?["emb-sid"] as? String, "original_session_id")
+        XCTAssertEqual(ksCrash.userInfo?["emb-sdk"] as? String, "1.2.3")
 
         // When trying to change the internal (necessary) properties from kscrash
         crashReporter.appendCrashInfo(key: "emb-sid", value: "maliciously_updated_session_id")
         crashReporter.appendCrashInfo(key: "emb-sdk", value: "1.2.3-broken")
 
         // Then values should remain untouched
-        XCTAssertEqual(ksCrash.userInfo["emb-sid"] as? String, "original_session_id")
-        XCTAssertEqual(ksCrash.userInfo["emb-sdk"] as? String, "1.2.3")
+        XCTAssertEqual(ksCrash.userInfo?["emb-sid"] as? String, "original_session_id")
+        XCTAssertEqual(ksCrash.userInfo?["emb-sdk"] as? String, "1.2.3")
     }
 
     // MARK: - Signal Block List Tests

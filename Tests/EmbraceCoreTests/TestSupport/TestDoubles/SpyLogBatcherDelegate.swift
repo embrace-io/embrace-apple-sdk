@@ -2,13 +2,12 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import EmbraceStorageInternal
-
+import EmbraceCommonInternal
 @testable import EmbraceCore
 
 class SpyLogBatcherDelegate: LogBatcherDelegate {
     var didCallBatchFinished: Bool = false
-    func batchFinished(withLogs logs: [LogRecord]) {
+    func batchFinished(withLogs logs: [EmbraceLog]) {
         didCallBatchFinished = true
     }
 }

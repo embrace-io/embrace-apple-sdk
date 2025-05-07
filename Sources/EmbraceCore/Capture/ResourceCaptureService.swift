@@ -2,9 +2,11 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCaptureService
 import EmbraceCommonInternal
 import EmbraceStorageInternal
+#endif
 import OpenTelemetryApi
 
 protocol ResourceCaptureServiceHandler: AnyObject {
@@ -21,18 +23,12 @@ class ResourceCaptureService: CaptureService {
 
 extension EmbraceStorage: ResourceCaptureServiceHandler {
     func addResource(key: String, value: AttributeValue) {
-        do {
-            _ = try addMetadata(
-                MetadataRecord(
-                    key: key,
-                    value: value,
-                    type: .requiredResource,
-                    lifespan: .process,
-                    lifespanId: ProcessIdentifier.current.hex
-                )
-            )
-        } catch {
-            Embrace.logger.error("Failed to capture resource: \(error.localizedDescription)")
-        }
+        _ = addMetadata(
+            key: key,
+            value: value.description,
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.hex
+        )
     }
 }

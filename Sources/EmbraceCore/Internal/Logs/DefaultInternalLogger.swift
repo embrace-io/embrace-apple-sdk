@@ -3,11 +3,13 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
 import EmbraceOTelInternal
 import EmbraceStorageInternal
 import EmbraceConfigInternal
 import EmbraceConfiguration
+#endif
 
 class DefaultInternalLogger: InternalLogger {
 
@@ -26,7 +28,7 @@ class DefaultInternalLogger: InternalLogger {
     private var counter: [LogLevel: Int] = [:]
 
     @ThreadSafe
-    private var currentSession: SessionRecord?
+    private var currentSession: EmbraceSession?
 
     init() {
         NotificationCenter.default.addObserver(
@@ -49,7 +51,7 @@ class DefaultInternalLogger: InternalLogger {
     }
 
     @objc func onSessionStart(notification: Notification) {
-        currentSession = notification.object as? SessionRecord
+        currentSession = notification.object as? EmbraceSession
         counter.removeAll()
     }
 

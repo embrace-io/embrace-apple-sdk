@@ -3,8 +3,15 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
-import KSCrashRecording
+#endif
+
+#if canImport(KSCrashRecording)
+    import KSCrashRecording
+#elseif canImport(KSCrash)
+    import KSCrash
+#endif
 
 /// Default `CrashReporter` used by the Embrace SDK.
 /// Internally uses KSCrash to capture data from crashes.
@@ -31,7 +38,10 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
     private let queue: DispatchableQueue
     private let signalsBlockList: [CrashSignal]
 
-    public private(set) var basePath: String?
+    // this is the path that contains `/Reports`.
+    var basePath: String? {
+        return ksCrash?.value(forKeyPath: "configuration.installPath") as? String
+    }
 
     /// Sets the current session identifier that will be included in a crash report.
     public var currentSessionId: String? {
@@ -54,7 +64,7 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
     }
 
     /// Unused in this KSCrash implementation
-    public var onNewReport: ((CrashReport) -> Void)?
+    public var onNewReport: ((EmbraceCrashReport) -> Void)?
 
     public init(queue: DispatchableQueue = .with(label: "com.embrace.crashreporter"),
                 signalsBlockList: [CrashSignal] = [.SIGTERM]
@@ -68,7 +78,7 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
             return
         }
 
-        var crashInfo: [AnyHashable: Any] = ksCrash.userInfo ?? [:]
+        var crashInfo = ksCrash.userInfo ?? [:]
 
         self.extraInfo.forEach {
             crashInfo[$0.key] = $0.value
@@ -98,22 +108,30 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
 
         self.logger = logger
         sdkVersion = context.sdkVersion
-        basePath = context.filePathProvider.directoryURL(for: "embrace_crash_reporter")?.path
 
-        let bundleName = context.appId ?? "default"
-        ksCrash = KSCrash.sharedInstance(withBasePath: basePath, andBundleName: bundleName)
-        ksCrash?.reportsMemoryTerminations = false // this feature seems to have many issues, disabling it for now
+        let config = KSCrashConfiguration()
+        config.enableSigTermMonitoring = false
+        config.installPath = context.filePathProvider.directoryURL(for: "embrace_crash_reporter")?.path
+        config.reportStoreConfiguration.appName = context.appId ?? "default"
+
+        ksCrash = KSCrash.shared
 
         updateKSCrashInfo()
-        ksCrash?.install()
+
+        do {
+            try ksCrash?.install(with: config)
+        } catch {
+            logger.error("EmbraceCrashReporter install failed: \(error)")
+        }
+
 #else
         logger.error("EmbraceCrashReporter is not supported in WatchOS!!!")
 #endif
     }
 
-    /// Fetches all saved `CrashReports`.
+    /// Fetches all saved `EmbraceCrashReport`.
     /// - Parameter completion: Completion handler to be called with the fetched `CrashReports`
-    public func fetchUnsentCrashReports(completion: @escaping ([CrashReport]) -> Void) {
+    public func fetchUnsentCrashReports(completion: @escaping ([EmbraceCrashReport]) -> Void) {
         guard ksCrash != nil else {
             completion([])
             return
@@ -124,20 +142,20 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
                 return
             }
 
-            guard let reports = self.ksCrash?.reportIDs() else {
+            guard let ks = self.ksCrash, let store = ks.reportStore else {
                 completion([])
                 return
             }
 
             // get all report ids
-            var crashReports: [CrashReport] = []
-            for reportId in reports {
-                guard let id = reportId as? NSNumber else {
+            var crashReports: [EmbraceCrashReport] = []
+            for reportId in store.reportIDs {
+                guard let id = reportId as? Int64 else {
                     continue
                 }
 
                 // fetch report
-                guard let report = self.ksCrash?.report(withID: id) as? [String: Any] else {
+                guard let report = store.report(for: id)?.value else {
                     continue
                 }
 
@@ -145,7 +163,7 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
                 if let crashSignal = self.getCrashSignal(fromReport: report),
                    self.shouldDropCrashReport(withSignal: crashSignal) {
                     // if we find a report we should drop, then we also delete it from KSCrash
-                    self.deleteCrashReport(id: id.intValue)
+                    self.deleteCrashReport(id: Int(id))
                     continue
                 }
 
@@ -182,10 +200,10 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
                 }
 
                 // add report
-                let crashReport = CrashReport(
+                let crashReport = EmbraceCrashReport(
                     payload: payload,
                     provider: EmbraceCrashReporter.providerIdentifier,
-                    internalId: id.intValue,
+                    internalId: Int(id),
                     sessionId: sessionId?.toString,
                     timestamp: timestamp
                 )
@@ -226,15 +244,15 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
         return nil
     }
 
-    /// Notifies if a crash report should be dropped by checking if the provided `CrashSignal` is in the `signalsBlockList`.
-    func shouldDropCrashReport(withSignal signal: CrashSignal) -> Bool {
-        signalsBlockList.contains(where: { $0 == signal })
-    }
-
     /// Permanently deletes a crash report for the given identifier.
     /// - Parameter id: Identifier of the report to delete
     public func deleteCrashReport(id: Int) {
-        ksCrash?.deleteReport(withID: NSNumber(value: id))
+        ksCrash?.reportStore?.deleteReport(with: Int64(id))
+    }
+
+    /// Notifies if a crash report should be dropped by checking if the provided `CrashSignal` is in the `signalsBlockList`.
+    func shouldDropCrashReport(withSignal signal: CrashSignal) -> Bool {
+        signalsBlockList.contains(where: { $0 == signal })
     }
 
     private static var dateFormatter: DateFormatter {

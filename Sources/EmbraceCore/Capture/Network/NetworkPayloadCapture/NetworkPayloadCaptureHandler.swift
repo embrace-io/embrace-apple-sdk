@@ -3,12 +3,14 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceConfigInternal
 import EmbraceCommonInternal
 import EmbraceOTelInternal
 import EmbraceStorageInternal
 import EmbraceSemantics
 import EmbraceConfiguration
+#endif
 
 class NetworkPayloadCaptureHandler {
 
@@ -79,7 +81,7 @@ class NetworkPayloadCaptureHandler {
         active = true
         rulesTriggeredMap.removeAll()
 
-        currentSessionId = (notification.object as? SessionRecord)?.id
+        currentSessionId = (notification.object as? EmbraceSession)?.id
     }
 
     @objc func onSessionEnd() {

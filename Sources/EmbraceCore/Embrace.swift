@@ -3,12 +3,14 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
 import EmbraceConfigInternal
 import EmbraceOTelInternal
 import EmbraceStorageInternal
 import EmbraceUploadInternal
 import EmbraceObjCUtilsInternal
+#endif
 
 /**
  Main class used to interact with the Embrace SDK.
@@ -188,12 +190,22 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
             export: options.export,
             sdkStateProvider: self
         ))
+
+        let logBatcher = DefaultLogBatcher(
+            repository: storage,
+            logLimits: .init(),
+            delegate: self.logController
+        )
+
+        sessionController.setLogBatcher(logBatcher)
+
         let logSharedState = DefaultEmbraceLogSharedState.create(
             storage: self.storage,
-            controller: self.logController,
+            batcher: logBatcher,
             exporter: options.export?.logExporter,
             sdkStateProvider: self
         )
+
         EmbraceOTel.setup(logSharedState: logSharedState)
         sessionLifecycle.setup()
         Embrace.logger.otel = self
@@ -303,7 +315,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
             return nil
         }
 
-        return sessionController.currentSession?.id.toString
+        return sessionController.currentSession?.idRaw
     }
 
     /// Returns the current device identifier.
