@@ -12,13 +12,10 @@ extension ProcessInfo {
         }
 
         // detect if the process is running ui tests
-        let directory = try? FileManager.default.url(
-            for: .applicationSupportDirectory,
-            in: .userDomainMask, 
-            appropriateFor: nil,
-            create: false
-        )
+        guard CommandLine.arguments.count > 0 else {
+            return false
+        }
 
-        return directory?.absoluteString.contains("XCTestDevices") == true
+        return CommandLine.arguments[0].contains("XCTestDevices") == true
     }
 }
