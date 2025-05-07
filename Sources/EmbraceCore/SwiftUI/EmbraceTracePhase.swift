@@ -9,14 +9,8 @@ final internal class EmbraceTracePhase {
     static let shared = EmbraceTracePhase()
     
     private var spanStack: [OpenTelemetryApi.Span] = []
-    
-    private var _next: UInt = 0
-    private var next: UInt {
-        dispatchPrecondition(condition: .onQueue(.main))
-        _next += 1
-        return _next
-    }
-    
+    private var rootSpanStack: [OpenTelemetryApi.Span] = []
+
     private init() {
         dispatchPrecondition(condition: .onQueue(.main))
     }
@@ -27,56 +21,76 @@ final internal class EmbraceTracePhase {
     
     var isFirstCycle: Bool {
         dispatchPrecondition(condition: .onQueue(.main))
-        return spanStack.isEmpty
+        return rootSpanStack.isEmpty
     }
-    
-    var logPrefix: String {
-        Array(repeating: "\t", count: spanStack.count).joined() + "[\(RunLoopTracker.main.debugCycleString)]"
-    }
-    
+
     func onNextCycle(_ block: @escaping () -> Void) {
-        dispatchPrecondition(condition: .onQueue(.main))
-        RunLoopTracker.main.performOnNextCycle(block)
+        RunLoop.main.perform(inModes: [.common], block: block)
     }
     
-    func startSpan(_ name: String, attributes: [String: String]? = nil, _ function: StaticString = #function) -> OpenTelemetryApi.Span? {
+    func startSpan(_ name: String, root: Bool, attributes: [String: String]? = nil, _ function: StaticString = #function) -> OpenTelemetryApi.Span? {
         
         dispatchPrecondition(condition: .onQueue(.main))
         
         guard let client = Embrace.client else { return nil }
         
-        let sanitizedName = "\(name.lowercased())-\(next)"
-        
-        //print("\(logPrefix)[AC:START:\(CACurrentMediaTime())] \(function) - \(sanitizedName)")
+        let sanitizedName = "\(name.lowercased())"
 
         let builder = client.buildSpan(name: sanitizedName, attributes: attributes ?? [:])
-        if let parent = spanStack.last {
-            builder.setParent(parent)
+        if root {
+            if let parent = rootSpanStack.first {
+                builder.setParent(parent)
+            }
+        } else {
+            if let parent = spanStack.last {
+                builder.setParent(parent)
+            }
+        }
+
+        let span = builder.startSpan()
+        if root {
+            rootSpanStack.append(span)
+        } else {
+            spanStack.append(span)
         }
         
-        let span = builder.startSpan()
-        spanStack.append(span)
         return span
     }
     
-    func endSpan(_ span: OpenTelemetryApi.Span?, _ function: StaticString = #function) {
+    func endSpan(_ span: OpenTelemetryApi.Span?, root: Bool, _ function: StaticString = #function) {
         
         dispatchPrecondition(condition: .onQueue(.main))
         
         guard let span else { return }
         
-        guard let index = spanStack.lastIndex(where: { $0.context.spanId == span.context.spanId }) else {
-            print("[AC] cannot find span to end, did you start it with `EmbraceTracePhase.startSpan()`?")
-            return
+        if root {
+            
+            guard let index = rootSpanStack.firstIndex(where: { $0.context.spanId == span.context.spanId }) else {
+                print("[AC] cannot find root span to end, did you start it with `EmbraceTracePhase.startSpan()`?")
+                return
+            }
+            
+            if index != 0 {
+                print("[AC] \(span.name) This isn't the first root span")
+            }
+            
+            let poppedSpan = rootSpanStack.remove(at: index)
+            span.end()
+            
+        } else {
+            
+            guard let index = spanStack.lastIndex(where: { $0.context.spanId == span.context.spanId }) else {
+                print("[AC] cannot find span to end, did you start it with `EmbraceTracePhase.startSpan()`?")
+                return
+            }
+            
+            if index != spanStack.count-1 {
+                print("[AC] \(span.name) This isn't the last span")
+            }
+            
+            let poppedSpan = spanStack.remove(at: index)
+            span.end()
+            
         }
-        
-        if index != spanStack.count-1 {
-            //print("[AC] This isn't the last span")
-        }
-        
-        let poppedSpan = spanStack.remove(at: index)
-        span.end()
-        
-        //print("\(logPrefix)[AC:END:\(CACurrentMediaTime())] \(function) - \(span.name)")
     }
 }
