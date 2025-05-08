@@ -2,7 +2,6 @@
 //  EmbraceIOTestAppTests.swift
 //  EmbraceIOTestAppTests
 //
-//  Created by Fernando Draghi on 31/03/2025.
 //
 
 import Testing

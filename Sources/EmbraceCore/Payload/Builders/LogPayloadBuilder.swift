@@ -3,17 +3,19 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceStorageInternal
 import EmbraceCommonInternal
 import EmbraceSemantics
+#endif
 
 struct LogPayloadBuilder {
-    static func build(log: LogRecord) -> LogPayload {
-        var finalAttributes: [Attribute] = log.attributes.map { entry in
-            Attribute(key: entry.key, value: entry.value.description)
+    static func build(log: EmbraceLog) -> LogPayload {
+        var finalAttributes: [Attribute] = log.allAttributes().map { entry in
+            Attribute(key: entry.key, value: entry.valueRaw)
         }
 
-        finalAttributes.append(.init(key: LogSemantics.keyId, value: log.identifier.toString))
+        finalAttributes.append(.init(key: LogSemantics.keyId, value: log.idRaw))
 
         return .init(timeUnixNano: String(Int(log.timestamp.nanosecondsSince1970)),
                      severityNumber: log.severity.number,
@@ -32,24 +34,20 @@ struct LogPayloadBuilder {
     ) -> PayloadEnvelope<[LogPayload]> {
 
         // build resources and metadata payloads
-        var resources: [MetadataRecord] = []
-        var metadata: [MetadataRecord] = []
+        var resources: [EmbraceMetadata] = []
+        var metadata: [EmbraceMetadata] = []
 
         if let storage = storage {
-            do {
-                if let sessionId = sessionId {
-                    resources = try storage.fetchResourcesForSessionId(sessionId)
+            if let sessionId = sessionId {
+                resources = storage.fetchResourcesForSessionId(sessionId)
 
-                    let properties = try storage.fetchCustomPropertiesForSessionId(sessionId)
-                    let tags = try storage.fetchPersonaTagsForSessionId(sessionId)
-                    metadata.append(contentsOf: properties)
-                    metadata.append(contentsOf: tags)
-                } else {
-                    resources = try storage.fetchResourcesForProcessId(ProcessIdentifier.current)
-                    metadata = try storage.fetchPersonaTagsForProcessId(ProcessIdentifier.current)
-                }
-            } catch {
-                Embrace.logger.error("Error fetching resources for crash log.")
+                let properties = storage.fetchCustomPropertiesForSessionId(sessionId)
+                let tags = storage.fetchPersonaTagsForSessionId(sessionId)
+                metadata.append(contentsOf: properties)
+                metadata.append(contentsOf: tags)
+            } else {
+                resources = storage.fetchResourcesForProcessId(ProcessIdentifier.current)
+                metadata = storage.fetchPersonaTagsForProcessId(ProcessIdentifier.current)
             }
         }
 

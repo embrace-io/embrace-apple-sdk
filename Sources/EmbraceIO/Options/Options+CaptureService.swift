@@ -3,11 +3,13 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCaptureService
 import EmbraceCore
 import EmbraceCommonInternal
 import EmbraceCrash
 import EmbraceOTelInternal
+#endif
 
 public extension Embrace.Options {
 

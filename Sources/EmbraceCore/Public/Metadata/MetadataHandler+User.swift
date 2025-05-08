@@ -3,8 +3,10 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
 import EmbraceStorageInternal
+#endif
 
 @objc extension MetadataHandler {
 
@@ -50,24 +52,15 @@ import EmbraceStorageInternal
     /// Clear all user properties.
     /// This will clear all user properties set via the `userName`, `userEmail` and `userIdentifier` properties.
     public func clearUserProperties() {
-        do {
-            try storage?.removeAllMetadata(keys: UserResourceKey.allValues, lifespan: .permanent)
-        } catch {
-            Embrace.logger.warning("Unable to clear user metadata")
-        }
+        storage?.removeAllMetadata(keys: UserResourceKey.allValues, lifespan: .permanent)
     }
 }
 
 extension MetadataHandler {
 
     private func value(for key: UserResourceKey) -> String? {
-        do {
-            let record = try storage?.fetchMetadata(key: key.rawValue, type: .customProperty, lifespan: .permanent)
-            return record?.stringValue
-        } catch {
-            Embrace.logger.warning("Unable to read user metadata!")
-        }
-        return nil
+        let record = storage?.fetchMetadata(key: key.rawValue, type: .customProperty, lifespan: .permanent)
+        return record?.value
     }
 
     private func update(key: UserResourceKey, value: String?) {

@@ -3,7 +3,9 @@
 //
 
 import Foundation
-import EmbraceStorageInternal
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+import EmbraceCommonInternal
+#endif
 
 struct MetadataPayload: Codable {
     var locale: String?
@@ -19,25 +21,25 @@ struct MetadataPayload: Codable {
         case userId = "user_id"
     }
 
-    init(from metadata: [MetadataRecord]) {
+    init(from metadata: [EmbraceMetadata]) {
         metadata.forEach { record in
             if let key = UserResourceKey(rawValue: record.key) {
                 switch key {
                 case .name:
-                    self.username = record.stringValue
+                    self.username = record.value
                 case .email:
-                    self.email = record.stringValue
+                    self.email = record.value
                 case .identifier:
-                    self.userId = record.stringValue
+                    self.userId = record.value
                 }
             }
 
             if let key = DeviceResourceKey(rawValue: record.key) {
                 switch key {
                 case .locale:
-                    self.locale = record.stringValue
+                    self.locale = record.value
                 case .timezone:
-                    self.timezoneDescription = record.stringValue
+                    self.timezoneDescription = record.value
                 default:
                     break
                 }

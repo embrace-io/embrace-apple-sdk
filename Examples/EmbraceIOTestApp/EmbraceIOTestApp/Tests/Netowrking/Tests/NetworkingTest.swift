@@ -55,6 +55,8 @@ class NetworkingTest: PayloadTest {
             testItems.append(.init(target: "http.request.body.size", expected: "Bigger than 0", recorded: "\(bodySize)", result: bodySize > 0 ? .success : .fail))
         }
 
+        MetadataResourceTest.testMetadataInclussion(on: networkCallSpan.resource, testItems: &testItems)
+
         return .init(items: testItems)
     }
 }

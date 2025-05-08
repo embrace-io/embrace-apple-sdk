@@ -9,13 +9,21 @@ import PackageDescription
 
     let packageSettings = PackageSettings(
         productTypes: [
-            "GRDB": .framework,
             "KSCrash": .framework,
             "OpenTelemetrySdk": .framework,
             "OpenTelemetryApi": .framework
         ]
     )
 #endif
+
+var linkerSettings: [LinkerSetting]? = nil
+
+// This applies only to targets like EmbraceCore and EmbraceIO that contain `@objc extensions`.
+// When linked statically (as Tuist tends to do when installing Embrace via SPM packages),
+// selectors from these extensions are stripped unless `-ObjC` is passed explicitly to the linker.
+if ProcessInfo.processInfo.environment["EMBRACE_ENABLE_TUIST_OBJC_LINK"] != nil {
+    linkerSettings = [.unsafeFlags(["-ObjC"])]
+}
 
 let package = Package(
     name: "EmbraceIO",
@@ -31,16 +39,12 @@ let package = Package(
     ],
     dependencies: [
         .package(
-             url: "https://github.com/embrace-io/KSCrash.git",
-             exact: "2.0.7"
+             url: "https://github.com/kstenerud/KSCrash",
+             .upToNextMinor(from: "2.0.0")
         ),
         .package(
             url: "https://github.com/open-telemetry/opentelemetry-swift",
             exact: "1.13.0"
-        ),
-        .package(
-            url: "https://github.com/groue/GRDB.swift",
-            .upToNextMinor(from: "6.29.1")
         )
     ],
     targets: [
@@ -53,7 +57,8 @@ let package = Package(
                 "EmbraceCommonInternal",
                 "EmbraceCrash",
                 "EmbraceSemantics"
-            ]
+            ],
+            linkerSettings: linkerSettings
         ),
 
         .testTarget(
@@ -62,8 +67,7 @@ let package = Package(
                 "EmbraceIO",
                 "EmbraceCore",
                 "EmbraceCrash",
-                "TestSupport",
-                .product(name: "GRDB", package: "GRDB.swift")
+                "TestSupport"
             ]
         ),
 
@@ -83,7 +87,8 @@ let package = Package(
             ],
             resources: [
                 .copy("PrivacyInfo.xcprivacy")
-            ]
+           ],
+           linkerSettings: linkerSettings
         ),
 
         .testTarget(
@@ -91,8 +96,7 @@ let package = Package(
             dependencies: [
                 "EmbraceCore",
                 "TestSupport",
-                "TestSupportObjc",
-                .product(name: "GRDB", package: "GRDB.swift")
+                "TestSupportObjc"
             ],
             resources: [
                 .copy("Mocks/")
@@ -101,7 +105,10 @@ let package = Package(
 
         // common --------------------------------------------------------------------
         .target(
-            name: "EmbraceCommonInternal"
+            name: "EmbraceCommonInternal",
+            dependencies: [
+                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
+            ]
         ),
         .testTarget(
             name: "EmbraceCommonInternalTests",
@@ -190,8 +197,8 @@ let package = Package(
             name: "EmbraceStorageInternal",
             dependencies: [
                 "EmbraceCommonInternal",
-                "EmbraceSemantics",
-                .product(name: "GRDB", package: "GRDB.swift")
+                "EmbraceCoreDataInternal",
+                "EmbraceSemantics"
             ]
         ),
         .testTarget(
@@ -208,8 +215,7 @@ let package = Package(
             dependencies: [
                 "EmbraceCommonInternal",
                 "EmbraceOTelInternal",
-                "EmbraceCoreDataInternal",
-                .product(name: "GRDB", package: "GRDB.swift")
+                "EmbraceCoreDataInternal"
             ]
         ),
         .testTarget(

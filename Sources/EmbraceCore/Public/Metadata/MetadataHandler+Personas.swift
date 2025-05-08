@@ -3,8 +3,10 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceStorageInternal
 import EmbraceCommonInternal
+#endif
 
 extension MetadataHandler {
 
@@ -14,15 +16,11 @@ extension MetadataHandler {
             return []
         }
 
-        var records: [MetadataRecord] = []
-        do {
-            if let sessionId = sessionController?.currentSession?.id {
-                records = try storage.fetchPersonaTagsForSessionId(sessionId)
-            } else {
-                records = try storage.fetchPersonaTagsForProcessId(ProcessIdentifier.current)
-            }
-        } catch {
-            Embrace.logger.error("Error fetching persona tags!\n\(error.localizedDescription)")
+        var records: [EmbraceMetadata] = []
+        if let sessionId = sessionController?.currentSession?.id {
+            records = storage.fetchPersonaTagsForSessionId(sessionId)
+        } else {
+            records = storage.fetchPersonaTagsForProcessId(ProcessIdentifier.current)
         }
 
         return records.map { PersonaTag($0.key) }

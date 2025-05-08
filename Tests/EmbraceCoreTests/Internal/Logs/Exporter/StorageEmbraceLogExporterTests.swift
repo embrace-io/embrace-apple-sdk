@@ -119,12 +119,6 @@ class StorageEmbraceLogExporterTests: XCTestCase {
         thenBatchAdded(count: 0)
         thenResult(is: .success)
     }
-
-    func test_endBatch_onSessionEnd() {
-        givenStorageEmbraceLogExporter(initialState: .active)
-        whenSessionEnds()
-        thenBatchRenewed()
-    }
 }
 
 private extension StorageEmbraceLogExporterTests {
@@ -145,10 +139,6 @@ private extension StorageEmbraceLogExporterTests {
         result = sut.forceFlush()
     }
 
-    func whenSessionEnds() {
-        NotificationCenter.default.post(name: .embraceSessionWillEnd, object: nil)
-    }
-
     func thenState(is newState: StorageEmbraceLogExporter.State) {
         XCTAssertEqual(sut.state, newState)
     }
@@ -161,8 +151,8 @@ private extension StorageEmbraceLogExporterTests {
         XCTAssertEqual(batcher.addLogRecordInvocationCount, logCount)
     }
 
-    func thenRecordMatches(record: LogRecord, body: String, attributes: [String: PersistableValue]) {
-        XCTAssertEqual(record.body, body)
+    func thenRecordMatches(record: ReadableLogRecord, body: String, attributes: [String: AttributeValue]) {
+        XCTAssertEqual(record.body!.description, body)
         XCTAssertEqual(record.attributes, attributes)
     }
 
@@ -180,30 +170,30 @@ private extension StorageEmbraceLogExporterTests {
             randomLogData(body: body)
         }
     }
-
-    func thenBatchRenewed() {
-        XCTAssert(batcher.didCallRenewBatch)
-    }
 }
 
 class SpyLogBatcher: LogBatcher {
     private(set) var didCallAddLogRecord: Bool = false
     private(set) var addLogRecordInvocationCount: Int = 0
-    private(set) var logRecords = [LogRecord]()
+    private(set) var logRecords = [ReadableLogRecord]()
 
-    func addLogRecord(logRecord: LogRecord) {
+    func addLogRecord(logRecord: ReadableLogRecord) {
         didCallAddLogRecord = true
         addLogRecordInvocationCount += 1
         logRecords.append(logRecord)
     }
 
-    func forceEndCurrentBatch() {
+    private(set) var didCallForceEndCurrentBatch: Bool = false
+    private(set) var forceEndCurrentBatchParameters: (Bool)?
+    func forceEndCurrentBatch(waitUntilFinished: Bool) {
+        forceEndCurrentBatchParameters = (waitUntilFinished)
+        didCallForceEndCurrentBatch = true
         self.renewBatch(withLogs: [])
     }
 
     private(set) var didCallRenewBatch: Bool = false
     private(set) var renewBatchInvocationCount: Int = 0
-    func renewBatch(withLogs logRecords: [LogRecord]) {
+    func renewBatch(withLogs logs: [EmbraceLog]) {
         didCallRenewBatch = true
         renewBatchInvocationCount += 1
     }

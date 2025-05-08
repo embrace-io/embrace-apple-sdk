@@ -4,11 +4,13 @@
 
 import Foundation
 import OpenTelemetryApi
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCaptureService
 import EmbraceCommonInternal
 import EmbraceOTelInternal
 import EmbraceObjCUtilsInternal
 import EmbraceSemantics
+#endif
 
 extension Notification.Name {
     static let networkRequestCaptured = Notification.Name("networkRequestCaptured")
@@ -26,12 +28,15 @@ protocol URLSessionTaskHandlerDataSource: AnyObject {
 final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
     private var spans: [URLSessionTask: Span] = [:]
     private let queue: DispatchableQueue
+    private let capturedDataQueue: DispatchableQueue
     private let payloadCaptureHandler: NetworkPayloadCaptureHandler
     weak var dataSource: URLSessionTaskHandlerDataSource?
 
     init(processingQueue: DispatchableQueue = DefaultURLSessionTaskHandler.queue(),
+         capturedDataQueue: DispatchableQueue = DefaultURLSessionTaskHandler.capturedDataQueue(),
          dataSource: URLSessionTaskHandlerDataSource?) {
         self.queue = processingQueue
+        self.capturedDataQueue = capturedDataQueue
         self.dataSource = dataSource
         self.payloadCaptureHandler = NetworkPayloadCaptureHandler(otel: dataSource?.otel)
     }
@@ -159,11 +164,13 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
             }
 
             if let data = data {
-                let totalData = task.embraceData ?? data
-                span.setAttribute(
-                    key: SpanSemantics.NetworkRequest.keyResponseSize,
-                    value: totalData.count
-                )
+                self.capturedDataQueue.sync {
+                    let totalData = task.embraceData ?? data
+                    span.setAttribute(
+                        key: SpanSemantics.NetworkRequest.keyResponseSize,
+                        value: totalData.count
+                    )
+                }
             }
 
             if let error = error ?? task.error {
@@ -191,11 +198,15 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
     }
 
     func addData(_ data: Data, dataTask: URLSessionDataTask) {
-        if var previousData = dataTask.embraceData {
-            previousData.append(data)
-            dataTask.embraceData = previousData
-        } else {
-            dataTask.embraceData = data
+        if payloadCaptureHandler.isEnabled() {
+            capturedDataQueue.sync {
+                if var previousData = dataTask.embraceData {
+                    previousData.append(data)
+                    dataTask.embraceData = previousData
+                } else {
+                    dataTask.embraceData = data
+                }
+            }
         }
     }
 
@@ -213,7 +224,12 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
         }
 
         let value = W3C.traceparent(from: span.context)
-        if task.injectHeader(withKey: W3C.traceparentHeaderName, value: value) {
+
+        if EMBRURLSessionTaskHeaderInjector.injectHeader(
+            withKey: W3C.traceparentHeaderName,
+            value: value,
+            into: task
+        ) {
             return value
         }
 
@@ -238,5 +254,9 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
 private extension DefaultURLSessionTaskHandler {
     static func queue() -> DispatchableQueue {
         .with(label: "com.embrace.URLSessionTaskHandler", qos: .utility)
+    }
+
+    static func capturedDataQueue() -> DispatchableQueue {
+        .with(label: "com.embrace.URLSessionTask.embraceData", qos: .utility)
     }
 }

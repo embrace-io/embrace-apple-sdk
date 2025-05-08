@@ -4,9 +4,11 @@
 
 import Foundation
 import UserNotifications
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
 import EmbraceOTelInternal
 import EmbraceCaptureService
+#endif
 
 /// Service that generates OpenTelemetry span events when notifications are received through the `UNUserNotificationCenter`.
 @objc public final class PushNotificationCaptureService: CaptureService {

@@ -6,7 +6,9 @@ import Foundation
 import Security
 import CryptoKit
 import CommonCrypto
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
+#endif
 
 struct EncryptedNetworkPayload: Encodable {
 

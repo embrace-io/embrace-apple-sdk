@@ -3,12 +3,14 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceStorageInternal
 import EmbraceUploadInternal
 import EmbraceCommonInternal
 import EmbraceSemantics
 import EmbraceConfigInternal
 import EmbraceOTelInternal
+#endif
 
 protocol LogControllable: LogBatcherDelegate {
     func uploadAllPersistedLogs()
@@ -53,14 +55,10 @@ class LogController: LogControllable {
         guard let storage = storage else {
             return
         }
-        do {
-            let logs: [LogRecord] = try storage.fetchAll(excludingProcessIdentifier: .current)
-            if logs.count > 0 {
-                send(batches: divideInBatches(logs))
-            }
-        } catch let exception {
-            Error.couldntAccessBatches(reason: exception.localizedDescription).log()
-            try? storage.removeAllLogs()
+
+        let logs: [EmbraceLog] = storage.fetchAll(excludingProcessIdentifier: .current)
+        if logs.count > 0 {
+            send(batches: divideInBatches(logs))
         }
     }
 
@@ -150,7 +148,7 @@ class LogController: LogControllable {
 }
 
 extension LogController {
-    func batchFinished(withLogs logs: [LogRecord]) {
+    func batchFinished(withLogs logs: [EmbraceLog]) {
         guard sdkStateProvider?.isEnabled == true else {
             return
         }
@@ -184,6 +182,10 @@ private extension LogController {
                     continue
                 }
 
+                guard let processId = batch.logs[0].processId else {
+                    return
+                }
+
                 // Since we always end batches when a session ends
                 // all the logs still in storage when the app starts should come
                 // from the last session before the app closes.
@@ -194,11 +196,9 @@ private extension LogController {
                 // If we can't find a sessionId, we use the processId instead
 
                 var sessionId: SessionIdentifier?
-                if let log = batch.logs.first(where: { $0.attributes[LogSemantics.keySessionId] != nil }) {
-                    sessionId = SessionIdentifier(string: log.attributes[LogSemantics.keySessionId]?.description)
+                if let log = batch.logs.first(where: { $0.attribute(forKey: LogSemantics.keySessionId) != nil }) {
+                    sessionId = SessionIdentifier(string: log.attribute(forKey: LogSemantics.keySessionId)?.valueRaw)
                 }
-
-                let processId = batch.logs[0].processIdentifier
 
                 let resourcePayload = try createResourcePayload(sessionId: sessionId, processId: processId)
                 let metadataPayload = try createMetadataPayload(sessionId: sessionId, processId: processId)
@@ -215,7 +215,7 @@ private extension LogController {
     }
 
     func send(
-        logs: [LogRecord],
+        logs: [EmbraceLog],
         resourcePayload: ResourcePayload,
         metadataPayload: MetadataPayload
     ) {
@@ -237,18 +237,18 @@ private extension LogController {
                     return
                 }
 
-                try? self.storage?.remove(logs: logs)
+                self.storage?.remove(logs: logs)
             }
         } catch let exception {
             Error.couldntCreatePayload(reason: exception.localizedDescription).log()
         }
     }
 
-    func divideInBatches(_ logs: [LogRecord]) -> [LogsBatch] {
+    func divideInBatches(_ logs: [EmbraceLog]) -> [LogsBatch] {
         var batches: [LogsBatch] = []
         var batch: LogsBatch = .init(limits: .init(maxBatchAge: .infinity, maxLogsPerBatch: Self.maxLogsPerBatch))
         for log in logs {
-            let result = batch.add(logRecord: log)
+            let result = batch.add(log: log)
             switch result {
             case .success(let batchState):
                 if batchState == .closed {
@@ -275,12 +275,12 @@ private extension LogController {
             throw Error.couldntAccessStorageModule
         }
 
-        var resources: [MetadataRecord] = []
+        var resources: [EmbraceMetadata] = []
 
         if let sessionId = sessionId {
-            resources = try storage.fetchResourcesForSessionId(sessionId)
+            resources = storage.fetchResourcesForSessionId(sessionId)
         } else {
-            resources = try storage.fetchResourcesForProcessId(processId)
+            resources = storage.fetchResourcesForProcessId(processId)
         }
 
         return ResourcePayload(from: resources)
@@ -293,15 +293,15 @@ private extension LogController {
             throw Error.couldntAccessStorageModule
         }
 
-        var metadata: [MetadataRecord] = []
+        var metadata: [EmbraceMetadata] = []
 
         if let sessionId = sessionId {
-            let properties = try storage.fetchCustomPropertiesForSessionId(sessionId)
-            let tags = try storage.fetchPersonaTagsForSessionId(sessionId)
+            let properties = storage.fetchCustomPropertiesForSessionId(sessionId)
+            let tags = storage.fetchPersonaTagsForSessionId(sessionId)
             metadata.append(contentsOf: properties)
             metadata.append(contentsOf: tags)
         } else {
-            metadata = try storage.fetchPersonaTagsForProcessId(processId)
+            metadata = storage.fetchPersonaTagsForProcessId(processId)
         }
 
         return MetadataPayload(from: metadata)

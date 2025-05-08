@@ -8,7 +8,7 @@
 #import "EMBBinaryImageProvider.h"
 #import "EMBDevice.h"
 #import "EMBStackTraceProccessor.h"
-#import "NSURLSessionTask+Embrace.h"
+#import "EMBRURLSessionTaskHeaderInjector.h"
 #import "EMBURLSessionDelegateForwarder.h"
 #import "EMBURLSessionDelegateProxy.h"
 #import "EMBWKNavigationDelegateProxy.h"
