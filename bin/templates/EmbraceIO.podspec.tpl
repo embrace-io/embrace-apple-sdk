@@ -113,7 +113,7 @@ Pod::Spec.new do |spec|
 
   # External
   spec.subspec 'EmbraceKSCrash' do |subs|
-    subs.dependency "KSCrash", "~> 2.0.0"
+    subs.dependency "KSCrash", "~> 2.1.1"
   end
 
   spec.subspec 'OpenTelemetrySdk' do |subs|
