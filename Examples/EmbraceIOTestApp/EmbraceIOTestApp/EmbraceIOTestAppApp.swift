@@ -12,6 +12,7 @@ import OpenTelemetrySdk
 struct EmbraceIOTestAppApp: App {
     let spanExporter = TestSpanExporter()
     let logExporter = TestLogRecordExporter()
+    let networkSwizzle = NetworkingSwizzle()
     var body: some Scene {
         WindowGroup {
             NavigationView {
