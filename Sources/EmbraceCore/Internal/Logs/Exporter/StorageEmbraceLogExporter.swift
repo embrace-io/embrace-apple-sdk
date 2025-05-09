@@ -3,10 +3,12 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
 import EmbraceOTelInternal
 import EmbraceStorageInternal
 import EmbraceSemantics
+#endif
 import OpenTelemetryApi
 import OpenTelemetrySdk
 
@@ -26,22 +28,6 @@ class StorageEmbraceLogExporter: LogRecordExporter {
         self.state = state
         self.logBatcher = logBatcher
         self.validation = LogDataValidation(validators: validators)
-
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(onSessionEnd),
-            name: .embraceSessionWillEnd,
-            object: nil
-        )
-    }
-
-    deinit {
-        NotificationCenter.default.removeObserver(self)
-    }
-
-    @objc func onSessionEnd(noticication: Notification) {
-        // forcefully start a new batch of logs when a session ends
-        logBatcher.forceEndCurrentBatch()
     }
 
     func export(logRecords: [ReadableLogRecord], explicitTimeout: TimeInterval?) -> ExportResult {

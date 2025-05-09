@@ -3,7 +3,10 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
+#endif
+import CoreData
 
 public protocol EmbraceStorageMetadataFetcher: AnyObject {
     func fetchAllResources() -> [EmbraceMetadata]
@@ -108,7 +111,12 @@ extension EmbraceStorage {
         lifespanId: String
     ) -> EmbraceMetadata? {
 
-        guard let metadata = fetchMetadataRecord(key: key, type: type, lifespan: lifespan, lifespanId: lifespanId) else {
+        guard let metadata = fetchMetadataRecord(
+            key: key,
+            type: type,
+            lifespan: lifespan,
+            lifespanId: lifespanId
+        ) else {
             return nil
         }
 
@@ -152,8 +160,7 @@ extension EmbraceStorage {
             request.predicate = processIdPredicate
         }
 
-        let records = coreData.fetch(withRequest: request)
-        coreData.deleteRecords(records)
+        coreData.deleteRecords(withRequest: request)
     }
 
     /// Removes the `MetadataRecord` for the given values.
@@ -163,7 +170,12 @@ extension EmbraceStorage {
         lifespan: MetadataRecordLifespan,
         lifespanId: String
     ) {
-        guard let metadata = fetchMetadataRecord(key: key, type: type, lifespan: lifespan, lifespanId: lifespanId) else {
+        guard let metadata = fetchMetadataRecord(
+            key: key,
+            type: type,
+            lifespan: lifespan,
+            lifespanId: lifespanId
+        ) else {
             return
         }
 
@@ -190,8 +202,7 @@ extension EmbraceStorage {
 
         request.predicate = NSCompoundPredicate(type: .and, subpredicates: [typePredicate, lifespansPredicate])
 
-        let records = coreData.fetch(withRequest: request)
-        coreData.deleteRecords(records)
+        coreData.deleteRecords(withRequest: request)
     }
 
     /// Removes all `MetadataRecords` for the given keys and timespan.
@@ -214,8 +225,7 @@ extension EmbraceStorage {
 
         request.predicate = NSCompoundPredicate(type: .and, subpredicates: [typePredicate, keyPredicate])
 
-        let records = coreData.fetch(withRequest: request)
-        coreData.deleteRecords(records)
+        coreData.deleteRecords(withRequest: request)
     }
 
     /// Returns the permanent required resource for the given key.
@@ -257,12 +267,13 @@ extension EmbraceStorage {
         )
 
         // fetch
-        let records = coreData.fetch(withRequest: request)
-
-        // convert to immutable structs
         var result: [EmbraceMetadata] = []
-        coreData.context.performAndWait {
-            result = records.map { $0.toImmutable() }
+        coreData.fetchAndPerform(withRequest: request) { records in
+
+            // convert to immutable structs
+            result = records.map {
+                $0.toImmutable()
+            }
         }
 
         return result
@@ -285,12 +296,13 @@ extension EmbraceStorage {
         )
 
         // fetch
-        let records = coreData.fetch(withRequest: request)
-
-        // convert to immutable structs
         var result: [EmbraceMetadata] = []
-        coreData.context.performAndWait {
-            result = records.map { $0.toImmutable() }
+        coreData.fetchAndPerform(withRequest: request) { records in
+
+            // convert to immutable structs
+            result = records.map {
+                $0.toImmutable()
+            }
         }
 
         return result
@@ -309,12 +321,13 @@ extension EmbraceStorage {
         )
 
         // fetch
-        let records = coreData.fetch(withRequest: request)
-
-        // convert to immutable structs
         var result: [EmbraceMetadata] = []
-        coreData.context.performAndWait {
-            result = records.map { $0.toImmutable() }
+        coreData.fetchAndPerform(withRequest: request) { records in
+
+            // convert to immutable structs
+            result = records.map {
+                $0.toImmutable()
+            }
         }
 
         return result
@@ -336,12 +349,13 @@ extension EmbraceStorage {
         )
 
         // fetch
-        let records = coreData.fetch(withRequest: request)
-
-        // convert to immutable structs
         var result: [EmbraceMetadata] = []
-        coreData.context.performAndWait {
-            result = records.map { $0.toImmutable() }
+        coreData.fetchAndPerform(withRequest: request) { records in
+
+            // convert to immutable structs
+            result = records.map {
+                $0.toImmutable()
+            }
         }
 
         return result
@@ -363,12 +377,13 @@ extension EmbraceStorage {
         )
 
         // fetch
-        let records = coreData.fetch(withRequest: request)
-
-        // convert to immutable structs
         var result: [EmbraceMetadata] = []
-        coreData.context.performAndWait {
-            result = records.map { $0.toImmutable() }
+        coreData.fetchAndPerform(withRequest: request) { records in
+
+            // convert to immutable structs
+            result = records.map {
+                $0.toImmutable()
+            }
         }
 
         return result
@@ -387,12 +402,13 @@ extension EmbraceStorage {
         )
 
         // fetch
-        let records = coreData.fetch(withRequest: request)
-
-        // convert to immutable structs
         var result: [EmbraceMetadata] = []
-        coreData.context.performAndWait {
-            result = records.map { $0.toImmutable() }
+        coreData.fetchAndPerform(withRequest: request) { records in
+
+            // convert to immutable structs
+            result = records.map {
+                $0.toImmutable()
+            }
         }
 
         return result

@@ -3,10 +3,12 @@
 //
 #if canImport(UIKit) && !os(watchOS)
 import UIKit
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCaptureService
 import EmbraceCommonInternal
 import EmbraceOTelInternal
 import EmbraceSemantics
+#endif
 import OpenTelemetryApi
 
 /// Service that generates OpenTelemetry span events for taps on the screen.

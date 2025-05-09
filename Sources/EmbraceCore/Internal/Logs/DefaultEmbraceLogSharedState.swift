@@ -3,9 +3,11 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceOTelInternal
 import EmbraceStorageInternal
 import EmbraceCommonInternal
+#endif
 import OpenTelemetrySdk
 
 class DefaultEmbraceLogSharedState: EmbraceLogSharedState {
@@ -31,17 +33,13 @@ class DefaultEmbraceLogSharedState: EmbraceLogSharedState {
 extension DefaultEmbraceLogSharedState {
     static func create(
         storage: EmbraceStorage,
-        controller: LogControllable,
+        batcher: LogBatcher,
         exporter: LogRecordExporter? = nil,
         sdkStateProvider: EmbraceSDKStateProvider
     ) -> DefaultEmbraceLogSharedState {
         var exporters: [LogRecordExporter] = [
             StorageEmbraceLogExporter(
-                logBatcher: DefaultLogBatcher(
-                    repository: storage,
-                    logLimits: .init(),
-                    delegate: controller
-                )
+                logBatcher: batcher
             )
         ]
 

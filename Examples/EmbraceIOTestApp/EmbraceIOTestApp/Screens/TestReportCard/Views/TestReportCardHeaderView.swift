@@ -9,7 +9,7 @@ import SwiftUI
 struct TestReportCardHeaderView: View {
     var passed: Bool
     var body: some View {
-        VStack{
+        VStack {
             Text("TEST RESULT:")
                 .font(.embraceFont(size: 20))
             Text(passed ? "PASS" : "FAIL")

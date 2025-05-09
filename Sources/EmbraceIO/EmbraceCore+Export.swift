@@ -13,4 +13,6 @@
 //      import EmbraceCore
 //      ```
 
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 @_exported import EmbraceCore
+#endif

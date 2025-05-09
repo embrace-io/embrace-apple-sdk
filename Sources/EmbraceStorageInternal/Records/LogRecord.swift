@@ -3,7 +3,9 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
+#endif
 import OpenTelemetryApi
 import CoreData
 
@@ -62,7 +64,9 @@ public class LogRecord: NSManagedObject {
     }
 
     func toImmutable() -> EmbraceLog {
-        let attributes = attributes.map { $0.toImmutable() }
+        let attributes = attributes.map {
+            $0.toImmutable()
+        }
 
         return ImmutableLogRecord(
             idRaw: idRaw,
@@ -165,11 +169,11 @@ struct ImmutableLogRecord: EmbraceLog {
     let timestamp: Date
     let attributes: [EmbraceLogAttribute]
 
-    func allAttributes() -> [any EmbraceCommonInternal.EmbraceLogAttribute] {
+    func allAttributes() -> [any EmbraceLogAttribute] {
         return attributes
     }
 
-    func attribute(forKey key: String) -> (any EmbraceCommonInternal.EmbraceLogAttribute)? {
+    func attribute(forKey key: String) -> (any EmbraceLogAttribute)? {
         return attributes.first(where: { $0.key == key })
     }
 }

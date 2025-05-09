@@ -3,7 +3,9 @@
 //
 
 import OpenTelemetrySdk
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
+#endif
 
 public extension Array where Element == any LogRecordProcessor {
     static func `default`(
