@@ -20,17 +20,15 @@ internal struct EmbraceTraceView<Content: View>: View {
         // root body that is instrumented is executed, and
         // ends on the next cycle of the run loop.
         if phase.isFirstCycle {
-            
-            let span = phase.startSpan("VIEW-FC-\(name)", root: true, attributes: attributes)
-            phase.onNextCycle {
-                phase.endSpan(span, root: true)
-            }
+            // TODO: name this correctly
+            phase.cycledSpan("emb-view-fc-\(name)", attributes: attributes)
         }
         
         // This span wraps the actual loading of the content for this View's body.
-        let span = phase.startSpan("VIEW-BODY-\(name)", root: false, attributes: attributes)
+        // TODO: name this correctly
+        let span = phase.startSpan("emb-view-body-\(name)", attributes: attributes)
         defer {
-            phase.endSpan(span, root: false)
+            phase.endSpan(span)
         }
 
         return content()
