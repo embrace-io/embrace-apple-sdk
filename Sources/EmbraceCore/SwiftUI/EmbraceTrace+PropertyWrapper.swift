@@ -13,11 +13,9 @@ public struct EmbraceTraceState<Value>: DynamicProperty {
     public var wrappedValue: Value {
         get { value }
         nonmutating set {
-            let span = phase.startSpan("STATE-SET-\(name)", root: true)
+            // TODO: name this correctly
+            phase.cycledSpan("emb-view-state-set-\(name)")
             value = newValue
-            phase.onNextCycle {
-                phase.endSpan(span, root: true)
-            }
         }
     }
     
@@ -30,12 +28,9 @@ public struct EmbraceTraceState<Value>: DynamicProperty {
         $value
     }
     
-    
     public func update() {
-        let span = phase.startSpan("STATE-UPDATE-\(name)", root: true)
-        phase.onNextCycle {
-            phase.endSpan(span, root: true)
-        }
+        // TODO: name this correctly
+        phase.cycledSpan("emb-view-state-upate-\(name)")
     }
     
 }
