@@ -34,11 +34,12 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
 
     init(processingQueue: DispatchableQueue = DefaultURLSessionTaskHandler.queue(),
          capturedDataQueue: DispatchableQueue = DefaultURLSessionTaskHandler.capturedDataQueue(),
-         dataSource: URLSessionTaskHandlerDataSource?) {
+         dataSource: URLSessionTaskHandlerDataSource?,
+         payloadCaptureHandler: NetworkPayloadCaptureHandler? = nil) {
         self.queue = processingQueue
         self.capturedDataQueue = capturedDataQueue
         self.dataSource = dataSource
-        self.payloadCaptureHandler = NetworkPayloadCaptureHandler(otel: dataSource?.otel)
+        self.payloadCaptureHandler = payloadCaptureHandler ?? DefaultNetworkPayloadCaptureHandler(otel: dataSource?.otel)
     }
 
     @discardableResult
