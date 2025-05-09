@@ -16,7 +16,7 @@ import PackageDescription
     )
 #endif
 
-var linkerSettings: [LinkerSetting]? = nil
+var linkerSettings: [LinkerSetting]?
 
 // This applies only to targets like EmbraceCore and EmbraceIO that contain `@objc extensions`.
 // When linked statically (as Tuist tends to do when installing Embrace via SPM packages),
@@ -306,7 +306,7 @@ if ProcessInfo.processInfo.environment["EMBRACE_ENABLE_SWIFTLINT"] != nil {
 
   for target in package.targets {
     target.plugins = [
-      .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins"),
+      .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
     ]
   }
 }

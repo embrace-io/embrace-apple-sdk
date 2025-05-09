@@ -3,38 +3,22 @@
 //
 
 import XCTest
-@testable import EmbraceCaptureService
 import TestSupport
 import EmbraceCommonInternal
 import EmbraceOTelInternal
-@testable import EmbraceCore
 import OpenTelemetrySdk
+
+@testable import EmbraceCaptureService
+@testable import EmbraceCore
 
 // swiftlint:disable line_length
 
-class MockURLSessionTaskHandlerDataSource: URLSessionTaskHandlerDataSource {
-    var state: CaptureServiceState = .uninstalled
-    var otel: EmbraceOpenTelemetry?
-
-    var injectTracingHeader = false
-    var requestsDataSource: URLSessionRequestsDataSource?
-    var ignoredURLs: [String] = []
-}
-
-class MockURLSessionRequestsDataSource: NSObject, URLSessionRequestsDataSource {
-
-    var block: ((URLRequest) -> URLRequest)?
-
-    func modifiedRequest(for request: URLRequest) -> URLRequest {
-        return block?(request) ?? request
-    }
-}
-
 class DefaultURLSessionTaskHandlerTests: XCTestCase {
     private var sut: DefaultURLSessionTaskHandler!
-    private var task: URLSessionTask!
+    private var task: URLSessionDataTask!
     private var session: URLSession!
     private var dataSource: MockURLSessionTaskHandlerDataSource!
+    private var networkPayloadCapture: SpyNetworkPayloadCaptureHandler!
     private var otel: MockEmbraceOpenTelemetry!
 
     override func setUpWithError() throws {
@@ -45,6 +29,8 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
         dataSource = MockURLSessionTaskHandlerDataSource()
         dataSource.otel = otel
         dataSource.ignoredURLs = []
+
+        networkPayloadCapture = SpyNetworkPayloadCaptureHandler()
     }
 
     // MARK: - Create Tests
@@ -223,16 +209,59 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
         whenInvokingCreate()
         thenHTTPNetworkSpanShouldBeCreated()
     }
+
+    // MARK: - AddData Tests
+
+    func testOnPayloadCaptureDisabled_addData_doesntDoAnything() {
+        givenNetworkPayloadCaptureIsDisabled()
+        givenAnURLSessionTask()
+        givenTaskHandler()
+        whenInvokingAddData()
+        thenTaskHasNoAssociatedData()
+    }
+
+    func testOnPayloadCaptureEnabled_addData_appendsDataToTask() {
+        givenNetworkPayloadCaptureIsEnabled()
+        givenAnURLSessionTask()
+        givenTaskHandler()
+        whenInvokingAddData("Hello".data(using: .utf8)!)
+        whenInvokingAddData(" World".data(using: .utf8)!)
+        thenTaskAssociatedDataIs("Hello World".data(using: .utf8)!)
+    }
+
+    func testBeingAccessedFromManyThreads_addData_appendsAllDataToTaskWithoutThreadingIssues() {
+        givenNetworkPayloadCaptureIsEnabled()
+        givenAnURLSessionTask()
+        givenTaskHandler()
+        DispatchQueue.concurrentPerform(iterations: 100) { index in
+            whenInvokingAddData("a".data(using: .utf8)!)
+            // This verifies that both getter and setter access to `embraceData` are handled in a thread-safe manner.
+            thenTaskHasAssociatedData()
+        }
+        thenTaskAssociatedDataIs(String(repeating: "a", count: 100).data(using: .utf8)!)
+    }
 }
 
 private extension DefaultURLSessionTaskHandlerTests {
     func givenTaskHandler() {
         dataSource.state = .active
-        sut = DefaultURLSessionTaskHandler(processingQueue: MockQueue(), dataSource: dataSource)
+        sut = DefaultURLSessionTaskHandler(
+            processingQueue: MockQueue(),
+            dataSource: dataSource,
+            payloadCaptureHandler: networkPayloadCapture
+        )
     }
 
     func givenStateChanged(toState: CaptureServiceState) {
         dataSource.state = toState
+    }
+
+    func givenNetworkPayloadCaptureIsDisabled() {
+        networkPayloadCapture.stubbedIsEnabled = false
+    }
+
+    func givenNetworkPayloadCaptureIsEnabled() {
+        networkPayloadCapture.stubbedIsEnabled = true
     }
 
     func givenTracingHeaderEnabled(_ enabled: Bool) {
@@ -273,6 +302,10 @@ private extension DefaultURLSessionTaskHandlerTests {
         }
     }
 
+    func whenInvokingAddData(_ data: Data = Data()) {
+        sut.addData(data, dataTask: task)
+    }
+
     func whenInvokingFinish(withData data: Data? = nil, error: Error? = nil, withoutWaiting: Bool = false) {
         task.resume()
         waitForRequestToFinish()
@@ -280,6 +313,19 @@ private extension DefaultURLSessionTaskHandlerTests {
         if !withoutWaiting {
             waitForFinishMethodToEnd()
         }
+    }
+
+    func thenTaskHasNoAssociatedData() {
+        XCTAssertNil(task.embraceData)
+    }
+
+    func thenTaskHasAssociatedData() {
+        XCTAssertNotNil(task.embraceData)
+    }
+
+    func thenTaskAssociatedDataIs(_ data: Data) {
+        XCTAssertNotNil(task.embraceData)
+        XCTAssertEqual(task.embraceData, data)
     }
 
     func thenSpanShouldHaveResponseBodySizeAttribute(withValue size: Int) {

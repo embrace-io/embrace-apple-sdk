@@ -100,7 +100,7 @@ public final class CrashlyticsReporter: NSObject, CrashReporter {
     public func fetchUnsentCrashReports(completion: @escaping ([EmbraceCrashReport]) -> Void) {
         completion([])
     }
-    
+
     /// Unused
     public func deleteCrashReport(id: Int) {
     }

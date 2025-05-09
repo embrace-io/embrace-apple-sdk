@@ -14,7 +14,7 @@ import Foundation
     @objc func install(context: CrashReporterContext, logger: InternalLogger)
 
     @objc func getLastRunState() -> LastRunState
-    
+
     @objc func deleteCrashReport(id: Int)
     @objc func fetchUnsentCrashReports(completion: @escaping ([EmbraceCrashReport]) -> Void)
 

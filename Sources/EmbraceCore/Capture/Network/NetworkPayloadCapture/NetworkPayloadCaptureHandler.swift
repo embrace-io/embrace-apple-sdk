@@ -12,7 +12,19 @@ import EmbraceSemantics
 import EmbraceConfiguration
 #endif
 
-class NetworkPayloadCaptureHandler {
+protocol NetworkPayloadCaptureHandler {
+    func isEnabled() -> Bool
+    func process(
+        request: URLRequest?,
+        response: URLResponse?,
+        data: Data?,
+        error: Error?,
+        startTime: Date?,
+        endTime: Date?
+    )
+}
+
+class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
 
     @ThreadSafe
     var active = false

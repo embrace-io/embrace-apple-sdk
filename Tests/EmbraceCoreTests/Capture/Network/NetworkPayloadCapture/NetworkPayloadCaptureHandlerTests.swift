@@ -33,7 +33,7 @@ class NetworkPayloadCaptureHandlerTests: XCTestCase {
 
     func test_updateRules() throws {
         // given a handler
-        let handler = NetworkPayloadCaptureHandler(otel: nil)
+        let handler = DefaultNetworkPayloadCaptureHandler(otel: nil)
         XCTAssertEqual(handler.rules.count, 0)
 
         // when updating the rules
@@ -47,7 +47,7 @@ class NetworkPayloadCaptureHandlerTests: XCTestCase {
 
     func test_onSessionStart() throws {
         // given a handler
-        let handler = NetworkPayloadCaptureHandler(otel: nil)
+        let handler = DefaultNetworkPayloadCaptureHandler(otel: nil)
         handler.rulesTriggeredMap = ["rule1": true]
         handler.active = false
         handler.currentSessionId = nil
@@ -74,7 +74,7 @@ class NetworkPayloadCaptureHandlerTests: XCTestCase {
 
     func test_onSessionEnd() throws {
         // given a handler
-        let handler = NetworkPayloadCaptureHandler(otel: nil)
+        let handler = DefaultNetworkPayloadCaptureHandler(otel: nil)
         handler.active = true
         handler.currentSessionId = TestConstants.sessionId
 
@@ -90,7 +90,7 @@ class NetworkPayloadCaptureHandlerTests: XCTestCase {
     func test_processUnactive_validRequest() throws {
         // given a deactivated handler
         let otel = MockEmbraceOpenTelemetry()
-        let handler = NetworkPayloadCaptureHandler(otel: otel)
+        let handler = DefaultNetworkPayloadCaptureHandler(otel: otel)
         handler.active = false
 
         // when processing a request
@@ -110,7 +110,7 @@ class NetworkPayloadCaptureHandlerTests: XCTestCase {
     func test_processActive_invalidRequest() throws {
         // given a handler with no rules
         let otel = MockEmbraceOpenTelemetry()
-        let handler = NetworkPayloadCaptureHandler(otel: otel)
+        let handler = DefaultNetworkPayloadCaptureHandler(otel: otel)
         handler.active = true
 
         // when processing a request
@@ -130,7 +130,7 @@ class NetworkPayloadCaptureHandlerTests: XCTestCase {
     func test_processActive_requestWithNoRule() throws {
         // given a handler
         let otel = MockEmbraceOpenTelemetry()
-        let handler = NetworkPayloadCaptureHandler(otel: otel)
+        let handler = DefaultNetworkPayloadCaptureHandler(otel: otel)
         handler.active = true
         handler.updateRules(rules)
 
@@ -154,7 +154,7 @@ class NetworkPayloadCaptureHandlerTests: XCTestCase {
     func test_processActive_requestWithRule() throws {
         // given a handler
         let otel = MockEmbraceOpenTelemetry()
-        let handler = NetworkPayloadCaptureHandler(otel: otel)
+        let handler = DefaultNetworkPayloadCaptureHandler(otel: otel)
         handler.active = true
         handler.updateRules(rules)
 
