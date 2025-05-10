@@ -24,9 +24,15 @@ final public class HangWatchdog {
     }
     
     deinit {
-        CFRunLoopRemoveObserver(runLoop.getCFRunLoop(), observer, .commonModes)
-        CFRunLoopTimerInvalidate(watchdogTimer)
-        CFRunLoopStop(self.watchdogRunLoop?.getCFRunLoop())
+        if let observer {
+            CFRunLoopRemoveObserver(runLoop.getCFRunLoop(), observer, .commonModes)
+        }
+        if let watchdogTimer {
+            CFRunLoopTimerInvalidate(watchdogTimer)
+        }
+        if let watchdogRunLoop {
+            CFRunLoopStop(watchdogRunLoop.getCFRunLoop())
+        }
         self.watchdogThread?.cancel()
     }
     
