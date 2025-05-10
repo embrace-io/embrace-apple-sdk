@@ -20,7 +20,7 @@ class CaptureServiceBuilderTests: XCTestCase {
         // then the list contains all the default services
         let list = builder.build()
 
-        var count = 3
+        var count = 4
 
         XCTAssertNotNil(list.first(where: { $0 is URLSessionCaptureService }))
 
@@ -36,7 +36,9 @@ class CaptureServiceBuilderTests: XCTestCase {
 
         XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
         XCTAssertNotNil(list.first(where: { $0 is LowPowerModeCaptureService }))
-
+        
+        XCTAssertNotNil(list.first(where: { $0 is HangCaptureService }))
+        
         XCTAssertEqual(list.count, count)
 
     }
@@ -55,7 +57,7 @@ class CaptureServiceBuilderTests: XCTestCase {
         // then the list contains the correct services
         let list = builder.build()
 
-        var count = 3
+        var count = 4
 
 #if canImport(UIKit) && !os(watchOS)
         count += 2
@@ -71,6 +73,7 @@ class CaptureServiceBuilderTests: XCTestCase {
         XCTAssertNotNil(list.first(where: { $0 is LowPowerModeCaptureService }))
         XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
         XCTAssertNotNil(list.first(where: { $0 is LowPowerModeCaptureService }))
+        XCTAssertNotNil(list.first(where: { $0 is HangCaptureService }))
 
         let service = list.first(where: { $0 is URLSessionCaptureService }) as! URLSessionCaptureService
         XCTAssertFalse(service.options.injectTracingHeader)
@@ -97,7 +100,7 @@ class CaptureServiceBuilderTests: XCTestCase {
         // then the list contains the correct services
         let list = builder.build()
 
-        var count = 2
+        var count = 3
 
 #if canImport(WebKit)
         count += 1
@@ -105,7 +108,8 @@ class CaptureServiceBuilderTests: XCTestCase {
 #endif
         XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
         XCTAssertNotNil(list.first(where: { $0 is LowPowerModeCaptureService }))
-
+        XCTAssertNotNil(list.first(where: { $0 is HangCaptureService }))
+        
         XCTAssertEqual(list.count, count)
     }
 
