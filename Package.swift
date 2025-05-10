@@ -139,7 +139,8 @@ let package = Package(
             name: "EmbraceCaptureService",
             dependencies: [
                 "EmbraceOTelInternal",
-                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
+                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift"),
+                .product(name: "Atomics", package: "swift-atomics")
             ]
         ),
         .testTarget(
