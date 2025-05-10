@@ -45,6 +45,10 @@ let package = Package(
         .package(
             url: "https://github.com/open-telemetry/opentelemetry-swift",
             exact: "1.16.1"
+        ),
+        .package(
+            url: "https://github.com/apple/swift-atomics.git",
+            .upToNextMajor(from: "1.2.0")
         )
     ],
     targets: [
@@ -132,7 +136,8 @@ let package = Package(
             name: "EmbraceCaptureService",
             dependencies: [
                 "EmbraceOTelInternal",
-                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
+                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift"),
+                .product(name: "Atomics", package: "swift-atomics")
             ]
         ),
         .testTarget(
