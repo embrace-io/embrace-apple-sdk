@@ -1,30 +1,40 @@
 import Foundation
 import Atomics
 
+/// Protocol for objects that observe hang detection events.
+/// Implement these methods to handle the various phases of a detected hang.
+///
+/// - hangStarted: Called when a hang is first detected on a background queue.
+/// - hangUpdated: Called periodically while a hang persists on a background queue.
+/// - hangEnded: Called when the hang ends on the hung thread.
 public protocol HangObserver: AnyObject {
     func hangStarted(at nanoseconds: UInt64, duration nanoseconds: UInt64)
     func hangUpdated(at nanoseconds: UInt64, duration nanoseconds: UInt64)
     func hangEnded(at nanoseconds: UInt64, duration nanoseconds: UInt64)
 }
 
-/// HangWatchdog is a class that will help you discover
-/// hangs within your application. Create one very early
-/// during ap launch and add observers in order to be notified
-/// of issues.
+/// A watchdog that detects and reports RunLoop hangs exceeding a specified threshold.
+/// Use this class to monitor app responsiveness by receiving callbacks when
+/// the monitored RunLoop is blocked beyond acceptable durations.
+/// Initialize as early as possible during app launch to start monitoring.
 final public class HangWatchdog {
     
-    /// Default threashold defined by Apple (250ms).
+    /// Default hang threshold defined by Apple (0.25 seconds).
     public static let defaultAppleHangThreshold: TimeInterval = 0.249
     
-    /// Interval in seconds the RunLoop should be
-    /// held up before calling it a Hang.
-    /// 250ms is the standard (0.25 TimeInterval)
+    /// The interval, in seconds, that the monitored RunLoop must be blocked
+    /// before it is considered a hang.
+    /// Default is 0.25 seconds (250 milliseconds).
     public let threshold: TimeInterval
     
-    /// Observer that will receive hang events
+    /// The HangObserver instance that receives callbacks for hang start,
+    /// hang update, and hang end events.
     public weak var hangObserver: HangObserver? = nil
     
-    /// Initialize a new watchdog with a hang threshold and runLoop.
+    /// Initializes a new HangWatchdog instance.
+    /// - Parameters:
+    ///   - threshold: The hang threshold in seconds.
+    ///   - runLoop: The RunLoop to monitor for hangs.
     public init(threshold: TimeInterval = HangWatchdog.defaultAppleHangThreshold,
                 runLoop: RunLoop = .main) {
         self.threshold = threshold
@@ -84,7 +94,8 @@ final public class HangWatchdog {
     // the RunLoop we are watching for hangs.
     private let runLoop: RunLoop
     
-    // When a hang occurs, this is where we keep the data.
+    /// Internal structure for tracking whether a hang is active and recording
+    /// the timestamp when the RunLoop was entered.
     private struct HangData {
         var hanging: ManagedAtomic<Bool> = ManagedAtomic(false)
         var enterTime: ManagedAtomic<UInt64> = ManagedAtomic(0)
@@ -96,11 +107,8 @@ final public class HangWatchdog {
 
 extension HangWatchdog {
     
-    // setup a hipri thread with a run loop
-    // to simplify message passing and adding
-    // a timer to check for hangs.
-    // NOTE: This will wait on the called thread (main)
-    // until the new threads run loop is set.
+    /// Sets up a dedicated high-priority thread with its own RunLoop
+    /// to perform hang detection pings without blocking the monitored RunLoop.
     private func scheduleThread() {
         
         runLoopPrecondition(runloop: runLoop)
@@ -124,8 +132,8 @@ extension HangWatchdog {
         semaphore.wait()
     }
     
-    // Observe the time it takes to wait on events
-    // on the run loop.
+    /// Adds a CFRunLoopObserver to the monitored RunLoop that listens for
+    /// .beforeWaiting and .afterWaiting activities to detect hang start and end events.
     private func scheduleObserver() {
         
         runLoopPrecondition(runloop: runLoop)
@@ -146,18 +154,18 @@ extension HangWatchdog {
                 CFRunLoopTimerInvalidate(timer)
                 self.watchdogTimer = nil
             }
-
+            
             // before the wait period, we want to check if the previous
             // cycle took more time than it should have and flag it.
             if activity == .beforeWaiting {
-
+                
                 // check for a hang that needs to end
                 if hangData.hanging.exchange(false, ordering: .relaxed) == true {
                     
                     // update the time value
                     let now = suspendingTimeInNanoseconds()
                     let hangTime = now - hangData.enterTime.value
-
+                    
                     // log it
                     self.hangObserver?.hangEnded(at: now, duration: hangTime)
                 }
@@ -170,15 +178,16 @@ extension HangWatchdog {
             else if activity == .afterWaiting {
                 self.schedulePings()
             }
-
+            
         }
         if let obs = observer {
             CFRunLoopAddObserver(runLoop.getCFRunLoop(), obs, .commonModes)
         }
     }
     
-    // Ping the watchdog thread every N ms in order to check
-    // if we're in a hang or not. If we are, run the correct callbacks.
+    /// Schedules a CFRunLoopTimer on the watchdog thread to measure how long
+    /// the monitored RunLoop remains blocked. Triggers hangObserver callbacks:
+    /// hangStarted, hangUpdated, and hangEnded.
     private func schedulePings() {
         
         runLoopPrecondition(runloop: runLoop)
@@ -233,12 +242,17 @@ extension HangWatchdog {
 
 // MARK: - Private Helpers
 
+/// Ensures that the provided RunLoop matches the current thread’s RunLoop.
+/// - Parameter runloop: The RunLoop expected to be current.
 public func runLoopPrecondition(runloop: @autoclosure () -> RunLoop) {
     precondition({
         runloop() == RunLoop.current
     }())
 }
 
+/// Returns the current uptime in nanoseconds, including system sleep time,
+/// using CLOCK_UPTIME_RAW.
+/// - Returns: The timestamp in nanoseconds.
 private func suspendingTimeInNanoseconds() -> UInt64 {
     clock_gettime_nsec_np(CLOCK_UPTIME_RAW)
 }
