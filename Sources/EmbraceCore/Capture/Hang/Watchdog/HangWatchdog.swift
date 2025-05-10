@@ -25,7 +25,7 @@ final public class HangWatchdog {
     
     deinit {
         CFRunLoopRemoveObserver(runLoop.getCFRunLoop(), observer, .commonModes)
-        self.watchdogTimer?.invalidate()
+        CFRunLoopTimerInvalidate(watchdogTimer)
         CFRunLoopStop(self.watchdogRunLoop?.getCFRunLoop())
         self.watchdogThread?.cancel()
     }
@@ -34,8 +34,8 @@ final public class HangWatchdog {
     private var observer: CFRunLoopObserver? = nil
     private var watchdogThread: Thread? = nil
     private let runLoop: RunLoop = RunLoop.main
-    private var watchdogRunLoop: RunLoop?
-    private var watchdogTimer: Timer?
+    private var watchdogRunLoop: RunLoop? = nil
+    private var watchdogTimer: CFRunLoopTimer? = nil
 
     private struct HangData {
         var hanging: ManagedAtomic<Bool> = ManagedAtomic(false)
@@ -68,6 +68,7 @@ extension HangWatchdog {
         self.watchdogThread?.name = "com.embrace.watchdog"
         self.watchdogThread?.threadPriority = 1.0;
         self.watchdogThread?.start()
+        
     }
     
     // Observe the time it takes to wait on events
@@ -88,8 +89,11 @@ extension HangWatchdog {
             guard let self else { return }
             
             // kill the timer
-            self.watchdogTimer?.invalidate()
-            
+            if let timer = self.watchdogTimer {
+                CFRunLoopTimerInvalidate(timer)
+                self.watchdogTimer = nil
+            }
+
             // before the wait period, we want to check if the previous
             // cycle took more time than it should have and flag it.
             if activity == .beforeWaiting {
@@ -105,7 +109,7 @@ extension HangWatchdog {
                     hangData.span = nil
                     
                     // log it
-                    print("[AC:Watchdog] Ended at \(Double(hangData.totalTime.value)/1_000_000_000.0) s")
+                    print("[AC:Watchdog] Hang ended at \(Double(hangData.totalTime.value)/1_000_000_000.0) s")
                 }
                 
             }
@@ -138,11 +142,11 @@ extension HangWatchdog {
         
         // Run the timer on the watchdog run loop to ping the main queue
         // until this callback is entered again and resolves any hang.
-        self.watchdogTimer = Timer(timeInterval: self.threshold, repeats: true) { [weak self] timer in
-            guard let self else { return }
+        self.watchdogTimer = CFRunLoopTimerCreateWithHandler(kCFAllocatorDefault, CFAbsoluteTimeGetCurrent(), threshold, 0, CFIndex.max) { [weak self] timer in
             
+            guard let self else { return }
             precondition(Thread.current == self.watchdogThread)
-
+            
             let now = ns()
             let hangTime = now - hangData.enterTime.value
             
@@ -161,11 +165,13 @@ extension HangWatchdog {
                 }
                 
                 // Change the interval for the duration of the hang
-                timer.fireDate.addTimeInterval(self.threshold * 1.2)
+                // This makes things a lot harder to grok in a flame chart !!
+                // let nextFireDate = CFRunLoopTimerGetNextFireDate(timer) + (self.threshold * 1.2)
+                // CFRunLoopTimerSetNextFireDate(timer, nextFireDate)
             }
         }
         if let timer = self.watchdogTimer {
-            self.watchdogRunLoop?.add(timer, forMode: .common)
+            CFRunLoopAddTimer(watchdogRunLoop?.getCFRunLoop(), timer, .commonModes)
         }
     }
 }
