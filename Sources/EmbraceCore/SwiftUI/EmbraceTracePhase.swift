@@ -1,34 +1,60 @@
 import Foundation
-import EmbraceCommonInternal
-import OpenTelemetryApi
 import QuartzCore
 
-/// The `EmbraceTracePhase` class keeps track of the state
-/// of spans for SwiftUI tracing View Modifiers and Views.
-/// There are 2 types of spans.
-/// 1. Normal spans that you start and end in a linear manner (_spans_).
-/// 2. Cycle spans which you start with `cycledSpan`, and they will be
-/// ended automatically on the next cycle of the run loop.
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+import EmbraceCommonInternal
+import EmbraceSemantics
+import EmbraceOTelInternal
+#endif
+import OpenTelemetryApi
+
+/// Manages tracing spans for SwiftUI view instrumentation.
+///
+/// Provides both one-off spans and cycle-based spans that automatically
+/// terminate at the next run loop cycle. Ensures spans are nested correctly
+/// and enforces execution on the main thread.
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
 final internal class EmbraceTracePhase {
     
-    static let shared = EmbraceTracePhase()
+    /// Shared singleton instance used throughout the app for SwiftUI tracing.
+    static let shared = EmbraceTracePhase(
+        otel: Embrace.client,
+        logger: Embrace.logger
+    )
     
-    private init() {
+    /// Initializes a new trace phase manager.
+    ///
+    /// - Parameters:
+    ///   - otel: The OpenTelemetry client used to build and record spans.
+    ///   - logger: Internal logger for diagnostic messages.
+    /// - Precondition: Must be called on the main thread.
+    init(otel: EmbraceOpenTelemetry?, logger: InternalLogger?) {
         dispatchPrecondition(condition: .onQueue(.main))
+        self.otel = otel
+        self.logger = logger
     }
     
+    /// Cleans up and validates that no pending spans remain.
+    /// - Precondition: Must be called on the main thread.
     deinit {
         dispatchPrecondition(condition: .onQueue(.main))
     }
     
-    /// Determines if there are any cycled spans currently in progress.
+    /// Returns `true` if no cycle-based spans are currently open.
+    ///
+    /// Indicates the first instrumentation cycle of a view body.
     var isFirstCycle: Bool {
         dispatchPrecondition(condition: .onQueue(.main))
         return cycleSpans.isEmpty
     }
     
-    /// Starts a _Span_ which must then be passed to `endSpan()` to be complete it.
+    /// Begins a synchronous span that must be explicitly ended.
+    ///
+    /// - Parameters:
+    ///   - name: A descriptive name for the span.
+    ///   - attributes: Optional metadata to attach to the span.
+    ///   - function: The calling function for diagnostics (defaults to `#function`).
+    /// - Returns: The started span, or `nil` if tracing is unavailable.
     func startSpan(_ name: String, attributes: [String: String]? = nil, _ function: StaticString = #function) -> OpenTelemetryApi.Span? {
         startSpan(
             name,
@@ -38,12 +64,21 @@ final internal class EmbraceTracePhase {
         )
     }
     
-    /// Ends a _Span_ that was started by `startSpan()`.
+    /// Ends a span started via `startSpan`.
+    ///
+    /// - Parameters:
+    ///   - span: The span to end. Logs an error if `nil` or mismatched.
+    ///   - function: The calling function for diagnostics.
     func endSpan(_ span: OpenTelemetryApi.Span?, _ function: StaticString = #function) {
         endSpan(span, isCycle: false)
     }
     
-    /// Starts a _Span_, and completes it automatically on the next iteration of the run loop.
+    /// Starts a span that automatically ends on the next run loop cycle.
+    ///
+    /// - Parameters:
+    ///   - name: A descriptive name for the cycle span.
+    ///   - attributes: Optional metadata for the span.
+    ///   - function: The calling function for diagnostics.
     func cycledSpan(_ name: String, attributes: [String: String]? = nil, _ function: StaticString = #function) {
         let span = startSpan(
             name,
@@ -57,32 +92,50 @@ final internal class EmbraceTracePhase {
         }
     }
     
+    /// The OpenTelemetry client used to create spans.
+    internal let otel: EmbraceOpenTelemetry?
+    /// Logger for internal tracing diagnostics and errors.
+    internal let logger: InternalLogger?
+    
+    /// LIFO storage for active non-cycled spans.
     private var spans: Stack = Stack()
+    /// FIFO storage for active cycle-based spans.
     private var cycleSpans: Queue = Queue()
 }
 
-// MARK: - Private Trace Phase Routines
+// MARK: - Private Span Management
 
 fileprivate extension EmbraceTracePhase {
     
+    /// Schedules a block to run on the main run loop in `.common` modes.
     func onNextCycle(_ block: @escaping () -> Void) {
         RunLoop.main.perform(inModes: [.common], block: block)
     }
     
+    /// Underlying implementation for starting both cycled and non-cycled spans.
+    ///
+    /// - Parameters:
+    ///   - name: Span name.
+    ///   - isCycle: Whether the span should auto-terminate on next loop.
+    ///   - attributes: Metadata for the span.
+    ///   - function: Calling function for diagnostics.
+    /// - Returns: The created span, or `nil` if tracing unavailable.
     func startSpan(_ name: String, isCycle: Bool, attributes: [String: String]? = nil, _ function: StaticString = #function) -> OpenTelemetryApi.Span? {
         
         dispatchPrecondition(condition: .onQueue(.main))
-        guard let client = Embrace.client else { return nil }
+        guard let client = otel else {
+            logger?.debug("OTel client is unavailable, we won't be logging from EmbraceTracePhase.")
+            return nil
+        }
         
         // TODO: Figure out how we name things
         let sanitizedName = "\(name.lowercased())"
         
         let builder = client.buildSpan(
             name: sanitizedName,
-            // TODO: Is this span type ok? This needs to move to the semnatics module.
-            // I think special cases don;t show in the UI, so removing this for now.
-            //type: SpanType(performance: "sui_view"),
-            attributes: attributes ?? [:]
+            type: .performance,
+            attributes: attributes ?? [:],
+            autoTerminationCode: nil
         )
         
         // get the right storage for this span
@@ -110,19 +163,28 @@ fileprivate extension EmbraceTracePhase {
         return span
     }
     
+    /// Underlying implementation to end a span and validate stack consistency.
+    ///
+    /// - Parameters:
+    ///   - span: The span to end.
+    ///   - isCycle: Indicates if the span was a cycle span.
+    ///   - function: Calling function for diagnostics.
     func endSpan(_ span: OpenTelemetryApi.Span?, isCycle: Bool, _ function: StaticString = #function) {
         
         dispatchPrecondition(condition: .onQueue(.main))
-        guard let span else { return }
+        guard let span else {
+            logger?.error("No span passed to `endSpan()`, there might be an error in your code if a nil span is received.")
+            return
+        }
         
         let storage: LinearCollection = if isCycle { cycleSpans } else { spans }
         guard let found = storage.peek() else {
-            // TODO: Log some relevant stuff here
+            logger?.error("Span cache is empty, are you sure you created this span using `startSpan()`?")
             return
         }
         
         guard found.context.spanId == span.context.spanId else {
-            // TODO: Log some relevant stuff here
+            logger?.error("No span equivalent to this span found in cache, did you create this span using `startSpan()`?")
             return
         }
         
@@ -130,11 +192,7 @@ fileprivate extension EmbraceTracePhase {
     }
 }
 
-// MARK: - Specialized Collections
-
-// These all simply having a Queue and Stack
-// respond to the exact protocol.
-
+/// Protocol for simple span storage collections (stack or queue).
 fileprivate protocol LinearCollection {
     func push(_ value: Span)
     func pop() -> Span?
@@ -142,10 +200,12 @@ fileprivate protocol LinearCollection {
     var isEmpty: Bool { get }
 }
 
+/// Default implementation for `isEmpty` based on `peek()`.
 fileprivate extension LinearCollection {
     var isEmpty: Bool { peek() == nil }
 }
 
+/// FIFO queue implementation for cycle-based spans.
 fileprivate class Queue: LinearCollection {
     var storage: [Span] = []
     func pop() -> Span? {
@@ -161,6 +221,7 @@ fileprivate class Queue: LinearCollection {
     func peek() -> Span? { storage.first }
 }
 
+/// LIFO stack implementation for non-cycle spans.
 fileprivate class Stack: LinearCollection {
     var storage: [Span] = []
     func pop() -> Span? {
