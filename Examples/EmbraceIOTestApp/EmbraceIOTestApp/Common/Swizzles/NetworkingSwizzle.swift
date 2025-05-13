@@ -143,25 +143,27 @@ class UploadedSessionPayloadTest: NSObject {
         postedSessionIds.forEach { sessionId in
             print(sessionId)
             let exportedSpans = networkSwizzle.exportedSpansBySession[sessionId]
+            var foundSpans = 0
+            var missingSpans = 0
             exportedSpans?.forEach { exportedSpan in
                 let postedJsons = networkSwizzle.postedJsons[sessionId]
-                var foundSpans = 0
-                var missingSpans = 0
                 postedJsons?.forEach { postedJson in
                     let data = postedJson["data"] as? JsonDictionary
                     let postedSpans = data?["spans"] as? Array<JsonDictionary>
+                    let postedSpansSnapshots = data?["span_snapshots"] as? Array<JsonDictionary>
                     let span = postedSpans?.first { $0["span_id"] as? String == exportedSpan.spanId.hexString }
-                    if span != nil {
-                        //print("found span: \(exportedSpan.spanId.hexString)")
+                    let spanSnap = postedSpansSnapshots?.first { $0["span_id"] as? String == exportedSpan.spanId.hexString }
+                    if span != nil || spanSnap != nil {
                         foundSpans += 1
                     } else {
-                        print("MISSING span: \(exportedSpan.spanId.hexString)")
+                        print("MISSING span: \(exportedSpan.spanId.hexString) - Searched: \(exportedSpan.spanId.hexString)")
                         print("-- Span Name: \(exportedSpan.name)")
                         print("-- Span type: \(exportedSpan.embType)")
                         missingSpans += 1
                     }
                 }
             }
+            print("Session: \(sessionId) - Total Spans Posted: \(exportedSpans?.count ?? -1) - Found on Payload: \(foundSpans) - Missing: \(missingSpans)")
         }
 
         // Making sure all exported spans were posted
