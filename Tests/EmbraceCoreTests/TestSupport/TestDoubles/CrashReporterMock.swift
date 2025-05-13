@@ -8,18 +8,18 @@ import EmbraceCommonInternal
 class CrashReporterMock: CrashReporter {
 
     var currentSessionId: String?
-    var mockReports: [CrashReport]
+    var mockReports: [EmbraceCrashReport]
 
-    var onNewReport: ((CrashReport) -> Void)?
+    var onNewReport: ((EmbraceCrashReport) -> Void)?
 
     init(
         currentSessionId: String? = nil,
         crashSessionId: String? = nil,
-        mockReports: [CrashReport]? = nil
+        mockReports: [EmbraceCrashReport]? = nil
     ) {
         self.currentSessionId = currentSessionId
         self.mockReports = mockReports ?? [
-            CrashReport(
+            EmbraceCrashReport(
                 payload: "test",
                 provider: "mock",
                 internalId: 123,
@@ -34,7 +34,7 @@ class CrashReporterMock: CrashReporter {
         return forcedLastRunState
     }
 
-    func fetchUnsentCrashReports(completion: @escaping ([CrashReport]) -> Void) {
+    func fetchUnsentCrashReports(completion: @escaping ([EmbraceCrashReport]) -> Void) {
         completion(mockReports)
     }
 
@@ -43,7 +43,7 @@ class CrashReporterMock: CrashReporter {
             report.internalId == id
         }
     }
-
+    
     func install(context: CrashReporterContext, logger: InternalLogger) {
 
     }

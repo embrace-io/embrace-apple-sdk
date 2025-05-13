@@ -3,7 +3,9 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceObjCUtilsInternal
+#endif
 
 protocol URLSessionSwizzlerProvider {
     func getAll(usingHandler handler: URLSessionTaskHandler) -> [any URLSessionSwizzler]

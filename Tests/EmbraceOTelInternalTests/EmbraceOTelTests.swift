@@ -19,7 +19,7 @@ final class EmbraceOTelTests: XCTestCase {
 
         EmbraceOTel.setup(logSharedState: DefaultEmbraceLogSharedState.create(
             storage: try .createInMemoryDb(),
-            controller: DummyLogControllable(),
+            batcher: DummyLogBatcher(),
             exporter: logExporter,
             sdkStateProvider: sdkStateProvider
         ))

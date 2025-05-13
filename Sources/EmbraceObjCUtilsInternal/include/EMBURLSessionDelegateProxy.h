@@ -13,6 +13,9 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)finishWithTask:(NSURLSessionTask *)task
                   data:(nullable NSData *)data
                  error:(nullable NSError *)error NS_SWIFT_NAME(finish(task:data:error:));
+- (void)finishWithTask:(NSURLSessionTask *)task
+              bodySize:(NSInteger )bodySize
+                 error:(nullable NSError *)error NS_SWIFT_NAME(finish(task:bodySize:error:));
 - (void)addData:(NSData *)data dataTask:(NSURLSessionDataTask *)dataTask NS_SWIFT_NAME(addData(_:dataTask:));
 
 @end

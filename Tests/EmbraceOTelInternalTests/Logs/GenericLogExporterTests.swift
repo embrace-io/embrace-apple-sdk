@@ -18,7 +18,7 @@ final class GenericLogExporterTests: XCTestCase {
         let exporter = InMemoryLogRecordExporter()
         let sharedState = DefaultEmbraceLogSharedState.create(
             storage: try .createInMemoryDb(),
-            controller: DummyLogControllable(),
+            batcher: DummyLogBatcher(),
             exporter: exporter,
             sdkStateProvider: sdkStateProvider
         )

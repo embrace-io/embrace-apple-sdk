@@ -3,7 +3,9 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceOTelInternal
+#endif
 
 struct SpanEventPayload: Encodable {
     let name: String

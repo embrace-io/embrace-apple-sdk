@@ -3,7 +3,9 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
+#endif
 
 public extension EmbraceConfig {
     class Options {

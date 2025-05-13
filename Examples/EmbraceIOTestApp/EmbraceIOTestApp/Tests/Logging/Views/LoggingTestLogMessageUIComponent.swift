@@ -29,7 +29,7 @@ struct LoggingTestLogMessageUIComponent: View {
             TextField("Enter a message to log", text: $viewModel.message)
                 .font(.embraceFont(size: 18))
                 .foregroundStyle(.embraceSilver)
-                .padding([.leading, .trailing,], 5)
+                .padding([.leading, .trailing ], 5)
                 .textFieldStyle(RoundedStyle())
                 .accessibilityIdentifier("LogTests_LogMessage")
             Section("Severity Type") {

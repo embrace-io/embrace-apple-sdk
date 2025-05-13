@@ -3,14 +3,28 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceConfigInternal
 import EmbraceCommonInternal
 import EmbraceOTelInternal
 import EmbraceStorageInternal
 import EmbraceSemantics
 import EmbraceConfiguration
+#endif
 
-class NetworkPayloadCaptureHandler {
+protocol NetworkPayloadCaptureHandler {
+    func isEnabled() -> Bool
+    func process(
+        request: URLRequest?,
+        response: URLResponse?,
+        data: Data?,
+        error: Error?,
+        startTime: Date?,
+        endTime: Date?
+    )
+}
+
+class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
 
     @ThreadSafe
     var active = false
@@ -152,5 +166,9 @@ class NetworkPayloadCaptureHandler {
             // flag rule as triggered
             rulesTriggeredMap[rule.id] = true
         }
+    }
+
+    func isEnabled() -> Bool {
+        active && rules.count > 0
     }
 }

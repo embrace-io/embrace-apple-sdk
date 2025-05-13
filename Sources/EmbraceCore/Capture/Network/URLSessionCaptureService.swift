@@ -3,9 +3,11 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCaptureService
 import EmbraceCommonInternal
 import EmbraceObjCUtilsInternal
+#endif
 
 typealias URLSessionCompletion = (Data?, URLResponse?, Error?) -> Void
 typealias DownloadTaskCompletion = (URL?, URLResponse?, Error?) -> Void

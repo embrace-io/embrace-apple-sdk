@@ -248,6 +248,24 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertEqual(uploadData.count, 1)
     }
 
+    func testOnHavingBatcher_endSession_forcesEndBatchAndWaits() throws {
+        // given sesion controller has a batcher
+        let batcher = SpyLogBatcher()
+        controller.setLogBatcher(batcher)
+
+        // given a session was started
+        controller.startSession(state: .foreground)
+
+        // when ending the session
+        controller.endSession()
+
+        // then should force end current batch
+        XCTAssertTrue(batcher.didCallForceEndCurrentBatch)
+
+        // then should wait for log batch to be closed
+        XCTAssertTrue(try XCTUnwrap(batcher.forceEndCurrentBatchParameters))
+    }
+
     // MARK: update
 
     func test_update_assignsState_toBackground_whenPresent() throws {

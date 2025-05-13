@@ -189,7 +189,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
     /// Custom Stack Trace
     ///
 
-    ///Force try is unsafe but this hardcoded scenario *should* always work.
+    /// Force try is unsafe but this hardcoded scenario *should* always work.
     private var customStackTrace: EmbraceStackTrace {
         try! EmbraceStackTrace(frames: [
             "0 EmbraceIOTestApp 0x0000000005678def [SomeClass method] + 48",

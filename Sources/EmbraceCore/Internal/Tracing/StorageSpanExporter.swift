@@ -3,9 +3,11 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceStorageInternal
 import EmbraceOTelInternal
 import EmbraceCommonInternal
+#endif
 import OpenTelemetrySdk
 
 class StorageSpanExporter: SpanExporter {
