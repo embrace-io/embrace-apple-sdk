@@ -10,8 +10,7 @@ import EmbraceCrash
 import OpenTelemetrySdk
 
 struct EmbraceInitScreen: View {
-    @Environment(TestSpanExporter.self) private var spanExporter
-    @Environment(TestLogRecordExporter.self) private var logExporter
+    @Environment(DataCollector.self) private var dataCollector
     @State private var appId: String = "AK5HV"
     @State private var baseURL: String = "http://127.0.0.1:8989/api"
     @State private var devBaseURL: String = "http://127.0.0.1:8989/api"
@@ -105,7 +104,7 @@ private extension EmbraceInitScreen {
                                 configBaseURL: configBaseURL),
                               captureServices: services,
                               crashReporter: EmbraceCrashReporter(),
-                              export: .init(spanExporter: spanExporter, logExporter: logExporter))
+                              export: .init(spanExporter: dataCollector.spanExporter, logExporter: dataCollector.logExporter))
                 ).start()
             showProgressview = false
         } catch let e {

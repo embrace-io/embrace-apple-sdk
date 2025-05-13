@@ -36,7 +36,6 @@ struct TestScreenButtonView: View {
 }
 
 #Preview {
-    let spanExporter = TestSpanExporter()
     VStack {
         TestScreenButtonView(viewModel: SpanTestUIComponentViewModel(dataModel: ViewControllerTestsDataModel.viewDidAppearMeasurement,
                                                                      payloadTestObject: ViewControllerViewDidLoadTest()))
