@@ -14,7 +14,7 @@ import EmbraceSemantics
 extension CaptureServices {
 
     var viewCaptureService: ViewCaptureService? {
-        services.value.first(where: { $0 is ViewCaptureService }) as? ViewCaptureService
+        services.first(where: { $0 is ViewCaptureService }) as? ViewCaptureService
     }
 
     var serviceNotFoundError: ViewCaptureServiceError {

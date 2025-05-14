@@ -13,8 +13,11 @@ import EmbraceConfiguration
 
 final class CaptureServices {
 
-    var services: EmbraceMutex<[CaptureService]>
-
+    private var _services: EmbraceMutex<[CaptureService]>
+    var services: [CaptureService] {
+        _services.value
+    }
+    
     var context: CrashReporterContext
     weak var crashReporter: CrashReporter?
 
@@ -30,7 +33,7 @@ final class CaptureServices {
 
         // add required capture services
         // and remove duplicates
-        services = EmbraceMutex(CaptureServiceFactory.addRequiredServices(to: options.services.unique))
+        _services = EmbraceMutex(CaptureServiceFactory.addRequiredServices(to: options.services.unique))
 
         // create context for crash reporter
         let partitionIdentifier = options.appId ?? EmbraceFileSystem.defaultPartitionId
@@ -61,7 +64,7 @@ final class CaptureServices {
 
         // pass storage reference to capture services
         // that generate resources
-        for service in services.value {
+        for service in services {
             if let resourceService = service as? ResourceCaptureService {
                 resourceService.handler = storage
             }
@@ -80,7 +83,7 @@ final class CaptureServices {
     // for testing
     init(config: EmbraceConfigurable?, services: [CaptureService], context: CrashReporterContext) {
         self.config = config
-        self.services = EmbraceMutex(services)
+        self._services = EmbraceMutex(services)
         self.context = context
     }
 
@@ -91,19 +94,19 @@ final class CaptureServices {
     func install() {
         crashReporter?.install(context: context, logger: Embrace.logger)
 
-        for service in services.value {
+        for service in services {
             service.install(otel: Embrace.client, logger: Embrace.logger)
         }
     }
 
     func start() {
-        for service in services.value {
+        for service in services {
             service.start()
         }
     }
 
     func stop() {
-        for service in services.value {
+        for service in services {
             service.stop()
         }
     }
