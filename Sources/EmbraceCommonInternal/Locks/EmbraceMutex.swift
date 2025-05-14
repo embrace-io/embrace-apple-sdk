@@ -48,8 +48,13 @@ extension EmbraceMutex {
     ///
     /// - Warning: This computed property acquires a lock on every access.
     ///            Prefer `withLock(_:)` for batching reads/writes when possible.
-    public var value: Value {
+    public var safeValue: Value {
         get { withLock { $0 } }
         set { withLock { $0 = newValue } }
+    }
+    
+    /// Synchronously gets the protected value without using the lock.
+    public var unsafeValue: Value {
+        storage
     }
 }

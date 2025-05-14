@@ -114,7 +114,7 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
         startTime: Date?,
         endTime: Date?
     ) {
-        var protectedDataCopy = _protectedData.value
+        var protectedDataCopy = _protectedData.safeValue
         
         guard protectedDataCopy.active else {
             return

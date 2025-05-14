@@ -15,7 +15,7 @@ final class CaptureServices {
 
     private var _services: EmbraceMutex<[CaptureService]>
     var services: [CaptureService] {
-        _services.value
+        _services.safeValue
     }
     
     var context: CrashReporterContext
