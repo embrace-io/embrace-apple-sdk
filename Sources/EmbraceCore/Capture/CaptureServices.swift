@@ -13,8 +13,7 @@ import EmbraceConfiguration
 
 final class CaptureServices {
 
-    @ThreadSafe
-    var services: [CaptureService]
+    var services: EmbraceMutex<[CaptureService]>
 
     var context: CrashReporterContext
     weak var crashReporter: CrashReporter?
@@ -31,7 +30,7 @@ final class CaptureServices {
 
         // add required capture services
         // and remove duplicates
-        services = CaptureServiceFactory.addRequiredServices(to: options.services.unique)
+        services = EmbraceMutex(CaptureServiceFactory.addRequiredServices(to: options.services.unique))
 
         // create context for crash reporter
         let partitionIdentifier = options.appId ?? EmbraceFileSystem.defaultPartitionId
@@ -62,7 +61,7 @@ final class CaptureServices {
 
         // pass storage reference to capture services
         // that generate resources
-        for service in services {
+        for service in services.value {
             if let resourceService = service as? ResourceCaptureService {
                 resourceService.handler = storage
             }
@@ -81,7 +80,7 @@ final class CaptureServices {
     // for testing
     init(config: EmbraceConfigurable?, services: [CaptureService], context: CrashReporterContext) {
         self.config = config
-        self.services = services
+        self.services = EmbraceMutex(services)
         self.context = context
     }
 
@@ -92,19 +91,19 @@ final class CaptureServices {
     func install() {
         crashReporter?.install(context: context, logger: Embrace.logger)
 
-        for service in services {
+        for service in services.value {
             service.install(otel: Embrace.client, logger: Embrace.logger)
         }
     }
 
     func start() {
-        for service in services {
+        for service in services.value {
             service.start()
         }
     }
 
     func stop() {
-        for service in services {
+        for service in services.value {
             service.stop()
         }
     }

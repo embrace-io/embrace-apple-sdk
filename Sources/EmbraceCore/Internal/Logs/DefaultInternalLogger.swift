@@ -21,14 +21,17 @@ class DefaultInternalLogger: InternalLogger {
 
     var otel: EmbraceOpenTelemetry?
 
-    @ThreadSafe
-    var limits: InternalLogLimits = InternalLogLimits()
-
-    @ThreadSafe
-    private var counter: [LogLevel: Int] = [:]
-
-    @ThreadSafe
-    private var currentSession: EmbraceSession?
+    struct LoggerData {
+        var limits: InternalLogLimits = InternalLogLimits()
+        var counter: [LogLevel: Int] = [:]
+        var currentSession: EmbraceSession?
+    }
+    private let _data = EmbraceMutex(LoggerData())
+    
+    var limits: InternalLogLimits {
+        get { _data.withLock { $0.limits } }
+        set { _data.withLock { $0.limits = newValue } }
+    }
 
     init() {
         NotificationCenter.default.addObserver(
@@ -51,12 +54,16 @@ class DefaultInternalLogger: InternalLogger {
     }
 
     @objc func onSessionStart(notification: Notification) {
-        currentSession = notification.object as? EmbraceSession
-        counter.removeAll()
+        _data.withLock {
+            $0.currentSession = notification.object as? EmbraceSession
+            $0.counter.removeAll()
+        }
     }
 
     @objc func onSessionEnd(notification: Notification) {
-        currentSession = nil
+        _data.withLock {
+            $0.currentSession = nil
+        }
     }
 
     @discardableResult func log(level: LogLevel, message: String, attributes: [String: String]) -> Bool {
@@ -110,16 +117,29 @@ class DefaultInternalLogger: InternalLogger {
     }
 
     private func sendOTelLog(level: LogLevel, message: String, attributes: [String: String]) {
-        let limit = limits.limit(for: level)
-        guard limit > 0 else {
+        
+        let (proceed, currentSession) = _data.withLock {
+            let limit = $0.limits.limit(for: level)
+            guard limit > 0 else {
+                return (false, $0.currentSession)
+            }
+            
+            var count = $0.counter[level] ?? 0
+            guard count < limit else {
+                return (false, $0.currentSession)
+            }
+            
+            // update count
+            count += 1
+            $0.counter[level] = count
+            
+            return (true, $0.currentSession)
+        }
+        
+        guard proceed else {
             return
         }
-
-        var count = counter[level] ?? 0
-        guard count < limit else {
-            return
-        }
-
+        
         // build attributes
         let attributesBuilder = EmbraceLogAttributesBuilder(
             session: currentSession,
@@ -141,9 +161,7 @@ class DefaultInternalLogger: InternalLogger {
             stackTraceBehavior: .default
         )
 
-        // update count
-        count += 1
-        counter[level] = count
+        
     }
 }
 

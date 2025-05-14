@@ -26,23 +26,20 @@ protocol NetworkPayloadCaptureHandler {
 
 class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
 
-    @ThreadSafe
-    var active = false
-
-    @ThreadSafe
-    var rules: [URLSessionTaskCaptureRule] = []
-
-    @ThreadSafe
-    var rulesTriggeredMap: [String: Bool] = [:]
-
-    @ThreadSafe
-    var currentSessionId: SessionIdentifier?
-
+    struct ProtectedData {
+        var active = false
+        var rules: [URLSessionTaskCaptureRule] = []
+        var rulesTriggeredMap: [String: Bool] = [:]
+        var currentSessionId: SessionIdentifier? = nil
+    }
+    var _protectedData: EmbraceMutex<ProtectedData>
+    
     private var otel: EmbraceOpenTelemetry?
 
     init(otel: EmbraceOpenTelemetry?) {
         self.otel = otel
-
+        self._protectedData = EmbraceMutex(ProtectedData())
+        
         Embrace.notificationCenter.addObserver(
             self,
             selector: #selector(onConfigUpdated),
@@ -66,8 +63,10 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
 
         // check if a session is already started
         if let sessionId = Embrace.client?.currentSessionId() {
-            active = true
-            currentSessionId = SessionIdentifier(string: sessionId)
+            _protectedData.withLock {
+                $0.active = true
+                $0.currentSessionId = SessionIdentifier(string: sessionId)
+            }
         }
     }
 
@@ -80,8 +79,11 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
         guard let rules = rules else {
             return
         }
-
-        self.rules = rules.map { URLSessionTaskCaptureRule(rule: $0) }
+        
+        let newRules = rules.map { URLSessionTaskCaptureRule(rule: $0) }
+        _protectedData.withLock {
+            $0.rules = newRules
+        }
     }
 
     @objc private func onConfigUpdated(_ notification: Notification) {
@@ -90,15 +92,18 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
     }
 
     @objc func onSessionStart(_ notification: Notification) {
-        active = true
-        rulesTriggeredMap.removeAll()
-
-        currentSessionId = (notification.object as? EmbraceSession)?.id
+        _protectedData.withLock {
+            $0.active = true
+            $0.rulesTriggeredMap.removeAll()
+            $0.currentSessionId = (notification.object as? EmbraceSession)?.id
+        }
     }
 
     @objc func onSessionEnd() {
-        active = false
-        currentSessionId = nil
+        _protectedData.withLock {
+            $0.active = false
+            $0.currentSessionId = nil
+        }
     }
 
     public func process(
@@ -109,14 +114,15 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
         startTime: Date?,
         endTime: Date?
     ) {
-
-        guard active else {
+        var protectedDataCopy = _protectedData.value
+        
+        guard protectedDataCopy.active else {
             return
         }
 
-        for rule in rules {
+        for rule in protectedDataCopy.rules {
             // check if rule was already triggered
-            guard rulesTriggeredMap[rule.id] == nil else {
+            guard protectedDataCopy.rulesTriggeredMap[rule.id] == nil else {
                 continue
             }
 
@@ -134,7 +140,7 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
                 startTime: startTime,
                 endTime: endTime,
                 matchedUrl: rule.urlRegex,
-                sessionId: currentSessionId
+                sessionId: protectedDataCopy.currentSessionId
             ) else {
                 Embrace.logger.debug("Couldn't generate payload for task \(rule.urlRegex)!")
                 return
@@ -164,11 +170,18 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
             )
 
             // flag rule as triggered
-            rulesTriggeredMap[rule.id] = true
+            protectedDataCopy.rulesTriggeredMap[rule.id] = true
+        }
+        
+        // udpate all mutations to protected data
+        _protectedData.withLock {
+            $0.rulesTriggeredMap = protectedDataCopy.rulesTriggeredMap
         }
     }
 
     func isEnabled() -> Bool {
-        active && rules.count > 0
+        _protectedData.withLock {
+            $0.active && $0.rules.count > 0
+        }
     }
 }
