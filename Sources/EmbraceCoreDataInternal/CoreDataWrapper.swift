@@ -45,7 +45,7 @@ public class CoreDataWrapper {
 
         container.loadPersistentStores { _, error in
             if let error {
-                logger.error("Error initializing CoreData \"\(name)\": \(error.localizedDescription)")
+                logger.critical("Error initializing CoreData \"\(name)\": \(error.localizedDescription)")
             }
         }
 
@@ -71,7 +71,7 @@ public class CoreDataWrapper {
                         )
                         try FileManager.default.removeItem(at: url)
                     } catch {
-                        logger.error("Error destroying CoreData stack!:\n\(error.localizedDescription)")
+                        logger.critical("Error destroying CoreData stack!:\n\(error.localizedDescription)")
                     }
                 }
 
@@ -82,7 +82,7 @@ public class CoreDataWrapper {
                 do {
                     try container.persistentStoreCoordinator.remove(store)
                 } catch {
-                    logger.error("Error removing CoreData store!:\n\(error.localizedDescription)")
+                    logger.critical("Error removing CoreData store!:\n\(error.localizedDescription)")
                 }
             }
 
@@ -103,7 +103,7 @@ public class CoreDataWrapper {
                 try self.context.save()
             } catch {
                 let name = self.context.name ?? "???"
-                self.logger.error("Error saving CoreData \"\(name)\": \(error.localizedDescription)")
+                self.logger.critical("Error saving CoreData \"\(name)\": \(error.localizedDescription)")
             }
         }
     }
@@ -120,7 +120,7 @@ public class CoreDataWrapper {
             do {
                 result = try context.fetch(request)
             } catch {
-                self.logger.error("Error fetching!!!:\n\(error.localizedDescription)")
+                self.logger.critical("Error fetching!!!:\n\(error.localizedDescription)")
             }
         }
         return result
@@ -139,7 +139,7 @@ public class CoreDataWrapper {
                     let result = try self.context.fetch(request)
                     block(result)
                 } catch {
-                    self.logger.error("Error fetching with perform!!!:\n\(error.localizedDescription)")
+                    self.logger.critical("Error fetching with perform!!!:\n\(error.localizedDescription)")
                 }
             }
         }
@@ -157,7 +157,7 @@ public class CoreDataWrapper {
                     let result = try self.context.fetch(request)
                     block(result.first)
                 } catch {
-                    self.logger.error("Error fetching first with perform!!!:\n\(error.localizedDescription)")
+                    self.logger.critical("Error fetching first with perform!!!:\n\(error.localizedDescription)")
                 }
             }
         }
@@ -174,7 +174,7 @@ public class CoreDataWrapper {
             do {
                 result = try self.context.count(for: request)
             } catch {
-                self.logger.error("Error fetching count!!!:\n\(error.localizedDescription)")
+                self.logger.critical("Error fetching count!!!:\n\(error.localizedDescription)")
             }
         }
         return result
@@ -199,7 +199,7 @@ public class CoreDataWrapper {
             do {
                 try self.context.save()
             } catch {
-                self.logger.error("Error deleting records!!!:\n\(error.localizedDescription)")
+                self.logger.critical("Error deleting records!!!:\n\(error.localizedDescription)")
             }
         }
     }
@@ -218,7 +218,7 @@ public class CoreDataWrapper {
 
                 try self.context.save()
             } catch {
-                self.logger.error("Error deleting records with request:\n\(error.localizedDescription)")
+                self.logger.critical("Error deleting records with request:\n\(error.localizedDescription)")
             }
         }
     }

@@ -12,6 +12,7 @@ public struct EmbraceFileSystem {
     static let crashesDirectoryName = "crashes"
     static let captureDirectoryName = "capture"
     static let configDirectoryName = "config"
+    static let criticalLogsName = "critical-logs"
 
     static let defaultPartitionId = "default"
 
@@ -115,5 +116,13 @@ public struct EmbraceFileSystem {
             partitionId: partitionIdentifier,
             appGroupId: appGroupId
         )
+    }
+
+    /// Returns the fileURL for the critical logs file
+    /// ```
+    /// io.embrace.data/critical-logs
+    /// ```
+    static func criticalLogsURL() -> URL? {
+        return rootURL()?.appendingPathComponent(criticalLogsName)
     }
 }

@@ -136,8 +136,8 @@ class CoreDataWrapperTests: XCTestCase {
 
     func test_deleteRecords_withRequest() throws {
         // given a wrapper with data
-        let record1 = MockRecord.create(context: wrapper.context, id: "test1")
-        let record2 = MockRecord.create(context: wrapper.context, id: "test2")
+        _ = MockRecord.create(context: wrapper.context, id: "test1")
+        _ = MockRecord.create(context: wrapper.context, id: "test2")
         wrapper.save()
 
         // when deleting the record
