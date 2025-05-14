@@ -27,12 +27,12 @@ protocol NetworkPayloadCaptureHandler {
 class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
 
     struct ProtectedData {
-        var active = false
+        var active: Bool = false
         var rules: [URLSessionTaskCaptureRule] = []
         var rulesTriggeredMap: [String: Bool] = [:]
         var currentSessionId: SessionIdentifier? = nil
     }
-    var _protectedData: EmbraceMutex<ProtectedData>
+    internal var _protectedData: EmbraceMutex<ProtectedData>
     
     private var otel: EmbraceOpenTelemetry?
 
