@@ -306,8 +306,6 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
                 } else {
                     Embrace.logger.startup("Embrace SDK started successfully!")
                 }
-
-                Embrace.logger.critical("TEST TEST TEST")
             }
         }
 
