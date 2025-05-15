@@ -109,6 +109,7 @@ struct ResourcePayload: Codable {
 
         // bundle_id is constant and won't change over app install lifetime
         self.appBundleId = Bundle.main.bundleIdentifier
+        self.osName = EMBDevice.operatingSystemType
 
         resources.forEach { resource in
             guard !excludedKeys.contains(resource.key) else {
@@ -168,8 +169,6 @@ struct ResourcePayload: Codable {
                     self.osVersion = resource.value
                 case .osType:
                     self.osType = resource.value
-                case .osName:
-                    self.osName = resource.value
                 default:
                     break
                 }
