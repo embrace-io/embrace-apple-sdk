@@ -189,21 +189,21 @@ class NetworkPayloadCaptureHandlerTests: XCTestCase {
 
 extension DefaultNetworkPayloadCaptureHandler {
     var rules: [URLSessionTaskCaptureRule] {
-        get { _protectedData.withLock { $0.rules } }
+        get { state.withLock { $0.rules } }
     }
     
     var rulesTriggeredMap: [String: Bool] {
-        get { _protectedData.withLock { $0.rulesTriggeredMap } }
-        set { _protectedData.withLock { $0.rulesTriggeredMap = newValue }}
+        get { state.withLock { $0.rulesTriggeredMap } }
+        set { state.withLock { $0.rulesTriggeredMap = newValue }}
     }
     
     var active: Bool {
-        get { _protectedData.withLock { $0.active } }
-        set { _protectedData.withLock { $0.active = newValue }}
+        get { state.withLock { $0.active } }
+        set { state.withLock { $0.active = newValue }}
     }
     
     var currentSessionId: SessionIdentifier? {
-        get { _protectedData.withLock { $0.currentSessionId } }
-        set { _protectedData.withLock { $0.currentSessionId = newValue }}
+        get { state.withLock { $0.currentSessionId } }
+        set { state.withLock { $0.currentSessionId = newValue }}
     }
 }
