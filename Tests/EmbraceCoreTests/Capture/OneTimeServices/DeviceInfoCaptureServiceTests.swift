@@ -25,7 +25,7 @@ final class DeviceInfoCaptureServiceTests: XCTestCase {
         let processId = ProcessIdentifier.current.hex
 
         let resources = handler.fetchResourcesForProcessId(.current)
-        XCTAssertEqual(resources.count, 11)
+        XCTAssertEqual(resources.count, 10)
 
         // jailbroken
         let jailbroken = handler.fetchMetadata(
@@ -118,17 +118,7 @@ final class DeviceInfoCaptureServiceTests: XCTestCase {
         XCTAssertNotNil(osType)
         XCTAssertEqual(osType!.value, "darwin")
 
-        // osName
-        let osName = handler.fetchMetadata(
-            key: ResourceAttributes.osName.rawValue,
-            type: .requiredResource,
-            lifespan: .process,
-            lifespanId: processId
-        )
-        XCTAssertNotNil(osName)
-        XCTAssertEqual(osName!.value, EMBDevice.operatingSystemType)
-
-        // osName
+        // architecture
         let architecture = handler.fetchMetadata(
             key: DeviceResourceKey.architecture.rawValue,
             type: .requiredResource,

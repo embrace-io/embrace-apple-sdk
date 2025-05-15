@@ -9,8 +9,7 @@ import TestSupport
 class EmbraceUploadTests: XCTestCase {
     static let testMetadataOptions = EmbraceUpload.MetadataOptions(
         apiKey: "apiKey",
-        userAgent: "userAgent",
-        deviceId: "12345678"
+        userAgent: "userAgent"
     )
     static let testRedundancyOptions = EmbraceUpload.RedundancyOptions(automaticRetryCount: 0)
 

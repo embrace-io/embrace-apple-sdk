@@ -16,9 +16,9 @@ class EmbraceUploadOperationTests: XCTestCase {
 
     let testMetadataOptions = EmbraceUpload.MetadataOptions(
         apiKey: "apiKey",
-        userAgent: "userAgent",
-        deviceId: "12345678"
+        userAgent: "userAgent"
     )
+    let deviceId = "12345678"
     var urlSession: URLSession!
     var queue: DispatchQueue!
 
@@ -46,6 +46,7 @@ class EmbraceUploadOperationTests: XCTestCase {
             urlSession: urlSession,
             queue: queue,
             metadataOptions: testMetadataOptions,
+            deviceId: deviceId,
             endpoint: TestConstants.url,
             identifier: "id",
             data: Data(),
@@ -78,7 +79,7 @@ class EmbraceUploadOperationTests: XCTestCase {
         XCTAssertEqual(headers["User-Agent"], testMetadataOptions.userAgent)
         XCTAssertEqual(headers["Content-Encoding"], "gzip")
         XCTAssertEqual(headers["X-EM-AID"], testMetadataOptions.apiKey)
-        XCTAssertEqual(headers["X-EM-DID"], testMetadataOptions.deviceId)
+        XCTAssertEqual(headers["X-EM-DID"], deviceId)
         XCTAssertNil(headers["x-emb-retry-count"])
     }
 
@@ -93,6 +94,7 @@ class EmbraceUploadOperationTests: XCTestCase {
             urlSession: urlSession,
             queue: queue,
             metadataOptions: testMetadataOptions,
+            deviceId: deviceId,
             endpoint: TestConstants.url,
             identifier: "id",
             data: Data(),
@@ -123,6 +125,7 @@ class EmbraceUploadOperationTests: XCTestCase {
             urlSession: urlSession,
             queue: queue,
             metadataOptions: testMetadataOptions,
+            deviceId: deviceId,
             endpoint: TestConstants.url,
             identifier: "id",
             data: Data(),
@@ -162,6 +165,7 @@ class EmbraceUploadOperationTests: XCTestCase {
             urlSession: urlSession,
             queue: queue,
             metadataOptions: testMetadataOptions,
+            deviceId: deviceId,
             endpoint: TestConstants.url,
             identifier: "id",
             data: Data(),
@@ -192,6 +196,7 @@ class EmbraceUploadOperationTests: XCTestCase {
             urlSession: urlSession,
             queue: queue,
             metadataOptions: testMetadataOptions,
+            deviceId: deviceId,
             endpoint: TestConstants.url,
             identifier: "id",
             data: Data(),
@@ -223,6 +228,7 @@ class EmbraceUploadOperationTests: XCTestCase {
             urlSession: urlSession,
             queue: queue,
             metadataOptions: testMetadataOptions,
+            deviceId: deviceId,
             endpoint: TestConstants.url,
             identifier: "id",
             data: Data(),
@@ -254,6 +260,7 @@ class EmbraceUploadOperationTests: XCTestCase {
             urlSession: urlSession,
             queue: queue,
             metadataOptions: testMetadataOptions,
+            deviceId: deviceId,
             endpoint: TestConstants.url,
             identifier: "id",
             data: Data(),
@@ -291,6 +298,7 @@ class EmbraceUploadOperationTests: XCTestCase {
             urlSession: urlSession,
             queue: queue,
             metadataOptions: testMetadataOptions,
+            deviceId: deviceId,
             endpoint: TestConstants.url,
             identifier: "id",
             data: Data(),
@@ -343,6 +351,7 @@ class EmbraceUploadOperationTests: XCTestCase {
             urlSession: urlSession,
             queue: queue,
             metadataOptions: testMetadataOptions,
+            deviceId: deviceId,
             endpoint: TestConstants.url,
             identifier: "id",
             data: Data(),
@@ -396,6 +405,7 @@ class EmbraceUploadOperationTests: XCTestCase {
             urlSession: urlSession,
             queue: queue,
             metadataOptions: testMetadataOptions,
+            deviceId: deviceId,
             endpoint: TestConstants.url,
             identifier: "id",
             data: Data(),

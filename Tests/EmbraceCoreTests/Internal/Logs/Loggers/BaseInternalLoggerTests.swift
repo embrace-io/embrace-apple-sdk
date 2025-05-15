@@ -11,7 +11,7 @@ import EmbraceConfiguration
 import OpenTelemetryApi
 import EmbraceCommonInternal
 
-class DefaultInternalLoggerTests: XCTestCase {
+class BaseInternalLoggerTests: XCTestCase {
 
     var session: EmbraceSession!
     var storage: EmbraceStorage!
@@ -35,8 +35,7 @@ class DefaultInternalLoggerTests: XCTestCase {
     }
 
     func test_none() {
-
-        let logger = DefaultInternalLogger()
+        let logger = BaseInternalLogger()
         logger.level = .none
 
         XCTAssertFalse(logger.trace("trace"))
@@ -48,7 +47,7 @@ class DefaultInternalLoggerTests: XCTestCase {
 
 
     func test_trace() {
-        let logger = DefaultInternalLogger()
+        let logger = BaseInternalLogger()
         logger.level = .trace
 
         XCTAssert(logger.trace("trace"))
@@ -59,7 +58,7 @@ class DefaultInternalLoggerTests: XCTestCase {
     }
 
     func test_debug() {
-        let logger = DefaultInternalLogger()
+        let logger = BaseInternalLogger()
         logger.level = .debug
 
         XCTAssertFalse(logger.trace("trace"))
@@ -70,7 +69,7 @@ class DefaultInternalLoggerTests: XCTestCase {
     }
 
     func test_info() {
-        let logger = DefaultInternalLogger()
+        let logger = BaseInternalLogger()
         logger.level = .info
 
         XCTAssertFalse(logger.trace("trace"))
@@ -81,7 +80,7 @@ class DefaultInternalLoggerTests: XCTestCase {
     }
 
     func test_warning() {
-        let logger = DefaultInternalLogger()
+        let logger = BaseInternalLogger()
         logger.level = .warning
 
         XCTAssertFalse(logger.trace("trace"))
@@ -92,7 +91,7 @@ class DefaultInternalLoggerTests: XCTestCase {
     }
 
     func test_error() {
-        let logger = DefaultInternalLogger()
+        let logger = BaseInternalLogger()
         logger.level = .error
 
         XCTAssertFalse(logger.trace("trace"))
@@ -105,7 +104,7 @@ class DefaultInternalLoggerTests: XCTestCase {
     func test_internal_trace() {
         // given "cha logger with limtis
         let otel = MockEmbraceOpenTelemetry()
-        let logger = DefaultInternalLogger()
+        let logger = BaseInternalLogger()
         logger.otel = otel
         logger.limits = InternalLogLimits(trace: 1, debug: 0, info: 0, warning: 0, error: 0)
 
@@ -132,7 +131,7 @@ class DefaultInternalLoggerTests: XCTestCase {
     func test_internal_debug() {
         // given "cha logger with limtis
         let otel = MockEmbraceOpenTelemetry()
-        let logger = DefaultInternalLogger()
+        let logger = BaseInternalLogger()
         logger.otel = otel
         logger.limits = InternalLogLimits(trace: 0, debug: 1, info: 0, warning: 0, error: 0)
 
@@ -159,7 +158,7 @@ class DefaultInternalLoggerTests: XCTestCase {
     func test_internal_info() {
         // given "cha logger with limtis
         let otel = MockEmbraceOpenTelemetry()
-        let logger = DefaultInternalLogger()
+        let logger = BaseInternalLogger()
         logger.otel = otel
         logger.limits = InternalLogLimits(trace: 0, debug: 0, info: 1, warning: 0, error: 0)
 
@@ -186,7 +185,7 @@ class DefaultInternalLoggerTests: XCTestCase {
     func test_internal_warning() {
         // given "cha logger with limtis
         let otel = MockEmbraceOpenTelemetry()
-        let logger = DefaultInternalLogger()
+        let logger = BaseInternalLogger()
         logger.otel = otel
         logger.limits = InternalLogLimits(trace: 0, debug: 0, info: 0, warning: 1, error: 0)
 
@@ -213,7 +212,7 @@ class DefaultInternalLoggerTests: XCTestCase {
     func test_internal_error() {
         // given "cha logger with limtis
         let otel = MockEmbraceOpenTelemetry()
-        let logger = DefaultInternalLogger()
+        let logger = BaseInternalLogger()
         logger.otel = otel
         logger.limits = InternalLogLimits(trace: 0, debug: 0, info: 0, warning: 0, error: 1)
 
@@ -240,7 +239,7 @@ class DefaultInternalLoggerTests: XCTestCase {
     func test_internal_mixed() {
         // given "cha logger with limtis
         let otel = MockEmbraceOpenTelemetry()
-        let logger = DefaultInternalLogger()
+        let logger = BaseInternalLogger()
         logger.otel = otel
         logger.limits = InternalLogLimits(trace: 2, debug: 3, info: 1, warning: 0, error: 4)
 

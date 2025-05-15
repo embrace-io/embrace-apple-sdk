@@ -96,7 +96,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
 
     static let notificationCenter: NotificationCenter = NotificationCenter()
 
-    static let logger: DefaultInternalLogger = DefaultInternalLogger()
+    static var logger: DefaultInternalLogger = DefaultInternalLogger(exportFilePath: EmbraceFileSystem.criticalLogsURL)
 
     /// Method used to configure the Embrace SDK.
     /// - Parameter options: `Embrace.Options` to be used by the SDK.
@@ -129,6 +129,9 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
             client = try Embrace(options: options)
             if let client = client {
                 client.recordSetupSpan(startTime: startTime)
+
+                Embrace.logger.startup("Embrace SDK setup finished")
+
                 return client
             } else {
                 throw EmbraceSetupError.unableToInitialize("Unable to initialize Embrace.client")
@@ -151,20 +154,40 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         self.options = options
         self.logLevel = options.logLevel
 
+        // initialize upload module
+        self.upload = Embrace.createUpload(options: options)
+
+        // send critical logs from previous session
+        if #available(iOS 15.0, *) {
+            UnsentDataHandler.sendCriticalLogs(fileUrl: EmbraceFileSystem.criticalLogsURL, upload: upload)
+        }
+
+        // initialize storage module
         self.storage = try embraceStorage ?? Embrace.createStorage(options: options)
+
+        // retrieve device identifier
         self.deviceId = DeviceIdentifier.retrieve(from: storage)
-        self.upload = Embrace.createUpload(options: options, deviceId: deviceId.hex)
+        self.upload?.deviceId = deviceId.hex.filter { c in c.isHexDigit }
+
+        // initialize remote configuration
         self.config = Embrace.createConfig(options: options, deviceId: deviceId)
+
+        // initialize capture services
         self.captureServices = try CaptureServices(
             options: options,
             config: config?.configurable,
             storage: storage,
             upload: upload
         )
+
+        // initialize session controller
         self.sessionController = SessionController(storage: storage, upload: upload, config: config)
         self.sessionLifecycle = Embrace.createSessionLifecycle(controller: sessionController)
+
+        // initialize metadata handler
         self.metadata = MetadataHandler(storage: storage, sessionController: sessionController)
 
+        // initialize log controller
         var logController: LogController?
         if let logControllable = logControllable {
             self.logController = logControllable
@@ -218,6 +241,8 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         )
 
         state = .initialized
+
+        Embrace.logger.startup("Embrace SDK client initialized")
     }
 
     /// Method used to start the Embrace SDK.
@@ -256,7 +281,6 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
                 self.processingQueue.async { [weak self] in
 
                     self?.captureServices.start()
-
                     // fetch crash reports and link them to sessions
                     // then upload them
                     UnsentDataHandler.sendUnsentData(
@@ -270,6 +294,12 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
 
                     // retry any remaining cached upload data
                     self?.upload?.retryCachedData()
+                }
+
+                if let appId = options.appId {
+                    Embrace.logger.startup("Embrace SDK started successfully with key: \(appId)")
+                } else {
+                    Embrace.logger.startup("Embrace SDK started successfully!")
                 }
             }
         }
@@ -304,6 +334,8 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
             sessionLifecycle.stop()
             sessionController.clear()
             captureServices.stop()
+
+            Embrace.logger.startup("Embrace SDK stopped successfully!")
         }
 
         return self

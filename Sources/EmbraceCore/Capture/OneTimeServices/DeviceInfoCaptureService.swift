@@ -62,11 +62,6 @@ class DeviceInfoCaptureService: ResourceCaptureService {
             value: .string("darwin")
         )
 
-        addResource(
-            key: ResourceAttributes.osName.rawValue,
-            value: .string(EMBDevice.operatingSystemType)
-        )
-
         // model
         addResource(
             key: ResourceAttributes.deviceModelIdentifier.rawValue,
