@@ -36,6 +36,12 @@ internal struct EmbraceTraceView<Content: View>: View {
             phase.cycledSpan("emb-view-fc-\(name)", attributes: attributes)
         }
         
+        var firstRenderPhaseSpan: Span? = nil
+        if phase.isFirstRender {
+            /// Emit a tracing span for the first render of this view.
+            firstRenderPhaseSpan = phase.startSpan("emb-view-first-render-\(name)", attributes: attributes)
+        }
+        
         /// Start a span around the body evaluation of the view.
         // TODO: name this correctly
         let span = phase.startSpan("emb-view-body-\(name)", attributes: attributes)
@@ -45,5 +51,8 @@ internal struct EmbraceTraceView<Content: View>: View {
         }
         
         return content()
+            .onAppear {
+                phase.endSpan(firstRenderPhaseSpan)
+            }
     }
 }
