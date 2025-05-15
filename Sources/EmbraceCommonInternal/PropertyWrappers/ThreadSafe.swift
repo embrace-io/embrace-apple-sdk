@@ -18,6 +18,8 @@ import Foundation
 /// One thread might acquire the lock multiple times in a row while other threads are waiting.
 ///
 /// - Important: Do not use this wrapper for recursive access patterns; it will deadlock.
+/// - Note: This is similar to the `atomic` property attribute in Objective-C, it gives thread safe acccess to the
+/// pointer, not the contents.
 @propertyWrapper
 public final class ThreadSafe<Value> {
     private var value: Value
