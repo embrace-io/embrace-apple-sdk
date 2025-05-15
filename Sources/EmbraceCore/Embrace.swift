@@ -96,7 +96,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
 
     static let notificationCenter: NotificationCenter = NotificationCenter()
 
-    static var logger: EmbraceInternalLogger = BaseInternalLogger()
+    static var logger: DefaultInternalLogger = DefaultInternalLogger(exportFilePath: EmbraceFileSystem.criticalLogsURL)
 
     /// Method used to configure the Embrace SDK.
     /// - Parameter options: `Embrace.Options` to be used by the SDK.
@@ -151,11 +151,6 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
          logControllable: LogControllable? = nil,
          embraceStorage: EmbraceStorage? = nil) throws {
 
-        // use OSLog in iOS 15+
-        if #available(iOS 15.0, *) {
-            Embrace.logger = DefaultInternalLogger(exportFilePath: EmbraceFileSystem.criticalLogsURL())
-        }
-
         self.options = options
         self.logLevel = options.logLevel
 
@@ -164,7 +159,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
 
         // send critical logs from previous session
         if #available(iOS 15.0, *) {
-            UnsentDataHandler.sendCriticalLogs(fileUrl: EmbraceFileSystem.criticalLogsURL(), upload: upload)
+            UnsentDataHandler.sendCriticalLogs(fileUrl: EmbraceFileSystem.criticalLogsURL, upload: upload)
         }
 
         // initialize storage module

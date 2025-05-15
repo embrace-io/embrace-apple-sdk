@@ -11,7 +11,7 @@ import EmbraceConfigInternal
 import EmbraceConfiguration
 #endif
 
-class BaseInternalLogger: EmbraceInternalLogger {
+class BaseInternalLogger: InternalLogger {
 
     #if DEBUG
     var level: LogLevel = .debug

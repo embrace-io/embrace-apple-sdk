@@ -122,7 +122,7 @@ public struct EmbraceFileSystem {
     /// ```
     /// io.embrace.data/critical-logs
     /// ```
-    static func criticalLogsURL() -> URL? {
-        return rootURL()?.appendingPathComponent(criticalLogsName)
+    static var criticalLogsURL: URL? {
+        rootURL()?.appendingPathComponent(criticalLogsName)
     }
 }

@@ -25,9 +25,10 @@ class DefaultInternalLoggerTests: XCTestCase {
         try? FileManager.default.createDirectory(at: fileProvider.directoryURL(for: "DefaultInternalLoggerTests")!, withIntermediateDirectories: true)
     }
 
-    func test_logger() throws {
+    func test_categories() throws {
         // given a logger
-        let logger = DefaultInternalLogger(exportFilePath: fileUrl)
+        let category = "custom-export-\(testName)"
+        let logger = DefaultInternalLogger(exportFilePath: fileUrl, exportCategory: category)
         logger.level = .trace
 
         // when creating logs
@@ -58,15 +59,99 @@ class DefaultInternalLoggerTests: XCTestCase {
         let customExportEntries: [String] = try store
             .getEntries(at: position)
             .compactMap { $0 as? OSLogEntryLog }
-            .filter { $0.subsystem == "com.embrace.logger" && $0.category == "custom-export" }
+            .filter { $0.subsystem == "com.embrace.logger" && $0.category == category }
             .map { $0.composedMessage }
 
+        XCTAssertEqual(customExportEntries.count, 2)
         XCTAssert(customExportEntries.contains("startup"))
         XCTAssert(customExportEntries.contains("critical"))
+    }
 
-        // then the right logs are exported to disk
-        let logs = try String(contentsOf: fileUrl)
-        XCTAssert(logs.contains("startup"))
-        XCTAssert(logs.contains("critical"))
+    func test_export_withCriticalLogs() throws {
+        // given a logger
+        let logger = DefaultInternalLogger(exportFilePath: fileUrl, exportCategory: "custom-export-\(testName)")
+        logger.level = .trace
+
+        // when doing custom exportable logs without 0 critical logs
+        logger.startup("startup1")
+        logger.startup("startup2")
+        logger.startup("startup3")
+        logger.startup("startup4")
+        logger.startup("startup5")
+        logger.critical("critical")
+
+        wait(timeout: .veryLongTimeout) {
+            // then the exported file has the correct values
+            guard let log = try? String(contentsOf: self.fileUrl) else {
+                return false
+            }
+
+            return log.contains("startup1") &&
+                   log.contains("startup2") &&
+                   log.contains("startup3") &&
+                   log.contains("startup4") &&
+                   log.contains("startup5") &&
+                   log.contains("critical")
+        }
+    }
+
+    func test_export_withoutCriticalLog() {
+        // given a logger
+        let logger = DefaultInternalLogger(exportFilePath: fileUrl, exportCategory: "custom-export-\(testName)")
+        logger.level = .trace
+
+        // when doing custom exportable logs without 0 critical logs
+        logger.startup("startup1")
+        logger.startup("startup2")
+        logger.startup("startup3")
+        logger.startup("startup4")
+        logger.startup("startup5")
+
+        wait(delay: .defaultTimeout)
+
+        // then no custom export file is created
+        XCTAssertFalse(FileManager.default.fileExists(atPath: fileUrl.path))
+    }
+
+    func test_multiple_exports() {
+        // given a logger
+        let logger = DefaultInternalLogger(exportFilePath: fileUrl, exportCategory: "custom-export-\(testName)")
+        logger.level = .trace
+
+        // when creating a critical log
+        logger.critical("critical1")
+
+        wait(timeout: .veryLongTimeout) {
+            // then the exported file has the correct values
+            guard let log = try? String(contentsOf: self.fileUrl) else {
+                return false
+            }
+
+            return log.contains("critical1")
+        }
+
+        // when doing another critical log
+        logger.critical("critical2")
+
+        wait(timeout: .veryLongTimeout) {
+            // then the exported file has the correct values
+            guard let log = try? String(contentsOf: self.fileUrl) else {
+                return false
+            }
+
+            return log.contains("critical1") && log.contains("critical2")
+        }
+
+        // when doing another critical log
+        logger.critical("critical3")
+
+        wait(timeout: .veryLongTimeout) {
+            // then the exported file has the correct values
+            guard let log = try? String(contentsOf: self.fileUrl) else {
+                return false
+            }
+
+            return log.contains("critical1") && log.contains("critical2") && log.contains("critical3")
+        }
     }
 }
