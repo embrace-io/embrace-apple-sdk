@@ -21,16 +21,16 @@ class DefaultInternalLogger: InternalLogger {
 
     var otel: EmbraceOpenTelemetry?
 
-    struct LoggerData {
+    struct MutableState {
         var limits: InternalLogLimits = InternalLogLimits()
         var counter: [LogLevel: Int] = [:]
         var currentSession: EmbraceSession?
     }
-    private let _data = EmbraceMutex(LoggerData())
+    private let state = EmbraceMutex(MutableState())
     
     var limits: InternalLogLimits {
-        get { _data.withLock { $0.limits } }
-        set { _data.withLock { $0.limits = newValue } }
+        get { state.withLock { $0.limits } }
+        set { state.withLock { $0.limits = newValue } }
     }
 
     init() {
@@ -54,14 +54,14 @@ class DefaultInternalLogger: InternalLogger {
     }
 
     @objc func onSessionStart(notification: Notification) {
-        _data.withLock {
+        state.withLock {
             $0.currentSession = notification.object as? EmbraceSession
             $0.counter.removeAll()
         }
     }
 
     @objc func onSessionEnd(notification: Notification) {
-        _data.withLock {
+        state.withLock {
             $0.currentSession = nil
         }
     }
@@ -118,7 +118,7 @@ class DefaultInternalLogger: InternalLogger {
 
     private func sendOTelLog(level: LogLevel, message: String, attributes: [String: String]) {
         
-        let (proceed, currentSession) = _data.withLock {
+        let (proceed, currentSession) = state.withLock {
             let limit = $0.limits.limit(for: level)
             guard limit > 0 else {
                 return (false, $0.currentSession)

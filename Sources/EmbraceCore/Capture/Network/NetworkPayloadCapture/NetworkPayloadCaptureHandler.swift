@@ -26,19 +26,19 @@ protocol NetworkPayloadCaptureHandler {
 
 class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
 
-    struct ProtectedData {
+    struct MutableState {
         var active: Bool = false
         var rules: [URLSessionTaskCaptureRule] = []
         var rulesTriggeredMap: [String: Bool] = [:]
         var currentSessionId: SessionIdentifier? = nil
     }
-    internal var _protectedData: EmbraceMutex<ProtectedData>
+    internal var state: EmbraceMutex<MutableState>
     
     private var otel: EmbraceOpenTelemetry?
 
     init(otel: EmbraceOpenTelemetry?) {
         self.otel = otel
-        self._protectedData = EmbraceMutex(ProtectedData())
+        self.state = EmbraceMutex(MutableState())
         
         Embrace.notificationCenter.addObserver(
             self,
@@ -63,7 +63,7 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
 
         // check if a session is already started
         if let sessionId = Embrace.client?.currentSessionId() {
-            _protectedData.withLock {
+            state.withLock {
                 $0.active = true
                 $0.currentSessionId = SessionIdentifier(string: sessionId)
             }
@@ -81,7 +81,7 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
         }
         
         let newRules = rules.map { URLSessionTaskCaptureRule(rule: $0) }
-        _protectedData.withLock {
+        state.withLock {
             $0.rules = newRules
         }
     }
@@ -92,7 +92,7 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
     }
 
     @objc func onSessionStart(_ notification: Notification) {
-        _protectedData.withLock {
+        state.withLock {
             $0.active = true
             $0.rulesTriggeredMap.removeAll()
             $0.currentSessionId = (notification.object as? EmbraceSession)?.id
@@ -100,7 +100,7 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
     }
 
     @objc func onSessionEnd() {
-        _protectedData.withLock {
+        state.withLock {
             $0.active = false
             $0.currentSessionId = nil
         }
@@ -114,7 +114,7 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
         startTime: Date?,
         endTime: Date?
     ) {
-        var protectedDataCopy = _protectedData.safeValue
+        var protectedDataCopy = state.safeValue
         
         guard protectedDataCopy.active else {
             return
@@ -174,13 +174,13 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
         }
         
         // udpate all mutations to protected data
-        _protectedData.withLock {
+        state.withLock {
             $0.rulesTriggeredMap = protectedDataCopy.rulesTriggeredMap
         }
     }
 
     func isEnabled() -> Bool {
-        _protectedData.withLock {
+        state.withLock {
             $0.active && $0.rules.count > 0
         }
     }
