@@ -48,6 +48,11 @@ final internal class EmbraceTracePhase {
         return cycleSpans.isEmpty
     }
     
+    var isFirstRender: Bool {
+        dispatchPrecondition(condition: .onQueue(.main))
+        return spans.isEmpty
+    }
+    
     /// Begins a synchronous span that must be explicitly ended.
     ///
     /// - Parameters:
@@ -86,9 +91,8 @@ final internal class EmbraceTracePhase {
             attributes: attributes,
             function
         )
-        onNextCycle {
-            span?
-                .end()
+        onNextCycle { [self] in
+            endSpan(span, isCycle: true)
         }
     }
     
@@ -160,6 +164,10 @@ fileprivate extension EmbraceTracePhase {
         let span = builder.startSpan()
         storage.push(span)
         
+        #if DEBUG
+        print("[SPAN:START] id: \(span.context.spanId.hexString) name: \(span.name), time: \(CFAbsoluteTimeGetCurrent())")
+        #endif
+        
         return span
     }
     
@@ -173,7 +181,6 @@ fileprivate extension EmbraceTracePhase {
         
         dispatchPrecondition(condition: .onQueue(.main))
         guard let span else {
-            logger?.error("No span passed to `endSpan()`, there might be an error in your code if a nil span is received.")
             return
         }
         
@@ -188,7 +195,14 @@ fileprivate extension EmbraceTracePhase {
             return
         }
         
-        storage.pop()?.end()
+        if let sp = storage.pop() {
+            sp.end()
+            
+            #if DEBUG
+            print("[SPAN:END] id: \(sp.context.spanId.hexString) name: \(sp.name), time: \(CFAbsoluteTimeGetCurrent())")
+            #endif
+        }
+        
     }
 }
 
