@@ -1,5 +1,8 @@
 import Foundation
-import Atomics
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+import EmbraceCommonInternal
+#endif
 
 /// Protocol for objects that observe hang detection events.
 /// Implement these methods to handle the various phases of a detected hang.
@@ -29,7 +32,26 @@ final public class HangWatchdog {
     
     /// The HangObserver instance that receives callbacks for hang start,
     /// hang update, and hang end events.
-    public weak var hangObserver: HangObserver? = nil
+    public weak var hangObserver: HangObserver? {
+        set { hangData.withLock { $0.hangObserver = newValue } }
+        get { hangData.withLock { $0.hangObserver } }
+    }
+    
+    /// Returns true if we're currently in a hang.
+    public var inHang: Bool {
+        hangData.withLock { $0.hanging }
+    }
+    
+    /// The time in nanoseconds since the start of the hang.
+    /// 0 if not in a hang.
+    public var timeSinceHangStart: UInt64 {
+        hangData.withLock {
+            guard $0.hanging else {
+                return 0
+            }
+            return suspendingTimeInNanoseconds() - $0.enterTime
+        }
+    }
     
     /// Initializes a new HangWatchdog instance.
     /// - Parameters:
@@ -97,10 +119,11 @@ final public class HangWatchdog {
     /// Internal structure for tracking whether a hang is active and recording
     /// the timestamp when the RunLoop was entered.
     private struct HangData {
-        var hanging: ManagedAtomic<Bool> = ManagedAtomic(false)
-        var enterTime: ManagedAtomic<UInt64> = ManagedAtomic(0)
+        var hanging: Bool = false
+        var enterTime: UInt64 = 0
+        weak var hangObserver: HangObserver? = nil
     }
-    private var hangData = HangData()
+    private var hangData = UnfairLock(HangData())
 }
 
 // MARK: - Private Watchdog
@@ -160,16 +183,23 @@ extension HangWatchdog {
             if activity == .beforeWaiting {
                 
                 // check for a hang that needs to end
-                if hangData.hanging.exchange(false, ordering: .relaxed) == true {
+                let (observer, now, hangTime): (HangObserver?, UInt64, UInt64) = hangData.withLock {
+                    guard $0.hanging else {
+                        return (nil, UInt64(0), UInt64(0))
+                    }
+                    $0.hanging = false
                     
                     // update the time value
                     let now = suspendingTimeInNanoseconds()
-                    let hangTime = now - hangData.enterTime.value
+                    let hangTime = now - $0.enterTime
                     
-                    // log it
-                    self.hangObserver?.hangEnded(at: now, duration: hangTime)
+                    return ($0.hangObserver, now, hangTime)
                 }
                 
+                // log it if needed
+                if let observer {
+                    observer.hangEnded(at: now, duration: hangTime)
+                }
             }
             
             // After waiting, we start processing events.
@@ -194,7 +224,7 @@ extension HangWatchdog {
         
         // store the time
         let startTime = suspendingTimeInNanoseconds()
-        hangData.enterTime.value = startTime
+        hangData.withLock { $0.enterTime = startTime }
         
         let threasholdInNs = UInt64(threshold * 1_000_000_000)
         
@@ -212,26 +242,29 @@ extension HangWatchdog {
             precondition(Thread.current == self.watchdogThread)
             
             let now = suspendingTimeInNanoseconds()
-            let enterTime = hangData.enterTime.value
-            let hangTime = now - enterTime
-            let isHang = hangTime >= threasholdInNs
-            
-            if isHang {
+            let (observer, startHang, enterTime, hangTime) = hangData.withLock {
+                
+                let enterTime = $0.enterTime
+                let hangTime = now - enterTime
+                let isHang = hangTime >= threasholdInNs
+                
+                let startHang = isHang && $0.hanging == false
+                if startHang { $0.hanging = true }
+
+                return (isHang ? $0.hangObserver : nil, startHang, enterTime, hangTime)
+            }
+
+            if let observer {
                 
                 // Hang Start
-                if self.hangData.hanging.exchange(true, ordering: .relaxed) == false {
-                    self.hangObserver?.hangStarted(at: enterTime, duration: hangTime)
+                if startHang {
+                    observer.hangStarted(at: enterTime, duration: hangTime)
                 }
                 
                 // Hang Update
                 else {
-                    self.hangObserver?.hangUpdated(at: now, duration: hangTime)
+                    observer.hangUpdated(at: now, duration: hangTime)
                 }
-                
-                // Change the interval for the duration of the hang
-                // This makes things a lot harder to grok in a flame chart !!
-                // let nextFireDate = CFRunLoopTimerGetNextFireDate(timer) + (self.threshold * 1.2)
-                // CFRunLoopTimerSetNextFireDate(timer, nextFireDate)
             }
         }
         if let timer = watchdogTimer {
@@ -255,11 +288,4 @@ public func runLoopPrecondition(runloop: @autoclosure () -> RunLoop) {
 /// - Returns: The timestamp in nanoseconds.
 private func suspendingTimeInNanoseconds() -> UInt64 {
     clock_gettime_nsec_np(CLOCK_UPTIME_RAW)
-}
-
-fileprivate extension ManagedAtomic {
-    var value: Value {
-        get { self.load(ordering: .relaxed) }
-        set { self.store(newValue, ordering: .relaxed) }
-    }
 }
