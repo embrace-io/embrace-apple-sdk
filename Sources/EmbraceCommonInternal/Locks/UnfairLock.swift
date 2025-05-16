@@ -9,12 +9,14 @@ import Foundation
 ///
 /// For more information:
 /// - Swift law of exclusivity: https://github.com/apple/swift-evolution/blob/main/proposals/0176-enforce-exclusive-access-to-memory.md
-final public class UnfairLock {
+final public class UnfairLock<Value> {
     private var _lock: UnsafeMutablePointer<os_unfair_lock>
-
-    public init() {
+    private var _value: Value
+    
+    public init(_ value: Value = ()) {
         _lock = UnsafeMutablePointer<os_unfair_lock>.allocate(capacity: 1)
         _lock.initialize(to: os_unfair_lock())
+        _value = value
     }
 
     deinit {
@@ -33,5 +35,11 @@ final public class UnfairLock {
 
     public func unlock() {
         os_unfair_lock_unlock(_lock)
+    }
+    
+    public func withLock<ReturnValue>(_ f: (inout Value) throws -> ReturnValue) rethrows -> ReturnValue {
+        os_unfair_lock_lock(_lock)
+        defer { os_unfair_lock_unlock(_lock) }
+        return try f(&_value)
     }
 }
