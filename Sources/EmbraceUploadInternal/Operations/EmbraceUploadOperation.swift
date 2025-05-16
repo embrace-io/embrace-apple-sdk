@@ -211,3 +211,5 @@ class EmbraceUploadOperation: AsyncOperation {
         return request
     }
 }
+
+extension EmbraceUploadOperation: @unchecked Sendable {}

@@ -37,6 +37,9 @@ final class PayloadUtilTests: XCTestCase {
 
     func test_convertSpanAttributes() throws {
         // given some span attributes
+        // NOTE: This test expects the array types to not pass
+        // `convertSpanAttributes`. Do not change them to `.array`
+        // as the test will fail.
         let attributes: [String: AttributeValue] = [
             "bool": .bool(true),
             "boolArray": .boolArray([true, false]),

@@ -63,3 +63,5 @@ class AsyncOperation: Operation {
         isFinished = true
     }
 }
+
+extension AsyncOperation: @unchecked Sendable {}

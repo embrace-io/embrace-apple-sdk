@@ -116,7 +116,7 @@ private extension LogsBatchTests {
     }
 }
 
-extension LogsBatch.BatchingResult: Equatable {
+extension LogsBatch.BatchingResult: @retroactive Equatable {
     public static func == (lhs: LogsBatch.BatchingResult, rhs: LogsBatch.BatchingResult) -> Bool {
         switch (lhs, rhs) {
         case (.success(let lhsBatchState), .success(let rhsBatchState)):

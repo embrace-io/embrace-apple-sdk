@@ -6,7 +6,7 @@ import Foundation
 import EmbraceCommonInternal
 
 // Only add this extension to Test Targets
-extension DispatchQueue: DispatchableQueue {
+extension DispatchQueue: @retroactive DispatchableQueue {
     public func async(_ block: @escaping () -> Void) {
         self.async(execute: block)
     }

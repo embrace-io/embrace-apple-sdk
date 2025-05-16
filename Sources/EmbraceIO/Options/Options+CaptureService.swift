@@ -91,7 +91,7 @@ public extension Embrace.Options {
     }
 }
 
-extension Embrace.Options: ExpressibleByStringLiteral {
+extension Embrace.Options: @retroactive ExpressibleByStringLiteral {
     public convenience init(stringLiteral value: String) {
         self.init(appId: value)
     }

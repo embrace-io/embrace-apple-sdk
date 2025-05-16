@@ -58,6 +58,8 @@ class EmbraceAttachmentUploadOperation: EmbraceUploadOperation {
     }
 }
 
+extension EmbraceAttachmentUploadOperation: @unchecked Sendable {}
+
 extension Data {
     mutating func appendString(_ string: String) {
         if let data = string.data(using: .utf8) {
