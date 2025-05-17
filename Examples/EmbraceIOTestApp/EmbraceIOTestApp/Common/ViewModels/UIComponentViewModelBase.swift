@@ -8,6 +8,7 @@ import SwiftUI
 import EmbraceIO
 
 @Observable class UIComponentViewModelBase: NSObject, UIComponentViewModelType {
+    var dataCollector: DataCollector?
     private(set) var testReport: TestReport = .init(items: [])
     var readyToTest: Bool = false {
         didSet {
@@ -41,9 +42,12 @@ import EmbraceIO
         }
     }
 
-    init(dataModel: any TestScreenDataModel, payloadTestObject: any PayloadTest) {
+    init(dataModel: any TestScreenDataModel,
+         payloadTestObject: any PayloadTest,
+         dataCollector: DataCollector? = nil) {
         self.dataModel = dataModel
         self.payloadTestObject = payloadTestObject
+        self.dataCollector = dataCollector
         super.init()
         self.checkEmbraceStatus()
     }

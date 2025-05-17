@@ -26,7 +26,7 @@ enum UploadedPayloadsTestsDataModel: Int, TestScreenDataModel, CaseIterable {
     @ViewBuilder var uiComponent: some View {
         switch self {
         case .sessionPayload:
-            SessionTestFinishedSessionUIComponent(dataModel: self)
+            UploadedSessionPayloadUIComponent(dataModel: self)
         }
     }
 }

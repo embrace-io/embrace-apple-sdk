@@ -2,7 +2,6 @@
 //  DataCollector.swift
 //  EmbraceIOTestApp
 //
-//  Created by Fernando Draghi on 30/04/2025.
 //
 
 import SwiftUI
