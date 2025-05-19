@@ -1,13 +1,16 @@
-
-/// A macro that automatically instruments SwiftUI views with performance tracing.
+/// A Swift macro that automatically instruments SwiftUI views with Embrace performance traces.
 ///
-/// Use the `@embraceTrace` attribute on your SwiftUI View to automatically
-/// instrument them with Embrace's performance monitoring. This macro intercepts the view's
-/// `body` property and wraps the content with `EmbraceTraceView`, enabling
-/// detailed performance tracking without manual instrumentation.
+/// The `@embraceTrace` macro intercepts a view’s `body` property at compile time
+/// and wraps the generated content in an `EmbraceTraceView`, enabling detailed
+/// performance monitoring without manual instrumentation calls.
 ///
-/// Example:
-/// ```
+/// # Features
+/// - **Automatic Wrapping:** Injects tracing hooks around view updates and appearances.
+/// - **Non-invasive:** Leaves your existing view logic and public API unchanged.
+/// - **Transparent:** Generated code is private and does not pollute your module’s API.
+///
+/// # Usage
+/// ```swift
 /// @embraceTrace
 /// struct ContentView: View {
 ///     var body: some View {
@@ -16,12 +19,20 @@
 /// }
 /// ```
 ///
-/// Requirements:
-/// - Must be applied to a `struct` that conforms to SwiftUI's `View` protocol
-/// - The struct must have a `body` property
+/// # Requirements
+/// - Must be applied to a `struct` conforming to SwiftUI’s `View` protocol.
 ///
-/// - Note: This macro generates additional properties and types to facilitate tracing
-///         without modifying your original view implementation.
+/// # Implementation Details
+/// Applying this macro generates:
+/// 1. A private duplicate of your `body` content.
+/// 2. An internal wrapper view that hosts and traces the original content.
+/// 3. A `typealias Body` rebind to the traced wrapper type.
+///
+/// # See Also
+/// - `EmbraceTraceView`
+/// - `EmbraceMacroPlugin`
+///
+
 @attached(member, names: arbitrary)
 public macro embraceTrace() =
 #externalMacro(
