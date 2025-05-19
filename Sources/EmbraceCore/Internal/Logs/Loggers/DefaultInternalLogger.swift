@@ -67,6 +67,7 @@ class DefaultInternalLogger: BaseInternalLogger {
     /// Subsequent calls append any new entries created since the last call into the file.
     func export() {
         guard let fileUrl = exportFilePath,
+              let rootUrl = EmbraceFileSystem.rootURL(),
             exporting == false,
             exportLimitReached == false else {
             return
@@ -100,6 +101,7 @@ class DefaultInternalLogger: BaseInternalLogger {
 
                 // create file if needed
                 if !FileManager.default.fileExists(atPath: fileUrl.path) {
+                    try? FileManager.default.createDirectory(at: rootUrl, withIntermediateDirectories: true)
                     FileManager.default.createFile(atPath: fileUrl.path, contents: nil)
                 }
 
