@@ -23,16 +23,12 @@ class DefaultInternalLogger: BaseInternalLogger {
     let defaultLogger: OSLog
     let customExportLogger: OSLog
 
-    @ThreadSafe
-    var exporting: Bool = false
-    @ThreadSafe
-    var exportByteCount: Int = 0
-    @ThreadSafe
-    var exportLimitReached: Bool = false
-    @ThreadSafe
-    var lastExportDate: Date?
+    private var exporting: Bool = false
+    private var exportByteCount: Int = 0
+    private var exportLimitReached: Bool = false
+    private var lastExportDate: Date?
 
-    let queue: DispatchableQueue
+    private let queue: DispatchableQueue
 
     init(exportFilePath: URL?, exportByCountLimit: Int = 1000, exportCategory: String = "custom-export") {
         self.exportFilePath = exportFilePath
@@ -66,18 +62,18 @@ class DefaultInternalLogger: BaseInternalLogger {
     /// Exports all logs in the `custom-export` category to a file.
     /// Subsequent calls append any new entries created since the last call into the file.
     func export() {
-        guard let fileUrl = exportFilePath,
-            exporting == false,
-            exportLimitReached == false else {
-            return
-        }
-        exporting = true
-
         queue.async { [weak self] in
             guard let self else {
                 return
             }
 
+            guard let fileURL = self.exportFilePath,
+                  self.exporting == false,
+                  self.exportLimitReached == false else {
+                return
+            }
+
+            self.exporting = true
             defer { self.exporting = false }
 
             do {
@@ -86,7 +82,7 @@ class DefaultInternalLogger: BaseInternalLogger {
 
                 // calculate starting position so we only fetch logs we haven't exported yet
                 var position: OSLogPosition
-                if let lastExportDate = lastExportDate {
+                if let lastExportDate = self.lastExportDate {
                     position = store.position(date: lastExportDate.addingTimeInterval(0.01))
                 } else {
                     position = store.position(timeIntervalSinceLatestBoot: 0)
@@ -99,14 +95,14 @@ class DefaultInternalLogger: BaseInternalLogger {
                     .filter { $0.subsystem == self.subsystem && $0.category == self.customExportCategory }
 
                 // create file if needed
-                if !FileManager.default.fileExists(atPath: fileUrl.path) {
-                    let rootUrl = fileUrl.deletingLastPathComponent()
-                    try? FileManager.default.createDirectory(at: rootUrl, withIntermediateDirectories: true)
-                    FileManager.default.createFile(atPath: fileUrl.path, contents: nil)
+                if !FileManager.default.fileExists(atPath: fileURL.path) {
+                    let rootURL = fileURL.deletingLastPathComponent()
+                    try? FileManager.default.createDirectory(at: rootURL, withIntermediateDirectories: true)
+                    FileManager.default.createFile(atPath: fileURL.path, contents: nil)
                 }
 
-                guard let file = FileHandle(forWritingAtPath: fileUrl.path) else {
-                    try? FileManager.default.removeItem(at: fileUrl)
+                guard let file = FileHandle(forWritingAtPath: fileURL.path) else {
+                    try? FileManager.default.removeItem(at: fileURL)
                     return
                 }
 
@@ -120,17 +116,17 @@ class DefaultInternalLogger: BaseInternalLogger {
                     }
 
                     // don't make the file too big
-                    guard exportByteCount + data.count <= self.customExportByteCountLimit else {
+                    guard self.exportByteCount + data.count <= self.customExportByteCountLimit else {
                         self.exportLimitReached = true
                         break
                     }
 
                     file.write(data)
-                    exportByteCount += data.count
+                    self.exportByteCount += data.count
                 }
 
                 // save last entry date
-                lastExportDate = entries.last?.date
+                self.lastExportDate = entries.last?.date
 
                 // close file
                 try file.close()
