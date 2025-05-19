@@ -222,12 +222,12 @@ struct WKWebViewLoadFileURLSwizzler: Swizzlable {
 
     func install() throws {
         try swizzleInstanceMethod { originalImplementation -> BlockImplementationType in
-            return { webView, fileUrl, readAccessURL in
+            return { webView, fileURL, readAccessURL in
                 if webView.navigationDelegate == nil {
                     webView.navigationDelegate = nil // forcefully trigger setNavigationDelegate swizzler
                 }
 
-                return originalImplementation(webView, Self.selector, fileUrl, readAccessURL)
+                return originalImplementation(webView, Self.selector, fileURL, readAccessURL)
             }
         }
     }

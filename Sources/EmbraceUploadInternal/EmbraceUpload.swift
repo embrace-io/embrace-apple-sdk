@@ -20,9 +20,6 @@ public class EmbraceUpload: EmbraceLogUploader {
     public private(set) var queue: DispatchQueue
 
     @ThreadSafe
-    public var deviceId: String = "0"
-
-    @ThreadSafe
     private(set) var isRetryingCache: Bool = false
 
     private let urlSession: URLSession
@@ -238,7 +235,6 @@ public class EmbraceUpload: EmbraceLogUploader {
             urlSession: urlSession,
             queue: queue,
             metadataOptions: options.metadata,
-            deviceId: deviceId,
             endpoint: endpoint(for: type),
             identifier: id,
             data: data,
@@ -274,7 +270,6 @@ public class EmbraceUpload: EmbraceLogUploader {
                 urlSession: urlSession,
                 queue: queue,
                 metadataOptions: options.metadata,
-                deviceId: deviceId,
                 endpoint: endpoint(for: type),
                 identifier: id,
                 data: data,
@@ -290,7 +285,6 @@ public class EmbraceUpload: EmbraceLogUploader {
             urlSession: urlSession,
             queue: queue,
             metadataOptions: options.metadata,
-            deviceId: deviceId,
             endpoint: endpoint(for: type),
             identifier: id,
             data: data,

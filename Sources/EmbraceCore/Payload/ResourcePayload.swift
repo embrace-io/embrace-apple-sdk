@@ -40,7 +40,6 @@ struct ResourcePayload: Codable {
         DeviceResourceKey.locale.rawValue,
         DeviceResourceKey.timezone.rawValue,
         DeviceResourceKey.osDescription.rawValue,
-        DeviceIdentifier.resourceKey,
         SessionPayloadBuilder.resourceName
     ]
 

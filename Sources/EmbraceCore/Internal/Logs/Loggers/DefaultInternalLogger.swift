@@ -67,7 +67,6 @@ class DefaultInternalLogger: BaseInternalLogger {
     /// Subsequent calls append any new entries created since the last call into the file.
     func export() {
         guard let fileUrl = exportFilePath,
-              let rootUrl = EmbraceFileSystem.rootURL(),
             exporting == false,
             exportLimitReached == false else {
             return
@@ -84,7 +83,7 @@ class DefaultInternalLogger: BaseInternalLogger {
             do {
                 // create OSLogStore for the current process
                 let store = try OSLogStore(scope: .currentProcessIdentifier)
-                
+
                 // calculate starting position so we only fetch logs we haven't exported yet
                 var position: OSLogPosition
                 if let lastExportDate = lastExportDate {
@@ -101,6 +100,7 @@ class DefaultInternalLogger: BaseInternalLogger {
 
                 // create file if needed
                 if !FileManager.default.fileExists(atPath: fileUrl.path) {
+                    let rootUrl = fileUrl.deletingLastPathComponent()
                     try? FileManager.default.createDirectory(at: rootUrl, withIntermediateDirectories: true)
                     FileManager.default.createFile(atPath: fileUrl.path, contents: nil)
                 }
@@ -109,7 +109,7 @@ class DefaultInternalLogger: BaseInternalLogger {
                     try? FileManager.default.removeItem(at: fileUrl)
                     return
                 }
-                
+
                 try file.seekToEnd()
 
                 // write log lines
@@ -158,7 +158,6 @@ extension LogLevel {
         }
     }
 }
-
 
 @available(iOS 15.0, tvOS 15.0, *)
 extension OSLogEntryLog {

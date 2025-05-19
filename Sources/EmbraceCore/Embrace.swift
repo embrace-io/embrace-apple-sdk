@@ -154,18 +154,17 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         self.options = options
         self.logLevel = options.logLevel
 
+        // retrieve device identifier
+        self.deviceId = DeviceIdentifier.retrieve(fileURL: EmbraceFileSystem.deviceIdURL)
+
         // initialize upload module
-        self.upload = Embrace.createUpload(options: options)
+        self.upload = Embrace.createUpload(options: options, deviceId: deviceId.hex)
 
         // send critical logs from previous session
         UnsentDataHandler.sendCriticalLogs(fileUrl: EmbraceFileSystem.criticalLogsURL, upload: upload)
 
         // initialize storage module
         self.storage = try embraceStorage ?? Embrace.createStorage(options: options)
-
-        // retrieve device identifier
-        self.deviceId = DeviceIdentifier.retrieve(from: storage)
-        self.upload?.deviceId = deviceId.hex.filter { c in c.isHexDigit }
 
         // initialize remote configuration
         self.config = Embrace.createConfig(options: options, deviceId: deviceId)

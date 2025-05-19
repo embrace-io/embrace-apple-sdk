@@ -10,9 +10,9 @@ class EmbraceAttachmentUploadOperationTests: XCTestCase {
 
     let testMetadataOptions = EmbraceUpload.MetadataOptions(
         apiKey: "apiKey",
-        userAgent: "userAgent"
+        userAgent: "userAgent",
+        deviceId: "12345678"
     )
-    let deviceId = "12345678"
 
     var urlSession: URLSession!
     var queue: DispatchQueue!
@@ -35,7 +35,6 @@ class EmbraceAttachmentUploadOperationTests: XCTestCase {
             urlSession: urlSession,
             queue: queue,
             metadataOptions: testMetadataOptions,
-            deviceId: deviceId,
             endpoint: TestConstants.url,
             identifier: attachmentId,
             data: data,
@@ -48,8 +47,7 @@ class EmbraceAttachmentUploadOperationTests: XCTestCase {
             endpoint: TestConstants.url,
             data: data,
             identifier: attachmentId,
-            metadataOptions: testMetadataOptions,
-            deviceId: deviceId
+            metadataOptions: testMetadataOptions
         )
 
         XCTAssert(request.allHTTPHeaderFields!["Content-Type"]!.contains("multipart/form-data;"))

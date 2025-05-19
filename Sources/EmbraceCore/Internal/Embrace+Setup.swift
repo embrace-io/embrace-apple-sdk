@@ -30,7 +30,7 @@ extension Embrace {
         }
     }
 
-    static func createUpload(options: Embrace.Options) -> EmbraceUpload? {
+    static func createUpload(options: Embrace.Options, deviceId: String) -> EmbraceUpload? {
         guard let appId = options.appId else {
             return nil
         }
@@ -71,7 +71,8 @@ extension Embrace {
         // metadata
         let metadata = EmbraceUpload.MetadataOptions(
             apiKey: appId,
-            userAgent: EmbraceMeta.userAgent
+            userAgent: EmbraceMeta.userAgent,
+            deviceId: deviceId.filter { c in c.isHexDigit }
         )
 
         do {

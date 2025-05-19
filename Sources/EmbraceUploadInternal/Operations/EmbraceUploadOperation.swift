@@ -18,7 +18,6 @@ class EmbraceUploadOperation: AsyncOperation {
     private let urlSession: URLSession
     private let queue: DispatchQueue
     private let metadataOptions: EmbraceUpload.MetadataOptions
-    private let deviceId: String
     private let endpoint: URL
     private let identifier: String
     private let data: Data
@@ -34,7 +33,6 @@ class EmbraceUploadOperation: AsyncOperation {
         urlSession: URLSession,
         queue: DispatchQueue,
         metadataOptions: EmbraceUpload.MetadataOptions,
-        deviceId: String,
         endpoint: URL,
         identifier: String,
         data: Data,
@@ -47,7 +45,6 @@ class EmbraceUploadOperation: AsyncOperation {
         self.urlSession = urlSession
         self.queue = queue
         self.metadataOptions = metadataOptions
-        self.deviceId = deviceId
         self.endpoint = endpoint
         self.identifier = identifier
         self.data = data
@@ -71,8 +68,7 @@ class EmbraceUploadOperation: AsyncOperation {
             endpoint: endpoint,
             data: data,
             identifier: identifier,
-            metadataOptions: metadataOptions,
-            deviceId: deviceId
+            metadataOptions: metadataOptions
         )
 
         sendRequest(request, retryCount: retryCount)
@@ -186,8 +182,7 @@ class EmbraceUploadOperation: AsyncOperation {
         endpoint: URL,
         data: Data,
         identifier: String,
-        metadataOptions: EmbraceUpload.MetadataOptions,
-        deviceId: String
+        metadataOptions: EmbraceUpload.MetadataOptions
     ) -> URLRequest {
 
         var request = URLRequest(url: endpoint)
@@ -200,7 +195,7 @@ class EmbraceUploadOperation: AsyncOperation {
         request.setValue(metadataOptions.userAgent, forHTTPHeaderField: "User-Agent")
 
         request.setValue(metadataOptions.apiKey, forHTTPHeaderField: "X-EM-AID")
-        request.setValue(deviceId, forHTTPHeaderField: "X-EM-DID")
+        request.setValue(metadataOptions.deviceId, forHTTPHeaderField: "X-EM-DID")
 
         return request
     }

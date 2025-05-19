@@ -10,8 +10,7 @@ class EmbraceAttachmentUploadOperation: EmbraceUploadOperation {
         endpoint: URL,
         data: Data,
         identifier: String,
-        metadataOptions: EmbraceUpload.MetadataOptions,
-        deviceId: String
+        metadataOptions: EmbraceUpload.MetadataOptions
     ) -> URLRequest {
 
         let boundary = UUID().uuidString
@@ -21,7 +20,7 @@ class EmbraceAttachmentUploadOperation: EmbraceUploadOperation {
 
         request.setValue(metadataOptions.userAgent, forHTTPHeaderField: "User-Agent")
         request.setValue(metadataOptions.apiKey, forHTTPHeaderField: "X-EM-AID")
-        request.setValue(deviceId, forHTTPHeaderField: "X-EM-DID")
+        request.setValue(metadataOptions.deviceId, forHTTPHeaderField: "X-EM-DID")
 
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")

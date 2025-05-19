@@ -9,10 +9,12 @@ public extension EmbraceUpload {
     class MetadataOptions {
         public let apiKey: String
         public let userAgent: String
+        public let deviceId: String
 
-        public init(apiKey: String, userAgent: String) {
+        public init(apiKey: String, userAgent: String, deviceId: String) {
             self.apiKey = apiKey
             self.userAgent = userAgent
+            self.deviceId = deviceId
         }
     }
 }
