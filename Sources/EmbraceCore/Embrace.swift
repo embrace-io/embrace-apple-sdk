@@ -158,9 +158,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         self.upload = Embrace.createUpload(options: options)
 
         // send critical logs from previous session
-        if #available(iOS 15.0, *) {
-            UnsentDataHandler.sendCriticalLogs(fileUrl: EmbraceFileSystem.criticalLogsURL, upload: upload)
-        }
+        UnsentDataHandler.sendCriticalLogs(fileUrl: EmbraceFileSystem.criticalLogsURL, upload: upload)
 
         // initialize storage module
         self.storage = try embraceStorage ?? Embrace.createStorage(options: options)

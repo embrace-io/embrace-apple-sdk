@@ -19,12 +19,9 @@ class DefaultInternalLogger: BaseInternalLogger {
     let customExportCategory: String
     let customExportByteCountLimit: Int
 
-    @ThreadSafe
-    var defaultLogger: OSLog
-    @ThreadSafe
-    var customExportLogger: OSLog
-
     let exportFilePath: URL?
+    let defaultLogger: OSLog
+    let customExportLogger: OSLog
 
     @ThreadSafe
     var exporting: Bool = false

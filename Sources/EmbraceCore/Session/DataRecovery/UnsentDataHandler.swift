@@ -276,6 +276,10 @@ class UnsentDataHandler {
     }
 
     static func sendCriticalLogs(fileUrl: URL?, upload: EmbraceUpload?) {
+        // feature is only available on iOS 15+
+        if #unavailable(iOS 15.0, tvOS 15.0) {
+            return
+        }
 
         guard let upload = upload,
               let fileUrl = fileUrl else {
