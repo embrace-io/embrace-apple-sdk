@@ -12,8 +12,7 @@ class UploadedSessionPayloadTestViewModel: UIComponentViewModelBase {
 
     @Published private(set) var exportedAndPostedSessions: [String] = [] {
         didSet {
-            selectedSessionIdIndex = exportedAndPostedSessions.count - 1
-            testButtonDisabled = exportedAndPostedSessions.isEmpty
+            selectedSessionId = exportedAndPostedSessions.last
         }
     }
 
@@ -24,16 +23,18 @@ class UploadedSessionPayloadTestViewModel: UIComponentViewModelBase {
         }
     }
 
-    @Published var selectedSessionIdIndex: Int = 0 {
+    @Published var selectedSessionId: String? {
         didSet {
-            guard selectedSessionIdIndex >= 0 else { return }
-            testObject.sessionIdToTest = exportedAndPostedSessions[selectedSessionIdIndex]
+            guard let selectedSessionId = selectedSessionId else { return }
+            testObject.sessionIdToTest = selectedSessionId
         }
     }
 
     @Published private(set) var lastSessionId: String?
 
-    @Published private(set) var testButtonDisabled: Bool = true
+    var testButtonDisabled: Bool {
+        exportedAndPostedSessions.isEmpty
+    }
 
     init(dataModel: any TestScreenDataModel) {
         super.init(dataModel: dataModel, payloadTestObject: self.testObject)
@@ -52,7 +53,7 @@ class UploadedSessionPayloadTestViewModel: UIComponentViewModelBase {
     }
 
     private func updatedExportedSessions() {
-        let postedSessionIds = dataCollector?.networkSpy.postedJsons.keys.map { String($0) } ?? []
+        let postedSessionIds = dataCollector?.networkSpy.postedJsonsSessionIds ?? []
         let exportedSessionIds = dataCollector?.networkSpy.exportedSpansBySession.keys.map { String($0) } ?? []
         exportedAndPostedSessions = postedSessionIds.filter { exportedSessionIds.contains($0) }
     }

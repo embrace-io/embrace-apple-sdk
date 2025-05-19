@@ -24,6 +24,9 @@ class NetworkingSwizzle: NSObject {
     /// Contains all Jsons posted, separated by Session Id
     private(set) var postedJsons: Dictionary<String, Array<JsonDictionary>> = [:]
 
+    /// Contains all the session ids posted in order from first posted to last.
+    private(set) var postedJsonsSessionIds: [String] = []
+
     /// Contains all exported spans grouped by the Session they were exported on. Including the session span. The Key is the Session Id.
     private(set) var exportedSpansBySession: Dictionary<String, [SpanData]> = [:]
 
@@ -95,27 +98,29 @@ class NetworkingSwizzle: NSObject {
 
         self.postedJsons[sessionId, default: []].append(json)
 
+        if !postedJsonsSessionIds.contains(sessionId) {
+            postedJsonsSessionIds.append(sessionId)
+        }
+
         NotificationCenter.default.post(name: NSNotification.Name("NetworkingSwizzle.CapturedNewPayload"), object: nil)
     }
 
     private func capturedExportedSpan(_ spanExporter: TestSpanExporter) {
-        var currentSessionId: String? = Embrace.client?.currentSessionId()
-        if currentSessionId == nil {
-            let sessionSpan = spanExporter.latestExporterSpans.first { span in
-                span.attributes["emb.type"]?.description == "ux.session"
-            }
-            currentSessionId = sessionSpan?.attributes["session.id"]?.description
+        var currentSessionId: String? = nil
+
+        if let sessionSpan = spanExporter.latestExporterSpans.first (where: { span in
+            span.name == "emb-session"
+        }) {
+            currentSessionId = sessionSpan.attributes["session.id"]?.description
+        } else {
+            currentSessionId = Embrace.client?.currentSessionId()
         }
 
         guard let currentSessionId = currentSessionId else {
             return
         }
 
-        if exportedSpansBySession[currentSessionId] == nil {
-            exportedSpansBySession[currentSessionId] = spanExporter.latestExporterSpans
-        } else {
-            exportedSpansBySession[currentSessionId]?.append(contentsOf: spanExporter.latestExporterSpans)
-        }
+        exportedSpansBySession[currentSessionId, default:[]].append(contentsOf: spanExporter.latestExporterSpans)
     }
 
     private func capturedExportedLog(_ logExporter: TestLogRecordExporter) {
@@ -123,10 +128,6 @@ class NetworkingSwizzle: NSObject {
             return
         }
 
-        if exportedLogsBySessions[currentSessionId] == nil {
-            exportedLogsBySessions[currentSessionId] = logExporter.latestExportedLogs
-        } else {
-            exportedLogsBySessions[currentSessionId]?.append(contentsOf: logExporter.latestExportedLogs)
-        }
+        exportedLogsBySessions[currentSessionId, default:[]].append(contentsOf: logExporter.latestExportedLogs)
     }
 }

@@ -6,6 +6,7 @@
 
 import SwiftUI
 import OpenTelemetrySdk
+import EmbraceCore
 
 @Observable class TestSpanExporter: SpanExporter {
     private(set) var cachedExportedSpans: [String: [SpanData]] = [:]
@@ -32,12 +33,11 @@ import OpenTelemetrySdk
     }
 
     func export(spans: [SpanData], explicitTimeout: TimeInterval?) -> SpanExporterResultCode {
-        latestExporterSpans = spans
+        latestExporterSpans.removeAll()
+        latestExporterSpans.append(contentsOf: spans)
+
         spans.forEach {
-            if cachedExportedSpans[$0.name] == nil {
-                cachedExportedSpans[$0.name] = []
-            }
-            cachedExportedSpans[$0.name]?.append($0)
+            cachedExportedSpans[$0.name, default: []].append($0)
         }
 
         if !embraceStarted && spans.contains(where: { $0.name == "emb-sdk-start" }) {
