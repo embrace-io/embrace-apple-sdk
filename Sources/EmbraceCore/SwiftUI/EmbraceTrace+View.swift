@@ -3,7 +3,7 @@ import OpenTelemetryApi
 
 /// A SwiftUI view wrapper that integrates with EmbraceTrace and OpenTelemetry to instrument view rendering cycles.
 /// It measures the first render cycle and wraps the view's body evaluation in tracing spans.
-internal struct EmbraceTraceView<Content: View>: View {
+public struct EmbraceTraceView<Content: View>: View {
     
     /// Closure providing the SwiftUI content to be rendered within the trace view.
     let content: () -> Content
@@ -19,7 +19,7 @@ internal struct EmbraceTraceView<Content: View>: View {
     ///   - viewName: A unique name used to identify the view in tracing spans.
     ///   - attributes: An optional dictionary of metadata to attach to spans.
     ///   - content: A closure returning the view content to be instrumented.
-    init(_ viewName: String, attributes: [String: String]? = nil, content: @escaping () -> Content) {
+    public init(_ viewName: String, attributes: [String: String]? = nil, content: @escaping () -> Content) {
         self.content = content
         self.name = viewName
         self.attributes = attributes
@@ -28,7 +28,7 @@ internal struct EmbraceTraceView<Content: View>: View {
     /// The SwiftUI view body, instrumented with:
     /// 1. A span on the first run loop cycle around the view's initialization.
     /// 2. A span wrapping the content evaluation for each body render.
-    var body: some View {
+    public var body: some View {
         
         if phase.isFirstCycle {
             /// Emit a tracing span for the first render cycle of this view.
