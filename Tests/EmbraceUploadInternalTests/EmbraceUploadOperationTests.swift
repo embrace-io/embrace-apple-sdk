@@ -19,6 +19,7 @@ class EmbraceUploadOperationTests: XCTestCase {
         userAgent: "userAgent",
         deviceId: "12345678"
     )
+
     var urlSession: URLSession!
     var queue: DispatchQueue!
 

@@ -11,7 +11,7 @@ import EmbraceConfigInternal
 import EmbraceConfiguration
 #endif
 
-class DefaultInternalLogger: InternalLogger {
+class BaseInternalLogger: InternalLogger {
 
     #if DEBUG
     var level: LogLevel = .debug
@@ -66,54 +66,76 @@ class DefaultInternalLogger: InternalLogger {
         }
     }
 
-    @discardableResult func log(level: LogLevel, message: String, attributes: [String: String]) -> Bool {
+    func output(_ message: String, level: LogLevel, customExport: Bool) {
+        print(message)
+    }
 
-        sendOTelLog(level: level, message: message, attributes: attributes)
+    @discardableResult func log(
+        level: LogLevel,
+        message: String,
+        attributes: [String: String] = [:],
+        customExport: Bool = false
+    ) -> Bool {
+
+        if !customExport {
+            sendOTelLog(level: level, message: message, attributes: attributes)
+        }
 
         guard self.level != .none && self.level.rawValue <= level.rawValue else {
             return false
         }
 
-        print(message)
+        output(message, level: level, customExport: customExport)
         return true
-    }
-    @discardableResult func log(level: LogLevel, message: String) -> Bool {
-        return log(level: level, message: message, attributes: [:])
     }
 
     @discardableResult func trace(_ message: String, attributes: [String: String]) -> Bool {
-        return log(level: .trace, message: message, attributes: [:])
+        return log(level: .trace, message: message, attributes: attributes)
     }
     @discardableResult func trace(_ message: String) -> Bool {
         return log(level: .trace, message: message)
     }
 
-    @discardableResult func debug(_ message: String, attributes: [String: String]) -> Bool {
-        return log(level: .debug, message: message, attributes: [:])
+    @discardableResult func debug(_ message: String, attributes: [String: String] = [:]) -> Bool {
+        return log(level: .debug, message: message, attributes: attributes)
     }
     @discardableResult func debug(_ message: String) -> Bool {
         return log(level: .debug, message: message)
     }
 
-    @discardableResult func info(_ message: String, attributes: [String: String]) -> Bool {
-        return log(level: .info, message: message, attributes: [:])
+    @discardableResult func info(_ message: String, attributes: [String: String] = [:]) -> Bool {
+        return log(level: .info, message: message, attributes: attributes)
     }
     @discardableResult func info(_ message: String) -> Bool {
         return log(level: .info, message: message)
     }
 
-    @discardableResult func warning(_ message: String, attributes: [String: String]) -> Bool {
-        return log(level: .warning, message: message, attributes: [:])
+    @discardableResult func warning(_ message: String, attributes: [String: String] = [:]) -> Bool {
+        return log(level: .warning, message: message, attributes: attributes)
     }
     @discardableResult func warning(_ message: String) -> Bool {
         return log(level: .warning, message: message)
     }
 
-    @discardableResult func error(_ message: String, attributes: [String: String]) -> Bool {
-        return log(level: .error, message: message, attributes: [:])
+    @discardableResult func error(_ message: String, attributes: [String: String] = [:]) -> Bool {
+        return log(level: .error, message: message, attributes: attributes)
     }
     @discardableResult func error(_ message: String) -> Bool {
         return log(level: .error, message: message)
+    }
+
+    @discardableResult @objc func startup(_ message: String, attributes: [String: String] = [:]) -> Bool {
+        return log(level: .info, message: message, attributes: attributes, customExport: true)
+    }
+    @discardableResult @objc func startup(_ message: String) -> Bool {
+        return log(level: .info, message: message, customExport: true)
+    }
+
+    @discardableResult @objc func critical(_ message: String, attributes: [String: String] = [:]) -> Bool {
+        return log(level: .critical, message: message, attributes: attributes, customExport: true)
+    }
+    @discardableResult @objc func critical(_ message: String) -> Bool {
+        return log(level: .critical, message: message, customExport: true)
     }
 
     private func sendOTelLog(level: LogLevel, message: String, attributes: [String: String]) {
