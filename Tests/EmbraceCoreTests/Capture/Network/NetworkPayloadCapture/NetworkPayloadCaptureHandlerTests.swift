@@ -6,8 +6,9 @@ import XCTest
 import TestSupport
 @testable import EmbraceCore
 @testable import EmbraceConfigInternal
-import EmbraceStorageInternal
+@testable import EmbraceStorageInternal
 @testable import EmbraceConfiguration
+@testable import EmbraceCommonInternal
 
 class NetworkPayloadCaptureHandlerTests: XCTestCase {
 
@@ -183,5 +184,26 @@ class NetworkPayloadCaptureHandlerTests: XCTestCase {
         XCTAssertEqual(otel.logs[0].attributes["payload-algorithm"], .string("aes-256-cbc"))
         XCTAssertEqual(otel.logs[0].attributes["key-algorithm"], .string("RSA.PKCS1"))
         XCTAssertNotNil(otel.logs[0].attributes["encrypted-key"])
+    }
+}
+
+extension DefaultNetworkPayloadCaptureHandler {
+    var rules: [URLSessionTaskCaptureRule] {
+        get { state.withLock { $0.rules } }
+    }
+    
+    var rulesTriggeredMap: [String: Bool] {
+        get { state.withLock { $0.rulesTriggeredMap } }
+        set { state.withLock { $0.rulesTriggeredMap = newValue }}
+    }
+    
+    var active: Bool {
+        get { state.withLock { $0.active } }
+        set { state.withLock { $0.active = newValue }}
+    }
+    
+    var currentSessionId: SessionIdentifier? {
+        get { state.withLock { $0.currentSessionId } }
+        set { state.withLock { $0.currentSessionId = newValue }}
     }
 }

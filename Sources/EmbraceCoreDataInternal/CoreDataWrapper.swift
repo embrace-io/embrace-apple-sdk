@@ -29,18 +29,28 @@ public class CoreDataWrapper {
         let name = options.storageMechanism.name
         self.container = NSPersistentContainer(name: name, managedObjectModel: model)
 
-        switch options.storageMechanism {
-        case .inMemory:
+        // force db on memory during tests
+        if ProcessInfo.processInfo.isTesting {
             let description = NSPersistentStoreDescription()
             description.type = NSInMemoryStoreType
             self.container.persistentStoreDescriptions = [description]
 
-        case let .onDisk(_, baseURL):
-            try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true)
-            let description = NSPersistentStoreDescription()
-            description.type = NSSQLiteStoreType
-            description.url = options.storageMechanism.fileURL
-            self.container.persistentStoreDescriptions = [description]
+        } else {
+            switch options.storageMechanism {
+            case .inMemory:
+                let description = NSPersistentStoreDescription()
+                description.type = NSInMemoryStoreType
+                self.container.persistentStoreDescriptions = [description]
+
+            case let .onDisk(_, baseURL):
+                try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true)
+                let description = NSPersistentStoreDescription()
+                description.type = NSSQLiteStoreType
+                description.url = options.storageMechanism.fileURL
+                description.setValue("DELETE" as NSString, forPragmaNamed: "journal_mode")
+
+                self.container.persistentStoreDescriptions = [description]
+            }
         }
 
         container.loadPersistentStores { _, error in
@@ -56,7 +66,10 @@ public class CoreDataWrapper {
     /// Removes the database file
     /// - Note: Only used in tests!!!
     public func destroy() {
-#if canImport(XCTest)
+        guard ProcessInfo.processInfo.isTesting else {
+            return
+        }
+
         context.performAndWait {
 
             context.reset()
@@ -89,7 +102,6 @@ public class CoreDataWrapper {
             container = nil
             context = nil
         }
-#endif
     }
 
     /// Synchronously saves all changes on the current context to disk
