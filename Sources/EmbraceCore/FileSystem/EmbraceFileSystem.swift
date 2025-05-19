@@ -12,6 +12,8 @@ public struct EmbraceFileSystem {
     static let crashesDirectoryName = "crashes"
     static let captureDirectoryName = "capture"
     static let configDirectoryName = "config"
+    static let deviceIdName = "device-identifier"
+    static let criticalLogsName = "critical-logs"
 
     static let defaultPartitionId = "default"
 
@@ -115,5 +117,21 @@ public struct EmbraceFileSystem {
             partitionId: partitionIdentifier,
             appGroupId: appGroupId
         )
+    }
+
+    /// Returns the fileURL for the device identifier file
+    /// ```
+    /// io.embrace.data/device-identifier
+    /// ```
+    static var deviceIdURL: URL? {
+        rootURL()?.appendingPathComponent(deviceIdName)
+    }
+
+    /// Returns the fileURL for the critical logs file
+    /// ```
+    /// io.embrace.data/critical-logs
+    /// ```
+    static var criticalLogsURL: URL? {
+        rootURL()?.appendingPathComponent(criticalLogsName)
     }
 }

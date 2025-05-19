@@ -18,6 +18,7 @@ public class EmbraceUpload: EmbraceLogUploader {
     public private(set) var options: Options
     public private(set) var logger: InternalLogger
     public private(set) var queue: DispatchQueue
+
     @ThreadSafe
     private(set) var isRetryingCache: Bool = false
 

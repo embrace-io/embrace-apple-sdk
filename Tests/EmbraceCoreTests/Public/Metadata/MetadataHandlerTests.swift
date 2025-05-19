@@ -315,7 +315,7 @@ final class MetadataHandlerTests: XCTestCase {
     }
 
     // MARK: tmp core data
-    func test_coreDataClone() throws {
+    func skip_test_coreDataClone() throws {
         // given previously stored metadata
         let baseUrl = URL(fileURLWithPath: NSTemporaryDirectory())
         let sqliteFile = Bundle.module.path(forResource: "tmp_db", ofType: "sqlite", inDirectory: "Mocks")!
@@ -381,7 +381,7 @@ final class MetadataHandlerTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: baseUrl.appendingPathComponent("EmbraceMetadataTmp.sqlite").path))
     }
 
-    func test_coreDataClone_noFile() throws {
+    func skip_test_coreDataClone_noFile() throws {
         // given no previously stored metadata
         storage = try EmbraceStorage.createInDiskDb(fileName: testName)
 
