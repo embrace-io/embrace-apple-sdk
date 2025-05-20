@@ -282,6 +282,14 @@ let package = Package(
             ],
             path: "Sources/EmbraceMacros/Source"
         ),
+        .testTarget(
+            name: "EmbraceMacrosTests",
+            dependencies: [
+                "EmbraceMacroPlugin",
+                "EmbraceIO",
+                .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
+            ]
+        ),
         
         // crashlytics support  -------------------------------------------------------
         .target(
