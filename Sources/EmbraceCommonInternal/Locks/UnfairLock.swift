@@ -11,7 +11,7 @@ import Foundation
 /// - Swift law of exclusivity: https://github.com/apple/swift-evolution/blob/main/proposals/0176-enforce-exclusive-access-to-memory.md
 final public class UnfairLock {
     private var _lock: UnsafeMutablePointer<os_unfair_lock>
-    
+
     public init() {
         _lock = UnsafeMutablePointer<os_unfair_lock>.allocate(capacity: 1)
         _lock.initialize(to: os_unfair_lock())
