@@ -26,14 +26,36 @@ public final class HangCaptureService: CaptureService {
 
 extension HangCaptureService: HangObserver {
     
+    // Hang span documented here:
+    // https://www.notion.so/embraceio/ANRs-1d77e3c9985281c58765d8c622443e2c
+    
     public func hangStarted(at time: UInt64, duration: UInt64) {
+        
         logger?.debug("[AC:Watchdog] Hang started, for \(nanosecondsToMilliseconds(duration)) ms")
-        span = buildSpan(name: "Hang", type: .performance, attributes: [:])?.startSpan()
+        
+        span = buildSpan(
+            name: "emb-thread-blockage",
+            type: .performance,
+            attributes: [
+                "last_known_time_unix_nano": "\(time)",
+                "interval_code": "0" // not sure what this is for
+            ])?
+            .startSpan()
     }
     
     public func hangUpdated(at time: UInt64, duration: UInt64) {
         logger?.debug("[AC:Watchdog] Hang for \(nanosecondsToMilliseconds(duration)) ms")
-        span?.addEvent(name: "hang.ping")
+        span?.addEvent(
+            name: "perf.thread_blockage_sample",
+            attributes: [
+                "sample_overhead": .int(Int(time)),
+                "frame_count": .int(0),
+                "stacktrace": .string(""),
+                "sample_code": .int(0),
+                "thread_state": .string("BLOCKED"),
+                "thread_priority": .int(0)
+            ]
+        )
     }
     
     public func hangEnded(at time: UInt64, duration: UInt64) {
