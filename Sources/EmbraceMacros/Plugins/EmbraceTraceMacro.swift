@@ -17,7 +17,7 @@ import SwiftDiagnostics
 ///
 /// Usage:
 /// ```
-/// @EmbraceTrace
+/// @embraceTrace
 /// struct MyView: View {
 ///     var body: some View {
 ///         Text("Hello World")
