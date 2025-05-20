@@ -123,7 +123,7 @@ final public class HangWatchdog {
         var enterTime: UInt64 = 0
         weak var hangObserver: HangObserver? = nil
     }
-    private var hangData = UnfairLock(HangData())
+    private var hangData = EmbraceMutex(HangData())
 }
 
 // MARK: - Private Watchdog
