@@ -27,7 +27,7 @@ class DefaultInternalLoggerTests: XCTestCase {
 
     func test_categories() throws {
         // given a logger
-        let category = "custom-export-\(testName)"
+        let category = "custom-export-\(testName)-\(UUID().withoutHyphen)"
         let logger = DefaultInternalLogger(exportFilePath: fileUrl, exportCategory: category)
         logger.level = .trace
 
@@ -69,7 +69,10 @@ class DefaultInternalLoggerTests: XCTestCase {
 
     func test_export_withCriticalLogs() throws {
         // given a logger
-        let logger = DefaultInternalLogger(exportFilePath: fileUrl, exportCategory: "custom-export-\(testName)")
+        let logger = DefaultInternalLogger(
+            exportFilePath: fileUrl,
+            exportCategory: "custom-export-\(testName)-\(UUID().withoutHyphen)"
+        )
         logger.level = .trace
 
         // when doing custom exportable logs without 0 critical logs
@@ -97,7 +100,10 @@ class DefaultInternalLoggerTests: XCTestCase {
 
     func test_export_withoutCriticalLog() {
         // given a logger
-        let logger = DefaultInternalLogger(exportFilePath: fileUrl, exportCategory: "custom-export-\(testName)")
+        let logger = DefaultInternalLogger(
+            exportFilePath: fileUrl,
+            exportCategory: "custom-export-\(testName)-\(UUID().withoutHyphen)"
+        )
         logger.level = .trace
 
         // when doing custom exportable logs without 0 critical logs
@@ -115,7 +121,10 @@ class DefaultInternalLoggerTests: XCTestCase {
 
     func test_multiple_exports() {
         // given a logger
-        let logger = DefaultInternalLogger(exportFilePath: fileUrl, exportCategory: "custom-export-\(testName)")
+        let logger = DefaultInternalLogger(
+            exportFilePath: fileUrl,
+            exportCategory: "custom-export-\(testName)-\(UUID().withoutHyphen)"
+        )
         logger.level = .trace
 
         // when creating a critical log
