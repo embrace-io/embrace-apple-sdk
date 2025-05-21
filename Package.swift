@@ -50,7 +50,7 @@ let package = Package(
         ),
         .package(
             url: "https://github.com/swiftlang/swift-syntax.git",
-            from: "600.0.0-latest"
+            from: "509.0.0"
         )
     ],
     targets: [
