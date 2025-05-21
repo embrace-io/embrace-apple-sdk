@@ -1,12 +1,12 @@
 //
-//  BSGDefines.h
+//  BSG_ToolsDefines.h
 //  Bugsnag
 //
 //  Copyright © 2022 Bugsnag Inc. All rights reserved.
 //
 
-#ifndef BSGDefines_h
-#define BSGDefines_h
+#ifndef BSG_ToolsDefines_h
+#define BSG_ToolsDefines_h
 
 #include <TargetConditionals.h>
 
@@ -57,4 +57,4 @@
 // Reference: http://iphonedevwiki.net/index.php/CoreFoundation.framework
 #define kCFCoreFoundationVersionNumber_iOS_12_0 1556.00
 
-#endif /* BSGDefines_h */
+#endif /* BSG_ToolsDefines_h */
