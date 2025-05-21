@@ -84,11 +84,12 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
     let sessionController: SessionController
     let sessionLifecycle: SessionLifecycle
 
-    private let processingQueue = DispatchQueue(
+    internal let processingQueue = DispatchQueue(
         label: "com.embrace.processing",
         qos: .background,
         attributes: .concurrent
     )
+
     private static let synchronizationQueue = DispatchQueue(
         label: "com.embrace.synchronization",
         qos: .utility
@@ -331,7 +332,9 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
             return
         }
 
-        sessionLifecycle.startSession()
+        processingQueue.async {
+            self.sessionLifecycle.startSession()
+        }
     }
 
     /// Forces the Embrace SDK to stop the current session, if any.
@@ -341,7 +344,9 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
             return
         }
 
-        sessionLifecycle.endSession()
+        processingQueue.async {
+            self.sessionLifecycle.endSession()
+        }
     }
 
     /// Called every time the remote config changes
