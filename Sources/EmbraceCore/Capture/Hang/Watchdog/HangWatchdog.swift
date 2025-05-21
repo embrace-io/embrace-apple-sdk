@@ -261,10 +261,12 @@ extension HangWatchdog {
                     observer.hangStarted(at: enterTime, duration: hangTime)
                 }
                 
+                // Always send a hang update. If the hang just started, then we simply
+                // sent a delayed start, so now send the update so the receiver
+                // can do whatever they also do on update, such as take a backtrace.
+                
                 // Hang Update
-                else {
-                    observer.hangUpdated(at: now, duration: hangTime)
-                }
+                observer.hangUpdated(at: now, duration: hangTime)
             }
         }
         if let timer = watchdogTimer {
