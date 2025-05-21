@@ -141,6 +141,7 @@ jobs:
     name: Create GitHub Release
     runs-on: ubuntu-latest
     needs:
+      - extractor
       - build_release_candidate
     steps:
       - name: Disable GitHub CLI Prompt if Enabled

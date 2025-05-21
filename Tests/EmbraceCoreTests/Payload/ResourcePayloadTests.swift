@@ -7,6 +7,7 @@ import EmbraceStorageInternal
 import OpenTelemetrySdk
 @testable import EmbraceCore
 import TestSupport
+import EmbraceObjCUtilsInternal
 
 class ResourcePayloadTests: XCTestCase {
     func test_encodeToJSONProperly() throws {
@@ -35,7 +36,6 @@ class ResourcePayloadTests: XCTestCase {
             MockMetadata.createResourceRecord(key: DeviceResourceKey.osBuild.rawValue, value: "23D60"),
             MockMetadata.createResourceRecord(key: ResourceAttributes.osType.rawValue, value: "darwin"),
             MockMetadata.createResourceRecord(key: DeviceResourceKey.osVariant.rawValue, value: "iOS_variant"),
-            MockMetadata.createResourceRecord(key: ResourceAttributes.osName.rawValue, value: "iPadOS"),
             MockMetadata.createResourceRecord(key: DeviceResourceKey.locale.rawValue, value: "en_US_POSIX"),
             MockMetadata.createResourceRecord(key: DeviceResourceKey.timezone.rawValue, value: "GMT-3:00"),
 
@@ -74,7 +74,7 @@ class ResourcePayloadTests: XCTestCase {
         XCTAssertEqual(json["os_build"] as? String, "23D60")
         XCTAssertEqual(json["os_type"] as? String, "darwin")
         XCTAssertEqual(json["os_alternate_type"] as? String, "iOS_variant")
-        XCTAssertEqual(json["os_name"] as? String, "iPadOS")
+        XCTAssertEqual(json["os_name"] as? String, EMBDevice.operatingSystemType)
 
         let jsonKeys = Set(json.keys)
         let expectedKeys = Set(ResourcePayload.CodingKeys.allCases.map { $0.rawValue })

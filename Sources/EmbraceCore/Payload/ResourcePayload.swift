@@ -40,7 +40,6 @@ struct ResourcePayload: Codable {
         DeviceResourceKey.locale.rawValue,
         DeviceResourceKey.timezone.rawValue,
         DeviceResourceKey.osDescription.rawValue,
-        DeviceIdentifier.resourceKey,
         SessionPayloadBuilder.resourceName
     ]
 
@@ -109,6 +108,11 @@ struct ResourcePayload: Codable {
 
         // bundle_id is constant and won't change over app install lifetime
         self.appBundleId = Bundle.main.bundleIdentifier
+        self.osName = EMBDevice.operatingSystemType
+
+        // use the current sdk version as a fallback in case the resource is missing
+        // (this happens when sending critical logs while the sdk is not totally initialized)
+        self.sdkVersion = EmbraceMeta.sdkVersion
 
         resources.forEach { resource in
             guard !excludedKeys.contains(resource.key) else {
@@ -168,8 +172,6 @@ struct ResourcePayload: Codable {
                     self.osVersion = resource.value
                 case .osType:
                     self.osType = resource.value
-                case .osName:
-                    self.osName = resource.value
                 default:
                     break
                 }

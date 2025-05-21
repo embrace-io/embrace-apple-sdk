@@ -15,6 +15,7 @@ import EmbraceCommonInternal
     case info
     case warning
     case error
+    case critical
 
     #if DEBUG
     public static let `default`: LogLevel = .debug
@@ -28,7 +29,8 @@ import EmbraceCommonInternal
         case .debug: return LogSeverity.debug
         case .info: return LogSeverity.info
         case .warning: return LogSeverity.warn
-        default: return LogSeverity.error
+        case .error: return LogSeverity.error
+        default: return LogSeverity.critical
         }
     }
 }

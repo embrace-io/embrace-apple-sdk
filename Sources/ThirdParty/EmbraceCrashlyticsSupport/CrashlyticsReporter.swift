@@ -3,7 +3,9 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
+#endif
 
 /// Special `CrashReporter` implementation that captures crash data from Crashlytics reports.
 @objc(EMBCrashlyticsReporter)
