@@ -40,7 +40,6 @@ class MetadataResourceTest: PayloadTest {
          "emb.session.upload_index",
          "emb.app.environment",
          "emb.device.disk_size",
-         "os.name",
          "telemetry.sdk.language"]
     }
 

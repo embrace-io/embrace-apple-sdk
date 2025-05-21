@@ -57,6 +57,8 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
             identifier = "LogSeverity_Error"
         case .fatal:
             identifier = "LogSeverity_Fatal"
+        case .critical:
+            identifier = "LogSeverity_Critical"
         }
 
         app.buttons[identifier].tap()
