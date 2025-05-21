@@ -10,13 +10,16 @@ import OpenTelemetrySdk
 
 @main
 struct EmbraceIOTestAppApp: App {
-    let dataCollector = DataCollector()
+    let spanExporter = TestSpanExporter()
+    let logExporter = TestLogRecordExporter()
+    let networkSwizzle = NetworkingSwizzle()
     var body: some Scene {
         WindowGroup {
             NavigationView {
                 ContentView()
                     .preferredColorScheme(.dark)
-                    .environment(dataCollector)
+                    .environment(spanExporter)
+                    .environment(logExporter)
             }
         }
     }
