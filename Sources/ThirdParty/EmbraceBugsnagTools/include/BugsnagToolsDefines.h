@@ -1,5 +1,5 @@
 //
-//  BugsnagDefines.h
+//  BugsnagToolsDefines.h
 //  Bugsnag
 //
 //  Copyright © 2022 Bugsnag Inc. All rights reserved.
@@ -23,8 +23,8 @@
 // THE SOFTWARE.
 //
 
-#ifndef BugsnagDefines_h
-#define BugsnagDefines_h
+#ifndef BugsnagToolsDefines_h
+#define BugsnagToolsDefines_h
 
 #ifndef BUGSNAG_DEPRECATED_WITH_REPLACEMENT
 #define BUGSNAG_DEPRECATED_WITH_REPLACEMENT(REPLACEMENT) __attribute__((deprecated ("", REPLACEMENT)))
