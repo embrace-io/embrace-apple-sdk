@@ -3,6 +3,7 @@
 //
     
 #import "EMBURLSessionDelegateProxy.h"
+#import "EMBURLSessionDelegateProxyFunctions.h"
 #import <Foundation/Foundation.h>
 #import "objc/runtime.h"
 
