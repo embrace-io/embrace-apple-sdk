@@ -11,6 +11,10 @@ import EmbraceCommonInternal
 extension MetadataHandler {
 
     /// Retrieve the current set of persona tags.
+    ///
+    /// - Important: We strongly advise against calling this method from the main thread,
+    /// as it may block the UI. Use `getCurrentPersonas(completion:)` instead.
+    @available(*, deprecated, message: "Use `fetchCurrentPersonas(completion:)` instead.")
     public var currentPersonas: [PersonaTag] {
         guard let storage = storage else {
             return []
@@ -26,16 +30,42 @@ extension MetadataHandler {
         return records.map { PersonaTag($0.key) }
     }
 
+    /// Fetch the current set of persona tags.
+    ///
+    /// - Parameter completion: A closure that receives the list of persona tags.
+    public func getCurrentPersonas(completion: @escaping ([PersonaTag]) -> Void) {
+        guard let storage = self.storage else {
+            completion([])
+            return
+        }
+
+        self.synchronizationQueue.async {
+            var records: [EmbraceMetadata] = []
+            if let sessionId = self.sessionController?.currentSession?.id {
+                records = storage.fetchPersonaTagsForSessionId(sessionId)
+            } else {
+                records = storage.fetchPersonaTagsForProcessId(ProcessIdentifier.current)
+            }
+
+            let tags = records.map { PersonaTag($0.key) }
+            completion(tags)
+        }
+    }
+
     /// Adds a persona tag with the given value and lifespan.
     /// - Parameters:
     ///   - value: The value of the persona tag to add.
     ///   - lifespan: The lifespan of the persona tag to add.
     /// - Throws: `MetadataError.invalidValue` if the value is longer than 32 characters.
     /// - Throws: `MetadataError.invalidSession` if a persona tag with a `.session` lifespan is added when there's no active session.
-    /// - Throws: `MetadataError.limitReached` if the limit of persona tags was reached.
     public func add(persona: PersonaTag, lifespan: MetadataLifespan = .session) throws {
         try persona.validate()
-        try addMetadata(key: persona.rawValue, value: PersonaTag.metadataValue, type: .personaTag, lifespan: lifespan)
+        try addMetadata(
+            key: persona.rawValue,
+            value: PersonaTag.metadataValue,
+            type: .personaTag,
+            lifespan: lifespan
+        )
     }
 
     /// Removes the persona tag for the given value and lifespan.
@@ -77,7 +107,20 @@ extension MetadataHandler {
     ///
     /// - Note: This method is for Objective-C compatibility. In Swift, it is
     ///         recommended to use the `currentPersonaTags` property.
+    ///
+    /// - Important: We strongly advise against calling this method from the main thread,
+    /// as it may block the UI. Use `fetchCurrentPersonas(completion:)` instead.
+    @available(*, deprecated, message: "Use `fetchCurrentPersonas(completion:)` instead.")
     @objc public func getCurrentPersonas() -> [String] {
         currentPersonas.map(\.rawValue)
+    }
+
+    /// Asynchronously retrieve the current set of persona tags as strings.
+    ///
+    /// - Note: This method is for Objective-C compatibility. In Swift, there's an equivalent using the `PersonaTag` enum
+    @objc public func getCurrentPersonas(completion: @escaping ([String]) -> Void) {
+        getCurrentPersonas { personaTags in
+            completion(personaTags.map(\.rawValue))
+        }
     }
 }
