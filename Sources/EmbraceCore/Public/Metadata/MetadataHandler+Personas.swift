@@ -84,8 +84,8 @@ extension MetadataHandler {
     /// Removes all persona tags for the given lifespans. If no lifespans are passed, all persona tags are removed.
     /// - Parameters:
     ///   - lifespans: Array of lifespans.
-    public func removeAllPersonas(lifespans: [MetadataLifespan] = [.permanent, .process, .session]) throws {
-        try removeAll(type: .personaTag, lifespans: lifespans)
+    public func removeAllPersonas(lifespans: [MetadataLifespan] = [.permanent, .process, .session]) {
+        removeAll(type: .personaTag, lifespans: lifespans)
     }
 }
 

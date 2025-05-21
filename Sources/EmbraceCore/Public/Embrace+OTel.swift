@@ -69,7 +69,7 @@ extension Embrace: EmbraceOpenTelemetry {
         events: [RecordingSpanEvent],
         errorCode: SpanErrorCode?
     ) {
-        let builder = self.otel
+        let builder = otel
             .buildSpan(name: name, type: type, attributes: attributes)
             .setStartTime(time: startTime)
 
@@ -94,7 +94,7 @@ extension Embrace: EmbraceOpenTelemetry {
 
         span.add(events: events)
 
-        self.flush(span)
+        flush(span)
     }
 
     /// Adds a single `SpanEvent` object to the current session span

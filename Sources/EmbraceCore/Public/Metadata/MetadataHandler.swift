@@ -196,18 +196,18 @@ public class MetadataHandler: NSObject {
     /// Removes all resources for the given lifespans. If no lifespans are passed, all resources are removed.
     /// - Parameters:
     ///   - lifespans: Array of lifespans.
-    public func removeAllResources(lifespans: [MetadataLifespan] = [.permanent, .process, .session]) throws {
-        try removeAll(type: .resource, lifespans: lifespans)
+    public func removeAllResources(lifespans: [MetadataLifespan] = [.permanent, .process, .session]) {
+        removeAll(type: .resource, lifespans: lifespans)
     }
 
     /// Removes all properties for the given lifespans. If no lifespans are passed, all properties are removed.
     /// - Parameters:
     ///   - lifespans: Array of lifespans.
-    public func removeAllProperties(lifespans: [MetadataLifespan]) throws {
-        try removeAll(type: .customProperty, lifespans: lifespans)
+    public func removeAllProperties(lifespans: [MetadataLifespan]) {
+        removeAll(type: .customProperty, lifespans: lifespans)
     }
 
-    func removeAll(type: MetadataRecordType, lifespans: [MetadataLifespan]) throws {
+    func removeAll(type: MetadataRecordType, lifespans: [MetadataLifespan]) {
         synchronizationQueue.async {
             self.storage?.removeAllMetadata(
                 type: type,
