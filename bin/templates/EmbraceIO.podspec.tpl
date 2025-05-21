@@ -11,9 +11,9 @@ Pod::Spec.new do |spec|
   spec.license                        = { :type => "Apache 2.0" }
   spec.author                         = "Embrace.io"
   spec.source                         = { :git => "https://github.com/embrace-io/embrace-apple-sdk.git", :tag => spec.version }
-  spec.preserve_paths                 = [ "run.sh", "embrace_symbol_upload.darwin" ]
   spec.requires_arc                   = true
   spec.ios.deployment_target          = "13.0"
+  spec.swift_version                  = "5.7"
   spec.default_subspec = "EmbraceIO"
 
   ## Tell the Swift source code to not import subspecs as modules.

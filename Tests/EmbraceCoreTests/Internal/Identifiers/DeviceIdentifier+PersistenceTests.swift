@@ -7,52 +7,54 @@ import XCTest
 import EmbraceStorageInternal
 @testable import EmbraceCore
 import EmbraceCommonInternal
+import TestSupport
 
 class DeviceIdentifier_PersistenceTests: XCTestCase {
 
-    var storage: EmbraceStorage!
+    let fileProvider = TemporaryFilepathProvider()
+    var fileURL: URL!
 
     override func setUpWithError() throws {
-        storage = try EmbraceStorage.createInMemoryDb()
         KeychainAccess.keychain = AlwaysSuccessfulKeychainInterface()
+
+        try? FileManager.default.removeItem(at: fileProvider.tmpDirectory)
+
+        fileURL = fileProvider.fileURL(for: "DeviceIdentifier_PersistenceTests", name: "file")!
+        try? FileManager.default.createDirectory(at: fileProvider.directoryURL(for: "DeviceIdentifier_PersistenceTests")!, withIntermediateDirectories: true)
     }
 
     override func tearDownWithError() throws {
-        storage.coreData.destroy()
+
     }
 
-    func test_retrieve_withNoRecordInStorage_shouldCreateNewPermanentRecord() throws {
-        let result = DeviceIdentifier.retrieve(from: storage)
+    func test_retrieve_withNoFile_shouldCreateNewFile() throws {
+        let result = DeviceIdentifier.retrieve(fileURL: fileURL)
 
-        let resourceRecord = storage.fetchRequiredPermanentResource(key: DeviceIdentifier.resourceKey)
-        XCTAssertNotNil(resourceRecord)
-        XCTAssertEqual(resourceRecord?.lifespan, .permanent)
+        XCTAssert(FileManager.default.fileExists(atPath: fileURL.path))
 
-        let storedDeviceId = UUID(withoutHyphen: resourceRecord!.value)!
-        XCTAssertEqual(result, DeviceIdentifier(value: storedDeviceId))
+        let value = try String(contentsOf: fileURL)
+        XCTAssert(value.count > 0)
+
+        let storedDeviceId = UUID(uuidString: value)
+        XCTAssertNotNil(storedDeviceId)
+        XCTAssertEqual(result, DeviceIdentifier(value: storedDeviceId!))
     }
 
-    func test_retrieve_withNoRecordInStorage_shouldRequestFromKeychain() throws {
+    func test_retrieve_withNoFile_shouldRequestFromKeychain() throws {
         let keychainDeviceId = KeychainAccess.deviceId
 
-        let result = DeviceIdentifier.retrieve(from: storage)
+        let result = DeviceIdentifier.retrieve(fileURL: fileURL)
         XCTAssertEqual(result, DeviceIdentifier(value: keychainDeviceId))
     }
 
-    func test_retrieve_withRecordInStorage_shouldReturnStorageValue() throws {
-        // because of our setup we could assume there is no database entry but lets make sure
-        // to delete the resource if we already have it
+    func test_retrieve_withFile_shouldReturnFileValue() throws {
 
-        let deviceId = DeviceIdentifier(value: UUID())
+        let uuid = UUID()
+        let deviceId = DeviceIdentifier(value: uuid)
 
-        storage.addMetadata(
-            key: DeviceIdentifier.resourceKey,
-            value: deviceId.hex,
-            type: .requiredResource,
-            lifespan: .permanent
-        )
+        try uuid.uuidString.write(to: fileURL, atomically: true, encoding: .utf8)
 
-        let result = DeviceIdentifier.retrieve(from: storage)
+        let result = DeviceIdentifier.retrieve(fileURL: fileURL)
         XCTAssertEqual(result, deviceId)
     }
 }
