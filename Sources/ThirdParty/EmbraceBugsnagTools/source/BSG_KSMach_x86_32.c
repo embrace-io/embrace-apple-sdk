@@ -27,7 +27,7 @@
 #if defined(__i386__)
 
 #include "BSG_KSMach.h"
-#include "BSGDefines.h"
+#include "BSG_ToolsDefines.h"
 
 //#define BSG_KSLogger_LocalLevel TRACE
 #include "BSG_KSLogger.h"
