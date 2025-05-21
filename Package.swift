@@ -89,7 +89,8 @@ let package = Package(
                 "EmbraceStorageInternal",
                 "EmbraceUploadInternal",
                 "EmbraceObjCUtilsInternal",
-                "EmbraceSemantics"
+                "EmbraceSemantics",
+                "EmbraceBugsnagTools"
             ],
             resources: [
                 .copy("PrivacyInfo.xcprivacy")
