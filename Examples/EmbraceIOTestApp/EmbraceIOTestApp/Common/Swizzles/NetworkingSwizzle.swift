@@ -8,13 +8,12 @@ import Foundation
 import OpenTelemetrySdk
 import EmbraceCommonInternal
 import EmbraceCore
+import EmbraceConfigInternal
 
 typealias JsonDictionary = Dictionary<String, Any>
 
 class NetworkingSwizzle: NSObject {
-    private typealias URLSessionCompletion = (Data?, URLResponse?, Error?) -> Void
-    private typealias ImplementationType = @convention(c) (URLSession, Selector, URLRequest, URLSessionCompletion?) -> URLSessionDataTask
-    private typealias BlockImplementationType = @convention(block) (URLSession, URLRequest, URLSessionCompletion?) -> URLSessionDataTask
+    typealias URLSessionCompletion = (Data?, URLResponse?, Error?) -> Void
 
     weak var spanExporter: TestSpanExporter?
     weak var logExporter: TestLogRecordExporter?
@@ -37,13 +36,22 @@ class NetworkingSwizzle: NSObject {
         super.init()
         self.spanExporter = spanExporter
         self.logExporter = logExporter
-        do { try setup() } catch {}
+        setup()
     }
 
-    private func setup() throws {
+    private func setup() {
         guard !NetworkingSwizzle.initialized else { return }
 
         NetworkingSwizzle.initialized = true
+
+        setupDataTaskWithCompletionHandler()
+
+        setupNotifications()
+    }
+
+    private func setupDataTaskWithCompletionHandler()  {
+        typealias ImplementationType = @convention(c) (URLSession, Selector, URLRequest, URLSessionCompletion?) -> URLSessionDataTask
+        typealias BlockImplementationType = @convention(block) (URLSession, URLRequest, URLSessionCompletion?) -> URLSessionDataTask
 
         let selector: Selector = #selector(
             URLSession.dataTask(with:completionHandler:) as (URLSession) -> (URLRequest, @escaping URLSessionCompletion) -> URLSessionDataTask
@@ -61,12 +69,38 @@ class NetworkingSwizzle: NSObject {
                     }
                 }
             }
+
+            if self.isConfigRequest(urlRequest) {
+                return FakeConfigDataTask(completion: completion)
+            }
+
+            if self.isEmbraceApiRequest(urlRequest) {
+                return FakePOSTDataTask(completion: completion)
+            }
+
             let task = originalMethod(urlSession, selector, urlRequest, completion)
             return task
+
         }
         let newImplementation = imp_implementationWithBlock(newImplementationBlock)
         method_setImplementation(method, newImplementation)
+    }
 
+    private func isConfigRequest(_ urlRequest: URLRequest) -> Bool {
+        guard urlRequest.httpMethod == "GET" else { return false }
+        guard urlRequest.url?.pathComponents.contains("config") ?? false else { return false}
+
+        return true
+    }
+
+    private func isEmbraceApiRequest(_ urlRequest: URLRequest) -> Bool {
+        guard urlRequest.url?.pathComponents.contains("api") ?? false else { return false}
+        guard urlRequest.url?.pathComponents.contains("v2") ?? false else { return false}
+
+        return true
+    }
+
+    private func setupNotifications() {
         NotificationCenter.default.addObserver(forName: .init("TestSpanExporter.SpansUpdated"), object: nil, queue: nil) { [weak self] _ in
             guard
                 let self = self,
@@ -131,3 +165,73 @@ class NetworkingSwizzle: NSObject {
         exportedLogsBySessions[currentSessionId, default:[]].append(contentsOf: logExporter.latestExportedLogs)
     }
 }
+
+class FakePOSTDataTask: URLSessionDataTask, @unchecked Sendable {
+    typealias URLSessionCompletion = (Data?, URLResponse?, Error?) -> Void
+    
+    var completion: URLSessionCompletion!
+    
+    init(completion: URLSessionCompletion!) {
+        self.completion = completion
+    }
+    
+    override func resume() {
+        completion(nil, fakeHTTPResponse, nil)
+    }
+
+    var fakeHTTPResponse: HTTPURLResponse? {
+        .init(url: URL(string: "https://embrace.io")!, statusCode: 200, httpVersion: nil, headerFields: nil)
+    }
+}
+
+class FakeConfigDataTask: URLSessionDataTask, @unchecked Sendable {
+    typealias URLSessionCompletion = (Data?, URLResponse?, Error?) -> Void
+
+    var completion: URLSessionCompletion!
+
+    init(completion: URLSessionCompletion!) {
+        self.completion = completion
+    }
+
+    override func resume() {
+        completion(mockedConfig, fakeHTTPResponse, nil)
+    }
+
+    var mockedConfig: Data? {
+        configJsonString.toData()
+    }
+
+    var fakeHTTPResponse: HTTPURLResponse? {
+        .init(url: URL(string: "https://embrace.io")!, statusCode: 200, httpVersion: nil, headerFields: nil)
+    }
+
+    var configJsonString: String {
+            """
+            {
+              "event_limits": {},
+              "personas": [],
+              "ls": 100,
+              "disabled_message_types": [],
+              "ui": {
+                "views": 100,
+                "web_views": 100
+              },
+              "ui_load_instrumentation_enabled": true,
+              "signal_strength_enabled": false,
+              "screenshots_enabled": false,
+              "disable_session_control": false,
+              "logs": {
+                "max_length": 4000
+              },
+              "urlconnection_request_enabled": true,
+              "threshold": 100,
+              "offset": 0,
+              "session_control": {
+                "enable": true,
+                "async_end": false
+              }
+            }
+            """
+    }
+}
+
