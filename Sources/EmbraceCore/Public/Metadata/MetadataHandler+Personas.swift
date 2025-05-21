@@ -110,7 +110,7 @@ extension MetadataHandler {
     ///
     /// - Important: We strongly advise against calling this method from the main thread,
     /// as it may block the UI. Use `fetchCurrentPersonas(completion:)` instead.
-    @available(*, deprecated, message: "Use `fetchCurrentPersonas(completion:)` instead.")
+    @available(*, deprecated, message: "Use `getCurrentPersonas(completion:)` instead.")
     @objc public func getCurrentPersonas() -> [String] {
         currentPersonas.map(\.rawValue)
     }
