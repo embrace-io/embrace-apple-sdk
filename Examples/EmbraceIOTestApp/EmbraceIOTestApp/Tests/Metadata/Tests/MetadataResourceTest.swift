@@ -31,7 +31,6 @@ class MetadataResourceTest: PayloadTest {
          "os.version",
          "emb.device.architecture",
          "emb.device.is_jailbroken",
-         "emb.device_id",
          "emb.device.timezone",
          "emb.os.variant",
          "emb.device.locale",
@@ -71,7 +70,7 @@ class MetadataResourceTest: PayloadTest {
 
     static func testMetadataInclussion(on resource: Resource, testItems: inout [TestReportItem]) {
         let missingMetadataKeys = missingResourceMetadataKeys(on: resource.attributes)
-        testItems.append(.init(target: "Missing Metadata Keys", expected: 0, recorded: missingMetadataKeys.count))
+        testItems.append(.init(target: "Missing Metadata Keys", expected: "0 missing", recorded: "\(missingMetadataKeys.count) missing"))
 
         missingMetadataKeys.forEach { missingKey in
             testItems.append(.init(target: "Metadata Key \(missingKey)", expected: "exists", recorded: "missing"))
