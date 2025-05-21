@@ -19,7 +19,9 @@ import EmbraceStorageInternal
             value(for: .name)
         }
         set {
-            update(key: .name, value: newValue)
+            synchronizationQueue.async {
+                self.update(key: .name, value: newValue)
+            }
         }
     }
 
@@ -32,7 +34,9 @@ import EmbraceStorageInternal
             value(for: .email)
         }
         set {
-            update(key: .email, value: newValue)
+            synchronizationQueue.async {
+                self.update(key: .email, value: newValue)
+            }
         }
     }
 
@@ -45,14 +49,18 @@ import EmbraceStorageInternal
             value(for: .identifier)
         }
         set {
-            update(key: .identifier, value: newValue)
+            synchronizationQueue.async {
+                self.update(key: .identifier, value: newValue)
+            }
         }
     }
 
     /// Clear all user properties.
     /// This will clear all user properties set via the `userName`, `userEmail` and `userIdentifier` properties.
     public func clearUserProperties() {
-        storage?.removeAllMetadata(keys: UserResourceKey.allValues, lifespan: .permanent)
+        synchronizationQueue.async {
+            self.storage?.removeAllMetadata(keys: UserResourceKey.allValues, lifespan: .permanent)
+        }
     }
 }
 

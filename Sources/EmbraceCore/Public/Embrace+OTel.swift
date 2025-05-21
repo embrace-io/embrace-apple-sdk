@@ -108,10 +108,12 @@ extension Embrace: EmbraceOpenTelemetry {
     /// This is intended to save changes on long running spans.
     /// - Parameter span: A `Span` object that implements `ReadableSpan`.
     public func flush(_ span: Span) {
-        if let span = span as? ReadableSpan {
-            EmbraceOTel.processor?.flush(span: span)
-        } else {
-            Embrace.logger.debug("Tried to flush a non-ReadableSpan object")
+        processingQueue.async {
+            if let span = span as? ReadableSpan {
+                EmbraceOTel.processor?.flush(span: span)
+            } else {
+                Embrace.logger.debug("Tried to flush a non-ReadableSpan object")
+            }
         }
     }
 
@@ -157,17 +159,19 @@ extension Embrace: EmbraceOpenTelemetry {
         attributes: [String: String] = [:],
         stackTraceBehavior: StackTraceBehavior = .default
     ) {
-        logController.createLog(
-            message,
-            severity: severity,
-            type: type,
-            timestamp: timestamp,
-            attachment: nil,
-            attachmentId: nil,
-            attachmentUrl: nil,
-            attributes: attributes,
-            stackTraceBehavior: stackTraceBehavior
-        )
+        processingQueue.async {
+            self.logController.createLog(
+                message,
+                severity: severity,
+                type: type,
+                timestamp: timestamp,
+                attachment: nil,
+                attachmentId: nil,
+                attachmentUrl: nil,
+                attributes: attributes,
+                stackTraceBehavior: stackTraceBehavior
+            )
+        }
     }
 
     /// Creates and adds a log with the given data as an attachment for the current session span.
@@ -190,17 +194,20 @@ extension Embrace: EmbraceOpenTelemetry {
         attributes: [String: String] = [:],
         stackTraceBehavior: StackTraceBehavior = .default
     ) {
-        logController.createLog(
-            message,
-            severity: severity,
-            type: type,
-            timestamp: timestamp,
-            attachment: attachment,
-            attachmentId: nil,
-            attachmentUrl: nil,
-            attributes: attributes,
-            stackTraceBehavior: stackTraceBehavior
-        )
+        processingQueue.async {
+            self.logController.createLog(
+                message,
+                severity: severity,
+                type: type,
+                timestamp: timestamp,
+                attachment: attachment,
+                attachmentId: nil,
+                attachmentUrl: nil,
+                attributes: attributes,
+                stackTraceBehavior: stackTraceBehavior
+            )
+
+        }
     }
 
     /// Creates and adds a log with the given attachment info for the current session span.
@@ -225,17 +232,19 @@ extension Embrace: EmbraceOpenTelemetry {
         attributes: [String: String],
         stackTraceBehavior: StackTraceBehavior = .default
     ) {
-        logController.createLog(
-            message,
-            severity: severity,
-            type: type,
-            timestamp: timestamp,
-            attachment: nil,
-            attachmentId: attachmentId,
-            attachmentUrl: attachmentUrl,
-            attributes: attributes,
-            stackTraceBehavior: stackTraceBehavior
-        )
+        processingQueue.async {
+            self.logController.createLog(
+                message,
+                severity: severity,
+                type: type,
+                timestamp: timestamp,
+                attachment: nil,
+                attachmentId: attachmentId,
+                attachmentUrl: attachmentUrl,
+                attributes: attributes,
+                stackTraceBehavior: stackTraceBehavior
+            )
+        }
     }
 }
 

@@ -6,6 +6,7 @@ import XCTest
 
 @testable import EmbraceCore
 import EmbraceStorageInternal
+import TestSupport
 
 final class MetadataHandler_UserTests: XCTestCase {
 
@@ -25,7 +26,11 @@ final class MetadataHandler_UserTests: XCTestCase {
     }
 
     func test_setProperties_initially() throws {
-        let handler = MetadataHandler(storage: storage, sessionController: sessionController)
+        let handler = MetadataHandler(
+            storage: storage,
+            sessionController: sessionController,
+            syncronizationQueue: MockQueue()
+        )
 
         handler.userName = "example"
         handler.userIdentifier = "my-example-identifier"
@@ -37,7 +42,11 @@ final class MetadataHandler_UserTests: XCTestCase {
     }
 
     func test_setProperties_canByUpdated() throws {
-        let handler = MetadataHandler(storage: storage, sessionController: sessionController)
+        let handler = MetadataHandler(
+            storage: storage,
+            sessionController: sessionController,
+            syncronizationQueue: MockQueue()
+        )
 
         handler.userName = "example"
         handler.userIdentifier = "my-example-identifier"
@@ -53,7 +62,11 @@ final class MetadataHandler_UserTests: XCTestCase {
     }
 
     func test_setProperties_canBeCleared_Individually() throws {
-        let handler = MetadataHandler(storage: storage, sessionController: sessionController)
+        let handler = MetadataHandler(
+            storage: storage,
+            sessionController: sessionController,
+            syncronizationQueue: MockQueue()
+        )
 
         handler.userName = "example"
         handler.userIdentifier = "my-example-identifier"
@@ -70,8 +83,12 @@ final class MetadataHandler_UserTests: XCTestCase {
     }
 
     func test_setProperties_canBeCleared_AllTogether() throws {
-        let handler = MetadataHandler(storage: storage, sessionController: sessionController)
-
+        let handler = MetadataHandler(
+            storage: storage,
+            sessionController: sessionController,
+            syncronizationQueue: MockQueue()
+        )
+        
         handler.userName = "example"
         handler.userIdentifier = "my-example-identifier"
         handler.userEmail = "example@example.com"
