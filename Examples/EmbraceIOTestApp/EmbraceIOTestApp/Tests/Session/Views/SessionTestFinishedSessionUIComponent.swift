@@ -35,7 +35,7 @@ struct SessionTestFinishedSessionUIComponent: View {
 }
 
 #Preview {
-    let spanExporter = TestSpanExporter()
+    let dataCollector = DataCollector()
     SessionTestFinishedSessionUIComponent(dataModel: SessionTestsDataModel.finishedSessionPayload)
-        .environment(spanExporter)
+        .environment(dataCollector)
 }
