@@ -1,0 +1,41 @@
+name: UI Tests App
+
+env:
+  ARCHIVE_QUIET_MODE: 1
+
+on:
+  workflow_dispatch:
+
+# These permissions are needed to interact with GitHub's OIDC Token endpoint
+permissions:
+  id-token: write
+  contents: write
+  packages: read
+
+jobs:
+  build-ui-tests-app:
+    timeout-minutes: 20
+    runs-on: [macos-14]
+    strategy:
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+        timeout-minutes: 5
+
+      - name: xcodebuild
+        env:
+          PROJECT_DIR: ./Examples/EmbraceIOTestApp
+          PROJECT_NAME: EmbraceIOTestApp.xcodeproj
+          SCHEME: BrandGame
+          IS_XCTEST: true # Needed to disable SwiftLint -> SwiftSyntax plugin dependency build issue
+        run: |
+          set -o pipefail
+
+          ROOT_DIR=`pwd`
+          DERIVED_DATA_DIR="$PROJECT_DIR/.build/DerivedData"
+
+          xcodebuild test \
+          -scheme 'EmbraceIOTestApp' \
+          -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.2' \
+          -project 'EmbraceIOTestApp.xcodeproj'
