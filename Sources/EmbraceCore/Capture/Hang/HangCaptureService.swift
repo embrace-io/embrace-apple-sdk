@@ -17,7 +17,6 @@ public final class HangCaptureService: CaptureService {
     
     public init(watchdog: HangWatchdog = HangWatchdog()) {
         dispatchPrecondition(condition: .onQueue(.main))
-        EmbraceBacktrace.bootstrap()
         self.watchdog = watchdog
         self.mainThread = pthread_self()
         super.init()
