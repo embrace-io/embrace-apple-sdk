@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 70;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -32,14 +32,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		4D0154C32D9B07FF001B775A /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		4D0154C32D9B07FF001B775A /* Exceptions for "EmbraceIOTestApp" folder in "EmbraceIOTestAppUITests" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Tests/Netowrking/Enums/URLRequestMethod.swift,
 			);
 			target = 4D94F2522D429257008DECEE /* EmbraceIOTestAppUITests */;
 		};
-		4D5977FA2D4AC5FD0067FCE3 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		4D5977FA2D4AC5FD0067FCE3 /* Exceptions for "EmbraceIOTestApp" folder in "EmbraceIOTestApp" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -49,8 +49,20 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		4D94F2542D429257008DECEE /* EmbraceIOTestAppUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = EmbraceIOTestAppUITests; sourceTree = "<group>"; };
-		4DF12A222D302C3200C93E62 /* EmbraceIOTestApp */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (4D5977FA2D4AC5FD0067FCE3 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, 4D0154C32D9B07FF001B775A /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = EmbraceIOTestApp; sourceTree = "<group>"; };
+		4D94F2542D429257008DECEE /* EmbraceIOTestAppUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = EmbraceIOTestAppUITests;
+			sourceTree = "<group>";
+		};
+		4DF12A222D302C3200C93E62 /* EmbraceIOTestApp */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				4D5977FA2D4AC5FD0067FCE3 /* Exceptions for "EmbraceIOTestApp" folder in "EmbraceIOTestApp" target */,
+				4D0154C32D9B07FF001B775A /* Exceptions for "EmbraceIOTestApp" folder in "EmbraceIOTestAppUITests" target */,
+			);
+			path = EmbraceIOTestApp;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -179,7 +191,6 @@
 				};
 			};
 			buildConfigurationList = 4DF12A1B2D302C3200C93E62 /* Build configuration list for PBXProject "EmbraceIOTestApp" */;
-			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -191,6 +202,7 @@
 			packageReferences = (
 				4D7DCDC42D487FDF009561A3 /* XCLocalSwiftPackageReference "../../../Embrace-ios-sdk" */,
 			);
+			preferredProjectObjectVersion = 77;
 			productRefGroup = 4DF12A212D302C3200C93E62 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
