@@ -28,7 +28,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         timeout-minutes: 5
-
+      - name: Cache SPM Dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            .build/checkouts
+            .build/artifacts
+            .build/*-apple-*/debug/Swift*
+            .build/*-apple-*/debug/SourceKit*
+            .build/*-apple-*/debug/ArgumentParser*
+          key: ${{ runner.os }}-spm-build-cache-test-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-build-cache-test
       - name: xcodebuild
         env:
           PROJECT_DIR: ./Examples/EmbraceIOTestApp
