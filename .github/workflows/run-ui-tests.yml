@@ -4,7 +4,11 @@ env:
   ARCHIVE_QUIET_MODE: 1
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: {}
+  pull_request: {}
+  push:
+    branches:
+      - main
 
 # These permissions are needed to interact with GitHub's OIDC Token endpoint
 permissions:
@@ -13,7 +17,7 @@ permissions:
   packages: read
 
 jobs:
-  build-ui-tests-app:
+  run-ui-tests-app:
     timeout-minutes: 20
     runs-on: [macos-14]
     strategy:
@@ -27,13 +31,10 @@ jobs:
         env:
           PROJECT_DIR: ./Examples/EmbraceIOTestApp
           PROJECT_NAME: EmbraceIOTestApp.xcodeproj
-          SCHEME: BrandGame
-          IS_XCTEST: true # Needed to disable SwiftLint -> SwiftSyntax plugin dependency build issue
+          SCHEME: EmbraceIOTestApp
+          IS_XCTEST: true
         run: |
           set -o pipefail
-
-          ROOT_DIR=`pwd`
-          DERIVED_DATA_DIR="$PROJECT_DIR/.build/DerivedData"
 
           xcodebuild test \
           -scheme 'EmbraceIOTestApp' \
