@@ -1,12 +1,22 @@
+## 6.10.0
+*May 19, 2025*
+*  Fixes
+    * Fixed a crash that could occur when capturing data from requests (#217).
+    * Fixed an issue that prevented the Network Payload Capture feature from properly capturing request/response bodies.
+    * Reduced overhead and memory usage when capturing response bodies in most common use cases.
+    * Fixed crash that happened in UI Automation environments.
+* Changes
+    * KSCrash dependency now uses the main repository instead of a custom fork.
+
 ## 6.9.2
 *Apr 30, 2025*
-* Fixed
+* Fixes
 	* Improved Core Data fetches and cleanup routines to prevent potential crashes.
 	* Fixed a crash that could occur when ending and restarting sessions.
 
 ## 6.9.1
 *Apr 25th, 2025*
-* Fixed
+* Fixes
     * Fixed potential threading issues with Core Data.
 
 ## 6.9.0
