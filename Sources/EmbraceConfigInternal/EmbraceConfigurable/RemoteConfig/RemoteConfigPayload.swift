@@ -5,6 +5,7 @@
 import Foundation
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceConfiguration
+import EmbraceCommonInternal
 #endif
 
 // swiftlint:disable nesting
@@ -15,6 +16,11 @@ public struct RemoteConfigPayload: Decodable, Equatable {
     var networkSpansForwardingThreshold: Float
     var uiLoadInstrumentationEnabled: Bool
 
+    var metricKitEnabledThreshold: Float
+    var metricKitCrashCaptureEnabled: Bool
+    var metricKitCrashSignals: [String]
+    var metricKitHangCaptureEnabled: Bool
+
     var internalLogsTraceLimit: Int
     var internalLogsDebugLimit: Int
     var internalLogsInfoLimit: Int
@@ -22,8 +28,6 @@ public struct RemoteConfigPayload: Decodable, Equatable {
     var internalLogsErrorLimit: Int
 
     var networkPayloadCaptureRules: [NetworkPayloadCaptureRule]
-
-    var metricKitThreshold: Float
 
     enum CodingKeys: String, CodingKey {
         case sdkEnabledThreshold = "threshold"
@@ -40,6 +44,10 @@ public struct RemoteConfigPayload: Decodable, Equatable {
 
         case uiLoadInstrumentationEnabled = "ui_load_instrumentation_enabled_v2"
 
+        case metricKitEnabledThreshold = "metrickit_v2_pct_enabled"
+        case metricKitReportersEnabled = "metrickit_v2_reporters_enabled"
+        case metricKitCrashSignalsEnabled = "metrickit_v2_crash_signals_enabled"
+
         case internalLogLimits = "internal_log_limits"
         enum InternalLogLimitsCodingKeys: String, CodingKey {
             case trace
@@ -50,8 +58,6 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         }
 
         case networkPayLoadCapture = "network_capture"
-
-        case metricKitThreshold = "metric_kit_threshold"
     }
 
     public init(from decoder: Decoder) throws {
@@ -145,11 +151,30 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         )) ?? defaultPayload.networkPayloadCaptureRules
 
         // metric kit
-
-        metricKitThreshold = try rootContainer.decodeIfPresent(
+        metricKitEnabledThreshold = try rootContainer.decodeIfPresent(
             Float.self,
-            forKey: .metricKitThreshold
-        ) ?? defaultPayload.metricKitThreshold
+            forKey: .metricKitEnabledThreshold
+        ) ?? defaultPayload.metricKitEnabledThreshold
+
+        if let strArray = try rootContainer.decodeIfPresent(
+            String.self,
+            forKey: .metricKitReportersEnabled
+        )?.uppercased() {
+            metricKitCrashCaptureEnabled = strArray.contains("CRASH")
+            metricKitHangCaptureEnabled = strArray.contains("HANG")
+        } else {
+            metricKitCrashCaptureEnabled = defaultPayload.metricKitCrashCaptureEnabled
+            metricKitHangCaptureEnabled = defaultPayload.metricKitHangCaptureEnabled
+        }
+
+        if let strArray = try rootContainer.decodeIfPresent(
+            String.self,
+            forKey: .metricKitCrashSignalsEnabled
+        )?.uppercased() {
+            metricKitCrashSignals = strArray.components(separatedBy: ",")
+        } else {
+            metricKitCrashSignals = defaultPayload.metricKitCrashSignals
+        }
     }
 
     // defaults
@@ -159,6 +184,11 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         networkSpansForwardingThreshold = 0.0
         uiLoadInstrumentationEnabled = true
 
+        metricKitEnabledThreshold = 0.0
+        metricKitCrashCaptureEnabled = false
+        metricKitCrashSignals = [CrashSignal.SIGKILL.stringValue]
+        metricKitHangCaptureEnabled = false
+
         internalLogsTraceLimit = 0
         internalLogsDebugLimit = 0
         internalLogsInfoLimit = 0
@@ -166,8 +196,6 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         internalLogsErrorLimit = 3
 
         networkPayloadCaptureRules = []
-
-        metricKitThreshold = 100.0
     }
 }
 

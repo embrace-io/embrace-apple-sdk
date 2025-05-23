@@ -22,6 +22,10 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssertEqual(payload.backgroundSessionThreshold, 0)
         XCTAssertEqual(payload.networkSpansForwardingThreshold, 0)
         XCTAssertEqual(payload.uiLoadInstrumentationEnabled, true)
+        XCTAssertEqual(payload.metricKitEnabledThreshold, 0)
+        XCTAssertEqual(payload.metricKitCrashCaptureEnabled, false)
+        XCTAssertEqual(payload.metricKitCrashSignals, ["SIGKILL"])
+        XCTAssertEqual(payload.metricKitHangCaptureEnabled, false)
         XCTAssertEqual(payload.internalLogsTraceLimit, 0)
         XCTAssertEqual(payload.internalLogsDebugLimit, 0)
         XCTAssertEqual(payload.internalLogsInfoLimit, 0)
@@ -63,7 +67,10 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssertEqual(rule2!.expiration, 1723570602)
         XCTAssertEqual(rule2!.publicKey, "key")
 
-        XCTAssertEqual(payload.metricKitThreshold, 55)
+        XCTAssertEqual(payload.metricKitEnabledThreshold, 55)
+        XCTAssertEqual(payload.metricKitCrashCaptureEnabled, true)
+        XCTAssertEqual(payload.metricKitCrashSignals, ["SIGKILL", "SIGINT"])
+        XCTAssertEqual(payload.metricKitHangCaptureEnabled, true)
     }
 
     func test_onHavingOldAndInvalidRemoteConfigPayload_RemoteConfigPayload_shouldBeCreatedWithDefaults() throws {
@@ -78,13 +85,16 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssertEqual(payload.backgroundSessionThreshold, 0)
         XCTAssertEqual(payload.networkSpansForwardingThreshold, 0)
         XCTAssertEqual(payload.uiLoadInstrumentationEnabled, true)
+        XCTAssertEqual(payload.metricKitEnabledThreshold, 0)
+        XCTAssertEqual(payload.metricKitCrashCaptureEnabled, false)
+        XCTAssertEqual(payload.metricKitCrashSignals, ["SIGKILL"])
+        XCTAssertEqual(payload.metricKitHangCaptureEnabled, false)
         XCTAssertEqual(payload.internalLogsTraceLimit, 0)
         XCTAssertEqual(payload.internalLogsDebugLimit, 0)
         XCTAssertEqual(payload.internalLogsInfoLimit, 0)
         XCTAssertEqual(payload.internalLogsWarningLimit, 0)
         XCTAssertEqual(payload.internalLogsErrorLimit, 3)
         XCTAssertEqual(payload.networkPayloadCaptureRules.count, 0)
-        XCTAssertEqual(payload.metricKitThreshold, 100)
     }
 
     func getRemoteConfigData(forResource resource: String) throws -> Data {

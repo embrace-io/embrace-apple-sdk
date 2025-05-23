@@ -3,8 +3,10 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCaptureService
 import EmbraceCommonInternal
+#endif
 
 class MetricKitCrashCaptureService: CaptureService, MetricKitCrashPayloadListener {
 
@@ -26,11 +28,10 @@ class MetricKitCrashCaptureService: CaptureService, MetricKitCrashPayloadListene
 
     func didReceive(payload: Data, signal: Int, sessionId: SessionIdentifier?) {
         guard state == .active,
-            options.stateProvider?.isMetricKitEnabled == true else {
-            return
-        }
-
-        guard options.signals.contains(signal) else {
+              let stateProvider = options.stateProvider,
+              stateProvider.isMetricKitEnabled,
+              stateProvider.isMetricKitCrashCaptureEnabled,
+              stateProvider.metricKitCrashSignals.contains(signal) else {
             return
         }
 

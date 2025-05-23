@@ -35,5 +35,7 @@
             "public_key": "key"
         },
     ],
-    "metric_kit_threshold": 55
+    "metrickit_v2_pct_enabled": 55,
+    "metrickit_v2_reporters_enabled": "CRASH,HANG",
+    "metrickit_v2_crash_signals_enabled": "SIGKILL,SIGINT"
 }

@@ -3,5 +3,8 @@
 //
 
 public protocol EmbraceMetricKitStateProvider: AnyObject {
-    var isMetricKitEnabled: Bool { get}
+    var isMetricKitEnabled: Bool { get }
+    var isMetricKitCrashCaptureEnabled: Bool { get }
+    var metricKitCrashSignals: [Int] { get }
+    var isMetricKitHangCaptureEnabled: Bool { get }
 }

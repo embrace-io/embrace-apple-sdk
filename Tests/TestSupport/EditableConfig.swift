@@ -13,6 +13,14 @@ public class EditableConfig: EmbraceConfigurable {
 
     public var isUiLoadInstrumentationEnabled: Bool = false
 
+    public var isMetricKitEnabled: Bool = true
+
+    public var isMetricKitCrashCaptureEnabled: Bool = false
+
+    public var metricKitCrashSignals: [String] = []
+
+    public var isMetricKitHangCaptureEnabled: Bool = false
+
     public var internalLogLimits = InternalLogLimits()
 
     public var networkPayloadCaptureRules = [NetworkPayloadCaptureRule]()
@@ -21,24 +29,28 @@ public class EditableConfig: EmbraceConfigurable {
         completion(false, nil)
     }
 
-    public var isMetricKitEnabled: Bool = true
-
     public init(
         isSdkEnabled: Bool = true,
         isBackgroundSessionEnabled: Bool = false,
         isNetworkSpansForwardingEnabled: Bool = false,
         isUiLoadInstrumentationEnabled: Bool = false,
+        isMetricKitEnabled: Bool = false,
+        isMetricKitCrashCaptureEnabled: Bool = false,
+        metricKitCrashSignals: [String] = [],
+        isMetricKitHangCaptureEnabled: Bool = false,
         internalLogLimits: InternalLogLimits = InternalLogLimits(),
-        networkPayloadCaptureRules: [NetworkPayloadCaptureRule] = [],
-        isMetricKitEnabled: Bool = true
+        networkPayloadCaptureRules: [NetworkPayloadCaptureRule] = []
     ) {
         self.isSDKEnabled = isSdkEnabled
         self.isBackgroundSessionEnabled = isBackgroundSessionEnabled
         self.isNetworkSpansForwardingEnabled = isNetworkSpansForwardingEnabled
         self.isUiLoadInstrumentationEnabled = isUiLoadInstrumentationEnabled
+        self.isMetricKitEnabled = isMetricKitEnabled
+        self.isMetricKitCrashCaptureEnabled = isMetricKitCrashCaptureEnabled
+        self.metricKitCrashSignals = metricKitCrashSignals
+        self.isMetricKitHangCaptureEnabled = isMetricKitHangCaptureEnabled
         self.internalLogLimits = internalLogLimits
         self.networkPayloadCaptureRules = networkPayloadCaptureRules
-        self.isMetricKitEnabled = isMetricKitEnabled
     }
 }
 

@@ -13,8 +13,12 @@ final class DefaultConfigTests: XCTestCase {
         XCTAssertTrue(config.isSDKEnabled)
         XCTAssertFalse(config.isBackgroundSessionEnabled)
         XCTAssertFalse(config.isNetworkSpansForwardingEnabled)
+        XCTAssertFalse(config.isUiLoadInstrumentationEnabled)
+        XCTAssertFalse(config.isMetricKitEnabled)
+        XCTAssertFalse(config.isMetricKitCrashCaptureEnabled)
+        XCTAssertEqual(config.metricKitCrashSignals, [])
+        XCTAssertFalse(config.isMetricKitHangCaptureEnabled)
         XCTAssertEqual(config.internalLogLimits, InternalLogLimits())
         XCTAssertTrue(config.networkPayloadCaptureRules.isEmpty)
-        XCTAssertTrue(config.isMetricKitEnabled)
     }
 }

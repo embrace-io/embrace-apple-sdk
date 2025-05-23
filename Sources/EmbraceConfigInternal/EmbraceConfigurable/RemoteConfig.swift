@@ -92,6 +92,14 @@ extension RemoteConfig: EmbraceConfigurable {
 
     public var isUiLoadInstrumentationEnabled: Bool { payload.uiLoadInstrumentationEnabled }
 
+    public var isMetricKitEnabled: Bool { isEnabled(threshold: payload.metricKitEnabledThreshold) }
+
+    public var isMetricKitCrashCaptureEnabled: Bool { payload.metricKitCrashCaptureEnabled }
+
+    public var metricKitCrashSignals: [String] { payload.metricKitCrashSignals }
+
+    public var isMetricKitHangCaptureEnabled: Bool { payload.metricKitHangCaptureEnabled }
+
     public var networkPayloadCaptureRules: [NetworkPayloadCaptureRule] { payload.networkPayloadCaptureRules }
 
     public var internalLogLimits: InternalLogLimits {
@@ -103,8 +111,6 @@ extension RemoteConfig: EmbraceConfigurable {
             error: UInt(max(payload.internalLogsErrorLimit, 0))
         )
     }
-
-    public var isMetricKitEnabled: Bool { isEnabled(threshold: payload.metricKitThreshold) }
 
     public func update(completion: @escaping (Bool, (any Error)?) -> Void) {
         guard updating == false else {

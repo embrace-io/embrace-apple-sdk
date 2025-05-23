@@ -17,8 +17,7 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
         return MetricKitCrashCaptureService.Options(
             crashProvider: provider,
             metadataFetcher: fetcher,
-            stateProvider: stateProvider ?? MockMetricKitStateProvider(),
-            signals: [ 9 ]
+            stateProvider: stateProvider ?? MockMetricKitStateProvider()
         )
     }
 
@@ -40,13 +39,15 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
         // given a capture service
         let otel = MockEmbraceOpenTelemetry()
         let provider = MockMetricKitCrashPayloadProvider()
-        let options = options(provider: provider)
+        let stateProvider = MockMetricKitStateProvider()
+        stateProvider.metricKitCrashSignals = [3, 5]
+        let options = options(provider: provider, stateProvider: stateProvider)
         let service = MetricKitCrashCaptureService(options: options)
         service.install(otel: otel)
         service.start()
 
         // when the service receives a payload with the right signal
-        service.didReceive(payload: TestConstants.data, signal: 9, sessionId: nil)
+        service.didReceive(payload: TestConstants.data, signal: 5, sessionId: nil)
 
         // then it creates the corresponding otel log
         let log = otel.logs[0]
@@ -62,7 +63,9 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
         // given a capture service
         let otel = MockEmbraceOpenTelemetry()
         let provider = MockMetricKitCrashPayloadProvider()
-        let options = options(provider: provider)
+        let stateProvider = MockMetricKitStateProvider()
+        stateProvider.metricKitCrashSignals = [3, 5]
+        let options = options(provider: provider, stateProvider: stateProvider)
         let service = MetricKitCrashCaptureService(options: options)
         service.install(otel: otel)
         service.start()
@@ -172,4 +175,7 @@ class MockMetricKitCrashPayloadProvider: MetricKitCrashPayloadProvider {
 
 class MockMetricKitStateProvider: EmbraceMetricKitStateProvider {
     var isMetricKitEnabled: Bool = true
+    var isMetricKitCrashCaptureEnabled: Bool = true
+    var metricKitCrashSignals: [Int] = [9]
+    var isMetricKitHangCaptureEnabled: Bool = true
 }
