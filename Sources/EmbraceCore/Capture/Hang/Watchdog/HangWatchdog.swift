@@ -245,7 +245,10 @@ extension HangWatchdog {
             let (observer, startHang, enterTime, hangTime) = hangData.withLock {
                 
                 let enterTime = $0.enterTime
-                let hangTime = now - enterTime
+                let (hangTime, overflow) = now.subtractingReportingOverflow(enterTime)
+                if overflow {
+                    print("error")
+                }
                 let isHang = hangTime >= threasholdInNs
                 
                 let startHang = isHang && $0.hanging == false
