@@ -179,7 +179,7 @@
 				};
 			};
 			buildConfigurationList = 4DF12A1B2D302C3200C93E62 /* Build configuration list for PBXProject "EmbraceIOTestApp" */;
-			compatibilityVersion = "Xcode 15.3";
+			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
