@@ -34,6 +34,11 @@ class NetworkingSwizzle: NSObject {
     /// Contains all the logs exported, grouped by Session Id.
     private(set) var exportedLogsBySessions: [String: [ReadableLogRecord]] = [:]
 
+    /// For whatever reason, some tasks get lost in the ether so their completion handlers are never called.
+    /// A quick fix is to just keep a reference to them here... Not ideal but this is a test app not intended to run for too long.
+    /// Will consider making a cleaning routine if necessary. For now, this will do.
+    private var createdTasks: [MockDataTask] = []
+
     init(spanExporter: TestSpanExporter, logExporter: TestLogRecordExporter) {
         super.init()
         self.spanExporter = spanExporter
@@ -76,11 +81,15 @@ class NetworkingSwizzle: NSObject {
 
             if self.simulateEmbraceAPI {
                 if self.isConfigRequest(urlRequest) {
-                    return FakeConfigDataTask(originalRequest: urlRequest, completion: completion)
+                    let task = MockDataTask(originalRequest: urlRequest, completionData: MockData.mockConfig, completion: completion)
+                    self.createdTasks.append(task)
+                    return task
                 }
 
                 if self.isEmbraceApiRequest(urlRequest) {
-                    return FakePOSTDataTask(originalRequest: urlRequest, completion: completion)
+                    let task = MockDataTask(originalRequest: urlRequest, completion: completion)
+                    self.createdTasks.append(task)
+                    return task
                 }
             }
 
@@ -169,86 +178,5 @@ class NetworkingSwizzle: NSObject {
         }
 
         exportedLogsBySessions[currentSessionId, default:[]].append(contentsOf: logExporter.latestExportedLogs)
-    }
-}
-
-class FakePOSTDataTask: URLSessionDataTask, @unchecked Sendable {
-    typealias URLSessionCompletion = (Data?, URLResponse?, Error?) -> Void
-    
-    var completion: URLSessionCompletion!
-    var _originalRequest: URLRequest?
-    override var originalRequest: URLRequest? { _originalRequest }
-
-    init(originalRequest: URLRequest?, completion: URLSessionCompletion!) {
-        self._originalRequest = originalRequest
-        self.completion = completion
-    }
-
-    override func resume() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
-            guard let self = self else { return }
-            self.completion(nil, self.fakeHTTPResponse, nil)
-        }
-    }
-
-    var fakeHTTPResponse: HTTPURLResponse? {
-        .init(url: URL(string: "https://embrace.io")!, statusCode: 200, httpVersion: nil, headerFields: nil)
-    }
-}
-
-class FakeConfigDataTask: URLSessionDataTask, @unchecked Sendable {
-    typealias URLSessionCompletion = (Data?, URLResponse?, Error?) -> Void
-
-    var completion: URLSessionCompletion!
-    var _originalRequest: URLRequest?
-    override var originalRequest: URLRequest? { _originalRequest }
-
-    init(originalRequest: URLRequest?, completion: URLSessionCompletion!) {
-        self._originalRequest = originalRequest
-        self.completion = completion
-    }
-
-    override func resume() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
-            guard let self = self else { return }
-            self.completion(self.mockedConfig, self.fakeHTTPResponse, nil)
-        }
-    }
-
-    var mockedConfig: Data? {
-        configJsonString.toData()
-    }
-
-    var fakeHTTPResponse: HTTPURLResponse? {
-        .init(url: URL(string: "https://embrace.io")!, statusCode: 200, httpVersion: nil, headerFields: nil)
-    }
-
-    var configJsonString: String {
-            """
-            {
-              "event_limits": {},
-              "personas": [],
-              "ls": 100,
-              "disabled_message_types": [],
-              "ui": {
-                "views": 100,
-                "web_views": 100
-              },
-              "ui_load_instrumentation_enabled": true,
-              "signal_strength_enabled": false,
-              "screenshots_enabled": false,
-              "disable_session_control": false,
-              "logs": {
-                "max_length": 4000
-              },
-              "urlconnection_request_enabled": true,
-              "threshold": 100,
-              "offset": 0,
-              "session_control": {
-                "enable": true,
-                "async_end": false
-              }
-            }
-            """
     }
 }
