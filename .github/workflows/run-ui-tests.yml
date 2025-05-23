@@ -1,20 +1,11 @@
 name: UI Tests App
 
-env:
-  ARCHIVE_QUIET_MODE: 1
-
 on:
   workflow_dispatch: {}
   pull_request: {}
   push:
     branches:
       - main
-
-# These permissions are needed to interact with GitHub's OIDC Token endpoint
-permissions:
-  id-token: write
-  contents: write
-  packages: read
 
 jobs:
   run-ui-tests-app:
@@ -76,7 +67,7 @@ jobs:
         if: always()
         with:
           path: .build/test/output
-          title: "Test Results"
+          title: "UI Test Results"
           show-passed-tests: true
           show-code-coverage: false
           upload-bundles: "never" # Uploading the `xcresult` using the xcresultool action seems to fail; 
