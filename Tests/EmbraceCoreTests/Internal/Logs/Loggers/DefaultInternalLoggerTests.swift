@@ -82,7 +82,7 @@ class DefaultInternalLoggerTests: XCTestCase {
         logger.startup("startup5")
         logger.critical("critical")
 
-        wait(timeout: .veryLongTimeout) {
+        wait(timeout: 10) {
             // then the exported file has the correct values
             guard let log = try? String(contentsOf: self.fileUrl) else {
                 return false

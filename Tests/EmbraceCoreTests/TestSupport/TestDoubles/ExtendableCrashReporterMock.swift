@@ -19,4 +19,5 @@ class ExtendableCrashReporterMock: ExtendableCrashReporter {
     func fetchUnsentCrashReports(completion: @escaping ([EmbraceCrashReport]) -> Void) {}
     func deleteCrashReport(id: Int) {}
     var onNewReport: ((EmbraceCrashReport) -> Void)?
+    var disableMetricKitReports: Bool = false
 }

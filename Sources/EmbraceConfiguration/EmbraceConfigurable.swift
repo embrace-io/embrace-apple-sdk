@@ -15,6 +15,14 @@ import Foundation
 
     var isUiLoadInstrumentationEnabled: Bool { get }
 
+    var isMetricKitEnabled: Bool { get }
+
+    var isMetricKitCrashCaptureEnabled: Bool { get }
+
+    var metricKitCrashSignals: [String] { get }
+
+    var isMetricKitHangCaptureEnabled: Bool { get }
+
     var internalLogLimits: InternalLogLimits { get }
 
     var networkPayloadCaptureRules: [NetworkPayloadCaptureRule] { get }

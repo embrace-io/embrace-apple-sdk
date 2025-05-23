@@ -19,6 +19,8 @@ import Foundation
     @objc func fetchUnsentCrashReports(completion: @escaping ([EmbraceCrashReport]) -> Void)
 
     @objc var onNewReport: ((EmbraceCrashReport) -> Void)? { get set }
+
+    @objc var disableMetricKitReports: Bool { get }
 }
 
 /// This protocol that extends the functionality of a `EmbraceCrashReporter` and it allows

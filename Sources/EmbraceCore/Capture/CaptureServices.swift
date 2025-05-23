@@ -17,7 +17,7 @@ final class CaptureServices {
     var services: [CaptureService] {
         _services.safeValue
     }
-    
+
     var context: CrashReporterContext
     weak var crashReporter: CrashReporter?
 
@@ -59,6 +59,12 @@ final class CaptureServices {
                     upload: upload,
                     otel: Embrace.client
                 )
+            }
+
+            if crashReporter.disableMetricKitReports == false {
+                _services.withLock {
+                    $0.append(MetricKitCrashCaptureService())
+                }
             }
         }
 

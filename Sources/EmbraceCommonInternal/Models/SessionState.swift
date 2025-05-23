@@ -7,6 +7,7 @@ import Foundation
 public enum SessionState: String {
     case foreground
     case background
+    case unknown
 }
 
 #if canImport(UIKit) && !os(watchOS)

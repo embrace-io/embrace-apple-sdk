@@ -74,6 +74,8 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
     /// Returns the current `MetadataHandler` used to store resources and session properties.
     @objc public let metadata: MetadataHandler
 
+    let metricKit: MetricKitHandler
+
     let config: EmbraceConfig?
     let storage: EmbraceStorage
     let upload: EmbraceUpload?
@@ -183,6 +185,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
 
         // initialize metadata handler
         self.metadata = MetadataHandler(storage: storage, sessionController: sessionController)
+        self.metricKit = MetricKitHandler()
 
         // initialize log controller
         var logController: LogController?
@@ -275,6 +278,12 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
                 sessionLifecycle.startSession()
                 captureServices.install()
 
+                metricKit.install()
+
+                // save latest session in memory before its sent and deleted
+                // this will be used to link metric kit payloads to the session
+                metricKit.lastSession = storage.fetchLatestSession()
+
                 self.processingQueue.async { [weak self] in
 
                     self?.captureServices.start()
@@ -331,6 +340,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
             sessionLifecycle.stop()
             sessionController.clear()
             captureServices.stop()
+            metricKit.uninstall()
 
             Embrace.logger.startup("Embrace SDK stopped successfully!")
         }
