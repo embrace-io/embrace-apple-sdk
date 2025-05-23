@@ -26,8 +26,14 @@ jobs:
         xcode_version: ["16.2"]
 
     steps:
+      - name: Select Xcode
+        # See https://github.com/actions/runner-images/blob/main/images/macos/macos-14-Readme.md
+        run: |
+          sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app
+          xcodebuild -version
       - uses: actions/checkout@v4
         timeout-minutes: 5
+      
       - name: Cache SPM Dependencies
         uses: actions/cache@v4
         with:
@@ -40,10 +46,34 @@ jobs:
           key: ${{ runner.os }}-spm-build-cache-test-${{ hashFiles('Package.resolved') }}
           restore-keys: |
             ${{ runner.os }}-spm-build-cache-test
+      
+      - name: Display Available SDKs
+        run: xcodebuild -showsdks -json
+        timeout-minutes: 1
+        continue-on-error: true
+      
+      - name: Display Available Simulators
+        run: |
+          xcrun simctl list -j devices available
+        timeout-minutes: 2
+        continue-on-error: true
+      
       - name: xcodebuild
-        env:
-          PROJECT_DIR: ./Examples/EmbraceIOTestApp
-          PROJECT_NAME: EmbraceIOTestApp.xcodeproj
-          SCHEME: EmbraceIOTestApp
-          IS_XCTEST: true
         run: bin/ui_tests
+        timeout-minutes: 30
+      
+      - name: Upload xcresult Bundle Manually
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: output_xcresult
+          path: .build/test/output.xcresult
+
+      - uses: kishikawakatsumi/xcresulttool@v1
+        if: always()
+        with:
+          path: .build/test/output
+          title: "Test Results"
+          show-passed-tests: true
+          show-code-coverage: false
+          upload-bundles: "never" # Uploading the `xcresult` using the xcresultool action seems to fail; 
