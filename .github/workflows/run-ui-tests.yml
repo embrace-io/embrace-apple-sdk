@@ -46,10 +46,4 @@ jobs:
           PROJECT_NAME: EmbraceIOTestApp.xcodeproj
           SCHEME: EmbraceIOTestApp
           IS_XCTEST: true
-        run: |
-          set -o pipefail
-
-          xcodebuild test \
-          -scheme 'EmbraceIOTestApp' \
-          -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.2' \
-          -project './Examples/EmbraceIOTestApp/EmbraceIOTestApp.xcodeproj'
+        run: bin/ui_tests
