@@ -46,7 +46,7 @@ struct TestSideMenuView: View {
 }
 
 #Preview {
-    @Previewable @State var isPresented = true
-    @Previewable @State var selectedOption: TestMenuOptionDataModel = .embraceInit
-    TestSideMenuView(isPresented: $isPresented, selectedTestOption: $selectedOption)
+    @State var isPresented = true
+    @State var selectedOption: TestMenuOptionDataModel = .embraceInit
+    return TestSideMenuView(isPresented: $isPresented, selectedTestOption: $selectedOption)
 }

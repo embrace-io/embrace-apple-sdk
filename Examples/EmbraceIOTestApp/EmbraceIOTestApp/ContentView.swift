@@ -54,7 +54,7 @@ struct ContentView: View {
 
 #Preview {
     let dataCollector = DataCollector()
-    NavigationView {
+    return NavigationView {
         ContentView()
             .environment(dataCollector)
     }

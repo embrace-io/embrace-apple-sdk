@@ -7,37 +7,40 @@
 import SwiftUI
 import EmbraceCore
 
+@Observable
 class UploadedSessionPayloadTestViewModel: UIComponentViewModelBase {
-    private var testObject: UploadedSessionPayloadTest = .init()
+    private var testObject: UploadedSessionPayloadTest
 
-    @Published private(set) var exportedAndPostedSessions: [String] = [] {
+    private(set) var exportedAndPostedSessions: [String] = [] {
         didSet {
-            selectedSessionId = exportedAndPostedSessions.last
+            selectedSessionId = exportedAndPostedSessions.last ?? ""
         }
     }
 
-    @Published private(set) var currentSessionId: String? {
+    private(set) var currentSessionId: String? {
         didSet {
             guard oldValue != nil else { return }
             self.lastSessionId = oldValue
         }
     }
 
-    @Published var selectedSessionId: String? {
+    var selectedSessionId: String {
         didSet {
-            guard let selectedSessionId = selectedSessionId else { return }
             testObject.sessionIdToTest = selectedSessionId
         }
     }
 
-    @Published private(set) var lastSessionId: String?
+    private(set) var lastSessionId: String?
 
     var testButtonDisabled: Bool {
         exportedAndPostedSessions.isEmpty
     }
 
     init(dataModel: any TestScreenDataModel) {
-        super.init(dataModel: dataModel, payloadTestObject: self.testObject)
+        let testObject = UploadedSessionPayloadTest()
+        self.testObject = testObject
+        self.selectedSessionId = ""
+        super.init(dataModel: dataModel, payloadTestObject: testObject)
         currentSessionId = Embrace.client?.currentSessionId()
         NotificationCenter.default.addObserver(forName: .init("NetworkingSwizzle.CapturedNewPayload"), object: nil, queue: nil) { [weak self] _ in
             self?.updatedExportedSessions()

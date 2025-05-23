@@ -60,7 +60,7 @@ struct LoggingTestsAttachmentView: View {
 }
 
 #Preview {
-    @Previewable @State var addAttachment: Bool = false
-    @Previewable @State var attachmentSize: Float = 8192
-    LoggingTestsAttachmentView(addAttachment: $addAttachment, attachmentSize: $attachmentSize)
+    @State var addAttachment: Bool = false
+    @State var attachmentSize: Float = 8192
+    return LoggingTestsAttachmentView(addAttachment: $addAttachment, attachmentSize: $attachmentSize)
 }

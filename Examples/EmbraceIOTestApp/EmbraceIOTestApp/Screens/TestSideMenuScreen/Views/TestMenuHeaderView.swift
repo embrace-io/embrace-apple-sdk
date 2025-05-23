@@ -22,5 +22,5 @@ struct TestMenuHeaderView: View {
 
 
 #Preview {
-    TestMenuHeaderView()
+    return TestMenuHeaderView()
 }

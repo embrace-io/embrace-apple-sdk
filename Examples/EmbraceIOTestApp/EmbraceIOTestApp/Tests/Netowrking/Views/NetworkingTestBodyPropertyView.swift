@@ -56,7 +56,7 @@ struct NetworkingTestBodyPropertyView: View {
 }
 
 #Preview {
-    NetworkingTestBodyPropertyView { key, value in
+    return NetworkingTestBodyPropertyView { key, value in
         print("Added key: \(key) - valud: \(value)")
     }
 }
