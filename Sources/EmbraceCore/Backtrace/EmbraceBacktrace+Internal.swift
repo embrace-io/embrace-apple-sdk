@@ -86,6 +86,65 @@ private class EmbraceThreadList {
     }
 }
 
+extension EmbraceBacktraceFrame {
+    
+    init(withFramePointer address: UInt64) {
+        self.address = address
+        self.symbolAddress = 0
+        self.symbolName = ""
+        self.imageUUID = ""
+        self.imageName = ""
+        self.imageSize = 0
+        self.imageOffset = 0
+    }
+    
+    internal func symbolicated() -> EmbraceBacktraceFrame {
+        guard imageUUID.isEmpty else { return self }
+        
+        // there's an atomic check so this isn't expensive except for the first time
+        bsg_mach_headers_initialize()
+        
+        var result: bsg_symbolicate_result = bsg_symbolicate_result()
+        bsg_symbolicate(UInt(address), &result)
+        
+        let imageUUID: String
+        let imageName: String
+        let imageSize: UInt64
+        let imageOffset: UInt64
+        
+        if let img = result.image {
+            let ptr = img.pointee
+            imageUUID = NSUUID(uuidBytes: ptr.uuid).uuidString
+            imageName = NSString(utf8String: ptr.name)?.lastPathComponent ?? ""
+            imageSize = ptr.imageSize
+            imageOffset = UInt64(address) - ptr.imageVmAddr
+        } else {
+            imageUUID = ""
+            imageName = ""
+            imageSize = 0
+            imageOffset = 0
+        }
+        
+        let symbolName: String
+        if let funcName = result.function_name {
+            symbolName = String(cString: funcName)
+            // demangle here
+        } else {
+            symbolName = ""
+        }
+        
+        return EmbraceBacktraceFrame(
+            address: UInt64(address),
+            symbolAddress: UInt64(result.function_address),
+            symbolName: symbolName,
+            imageUUID: imageUUID,
+            imageName: imageName,
+            imageSize: imageSize,
+            imageOffset: imageOffset
+        )
+    }
+}
+
 //let currentThread = pthread_mach_thread_np(pthread_self())
 //let snappingThread = pthread_mach_thread_np(thread)
 
@@ -123,48 +182,10 @@ internal extension EmbraceBacktrace {
         
         var frames: [EmbraceBacktraceFrame] = []
         for index: Int in (0..<Int(frameCount)) {
-            
-            let address = addresses[index]
-            
-            var result: bsg_symbolicate_result = bsg_symbolicate_result()
-            bsg_symbolicate(address, &result)
-            
-            let imageUUID: String
-            let imageName: String
-            let imageSize: UInt64
-            let imageOffset: UInt64
-            
-            if let img = result.image {
-                let ptr = img.pointee
-                imageUUID = NSUUID(uuidBytes: ptr.uuid).uuidString
-                imageName = String(cString: ptr.name)
-                imageSize = ptr.imageSize
-                imageOffset = UInt64(address) - ptr.imageVmAddr
-            } else {
-                imageUUID = ""
-                imageName = ""
-                imageSize = 0
-                imageOffset = 0
-            }
-            
-            let symbolName: String
-            if let funcName = result.function_name {
-                symbolName = String(cString: funcName)
-                // demangle here
-            } else {
-                symbolName = ""
-            }
-            
-            let frame = EmbraceBacktraceFrame(
-                address: UInt64(address),
-                symbolAddress: UInt64(result.function_address),
-                symbolName: symbolName,
-                imageUUID: imageUUID,
-                imageName: imageName,
-                imageSize: imageSize,
-                imageOffset: imageOffset
+            frames.insert(
+                EmbraceBacktraceFrame(withFramePointer: UInt64(addresses[index])),
+                at: 0
             )
-            frames.append(frame)
         }
 
         return [
