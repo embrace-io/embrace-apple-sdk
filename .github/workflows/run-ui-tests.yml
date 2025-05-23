@@ -22,6 +22,8 @@ jobs:
     runs-on: [macos-14]
     strategy:
       fail-fast: false
+      matrix:
+        xcode_version: ["16.0"]
 
     steps:
       - uses: actions/checkout@v4
