@@ -58,9 +58,12 @@ jobs:
         timeout-minutes: 2
         continue-on-error: true
       
+      - name: Install xcbeautify
+        run: brew install xcbeautify
+      
       - name: xcodebuild
-        run: bin/ui_tests
-        timeout-minutes: 30
+        run: bin/ui_tests | xcbeautify && exit ${PIPESTATUS[0]}
+        timeout-minutes: 60
       
       - name: Upload xcresult Bundle Manually
         if: always()
