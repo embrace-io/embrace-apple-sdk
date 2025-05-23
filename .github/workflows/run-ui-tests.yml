@@ -39,4 +39,4 @@ jobs:
           xcodebuild test \
           -scheme 'EmbraceIOTestApp' \
           -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.2' \
-          -project 'EmbraceIOTestApp.xcodeproj'
+          -project '$PROJECT_DIR/$PROJECT_NAME'
