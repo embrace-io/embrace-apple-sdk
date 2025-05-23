@@ -5,10 +5,12 @@
 //
 
 import Foundation
+import OpenTelemetryApi
 import OpenTelemetrySdk
 import EmbraceCommonInternal
 import EmbraceCore
 import EmbraceConfigInternal
+import EmbraceOTelInternal
 
 typealias JsonDictionary = Dictionary<String, Any>
 
@@ -38,6 +40,8 @@ class NetworkingSwizzle: NSObject {
         self.logExporter = logExporter
         setup()
     }
+
+    var simulateEmbraceAPI: Bool = true
 
     private func setup() {
         guard !NetworkingSwizzle.initialized else { return }
@@ -70,12 +74,14 @@ class NetworkingSwizzle: NSObject {
                 }
             }
 
-            if self.isConfigRequest(urlRequest) {
-                return FakeConfigDataTask(completion: completion)
-            }
+            if self.simulateEmbraceAPI {
+                if self.isConfigRequest(urlRequest) {
+                    return FakeConfigDataTask(originalRequest: urlRequest, completion: completion)
+                }
 
-            if self.isEmbraceApiRequest(urlRequest) {
-                return FakePOSTDataTask(completion: completion)
+                if self.isEmbraceApiRequest(urlRequest) {
+                    return FakePOSTDataTask(originalRequest: urlRequest, completion: completion)
+                }
             }
 
             let task = originalMethod(urlSession, selector, urlRequest, completion)
@@ -170,13 +176,19 @@ class FakePOSTDataTask: URLSessionDataTask, @unchecked Sendable {
     typealias URLSessionCompletion = (Data?, URLResponse?, Error?) -> Void
     
     var completion: URLSessionCompletion!
-    
-    init(completion: URLSessionCompletion!) {
+    var _originalRequest: URLRequest?
+    override var originalRequest: URLRequest? { _originalRequest }
+
+    init(originalRequest: URLRequest?, completion: URLSessionCompletion!) {
+        self._originalRequest = originalRequest
         self.completion = completion
     }
-    
+
     override func resume() {
-        completion(nil, fakeHTTPResponse, nil)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+            guard let self = self else { return }
+            self.completion(nil, self.fakeHTTPResponse, nil)
+        }
     }
 
     var fakeHTTPResponse: HTTPURLResponse? {
@@ -188,13 +200,19 @@ class FakeConfigDataTask: URLSessionDataTask, @unchecked Sendable {
     typealias URLSessionCompletion = (Data?, URLResponse?, Error?) -> Void
 
     var completion: URLSessionCompletion!
+    var _originalRequest: URLRequest?
+    override var originalRequest: URLRequest? { _originalRequest }
 
-    init(completion: URLSessionCompletion!) {
+    init(originalRequest: URLRequest?, completion: URLSessionCompletion!) {
+        self._originalRequest = originalRequest
         self.completion = completion
     }
 
     override func resume() {
-        completion(mockedConfig, fakeHTTPResponse, nil)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+            guard let self = self else { return }
+            self.completion(self.mockedConfig, self.fakeHTTPResponse, nil)
+        }
     }
 
     var mockedConfig: Data? {
@@ -234,4 +252,3 @@ class FakeConfigDataTask: URLSessionDataTask, @unchecked Sendable {
             """
     }
 }
-

@@ -14,7 +14,7 @@ struct UploadedSessionPayloadUIComponent: View {
 
     init(dataModel: any TestScreenDataModel) {
         self.dataModel = dataModel
-        viewModel = .init(dataModel: dataModel)
+        self.viewModel = .init(dataModel: dataModel)
     }
 
     var body: some View {
@@ -48,8 +48,6 @@ struct UploadedSessionPayloadUIComponent: View {
                 }
             }
             .opacity(viewModel.exportedAndPostedSessions.count == 0 ? 0.0 : 1.0)
-
-
             TestScreenButtonView(viewModel: viewModel)
                 .disabled(viewModel.testButtonDisabled)
                 .onAppear {
