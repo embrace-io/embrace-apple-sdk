@@ -6,8 +6,45 @@
 
 import XCTest
 
+extension NSPredicate {
+    static func keyPath<T, U>(
+        _ keyPath: KeyPath<T, U>,
+        is type: NSComparisonPredicate.Operator = .equalTo,
+        value: U,
+        modifier: NSComparisonPredicate.Modifier = .direct,
+        options: NSComparisonPredicate.Options = []
+    ) -> NSPredicate {
+
+        return NSComparisonPredicate(
+            leftExpression: NSExpression(forKeyPath: keyPath),
+            rightExpression: NSExpression(forConstantValue: value),
+            modifier: modifier,
+            type: type,
+            options: options
+        )
+    }
+}
+
 extension XCUIElement {
     var hasFocus: Bool { value(forKey: "hasKeyboardFocus") as? Bool ?? false }
+
+    func wait<U>(
+            attribute keyPath: KeyPath<XCUIElement, U>,
+            is comparisonOperator: NSComparisonPredicate.Operator,
+            value: U,
+            timeout: TimeInterval = 10
+        ) -> XCUIElement? {
+
+            let predicate = NSPredicate.keyPath(
+                keyPath,
+                is: comparisonOperator,
+                value: value
+            )
+
+            let expectation = XCTNSPredicateExpectation(predicate: predicate, object: self)
+            let result = XCTWaiter.wait(for: [expectation], timeout: timeout)
+            return result == .completed ? self : nil
+        }
 }
 
 extension XCTestCase {
