@@ -58,6 +58,9 @@ let project = Project(
             bundleId: "com.embraceio.EmbraceCommonInternal",
             deploymentTargets: .iOS("13.0"),
             sources: ["Sources/EmbraceCommonInternal/**"],
+            dependencies: [
+                .external(name: "OpenTelemetrySdk")
+            ],
             settings: .settings(base: [
                 "SKIP_INSTALL": "NO",
                 "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES"
@@ -151,7 +154,7 @@ let project = Project(
             dependencies: [
                 .target(name: "EmbraceCommonInternal"),
                 .target(name: "EmbraceSemantics"),
-                .external(name: "OpenTelemetryApi")
+                .target(name: "EmbraceCoreDataInternal")
             ],
             settings: .settings(base: [
                 "SKIP_INSTALL": "NO",
@@ -215,7 +218,7 @@ let project = Project(
             deploymentTargets: .iOS("13.0"),
             sources: ["Sources/EmbraceCoreDataInternal/**"],
             dependencies: [
-                .target(name: "EmbraceCommonInternal"),
+                .target(name: "EmbraceCommonInternal")
             ],
             settings: .settings(base: [
                 "SKIP_INSTALL": "NO",

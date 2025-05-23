@@ -3,8 +3,10 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
 import EmbraceConfiguration
+#endif
 
 /// Remote config uses the Embrace Config Service to request config values
 public class RemoteConfig {

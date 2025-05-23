@@ -5,12 +5,14 @@
 #if canImport(WebKit)
 import Foundation
 import WebKit
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
 import EmbraceOTelInternal
 import EmbraceCaptureService
 import EmbraceSemantics
-import OpenTelemetryApi
 import EmbraceObjCUtilsInternal
+#endif
+import OpenTelemetryApi
 
 /// Service that generates OpenTelemetry span events when a `WKWebView` loads an URL or throws an error.
 @objc(EMBWebViewCaptureService)
@@ -220,12 +222,12 @@ struct WKWebViewLoadFileURLSwizzler: Swizzlable {
 
     func install() throws {
         try swizzleInstanceMethod { originalImplementation -> BlockImplementationType in
-            return { webView, fileUrl, readAccessURL in
+            return { webView, fileURL, readAccessURL in
                 if webView.navigationDelegate == nil {
                     webView.navigationDelegate = nil // forcefully trigger setNavigationDelegate swizzler
                 }
 
-                return originalImplementation(webView, Self.selector, fileUrl, readAccessURL)
+                return originalImplementation(webView, Self.selector, fileURL, readAccessURL)
             }
         }
     }

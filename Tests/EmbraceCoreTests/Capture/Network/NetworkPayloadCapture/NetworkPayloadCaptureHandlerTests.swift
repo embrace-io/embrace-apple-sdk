@@ -6,8 +6,9 @@ import XCTest
 import TestSupport
 @testable import EmbraceCore
 @testable import EmbraceConfigInternal
-import EmbraceStorageInternal
+@testable import EmbraceStorageInternal
 @testable import EmbraceConfiguration
+@testable import EmbraceCommonInternal
 
 class NetworkPayloadCaptureHandlerTests: XCTestCase {
 
@@ -33,7 +34,7 @@ class NetworkPayloadCaptureHandlerTests: XCTestCase {
 
     func test_updateRules() throws {
         // given a handler
-        let handler = NetworkPayloadCaptureHandler(otel: nil)
+        let handler = DefaultNetworkPayloadCaptureHandler(otel: nil)
         XCTAssertEqual(handler.rules.count, 0)
 
         // when updating the rules
@@ -47,7 +48,7 @@ class NetworkPayloadCaptureHandlerTests: XCTestCase {
 
     func test_onSessionStart() throws {
         // given a handler
-        let handler = NetworkPayloadCaptureHandler(otel: nil)
+        let handler = DefaultNetworkPayloadCaptureHandler(otel: nil)
         handler.rulesTriggeredMap = ["rule1": true]
         handler.active = false
         handler.currentSessionId = nil
@@ -74,7 +75,7 @@ class NetworkPayloadCaptureHandlerTests: XCTestCase {
 
     func test_onSessionEnd() throws {
         // given a handler
-        let handler = NetworkPayloadCaptureHandler(otel: nil)
+        let handler = DefaultNetworkPayloadCaptureHandler(otel: nil)
         handler.active = true
         handler.currentSessionId = TestConstants.sessionId
 
@@ -90,7 +91,7 @@ class NetworkPayloadCaptureHandlerTests: XCTestCase {
     func test_processUnactive_validRequest() throws {
         // given a deactivated handler
         let otel = MockEmbraceOpenTelemetry()
-        let handler = NetworkPayloadCaptureHandler(otel: otel)
+        let handler = DefaultNetworkPayloadCaptureHandler(otel: otel)
         handler.active = false
 
         // when processing a request
@@ -110,7 +111,7 @@ class NetworkPayloadCaptureHandlerTests: XCTestCase {
     func test_processActive_invalidRequest() throws {
         // given a handler with no rules
         let otel = MockEmbraceOpenTelemetry()
-        let handler = NetworkPayloadCaptureHandler(otel: otel)
+        let handler = DefaultNetworkPayloadCaptureHandler(otel: otel)
         handler.active = true
 
         // when processing a request
@@ -130,7 +131,7 @@ class NetworkPayloadCaptureHandlerTests: XCTestCase {
     func test_processActive_requestWithNoRule() throws {
         // given a handler
         let otel = MockEmbraceOpenTelemetry()
-        let handler = NetworkPayloadCaptureHandler(otel: otel)
+        let handler = DefaultNetworkPayloadCaptureHandler(otel: otel)
         handler.active = true
         handler.updateRules(rules)
 
@@ -154,7 +155,7 @@ class NetworkPayloadCaptureHandlerTests: XCTestCase {
     func test_processActive_requestWithRule() throws {
         // given a handler
         let otel = MockEmbraceOpenTelemetry()
-        let handler = NetworkPayloadCaptureHandler(otel: otel)
+        let handler = DefaultNetworkPayloadCaptureHandler(otel: otel)
         handler.active = true
         handler.updateRules(rules)
 
@@ -183,5 +184,26 @@ class NetworkPayloadCaptureHandlerTests: XCTestCase {
         XCTAssertEqual(otel.logs[0].attributes["payload-algorithm"], .string("aes-256-cbc"))
         XCTAssertEqual(otel.logs[0].attributes["key-algorithm"], .string("RSA.PKCS1"))
         XCTAssertNotNil(otel.logs[0].attributes["encrypted-key"])
+    }
+}
+
+extension DefaultNetworkPayloadCaptureHandler {
+    var rules: [URLSessionTaskCaptureRule] {
+        get { state.withLock { $0.rules } }
+    }
+    
+    var rulesTriggeredMap: [String: Bool] {
+        get { state.withLock { $0.rulesTriggeredMap } }
+        set { state.withLock { $0.rulesTriggeredMap = newValue }}
+    }
+    
+    var active: Bool {
+        get { state.withLock { $0.active } }
+        set { state.withLock { $0.active = newValue }}
+    }
+    
+    var currentSessionId: SessionIdentifier? {
+        get { state.withLock { $0.currentSessionId } }
+        set { state.withLock { $0.currentSessionId = newValue }}
     }
 }

@@ -50,30 +50,30 @@ class EmbraceUploadCacheTests: XCTestCase {
         let cache = try EmbraceUploadCache(options: options, logger: logger)
 
         // given inserted upload datas
-        let data1 = UploadDataRecord.create(
+        _ = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id1",
             type: 0, 
             data: Data(), 
             attemptCount: 0, 
             date: Date()
-        )!
-        let data2 = UploadDataRecord.create(
+        )
+        _ = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id2",
             type: 0, 
             data: Data(), 
             attemptCount: 0, 
             date: Date()
-        )!
-        let data3 = UploadDataRecord.create(
+        )
+        _ = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id3",
             type: 0, 
             data: Data(), 
             attemptCount: 0, 
             date: Date()
-        )!
+        )
 
         cache.coreData.save()
 
@@ -81,9 +81,9 @@ class EmbraceUploadCacheTests: XCTestCase {
         let datas = cache.fetchAllUploadData()
 
         // then the fetched datas are valid
-        XCTAssert(datas.contains(data1))
-        XCTAssert(datas.contains(data2))
-        XCTAssert(datas.contains(data3))
+        XCTAssertNotNil(datas.first(where: { $0.id == "id1" }))
+        XCTAssertNotNil(datas.first(where: { $0.id == "id2" }))
+        XCTAssertNotNil(datas.first(where: { $0.id == "id3" }))
     }
 
     func test_saveUploadData() throws {

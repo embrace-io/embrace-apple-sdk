@@ -119,12 +119,6 @@ class StorageEmbraceLogExporterTests: XCTestCase {
         thenBatchAdded(count: 0)
         thenResult(is: .success)
     }
-
-    func test_endBatch_onSessionEnd() {
-        givenStorageEmbraceLogExporter(initialState: .active)
-        whenSessionEnds()
-        thenBatchRenewed()
-    }
 }
 
 private extension StorageEmbraceLogExporterTests {
@@ -143,10 +137,6 @@ private extension StorageEmbraceLogExporterTests {
 
     func whenInvokingForceFlush() {
         result = sut.forceFlush()
-    }
-
-    func whenSessionEnds() {
-        NotificationCenter.default.post(name: .embraceSessionWillEnd, object: nil)
     }
 
     func thenState(is newState: StorageEmbraceLogExporter.State) {
@@ -180,10 +170,6 @@ private extension StorageEmbraceLogExporterTests {
             randomLogData(body: body)
         }
     }
-
-    func thenBatchRenewed() {
-        XCTAssert(batcher.didCallRenewBatch)
-    }
 }
 
 class SpyLogBatcher: LogBatcher {
@@ -197,7 +183,11 @@ class SpyLogBatcher: LogBatcher {
         logRecords.append(logRecord)
     }
 
-    func forceEndCurrentBatch() {
+    private(set) var didCallForceEndCurrentBatch: Bool = false
+    private(set) var forceEndCurrentBatchParameters: (Bool)?
+    func forceEndCurrentBatch(waitUntilFinished: Bool) {
+        forceEndCurrentBatchParameters = (waitUntilFinished)
+        didCallForceEndCurrentBatch = true
         self.renewBatch(withLogs: [])
     }
 

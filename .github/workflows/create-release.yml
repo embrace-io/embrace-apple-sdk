@@ -132,112 +132,18 @@ jobs:
       - name: Select Xcode 15
         run: sudo xcode-select -switch /Applications/Xcode_15.4.app
 
-      - name: Install Mise
-        run: |
-          # Install Mise
-          curl https://mise.jdx.dev/install.sh | sh
-          echo "$HOME/.local/share/mise/bin" >> $GITHUB_PATH
-          echo "$HOME/.local/share/mise/shims" >> $GITHUB_PATH
-
-      - name: Build XCFramework
-        run: |
-          eval "$(~/.local/bin/mise activate bash)" >> ~/.bashrc
-          echo "$PATH"
-          # mise doctor
-          ./bin/build_xcframeworks.sh
-
-      # TODO: Finish this step
-      - name: Sign XCFramework
-        run: echo "We're not going to sign the xcframeworks at this moment. Will do it later"
-
-      - name: Zip XCFrameworks
-        run: |
-          DIR=$(pwd -P)
-          cd build; zip -r "$DIR/xcframeworks.zip" xcframeworks
-
-      - name: Store XCFrameworks
-        uses: actions/upload-artifact@v4
-        with:
-          name: Embrace-Universal Build Artifacts
-          path: xcframeworks.zip
-
       - name: Tag the release candidate version
         run: |
           git tag $RC_VERSION
           git push origin $RC_VERSION
-
-  archive_cocoapods_artifacts:
-    name: Archive Cocoapods Artifacts
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    needs:
-      - extractor
-      - build_release_candidate
-    env:
-      RC_VERSION: ${{ needs.extractor.outputs.rc_version }}
-
-    steps:
-      - name: Determine latest embrace_support.zip version
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          version=$(gh release list --repo embrace-io/action-symbol-upload --json tagName --jq '.[] | select(.tagName | startswith("embrace_support-")) | .tagName' --order desc | head -1)
-          echo "Using tool version ${version}"
-          echo "SUPPORT_TOOL=${version}" >> $GITHUB_ENV
-
-      - name: Download embrace_support.zip
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release --repo embrace-io/action-symbol-upload download ${{ env.SUPPORT_TOOL }} --pattern 'embrace_support-*' --clobber
-
-      - name: Verify and extract embrace_support.zip
-        run: |
-          if /usr/bin/shasum -a 256 -c ${{ env.SUPPORT_TOOL }}.zip.sha256; then
-            unzip -o ${{ env.SUPPORT_TOOL }}.zip
-          else
-            echo "Checksum verification failed, aborting."
-            exit 1
-          fi
-
-      - name: Download Artifacts - XCFrameworks
-        uses: actions/download-artifact@v4
-        with:
-          name: Embrace-Universal Build Artifacts
-
-      - name: Unzip Embrace-Universal Build Artifacts
-        run: unzip xcframeworks.zip
-
-      - name: Create Cocoapods Release Zip
-        run: |
-          DIR=$(pwd -P)
-          mkdir artifacts
-          chmod +x run.sh embrace_symbol_upload.darwin
-          mv run.sh embrace_symbol_upload.darwin artifacts/
-
-          cd artifacts; zip "$DIR/embrace_$RC_VERSION.zip" *; cd -;
-          zip "$DIR/embrace_$RC_VERSION.zip" -r xcframeworks/*; cd -;
-
-      - name: Store Cocoapods Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: Cocoapods Release Archive
-          path: embrace_${{ env.RC_VERSION }}.zip
 
   create_github_release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
     needs:
       - extractor
-      - archive_cocoapods_artifacts
-
+      - build_release_candidate
     steps:
-      - name: Download Cocoapods Release Archive
-        uses: actions/download-artifact@v4
-        with:
-          name: Cocoapods Release Archive
-          path: cocoapods/
-
       - name: Disable GitHub CLI Prompt if Enabled
         run: |
           if [ "$(gh config get prompt)" = "enabled" ]; then
@@ -250,22 +156,12 @@ jobs:
           RC_VERSION: ${{ needs.extractor.outputs.rc_version}}
           IS_PRODUCTION_READY: ${{ needs.extractor.outputs.is_production_ready }}
         run: |
-          if gh release view --repo embrace-io/embrace-apple-sdk $RC_VERSION > /dev/null 2>&1; then
-            if [ "$IS_PRODUCTION_READY" == "false" ]; then
-              echo "Release $RC_VERSION already exists; editing..."
-              gh release upload $RC_VERSION cocoapods/embrace_$RC_VERSION.zip --clobber --repo embrace-io/embrace-apple-sdk --verify-tag
-            else
-              echo "Cannot update a production release"
-              exit 1
-            fi
-          else
-            echo "Creating Release $RC_VERSION in Github"
-            PRERELEASE_FLAG=""
-            if [ "$IS_PRODUCTION_READY" == "false" ]; then
-              PRERELEASE_FLAG="--prerelease"
-            fi
-            gh release create $RC_VERSION cocoapods/embrace_$RC_VERSION.zip --title "$RC_VERSION" $PRERELEASE_FLAG --repo embrace-io/embrace-apple-sdk  --verify-tag
+          echo "Creating Release $RC_VERSION in Github"
+          PRERELEASE_FLAG=""
+          if [ "$IS_PRODUCTION_READY" == "false" ]; then
+            PRERELEASE_FLAG="--prerelease"
           fi
+          gh release create $RC_VERSION --title "$RC_VERSION" $PRERELEASE_FLAG --repo embrace-io/embrace-apple-sdk  --verify-tag
 
   push_podspec:
     name: Push Podspec to Cocoapods
@@ -306,10 +202,9 @@ jobs:
 
     steps:
       - name: Record SDK Version History
-        if: env.IS_PRODUCTION_READY == 'true'
         run: |
-          curl -f -X POST ${{ vars.SDK_VERSION_URL }}/ios/version/ -H 'X-Embrace-CI: ${{ secrets.SDK_VERSION_TOKEN }}' -H 'Content-Type: application/json' -d '{"version": "${{ env.RC_VERSION }}"}'
-
-
-# Note: missing/removed steps from old sdk
-# - dsyms work
+          if [ "$IS_PRODUCTION_READY" == "true" ]; then
+            curl -f -X POST ${{ vars.SDK_VERSION_URL }}/ios/version/ -H 'X-Embrace-CI: ${{ secrets.SDK_VERSION_TOKEN }}' -H 'Content-Type: application/json' -d '{"version": "${{ env.RC_VERSION }}"}'
+          else
+            echo "Not recording SDK Version on non-production ready releases"
+          fi

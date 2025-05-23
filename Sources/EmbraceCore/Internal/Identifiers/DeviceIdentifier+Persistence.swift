@@ -3,34 +3,36 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
-import EmbraceStorageInternal
+#endif
 
 extension DeviceIdentifier {
-    static let resourceKey = "emb.device_id"
+    static func retrieve(fileURL: URL?) -> DeviceIdentifier {
 
-    static func retrieve(from storage: EmbraceStorage?) -> DeviceIdentifier {
-        // retrieve from storage
-        if let storage = storage {
-            if let resource = storage.fetchRequiredPermanentResource(key: resourceKey) {
-                if let uuid = UUID(withoutHyphen: resource.value) {
-                    return DeviceIdentifier(value: uuid)
-                }
-
-                Embrace.logger.warning("Failed to convert device.id back into a UUID. Possibly corrupted!")
-            }
+        // retrieve from file
+        if let fileURL = fileURL,
+           FileManager.default.fileExists(atPath: fileURL.path),
+           let deviceId = try? String(contentsOf: fileURL),
+           let uuid = UUID(uuidString: deviceId) {
+            return DeviceIdentifier(value: uuid)
         }
 
         // fallback to retrieve from Keychain
         let uuid = KeychainAccess.deviceId
         let deviceId = DeviceIdentifier(value: uuid)
 
-        storage?.addMetadata(
-            key: resourceKey,
-            value: deviceId.hex,
-            type: .requiredResource,
-            lifespan: .permanent
-        )
+        // store in file
+        if let fileURL = fileURL {
+            do {
+                let rootURL = fileURL.deletingLastPathComponent()
+                try FileManager.default.createDirectory(at: rootURL, withIntermediateDirectories: true)
+                try? FileManager.default.removeItem(at: fileURL)
+                try uuid.uuidString.write(to: fileURL, atomically: true, encoding: .utf8)
+            } catch {
+                Embrace.logger.error("Error saving device identifier!:\n\(error.localizedDescription)")
+            }
+        }
 
         return deviceId
     }

@@ -8,7 +8,10 @@ import EmbraceIO
 import SwiftUI
 
 struct LoggingTestLogMessageUIComponent: View {
-    @Environment(TestLogRecordExporter.self) private var logExporter
+    @Environment(DataCollector.self) private var dataCollector
+    private var logExporter: TestLogRecordExporter {
+        dataCollector.logExporter
+    }
     @State var dataModel: any TestScreenDataModel
     @State private var viewModel: LoggingTestMessageViewModel
 
@@ -26,7 +29,7 @@ struct LoggingTestLogMessageUIComponent: View {
             TextField("Enter a message to log", text: $viewModel.message)
                 .font(.embraceFont(size: 18))
                 .foregroundStyle(.embraceSilver)
-                .padding([.leading, .trailing,], 5)
+                .padding([.leading, .trailing ], 5)
                 .textFieldStyle(RoundedStyle())
                 .accessibilityIdentifier("LogTests_LogMessage")
             Section("Severity Type") {
@@ -34,6 +37,9 @@ struct LoggingTestLogMessageUIComponent: View {
             }
             Section("Stack Trace") {
                 LoggingTestsStackTraceSelectionView(stacktraceBehavior: $viewModel.stacktraceBehavior)
+            }
+            Section("Custom File Attachment") {
+                LoggingTestsAttachmentView(addAttachment: $viewModel.includeAttachment, attachmentSize: $viewModel.attachmentSize)
             }
             Section("Log Attributes") {
                 LoggingTestsLogAttributesView { key, value in
@@ -49,7 +55,7 @@ struct LoggingTestLogMessageUIComponent: View {
 }
 
 #Preview {
-    let logExporter = TestLogRecordExporter()
+    let dataCollector = DataCollector()
     LoggingTestLogMessageUIComponent(dataModel: LoggingTestScreenDataModel.logMessage)
-        .environment(logExporter)
+        .environment(dataCollector)
 }

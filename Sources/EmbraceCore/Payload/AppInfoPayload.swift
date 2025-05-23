@@ -3,9 +3,11 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceStorageInternal
 import EmbraceCommonInternal
 import EmbraceObjCUtilsInternal
+#endif
 
 struct AppInfoPayload: Codable {
     var buildID: String?

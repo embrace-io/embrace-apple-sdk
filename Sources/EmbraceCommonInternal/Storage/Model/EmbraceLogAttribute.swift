@@ -18,15 +18,13 @@ public protocol EmbraceLogAttribute {
 public extension EmbraceLogAttribute {
 
     var value: AttributeValue {
-        get {
-            let type = EmbraceLogAttributeType(rawValue: typeRaw) ?? .string
+        let type = EmbraceLogAttributeType(rawValue: typeRaw) ?? .string
 
-            switch  type {
+        switch type {
             case .int: return AttributeValue(Int(valueRaw) ?? 0)
             case .double: return AttributeValue(Double(valueRaw) ?? 0)
             case .bool: return AttributeValue(Bool(valueRaw) ?? false)
             default: return AttributeValue(valueRaw)
-            }
         }
     }
 }

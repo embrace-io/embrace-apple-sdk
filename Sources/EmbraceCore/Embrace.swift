@@ -3,12 +3,14 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
 import EmbraceConfigInternal
 import EmbraceOTelInternal
 import EmbraceStorageInternal
 import EmbraceUploadInternal
 import EmbraceObjCUtilsInternal
+#endif
 
 /**
  Main class used to interact with the Embrace SDK.
@@ -96,7 +98,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
 
     static let notificationCenter: NotificationCenter = NotificationCenter()
 
-    static let logger: DefaultInternalLogger = DefaultInternalLogger()
+    static var logger: DefaultInternalLogger = DefaultInternalLogger(exportFilePath: EmbraceFileSystem.criticalLogsURL)
 
     /// Method used to configure the Embrace SDK.
     /// - Parameter options: `Embrace.Options` to be used by the SDK.
@@ -129,6 +131,9 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
             client = try Embrace(options: options)
             if let client = client {
                 client.recordSetupSpan(startTime: startTime)
+
+                Embrace.logger.startup("Embrace SDK setup finished")
+
                 return client
             } else {
                 throw EmbraceSetupError.unableToInitialize("Unable to initialize Embrace.client")
@@ -151,21 +156,38 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         self.options = options
         self.logLevel = options.logLevel
 
-        self.storage = try embraceStorage ?? Embrace.createStorage(options: options)
-        self.deviceId = DeviceIdentifier.retrieve(from: storage)
+        // retrieve device identifier
+        self.deviceId = DeviceIdentifier.retrieve(fileURL: EmbraceFileSystem.deviceIdURL)
+
+        // initialize upload module
         self.upload = Embrace.createUpload(options: options, deviceId: deviceId.hex)
+
+        // send critical logs from previous session
+        UnsentDataHandler.sendCriticalLogs(fileUrl: EmbraceFileSystem.criticalLogsURL, upload: upload)
+
+        // initialize storage module
+        self.storage = try embraceStorage ?? Embrace.createStorage(options: options)
+
+        // initialize remote configuration
         self.config = Embrace.createConfig(options: options, deviceId: deviceId)
+
+        // initialize capture services
         self.captureServices = try CaptureServices(
             options: options,
             config: config?.configurable,
             storage: storage,
             upload: upload
         )
+
+        // initialize session controller
         self.sessionController = SessionController(storage: storage, upload: upload, config: config)
         self.sessionLifecycle = Embrace.createSessionLifecycle(controller: sessionController)
+
+        // initialize metadata handler
         self.metadata = MetadataHandler(storage: storage, sessionController: sessionController)
         self.metricKit = MetricKitHandler()
 
+        // initialize log controller
         var logController: LogController?
         if let logControllable = logControllable {
             self.logController = logControllable
@@ -191,12 +213,22 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
             export: options.export,
             sdkStateProvider: self
         ))
+
+        let logBatcher = DefaultLogBatcher(
+            repository: storage,
+            logLimits: .init(),
+            delegate: self.logController
+        )
+
+        sessionController.setLogBatcher(logBatcher)
+
         let logSharedState = DefaultEmbraceLogSharedState.create(
             storage: self.storage,
-            controller: self.logController,
+            batcher: logBatcher,
             exporter: options.export?.logExporter,
             sdkStateProvider: self
         )
+
         EmbraceOTel.setup(logSharedState: logSharedState)
         sessionLifecycle.setup()
         Embrace.logger.otel = self
@@ -209,6 +241,8 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         )
 
         state = .initialized
+
+        Embrace.logger.startup("Embrace SDK client initialized")
     }
 
     /// Method used to start the Embrace SDK.
@@ -253,7 +287,6 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
                 self.processingQueue.async { [weak self] in
 
                     self?.captureServices.start()
-
                     // fetch crash reports and link them to sessions
                     // then upload them
                     UnsentDataHandler.sendUnsentData(
@@ -267,6 +300,12 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
 
                     // retry any remaining cached upload data
                     self?.upload?.retryCachedData()
+                }
+
+                if let appId = options.appId {
+                    Embrace.logger.startup("Embrace SDK started successfully with key: \(appId)")
+                } else {
+                    Embrace.logger.startup("Embrace SDK started successfully!")
                 }
             }
         }
@@ -302,6 +341,8 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
             sessionController.clear()
             captureServices.stop()
             metricKit.uninstall()
+
+            Embrace.logger.startup("Embrace SDK stopped successfully!")
         }
 
         return self

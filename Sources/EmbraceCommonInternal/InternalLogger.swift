@@ -19,4 +19,10 @@ import Foundation
 
     @discardableResult @objc func error(_ message: String, attributes: [String: String]) -> Bool
     @discardableResult @objc func error(_ message: String) -> Bool
+
+    @discardableResult @objc func startup(_ message: String, attributes: [String: String]) -> Bool
+    @discardableResult @objc func startup(_ message: String) -> Bool
+
+    @discardableResult @objc func critical(_ message: String, attributes: [String: String]) -> Bool
+    @discardableResult @objc func critical(_ message: String) -> Bool
 }

@@ -40,12 +40,12 @@ class FinishedSessionTest: PayloadTest {
             return .init(items: testItems)
         }
 
-        /// The post span exported doesn't contain anything that ties it to the session span it uploaded. I'm checking that the span was created immediately after the last session ended.
+        /// The post span exported doesn't contain anything that ties it to the session span it uploaded. I'm checking that the span was created after the last session ended.
         /// This is our best guess this Post Span is related to the last ended session.
         /// It'll... Do for now.
         guard let _ = spans.first(where: {
             $0.name == "POST /api/v2/spans" &&
-            $0.startTime.timeIntervalSince(sessionSpan.endTime) < 1.0
+            $0.startTime > sessionSpan.endTime
         }) else {
             testItems.append(.init(target: "POST Session Span", expected: "existing", recorded: "missing"))
             return .init(items: testItems)

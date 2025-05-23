@@ -3,7 +3,9 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
+#endif
 
 public protocol EmbraceLogUploader: AnyObject {
     func uploadLog(id: String, data: Data, completion: ((Result<(), Error>) -> Void)?)
@@ -16,6 +18,7 @@ public class EmbraceUpload: EmbraceLogUploader {
     public private(set) var options: Options
     public private(set) var logger: InternalLogger
     public private(set) var queue: DispatchQueue
+
     @ThreadSafe
     private(set) var isRetryingCache: Bool = false
 
@@ -68,45 +71,41 @@ public class EmbraceUpload: EmbraceLogUploader {
                 return
             }
 
-            do {
-                // in place mechanism to not retry sending cache data at the same time
-                guard !strongSelf.isRetryingCache else {
-                    return
+            // in place mechanism to not retry sending cache data at the same time
+            guard !strongSelf.isRetryingCache else {
+                return
+            }
+
+            strongSelf.isRetryingCache = true
+
+            defer {
+                // on finishing everything, allow to retry cache (i.e. reconnection)
+                strongSelf.isRetryingCache = false
+            }
+
+            // clear data from cache that shouldn't be retried as it's stale
+            strongSelf.clearCacheFromStaleData()
+
+            // get all the data cached first, is the only thing that could throw
+            let cachedObjects = strongSelf.cache.fetchAllUploadData()
+
+            // create a sempahore to allow only to send two request at a time so we don't
+            // get throttled by the backend on cases where cache has many failed requests.
+
+            for uploadData in cachedObjects {
+                guard let type = EmbraceUploadType(rawValue: uploadData.type) else {
+                    continue
                 }
+                strongSelf.semaphore.wait()
 
-                strongSelf.isRetryingCache = true
-
-                defer {
-                    // on finishing everything, allow to retry cache (i.e. reconnection)
-                    strongSelf.isRetryingCache = false
+                strongSelf.reUploadData(
+                    id: uploadData.id,
+                    data: uploadData.data,
+                    type: type,
+                    attemptCount: uploadData.attemptCount
+                ) {
+                    strongSelf.semaphore.signal()
                 }
-
-                // clear data from cache that shouldn't be retried as it's stale
-                strongSelf.clearCacheFromStaleData()
-
-                // get all the data cached first, is the only thing that could throw
-                let cachedObjects = try strongSelf.cache.fetchAllUploadData()
-
-                // create a sempahore to allow only to send two request at a time so we don't
-                // get throttled by the backend on cases where cache has many failed requests.
-
-                for uploadData in cachedObjects {
-                    guard let type = EmbraceUploadType(rawValue: uploadData.type) else {
-                        continue
-                    }
-                    strongSelf.semaphore.wait()
-
-                    strongSelf.reUploadData(
-                        id: uploadData.id,
-                        data: uploadData.data,
-                        type: type,
-                        attemptCount: uploadData.attemptCount
-                    ) {
-                        strongSelf.semaphore.signal()
-                    }
-                }
-            } catch {
-                strongSelf.logger.debug("Error retrying cached upload data: \(error.localizedDescription)")
             }
         }
     }

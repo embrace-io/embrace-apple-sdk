@@ -3,7 +3,9 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceOTelInternal
+#endif
 import OpenTelemetrySdk
 
 /// Validates the length of ``ReadableLogRecord.body``.

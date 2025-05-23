@@ -2,16 +2,18 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceStorageInternal
 import EmbraceObjCUtilsInternal
 import EmbraceCommonInternal
 import EmbraceSemantics
+#endif
 
 class EmbraceLogAttributesBuilder {
     private weak var storage: EmbraceStorageMetadataFetcher?
     private weak var sessionControllable: SessionControllable?
     private var session: EmbraceSession?
-    private var crashReport: CrashReport?
+    private var crashReport: EmbraceCrashReport?
     private var attributes: [String: String]
 
     private var currentSession: EmbraceSession? {
@@ -27,7 +29,7 @@ class EmbraceLogAttributesBuilder {
     }
 
     init(session: EmbraceSession?,
-         crashReport: CrashReport? = nil,
+         crashReport: EmbraceCrashReport? = nil,
          storage: EmbraceStorageMetadataFetcher? = nil,
          initialAttributes: [String: String]) {
         self.session = session
@@ -84,7 +86,9 @@ class EmbraceLogAttributesBuilder {
             }
 
             let key = String(format: LogSemantics.keyPropertiesPrefix, record.key)
-            attributes[key] = record.value
+            if attributes[key] == nil {
+                attributes[key] = record.value
+            }
         }
 
         return self
@@ -92,12 +96,17 @@ class EmbraceLogAttributesBuilder {
 
     @discardableResult
     func addApplicationState() -> Self {
+        guard attributes[LogSemantics.keyState] == nil else {
+            return self
+        }
+
         return addApplicationState(currentSession?.state)
     }
 
     @discardableResult
     func addApplicationState(_ state: String?) -> Self {
-        guard let state = state else {
+        guard let state = state,
+              attributes[LogSemantics.keyState] == nil else {
             return self
         }
         attributes[LogSemantics.keyState] = state
@@ -106,12 +115,17 @@ class EmbraceLogAttributesBuilder {
 
     @discardableResult
     func addSessionIdentifier() -> Self {
+        guard attributes[LogSemantics.keySessionId] == nil else {
+            return self
+        }
+
         return addSessionIdentifier(currentSession?.idRaw)
     }
 
     @discardableResult
     func addSessionIdentifier(_ sessionId: String?) -> Self {
-        guard let sessionId = sessionId else {
+        guard let sessionId = sessionId,
+              attributes[LogSemantics.keySessionId] == nil else {
             return self
         }
         attributes[LogSemantics.keySessionId] = sessionId

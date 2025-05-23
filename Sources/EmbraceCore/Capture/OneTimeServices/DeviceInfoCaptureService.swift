@@ -3,8 +3,10 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
 import EmbraceObjCUtilsInternal
+#endif
 import OpenTelemetrySdk
 
 class DeviceInfoCaptureService: ResourceCaptureService {
@@ -58,11 +60,6 @@ class DeviceInfoCaptureService: ResourceCaptureService {
         addResource(
             key: ResourceAttributes.osType.rawValue,
             value: .string("darwin")
-        )
-
-        addResource(
-            key: ResourceAttributes.osName.rawValue,
-            value: .string(EMBDevice.operatingSystemType)
         )
 
         // model

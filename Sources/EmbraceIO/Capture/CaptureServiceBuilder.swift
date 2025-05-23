@@ -2,7 +2,9 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCaptureService
+#endif
 import Foundation
 
 /// Class used to build the list of `CaptureServices` to be used by the `Embrace` instance.

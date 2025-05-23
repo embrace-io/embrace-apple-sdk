@@ -16,8 +16,8 @@ class ExtendableCrashReporterMock: ExtendableCrashReporter {
     func getLastRunState() -> EmbraceCommonInternal.LastRunState {
         .unavailable
     }
-    func fetchUnsentCrashReports(completion: @escaping ([EmbraceCommonInternal.CrashReport]) -> Void) {}
+    func fetchUnsentCrashReports(completion: @escaping ([EmbraceCrashReport]) -> Void) {}
     func deleteCrashReport(id: Int) {}
-    var onNewReport: ((EmbraceCommonInternal.CrashReport) -> Void)?
+    var onNewReport: ((EmbraceCrashReport) -> Void)?
     var disableMetricKitReports: Bool = false
 }

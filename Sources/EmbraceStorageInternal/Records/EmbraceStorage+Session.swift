@@ -3,7 +3,10 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
+#endif
+import CoreData
 
 extension EmbraceStorage {
     /// Adds a session to the storage synchronously.
@@ -88,15 +91,20 @@ extension EmbraceStorage {
         return nil
     }
 
+    func fetchSessionRequest(id: SessionIdentifier) -> NSFetchRequest<SessionRecord> {
+        let request = SessionRecord.createFetchRequest()
+        request.fetchLimit = 1
+        request.predicate = NSPredicate(format: "idRaw == %@", id.toString)
+
+        return request
+    }
+
     /// Fetches the stored `SessionRecord` synchronously with the given identifier, if any.
     /// - Parameters:
     ///   - id: Identifier of the session
     /// - Returns: The stored `SessionRecord`, if any
     func fetchSessionRecord(id: SessionIdentifier) -> SessionRecord? {
-        let request = SessionRecord.createFetchRequest()
-        request.fetchLimit = 1
-        request.predicate = NSPredicate(format: "idRaw == %@", id.toString)
-
+        let request = fetchSessionRequest(id: id)
         return coreData.fetch(withRequest: request).first
     }
 
@@ -105,29 +113,29 @@ extension EmbraceStorage {
     ///   - id: Identifier of the session
     /// - Returns: Immutable copy of the stored `SessionRecord`, if any
     public func fetchSession(id: SessionIdentifier) -> EmbraceSession? {
-        guard let record = fetchSessionRecord(id: id) else {
-            return nil
+
+        // fetch
+        let request = fetchSessionRequest(id: id)
+        var result: EmbraceSession?
+        coreData.fetchFirstAndPerform(withRequest: request) { record in
+            // convert to immutable struct
+            result = record?.toImmutable()
         }
 
-        var result: EmbraceSession?
-        coreData.context.performAndWait {
-            result = record.toImmutable()
-        }
         return result
     }
 
     /// Synchronously deletes the given session from the storage
     public func deleteSession(id: SessionIdentifier) {
-        guard let record = fetchSessionRecord(id: id) else {
-            return
-        }
-
-        coreData.deleteRecord(record)
+        let request = fetchSessionRequest(id: id)
+        coreData.deleteRecords(withRequest: request)
     }
 
     /// Synchronously fetches the newest session in the storage, ignoring the current session if it exists.
     /// - Returns: Immutable copy of the newest stored `SessionRecord`, if any
-    public func fetchLatestSession(ignoringCurrentSessionId sessionId: SessionIdentifier? = nil) -> EmbraceSession? {
+    public func fetchLatestSession(
+        ignoringCurrentSessionId sessionId: SessionIdentifier? = nil
+    ) -> EmbraceSession? {
         let request = SessionRecord.createFetchRequest()
         request.fetchLimit = 1
         request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: false)]
@@ -136,14 +144,13 @@ extension EmbraceStorage {
             request.predicate = NSPredicate(format: "idRaw != %@", sessionId.toString)
         }
 
-        guard let record = coreData.fetch(withRequest: request).first else {
-            return nil
+        // fetch
+        var result: EmbraceSession?
+        coreData.fetchFirstAndPerform(withRequest: request) { record in
+            // convert to immutable struct
+            result = record?.toImmutable()
         }
 
-        var result: EmbraceSession?
-        coreData.context.performAndWait {
-            result = record.toImmutable()
-        }
         return result
     }
 
@@ -154,14 +161,13 @@ extension EmbraceStorage {
         request.fetchLimit = 1
         request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: true)]
 
-        guard let record = coreData.fetch(withRequest: request).first else {
-            return nil
+        // fetch
+        var result: EmbraceSession?
+        coreData.fetchFirstAndPerform(withRequest: request) { record in
+            // convert to immutable struct
+            result = record?.toImmutable()
         }
 
-        var result: EmbraceSession?
-        coreData.context.performAndWait {
-            result = record.toImmutable()
-        }
         return result
     }
 
@@ -171,17 +177,17 @@ extension EmbraceStorage {
         let request = SessionRecord.createFetchRequest()
 
         // fetch
-        let records = coreData.fetch(withRequest: request)
-
-        // convert to immutable structs
         var result: [EmbraceSession] = []
-        coreData.context.performAndWait {
-            result = records.map { $0.toImmutable() }
+        coreData.fetchAndPerform(withRequest: request) { records in
+            // convert to immutable struct
+            result = records.map {
+                $0.toImmutable()
+            }
         }
 
         return result
     }
-    
+
     /// Updates values for the given session id
     /// - Returns: Immutable copy of the modified `SessionRecord`, if any
     @discardableResult
@@ -194,13 +200,15 @@ extension EmbraceStorage {
         appTerminated: Bool? = nil,
         crashReportId: String? = nil
     ) -> EmbraceSession? {
-        guard let session = fetchSessionRecord(id: sessionId) else {
-            return nil
-        }
 
+        let request = fetchSessionRequest(id: sessionId)
         var result: EmbraceSession?
 
-        coreData.context.performAndWait {
+        coreData.fetchFirstAndPerform(withRequest: request) { session in
+            guard let session else {
+                return
+            }
+
             if let state = state {
                 session.state = state.rawValue
             }

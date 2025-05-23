@@ -3,10 +3,13 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
 import EmbraceStorageInternal
 import EmbraceUploadInternal
 import EmbraceOTelInternal
+import EmbraceSemantics
+#endif
 
 class UnsentDataHandler {
     static func sendUnsentData(
@@ -50,7 +53,7 @@ class UnsentDataHandler {
         otel: EmbraceOpenTelemetry?,
         currentSessionId: SessionIdentifier?,
         crashReporter: CrashReporter,
-        crashReports: [CrashReport]
+        crashReports: [EmbraceCrashReport]
     ) {
         // send crash reports
         for report in crashReports {
@@ -89,7 +92,7 @@ class UnsentDataHandler {
     }
 
     static public func sendCrashLog(
-        report: CrashReport,
+        report: EmbraceCrashReport,
         reporter: CrashReporter?,
         session: EmbraceSession?,
         storage: EmbraceStorage?,
@@ -128,6 +131,7 @@ class UnsentDataHandler {
                 case .success:
                     // remove crash report
                     // we can remove this immediately because the upload module will cache it until the upload succeeds
+                    // TODO: Should we delete the report or let the app decide ??
                     if let internalId = report.internalId {
                         reporter?.deleteCrashReport(id: internalId)
                     }
@@ -145,7 +149,7 @@ class UnsentDataHandler {
     static private func createLogCrashAttributes(
         otel: EmbraceOpenTelemetry?,
         storage: EmbraceStorage?,
-        report: CrashReport,
+        report: EmbraceCrashReport,
         session: EmbraceSession?,
         timestamp: Date
     ) -> [String: String] {
@@ -225,6 +229,11 @@ class UnsentDataHandler {
             return
         }
 
+        if performCleanUp {
+            cleanOldSpans(storage: storage)
+            cleanMetadata(storage: storage)
+        }
+
         // upload session spans
         upload.uploadSpans(id: session.idRaw, data: payloadData) { result in
             switch result {
@@ -233,11 +242,6 @@ class UnsentDataHandler {
                 // we can remove this immediately because the upload module will cache it until the upload succeeds
                 if let sessionId = session.id {
                     storage.deleteSession(id: sessionId)
-                }
-
-                if performCleanUp {
-                    cleanOldSpans(storage: storage)
-                    cleanMetadata(storage: storage)
                 }
 
             case .failure(let error):
@@ -269,5 +273,48 @@ class UnsentDataHandler {
     static private func cleanMetadata(storage: EmbraceStorage, currentSessionId: String? = nil) {
         let sessionId = currentSessionId ?? Embrace.client?.currentSessionId()
         storage.cleanMetadata(currentSessionId: sessionId, currentProcessId: ProcessIdentifier.current.hex)
+    }
+
+    static func sendCriticalLogs(fileUrl: URL?, upload: EmbraceUpload?) {
+        // feature is only available on iOS 15+
+        if #unavailable(iOS 15.0, tvOS 15.0) {
+            return
+        }
+
+        guard let upload = upload,
+              let fileUrl = fileUrl else {
+            return
+        }
+
+        // always remove the logs from previous session
+        defer { try? FileManager.default.removeItem(at: fileUrl) }
+
+        guard let logs = try? String(contentsOf: fileUrl) else {
+            return
+        }
+
+        // manually construct log payload
+        let id = LogIdentifier().toString
+        let attributes: [String: String] = [
+            LogSemantics.keyId: id,
+            LogSemantics.keyEmbraceType: LogType.internal.rawValue
+        ]
+
+        let payload = LogPayloadBuilder.build(
+            timestamp: Date(),
+            severity: .critical,
+            body: logs,
+            attributes: attributes,
+            storage: nil,
+            sessionId: nil
+        )
+
+        // send log
+        do {
+            let payloadData = try JSONEncoder().encode(payload).gzipped()
+            upload.uploadLog(id: id, data: payloadData, completion: nil)
+        } catch {
+            Embrace.logger.error("Error sending critical logs!:\n\(error.localizedDescription)")
+        }
     }
 }

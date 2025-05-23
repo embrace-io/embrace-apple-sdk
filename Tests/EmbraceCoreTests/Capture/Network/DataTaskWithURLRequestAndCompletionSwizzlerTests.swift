@@ -133,13 +133,13 @@ private extension DataTaskWithURLRequestAndCompletionSwizzlerTests {
     }
 
     func thenHandlerShouldHaveInvokedFinishTask() {
-        XCTAssertTrue(handler.didInvokeFinish)
-        XCTAssertNotNil(handler.finishReceivedParameters?.1)
+        XCTAssertTrue(handler.didInvokeFinishWithData)
+        XCTAssertNotNil(handler.finishWithDataReceivedParameters?.1)
     }
 
     func thenHandlerShouldHaveInvokedFinishTaskWithError() {
-        XCTAssertTrue(handler.didInvokeFinish)
-        XCTAssertNotNil(handler.finishReceivedParameters?.2)
+        XCTAssertTrue(handler.didInvokeFinishWithData)
+        XCTAssertNotNil(handler.finishWithDataReceivedParameters?.2)
     }
 
     func thenDataTaskShouldHaveEmbraceHeaders() throws {
