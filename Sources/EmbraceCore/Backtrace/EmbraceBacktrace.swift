@@ -26,22 +26,37 @@ public struct EmbraceBacktraceThread: Codable {
 extension EmbraceBacktraceThread: Sendable {}
 
 public struct EmbraceBacktrace: Codable {
-    let timestamp: UInt64 // mono nanoseconds
+    let timestampUnits: String = "nanoseconds"
+    let timestamp: UInt64
+    let symbolicated: Bool
     let threads: [EmbraceBacktraceThread]
-    
-    /// Call this early during startup so images are ready when we need them.
-    static func bootstrap() {
-        // can be called as many times as we want, only the first counts.
-        // KSCrash does this as well so we might want to organize, but for
-        // now this is ok.
-        bsg_mach_headers_initialize()
-    }
-    
+
     /// Call this to take a stacktrace of the passed in thread.
     static func backtrace(of thread: pthread_t) -> EmbraceBacktrace {
         EmbraceBacktrace(
-            timestamp: clock_gettime_nsec_np(CLOCK_UPTIME_RAW),
+            timestamp: clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW),
+            symbolicated: false,
             threads: takeSnapshot(of: thread)
+        )
+    }
+    
+    func symbolicate() -> EmbraceBacktrace {
+        guard symbolicated == false else {
+            return self
+        }
+        
+        return EmbraceBacktrace(
+            timestamp: timestamp,
+            symbolicated: true,
+            threads: threads.map { thread in
+                EmbraceBacktraceThread(
+                    index: thread.index,
+                    name: thread.name,
+                    frames: thread.frames.map { frame in
+                        frame.symbolicated()
+                    }
+                )
+            }
         )
     }
 }
