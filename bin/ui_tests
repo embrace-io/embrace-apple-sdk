@@ -12,7 +12,7 @@ fi
 # Define constants for script
 PLATFORM="iphonesimulator"
 DEVICE_PATTERN="iPhone.*"
-FALLBACK_SIMULATOR_DEVICE_TYPE="com.apple.CoreSimulator.SimDeviceType.iPhone-15"
+FALLBACK_SIMULATOR_DEVICE_TYPE="com.apple.CoreSimulator.SimDeviceType.iPhone-16"
 
 # Use xcodebuild to retrieve list of available SDKs in JSON format
 # Use jq for SDK_JSON to find first item in array where platform is 'iphonesimulator'
@@ -66,7 +66,7 @@ xcodebuild \
     -configuration "Debug" \
     -scheme 'EmbraceIOTestApp' \
     -destination "id=$SELECTED_DEVICE_UDID" \
-    -project './Examples/EmbraceIOTestApp/EmbraceIOTestApp.xcodeproj'
+    -project './Examples/EmbraceIOTestApp/EmbraceIOTestApp.xcodeproj' \
     -derivedDataPath $DERIVED_DATA_PATH \
     -resultBundlePath $XCRESULT_PATH \
     test
