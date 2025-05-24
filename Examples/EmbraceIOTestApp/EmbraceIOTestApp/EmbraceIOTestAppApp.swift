@@ -10,7 +10,7 @@ import OpenTelemetrySdk
 
 @main
 struct EmbraceIOTestAppApp: App {
-    let dataCollector = DataCollector()
+    let dataCollector = DataCollector(setupSwizzles: true)
     var body: some Scene {
         WindowGroup {
             NavigationView {

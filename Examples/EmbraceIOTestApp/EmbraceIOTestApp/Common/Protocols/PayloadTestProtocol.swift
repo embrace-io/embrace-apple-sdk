@@ -8,7 +8,10 @@ import OpenTelemetrySdk
 import OpenTelemetryApi
 
 protocol PayloadTest {
+    // TODO: Remove once all existing tests have been consolidated on the same view model.
     var testRelevantPayloadNames: [String] { get }
+
+    var expectedNotificationsForTestReady: [String] { get }
     var requiresCleanup: Bool { get }
     var runImmediatelyIfSpansFound: Bool { get }
     var runImmediatelyIfLogsFound: Bool { get }
@@ -82,4 +85,10 @@ extension PayloadTest {
     var runImmediatelyIfSpansFound: Bool { false }
 
     var runImmediatelyIfLogsFound: Bool { false }
+
+    // TODO: Remove once all existing tests have been consolidated on the same view model.
+    var testRelevantPayloadNames: [String] { [] }
+
+    // TODO: Remove default initializer when 'testRelevantPayloadNames' is removed.
+    var expectedNotificationsForTestReady: [String] { [] }
 }
