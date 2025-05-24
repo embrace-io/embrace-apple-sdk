@@ -53,7 +53,7 @@ struct LoggingTestsLogAttributesView: View {
 }
 
 #Preview {
-    LoggingTestsLogAttributesView { key, value in
+    return LoggingTestsLogAttributesView { key, value in
         print("Added key: \(key) - valud: \(value)")
     }
 }

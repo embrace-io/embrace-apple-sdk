@@ -30,7 +30,7 @@ struct TextComponentViewResult: View {
 }
 
 #Preview {
-    VStack {
+    return VStack {
         TextComponentViewResult(result: .constant(.success))
         TextComponentViewResult(result: .constant(.fail))
         TextComponentViewResult(result: .constant(.testing))

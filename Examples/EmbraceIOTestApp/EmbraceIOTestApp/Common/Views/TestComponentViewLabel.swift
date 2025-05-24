@@ -45,7 +45,7 @@ struct TestComponentViewLabel: View {
 }
 
 #Preview {
-    VStack {
+    return VStack {
         TestComponentViewLabel(text: "Test", state: .testComplete(.success))
         TestComponentViewLabel(text: "Test", state: .testing)
         TestComponentViewLabel(text: "Test", state: .idle(false))

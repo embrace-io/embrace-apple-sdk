@@ -39,9 +39,9 @@ struct UploadedSessionPayloadUIComponent: View {
                 .padding([.top, .bottom], 5)
             Section("Posted Session To Test:") {
                 Picker("Posted Session", selection: $viewModel.selectedSessionId) {
-                    ForEach(viewModel.exportedAndPostedSessions, id: \.self) {
-                        Text($0)
-                            .tag($0)
+                    ForEach(viewModel.exportedAndPostedSessions, id: \.self) { sessionId in
+                        Text(sessionId)
+                            .tag(sessionId)
                             .font(.embraceFont(size: 12))
                             .foregroundColor(.embracePurple)
                     }
@@ -59,6 +59,6 @@ struct UploadedSessionPayloadUIComponent: View {
 
 #Preview {
     let dataCollector = DataCollector()
-    UploadedSessionPayloadUIComponent(dataModel: UploadedPayloadsTestsDataModel.sessionPayload)
+    return UploadedSessionPayloadUIComponent(dataModel: UploadedPayloadsTestsDataModel.sessionPayload)
         .environment(dataCollector)
 }

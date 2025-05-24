@@ -36,6 +36,6 @@ struct SessionTestFinishedSessionUIComponent: View {
 
 #Preview {
     let dataCollector = DataCollector()
-    SessionTestFinishedSessionUIComponent(dataModel: SessionTestsDataModel.finishedSessionPayload)
+    return SessionTestFinishedSessionUIComponent(dataModel: SessionTestsDataModel.finishedSessionPayload)
         .environment(dataCollector)
 }

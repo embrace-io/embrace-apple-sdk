@@ -32,7 +32,7 @@ final class EmbraceIOTestMetadataUITests: XCTestCase {
         let initButton = app.buttons["EmbraceInitButton"]
         initButton.tap()
 
-        XCTAssertTrue(initButton.wait(for: \.label, toEqual: "EmbraceIO has started!", timeout: 5.0))
+        XCTAssertNotNil(initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
 
         let sideMenuButton = app.buttons["SideMenuButton"]
         sideMenuButton.tap()
@@ -48,7 +48,8 @@ final class EmbraceIOTestMetadataUITests: XCTestCase {
 
     private func selectMetadataTest(_ test: Test) {
         let button = app.buttons[test.identifier]
-        XCTAssertTrue(button.wait(for: \.isEnabled, toEqual: true, timeout: 5.0))
+        XCTAssertNotNil(button.wait(attribute: \.isEnabled, is: .equalTo, value: true, timeout: 5.0))
+
         button.tap()
     }
 

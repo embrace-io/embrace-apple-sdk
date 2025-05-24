@@ -36,7 +36,7 @@ struct TestScreenButtonView: View {
 }
 
 #Preview {
-    VStack {
+    return VStack {
         TestScreenButtonView(viewModel: SpanTestUIComponentViewModel(dataModel: ViewControllerTestsDataModel.viewDidAppearMeasurement,
                                                                      payloadTestObject: ViewControllerViewDidLoadTest()))
     }

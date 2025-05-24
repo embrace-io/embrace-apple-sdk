@@ -33,7 +33,7 @@ struct EmbraceLargeButton: View {
 }
 
 #Preview {
-    VStack {
+    return VStack {
         EmbraceLargeButton(text: "Try Embrace", enabled: true, buttonAction: {})
         EmbraceLargeButton(text: "Try Embrace", enabled: false, buttonAction: {})
     }

@@ -41,6 +41,6 @@ struct LoggingTestsSeverityTypeView: View {
 }
 
 #Preview {
-    @Previewable @State var severity: LogSeverity = .debug
-    LoggingTestsSeverityTypeView(logSeverity: $severity)
+    @State var severity: LogSeverity = .debug
+    return LoggingTestsSeverityTypeView(logSeverity: $severity)
 }

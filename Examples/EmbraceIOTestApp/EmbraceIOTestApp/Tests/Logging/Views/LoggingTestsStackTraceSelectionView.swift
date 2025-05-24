@@ -33,6 +33,6 @@ struct LoggingTestsStackTraceSelectionView: View {
 }
 
 #Preview {
-    @Previewable @State var behavior: StackTraceBehavior = .default
-    LoggingTestsStackTraceSelectionView(stacktraceBehavior: $behavior)
+    @State var behavior: StackTraceBehavior = .default
+    return LoggingTestsStackTraceSelectionView(stacktraceBehavior: $behavior)
 }

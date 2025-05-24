@@ -26,6 +26,6 @@ struct TestScreen<T: RawRepresentable & CaseIterable & TestScreenDataModel>: Vie
 
 #Preview {
     let dataCollector = DataCollector()
-    TestScreen<ViewControllerTestsDataModel>()
+    return TestScreen<ViewControllerTestsDataModel>()
         .environment(dataCollector)
 }

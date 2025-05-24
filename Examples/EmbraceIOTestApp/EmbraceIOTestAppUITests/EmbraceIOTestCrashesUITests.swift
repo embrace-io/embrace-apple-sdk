@@ -17,14 +17,14 @@ final class EmbraceIOTestCrashesUITests: XCTestCase {
         let initButton = app.buttons["EmbraceInitButton"]
         initButton.tap()
 
-        XCTAssertTrue(initButton.wait(for: \.label, toEqual: "EmbraceIO has started!", timeout: 5.0))
+        XCTAssertNotNil(initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
 
         let sideMenuButton = app.buttons["SideMenuButton"]
         sideMenuButton.tap()
 
         app.staticTexts["crashes"].tap()
         let crashButton = app.buttons["nullReferenceCrashCaptureTestButton"]
-        XCTAssertTrue(crashButton.wait(for: \.isEnabled, toEqual: true, timeout: 5.0))
+        XCTAssertNotNil(crashButton.wait(attribute: \.isEnabled, is: .equalTo, value: true, timeout: 5.0))
 
         crashButton.tap()
 
@@ -32,14 +32,13 @@ final class EmbraceIOTestCrashesUITests: XCTestCase {
 
         app.launch()
         initButton.tap()
-
-        XCTAssertTrue(initButton.wait(for: \.label, toEqual: "EmbraceIO has started!", timeout: 5.0))
+        XCTAssertNotNil(initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
 
         sideMenuButton.tap()
 
         app.staticTexts["crashes"].tap()
 
-        XCTAssertTrue(crashButton.wait(for: \.isEnabled, toEqual: true, timeout: 5.0))
+        XCTAssertNotNil(crashButton.wait(attribute: \.isEnabled, is: .equalTo, value: true, timeout: 5.0))
 
         crashButton.tap()
 

@@ -16,7 +16,7 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
         let initButton = app.buttons["EmbraceInitButton"]
         initButton.tap()
 
-        XCTAssertTrue(initButton.wait(for: \.label, toEqual: "EmbraceIO has started!", timeout: 5.0))
+        XCTAssertNotNil(initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
 
         let sideMenuButton = app.buttons["SideMenuButton"]
         sideMenuButton.tap()

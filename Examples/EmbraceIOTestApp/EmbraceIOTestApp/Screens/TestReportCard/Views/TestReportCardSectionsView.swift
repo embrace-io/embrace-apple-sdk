@@ -26,5 +26,5 @@ struct TestReportCardSectionsView: View {
 }
 
 #Preview {
-    TestReportCardSectionsView()
+    return TestReportCardSectionsView()
 }

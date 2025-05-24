@@ -54,7 +54,7 @@ struct EmbraceInitScreen: View {
 
 #Preview {
     let dataCollector = DataCollector()
-    NavigationView {
+    return NavigationView {
         EmbraceInitScreen()
             .environment(dataCollector)
     }

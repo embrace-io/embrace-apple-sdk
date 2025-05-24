@@ -7,29 +7,32 @@
 import SwiftUI
 import EmbraceCommonInternal
 
+@Observable
 class NetworkingTestViewModel: SpanTestUIComponentViewModel {
-    private var testObject: NetworkingTest = .init()
+    private var testObject: NetworkingTest
 
-    @Published var testURL: String = "https://embrace.io" {
+    var testURL: String = "https://embrace.io" {
         didSet {
             testObject.testURL = testURL
         }
     }
 
-    @Published var api: String = "" {
+    var api: String = "" {
         didSet {
             testObject.api = api
         }
     }
 
-    @Published var requestMethod: URLRequestMethod = .get {
+    var requestMethod: URLRequestMethod = .get {
         didSet {
             testObject.requestMethod = requestMethod
         }
     }
 
     init(dataModel: any TestScreenDataModel) {
-        super.init(dataModel: dataModel, payloadTestObject: self.testObject)
+        let testObject = NetworkingTest()
+        self.testObject = testObject
+        super.init(dataModel: dataModel, payloadTestObject: testObject)
     }
 
     func addBodyProperty(key: String, value: String) {
