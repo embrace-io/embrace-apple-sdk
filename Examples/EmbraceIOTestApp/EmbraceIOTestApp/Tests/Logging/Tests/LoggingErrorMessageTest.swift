@@ -49,7 +49,8 @@ class LoggingErrorMessageTest: PayloadTest {
 
         testItems.append(.init(target: loggedMessage, expected: "exists", recorded: "exists", result: .success))
 
-        testItems.append(.init(target: "Severity", expected: loggedMessageSeverity.text, recorded: log.severity?.description))
+
+        testItems.append(.init(target: "Severity", expected: expectedSeverityText(loggedMessageSeverity), recorded: log.severity?.description))
 
         testItems.append(.init(target: "Stacktrace", expected: stacktraceExpected ? "found" : "missing", recorded: log.attributes["emb.stacktrace.ios"] != nil ? "found" : "missing"))
 
@@ -77,13 +78,33 @@ class LoggingErrorMessageTest: PayloadTest {
         return .init(items: testItems)
     }
 
+    private func expectedSeverityText(_ severity: LogSeverity) -> String {
+        switch severity {
+
+        case .trace:
+            return "TRACE"
+        case .debug:
+            return "DEBUG"
+        case .info:
+            return "INFO"
+        case .warn:
+            return "WARN"
+        case .error:
+            return "ERROR"
+        case .fatal:
+            return "FATAL"
+        case .critical:
+            return "FATAL4"
+        }
+    }
+
     private var stacktraceExpected: Bool {
         switch stackTraceBehavior {
         case .notIncluded:
             return false
         case .default, .custom:
             switch loggedMessageSeverity {
-            case .trace, .debug, .info, .fatal:
+            case .trace, .debug, .info, .fatal, .critical:
                 return false
             case .warn, .error:
                 return true
