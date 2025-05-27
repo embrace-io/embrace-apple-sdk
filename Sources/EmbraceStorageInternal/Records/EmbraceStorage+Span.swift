@@ -3,10 +3,10 @@
 //
 
 import Foundation
+import CoreData
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
 import EmbraceSemantics
-import CoreData
 #endif
 
 extension EmbraceStorage {

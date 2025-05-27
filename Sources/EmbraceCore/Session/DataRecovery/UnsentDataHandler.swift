@@ -8,6 +8,7 @@ import EmbraceCommonInternal
 import EmbraceStorageInternal
 import EmbraceUploadInternal
 import EmbraceOTelInternal
+import EmbraceSemantics
 #endif
 
 class UnsentDataHandler {
@@ -273,5 +274,48 @@ class UnsentDataHandler {
     static private func cleanMetadata(storage: EmbraceStorage, currentSessionId: String? = nil) {
         let sessionId = currentSessionId ?? Embrace.client?.currentSessionId()
         storage.cleanMetadata(currentSessionId: sessionId, currentProcessId: ProcessIdentifier.current.hex)
+    }
+
+    static func sendCriticalLogs(fileUrl: URL?, upload: EmbraceUpload?) {
+        // feature is only available on iOS 15+
+        if #unavailable(iOS 15.0, tvOS 15.0) {
+            return
+        }
+
+        guard let upload = upload,
+              let fileUrl = fileUrl else {
+            return
+        }
+
+        // always remove the logs from previous session
+        defer { try? FileManager.default.removeItem(at: fileUrl) }
+
+        guard let logs = try? String(contentsOf: fileUrl) else {
+            return
+        }
+
+        // manually construct log payload
+        let id = LogIdentifier().toString
+        let attributes: [String: String] = [
+            LogSemantics.keyId: id,
+            LogSemantics.keyEmbraceType: LogType.internal.rawValue
+        ]
+
+        let payload = LogPayloadBuilder.build(
+            timestamp: Date(),
+            severity: .critical,
+            body: logs,
+            attributes: attributes,
+            storage: nil,
+            sessionId: nil
+        )
+
+        // send log
+        do {
+            let payloadData = try JSONEncoder().encode(payload).gzipped()
+            upload.uploadLog(id: id, data: payloadData, completion: nil)
+        } catch {
+            Embrace.logger.error("Error sending critical logs!:\n\(error.localizedDescription)")
+        }
     }
 }

@@ -43,7 +43,7 @@ extension Embrace {
         guard let spansURL = URL.spansEndpoint(basePath: endpoints.baseURL),
               let logsURL = URL.logsEndpoint(basePath: endpoints.baseURL),
               let attachmentsURL = URL.attachmentsEndpoint(basePath: endpoints.baseURL) else {
-            Embrace.logger.error("Failed to initialize endpoints!")
+            Embrace.logger.critical("Failed to initialize endpoints with baseUrl = \(endpoints.baseURL)")
             return nil
         }
 
@@ -58,7 +58,7 @@ extension Embrace {
             partitionIdentifier: appId,
             appGroupId: options.appGroupId
         ) else {
-            Embrace.logger.error("Failed to initialize upload cache!")
+            Embrace.logger.critical("Failed to initialize upload cache!")
             return nil
         }
 
@@ -81,7 +81,7 @@ extension Embrace {
 
             return try EmbraceUpload(options: options, logger: Embrace.logger, queue: queue)
         } catch {
-            Embrace.logger.error("Error initializing Embrace Upload: " + error.localizedDescription)
+            Embrace.logger.critical("Error initializing Embrace Upload: " + error.localizedDescription)
         }
 
         return nil

@@ -8,7 +8,10 @@ import EmbraceIO
 import SwiftUI
 
 struct LoggingTestLogMessageUIComponent: View {
-    @Environment(TestLogRecordExporter.self) private var logExporter
+    @Environment(DataCollector.self) private var dataCollector
+    private var logExporter: TestLogRecordExporter {
+        dataCollector.logExporter
+    }
     @State var dataModel: any TestScreenDataModel
     @State private var viewModel: LoggingTestMessageViewModel
 
@@ -52,7 +55,7 @@ struct LoggingTestLogMessageUIComponent: View {
 }
 
 #Preview {
-    let logExporter = TestLogRecordExporter()
+    let dataCollector = DataCollector()
     LoggingTestLogMessageUIComponent(dataModel: LoggingTestScreenDataModel.logMessage)
-        .environment(logExporter)
+        .environment(dataCollector)
 }
