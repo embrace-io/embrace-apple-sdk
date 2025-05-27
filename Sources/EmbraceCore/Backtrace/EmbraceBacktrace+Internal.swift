@@ -8,6 +8,12 @@ import EmbraceBugsnagTools
 import EmbraceCommonInternal
 #endif
 
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+import KSCrashDemangleFilter
+#else
+import KSCrash
+#endif
+
 private extension pthread_t {
     var name: String {
         var name = [CChar](repeating: 0, count: 64)
@@ -143,7 +149,7 @@ extension EmbraceBacktraceFrame {
         
         let symbolName: String
         if success, let funcName = result.function_name {
-            symbolName = backtraceSwiftDemangle(String(cString: funcName))
+            symbolName = backtraceDemangle(String(cString: funcName))
         } else {
             symbolName = ""
         }
@@ -237,6 +243,31 @@ func backtraceSimplifiedSwiftDemangled(_ mangled: String) -> String {
 }
 */
 
+var _data: [String: [String: String]] = [:]
+
+func backtraceDemangle(_ symbol: String) -> String {
+
+    // try simplified for the UI
+    let a2 = CrashReportFilterDemangle.demangledSwiftSymbol(symbol).trimmingCharacters(in: .whitespacesAndNewlines)
+    if !a2.isEmpty {
+        return a2
+    }
+    
+    // full non-simplified demangle
+    if let a3 = _swift_demangleImpl(symbol)?.trimmingCharacters(in: .whitespacesAndNewlines) {
+        return a3
+    }
+    
+    // cpp demangle
+    let a4 = CrashReportFilterDemangle.demangledCppSymbol(symbol).trimmingCharacters(in: .whitespacesAndNewlines)
+    if !a4.isEmpty {
+        return a4
+    }
+    
+    // return the original, likely ObjC or something
+    return symbol
+}
+
 @_silgen_name("swift_demangle")
 public func _stdlib_demangleImpl(
     mangledName: UnsafePointer<CChar>?,
@@ -246,8 +277,8 @@ public func _stdlib_demangleImpl(
     flags: UInt32
 ) -> UnsafeMutablePointer<CChar>?
 
-private func backtraceSwiftDemangle(_ symbol: String) -> String {
-    
+private func _swift_demangleImpl(_ symbol: String) -> String? {
+
     return symbol.utf8CString.withUnsafeBufferPointer { (mangledNameUTF8CStr) in
         let demangledNamePtr = _stdlib_demangleImpl(
             mangledName: mangledNameUTF8CStr.baseAddress,
@@ -256,12 +287,13 @@ private func backtraceSwiftDemangle(_ symbol: String) -> String {
             outputBufferSize: nil,
             flags: 0)
         
-        if let demangledNamePtr = demangledNamePtr {
-            let demangledName = String(cString: demangledNamePtr)
-            free(demangledNamePtr)
-            return demangledName
+        guard let demangledNamePtr else {
+            return nil
         }
-        return symbol
+        
+        let demangledName = String(cString: demangledNamePtr)
+        free(demangledNamePtr)
+        return demangledName
     }
 }
 
