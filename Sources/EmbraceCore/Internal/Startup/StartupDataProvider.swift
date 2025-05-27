@@ -14,11 +14,13 @@ protocol StartupDataProvider {
     var isPrewarm: Bool { get }
 
     var processStartTime: Date? { get }
-
     var constructorClosestToMainTime: Date { get }
-    var firstFrameTime: Date { get }
+
+    var firstFrameTime: Date? { get }
+    var onFirstFrameTimeSet: ((Date) -> Void)? { get set }
 
     var appDidFinishLaunchingEndTime: Date? { get }
+    var onAppDidFinishLaunchingEndTimeSet: ((Date) -> Void)? { get set }
 
     var sdkSetupStartTime: Date? { get }
     var sdkSetupEndTime: Date? { get }

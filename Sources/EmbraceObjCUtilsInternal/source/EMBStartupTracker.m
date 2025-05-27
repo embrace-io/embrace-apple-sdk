@@ -4,11 +4,7 @@
 
 #import "EMBStartupTracker.h"
 
-NSNotificationName const EMBDidRenderFirstFrameNotification = @"EMBDidRenderFirstFrameNotification";
-
-@implementation EMBStartupTracker {
-    BOOL notificationFired;
-}
+@implementation EMBStartupTracker
 
 + (instancetype)shared {
     static EMBStartupTracker *sharedInstance = nil;
@@ -22,12 +18,9 @@ NSNotificationName const EMBDidRenderFirstFrameNotification = @"EMBDidRenderFirs
 - (void)setFirstFrameTime:(NSDate *)firstFrameTime {
     _firstFrameTime = firstFrameTime;
 
-    if (notificationFired || !self.internalNotificationCenter) {
-        return;
+    if (self.onFirstFrameTimeSet) {
+        self.onFirstFrameTimeSet(firstFrameTime);
     }
-    
-    [self.internalNotificationCenter postNotificationName:EMBDidRenderFirstFrameNotification object:nil];
-    notificationFired = YES;
 }
 
 - (void)trackDidFinishLaunching {
@@ -40,7 +33,12 @@ NSNotificationName const EMBDidRenderFirstFrameNotification = @"EMBDidRenderFirs
 }
 
 - (void)onAppDidFinishLaunching:(NSNotification *)notification {
-    self.appDidFinishLaunchingEndTime = [NSDate date];
+    NSDate *now = NSDate.date;
+    self.appDidFinishLaunchingEndTime = now;
+
+    if (self.onAppDidFinishLaunchingEndTimeSet) {
+        self.onAppDidFinishLaunchingEndTimeSet(now);
+    }
 
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 }

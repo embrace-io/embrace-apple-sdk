@@ -6,15 +6,17 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-extern NSNotificationName const EMBDidRenderFirstFrameNotification;
-
 @interface EMBStartupTracker : NSObject
 
 @property (nonatomic, strong) NSDate *loadTime;
 @property (nonatomic, strong) NSDate *constructorMostFarFromMainTime;
 @property (nonatomic, strong) NSDate *constructorClosestToMainTime;
+
+@property (nonatomic, strong, nullable) NSDate *firstFrameTime;
+@property (nonatomic, copy, nullable) void (^onFirstFrameTimeSet)(NSDate *);
+
 @property (nonatomic, strong, nullable) NSDate *appDidFinishLaunchingEndTime;
-@property (nonatomic, strong) NSDate *firstFrameTime;
+@property (nonatomic, copy, nullable) void (^onAppDidFinishLaunchingEndTimeSet)(NSDate *);
 
 @property (nonatomic, strong, nullable) NSDate *sdkSetupStartTime;
 @property (nonatomic, strong, nullable) NSDate *sdkSetupEndTime;

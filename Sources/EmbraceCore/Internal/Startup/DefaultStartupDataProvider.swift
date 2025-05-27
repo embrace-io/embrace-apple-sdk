@@ -2,13 +2,19 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceObjCUtilsInternal
+#endif
 
 class DefaultStartupDataProvider: StartupDataProvider {
+
     let buildUUIDKey = "emb.buildUUID"
     let bootTimeKey = "emb.bootTime"
 
     let startupType: StartupType
+
+    var onFirstFrameTimeSet: ((Date) -> Void)?
+    var onAppDidFinishLaunchingEndTimeSet: ((Date) -> Void)?
 
     init() {
         guard let newBuildUUID = EMBDevice.buildUUID?.uuidString else {
@@ -33,6 +39,15 @@ class DefaultStartupDataProvider: StartupDataProvider {
         } else {
             startupType = .warm
         }
+
+        // set callbacks
+        EMBStartupTracker.shared().onFirstFrameTimeSet = { [weak self] date in
+            self?.onFirstFrameTimeSet?(date)
+        }
+
+        EMBStartupTracker.shared().onAppDidFinishLaunchingEndTimeSet = { [weak self] date in
+            self?.onAppDidFinishLaunchingEndTimeSet?(date)
+        }
     }
 
     var isPrewarm: Bool {
@@ -47,7 +62,7 @@ class DefaultStartupDataProvider: StartupDataProvider {
         EMBStartupTracker.shared().constructorClosestToMainTime
     }
 
-    var firstFrameTime: Date {
+    var firstFrameTime: Date? {
         EMBStartupTracker.shared().firstFrameTime
     }
 

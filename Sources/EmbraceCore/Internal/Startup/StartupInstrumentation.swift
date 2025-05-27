@@ -3,37 +3,71 @@
 //
 
 import Foundation
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+import EmbraceCommonInternal
 import EmbraceOTelInternal
 import EmbraceSemantics
 import EmbraceObjCUtilsInternal
+#endif
+import OpenTelemetryApi
 
-class StartupInstrumentation {
+@objc(EMBStartupInstrumentation)
+public class StartupInstrumentation: NSObject {
 
-    static func buildSpans(startupDataProvider: StartupDataProvider, otel: EmbraceOpenTelemetry) {
-        guard let processStartTime = startupDataProvider.processStartTime else {
+    var provider: StartupDataProvider
+    var otel: EmbraceOpenTelemetry?
+
+    struct MutableState {
+        var rootSpan: Span?
+        var firstFrameSpan: Span?
+    }
+    internal var state: EmbraceMutex<MutableState>
+
+    init(provider: StartupDataProvider = DefaultStartupDataProvider()) {
+        self.provider = provider
+        self.state = EmbraceMutex(MutableState())
+
+        super.init()
+
+        self.provider.onFirstFrameTimeSet = { [weak self] date in
+            self?.endSpans(date)
+        }
+
+        self.provider.onAppDidFinishLaunchingEndTimeSet = { [weak self] date in
+            self?.buildSecondarySpans(date)
+        }
+    }
+
+    func endSpans(_ endTime: Date) {
+        state.withLock {
+            $0.firstFrameSpan?.end(time: endTime)
+            $0.rootSpan?.end(time: endTime)
+        }
+    }
+
+    func buildMainSpans() {
+        guard let otel = otel,
+              let processStartTime = provider.processStartTime else {
             return
         }
 
         // prewarm
-        let prewarmed = startupDataProvider.isPrewarm
+        let prewarmed = provider.isPrewarm
         let preWarmStr = prewarmed ? "true" : "false"
         let attributes = [SpanSemantics.Startup.keyPrewarmed: preWarmStr]
 
-        // start and end times
-        let startTime = startupDataProvider.constructorClosestToMainTime
-        let endTime = startupDataProvider.firstFrameTime
+        // start time
+        let startTime = provider.constructorClosestToMainTime
 
         // build parent
-        let builder = otel.buildSpan(
-            name: SpanSemantics.Startup.parentName + "-" + startupDataProvider.startupType.rawValue,
+        let rootBuilder = otel.buildSpan(
+            name: SpanSemantics.Startup.parentName + "-" + provider.startupType.rawValue,
             type: .startup,
             attributes: attributes,
             autoTerminationCode: nil
         )
-        builder.setStartTime(time: prewarmed ? startTime : processStartTime)
-
-        let parent = builder.startSpan()
-        parent.end(time: endTime)
+        rootBuilder.setStartTime(time: prewarmed ? startTime : processStartTime)
+        let parent = rootBuilder.startSpan()
 
         // pre init (only on non-prewarmed startups)
         if !prewarmed {
@@ -50,25 +84,40 @@ class StartupInstrumentation {
         }
 
         // first frame rendered
-        otel.recordCompletedSpan(
+        let firstFrameBuilder = otel.buildSpan(
             name: SpanSemantics.Startup.firstFrameRenderedName,
             type: .startup,
-            parent: parent,
-            startTime: startTime,
-            endTime: endTime,
             attributes: attributes,
-            events: [],
-            errorCode: nil
+            autoTerminationCode: nil
         )
+        firstFrameBuilder.setStartTime(time: startTime)
+        firstFrameBuilder.setParent(parent)
+        let firstFrameSpan = firstFrameBuilder.startSpan()
 
-        if let appDidFinishLaunchingTime = startupDataProvider.appDidFinishLaunchingEndTime {
+        // save state
+        state.withLock {
+            $0.rootSpan = parent
+            $0.firstFrameSpan = firstFrameSpan
+        }
+    }
+
+    func buildSecondarySpans(_ appDidFinishLaunchingTime: Date?) {
+        guard let otel = otel,
+              let appDidFinishLaunchingTime = appDidFinishLaunchingTime else {
+            return
+        }
+
+        state.withLock {
+            let attributes = [
+                SpanSemantics.Startup.keyPrewarmed: provider.isPrewarm ? "true" : "false"
+            ]
 
             // app init
             otel.recordCompletedSpan(
                 name: SpanSemantics.Startup.appInitName,
                 type: .startup,
-                parent: parent,
-                startTime: startTime,
+                parent: $0.rootSpan,
+                startTime: provider.constructorClosestToMainTime,
                 endTime: appDidFinishLaunchingTime,
                 attributes: attributes,
                 events: [],
@@ -76,12 +125,12 @@ class StartupInstrumentation {
             )
 
             // sdk setup
-            if let sdkSetupStartTime = startupDataProvider.sdkSetupStartTime,
-               let sdkSetupEndTime = startupDataProvider.sdkSetupEndTime {
+            if let sdkSetupStartTime = provider.sdkSetupStartTime,
+               let sdkSetupEndTime = provider.sdkSetupEndTime {
                 otel.recordCompletedSpan(
                     name: SpanSemantics.Startup.sdkSetup,
                     type: .startup,
-                    parent: parent,
+                    parent: $0.rootSpan,
                     startTime: sdkSetupStartTime,
                     endTime: sdkSetupEndTime,
                     attributes: attributes,
@@ -91,12 +140,12 @@ class StartupInstrumentation {
             }
 
             // sdk startup
-            if let sdkStartStarTime = startupDataProvider.sdkStartStartTime,
-               let sdkStartEndTime = startupDataProvider.sdkStartEndTime {
+            if let sdkStartStarTime = provider.sdkStartStartTime,
+               let sdkStartEndTime = provider.sdkStartEndTime {
                 otel.recordCompletedSpan(
                     name: SpanSemantics.Startup.sdkStart,
                     type: .startup,
-                    parent: parent,
+                    parent: $0.rootSpan,
                     startTime: sdkStartStarTime,
                     endTime: sdkStartEndTime,
                     attributes: attributes,

@@ -74,6 +74,9 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
     /// Returns the current `MetadataHandler` used to store resources and session properties.
     @objc public let metadata: MetadataHandler
 
+    /// Returns the current `StartupInstrumentation` used to instrument the app startup process.
+    @objc public let startupInstrumentation: StartupInstrumentation
+
     let config: EmbraceConfig?
     let storage: EmbraceStorage
     let upload: EmbraceUpload?
@@ -183,6 +186,9 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         // initialize metadata handler
         self.metadata = MetadataHandler(storage: storage, sessionController: sessionController)
 
+        // initialize startup instrumentation
+        self.startupInstrumentation = StartupInstrumentation()
+
         // initialize log controller
         var logController: LogController?
         if let logControllable = logControllable {
@@ -230,14 +236,9 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         Embrace.logger.otel = self
 
         // startup tracking
+        startupInstrumentation.otel = self
         EMBStartupTracker.shared().internalNotificationCenter = Embrace.notificationCenter
         EMBStartupTracker.shared().trackDidFinishLaunching()
-        Embrace.notificationCenter.addObserver(
-            self,
-            selector: #selector(onStartupFinished),
-            name: .EMBDidRenderFirstFrame,
-            object: nil
-        )
 
         // config update event
         Embrace.notificationCenter.addObserver(
@@ -284,6 +285,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
             recordSpan(name: "emb-sdk-start-process", parent: processStartSpan, type: .performance) { _ in
                 state = .started
 
+                startupInstrumentation.buildMainSpans()
                 sessionLifecycle.startSession()
                 captureServices.install()
 
@@ -397,13 +399,5 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
                 captureServices.stop()
             }
         }
-    }
-
-    /// Called when the app's first frame is rendered
-    @objc private func onStartupFinished() {
-        StartupInstrumentation.buildSpans(
-            startupDataProvider: DefaultStartupDataProvider(),
-            otel: self
-        )
     }
 }
