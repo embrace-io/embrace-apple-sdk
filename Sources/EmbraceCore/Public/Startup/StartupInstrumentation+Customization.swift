@@ -91,7 +91,7 @@ public extension StartupInstrumentation {
     ///   - attributes: A dictionary of attributes to add to the trace. Each key-value pair represents an attribute.
     /// - Returns: A boolean indicating if the operation was succesful.
     func addAttributesToTrace(_ attributes: [String: String]) -> Bool {
-        
+
         return state.withLock {
             guard let rootSpan = $0.rootSpan else {
                 return false
