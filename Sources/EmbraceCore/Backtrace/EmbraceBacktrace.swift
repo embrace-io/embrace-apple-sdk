@@ -3,33 +3,30 @@
 //
 
 import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceBugsnagTools
-#endif
 
 public struct EmbraceBacktraceFrame: Codable {
-    let address: UInt64
-    let symbolAddress: UInt64
-    let symbolName: String
-    let imageUUID: String
-    let imageName: String
-    let imageSize: UInt64
-    let imageOffset: UInt64
+    public let address: UInt64
+    public let symbolAddress: UInt64
+    public let symbolName: String
+    public let imageUUID: String
+    public let imageName: String
+    public let imageSize: UInt64
+    public let imageOffset: UInt64
 }
 extension EmbraceBacktraceFrame: Sendable {}
 
 public struct EmbraceBacktraceThread: Codable {
-    let index: Int
-    let name: String
-    let frames: [EmbraceBacktraceFrame]
+    public let index: Int
+    public let name: String
+    public let frames: [EmbraceBacktraceFrame]
 }
 extension EmbraceBacktraceThread: Sendable {}
 
 public struct EmbraceBacktrace: Codable {
-    let timestampUnits: String = "nanoseconds"
-    let timestamp: UInt64
-    let symbolicated: Bool
-    let threads: [EmbraceBacktraceThread]
+    public let timestampUnits: String = "nanoseconds"
+    public let timestamp: UInt64
+    public let symbolicated: Bool
+    public let threads: [EmbraceBacktraceThread]
 
     /// Call this to take a stacktrace of the passed in thread.
     static func backtrace(of thread: pthread_t) -> EmbraceBacktrace {
