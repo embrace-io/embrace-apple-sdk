@@ -68,16 +68,18 @@ extension Array {
 
 extension Speedscope {
     
-    public static func from(_ profile: EmbraceProfile) -> Speedscope? {
+    public static func with(_ profile: EmbraceProfile, filter: (_ frame: EmbraceBacktraceFrame) -> Bool ) -> Speedscope? {
         
         // build the frames
         var frameset = Set<Frame>()
         profile.backtraces.forEach { backtrace in
             backtrace.threads.forEach { thread in
                 thread.frames.forEach { frame in
-                    frameset.insert(
-                        Frame(name: frame.symbolName, file: frame.imageName)
-                    )
+                    if filter(frame) {
+                        frameset.insert(
+                            Frame(name: frame.symbolName, file: frame.imageName)
+                        )
+                    }
                 }
             }
         }
