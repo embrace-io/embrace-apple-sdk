@@ -9,6 +9,11 @@ protocol MetricKitCrashPayloadListener: AnyObject {
     func didReceive(payload: Data, signal: Int, sessionId: SessionIdentifier?)
 }
 
+protocol MetricKitHangPayloadListener: AnyObject {
+    func didReceive(payload: Data, startTime: Date, endTime: Date)
+}
+
 protocol MetricKitCrashPayloadProvider: AnyObject {
     func add(listener: MetricKitCrashPayloadListener)
+    func add(listener: MetricKitHangPayloadListener)
 }

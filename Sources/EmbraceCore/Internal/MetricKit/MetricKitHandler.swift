@@ -8,8 +8,15 @@ import EmbraceCommonInternal
 
 @objc class MetricKitHandler: NSObject, MetricKitCrashPayloadProvider {
 
-    @ThreadSafe
-    var listeners: [MetricKitCrashPayloadListener] = []
+    private var _crashListeners = EmbraceMutex<[MetricKitCrashPayloadListener]>([])
+    var crashListeners: [MetricKitCrashPayloadListener] {
+        _crashListeners.safeValue
+    }
+
+    private var _hangListeners = EmbraceMutex<[MetricKitHangPayloadListener]>([])
+    var hangListeners: [MetricKitHangPayloadListener] {
+        _hangListeners.safeValue
+    }
 
     @ThreadSafe
     var lastSession: EmbraceSession?
@@ -46,17 +53,35 @@ import EmbraceCommonInternal
         }
 
         for crash in payload.crashes {
-            send(crashPayload: crash.data, signal: crash.signal, sessionId: sessionId)
+            sendCrash(payload: crash.data, signal: crash.signal, sessionId: sessionId)
+        }
+
+        for hang in payload.hangs {
+            sendHang(payload: hang, startTime: payload.startTime, endTime: payload.endTime)
         }
     }
 
     func add(listener: any MetricKitCrashPayloadListener) {
-        listeners.append(listener)
+        _crashListeners.withLock {
+            $0.append(listener)
+        }
     }
 
-    func send(crashPayload: Data, signal: Int, sessionId: SessionIdentifier?) {
-        for listener in listeners {
-            listener.didReceive(payload: crashPayload, signal: signal, sessionId: sessionId)
+    func add(listener: any MetricKitHangPayloadListener) {
+        _hangListeners.withLock {
+            $0.append(listener)
+        }
+    }
+
+    func sendCrash(payload: Data, signal: Int, sessionId: SessionIdentifier?) {
+        for listener in crashListeners {
+            listener.didReceive(payload: payload, signal: signal, sessionId: sessionId)
+        }
+    }
+
+    func sendHang(payload: Data, startTime: Date, endTime: Date) {
+        for listener in hangListeners {
+            listener.didReceive(payload: payload, startTime: startTime, endTime: endTime)
         }
     }
 }
@@ -81,11 +106,13 @@ class MetricKitDiagnosticPayload {
     let startTime: Date
     let endTime: Date
     let crashes: [MetricKitCrashData]
+    let hangs: [Data]
 
-    init(startTime: Date, endTime: Date, crashes: [MetricKitCrashData]) {
+    init(startTime: Date, endTime: Date, crashes: [MetricKitCrashData], hangs: [Data]) {
         self.startTime = startTime
         self.endTime = endTime
         self.crashes = crashes
+        self.hangs = hangs
     }
 
 #if !os(tvOS)
@@ -96,6 +123,7 @@ class MetricKitDiagnosticPayload {
         self.crashes = payload.crashDiagnostics?.map({
             MetricKitCrashData(data: $0.jsonRepresentation(), signal: $0.signal?.intValue ?? 0)
         }) ?? []
+        self.hangs = payload.hangDiagnostics?.map { $0.jsonRepresentation() } ?? []
     }
 #endif
 }
