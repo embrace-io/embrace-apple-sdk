@@ -5,6 +5,7 @@
 import Foundation
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceBugsnagTools
+import EmbraceCommonInternal
 #endif
 
 private extension pthread_t {
@@ -63,14 +64,20 @@ private class EmbraceThreadList {
     /// Suspends all threads except the current one
     func suspend() {
         withThreads {
-            thread_suspend($0)
+            let err = thread_suspend($0)
+            if err != KERN_SUCCESS {
+                print("[THREAD.SUSPEND] err: \(err), \(String(cString: mach_error_string(err)))")
+            }
         }
     }
     
     /// Resumes all threads except the current one
     func resume() {
         withThreads {
-            thread_resume($0)
+            let err = thread_resume($0)
+            if err != KERN_SUCCESS {
+                print("[THREAD.RESUME] err: \(err), \(String(cString: mach_error_string(err)))")
+            }
         }
     }
     
@@ -85,6 +92,8 @@ private class EmbraceThreadList {
         return -1
     }
 }
+
+var _symbolCache: EmbraceMutex<[UInt64: EmbraceBacktraceFrame]> = EmbraceMutex([:])
 
 extension EmbraceBacktraceFrame {
     
@@ -101,6 +110,10 @@ extension EmbraceBacktraceFrame {
     internal func symbolicated() -> EmbraceBacktraceFrame {
         guard imageUUID.isEmpty else { return self }
         
+        if let cached = _symbolCache.withLock({ $0[address] }) {
+            return cached
+        }
+        
         // there's an atomic check so this isn't expensive except for the first time
         bsg_mach_headers_initialize()
         
@@ -111,6 +124,7 @@ extension EmbraceBacktraceFrame {
         let imageName: String
         let imageSize: UInt64
         let imageOffset: UInt64
+        let success: Bool
         
         if let img = result.image {
             let ptr = img.pointee
@@ -118,22 +132,23 @@ extension EmbraceBacktraceFrame {
             imageName = NSString(utf8String: ptr.name)?.lastPathComponent ?? ""
             imageSize = ptr.imageSize
             imageOffset = UInt64(address) - ptr.imageVmAddr
+            success = true
         } else {
             imageUUID = ""
             imageName = ""
             imageSize = 0
             imageOffset = 0
+            success = false
         }
         
         let symbolName: String
-        if let funcName = result.function_name {
-            symbolName = String(cString: funcName)
-            // demangle here
+        if success, let funcName = result.function_name {
+            symbolName = backtraceSwiftDemangle(String(cString: funcName))
         } else {
             symbolName = ""
         }
         
-        return EmbraceBacktraceFrame(
+        let symbolicatedFrame = EmbraceBacktraceFrame(
             address: UInt64(address),
             symbolAddress: UInt64(result.function_address),
             symbolName: symbolName,
@@ -142,6 +157,12 @@ extension EmbraceBacktraceFrame {
             imageSize: imageSize,
             imageOffset: imageOffset
         )
+        
+        if success {
+            _symbolCache.withLock { $0[address] = symbolicatedFrame }
+        }
+        
+        return symbolicatedFrame
     }
 }
 
@@ -155,16 +176,6 @@ internal extension EmbraceBacktrace {
     // 2- gets the index of the thread we want a backtrace of.
     // 3- sets up deferal of resuming all threads and releasing task thread memory.
     // 4- takes a backtrace and symbolicates it (or simply gets the images if not available).
-    //
-    // There's a lot going on here and taking backtraces is a pretty perf heavy event.
-    // Because of that, I'm trying to reuse everything I can, such as thread lists and such.
-    // That is why the method is large. Otherwise i'd love it to be something likethe following:
-    // ```swift
-    // withSuspendedThreads {
-    //    takeSnapshot()
-    // }
-    // ```
-    // but alas, not today...
     static func takeSnapshot(of thread: pthread_t) -> [EmbraceBacktraceThread] {
         
         let threadList = EmbraceThreadList()
@@ -195,6 +206,62 @@ internal extension EmbraceBacktrace {
                 frames: frames
             )
         ]
+    }
+}
+
+/*
+@_silgen_name("swift_demangle_getSimplifiedDemangledName")
+func _stdlib_swift_demangle_getSimplifiedDemangledName(
+    _ MangledName: UnsafePointer<CChar>,
+    _ OutputBuffer: UnsafeMutablePointer<CChar>,
+    _ Length: Int
+) -> Int
+
+func backtraceSimplifiedSwiftDemangled(_ mangled: String) -> String {
+    let bufferSize = 512
+    var outputBuffer = [CChar](repeating: 0, count: bufferSize)
+    
+    return mangled.withCString { mangledPtr in
+        let resultLen = _stdlib_swift_demangle_getSimplifiedDemangledName(
+            mangledPtr,
+            &outputBuffer,
+            bufferSize
+        )
+        
+        if resultLen > 0 && resultLen < bufferSize {
+            return String(cString: outputBuffer)
+        } else {
+            return mangled
+        }
+    }
+}
+*/
+
+@_silgen_name("swift_demangle")
+public func _stdlib_demangleImpl(
+    mangledName: UnsafePointer<CChar>?,
+    mangledNameLength: UInt,
+    outputBuffer: UnsafeMutablePointer<CChar>?,
+    outputBufferSize: UnsafeMutablePointer<UInt>?,
+    flags: UInt32
+) -> UnsafeMutablePointer<CChar>?
+
+private func backtraceSwiftDemangle(_ symbol: String) -> String {
+    
+    return symbol.utf8CString.withUnsafeBufferPointer { (mangledNameUTF8CStr) in
+        let demangledNamePtr = _stdlib_demangleImpl(
+            mangledName: mangledNameUTF8CStr.baseAddress,
+            mangledNameLength: UInt(mangledNameUTF8CStr.count - 1),
+            outputBuffer: nil,
+            outputBufferSize: nil,
+            flags: 0)
+        
+        if let demangledNamePtr = demangledNamePtr {
+            let demangledName = String(cString: demangledNamePtr)
+            free(demangledNamePtr)
+            return demangledName
+        }
+        return symbol
     }
 }
 
