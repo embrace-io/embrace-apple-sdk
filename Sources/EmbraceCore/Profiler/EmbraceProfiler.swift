@@ -74,7 +74,10 @@ public class EmbraceProfiler {
     
     private func locked_endProfilerIfNeeded(_ mutableData: inout MutableData, fromTime: UInt64, toTime: UInt64) -> [EmbraceBacktrace] {
         guard mutableData.profiles.isEmpty else {
-            return []
+            return mutableData.backtraces.compactMap { backtrace in
+                backtrace.timestamp >= fromTime &&
+                backtrace.timestamp < toTime ? backtrace : nil
+            }
         }
         
         // remove all backtraces since we have no more
@@ -107,6 +110,14 @@ public class EmbraceProfiler {
         return profile.id
     }
     
+    public func endProfile(id: EmbraceProfileIdentifier) async -> EmbraceProfile? {
+        await withCheckedContinuation { continuation in
+            endProfile(id: id) { profile in
+                continuation.resume(returning: profile)
+            }
+        }
+    }
+    
     public func endProfile(id: EmbraceProfileIdentifier, _ completion: @escaping (_ profile: EmbraceProfile?) -> ()) {
         
         // get the time
@@ -117,6 +128,13 @@ public class EmbraceProfiler {
         // form and return a profile
         
         completionQueue.async { [self] in
+            
+            let result: EmbraceProfile?
+            defer {
+                DispatchQueue.global().async {
+                    completion(result)
+                }
+            }
             
             struct InternalResultData {
                 let profile: EmbraceProfile_Internal?
@@ -134,11 +152,11 @@ public class EmbraceProfiler {
             }
             
             guard let profile = prof.profile else {
-                completion(nil)
+                result = nil
                 return
             }
             
-            let result = EmbraceProfile(
+            result = EmbraceProfile(
                 id: profile.id,
                 name: profile.name,
                 backtraces: prof.backtraces.map { $0.symbolicate() },
@@ -146,8 +164,6 @@ public class EmbraceProfiler {
                 startTime: profile.startTime,
                 endTime: time
             )
-            completion(result)
-            
         }
         
     }
