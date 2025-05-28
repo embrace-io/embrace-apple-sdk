@@ -156,6 +156,24 @@ class EmbraceLogAttributesBuilder {
         return self
     }
 
+    @discardableResult
+    func addHangReportProperties(id: String?, provider: String?, payload: String?, startTime: Date, endTime: Date) -> Self {
+        guard let id = id,
+              let provider = provider,
+              let payload = payload else {
+            return self
+        }
+
+        attributes[LogSemantics.Hang.keyId] = id
+        attributes[LogSemantics.Hang.keyProvider] = provider
+        attributes[LogSemantics.Hang.keyPayload] = payload
+        attributes[LogSemantics.Hang.keyPayLoadTimestamp] = String(Date().nanosecondsSince1970Truncated)
+        attributes[LogSemantics.Hang.keyDiagnosticTimestampStart] = String(startTime.nanosecondsSince1970Truncated)
+        attributes[LogSemantics.Hang.keyDiagnosticTimestampEnd] = String(endTime.nanosecondsSince1970Truncated)
+
+        return self
+    }
+
     func build() -> [String: String] {
         attributes
     }

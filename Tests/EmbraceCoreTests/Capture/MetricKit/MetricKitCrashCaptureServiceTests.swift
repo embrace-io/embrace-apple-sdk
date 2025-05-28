@@ -10,7 +10,7 @@ import EmbraceStorageInternal
 
 class MetricKitCrashCaptureServiceTests: XCTestCase {
 
-    func options(provider: MetricKitCrashPayloadProvider, 
+    func options(provider: MetricKitPayloadProvider,
                  fetcher: EmbraceStorageMetadataFetcher? = nil,
                  stateProvider: EmbraceMetricKitStateProvider? = nil
     ) -> MetricKitCrashCaptureService.Options {
@@ -23,7 +23,7 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
 
     func test_listener() throws {
         // given a capture service
-        let provider = MockMetricKitCrashPayloadProvider()
+        let provider = MockMetricKitPayloadProvider()
         let options = options(provider: provider)
         let service = MetricKitCrashCaptureService(options: options)
 
@@ -31,14 +31,14 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
         service.install(otel: nil)
 
         // then its added as a listener to the metric kit crash provider
-        XCTAssertTrue(provider.didCallAddListener)
-        XCTAssertTrue(provider.lastListener is MetricKitCrashCaptureService)
+        XCTAssertTrue(provider.didCallAddCrashListener)
+        XCTAssertTrue(provider.lastCrashListener is MetricKitCrashCaptureService)
     }
 
     func test_valid_signal() throws {
         // given a capture service
         let otel = MockEmbraceOpenTelemetry()
-        let provider = MockMetricKitCrashPayloadProvider()
+        let provider = MockMetricKitPayloadProvider()
         let stateProvider = MockMetricKitStateProvider()
         stateProvider.metricKitCrashSignals = [3, 5]
         let options = options(provider: provider, stateProvider: stateProvider)
@@ -62,7 +62,7 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
     func test_invalid_signal() throws {
         // given a capture service
         let otel = MockEmbraceOpenTelemetry()
-        let provider = MockMetricKitCrashPayloadProvider()
+        let provider = MockMetricKitPayloadProvider()
         let stateProvider = MockMetricKitStateProvider()
         stateProvider.metricKitCrashSignals = [3, 5]
         let options = options(provider: provider, stateProvider: stateProvider)
@@ -80,7 +80,7 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
     func test_not_started() throws {
         // given a capture service that is not started
         let otel = MockEmbraceOpenTelemetry()
-        let provider = MockMetricKitCrashPayloadProvider()
+        let provider = MockMetricKitPayloadProvider()
         let options = options(provider: provider)
         let service = MetricKitCrashCaptureService(options: options)
         service.install(otel: otel)
@@ -99,7 +99,28 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
 
         // given a capture service
         let otel = MockEmbraceOpenTelemetry()
-        let provider = MockMetricKitCrashPayloadProvider()
+        let provider = MockMetricKitPayloadProvider()
+        let options = options(provider: provider, stateProvider: stateProvider)
+        let service = MetricKitCrashCaptureService(options: options)
+        service.install(otel: otel)
+        service.start()
+
+        // when the service receives a payload with the correct signal
+        service.didReceive(payload: TestConstants.data, signal: 9, sessionId: nil)
+
+        // then it doesnt create a log
+        XCTAssertEqual(otel.logs.count, 0)
+    }
+
+    func test_remote_config_disabled_2() throws {
+        // given remote config disabled
+        let stateProvider = MockMetricKitStateProvider()
+        stateProvider.isMetricKitEnabled = true
+        stateProvider.isMetricKitCrashCaptureEnabled = false
+
+        // given a capture service
+        let otel = MockEmbraceOpenTelemetry()
+        let provider = MockMetricKitPayloadProvider()
         let options = options(provider: provider, stateProvider: stateProvider)
         let service = MetricKitCrashCaptureService(options: options)
         service.install(otel: otel)
@@ -140,7 +161,7 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
 
         // given a capture service
         let otel = MockEmbraceOpenTelemetry()
-        let provider = MockMetricKitCrashPayloadProvider()
+        let provider = MockMetricKitPayloadProvider()
         let options = options(provider: provider, fetcher: storage)
         let service = MetricKitCrashCaptureService(options: options)
         service.install(otel: otel)
@@ -160,22 +181,4 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
         XCTAssertEqual(log.attributes["emb.properties.test1"], .string("metadata"))
         XCTAssertEqual(log.attributes["emb.properties.test2"], .string("metadata"))
     }
-}
-
-
-class MockMetricKitCrashPayloadProvider: MetricKitCrashPayloadProvider {
-
-    var didCallAddListener: Bool = false
-    var lastListener: AnyObject? = nil
-    func add(listener: any MetricKitCrashPayloadListener) {
-        didCallAddListener = true
-        lastListener = listener
-    }
-}
-
-class MockMetricKitStateProvider: EmbraceMetricKitStateProvider {
-    var isMetricKitEnabled: Bool = true
-    var isMetricKitCrashCaptureEnabled: Bool = true
-    var metricKitCrashSignals: [Int] = [9]
-    var isMetricKitHangCaptureEnabled: Bool = true
 }

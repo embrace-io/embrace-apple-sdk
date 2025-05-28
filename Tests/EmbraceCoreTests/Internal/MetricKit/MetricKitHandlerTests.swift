@@ -15,7 +15,8 @@ class MetricKitHandlerTests: XCTestCase {
         return MetricKitDiagnosticPayload(
             startTime: Date(timeIntervalSince1970: 0),
             endTime: Date(timeIntervalSince1970: 20),
-            crashes: [ MetricKitCrashData(data: TestConstants.data, signal: 9) ]
+            crashes: [ MetricKitCrashData(data: TestConstants.data, signal: 9) ],
+            hangs: [ TestConstants.data ]
         )
     }
 
@@ -32,8 +33,8 @@ class MetricKitHandlerTests: XCTestCase {
         )
     }
 
-    func test_forwardsPayload() {
-        // given a handler with a listener
+    func test_forwardsCrashPayload() {
+        // given a handler with a crash listener
         let handler = MetricKitHandler()
         let listener = MockMetricKitCrashPayloadListener()
         handler.add(listener: listener)
@@ -47,6 +48,23 @@ class MetricKitHandlerTests: XCTestCase {
         XCTAssertEqual(listener.payloadData, payload.crashes[0].data)
         XCTAssertEqual(listener.payloadSignal, payload.crashes[0].signal)
         XCTAssertNil(listener.sessionId)
+    }
+
+    func test_forwardsHangPayload() {
+        // given a handler with a hang listener
+        let handler = MetricKitHandler()
+        let listener = MockMetricKitHangPayloadListener()
+        handler.add(listener: listener)
+
+        // when it receives a payload
+        let payload = dummyPayload()
+        handler.handlePayload(payload)
+
+        // then it gets forwarded to the listener
+        XCTAssertTrue(listener.didReceivePayload)
+        XCTAssertEqual(listener.payloadData, payload.hangs[0])
+        XCTAssertEqual(listener.startTime, Date(timeIntervalSince1970: 0))
+        XCTAssertEqual(listener.endTime, Date(timeIntervalSince1970: 20))
     }
 
     func test_linked_session_endTime() {

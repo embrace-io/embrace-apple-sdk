@@ -8,7 +8,7 @@ import EmbraceStorageInternal
 import EmbraceCommonInternal
 #endif
 
-extension MetricKitCrashCaptureService {
+extension MetricKitHangCaptureService {
     final class Options: NSObject {
         let crashProvider: MetricKitPayloadProvider?
         let metadataFetcher: EmbraceStorageMetadataFetcher?

@@ -64,6 +64,7 @@ final class CaptureServices {
             if crashReporter.disableMetricKitReports == false {
                 _services.withLock {
                     $0.append(MetricKitCrashCaptureService())
+                    $0.append(MetricKitHangCaptureService())
                 }
             }
         }
