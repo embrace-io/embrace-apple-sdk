@@ -59,19 +59,10 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
         }
 
         // when adding a persona tag
-        let expectation1 = XCTestExpectation()
-        XCTAssertThrowsError(try handler.add(persona: "test", lifespan: .session)) { error in
+        try handler.add(persona: "test", lifespan: .session)
 
-            // then it should error out as a MetadataError.limitReached
-            switch error {
-            case MetadataError.limitReached:
-                expectation1.fulfill()
-            default:
-                XCTAssert(false)
-            }
-        }
-
-        wait(for: [expectation1], timeout: .defaultTimeout)
+        let metadata: [MetadataRecord] = storage.fetchAll()
+        XCTAssertEqual(metadata.filter({ $0.typeRaw == MetadataRecordType.personaTag.rawValue }).count, storage.options.personaTagsLimit)
     }
 
     // MARK: - Current Personas
@@ -109,9 +100,55 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
         XCTAssertEqual(Set(tags.map(\.rawValue)), Set(["permanent", "process", "session"]))
     }
 
+    func test_getCurrentPersonasAsync_returnsCorrectPersonas() throws {
+        // given a metadata handler
+        let handler = MetadataHandler(
+            storage: storage,
+            sessionController: sessionController,
+            syncronizationQueue: MockQueue()
+        )
+        let expectation = expectation(description: #function)
+
+        // given some persona tags in storage
+        storage.addMetadata(
+            key: "permanent",
+            value: PersonaTag.metadataValue,
+            type: .personaTag,
+            lifespan: .permanent
+        )
+        storage.addMetadata(
+            key: "process",
+            value: PersonaTag.metadataValue,
+            type: .personaTag,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.hex
+        )
+        storage.addMetadata(
+            key: "session",
+            value: PersonaTag.metadataValue,
+            type: .personaTag,
+            lifespan: .session,
+            lifespanId: sessionController.currentSession!.idRaw
+        )
+
+        // when fetching the current persona tags
+        handler.getCurrentPersonas { tags in
+            // then the tags are correct
+            XCTAssertEqual(Set(tags.map(\.rawValue)), Set(["permanent", "process", "session"]))
+            XCTAssertEqual(tags.count, 3)
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
+    }
+
     func test_getCurrentPersonas_returnsCorrectPersonas() throws {
         // given a metadata handler
-        let handler = MetadataHandler(storage: storage, sessionController: sessionController)
+        let handler = MetadataHandler(
+            storage: storage,
+            sessionController: sessionController,
+            syncronizationQueue: MockQueue()
+        )
 
         // given some persona tags in storage
         storage.addMetadata(
@@ -145,7 +182,11 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
 
     func test_getCurrentPersonas_withDifferentProcessIdentifier_returnsCorrectPersonas() throws {
         // given a metadata handler
-        let handler = MetadataHandler(storage: storage, sessionController: sessionController)
+        let handler = MetadataHandler(
+            storage: storage,
+            sessionController: sessionController,
+            syncronizationQueue: MockQueue()
+        )
 
         // given some persona tags in storage
         storage.addMetadata(
@@ -179,7 +220,11 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
 
     func test_currentPersonas_afterRemovingOne_returnsCorrectPersonas() throws {
         // given a metadata handler
-        let handler = MetadataHandler(storage: storage, sessionController: sessionController)
+        let handler = MetadataHandler(
+            storage: storage,
+            sessionController: sessionController,
+            syncronizationQueue: MockQueue()
+        )
 
         // given some persona tags in storage
         storage.addMetadata(
@@ -217,7 +262,11 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
 
     func test_removePersona_worksWhenLifespanIsExplicit() throws {
         // given a metadata handler
-        let handler = MetadataHandler(storage: storage, sessionController: sessionController)
+        let handler = MetadataHandler(
+            storage: storage,
+            sessionController: sessionController,
+            syncronizationQueue: MockQueue()
+        )
 
         // given some persona tags in storage
         storage.addMetadata(
@@ -252,7 +301,11 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
 
     func test_removePersona_doesNotRemove_whenLifespanDoesNotMatch() throws {
         // given a metadata handler
-        let handler = MetadataHandler(storage: storage, sessionController: sessionController)
+        let handler = MetadataHandler(
+            storage: storage,
+            sessionController: sessionController,
+            syncronizationQueue: MockQueue()
+        )
 
         // given some persona tags in storage
         storage.addMetadata(
@@ -286,9 +339,13 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
     }
 
     // MARK: - Remove All Personas
-    func test_removeAllPersonas_withNoLifespanPassed_removesEverything() throws {
+    func test_removeAllPersonas_withNoLifespanPassed_removesEverything() {
         // given a metadata handler
-        let handler = MetadataHandler(storage: storage, sessionController: sessionController)
+        let handler = MetadataHandler(
+            storage: storage,
+            sessionController: sessionController,
+            syncronizationQueue: MockQueue()
+        )
 
         // given some persona tags in storage
         storage.addMetadata(
@@ -313,7 +370,7 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
         )
 
         // when removing all persona tags
-        try handler.removeAllPersonas()
+        handler.removeAllPersonas()
 
         // then the persona tags are removed
         let tags = storage.fetchPersonaTagsForSessionId(sessionController.currentSession!.id!)
@@ -322,7 +379,11 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
 
     func test_removeAllPersonas_withLifespanPassed_removesOnlyMatchingLifespan() throws {
         // given a metadata handler
-        let handler = MetadataHandler(storage: storage, sessionController: sessionController)
+        let handler = MetadataHandler(
+            storage: storage,
+            sessionController: sessionController,
+            syncronizationQueue: MockQueue()
+        )
 
         // given some persona tags in storage
         storage.addMetadata(
@@ -347,7 +408,7 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
         )
 
         // when removing all persona tags
-        try handler.removeAllPersonas(lifespans: [.permanent])
+        handler.removeAllPersonas(lifespans: [.permanent])
 
         // then the persona tags are removed
         let tags = storage.fetchPersonaTagsForSessionId(sessionController.currentSession!.id!)
