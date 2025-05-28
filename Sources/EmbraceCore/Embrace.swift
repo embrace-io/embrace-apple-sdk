@@ -74,6 +74,9 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
     /// Returns the current `MetadataHandler` used to store resources and session properties.
     @objc public let metadata: MetadataHandler
 
+    /// Returns the current `StartupInstrumentation` used to instrument the app startup process.
+    @objc public let startupInstrumentation: StartupInstrumentation
+
     let config: EmbraceConfig?
     let storage: EmbraceStorage
     let upload: EmbraceUpload?
@@ -116,20 +119,19 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
             throw EmbraceSetupError.initializationNotAllowed("Embrace cannot be initialized on SwiftUI Previews")
         }
 
-        let startTime = Date()
-
         return try Embrace.synchronizationQueue.sync {
             if let client = client {
                 Embrace.logger.warning("Embrace was already initialized!")
                 return client
             }
 
+            EMBStartupTracker.shared().sdkSetupStartTime = Date()
+
             try options.validate()
 
             client = try Embrace(options: options)
             if let client = client {
-                client.recordSetupSpan(startTime: startTime)
-
+                EMBStartupTracker.shared().sdkSetupEndTime = Date()
                 Embrace.logger.startup("Embrace SDK setup finished")
 
                 return client
@@ -184,6 +186,9 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         // initialize metadata handler
         self.metadata = MetadataHandler(storage: storage, sessionController: sessionController)
 
+        // initialize startup instrumentation
+        self.startupInstrumentation = StartupInstrumentation()
+
         // initialize log controller
         var logController: LogController?
         if let logControllable = logControllable {
@@ -230,11 +235,17 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         sessionLifecycle.setup()
         Embrace.logger.otel = self
 
+        // startup tracking
+        startupInstrumentation.otel = self
+        EMBStartupTracker.shared().internalNotificationCenter = Embrace.notificationCenter
+        EMBStartupTracker.shared().trackDidFinishLaunching()
+
         // config update event
         Embrace.notificationCenter.addObserver(
             self,
             selector: #selector(onConfigUpdated),
-            name: .embraceConfigUpdated, object: nil
+            name: .embraceConfigUpdated,
+            object: nil
         )
 
         state = .initialized
@@ -251,6 +262,8 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         guard Thread.isMainThread else {
             throw EmbraceSetupError.invalidThread("Embrace must be started on the main thread")
         }
+
+        EMBStartupTracker.shared().sdkStartStartTime = Date()
 
         // must be called on main thread in order to fetch the app state
         sessionLifecycle.setup()
@@ -269,9 +282,10 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
             let processStartSpan = createProcessStartSpan()
             defer { processStartSpan.end() }
 
-            recordSpan(name: "emb-sdk-start", parent: processStartSpan, type: .performance) { _ in
+            recordSpan(name: "emb-sdk-start-process", parent: processStartSpan, type: .performance) { _ in
                 state = .started
 
+                startupInstrumentation.buildMainSpans()
                 sessionLifecycle.startSession()
                 captureServices.install()
 
@@ -300,6 +314,8 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
                 }
             }
         }
+
+        EMBStartupTracker.shared().sdkStartEndTime = Date()
 
         return self
     }
