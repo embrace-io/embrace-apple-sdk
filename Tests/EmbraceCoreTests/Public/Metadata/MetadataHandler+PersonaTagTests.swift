@@ -62,7 +62,7 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
         try handler.add(persona: "test", lifespan: .session)
 
         let metadata: [MetadataRecord] = storage.fetchAll()
-        XCTAssertEqual(metadata.count(where: { $0.typeRaw == MetadataRecordType.personaTag.rawValue }), storage.options.personaTagsLimit)
+        XCTAssertEqual(metadata.filter({ $0.typeRaw == MetadataRecordType.personaTag.rawValue }).count, storage.options.personaTagsLimit)
     }
 
     // MARK: - Current Personas

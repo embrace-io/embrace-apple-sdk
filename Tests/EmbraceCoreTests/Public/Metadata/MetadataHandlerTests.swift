@@ -151,8 +151,8 @@ final class MetadataHandlerTests: XCTestCase {
 
         // then customProperties and resources should be at their limit
         let metadata: [MetadataRecord] = storage.fetchAll()
-        XCTAssertEqual(metadata.count(where: { $0.typeRaw == MetadataRecordType.customProperty.rawValue }), storage.options.resourcesLimit)
-        XCTAssertEqual(metadata.count(where: { $0.typeRaw == MetadataRecordType.resource.rawValue }), storage.options.resourcesLimit)
+        XCTAssertEqual(metadata.filter({ $0.typeRaw == MetadataRecordType.customProperty.rawValue }).count, storage.options.resourcesLimit)
+        XCTAssertEqual(metadata.filter({ $0.typeRaw == MetadataRecordType.resource.rawValue }).count, storage.options.resourcesLimit)
     }
 
     // MARK: Removing Metadata
