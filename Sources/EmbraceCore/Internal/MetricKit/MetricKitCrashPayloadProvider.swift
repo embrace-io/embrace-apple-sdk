@@ -13,7 +13,7 @@ protocol MetricKitHangPayloadListener: AnyObject {
     func didReceive(payload: Data, startTime: Date, endTime: Date)
 }
 
-protocol MetricKitCrashPayloadProvider: AnyObject {
+protocol MetricKitPayloadProvider: AnyObject {
     func add(listener: MetricKitCrashPayloadListener)
     func add(listener: MetricKitHangPayloadListener)
 }

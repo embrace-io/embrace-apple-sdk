@@ -10,12 +10,12 @@ import EmbraceCommonInternal
 
 extension MetricKitHangCaptureService {
     final class Options: NSObject {
-        let crashProvider: MetricKitCrashPayloadProvider?
+        let crashProvider: MetricKitPayloadProvider?
         let metadataFetcher: EmbraceStorageMetadataFetcher?
         let stateProvider: EmbraceMetricKitStateProvider?
 
         init(
-            crashProvider: MetricKitCrashPayloadProvider?,
+            crashProvider: MetricKitPayloadProvider?,
             metadataFetcher: EmbraceStorageMetadataFetcher?,
             stateProvider: EmbraceMetricKitStateProvider?
         ) {

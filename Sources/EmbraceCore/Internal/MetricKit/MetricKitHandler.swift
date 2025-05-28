@@ -6,7 +6,7 @@ import Foundation
 import MetricKit
 import EmbraceCommonInternal
 
-@objc class MetricKitHandler: NSObject, MetricKitCrashPayloadProvider {
+@objc class MetricKitHandler: NSObject, MetricKitPayloadProvider {
 
     private var _crashListeners = EmbraceMutex<[MetricKitCrashPayloadListener]>([])
     var crashListeners: [MetricKitCrashPayloadListener] {

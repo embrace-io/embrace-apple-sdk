@@ -46,18 +46,23 @@ class MetricKitHangCaptureService: CaptureService, MetricKitHangPayloadListener 
             initialAttributes: [:]
         )
 
-        let attributes = attributesBuilder
+        var attributes = attributesBuilder
             .addLogType(.crash)
-            .addApplicationProperties(sessionId: sessionId)
             .addApplicationState(SessionState.unknown.rawValue)
-            .addSessionIdentifier(sessionId?.toString)
-            .addCrashReportProperties(id: UUID().withoutHyphen, provider: providerIdentifier, payload: payloadString)
+            .addHangReportProperties(
+                id: UUID().withoutHyphen,
+                provider: providerIdentifier,
+                payload: payloadString,
+                startTime: startTime,
+                endTime: endTime
+            )
             .build()
+
 
         otel?.log(
             "",
-            severity: .fatal,
-            type: .crash,
+            severity: .warn,
+            type: .hang,
             timestamp: Date(),
             attributes: attributes,
             stackTraceBehavior: .notIncluded
