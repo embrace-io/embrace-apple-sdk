@@ -1,8 +1,17 @@
+## 6.10.1
+*May 28, 2025*
+* Fixes
+    * Fixed a crash that occurred when intercepting a `URLSessionTask` that was resumed more than once.
+    * Made several fixes to all public APIs to ensure they are safe to use from any thread (including the main thread).
+    * Fixed compatibility issues caused by Firebase Performance when it is initialized before Embrace and intercepts network requests.
+* Changes:
+    * Added a new API in `Embrace.client`: `getCurrentPersonas(completion:)` (This deprecates the `currentPersonas` getter and its Objective-C compatible version).
+
 ## 6.10.0
 *May 19, 2025*
 *  Fixes
     * Fixed a crash that could occur when capturing data from requests (#217).
-    * Fixed an issue that prevented the Network Payload Capture feature from properly capturing request/response bodies.
+    d * Fixean issue that prevented the Network Payload Capture feature from properly capturing request/response bodies.
     * Reduced overhead and memory usage when capturing response bodies in most common use cases.
     * Fixed crash that happened in UI Automation environments.
 * Changes
