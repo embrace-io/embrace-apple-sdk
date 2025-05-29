@@ -66,6 +66,15 @@ extension Array {
     }
 }
 
+extension EmbraceBacktraceFrame {
+    func asSpeedscopeFrame() -> Speedscope.Frame? {
+        if let symbolName = symbol?.name {
+            return Speedscope.Frame(name: symbolName, file: image?.name)
+        }
+        return nil
+    }
+}
+
 extension Speedscope {
     
     public static func with(_ profile: EmbraceProfile, filter: (_ frame: EmbraceBacktraceFrame) -> Bool ) -> Speedscope? {
@@ -75,10 +84,8 @@ extension Speedscope {
         profile.backtraces.forEach { backtrace in
             backtrace.threads.forEach { thread in
                 thread.frames.forEach { frame in
-                    if filter(frame) {
-                        frameset.insert(
-                            Frame(name: frame.symbolName, file: frame.imageName)
-                        )
+                    if let speedFrame = frame.asSpeedscopeFrame(), filter(frame) {
+                        frameset.insert(speedFrame)
                     }
                 }
             }
@@ -88,17 +95,19 @@ extension Speedscope {
         
         var samples: [[Int]] = []
         var weight: [UInt64] = []
+        var lastTime = profile.startTime
         
         profile.backtraces.forEach { backtrace in
             if let thread = backtrace.threads.first {
                 var stack: [Int] = []
                 thread.frames.forEach { frame in
-                    if let index = frames.firstIndex(of: Frame(name: frame.symbolName, file: frame.imageName)) {
+                    if let speedFrame = frame.asSpeedscopeFrame(), let index = frames.firstIndex(of: speedFrame) {
                         stack.append(index)
                     }
                 }
                 samples.append(stack)
-                weight.append(profile.interval / NSEC_PER_MSEC)
+                weight.append(backtrace.timestamp - lastTime)
+                lastTime = backtrace.timestamp
             }
         }
         
@@ -108,9 +117,9 @@ extension Speedscope {
                 Profile(
                     type: .sampled,
                     name: profile.name,
-                    unit: .milliseconds,
-                    startValue: profile.startTime / NSEC_PER_MSEC,
-                    endValue: profile.endTime / NSEC_PER_MSEC,
+                    unit: .nanoseconds,
+                    startValue: profile.startTime,
+                    endValue: lastTime,
                     samples: samples,
                     weights: weight
                 )
