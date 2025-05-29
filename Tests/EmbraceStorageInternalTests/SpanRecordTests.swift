@@ -112,7 +112,8 @@ class SpanRecordTests: XCTestCase {
             type: .performance,
             data: Data(),
             startTime: Date(timeIntervalSince1970: 0),
-            endTime: Date(timeIntervalSince1970: 10)
+            endTime: Date(timeIntervalSince1970: 10),
+            processId: TestConstants.processId
         )
         storage.upsertSpan(
             id: "id2",
@@ -121,7 +122,8 @@ class SpanRecordTests: XCTestCase {
             type: .performance,
             data: Data(),
             startTime: Date(timeIntervalSince1970: 0),
-            endTime: Date(timeIntervalSince1970: 20)
+            endTime: Date(timeIntervalSince1970: 20),
+            processId: TestConstants.processId
         )
         storage.upsertSpan(
             id: "id3",

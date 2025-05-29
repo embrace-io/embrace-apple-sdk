@@ -466,4 +466,19 @@ typedef NS_ENUM(NSInteger, EMBReleaseMode) {
     return ( (info.kp_proc.p_flag & P_TRACED) != 0 );
 }
 
++ (NSNumber *)bootTime
+{
+    struct timeval tv;
+    size_t len = sizeof(tv);
+
+    // Get the boottime from the kernel
+    int ret = sysctl((int[]){CTL_KERN, KERN_BOOTTIME}, 2, &tv, &len, NULL, 0);
+    if (ret == -1) return nil;
+
+    // Combine seconds and microseconds to preserve maximum precision
+
+    uint64_t bootTimeUsec = (uint64_t)tv.tv_sec * USEC_PER_SEC + (uint64_t)tv.tv_usec;
+    return @(bootTimeUsec);
+}
+
 @end

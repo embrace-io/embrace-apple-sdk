@@ -14,7 +14,7 @@ import Foundation
 /// - Note: This type is `@unchecked Sendable` when the generic `Value` is `Sendable`,
 ///   meaning the caller is responsible for ensuring safe usage across concurrency domains.
 public final class EmbraceMutex<Value> {
-    
+
     /// Creates a new mutex-protected wrapper around the given value.
     ///
     /// - Parameter value: The initial value to protect with the mutex.
@@ -22,7 +22,7 @@ public final class EmbraceMutex<Value> {
         self.storage = value
         self.lock = UnfairLock()
     }
-    
+
     /// Acquires the lock, executes the given closure with inout access to the protected value, and then releases the lock.
     ///
     /// - Parameter mutate: A closure that receives inout access to the stored value.
@@ -35,7 +35,7 @@ public final class EmbraceMutex<Value> {
         defer { lock.unlock() }
         return try mutate(&storage)
     }
-    
+
     private let lock: UnfairLock
     private var storage: Value
 }
@@ -43,7 +43,7 @@ public final class EmbraceMutex<Value> {
 extension EmbraceMutex: @unchecked Sendable where Value: Sendable {}
 
 extension EmbraceMutex {
-    
+
     /// Synchronously gets or sets the protected value using a lock.
     ///
     /// - Warning: This computed property acquires a lock on every access.
@@ -52,7 +52,7 @@ extension EmbraceMutex {
         get { withLock { $0 } }
         set { withLock { $0 = newValue } }
     }
-    
+
     /// Synchronously gets the protected value without using the lock.
     public var unsafeValue: Value {
         storage

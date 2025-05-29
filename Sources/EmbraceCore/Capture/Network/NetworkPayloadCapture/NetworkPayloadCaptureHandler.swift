@@ -30,16 +30,16 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
         var active: Bool = false
         var rules: [URLSessionTaskCaptureRule] = []
         var rulesTriggeredMap: [String: Bool] = [:]
-        var currentSessionId: SessionIdentifier? = nil
+        var currentSessionId: SessionIdentifier?
     }
     internal var state: EmbraceMutex<MutableState>
-    
+
     private var otel: EmbraceOpenTelemetry?
 
     init(otel: EmbraceOpenTelemetry?) {
         self.otel = otel
         self.state = EmbraceMutex(MutableState())
-        
+
         Embrace.notificationCenter.addObserver(
             self,
             selector: #selector(onConfigUpdated),
@@ -79,7 +79,7 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
         guard let rules = rules else {
             return
         }
-        
+
         let newRules = rules.map { URLSessionTaskCaptureRule(rule: $0) }
         state.withLock {
             $0.rules = newRules
@@ -115,7 +115,7 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
         endTime: Date?
     ) {
         var protectedDataCopy = state.safeValue
-        
+
         guard protectedDataCopy.active else {
             return
         }
@@ -172,7 +172,7 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
             // flag rule as triggered
             protectedDataCopy.rulesTriggeredMap[rule.id] = true
         }
-        
+
         // udpate all mutations to protected data
         state.withLock {
             $0.rulesTriggeredMap = protectedDataCopy.rulesTriggeredMap
