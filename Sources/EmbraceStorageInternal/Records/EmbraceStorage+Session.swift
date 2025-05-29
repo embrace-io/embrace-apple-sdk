@@ -156,10 +156,14 @@ extension EmbraceStorage {
 
     /// Synchronously fetches the oldest session in the storage, if any.
     /// - Returns: Immutable copy of the oldest stored `SessionRecord`, if any
-    public func fetchOldestSession() -> EmbraceSession? {
+    public func fetchOldestSession(ignoringCurrentSessionId sessionId: SessionIdentifier? = nil) -> EmbraceSession? {
         let request = SessionRecord.createFetchRequest()
         request.fetchLimit = 1
         request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: true)]
+
+        if let sessionId = sessionId {
+            request.predicate = NSPredicate(format: "idRaw != %@", sessionId.toString)
+        }
 
         // fetch
         var result: EmbraceSession?

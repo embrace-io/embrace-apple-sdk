@@ -20,13 +20,12 @@ class DefaultInternalLoggerTests: XCTestCase {
 
     override func setUpWithError() throws {
         try? FileManager.default.removeItem(at: fileProvider.tmpDirectory)
-
-        fileUrl = fileProvider.fileURL(for: "DefaultInternalLoggerTests", name: "file")!
         try? FileManager.default.createDirectory(at: fileProvider.directoryURL(for: "DefaultInternalLoggerTests")!, withIntermediateDirectories: true)
     }
 
     func skip_test_categories() throws {
         // given a logger
+        fileUrl = fileProvider.fileURL(for: "DefaultInternalLoggerTests", name: testName)!
         let category = "custom-export-\(testName)-\(UUID().withoutHyphen)"
         let logger = DefaultInternalLogger(exportFilePath: fileUrl, exportCategory: category)
         logger.level = .trace
@@ -68,6 +67,7 @@ class DefaultInternalLoggerTests: XCTestCase {
 
     func test_export_withCriticalLogs() throws {
         // given a logger
+        fileUrl = fileProvider.fileURL(for: "DefaultInternalLoggerTests", name: testName)!
         let logger = DefaultInternalLogger(
             exportFilePath: fileUrl,
             exportCategory: "custom-export-\(testName)-\(UUID().withoutHyphen)"
@@ -99,6 +99,7 @@ class DefaultInternalLoggerTests: XCTestCase {
 
     func test_export_withoutCriticalLog() {
         // given a logger
+        fileUrl = fileProvider.fileURL(for: "DefaultInternalLoggerTests", name: testName)!
         let logger = DefaultInternalLogger(
             exportFilePath: fileUrl,
             exportCategory: "custom-export-\(testName)-\(UUID().withoutHyphen)"
@@ -112,7 +113,7 @@ class DefaultInternalLoggerTests: XCTestCase {
         logger.startup("startup4")
         logger.startup("startup5")
 
-        wait(delay: .defaultTimeout)
+        wait(delay: 10)
 
         // then no custom export file is created
         XCTAssertFalse(FileManager.default.fileExists(atPath: fileUrl.path))
@@ -120,6 +121,7 @@ class DefaultInternalLoggerTests: XCTestCase {
 
     func test_multiple_exports() {
         // given a logger
+        fileUrl = fileProvider.fileURL(for: "DefaultInternalLoggerTests", name: testName)!
         let logger = DefaultInternalLogger(
             exportFilePath: fileUrl,
             exportCategory: "custom-export-\(testName)-\(UUID().withoutHyphen)"

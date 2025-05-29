@@ -68,7 +68,11 @@ final class MetadataHandlerTests: XCTestCase {
 
     func test_value_validation() throws {
         // given a metadata handler
-        let handler = MetadataHandler(storage: storage, sessionController: sessionController)
+        let handler = MetadataHandler(
+            storage: storage,
+            sessionController: sessionController,
+            syncronizationQueue: MockQueue()
+        )
 
         var invalidValue = ""
         for _ in 1...MetadataHandler.maxValueLength + 10 {
@@ -124,7 +128,11 @@ final class MetadataHandlerTests: XCTestCase {
 
     func test_limit_validation() throws {
         // given a metadata handler
-        let handler = MetadataHandler(storage: storage, sessionController: sessionController)
+        let handler = MetadataHandler(
+            storage: storage,
+            sessionController: sessionController,
+            syncronizationQueue: MockQueue()
+        )
 
         // given limits reached on metadata
         for i in 1...storage.options.resourcesLimit {
@@ -136,38 +144,25 @@ final class MetadataHandlerTests: XCTestCase {
         }
 
         // when adding a resource
-        let expectation1 = XCTestExpectation()
-        XCTAssertThrowsError(try handler.addResource(key: "test", value: "test", lifespan: .session)) { error in
-
-            // then it should error out as a MetadataError.limitReached
-            switch error as! MetadataError {
-            case .limitReached:
-                expectation1.fulfill()
-            default:
-                XCTAssert(false)
-            }
-        }
+        try handler.addResource(key: "test", value: "test", lifespan: .session)
 
         // when adding a custom property
-        let expectation2 = XCTestExpectation()
-        XCTAssertThrowsError(try handler.addProperty(key: "test", value: "test", lifespan: .session)) { error in
+        try handler.addProperty(key: "test", value: "test", lifespan: .session)
 
-            // then it should error out as a MetadataError.limitReached
-            switch error as! MetadataError {
-            case .limitReached:
-                expectation2.fulfill()
-            default:
-                XCTAssert(false)
-            }
-        }
-
-        wait(for: [expectation1, expectation2], timeout: .defaultTimeout)
+        // then customProperties and resources should be at their limit
+        let metadata: [MetadataRecord] = storage.fetchAll()
+        XCTAssertEqual(metadata.filter({ $0.typeRaw == MetadataRecordType.customProperty.rawValue }).count, storage.options.resourcesLimit)
+        XCTAssertEqual(metadata.filter({ $0.typeRaw == MetadataRecordType.resource.rawValue }).count, storage.options.resourcesLimit)
     }
 
     // MARK: Removing Metadata
 
     func test_remove_removesMetadata_withSessionLifespan() throws {
-        let handler = MetadataHandler(storage: storage, sessionController: sessionController)
+        let handler = MetadataHandler(
+            storage: storage,
+            sessionController: sessionController,
+            syncronizationQueue: MockQueue()
+        )
 
         // when added
         try handler.addProperty(key: "foo", value: "bar", lifespan: .session)
@@ -189,7 +184,11 @@ final class MetadataHandlerTests: XCTestCase {
     }
 
     func test_remove_doesNot_removeMetadataWithSessionLifespan_whenSessionChanges() throws {
-        let handler = MetadataHandler(storage: storage, sessionController: sessionController)
+        let handler = MetadataHandler(
+            storage: storage,
+            sessionController: sessionController,
+            syncronizationQueue: MockQueue()
+        )
 
         let firstSessionId = sessionController.currentSession!.id!
         // when added to first session
@@ -230,7 +229,11 @@ final class MetadataHandlerTests: XCTestCase {
     }
 
     func test_remove_removesMetadata_withProcessLifespan() throws {
-        let handler = MetadataHandler(storage: storage, sessionController: sessionController)
+        let handler = MetadataHandler(
+            storage: storage,
+            sessionController: sessionController,
+            syncronizationQueue: MockQueue()
+        )
 
         // when added
         try handler.addProperty(key: "foo", value: "bar", lifespan: .process)
@@ -252,7 +255,11 @@ final class MetadataHandlerTests: XCTestCase {
     }
 
     func test_remove_doesNot_removeMetadataWithProcessLifespan_whenProcessChanges() throws {
-        let handler = MetadataHandler(storage: storage, sessionController: sessionController)
+        let handler = MetadataHandler(
+            storage: storage,
+            sessionController: sessionController,
+            syncronizationQueue: MockQueue()
+        )
 
         let otherProcessId = ProcessIdentifier.random
         let otherSessionId = SessionIdentifier.random
@@ -293,7 +300,11 @@ final class MetadataHandlerTests: XCTestCase {
     }
 
     func test_remove_removesMetadata_withPermanentLifespan() throws {
-        let handler = MetadataHandler(storage: storage, sessionController: sessionController)
+        let handler = MetadataHandler(
+            storage: storage,
+            sessionController: sessionController,
+            syncronizationQueue: MockQueue()
+        )
 
         // when added
         try handler.addProperty(key: "foo", value: "bar", lifespan: .permanent)

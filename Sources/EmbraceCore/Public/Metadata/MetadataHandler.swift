@@ -30,11 +30,17 @@ public class MetadataHandler: NSObject {
     weak var storage: EmbraceStorage?
     weak var sessionController: SessionControllable?
 
-    let coreData: CoreDataWrapper?
+    private let coreData: CoreDataWrapper?
+    internal let synchronizationQueue: DispatchableQueue
 
-    init(storage: EmbraceStorage?, sessionController: SessionControllable?) {
+    init(
+        storage: EmbraceStorage?,
+        sessionController: SessionControllable?,
+        syncronizationQueue: DispatchableQueue = .with(label: "com.embrace.metadataHandler")
+    ) {
         self.storage = storage
         self.sessionController = sessionController
+        self.synchronizationQueue = syncronizationQueue
 
         // tmp core data stack
         // only created if the db file is found
@@ -72,7 +78,6 @@ public class MetadataHandler: NSObject {
     ///   - lifespan: The lifespan of the resource to add.
     /// - Throws: `MetadataError.invalidKey` if the key is longer than 128 characters.
     /// - Throws: `MetadataError.invalidSession` if a resource with a `.session` lifespan is added when there's no active session.
-    /// - Throws: `MetadataError.limitReached` if the limit of resources was reached.
     @objc public func addResource(key: String, value: String, lifespan: MetadataLifespan = .session) throws {
         try addMetadata(key: key, value: value, type: .resource, lifespan: lifespan)
     }
@@ -85,7 +90,6 @@ public class MetadataHandler: NSObject {
     ///   - lifespan: The lifespan of the property to add.
     /// - Throws: `MetadataError.invalidKey` if the key is longer than 128 characters.
     /// - Throws: `MetadataError.invalidSession` if a property with a `.session` lifespan is added when there's no active session.
-    /// - Throws: `MetadataError.limitReached` if the limit of properties was reached.
     @objc public func addProperty(key: String, value: String, lifespan: MetadataLifespan = .session) throws {
         try addMetadata(key: key, value: value, type: .customProperty, lifespan: lifespan)
     }
@@ -102,17 +106,19 @@ public class MetadataHandler: NSObject {
 
         let lifespanContext = try currentContext(for: lifespan.recordLifespan)
 
-        let record = storage.addMetadata(
-            key: key,
-            value: validateValue(value),
-            type: type,
-            lifespan: lifespan.recordLifespan,
-            lifespanId: lifespanContext
-        )
+        synchronizationQueue.async {
+            let record = storage.addMetadata(
+                key: key,
+                value: self.validateValue(value),
+                type: type,
+                lifespan: lifespan.recordLifespan,
+                lifespanId: lifespanContext
+            )
 
-        if record == nil {
-            let limit = type == .customProperty ? storage.options.customPropertiesLimit : storage.options.resourcesLimit
-            throw MetadataError.limitReached("The limit for this type of metadata was reached! (\(limit))")
+            if record == nil {
+                let limit = type == .customProperty ? storage.options.customPropertiesLimit : storage.options.resourcesLimit
+                Embrace.logger.warning("The limit for this type \(type.rawValue) of metadata was reached! (\(limit))")
+            }
         }
     }
 
@@ -140,13 +146,16 @@ public class MetadataHandler: NSObject {
         type: MetadataRecordType,
         lifespan: MetadataLifespan = .session
     ) throws {
-        storage?.updateMetadata(
-            key: key,
-            value: validateValue(value),
-            type: type,
-            lifespan: lifespan.recordLifespan,
-            lifespanId: try currentContext(for: lifespan.recordLifespan)
-        )
+        let lifespanId = try currentContext(for: lifespan.recordLifespan)
+        synchronizationQueue.async {
+            self.storage?.updateMetadata(
+                key: key,
+                value: self.validateValue(value),
+                type: type,
+                lifespan: lifespan.recordLifespan,
+                lifespanId: lifespanId
+            )
+        }
     }
 
     /// Removes the resource for the given key and lifespan.
@@ -173,33 +182,38 @@ public class MetadataHandler: NSObject {
     ///
     ///  - Throws: `MetadataError.invalidSession` if a metadata with a `.session` lifespan is removed when there's no active session.
     func remove(key: String, type: MetadataRecordType, lifespan: MetadataLifespan = .session) throws {
-        storage?.removeMetadata(
-            key: key,
-            type: type,
-            lifespan: lifespan.recordLifespan,
-            lifespanId: try currentContext(for: lifespan.recordLifespan)
-        )
+        let lifespanId = try currentContext(for: lifespan.recordLifespan)
+        synchronizationQueue.async {
+            self.storage?.removeMetadata(
+                key: key,
+                type: type,
+                lifespan: lifespan.recordLifespan,
+                lifespanId: lifespanId
+            )
+        }
     }
 
     /// Removes all resources for the given lifespans. If no lifespans are passed, all resources are removed.
     /// - Parameters:
     ///   - lifespans: Array of lifespans.
-    public func removeAllResources(lifespans: [MetadataLifespan] = [.permanent, .process, .session]) throws {
-        try removeAll(type: .resource, lifespans: lifespans)
+    public func removeAllResources(lifespans: [MetadataLifespan] = [.permanent, .process, .session]) {
+        removeAll(type: .resource, lifespans: lifespans)
     }
 
     /// Removes all properties for the given lifespans. If no lifespans are passed, all properties are removed.
     /// - Parameters:
     ///   - lifespans: Array of lifespans.
-    public func removeAllProperties(lifespans: [MetadataLifespan]) throws {
-        try removeAll(type: .customProperty, lifespans: lifespans)
+    public func removeAllProperties(lifespans: [MetadataLifespan]) {
+        removeAll(type: .customProperty, lifespans: lifespans)
     }
 
-    func removeAll(type: MetadataRecordType, lifespans: [MetadataLifespan]) throws {
-        storage?.removeAllMetadata(
-            type: type,
-            lifespans: lifespans.map { $0.recordLifespan }
-        )
+    func removeAll(type: MetadataRecordType, lifespans: [MetadataLifespan]) {
+        synchronizationQueue.async {
+            self.storage?.removeAllMetadata(
+                type: type,
+                lifespans: lifespans.map { $0.recordLifespan }
+            )
+        }
     }
 }
 
