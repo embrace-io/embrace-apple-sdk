@@ -53,8 +53,8 @@ class UploadedSessionPayloadTestViewModel: UIComponentViewModelBase {
     }
 
     private func updatedExportedSessions() {
-        let postedSessionIds = dataCollector?.networkSpy.postedJsonsSessionIds ?? []
-        let exportedSessionIds = dataCollector?.networkSpy.exportedSpansBySession.keys.map { String($0) } ?? []
+        let postedSessionIds = dataCollector?.networkSpy?.postedJsonsSessionIds ?? []
+        let exportedSessionIds = dataCollector?.networkSpy?.exportedSpansBySession.keys.map { String($0) } ?? []
         exportedAndPostedSessions = postedSessionIds.filter { exportedSessionIds.contains($0) }
     }
 

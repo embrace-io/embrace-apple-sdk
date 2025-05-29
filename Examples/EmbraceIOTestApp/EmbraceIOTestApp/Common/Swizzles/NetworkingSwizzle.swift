@@ -5,16 +5,17 @@
 //
 
 import Foundation
+import OpenTelemetryApi
 import OpenTelemetrySdk
 import EmbraceCommonInternal
 import EmbraceCore
+import EmbraceConfigInternal
+import EmbraceOTelInternal
 
 typealias JsonDictionary = Dictionary<String, Any>
 
 class NetworkingSwizzle: NSObject {
-    private typealias URLSessionCompletion = (Data?, URLResponse?, Error?) -> Void
-    private typealias ImplementationType = @convention(c) (URLSession, Selector, URLRequest, URLSessionCompletion?) -> URLSessionDataTask
-    private typealias BlockImplementationType = @convention(block) (URLSession, URLRequest, URLSessionCompletion?) -> URLSessionDataTask
+    typealias URLSessionCompletion = (Data?, URLResponse?, Error?) -> Void
 
     weak var spanExporter: TestSpanExporter?
     weak var logExporter: TestLogRecordExporter?
@@ -33,17 +34,33 @@ class NetworkingSwizzle: NSObject {
     /// Contains all the logs exported, grouped by Session Id.
     private(set) var exportedLogsBySessions: [String: [ReadableLogRecord]] = [:]
 
+    /// For whatever reason, some tasks get lost in the ether so their completion handlers are never called.
+    /// A quick fix is to just keep a reference to them here... Not ideal but this is a test app not intended to run for too long.
+    /// Will consider making a cleaning routine if necessary. For now, this will do.
+    private var createdTasks: [MockDataTask] = []
+
     init(spanExporter: TestSpanExporter, logExporter: TestLogRecordExporter) {
         super.init()
         self.spanExporter = spanExporter
         self.logExporter = logExporter
-        do { try setup() } catch {}
+        setup()
     }
 
-    private func setup() throws {
+    var simulateEmbraceAPI: Bool = true
+
+    private func setup() {
         guard !NetworkingSwizzle.initialized else { return }
 
         NetworkingSwizzle.initialized = true
+
+        setupDataTaskWithCompletionHandler()
+
+        setupNotifications()
+    }
+
+    private func setupDataTaskWithCompletionHandler()  {
+        typealias ImplementationType = @convention(c) (URLSession, Selector, URLRequest, URLSessionCompletion?) -> URLSessionDataTask
+        typealias BlockImplementationType = @convention(block) (URLSession, URLRequest, URLSessionCompletion?) -> URLSessionDataTask
 
         let selector: Selector = #selector(
             URLSession.dataTask(with:completionHandler:) as (URLSession) -> (URLRequest, @escaping URLSessionCompletion) -> URLSessionDataTask
@@ -61,12 +78,44 @@ class NetworkingSwizzle: NSObject {
                     }
                 }
             }
+
+            if self.simulateEmbraceAPI {
+                if self.isConfigRequest(urlRequest) {
+                    let task = MockDataTask(originalRequest: urlRequest, completionData: MockData.mockConfig, completion: completion)
+                    self.createdTasks.append(task)
+                    return task
+                }
+
+                if self.isEmbraceApiRequest(urlRequest) {
+                    let task = MockDataTask(originalRequest: urlRequest, completion: completion)
+                    self.createdTasks.append(task)
+                    return task
+                }
+            }
+
             let task = originalMethod(urlSession, selector, urlRequest, completion)
             return task
+
         }
         let newImplementation = imp_implementationWithBlock(newImplementationBlock)
         method_setImplementation(method, newImplementation)
+    }
 
+    private func isConfigRequest(_ urlRequest: URLRequest) -> Bool {
+        guard urlRequest.httpMethod == "GET" else { return false }
+        guard urlRequest.url?.pathComponents.contains("config") ?? false else { return false}
+
+        return true
+    }
+
+    private func isEmbraceApiRequest(_ urlRequest: URLRequest) -> Bool {
+        guard urlRequest.url?.pathComponents.contains("api") ?? false else { return false}
+        guard urlRequest.url?.pathComponents.contains("v2") ?? false else { return false}
+
+        return true
+    }
+
+    private func setupNotifications() {
         NotificationCenter.default.addObserver(forName: .init("TestSpanExporter.SpansUpdated"), object: nil, queue: nil) { [weak self] _ in
             guard
                 let self = self,
