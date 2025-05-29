@@ -100,7 +100,7 @@ final internal class EmbraceTracePhase {
     internal let otel: EmbraceOpenTelemetry?
     /// Logger for internal tracing diagnostics and errors.
     internal let logger: InternalLogger?
-    
+
     /// LIFO storage for active non-cycled spans.
     private var spans: Stack = Stack()
     /// FIFO storage for active cycle-based spans.
@@ -131,12 +131,9 @@ fileprivate extension EmbraceTracePhase {
             logger?.debug("OTel client is unavailable, we won't be logging from EmbraceTracePhase.")
             return nil
         }
-        
-        // TODO: Figure out how we name things
-        let sanitizedName = "\(name.lowercased())"
-        
+
         let builder = client.buildSpan(
-            name: sanitizedName,
+            name: name,
             type: .performance,
             attributes: attributes ?? [:],
             autoTerminationCode: nil
@@ -167,7 +164,7 @@ fileprivate extension EmbraceTracePhase {
         #if DEBUG
         print("[SPAN:START] id: \(span.context.spanId.hexString) name: \(span.name), time: \(CFAbsoluteTimeGetCurrent())")
         #endif
-        
+
         return span
     }
     
@@ -197,7 +194,7 @@ fileprivate extension EmbraceTracePhase {
         
         if let sp = storage.pop() {
             sp.end()
-            
+
             #if DEBUG
             print("[SPAN:END] id: \(sp.context.spanId.hexString) name: \(sp.name), time: \(CFAbsoluteTimeGetCurrent())")
             #endif

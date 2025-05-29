@@ -17,12 +17,9 @@ public struct EmbraceTraceState<Value>: DynamicProperty {
     private var phase = EmbraceTracePhase.shared
     
     /// The current value of the property wrapper.
-    /// Setting this value emits a tracing span and updates the state.
     public var wrappedValue: Value {
         get { value }
         nonmutating set {
-            // TODO: name this correctly
-            phase.cycledSpan("emb-view-state-set-\(name)")
             value = newValue
         }
     }
@@ -33,7 +30,7 @@ public struct EmbraceTraceState<Value>: DynamicProperty {
     ///   - name: A unique name used to identify tracing spans.
     public init(wrappedValue initialValue: Value, _ name: String) {
         self.value = initialValue
-        self.name = name
+        self.name = name.filter { $0.isLetter || $0.isNumber }
     }
     
     /// A binding to the underlying value, allowing two-way updates in SwiftUI views
@@ -44,8 +41,7 @@ public struct EmbraceTraceState<Value>: DynamicProperty {
     
     /// Called during view updates to emit a tracing span for state cycles.
     public func update() {
-        // TODO: name this correctly
-        phase.cycledSpan("emb-view-state-upate-\(name)")
+        phase.cycledSpan("emb-sui-[\(name)]-state-change")
     }
     
 }
