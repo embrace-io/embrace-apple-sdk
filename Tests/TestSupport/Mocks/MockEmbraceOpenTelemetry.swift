@@ -43,8 +43,17 @@ public class MockEmbraceOpenTelemetry: NSObject, EmbraceOpenTelemetry {
         endTime: Date,
         attributes: [String: String],
         events: [RecordingSpanEvent],
-        errorCode: SpanErrorCode? ) {
+        errorCode: SpanErrorCode? ) 
+    {
+        let builder = EmbraceOTel().buildSpan(name: name, type: type, attributes: attributes)
+        builder.setStartTime(time: startTime)
 
+        if let parent = parent {
+            builder.setParent(parent)
+        }
+
+        let span = builder.startSpan()
+        span.end(time: endTime)
     }
 
     public func add(events: [SpanEvent]) {
