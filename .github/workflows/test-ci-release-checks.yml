@@ -1,6 +1,10 @@
 name: Test Upload SDK Version Action
 
 on:
+  on:
+  push:
+    branches:
+      - test-ci-release-checks
   workflow_dispatch:
     inputs:
       platform:
