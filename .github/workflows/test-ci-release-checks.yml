@@ -24,8 +24,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Test action from commit
-        uses: embrace-io/public-actions/upload-sdk-version@97b6e246438ee16034173a2aaaf379a0f8c15662
+        uses: embrace-io/public-actions/upload-sdk-version@95f23d7c17df9ad4e02aa81bd154462cdc869807
         with:
           platform: ${{ inputs.platform }}
-          version: ${{ inputs.version }}
-          dry-run: ${{ inputs.dryRun }}
+          version: ${{ inputs.sdkVersion }}
+          dryRun: ${{ inputs.dryRun }}
+          sdkVersionUrl: ${{ vars.SDK_VERSION_URL }}
+        env:
+          SDK_VERSION_TOKEN: ${{ secrets.SDK_VERSION_TOKEN }}
