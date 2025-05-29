@@ -42,7 +42,7 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
     var basePath: String? {
         return ksCrash?.value(forKeyPath: "configuration.installPath") as? String
     }
-    
+
     /// Sets the current session identifier that will be included in a crash report.
     public var currentSessionId: String? {
         didSet {
@@ -113,17 +113,17 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
         config.enableSigTermMonitoring = false
         config.installPath = context.filePathProvider.directoryURL(for: "embrace_crash_reporter")?.path
         config.reportStoreConfiguration.appName = context.appId ?? "default"
-        
+
         ksCrash = KSCrash.shared
 
         updateKSCrashInfo()
-        
+
         do {
             try ksCrash?.install(with: config)
         } catch {
             logger.error("EmbraceCrashReporter install failed: \(error)")
         }
-        
+
 #else
         logger.error("EmbraceCrashReporter is not supported in WatchOS!!!")
 #endif
@@ -141,7 +141,7 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
             guard let self = self else {
                 return
             }
-            
+
             guard let ks = self.ksCrash, let store = ks.reportStore else {
                 completion([])
                 return
@@ -249,7 +249,7 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
     public func deleteCrashReport(id: Int) {
         ksCrash?.reportStore?.deleteReport(with: Int64(id))
     }
-    
+
     /// Notifies if a crash report should be dropped by checking if the provided `CrashSignal` is in the `signalsBlockList`.
     func shouldDropCrashReport(withSignal signal: CrashSignal) -> Bool {
         signalsBlockList.contains(where: { $0 == signal })

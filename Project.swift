@@ -218,7 +218,7 @@ let project = Project(
             deploymentTargets: .iOS("13.0"),
             sources: ["Sources/EmbraceCoreDataInternal/**"],
             dependencies: [
-                .target(name: "EmbraceCommonInternal"),
+                .target(name: "EmbraceCommonInternal")
             ],
             settings: .settings(base: [
                 "SKIP_INSTALL": "NO",

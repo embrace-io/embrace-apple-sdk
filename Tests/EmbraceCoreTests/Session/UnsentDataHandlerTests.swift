@@ -17,6 +17,7 @@ class UnsentDataHandlerTests: XCTestCase {
     var uploadOptions: EmbraceUpload.Options!
     var queue: DispatchQueue!
     let sdkStateProvider = MockEmbraceSDKStateProvider()
+    var criticalLogsFilePath: URL!
 
     static let testRedundancyOptions = EmbraceUpload.RedundancyOptions(automaticRetryCount: 0)
     static let testMetadataOptions = EmbraceUpload.MetadataOptions(
@@ -28,6 +29,9 @@ class UnsentDataHandlerTests: XCTestCase {
     override func setUpWithError() throws {
         // delete tmpdir
         try? FileManager.default.removeItem(at: filePathProvider.tmpDirectory)
+
+        criticalLogsFilePath = filePathProvider.fileURL(for: "UnsentDataHandlerTests", name: "file")
+        try? FileManager.default.createDirectory(at: filePathProvider.directoryURL(for: "UnsentDataHandlerTests")!, withIntermediateDirectories: true)
 
         context = CrashReporterContext(
             appId: TestConstants.appId,
@@ -712,6 +716,39 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // then a log batch was sent
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 1)
+    }
+
+    func test_criticalLogs() throws {
+        // mock successful requests
+        EmbraceHTTPMock.mock(url: testLogsUrl())
+
+        // given upload module
+        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
+
+        // given critical logs file present
+        try "TEST".write(to: criticalLogsFilePath, atomically: true, encoding: .utf8)
+
+        // when sending critical logs
+        UnsentDataHandler.sendCriticalLogs(fileUrl: criticalLogsFilePath, upload: upload)
+        wait(delay: .longTimeout)
+
+        // then a log is sent
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 1)
+    }
+
+    func test_criticalLogs_noFile() throws {
+        // mock successful requests
+        EmbraceHTTPMock.mock(url: testLogsUrl())
+
+        // given upload module
+        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
+
+        // when sending critical logs without a file present
+        UnsentDataHandler.sendCriticalLogs(fileUrl: criticalLogsFilePath, upload: upload)
+        wait(delay: .longTimeout)
+
+        // then no log is sent
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 0)
     }
 }
 

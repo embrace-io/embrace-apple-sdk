@@ -191,7 +191,7 @@ struct SessionTaskResumeSwizzler: URLSessionSwizzler {
                     // by the time resume was called it probably means
                     // it was an async/await task
                     // we set a proxy delegate to get a callback when the task finishes
-                    if handled, let handler = handler {
+                    if handled, let handler = handler, task.state == .suspended {
                         let originalDelegate = task.delegate
                         task.delegate = EMBURLSessionDelegateProxy(delegate: originalDelegate, handler: handler)
                     }

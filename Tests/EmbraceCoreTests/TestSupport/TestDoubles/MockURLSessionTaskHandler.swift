@@ -25,10 +25,17 @@ class MockURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
         return shouldHandleTasks
     }
 
-    var didInvokeFinish = false
-    var finishReceivedParameters: (URLSessionTask, Data?, Error?)?
+    var didInvokeFinishWithData = false
+    var finishWithDataReceivedParameters: (URLSessionTask, Data?, Error?)?
     func finish(task: URLSessionTask, data: Data?, error: (Error)?) {
-        didInvokeFinish = true
-        finishReceivedParameters = (task, data, error)
+        didInvokeFinishWithData = true
+        finishWithDataReceivedParameters = (task, data, error)
+    }
+
+    var finishWithBodySizeReceivedParameters: (URLSessionTask, Int, Error?)?
+    var didInvokeFinishWithBodySize = false
+    func finish(task: URLSessionTask, bodySize: Int, error: (any Error)?) {
+        didInvokeFinishWithBodySize = true
+        finishWithBodySizeReceivedParameters = (task, bodySize, error)
     }
 }

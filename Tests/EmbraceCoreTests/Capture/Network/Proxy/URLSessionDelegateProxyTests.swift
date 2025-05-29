@@ -319,7 +319,7 @@ private extension URLSessionDelegateProxyTests {
     }
 
     func thenProxyShouldHaveFinishedTaskInHandler() {
-        XCTAssertTrue(handler.didInvokeFinish)
+        XCTAssertTrue(handler.didInvokeFinishWithData)
     }
 
     func aTask() -> URLSessionDataTask {

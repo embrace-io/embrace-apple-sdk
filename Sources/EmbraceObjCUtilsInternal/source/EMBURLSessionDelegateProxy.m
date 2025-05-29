@@ -3,6 +3,7 @@
 //
     
 #import "EMBURLSessionDelegateProxy.h"
+#import "EMBURLSessionDelegateProxyFunctions.h"
 #import <Foundation/Foundation.h>
 #import "objc/runtime.h"
 
@@ -106,13 +107,18 @@
 }
 
 - (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didFinishCollectingMetrics:(NSURLSessionTaskMetrics *)metrics {
-    [self.handler finishWithTask:task data:nil error:nil];
+    NSInteger totalBytes = 0;
+    for (NSURLSessionTaskTransactionMetrics *transaction in metrics.transactionMetrics) {
+        totalBytes += transaction.countOfResponseBodyBytesReceived;
+    }
+
+    [self.handler finishWithTask:task bodySize:totalBytes error:nil];
+
     id target = [self getTargetForSelector:DID_FINISH_COLLECTING_METRICS session:session];
 
     if (target) {
         [(id<NSURLSessionTaskDelegate>)target URLSession:session task:task didFinishCollectingMetrics:metrics];
     }
-
 }
 
 #pragma mark - NSURLSessionDataDelegate Methods

@@ -33,14 +33,14 @@ class URLSessionDelegateProxyToNonConformantTests: XCTestCase {
         givenProxyContainingDelegateImplemetingMethodsButNotConformingToSpecificProtocols()
         whenInvokingDidFinishCollectingMetrics()
         try thenDidFinishCollectingMetricsShouldBeCalledOnDelegate()
-        thenHandlerShouldHaveInvokedFinish()
+        thenHandlerShouldHaveInvokedFinishWithBodySize()
     }
 
     func testShouldForwardToDidCompleteWithErrorOnNonConformingObjectIfRespondsToTheSelector() throws {
         givenProxyContainingDelegateImplemetingMethodsButNotConformingToSpecificProtocols()
         whenInvokindDidCompleteWithError()
         try thenDidCompleteWithErrorShouldBeCalledOnDelegate()
-        thenHandlerShouldHaveInvokedFinish()
+        thenHandlerShouldHaveInvokedFinishWithData()
     }
 
     func testShouldForwardToDidFinishDownloadingToURLOnNonConformingObjectIfRespondsToTheSelector() throws {
@@ -134,8 +134,12 @@ private extension URLSessionDelegateProxyToNonConformantTests {
         XCTAssertEqual(handler.receivedData, data)
     }
 
-    func thenHandlerShouldHaveInvokedFinish() {
-        XCTAssertTrue(handler.didInvokeFinish)
+    func thenHandlerShouldHaveInvokedFinishWithData() {
+        XCTAssertTrue(handler.didInvokeFinishWithData)
+    }
+
+    func thenHandlerShouldHaveInvokedFinishWithBodySize() {
+        XCTAssertTrue(handler.didInvokeFinishWithBodySize)
     }
 }
 

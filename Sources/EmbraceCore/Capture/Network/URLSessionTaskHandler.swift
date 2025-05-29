@@ -34,11 +34,12 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
 
     init(processingQueue: DispatchableQueue = DefaultURLSessionTaskHandler.queue(),
          capturedDataQueue: DispatchableQueue = DefaultURLSessionTaskHandler.capturedDataQueue(),
-         dataSource: URLSessionTaskHandlerDataSource?) {
+         dataSource: URLSessionTaskHandlerDataSource?,
+         payloadCaptureHandler: NetworkPayloadCaptureHandler? = nil) {
         self.queue = processingQueue
         self.capturedDataQueue = capturedDataQueue
         self.dataSource = dataSource
-        self.payloadCaptureHandler = NetworkPayloadCaptureHandler(otel: dataSource?.otel)
+        self.payloadCaptureHandler = payloadCaptureHandler ?? DefaultNetworkPayloadCaptureHandler(otel: dataSource?.otel)
     }
 
     @discardableResult
@@ -130,71 +131,109 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
         return handled
     }
 
-    func finish(task: URLSessionTask, data: Data?, error: (any Error)?) {
+    func finish(task: URLSessionTask, bodySize: Int, error: (any Error)?) {
+        // save end time for payload capture
+        let embraceEndTime = Date()
+
         queue.async {
-            // save end time for payload capture
-            task.embraceEndTime = Date()
-
             // process payload capture
-            self.payloadCaptureHandler.process(
-                request: task.currentRequest ?? task.originalRequest,
-                response: task.response,
-                data: data,
-                error: error,
-                startTime: task.embraceStartTime,
-                endTime: task.embraceEndTime
-            )
-
-            // stop if the service is disabled
-            guard self.dataSource?.state == .active else {
-                return
-            }
-
-            // stop if there was no span for this task
-            guard let span = self.spans.removeValue(forKey: task) else {
-                return
-            }
-
-            // generate attributes from response
-            if let response = task.response as? HTTPURLResponse {
-                span.setAttribute(
-                    key: SpanSemantics.NetworkRequest.keyStatusCode,
-                    value: response.statusCode
-                )
-            }
-
-            if let data = data {
+            if self.payloadCaptureHandler.isEnabled() {
+                var data: Data?
                 self.capturedDataQueue.sync {
-                    let totalData = task.embraceData ?? data
-                    span.setAttribute(
-                        key: SpanSemantics.NetworkRequest.keyResponseSize,
-                        value: totalData.count
-                    )
+                    data = task.embraceData
                 }
-            }
 
-            if let error = error ?? task.error {
-                // Should this be something else?
-                let nsError = error as NSError
-                span.setAttribute(
-                    key: SpanSemantics.NetworkRequest.keyErrorType,
-                    value: nsError.domain
-                )
-                span.setAttribute(
-                    key: SpanSemantics.NetworkRequest.keyErrorCode,
-                    value: nsError.code
-                )
-                span.setAttribute(
-                    key: SpanSemantics.NetworkRequest.keyErrorMessage,
-                    value: error.localizedDescription
+                self.payloadCaptureHandler.process(
+                    request: task.currentRequest ?? task.originalRequest,
+                    response: task.response,
+                    data: data,
+                    error: error,
+                    startTime: task.embraceStartTime,
+                    endTime: embraceEndTime
                 )
             }
 
-            span.end()
-
-            // internal notification with the captured request
-            Embrace.notificationCenter.post(name: .networkRequestCaptured, object: task)
+            self.handleTaskFinished(task, bodySize: bodySize, error: error)
         }
+    }
+
+    func finish(task: URLSessionTask, data: Data?, error: (any Error)?) {
+        // save end time for payload capture
+        let embraceEndTime = Date()
+
+        queue.async {
+            // process payload capture
+            if self.payloadCaptureHandler.isEnabled() {
+                // performing this logic to prevent any issues accessing `task.embraceData`
+                var capturedData = data
+                if capturedData == nil {
+                    self.capturedDataQueue.sync {
+                        capturedData = task.embraceData
+                    }
+                }
+
+                self.payloadCaptureHandler.process(
+                    request: task.currentRequest ?? task.originalRequest,
+                    response: task.response,
+                    data: capturedData,
+                    error: error,
+                    startTime: task.embraceStartTime,
+                    endTime: embraceEndTime
+                )
+            }
+
+            self.handleTaskFinished(task, bodySize: data?.count, error: error)
+        }
+    }
+
+    private func handleTaskFinished(_ task: URLSessionTask, bodySize: Int?, error: (any Error)?) {
+        // stop if the service is disabled
+        guard self.dataSource?.state == .active else {
+            return
+        }
+
+        // stop if there was no span for this task
+        guard let span = self.spans.removeValue(forKey: task) else {
+            return
+        }
+
+        // generate attributes from response
+        if let response = task.response as? HTTPURLResponse {
+            span.setAttribute(
+                key: SpanSemantics.NetworkRequest.keyStatusCode,
+                value: response.statusCode
+            )
+        }
+
+        if let bodySize {
+            span.setAttribute(
+                key: SpanSemantics.NetworkRequest.keyResponseSize,
+                value: bodySize
+            )
+        }
+
+        if let error = error ?? task.error {
+            // Should this be something else?
+            let nsError = error as NSError
+            span.setAttribute(
+                key: SpanSemantics.NetworkRequest.keyErrorType,
+                value: nsError.domain
+            )
+            span.setAttribute(
+                key: SpanSemantics.NetworkRequest.keyErrorCode,
+                value: nsError.code
+            )
+            span.setAttribute(
+                key: SpanSemantics.NetworkRequest.keyErrorMessage,
+                value: error.localizedDescription
+            )
+        }
+
+        span.end()
+
+        // internal notification with the captured request
+        Embrace.notificationCenter.post(name: .networkRequestCaptured, object: task)
+
     }
 
     func addData(_ data: Data, dataTask: URLSessionDataTask) {
@@ -211,7 +250,6 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
     }
 
     func addTracingHeader(task: URLSessionTask, span: Span) -> String? {
-
         guard dataSource?.injectTracingHeader == true,
               task.originalRequest != nil else {
             return nil
