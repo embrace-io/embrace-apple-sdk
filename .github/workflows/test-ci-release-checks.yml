@@ -26,9 +26,9 @@ jobs:
       - name: Test action from commit
         uses: embrace-io/public-actions/upload-sdk-version@95f23d7c17df9ad4e02aa81bd154462cdc869807
         with:
-          platform: ${{ inputs.platform }}
-          version: ${{ inputs.sdkVersion }}
-          dryRun: ${{ inputs.dryRun }}
+          platform: 'ios'
+          version: '1.2.3'
+          dryRun: 'true'
           sdkVersionUrl: ${{ vars.SDK_VERSION_URL }}
         env:
           SDK_VERSION_TOKEN: ${{ secrets.SDK_VERSION_TOKEN }}
