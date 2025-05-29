@@ -4,7 +4,6 @@
 
 import Foundation
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceBugsnagTools
 import EmbraceCommonInternal
 #endif
 
@@ -128,7 +127,35 @@ extension EmbraceBacktraceFrame {
             return cached
         }
         
-        // there's an atomic check so this isn't expensive except for the first time
+        var result = SymbolInformation()
+        guard symbolicate(address: UInt(address), result: &result) else {
+            return self
+        }
+ 
+        let symbolName = backtraceDemangle(
+            result.symbolName != nil ? String(cString: result.symbolName!) : nil
+        )
+        let imageName = result.imageName != nil ? NSString(utf8String: result.imageName!)?.lastPathComponent ?? nil : nil
+        
+        let symbolicatedFrame = EmbraceBacktraceFrame(
+            address: UInt64(address),
+            symbol: Symbol(
+                address: UInt64(result.symbolAddress),
+                name: symbolName
+            ),
+            image: imageName != nil ? Image(
+                uuid: NSUUID(uuidBytes: result.imageUUID).uuidString,
+                name: imageName!,
+                address: result.imageAddress,
+                size: result.imageSize
+            ) : nil
+        )
+        
+        _symbolCache.withLock { $0[address] = symbolicatedFrame }
+        
+        return symbolicatedFrame
+        
+        /*
         bsg_mach_headers_initialize()
         
         var result: bsg_symbolicate_result = bsg_symbolicate_result()
@@ -139,6 +166,7 @@ extension EmbraceBacktraceFrame {
             let ptr = img.pointee
             
             let symbolName = result.function_name != nil ? String(cString: result.function_name) : nil
+            let imageName = ptr.name != nil ? NSString(utf8String: ptr.name)?.lastPathComponent ?? nil : nil
             
             let symbolicatedFrame = EmbraceBacktraceFrame(
                 address: UInt64(address),
@@ -146,18 +174,19 @@ extension EmbraceBacktraceFrame {
                     address: UInt64(result.function_address),
                     name: backtraceDemangle(symbolName)
                 ),
-                image: Image(
+                image: imageName != nil ? Image(
                     uuid: NSUUID(uuidBytes: ptr.uuid).uuidString,
-                    name: NSString(utf8String: ptr.name)?.lastPathComponent ?? "",
+                    name: imageName!,
                     size: ptr.imageSize,
                     offset: UInt64(address) - ptr.imageVmAddr
-                )
+                ) : nil
             )
             
             _symbolCache.withLock { $0[address] = symbolicatedFrame }
             
             return symbolicatedFrame
         }
+        */
         
         return self
     }
