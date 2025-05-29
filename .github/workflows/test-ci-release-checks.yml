@@ -29,7 +29,3 @@ jobs:
           platform: ${{ inputs.platform }}
           version: ${{ inputs.version }}
           dry-run: ${{ inputs.dryRun }}
-        env:
-          SDK_VERSION_URL: ${{ vars.SDK_VERSION_URL }}
-        secrets:
-          SDK_VERSION_TOKEN: ${{ secrets.SDK_VERSION_TOKEN }}
