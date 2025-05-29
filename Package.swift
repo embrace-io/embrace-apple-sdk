@@ -35,7 +35,6 @@ let package = Package(
         .library(name: "EmbraceCore", targets: ["EmbraceCore", "EmbraceConfiguration"]),
         .library(name: "EmbraceCrash", targets: ["EmbraceCrash"]),
         .library(name: "EmbraceCrashlyticsSupport", targets: ["EmbraceCrashlyticsSupport"]),
-        .library(name: "EmbraceBugsnagTools", targets: ["EmbraceBugsnagTools"]),
         .library(name: "EmbraceSemantics", targets: ["EmbraceSemantics"])
     ],
     dependencies: [
@@ -92,7 +91,6 @@ let package = Package(
                 "EmbraceUploadInternal",
                 "EmbraceObjCUtilsInternal",
                 "EmbraceSemantics",
-                "EmbraceBugsnagTools",
                 .product(name: "DemangleFilter", package: "KSCrash"),
                 .product(name: "Backtrace", package: "KSCrash")
             ],
@@ -268,21 +266,6 @@ let package = Package(
             resources: [
                 .copy("Mocks/")
             ]
-        ),
-        
-        // bugsnag tools support  -------------------------------------------------------
-        .target(
-            name: "EmbraceBugsnagTools",
-            dependencies: [
-            ],
-            path: "Sources/ThirdParty/EmbraceBugsnagTools"
-        ),
-        .testTarget(
-            name: "EmbraceBugsnagToolsTests",
-            dependencies: [
-                "EmbraceBugsnagTools"
-            ],
-            path: "Tests/ThirdParty/EmbraceBugsnagToolsTests"
         ),
         
         // crashlytics support  -------------------------------------------------------
