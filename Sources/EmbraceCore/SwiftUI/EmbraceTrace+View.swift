@@ -21,7 +21,7 @@ public struct EmbraceTraceView<Content: View>: View {
     ///   - content: A closure returning the view content to be instrumented.
     public init(_ viewName: String, attributes: [String: String]? = nil, content: @escaping () -> Content) {
         self.content = content
-        self.name = viewName
+        self.name = viewName.filter { $0.isNumber || $0.isLetter }
         self.attributes = attributes
     }
     
@@ -33,18 +33,18 @@ public struct EmbraceTraceView<Content: View>: View {
         if phase.isFirstCycle {
             /// Emit a tracing span for the first render cycle of this view.
             // TODO: name this correctly
-            phase.cycledSpan("emb-view-fc-\(name)", attributes: attributes)
+            phase.cycledSpan("emb-sui-[\(name)]-first-render-cycle", attributes: attributes)
         }
         
         var firstRenderPhaseSpan: Span? = nil
         if phase.isFirstRender {
             /// Emit a tracing span for the first render of this view.
-            firstRenderPhaseSpan = phase.startSpan("emb-view-first-render-\(name)", attributes: attributes)
+            firstRenderPhaseSpan = phase.startSpan("emb-sui-[\(name)]-first-body-render", attributes: attributes)
         }
         
         /// Start a span around the body evaluation of the view.
         // TODO: name this correctly
-        let span = phase.startSpan("emb-view-body-\(name)", attributes: attributes)
+        let span = phase.startSpan("emb-sui-[\(name)]-body-execution", attributes: attributes)
         /// End the body evaluation span when the view content finishes loading.
         defer {
             phase.endSpan(span)
