@@ -159,7 +159,7 @@ public class EmbraceProfiler {
             result = EmbraceProfile(
                 id: profile.id,
                 name: profile.name,
-                backtraces: prof.backtraces.map { $0.symbolicate() },
+                backtraces: prof.backtraces,
                 interval: interval,
                 startTime: profile.startTime,
                 endTime: time

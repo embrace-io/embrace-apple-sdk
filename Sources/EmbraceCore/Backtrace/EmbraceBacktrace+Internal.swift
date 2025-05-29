@@ -10,20 +10,10 @@ import EmbraceCommonInternal
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
 import KSCrashDemangleFilter
+import KSCrashBacktrace
 #else
 import KSCrash
 #endif
-
-private extension pthread_t {
-    var name: String {
-        var name = [CChar](repeating: 0, count: 64)
-        let result = pthread_getname_np(self, &name, name.count)
-        guard result == 0 else {
-            return ""
-        }
-        return String(cString: name)
-    }
-}
 
 private class EmbraceThreadList {
     let task: mach_port_t
@@ -101,20 +91,38 @@ private class EmbraceThreadList {
 
 var _symbolCache: EmbraceMutex<[UInt64: EmbraceBacktraceFrame]> = EmbraceMutex([:])
 
+extension EmbraceBacktraceThread.Callstack {
+    func frames(symbolicated: Bool) -> [EmbraceBacktraceFrame] {
+        
+        // expensive, don't call on the main queue
+        if symbolicated {
+            dispatchPrecondition(condition: .notOnQueue(.main))
+        }
+        
+        var frames: [EmbraceBacktraceFrame] = []
+        for index: Int in (0..<count) {
+            let embFrame = EmbraceBacktraceFrame(withFramePointer: UInt64(addresses[index]))
+            frames.insert(
+                symbolicated ? embFrame.symbolicated() : embFrame,
+                at: 0
+            )
+        }
+        return frames
+    }
+}
+
 extension EmbraceBacktraceFrame {
     
     init(withFramePointer address: UInt64) {
         self.address = address
-        self.symbolAddress = 0
-        self.symbolName = ""
-        self.imageUUID = ""
-        self.imageName = ""
-        self.imageSize = 0
-        self.imageOffset = 0
+        self.symbol = nil
+        self.image = nil
     }
     
-    internal func symbolicated() -> EmbraceBacktraceFrame {
-        guard imageUUID.isEmpty else { return self }
+    fileprivate func symbolicated() -> EmbraceBacktraceFrame {
+        guard image == nil else {
+            return self
+        }
         
         if let cached = _symbolCache.withLock({ $0[address] }) {
             return cached
@@ -125,55 +133,35 @@ extension EmbraceBacktraceFrame {
         
         var result: bsg_symbolicate_result = bsg_symbolicate_result()
         bsg_symbolicate(UInt(address), &result)
-        
-        let imageUUID: String
-        let imageName: String
-        let imageSize: UInt64
-        let imageOffset: UInt64
-        let success: Bool
-        
+
         if let img = result.image {
+
             let ptr = img.pointee
-            imageUUID = NSUUID(uuidBytes: ptr.uuid).uuidString
-            imageName = NSString(utf8String: ptr.name)?.lastPathComponent ?? ""
-            imageSize = ptr.imageSize
-            imageOffset = UInt64(address) - ptr.imageVmAddr
-            success = true
-        } else {
-            imageUUID = ""
-            imageName = ""
-            imageSize = 0
-            imageOffset = 0
-            success = false
-        }
-        
-        let symbolName: String
-        if success, let funcName = result.function_name {
-            symbolName = backtraceDemangle(String(cString: funcName))
-        } else {
-            symbolName = ""
-        }
-        
-        let symbolicatedFrame = EmbraceBacktraceFrame(
-            address: UInt64(address),
-            symbolAddress: UInt64(result.function_address),
-            symbolName: symbolName,
-            imageUUID: imageUUID,
-            imageName: imageName,
-            imageSize: imageSize,
-            imageOffset: imageOffset
-        )
-        
-        if success {
+            
+            let symbolName = result.function_name != nil ? String(cString: result.function_name) : nil
+            
+            let symbolicatedFrame = EmbraceBacktraceFrame(
+                address: UInt64(address),
+                symbol: Symbol(
+                    address: UInt64(result.function_address),
+                    name: backtraceDemangle(symbolName)
+                ),
+                image: Image(
+                    uuid: NSUUID(uuidBytes: ptr.uuid).uuidString,
+                    name: NSString(utf8String: ptr.name)?.lastPathComponent ?? "",
+                    size: ptr.imageSize,
+                    offset: UInt64(address) - ptr.imageVmAddr
+                )
+            )
+            
             _symbolCache.withLock { $0[address] = symbolicatedFrame }
+            
+            return symbolicatedFrame
         }
         
-        return symbolicatedFrame
+        return self
     }
 }
-
-//let currentThread = pthread_mach_thread_np(pthread_self())
-//let snappingThread = pthread_mach_thread_np(thread)
 
 internal extension EmbraceBacktrace {
     
@@ -183,70 +171,41 @@ internal extension EmbraceBacktrace {
     // 3- sets up deferal of resuming all threads and releasing task thread memory.
     // 4- takes a backtrace and symbolicates it (or simply gets the images if not available).
     static func takeSnapshot(of thread: pthread_t) -> [EmbraceBacktraceThread] {
+        let pre = clock_gettime_nsec_np(CLOCK_UPTIME_RAW)
+        let snap = _takeSnapshot(of: thread)
+        let post = clock_gettime_nsec_np(CLOCK_UPTIME_RAW)
+        let cost = Double(post-pre) / 1_000_000.0
+        print("[COST] \(cost) ms, frames: \(snap.first?.callstack.count ?? 0)")
+        return snap
+    }
+    
+    static func _takeSnapshot(of thread: pthread_t) -> [EmbraceBacktraceThread] {
         
         let threadList = EmbraceThreadList()
         
         threadList.suspend()
         defer { threadList.resume() }
-        
-        let snapThread = pthread_mach_thread_np(thread)
-        
-        // now take the snapshot
+
         let entries = 512
         var addresses: [UInt] = Array(repeating: 0, count: 512)
-        
-        let frameCount = bsg_ksbt_backtraceThread(snapThread, &addresses, Int32(entries))
-        
-        var frames: [EmbraceBacktraceFrame] = []
-        for index: Int in (0..<Int(frameCount)) {
-            frames.insert(
-                EmbraceBacktraceFrame(withFramePointer: UInt64(addresses[index])),
-                at: 0
-            )
-        }
+        let frameCount = captureBacktrace(thread: thread, addresses: &addresses, count: Int32(entries))
 
         return [
             EmbraceBacktraceThread(
                 index: threadList.indexOf(thread: thread),
-                name: thread.name,
-                frames: frames
+                callstack: EmbraceBacktraceThread.Callstack(
+                    addresses: addresses,
+                    count: Int(frameCount)
+                )
             )
         ]
     }
 }
 
-/*
-@_silgen_name("swift_demangle_getSimplifiedDemangledName")
-func _stdlib_swift_demangle_getSimplifiedDemangledName(
-    _ MangledName: UnsafePointer<CChar>,
-    _ OutputBuffer: UnsafeMutablePointer<CChar>,
-    _ Length: Int
-) -> Int
-
-func backtraceSimplifiedSwiftDemangled(_ mangled: String) -> String {
-    let bufferSize = 512
-    var outputBuffer = [CChar](repeating: 0, count: bufferSize)
+func backtraceDemangle(_ symbol: String?) -> String {
     
-    return mangled.withCString { mangledPtr in
-        let resultLen = _stdlib_swift_demangle_getSimplifiedDemangledName(
-            mangledPtr,
-            &outputBuffer,
-            bufferSize
-        )
-        
-        if resultLen > 0 && resultLen < bufferSize {
-            return String(cString: outputBuffer)
-        } else {
-            return mangled
-        }
-    }
-}
-*/
-
-var _data: [String: [String: String]] = [:]
-
-func backtraceDemangle(_ symbol: String) -> String {
-
+    guard let symbol else { return "<unknown>" }
+    
     // try simplified for the UI
     let a2 = CrashReportFilterDemangle.demangledSwiftSymbol(symbol).trimmingCharacters(in: .whitespacesAndNewlines)
     if !a2.isEmpty {

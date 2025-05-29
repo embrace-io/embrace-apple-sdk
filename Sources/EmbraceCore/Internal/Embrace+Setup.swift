@@ -134,6 +134,9 @@ extension Embrace {
     }
 
     func recordSetupSpan(startTime: Date) {
+        
+        print("[SETUP:emb-setup] \(Date().timeIntervalSince(startTime))")
+        
         buildSpan(name: "emb-setup", type: .performance)
             .markAsPrivate()
             .setStartTime(time: startTime)
