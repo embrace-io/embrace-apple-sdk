@@ -12,9 +12,11 @@ import OpenTelemetrySdk
 
     func shutdown(explicitTimeout: TimeInterval?) {}
 
-    var cachedExportedLogs: [ReadableLogRecord] = []
+    private(set) var cachedExportedLogs: [ReadableLogRecord] = []
+    private(set) var latestExportedLogs: [ReadableLogRecord] = []
 
     func export(logRecords: [ReadableLogRecord], explicitTimeout : TimeInterval?) -> ExportResult {
+        latestExportedLogs = logRecords
         logRecords.forEach { cachedExportedLogs.append($0) }
         NotificationCenter.default.post(name: NSNotification.Name("TestLogRecordExporter.LogsUpdated"), object: nil)
         return .success
