@@ -17,7 +17,7 @@ final class CaptureServices {
     var services: [CaptureService] {
         _services.safeValue
     }
-    
+
     var context: CrashReporterContext
     weak var crashReporter: CrashReporter?
 

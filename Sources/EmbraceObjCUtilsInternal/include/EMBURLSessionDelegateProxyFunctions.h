@@ -4,6 +4,8 @@
 
 #import <Foundation/Foundation.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 #define WILL_PERFORM_REDIRECTION @selector(URLSession:task:willPerformHTTPRedirection:newRequest:completionHandler:)
 #define DID_RECEIVE_CHALLENGE @selector(URLSession:didReceiveChallenge:completionHandler:)
 #define DID_FINISH_EVENTS_BACKGROUND @selector(URLSessionDidFinishEventsForBackgroundURLSession:)
@@ -130,3 +132,5 @@ void proxy_URLSession_streamTask_didBecomeInputStream_outputStream(id self, SEL 
                                                                    NSURLSessionStreamTask *streamTask,
                                                                    NSInputStream *inputStream,
                                                                    NSOutputStream *outputStream);
+
+NS_ASSUME_NONNULL_END
