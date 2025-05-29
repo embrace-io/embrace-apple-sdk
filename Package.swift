@@ -40,10 +40,13 @@ let package = Package(
         .library(name: "EmbraceMacros", targets: ["EmbraceMacros", "EmbraceCore"])
     ],
     dependencies: [
+        .package(path: "../KSCrash"),
+        /*
         .package(
             url: "https://github.com/kstenerud/KSCrash",
             exact: "2.2.0"
         ),
+         */
         .package(
             url: "https://github.com/open-telemetry/opentelemetry-swift",
             exact: "1.17.1"
@@ -92,7 +95,8 @@ let package = Package(
                 "EmbraceObjCUtilsInternal",
                 "EmbraceSemantics",
                 "EmbraceBugsnagTools",
-                .product(name: "DemangleFilter", package: "KSCrash")
+                .product(name: "DemangleFilter", package: "KSCrash"),
+                .product(name: "Backtrace", package: "KSCrash")
             ],
             resources: [
                 .copy("PrivacyInfo.xcprivacy")
