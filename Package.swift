@@ -40,13 +40,10 @@ let package = Package(
         .library(name: "EmbraceCrashlyticsSupport", targets: ["EmbraceCrashlyticsSupport"])
     ],
     dependencies: [
-        .package(path: "../KSCrash"),
-        /*
         .package(
             url: "https://github.com/kstenerud/KSCrash",
             exact: "2.3.0"
         ),
-         */
         .package(
             url: "https://github.com/open-telemetry/opentelemetry-swift",
             exact: "2.0.0"
@@ -93,7 +90,6 @@ let package = Package(
                 "EmbraceUploadInternal",
                 "EmbraceObjCUtilsInternal",
                 "EmbraceSemantics",
-                "EmbraceBugsnagTools",
                 .product(name: "DemangleFilter", package: "KSCrash"),
                 .product(name: "Backtrace", package: "KSCrash")
             ],
