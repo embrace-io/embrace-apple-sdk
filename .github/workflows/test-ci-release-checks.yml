@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Test action from commit
-        uses: embrace-io/sdk-actions/upload-sdk-version@8f9b3a7cf7284d5b239e8d62c8a0b5b5c69a9f45
+        uses: embrace-io/sdk-actions/upload-sdk-version@97b6e246438ee16034173a2aaaf379a0f8c15662
         with:
           platform: ${{ inputs.platform }}
           version: ${{ inputs.version }}
