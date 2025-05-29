@@ -54,6 +54,7 @@ public extension StartupInstrumentation {
     ///    - endTime: The end time of the span.
     ///    - attributes: A dictionary of attributes to set on the span.
     /// - Returns: A boolean indicating if the operation was succesful.
+    @discardableResult
     func recordCompletedChildSpan(
         name: String,
         type: SpanType = .viewLoad,
@@ -90,6 +91,7 @@ public extension StartupInstrumentation {
     /// - Parameters:
     ///   - attributes: A dictionary of attributes to add to the trace. Each key-value pair represents an attribute.
     /// - Returns: A boolean indicating if the operation was succesful.
+    @discardableResult
     func addAttributesToTrace(_ attributes: [String: String]) -> Bool {
 
         return state.withLock {

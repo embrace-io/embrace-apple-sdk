@@ -50,7 +50,9 @@ void proxy_URLSession_didCreateTask(id self, SEL _cmd,
                                     NSURLSessionTask *task) {
     id target = [((EMBURLSessionDelegateProxy *)self) getTargetForSelector:_cmd session:session];
     if (target) {
-        [target URLSession:session didCreateTask:task];
+        if (@available(iOS 16.0, tvOS 16.0, *)) {
+            [target URLSession:session didCreateTask:task];
+        }
     }
 }
 
@@ -108,7 +110,9 @@ void proxy_URLSession_task_needNewBodyStreamFromOffset(id self, SEL _cmd,
                                                        void (^completionHandler)(NSInputStream * _Nullable bodyStream)) {
     id target = [((EMBURLSessionDelegateProxy *)self) getTargetForSelector:_cmd session:session];
     if (target) {
-        [target URLSession:session task:task needNewBodyStreamFromOffset:offset completionHandler:completionHandler];
+        if (@available(iOS 17.0, tvOS 17.0, *)) {
+            [target URLSession:session task:task needNewBodyStreamFromOffset:offset completionHandler:completionHandler];
+        }
     } else {
         completionHandler(nil);
     }
@@ -132,7 +136,9 @@ void proxy_URLSession_task_didReceiveInformationalResponse(id self, SEL _cmd,
                                                            NSHTTPURLResponse *response) {
     id target = [((EMBURLSessionDelegateProxy *)self) getTargetForSelector:_cmd session:session];
     if (target) {
-        [target URLSession:session task:task didReceiveInformationalResponse:response];
+        if (@available(iOS 17.0, tvOS 17.0, *)) {
+            [target URLSession:session task:task didReceiveInformationalResponse:response];
+        }
     }
 }
 
