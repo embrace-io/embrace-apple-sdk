@@ -16,8 +16,8 @@ public struct EmbraceBacktraceFrame: Codable {
     public struct Image: Codable {
         public let uuid: String
         public let name: String
+        public let address: UInt64
         public let size: UInt64
-        public let offset: UInt64
     }
     public let image: Image?
 }
