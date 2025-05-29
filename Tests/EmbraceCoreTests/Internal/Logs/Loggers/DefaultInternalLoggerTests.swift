@@ -131,7 +131,7 @@ class DefaultInternalLoggerTests: XCTestCase {
         // when creating a critical log
         logger.critical("critical1")
 
-        wait(timeout: .veryLongTimeout) {
+        wait(timeout: 10) {
             // then the exported file has the correct values
             guard let log = try? String(contentsOf: self.fileUrl) else {
                 return false
@@ -143,7 +143,7 @@ class DefaultInternalLoggerTests: XCTestCase {
         // when doing another critical log
         logger.critical("critical2")
 
-        wait(timeout: .veryLongTimeout) {
+        wait(timeout: 10) {
             // then the exported file has the correct values
             guard let log = try? String(contentsOf: self.fileUrl) else {
                 return false
@@ -155,7 +155,7 @@ class DefaultInternalLoggerTests: XCTestCase {
         // when doing another critical log
         logger.critical("critical3")
 
-        wait(timeout: .veryLongTimeout) {
+        wait(timeout: 10) {
             // then the exported file has the correct values
             guard let log = try? String(contentsOf: self.fileUrl) else {
                 return false

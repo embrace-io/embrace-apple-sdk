@@ -15,7 +15,7 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
                  stateProvider: EmbraceMetricKitStateProvider? = nil
     ) -> MetricKitCrashCaptureService.Options {
         return MetricKitCrashCaptureService.Options(
-            crashProvider: provider,
+            payloadProvider: provider,
             metadataFetcher: fetcher,
             stateProvider: stateProvider ?? MockMetricKitStateProvider()
         )

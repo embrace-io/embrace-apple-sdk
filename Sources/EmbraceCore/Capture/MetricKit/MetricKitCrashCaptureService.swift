@@ -18,12 +18,8 @@ class MetricKitCrashCaptureService: CaptureService, MetricKitCrashPayloadListene
         self.options = options
     }
 
-    convenience override init() {
-         self.init(options: MetricKitCrashCaptureService.Options())
-    }
-
     override func onInstall() {
-        options.crashProvider?.add(listener: self)
+        options.payloadProvider?.add(listener: self)
     }
 
     func didReceive(payload: Data, signal: Int, sessionId: SessionIdentifier?) {

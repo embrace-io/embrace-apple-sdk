@@ -18,12 +18,8 @@ class MetricKitHangCaptureService: CaptureService, MetricKitHangPayloadListener 
         self.options = options
     }
 
-    convenience override init() {
-         self.init(options: MetricKitHangCaptureService.Options())
-    }
-
     override func onInstall() {
-        options.crashProvider?.add(listener: self)
+        options.payloadProvider?.add(listener: self)
     }
 
     func didReceive(payload: Data, startTime: Date, endTime: Date) {
@@ -46,8 +42,8 @@ class MetricKitHangCaptureService: CaptureService, MetricKitHangPayloadListener 
             initialAttributes: [:]
         )
 
-        var attributes = attributesBuilder
-            .addLogType(.crash)
+        let attributes = attributesBuilder
+            .addLogType(.hang)
             .addApplicationState(SessionState.unknown.rawValue)
             .addHangReportProperties(
                 id: UUID().withoutHyphen,
@@ -57,7 +53,6 @@ class MetricKitHangCaptureService: CaptureService, MetricKitHangPayloadListener 
                 endTime: endTime
             )
             .build()
-
 
         otel?.log(
             "",

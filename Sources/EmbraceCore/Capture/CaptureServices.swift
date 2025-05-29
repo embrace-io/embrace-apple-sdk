@@ -60,13 +60,6 @@ final class CaptureServices {
                     otel: Embrace.client
                 )
             }
-
-            if crashReporter.disableMetricKitReports == false {
-                _services.withLock {
-                    $0.append(MetricKitCrashCaptureService())
-                    $0.append(MetricKitHangCaptureService())
-                }
-            }
         }
 
         // pass storage reference to capture services
@@ -96,6 +89,34 @@ final class CaptureServices {
 
     deinit {
         NotificationCenter.default.removeObserver(self)
+    }
+
+    func addMetricKitServices(
+        payloadProvider: MetricKitPayloadProvider?,
+        metadataFetcher: EmbraceStorageMetadataFetcher?,
+        stateProvider: EmbraceMetricKitStateProvider?
+    ) {
+        guard crashReporter?.disableMetricKitReports == false else {
+            return
+        }
+
+        _services.withLock {
+            // crashes
+            let crashOptions = MetricKitCrashCaptureService.Options(
+                payloadProvider: payloadProvider,
+                metadataFetcher: metadataFetcher,
+                stateProvider: stateProvider
+            )
+            $0.append(MetricKitCrashCaptureService(options: crashOptions))
+
+            // hangs
+            let hangOptions = MetricKitHangCaptureService.Options(
+                payloadProvider: payloadProvider,
+                metadataFetcher: metadataFetcher,
+                stateProvider: stateProvider
+            )
+            $0.append(MetricKitHangCaptureService(options: hangOptions))
+        }
     }
 
     func install() {

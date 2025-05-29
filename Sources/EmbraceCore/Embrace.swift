@@ -209,6 +209,12 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
 
         super.init()
 
+        captureServices.addMetricKitServices(
+            payloadProvider: metricKit,
+            metadataFetcher: storage,
+            stateProvider: self
+        )
+
         sessionController.sdkStateProvider = self
         logController?.sdkStateProvider = self
 
