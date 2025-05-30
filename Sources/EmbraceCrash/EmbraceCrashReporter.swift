@@ -63,14 +63,19 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
         }
     }
 
+    /// Use this to prevent MetricKit reports to be used along with this crash reporter
+    public let disableMetricKitReports: Bool
+
     /// Unused in this KSCrash implementation
     public var onNewReport: ((EmbraceCrashReport) -> Void)?
 
     public init(queue: DispatchableQueue = .with(label: "com.embrace.crashreporter"),
-                signalsBlockList: [CrashSignal] = [.SIGTERM]
+                signalsBlockList: [CrashSignal] = [.SIGTERM],
+                disableMetricKitReports: Bool = false
     ) {
         self.queue = queue
         self.signalsBlockList = signalsBlockList
+        self.disableMetricKitReports = disableMetricKitReports
     }
 
     private func updateKSCrashInfo() {
@@ -232,12 +237,12 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
         }
 
         if let signalName = signalPayload[KSCrashKey.signalName] as? String,
-           let crashSignal = CrashSignal(rawValue: signalName) {
+           let crashSignal = CrashSignal.from(string: signalName) {
             return crashSignal
         }
 
         if let signalCode = signalPayload[KSCrashKey.signal] as? Int,
-           let crashSignal = CrashSignal.from(code: signalCode) {
+           let crashSignal = CrashSignal(rawValue: signalCode) {
             return crashSignal
         }
 
@@ -269,39 +274,5 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
 extension EmbraceCrashReporter: ExtendableCrashReporter {
     public func appendCrashInfo(key: String, value: String) {
         extraInfo[key] = value
-    }
-}
-
-// MARK: - CrashSignal definition
-public extension EmbraceCrashReporter {
-    enum CrashSignal: String {
-        case SIGABRT
-        case SIGBUS
-        case SIGFPE
-        case SIGILL
-        case SIGPIPE
-        case SIGSEGV
-        case SIGSYS
-        case SIGTRAP
-        case SIGTERM
-
-        static func from(code: Int) -> CrashSignal? {
-            switch code {
-            case 6: return SIGABRT
-            case 10: return SIGBUS
-            case 8: return SIGFPE
-            case 4: return SIGILL
-            case 13: return SIGPIPE
-            case 11: return SIGSEGV
-            case 12: return SIGSYS
-            case 5: return SIGTRAP
-            case 15: return SIGTERM
-            default: return nil
-            }
-        }
-
-        var name: String {
-            self.rawValue
-        }
     }
 }

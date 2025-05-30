@@ -12,6 +12,8 @@ class CrashReporterMock: CrashReporter {
 
     var onNewReport: ((EmbraceCrashReport) -> Void)?
 
+    var disableMetricKitReports: Bool = false
+
     init(
         currentSessionId: String? = nil,
         crashSessionId: String? = nil,
