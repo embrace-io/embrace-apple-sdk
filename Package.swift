@@ -92,7 +92,7 @@ let package = Package(
                 "EmbraceObjCUtilsInternal",
                 "EmbraceSemantics",
                 .product(name: "DemangleFilter", package: "KSCrash"),
-                .product(name: "Backtrace", package: "KSCrash")
+                .product(name: "Recording", package: "KSCrash")
             ],
             resources: [
                 .copy("PrivacyInfo.xcprivacy")
