@@ -13,6 +13,7 @@ protocol UIComponentViewModelType: ObservableObject {
     var state: TestViewModelState { get set }
     var dataModel: any TestScreenDataModel { get }
     var payloadTestObject: any PayloadTest { get }
+    var dataCollector: DataCollector? { get set }
     func testButtonPressed()
     func testFinished(with report: TestReport)
 }

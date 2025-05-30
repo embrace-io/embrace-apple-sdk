@@ -16,7 +16,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         let initButton = app.buttons["EmbraceInitButton"]
         initButton.tap()
 
-        XCTAssertTrue(initButton.wait(for: \.label, toEqual: "EmbraceIO has started!", timeout: 5.0))
+        XCTAssertNotNil(initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
 
         let sideMenuButton = app.buttons["SideMenuButton"]
         sideMenuButton.tap()
@@ -57,6 +57,8 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
             identifier = "LogSeverity_Error"
         case .fatal:
             identifier = "LogSeverity_Fatal"
+        case .critical:
+            identifier = "LogSeverity_Critical"
         }
 
         app.buttons[identifier].tap()
@@ -166,6 +168,15 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         runLogTest()
     }
 
+    func testLogCapture_critical() {
+
+        enterCustomMessage()
+
+        selectSeverityButton(.critical)
+
+        runLogTest()
+    }
+
     /// No Stack Trace
 
     func testLogCapture_warn_noStack() {
@@ -246,6 +257,15 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         enterCustomMessage()
 
         selectSeverityButton(.fatal)
+
+        selectStackTraceBehavior(.custom(customStackTrace))
+        runLogTest()
+    }
+
+    func testLogCapture_critical_customStack_notExpected() {
+        enterCustomMessage()
+
+        selectSeverityButton(.critical)
 
         selectStackTraceBehavior(.custom(customStackTrace))
         runLogTest()

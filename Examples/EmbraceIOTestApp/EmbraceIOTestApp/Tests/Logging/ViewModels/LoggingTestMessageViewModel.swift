@@ -7,26 +7,27 @@
 import SwiftUI
 import EmbraceCommonInternal
 
+@Observable
 class LoggingTestMessageViewModel: LogTestUIComponentViewModel {
-    @Published var message: String = "A custom log" {
+    var message: String = "A custom log" {
         didSet {
             testObject.loggedMessage = message
         }
     }
 
-    @Published var logSeverity: LogSeverity = .info {
+    var logSeverity: LogSeverity = .info {
         didSet {
             testObject.loggedMessageSeverity = logSeverity
         }
     }
 
-    @Published var stacktraceBehavior: StackTraceBehavior = .default {
+    var stacktraceBehavior: StackTraceBehavior = .default {
         didSet {
             testObject.stackTraceBehavior = stacktraceBehavior
         }
     }
 
-    @Published var includeAttachment: Bool = false {
+    var includeAttachment: Bool = false {
         didSet {
             testObject.includeAttachment = includeAttachment
             if includeAttachment {
@@ -35,7 +36,7 @@ class LoggingTestMessageViewModel: LogTestUIComponentViewModel {
         }
     }
     /// This is a controlled test app. Make sure hardcoded file sizes are powers of 2.
-    @Published var attachmentSize: Float = 8192 {
+    var attachmentSize: Float = 8192 {
         didSet {
             testObject.attachmentSize = Int(attachmentSize)
         }
@@ -49,10 +50,12 @@ class LoggingTestMessageViewModel: LogTestUIComponentViewModel {
         StackTraceBehavior.allCases
     }
 
-    private var testObject = LoggingErrorMessageTest("", severity: .info)
+    private var testObject: LoggingErrorMessageTest
 
     init(dataModel: any TestScreenDataModel) {
-        super.init(dataModel: dataModel, payloadTestObject: self.testObject)
+        let testObject = LoggingErrorMessageTest("", severity: .info)
+        self.testObject = testObject
+        super.init(dataModel: dataModel, payloadTestObject: testObject)
         self.message = message
     }
 
@@ -61,13 +64,13 @@ class LoggingTestMessageViewModel: LogTestUIComponentViewModel {
     }
 }
 
-extension LogSeverity: @retroactive CaseIterable {
+extension LogSeverity: CaseIterable {
     public static var allCases: [LogSeverity] {
-        [.trace, .debug, .info, .warn, .error, .fatal]
+        [.trace, .debug, .info, .warn, .error, .fatal, .critical]
     }
 }
 
-extension StackTraceBehavior: @retroactive CaseIterable {
+extension StackTraceBehavior: CaseIterable {
     public static var allCases: [StackTraceBehavior] {
         [.default, .notIncluded, .custom(customStackTrace)]
     }
@@ -96,7 +99,7 @@ extension StackTraceBehavior: @retroactive CaseIterable {
     }
 }
 
-extension StackTraceBehavior: @retroactive Hashable {
+extension StackTraceBehavior: Hashable {
     public func hash(into hasher: inout Hasher) {
         switch self {
         case .custom(let st):

@@ -61,7 +61,7 @@ struct NetworkingTestUIComponent: View {
 }
 
 #Preview {
-    let spanExporter = TestSpanExporter()
-    NetworkingTestUIComponent(dataModel: NetworkingTestsDataModel.networkCall)
-        .environment(spanExporter)
+    let dataCollector = DataCollector()
+    return NetworkingTestUIComponent(dataModel: NetworkingTestsDataModel.networkCall)
+        .environment(dataCollector)
 }

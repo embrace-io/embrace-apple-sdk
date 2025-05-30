@@ -11,84 +11,60 @@ import OpenTelemetrySdk
 
 struct EmbraceInitScreen: View {
     @Environment(DataCollector.self) private var dataCollector
-    @State private var appId: String = "AK5HV"
-    @State private var baseURL: String = "http://127.0.0.1:8989/api"
-    @State private var devBaseURL: String = "http://127.0.0.1:8989/api"
-    @State private var configBaseURL: String = "http://127.0.0.1:8989/api"
+    @State private var viewModel: EmbraceInitScreenViewModel = EmbraceInitScreenViewModel()
 
-    private var embraceHasInitialized: Bool {
-        Embrace.client?.state == .started
-    }
-    private var formDisabled: Bool {
-        showProgressview || embraceHasInitialized
-    }
-    @State private var showProgressview: Bool = false
     var body: some View {
         VStack {
             Form {
-                Section {
-                    TextField("AppID", text: $appId)
+                Toggle(isOn: $viewModel.simulateEmbraceAPI) {
+                    Text("Simulate Embrace API")
                         .font(.embraceFont(size: 18))
-                        .foregroundStyle(formDisabled ? .gray : .embraceSilver)
-                        .disabled(formDisabled)
-                } header: {
-                    Text("APP ID")
-                        .textCase(nil)
-                        .font(.embraceFont(size: 15))
+                        .foregroundStyle(.embraceSteel)
                 }
-                Section {
-                    TextField("Base URL", text: $baseURL)
-                        .font(.embraceFont(size: 18))
-                        .foregroundStyle(formDisabled ? .gray : .embraceSilver)
-                        .disabled(formDisabled)
-                } header: {
-                    Text("API Base URL")
-                        .textCase(nil)
-                        .font(.embraceFont(size: 15))
-                }
-                Section {
-                    TextField("Dev Base URL", text: $devBaseURL)
-                        .font(.embraceFont(size: 18))
-
-                        .foregroundStyle(formDisabled ? .gray : .embraceSilver)
-                        .disabled(formDisabled)
-                } header: {
-                    Text("API Dev Base URL")
-                        .textCase(nil)
-                        .font(.embraceFont(size: 15))
-                }
-                Section {
-                    TextField("Config Base URL", text: $configBaseURL)
-                        .font(.embraceFont(size: 18))
-                        .foregroundStyle(formDisabled ? .gray : .embraceSilver)
-                        .disabled(formDisabled)
-                } header: {
-                    Text("Config Base URL")
-                        .textCase(nil)
-                        .font(.embraceFont(size: 15))
+                .tint(.embracePurple)
+                ForEach($viewModel.formFields, id:\.name) { $section in
+                    Section {
+                        ForEach($section.items, id:\.name) { $item in
+                            TextField(item.name,
+                                      text: $item.value)
+                            .font(.embraceFont(size: 18))
+                            .foregroundStyle(viewModel.formDisabled ? .gray : .embraceSilver)
+                            .disabled(viewModel.formDisabled)
+                        }
+                    } header: {
+                        Text(section.name)
+                            .textCase(nil)
+                            .font(.embraceFont(size: 15))
+                    }
+                    .opacity(viewModel.simulateEmbraceAPI ? 0.5 : 1.0)
+                    .disabled(viewModel.simulateEmbraceAPI)
                 }
             }
-            EmbraceLargeButton(text: embraceHasInitialized ? "EmbraceIO has started!" : "Start EmbraceIO",
-                               enabled: !formDisabled,
+            .disabled(viewModel.formDisabled)
+            EmbraceLargeButton(text: viewModel.embraceHasInitialized ? "EmbraceIO has started!" : "Start EmbraceIO",
+                               enabled: !viewModel.formDisabled,
                                buttonAction: startEmbrace)
-                .disabled(formDisabled)
-                .padding()
-                .padding(.bottom, 60)
-                .accessibilityIdentifier("EmbraceInitButton")
+            .disabled(viewModel.formDisabled)
+            .padding()
+            .padding(.bottom, 60)
+            .accessibilityIdentifier("EmbraceInitButton")
         }
     }
 }
 
 #Preview {
-    NavigationView {
+    let dataCollector = DataCollector()
+    return NavigationView {
         EmbraceInitScreen()
+            .environment(dataCollector)
     }
 }
 
 private extension EmbraceInitScreen {
     func startEmbrace() {
+        self.dataCollector.networkSpy?.simulateEmbraceAPI = viewModel.simulateEmbraceAPI
         do {
-            showProgressview = true
+            viewModel.showProgressview = true
             let services = CaptureServiceBuilder()
                 .add(.view(options: ViewCaptureService.Options(instrumentVisibility: true,
                                                                instrumentFirstRender: true)))
@@ -97,18 +73,17 @@ private extension EmbraceInitScreen {
                 .build()
             try Embrace
                 .setup(options:
-                        .init(appId: appId,
+                        .init(appId: viewModel.appId,
                               endpoints: .init(
-                                baseURL: baseURL,
-                                developmentBaseURL: devBaseURL,
-                                configBaseURL: configBaseURL),
+                                baseURL: viewModel.baseURL,
+                                configBaseURL: viewModel.configBaseURL),
                               captureServices: services,
                               crashReporter: EmbraceCrashReporter(),
                               export: .init(spanExporter: dataCollector.spanExporter, logExporter: dataCollector.logExporter))
                 ).start()
-            showProgressview = false
+            viewModel.showProgressview = false
         } catch let e {
-            showProgressview = false
+            viewModel.showProgressview = false
             print("Error initializing Embrace: \(e)")
         }
     }
