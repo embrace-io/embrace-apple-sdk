@@ -14,9 +14,9 @@ enum MetadataTestsDataModel: Int, TestScreenDataModel, CaseIterable {
     var title: String {
         switch self {
         case .setup:
-            "Setup Payload"
+            "Pre-Main Payload"
         case .start:
-            "Start Payload"
+            "Startup Payload"
         case .resourceMetadata:
             "Payload Resource Attributes"
         }
