@@ -9,7 +9,7 @@ import EmbraceCommonInternal
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
 import KSCrashDemangleFilter
-import KSCrashBacktrace
+import KSCrashRecordingCore
 #else
 import KSCrash
 #endif
@@ -154,41 +154,6 @@ extension EmbraceBacktraceFrame {
         _symbolCache.withLock { $0[address] = symbolicatedFrame }
         
         return symbolicatedFrame
-        
-        /*
-        bsg_mach_headers_initialize()
-        
-        var result: bsg_symbolicate_result = bsg_symbolicate_result()
-        bsg_symbolicate(UInt(address), &result)
-
-        if let img = result.image {
-
-            let ptr = img.pointee
-            
-            let symbolName = result.function_name != nil ? String(cString: result.function_name) : nil
-            let imageName = ptr.name != nil ? NSString(utf8String: ptr.name)?.lastPathComponent ?? nil : nil
-            
-            let symbolicatedFrame = EmbraceBacktraceFrame(
-                address: UInt64(address),
-                symbol: Symbol(
-                    address: UInt64(result.function_address),
-                    name: backtraceDemangle(symbolName)
-                ),
-                image: imageName != nil ? Image(
-                    uuid: NSUUID(uuidBytes: ptr.uuid).uuidString,
-                    name: imageName!,
-                    size: ptr.imageSize,
-                    offset: UInt64(address) - ptr.imageVmAddr
-                ) : nil
-            )
-            
-            _symbolCache.withLock { $0[address] = symbolicatedFrame }
-            
-            return symbolicatedFrame
-        }
-        */
-        
-        return self
     }
 }
 
