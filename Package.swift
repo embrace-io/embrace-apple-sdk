@@ -38,10 +38,13 @@ let package = Package(
         .library(name: "EmbraceSemantics", targets: ["EmbraceSemantics"])
     ],
     dependencies: [
+        .package(path: "../KSCrash"),
+        /*
         .package(
              url: "https://github.com/kstenerud/KSCrash",
              .upToNextMinor(from: "2.1.1")
         ),
+         */
         .package(
             url: "https://github.com/open-telemetry/opentelemetry-swift",
             exact: "1.13.0"
@@ -83,7 +86,9 @@ let package = Package(
                 "EmbraceStorageInternal",
                 "EmbraceUploadInternal",
                 "EmbraceObjCUtilsInternal",
-                "EmbraceSemantics"
+                "EmbraceSemantics",
+                .product(name: "DemangleFilter", package: "KSCrash"),
+                .product(name: "Recording", package: "KSCrash")
             ],
             resources: [
                 .copy("PrivacyInfo.xcprivacy")
@@ -258,7 +263,7 @@ let package = Package(
                 .copy("Mocks/")
             ]
         ),
-
+        
         // crashlytics support  -------------------------------------------------------
         .target(
             name: "EmbraceCrashlyticsSupport",
