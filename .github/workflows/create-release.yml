@@ -98,6 +98,16 @@ jobs:
       RC_VERSION: ${{ needs.extractor.outputs.rc_version }}
       IS_PRODUCTION_READY: ${{ needs.extractor.outputs.is_production_ready }}
     steps:
+      - name: Validate access to versioning backend
+        uses: embrace-io/public-actions/upload-sdk-version@v1
+        with:
+          platform: 'ios'
+          version: ${{ needs.extractor.outputs.rc_version }}
+          dryRun: true
+          sdkVersionUrl: ${{ vars.SDK_VERSION_URL }}
+        env:
+          SDK_VERSION_TOKEN: ${{ secrets.SDK_VERSION_TOKEN }}
+
       - name: Checkout Repo
         uses: actions/checkout@v4
         with:
@@ -196,15 +206,19 @@ jobs:
     timeout-minutes: 5
     needs:
       - create_github_release 
+      - extractor
     env:
       RC_VERSION: ${{ needs.extractor.outputs.rc_version }}
       IS_PRODUCTION_READY: ${{ needs.extractor.outputs.is_production_ready }}
 
     steps:
       - name: Record SDK Version History
-        run: |
-          if [ "$IS_PRODUCTION_READY" == "true" ]; then
-            curl -f -X POST ${{ vars.SDK_VERSION_URL }}/ios/version/ -H 'X-Embrace-CI: ${{ secrets.SDK_VERSION_TOKEN }}' -H 'Content-Type: application/json' -d '{"version": "${{ env.RC_VERSION }}"}'
-          else
-            echo "Not recording SDK Version on non-production ready releases"
-          fi
+        uses: embrace-io/public-actions/upload-sdk-version@v1
+        with:
+          platform: 'ios'
+          version: ${{ needs.extractor.outputs.rc_version }}
+          dryRun: false
+          sdkVersionUrl: ${{ vars.SDK_VERSION_URL }}
+        env:
+          SDK_VERSION_TOKEN: ${{ secrets.SDK_VERSION_TOKEN }}
+
