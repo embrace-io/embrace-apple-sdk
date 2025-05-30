@@ -20,8 +20,8 @@ struct TestSideMenuListItem: View {
 }
 
 #Preview {
-    @Previewable @State var selectedOption: Int? = nil
-    List(TestMenuOptionDataModel.allCases, id: \.rawValue, selection: $selectedOption) { item in
+    @State var selectedOption: Int? = nil
+    return List(TestMenuOptionDataModel.allCases, id: \.rawValue, selection: $selectedOption) { item in
         TestSideMenuListItem(item: item, selected: item.rawValue == selectedOption)
     }
 }

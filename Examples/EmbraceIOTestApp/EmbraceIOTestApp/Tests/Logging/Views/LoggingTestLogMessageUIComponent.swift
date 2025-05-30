@@ -56,6 +56,6 @@ struct LoggingTestLogMessageUIComponent: View {
 
 #Preview {
     let dataCollector = DataCollector()
-    LoggingTestLogMessageUIComponent(dataModel: LoggingTestScreenDataModel.logMessage)
+    return LoggingTestLogMessageUIComponent(dataModel: LoggingTestScreenDataModel.logMessage)
         .environment(dataCollector)
 }

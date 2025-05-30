@@ -6,16 +6,19 @@
 
 import SwiftUI
 
+@Observable
 class SessionTestFinishedSessionTestViewModel: SpanTestUIComponentViewModel {
-    private var testObject: FinishedSessionTest = .init()
+    private var testObject: FinishedSessionTest
 
-    @Published var fakeAppState: Bool = false {
+    var fakeAppState: Bool = false {
         didSet {
             testObject.fakeAppState = fakeAppState
         }
     }
 
     init(dataModel: any TestScreenDataModel) {
-        super.init(dataModel: dataModel, payloadTestObject: self.testObject)
+        let testObject = FinishedSessionTest()
+        self.testObject = testObject
+        super.init(dataModel: dataModel, payloadTestObject: testObject)
     }
 }

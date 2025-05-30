@@ -20,7 +20,9 @@ struct TestReportCardHeaderView: View {
 }
 
 #Preview {
-    TestReportCardHeaderView(passed: true)
-        .padding(.bottom, 40)
-    TestReportCardHeaderView(passed: false)
+    return VStack {
+        TestReportCardHeaderView(passed: true)
+            .padding(.bottom, 40)
+        TestReportCardHeaderView(passed: false)
+    }
 }

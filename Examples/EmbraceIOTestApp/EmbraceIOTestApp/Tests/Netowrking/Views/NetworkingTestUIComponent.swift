@@ -62,6 +62,6 @@ struct NetworkingTestUIComponent: View {
 
 #Preview {
     let dataCollector = DataCollector()
-    NetworkingTestUIComponent(dataModel: NetworkingTestsDataModel.networkCall)
+    return NetworkingTestUIComponent(dataModel: NetworkingTestsDataModel.networkCall)
         .environment(dataCollector)
 }
