@@ -8,6 +8,7 @@ import EmbraceCommonInternal
 import EmbraceStorageInternal
 import EmbraceUploadInternal
 import EmbraceOTelInternal
+import EmbraceSemantics
 #endif
 
 class UnsentDataHandler {
@@ -187,7 +188,7 @@ class UnsentDataHandler {
     ) {
 
         // clean up old spans + close open spans
-        cleanOldSpans(storage: storage)
+        cleanOldSpans(storage: storage, currentSessionId: currentSessionId)
         closeOpenSpans(storage: storage, currentSessionId: currentSessionId)
 
         // fetch all sessions in the storage
@@ -249,17 +250,18 @@ class UnsentDataHandler {
         }
     }
 
-    static private func cleanOldSpans(storage: EmbraceStorage) {
+    static private func cleanOldSpans(storage: EmbraceStorage, currentSessionId: SessionIdentifier? = nil) {
         // first we delete any span record that is closed and its older
         // than the oldest session we have on storage
         // since spans are only sent when included in a session
         // all of these would never be sent anymore, so they can be safely removed
-        // if no session is found, all closed spans can be safely removed as well
-        let oldestSession = storage.fetchOldestSession()
+        // if no session is found, all closed spans from previous
+        // processes can be safely removed as well
+        let oldestSession = storage.fetchOldestSession(ignoringCurrentSessionId: currentSessionId)
         storage.cleanUpSpans(date: oldestSession?.startTime)
     }
 
-    static private func closeOpenSpans(storage: EmbraceStorage, currentSessionId: SessionIdentifier?) {
+    static private func closeOpenSpans(storage: EmbraceStorage, currentSessionId: SessionIdentifier? = nil) {
         // then we need to close any remaining open spans
         // we use the latest session on storage to determine the `endTime`
         // since we need to have a valid `endTime` for these spans, we default
@@ -272,5 +274,48 @@ class UnsentDataHandler {
     static private func cleanMetadata(storage: EmbraceStorage, currentSessionId: String? = nil) {
         let sessionId = currentSessionId ?? Embrace.client?.currentSessionId()
         storage.cleanMetadata(currentSessionId: sessionId, currentProcessId: ProcessIdentifier.current.hex)
+    }
+
+    static func sendCriticalLogs(fileUrl: URL?, upload: EmbraceUpload?) {
+        // feature is only available on iOS 15+
+        if #unavailable(iOS 15.0, tvOS 15.0) {
+            return
+        }
+
+        guard let upload = upload,
+              let fileUrl = fileUrl else {
+            return
+        }
+
+        // always remove the logs from previous session
+        defer { try? FileManager.default.removeItem(at: fileUrl) }
+
+        guard let logs = try? String(contentsOf: fileUrl) else {
+            return
+        }
+
+        // manually construct log payload
+        let id = LogIdentifier().toString
+        let attributes: [String: String] = [
+            LogSemantics.keyId: id,
+            LogSemantics.keyEmbraceType: LogType.internal.rawValue
+        ]
+
+        let payload = LogPayloadBuilder.build(
+            timestamp: Date(),
+            severity: .critical,
+            body: logs,
+            attributes: attributes,
+            storage: nil,
+            sessionId: nil
+        )
+
+        // send log
+        do {
+            let payloadData = try JSONEncoder().encode(payload).gzipped()
+            upload.uploadLog(id: id, data: payloadData, completion: nil)
+        } catch {
+            Embrace.logger.error("Error sending critical logs!:\n\(error.localizedDescription)")
+        }
     }
 }

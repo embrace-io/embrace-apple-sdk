@@ -57,6 +57,8 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
             identifier = "LogSeverity_Error"
         case .fatal:
             identifier = "LogSeverity_Fatal"
+        case .critical:
+            identifier = "LogSeverity_Critical"
         }
 
         app.buttons[identifier].tap()
@@ -166,6 +168,15 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         runLogTest()
     }
 
+    func testLogCapture_critical() {
+
+        enterCustomMessage()
+
+        selectSeverityButton(.critical)
+
+        runLogTest()
+    }
+
     /// No Stack Trace
 
     func testLogCapture_warn_noStack() {
@@ -246,6 +257,15 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         enterCustomMessage()
 
         selectSeverityButton(.fatal)
+
+        selectStackTraceBehavior(.custom(customStackTrace))
+        runLogTest()
+    }
+
+    func testLogCapture_critical_customStack_notExpected() {
+        enterCustomMessage()
+
+        selectSeverityButton(.critical)
 
         selectStackTraceBehavior(.custom(customStackTrace))
         runLogTest()

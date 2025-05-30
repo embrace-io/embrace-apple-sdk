@@ -12,7 +12,7 @@ struct LoggingTestsSeverityTypeView: View {
     var body: some View {
         Picker("", selection: $logSeverity) {
             ForEach(LogSeverity.allCases, id: \.self) { option in
-                Text(option.text)
+                Text((option == .critical ? "CRITICAL" : option.text).lowercased())
                     .accessibilityIdentifier(identifier(for: option))
             }
         }
@@ -34,6 +34,8 @@ struct LoggingTestsSeverityTypeView: View {
             return "LogSeverity_Error"
         case .fatal:
             return "LogSeverity_Fatal"
+        case .critical:
+            return "LogSeverity_Critical"
         }
     }
 }

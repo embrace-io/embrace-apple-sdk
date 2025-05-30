@@ -3,10 +3,10 @@
 //
 
 import Foundation
+import CoreData
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
 import EmbraceSemantics
-import CoreData
 #endif
 
 extension EmbraceStorage {
@@ -126,7 +126,8 @@ extension EmbraceStorage {
     }
 
     /// Synchronously removes all the closed spans older than the given date.
-    /// If no date is provided, all closed spans will be removed.
+    /// If no date is provided, all closed spans that are not from the current process
+    /// will be removed.
     /// - Parameter date: Date used to determine which spans to remove
     public func cleanUpSpans(date: Date? = nil) {
         let request = SpanRecord.createFetchRequest()
@@ -134,7 +135,9 @@ extension EmbraceStorage {
         if let date = date {
             request.predicate = NSPredicate(format: "endTime != nil AND endTime < %@", date as NSDate)
         } else {
-            request.predicate = NSPredicate(format: "endTime != nil")
+            request.predicate = NSPredicate(
+                format: "endTime != nil AND processIdRaw != %@",
+                ProcessIdentifier.current.hex)
         }
 
         coreData.deleteRecords(withRequest: request)

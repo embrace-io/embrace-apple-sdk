@@ -13,8 +13,10 @@ import EmbraceConfiguration
 
 final class CaptureServices {
 
-    @ThreadSafe
-    var services: [CaptureService]
+    private var _services: EmbraceMutex<[CaptureService]>
+    var services: [CaptureService] {
+        _services.safeValue
+    }
 
     var context: CrashReporterContext
     weak var crashReporter: CrashReporter?
@@ -31,7 +33,7 @@ final class CaptureServices {
 
         // add required capture services
         // and remove duplicates
-        services = CaptureServiceFactory.addRequiredServices(to: options.services.unique)
+        _services = EmbraceMutex(CaptureServiceFactory.addRequiredServices(to: options.services.unique))
 
         // create context for crash reporter
         let partitionIdentifier = options.appId ?? EmbraceFileSystem.defaultPartitionId
@@ -81,7 +83,7 @@ final class CaptureServices {
     // for testing
     init(config: EmbraceConfigurable?, services: [CaptureService], context: CrashReporterContext) {
         self.config = config
-        self.services = services
+        self._services = EmbraceMutex(services)
         self.context = context
     }
 

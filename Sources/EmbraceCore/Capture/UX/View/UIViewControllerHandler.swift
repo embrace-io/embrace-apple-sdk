@@ -105,8 +105,8 @@ class UIViewControllerHandler {
 
         // check if with need to measure time-to-render or time-to-interactive
         let nameFormat = vc is InteractableViewController ?
-            SpanSemantics.View.timeToInteractiveName :
-            SpanSemantics.View.timeToFirstRenderName
+        SpanSemantics.View.timeToInteractiveName :
+        SpanSemantics.View.timeToFirstRenderName
 
         queue.async {
             // generate parent span
@@ -313,7 +313,7 @@ class UIViewControllerHandler {
                 parentSpan.end(time: now)
                 self.clear(id: id)
 
-            // generate ui ready span
+                // generate ui ready span
             } else {
                 let span = self.createSpan(
                     with: otel,
@@ -332,7 +332,7 @@ class UIViewControllerHandler {
 
                     self.clear(id: id)
 
-                // otherwise we save it to close it later
+                    // otherwise we save it to close it later
                 } else {
                     self.uiReadySpans[id] = span
                 }
@@ -378,9 +378,9 @@ class UIViewControllerHandler {
                 parentSpan.end(time: now)
                 self.clear(id: id)
 
-            // otherwise it means the view is still loading, in this case we flag
-            // the view controller so we can close the spans as soon as
-            // viewDidAppear ends
+                // otherwise it means the view is still loading, in this case we flag
+                // the view controller so we can close the spans as soon as
+                // viewDidAppear ends
             } else {
                 self.alreadyFinishedUiReadyIds.insert(id)
             }
