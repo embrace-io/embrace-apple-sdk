@@ -5,7 +5,7 @@
 import XCTest
 import TestSupportObjc
 @testable import EmbraceCore
-@testable import EmbraceObjCUtilsInternal
+@testable @_implementationOnly import EmbraceObjCUtilsInternal
 
 /// The purpose of these tests is to verify that the forwarding mechanism in `URLSessionDelegateProxy` works correctly for cases where an object (aka `NSObject`)
 /// implements multiple methods (or responds to multiple selectors) of `NSURLSessionDelegate` but does not conform to the subprotocols (such as `NSURLSessionDataDelegate` or

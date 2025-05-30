@@ -4,7 +4,7 @@
 
 import Foundation
 @testable import EmbraceCore
-@testable import EmbraceObjCUtilsInternal
+@testable @_implementationOnly import EmbraceObjCUtilsInternal
 
 class MockURLSessionSwizzler: URLSessionSwizzler {
     // Random types and selector. This class shouldn't actually swizzle anything as methods are overriden.

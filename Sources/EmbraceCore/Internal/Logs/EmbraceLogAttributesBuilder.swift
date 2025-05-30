@@ -4,7 +4,7 @@
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceStorageInternal
-import EmbraceObjCUtilsInternal
+@_implementationOnly import EmbraceObjCUtilsInternal
 import EmbraceCommonInternal
 import EmbraceSemantics
 #endif

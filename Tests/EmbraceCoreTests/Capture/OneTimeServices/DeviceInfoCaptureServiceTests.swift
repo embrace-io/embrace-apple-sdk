@@ -5,7 +5,7 @@
 import XCTest
 @testable import EmbraceCore
 import EmbraceCommonInternal
-import EmbraceObjCUtilsInternal
+@_implementationOnly import EmbraceObjCUtilsInternal
 import EmbraceStorageInternal
 import OpenTelemetrySdk
 

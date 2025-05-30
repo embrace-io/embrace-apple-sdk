@@ -7,7 +7,7 @@ import EmbraceStorageInternal
 import OpenTelemetrySdk
 @testable import EmbraceCore
 import TestSupport
-import EmbraceObjCUtilsInternal
+@_implementationOnly import EmbraceObjCUtilsInternal
 
 class ResourcePayloadTests: XCTestCase {
     func test_encodeToJSONProperly() throws {
