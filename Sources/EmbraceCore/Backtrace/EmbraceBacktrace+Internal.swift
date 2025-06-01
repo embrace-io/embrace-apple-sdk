@@ -140,7 +140,7 @@ extension EmbraceBacktraceFrame {
         let symbolicatedFrame = EmbraceBacktraceFrame(
             address: UInt64(address),
             symbol: Symbol(
-                address: UInt64(result.symbolAddress),
+                address: result.symbolAddress,
                 name: symbolName
             ),
             image: imageName != nil ? Image(

@@ -38,13 +38,11 @@ let package = Package(
         .library(name: "EmbraceSemantics", targets: ["EmbraceSemantics"])
     ],
     dependencies: [
-        .package(path: "../KSCrash"),
-        /*
+        //.package(path: "../KSCrash"),
         .package(
              url: "https://github.com/kstenerud/KSCrash",
              exact: "2.2.0"
         ),
-         */
         .package(
             url: "https://github.com/open-telemetry/opentelemetry-swift",
             exact: "1.16.1"
