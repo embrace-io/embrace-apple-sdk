@@ -8,7 +8,7 @@ public struct EmbraceBacktraceFrame: Codable {
     public let address: UInt64
     
     public struct Symbol: Codable {
-        public let address: UInt64
+        public let address: UInt
         public let name: String
     }
     public let symbol: Symbol?
@@ -16,7 +16,7 @@ public struct EmbraceBacktraceFrame: Codable {
     public struct Image: Codable {
         public let uuid: String
         public let name: String
-        public let address: UInt64
+        public let address: UInt
         public let size: UInt64
     }
     public let image: Image?
@@ -47,13 +47,14 @@ public enum EmbraceBacktraceTimestampUnits: String, Codable {
 extension EmbraceBacktraceTimestampUnits: Sendable {}
 
 public struct EmbraceBacktrace: Codable {
-    public let timestampUnits: EmbraceBacktraceTimestampUnits = .nanoseconds
+    public let timestampUnits: EmbraceBacktraceTimestampUnits
     public let timestamp: UInt64
     public let threads: [EmbraceBacktraceThread]
 
     /// Call this to take a stacktrace of the passed in thread.
     static func backtrace(of thread: pthread_t) -> EmbraceBacktrace {
         EmbraceBacktrace(
+            timestampUnits: .nanoseconds,
             timestamp: clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW),
             threads: takeSnapshot(of: thread)
         )
