@@ -62,7 +62,7 @@ extension Speedscope {
 
 extension Array {
     func flatten() -> [Element] {
-        flatMap { $0 }
+        compactMap { $0 }
     }
 }
 
