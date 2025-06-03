@@ -24,4 +24,11 @@ public extension SpanSemantics {
         public static let keyViewTitle = "view.title"
         public static let keyViewName = "view.name"
     }
+    
+    struct SwiftUIView {
+        public static let viewLoadName = "swiftui-view-ui-load"
+        public static let initToOnAppearName = "init-to-appear"
+        public static let firstRenderCycleName = "first-render-cycle"
+        public static let bodyExecutionName = "body-execution"
+    }
 }
