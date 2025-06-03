@@ -7,7 +7,7 @@ import Foundation
 import EmbraceCommonInternal
 import EmbraceOTelInternal
 import EmbraceSemantics
-import EmbraceObjCUtilsInternal
+@_implementationOnly import EmbraceObjCUtilsInternal
 #endif
 import OpenTelemetryApi
 

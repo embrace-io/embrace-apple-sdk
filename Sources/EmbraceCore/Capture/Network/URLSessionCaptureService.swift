@@ -6,7 +6,7 @@ import Foundation
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCaptureService
 import EmbraceCommonInternal
-import EmbraceObjCUtilsInternal
+@_implementationOnly import EmbraceObjCUtilsInternal
 #endif
 
 typealias URLSessionCompletion = (Data?, URLResponse?, Error?) -> Void

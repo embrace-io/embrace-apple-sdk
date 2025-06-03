@@ -8,9 +8,9 @@ import EmbraceCommonInternal
 #endif
 
 #if canImport(KSCrashRecording)
-    import KSCrashRecording
+    @_implementationOnly import KSCrashRecording
 #elseif canImport(KSCrash)
-    import KSCrash
+    @_implementationOnly import KSCrash
 #endif
 
 /// Default `CrashReporter` used by the Embrace SDK.
