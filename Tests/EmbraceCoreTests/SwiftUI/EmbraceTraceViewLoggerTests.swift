@@ -7,15 +7,15 @@ import EmbraceOTelInternal
 import OpenTelemetryApi
 import OpenTelemetrySdk
 
-final class EmbraceTracePhaseTests: XCTestCase {
+final class EmbraceTraceViewLoggerTests: XCTestCase {
     
     var spanProcessor: MockSpanProcessor!
-    var phase: EmbraceTracePhase!
+    var phase: EmbraceTraceViewLogger!
     
     override func setUpWithError() throws {
         spanProcessor = MockSpanProcessor()
         EmbraceOTel.setup(spanProcessors: [spanProcessor])
-        phase = EmbraceTracePhase(otel: MockEmbraceOpenTelemetry(), logger: MockLogger(), config: MockEmbraceConfigurable(isSwiftUiViewInstrumentationEnabled: true))
+        phase = EmbraceTraceViewLogger(otel: MockEmbraceOpenTelemetry(), logger: MockLogger(), config: MockEmbraceConfigurable(isSwiftUiViewInstrumentationEnabled: true))
     }
     
     override func tearDownWithError() throws {
