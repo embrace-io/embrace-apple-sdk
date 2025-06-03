@@ -48,6 +48,6 @@ final class ResourceStorageExporterTests: XCTestCase {
             .compactMap { $0 }
             .joined(separator: ":")
         XCTAssertEqual(resource.attributes["service.name"], .string(serviceName))
-		XCTAssertEqual(resource.attributes["service.version"], .string(Bundle.main.infoDictionary!["CFBundleShortVersionString"] as! String))
+        XCTAssertEqual(resource.attributes["service.version"], .string(Bundle.main.infoDictionary!["CFBundleShortVersionString"] as! String))
     }
 }

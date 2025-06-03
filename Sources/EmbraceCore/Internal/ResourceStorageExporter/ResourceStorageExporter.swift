@@ -48,8 +48,8 @@ class ResourceStorageExporter: EmbraceResourceProvider {
         }
 
         if attributes[ResourceAttributes.serviceVersion.rawValue] == nil, let appVersion = EMBDevice.appVersion {
-	            attributes[ResourceAttributes.serviceVersion.rawValue] = .string(appVersion)
-	}
+                attributes[ResourceAttributes.serviceVersion.rawValue] = .string(appVersion)
+        }
 
         if attributes[ResourceAttributes.telemetrySdkLanguage.rawValue] == nil {
             attributes[ResourceAttributes.telemetrySdkLanguage.rawValue] = .string("swift")
