@@ -101,6 +101,7 @@
 		4D6338722DE1157700557BDC /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4D6337D62DE1157700557BDC /* Preview Assets.xcassets */; };
 		4D6338732DE1157700557BDC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4D6338232DE1157700557BDC /* Assets.xcassets */; };
 		4D6338752DE1157700557BDC /* URLRequestMethod.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337FF2DE1157700557BDC /* URLRequestMethod.swift */; };
+		4DAF52012DEA51970025F669 /* EmbraceIOTestPostedPayloads.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DAF52002DEA51870025F669 /* EmbraceIOTestPostedPayloads.swift */; };
 		4DF12A332D302CBE00C93E62 /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4DF12A322D302CBE00C93E62 /* EmbraceCore */; };
 		4DF12A352D302CBE00C93E62 /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = 4DF12A342D302CBE00C93E62 /* EmbraceCrash */; };
 		4DF12A372D302CBE00C93E62 /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 4DF12A362D302CBE00C93E62 /* EmbraceCrashlyticsSupport */; };
@@ -204,6 +205,7 @@
 		4D6338252DE1157700557BDC /* EmbraceIOTestAppApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbraceIOTestAppApp.swift; sourceTree = "<group>"; };
 		4D6338262DE1157700557BDC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		4D94F2532D429257008DECEE /* EmbraceIOTestAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EmbraceIOTestAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		4DAF52002DEA51870025F669 /* EmbraceIOTestPostedPayloads.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbraceIOTestPostedPayloads.swift; sourceTree = "<group>"; };
 		4DF12A202D302C3200C93E62 /* EmbraceIOTestApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = EmbraceIOTestApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -251,6 +253,7 @@
 		4D6337A62DE1157200557BDC /* EmbraceIOTestAppUITests */ = {
 			isa = PBXGroup;
 			children = (
+				4DAF52002DEA51870025F669 /* EmbraceIOTestPostedPayloads.swift */,
 				4D63379F2DE1157200557BDC /* Common */,
 				4D6337A02DE1157200557BDC /* EmbraceIOTestCrashesUITests.swift */,
 				4D6337A12DE1157200557BDC /* EmbraceIOTestLogsUITests.swift */,
@@ -847,6 +850,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4DAF52012DEA51970025F669 /* EmbraceIOTestPostedPayloads.swift in Sources */,
 				4D6337A72DE1157200557BDC /* Extensions.swift in Sources */,
 				4D6337A82DE1157200557BDC /* EmbraceIOTestCrashesUITests.swift in Sources */,
 				4D6337A92DE1157200557BDC /* EmbraceIOTestLogsUITests.swift in Sources */,

@@ -54,6 +54,9 @@ struct UploadedSessionPayloadUIComponent: View {
                     viewModel.dataCollector = dataCollector
                 }
         }
+        .onAppear(){
+            viewModel.refresh()
+        }
     }
 }
 

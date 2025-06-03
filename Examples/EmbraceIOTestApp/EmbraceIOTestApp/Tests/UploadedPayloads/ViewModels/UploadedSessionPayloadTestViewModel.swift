@@ -42,6 +42,8 @@ class UploadedSessionPayloadTestViewModel: UIComponentViewModelBase {
         self.selectedSessionId = ""
         super.init(dataModel: dataModel, payloadTestObject: testObject)
         currentSessionId = Embrace.client?.currentSessionId()
+        updatedExportedSessions()
+
         NotificationCenter.default.addObserver(forName: .init("NetworkingSwizzle.CapturedNewPayload"), object: nil, queue: nil) { [weak self] _ in
             self?.updatedExportedSessions()
         }
@@ -53,6 +55,10 @@ class UploadedSessionPayloadTestViewModel: UIComponentViewModelBase {
         NotificationCenter.default.addObserver(forName: .embraceSessionWillEnd, object: nil, queue: nil) { [weak self] _ in
             self?.currentSessionId = nil
         }
+    }
+
+    func refresh() {
+        updatedExportedSessions()
     }
 
     private func updatedExportedSessions() {
