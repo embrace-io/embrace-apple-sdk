@@ -21,6 +21,8 @@ public struct RemoteConfigPayload: Decodable, Equatable {
     var metricKitCrashSignals: [String]
     var metricKitHangCaptureEnabled: Bool
 
+    var swiftUiViewInstrumentationEnabled: Bool
+    
     var internalLogsTraceLimit: Int
     var internalLogsDebugLimit: Int
     var internalLogsInfoLimit: Int
@@ -43,6 +45,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         }
 
         case uiLoadInstrumentationEnabled = "ui_load_instrumentation_enabled_v2"
+        case swiftUiViewInstrumentationEnabled = "swift_ui_view_instrumentation_enabled"
 
         case metricKitEnabledThreshold = "metrickit_v2_pct_enabled"
         case metricKitReportersEnabled = "metrickit_v2_reporters_enabled"
@@ -103,7 +106,13 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             Bool.self,
             forKey: .uiLoadInstrumentationEnabled
         ) ?? defaultPayload.uiLoadInstrumentationEnabled
-
+        
+        // SwiftUI View instrumentation
+        swiftUiViewInstrumentationEnabled = try rootContainer.decodeIfPresent(
+            Bool.self,
+            forKey: .swiftUiViewInstrumentationEnabled
+        ) ?? defaultPayload.swiftUiViewInstrumentationEnabled
+        
         // internal logs limit
         if rootContainer.contains(.internalLogLimits) {
             let internalLogsLimitsContainer = try rootContainer.nestedContainer(
@@ -189,6 +198,8 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         metricKitCrashSignals = [CrashSignal.SIGKILL.stringValue]
         metricKitHangCaptureEnabled = false
 
+        swiftUiViewInstrumentationEnabled = true
+        
         internalLogsTraceLimit = 0
         internalLogsDebugLimit = 0
         internalLogsInfoLimit = 0
