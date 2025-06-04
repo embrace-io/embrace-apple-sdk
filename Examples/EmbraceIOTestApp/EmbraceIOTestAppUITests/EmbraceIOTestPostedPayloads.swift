@@ -42,7 +42,21 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
         return isEnabled
     }
 
+    private func addPersona() {
+        app.buttons["MetadataLifespan_session"].tap()
+        app.buttons["SessionTests_Personas_AddButton"].tap()
+    }
+
     func testSendFinishedSessionSpan() {
+        sleep(5)
+        backgroundAndReopenApp()
+        XCTAssertTrue(runSessionSpanTest(), "Test Button wait for enabled timed out")
+
+        evaluateTestResults(app)
+    }
+
+    func testSendFinishedSessionSpan_withPersona() {
+        addPersona()
         sleep(5)
         backgroundAndReopenApp()
         XCTAssertTrue(runSessionSpanTest(), "Test Button wait for enabled timed out")
