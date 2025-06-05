@@ -58,9 +58,12 @@ internal class EmbraceTraceViewData {
     /// - Note: Created lazily when the first child span is added
     private var rootSpan: Span? = nil
     
-    /// Span that measures the time from view initialization to first appearance
-    /// - Note: Automatically ended when `onAppear` is called
-    private var initToAppearSpan: Span? = nil
+    private var onAppearBlocks: [String: () -> Void] = [:]
+    private var onDisappearBlocks: [String: () -> Void] = [:]
+    private var onBodyBlocks: [String: () -> Void] = [:]
+    
+    private var inSession: Bool = false
+    private var sessionObservers: [Any] = []
     
     // MARK: - Performance Counters
     
@@ -95,6 +98,27 @@ internal class EmbraceTraceViewData {
     init(name: String, attributes: [String: String]?) {
         self.name = name
         self.attributes = attributes
+        self.inSession = logger.sessionId != nil
+        
+        sessionObservers.append(
+            NotificationCenter.default.addObserver(
+                forName: .embraceSessionDidStart,
+                object: nil,
+                queue: nil)
+            { [weak self] _ in
+                self?.sessionDidStart()
+            }
+        )
+        
+        sessionObservers.append(
+            NotificationCenter.default.addObserver(
+                forName: .embraceSessionWillEnd,
+                object: nil,
+                queue: nil)
+            { [weak self] _ in
+                self?.sessionWillEnd()
+            }
+        )
     }
     
     /// Cleanup method that ensures all spans are properly ended.
@@ -105,6 +129,27 @@ internal class EmbraceTraceViewData {
     /// - App backgrounding
     /// - Unexpected view hierarchy changes
     deinit {
+        sessionObservers.forEach {
+            NotificationCenter.default.removeObserver($0)
+        }
+        endAllSpans()
+    }
+}
+
+// MARK: - Session Management
+
+extension EmbraceTraceViewData {
+ 
+    func sessionDidStart() {
+        inSession = true
+    }
+    
+    func sessionWillEnd() {
+        inSession = false
+        endAllSpans()
+    }
+    
+    func endAllSpans() {
         // Clean up any remaining active spans
         spans.forEach { logger.endSpan($0, errorCode: .unknown) }
         spans.removeAll()
@@ -128,11 +173,22 @@ extension EmbraceTraceViewData {
     /// - Parameter span: The span to add (ignored if nil)
     ///
     /// - Note: This method should only be called with spans that are already started
-    func add(_ span: Span?) {
-        guard let span else { return }
+    func _add(make rootIfNeeded: Bool = true, _ block: () -> Span?) -> Span? {
+        guard inSession else {
+            print("not currently in a session")
+            return nil
+        }
         
-        startRootSpanIfNeeded()
+        if rootIfNeeded {
+            startRootSpanIfNeeded()
+        } else if rootSpan == nil {
+            print("root span == nil but asked to not create it")
+        }
+        guard let span = block() else {
+            return nil
+        }
         spans.append(span)
+        return span
     }
     
     /// Removes a span from the active tracking list and handles root span cleanup.
@@ -147,8 +203,10 @@ extension EmbraceTraceViewData {
     ///   - errorCode: Optional error code to record on the root span
     ///
     /// - Note: This method should only be called with spans that are already ended
-    func remove(_ span: Span?, errorCode: SpanErrorCode? = nil) {
+    func _remove(_ span: Span?, time: Date? = nil, errorCode: SpanErrorCode? = nil) {
         guard let span else { return }
+        
+        logger.endSpan(span, time: time, errorCode: errorCode)
         
         // Find and remove the span by comparing span IDs
         if let index = spans.firstIndex(where: { span.context.spanId.hexString == $0.context.spanId.hexString}) {
@@ -172,6 +230,11 @@ extension EmbraceTraceViewData {
     ///   the root span on the first call.
     private func startRootSpanIfNeeded() {
         guard rootSpan == nil else { return }
+        
+        guard inSession else {
+            print("not currently in a session")
+            return
+        }
         
         rootSpan = logger.startSpan(
             name,
@@ -197,10 +260,35 @@ extension EmbraceTraceViewData {
     func onAppear() {
         counters.appear += 1
         
-        // End the initialization timing span
-        logger.endSpan(initToAppearSpan)
-        remove(initToAppearSpan)
-        initToAppearSpan = nil
+        // Start an appear span, and end
+        // it after the next run loop to ensure we
+        // get all other appearances within it
+        let span = _add(make: false) {
+            logger.startSpan(
+                name,
+                semantics: SpanSemantics.SwiftUIView.onAppearName,
+                time: nil,
+                attributes: attributes
+            )
+        }
+        if let span {
+            RunLoop.main.perform(inModes: [.common]) { [weak self] in
+                self?._remove(span)
+            }
+        }
+
+        let blocks = Array(onAppearBlocks.values)
+        blocks.forEach { $0() }
+    }
+    
+    func addOnAppearBlock(_ action: @escaping () -> Void) -> String {
+        let id = UUID().uuidString
+        onAppearBlocks[id] = action
+        return id
+    }
+    
+    func removeOnAppearBlock(_ id: String) {
+        onAppearBlocks.removeValue(forKey: id)
     }
     
     /// Handles the SwiftUI `onDisappear` lifecycle event.
@@ -209,6 +297,36 @@ extension EmbraceTraceViewData {
     /// might add spans for measuring time spent visible or cleanup operations.
     func onDisappear() {
         counters.disappear += 1
+        
+        // Start a disappear span, and end
+        // it after the next run loop to ensure we
+        // get all other appearances within it
+        let span = _add(make: false) {
+            logger.startSpan(
+                name,
+                semantics: SpanSemantics.SwiftUIView.onDisappearName,
+                time: nil,
+                attributes: attributes
+            )
+        }
+        if let span {
+            RunLoop.main.perform(inModes: [.common]) { [weak self] in
+                self?._remove(span)
+            }
+        }
+        
+        let blocks = Array(onDisappearBlocks.values)
+        blocks.forEach { $0() }
+    }
+    
+    func addOnDisappearBlock(_ action: @escaping () -> Void) -> String {
+        let id = UUID().uuidString
+        onDisappearBlocks[id] = action
+        return id
+    }
+    
+    func removeOnDisappearBlock(_ id: String) {
+        onDisappearBlocks.removeValue(forKey: id)
     }
     
     /// Instruments the SwiftUI view body evaluation with performance tracing.
@@ -230,43 +348,43 @@ extension EmbraceTraceViewData {
         let time = Date()
         counters.bodyCount += 1
         
-        // Special handling for the first render cycle
-        if counters.bodyCount == 1 {
-            if let span = logger.startSpan(
+        // Create a span for this specific body evaluation
+        let span = _add {
+            logger.startSpan(
                 name,
-                semantics: SpanSemantics.SwiftUIView.firstRenderCycleName,
+                semantics: SpanSemantics.SwiftUIView.bodyExecutionName,
                 time: time,
                 parent: rootSpan,
-                attributes: attributes)
-            {
-                add(span)
-                
-                // End the first render span on the next run loop to capture
-                // the complete render cycle including layout and drawing
-                RunLoop.main.perform(inModes: [.common]) { [self] in
-                    logger.endSpan(span)
-                    remove(span)
-                }
-            }
+                attributes: attributes
+            )
         }
-        
-        // Create a span for this specific body evaluation
-        let span = logger.startSpan(
-            name,
-            semantics: SpanSemantics.SwiftUIView.bodyExecutionName,
-            time: time,
-            parent: rootSpan,
-            attributes: attributes
-        )
-        add(span)
-        
+
         // Ensure the span is ended when this method returns
         defer {
-            logger.endSpan(span)
-            remove(span)
+            _remove(span)
+
+            // run body bloks
+            let blocks = Array(onBodyBlocks.values)
+            blocks.forEach { $0() }
         }
         
+        #if DEBUG
+        if Bool.random() {
+            Thread.sleep(forTimeInterval: TimeInterval.random(in: 0...2))
+        }
+        #endif
+        
         return body()
+    }
+    
+    func addOnBodyBlock(_ action: @escaping () -> Void) -> String {
+        let id = UUID().uuidString
+        onBodyBlocks[id] = action
+        return id
+    }
+    
+    func removeOnBodyBlock(_ id: String) {
+        onBodyBlocks.removeValue(forKey: id)
     }
     
     /// Handles view initialization and starts timing the initialization period.
@@ -280,20 +398,57 @@ extension EmbraceTraceViewData {
     ///   but never displayed, which can indicate performance issues or unused views.
     func onViewInit() {
         counters.initialized += 1
-        
-        // Only start timing on the first initialization
-        guard counters.initialized == 1 else {
+
+        // Start timing how long it takes from init to first appearance
+        var span = _add {
+            logger.startSpan(
+                name,
+                semantics: SpanSemantics.SwiftUIView.initToBodyName,
+                time: nil,
+                parent: rootSpan,
+                attributes: attributes
+            )
+        }
+        guard span != nil else {
             return
         }
+
+        // make sure we remove this on appear,
+        var appearedDuringWaitAfterOnBody: Bool = false
+        var onAppearId: String?  = nil
+        onAppearId = addOnAppearBlock {
+            [weak self] in
+            guard let self else {
+                print("onViewInit, weak self is gone")
+                return
+            }
+            appearedDuringWaitAfterOnBody = true
+            removeOnAppearBlock(onAppearId ?? "")
+        }
         
-        // Start timing how long it takes from init to first appearance
-        initToAppearSpan = logger.startSpan(
-            name,
-            semantics: SpanSemantics.SwiftUIView.initToOnAppearName,
-            time: nil,
-            parent: rootSpan,
-            attributes: attributes
-        )
-        add(initToAppearSpan)
+        var id: String? = nil
+        id = addOnBodyBlock {
+            [weak self] in
+            guard let self else {
+                print("onViewInit, weak self is gone")
+                return
+            }
+            guard span != nil else {
+                print("onViewInit, span already ended, did this happen twice?")
+                return
+            }
+            
+            // store the back date in case we don't have an appearance
+            let time = Date()
+            
+            // we want to tryand get the appear if we can
+            // otherwise, backdate it to the body block.
+            RunLoop.main.perform(inModes: [.common]) {
+                self._remove(span, time: appearedDuringWaitAfterOnBody ? nil : time)
+                self.removeOnBodyBlock(id ?? "")
+                self.removeOnAppearBlock(onAppearId ?? "")
+                span = nil
+            }
+        }
     }
 }
