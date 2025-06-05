@@ -1,4 +1,5 @@
 //
+//  EmbraceTraceViewLogger.swift
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
@@ -11,6 +12,7 @@ import EmbraceConfiguration
 #endif
 import OpenTelemetryApi
 
+/// The environment key for injecting `EmbraceTraceViewLogger` into SwiftUI's `EnvironmentValues`.
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
 private struct EmbraceTraceViewLoggerEnvironmentKey: EnvironmentKey {
     static let defaultValue: EmbraceTraceViewLogger = EmbraceTraceViewLogger(
@@ -23,66 +25,56 @@ private struct EmbraceTraceViewLoggerEnvironmentKey: EnvironmentKey {
 
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
 extension EnvironmentValues {
+    /// Provides the singleton `EmbraceTraceViewLogger` used by `EmbraceTraceView`.
     var embraceTraceViewLogger: EmbraceTraceViewLogger {
         get { self[EmbraceTraceViewLoggerEnvironmentKey.self] }
         set { self[EmbraceTraceViewLoggerEnvironmentKey.self] = newValue }
     }
 }
 
-/// Manages span creation and lifecycle for SwiftUI view instrumentation.
+/// Manages OpenTelemetry span creation and lifecycle specifically for SwiftUI view tracing.
 ///
-/// This class serves as the central coordinator for all SwiftUI tracing operations,
-/// providing a clean interface between the SwiftUI instrumentation code and the
-/// underlying OpenTelemetry infrastructure.
+/// - Responsibilities:
+///   1. Check feature flags to determine if tracing is enabled.
+///   2. Start and end spans on the main queue to capture timing for view body evaluations,
+///      appear/disappear events, and render cycles.
+///   3. Provide “cycled spans” that automatically terminate at the next run loop tick, so child
+///      spans can be created within the same render cycle.
 ///
-/// ## Responsibilities
-/// - Creating properly configured OpenTelemetry spans for view events
-/// - Enforcing main thread execution for UI tracing operations
-/// - Managing configuration and feature flags for tracing
-/// - Providing consistent span naming and attributes
-///
-/// ## Thread Safety
-/// All public methods enforce main thread execution via `dispatchPrecondition`.
-/// This ensures that span operations are thread-safe and don't interfere with
-/// SwiftUI's main thread requirements.
-///
-/// ## Configuration
-/// Tracing can be enabled/disabled at runtime via the `EmbraceConfigurable`
-/// configuration object. When disabled, all span operations become no-ops.
+/// If any dependency (OTel client, configuration, etc.) is absent, tracing is effectively disabled.
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
 final internal class EmbraceTraceViewLogger {
     
-    // MARK: - Properties
+    // MARK: – Properties
     
-    /// The OpenTelemetry client used to create and manage spans
+    /// The OpenTelemetry client instance, used to build and start spans.
     internal let otel: EmbraceOpenTelemetry?
     
-    /// Internal logger for diagnostic messages and error reporting
+    /// Internal logger for debug/error reporting related to span creation.
     internal let logger: InternalLogger?
     
-    /// Configuration object that controls feature flags and behavior
+    /// Configuration controlling feature flags, such as whether SwiftUI view tracing is on.
     internal let config: EmbraceConfigurable?
-
-    /// Provider to get the current session id, or nil if none
+    
+    /// A closure that returns the current session ID (or `nil` if no session).
     internal let sessionIdProvider: () -> String?
     
-    // MARK: - Lifecycle
+    // MARK: – Initialization
     
-    /// Initializes a new trace logger instance.
+    /// Initializes a new `EmbraceTraceViewLogger`. Must be invoked on the main queue.
     ///
     /// - Parameters:
-    ///   - otel: The OpenTelemetry client for span operations (nil disables tracing)
-    ///   - logger: Internal logger for diagnostics (nil disables debug logging)
-    ///   - config: Configuration object for feature flags (nil disables tracing)
+    ///   - otel: The `EmbraceOpenTelemetry` client, or `nil` if not available.
+    ///   - logger: The internal diagnostic logger, or `nil`.
+    ///   - config: The configuration object controlling feature flags.
+    ///   - sessionIdProvider: Closure to fetch the current session ID.
     ///
-    /// - Precondition: Must be called on the main thread to ensure proper initialization
-    ///   in the UI context.
-    ///
-    /// - Note: Any nil dependencies will result in tracing being disabled for this instance.
-    init(otel: EmbraceOpenTelemetry?,
-         logger: InternalLogger?,
-         config: EmbraceConfigurable?,
-         sessionIdProvider: @escaping () -> String?
+    /// If `otel` or `config` is `nil`, tracing calls become no-ops.
+    init(
+        otel: EmbraceOpenTelemetry?,
+        logger: InternalLogger?,
+        config: EmbraceConfigurable?,
+        sessionIdProvider: @escaping () -> String?
     ) {
         dispatchPrecondition(condition: .onQueue(.main))
         self.otel = otel
@@ -91,59 +83,35 @@ final internal class EmbraceTraceViewLogger {
         self.sessionIdProvider = sessionIdProvider
     }
     
-    /// Validates cleanup and ensures no pending spans remain.
-    ///
-    /// - Precondition: Must be called on the main thread for consistency with
-    ///   other operations.
-    ///
-    /// - Note: In production, this deinit should rarely be called since the
-    ///   shared instance typically lives for the entire app lifecycle.
     deinit {
         dispatchPrecondition(condition: .onQueue(.main))
     }
 }
 
-// MARK: - Session Management
+// MARK: – Session Management
 
 extension EmbraceTraceViewLogger {
+    /// Returns the current session ID from the provider, or `nil` if none.
     var sessionId: String? {
         sessionIdProvider()
     }
 }
 
-// MARK: - Span Management
+// MARK: – Span Management
 
 extension EmbraceTraceViewLogger {
     
-    /// Creates and starts a new OpenTelemetry span for SwiftUI view instrumentation.
-    ///
-    /// This method handles the complete span creation pipeline:
-    /// 1. Validates that tracing is enabled and dependencies are available
-    /// 2. Configures the span with appropriate metadata and naming
-    /// 3. Sets up parent-child relationships for proper trace hierarchy
-    /// 4. Returns a started span ready for use
-    ///
-    /// ## Span Naming Convention
-    /// Spans are named using the format: `[viewName]-semanticType`
-    /// - Example: `[LoginScreen]-body-execution`
-    /// - Example: `[ProductCard]-first-render-cycle`
-    ///
-    /// ## Configuration Checks
-    /// - Returns `nil` if SwiftUI view instrumentation is disabled
-    /// - Returns `nil` if OpenTelemetry client is unavailable
-    /// - Logs appropriate debug messages for disabled states
+    /// Starts a new OpenTelemetry span for a SwiftUI view event.
     ///
     /// - Parameters:
-    ///   - name: The view name identifier
-    ///   - semantics: The semantic type of span (from SpanSemantics.SwiftUIView)
-    ///   - time: Optional start time (uses current time if nil)
-    ///   - parent: Optional parent span for hierarchy (creates root span if nil)
-    ///   - attributes: Optional metadata dictionary to attach to the span
-    ///   - function: Calling function name for debugging (automatically captured)
+    ///   - name: The logical name of the view (same as passed to `EmbraceTraceView`).
+    ///   - semantics: The semantic suffix (e.g., `"body"` or `"appear"`) used in span naming.
+    ///   - time: Optional custom start time (defaults to `Date()`).
+    ///   - parent: Optional parent span, so that child spans nest properly.
+    ///   - attributes: Optional key/value metadata for enriching the span.
+    ///   - function: Automatically captures the calling function name (for debug logs).
     ///
-    /// - Returns: A started OpenTelemetry span, or nil if tracing is disabled/unavailable
-    ///
-    /// - Precondition: Must be called on the main thread
+    /// - Returns: The started `Span`, or `nil` if tracing is disabled or the OTel client is missing.
     func startSpan(
         _ name: String,
         semantics: String,
@@ -151,23 +119,23 @@ extension EmbraceTraceViewLogger {
         parent: Span? = nil,
         attributes: [String: String]? = nil,
         _ function: StaticString = #function
-    ) -> OpenTelemetryApi.Span? {
+    ) -> Span? {
         
         dispatchPrecondition(condition: .onQueue(.main))
         
-        // Check if SwiftUI view instrumentation is enabled
+        // Verify feature flag is on
         guard let config, config.isSwiftUiViewInstrumentationEnabled else {
-            logger?.debug("SwiftUI View tracing is disabled, we won't be logging from EmbraceTraceViewLogger.")
+            logger?.debug("SwiftUI view tracing is disabled. Skipping EmbraceTraceViewLogger.startSpan.")
             return nil
         }
         
-        // Verify OpenTelemetry client availability
+        // Verify OpenTelemetry client
         guard let client = otel else {
-            logger?.debug("OTel client is unavailable, we won't be logging from EmbraceTraceViewLogger.")
+            logger?.debug("OTel client unavailable. Skipping EmbraceTraceViewLogger.startSpan.")
             return nil
         }
         
-        // Build the span with proper configuration
+        // Build the span with full name: "swiftui.view.<viewName>.<semantics>"
         let builder = client.buildSpan(
             name: "swiftui.view.\(name).\(semantics)",
             type: SpanType.viewLoad,
@@ -175,50 +143,50 @@ extension EmbraceTraceViewLogger {
             autoTerminationCode: nil
         )
         
-        // Set custom start time if provided
-        if let time {
-            builder.setStartTime(time: time)
+        if let customTime = time {
+            builder.setStartTime(time: customTime)
         }
         
-        // Establish parent-child relationship if parent provided
-        if let parent {
-            builder.setParent(parent)
+        if let parentSpan = parent {
+            builder.setParent(parentSpan)
         }
-
+        
         return builder.startSpan()
     }
     
-    /// Ends a span with optional error information.
-    ///
-    /// This method safely ends a span and handles error recording if needed.
-    /// It includes comprehensive error handling to ensure that span operations
-    /// don't crash the app even if the span is in an unexpected state.
-    ///
-    /// ## Error Handling
-    /// - Gracefully handles nil spans (no-op)
-    /// - Records error codes on the span if provided
-    /// - Ensures span is properly closed even in error conditions
+    /// Ends the given span, optionally recording an error code.
     ///
     /// - Parameters:
-    ///   - span: The span to end (ignored if nil)
-    ///   - errorCode: Optional error code to record on the span
-    ///   - function: Calling function name for debugging (automatically captured)
-    ///
-    /// - Precondition: Must be called on the main thread
-    ///
-    /// - Note: It's safe to call this method multiple times on the same span -
-    ///   subsequent calls will be ignored by the OpenTelemetry implementation.
+    ///   - span: The `Span` to end (ignored if `nil`).
+    ///   - time: Optional explicit end time (defaults to `Date()`).
+    ///   - errorCode: Optional error code to attach to the span.
+    ///   - function: Automatically captures the calling function name (for debug logs).
     func endSpan(
-        _ span: OpenTelemetryApi.Span?,
+        _ span: Span?,
         time: Date? = nil,
         errorCode: SpanErrorCode? = nil,
         _ function: StaticString = #function
     ) {
         dispatchPrecondition(condition: .onQueue(.main))
-        guard let span else { return }
+        guard let span = span else { return }
         span.end(errorCode: errorCode, time: time ?? Date())
     }
     
+    /// Creates a span that automatically ends on the next main run loop tick.
+    ///
+    /// Useful when you want to wrap child spans that occur within the same render cycle.
+    /// The provided `completed` closure executes after ending this parent span.
+    ///
+    /// - Parameters:
+    ///   - name: Logical view name (same as passed to `EmbraceTraceView`).
+    ///   - semantics: Semantic suffix (e.g., `"cycle"`).
+    ///   - time: Optional custom start time (defaults to `Date()`).
+    ///   - parent: Optional parent span to nest under.
+    ///   - attributes: Optional metadata dictionary.
+    ///   - function: Automatically captures the calling function name (for debug logs).
+    ///   - completed: Closure that runs after span termination on next run loop tick.
+    ///
+    /// - Returns: The started `Span`, or `nil` if tracing is disabled or no OTel client.
     func cycledSpan(
         _ name: String,
         semantics: String,
@@ -227,23 +195,24 @@ extension EmbraceTraceViewLogger {
         attributes: [String: String]? = nil,
         _ function: StaticString = #function,
         _ completed: @escaping () -> Void
-    ) -> OpenTelemetryApi.Span? {
-        let span = startSpan(
+    ) -> Span? {
+        guard let span = startSpan(
             name,
             semantics: semantics,
             time: time,
             parent: parent,
             attributes: attributes,
-            function)
-        if let span {
-            // we want to jump to the next tick in the run loop
-            // in order for this span to possible capture children
-            // from within this run loop tick.
-            RunLoop.main.perform(inModes: [.common]) { [self] in
-                endSpan(span)
-                completed()
-            }
+            function
+        ) else {
+            return nil
         }
+        
+        // Schedule end-of-span on next main run loop cycle so child spans can attach
+        RunLoop.main.perform(inModes: [.common]) { [self] in
+            endSpan(span)
+            completed()
+        }
+        
         return span
     }
 }
