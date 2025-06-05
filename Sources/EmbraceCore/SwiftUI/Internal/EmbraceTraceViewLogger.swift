@@ -49,7 +49,8 @@ final internal class EmbraceTraceViewLogger {
     static let shared = EmbraceTraceViewLogger(
         otel: Embrace.client,
         logger: Embrace.logger,
-        config: Embrace.client?.config?.configurable
+        config: Embrace.client?.config?.configurable,
+        sessionIdBlock: { Embrace.client?.currentSessionId() }
     )
     
     // MARK: - Properties
@@ -62,6 +63,9 @@ final internal class EmbraceTraceViewLogger {
     
     /// Configuration object that controls feature flags and behavior
     internal let config: EmbraceConfigurable?
+
+    /// Block to get the current session id, or nil if none
+    internal let sessionIdBlock: () -> String?
     
     // MARK: - Lifecycle
     
@@ -76,11 +80,16 @@ final internal class EmbraceTraceViewLogger {
     ///   in the UI context.
     ///
     /// - Note: Any nil dependencies will result in tracing being disabled for this instance.
-    init(otel: EmbraceOpenTelemetry?, logger: InternalLogger?, config: EmbraceConfigurable?) {
+    init(otel: EmbraceOpenTelemetry?,
+         logger: InternalLogger?,
+         config: EmbraceConfigurable?,
+         sessionIdBlock: @escaping () -> String?
+    ) {
         dispatchPrecondition(condition: .onQueue(.main))
         self.otel = otel
         self.logger = logger
         self.config = config
+        self.sessionIdBlock = sessionIdBlock
     }
     
     /// Validates cleanup and ensures no pending spans remain.
@@ -92,6 +101,14 @@ final internal class EmbraceTraceViewLogger {
     ///   shared instance typically lives for the entire app lifecycle.
     deinit {
         dispatchPrecondition(condition: .onQueue(.main))
+    }
+}
+
+// MARK: - Session Management
+
+extension EmbraceTraceViewLogger {
+    var sessionId: String? {
+        sessionIdBlock()
     }
 }
 
@@ -169,7 +186,16 @@ extension EmbraceTraceViewLogger {
             builder.setParent(parent)
         }
         
-        return builder.startSpan()
+        let span = builder.startSpan()
+        
+        Collector.shared.startSpan(
+            id: span.context.spanId.hexString,
+            name: span.name,
+            time: time,
+            parentId: parent?.context.spanId.hexString
+        )
+        
+        return span
     }
     
     /// Ends a span with optional error information.
@@ -194,6 +220,7 @@ extension EmbraceTraceViewLogger {
     ///   subsequent calls will be ignored by the OpenTelemetry implementation.
     func endSpan(
         _ span: OpenTelemetryApi.Span?,
+        time: Date? = nil,
         errorCode: SpanErrorCode? = nil,
         _ function: StaticString = #function
     ) {
@@ -204,6 +231,8 @@ extension EmbraceTraceViewLogger {
             return
         }
         
-        span.end(errorCode: errorCode)
+        span.end(errorCode: errorCode, time: time ?? Date())
+        
+        Collector.shared.endSpan(id: span.context.spanId.hexString)
     }
 }
