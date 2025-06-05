@@ -2,9 +2,7 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
-import QuartzCore
-
+import SwiftUI
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
 import EmbraceSemantics
@@ -12,6 +10,24 @@ import EmbraceOTelInternal
 import EmbraceConfiguration
 #endif
 import OpenTelemetryApi
+
+@available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
+private struct EmbraceTraceViewLoggerEnvironmentKey: EnvironmentKey {
+    static let defaultValue: EmbraceTraceViewLogger = EmbraceTraceViewLogger(
+        otel: Embrace.client,
+        logger: Embrace.logger,
+        config: Embrace.client?.config?.configurable,
+        sessionIdProvider: { Embrace.client?.currentSessionId() }
+    )
+}
+
+@available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
+extension EnvironmentValues {
+    var embraceTraceViewLogger: EmbraceTraceViewLogger {
+        get { self[EmbraceTraceViewLoggerEnvironmentKey.self] }
+        set { self[EmbraceTraceViewLoggerEnvironmentKey.self] = newValue }
+    }
+}
 
 /// Manages span creation and lifecycle for SwiftUI view instrumentation.
 ///
@@ -36,23 +52,6 @@ import OpenTelemetryApi
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
 final internal class EmbraceTraceViewLogger {
     
-    // MARK: - Singleton
-    
-    /// Shared singleton instance used throughout the app for SwiftUI tracing.
-    ///
-    /// The singleton pattern ensures:
-    /// - Consistent configuration across all traced views
-    /// - Efficient resource usage
-    /// - Centralized span management
-    ///
-    /// - Note: Initialized with the global Embrace client configuration
-    static let shared = EmbraceTraceViewLogger(
-        otel: Embrace.client,
-        logger: Embrace.logger,
-        config: Embrace.client?.config?.configurable,
-        sessionIdBlock: { Embrace.client?.currentSessionId() }
-    )
-    
     // MARK: - Properties
     
     /// The OpenTelemetry client used to create and manage spans
@@ -64,8 +63,8 @@ final internal class EmbraceTraceViewLogger {
     /// Configuration object that controls feature flags and behavior
     internal let config: EmbraceConfigurable?
 
-    /// Block to get the current session id, or nil if none
-    internal let sessionIdBlock: () -> String?
+    /// Provider to get the current session id, or nil if none
+    internal let sessionIdProvider: () -> String?
     
     // MARK: - Lifecycle
     
@@ -83,13 +82,13 @@ final internal class EmbraceTraceViewLogger {
     init(otel: EmbraceOpenTelemetry?,
          logger: InternalLogger?,
          config: EmbraceConfigurable?,
-         sessionIdBlock: @escaping () -> String?
+         sessionIdProvider: @escaping () -> String?
     ) {
         dispatchPrecondition(condition: .onQueue(.main))
         self.otel = otel
         self.logger = logger
         self.config = config
-        self.sessionIdBlock = sessionIdBlock
+        self.sessionIdProvider = sessionIdProvider
     }
     
     /// Validates cleanup and ensures no pending spans remain.
@@ -108,7 +107,7 @@ final internal class EmbraceTraceViewLogger {
 
 extension EmbraceTraceViewLogger {
     var sessionId: String? {
-        sessionIdBlock()
+        sessionIdProvider()
     }
 }
 
@@ -170,7 +169,7 @@ extension EmbraceTraceViewLogger {
         
         // Build the span with proper configuration
         let builder = client.buildSpan(
-            name: "[\(name)]-\(semantics)",
+            name: "swiftui.view.\(name).\(semantics)",
             type: SpanType.viewLoad,
             attributes: attributes ?? [:],
             autoTerminationCode: nil
@@ -185,17 +184,8 @@ extension EmbraceTraceViewLogger {
         if let parent {
             builder.setParent(parent)
         }
-        
-        let span = builder.startSpan()
-        
-        Collector.shared.startSpan(
-            id: span.context.spanId.hexString,
-            name: span.name,
-            time: time,
-            parentId: parent?.context.spanId.hexString
-        )
-        
-        return span
+
+        return builder.startSpan()
     }
     
     /// Ends a span with optional error information.
@@ -224,15 +214,36 @@ extension EmbraceTraceViewLogger {
         errorCode: SpanErrorCode? = nil,
         _ function: StaticString = #function
     ) {
-        
         dispatchPrecondition(condition: .onQueue(.main))
-        
-        guard let span else {
-            return
-        }
-        
+        guard let span else { return }
         span.end(errorCode: errorCode, time: time ?? Date())
-        
-        Collector.shared.endSpan(id: span.context.spanId.hexString)
+    }
+    
+    func cycledSpan(
+        _ name: String,
+        semantics: String,
+        time: Date? = nil,
+        parent: Span? = nil,
+        attributes: [String: String]? = nil,
+        _ function: StaticString = #function,
+        _ completed: @escaping () -> Void
+    ) -> OpenTelemetryApi.Span? {
+        let span = startSpan(
+            name,
+            semantics: semantics,
+            time: time,
+            parent: parent,
+            attributes: attributes,
+            function)
+        if let span {
+            // we want to jump to the next tick in the run loop
+            // in order for this span to possible capture children
+            // from within this run loop tick.
+            RunLoop.main.perform(inModes: [.common]) { [self] in
+                endSpan(span)
+                completed()
+            }
+        }
+        return span
     }
 }

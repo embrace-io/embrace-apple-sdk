@@ -26,10 +26,9 @@ public extension SpanSemantics {
     }
     
     struct SwiftUIView {
-        public static let viewLoadName = "swiftui-view-load"
-        public static let initToBodyName = "init-to-body"
-        public static let onAppearName = "on-appear"
-        public static let onDisappearName = "on-disappear"
-        public static let bodyExecutionName = "body-execution"
+        public static let cycleName = "cycle"
+        public static let appearName = "appear"
+        public static let disappearName = "disappear"
+        public static let bodyName = "body"
     }
 }
