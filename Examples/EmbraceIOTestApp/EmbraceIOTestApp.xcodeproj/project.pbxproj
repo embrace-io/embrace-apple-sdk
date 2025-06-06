@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4D03F6E02DF2545600475383 /* UploadedSessionPayloadTestUserInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D03F6DF2DF2544600475383 /* UploadedSessionPayloadTestUserInfoView.swift */; };
+		4D03F6E32DF36F6F00475383 /* UserInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D03F6E22DF36F5A00475383 /* UserInfo.swift */; };
 		4D372B242DF0B12E00B1D1E1 /* UploadedSessionPayloadTestPersonasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D372B232DF0B11E00B1D1E1 /* UploadedSessionPayloadTestPersonasView.swift */; };
 		4D61D1B72DE0BA750048B5E2 /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4D61D1B62DE0BA750048B5E2 /* EmbraceCore */; };
 		4D61D1B92DE0BA750048B5E2 /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = 4D61D1B82DE0BA750048B5E2 /* EmbraceCrash */; };
@@ -121,6 +123,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		4D03F6DF2DF2544600475383 /* UploadedSessionPayloadTestUserInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadedSessionPayloadTestUserInfoView.swift; sourceTree = "<group>"; };
+		4D03F6E22DF36F5A00475383 /* UserInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserInfo.swift; sourceTree = "<group>"; };
 		4D372B232DF0B11E00B1D1E1 /* UploadedSessionPayloadTestPersonasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadedSessionPayloadTestPersonasView.swift; sourceTree = "<group>"; };
 		4D63379E2DE1157200557BDC /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		4D6337A02DE1157200557BDC /* EmbraceIOTestCrashesUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbraceIOTestCrashesUITests.swift; sourceTree = "<group>"; };
@@ -244,6 +248,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		4D03F6E12DF36F4C00475383 /* Supporting */ = {
+			isa = PBXGroup;
+			children = (
+				4D03F6E22DF36F5A00475383 /* UserInfo.swift */,
+			);
+			path = Supporting;
+			sourceTree = "<group>";
+		};
 		4D372B222DEFD2AD00B1D1E1 /* Views */ = {
 			isa = PBXGroup;
 			children = (
@@ -647,6 +659,7 @@
 		4D63381A2DE1157700557BDC /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				4D03F6DF2DF2544600475383 /* UploadedSessionPayloadTestUserInfoView.swift */,
 				4D6338192DE1157700557BDC /* UploadedSessionPayloadUIComponent.swift */,
 				4D372B232DF0B11E00B1D1E1 /* UploadedSessionPayloadTestPersonasView.swift */,
 			);
@@ -656,6 +669,7 @@
 		4D63381C2DE1157700557BDC /* UploadedPayloads */ = {
 			isa = PBXGroup;
 			children = (
+				4D03F6E12DF36F4C00475383 /* Supporting */,
 				4D6338162DE1157700557BDC /* Tests */,
 				4D6338182DE1157700557BDC /* ViewModels */,
 				4D63381A2DE1157700557BDC /* Views */,
@@ -910,6 +924,7 @@
 				4D6338462DE1157700557BDC /* TestReportCardItemView.swift in Sources */,
 				4D6338472DE1157700557BDC /* TestReportCardSectionsView.swift in Sources */,
 				4D6338482DE1157700557BDC /* TestReportCard.swift in Sources */,
+				4D03F6E02DF2545600475383 /* UploadedSessionPayloadTestUserInfoView.swift in Sources */,
 				4D6338492DE1157700557BDC /* TestMenuHeaderView.swift in Sources */,
 				4D63384A2DE1157700557BDC /* TestSideMenuListItem.swift in Sources */,
 				4D63384B2DE1157700557BDC /* TestMenuOptionDataModel.swift in Sources */,
@@ -951,6 +966,7 @@
 				4D63386E2DE1157700557BDC /* ViewControllerViewDidLoadTest.swift in Sources */,
 				4D63386F2DE1157700557BDC /* ViewControllerTestsDataModel.swift in Sources */,
 				4D6338702DE1157700557BDC /* ContentView.swift in Sources */,
+				4D03F6E32DF36F6F00475383 /* UserInfo.swift in Sources */,
 				4D6338712DE1157700557BDC /* EmbraceIOTestAppApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

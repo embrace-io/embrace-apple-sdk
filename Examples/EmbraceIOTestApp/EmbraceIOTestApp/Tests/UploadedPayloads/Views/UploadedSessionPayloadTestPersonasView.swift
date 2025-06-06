@@ -16,29 +16,30 @@ struct UploadedSessionPayloadTestPersonasView: View {
 
     var body: some View {
         VStack(alignment: .leading) {
-            HStack {
-                Spacer()
-                Text("Persona")
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 80)
-                TextField("Testing", text: $persona)
-                    .font(.embraceFont(size: 18))
-                    .foregroundStyle(.embraceSilver)
-                    .padding([.leading, .trailing,], 5)
-                    .textFieldStyle(RoundedStyle())
-                    .accessibilityIdentifier("SessionTests_Persona")
-            }
-            Section("Lifespan") {
-                Picker("", selection: $lifespan) {
-                    ForEach(MetadataLifespan.allCases, id: \.self) { option in
-                        Text(option.text)
-                            .accessibilityIdentifier(option.identifier)
-                            .tag(option)
-                    }
+            Text("Persona")
+                .font(.embraceFont(size: 15))
+                .foregroundStyle(.embraceSteel)
+                .padding([.leading, .bottom], 5)
+            TextField("Testing", text: $persona)
+                .font(.embraceFont(size: 18))
+                .foregroundStyle(.embraceSilver)
+                .padding([.leading, .trailing,], 5)
+                .textFieldStyle(RoundedStyle())
+                .accessibilityIdentifier("SessionTests_Persona")
+                .padding(.bottom, 5)
+            Text("Lifespan")
+                .font(.embraceFont(size: 15))
+                .foregroundStyle(.embraceSteel)
+                .padding([.leading, .bottom], 5)
+            Picker("", selection: $lifespan) {
+                ForEach(MetadataLifespan.allCases, id: \.self) { option in
+                    Text(option.text)
+                        .accessibilityIdentifier(option.identifier)
+                        .tag(option)
                 }
-                .pickerStyle(SegmentedPickerStyle())
-                .padding(.bottom, 20)
             }
+            .pickerStyle(SegmentedPickerStyle())
+            .padding(.bottom, 20)
             HStack {
                 Spacer()
                 Button {

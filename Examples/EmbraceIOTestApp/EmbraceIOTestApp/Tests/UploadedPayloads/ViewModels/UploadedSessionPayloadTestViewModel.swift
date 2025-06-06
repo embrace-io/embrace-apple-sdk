@@ -11,6 +11,7 @@ import EmbraceCore
 class UploadedSessionPayloadTestViewModel: UIComponentViewModelBase {
     private var testObject: UploadedSessionPayloadTest
     private var personasBySessionId: Dictionary<String, Set<String>> = [:]
+    private var userInfoBySessionId: Dictionary<String, UserInfo> = [:]
 
     private(set) var exportedAndPostedSessions: [String] = [] {
         didSet {
@@ -37,12 +38,34 @@ class UploadedSessionPayloadTestViewModel: UIComponentViewModelBase {
         exportedAndPostedSessions.isEmpty
     }
 
+    var userInfoUsername: String = "" {
+        didSet {
+            Embrace.client?.metadata.userName = userInfoUsername.isEmpty ? nil : userInfoUsername
+            updatedUserInfo()
+        }
+    }
+
+    var userInfoEmail: String = ""{
+        didSet {
+            Embrace.client?.metadata.userEmail = userInfoEmail.isEmpty ? nil : userInfoEmail
+            updatedUserInfo()
+        }
+    }
+
+    var userInfoIdentifier: String = ""{
+        didSet {
+            Embrace.client?.metadata.userIdentifier = userInfoIdentifier.isEmpty ? nil : userInfoIdentifier
+            updatedUserInfo()
+        }
+    }
+
     init(dataModel: any TestScreenDataModel) {
         let testObject = UploadedSessionPayloadTest()
         self.testObject = testObject
         self.selectedSessionId = ""
         super.init(dataModel: dataModel, payloadTestObject: testObject)
         currentSessionId = Embrace.client?.currentSessionId()
+        readUserInfoFromEmbrace()
         updatedExportedSessions()
 
         NotificationCenter.default.addObserver(forName: .init("NetworkingSwizzle.CapturedNewPayload"), object: nil, queue: nil) { [weak self] _ in
@@ -60,12 +83,23 @@ class UploadedSessionPayloadTestViewModel: UIComponentViewModelBase {
 
     func refresh() {
         updatedExportedSessions()
+        readUserInfoFromEmbrace()
         Embrace.client?.metadata.getCurrentPersonas {  [weak self] (personas: [String]) in
             guard let self = self else { return }
             personas.forEach { persona in
                 self.addPersonaToCurrentSession(persona)
             }
         }
+    }
+
+    func clearAllUserInfo() {
+        guard let currentSessionId = currentSessionId else { return }
+
+        Embrace.client?.metadata.clearUserProperties()
+        userInfoUsername = ""
+        userInfoEmail = ""
+        userInfoIdentifier = ""
+        userInfoBySessionId[currentSessionId] = nil
     }
 
     func addedNewPersona(_ persona: String, lifespan: MetadataLifespan) {
@@ -84,6 +118,25 @@ class UploadedSessionPayloadTestViewModel: UIComponentViewModelBase {
         personasBySessionId[currentSessionId] = []
     }
 
+    private func readUserInfoFromEmbrace() {
+        guard let currentSessionId = currentSessionId else { return }
+        let username = Embrace.client?.metadata.userName
+        let email = Embrace.client?.metadata.userEmail
+        let identifier = Embrace.client?.metadata.userIdentifier
+
+        self.userInfoUsername = username ?? ""
+        self.userInfoEmail = email ?? ""
+        self.userInfoIdentifier = identifier ?? ""
+
+        userInfoBySessionId[currentSessionId] = .init(username: username, email: email, identifier: identifier)
+    }
+
+    private func updatedUserInfo() {
+        guard let currentSessionId = currentSessionId else { return }
+
+        userInfoBySessionId[currentSessionId] = .init(username: userInfoUsername, email: userInfoEmail, identifier: userInfoIdentifier)
+    }
+
     private func updatedExportedSessions() {
         let postedSessionIds = dataCollector?.networkSpy?.postedJsonsSessionIds ?? []
         let exportedSessionIds = dataCollector?.networkSpy?.exportedSpansBySession.keys.map { String($0) } ?? []
@@ -93,6 +146,7 @@ class UploadedSessionPayloadTestViewModel: UIComponentViewModelBase {
     override func testButtonPressed() {
         guard let networkSpy = dataCollector?.networkSpy else { return }
         testObject.personas = Array(personasBySessionId[selectedSessionId, default:[]])
+        testObject.userInfo = userInfoBySessionId[selectedSessionId] ?? .init()
         super.testButtonPressed()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
             guard let self = self else { return }
