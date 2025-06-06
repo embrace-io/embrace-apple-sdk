@@ -12,6 +12,7 @@
 #import "EMBURLSessionDelegateForwarder.h"
 #import "EMBURLSessionDelegateProxy.h"
 #import "EMBWKNavigationDelegateProxy.h"
+#import "EMBURLSessionDelegateProxyFunctions.h"
 
 #import "EMBLoaderClass.h"
 #import "EMBDisplayLinkProxy.h"
