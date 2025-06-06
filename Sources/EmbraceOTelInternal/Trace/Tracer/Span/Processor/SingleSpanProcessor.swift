@@ -67,13 +67,6 @@ public class SingleSpanProcessor: SpanProcessor {
         processorQueue.async {
             _ = exporter.export(spans: [data])
         }
-        
-        Collector.shared.startSpan(
-            id: data.spanId.hexString,
-            name: data.name,
-            time: data.startTime,
-            parentId: data.parentSpanId?.hexString
-        )
     }
 
     public func onEnd(span: OpenTelemetrySdk.ReadableSpan) {
@@ -93,8 +86,6 @@ public class SingleSpanProcessor: SpanProcessor {
         processorQueue.async {
             _ = self.spanExporter.export(spans: [data])
         }
-        
-        Collector.shared.endSpan(id: data.spanId.hexString, time: data.endTime)
     }
 
     public func flush(span: OpenTelemetrySdk.ReadableSpan) {
