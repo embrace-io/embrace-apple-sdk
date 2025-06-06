@@ -56,17 +56,20 @@ public extension Embrace.Options {
     ///   - appId: The `appId` of the project.
     ///   - appGroupId: The app group identifier used by the app, if any.
     ///   - platform: `Platform` in which the app will run. Defaults to `.iOS`.
+    ///   - processors: Extra `OpenTelemetryProcessor`s to include.
     @objc convenience init(
         appId: String,
         appGroupId: String? = nil,
-        platform: Platform = .default
+        platform: Platform = .default,
+        processors: [OpenTelemetryProcessor]? = nil
     ) {
         self.init(
             appId: appId,
             appGroupId: appGroupId,
             platform: platform,
             captureServices: .automatic,
-            crashReporter: EmbraceCrashReporter()
+            crashReporter: EmbraceCrashReporter(),
+            processors: processors
         )
     }
 
