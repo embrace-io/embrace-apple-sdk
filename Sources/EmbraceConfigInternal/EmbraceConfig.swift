@@ -90,26 +90,44 @@ public class EmbraceConfig {
 
 extension EmbraceConfig /* EmbraceConfigurable delegation */ {
     public var isSDKEnabled: Bool {
-        return configurable.isSDKEnabled
+        configurable.isSDKEnabled
     }
 
     public var isBackgroundSessionEnabled: Bool {
-        return configurable.isBackgroundSessionEnabled
+        configurable.isBackgroundSessionEnabled
     }
 
     public var isNetworkSpansForwardingEnabled: Bool {
-        return configurable.isNetworkSpansForwardingEnabled
+        configurable.isNetworkSpansForwardingEnabled
     }
 
     public var isUiLoadInstrumentationEnabled: Bool {
-        return configurable.isUiLoadInstrumentationEnabled
+        configurable.isUiLoadInstrumentationEnabled
+    }
+
+    public var isMetrickKitEnabled: Bool {
+        configurable.isMetricKitEnabled
+    }
+
+    public var isMetricKitCrashCaptureEnabled: Bool {
+        configurable.isMetricKitCrashCaptureEnabled
+    }
+
+    public var metricKitCrashSignals: [CrashSignal] {
+        configurable.metricKitCrashSignals.compactMap {
+            CrashSignal.from(string: $0)
+        }
+    }
+
+    public var isMetricKitHangCaptureEnabled: Bool {
+        configurable.isMetricKitHangCaptureEnabled
     }
 
     public var internalLogLimits: InternalLogLimits {
-        return configurable.internalLogLimits
+         configurable.internalLogLimits
     }
 
     public var networkPayloadCaptureRules: [NetworkPayloadCaptureRule] {
-        return configurable.networkPayloadCaptureRules
+        configurable.networkPayloadCaptureRules
     }
 }
