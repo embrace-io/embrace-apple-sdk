@@ -15,7 +15,12 @@ final class EmbraceTraceViewLoggerTests: XCTestCase {
     override func setUpWithError() throws {
         spanProcessor = MockSpanProcessor()
         EmbraceOTel.setup(spanProcessors: [spanProcessor])
-        phase = EmbraceTraceViewLogger(otel: MockEmbraceOpenTelemetry(), logger: MockLogger(), config: MockEmbraceConfigurable(isSwiftUiViewInstrumentationEnabled: true))
+        phase = EmbraceTraceViewLogger(
+            otel: MockEmbraceOpenTelemetry(),
+            logger: MockLogger(),
+            config: MockEmbraceConfigurable(isSwiftUiViewInstrumentationEnabled: true),
+            sessionIdProvider: { "0" }
+        )
     }
     
     override func tearDownWithError() throws {
