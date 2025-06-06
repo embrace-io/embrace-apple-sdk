@@ -13,6 +13,8 @@ class UploadedSessionPayloadTest: PayloadTest {
 
     var sessionIdToTest: String = ""
     var personas: [String] = []
+    var userInfo: UserInfo = .init()
+
     func test(networkSwizzle: NetworkingSwizzle) -> TestReport {
         var testItems = [TestReportItem]()
 
@@ -45,6 +47,18 @@ class UploadedSessionPayloadTest: PayloadTest {
                 }
             } else {
                 testItems.append(.init(target: "Personas Array", expected: "Found", recorded: "Missing"))
+            }
+            if !(userInfo.username ?? "").isEmpty {
+                let username = metadataJson?["username"] as? String
+                testItems.append(.init(target: "UserInfo Username", expected: userInfo.username, recorded: username))
+            }
+            if !(userInfo.email ?? "").isEmpty {
+                let email = metadataJson?["email"] as? String
+                testItems.append(.init(target: "UserInfo Email", expected: userInfo.email, recorded: email))
+            }
+            if !(userInfo.identifier ?? "").isEmpty {
+                let user_id = metadataJson?["user_id"] as? String
+                testItems.append(.init(target: "UserInfo Identifier", expected: userInfo.identifier, recorded: user_id))
             }
         }
 
