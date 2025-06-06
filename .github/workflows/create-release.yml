@@ -206,6 +206,7 @@ jobs:
     timeout-minutes: 5
     needs:
       - create_github_release 
+      - push_podspec
       - extractor
     env:
       RC_VERSION: ${{ needs.extractor.outputs.rc_version }}
@@ -218,7 +219,7 @@ jobs:
           platform: 'ios'
           version: ${{ needs.extractor.outputs.rc_version }}
           dryRun: false
-          sdkVersionUrl: ${{ vars.SDK_VERSION_URL }}
+          uploadUrl: ${{ vars.SDK_VERSION_URL }}
         env:
           SDK_VERSION_TOKEN: ${{ secrets.SDK_VERSION_TOKEN }}
 
