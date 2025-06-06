@@ -2,7 +2,7 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-#import <UIKit/Uikit.h>
+#import <UIKit/UIKit.h>
 #import "EMBDisplayLinkProxy.h"
 #import "EMBStartupTracker.h"
 

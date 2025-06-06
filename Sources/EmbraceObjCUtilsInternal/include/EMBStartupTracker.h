@@ -13,17 +13,17 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, strong) NSDate *constructorClosestToMainTime;
 
 @property (nonatomic, strong, nullable) NSDate *firstFrameTime;
-@property (nonatomic, copy, nullable) void (^onFirstFrameTimeSet)(NSDate *);
+@property (nonatomic, copy, nullable) void (^onFirstFrameTimeSet)(NSDate * _Nonnull);
 
 @property (nonatomic, strong, nullable) NSDate *appDidFinishLaunchingEndTime;
-@property (nonatomic, copy, nullable) void (^onAppDidFinishLaunchingEndTimeSet)(NSDate *);
+@property (nonatomic, copy, nullable) void (^onAppDidFinishLaunchingEndTimeSet)(NSDate * _Nonnull);
 
 @property (nonatomic, strong, nullable) NSDate *sdkSetupStartTime;
 @property (nonatomic, strong, nullable) NSDate *sdkSetupEndTime;
 @property (nonatomic, strong, nullable) NSDate *sdkStartStartTime;
 @property (nonatomic, strong, nullable) NSDate *sdkStartEndTime;
 
-@property (nonatomic, weak) NSNotificationCenter *internalNotificationCenter;
+@property (nonatomic, weak, nullable) NSNotificationCenter *internalNotificationCenter;
 
 + (instancetype)shared;
 

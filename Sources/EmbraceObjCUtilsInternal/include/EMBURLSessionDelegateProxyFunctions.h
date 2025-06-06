@@ -28,109 +28,109 @@ NS_ASSUME_NONNULL_BEGIN
 #define STREAMTASK_BECOME_STREAMS @selector(URLSession:streamTask:didBecomeInputStream:outputStream:)
 
 
-void proxy_URLSession_task_willPerformHTTPRedirection(id self, SEL _cmd,
-                                                      NSURLSession *session,
-                                                      NSURLSessionTask *task,
-                                                      NSHTTPURLResponse *response,
-                                                      NSURLRequest *request,
-                                                      void (^completionHandler)(NSURLRequest *));
+void proxy_URLSession_task_willPerformHTTPRedirection(id _Nonnull self, SEL _Nonnull _cmd,
+                                                      NSURLSession * _Nonnull session,
+                                                      NSURLSessionTask * _Nonnull task,
+                                                      NSHTTPURLResponse * _Nonnull response,
+                                                      NSURLRequest * _Nonnull request,
+                                                      void (^ _Nonnull completionHandler)(NSURLRequest * _Nullable));
 
-void proxy_URLSession_didReceiveChallenge(id self, SEL _cmd,
-                                          NSURLSession *session,
-                                          NSURLAuthenticationChallenge *challenge,
-                                          void (^completionHandler)(NSURLSessionAuthChallengeDisposition disposition, NSURLCredential * _Nullable credential));
+void proxy_URLSession_didReceiveChallenge(id _Nonnull self, SEL _Nonnull _cmd,
+                                          NSURLSession * _Nonnull session,
+                                          NSURLAuthenticationChallenge * _Nonnull challenge,
+                                          void (^ _Nonnull completionHandler)(NSURLSessionAuthChallengeDisposition disposition, NSURLCredential * _Nullable credential));
 
-void proxy_URLSessionDidFinishEventsForBackgroundURLSession(id self, SEL _cmd,
-                                                            NSURLSession *session);
+void proxy_URLSessionDidFinishEventsForBackgroundURLSession(id _Nonnull self, SEL _Nonnull _cmd,
+                                                            NSURLSession * _Nonnull session);
 
-void proxy_URLSession_didCreateTask(id self, SEL _cmd,
-                                    NSURLSession *session,
-                                    NSURLSessionTask *task);
+void proxy_URLSession_didCreateTask(id _Nonnull self, SEL _Nonnull _cmd,
+                                    NSURLSession * _Nonnull session,
+                                    NSURLSessionTask * _Nonnull task);
 
-void proxy_URLSession_task_willBeginDelayedRequest(id self, SEL _cmd,
-                                                   NSURLSession *session,
-                                                   NSURLSessionTask *task,
-                                                   NSURLRequest *request,
-                                                   void (^completionHandler)(NSURLSessionDelayedRequestDisposition disposition, NSURLRequest * _Nullable newRequest));
+void proxy_URLSession_task_willBeginDelayedRequest(id _Nonnull self, SEL _Nonnull _cmd,
+                                                   NSURLSession * _Nonnull session,
+                                                   NSURLSessionTask * _Nonnull task,
+                                                   NSURLRequest * _Nonnull request,
+                                                   void (^ _Nonnull completionHandler)(NSURLSessionDelayedRequestDisposition disposition, NSURLRequest * _Nullable newRequest));
 
-void proxy_URLSession_taskIsWaitingForConnectivity(id self, SEL _cmd,
-                                                   NSURLSession *session,
-                                                   NSURLSessionTask *task);
+void proxy_URLSession_taskIsWaitingForConnectivity(id _Nonnull self, SEL _Nonnull _cmd,
+                                                   NSURLSession * _Nonnull session,
+                                                   NSURLSessionTask * _Nonnull task);
 
-void proxy_URLSession_task_didReceiveChallenge(id self, SEL _cmd,
-                                               NSURLSession *session,
-                                               NSURLSessionTask *task,
-                                               NSURLAuthenticationChallenge *challenge,
-                                               void (^completionHandler)(NSURLSessionAuthChallengeDisposition disposition, NSURLCredential * _Nullable credential));
+void proxy_URLSession_task_didReceiveChallenge(id _Nonnull self, SEL _Nonnull _cmd,
+                                               NSURLSession * _Nonnull session,
+                                               NSURLSessionTask * _Nonnull task,
+                                               NSURLAuthenticationChallenge * _Nonnull challenge,
+                                               void (^ _Nonnull completionHandler)(NSURLSessionAuthChallengeDisposition disposition, NSURLCredential * _Nullable credential));
 
-void proxy_URLSession_task_needNewBodyStream(id self, SEL _cmd,
-                                             NSURLSession *session,
-                                             NSURLSessionTask *task,
-                                             void (^completionHandler)(NSInputStream * _Nullable bodyStream));
+void proxy_URLSession_task_needNewBodyStream(id _Nonnull self, SEL _Nonnull _cmd,
+                                             NSURLSession * _Nonnull session,
+                                             NSURLSessionTask * _Nonnull task,
+                                             void (^ _Nonnull completionHandler)(NSInputStream * _Nullable bodyStream));
 
-void proxy_URLSession_task_needNewBodyStreamFromOffset(id self, SEL _cmd,
-                                                       NSURLSession *session,
-                                                       NSURLSessionTask *task,
+void proxy_URLSession_task_needNewBodyStreamFromOffset(id _Nonnull self, SEL _Nonnull _cmd,
+                                                       NSURLSession * _Nonnull session,
+                                                       NSURLSessionTask * _Nonnull task,
                                                        int64_t offset,
-                                                       void (^completionHandler)(NSInputStream * _Nullable bodyStream));
+                                                       void (^ _Nonnull completionHandler)(NSInputStream * _Nullable bodyStream));
 
-void proxy_URLSession_task_didSendBodyData(id self, SEL _cmd,
-                                           NSURLSession *session,
-                                           NSURLSessionTask *task,
+void proxy_URLSession_task_didSendBodyData(id _Nonnull self, SEL _Nonnull _cmd,
+                                           NSURLSession * _Nonnull session,
+                                           NSURLSessionTask * _Nonnull task,
                                            int64_t bytesSent,
                                            int64_t totalBytesSent,
                                            int64_t totalBytesExpectedToSend);
 
-void proxy_URLSession_task_didReceiveInformationalResponse(id self, SEL _cmd,
-                                                           NSURLSession *session,
-                                                           NSURLSessionTask *task,
-                                                           NSHTTPURLResponse *response);
+void proxy_URLSession_task_didReceiveInformationalResponse(id _Nonnull self, SEL _Nonnull _cmd,
+                                                           NSURLSession * _Nonnull session,
+                                                           NSURLSessionTask * _Nonnull task,
+                                                           NSHTTPURLResponse * _Nonnull response);
 
-void proxy_URLSession_dataTask_didBecomeDownloadTask(id self, SEL _cmd,
-                                                     NSURLSession *session,
-                                                     NSURLSessionDataTask *dataTask,
-                                                     NSURLSessionDownloadTask *downloadTask);
+void proxy_URLSession_dataTask_didBecomeDownloadTask(id _Nonnull self, SEL _Nonnull _cmd,
+                                                     NSURLSession * _Nonnull session,
+                                                     NSURLSessionDataTask * _Nonnull dataTask,
+                                                     NSURLSessionDownloadTask * _Nonnull downloadTask);
 
-void proxy_URLSession_dataTask_didBecomeStreamTask(id self, SEL _cmd,
-                                                   NSURLSession *session,
-                                                   NSURLSessionDataTask *dataTask,
-                                                   NSURLSessionStreamTask *streamTask);
+void proxy_URLSession_dataTask_didBecomeStreamTask(id _Nonnull self, SEL _Nonnull _cmd,
+                                                   NSURLSession * _Nonnull session,
+                                                   NSURLSessionDataTask * _Nonnull dataTask,
+                                                   NSURLSessionStreamTask * _Nonnull streamTask);
 
-void proxy_URLSession_dataTask_willCacheResponse(id self, SEL _cmd,
-                                                 NSURLSession *session,
-                                                 NSURLSessionDataTask *dataTask,
-                                                 NSCachedURLResponse *proposedResponse,
-                                                 void (^completionHandler)(NSCachedURLResponse * _Nullable cachedResponse));
+void proxy_URLSession_dataTask_willCacheResponse(id _Nonnull self, SEL _Nonnull _cmd,
+                                                 NSURLSession * _Nonnull session,
+                                                 NSURLSessionDataTask * _Nonnull dataTask,
+                                                 NSCachedURLResponse * _Nonnull proposedResponse,
+                                                 void (^ _Nonnull completionHandler)(NSCachedURLResponse * _Nullable cachedResponse));
 
-void proxy_URLSession_downloadTask_didWriteData(id self, SEL _cmd,
-                                                NSURLSession *session,
-                                                NSURLSessionDownloadTask *downloadTask,
+void proxy_URLSession_downloadTask_didWriteData(id _Nonnull self, SEL _Nonnull _cmd,
+                                                NSURLSession * _Nonnull session,
+                                                NSURLSessionDownloadTask * _Nonnull downloadTask,
                                                 int64_t bytesWritten,
                                                 int64_t totalBytesWritten,
                                                 int64_t totalBytesExpectedToWrite);
 
-void proxy_URLSession_downloadTask_didResumeAtOffset(id self, SEL _cmd,
-                                                     NSURLSession *session,
-                                                     NSURLSessionDownloadTask *downloadTask,
+void proxy_URLSession_downloadTask_didResumeAtOffset(id _Nonnull self, SEL _Nonnull _cmd,
+                                                     NSURLSession * _Nonnull session,
+                                                     NSURLSessionDownloadTask * _Nonnull downloadTask,
                                                      int64_t fileOffset,
                                                      int64_t expectedTotalBytes);
 
-void proxy_URLSession_readClosedForStreamTask(id self, SEL _cmd,
-                                              NSURLSession *session,
-                                              NSURLSessionStreamTask *streamTask);
+void proxy_URLSession_readClosedForStreamTask(id _Nonnull self, SEL _Nonnull _cmd,
+                                              NSURLSession * _Nonnull session,
+                                              NSURLSessionStreamTask * _Nonnull streamTask);
 
-void proxy_URLSession_writeClosedForStreamTask(id self, SEL _cmd,
-                                               NSURLSession *session,
-                                               NSURLSessionStreamTask *streamTask);
+void proxy_URLSession_writeClosedForStreamTask(id _Nonnull self, SEL _Nonnull _cmd,
+                                               NSURLSession * _Nonnull session,
+                                               NSURLSessionStreamTask * _Nonnull streamTask);
 
-void proxy_URLSession_betterRouteDiscoveredForStreamTask(id self, SEL _cmd,
-                                                         NSURLSession *session,
-                                                         NSURLSessionStreamTask *streamTask);
+void proxy_URLSession_betterRouteDiscoveredForStreamTask(id _Nonnull self, SEL _Nonnull _cmd,
+                                                         NSURLSession * _Nonnull session,
+                                                         NSURLSessionStreamTask * _Nonnull streamTask);
 
-void proxy_URLSession_streamTask_didBecomeInputStream_outputStream(id self, SEL _cmd,
-                                                                   NSURLSession *session,
-                                                                   NSURLSessionStreamTask *streamTask,
-                                                                   NSInputStream *inputStream,
-                                                                   NSOutputStream *outputStream);
+void proxy_URLSession_streamTask_didBecomeInputStream_outputStream(id _Nonnull self, SEL _Nonnull _cmd,
+                                                                   NSURLSession * _Nonnull session,
+                                                                   NSURLSessionStreamTask * _Nonnull streamTask,
+                                                                   NSInputStream * _Nonnull inputStream,
+                                                                   NSOutputStream * _Nonnull outputStream);
 
 NS_ASSUME_NONNULL_END
