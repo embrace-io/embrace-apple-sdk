@@ -4,7 +4,7 @@
 
 #if canImport(WebKit)
 @testable import EmbraceCore
-@testable import EmbraceObjCUtilsInternal
+@testable @_implementationOnly import EmbraceObjCUtilsInternal
 import WebKit
 import XCTest
 import TestSupport

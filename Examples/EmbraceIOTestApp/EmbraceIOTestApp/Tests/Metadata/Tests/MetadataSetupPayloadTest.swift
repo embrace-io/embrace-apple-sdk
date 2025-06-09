@@ -7,7 +7,7 @@
 import OpenTelemetrySdk
 
 class MetadataSetupPayloadTest: PayloadTest {
-    var testRelevantPayloadNames: [String] { ["emb-setup"] }
+    var testRelevantPayloadNames: [String] { ["emb-app-pre-main-init"] }
     var requiresCleanup: Bool { false }
     var runImmediatelyIfSpansFound: Bool { true }
     var testType: TestType { .Spans }
@@ -22,9 +22,8 @@ class MetadataSetupPayloadTest: PayloadTest {
             return .init(items: [.init(target: "\(testRelevantSpanName) span", expected: "exists", recorded: "missing", result: .fail)])
         }
 
-        testItems.append(evaluate("emb.type", expecting: "perf", on: setupSpan.attributes))
-        testItems.append(evaluate("emb.private", expecting: "true", on: setupSpan.attributes))
-
+        testItems.append(evaluate("emb.type", expecting: "sys.startup", on: setupSpan.attributes))
+        testItems.append(evaluate("isPrewarmed", expectedToExist: true, on: setupSpan.attributes))
         MetadataResourceTest.testMetadataInclussion(on: setupSpan.resource, testItems: &testItems)
 
         return .init(items: testItems)
