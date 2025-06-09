@@ -4,7 +4,9 @@
 
 import Foundation
 import MetricKit
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
+#endif
 
 @objc class MetricKitHandler: NSObject, MetricKitPayloadProvider {
 
