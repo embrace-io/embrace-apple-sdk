@@ -27,7 +27,7 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
 
     private func backgroundAndReopenApp() {
         XCUIDevice.shared.press(XCUIDevice.Button.home)
-        sleep(1)
+        sleep(2)
         app.activate()
     }
 
@@ -47,6 +47,37 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
         app.buttons["SessionTests_Personas_AddButton"].tap()
     }
 
+    private func addUserInfo() {
+        app.buttons["SessionTests_UserInfo_RemoveAllButton"].tap()
+
+        // Enter Username
+        let usernameTextField = app.textFields["SessionTests_UserInfo_Username"]
+        usernameTextField.tap()
+
+        _ = waitUntilElementHasFocus(element: usernameTextField)
+
+        usernameTextField.typeText("TestUsername123")
+        usernameTextField.typeText(XCUIKeyboardKey.return.rawValue)
+
+        // Enter Email
+        let emailTextField = app.textFields["SessionTests_UserInfo_Email"]
+        emailTextField.tap()
+
+        _ = waitUntilElementHasFocus(element: emailTextField)
+
+        emailTextField.typeText("Some@Email.com")
+        emailTextField.typeText(XCUIKeyboardKey.return.rawValue)
+
+        // Enter User ID
+        let identifierTextField = app.textFields["SessionTests_UserInfo_Identifier"]
+        identifierTextField.tap()
+
+        _ = waitUntilElementHasFocus(element: identifierTextField)
+
+        identifierTextField.typeText("ABCD1234")
+        identifierTextField.typeText(XCUIKeyboardKey.return.rawValue)
+    }
+
     func testSendFinishedSessionSpan() {
         sleep(5)
         backgroundAndReopenApp()
@@ -57,6 +88,15 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
 
     func testSendFinishedSessionSpan_withPersona() {
         addPersona()
+        sleep(5)
+        backgroundAndReopenApp()
+        XCTAssertTrue(runSessionSpanTest(), "Test Button wait for enabled timed out")
+
+        evaluateTestResults(app)
+    }
+
+    func testSendFinishedSessionSpan_withUserInfo() {
+        addUserInfo()
         sleep(5)
         backgroundAndReopenApp()
         XCTAssertTrue(runSessionSpanTest(), "Test Button wait for enabled timed out")
