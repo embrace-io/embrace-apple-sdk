@@ -97,10 +97,7 @@ public struct EmbraceTraceView<Content: View>: View {
         defer {
             logger.endSpan(bodySpan)
         }
-        
-        // For testing/debug builds, randomly hang to simulate work
-        randomHang()
-        
+
         return content()
             .onAppear {
                 // Create and end an “appear” span for this view
@@ -110,7 +107,6 @@ public struct EmbraceTraceView<Content: View>: View {
                     parent: context.firstCycleSpan,
                     attributes: attributes
                 ) {}
-                randomHang()
             }
             .onDisappear {
                 // Create and end a “disappear” span for this view
@@ -120,16 +116,6 @@ public struct EmbraceTraceView<Content: View>: View {
                     parent: context.firstCycleSpan,
                     attributes: attributes
                 ) {}
-                randomHang()
             }
     }
-}
-
-/// In debug builds, randomly sleep for up to 1 second to simulate heavier workloads.
-private func randomHang() {
-#if DEBUG
-    if Bool.random() {
-        Thread.sleep(forTimeInterval: TimeInterval.random(in: 0...1))
-    }
-#endif
 }
