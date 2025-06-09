@@ -1,10 +1,18 @@
+## 6.11.0
+*June 6, 2025*
+* Fixes
+    * Fixed compilation errors when having the Embrace SDK as a dependency of a static library in a SwiftPM project.
+* Changes
+    * Added new instrumentation around application startup.
+    * Added capture services to capture `MetricKit` reports.
+
 ## 6.10.1
 *May 28, 2025*
 * Fixes
     * Fixed a crash that occurred when intercepting a `URLSessionTask` that was resumed more than once.
     * Made several fixes to all public APIs to ensure they are safe to use from any thread (including the main thread).
     * Fixed compatibility issues caused by Firebase Performance when it is initialized before Embrace and intercepts network requests.
-* Changes:
+* Changes
     * Added a new API in `Embrace.client`: `getCurrentPersonas(completion:)` (This deprecates the `currentPersonas` getter and its Objective-C compatible version).
 
 ## 6.10.0
