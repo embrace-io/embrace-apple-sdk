@@ -12,7 +12,7 @@ class UploadedSessionPayloadTest: PayloadTest {
     }
 
     var sessionIdToTest: String = ""
-
+    var personas: [String] = []
     func test(networkSwizzle: NetworkingSwizzle) -> TestReport {
         var testItems = [TestReportItem]()
 
@@ -24,6 +24,28 @@ class UploadedSessionPayloadTest: PayloadTest {
         let exportedSpans = networkSwizzle.exportedSpansBySession[sessionIdToTest] ?? []
         if exportedSpans.isEmpty {
             testItems.append(.init(target: "Exported Spans for session \(sessionIdToTest)", expected: "Found", recorded: "Missing"))
+        }
+
+        postedJsons.forEach { postedJson in
+            let metadataJson = postedJson["metadata"] as? JsonDictionary
+            if let personasJsonArray = metadataJson?["personas"] as? Array<String> {
+                let allPersonasFound = personas.allSatisfy { personasJsonArray.contains($0) }
+                let missingPersonas = personas.filter { !personasJsonArray.contains($0) }
+                let unexpectedPersonas = personasJsonArray.filter { !personas.contains($0) }
+                let result: TestResult = allPersonasFound && unexpectedPersonas.count == 0 ? .success : .fail
+                testItems.append(.init(target: "Personas",
+                                       expected: "\(personas.count)",
+                                       recorded: "\(personasJsonArray.count)",
+                                       result: result))
+                missingPersonas.forEach {
+                    testItems.append(.init(target: "Persona: \($0)", expected: "Found", recorded: "Missing"))
+                }
+                unexpectedPersonas.forEach {
+                    testItems.append(.init(target: "Unexpected Persona: \($0)", expected: "Missing", recorded: "Found"))
+                }
+            } else {
+                testItems.append(.init(target: "Personas Array", expected: "Found", recorded: "Missing"))
+            }
         }
 
         var foundSpans = 0

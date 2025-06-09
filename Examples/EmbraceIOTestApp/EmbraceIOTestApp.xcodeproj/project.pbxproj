@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4D372B242DF0B12E00B1D1E1 /* UploadedSessionPayloadTestPersonasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D372B232DF0B11E00B1D1E1 /* UploadedSessionPayloadTestPersonasView.swift */; };
 		4D61D1B72DE0BA750048B5E2 /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4D61D1B62DE0BA750048B5E2 /* EmbraceCore */; };
 		4D61D1B92DE0BA750048B5E2 /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = 4D61D1B82DE0BA750048B5E2 /* EmbraceCrash */; };
 		4D61D1BB2DE0BA750048B5E2 /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 4D61D1BA2DE0BA750048B5E2 /* EmbraceCrashlyticsSupport */; };
@@ -101,6 +102,7 @@
 		4D6338722DE1157700557BDC /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4D6337D62DE1157700557BDC /* Preview Assets.xcassets */; };
 		4D6338732DE1157700557BDC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4D6338232DE1157700557BDC /* Assets.xcassets */; };
 		4D6338752DE1157700557BDC /* URLRequestMethod.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337FF2DE1157700557BDC /* URLRequestMethod.swift */; };
+		4DAF52012DEA51970025F669 /* EmbraceIOTestPostedPayloads.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DAF52002DEA51870025F669 /* EmbraceIOTestPostedPayloads.swift */; };
 		4DF12A332D302CBE00C93E62 /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4DF12A322D302CBE00C93E62 /* EmbraceCore */; };
 		4DF12A352D302CBE00C93E62 /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = 4DF12A342D302CBE00C93E62 /* EmbraceCrash */; };
 		4DF12A372D302CBE00C93E62 /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 4DF12A362D302CBE00C93E62 /* EmbraceCrashlyticsSupport */; };
@@ -119,6 +121,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		4D372B232DF0B11E00B1D1E1 /* UploadedSessionPayloadTestPersonasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadedSessionPayloadTestPersonasView.swift; sourceTree = "<group>"; };
 		4D63379E2DE1157200557BDC /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		4D6337A02DE1157200557BDC /* EmbraceIOTestCrashesUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbraceIOTestCrashesUITests.swift; sourceTree = "<group>"; };
 		4D6337A12DE1157200557BDC /* EmbraceIOTestLogsUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbraceIOTestLogsUITests.swift; sourceTree = "<group>"; };
@@ -241,6 +244,13 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		4D372B222DEFD2AD00B1D1E1 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
 		4D63379F2DE1157200557BDC /* Common */ = {
 			isa = PBXGroup;
 			children = (
@@ -252,6 +262,7 @@
 		4D6337A62DE1157200557BDC /* EmbraceIOTestAppUITests */ = {
 			isa = PBXGroup;
 			children = (
+				4DAF52002DEA51870025F669 /* EmbraceIOTestPostedPayloads.swift */,
 				4D63379F2DE1157200557BDC /* Common */,
 				4D6337A02DE1157200557BDC /* EmbraceIOTestCrashesUITests.swift */,
 				4D6337A12DE1157200557BDC /* EmbraceIOTestLogsUITests.swift */,
@@ -520,6 +531,7 @@
 		4D6337FE2DE1157700557BDC /* Metadata */ = {
 			isa = PBXGroup;
 			children = (
+				4D372B222DEFD2AD00B1D1E1 /* Views */,
 				4D6337FC2DE1157700557BDC /* Tests */,
 				4D6337FD2DE1157700557BDC /* MetadataTestsDataModel.swift */,
 			);
@@ -636,6 +648,7 @@
 			isa = PBXGroup;
 			children = (
 				4D6338192DE1157700557BDC /* UploadedSessionPayloadUIComponent.swift */,
+				4D372B232DF0B11E00B1D1E1 /* UploadedSessionPayloadTestPersonasView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -848,6 +861,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4DAF52012DEA51970025F669 /* EmbraceIOTestPostedPayloads.swift in Sources */,
 				4D6337A72DE1157200557BDC /* Extensions.swift in Sources */,
 				4D6337A82DE1157200557BDC /* EmbraceIOTestCrashesUITests.swift in Sources */,
 				4D6337A92DE1157200557BDC /* EmbraceIOTestLogsUITests.swift in Sources */,
@@ -912,6 +926,7 @@
 				4D6338562DE1157700557BDC /* LoggingTestsSeverityTypeView.swift in Sources */,
 				4D6338572DE1157700557BDC /* LoggingTestsStackTraceSelectionView.swift in Sources */,
 				4D6338582DE1157700557BDC /* LoggingTestScreenDataModel.swift in Sources */,
+				4D372B242DF0B12E00B1D1E1 /* UploadedSessionPayloadTestPersonasView.swift in Sources */,
 				4D6338592DE1157700557BDC /* MetadataResourceTest.swift in Sources */,
 				4D63385A2DE1157700557BDC /* MetadataSetupPayloadTest.swift in Sources */,
 				4D63385B2DE1157700557BDC /* MetadataStartupPayloadTest.swift in Sources */,

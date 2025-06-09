@@ -10,6 +10,7 @@ import EmbraceCore
 @Observable
 class UploadedSessionPayloadTestViewModel: UIComponentViewModelBase {
     private var testObject: UploadedSessionPayloadTest
+    private var personasBySessionId: Dictionary<String, Set<String>> = [:]
 
     private(set) var exportedAndPostedSessions: [String] = [] {
         didSet {
@@ -59,6 +60,28 @@ class UploadedSessionPayloadTestViewModel: UIComponentViewModelBase {
 
     func refresh() {
         updatedExportedSessions()
+        Embrace.client?.metadata.getCurrentPersonas {  [weak self] (personas: [String]) in
+            guard let self = self else { return }
+            personas.forEach { persona in
+                self.addPersonaToCurrentSession(persona)
+            }
+        }
+    }
+
+    func addedNewPersona(_ persona: String, lifespan: MetadataLifespan) {
+        try? Embrace.client?.metadata.add(persona: persona, lifespan: lifespan)
+        addPersonaToCurrentSession(persona)
+    }
+
+    private func addPersonaToCurrentSession(_ persona: String) {
+        guard let currentSessionId = currentSessionId else { return }
+        personasBySessionId[currentSessionId, default:[]].insert(persona)
+    }
+
+    func removeAllPersonas() {
+        Embrace.client?.metadata.removeAllPersonas()
+        guard let currentSessionId = currentSessionId else { return }
+        personasBySessionId[currentSessionId] = []
     }
 
     private func updatedExportedSessions() {
@@ -69,6 +92,7 @@ class UploadedSessionPayloadTestViewModel: UIComponentViewModelBase {
 
     override func testButtonPressed() {
         guard let networkSpy = dataCollector?.networkSpy else { return }
+        testObject.personas = Array(personasBySessionId[selectedSessionId, default:[]])
         super.testButtonPressed()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
             guard let self = self else { return }

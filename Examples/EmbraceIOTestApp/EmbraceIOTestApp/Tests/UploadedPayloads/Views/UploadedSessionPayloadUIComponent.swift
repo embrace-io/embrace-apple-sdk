@@ -5,10 +5,11 @@
 //
 
 import SwiftUI
+import EmbraceIO
 
 struct UploadedSessionPayloadUIComponent: View {
     @Environment(DataCollector.self) private var dataCollector
-
+    @Environment(\.scenePhase) var scenePhase
     @State var dataModel: any TestScreenDataModel
     @State private var viewModel: UploadedSessionPayloadTestViewModel
 
@@ -37,6 +38,14 @@ struct UploadedSessionPayloadUIComponent: View {
                 .foregroundStyle(.embraceSteel)
                 .font(.embraceFont(size: 12))
                 .padding([.top, .bottom], 5)
+            Section("Personas") {
+                UploadedSessionPayloadTestPersonasView() { persona, lifespan in
+                    viewModel.addedNewPersona(persona, lifespan: lifespan)
+                } removeAllAction: {
+                    viewModel.removeAllPersonas()
+                }
+            }
+            .padding([.top, .bottom], 8)
             Section("Posted Session To Test:") {
                 Picker("Posted Session", selection: $viewModel.selectedSessionId) {
                     ForEach(viewModel.exportedAndPostedSessions, id: \.self) { sessionId in
@@ -54,9 +63,13 @@ struct UploadedSessionPayloadUIComponent: View {
                     viewModel.dataCollector = dataCollector
                 }
         }
-        .onAppear(){
+        .onChange(of: scenePhase) {
+            print("REFRESH!!")
             viewModel.refresh()
         }
+//        .onAppear(){
+//            viewModel.refresh()
+//        }
     }
 }
 
