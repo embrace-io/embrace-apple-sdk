@@ -3,7 +3,7 @@
 //
 
 @testable import EmbraceCore
-@testable import EmbraceObjCUtilsInternal
+@testable @_implementationOnly import EmbraceObjCUtilsInternal
 
 class MockedURLSessionSwizzlerProvider: URLSessionSwizzlerProvider {
     let swizzlers: [any URLSessionSwizzler]

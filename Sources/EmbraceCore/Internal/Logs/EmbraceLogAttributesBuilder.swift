@@ -4,7 +4,7 @@
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceStorageInternal
-import EmbraceObjCUtilsInternal
+@_implementationOnly import EmbraceObjCUtilsInternal
 import EmbraceCommonInternal
 import EmbraceSemantics
 #endif
@@ -67,7 +67,12 @@ class EmbraceLogAttributesBuilder {
 
     @discardableResult
     func addApplicationProperties() -> Self {
-        guard let sessionId = currentSession?.id,
+        return addApplicationProperties(sessionId: currentSession?.id)
+    }
+
+    @discardableResult
+    func addApplicationProperties(sessionId: SessionIdentifier?) -> Self {
+        guard let sessionId = sessionId,
               let storage = storage else {
             return self
         }
@@ -91,7 +96,16 @@ class EmbraceLogAttributesBuilder {
 
     @discardableResult
     func addApplicationState() -> Self {
-        guard let state = currentSession?.state,
+        guard attributes[LogSemantics.keyState] == nil else {
+            return self
+        }
+
+        return addApplicationState(currentSession?.state)
+    }
+
+    @discardableResult
+    func addApplicationState(_ state: String?) -> Self {
+        guard let state = state,
               attributes[LogSemantics.keyState] == nil else {
             return self
         }
@@ -101,23 +115,61 @@ class EmbraceLogAttributesBuilder {
 
     @discardableResult
     func addSessionIdentifier() -> Self {
-        guard let sessionId = currentSession?.id,
+        guard attributes[LogSemantics.keySessionId] == nil else {
+            return self
+        }
+
+        return addSessionIdentifier(currentSession?.idRaw)
+    }
+
+    @discardableResult
+    func addSessionIdentifier(_ sessionId: String?) -> Self {
+        guard let sessionId = sessionId,
               attributes[LogSemantics.keySessionId] == nil else {
             return self
         }
-        attributes[LogSemantics.keySessionId] = sessionId.toString
+        attributes[LogSemantics.keySessionId] = sessionId
         return self
     }
 
     @discardableResult
     func addCrashReportProperties() -> Self {
-        guard let crashReport = crashReport else {
+        return addCrashReportProperties(
+            id: crashReport?.id.withoutHyphen,
+            provider: crashReport?.provider,
+            payload: crashReport?.payload
+        )
+    }
+
+    @discardableResult
+    func addCrashReportProperties(id: String?, provider: String?, payload: String?) -> Self {
+        guard let id = id,
+              let provider = provider,
+              let payload = payload else {
             return self
         }
 
-        attributes[LogSemantics.Crash.keyId] = crashReport.id.withoutHyphen
-        attributes[LogSemantics.Crash.keyProvider] = crashReport.provider
-        attributes[LogSemantics.Crash.keyPayload] = crashReport.payload
+        attributes[LogSemantics.Crash.keyId] = id
+        attributes[LogSemantics.Crash.keyProvider] = provider
+        attributes[LogSemantics.Crash.keyPayload] = payload
+
+        return self
+    }
+
+    @discardableResult
+    func addHangReportProperties(id: String?, provider: String?, payload: String?, startTime: Date, endTime: Date) -> Self {
+        guard let id = id,
+              let provider = provider,
+              let payload = payload else {
+            return self
+        }
+
+        attributes[LogSemantics.Hang.keyId] = id
+        attributes[LogSemantics.Hang.keyProvider] = provider
+        attributes[LogSemantics.Hang.keyPayload] = payload
+        attributes[LogSemantics.Hang.keyPayLoadTimestamp] = String(Date().nanosecondsSince1970Truncated)
+        attributes[LogSemantics.Hang.keyDiagnosticTimestampStart] = String(startTime.nanosecondsSince1970Truncated)
+        attributes[LogSemantics.Hang.keyDiagnosticTimestampEnd] = String(endTime.nanosecondsSince1970Truncated)
 
         return self
     }

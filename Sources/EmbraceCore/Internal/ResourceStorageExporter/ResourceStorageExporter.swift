@@ -9,6 +9,7 @@ import EmbraceOTelInternal
 #endif
 import OpenTelemetryApi
 import OpenTelemetrySdk
+@_implementationOnly import EmbraceObjCUtilsInternal
 
 class ConcreteEmbraceResource: EmbraceResource {
     var key: String
@@ -44,6 +45,10 @@ class ResourceStorageExporter: EmbraceResourceProvider {
                 .joined(separator: ":")
 
             attributes[ResourceAttributes.serviceName.rawValue] = .string(serviceName)
+        }
+
+        if attributes[ResourceAttributes.serviceVersion.rawValue] == nil, let appVersion = EMBDevice.appVersion {
+                attributes[ResourceAttributes.serviceVersion.rawValue] = .string(appVersion)
         }
 
         if attributes[ResourceAttributes.telemetrySdkLanguage.rawValue] == nil {

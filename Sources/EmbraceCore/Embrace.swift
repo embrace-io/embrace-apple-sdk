@@ -9,7 +9,7 @@ import EmbraceConfigInternal
 import EmbraceOTelInternal
 import EmbraceStorageInternal
 import EmbraceUploadInternal
-import EmbraceObjCUtilsInternal
+@_implementationOnly import EmbraceObjCUtilsInternal
 #endif
 
 /**
@@ -76,6 +76,8 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
 
     /// Returns the current `StartupInstrumentation` used to instrument the app startup process.
     @objc public let startupInstrumentation: StartupInstrumentation
+
+    let metricKit: MetricKitHandler
 
     let config: EmbraceConfig?
     let storage: EmbraceStorage
@@ -186,6 +188,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
 
         // initialize metadata handler
         self.metadata = MetadataHandler(storage: storage, sessionController: sessionController)
+        self.metricKit = MetricKitHandler()
 
         // initialize startup instrumentation
         self.startupInstrumentation = StartupInstrumentation()
@@ -205,6 +208,12 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         }
 
         super.init()
+
+        captureServices.addMetricKitServices(
+            payloadProvider: metricKit,
+            metadataFetcher: storage,
+            stateProvider: self
+        )
 
         sessionController.sdkStateProvider = self
         logController?.sdkStateProvider = self
@@ -290,6 +299,12 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
                 sessionLifecycle.startSession()
                 captureServices.install()
 
+                metricKit.install()
+
+                // save latest session in memory before its sent and deleted
+                // this will be used to link metric kit payloads to the session
+                metricKit.lastSession = storage.fetchLatestSession()
+
                 self.processingQueue.async { [weak self] in
 
                     self?.captureServices.start()
@@ -348,6 +363,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
             sessionLifecycle.stop()
             sessionController.clear()
             captureServices.stop()
+            metricKit.uninstall()
 
             Embrace.logger.startup("Embrace SDK stopped successfully!")
         }
