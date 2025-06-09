@@ -3,7 +3,7 @@
 //
 
 import XCTest
-import EmbraceObjCUtilsInternal
+@_implementationOnly import EmbraceObjCUtilsInternal
 
 final class EMBDeviceTests: XCTestCase {
 

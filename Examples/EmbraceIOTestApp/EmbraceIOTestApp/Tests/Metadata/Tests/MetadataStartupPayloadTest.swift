@@ -7,7 +7,7 @@
 import OpenTelemetrySdk
 
 class MetadataStartupPayloadTest: PayloadTest {
-    var testRelevantPayloadNames: [String] { ["emb-sdk-start"] }
+    var testRelevantPayloadNames: [String] { ["emb-sdk-start-process"] }
     var requiresCleanup: Bool { false }
     var runImmediatelyIfSpansFound: Bool { true }
     var testType: TestType { .Spans }

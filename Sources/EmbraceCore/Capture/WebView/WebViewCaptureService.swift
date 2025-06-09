@@ -10,7 +10,7 @@ import EmbraceCommonInternal
 import EmbraceOTelInternal
 import EmbraceCaptureService
 import EmbraceSemantics
-import EmbraceObjCUtilsInternal
+@_implementationOnly import EmbraceObjCUtilsInternal
 #endif
 import OpenTelemetryApi
 

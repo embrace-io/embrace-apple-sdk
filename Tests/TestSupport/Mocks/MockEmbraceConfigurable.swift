@@ -14,6 +14,10 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         isBackgroundSessionEnabled: Bool = false,
         isNetworkSpansForwardingEnabled: Bool = false,
         isUiLoadInstrumentationEnabled: Bool = false,
+        isMetricKitEnabled: Bool = false,
+        isMetricKitCrashCaptureEnabled: Bool = false,
+        metricKitCrashSignals: [String] = [],
+        isMetricKitHangCaptureEnabled: Bool = false,
         internalLogLimits: InternalLogLimits = InternalLogLimits(),
         networkPayloadCaptureRules: [NetworkPayloadCaptureRule] = [],
         updateCompletionParamDidUpdate: Bool = false,
@@ -23,6 +27,10 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         self._isBackgroundSessionEnabled = isBackgroundSessionEnabled
         self._isNetworkSpansForwardingEnabled = isNetworkSpansForwardingEnabled
         self._isUiLoadInstrumentationEnabled = isUiLoadInstrumentationEnabled
+        self._isMetricKitEnabled = isMetricKitEnabled
+        self._isMetricKitCrashCaptureEnabled = isMetricKitCrashCaptureEnabled
+        self._metricKitCrashSignals = metricKitCrashSignals
+        self._isMetricKitHangCaptureEnabled = isMetricKitHangCaptureEnabled
         self._internalLogLimits = internalLogLimits
         self._networkPayloadCaptureRules = networkPayloadCaptureRules
         self.updateCompletionParamDidUpdate = updateCompletionParamDidUpdate
@@ -77,6 +85,54 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         }
         set {
             _isUiLoadInstrumentationEnabled = newValue
+        }
+    }
+
+    private var _isMetricKitEnabled: Bool
+    public let isMetricKitEnabledExpectation = XCTestExpectation(description: "isMetricKitEnabled called")
+    public var isMetricKitEnabled: Bool {
+        get {
+            isMetricKitEnabledExpectation.fulfill()
+            return _isMetricKitEnabled
+        }
+        set {
+            _isMetricKitEnabled = newValue
+        }
+    }
+
+    private var _isMetricKitCrashCaptureEnabled: Bool
+    public let isMetricKitCrashCaptureEnabledExpectation = XCTestExpectation(description: "isMetricKitCrashCaptureEnabled called")
+    public var isMetricKitCrashCaptureEnabled: Bool {
+        get {
+            isMetricKitCrashCaptureEnabledExpectation.fulfill()
+            return _isMetricKitCrashCaptureEnabled
+        }
+        set {
+            _isMetricKitCrashCaptureEnabled = newValue
+        }
+    }
+
+    private var _metricKitCrashSignals: [String]
+    public let metricKitCrashSignalsExpectation = XCTestExpectation(description: "metricKitCrashSignals called")
+    public var metricKitCrashSignals: [String] {
+        get {
+            metricKitCrashSignalsExpectation.fulfill()
+            return _metricKitCrashSignals
+        }
+        set {
+            _metricKitCrashSignals = newValue
+        }
+    }
+
+    private var _isMetricKitHangCaptureEnabled: Bool
+    public let isMetricKitHangCaptureEnabledExpectation = XCTestExpectation(description: "isMetricKitHangCaptureEnabled called")
+    public var isMetricKitHangCaptureEnabled: Bool {
+        get {
+            isMetricKitHangCaptureEnabledExpectation.fulfill()
+            return _isMetricKitHangCaptureEnabled
+        }
+        set {
+            _isMetricKitHangCaptureEnabled = newValue
         }
     }
 

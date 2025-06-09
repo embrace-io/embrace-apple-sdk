@@ -40,7 +40,7 @@ import EmbraceCore
             cachedExportedSpans[$0.name, default: []].append($0)
         }
 
-        if !embraceStarted && spans.contains(where: { $0.name == "emb-sdk-start" }) {
+        if !embraceStarted && spans.contains(where: { $0.name == "emb-sdk-start-process" }) {
             embraceStarted = true
             NotificationCenter.default.post(name: NSNotification.Name("TestSpanExporter.EmbraceStarted"), object: nil)
         }

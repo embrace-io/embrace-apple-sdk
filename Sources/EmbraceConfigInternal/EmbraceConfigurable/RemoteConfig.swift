@@ -92,6 +92,14 @@ extension RemoteConfig: EmbraceConfigurable {
 
     public var isUiLoadInstrumentationEnabled: Bool { payload.uiLoadInstrumentationEnabled }
 
+    public var isMetricKitEnabled: Bool { isEnabled(threshold: payload.metricKitEnabledThreshold) }
+
+    public var isMetricKitCrashCaptureEnabled: Bool { payload.metricKitCrashCaptureEnabled }
+
+    public var metricKitCrashSignals: [String] { payload.metricKitCrashSignals }
+
+    public var isMetricKitHangCaptureEnabled: Bool { payload.metricKitHangCaptureEnabled }
+
     public var networkPayloadCaptureRules: [NetworkPayloadCaptureRule] { payload.networkPayloadCaptureRules }
 
     public var internalLogLimits: InternalLogLimits {
