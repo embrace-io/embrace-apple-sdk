@@ -41,7 +41,11 @@ extension EmbraceStorage {
         if let session = fetchSessionRecord(id: id) {
             var result: EmbraceSession?
 
-            coreData.context.performAndWait {
+            coreData.performOperation(name: "UpdateExistingSession") { context in
+                guard let context else {
+                    return
+                }
+
                 session.state = state.rawValue
                 session.processIdRaw = processId.hex
                 session.traceId = traceId
@@ -60,7 +64,7 @@ extension EmbraceStorage {
                 result = session.toImmutable()
 
                 do {
-                    try coreData.context.save()
+                    try context.save()
                 } catch {
                     logger.error("Error updating session \(id.toString)!")
                 }
