@@ -24,4 +24,11 @@ public extension SpanSemantics {
         public static let keyViewTitle = "view.title"
         public static let keyViewName = "view.name"
     }
+    
+    struct SwiftUIView {
+        public static let cycleName = "cycle"
+        public static let appearName = "appear"
+        public static let disappearName = "disappear"
+        public static let bodyName = "body"
+    }
 }
