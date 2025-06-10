@@ -6,7 +6,9 @@ import Foundation
 
 #if canImport(UIKit) && !os(watchOS)
 import UIKit
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
+#endif
 
 /// This class is a wrapper around `UIApplication.shared.beginBackgroundTask`.
 /// Based off https://developer.apple.com/forums/thread/85066 and https://developer.apple.com/forums/thread/729335
