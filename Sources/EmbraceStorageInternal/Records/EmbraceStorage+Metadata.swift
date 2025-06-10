@@ -122,13 +122,16 @@ extension EmbraceStorage {
 
         var result: EmbraceMetadata?
 
-        coreData.context.performAndWait {
-            metadata.value = value
+        coreData.performOperation(name: "UpdateMetadata") { context in
+            guard let context else {
+                return
+            }
 
+            metadata.value = value
             result = metadata.toImmutable()
 
             do {
-                try coreData.context.save()
+                try context.save()
             } catch {
                 logger.error("Error updating metadata! key: \(key), lifespan \(lifespan.rawValue), id \(lifespanId)")
             }
@@ -243,12 +246,16 @@ extension EmbraceStorage {
 
         var result: Int = 1
 
-        coreData.context.performAndWait {
+        coreData.performOperation(name: "IncrementCountForPermanentResource") { context in
+            guard let context else {
+                return
+            }
+
             result = (Int(record.value) ?? 0) + 1
             record.value = String(result)
 
             do {
-                try coreData.context.save()
+                try context.save()
             } catch {
                 logger.error("Error updating metadata counter! key: \(key)")
             }
