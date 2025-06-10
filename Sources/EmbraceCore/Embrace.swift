@@ -222,12 +222,17 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         logController?.sdkStateProvider = self
 
         // setup otel
-        EmbraceOTel.setup(spanProcessors: .processors(
+        var processors = Array.processors(
             for: storage,
             sessionController: sessionController,
             export: options.export,
             sdkStateProvider: self
-        ))
+        )
+        if let extraProcessors = options.processors?.map({ $0.processor }) {
+            processors.append(contentsOf: extraProcessors)
+        }
+
+        EmbraceOTel.setup(spanProcessors: processors)
 
         let logBatcher = DefaultLogBatcher(
             repository: storage,

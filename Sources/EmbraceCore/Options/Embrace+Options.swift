@@ -25,7 +25,8 @@ extension Embrace {
         @objc public let logLevel: LogLevel
         @objc public let export: OpenTelemetryExport?
         @objc public let runtimeConfiguration: EmbraceConfigurable?
-
+        @objc public let processors: [OpenTelemetryProcessor]?
+        
         /// Default initializer for `Embrace.Options` that requires an array of `CaptureServices` to be passed.
         ///
         /// If you wish to use the default `CaptureServices`, please refer to the `Embrace.Options`
@@ -40,6 +41,7 @@ extension Embrace {
         ///   - crashReporter: The `CrashReporter` to be installed.
         ///   - logLevel: The `LogLevel` to use for console logs.
         ///   - export: `OpenTelemetryExport` object to export telemetry using OpenTelemetry protocols
+        ///   - processors: `OpenTelemetryProcessor` objects to do extra processing
         @objc public init(
             appId: String,
             appGroupId: String? = nil,
@@ -48,7 +50,8 @@ extension Embrace {
             captureServices: [CaptureService],
             crashReporter: CrashReporter?,
             logLevel: LogLevel = .default,
-            export: OpenTelemetryExport? = nil
+            export: OpenTelemetryExport? = nil,
+            processors: [OpenTelemetryProcessor]? = nil
         ) {
             self.appId = appId
             self.appGroupId = appGroupId
@@ -59,6 +62,7 @@ extension Embrace {
             self.logLevel = logLevel
             self.export = export
             self.runtimeConfiguration = nil
+            self.processors = processors
         }
 
         /// Initializer for `Embrace.Options` that does not require an appId.
@@ -89,6 +93,7 @@ extension Embrace {
             self.logLevel = logLevel
             self.export = export
             self.runtimeConfiguration = runtimeConfiguration
+            self.processors = nil
         }
     }
 }
