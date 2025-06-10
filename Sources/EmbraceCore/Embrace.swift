@@ -92,12 +92,14 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
     let processingQueue = DispatchQueue(
         label: "com.embrace.processing",
         qos: .utility,
+        autoreleaseFrequency: .workItem,
         target: .global(qos: .utility)
     )
     
     private static let synchronizationQueue = DispatchQueue(
         label: "com.embrace.synchronization",
         qos: .utility,
+        autoreleaseFrequency: .workItem,
         target: .global(qos: .utility)
     )
 
