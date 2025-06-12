@@ -1,12 +1,12 @@
 //
-//  MetadataTestsDataModel.swift
+//  StartupTestsDataModel.swift
 //  EmbraceIOTestApp
 //
 //
 
 import SwiftUI
 
-enum MetadataTestsDataModel: Int, TestScreenDataModel, CaseIterable {
+enum StartupTestsDataModel: Int, TestScreenDataModel, CaseIterable {
     case setup = 0
     case start
     case resourceMetadata
@@ -36,9 +36,9 @@ enum MetadataTestsDataModel: Int, TestScreenDataModel, CaseIterable {
     @ViewBuilder var uiComponent: some View {
         switch self {
         case .setup:
-            TestSpanScreenButtonView(viewModel: .init(dataModel: self, payloadTestObject: MetadataSetupPayloadTest()))
+            TestSpanScreenButtonView(viewModel: .init(dataModel: self, payloadTestObject: StartupSetupPayloadTest()))
         case .start:
-            TestSpanScreenButtonView(viewModel: .init(dataModel: self, payloadTestObject: MetadataStartupPayloadTest()))
+            TestSpanScreenButtonView(viewModel: .init(dataModel: self, payloadTestObject: StartupStartupPayloadTest()))
         case .resourceMetadata:
             TestSpanScreenButtonView(viewModel: .init(dataModel: self, payloadTestObject: MetadataResourceTest()))
         }

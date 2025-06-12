@@ -77,9 +77,9 @@
 		4D6338572DE1157700557BDC /* LoggingTestsStackTraceSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337F52DE1157700557BDC /* LoggingTestsStackTraceSelectionView.swift */; };
 		4D6338582DE1157700557BDC /* LoggingTestScreenDataModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337F72DE1157700557BDC /* LoggingTestScreenDataModel.swift */; };
 		4D6338592DE1157700557BDC /* MetadataResourceTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337F92DE1157700557BDC /* MetadataResourceTest.swift */; };
-		4D63385A2DE1157700557BDC /* MetadataSetupPayloadTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337FA2DE1157700557BDC /* MetadataSetupPayloadTest.swift */; };
-		4D63385B2DE1157700557BDC /* MetadataStartupPayloadTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337FB2DE1157700557BDC /* MetadataStartupPayloadTest.swift */; };
-		4D63385C2DE1157700557BDC /* MetadataTestsDataModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337FD2DE1157700557BDC /* MetadataTestsDataModel.swift */; };
+		4D63385A2DE1157700557BDC /* StartupSetupPayloadTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337FA2DE1157700557BDC /* StartupSetupPayloadTest.swift */; };
+		4D63385B2DE1157700557BDC /* StartupStartupPayloadTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337FB2DE1157700557BDC /* StartupStartupPayloadTest.swift */; };
+		4D63385C2DE1157700557BDC /* StartupTestsDataModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337FD2DE1157700557BDC /* StartupTestsDataModel.swift */; };
 		4D63385D2DE1157700557BDC /* URLRequestMethod.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337FF2DE1157700557BDC /* URLRequestMethod.swift */; };
 		4D63385E2DE1157700557BDC /* NetworkingTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6338012DE1157700557BDC /* NetworkingTest.swift */; };
 		4D63385F2DE1157700557BDC /* NetworkingTestClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6338032DE1157700557BDC /* NetworkingTestClient.swift */; };
@@ -184,9 +184,9 @@
 		4D6337F52DE1157700557BDC /* LoggingTestsStackTraceSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoggingTestsStackTraceSelectionView.swift; sourceTree = "<group>"; };
 		4D6337F72DE1157700557BDC /* LoggingTestScreenDataModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoggingTestScreenDataModel.swift; sourceTree = "<group>"; };
 		4D6337F92DE1157700557BDC /* MetadataResourceTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataResourceTest.swift; sourceTree = "<group>"; };
-		4D6337FA2DE1157700557BDC /* MetadataSetupPayloadTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataSetupPayloadTest.swift; sourceTree = "<group>"; };
-		4D6337FB2DE1157700557BDC /* MetadataStartupPayloadTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataStartupPayloadTest.swift; sourceTree = "<group>"; };
-		4D6337FD2DE1157700557BDC /* MetadataTestsDataModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataTestsDataModel.swift; sourceTree = "<group>"; };
+		4D6337FA2DE1157700557BDC /* StartupSetupPayloadTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupSetupPayloadTest.swift; sourceTree = "<group>"; };
+		4D6337FB2DE1157700557BDC /* StartupStartupPayloadTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupStartupPayloadTest.swift; sourceTree = "<group>"; };
+		4D6337FD2DE1157700557BDC /* StartupTestsDataModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupTestsDataModel.swift; sourceTree = "<group>"; };
 		4D6337FF2DE1157700557BDC /* URLRequestMethod.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLRequestMethod.swift; sourceTree = "<group>"; };
 		4D6338012DE1157700557BDC /* NetworkingTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkingTest.swift; sourceTree = "<group>"; };
 		4D6338032DE1157700557BDC /* NetworkingTestClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkingTestClient.swift; sourceTree = "<group>"; };
@@ -254,13 +254,6 @@
 				4D03F6E22DF36F5A00475383 /* UserInfo.swift */,
 			);
 			path = Supporting;
-			sourceTree = "<group>";
-		};
-		4D372B222DEFD2AD00B1D1E1 /* Views */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Views;
 			sourceTree = "<group>";
 		};
 		4D63379F2DE1157200557BDC /* Common */ = {
@@ -534,20 +527,19 @@
 			isa = PBXGroup;
 			children = (
 				4D6337F92DE1157700557BDC /* MetadataResourceTest.swift */,
-				4D6337FA2DE1157700557BDC /* MetadataSetupPayloadTest.swift */,
-				4D6337FB2DE1157700557BDC /* MetadataStartupPayloadTest.swift */,
+				4D6337FA2DE1157700557BDC /* StartupSetupPayloadTest.swift */,
+				4D6337FB2DE1157700557BDC /* StartupStartupPayloadTest.swift */,
 			);
 			path = Tests;
 			sourceTree = "<group>";
 		};
-		4D6337FE2DE1157700557BDC /* Metadata */ = {
+		4D6337FE2DE1157700557BDC /* Startup */ = {
 			isa = PBXGroup;
 			children = (
-				4D372B222DEFD2AD00B1D1E1 /* Views */,
 				4D6337FC2DE1157700557BDC /* Tests */,
-				4D6337FD2DE1157700557BDC /* MetadataTestsDataModel.swift */,
+				4D6337FD2DE1157700557BDC /* StartupTestsDataModel.swift */,
 			);
-			path = Metadata;
+			path = Startup;
 			sourceTree = "<group>";
 		};
 		4D6338002DE1157700557BDC /* Enums */ = {
@@ -702,7 +694,7 @@
 				4D6337E82DE1157700557BDC /* Crashes */,
 				4D6337EC2DE1157700557BDC /* EmbraceInit */,
 				4D6337F82DE1157700557BDC /* Logging */,
-				4D6337FE2DE1157700557BDC /* Metadata */,
+				4D6337FE2DE1157700557BDC /* Startup */,
 				4D63380C2DE1157700557BDC /* Netowrking */,
 				4D6338142DE1157700557BDC /* Session */,
 				4D63381C2DE1157700557BDC /* UploadedPayloads */,
@@ -943,9 +935,9 @@
 				4D6338582DE1157700557BDC /* LoggingTestScreenDataModel.swift in Sources */,
 				4D372B242DF0B12E00B1D1E1 /* UploadedSessionPayloadTestPersonasView.swift in Sources */,
 				4D6338592DE1157700557BDC /* MetadataResourceTest.swift in Sources */,
-				4D63385A2DE1157700557BDC /* MetadataSetupPayloadTest.swift in Sources */,
-				4D63385B2DE1157700557BDC /* MetadataStartupPayloadTest.swift in Sources */,
-				4D63385C2DE1157700557BDC /* MetadataTestsDataModel.swift in Sources */,
+				4D63385A2DE1157700557BDC /* StartupSetupPayloadTest.swift in Sources */,
+				4D63385B2DE1157700557BDC /* StartupStartupPayloadTest.swift in Sources */,
+				4D63385C2DE1157700557BDC /* StartupTestsDataModel.swift in Sources */,
 				4D63385D2DE1157700557BDC /* URLRequestMethod.swift in Sources */,
 				4D63385E2DE1157700557BDC /* NetworkingTest.swift in Sources */,
 				4D63385F2DE1157700557BDC /* NetworkingTestClient.swift in Sources */,
