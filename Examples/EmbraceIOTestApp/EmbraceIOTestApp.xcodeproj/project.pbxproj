@@ -9,7 +9,15 @@
 /* Begin PBXBuildFile section */
 		4D03F6E02DF2545600475383 /* UploadedSessionPayloadTestUserInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D03F6DF2DF2544600475383 /* UploadedSessionPayloadTestUserInfoView.swift */; };
 		4D03F6E32DF36F6F00475383 /* UserInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D03F6E22DF36F5A00475383 /* UserInfo.swift */; };
+		4D3334C42DFB893200C699B4 /* StartupStateSpanTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D3334C32DFB892300C699B4 /* StartupStateSpanTest.swift */; };
+		4D3334C72DFCC77D00C699B4 /* StartupStateTestUIComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D3334C62DFCC77400C699B4 /* StartupStateTestUIComponent.swift */; };
+		4D3334CD2DFCC8B100C699B4 /* StartupStateTestViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D3334CC2DFCC8AC00C699B4 /* StartupStateTestViewModel.swift */; };
 		4D372B242DF0B12E00B1D1E1 /* UploadedSessionPayloadTestPersonasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D372B232DF0B11E00B1D1E1 /* UploadedSessionPayloadTestPersonasView.swift */; };
+		4D4CE7F42DFCF1E500740AC3 /* StartupFirstFrameSpanTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4CE7F32DFCF1DB00740AC3 /* StartupFirstFrameSpanTest.swift */; };
+		4D4CE7F62DFCF28900740AC3 /* StartupSDKSetupSpanTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4CE7F52DFCF28100740AC3 /* StartupSDKSetupSpanTest.swift */; };
+		4D4CE7F82DFCF2ED00740AC3 /* StartupSDKStartSpanTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4CE7F72DFCF2E500740AC3 /* StartupSDKStartSpanTest.swift */; };
+		4D4CE7FA2DFCF9A400740AC3 /* StartupProcessLaunchSpanTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4CE7F92DFCF99900740AC3 /* StartupProcessLaunchSpanTest.swift */; };
+		4D4CE7FC2DFCFA5C00740AC3 /* StartupAppStartupInitSpanTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4CE7FB2DFCFA4D00740AC3 /* StartupAppStartupInitSpanTest.swift */; };
 		4D61D1B72DE0BA750048B5E2 /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4D61D1B62DE0BA750048B5E2 /* EmbraceCore */; };
 		4D61D1B92DE0BA750048B5E2 /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = 4D61D1B82DE0BA750048B5E2 /* EmbraceCrash */; };
 		4D61D1BB2DE0BA750048B5E2 /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 4D61D1BA2DE0BA750048B5E2 /* EmbraceCrashlyticsSupport */; };
@@ -77,8 +85,8 @@
 		4D6338572DE1157700557BDC /* LoggingTestsStackTraceSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337F52DE1157700557BDC /* LoggingTestsStackTraceSelectionView.swift */; };
 		4D6338582DE1157700557BDC /* LoggingTestScreenDataModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337F72DE1157700557BDC /* LoggingTestScreenDataModel.swift */; };
 		4D6338592DE1157700557BDC /* MetadataResourceTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337F92DE1157700557BDC /* MetadataResourceTest.swift */; };
-		4D63385A2DE1157700557BDC /* StartupSetupPayloadTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337FA2DE1157700557BDC /* StartupSetupPayloadTest.swift */; };
-		4D63385B2DE1157700557BDC /* StartupStartupPayloadTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337FB2DE1157700557BDC /* StartupStartupPayloadTest.swift */; };
+		4D63385A2DE1157700557BDC /* StartupPreMainPayloadTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337FA2DE1157700557BDC /* StartupPreMainPayloadTest.swift */; };
+		4D63385B2DE1157700557BDC /* StartupStartupProcessSpanTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337FB2DE1157700557BDC /* StartupStartupProcessSpanTest.swift */; };
 		4D63385C2DE1157700557BDC /* StartupTestsDataModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337FD2DE1157700557BDC /* StartupTestsDataModel.swift */; };
 		4D63385D2DE1157700557BDC /* URLRequestMethod.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337FF2DE1157700557BDC /* URLRequestMethod.swift */; };
 		4D63385E2DE1157700557BDC /* NetworkingTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6338012DE1157700557BDC /* NetworkingTest.swift */; };
@@ -125,7 +133,15 @@
 /* Begin PBXFileReference section */
 		4D03F6DF2DF2544600475383 /* UploadedSessionPayloadTestUserInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadedSessionPayloadTestUserInfoView.swift; sourceTree = "<group>"; };
 		4D03F6E22DF36F5A00475383 /* UserInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserInfo.swift; sourceTree = "<group>"; };
+		4D3334C32DFB892300C699B4 /* StartupStateSpanTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupStateSpanTest.swift; sourceTree = "<group>"; };
+		4D3334C62DFCC77400C699B4 /* StartupStateTestUIComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupStateTestUIComponent.swift; sourceTree = "<group>"; };
+		4D3334CC2DFCC8AC00C699B4 /* StartupStateTestViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupStateTestViewModel.swift; sourceTree = "<group>"; };
 		4D372B232DF0B11E00B1D1E1 /* UploadedSessionPayloadTestPersonasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadedSessionPayloadTestPersonasView.swift; sourceTree = "<group>"; };
+		4D4CE7F32DFCF1DB00740AC3 /* StartupFirstFrameSpanTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupFirstFrameSpanTest.swift; sourceTree = "<group>"; };
+		4D4CE7F52DFCF28100740AC3 /* StartupSDKSetupSpanTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupSDKSetupSpanTest.swift; sourceTree = "<group>"; };
+		4D4CE7F72DFCF2E500740AC3 /* StartupSDKStartSpanTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupSDKStartSpanTest.swift; sourceTree = "<group>"; };
+		4D4CE7F92DFCF99900740AC3 /* StartupProcessLaunchSpanTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupProcessLaunchSpanTest.swift; sourceTree = "<group>"; };
+		4D4CE7FB2DFCFA4D00740AC3 /* StartupAppStartupInitSpanTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupAppStartupInitSpanTest.swift; sourceTree = "<group>"; };
 		4D63379E2DE1157200557BDC /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		4D6337A02DE1157200557BDC /* EmbraceIOTestCrashesUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbraceIOTestCrashesUITests.swift; sourceTree = "<group>"; };
 		4D6337A12DE1157200557BDC /* EmbraceIOTestLogsUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbraceIOTestLogsUITests.swift; sourceTree = "<group>"; };
@@ -184,8 +200,8 @@
 		4D6337F52DE1157700557BDC /* LoggingTestsStackTraceSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoggingTestsStackTraceSelectionView.swift; sourceTree = "<group>"; };
 		4D6337F72DE1157700557BDC /* LoggingTestScreenDataModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoggingTestScreenDataModel.swift; sourceTree = "<group>"; };
 		4D6337F92DE1157700557BDC /* MetadataResourceTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataResourceTest.swift; sourceTree = "<group>"; };
-		4D6337FA2DE1157700557BDC /* StartupSetupPayloadTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupSetupPayloadTest.swift; sourceTree = "<group>"; };
-		4D6337FB2DE1157700557BDC /* StartupStartupPayloadTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupStartupPayloadTest.swift; sourceTree = "<group>"; };
+		4D6337FA2DE1157700557BDC /* StartupPreMainPayloadTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupPreMainPayloadTest.swift; sourceTree = "<group>"; };
+		4D6337FB2DE1157700557BDC /* StartupStartupProcessSpanTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupStartupProcessSpanTest.swift; sourceTree = "<group>"; };
 		4D6337FD2DE1157700557BDC /* StartupTestsDataModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupTestsDataModel.swift; sourceTree = "<group>"; };
 		4D6337FF2DE1157700557BDC /* URLRequestMethod.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLRequestMethod.swift; sourceTree = "<group>"; };
 		4D6338012DE1157700557BDC /* NetworkingTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkingTest.swift; sourceTree = "<group>"; };
@@ -254,6 +270,22 @@
 				4D03F6E22DF36F5A00475383 /* UserInfo.swift */,
 			);
 			path = Supporting;
+			sourceTree = "<group>";
+		};
+		4D3334C52DFCC72900C699B4 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				4D3334C62DFCC77400C699B4 /* StartupStateTestUIComponent.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		4D3334CA2DFCC89300C699B4 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				4D3334CC2DFCC8AC00C699B4 /* StartupStateTestViewModel.swift */,
+			);
+			path = ViewModels;
 			sourceTree = "<group>";
 		};
 		4D63379F2DE1157200557BDC /* Common */ = {
@@ -526,9 +558,15 @@
 		4D6337FC2DE1157700557BDC /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				4D4CE7FB2DFCFA4D00740AC3 /* StartupAppStartupInitSpanTest.swift */,
+				4D4CE7F92DFCF99900740AC3 /* StartupProcessLaunchSpanTest.swift */,
+				4D4CE7F72DFCF2E500740AC3 /* StartupSDKStartSpanTest.swift */,
+				4D4CE7F52DFCF28100740AC3 /* StartupSDKSetupSpanTest.swift */,
+				4D4CE7F32DFCF1DB00740AC3 /* StartupFirstFrameSpanTest.swift */,
+				4D3334C32DFB892300C699B4 /* StartupStateSpanTest.swift */,
 				4D6337F92DE1157700557BDC /* MetadataResourceTest.swift */,
-				4D6337FA2DE1157700557BDC /* StartupSetupPayloadTest.swift */,
-				4D6337FB2DE1157700557BDC /* StartupStartupPayloadTest.swift */,
+				4D6337FA2DE1157700557BDC /* StartupPreMainPayloadTest.swift */,
+				4D6337FB2DE1157700557BDC /* StartupStartupProcessSpanTest.swift */,
 			);
 			path = Tests;
 			sourceTree = "<group>";
@@ -536,6 +574,8 @@
 		4D6337FE2DE1157700557BDC /* Startup */ = {
 			isa = PBXGroup;
 			children = (
+				4D3334CA2DFCC89300C699B4 /* ViewModels */,
+				4D3334C52DFCC72900C699B4 /* Views */,
 				4D6337FC2DE1157700557BDC /* Tests */,
 				4D6337FD2DE1157700557BDC /* StartupTestsDataModel.swift */,
 			);
@@ -893,8 +933,11 @@
 				4D63382F2DE1157700557BDC /* DataCollector.swift in Sources */,
 				4D6338302DE1157700557BDC /* TestLogRecordExporter.swift in Sources */,
 				4D6338312DE1157700557BDC /* TestSpanExporter.swift in Sources */,
+				4D3334CD2DFCC8B100C699B4 /* StartupStateTestViewModel.swift in Sources */,
 				4D6338322DE1157700557BDC /* PayloadTestProtocol.swift in Sources */,
+				4D3334C42DFB893200C699B4 /* StartupStateSpanTest.swift in Sources */,
 				4D6338332DE1157700557BDC /* TestScreenDataModel.swift in Sources */,
+				4D4CE7F42DFCF1E500740AC3 /* StartupFirstFrameSpanTest.swift in Sources */,
 				4D6338342DE1157700557BDC /* UIComponentViewModelType.swift in Sources */,
 				4D6338352DE1157700557BDC /* TestScreen.swift in Sources */,
 				4D6338362DE1157700557BDC /* TextFieldRoundedStyle.swift in Sources */,
@@ -909,6 +952,7 @@
 				4D63383F2DE1157700557BDC /* EmbraceLargeButton.swift in Sources */,
 				4D6338402DE1157700557BDC /* TestComponentViewLabel.swift in Sources */,
 				4D6338412DE1157700557BDC /* TestComponentViewResult.swift in Sources */,
+				4D3334C72DFCC77D00C699B4 /* StartupStateTestUIComponent.swift in Sources */,
 				4D6338422DE1157700557BDC /* TestLogScreenButtonView.swift in Sources */,
 				4D6338432DE1157700557BDC /* TestScreenButtonView.swift in Sources */,
 				4D6338442DE1157700557BDC /* TestSpanScreenButtonView.swift in Sources */,
@@ -927,16 +971,19 @@
 				4D6338502DE1157700557BDC /* EmbraceInitScreen.swift in Sources */,
 				4D6338512DE1157700557BDC /* LoggingErrorMessageTest.swift in Sources */,
 				4D6338522DE1157700557BDC /* LoggingTestMessageViewModel.swift in Sources */,
+				4D4CE7FA2DFCF9A400740AC3 /* StartupProcessLaunchSpanTest.swift in Sources */,
 				4D6338532DE1157700557BDC /* LoggingTestLogMessageUIComponent.swift in Sources */,
 				4D6338542DE1157700557BDC /* LoggingTestsAttachmentView.swift in Sources */,
 				4D6338552DE1157700557BDC /* LoggingTestsLogAttributesView.swift in Sources */,
+				4D4CE7F82DFCF2ED00740AC3 /* StartupSDKStartSpanTest.swift in Sources */,
 				4D6338562DE1157700557BDC /* LoggingTestsSeverityTypeView.swift in Sources */,
 				4D6338572DE1157700557BDC /* LoggingTestsStackTraceSelectionView.swift in Sources */,
 				4D6338582DE1157700557BDC /* LoggingTestScreenDataModel.swift in Sources */,
 				4D372B242DF0B12E00B1D1E1 /* UploadedSessionPayloadTestPersonasView.swift in Sources */,
 				4D6338592DE1157700557BDC /* MetadataResourceTest.swift in Sources */,
-				4D63385A2DE1157700557BDC /* StartupSetupPayloadTest.swift in Sources */,
-				4D63385B2DE1157700557BDC /* StartupStartupPayloadTest.swift in Sources */,
+				4D63385A2DE1157700557BDC /* StartupPreMainPayloadTest.swift in Sources */,
+				4D63385B2DE1157700557BDC /* StartupStartupProcessSpanTest.swift in Sources */,
+				4D4CE7F62DFCF28900740AC3 /* StartupSDKSetupSpanTest.swift in Sources */,
 				4D63385C2DE1157700557BDC /* StartupTestsDataModel.swift in Sources */,
 				4D63385D2DE1157700557BDC /* URLRequestMethod.swift in Sources */,
 				4D63385E2DE1157700557BDC /* NetworkingTest.swift in Sources */,
@@ -955,6 +1002,7 @@
 				4D63386B2DE1157700557BDC /* UploadedSessionPayloadUIComponent.swift in Sources */,
 				4D63386C2DE1157700557BDC /* UploadedPayloadsTestsDataModel.swift in Sources */,
 				4D63386D2DE1157700557BDC /* ViewControllerViewDidAppearTest.swift in Sources */,
+				4D4CE7FC2DFCFA5C00740AC3 /* StartupAppStartupInitSpanTest.swift in Sources */,
 				4D63386E2DE1157700557BDC /* ViewControllerViewDidLoadTest.swift in Sources */,
 				4D63386F2DE1157700557BDC /* ViewControllerTestsDataModel.swift in Sources */,
 				4D6338702DE1157700557BDC /* ContentView.swift in Sources */,

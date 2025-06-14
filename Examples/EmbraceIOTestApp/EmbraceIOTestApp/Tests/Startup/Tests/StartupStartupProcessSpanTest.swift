@@ -1,12 +1,12 @@
 //
-//  StartupStartupPayloadTest.swift
+//  StartupStartupProcessSpanTest.swift
 //  EmbraceIOTestApp
 //
 //
 
 import OpenTelemetrySdk
 
-class StartupStartupPayloadTest: PayloadTest {
+class StartupStartupProcessSpanTest: PayloadTest {
     var testRelevantPayloadNames: [String] { ["emb-sdk-start-process"] }
     var requiresCleanup: Bool { false }
     var runImmediatelyIfSpansFound: Bool { true }
@@ -22,6 +22,7 @@ class StartupStartupPayloadTest: PayloadTest {
             return .init(items: [.init(target: "\(testRelevantSpanName) span", expected: "exists", recorded: "missing", result: .fail)])
         }
 
+        testItems.append(.init(target: "\(testRelevantSpanName) span", expected: "exists", recorded: "exists"))
         testItems.append(evaluate("emb.type", expecting: "perf", on: startSpan.attributes))
 
         MetadataResourceTest.testMetadataInclussion(on: startSpan.resource, testItems: &testItems)

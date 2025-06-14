@@ -7,6 +7,7 @@
 import SwiftUI
 import EmbraceIO
 import EmbraceCrash
+import EmbraceObjCUtilsInternal
 import OpenTelemetrySdk
 
 struct EmbraceInitScreen: View {
@@ -22,6 +23,13 @@ struct EmbraceInitScreen: View {
                         .foregroundStyle(.embraceSteel)
                 }
                 .tint(.embracePurple)
+                Toggle(isOn: $viewModel.forceColdStart) {
+                    Text("Force Cold Start")
+                        .font(.embraceFont(size: 18))
+                        .foregroundStyle(.embraceSteel)
+                }
+                .tint(.embracePurple)
+                .accessibilityIdentifier("ForceColdStartToggle")
                 ForEach($viewModel.formFields, id:\.name) { $section in
                     Section {
                         ForEach($section.items, id:\.name) { $item in
@@ -62,6 +70,9 @@ struct EmbraceInitScreen: View {
 
 private extension EmbraceInitScreen {
     func startEmbrace() {
+        if viewModel.forceColdStart {
+            UserDefaults.standard.setValue(nil, forKey: "emb.buildUUID")
+        }
         self.dataCollector.networkSpy?.simulateEmbraceAPI = viewModel.simulateEmbraceAPI
         do {
             viewModel.showProgressview = true
@@ -82,6 +93,9 @@ private extension EmbraceInitScreen {
                               export: .init(spanExporter: dataCollector.spanExporter, logExporter: dataCollector.logExporter))
                 ).start()
             viewModel.showProgressview = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                NotificationCenter.default.post(name: NSNotification.Name("UIApplicationDidFinishLaunchingNotification"), object: nil)
+            }
         } catch let e {
             viewModel.showProgressview = false
             print("Error initializing Embrace: \(e)")
