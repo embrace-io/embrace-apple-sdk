@@ -26,8 +26,9 @@ public extension SpanSemantics {
     }
     
     struct SwiftUIView {
-        public static let cycleName = "cycle"
+        public static let renderLoopName = "render-loop"
         public static let appearName = "appear"
+        public static let timeToFirstRender = "time-to-first-render"
         public static let disappearName = "disappear"
         public static let bodyName = "body"
     }
