@@ -14,7 +14,7 @@ import EmbraceSemantics
 /// Use `EmbraceTraceView` to automatically record:
 ///  - Body evaluation spans (each time SwiftUI recomputes the view)
 ///  - Appear and disappear events (when the view enters or leaves the screen)
-///  - A “cycle” span that groups all child spans in a single render tick
+///  - A “RenderLoop” span that groups all child spans in a single render tick
 ///
 /// If tracing is disabled or the OTel client is unavailable, this view simply forwards
 /// to `content()` without additional overhead (only invokes an empty `onAppear`/`onDisappear`).
@@ -42,6 +42,9 @@ public struct EmbraceTraceView<Content: View>: View {
     @Environment(\.embraceTraceViewLogger)
     private var logger: EmbraceTraceViewLogger
     
+    @State
+    private var state: EmbraceTraceViewState = EmbraceTraceViewState()
+    
     private let content: () -> Content
     private let name: String
     private let attributes: [String: String]?
@@ -60,6 +63,12 @@ public struct EmbraceTraceView<Content: View>: View {
         self.name = viewName
         self.attributes = attributes
         self.content = content
+        
+        // Ensure counters are updated
+        if self.state.initialize == 0 {
+            self.state.initializeTime = Date()
+        }
+        self.state.initialize += 1
     }
     
     public var body: some View {
@@ -72,11 +81,15 @@ public struct EmbraceTraceView<Content: View>: View {
         
         let startTime = Date()
         
-        // If no “cycle” span exists for this render tick, create one.
+        // Ensure counters are updated
+        state.bodyTime = startTime
+        state.body += 1
+        
+        // If no _RenderLoop_ span exists for this render tick, create one.
         if context.firstCycleSpan == nil {
             context.firstCycleSpan = logger.cycledSpan(
                 name,
-                semantics: SpanSemantics.SwiftUIView.cycleName,
+                semantics: SpanSemantics.SwiftUIView.renderLoopName,
                 time: startTime,
                 parent: nil,
                 attributes: attributes
@@ -100,19 +113,47 @@ public struct EmbraceTraceView<Content: View>: View {
 
         return content()
             .onAppear {
+                let time = Date()
+                
+                // Ensure counters are updated
+                state.appearTime = time
+                state.appear += 1
+                
+                // If this is the first appearance,
+                // log this as time to first render.
+                if state.appear == 1,
+                    let startTime = state.initializeTime {
+                    let span = logger.startSpan(
+                        name,
+                        semantics: SpanSemantics.SwiftUIView.timeToFirstRender,
+                        time: startTime,
+                        parent: context.firstCycleSpan,
+                        attributes: attributes
+                    )
+                    logger.endSpan(span, time: time)
+                }
+                
                 // Create and end an “appear” span for this view
                 logger.cycledSpan(
                     name,
                     semantics: SpanSemantics.SwiftUIView.appearName,
+                    time: time,
                     parent: context.firstCycleSpan,
                     attributes: attributes
                 ) {}
             }
             .onDisappear {
+                let time = Date()
+                
+                // Ensure counters are updated
+                state.disappearTime = time
+                state.disappear += 1
+                
                 // Create and end a “disappear” span for this view
                 logger.cycledSpan(
                     name,
                     semantics: SpanSemantics.SwiftUIView.disappearName,
+                    time: time,
                     parent: context.firstCycleSpan,
                     attributes: attributes
                 ) {}

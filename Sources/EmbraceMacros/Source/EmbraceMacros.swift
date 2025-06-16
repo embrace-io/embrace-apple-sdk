@@ -4,7 +4,7 @@
 
 /// A Swift macro that automatically instruments SwiftUI views with Embrace performance traces.
 ///
-/// The `@embraceTrace` macro intercepts a view's `body` property at compile time
+/// The `@EmbraceTrace` macro intercepts a view's `body` property at compile time
 /// and wraps the generated content in an `EmbraceTraceView`, enabling detailed
 /// performance monitoring without manual instrumentation calls.
 ///
@@ -19,7 +19,7 @@
 ///
 /// ### Basic Usage
 /// ```swift
-/// @embraceTrace
+/// @EmbraceTrace
 /// struct ContentView: View {
 ///     var body: some View {
 ///         Text("Hello, World!")
@@ -29,7 +29,7 @@
 ///
 /// ### Complex Views
 /// ```swift
-/// @embraceTrace
+/// @EmbraceTrace
 /// struct UserDashboard: View {
 ///     @State private var selectedTab = 0
 ///
@@ -76,7 +76,7 @@
 ///
 /// ### Before Macro Application
 /// ```swift
-/// @embraceTrace
+/// @EmbraceTrace
 /// struct LoginView: View {
 ///     var body: some View {
 ///         VStack {
@@ -127,7 +127,7 @@
 ///
 /// ### Macro Expansion Viewing
 /// In Xcode 15+, you can view the generated code:
-/// 1. Right-click on the `@embraceTrace` attribute
+/// 1. Right-click on the `@EmbraceTrace` attribute
 /// 2. Select "Expand Macro" from the context menu
 /// 3. Review the generated implementation
 ///
@@ -164,7 +164,7 @@
 /// }
 ///
 /// // After: Macro application
-/// @embraceTrace
+/// @EmbraceTrace
 /// struct MyView: View {
 ///     var body: some View {
 ///         Text("Content")
@@ -177,7 +177,7 @@
 /// - ``EmbraceTraceViewModifier``: Manual view modifier approach
 
 @attached(member, names: arbitrary)
-public macro embraceTrace() =
+public macro EmbraceTrace() =
 #externalMacro(
     module: "EmbraceMacroPlugin",
     type: "EmbraceTraceMacro"

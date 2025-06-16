@@ -137,7 +137,7 @@ extension EmbraceTraceViewLogger {
         
         // Build the span with full name: "swiftui.view.<viewName>.<semantics>"
         let builder = client.buildSpan(
-            name: "swiftui.view.\(name).\(semantics)",
+            name: "emb-swiftui.view.\(name).\(semantics)",
             type: SpanType.viewLoad,
             attributes: attributes ?? [:],
             autoTerminationCode: nil

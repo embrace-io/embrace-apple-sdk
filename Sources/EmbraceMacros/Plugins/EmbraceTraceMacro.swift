@@ -17,7 +17,7 @@ import SwiftDiagnostics
 ///
 /// Usage:
 /// ```
-/// @embraceTrace
+/// @EmbraceTrace
 /// struct MyView: View {
 ///     var body: some View {
 ///         Text("Hello World")
@@ -93,7 +93,7 @@ extension EmbraceTraceMacro: MemberMacro {
         let syntax = DeclSyntax(
                 """
                 
-                // @embraceTrace
+                // @EmbraceTrace
                 // This is your new `body`. It's the same as you declared above.
                 // The macro adds the `embraceTrace` view modifier to it
                 // which will instrument this View for you.
