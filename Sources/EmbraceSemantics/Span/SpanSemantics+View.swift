@@ -26,10 +26,24 @@ public extension SpanSemantics {
     }
     
     struct SwiftUIView {
+        /// A span that begins the first time an instrumented body is encountered,
+        /// and ends on the next tick of the run loop.
         public static let renderLoopName = "render-loop"
+        
+        /// A span that begins at the top of the `onAppear` view modifier,
+        /// and ends on the next tick of the run loop.
         public static let appearName = "appear"
-        public static let timeToFirstRender = "time-to-first-render"
+        
+        /// A span that begins at the top of the `onDisappear` view modifier,
+        /// and ends on the next tick of the run loop.
         public static let disappearName = "disappear"
+        
+        /// A span that begins at the top of the `body` property,
+        /// and ends after the end of the `body`, using `defer{}`.
         public static let bodyName = "body"
+        
+        /// A span that begins when a `View` is first initialized, and ends
+        /// when that view first appears.
+        public static let timeToFirstRender = "time-to-first-render"
     }
 }
