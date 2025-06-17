@@ -97,8 +97,78 @@ extension MetricKitHandler: MXMetricManagerSubscriber {
     @available(iOS 14.0, *)
     func didReceive(_ payloads: [MXDiagnosticPayload]) {
         for payload in payloads {
+            handleDiagnostic(payload)
             handlePayload(MetricKitDiagnosticPayload(payload: payload))
         }
+    }
+    
+    @available(iOS 14.0, *)
+    private func handleDiagnostic(_ payload: MXDiagnosticPayload) {
+        guard let crashes = payload.crashDiagnostics else { return }
+        for crash in crashes {
+            handleCrash(crash, timeStampBegin: payload.timeStampBegin, timeStampEnd: payload.timeStampEnd)
+        }
+    }
+    
+    private func _match(on: String, pattern: String) -> String? {
+        guard let regex = try? NSRegularExpression(pattern: pattern) else {
+            return nil
+        }
+        
+        if let match = regex.firstMatch(in: on, range: NSRange(on.startIndex..., in: on)) {
+            let range = match.range(at: 1)
+            if let foundRange = Range(range, in: on) {
+                return String(on[foundRange])
+            }
+        }
+        return nil
+    }
+    
+    @available(iOS 14.0, *)
+    private func handleCrash(_ crash: MXCrashDiagnostic, timeStampBegin: Date, timeStampEnd: Date) {
+        
+        var attributes: [String: String] = [:]
+        
+        attributes["_WARNING_"] = "Data is not for this session"
+        
+        attributes["mk.crash.timeStampBegin"] = String(timeStampBegin.timeIntervalSince1970)
+        attributes["mk.crash.timeStampEnd"] = String(timeStampEnd.timeIntervalSince1970)
+        
+        if let value = crash.terminationReason {
+            attributes["mk.crash.terminationReason"] = value
+            attributes["mk.crash.terminationCode"] = _match(on: value, pattern: "code:(\\S+)")?.lowercased()
+        }
+        if let value = crash.exceptionCode as? Int {
+            attributes["mk.crash.exceptionCode"] = String(value)
+        }
+        if let value = crash.exceptionType as? Int {
+            attributes["mk.crash.exceptionType"] = String(value)
+        }
+        if let value = crash.signal as? Int {
+            attributes["mk.crash.signal"] = String(value)
+        }
+        if let value = crash.virtualMemoryRegionInfo {
+            attributes["mk.crash.virtualMemoryRegionInfo"] = value
+        }
+        if let value = crash.virtualMemoryRegionInfo {
+            attributes["mk.crash.virtualMemoryRegionInfo"] = value
+        }
+        
+        if #available(iOS 17.0, *) {
+            if let reason = crash.exceptionReason {
+                attributes["mk.crash.exception.className"] = reason.className
+                attributes["mk.crash.exception.composedMessage"] = reason.composedMessage
+                attributes["mk.crash.exception.exceptionName"] = reason.exceptionName
+                attributes["mk.crash.exception.exceptionType"] = reason.exceptionType
+            }
+        }
+        
+        let time = Date()
+        Embrace.client?.otel.buildSpan(name: "MXCrashDiagnostic", type: .performance, attributes: attributes)
+            .setStartTime(time: time)
+            .startSpan()
+            .end(time: time)
+        
     }
 }
 #endif
