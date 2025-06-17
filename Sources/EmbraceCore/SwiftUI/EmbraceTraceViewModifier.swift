@@ -38,6 +38,7 @@ import SwiftUI
 /// - Parameters:
 ///   - viewName: A stable identifier for this view (appears in Embrace trace dashboards).
 ///   - attributes: Optional metadata (key/value pairs) to enrich trace analysis.
+///   - contentComplete: A value that when changed, will flag the View as content complete.
 /// - Returns: A new `View` wrapped with Embrace tracing instrumentation.
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
 public extension View {
@@ -45,6 +46,21 @@ public extension View {
         _ viewName: String,
         attributes: [String: String]? = nil
     ) -> some View {
-        EmbraceTraceView(viewName, attributes: attributes) { self }
+        EmbraceTraceView(
+            viewName,
+            attributes: attributes
+        ) { self }
+    }
+    
+    func embraceTrace<V: Equatable>(
+        _ viewName: String,
+        attributes: [String: String]? = nil,
+        contentComplete: V
+    ) -> some View {
+        EmbraceTraceView(
+            viewName,
+            attributes: attributes,
+            contentComplete: contentComplete
+        ) { self }
     }
 }

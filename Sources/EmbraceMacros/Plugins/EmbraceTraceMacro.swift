@@ -88,7 +88,7 @@ extension EmbraceTraceMacro: MemberMacro {
             context.diagnose(Diagnostic(node: node, message: EmbraceTraceDiagnostic(message: "The `body` property must have an accessor block to use EmbraceTrace")))
             throw EmbraceMacroError.noBody
         }
-        
+
         // Construct the injected declarations: original body, container view, and traced body
         let syntax = DeclSyntax(
                 """
@@ -129,7 +129,7 @@ extension EmbraceTraceMacro: MemberMacro {
                 ///
                 /// This is a key part of the macro, as it changes the view's body type
                 /// to be wrapped in the `EmbraceTraceView` performance monitoring wrapper.
-                typealias Body = EmbraceTraceView<_EmbraceBodyContainer>
+                typealias Body = EmbraceTraceView<_EmbraceBodyContainer, Never>
                 
                 /// Implementation of the `body` property for the `View` protocol.
                 ///
