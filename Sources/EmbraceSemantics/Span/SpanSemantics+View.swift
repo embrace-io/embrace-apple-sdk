@@ -45,5 +45,10 @@ public extension SpanSemantics {
         /// A span that begins when a `View` is first initialized, and ends
         /// when that view first appears.
         public static let timeToFirstRender = "time-to-first-render"
+        
+        /// A span that begins when a `View` is first initialized, and ends
+        /// when that content is deemed complete.
+        public static let timeToFirstContentComplete = "time-to-first-content-complete"
+        
     }
 }

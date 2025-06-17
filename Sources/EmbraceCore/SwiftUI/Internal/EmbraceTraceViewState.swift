@@ -21,7 +21,7 @@ import Foundation
 ///
 /// This class is not thread-safe. Ensure all access occurs on the main thread, which is
 /// typical for SwiftUI View lifecycle events.
-final internal class EmbraceTraceViewState {
+final internal class EmbraceTraceViewState<Value: Equatable> {
     
     // MARK: - Initialization Tracking
     
@@ -54,6 +54,20 @@ final internal class EmbraceTraceViewState {
     
     /// Count of how many times the view has disappeared.
     var disappear: Int = 0
+    
+    // MARK: - Content Complete
+    
+    /// The timestamp when the user flagged content as complete.
+    var contentCompleteTime: Date?
+    
+    /// Count of how many times the user flagged content as complete.
+    var contentComplete: Int = 0
+    
+    /// The current value tracked for content completion.
+    var contentCompleteValue: Value? = nil
+    
+    /// A flag to indicate if we've cached the first value.
+    var contentCompleteStoredFirstValue: Bool = false
 
     // MARK: - Debugging
     

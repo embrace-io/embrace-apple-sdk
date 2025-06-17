@@ -34,7 +34,7 @@ import EmbraceSemantics
 /// }
 /// ```
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
-public struct EmbraceTraceView<Content: View>: View {
+public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
     
     @Environment(\.embraceTraceViewContext)
     private var context: EmbraceTraceViewContext
@@ -43,37 +43,60 @@ public struct EmbraceTraceView<Content: View>: View {
     private var logger: EmbraceTraceViewLogger
     
     @State
-    private var state: EmbraceTraceViewState = EmbraceTraceViewState()
+    private var state: EmbraceTraceViewState<Value> = EmbraceTraceViewState()
     
     private let content: () -> Content
     private let name: String
     private let attributes: [String: String]?
+    private let contentCompleteValue: Value?
     
     /// Creates a new `EmbraceTraceView` that wraps the given content for tracing.
     ///
     /// - Parameters:
     ///   - viewName: The stable identifier used in trace dashboards (e.g., screen or component name).
     ///   - attributes: Optional metadata to associate with all spans created by this view.
+    ///   - contentComplete: Optional value representing the "content complete" state.
     ///   - content: A closure returning the view content to wrap.
     public init(
         _ viewName: String,
         attributes: [String: String]? = nil,
+        contentComplete: Value? = nil,
         content: @escaping () -> Content
     ) {
         self.name = viewName
         self.attributes = attributes
         self.content = content
+        self.contentCompleteValue = contentComplete
         
         // Ensure counters are updated
         if self.state.initialize == 0 {
             self.state.initializeTime = Date()
         }
         self.state.initialize += 1
+        
+        if !self.state.contentCompleteStoredFirstValue {
+            self.state.contentCompleteStoredFirstValue = true
+            self.state.contentCompleteValue = contentComplete
+        }
+    }
+    
+    public init(
+        _ viewName: String,
+        attributes: [String: String]? = nil,
+        content: @escaping () -> Content
+    ) where Value == Never {
+        self.init(
+            viewName,
+            attributes: attributes,
+            contentComplete: nil,
+            content: content
+        )
     }
     
     public var body: some View {
         // If tracing is disabled or we lack a valid OTel client, just render content.
-        guard let config = logger.config, config.isSwiftUiViewInstrumentationEnabled else {
+        guard let config = logger.config,
+                config.isSwiftUiViewInstrumentationEnabled else {
             return content()
                 .onAppear()  // placeholder to satisfy return type
                 .onDisappear()
@@ -110,7 +133,28 @@ public struct EmbraceTraceView<Content: View>: View {
         defer {
             logger.endSpan(bodySpan)
         }
-
+        
+        // Check for a change in the content complete value
+        if contentCompleteValue != state.contentCompleteValue {
+            // Ensure values are udpated
+            state.contentComplete += 1
+            state.contentCompleteValue = contentCompleteValue
+            state.contentCompleteTime = startTime
+            
+            // if it's the first time, send out
+            // the content complete span.
+            if state.contentComplete == 1, let initializeTime = state.initializeTime {
+                let span = logger.startSpan(
+                    name,
+                    semantics: SpanSemantics.SwiftUIView.timeToFirstContentComplete,
+                    time: initializeTime,
+                    parent: nil,
+                    attributes: attributes
+                )
+                logger.endSpan(span, time: startTime)
+            }
+        }
+        
         return content()
             .onAppear {
                 let time = Date()
@@ -127,7 +171,7 @@ public struct EmbraceTraceView<Content: View>: View {
                         name,
                         semantics: SpanSemantics.SwiftUIView.timeToFirstRender,
                         time: startTime,
-                        parent: context.firstCycleSpan,
+                        parent: nil,
                         attributes: attributes
                     )
                     logger.endSpan(span, time: time)
