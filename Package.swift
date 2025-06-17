@@ -44,7 +44,7 @@ let package = Package(
         ),
         .package(
             url: "https://github.com/open-telemetry/opentelemetry-swift",
-            exact: "1.13.0"
+            revision: "4874679a47213ca8cd61d8b00c392a58a4ec4b8a"
         )
     ],
     targets: [
