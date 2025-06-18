@@ -120,7 +120,6 @@ public class CoreDataWrapper {
             context.performAndWait {
                 let taskName = options.storageMechanism.name + "_" + name
                 guard let task = BackgroundTaskWrapper(name: taskName, logger: logger) else {
-                    logger.critical("Failed to create background task \(taskName)!")
                     block(nil)
                     return
                 }

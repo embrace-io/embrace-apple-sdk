@@ -26,11 +26,13 @@ class BackgroundTaskWrapper {
         // which should never be the main thread.
         // Leaving the check anyways just in case.
         if Thread.isMainThread {
+            logger.critical("Failed to create background task \(name), called from main thread!")
             return nil
         }
 
         // do not create task if there's not enough time until suspension
         if UIApplication.shared.backgroundTimeRemaining <= 5 {
+            logger.critical("Failed to create background task \(name), not enough time!")
             return nil
         }
 
@@ -44,6 +46,7 @@ class BackgroundTaskWrapper {
 
         // handle case where the task can't be created
         if taskID == .invalid {
+            logger.critical("Failed to create background task \(name), no valid ID!")
             return nil
         }
         self.taskID = taskID
