@@ -51,7 +51,7 @@ public extension View {
             attributes: attributes
         ) { self }
     }
-    
+
     func embraceTrace<V: Equatable>(
         _ viewName: String,
         attributes: [String: String]? = nil,
