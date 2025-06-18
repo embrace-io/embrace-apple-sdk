@@ -18,15 +18,31 @@ class BackgroundTaskWrapper {
     private var taskID: UIBackgroundTaskIdentifier
 
     init?(name: String, logger: InternalLogger) {
+        // This should never be called from the main thread
+        // since we are checking for `UIApplication.shared.backgroundTimeRemaining`.
+        //
+        // Note: In the current context of things, this class is only used internally
+        // within this module, and it's always called from the core data wrapper context thread
+        // which should never be the main thread.
+        // Leaving the check anyways just in case.
+        if Thread.isMainThread {
+            return nil
+        }
+
+        // do not create task if there's not enough time until suspension
+        if UIApplication.shared.backgroundTimeRemaining <= 5 {
+            return nil
+        }
+
         self.name = name
         self.taskID = .invalid
 
-        let taskID = UIApplication.shared.beginBackgroundTask(withName: name) {
+        let taskID = UIApplication.shared.beginBackgroundTask(withName: name) { [weak self] in
             logger.critical("Background task \(name) cancelled!")
-            self.endTask()
+            self?.endTask()
         }
 
-        // handle weird case where the task can't be created
+        // handle case where the task can't be created
         if taskID == .invalid {
             return nil
         }
