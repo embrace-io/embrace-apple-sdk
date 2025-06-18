@@ -18,6 +18,8 @@
 		4D4CE7F82DFCF2ED00740AC3 /* StartupSDKStartSpanTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4CE7F72DFCF2E500740AC3 /* StartupSDKStartSpanTest.swift */; };
 		4D4CE7FA2DFCF9A400740AC3 /* StartupProcessLaunchSpanTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4CE7F92DFCF99900740AC3 /* StartupProcessLaunchSpanTest.swift */; };
 		4D4CE7FC2DFCFA5C00740AC3 /* StartupAppStartupInitSpanTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4CE7FB2DFCFA4D00740AC3 /* StartupAppStartupInitSpanTest.swift */; };
+		4D4CE7FF2E0319F500740AC3 /* EmbraceInitScreenForceStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4CE7FE2E0319E700740AC3 /* EmbraceInitScreenForceStateView.swift */; };
+		4D4CE8022E031A6200740AC3 /* EmbraceInitForceState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4CE8012E031A5400740AC3 /* EmbraceInitForceState.swift */; };
 		4D61D1B72DE0BA750048B5E2 /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4D61D1B62DE0BA750048B5E2 /* EmbraceCore */; };
 		4D61D1B92DE0BA750048B5E2 /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = 4D61D1B82DE0BA750048B5E2 /* EmbraceCrash */; };
 		4D61D1BB2DE0BA750048B5E2 /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 4D61D1BA2DE0BA750048B5E2 /* EmbraceCrashlyticsSupport */; };
@@ -31,7 +33,7 @@
 		4D6337A72DE1157200557BDC /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D63379E2DE1157200557BDC /* Extensions.swift */; };
 		4D6337A82DE1157200557BDC /* EmbraceIOTestCrashesUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337A02DE1157200557BDC /* EmbraceIOTestCrashesUITests.swift */; };
 		4D6337A92DE1157200557BDC /* EmbraceIOTestLogsUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337A12DE1157200557BDC /* EmbraceIOTestLogsUITests.swift */; };
-		4D6337AA2DE1157200557BDC /* EmbraceIOTestMetadataUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337A22DE1157200557BDC /* EmbraceIOTestMetadataUITests.swift */; };
+		4D6337AA2DE1157200557BDC /* EmbraceIOTestStartupUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337A22DE1157200557BDC /* EmbraceIOTestStartupUITests.swift */; };
 		4D6337AB2DE1157200557BDC /* EmbraceIOTestNetworkingUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337A32DE1157200557BDC /* EmbraceIOTestNetworkingUITests.swift */; };
 		4D6337AC2DE1157200557BDC /* EmbraceIOTestSessionSpanUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337A42DE1157200557BDC /* EmbraceIOTestSessionSpanUITests.swift */; };
 		4D6337AD2DE1157200557BDC /* EmbraceIOTestViewUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337A52DE1157200557BDC /* EmbraceIOTestViewUITests.swift */; };
@@ -142,10 +144,12 @@
 		4D4CE7F72DFCF2E500740AC3 /* StartupSDKStartSpanTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupSDKStartSpanTest.swift; sourceTree = "<group>"; };
 		4D4CE7F92DFCF99900740AC3 /* StartupProcessLaunchSpanTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupProcessLaunchSpanTest.swift; sourceTree = "<group>"; };
 		4D4CE7FB2DFCFA4D00740AC3 /* StartupAppStartupInitSpanTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupAppStartupInitSpanTest.swift; sourceTree = "<group>"; };
+		4D4CE7FE2E0319E700740AC3 /* EmbraceInitScreenForceStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbraceInitScreenForceStateView.swift; sourceTree = "<group>"; };
+		4D4CE8012E031A5400740AC3 /* EmbraceInitForceState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbraceInitForceState.swift; sourceTree = "<group>"; };
 		4D63379E2DE1157200557BDC /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		4D6337A02DE1157200557BDC /* EmbraceIOTestCrashesUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbraceIOTestCrashesUITests.swift; sourceTree = "<group>"; };
 		4D6337A12DE1157200557BDC /* EmbraceIOTestLogsUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbraceIOTestLogsUITests.swift; sourceTree = "<group>"; };
-		4D6337A22DE1157200557BDC /* EmbraceIOTestMetadataUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbraceIOTestMetadataUITests.swift; sourceTree = "<group>"; };
+		4D6337A22DE1157200557BDC /* EmbraceIOTestStartupUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbraceIOTestStartupUITests.swift; sourceTree = "<group>"; };
 		4D6337A32DE1157200557BDC /* EmbraceIOTestNetworkingUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbraceIOTestNetworkingUITests.swift; sourceTree = "<group>"; };
 		4D6337A42DE1157200557BDC /* EmbraceIOTestSessionSpanUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbraceIOTestSessionSpanUITests.swift; sourceTree = "<group>"; };
 		4D6337A52DE1157200557BDC /* EmbraceIOTestViewUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbraceIOTestViewUITests.swift; sourceTree = "<group>"; };
@@ -288,6 +292,22 @@
 			path = ViewModels;
 			sourceTree = "<group>";
 		};
+		4D4CE7FD2E0319DE00740AC3 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				4D4CE7FE2E0319E700740AC3 /* EmbraceInitScreenForceStateView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		4D4CE8002E031A4A00740AC3 /* Supporting */ = {
+			isa = PBXGroup;
+			children = (
+				4D4CE8012E031A5400740AC3 /* EmbraceInitForceState.swift */,
+			);
+			path = Supporting;
+			sourceTree = "<group>";
+		};
 		4D63379F2DE1157200557BDC /* Common */ = {
 			isa = PBXGroup;
 			children = (
@@ -303,7 +323,7 @@
 				4D63379F2DE1157200557BDC /* Common */,
 				4D6337A02DE1157200557BDC /* EmbraceIOTestCrashesUITests.swift */,
 				4D6337A12DE1157200557BDC /* EmbraceIOTestLogsUITests.swift */,
-				4D6337A22DE1157200557BDC /* EmbraceIOTestMetadataUITests.swift */,
+				4D6337A22DE1157200557BDC /* EmbraceIOTestStartupUITests.swift */,
 				4D6337A32DE1157200557BDC /* EmbraceIOTestNetworkingUITests.swift */,
 				4D6337A42DE1157200557BDC /* EmbraceIOTestSessionSpanUITests.swift */,
 				4D6337A52DE1157200557BDC /* EmbraceIOTestViewUITests.swift */,
@@ -510,6 +530,8 @@
 		4D6337EC2DE1157700557BDC /* EmbraceInit */ = {
 			isa = PBXGroup;
 			children = (
+				4D4CE8002E031A4A00740AC3 /* Supporting */,
+				4D4CE7FD2E0319DE00740AC3 /* Views */,
 				4D6337EA2DE1157700557BDC /* ViewModels */,
 				4D6337EB2DE1157700557BDC /* EmbraceInitScreen.swift */,
 			);
@@ -911,7 +933,7 @@
 				4D6337A72DE1157200557BDC /* Extensions.swift in Sources */,
 				4D6337A82DE1157200557BDC /* EmbraceIOTestCrashesUITests.swift in Sources */,
 				4D6337A92DE1157200557BDC /* EmbraceIOTestLogsUITests.swift in Sources */,
-				4D6337AA2DE1157200557BDC /* EmbraceIOTestMetadataUITests.swift in Sources */,
+				4D6337AA2DE1157200557BDC /* EmbraceIOTestStartupUITests.swift in Sources */,
 				4D6337AB2DE1157200557BDC /* EmbraceIOTestNetworkingUITests.swift in Sources */,
 				4D6337AC2DE1157200557BDC /* EmbraceIOTestSessionSpanUITests.swift in Sources */,
 				4D6338752DE1157700557BDC /* URLRequestMethod.swift in Sources */,
@@ -942,6 +964,7 @@
 				4D6338352DE1157700557BDC /* TestScreen.swift in Sources */,
 				4D6338362DE1157700557BDC /* TextFieldRoundedStyle.swift in Sources */,
 				4D6338372DE1157700557BDC /* MockData.swift in Sources */,
+				4D4CE8022E031A6200740AC3 /* EmbraceInitForceState.swift in Sources */,
 				4D6338382DE1157700557BDC /* MockDataTask.swift in Sources */,
 				4D6338392DE1157700557BDC /* NetworkingSwizzle.swift in Sources */,
 				4D63383A2DE1157700557BDC /* LogTestUIComponentViewModel.swift in Sources */,
@@ -989,6 +1012,7 @@
 				4D63385E2DE1157700557BDC /* NetworkingTest.swift in Sources */,
 				4D63385F2DE1157700557BDC /* NetworkingTestClient.swift in Sources */,
 				4D6338602DE1157700557BDC /* NetworkingTestViewModel.swift in Sources */,
+				4D4CE7FF2E0319F500740AC3 /* EmbraceInitScreenForceStateView.swift in Sources */,
 				4D6338612DE1157700557BDC /* NetworkingTestBodyPropertyView.swift in Sources */,
 				4D6338622DE1157700557BDC /* NetworkingTestMethodTypeView.swift in Sources */,
 				4D6338632DE1157700557BDC /* NetworkingTestUIComponent.swift in Sources */,

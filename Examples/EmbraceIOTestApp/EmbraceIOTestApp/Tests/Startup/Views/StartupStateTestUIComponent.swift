@@ -24,6 +24,7 @@ struct StartupStateTestUIComponent: View {
                 Toggle("Cold Start State Expected", isOn: $viewModel.coldStartExpected)
                     .font(.embraceFont(size: 18))
                     .tint(.embracePurple)
+                    .accessibilityIdentifier("coldStartExpectedToggle")
                     .padding([.leading, .trailing, .bottom], 5)
                 TestScreenButtonView(viewModel: viewModel)
                     .onAppear {

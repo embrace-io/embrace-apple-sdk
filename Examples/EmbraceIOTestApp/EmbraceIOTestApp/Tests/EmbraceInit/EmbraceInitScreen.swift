@@ -23,13 +23,13 @@ struct EmbraceInitScreen: View {
                         .foregroundStyle(.embraceSteel)
                 }
                 .tint(.embracePurple)
-                Toggle(isOn: $viewModel.forceColdStart) {
-                    Text("Force Cold Start")
-                        .font(.embraceFont(size: 18))
-                        .foregroundStyle(.embraceSteel)
+                Section {
+                    EmbraceInitScreenForceStateView(forceInitState: $viewModel.forceInitState)
+                } header: {
+                    Text("Force Start State")
+                        .textCase(nil)
+                        .font(.embraceFont(size: 15))
                 }
-                .tint(.embracePurple)
-                .accessibilityIdentifier("ForceColdStartToggle")
                 ForEach($viewModel.formFields, id:\.name) { $section in
                     Section {
                         ForEach($section.items, id:\.name) { $item in
@@ -70,9 +70,24 @@ struct EmbraceInitScreen: View {
 
 private extension EmbraceInitScreen {
     func startEmbrace() {
-        if viewModel.forceColdStart {
+        switch viewModel.forceInitState {
+        case .off:
+            break
+        case .cold:
             UserDefaults.standard.setValue(nil, forKey: "emb.buildUUID")
+            UserDefaults.standard.setValue(0, forKey: "emb.bootTime")
+        case .warm:
+            let oldBuildUUID = UserDefaults.standard.string(forKey: "emb.buildUUID")
+            let oldBootTime = UserDefaults.standard.double(forKey: "emb.bootTime")
+            let newBuildUUID = EMBDevice.buildUUID?.uuidString
+            let newBootTime = EMBDevice.bootTime.doubleValue
+            if (oldBuildUUID == nil || oldBootTime == 0) ||
+                (oldBuildUUID != newBuildUUID && oldBootTime != newBootTime) {
+                UserDefaults.standard.setValue(newBuildUUID, forKey: "emb.buildUUID")
+                UserDefaults.standard.setValue(newBootTime, forKey: "emb.bootTime")
+            }
         }
+
         self.dataCollector.networkSpy?.simulateEmbraceAPI = viewModel.simulateEmbraceAPI
         do {
             viewModel.showProgressview = true
