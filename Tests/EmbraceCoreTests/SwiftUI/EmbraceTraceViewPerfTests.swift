@@ -1,5 +1,4 @@
 import XCTest
-import Testing
 @testable import EmbraceCore
 import EmbraceCommonInternal
 import EmbraceStorageInternal
