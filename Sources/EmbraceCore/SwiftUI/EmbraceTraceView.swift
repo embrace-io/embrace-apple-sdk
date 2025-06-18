@@ -3,10 +3,10 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-import SwiftUI
 import OpenTelemetryApi
+import SwiftUI
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceSemantics
+    import EmbraceSemantics
 #endif
 
 /// A SwiftUI wrapper view that instruments performance tracing for any content.
@@ -35,21 +35,20 @@ import EmbraceSemantics
 /// ```
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
 public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
-    
     @Environment(\.embraceTraceViewContext)
     private var context: EmbraceTraceViewContext
-    
+
     @Environment(\.embraceTraceViewLogger)
     private var logger: EmbraceTraceViewLogger
-    
+
     @State
     private var state: EmbraceTraceViewState<Value> = EmbraceTraceViewState()
-    
+
     private let content: () -> Content
     private let name: String
     private let attributes: [String: String]?
     private let contentCompleteValue: Value?
-    
+
     /// Creates a new `EmbraceTraceView` that wraps the given content for tracing.
     ///
     /// - Parameters:
@@ -79,7 +78,7 @@ public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
             self.state.contentCompleteValue = contentComplete
         }
     }
-    
+
     public init(
         _ viewName: String,
         attributes: [String: String]? = nil,
@@ -92,22 +91,23 @@ public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
             content: content
         )
     }
-    
+
     public var body: some View {
         // If tracing is disabled or we lack a valid OTel client, just render content.
         guard let config = logger.config,
-                config.isSwiftUiViewInstrumentationEnabled else {
+              config.isSwiftUiViewInstrumentationEnabled
+        else {
             return content()
-                .onAppear()  // placeholder to satisfy return type
+                .onAppear() // placeholder to satisfy return type
                 .onDisappear()
         }
-        
+
         let startTime = Date()
-        
+
         // Ensure counters are updated
         state.bodyTime = startTime
         state.body += 1
-        
+
         // If no _RenderLoop_ span exists for this render tick, create one.
         if context.firstCycleSpan == nil {
             context.firstCycleSpan = logger.cycledSpan(
@@ -121,7 +121,7 @@ public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
                 context.firstCycleSpan = nil
             }
         }
-        
+
         // Start a span for this body evaluation
         let bodySpan = logger.startSpan(
             name,
@@ -133,14 +133,14 @@ public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
         defer {
             logger.endSpan(bodySpan)
         }
-        
+
         // Check for a change in the content complete value
         if contentCompleteValue != state.contentCompleteValue {
             // Ensure values are udpated
             state.contentComplete += 1
             state.contentCompleteValue = contentCompleteValue
             state.contentCompleteTime = startTime
-            
+
             // if it's the first time, send out
             // the content complete span.
             if state.contentComplete == 1, let initializeTime = state.initializeTime {
@@ -154,19 +154,20 @@ public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
                 logger.endSpan(span, time: startTime)
             }
         }
-        
+
         return content()
             .onAppear {
                 let time = Date()
-                
+
                 // Ensure counters are updated
                 state.appearTime = time
                 state.appear += 1
-                
+
                 // If this is the first appearance,
                 // log this as time to first render.
                 if state.appear == 1,
-                    let startTime = state.initializeTime {
+                   let startTime = state.initializeTime
+                {
                     let span = logger.startSpan(
                         name,
                         semantics: SpanSemantics.SwiftUIView.timeToFirstRender,
@@ -176,7 +177,7 @@ public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
                     )
                     logger.endSpan(span, time: time)
                 }
-                
+
                 // Create and end an “appear” span for this view
                 logger.cycledSpan(
                     name,
@@ -188,11 +189,11 @@ public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
             }
             .onDisappear {
                 let time = Date()
-                
+
                 // Ensure counters are updated
                 state.disappearTime = time
                 state.disappear += 1
-                
+
                 // Create and end a “disappear” span for this view
                 logger.cycledSpan(
                     name,
