@@ -67,7 +67,7 @@ final class EmbraceTraceViewLogger {
     init(
         otel: EmbraceOpenTelemetry?,
         logger: InternalLogger?,
-        config: EmbraceConfigurable?,
+        config: EmbraceConfigurable?
     ) {
         dispatchPrecondition(condition: .onQueue(.main))
         self.otel = otel
