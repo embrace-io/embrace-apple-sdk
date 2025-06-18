@@ -112,7 +112,7 @@ public class CoreDataWrapper {
     /// If the background task can't be created, the block will be called without a context.
     public func performOperation(name: String, _ block: (NSManagedObjectContext?) -> Void) {
 
-        if isTesting {
+        if options.enableBackgroundTasks == false {
             context.performAndWait {
                 block(context)
             }

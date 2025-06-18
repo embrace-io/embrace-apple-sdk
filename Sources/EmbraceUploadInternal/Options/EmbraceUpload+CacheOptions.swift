@@ -13,6 +13,9 @@ public extension EmbraceUpload {
         /// Determines where the db is going to be
         let storageMechanism: StorageMechanism
 
+        /// All operations are executed inside a background tasks if enabled
+        public let enableBackgroundTasks: Bool
+
         /// Determines the maximum amount of cached requests that will be cached. Use 0 to disable.
         public let cacheLimit: UInt
 
@@ -21,10 +24,12 @@ public extension EmbraceUpload {
 
         public init(
             storageMechanism: StorageMechanism,
+            enableBackgroundTasks: Bool = true,
             cacheLimit: UInt = 0,
             cacheDaysLimit: UInt = 7
         ) {
             self.storageMechanism = storageMechanism
+            self.enableBackgroundTasks = enableBackgroundTasks
             self.cacheLimit = cacheLimit
             self.cacheDaysLimit = cacheDaysLimit
         }

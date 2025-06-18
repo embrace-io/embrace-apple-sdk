@@ -29,6 +29,7 @@ class EmbraceUploadCache {
         // create core data stack
         let coreDataOptions = CoreDataWrapper.Options(
             storageMechanism: options.storageMechanism,
+            enableBackgroundTasks: options.enableBackgroundTasks,
             entities: [UploadDataRecord.entityDescription]
         )
         self.coreData = try CoreDataWrapper(options: coreDataOptions, logger: logger)

@@ -14,6 +14,9 @@ public extension EmbraceStorage {
         /// Determines where the db is going to be
         public let storageMechanism: StorageMechanism
 
+        /// All operations are executed inside a background tasks if enabled
+        public let enableBackgroundTasks: Bool
+
         /// Dictionary containing the storage limits per span type
         public var spanLimits: [SpanType: Int] = [:]
 
@@ -29,8 +32,9 @@ public extension EmbraceStorage {
         /// Use this initializer to create a storage object that is persisted locally to disk
         /// - Parameters:
         ///   - storageMechanism: The StorageMechanism to use
-        public init(storageMechanism: StorageMechanism) {
+        public init(storageMechanism: StorageMechanism, enableBackgroundTasks: Bool = true) {
             self.storageMechanism = storageMechanism
+            self.enableBackgroundTasks = enableBackgroundTasks
         }
     }
 }

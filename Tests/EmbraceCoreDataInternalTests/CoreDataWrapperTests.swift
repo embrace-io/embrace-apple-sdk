@@ -15,7 +15,7 @@ class CoreDataWrapperTests: XCTestCase {
 
     override func setUpWithError() throws {
         let storageMechanism: StorageMechanism = .inMemory(name: testName)
-        let options = CoreDataWrapper.Options(storageMechanism: storageMechanism, entities: [MockRecord.entityDescription])
+        let options = CoreDataWrapper.Options(storageMechanism: storageMechanism, enableBackgroundTasks: false, entities: [MockRecord.entityDescription])
         try wrapper = CoreDataWrapper(options: options, logger: MockLogger())
     }
 
@@ -23,7 +23,7 @@ class CoreDataWrapperTests: XCTestCase {
         // given a wrapper with data on disk
         let url = URL(fileURLWithPath: NSTemporaryDirectory())
         let storageMechanism: StorageMechanism = .onDisk(name: testName, baseURL: url)
-        let options = CoreDataWrapper.Options(storageMechanism: storageMechanism, entities: [MockRecord.entityDescription])
+        let options = CoreDataWrapper.Options(storageMechanism: storageMechanism, enableBackgroundTasks: false, entities: [MockRecord.entityDescription])
         try wrapper = CoreDataWrapper(options: options, logger: MockLogger())
 
         _ = MockRecord.create(context: wrapper.context, id: "test")
