@@ -49,6 +49,7 @@ class SessionController: SessionControllable {
     }
 
     let heartbeat: SessionHeartbeat
+    let birdsEyeView: BirdsEyeView
     let queue: DispatchableQueue
     var firstSession = true
 
@@ -63,12 +64,15 @@ class SessionController: SessionControllable {
         self.storage = storage
         self.upload = upload
         self.config = config
-
+        
+        self.birdsEyeView = BirdsEyeView()
         self.heartbeat = SessionHeartbeat(queue: heartbeatQueue, interval: heartbeatInterval)
         self.queue = queue
 
         self.heartbeat.callback = { [weak self] in
-            self?.update(heartbeat: Date())
+            let time = Date()
+            self?.birdsEyeView.beat(at: time)
+            self?.update(heartbeat: time)
         }
     }
 
