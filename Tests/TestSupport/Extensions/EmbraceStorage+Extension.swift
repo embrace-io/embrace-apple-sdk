@@ -9,7 +9,7 @@ import EmbraceCommonInternal
 public extension EmbraceStorage {
     static func createInMemoryDb() throws -> EmbraceStorage {
         let storage = try EmbraceStorage(
-            options: .init(storageMechanism: .inMemory(name: UUID().uuidString)),
+            options: .init(storageMechanism: .inMemory(name: UUID().uuidString), enableBackgroundTasks: false),
             logger: MockLogger()
         )
         return storage
@@ -18,7 +18,7 @@ public extension EmbraceStorage {
     static func createInDiskDb(fileName: String) throws -> EmbraceStorage {
         let url = URL(fileURLWithPath: NSTemporaryDirectory())
         let storage = try EmbraceStorage(
-            options: .init(storageMechanism: .onDisk(name: fileName, baseURL: url)),
+            options: .init(storageMechanism: .onDisk(name: fileName, baseURL: url), enableBackgroundTasks: false),
             logger: MockLogger()
         )
 

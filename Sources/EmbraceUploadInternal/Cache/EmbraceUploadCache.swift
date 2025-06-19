@@ -29,6 +29,7 @@ class EmbraceUploadCache {
         // create core data stack
         let coreDataOptions = CoreDataWrapper.Options(
             storageMechanism: options.storageMechanism,
+            enableBackgroundTasks: options.enableBackgroundTasks,
             entities: [UploadDataRecord.entityDescription]
         )
         self.coreData = try CoreDataWrapper(options: coreDataOptions, logger: logger)
@@ -108,9 +109,19 @@ class EmbraceUploadCache {
 
         // update if it already exists
         if let record = fetchUploadData(id: id, type: type) {
-            coreData.context.performAndWait { [weak self] in
+
+            coreData.performOperation(name: "UpdateExistingUploadData") { context in
+                guard let context else {
+                    return
+                }
+
                 record.data = data
-                self?.coreData.save()
+
+                do {
+                    try context.save()
+                } catch {
+                    logger.error("Error updating upload data \(id)!")
+                }
             }
 
             return true
@@ -122,9 +133,13 @@ class EmbraceUploadCache {
         // insert new
         var result = true
 
-        coreData.context.performAndWait {
+        coreData.performOperation(name: "CreateUploadData") { context in
+            guard let context else {
+                return
+            }
+
             if let record = UploadDataRecord.create(
-                context: coreData.context,
+                context: context,
                 id: id,
                 type: type.rawValue,
                 data: data,
@@ -133,9 +148,9 @@ class EmbraceUploadCache {
             ) {
 
                 do {
-                    try coreData.context.save()
+                    try context.save()
                 } catch {
-                    coreData.context.delete(record)
+                    context.delete(record)
                     result = false
                 }
             } else {
@@ -153,27 +168,29 @@ class EmbraceUploadCache {
             return
         }
 
-        coreData.context.performAndWait { [weak self] in
-            guard let strongSelf = self else {
+        coreData.performOperation(name: "CheckCountLimit") { [weak self] context in
+            guard let self, let context else {
                 return
             }
 
             do {
                 let request = NSFetchRequest<UploadDataRecord>(entityName: UploadDataRecord.entityName)
-                let count = try strongSelf.coreData.context.count(for: request)
+                let count = try context.count(for: request)
 
-                if count >= strongSelf.options.cacheLimit {
+                if count >= self.options.cacheLimit {
                     request.sortDescriptors = [NSSortDescriptor(key: "date", ascending: true)]
-                    request.fetchLimit = max(0, count - Int(strongSelf.options.cacheLimit) + 10)
+                    request.fetchLimit = max(0, count - Int(self.options.cacheLimit) + 10)
 
-                    let result = try strongSelf.coreData.context.fetch(request)
+                    let result = try context.fetch(request)
                     for uploadData in result {
-                        strongSelf.coreData.context.delete(uploadData)
+                        context.delete(uploadData)
                     }
 
-                    strongSelf.coreData.save()
+                    try context.save()
                 }
-            } catch { }
+            } catch { 
+                logger.error("error checking count limit:\n\(error.localizedDescription)")
+            }
         }
     }
 

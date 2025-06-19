@@ -41,6 +41,7 @@ public class EmbraceStorage: Storage {
 
         let coreDataOptions = CoreDataWrapper.Options(
             storageMechanism: options.storageMechanism,
+            enableBackgroundTasks: options.enableBackgroundTasks,
             entities: entities
         )
         self.coreData = try CoreDataWrapper(options: coreDataOptions, logger: logger)
