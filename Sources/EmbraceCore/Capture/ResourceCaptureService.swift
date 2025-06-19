@@ -10,25 +10,19 @@ import EmbraceStorageInternal
 import OpenTelemetryApi
 
 protocol ResourceCaptureServiceHandler: AnyObject {
-    func addResource(key: String, value: AttributeValue)
+    func addRequiredResources(_ map: [String: String])
 }
 
 class ResourceCaptureService: CaptureService {
     weak var handler: ResourceCaptureServiceHandler?
 
-    func addResource(key: String, value: AttributeValue) {
-        handler?.addResource(key: key, value: value)
+    func addRequiredResources(_ map: [String: String]) {
+        handler?.addRequiredResources(map)
     }
 }
 
 extension EmbraceStorage: ResourceCaptureServiceHandler {
-    func addResource(key: String, value: AttributeValue) {
-        _ = addMetadata(
-            key: key,
-            value: value.description,
-            type: .requiredResource,
-            lifespan: .process,
-            lifespanId: ProcessIdentifier.current.hex
-        )
+    func addRequiredResources(_ map: [String: String]) {
+        addRequiredResources(map, processId: .current)
     }
 }
