@@ -12,66 +12,41 @@ import OpenTelemetrySdk
 class DeviceInfoCaptureService: ResourceCaptureService {
 
     override func onStart() {
-        // jailbroken
-        addResource(
-            key: DeviceResourceKey.isJailbroken.rawValue,
-            value: .string(String(EMBDevice.isJailbroken))
-        )
 
-        // locale
-        addResource(
-            key: DeviceResourceKey.locale.rawValue,
-            value: .string(EMBDevice.locale)
-        )
+        let resourcesMap: [String: String] = [
+            // jailbroken
+            DeviceResourceKey.isJailbroken.rawValue: EMBDevice.isJailbroken ? "true" : "false",
 
-        // timezone
-        addResource(
-            key: DeviceResourceKey.timezone.rawValue,
-            value: .string(EMBDevice.timezoneDescription)
-        )
+            // locale
+            DeviceResourceKey.locale.rawValue: EMBDevice.locale,
 
-        // disk space
-        addResource(
-            key: DeviceResourceKey.totalDiskSpace.rawValue,
-            value: .int(EMBDevice.totalDiskSpace.intValue)
-        )
+            // timezone
+            DeviceResourceKey.timezone.rawValue: EMBDevice.timezoneDescription,
 
-        // os version
-        addResource(
-            key: ResourceAttributes.osVersion.rawValue,
-            value: .string(EMBDevice.operatingSystemVersion)
-        )
+            // disk space
+            DeviceResourceKey.totalDiskSpace.rawValue: String(EMBDevice.totalDiskSpace.intValue),
 
-        // os build
-        addResource(
-            key: DeviceResourceKey.osBuild.rawValue,
-            value: .string(EMBDevice.operatingSystemBuild)
-        )
+            // os version
+            ResourceAttributes.osVersion.rawValue: EMBDevice.operatingSystemVersion,
 
-        // os variant
-        addResource(
-            key: DeviceResourceKey.osVariant.rawValue,
-            value: .string(EMBDevice.operatingSystemType)
-        )
+            // os build
+            DeviceResourceKey.osBuild.rawValue: EMBDevice.operatingSystemBuild,
 
-        // os type
-        // Should always be "darwin" as can be seen in semantic convention docs:
-        // https://opentelemetry.io/docs/specs/semconv/resource/os/
-        addResource(
-            key: ResourceAttributes.osType.rawValue,
-            value: .string("darwin")
-        )
+            // os variant
+            DeviceResourceKey.osVariant.rawValue: EMBDevice.operatingSystemType,
 
-        // model
-        addResource(
-            key: ResourceAttributes.deviceModelIdentifier.rawValue,
-            value: .string(EMBDevice.model)
-        )
+            // os type
+            // Should always be "darwin" as can be seen in semantic convention docs:
+            // https://opentelemetry.io/docs/specs/semconv/resource/os/
+            ResourceAttributes.osType.rawValue: "darwin",
 
-        // architecture
-        addResource(
-            key: DeviceResourceKey.architecture.rawValue,
-            value: .string(EMBDevice.architecture)
-        )
+            // model
+            ResourceAttributes.deviceModelIdentifier.rawValue: EMBDevice.model,
+
+            // architecture
+            DeviceResourceKey.architecture.rawValue: EMBDevice.architecture
+        ]
+
+        addRequiredResources(resourcesMap)
     }
 }

@@ -11,20 +11,23 @@ import TestSupport
 
 class ResourceCaptureServiceTests: XCTestCase {
 
-    func test_addResource() throws {
+    func test_addRequiredResource() throws {
         // given a resource capture service
         let service = ResourceCaptureService()
         let handler = try EmbraceStorage.createInMemoryDb()
         service.handler = handler
 
         // when adding a resource
-        service.addResource(key: "test", value: .string("value"))
+        let map = [
+            "key1": "value1",
+            "key2": "value2",
+            "key3": "value3"
+        ]
+        service.addRequiredResources(map)
 
         // then the resource is added to the storage
         let metadata: [MetadataRecord] = handler.fetchAll()
-        XCTAssertEqual(metadata.count, 1)
-        XCTAssertEqual(metadata[0].key, "test")
-        XCTAssertEqual(metadata[0].value, "value")
+        XCTAssertEqual(metadata.count, 3)
         XCTAssertEqual(metadata[0].typeRaw, "requiredResource")
         XCTAssertEqual(metadata[0].lifespanRaw, "process")
         XCTAssertEqual(metadata[0].lifespanId, ProcessIdentifier.current.hex)
