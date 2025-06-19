@@ -18,7 +18,14 @@ extension Date {
     }
 
     public var nanosecondsSince1970Truncated: Int {
-        Int(trunc(self.nanosecondsSince1970))
+        let d = trunc(self.nanosecondsSince1970)
+        if d < Double(Int.min) {
+            return Int.min
+        }
+        if d > Double(Int.max) {
+            return Int.max
+        }
+        return Int(d)
     }
 
     public var serializedInterval: Int {
