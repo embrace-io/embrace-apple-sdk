@@ -223,6 +223,7 @@ class StartupInstrumentationTests: XCTestCase {
     }
 
     func test_addAttributesToTrace() {
+        provider.firstFrameTime = nil
         instrumentation.buildMainSpans()
 
         let result = instrumentation.addAttributesToTrace(["key1": "value1", "key2": "value2"])

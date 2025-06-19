@@ -99,6 +99,10 @@ public class StartupInstrumentation: NSObject {
             $0.rootSpan = parent
             $0.firstFrameSpan = firstFrameSpan
         }
+
+        if let firstFrameTime = provider.firstFrameTime {
+            endSpans(firstFrameTime)
+        }
     }
 
     func buildSecondarySpans(_ appDidFinishLaunchingTime: Date?) {
