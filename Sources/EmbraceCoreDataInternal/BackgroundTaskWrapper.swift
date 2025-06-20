@@ -28,9 +28,7 @@ class BackgroundTaskWrapper {
             self?.endTask()
         }
         self.taskID = taskID
-        
-        print("[BGTASK] \(taskID.stringValue)")
-        
+
         if taskID == .timeout {
             logger.critical("Cannot create background task \(name), out of background time!")
             return nil

@@ -18,7 +18,8 @@ class BirdsEyeView {
         providers = [
             MemoryProvider(),
             TaskRoleProvider(),
-            ApplicationProvider()
+            ApplicationProvider(),
+            ResourceUsageProvider()
         ]
     }
     

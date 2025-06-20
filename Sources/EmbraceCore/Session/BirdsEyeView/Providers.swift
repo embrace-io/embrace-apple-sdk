@@ -6,6 +6,49 @@ import Foundation
 import Darwin
 import UIKit
 
+// UIDevice.batteryLevel / .batteryState
+// UIScreen.brightness
+// UIApplication.protectedDataAvailable
+// NSProcessInfo.isLowPowerModeEnabled
+// NSProcessInfo.thermalState
+// shared_cache_get_uuid
+// thermal_notify_register
+// UIScreen.maximumFramesPerSecond, CADisplayLink
+// notify_register_dispatch
+// memorystatus_control
+// memorystatus_get_level
+
+struct ResourceUsageProvider: BirdsEyeViewProvider {
+    
+    func provide(_ time: Date) -> BirdsEyeViewAttributes? {
+
+        var info = rusage_info_current()
+        let status = withUnsafeMutablePointer(to: &info) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: 1) {
+                proc_pid_rusage(getpid(), RUSAGE_INFO_CURRENT, $0)
+            }
+        }
+        guard status == 0 else {
+            return nil
+        }
+        return [
+            "emb-rusage.billedEnergy": "\(info.ri_billed_energy)",
+            "emb-rusage.mb.logicalWrites": "\(info.ri_logical_writes >> 20)",
+            "emb-rusage.pageIns": "\(info.ri_pageins)",
+            "emb-rusage.process.startTime": "\(info.ri_proc_start_abstime)",
+            "emb-rusage.diskio.mb.read": "\(info.ri_diskio_bytesread >> 20)",
+            "emb-rusage.diskio.mb.written": "\(info.ri_diskio_byteswritten >> 20)"
+        ]
+    }
+}
+
+@_silgen_name("proc_pid_rusage")
+func proc_pid_rusage(
+    _ pid: Int32,
+    _ flavor: Int32,
+    _ buffer: UnsafeMutableRawPointer
+) -> Int32
+
 struct ApplicationProvider: BirdsEyeViewProvider {
     
     func provide(_ time: Date) -> BirdsEyeViewAttributes? {
@@ -47,10 +90,10 @@ struct MemoryProvider: BirdsEyeViewProvider {
         let remaining: Int64 = kerr == KERN_SUCCESS ? Int64(info.limit_bytes_remaining) : 0
 #endif
         return [
-            "emb-memory.app.used": "\(used)",
-            "emb-memory.app.limit": "\(used + remaining)",
-            "emb-memory.app.remaining": "\(remaining)",
-            "emb-memory.app.compressed": "\(compressed)"
+            "emb-memory.app.mb.used": "\(used >> 20)",
+            "emb-memory.app.mb.limit": "\((used + remaining) >> 20)",
+            "emb-memory.app.mb.remaining": "\(remaining >> 20)",
+            "emb-memory.app.mb.compressed": "\(compressed >> 20)"
         ]
     }
     
