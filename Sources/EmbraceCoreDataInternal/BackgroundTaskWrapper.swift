@@ -20,7 +20,7 @@ class BackgroundTaskWrapper {
     private static let taskProvider: BackgroundTaskProvider = BackgroundTaskProvider()
     
     init?(name: String, logger: InternalLogger) {
-        
+
         self.name = name
         
         let taskID = Self.taskProvider.beginBackgroundTask(withName: name) { [weak self] in
@@ -53,7 +53,6 @@ class BackgroundTaskWrapper {
         guard taskID.rawValue > 0 else {
             return
         }
-        
         Self.taskProvider.endBackgroundTask(self.taskID)
         self.taskID = .invalid
     }
@@ -61,15 +60,15 @@ class BackgroundTaskWrapper {
 
 extension UIBackgroundTaskIdentifier {
     
-    public static let timeout: UIBackgroundTaskIdentifier = UIBackgroundTaskIdentifier(rawValue: -1024)
+    public static let timeout: UIBackgroundTaskIdentifier = UIBackgroundTaskIdentifier(rawValue: Int.max-1)
     
-    public static let noApp: UIBackgroundTaskIdentifier = UIBackgroundTaskIdentifier(rawValue: -1025)
+    public static let noApp: UIBackgroundTaskIdentifier = UIBackgroundTaskIdentifier(rawValue: Int.max-2)
     
     var stringValue: String {
         if self == .invalid { return "bgtask: invalid" }
         if self == .timeout { return "bgtask: timeout" }
         if self == .noApp { return "bgtask: noApp" }
-        return "bgtask: \(self)"
+        return "bgtask: \(self.rawValue)"
     }
 }
 
@@ -88,21 +87,103 @@ fileprivate class BackgroundTaskProvider {
         // For now, this allows our code to continue working,
         // and run things even when UIApplication isn't ready yet.
         guard let app else {
+            print("[BackgroundTaskProvider] cannot start task, app isn't ready")
             return .noApp
         }
         
         guard canStartTask() else {
+            print("[BackgroundTaskProvider] cannot start task, it would timeout")
             return .timeout
         }
         
-        return app.beginBackgroundTask(
-            withName: taskName,
-            expirationHandler: handler
-        )
+        return lock.locked {
+            if let curTask = currentTaskID {
+                currentTaskRefCount += 1
+                return curTask
+            }
+            
+            var newTask: UIBackgroundTaskIdentifier? = nil
+            newTask = app.beginBackgroundTask(withName: taskName) { [self] in
+                lock.locked {
+                    
+                    print("[BackgroundTaskProvider] task expired \(newTask!.stringValue)")
+                    
+                    assert(newTask == currentTaskID)
+                    
+                    // Stop everything as quickly as possible
+                    // This resets the whole system
+                    latestTaskWorkItem?.cancel()
+                    latestTaskWorkItem = nil
+                    
+                    if let t = currentTaskID {
+                        app.endBackgroundTask(t)
+                        currentTaskID = nil
+                        currentTaskRefCount = 0
+                    }
+                }
+                handler()
+            }
+            if newTask != .invalid {
+                currentTaskID = newTask
+                currentTaskRefCount = 1
+                print("[BackgroundTaskProvider] begin \(newTask!.stringValue)")
+            }
+            return newTask ?? .invalid
+        }
     }
     
     func endBackgroundTask(_ identifier: UIBackgroundTaskIdentifier) {
-        app?.endBackgroundTask(identifier)
+        lock.lock()
+        defer { lock.unlock() }
+        
+        if identifier == .noApp || identifier == .timeout {
+            return
+        }
+        
+        guard identifier == currentTaskID else {
+            print("[BackgroundTaskProvider] cannot end incorrect task \(identifier.stringValue) != \(currentTaskID?.stringValue)")
+            return
+        }
+        
+        currentTaskRefCount -= 1
+        guard currentTaskRefCount == 0 else {
+            return
+        }
+        
+        // debounce
+        latestTaskWorkItem?.cancel()
+        latestTaskWorkItem = nil
+        var workItem: DispatchWorkItem? = nil
+        workItem = DispatchWorkItem { [self] in
+            guard let workItem else {
+                return
+            }
+            
+            if workItem.isCancelled {
+                print("[BackgroundTaskProvider] work item is cancelled")
+                return
+            }
+            
+            lock.lock()
+            defer { lock.unlock() }
+            
+            guard identifier == currentTaskID else {
+                print("[BackgroundTaskProvider] cannot end incorrect task after run loop \(identifier.stringValue) != \(currentTaskID?.stringValue)")
+                return
+            }
+            
+            guard currentTaskRefCount == 0 else {
+                print("[BackgroundTaskProvider] won't end, ref count is \(currentTaskRefCount) after run loop tick")
+                return
+            }
+            
+            print("[BackgroundTaskProvider] end \(identifier.stringValue)")
+            
+            app?.endBackgroundTask(identifier)
+            currentTaskID = nil
+        }
+        latestTaskWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0, execute: latestTaskWorkItem!)
     }
     
     var backgroundTimeRemaining: TimeInterval {
@@ -112,6 +193,9 @@ fileprivate class BackgroundTaskProvider {
     // Timing
     private var knownTimeRemain: TimeInterval = 0
     private var lastTimeRemainCheck: CFAbsoluteTime = 0
+    private var latestTaskWorkItem: DispatchWorkItem? = nil
+    private var currentTaskID: UIBackgroundTaskIdentifier? = nil
+    private var currentTaskRefCount: Int = 0
     private let lock: UnfairLock = UnfairLock()
     
     func canStartTask() -> Bool {
