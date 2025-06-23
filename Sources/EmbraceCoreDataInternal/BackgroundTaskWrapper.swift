@@ -38,11 +38,6 @@ class BackgroundTaskWrapper {
             logger.critical("Failed to create background task \(name), no valid ID!")
             return nil
         }
-        
-        // We allow acting as if there's a task when no app is available
-        if taskID == .noApp {
-            logger.critical("Not creating background task \(name), no app instance!")
-        }
     }
     
     deinit {
