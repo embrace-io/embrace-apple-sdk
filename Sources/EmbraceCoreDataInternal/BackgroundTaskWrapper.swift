@@ -46,20 +46,20 @@ class BackgroundTaskWrapper {
     }
     
     deinit {
-        self.endTask()
+        endTask()
     }
     
     func finish() {
-        self.endTask()
+        endTask()
     }
     
     private func endTask() {
-        guard taskID.rawValue > 0 else {
+        if taskID == .invalid || taskID == .noApp || taskID == .timeout {
             return
         }
         
-        Self.taskProvider.endBackgroundTask(self.taskID)
-        self.taskID = .invalid
+        taskProvider.endBackgroundTask(self.taskID)
+        taskID = .invalid
     }
 }
 
@@ -149,15 +149,14 @@ class BackgroundTaskWrapper {
     }
     
     deinit {
-        self.endTask()
+        endTask()
     }
     
     func finish() {
-        self.endTask()
+        endTask()
     }
     
     private func endTask() {
-        
     }
 }
 
