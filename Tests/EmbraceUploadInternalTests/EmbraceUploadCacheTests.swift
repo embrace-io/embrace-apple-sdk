@@ -22,7 +22,7 @@ class EmbraceUploadCacheTests: XCTestCase {
     }
 
     func test_fetchUploadData() throws {
-        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName))
+        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false)
         let cache = try EmbraceUploadCache(options: options, logger: logger)
 
         // given inserted upload data
@@ -46,7 +46,7 @@ class EmbraceUploadCacheTests: XCTestCase {
     }
 
     func test_fetchAllUploadData() throws {
-        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName))
+        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false)
         let cache = try EmbraceUploadCache(options: options, logger: logger)
 
         // given inserted upload datas
@@ -87,7 +87,7 @@ class EmbraceUploadCacheTests: XCTestCase {
     }
 
     func test_saveUploadData() throws {
-        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName))
+        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false)
         let cache = try EmbraceUploadCache(options: options, logger: logger)
 
         // given inserted upload data
@@ -113,7 +113,7 @@ class EmbraceUploadCacheTests: XCTestCase {
 
     func test_saveUploadData_limit() throws {
         // given a cache with a limit of 1
-        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName), cacheLimit: 1)
+        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false, cacheLimit: 1)
         let cache = try EmbraceUploadCache(options: options, logger: logger)
 
         // given inserted upload datas
@@ -140,7 +140,7 @@ class EmbraceUploadCacheTests: XCTestCase {
     }
 
     func test_deleteUploadData() throws {
-        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName))
+        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false)
         let cache = try EmbraceUploadCache(options: options, logger: logger)
 
         // given inserted upload data
@@ -176,7 +176,7 @@ class EmbraceUploadCacheTests: XCTestCase {
     }
 
     func test_updateAttemptCount() throws {
-        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName))
+        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false)
         let cache = try EmbraceUploadCache(options: options, logger: logger)
 
         // given inserted upload data

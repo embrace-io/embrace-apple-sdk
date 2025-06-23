@@ -64,8 +64,7 @@ final class EmbraceOTelTests: XCTestCase {
         let tracerSdk = try XCTUnwrap(tracer as? TracerSdk)
 
         XCTAssertEqual(tracerSdk.instrumentationScopeInfo.name, "ExampleName")
-        XCTAssertEqual(tracerSdk.instrumentationScopeInfo.version, "")  // DEV: looks like a side effect
-                                                                        //  in TracerProviderSdk causes empty string
+        XCTAssertNil(tracerSdk.instrumentationScopeInfo.version)
     }
 
     func test_tracer_returnsTracerWithCorrectInstrumentationName_andVersion() throws {

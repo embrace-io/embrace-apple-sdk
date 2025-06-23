@@ -42,7 +42,11 @@ extension EmbraceStorage {
         if let span = fetchSpanRecord(id: id, traceId: traceId) {
             var result: EmbraceSpan?
 
-            coreData.context.performAndWait {
+            coreData.performOperation(name: "UpdateExistingSpan") { context in
+                guard let context else {
+                    return
+                }
+
                 // prevent modifications on closed spans!
                 if span.endTime == nil {
                     span.name = name
@@ -54,7 +58,7 @@ extension EmbraceStorage {
                     span.sessionIdRaw = sessionId?.toString
 
                     do {
-                        try coreData.context.save()
+                        try context.save()
                     } catch {
                         logger.error("Error updating span \(id)!")
                     }

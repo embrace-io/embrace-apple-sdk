@@ -10,7 +10,7 @@ import EmbraceCommonInternal
 extension EmbraceUploadCacheTests {
     func test_clearStaleDataIfNeeded_basedOn_date() throws {
         // setting the maximum allowed days
-        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: (testName)), cacheDaysLimit: 15)
+        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: (testName)), enableBackgroundTasks: false, cacheDaysLimit: 15)
         let cache = try EmbraceUploadCache(options: options, logger: MockLogger())
 
         // given some upload cache
@@ -97,7 +97,7 @@ extension EmbraceUploadCacheTests {
 
     func test_clearStaleDataIfNeeded_basedOn_date_noLimit() throws {
         // disabling maximum allowed days
-        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName), cacheDaysLimit: 0)
+        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false, cacheDaysLimit: 0)
         let cache = try EmbraceUploadCache(options: options, logger: MockLogger())
 
         // given some upload cache
@@ -169,7 +169,7 @@ extension EmbraceUploadCacheTests {
 
     func test_clearStaleDataIfNeeded_basedOn_date_noRecords() throws {
         // setting minimum allowed time
-        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName), cacheDaysLimit: 1)
+        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false, cacheDaysLimit: 1)
         let cache = try EmbraceUploadCache(options: options, logger: MockLogger())
 
         // when attempting to remove data from an empty cache
@@ -181,7 +181,7 @@ extension EmbraceUploadCacheTests {
 
     func test_clearStaleDataIfNeeded_basedOn_date_didNotHitTimeLimit() throws {
         // disabling maximum allowed days
-        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName), cacheDaysLimit: 17)
+        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false, cacheDaysLimit: 17)
         let cache = try EmbraceUploadCache(options: options, logger: MockLogger())
 
         // given some upload cache

@@ -39,7 +39,7 @@ final class SessionControllerTests: XCTestCase {
 
         uploadTestOptions = EmbraceUpload.Options(
             endpoints: testEndpointOptions(testName: testName),
-            cache: EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName)),
+            cache: EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false),
             metadata: Self.testMetadataOptions,
             redundancy: Self.testRedundancyOptions,
             urlSessionConfiguration: uploadUrlSessionconfig

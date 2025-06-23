@@ -12,71 +12,47 @@ import OpenTelemetryApi
 class AppInfoCaptureService: ResourceCaptureService {
 
     override func onStart() {
-        // bundle version
-        addResource(
-            key: AppResourceKey.bundleVersion.rawValue,
-            value: .string(EMBDevice.bundleVersion)
-        )
 
-        // environment
-        addResource(
-            key: AppResourceKey.environment.rawValue,
-            value: .string(EMBDevice.environment)
-        )
+        let isPreWarm = ProcessInfo.processInfo.environment["ActivePrewarm"] == "1" ? "true" : "false"
 
-        // environment detail
-        addResource(
-            key: AppResourceKey.detailedEnvironment.rawValue,
-            value: .string(EMBDevice.environmentDetail)
-        )
+        var resourcesMap: [String: String] = [
+            // bundle version
+            AppResourceKey.bundleVersion.rawValue: EMBDevice.bundleVersion,
 
-        // framework
-        addResource(
-            key: AppResourceKey.framework.rawValue,
-            value: .int(Embrace.client?.options.platform.frameworkId ?? -1)
-        )
+            // environment
+            AppResourceKey.environment.rawValue: EMBDevice.environment,
 
-        // sdk version
-        addResource(
-            key: AppResourceKey.sdkVersion.rawValue,
-            value: .string(EmbraceMeta.sdkVersion)
-        )
+            // environment detail
+            AppResourceKey.detailedEnvironment.rawValue: EMBDevice.environmentDetail,
+
+            // framework
+            AppResourceKey.framework.rawValue: String(Embrace.client?.options.platform.frameworkId ?? -1),
+
+            // sdk version
+            AppResourceKey.sdkVersion.rawValue: EmbraceMeta.sdkVersion,
+
+            // process id
+            AppResourceKey.processIdentifier.rawValue: ProcessIdentifier.current.hex,
+
+            // pre-warm
+            AppResourceKey.processPreWarm.rawValue: isPreWarm
+        ]
 
         // app version
         if let appVersion = EMBDevice.appVersion {
-            addResource(
-                key: AppResourceKey.appVersion.rawValue,
-                value: .string(appVersion)
-            )
+            resourcesMap[AppResourceKey.appVersion.rawValue] = appVersion
         }
 
         // build UUID
         if let buildUUID = EMBDevice.buildUUID {
-            addResource(
-                key: AppResourceKey.buildID.rawValue,
-                value: .string(buildUUID.withoutHyphen)
-            )
+            resourcesMap[AppResourceKey.buildID.rawValue] = buildUUID.withoutHyphen
         }
-
-        // process identifier
-        addResource(
-            key: AppResourceKey.processIdentifier.rawValue,
-            value: .string(ProcessIdentifier.current.hex)
-        )
 
         // process start time
         if let processStartTime = ProcessMetadata.startTime {
-            addResource(
-                key: AppResourceKey.processStartTime.rawValue,
-                value: .int(processStartTime.nanosecondsSince1970Truncated)
-            )
+            resourcesMap[AppResourceKey.processStartTime.rawValue] = String(processStartTime.nanosecondsSince1970Truncated)
         }
 
-        // pre-warm
-        let isPreWarm = ProcessInfo.processInfo.environment["ActivePrewarm"] == "1"
-        addResource(
-            key: AppResourceKey.processPreWarm.rawValue,
-            value: .bool(isPreWarm)
-        )
+        addRequiredResources(resourcesMap)
     }
 }

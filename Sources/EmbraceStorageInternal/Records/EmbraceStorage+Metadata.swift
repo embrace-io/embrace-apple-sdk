@@ -61,6 +61,63 @@ extension EmbraceStorage {
         return nil
     }
 
+    /// Adds or updates all the given required resources
+    public func addRequiredResources(_ map: [String: String], processId: ProcessIdentifier = .current) {
+        
+        coreData.performOperation(name: "UpsertRequiredResources") { context in
+            guard let context else {
+                return
+            }
+
+            guard let description = NSEntityDescription.entity(forEntityName: MetadataRecord.entityName, in: context) else {
+                logger.error("Error finding entity description for MetadataRecord!")
+                return
+            }
+
+            for (key, value) in map {
+                // find if exists
+                let request = MetadataRecord.createFetchRequest()
+                request.fetchLimit = 1
+                request.predicate = NSPredicate(
+                    format: "key == %@ AND typeRaw == %@ AND lifespanRaw == %@ AND lifespanId == %@",
+                    key,
+                    MetadataRecordType.requiredResource.rawValue,
+                    MetadataRecordLifespan.process.rawValue,
+                    processId.hex
+                )
+
+                var record: MetadataRecord?
+                do {
+                    record = try context.fetch(request).first
+                } catch {
+                    logger.error("Error fetching required resource \(key)!")
+                }
+
+                // update
+                if let record = record {
+                    record.value = value
+
+                // create
+                } else {
+                    record = MetadataRecord(entity: description, insertInto: context)
+                    record?.key = key
+                    record?.value = value
+                    record?.typeRaw = MetadataRecordType.requiredResource.rawValue
+                    record?.lifespanRaw = MetadataRecordLifespan.process.rawValue
+                    record?.lifespanId = processId.hex
+                    record?.collectedAt = Date()
+                }
+            }
+
+            // save all
+            do {
+                try context.save()
+            } catch {
+                logger.error("Error when saving new required resources:\n\(error.localizedDescription)")
+            }
+        }
+    }
+
     /// Returns the `MetadataRecord` for the given values.
     func fetchMetadataRecord(
         key: String,
@@ -122,13 +179,16 @@ extension EmbraceStorage {
 
         var result: EmbraceMetadata?
 
-        coreData.context.performAndWait {
-            metadata.value = value
+        coreData.performOperation(name: "UpdateMetadata") { context in
+            guard let context else {
+                return
+            }
 
+            metadata.value = value
             result = metadata.toImmutable()
 
             do {
-                try coreData.context.save()
+                try context.save()
             } catch {
                 logger.error("Error updating metadata! key: \(key), lifespan \(lifespan.rawValue), id \(lifespanId)")
             }
@@ -243,12 +303,16 @@ extension EmbraceStorage {
 
         var result: Int = 1
 
-        coreData.context.performAndWait {
+        coreData.performOperation(name: "IncrementCountForPermanentResource") { context in
+            guard let context else {
+                return
+            }
+
             result = (Int(record.value) ?? 0) + 1
             record.value = String(result)
 
             do {
-                try coreData.context.save()
+                try context.save()
             } catch {
                 logger.error("Error updating metadata counter! key: \(key)")
             }
