@@ -33,11 +33,15 @@ class BackgroundTaskWrapper {
             logger.critical("Cannot create background task \(name), out of background time!")
             return nil
         }
-        
-        // handle case where the task can't be created
+
         if taskID == .invalid {
             logger.critical("Failed to create background task \(name), no valid ID!")
             return nil
+        }
+        
+        // We allow acting as if there's a task when no app is available
+        if taskID == .noApp {
+            logger.critical("Not creating background task \(name), no app instance!")
         }
     }
     
@@ -60,20 +64,9 @@ class BackgroundTaskWrapper {
 }
 
 extension UIBackgroundTaskIdentifier {
-    
-    public static let timeout: UIBackgroundTaskIdentifier = UIBackgroundTaskIdentifier(rawValue: -1024)
-    
-    public static let noApp: UIBackgroundTaskIdentifier = UIBackgroundTaskIdentifier(rawValue: -1025)
-    
-    var stringValue: String {
-        if self == .invalid { return "bgtask: invalid" }
-        if self == .timeout { return "bgtask: timeout" }
-        if self == .noApp { return "bgtask: noApp" }
-        return "bgtask: \(self)"
-    }
+    public static let timeout: UIBackgroundTaskIdentifier = UIBackgroundTaskIdentifier(rawValue: Int.max-1)
+    public static let noApp: UIBackgroundTaskIdentifier = UIBackgroundTaskIdentifier(rawValue: Int.max-2)
 }
-
-
 
 fileprivate class BackgroundTaskProvider {
     
@@ -93,7 +86,7 @@ fileprivate class BackgroundTaskProvider {
             return .noApp
         }
         
-        guard canStartTask() else {
+        guard canStartTask(app) else {
             return .timeout
         }
         
@@ -106,22 +99,13 @@ fileprivate class BackgroundTaskProvider {
     func endBackgroundTask(_ identifier: UIBackgroundTaskIdentifier) {
         app?.endBackgroundTask(identifier)
     }
-    
-    var backgroundTimeRemaining: TimeInterval {
-        app?.backgroundTimeRemaining ?? TimeInterval.greatestFiniteMagnitude
-    }
-    
+
     // Timing
     private var knownTimeRemain: TimeInterval = 0
     private var lastTimeRemainCheck: CFAbsoluteTime = 0
     private let lock: UnfairLock = UnfairLock()
     
-    func canStartTask() -> Bool {
-        
-        // Allow task starting when there's no app.
-        guard let app else {
-            return true
-        }
+    private func canStartTask(_ app: UIApplication) -> Bool {
         
         let now = CFAbsoluteTimeGetCurrent()
         
