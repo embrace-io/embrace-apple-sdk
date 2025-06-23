@@ -58,7 +58,7 @@ class BackgroundTaskWrapper {
             return
         }
         
-        taskProvider.endBackgroundTask(self.taskID)
+        Self.taskProvider.endBackgroundTask(self.taskID)
         taskID = .invalid
     }
 }
