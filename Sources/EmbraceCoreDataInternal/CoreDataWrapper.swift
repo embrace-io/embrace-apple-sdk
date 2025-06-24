@@ -73,7 +73,7 @@ public class CoreDataWrapper {
             return
         }
 
-        performOperation(name: "destroy") { _ in
+        performOperation { _ in
 
             context.reset()
 
@@ -109,18 +109,33 @@ public class CoreDataWrapper {
 
     /// Synchronously performs the given block on the current context.
     /// This will also create a background task to perform the operation.
-    /// If the background task can't be created, the block will be called without a context.
-    public func performOperation(name: String, _ block: (NSManagedObjectContext?) -> Void) {
-
+    public func performOperation(_ name: String = #function, save: Bool = false, _ block: (NSManagedObjectContext) -> Void) {
+        
+        let saveBlock = { (context: NSManagedObjectContext) in
+            guard save else { return }
+            do {
+                try context.save()
+            } catch {
+                self.logger.critical("""
+                    CoreData save failed '\(context.name ?? "???")', 
+                    error: \(error.localizedDescription), 
+                    operation: \(name)
+                    """
+                )
+            }
+        }
+        
         if options.enableBackgroundTasks == false {
             context.performAndWait {
                 block(context)
+                saveBlock(context)
             }
         } else {
             let taskName = options.storageMechanism.name + "_" + name
             withExtendedBackgroundLifetime(taskName) {
                 context.performAndWait {
                     block(context)
+                    saveBlock(context)
                 }
             }
         }
@@ -128,26 +143,15 @@ public class CoreDataWrapper {
 
     /// Synchronously saves all changes on the current context to disk
     public func save() {
-        performOperation(name: "Save") { [weak self] context in
-            guard let self, let context else {
-                return
-            }
-
-            do {
-                try context.save()
-            } catch {
-                let name = context.name ?? "???"
-                self.logger.critical("Error saving CoreData \"\(name)\": \(error.localizedDescription)")
-            }
-        }
+        performOperation(save: true) {_ in}
     }
 
     /// Synchronously fetches the records that satisfy the given request
     public func fetch<T>(withRequest request: NSFetchRequest<T>) -> [T] where T: NSManagedObject {
 
         var result: [T] = []
-        performOperation(name: "Fetch") { [weak self] context in
-            guard let self, let context else {
+        performOperation { [weak self] context in
+            guard let self else {
                 return
             }
 
@@ -163,8 +167,8 @@ public class CoreDataWrapper {
     /// Synchronously fetches the records that satisfy the given request and calls the block with them.
     public func fetchAndPerform<T>(withRequest request: NSFetchRequest<T>, block: (([T]) -> Void)) where T: NSManagedObject {
 
-        performOperation(name: "FetchAndPerform") { [weak self] context in
-            guard let self, let context else {
+        performOperation { [weak self] context in
+            guard let self else {
                 block([])
                 return
             }
@@ -181,8 +185,8 @@ public class CoreDataWrapper {
     /// Synchronously fetches the first record that satisfy the given request and calls the block with it.
     public func fetchFirstAndPerform<T>(withRequest request: NSFetchRequest<T>, block: ((T?) -> Void)) where T: NSManagedObject {
 
-        performOperation(name: "FetchFirstAndPerform") { [weak self] context in
-            guard let self, let context else {
+        performOperation { [weak self] context in
+            guard let self else {
                 block(nil)
                 return
             }
@@ -200,8 +204,8 @@ public class CoreDataWrapper {
     public func count<T>(withRequest request: NSFetchRequest<T>) -> Int where T: NSManagedObject {
 
         var result: Int = 0
-        performOperation(name: "Count") { [weak self] context in
-            guard let self, let context else {
+        performOperation { [weak self] context in
+            guard let self else {
                 return
             }
 
@@ -222,19 +226,13 @@ public class CoreDataWrapper {
     /// Synchronously deletes requested records from the database and saves.
     public func deleteRecords<T>(_ records: [T]) where T: NSManagedObject {
         
-        performOperation(name: "DeleteRecords") { [weak self] context in
-            guard let self, let context else {
+        performOperation(save: true) { [weak self] context in
+            guard let self else {
                 return
             }
 
             for record in records {
                 context.delete(record)
-            }
-
-            do {
-                try context.save()
-            } catch {
-                self.logger.critical("Error deleting records!!!:\n\(error.localizedDescription)")
             }
         }
     }
@@ -242,8 +240,8 @@ public class CoreDataWrapper {
     /// Synchronously deletes requested records that satisfy the given request from the database and saves.
     public func deleteRecords<T>(withRequest request: NSFetchRequest<T>)where T: NSManagedObject {
         
-        performOperation(name: "DeleteRecords") { [weak self] context in
-            guard let self, let context else {
+        performOperation(save: true) { [weak self] context in
+            guard let self else {
                 return
             }
 
@@ -252,8 +250,6 @@ public class CoreDataWrapper {
                 for record in records {
                     context.delete(record)
                 }
-
-                try context.save()
             } catch {
                 self.logger.critical("Error deleting records with request:\n\(error.localizedDescription)")
             }

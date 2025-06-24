@@ -42,10 +42,7 @@ extension EmbraceStorage {
         if let span = fetchSpanRecord(id: id, traceId: traceId) {
             var result: EmbraceSpan?
 
-            coreData.performOperation(name: "UpdateExistingSpan") { context in
-                guard let context else {
-                    return
-                }
+            coreData.performOperation { context in
 
                 // prevent modifications on closed spans!
                 if span.endTime == nil {
