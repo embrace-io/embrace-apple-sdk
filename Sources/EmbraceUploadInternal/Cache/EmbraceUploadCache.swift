@@ -110,18 +110,8 @@ class EmbraceUploadCache {
         // update if it already exists
         if let record = fetchUploadData(id: id, type: type) {
 
-            coreData.performOperation(name: "UpdateExistingUploadData") { context in
-                guard let context else {
-                    return
-                }
-
+            coreData.performOperation(save: true) { context in
                 record.data = data
-
-                do {
-                    try context.save()
-                } catch {
-                    logger.error("Error updating upload data \(id)!")
-                }
             }
 
             return true
@@ -133,11 +123,7 @@ class EmbraceUploadCache {
         // insert new
         var result = true
 
-        coreData.performOperation(name: "CreateUploadData") { context in
-            guard let context else {
-                return
-            }
-
+        coreData.performOperation("CreateUploadData") { context in
             if let record = UploadDataRecord.create(
                 context: context,
                 id: id,
@@ -168,8 +154,8 @@ class EmbraceUploadCache {
             return
         }
 
-        coreData.performOperation(name: "CheckCountLimit") { [weak self] context in
-            guard let self, let context else {
+        coreData.performOperation { [weak self] context in
+            guard let self else {
                 return
             }
 
