@@ -1,3 +1,14 @@
+## 6.12.0
+*June 24, 2025*
+* Fixes
+	* Fixed an issue that could cause deadlocks when public APIs were used excessively.
+	* Fixed the underlying problem that triggered the warning: "Binary image cache full. Not caching image" in apps with many associated binary images.
+	* Made a change to reduce the number of unexpected exits caused by holding onto a file lock / SQLite database lock during app suspension.
+* Features
+	* Added support for injecting a custom OTel processor during SDK initialization.
+* Improvements
+	* Improved how device and application metadata is persisted to reduce time and resource usage.
+
 ## 6.11.0
 *June 6, 2025*
 * Fixes
