@@ -132,15 +132,6 @@ Embrace.client?.metadata.userIdentifier = "827B02FE-D868-461D-8B4A-FE7371818369"
 Embrace.client?.metadata.userName = "tony.the.tester"
 ````
 
-## Prerequisites
-
-### Github
-
-We are using our own KSCrash fork, so we need to set up Github credentials in Xcode to provide the required access.
-
-* Go to the "Accounts" tab in "Settings" (`cmd+,`)
-* Verify you have Github credentials saved, or click the `+` sign to add Github credentials.
-
 ## Building and Running Tests
 
 Open the project in Xcode by either selecting the directory or the `Package.swift` file itself. If opening for the first time, Xcode may take a bit to resolve the Package Dependencies and index the project.
@@ -201,21 +192,6 @@ cp .githooks/pre-commit .git/hooks/pre-commit
 
 
 ## Troubleshooting
-
-### Github auth issues
-
-If you cannot fetch the `KSCrash` dependency, you most likely have Github auth issues in Xcode.
-
-1. Verify you have set up Github credentials in on the "Accounts" tab in "Settings"
-2. Enter the passcode for your SSH key on that page if prompted to do so.
-3. If you have the following in your `.gitconfig`, remove it since Xcode apparently does not handle this
-
-```
-[url "ssh://git@github.com/"]
-  insteadOf = https://github.com/
-```
-
-To test that your changes fixed the auth issue, attempt to fetch the dependencies with "File" -> "Packages" --> "Reset package caches".
 
 ### WatchOS Support
 > [!WARNING]
