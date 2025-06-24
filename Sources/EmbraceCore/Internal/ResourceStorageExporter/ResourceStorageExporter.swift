@@ -4,12 +4,12 @@
 
 import Foundation
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
+@_implementationOnly import EmbraceObjCUtilsInternal
 import EmbraceStorageInternal
 import EmbraceOTelInternal
 #endif
 import OpenTelemetryApi
 import OpenTelemetrySdk
-@_implementationOnly import EmbraceObjCUtilsInternal
 
 class ConcreteEmbraceResource: EmbraceResource {
     var key: String
