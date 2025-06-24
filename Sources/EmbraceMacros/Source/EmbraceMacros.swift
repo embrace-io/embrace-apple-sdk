@@ -176,6 +176,8 @@
 /// - ``EmbraceTraceView``: The underlying tracing wrapper
 /// - ``EmbraceTraceViewModifier``: Manual view modifier approach
 
+@_exported import EmbraceCore
+
 @attached(member, names: arbitrary)
 public macro EmbraceTrace() =
 #externalMacro(

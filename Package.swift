@@ -278,7 +278,8 @@ let package = Package(
         .target(
             name: "EmbraceMacros",
             dependencies: [
-                "EmbraceMacroPlugin"
+                "EmbraceMacroPlugin",
+                "EmbraceCore"
             ],
             path: "Sources/EmbraceMacros/Source"
         ),
