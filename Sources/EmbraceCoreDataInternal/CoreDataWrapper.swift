@@ -73,7 +73,7 @@ public class CoreDataWrapper {
             return
         }
 
-        context.performAndWait {
+        performOperation(name: "destroy") { _ in
 
             context.reset()
 
@@ -117,15 +117,11 @@ public class CoreDataWrapper {
                 block(context)
             }
         } else {
-            context.performAndWait {
-                let taskName = options.storageMechanism.name + "_" + name
-                guard let task = BackgroundTaskWrapper(name: taskName, logger: logger) else {
-                    block(nil)
-                    return
+            let taskName = options.storageMechanism.name + "_" + name
+            withExtendedBackgroundLifetime(taskName) {
+                context.performAndWait {
+                    block(context)
                 }
-
-                block(context)
-                task.finish()
             }
         }
     }
@@ -261,6 +257,34 @@ public class CoreDataWrapper {
             } catch {
                 self.logger.critical("Error deleting records with request:\n\(error.localizedDescription)")
             }
+        }
+    }
+    
+    public func withTransaction(_ name: String = #function, _ block: (NSManagedObjectContext) -> Void) {
+        
+        logger.info("CoreData.withTransaction begin \(name)")
+        
+        var timeExpired: Bool = false
+        withExtendedBackgroundLifetime(name, onExpire: { [weak self] in
+            self?.logger.info("CoreData.withTransaction expired \(name)")
+            timeExpired = true
+        }) {
+            // perform actions
+            // save or rollback
+            context.performAndWait {
+                do {
+                    block(context)
+                    if timeExpired {
+                        context.rollback()
+                    } else {
+                        try? context.save()
+                    }
+                } catch {
+                    logger.critical("transaction error: \(error)")
+                }
+            }
+            
+            logger.info("CoreData.withTransaction completed \(name)")
         }
     }
 }
