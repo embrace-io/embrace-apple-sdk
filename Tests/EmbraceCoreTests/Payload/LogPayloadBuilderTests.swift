@@ -110,7 +110,7 @@ class LogPayloadBuilderTests: XCTestCase {
         // then the payload is correct
         XCTAssertEqual(payload.resource.appVersion, "1.0.0")
         XCTAssertEqual(payload.metadata.username, "test")
-        XCTAssertEqual(payload.metadata.personas, ["tag1", "tag2"])
+        XCTAssertEqual(payload.metadata.personas.sorted(), ["tag1", "tag2"].sorted())
 
         let logs = try XCTUnwrap(payload.data["logs"])
         XCTAssertEqual(logs.count, 1)

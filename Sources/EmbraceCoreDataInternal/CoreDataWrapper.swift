@@ -19,9 +19,10 @@ public class CoreDataWrapper {
 
     // Saving is expensive, so we have a debouncer to only save when idle
     private let debouncer: CoreDataDebouncer = CoreDataDebouncer()
+    private var backgroundObserver: NSObjectProtocol? = nil
     
     private let isTesting: Bool
-
+    
     public init(options: CoreDataWrapper.Options, logger: InternalLogger) throws {
         self.options = options
         self.logger = logger
@@ -68,7 +69,15 @@ public class CoreDataWrapper {
         self.context = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
         self.context.persistentStoreCoordinator = self.container.persistentStoreCoordinator
         
-        NotificationCenter.default.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: nil) { [self] _ in
+        if isTesting {
+            return
+        }
+        
+        // Don't do this in testing as everything is too set up for sync saves
+        self.backgroundObserver = NotificationCenter.default.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: nil) { [weak self] _ in
+            guard let self else {
+                return
+            }
             
             guard let task = BackgroundTaskWrapper(name: "BackgroundSave") else {
                 return
@@ -78,13 +87,21 @@ public class CoreDataWrapper {
             debouncer.perform {}
             
             // now save whenever we end up debouncing
-            debouncer.performOnNextBounce {
-                saveIfNeededFromDebouncer()
+            debouncer.performOnNextBounce { [weak self] in
+                self?.saveIfNeededFromDebouncer()
                 task.finish()
             }
         }
     }
-
+    
+    deinit {
+        if let obs = backgroundObserver {
+            NotificationCenter.default.removeObserver(obs)
+            backgroundObserver = nil
+        }
+        debouncer.cancel()
+    }
+    
     /// Synchronously performs the given block on the current context.
     /// And automatically save if requested.
     public func performOperation(_ name: String = #function, save: Bool = false, _ block: (NSManagedObjectContext) -> Void) {
@@ -92,8 +109,12 @@ public class CoreDataWrapper {
         context.performAndWait {
             block(context)
             if save {
-                debouncer.perform { [weak self] in
-                    self?.saveIfNeededFromDebouncer()
+                if isTesting {
+                    saveIfNeededFromWithinPerform()
+                } else {
+                    debouncer.perform { [weak self] in
+                        self?.saveIfNeededFromDebouncer()
+                    }
                 }
             }
         }
@@ -224,7 +245,7 @@ extension CoreDataWrapper {
                     if timeExpired {
                         context.rollback()
                     } else {
-                        try? context.save()
+                        try context.save()
                     }
                 } catch {
                     logger.critical("transaction error: \(error)")
@@ -242,17 +263,21 @@ extension CoreDataWrapper {
     
     private func saveIfNeededFromDebouncer() {
         context.performAndWait {
-            do {
-                if context.hasChanges {
-                    try context.save()
-                }
-            } catch {
-                self.logger.critical("""
+            saveIfNeededFromWithinPerform()
+        }
+    }
+    
+    private func saveIfNeededFromWithinPerform() {
+        do {
+            if context.hasChanges {
+                try context.save()
+            }
+        } catch {
+            self.logger.critical("""
                     CoreData save failed '\(context.name ?? "???")', 
                     error: \(error.localizedDescription), 
                     """
-                )
-            }
+            )
         }
     }
 }

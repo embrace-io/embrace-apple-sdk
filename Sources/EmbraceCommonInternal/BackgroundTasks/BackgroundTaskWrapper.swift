@@ -6,9 +6,6 @@ import Foundation
 
 #if canImport(UIKit) && !os(watchOS)
 import UIKit
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-#endif
 
 /// This class is a wrapper around `UIApplication.shared.beginBackgroundTask`.
 /// Based off https://developer.apple.com/forums/thread/85066 and https://developer.apple.com/forums/thread/729335
@@ -142,7 +139,7 @@ fileprivate class BackgroundTaskProvider {
         }
         
         guard identifier == currentTaskID else {
-            print("[BackgroundTaskProvider] cannot end incorrect task \(identifier.stringValue) != \(currentTaskID?.stringValue)")
+            print("[BackgroundTaskProvider] cannot end incorrect task \(identifier.stringValue) != \(String(describing: currentTaskID?.stringValue))")
             return
         }
         
@@ -169,7 +166,7 @@ fileprivate class BackgroundTaskProvider {
             defer { lock.unlock() }
             
             guard identifier == currentTaskID else {
-                print("[BackgroundTaskProvider] cannot end incorrect task after run loop \(identifier.stringValue) != \(currentTaskID?.stringValue)")
+                print("[BackgroundTaskProvider] cannot end incorrect task after run loop \(identifier.stringValue) != \(String(describing: currentTaskID?.stringValue))")
                 return
             }
             
