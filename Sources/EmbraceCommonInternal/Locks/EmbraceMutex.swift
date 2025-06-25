@@ -58,3 +58,15 @@ extension EmbraceMutex {
         storage
     }
 }
+
+extension EmbraceMutex where Value: ExpressibleByNilLiteral {
+    
+    /// Synchronously get the value safely and sets the internal reference to nil
+    public func safelyTake() -> Value? {
+        withLock {
+            let val = $0
+            $0 = nil
+            return val
+        }
+    }
+}

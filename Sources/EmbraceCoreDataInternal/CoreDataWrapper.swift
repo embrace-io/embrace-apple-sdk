@@ -7,6 +7,7 @@ import CoreData
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
 #endif
+import UIKit
 
 public class CoreDataWrapper {
 
@@ -14,16 +15,18 @@ public class CoreDataWrapper {
 
     var container: NSPersistentContainer!
     public private(set) var context: NSManagedObjectContext!
-
     let logger: InternalLogger
 
+    // Saving is expensive, so we have a debouncer to only save when idle
+    private let debouncer: CoreDataDebouncer = CoreDataDebouncer()
+    
     private let isTesting: Bool
 
     public init(options: CoreDataWrapper.Options, logger: InternalLogger) throws {
         self.options = options
         self.logger = logger
         self.isTesting = ProcessInfo.processInfo.isTesting
-
+        
         // create model
         let model = NSManagedObjectModel()
         model.entities = options.entities
@@ -64,198 +67,146 @@ public class CoreDataWrapper {
 
         self.context = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
         self.context.persistentStoreCoordinator = self.container.persistentStoreCoordinator
-    }
-
-    /// Removes the database file
-    /// - Note: Only used in tests!!!
-    public func destroy() {
-        guard isTesting else {
-            return
-        }
-
-        performOperation { _ in
-
-            context.reset()
-
-            switch options.storageMechanism {
-            case .onDisk:
-                if let url = options.storageMechanism.fileURL {
-                    do {
-                        try container.persistentStoreCoordinator.destroyPersistentStore(
-                            at: url,
-                            ofType: NSSQLiteStoreType
-                        )
-                        try FileManager.default.removeItem(at: url)
-                    } catch {
-                        logger.critical("Error destroying CoreData stack!:\n\(error.localizedDescription)")
-                    }
-                }
-
-            default: return
+        
+        NotificationCenter.default.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: nil) { [self] _ in
+            
+            guard let task = BackgroundTaskWrapper(name: "BackgroundSave") else {
+                return
             }
-
-            if let store = container.persistentStoreCoordinator.persistentStores.first {
-                do {
-                    try container.persistentStoreCoordinator.remove(store)
-                } catch {
-                    logger.critical("Error removing CoreData store!:\n\(error.localizedDescription)")
-                }
+            
+            // Add another block to ensure we have a few seconds of time
+            debouncer.perform {}
+            
+            // now save whenever we end up debouncing
+            debouncer.performOnNextBounce {
+                saveIfNeededFromDebouncer()
+                task.finish()
             }
-
-            container = nil
-            context = nil
         }
     }
 
     /// Synchronously performs the given block on the current context.
-    /// This will also create a background task to perform the operation.
+    /// And automatically save if requested.
     public func performOperation(_ name: String = #function, save: Bool = false, _ block: (NSManagedObjectContext) -> Void) {
-        
-        let saveBlock = { (context: NSManagedObjectContext) in
-            guard save else { return }
-            do {
-                try context.save()
-            } catch {
-                self.logger.critical("""
-                    CoreData save failed '\(context.name ?? "???")', 
-                    error: \(error.localizedDescription), 
-                    operation: \(name)
-                    """
-                )
-            }
-        }
-        
-        if options.enableBackgroundTasks == false {
-            context.performAndWait {
-                block(context)
-                saveBlock(context)
-            }
-        } else {
-            let taskName = options.storageMechanism.name + "_" + name
-            withExtendedBackgroundLifetime(taskName) {
-                context.performAndWait {
-                    block(context)
-                    saveBlock(context)
+
+        context.performAndWait {
+            block(context)
+            if save {
+                debouncer.perform { [weak self] in
+                    self?.saveIfNeededFromDebouncer()
                 }
             }
         }
     }
-
-    /// Synchronously saves all changes on the current context to disk
+    
+    /// Requests all changes to be saved to disk as soon as possible
     public func save() {
-        performOperation(save: true) {_ in}
+        performOperation(save: true) { _ in }
     }
+}
 
+// MARK: - Fetch
+
+extension CoreDataWrapper {
+    
     /// Synchronously fetches the records that satisfy the given request
     public func fetch<T>(withRequest request: NSFetchRequest<T>) -> [T] where T: NSManagedObject {
-
+        
         var result: [T] = []
-        performOperation { [weak self] context in
-            guard let self else {
-                return
-            }
-
+        performOperation {
             do {
-                result = try context.fetch(request)
+                result = try $0.fetch(request)
             } catch {
                 self.logger.critical("Error fetching!!!:\n\(error.localizedDescription)")
             }
         }
         return result
     }
-
+    
     /// Synchronously fetches the records that satisfy the given request and calls the block with them.
     public func fetchAndPerform<T>(withRequest request: NSFetchRequest<T>, block: (([T]) -> Void)) where T: NSManagedObject {
-
-        performOperation { [weak self] context in
-            guard let self else {
-                block([])
-                return
-            }
-
+        
+        performOperation {
             do {
-                let result = try context.fetch(request)
+                let result = try $0.fetch(request)
                 block(result)
             } catch {
                 self.logger.critical("Error fetching with perform!!!:\n\(error.localizedDescription)")
             }
         }
     }
-
+    
     /// Synchronously fetches the first record that satisfy the given request and calls the block with it.
     public func fetchFirstAndPerform<T>(withRequest request: NSFetchRequest<T>, block: ((T?) -> Void)) where T: NSManagedObject {
-
-        performOperation { [weak self] context in
-            guard let self else {
-                block(nil)
-                return
-            }
-
+        
+        performOperation {
             do {
-                let result = try context.fetch(request)
+                let result = try $0.fetch(request)
                 block(result.first)
             } catch {
                 self.logger.critical("Error fetching first with perform!!!:\n\(error.localizedDescription)")
             }
         }
     }
-
+    
     /// Synchronously fetches the count of records that satisfy the given request.
     public func count<T>(withRequest request: NSFetchRequest<T>) -> Int where T: NSManagedObject {
-
+        
         var result: Int = 0
-        performOperation { [weak self] context in
-            guard let self else {
-                return
-            }
-
+        performOperation {
             do {
-                result = try context.count(for: request)
+                result = try $0.count(for: request)
             } catch {
                 self.logger.critical("Error fetching count!!!:\n\(error.localizedDescription)")
             }
         }
         return result
     }
+}
 
+// MARK: - Deletion
+
+extension CoreDataWrapper {
+    
     /// Synchronously deletes record from the database and saves.
     public func deleteRecord<T>(_ record: T) where T: NSManagedObject {
-        deleteRecords([record])
+        performOperation(save: true) {
+            $0.delete(record)
+        }
     }
-
+    
     /// Synchronously deletes requested records from the database and saves.
     public func deleteRecords<T>(_ records: [T]) where T: NSManagedObject {
-        
-        performOperation(save: true) { [weak self] context in
-            guard let self else {
-                return
-            }
-
+        performOperation(save: true) {
             for record in records {
-                context.delete(record)
+                $0.delete(record)
             }
         }
     }
-
+    
     /// Synchronously deletes requested records that satisfy the given request from the database and saves.
     public func deleteRecords<T>(withRequest request: NSFetchRequest<T>)where T: NSManagedObject {
         
-        performOperation(save: true) { [weak self] context in
-            guard let self else {
-                return
-            }
-
+        performOperation(save: true) {
             do {
-                let records = try context.fetch(request)
+                let records = try $0.fetch(request)
                 for record in records {
-                    context.delete(record)
+                    $0.delete(record)
                 }
             } catch {
                 self.logger.critical("Error deleting records with request:\n\(error.localizedDescription)")
             }
         }
     }
+}
+
+// MARK: - Transactions
+
+extension CoreDataWrapper {
     
+    /// Trasaction based work.
+    /// Runs your CoreData updates behind a background task assertion,
+    /// Performs a rollback if the task assertion expires, saves otherwise.
     public func withTransaction(_ name: String = #function, _ block: (NSManagedObjectContext) -> Void) {
         
         logger.info("CoreData.withTransaction begin \(name)")
@@ -282,5 +233,126 @@ public class CoreDataWrapper {
             
             logger.info("CoreData.withTransaction completed \(name)")
         }
+    }
+}
+
+// MARK: - Internal saves
+
+extension CoreDataWrapper {
+    
+    private func saveIfNeededFromDebouncer() {
+        context.performAndWait {
+            do {
+                if context.hasChanges {
+                    try context.save()
+                }
+            } catch {
+                self.logger.critical("""
+                    CoreData save failed '\(context.name ?? "???")', 
+                    error: \(error.localizedDescription), 
+                    """
+                )
+            }
+        }
+    }
+}
+
+// MARK: - Testing
+
+extension CoreDataWrapper {
+    
+    /// Removes the database file
+    /// - Note: Only used in tests!!!
+    public func destroy() {
+        guard isTesting else {
+            return
+        }
+        
+        performOperation { _ in
+            
+            context.reset()
+            
+            switch options.storageMechanism {
+            case .onDisk:
+                if let url = options.storageMechanism.fileURL {
+                    do {
+                        try container.persistentStoreCoordinator.destroyPersistentStore(
+                            at: url,
+                            ofType: NSSQLiteStoreType
+                        )
+                        try FileManager.default.removeItem(at: url)
+                    } catch {
+                        logger.critical("Error destroying CoreData stack!:\n\(error.localizedDescription)")
+                    }
+                }
+                
+            default: return
+            }
+            
+            if let store = container.persistentStoreCoordinator.persistentStores.first {
+                do {
+                    try container.persistentStoreCoordinator.remove(store)
+                } catch {
+                    logger.critical("Error removing CoreData store!:\n\(error.localizedDescription)")
+                }
+            }
+            
+            container = nil
+            context = nil
+        }
+    }
+}
+
+// MARK: - Debounce
+
+// Simple debouncer used for CoreData saves
+private class CoreDataDebouncer {
+    
+    private var workItem: DispatchWorkItem? = nil
+    private let queue: DispatchQueue
+    private var nextBounceAction: EmbraceMutex<(() -> Void)?> = EmbraceMutex(nil)
+
+    public init() {
+        self.queue = DispatchQueue(
+            label: "io.embrace.coredata.debouncer.queue",
+            qos: .utility,
+            autoreleaseFrequency: .workItem,
+            target: DispatchQueue.global(qos: .utility)
+        )
+        
+    }
+    
+    public func cancel() {
+        workItem?.cancel()
+        workItem = nil
+    }
+    
+    /// Add _block_ to the queue and debounce by _deadline_
+    public func perform(_ name: String = #function, deadline: TimeInterval = 3.0, _ block: @escaping () -> Void) {
+        workItem?.cancel()
+        workItem = DispatchWorkItem { [weak self] in
+            // Run the submitted block
+            block()
+            
+            // If there's a block to be run on bounce, then take its value
+            // and run it.
+            if let act = self?.nextBounceAction.safelyTake() ?? nil {
+                act()
+            }
+        }
+        if let workItem {
+            queue.asyncAfter(deadline: .now() + deadline, execute: workItem)
+        }
+    }
+    
+    /// Setup _block_ to run after the next debounced block.
+    public func performOnNextBounce( _ block: @escaping () -> Void) {
+        nextBounceAction.withLock { $0 = block }
+    }
+    
+    deinit {
+        workItem?.cancel()
+        workItem = nil
+        _ = nextBounceAction.safelyTake()
     }
 }
