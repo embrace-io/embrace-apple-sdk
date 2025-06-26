@@ -22,7 +22,9 @@ public class EditableConfig: EmbraceConfigurable {
     public var isMetricKitHangCaptureEnabled: Bool = false
 
     public var isSwiftUiViewInstrumentationEnabled: Bool = false
-    
+
+    public var logsLimits = LogsLimits()
+
     public var internalLogLimits = InternalLogLimits()
 
     public var networkPayloadCaptureRules = [NetworkPayloadCaptureRule]()

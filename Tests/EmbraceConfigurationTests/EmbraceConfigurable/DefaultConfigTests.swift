@@ -18,6 +18,7 @@ final class DefaultConfigTests: XCTestCase {
         XCTAssertFalse(config.isMetricKitCrashCaptureEnabled)
         XCTAssertEqual(config.metricKitCrashSignals, [])
         XCTAssertFalse(config.isMetricKitHangCaptureEnabled)
+        XCTAssertEqual(config.logsLimits, LogsLimits())
         XCTAssertEqual(config.internalLogLimits, InternalLogLimits())
         XCTAssertTrue(config.networkPayloadCaptureRules.isEmpty)
     }

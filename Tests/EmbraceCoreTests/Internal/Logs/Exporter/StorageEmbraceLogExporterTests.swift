@@ -7,6 +7,7 @@ import XCTest
 import EmbraceStorageInternal
 import EmbraceOTelInternal
 import EmbraceCommonInternal
+import EmbraceConfiguration
 import OpenTelemetryApi
 import OpenTelemetrySdk
 
@@ -197,4 +198,6 @@ class SpyLogBatcher: LogBatcher {
         didCallRenewBatch = true
         renewBatchInvocationCount += 1
     }
+
+    var limits = LogsLimits()
 }
