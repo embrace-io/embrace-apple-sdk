@@ -19,5 +19,7 @@ public extension LogSemantics {
         public static let keyPayLoadTimestamp = "emb.payload.timestamp"
         public static let keyDiagnosticTimestampStart = "diagnostic.timestamp_start"
         public static let keyDiagnosticTimestampEnd = "diagnostic.timestamp_end"
+
+        public static let metrickitProvider = "metrickit"
     }
 }

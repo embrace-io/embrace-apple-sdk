@@ -22,7 +22,11 @@ public struct RemoteConfigPayload: Decodable, Equatable {
     var metricKitHangCaptureEnabled: Bool
 
     var swiftUiViewInstrumentationEnabled: Bool
-    
+
+    var logsInfoLimit: Int
+    var logsWarningLimit: Int
+    var logsErrorLimit: Int
+
     var internalLogsTraceLimit: Int
     var internalLogsDebugLimit: Int
     var internalLogsInfoLimit: Int
@@ -50,6 +54,13 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         case metricKitEnabledThreshold = "metrickit_v2_pct_enabled"
         case metricKitReportersEnabled = "metrickit_v2_reporters_enabled"
         case metricKitCrashSignalsEnabled = "metrickit_v2_crash_signals_enabled"
+
+        case logLimits = "log"
+        enum LogLimitsCodingKeys: String, CodingKey {
+            case info = "info_limit"
+            case warning = "warning_limit"
+            case error = "error_limit"
+        }
 
         case internalLogLimits = "internal_log_limits"
         enum InternalLogLimitsCodingKeys: String, CodingKey {
@@ -106,13 +117,41 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             Bool.self,
             forKey: .uiLoadInstrumentationEnabled
         ) ?? defaultPayload.uiLoadInstrumentationEnabled
-        
+
         // SwiftUI View instrumentation
         swiftUiViewInstrumentationEnabled = try rootContainer.decodeIfPresent(
             Bool.self,
             forKey: .swiftUiViewInstrumentationEnabled
         ) ?? defaultPayload.swiftUiViewInstrumentationEnabled
-        
+
+        // logs limit
+        if rootContainer.contains(.logLimits) {
+            let logsLimitsContainer = try rootContainer.nestedContainer(
+                keyedBy: CodingKeys.LogLimitsCodingKeys.self,
+                forKey: .logLimits
+            )
+
+            logsInfoLimit = try logsLimitsContainer.decodeIfPresent(
+                Int.self,
+                forKey: CodingKeys.LogLimitsCodingKeys.info
+            ) ?? defaultPayload.logsInfoLimit
+
+            logsWarningLimit = try logsLimitsContainer.decodeIfPresent(
+                Int.self,
+                forKey: CodingKeys.LogLimitsCodingKeys.warning
+            ) ?? defaultPayload.logsWarningLimit
+
+            logsErrorLimit = try logsLimitsContainer.decodeIfPresent(
+                Int.self,
+                forKey: CodingKeys.LogLimitsCodingKeys.error
+            ) ?? defaultPayload.logsErrorLimit
+
+        } else {
+            logsInfoLimit = defaultPayload.logsInfoLimit
+            logsWarningLimit = defaultPayload.logsWarningLimit
+            logsErrorLimit = defaultPayload.logsErrorLimit
+        }
+
         // internal logs limit
         if rootContainer.contains(.internalLogLimits) {
             let internalLogsLimitsContainer = try rootContainer.nestedContainer(
@@ -199,7 +238,11 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         metricKitHangCaptureEnabled = false
 
         swiftUiViewInstrumentationEnabled = true
-        
+
+        logsInfoLimit = 100
+        logsWarningLimit = 200
+        logsErrorLimit = 500
+
         internalLogsTraceLimit = 0
         internalLogsDebugLimit = 0
         internalLogsInfoLimit = 0
