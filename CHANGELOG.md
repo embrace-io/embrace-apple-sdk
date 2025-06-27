@@ -295,4 +295,3 @@ April 22nd, 2024
   * Breadcrumbs
 * Allows for generic export of Traces and Logs via the protocols in the [OpenTelemetrySdk](https://github.com/open-telemetry/opentelemetry-swift).
 * Allows for custom Automatic Instrumentation via `CaptureService` subclasses
-
