@@ -61,7 +61,7 @@ fi
 # (See Package.swift `targetPlugins`)
 # https://forums.swift.org/t/xcode-attempts-to-build-plugins-for-ios-is-there-a-workaround/57029
 IS_XCTEST=true \
-xcodebuild \
+xcodebuild clean test \
     -project './Examples/EmbraceIOTestApp/EmbraceIOTestApp.xcodeproj' \
     -sdk $SDK_PATH \
     -configuration "Debug" \
@@ -70,7 +70,7 @@ xcodebuild \
     -destination "id=$SELECTED_DEVICE_UDID" \
     -derivedDataPath $DERIVED_DATA_PATH \
     -resultBundlePath $XCRESULT_PATH \
-    test
+    -testPlan "EmbraceIOTestApp"
 
 # If we created a new simulator, delete it
 if [ -n "${CREATED_DEVICE_UDID}" ]; then
