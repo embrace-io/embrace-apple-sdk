@@ -1,8 +1,9 @@
-// swift-tools-version: 5.7
+// swift-tools-version: 5.9
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import Foundation
 import PackageDescription
+import CompilerPluginSupport
 
 #if TUIST
     import ProjectDescription
@@ -35,7 +36,8 @@ let package = Package(
         .library(name: "EmbraceCore", targets: ["EmbraceCore", "EmbraceConfiguration"]),
         .library(name: "EmbraceCrash", targets: ["EmbraceCrash"]),
         .library(name: "EmbraceCrashlyticsSupport", targets: ["EmbraceCrashlyticsSupport"]),
-        .library(name: "EmbraceSemantics", targets: ["EmbraceSemantics"])
+        .library(name: "EmbraceSemantics", targets: ["EmbraceSemantics"]),
+        .library(name: "EmbraceMacros", targets: ["EmbraceMacros", "EmbraceCore"])
     ],
     dependencies: [
         .package(
@@ -45,9 +47,14 @@ let package = Package(
         .package(
             url: "https://github.com/open-telemetry/opentelemetry-swift",
             exact: "1.16.1"
+        ),
+        .package(
+            url: "https://github.com/swiftlang/swift-syntax.git",
+            from: "509.0.0"
         )
     ],
     targets: [
+        
         // main target ---------------------------------------------------------------
         .target(
             name: "EmbraceIO",
@@ -258,7 +265,33 @@ let package = Package(
                 .copy("Mocks/")
             ]
         ),
-
+        
+        // macros support -----------------------------------------------------------
+        .macro(
+            name: "EmbraceMacroPlugin",
+            dependencies: [
+                .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+                .product(name: "SwiftCompilerPlugin", package: "swift-syntax")
+            ],
+            path: "Sources/EmbraceMacros/Plugins"
+        ),
+        .target(
+            name: "EmbraceMacros",
+            dependencies: [
+                "EmbraceMacroPlugin",
+                "EmbraceCore"
+            ],
+            path: "Sources/EmbraceMacros/Source"
+        ),
+        .testTarget(
+            name: "EmbraceMacrosTests",
+            dependencies: [
+                "EmbraceMacroPlugin",
+                "EmbraceIO",
+                .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
+            ]
+        ),
+        
         // crashlytics support  -------------------------------------------------------
         .target(
             name: "EmbraceCrashlyticsSupport",
