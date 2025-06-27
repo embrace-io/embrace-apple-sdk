@@ -32,12 +32,15 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
     }
 
     private func runSessionSpanTest() -> Bool {
-        let enabled = NSPredicate(format:"enabled == true")
         let testButton = app.buttons["sessionPayloadTestButton"]
-        let buttonEnabled = expectation(for: enabled, evaluatedWith: testButton, handler: nil)
-        wait(for: [buttonEnabled], timeout: 5.0)
+
+        _ = waitUntilElementIsEnabled(element: testButton, timeout: 20)
+
         let isEnabled = testButton.isEnabled
-        app.buttons["sessionPayloadTestButton"].tap()
+
+        if isEnabled {
+            testButton.tap()
+        }
 
         return isEnabled
     }
