@@ -59,6 +59,7 @@ class ViewControllerViewDidAppearTest: PayloadTest {
         testItems.append(.init(target: "Span Trigger Order", expected: "didLoad, willAppear, isAppearing, didAppear", recorded: spanOrderString(order)))
 
         MetadataResourceTest.testMetadataInclussion(on: viewDidLoadSpan.resource, testItems: &testItems)
+        testItems.append(contentsOf: OTelSemanticsValidation.validateAttributeNames(viewDidLoadSpan.attributes))
 
         return .init(items: testItems)
     }

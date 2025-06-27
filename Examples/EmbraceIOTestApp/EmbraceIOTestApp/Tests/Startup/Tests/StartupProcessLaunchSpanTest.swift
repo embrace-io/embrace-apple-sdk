@@ -32,6 +32,7 @@ class StartupProcessLaunchSpanTest: PayloadTest {
         }
 
         MetadataResourceTest.testMetadataInclussion(on: setupSpan.resource, testItems: &testItems)
+        testItems.append(contentsOf: OTelSemanticsValidation.validateAttributeNames(setupSpan.attributes))
 
         return .init(items: testItems)
     }

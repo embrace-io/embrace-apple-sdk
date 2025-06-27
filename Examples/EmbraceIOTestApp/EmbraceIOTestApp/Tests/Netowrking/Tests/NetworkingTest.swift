@@ -56,6 +56,7 @@ class NetworkingTest: PayloadTest {
         }
 
         MetadataResourceTest.testMetadataInclussion(on: networkCallSpan.resource, testItems: &testItems)
+        testItems.append(contentsOf: OTelSemanticsValidation.validateAttributeNames(networkCallSpan.attributes))
 
         return .init(items: testItems)
     }

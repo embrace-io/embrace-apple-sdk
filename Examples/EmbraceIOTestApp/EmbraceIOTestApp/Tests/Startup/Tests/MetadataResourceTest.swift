@@ -17,29 +17,30 @@ class MetadataResourceTest: PayloadTest {
     }
 
     private static var expectedKeys: [String] {
-        ["emb.sdk.version",
-         "emb.process_pre_warm",
+        ["device.model.identifier",
          "emb.app.build_id",
-         "emb.os.build_id",
-         "emb.app.bundle_version",
-         "emb.app.version",
-         "service.name",
-         "emb.app.environment_detailed",
-         "os.type",
-         "emb.process_identifier",
-         "device.model.identifier",
-         "os.version",
-         "emb.device.architecture",
-         "emb.device.is_jailbroken",
-         "emb.device.timezone",
-         "emb.os.variant",
-         "emb.device.locale",
-         "emb.process_start_time",
-         "emb.app.framework",
-         "emb.session.upload_index",
          "emb.app.environment",
+         "emb.app.environment_detailed",
+         "emb.app.framework",
+         "emb.app.version",
+         "emb.device.architecture",
          "emb.device.disk_size",
-         "telemetry.sdk.language"]
+         "emb.device.is_jailbroken",
+         "emb.device.locale",
+         "emb.device.timezone",
+         "emb.os.build_id",
+         "emb.os.variant",
+         "emb.process_identifier",
+         "emb.process_pre_warm",
+         "emb.process_start_time",
+         "emb.sdk.version",
+         "emb.session.upload_index",
+         "emb.app.bundle_version",
+         "service.name",
+         "service.version",
+         "telemetry.sdk.language",
+         "os.type",
+         "os.version"]
     }
 
     private static func missingResourceMetadataKeys(on attributes: [String: AttributeValue]) -> [String] {
@@ -72,7 +73,11 @@ class MetadataResourceTest: PayloadTest {
         }
 
         MetadataResourceTest.expectedKeys.forEach { key in
-            testItems.append(evaluate(key, on: startSpan.resource.attributes))
+            var item = evaluate(key, on: startSpan.resource.attributes)
+            if item.result == .fail && MetadataResourceTest.keysAllowedToBeMissing.contains(key) {
+                item = .init(target: item.target, expected: item.expected, recorded: item.recorded, result: .warning)
+            }
+            testItems.append(item)
         }
 
         return .init(items: testItems)
@@ -89,7 +94,7 @@ class MetadataResourceTest: PayloadTest {
 
         let unknownMetadataKeys = MetadataResourceTest.unknownResourceMetadataKeys(on: resource.attributes)
         if (unknownMetadataKeys.count > 0) {
-            testItems.append(.init(target: "Unknown Metadata Keys", expected: "0", recorded: "\(missingMetadataKeys.count)", result: .warning))
+            testItems.append(.init(target: "Unknown Metadata Keys", expected: "0", recorded: "\(unknownMetadataKeys.count)", result: .warning))
 
             unknownMetadataKeys.forEach { unknownKey in
                 testItems.append(.init(target: "Metadata Key \(unknownKey)", expected: "unexpected", recorded: "unexpected key found", result: .warning))

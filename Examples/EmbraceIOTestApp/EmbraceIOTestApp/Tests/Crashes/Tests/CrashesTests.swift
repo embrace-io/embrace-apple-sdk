@@ -53,7 +53,7 @@ class CrashesTests: PayloadTest {
         testItems.append(.init(target: "emb.type", expected: "sys.ios.crash", recorded: "sys.ios.crash", result: .success))
         testItems.append(evaluate("emb.payload", contains: crashedSessionId, on: crashLog.attributes))
         testItems.append(evaluate("emb.provider", expecting: "kscrash", on: crashLog.attributes))
-
+        testItems.append(contentsOf: OTelSemanticsValidation.validateAttributeNames(crashLog.attributes))
         clearCrashRecord()
         return .init(items: testItems)
     }
