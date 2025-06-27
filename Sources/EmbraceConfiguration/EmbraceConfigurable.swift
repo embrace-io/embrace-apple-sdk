@@ -23,6 +23,9 @@ import Foundation
 
     var isMetricKitHangCaptureEnabled: Bool { get }
 
+    
+    var isSwiftUiViewInstrumentationEnabled: Bool { get }
+    
     var internalLogLimits: InternalLogLimits { get }
 
     var networkPayloadCaptureRules: [NetworkPayloadCaptureRule] { get }
