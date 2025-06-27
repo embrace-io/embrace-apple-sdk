@@ -148,6 +148,7 @@
 		4D4CE7FE2E0319E700740AC3 /* EmbraceInitScreenForceStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbraceInitScreenForceStateView.swift; sourceTree = "<group>"; };
 		4D4CE8012E031A5400740AC3 /* EmbraceInitForceState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbraceInitForceState.swift; sourceTree = "<group>"; };
 		4D5E45FD2E0B07ED00FA6E0E /* OTelSemanticsValidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OTelSemanticsValidation.swift; sourceTree = "<group>"; };
+		4D5EE3E92E0F01CA009C0D93 /* EmbraceIOTestApp.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = EmbraceIOTestApp.xctestplan; sourceTree = "<group>"; };
 		4D63379E2DE1157200557BDC /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		4D6337A02DE1157200557BDC /* EmbraceIOTestCrashesUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbraceIOTestCrashesUITests.swift; sourceTree = "<group>"; };
 		4D6337A12DE1157200557BDC /* EmbraceIOTestLogsUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbraceIOTestLogsUITests.swift; sourceTree = "<group>"; };
@@ -801,6 +802,7 @@
 		4DF12A172D302C3200C93E62 = {
 			isa = PBXGroup;
 			children = (
+				4D5EE3E92E0F01CA009C0D93 /* EmbraceIOTestApp.xctestplan */,
 				4D6338272DE1157700557BDC /* EmbraceIOTestApp */,
 				4D6337A62DE1157200557BDC /* EmbraceIOTestAppUITests */,
 				4D6CDF322D84BBB000BB957F /* Frameworks */,

@@ -70,7 +70,7 @@ xcodebuild \
     -destination "id=$SELECTED_DEVICE_UDID" \
     -derivedDataPath $DERIVED_DATA_PATH \
     -resultBundlePath $XCRESULT_PATH \
-    test -parallel-testing-enabled NO
+    test
 
 # If we created a new simulator, delete it
 if [ -n "${CREATED_DEVICE_UDID}" ]; then
