@@ -26,6 +26,7 @@ struct EmbraceInitScreenViewModel {
     }
 
     var simulateEmbraceAPI: Bool = true
+    var forceInitState: EmbraceInitForceState = .off
 
     var formFields: [EmbraceInitScreenFormSection] = [
         .init(name: "APP ID",

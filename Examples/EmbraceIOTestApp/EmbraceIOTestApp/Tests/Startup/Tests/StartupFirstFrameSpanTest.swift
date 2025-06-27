@@ -1,13 +1,13 @@
 //
-//  MetadataSetupPayloadTest.swift
+//  StartupFirstFrameSpanTest.swift
 //  EmbraceIOTestApp
 //
 //
 
 import OpenTelemetrySdk
 
-class MetadataSetupPayloadTest: PayloadTest {
-    var testRelevantPayloadNames: [String] { ["emb-app-pre-main-init"] }
+class StartupFirstFrameSpanTest: PayloadTest {
+    var testRelevantPayloadNames: [String] { ["emb-app-first-frame-rendered"] }
     var requiresCleanup: Bool { false }
     var runImmediatelyIfSpansFound: Bool { true }
     var testType: TestType { .Spans }
@@ -22,6 +22,7 @@ class MetadataSetupPayloadTest: PayloadTest {
             return .init(items: [.init(target: "\(testRelevantSpanName) span", expected: "exists", recorded: "missing", result: .fail)])
         }
 
+        testItems.append(.init(target: "\(testRelevantSpanName) span", expected: "exists", recorded: "exists"))
         testItems.append(evaluate("emb.type", expecting: "sys.startup", on: setupSpan.attributes))
         testItems.append(evaluate("isPrewarmed", expectedToExist: true, on: setupSpan.attributes))
         MetadataResourceTest.testMetadataInclussion(on: setupSpan.resource, testItems: &testItems)
