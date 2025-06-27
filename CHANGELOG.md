@@ -1,3 +1,8 @@
+## 6.12.1
+*June 27, 2025*
+* Fixes
+	* Disabled a `KSCrash` flag that was unintentionally enabled when switching to the official repository. This flag caused a startup regression and is now reverted to its previous behavior (as in `6.9.2`).
+
 ## 6.12.0
 *June 24, 2025*
 * Fixes
