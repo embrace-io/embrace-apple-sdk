@@ -84,7 +84,7 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
             var attributes: [String: String] = [:]
             attributes[SpanSemantics.NetworkRequest.keyUrl] = request.url?.absoluteString ?? "N/A"
 
-            let httpMethod = request.httpMethod ?? ""
+            let httpMethod = request.httpMethod?.uppercased() ?? ""
             if !httpMethod.isEmpty {
                 attributes[SpanSemantics.NetworkRequest.keyMethod] = httpMethod
             }
