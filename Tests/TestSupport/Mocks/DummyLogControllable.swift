@@ -6,6 +6,7 @@ import Foundation
 @testable import EmbraceCore
 import EmbraceCommonInternal
 import EmbraceStorageInternal
+import EmbraceConfiguration
 
 public class DummyLogControllable: LogControllable {
 
@@ -26,4 +27,6 @@ public class DummyLogControllable: LogControllable {
     ) { }
 
     public func batchFinished(withLogs logs: [EmbraceLog]) {}
+
+    public var limits = LogsLimits()
 }

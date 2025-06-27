@@ -202,6 +202,7 @@ let project = Project(
             sources: ["Sources/EmbraceCrash/**"],
             dependencies: [
                 .target(name: "EmbraceCommonInternal"),
+                .target(name: "EmbraceSemantics"),
                 .external(name: "Recording")
             ],
             settings: .settings(base: [

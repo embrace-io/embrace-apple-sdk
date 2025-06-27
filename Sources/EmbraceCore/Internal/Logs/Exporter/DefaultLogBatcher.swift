@@ -6,18 +6,21 @@ import Foundation
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceStorageInternal
 import EmbraceCommonInternal
+import EmbraceConfiguration
 #endif
 import OpenTelemetryApi
 import OpenTelemetrySdk
 
 protocol LogBatcherDelegate: AnyObject {
     func batchFinished(withLogs logs: [EmbraceLog])
+    var limits: LogsLimits { get set }
 }
 
 protocol LogBatcher: AnyObject {
     func addLogRecord(logRecord: ReadableLogRecord)
     func renewBatch(withLogs logRecords: [EmbraceLog])
     func forceEndCurrentBatch(waitUntilFinished: Bool)
+    var limits: LogsLimits { get }
 }
 
 class DefaultLogBatcher: LogBatcher {
@@ -28,6 +31,10 @@ class DefaultLogBatcher: LogBatcher {
     private weak var delegate: LogBatcherDelegate?
     private var batchDeadlineWorkItem: DispatchWorkItem?
     private var batch: LogsBatch?
+
+    var limits: LogsLimits {
+        delegate?.limits ?? .init()
+    }
 
     init(
         repository: LogRepository,

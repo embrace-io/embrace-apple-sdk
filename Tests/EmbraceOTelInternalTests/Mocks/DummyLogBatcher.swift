@@ -5,8 +5,11 @@
 @testable import EmbraceCore
 import EmbraceCommonInternal
 import OpenTelemetrySdk
+import EmbraceConfiguration
 
 class DummyLogBatcher: LogBatcher {
+    var limits = LogsLimits()
+
     func addLogRecord(logRecord: ReadableLogRecord) {
     }
 
