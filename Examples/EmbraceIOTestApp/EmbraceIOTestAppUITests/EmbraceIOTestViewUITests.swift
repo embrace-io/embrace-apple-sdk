@@ -33,18 +33,12 @@ final class EmbraceIOTestViewUITests: XCTestCase {
     func testViewDidLoad() {
         app.buttons["viewDidLoadCaptureTestButton"].tap()
 
-        sleep(5)
-
-        XCTAssertTrue(app.staticTexts["PASS"].exists)
-        XCTAssertFalse(app.staticTexts["FAIL"].exists)
+        evaluateTestResults(app)
     }
 
     func testViewAppearingCycleMeasurement() {
         app.buttons["viewDidAppearMeasurementCaptureTestButton"].tap()
 
-        sleep(5)
-
-        XCTAssertTrue(app.staticTexts["PASS"].exists)
-        XCTAssertFalse(app.staticTexts["FAIL"].exists)
+        evaluateTestResults(app)
     }
 }

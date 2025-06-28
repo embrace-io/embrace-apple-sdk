@@ -108,10 +108,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
     private func runLogTest() {
         app.buttons["logMessageCaptureTestButton"].tap()
 
-        sleep(1)
-
-        XCTAssertTrue(app.staticTexts["PASS"].exists)
-        XCTAssertFalse(app.staticTexts["FAIL"].exists)
+        evaluateTestResults(app)
     }
 
     func testLogCapture_trace() {

@@ -90,10 +90,7 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
     private func runNetworkTest() {
         app.buttons["networkCallTestButton"].tap()
 
-        sleep(5)
-
-        XCTAssertTrue(app.staticTexts["PASS"].exists)
-        XCTAssertFalse(app.staticTexts["FAIL"].exists)
+        evaluateTestResults(app)
     }
 
     func testGetRequest() {
