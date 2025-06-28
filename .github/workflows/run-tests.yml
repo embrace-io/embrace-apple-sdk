@@ -21,7 +21,7 @@ jobs:
         xcode_version: ["15.4"]
     steps:
       - name: Select Xcode
-        # See https://github.com/actions/runner-images/blob/main/images/macos/macos-14-Readme.md
+        # See https://github.com/actions/runner-images/blob/main/images/macos/macos-15-Readme.md
         run: |
           sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app
           xcodebuild -version
@@ -67,7 +67,7 @@ jobs:
           name: output_xcresult
           path: .build/test/output.xcresult
 
-      - uses: kishikawakatsumi/xcresulttool@v1
+      - uses: kishikawakatsumi/xcresulttool@2b37f116695328d5e503ac8dadca0f1545a51da4 # v1.7.1
         if: always()
         with:
           path: .build/test/output
@@ -82,10 +82,10 @@ jobs:
           xcresultparser --output-format cobertura .build/test/output.xcresult > .build/test/output.xcresult.xml
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5.4.3
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
-          plugin: xcode
-          file: .build/test/output.xcresult.xml
+          plugins: xcode
+          files: .build/test/output.xcresult.xml
           fail_ci_if_error: true

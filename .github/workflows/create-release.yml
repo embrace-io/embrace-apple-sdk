@@ -99,7 +99,7 @@ jobs:
       IS_PRODUCTION_READY: ${{ needs.extractor.outputs.is_production_ready }}
     steps:
       - name: Validate access to versioning backend
-        uses: embrace-io/public-actions/upload-sdk-version@v1
+        uses: embrace-io/public-actions/upload-sdk-version@88167cd1a3fce3418e26c8c842026e6dfab99e41
         with:
           platform: 'ios'
           version: ${{ needs.extractor.outputs.rc_version }}
@@ -135,7 +135,7 @@ jobs:
               Sources/EmbraceCommonInternal/EmbraceMeta.swift
 
           git diff --cached
-          
+
           git commit -m "CI/CD: Bumps version to '$RC_VERSION'"
           git push
 
@@ -200,12 +200,12 @@ jobs:
       - name: Push EmbraceIO Podspec
         run: |
           pod trunk push embrace-apple-sdk/EmbraceIO.podspec --allow-warnings
-  
+
   create_internal_release:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs:
-      - create_github_release 
+      - create_github_release
       - push_podspec
       - extractor
     env:
@@ -214,7 +214,7 @@ jobs:
 
     steps:
       - name: Record SDK Version History
-        uses: embrace-io/public-actions/upload-sdk-version@v1
+        uses: embrace-io/public-actions/upload-sdk-version@88167cd1a3fce3418e26c8c842026e6dfab99e41
         with:
           platform: 'ios'
           version: ${{ needs.extractor.outputs.rc_version }}
@@ -222,4 +222,3 @@ jobs:
           uploadUrl: ${{ vars.SDK_VERSION_URL }}
         env:
           SDK_VERSION_TOKEN: ${{ secrets.SDK_VERSION_TOKEN }}
-
