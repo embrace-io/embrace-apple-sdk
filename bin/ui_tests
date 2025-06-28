@@ -11,7 +11,7 @@ fi
 
 # Define constants for script
 PLATFORM="iphonesimulator"
-DEVICE_PATTERN="iPhone-16.*"
+DEVICE_PATTERN="iPhone-1*.*"
 FALLBACK_SIMULATOR_DEVICE_TYPE="com.apple.CoreSimulator.SimDeviceType.iPhone-16"
 
 # Use xcodebuild to retrieve list of available SDKs in JSON format
@@ -64,7 +64,7 @@ IS_XCTEST=true \
 xcodebuild clean test \
     -project './Examples/EmbraceIOTestApp/EmbraceIOTestApp.xcodeproj' \
     -sdk $SDK_PATH \
-    -configuration "Debug" \
+    -configuration "Release" \
     -scheme 'EmbraceIOTestApp' \
     -clonedSourcePackagesDirPath $CLONED_SOURCE_PACKAGES_DIR_PATH \
     -destination "id=$SELECTED_DEVICE_UDID" \
