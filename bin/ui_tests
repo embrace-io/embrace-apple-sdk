@@ -11,7 +11,7 @@ fi
 
 # Define constants for script
 PLATFORM="iphonesimulator"
-DEVICE_PATTERN="iPhone-1*.*"
+DEVICE_PATTERN="iPhone-16.*"
 FALLBACK_SIMULATOR_DEVICE_TYPE="com.apple.CoreSimulator.SimDeviceType.iPhone-16"
 
 # Use xcodebuild to retrieve list of available SDKs in JSON format
