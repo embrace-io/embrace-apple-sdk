@@ -67,7 +67,7 @@ struct UploadedSessionPayloadTestPersonasView: View {
     }
 }
 
-extension MetadataLifespan: @retroactive CaseIterable {
+extension MetadataLifespan: CaseIterable {
     public static var allCases: [MetadataLifespan] {
         [.permanent, .process, .session]
     }

@@ -65,6 +65,23 @@ extension XCTestCase {
         return element
     }
 
+    func waitUntilElementIsEnabled(element: XCUIElement, timeout: TimeInterval = 600, file: StaticString = #file, line: UInt = #line) -> XCUIElement {
+        let expectation = expectation(description: "waiting for element \(element) to be enabled")
+
+        let timer = Timer(timeInterval: 1, repeats: true) { timer in
+            guard element.isEnabled else { return }
+
+            expectation.fulfill()
+            timer.invalidate()
+        }
+
+        RunLoop.current.add(timer, forMode: .common)
+
+        wait(for: [expectation], timeout: timeout)
+
+        return element
+    }
+
     func evaluateTestResults(_ app: XCUIApplication) {
         XCTAssertTrue(app.staticTexts["TEST RESULT:"].waitForExistence(timeout: 60))
         XCTAssertTrue(app.staticTexts["PASS"].exists)
