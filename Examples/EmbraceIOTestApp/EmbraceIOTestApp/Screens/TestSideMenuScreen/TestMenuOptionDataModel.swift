@@ -42,7 +42,7 @@ enum TestMenuOptionDataModel: Int, CaseIterable {
         case .embraceInit:
             "embraceInit"
         case .startup:
-            "metadata"
+            "startup"
         case .viewController:
             "viewController"
         case .networking:

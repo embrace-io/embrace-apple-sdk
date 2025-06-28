@@ -14,14 +14,18 @@ final class EmbraceIOTestViewUITests: XCTestCase {
         app.launch()
 
         let initButton = app.buttons["EmbraceInitButton"]
+        XCTAssertTrue(initButton.waitForExistence(timeout: 5))
         initButton.tap()
 
         XCTAssertNotNil(initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
 
         let sideMenuButton = app.buttons["SideMenuButton"]
+        XCTAssertTrue(sideMenuButton.waitForExistence(timeout: 5))
         sideMenuButton.tap()
 
-        app.staticTexts["viewController"].tap()
+        let testScreenButton = app.staticTexts["viewController"]
+        XCTAssertTrue(testScreenButton.waitForExistence(timeout: 5))
+        testScreenButton.tap()
 
         continueAfterFailure = true
     }
@@ -31,13 +35,17 @@ final class EmbraceIOTestViewUITests: XCTestCase {
     }
 
     func testViewDidLoad() {
-        app.buttons["viewDidLoadCaptureTestButton"].tap()
+        let button = app.buttons["viewDidLoadCaptureTestButton"]
+        XCTAssertTrue(button.waitForExistence(timeout: 5))
+        button.tap()
 
         evaluateTestResults(app)
     }
 
     func testViewAppearingCycleMeasurement() {
-        app.buttons["viewDidAppearMeasurementCaptureTestButton"].tap()
+        let button = app.buttons["viewDidAppearMeasurementCaptureTestButton"]
+        XCTAssertTrue(button.waitForExistence(timeout: 5))
+        button.tap()
 
         evaluateTestResults(app)
     }

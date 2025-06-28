@@ -49,18 +49,23 @@ final class EmbraceIOTestWARMStartupUITests: XCTestCase {
         app.launch()
 
         let warmButton = app.buttons["EmbraceInitForceState_Warm"]
+        XCTAssertTrue(warmButton.waitForExistence(timeout: 5))
         warmButton.tap()
 
         let initButton = app.buttons["EmbraceInitButton"]
+        XCTAssertTrue(initButton.waitForExistence(timeout: 5))
         initButton.tap()
 
         XCTAssertNotNil(initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
 
         let sideMenuButton = app.buttons["SideMenuButton"]
+        XCTAssertTrue(sideMenuButton.waitForExistence(timeout: 5))
         sideMenuButton.tap()
 
-        app.staticTexts["metadata"].tap()
-        //sleep(4)
+        let testScreenButton = app.staticTexts["startup"]
+        XCTAssertTrue(testScreenButton.waitForExistence(timeout: 5))
+        testScreenButton.tap()
+
         continueAfterFailure = true
     }
 
@@ -123,23 +128,29 @@ final class EmbraceIOTestCOLDStartupUITests: XCTestCase {
         app.launch()
 
         let coldButton = app.buttons["EmbraceInitForceState_Cold"]
+        XCTAssertTrue(coldButton.waitForExistence(timeout: 5))
         coldButton.tap()
 
         let initButton = app.buttons["EmbraceInitButton"]
+        XCTAssertTrue(initButton.waitForExistence(timeout: 5))
         initButton.tap()
 
         XCTAssertNotNil(initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
 
         let sideMenuButton = app.buttons["SideMenuButton"]
+        XCTAssertTrue(sideMenuButton.waitForExistence(timeout: 5))
         sideMenuButton.tap()
 
-        app.staticTexts["metadata"].tap()
+        let testScreenButton = app.staticTexts["startup"]
+        XCTAssertTrue(testScreenButton.waitForExistence(timeout: 5))
+        testScreenButton.tap()
 
         continueAfterFailure = true
     }
 
     func testInitStartup_StartState_Cold_Span() {
         let expectedColdStart = app.switches["coldStartExpectedToggle"].switches.firstMatch
+        XCTAssertTrue(expectedColdStart.waitForExistence(timeout: 5))
         expectedColdStart.tap()
 
         let button = app.buttons["startupStateSpanTestButton"]

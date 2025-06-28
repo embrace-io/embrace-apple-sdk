@@ -64,7 +64,7 @@ IS_XCTEST=true \
 xcodebuild clean test \
     -project './Examples/EmbraceIOTestApp/EmbraceIOTestApp.xcodeproj' \
     -sdk $SDK_PATH \
-    -configuration "Release" \
+    -configuration "Debug" \
     -scheme 'EmbraceIOTestApp' \
     -clonedSourcePackagesDirPath $CLONED_SOURCE_PACKAGES_DIR_PATH \
     -destination "id=$SELECTED_DEVICE_UDID" \
