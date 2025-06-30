@@ -22,11 +22,11 @@ public struct EmbraceTraceSurface<Content: View>: View {
     private var parentUUID: UUID?
 
     @StateObject
-    private var state: EmbraceTraceSurfaceState = EmbraceTraceSurfaceState()
-    
+    private var state = EmbraceTraceSurfaceState()
+
     @ObservedObject
     private var tracker = SurfaceTracker.shared
-    
+
     public init(
         _ name: String,
         content: @escaping () -> Content
@@ -37,22 +37,6 @@ public struct EmbraceTraceSurface<Content: View>: View {
     
     public var body: some View {
         content()
-            .overlay {
-                VStack(alignment: .leading) {
-                    Spacer()
-                        .frame(height: 80)
-                    Text("\(state.id)")
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .shadow(radius: 10)
-                    Spacer()
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .border(
-                    tracker.topSurface?.id == state.id ? .green : .red,
-                    width: 2
-                )
-            }
             .environment(\.embraceTraceSurfaceParent, state.id)
             .background {
                 EmbraceTraceSurfaceViewRepresentable { window in
@@ -78,11 +62,11 @@ public struct EmbraceTraceSurface<Content: View>: View {
             }
             .onDisappear {
                 state.visibleBasedOnAppearance = false
-                SurfaceTracker.shared.removeSurface(id: state.id)
+                tracker.removeSurface(id: state.id)
             }
             .onAppear {
                 state.visibleBasedOnAppearance = true
-                SurfaceTracker.shared.addSurface(
+                tracker.addSurface(
                     id: state.id,
                     parentId: parentUUID,
                     name: name,
@@ -91,45 +75,81 @@ public struct EmbraceTraceSurface<Content: View>: View {
                 )
             }
             .onChange(of: state.isVisible) { _ in
-                SurfaceTracker.shared.updateSurface(
+                tracker.updateSurface(
                     id: state.id,
                     visible: state.isVisible,
                     coverage: Int(state.percentCoverage * 100)
                 )
             }
+            .overlay {
+                VStack(alignment: .leading) {
+                    Spacer()
+                        .frame(height: 80)
+                    Text("\(state.id)")
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .background {
+                            Color.black.opacity(0.3)
+                        }
+                    Text("\(Int(state.percentCoverage*100))")
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .background {
+                            Color.black.opacity(0.3)
+                        }
+                    Spacer()
+                }
+                .shadow(radius: 10)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .border(
+                    tracker.topSurface?.id == state.id ? .green : .red,
+                    width: 2
+                )
+            }
     }
     
     private func visiblityPreferenceChanged() {
-        let frame = state.frame
-        guard frame.width > 0, frame.height > 0 else {
-            state.percentCoverage = 0
-            return
+        
+        let newPercentage: Double
+        defer {
+            let newCoverage = max(0, min(1, newPercentage))
+            if state.percentCoverage != newCoverage {
+                state.percentCoverage = newCoverage
+                tracker.updateSurface(
+                    id: state.id,
+                    visible: state.isVisible,
+                    coverage: Int(state.percentCoverage * 100)
+                )
+            }
+            
+            /*
+             print("[VS] ")
+             print("[VS] id: \(state.id)")
+             print("[VS] parent: \(parentUUID)")
+             print("[VS] frame [\(name)] \(frame)")
+             print("[VS] visibleRect [\(name)] \(visibleRect), \(Int(percentage*100))")
+             */
         }
         
-        guard let window = state.window else {
-            state.percentCoverage = 0
+        let frame = state.frame
+        guard frame.width > 0, frame.height > 0,
+              let window = state.window
+        else {
+            newPercentage = 0
             return
         }
+
         
         let visibleRect = frame.intersection(window.bounds)
         guard visibleRect.width > 0, visibleRect.height > 0 else {
-            state.percentCoverage = 0
+            newPercentage = 0
             return
         }
         
         let visibleArea = visibleRect.width * visibleRect.height
         let totalArea = frame.width * frame.height
         
-        let percentage = visibleArea / totalArea
-        let newCoverage = max(0, min(1, percentage))
-        if state.percentCoverage != newCoverage {
-            state.percentCoverage = newCoverage
-            SurfaceTracker.shared.updateSurface(
-                id: state.id,
-                visible: state.isVisible,
-                coverage: Int(state.percentCoverage * 100)
-            )
-        }
+        newPercentage = visibleArea / totalArea
     }
 }
 
@@ -146,7 +166,8 @@ class EmbraceTraceSurfaceState: ObservableObject {
             _updateVisibility()
         }
     }
-    var percentCoverage: Double = 0 {
+    
+    @Published var percentCoverage: Double = 0 {
         didSet {
             _updateVisibility()
         }
@@ -215,21 +236,38 @@ public class SurfaceTracker: ObservableObject {
             if let topSurface {
                 print("[SurfaceTracker] top \(topSurface.name) \(topSurface.id)")
                 
+                let now = Date()
+                
+                // end the current surface span
+                topSurfaceSpan?.end(time: now)
+                topSurfaceSpan = nil
+                
+                // Span to indicate we navigated to
+                // this surface. THis also give us crash resilience.
                 Embrace.client?.buildSpan(
                     name: "emb-swiftui.surface.\(topSurface.name).nav-to",
+                    type: SpanType.viewLoad
+                ).setStartTime(time: now).startSpan().end(time: now)
+                
+                // Span to indicate the duration on this surface
+                topSurfaceSpan = Embrace.client?.buildSpan(
+                    name: "emb-swiftui.surface.\(topSurface.name).current",
                     type: SpanType.viewLoad,
-                ).startSpan().end()
+                    autoTerminationCode: .userAbandon
+                ).setStartTime(time: now).startSpan()
                 
             } else {
                 print("[SurfaceTracker] top (none)")
             }
         }
     }
-
+    
+    init() {
+    }
+    
+    private var topSurfaceSpan: OpenTelemetryApi.Span? = nil
     private var surfaces: [SurfaceInfo] = []
-    
-    private init() {}
-    
+
     func addSurface(id: UUID, parentId: UUID?, name: String, visible: Bool, coverage: Int) {
         guard surfaces.firstIndex(where: { $0.id == id }) == nil else {
             print("[SurfaceTracker] trying to add surface '\(id)' but we already have it")
