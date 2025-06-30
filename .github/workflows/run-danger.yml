@@ -15,6 +15,6 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run Danger Swift
-        uses: danger/swift@3.20.0
+        uses: danger/swift@7e8470aa67b3096c132fa45d3e0ee5488b992f0f # v3.21.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
