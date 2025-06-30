@@ -63,30 +63,16 @@ extension View {
             contentComplete: contentComplete
         ) { self }
     }
-    
-    @available(iOS 14, *)
+}
+
+@available(iOS 14, tvOS 14, *)
+public extension View {
+
     func embraceSurface(
         _ viewName: String
     ) -> some View {
-        EmbraceTraceSurface(viewName) {
+        EmbraceTraceSurfaceView(viewName) {
             self
         }
-    }
-}
-
-@available(iOS, deprecated: 15.0, message: "Use the built-in APIs instead")
-extension View {
-    func background<T: View>(
-        alignment: Alignment = .center,
-        @ViewBuilder content: () -> T
-    ) -> some View {
-        background(Group(content: content), alignment: alignment)
-    }
-    
-    func overlay<T: View>(
-        alignment: Alignment = .center,
-        @ViewBuilder content: () -> T
-    ) -> some View {
-        overlay(Group(content: content), alignment: alignment)
     }
 }

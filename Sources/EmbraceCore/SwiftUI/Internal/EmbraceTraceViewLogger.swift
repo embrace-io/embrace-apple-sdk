@@ -101,6 +101,7 @@ extension EmbraceTraceViewLogger {
         time: Date? = nil,
         parent: Span? = nil,
         attributes: [String: String]? = nil,
+        autoTerminationCode: SpanErrorCode? = nil,
         _ function: StaticString = #function
     ) -> Span? {
         dispatchPrecondition(condition: .onQueue(.main))
@@ -122,7 +123,7 @@ extension EmbraceTraceViewLogger {
             name: "emb-swiftui.view.\(name).\(semantics)",
             type: SpanType.viewLoad,
             attributes: attributes ?? [:],
-            autoTerminationCode: nil
+            autoTerminationCode: autoTerminationCode
         )
 
         if let customTime = time {
