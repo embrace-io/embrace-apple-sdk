@@ -9,6 +9,19 @@ import SwiftUI
 extension EmbraceTraceSurfaceView {
     
     internal func frameChanged() {
+        // not sure i want to debounce here.
+        // debounce causes the updates to wait
+        // until almost no movement to update
+        // the top surface which can be a bit late.
+        /*
+        state.debounceFrameUpdate {
+            performFrameUpdatesAfterDebounce()
+        }
+        */
+        performFrameUpdatesAfterDebounce()
+    }
+    
+    private func performFrameUpdatesAfterDebounce() {
         
         let newPercentage: Double
         defer {
@@ -56,6 +69,22 @@ extension EmbraceTraceSurfaceView {
         let id: UUID = UUID()
         var frame: CGRect = .zero
         var window: UIWindow? = nil
+        
+        private var frameUpdateWorkItem: DispatchWorkItem? = nil
+        
+        deinit {
+            frameUpdateWorkItem?.cancel()
+        }
+        
+        func debounceFrameUpdate(_ action: @escaping () -> Void) {
+            dispatchPrecondition(condition: .onQueue(.main))
+            frameUpdateWorkItem?.cancel()
+            frameUpdateWorkItem = DispatchWorkItem(block: action)
+            guard let workItem = frameUpdateWorkItem else {
+                return
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: workItem)
+        }
         
         var visibleBasedOnAppearance: Bool = false {
             didSet { updateVisibility() }
