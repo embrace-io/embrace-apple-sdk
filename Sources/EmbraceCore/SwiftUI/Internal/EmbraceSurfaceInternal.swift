@@ -104,12 +104,3 @@ struct EmbraceTraceSurfaceViewRepresentable: UIViewRepresentable {
     func updateUIView(_ uiView: UIView, context: Context) {
     }
 }
-
-extension View {
-    func emb_iOS13safe_background<T: View>(
-        alignment: Alignment = .center,
-        @ViewBuilder content: @escaping () -> T
-    ) -> some View {
-        background(content())
-    }
-}
