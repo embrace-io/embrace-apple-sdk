@@ -69,10 +69,12 @@ extension View {
 public extension View {
 
     func embraceSurface(
-        _ viewName: String
+        _ viewName: String,
+        attributes: [String: String]? = nil,
     ) -> some View {
-        EmbraceTraceSurfaceView(viewName) {
-            self
-        }
+        EmbraceTraceSurfaceView(
+            viewName,
+            attributes: attributes
+        ) { self }
     }
 }

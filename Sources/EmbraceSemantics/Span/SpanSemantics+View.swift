@@ -51,4 +51,9 @@ extension SpanSemantics {
         public static let timeToFirstContentComplete = "time-to-first-content-complete"
 
     }
+    
+    struct SwiftUISurface {
+        public static let navigatedToSurface = "surface-nav-to"
+        public static let currentSurface = "surface-current"
+    }
 }

@@ -16,6 +16,7 @@ import OpenTelemetryApi
 public struct EmbraceTraceSurfaceView<Content: View>: View {
     
     private let name: String
+    private let attributes: [String: String]?
     private let content: () -> Content
     
     @Environment(\.embraceSurfaceParent)
@@ -32,9 +33,11 @@ public struct EmbraceTraceSurfaceView<Content: View>: View {
 
     public init(
         _ name: String,
+        attributes: [String: String]? = nil,
         content: @escaping () -> Content
     ) {
         self.name = name
+        self.attributes = attributes
         self.content = content
     }
     
@@ -73,6 +76,7 @@ public struct EmbraceTraceSurfaceView<Content: View>: View {
                     id: state.id,
                     parentId: parentUUID,
                     name: name,
+                    attributes: attributes,
                     visible: state.isVisible,
                     coverage: Int(state.percentCoverage * 100),
                     logger: logger
