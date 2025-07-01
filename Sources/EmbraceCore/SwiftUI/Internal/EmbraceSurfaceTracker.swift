@@ -5,6 +5,7 @@
 
 import SwiftUI
 import OpenTelemetryApi
+import EmbraceSemantics
 
 @MainActor
 public class EmbraceSurfaceTracker: ObservableObject {
@@ -15,6 +16,7 @@ public class EmbraceSurfaceTracker: ObservableObject {
         public let id: UUID
         public let parentId: UUID?
         public let name: String
+        public let attributes: [String: String]?
         public private(set) var coverage: Int
         public private(set) var visible: Bool = false
         public private(set) var visibilityTimestamp: UInt64 = 0
@@ -67,6 +69,7 @@ public class EmbraceSurfaceTracker: ObservableObject {
         id: UUID,
         parentId: UUID?,
         name: String,
+        attributes: [String: String]?,
         visible: Bool,
         coverage: Int,
         logger: EmbraceTraceViewLogger)
@@ -80,6 +83,7 @@ public class EmbraceSurfaceTracker: ObservableObject {
             id: id,
             parentId: parentId,
             name: name,
+            attributes: attributes,
             coverage: coverage
         )
         surface.update(visible: visible, coverage: coverage)
@@ -140,16 +144,18 @@ public class EmbraceSurfaceTracker: ObservableObject {
             // this surface. This also give us crash resilience.
             logger.startSpan(
                 surface.name,
-                semantics: "nav-to",
-                time: now
+                semantics: SpanSemantics.SwiftUISurface.navigatedToSurface,
+                time: now,
+                attributes: surface.attributes
             )?.end(time: now)
             
             
             // Span to indicate the duration on this surface
             topSurfaceSpan = logger.startSpan(
                 surface.name,
-                semantics: "surface",
+                semantics: SpanSemantics.SwiftUISurface.currentSurface,
                 time: now,
+                attributes: surface.attributes,
                 autoTerminationCode: .userAbandon
             )
             
