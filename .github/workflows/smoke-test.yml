@@ -15,7 +15,7 @@ permissions:
 jobs:
   build-smoke-tests-app:
     timeout-minutes: 40
-    runs-on: [macos-14]
+    runs-on: macos-14
     strategy:
       fail-fast: false
 
