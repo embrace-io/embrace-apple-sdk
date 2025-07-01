@@ -25,11 +25,11 @@ public struct EmbraceTraceSurfaceView<Content: View>: View {
     @Environment(\.embraceTraceViewLogger)
     internal var logger: EmbraceTraceViewLogger
     
+    @Environment(\.embraceSurfaceTracker)
+    internal var tracker: EmbraceSurfaceTracker
+    
     @StateObject
     internal var state = SurfaceState()
-
-    @ObservedObject
-    internal var tracker = EmbraceSurfaceTracker.shared
 
     public init(
         _ name: String,
