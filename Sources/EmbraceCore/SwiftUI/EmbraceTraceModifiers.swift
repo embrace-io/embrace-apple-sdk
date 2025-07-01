@@ -70,7 +70,7 @@ public extension View {
 
     func embraceSurface(
         _ viewName: String,
-        attributes: [String: String]? = nil,
+        attributes: [String: String]? = nil
     ) -> some View {
         EmbraceTraceSurfaceView(
             viewName,
