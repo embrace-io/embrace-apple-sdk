@@ -9,9 +9,7 @@ import EmbraceSemantics
 
 @MainActor
 public class EmbraceSurfaceTracker: ObservableObject {
-    
-    public static let shared = EmbraceSurfaceTracker()
-    
+
     public struct SurfaceInfo: Comparable, Equatable {
         public let id: UUID
         public let parentId: UUID?
@@ -55,13 +53,8 @@ public class EmbraceSurfaceTracker: ObservableObject {
             return false
         }
     }
-    
-    @Published
-    private(set) var topSurface: SurfaceInfo? = nil
-    
-    private init() {
-    }
-    
+
+    public private(set) var topSurface: SurfaceInfo? = nil
     private var topSurfaceSpan: OpenTelemetryApi.Span? = nil
     private var surfaces: [SurfaceInfo] = []
     
@@ -138,7 +131,7 @@ public class EmbraceSurfaceTracker: ObservableObject {
         topSurfaceSpan = nil
         
         if let surface {
-            print("[SurfaceTracker] top \(surface.name) \(surface.id)")
+            print("[SurfaceTracker:\(Unmanaged.passUnretained(self).toOpaque())] top \(surface.name) \(surface.id)")
             
             // Span event to mark the change of top surface
             logger.mark(
@@ -159,7 +152,7 @@ public class EmbraceSurfaceTracker: ObservableObject {
             )
             
         } else {
-            print("[SurfaceTracker] top (none)")
+            print("[SurfaceTracker:\(Unmanaged.passUnretained(self).toOpaque())] top (none)")
         }
     }
     
@@ -172,5 +165,17 @@ public class EmbraceSurfaceTracker: ObservableObject {
             logChangeOfTopSurface(surface: surface, logger: logger)
         }
         return stack
+    }
+}
+
+private struct EmbraceSurfaceTrackerKey: EnvironmentKey {
+    @MainActor
+    static let defaultValue = EmbraceSurfaceTracker()
+}
+
+extension EnvironmentValues {
+    public var embraceSurfaceTracker: EmbraceSurfaceTracker {
+        get { self[EmbraceSurfaceTrackerKey.self] }
+        set { self[EmbraceSurfaceTrackerKey.self] = newValue }
     }
 }
