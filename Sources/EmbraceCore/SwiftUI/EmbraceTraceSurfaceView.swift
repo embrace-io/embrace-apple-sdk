@@ -30,7 +30,7 @@ public struct EmbraceTraceSurfaceView<Content: View>: View {
     
     @StateObject
     internal var state = SurfaceState()
-
+    
     public init(
         _ name: String,
         attributes: [String: String]? = nil,
@@ -40,7 +40,7 @@ public struct EmbraceTraceSurfaceView<Content: View>: View {
         self.attributes = attributes
         self.content = content
     }
-    
+
     public var body: some View {
         content()
             .environment(\.embraceSurfaceParent, state.id)
