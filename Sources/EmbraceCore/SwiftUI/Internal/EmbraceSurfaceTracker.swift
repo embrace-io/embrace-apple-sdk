@@ -140,14 +140,13 @@ public class EmbraceSurfaceTracker: ObservableObject {
         if let surface {
             print("[SurfaceTracker] top \(surface.name) \(surface.id)")
             
-            // Span to indicate we navigated to
-            // this surface. This also give us crash resilience.
-            logger.startSpan(
+            // Span event to mark the change of top surface
+            logger.mark(
                 surface.name,
                 semantics: SpanSemantics.SwiftUISurface.navigatedToSurface,
                 time: now,
                 attributes: surface.attributes
-            )?.end(time: now)
+            )
             
             
             // Span to indicate the duration on this surface
