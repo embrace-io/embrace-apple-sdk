@@ -201,4 +201,43 @@ extension EmbraceTraceViewLogger {
 
         return span
     }
+    
+    /// Marks a span event for a SwiftUI view event.
+    ///
+    /// - Parameters:
+    ///   - name: The logical name of the view (same as passed to `EmbraceTraceView`).
+    ///   - semantics: The semantic suffix (e.g., `"body"` or `"appear"`) used in span naming.
+    ///   - time: Optional custom start time (defaults to `Date()`).
+    ///   - attributes: Optional key/value metadata for enriching the span.
+    ///   - function: Automatically captures the calling function name (for debug logs).
+    func mark(
+        _ name: String,
+        semantics: String,
+        time: Date? = nil,
+        attributes: [String: String]? = nil,
+        _ function: StaticString = #function
+    ) {
+        dispatchPrecondition(condition: .onQueue(.main))
+        
+        // Verify feature flag is on
+        guard let config, config.isSwiftUiViewInstrumentationEnabled else {
+            logger?.debug("SwiftUI view tracing is disabled. Skipping EmbraceTraceViewLogger.startSpan.")
+            return
+        }
+        
+        // Verify OpenTelemetry client
+        guard let client = otel else {
+            logger?.debug("OTel client unavailable. Skipping EmbraceTraceViewLogger.startSpan.")
+            return
+        }
+        
+        // Build the span event
+        client.add(
+            event: RecordingSpanEvent(
+                name: "emb-swiftui.view.\(name).\(semantics)",
+                timestamp: time ?? Date(),
+                attributes: attributes?.compactMapValues { .string($0) } ?? [:]
+            )
+        )
+    }
 }
