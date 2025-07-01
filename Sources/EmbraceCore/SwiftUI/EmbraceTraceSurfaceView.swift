@@ -41,14 +41,14 @@ public struct EmbraceTraceSurfaceView<Content: View>: View {
     public var body: some View {
         content()
             .environment(\.embraceSurfaceParent, state.id)
-            .emb_iOS13safe_background {
+            .background(
                 EmbraceTraceSurfaceViewRepresentable { window in
                     RunLoop.main.perform(inModes: [.common]) {
                         state.window = window
                         frameChanged()
                     }
                 }
-            }
+            )
             .background(
                 GeometryReader { proxy in
                     Color.clear
