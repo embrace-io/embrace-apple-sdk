@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        xcode_version: ["16.2"]
+        xcode_version: ["16.4"]
 
     steps:
       - name: Select Xcode
