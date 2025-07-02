@@ -17,7 +17,10 @@ let project = Project(
                     ]
                 ]
             ),
-            sources: ["AppSizeTester/Sources/**"],
+            sources: [
+                "AppSizeTester/Sources/**",
+                "AppSizeTester/SpecificSources/EmbraceNoop.swift"
+            ],
             resources: ["AppSizeTester/Resources/**"],
             dependencies: [],
             settings: .settings(
@@ -42,7 +45,10 @@ let project = Project(
                     ]
                 ]
             ),
-            sources: ["AppSizeTester/Sources/**"],
+            sources: [
+                "AppSizeTester/Sources/**",
+                "AppSizeTester/SpecificSources/Embrace.swift"
+            ],
             resources: ["AppSizeTester/Resources/**"],
             dependencies: [
                 .external(name: "EmbraceIO"),

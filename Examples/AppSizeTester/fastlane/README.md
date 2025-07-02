@@ -19,11 +19,15 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 [bundle exec] fastlane calculate_sdk_size
 ```
 
-Calculates the size of the SDK by creating an .ipa with & without the SDK
+Calculates the SDK size by generating two .ipa files (with and without the SDK)
 
-and analyzes the difference between sizes of those .ipas, using the generate
+and comparing their sizes using the 'App Thinning Size Report.txt' file.
 
-'App Thinning Size Report.txt' file
+Options:
+
+ - skip_tuist_clean_cache: true to skip 'tuist clean dependencies' (default: false)
+
+ - skip_lane_cleanup: true to skip cleanup of generated IPAs and project files (default: false)
 
 ### create_ipa
 
