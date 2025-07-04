@@ -31,7 +31,7 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
 
     private func backgroundAndReopenApp() {
         XCUIDevice.shared.press(XCUIDevice.Button.home)
-        sleep(2)
+        sleep(5)
         app.activate()
     }
 

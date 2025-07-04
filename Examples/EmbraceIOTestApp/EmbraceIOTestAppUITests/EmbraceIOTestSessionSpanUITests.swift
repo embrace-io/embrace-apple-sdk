@@ -32,7 +32,7 @@ final class EmbraceIOTestSessionSpanUITests: XCTestCase {
 
     private func backgroundAndReopenApp() {
         XCUIDevice.shared.press(XCUIDevice.Button.home)
-        sleep(2)
+        sleep(5)
         app.activate()
     }
 
@@ -44,7 +44,7 @@ final class EmbraceIOTestSessionSpanUITests: XCTestCase {
 
     func testSendFinishedSessionSpan() {
         runSessionSpanTest()
-        sleep(2)
+        sleep(5)
         backgroundAndReopenApp()
         evaluateTestResults(app)
     }
