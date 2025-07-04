@@ -18,6 +18,8 @@ jobs:
       fail-fast: false
       matrix:
         xcode_version: ["15.4"]
+    permissions:
+      checks: write
 
     steps:
       - name: Select Xcode
@@ -68,11 +70,11 @@ jobs:
           name: output_xcresult
           path: .build/test/output.xcresult
 
-      - uses: kishikawakatsumi/xcresulttool@v1
+      - uses: kishikawakatsumi/xcresulttool@2b37f116695328d5e503ac8dadca0f1545a51da4
         if: always()
         with:
           path: .build/test/output.xcresult
           title: "UI Test Results"
           show-passed-tests: true
           show-code-coverage: false
-          upload-bundles: "never" # Uploading the `xcresult` using the xcresultool action seems to fail; 
+          upload-bundles: "never" # Uploading the `xcresult` using the xcresultool action seems to fail
