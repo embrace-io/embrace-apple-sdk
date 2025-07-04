@@ -19,6 +19,7 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         metricKitCrashSignals: [String] = [],
         isMetricKitHangCaptureEnabled: Bool = false,
         isSwiftUiViewInstrumentationEnabled: Bool = false,
+        logsLimits: LogsLimits = LogsLimits(),
         internalLogLimits: InternalLogLimits = InternalLogLimits(),
         networkPayloadCaptureRules: [NetworkPayloadCaptureRule] = [],
         updateCompletionParamDidUpdate: Bool = false,
@@ -33,6 +34,7 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         self._metricKitCrashSignals = metricKitCrashSignals
         self._isMetricKitHangCaptureEnabled = isMetricKitHangCaptureEnabled
         self._isSwiftUiViewInstrumentationEnabled = isSwiftUiViewInstrumentationEnabled
+        self._logsLimits = logsLimits
         self._internalLogLimits = internalLogLimits
         self._networkPayloadCaptureRules = networkPayloadCaptureRules
         self.updateCompletionParamDidUpdate = updateCompletionParamDidUpdate
@@ -150,7 +152,19 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
             _isSwiftUiViewInstrumentationEnabled = newValue
         }
     }
-    
+
+    private var _logsLimits: LogsLimits
+    public let logsLimitsExpectation = XCTestExpectation(description: "logsLimits called")
+    public var logsLimits: LogsLimits {
+        get {
+            logsLimitsExpectation.fulfill()
+            return _logsLimits
+        }
+        set {
+            _logsLimits = newValue
+        }
+    }
+
     private var _internalLogLimits: InternalLogLimits
     public let internalLogLimitsExpectation = XCTestExpectation(description: "internalLogLimits called")
     public var internalLogLimits: InternalLogLimits {

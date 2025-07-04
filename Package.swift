@@ -255,6 +255,7 @@ let package = Package(
             name: "EmbraceCrash",
             dependencies: [
                 "EmbraceCommonInternal",
+                "EmbraceSemantics",
                 .product(name: "Recording", package: "KSCrash")
             ]
         ),

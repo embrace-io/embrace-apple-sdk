@@ -6,11 +6,10 @@ import Foundation
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCaptureService
 import EmbraceCommonInternal
+import EmbraceSemantics
 #endif
 
 class MetricKitCrashCaptureService: CaptureService, MetricKitCrashPayloadListener {
-
-    let providerIdentifier = "metrickit"
 
     let options: MetricKitCrashCaptureService.Options
 
@@ -48,7 +47,7 @@ class MetricKitCrashCaptureService: CaptureService, MetricKitCrashPayloadListene
             .addApplicationProperties(sessionId: sessionId)
             .addApplicationState(SessionState.unknown.rawValue)
             .addSessionIdentifier(sessionId?.toString)
-            .addCrashReportProperties(id: UUID().withoutHyphen, provider: providerIdentifier, payload: payloadString)
+            .addCrashReportProperties(id: UUID().withoutHyphen, provider: LogSemantics.Crash.metrickitProvider, payload: payloadString)
             .build()
 
         otel?.log(
