@@ -7,6 +7,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   run-ui-tests-app:
     timeout-minutes: 60
@@ -18,13 +21,15 @@ jobs:
 
     steps:
       - name: Select Xcode
-        # See https://github.com/actions/runner-images/blob/main/images/macos/macos-14-Readme.md
+        # See https://github.com/actions/runner-images/blob/main/images/macos/macos-15-Readme.md
         run: |
           sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app
           xcodebuild -version
       - uses: actions/checkout@v4
         timeout-minutes: 5
-      
+        with:
+          persist-credentials: false
+
       - name: Cache SPM Dependencies
         uses: actions/cache@v4
         with:
@@ -37,25 +42,25 @@ jobs:
           key: ${{ runner.os }}-spm-build-cache-test-${{ hashFiles('Package.resolved') }}
           restore-keys: |
             ${{ runner.os }}-spm-build-cache-test
-      
+
       - name: Display Available SDKs
         run: xcodebuild -showsdks -json
         timeout-minutes: 1
         continue-on-error: true
-      
+
       - name: Display Available Simulators
         run: |
           xcrun simctl list -j devices available
         timeout-minutes: 2
         continue-on-error: true
-      
+
       - name: Install xcbeautify
         run: brew install xcbeautify
-      
+
       - name: xcodebuild
         run: bin/ui_tests | xcbeautify && exit ${PIPESTATUS[0]}
         timeout-minutes: 60
-      
+
       - name: Upload xcresult Bundle Manually
         if: always()
         uses: actions/upload-artifact@v4
