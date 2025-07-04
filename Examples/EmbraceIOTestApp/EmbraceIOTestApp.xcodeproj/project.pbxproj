@@ -1289,7 +1289,7 @@
 				4D94F25D2D429257008DECEE /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 		4DF12A1B2D302C3200C93E62 /* Build configuration list for PBXProject "EmbraceIOTestApp" */ = {
 			isa = XCConfigurationList;
@@ -1298,7 +1298,7 @@
 				4DF12A2D2D302C3300C93E62 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 		4DF12A2E2D302C3300C93E62 /* Build configuration list for PBXNativeTarget "EmbraceIOTestApp" */ = {
 			isa = XCConfigurationList;
@@ -1307,7 +1307,7 @@
 				4DF12A302D302C3300C93E62 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
 

@@ -60,17 +60,14 @@ fi
 # `IS_XCTEST` envvar is work-around for plugin dependency being included in iOS target when using `xcodebuild test`
 # (See Package.swift `targetPlugins`)
 # https://forums.swift.org/t/xcode-attempts-to-build-plugins-for-ios-is-there-a-workaround/57029
+
 IS_XCTEST=true \
-xcodebuild clean test \
+xcodebuild test \
     -project './Examples/EmbraceIOTestApp/EmbraceIOTestApp.xcodeproj' \
-    -sdk $SDK_PATH \
-    -configuration "Debug" \
     -scheme 'EmbraceIOTestApp' \
-    -clonedSourcePackagesDirPath $CLONED_SOURCE_PACKAGES_DIR_PATH \
-    -destination "id=$SELECTED_DEVICE_UDID" \
-    -derivedDataPath $DERIVED_DATA_PATH \
-    -resultBundlePath $XCRESULT_PATH \
-    -testPlan "EmbraceIOTestApp"
+    -sdk iphonesimulator \
+    -configuration "Debug" \
+    -destination "id=$SELECTED_DEVICE_UDID"
 
 # If we created a new simulator, delete it
 if [ -n "${CREATED_DEVICE_UDID}" ]; then
