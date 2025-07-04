@@ -6,11 +6,8 @@ env:
 on:
   workflow_dispatch:
 
-# These permissions are needed to interact with GitHub's OIDC Token endpoint
 permissions:
-  id-token: write
-  contents: write
-  packages: read
+  contents: read
 
 jobs:
   build-smoke-tests-app:
@@ -22,6 +19,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         timeout-minutes: 5
+        with:
+          persist-credentials: false
 
       - name: xcodebuild
         env:

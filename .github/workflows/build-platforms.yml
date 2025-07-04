@@ -8,6 +8,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Build ${{ matrix.platform_args }} - Xcode ${{ matrix.xcode_version }}
@@ -26,6 +29,8 @@ jobs:
         xcodebuild -version
     - uses: actions/checkout@v4
       timeout-minutes: 4
+      with:
+        persist-credentials: false
 
     - name: Cache .build directory
       uses: actions/cache@v4

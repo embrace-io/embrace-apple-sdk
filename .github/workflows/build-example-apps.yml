@@ -5,6 +5,9 @@ on:
   workflow_dispatch: {}
   pull_request: {}
 
+permissions:
+  contents: read
+
 jobs:
   build-brandgame-app:
     name: Build BrandGame App
@@ -23,6 +26,8 @@ jobs:
 
       - uses: actions/checkout@v4
         timeout-minutes: 4
+        with:
+          persist-credentials: false
 
       - name: xcodebuild
         env:
@@ -60,6 +65,8 @@ jobs:
 
       - uses: actions/checkout@v4
         timeout-minutes: 4
+        with:
+          persist-credentials: false
 
       - name: xcodebuild
         env:
