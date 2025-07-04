@@ -26,6 +26,7 @@ class StartupSDKStartSpanTest: PayloadTest {
         testItems.append(evaluate("emb.type", expecting: "sys.startup", on: setupSpan.attributes))
         testItems.append(evaluate("isPrewarmed", expectedToExist: true, on: setupSpan.attributes))
         MetadataResourceTest.testMetadataInclussion(on: setupSpan.resource, testItems: &testItems)
+        testItems.append(contentsOf: OTelSemanticsValidation.validateAttributeNames(setupSpan.attributes))
 
         return .init(items: testItems)
     }

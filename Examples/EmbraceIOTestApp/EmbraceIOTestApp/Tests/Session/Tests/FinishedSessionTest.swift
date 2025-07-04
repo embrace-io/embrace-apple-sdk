@@ -59,6 +59,7 @@ class FinishedSessionTest: PayloadTest {
         testItems.append(evaluate("emb.heartbeat_time_unix_nano", expectedToExist: true, on: sessionSpan.attributes))
         testItems.append(evaluate("emb.cold_start", expectedToExist: true, on: sessionSpan.attributes))
         MetadataResourceTest.testMetadataInclussion(on: sessionSpan.resource, testItems: &testItems)
+        testItems.append(contentsOf: OTelSemanticsValidation.validateAttributeNames(sessionSpan.attributes))
 
         return .init(items: testItems)
     }
