@@ -2,10 +2,10 @@ name: UI Tests App
 
 on:
   workflow_dispatch: {}
-  # pull_request: {}
-  # push:
-    # branches:
-     # - main
+  pull_request: {}
+  push:
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -13,13 +13,14 @@ permissions:
 jobs:
   run-ui-tests-app:
     timeout-minutes: 60
-    runs-on: macos-14
+    runs-on: [macos-14]
     strategy:
       fail-fast: false
       matrix:
         xcode_version: ["15.4"]
     permissions:
       checks: write
+
     steps:
       - name: Select Xcode
         # See https://github.com/actions/runner-images/blob/main/images/macos/macos-15-Readme.md
@@ -69,7 +70,7 @@ jobs:
           name: output_xcresult
           path: .build/test/output.xcresult
 
-      - uses: kishikawakatsumi/xcresulttool@2b37f116695328d5e503ac8dadca0f1545a51da4 # v1.7.1
+      - uses: kishikawakatsumi/xcresulttool@2b37f116695328d5e503ac8dadca0f1545a51da4
         if: always()
         with:
           path: .build/test/output.xcresult
