@@ -17,5 +17,7 @@ public extension LogSemantics {
         public static let keyId = SemanticAttributes.logRecordUid.rawValue
         public static let keyProvider = "emb.provider"
         public static let keyPayload = "emb.payload"
+
+        public static let metrickitProvider = "metrickit"
     }
 }

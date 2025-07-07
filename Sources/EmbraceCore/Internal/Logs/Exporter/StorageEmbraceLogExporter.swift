@@ -37,8 +37,9 @@ class StorageEmbraceLogExporter: LogRecordExporter {
 
         for var log in logRecords where validation.execute(log: &log) {
 
-            // do not export crash logs
-            guard !log.isEmbType(LogType.crash) else {
+            // do not export crash logs (unless they come from metrickit)
+            if log.isEmbType(LogType.crash) &&
+               log.attributes[LogSemantics.Crash.keyProvider] != .string(LogSemantics.Crash.metrickitProvider) {
                 continue
             }
 

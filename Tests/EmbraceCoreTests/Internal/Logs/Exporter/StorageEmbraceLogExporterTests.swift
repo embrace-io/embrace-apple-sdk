@@ -119,6 +119,21 @@ class StorageEmbraceLogExporterTests: XCTestCase {
         thenBatchAdded(count: 0)
         thenResult(is: .success)
     }
+
+    func test_rawCrashLogs_fromMetrickKit_getsExported() {
+        let logData = randomLogData(
+            body: "example",
+            attributes: [
+                "emb.type": .string(LogType.crash.rawValue),
+                "emb.provider": .string("metrickit")
+            ]
+        )
+
+        givenStorageEmbraceLogExporter(initialState: .active)
+        whenInvokingExport(withLogs: [logData])
+        thenBatchAdded(count: 1)
+        thenResult(is: .success)
+    }
 }
 
 private extension StorageEmbraceLogExporterTests {

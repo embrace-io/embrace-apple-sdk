@@ -6,11 +6,10 @@ import Foundation
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCaptureService
 import EmbraceCommonInternal
+import EmbraceSemantics
 #endif
 
 class MetricKitHangCaptureService: CaptureService, MetricKitHangPayloadListener {
-
-    let providerIdentifier = "metrickit"
 
     let options: MetricKitHangCaptureService.Options
 
@@ -47,7 +46,7 @@ class MetricKitHangCaptureService: CaptureService, MetricKitHangPayloadListener 
             .addApplicationState(SessionState.unknown.rawValue)
             .addHangReportProperties(
                 id: UUID().withoutHyphen,
-                provider: providerIdentifier,
+                provider: LogSemantics.Hang.metrickitProvider,
                 payload: payloadString,
                 startTime: startTime,
                 endTime: endTime
