@@ -62,16 +62,15 @@ public class CoreDataWrapper {
                 logger.critical("Error initializing CoreData \"\(name)\": \(error.localizedDescription)")
             }
         }
-
-        context = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
-        context.persistentStoreCoordinator = container.persistentStoreCoordinator
+        
+        context = container.newBackgroundContext()
     }
 
     /// Synchronously performs the given block on the current context
     /// behind a background task assertion.
     /// And automatically save if requested.
     /// Note we do not cancel currently any tasks on assertion expiry,
-    /// not do we care if a task assertion is actually given to us.
+    /// Note don't we care if a task assertion is actually given to us.
     public func performOperation(
         _ name: String = #function, save _: Bool = false, _ block: (NSManagedObjectContext) -> Void
     ) {
