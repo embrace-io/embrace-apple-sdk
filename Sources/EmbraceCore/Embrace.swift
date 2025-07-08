@@ -422,6 +422,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
     @objc private func onConfigUpdated() {
         if let config = config {
             Embrace.logger.limits = config.internalLogLimits
+            Embrace.client?.logController.limits = config.logsLimits
 
             if !config.isSDKEnabled {
                 Embrace.logger.debug("SDK was disabled")
