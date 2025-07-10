@@ -64,10 +64,7 @@ extension EmbraceStorage {
     /// Adds or updates all the given required resources
     public func addRequiredResources(_ map: [String: String], processId: ProcessIdentifier = .current) {
         
-        coreData.performOperation(name: "UpsertRequiredResources") { context in
-            guard let context else {
-                return
-            }
+        coreData.performOperation(save: true) { context in
 
             guard let description = NSEntityDescription.entity(forEntityName: MetadataRecord.entityName, in: context) else {
                 logger.error("Error finding entity description for MetadataRecord!")
@@ -107,13 +104,6 @@ extension EmbraceStorage {
                     record?.lifespanId = processId.hex
                     record?.collectedAt = Date()
                 }
-            }
-
-            // save all
-            do {
-                try context.save()
-            } catch {
-                logger.error("Error when saving new required resources:\n\(error.localizedDescription)")
             }
         }
     }
@@ -179,19 +169,9 @@ extension EmbraceStorage {
 
         var result: EmbraceMetadata?
 
-        coreData.performOperation(name: "UpdateMetadata") { context in
-            guard let context else {
-                return
-            }
-
+        coreData.performOperation(save: true) { context in
             metadata.value = value
             result = metadata.toImmutable()
-
-            do {
-                try context.save()
-            } catch {
-                logger.error("Error updating metadata! key: \(key), lifespan \(lifespan.rawValue), id \(lifespanId)")
-            }
         }
 
         return result
@@ -303,19 +283,9 @@ extension EmbraceStorage {
 
         var result: Int = 1
 
-        coreData.performOperation(name: "IncrementCountForPermanentResource") { context in
-            guard let context else {
-                return
-            }
-
+        coreData.performOperation(save: true) { context in
             result = (Int(record.value) ?? 0) + 1
             record.value = String(result)
-
-            do {
-                try context.save()
-            } catch {
-                logger.error("Error updating metadata counter! key: \(key)")
-            }
         }
 
         return result
