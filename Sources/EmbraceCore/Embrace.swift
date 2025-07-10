@@ -62,7 +62,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
 
     /// Returns true if the SDK is started and was not disabled through remote configurations.
     @objc public var isSDKEnabled: Bool {
-        let remoteConfigEnabled = config?.isSDKEnabled ?? true
+        let remoteConfigEnabled = config.isSDKEnabled
         return state == .started && remoteConfigEnabled
     }
 
@@ -79,7 +79,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
 
     let metricKit: MetricKitHandler
 
-    let config: EmbraceConfig?
+    let config: EmbraceConfig
     let storage: EmbraceStorage
     let upload: EmbraceUpload?
     let captureServices: CaptureServices
@@ -88,6 +88,8 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
 
     let sessionController: SessionController
     let sessionLifecycle: SessionLifecycle
+
+    let spanEventsLimiter: SpanEventsLimiter
 
     let processingQueue = DispatchQueue(
         label: "com.embrace.processing",
@@ -180,7 +182,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         // initialize capture services
         self.captureServices = try CaptureServices(
             options: options,
-            config: config?.configurable,
+            config: config.configurable,
             storage: storage,
             upload: upload
         )
@@ -188,6 +190,12 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         // initialize session controller
         self.sessionController = SessionController(storage: storage, upload: upload, config: config)
         self.sessionLifecycle = Embrace.createSessionLifecycle(controller: sessionController)
+
+        // initialize span events limiter
+        self.spanEventsLimiter = SpanEventsLimiter(
+            spanEventsLimits: config.spanEventsLimits,
+            configNotificationCenter: Embrace.notificationCenter
+        )
 
         // initialize metadata handler
         self.metadata = MetadataHandler(storage: storage, sessionController: sessionController)
@@ -292,7 +300,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
                 return
             }
 
-            guard config == nil || config?.isSDKEnabled == true else {
+            guard config.isSDKEnabled else {
                 Embrace.logger.warning("Embrace can't start when disabled!")
                 return
             }
@@ -420,14 +428,12 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
 
     /// Called every time the remote config changes
     @objc private func onConfigUpdated() {
-        if let config = config {
-            Embrace.logger.limits = config.internalLogLimits
-            Embrace.client?.logController.limits = config.logsLimits
+        Embrace.logger.limits = config.internalLogLimits
+        Embrace.client?.logController.limits = config.logsLimits
 
-            if !config.isSDKEnabled {
-                Embrace.logger.debug("SDK was disabled")
-                captureServices.stop()
-            }
+        if !config.isSDKEnabled {
+            Embrace.logger.debug("SDK was disabled")
+            captureServices.stop()
         }
     }
 }
