@@ -181,6 +181,25 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertEqual(sessions.first!.idRaw, session!.idRaw)
         XCTAssertEqual(sessions.first!.state, "foreground")
         XCTAssertEqual(sessions.first!.endTime!.timeIntervalSince1970, endTime.timeIntervalSince1970, accuracy: 0.001)
+        XCTAssertEqual(sessions.first!.cleanExit, true)
+    }
+
+    func test_endSession_updatesLocalSessionBeforeUploading() throws {
+        // given a started session
+        let uploader = MockSessionUploader()
+        let controller = SessionController(storage: storage, upload: upload, uploader: uploader, config: nil)
+        controller.sdkStateProvider = sdkStateProvider
+        controller.startSession(state: .foreground)
+
+        // when ending the session
+        controller.endSession()
+        wait(delay: .longTimeout)
+
+        // then a session was sent with the corrent values
+        XCTAssert(uploader.didCallUploadSession)
+        XCTAssertNotNil(uploader.uploadedSession)
+        XCTAssertNotNil(uploader.uploadedSession!.endTime)
+        XCTAssert(uploader.uploadedSession!.cleanExit)
     }
 
     func test_endSession_saves_endsSessionSpan() throws {

@@ -41,6 +41,7 @@ class SessionController: SessionControllable {
     private weak var logBatcher: LogBatcher?
     weak var storage: EmbraceStorage?
     weak var upload: EmbraceUpload?
+    private let uploader: SessionUploader
     weak var config: EmbraceConfig?
     weak var sdkStateProvider: EmbraceSDKStateProvider?
 
@@ -55,6 +56,7 @@ class SessionController: SessionControllable {
     init(
         storage: EmbraceStorage,
         upload: EmbraceUpload?,
+        uploader: SessionUploader = DefaultSessionUploader(),
         config: EmbraceConfig?,
         heartbeatInterval: TimeInterval = SessionHeartbeat.defaultInterval,
         queue: DispatchableQueue = .with(label: "com.embrace.session_controller_upload"),
@@ -62,6 +64,7 @@ class SessionController: SessionControllable {
     ) {
         self.storage = storage
         self.upload = upload
+        self.uploader = uploader
         self.config = config
 
         self.heartbeat = SessionHeartbeat(queue: heartbeatQueue, interval: heartbeatInterval)
@@ -203,7 +206,7 @@ class SessionController: SessionControllable {
             SessionSpanUtils.setCleanExit(span: currentSessionSpan, cleanExit: true)
 
             if let sessionId = session.id {
-                storage?.updateSession(sessionId: sessionId, endTime: now, cleanExit: true)
+                currentSession = storage?.updateSession(sessionId: sessionId, endTime: now, cleanExit: true)
             }
 
             // post internal notification
@@ -270,8 +273,8 @@ class SessionController: SessionControllable {
             return
         }
 
-        queue.async {
-            UnsentDataHandler.sendSession(session, storage: storage, upload: upload)
+        queue.async { [weak self] in
+            self?.uploader.uploadSession(session, storage: storage, upload: upload)
         }
     }
 

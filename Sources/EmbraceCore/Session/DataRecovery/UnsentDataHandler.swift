@@ -290,7 +290,7 @@ class UnsentDataHandler {
         // always remove the logs from previous session
         defer { try? FileManager.default.removeItem(at: fileUrl) }
 
-        guard let logs = try? String(contentsOf: fileUrl) else {
+        guard let logs = try? String(contentsOf: fileUrl), !logs.isEmpty else {
             return
         }
 
