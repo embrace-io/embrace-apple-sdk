@@ -21,6 +21,10 @@ public class EditableConfig: EmbraceConfigurable {
 
     public var isMetricKitHangCaptureEnabled: Bool = false
 
+    public var isSwiftUiViewInstrumentationEnabled: Bool = false
+
+    public var logsLimits = LogsLimits()
+
     public var internalLogLimits = InternalLogLimits()
 
     public var networkPayloadCaptureRules = [NetworkPayloadCaptureRule]()
@@ -38,6 +42,7 @@ public class EditableConfig: EmbraceConfigurable {
         isMetricKitCrashCaptureEnabled: Bool = false,
         metricKitCrashSignals: [String] = [],
         isMetricKitHangCaptureEnabled: Bool = false,
+        isSwiftUiViewInstrumentationEnabled: Bool = false,
         internalLogLimits: InternalLogLimits = InternalLogLimits(),
         networkPayloadCaptureRules: [NetworkPayloadCaptureRule] = []
     ) {
@@ -49,6 +54,7 @@ public class EditableConfig: EmbraceConfigurable {
         self.isMetricKitCrashCaptureEnabled = isMetricKitCrashCaptureEnabled
         self.metricKitCrashSignals = metricKitCrashSignals
         self.isMetricKitHangCaptureEnabled = isMetricKitHangCaptureEnabled
+        self.isSwiftUiViewInstrumentationEnabled = isSwiftUiViewInstrumentationEnabled
         self.internalLogLimits = internalLogLimits
         self.networkPayloadCaptureRules = networkPayloadCaptureRules
     }

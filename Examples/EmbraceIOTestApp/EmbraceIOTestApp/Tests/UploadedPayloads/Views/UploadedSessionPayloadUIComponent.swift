@@ -73,18 +73,10 @@ struct UploadedSessionPayloadUIComponent: View {
                     }
                     .padding(.bottom, 140)
             }
-            .onChange(of: scenePhase) {
-                print("REFRESH!!")
-                viewModel.refresh()
-            }
         }
         .onChange(of: scenePhase) {
-            print("REFRESH!!")
             viewModel.refresh()
         }
-//        .onAppear(){
-//            viewModel.refresh()
-//        }
     }
 }
 

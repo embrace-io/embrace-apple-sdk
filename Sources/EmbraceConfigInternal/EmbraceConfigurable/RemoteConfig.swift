@@ -100,7 +100,19 @@ extension RemoteConfig: EmbraceConfigurable {
 
     public var isMetricKitHangCaptureEnabled: Bool { payload.metricKitHangCaptureEnabled }
 
+    public var isSwiftUiViewInstrumentationEnabled: Bool {
+        payload.swiftUiViewInstrumentationEnabled
+    }
+
     public var networkPayloadCaptureRules: [NetworkPayloadCaptureRule] { payload.networkPayloadCaptureRules }
+
+    public var logsLimits: LogsLimits {
+        LogsLimits(
+            info: UInt(max(payload.logsInfoLimit, 0)),
+            warning: UInt(max(payload.logsWarningLimit, 0)),
+            error: UInt(max(payload.logsErrorLimit, 0))
+        )
+    }
 
     public var internalLogLimits: InternalLogLimits {
         InternalLogLimits(

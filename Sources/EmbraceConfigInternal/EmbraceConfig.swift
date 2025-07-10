@@ -123,6 +123,14 @@ extension EmbraceConfig /* EmbraceConfigurable delegation */ {
         configurable.isMetricKitHangCaptureEnabled
     }
 
+    public var isSwiftUiViewInstrumentationEnabled: Bool {
+        return configurable.isSwiftUiViewInstrumentationEnabled
+    }
+
+    public var logsLimits: LogsLimits {
+        configurable.logsLimits
+    }
+
     public var internalLogLimits: InternalLogLimits {
          configurable.internalLogLimits
     }

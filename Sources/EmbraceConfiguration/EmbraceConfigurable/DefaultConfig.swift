@@ -21,6 +21,10 @@ public class DefaultConfig: EmbraceConfigurable {
 
     public var isMetricKitHangCaptureEnabled: Bool = false
 
+    public let isSwiftUiViewInstrumentationEnabled: Bool = false
+
+    public let logsLimits = LogsLimits()
+
     public let internalLogLimits = InternalLogLimits()
 
     public let networkPayloadCaptureRules = [NetworkPayloadCaptureRule]()

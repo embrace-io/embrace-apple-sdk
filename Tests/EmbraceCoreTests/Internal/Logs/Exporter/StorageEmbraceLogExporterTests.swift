@@ -7,6 +7,7 @@ import XCTest
 import EmbraceStorageInternal
 import EmbraceOTelInternal
 import EmbraceCommonInternal
+import EmbraceConfiguration
 import OpenTelemetryApi
 import OpenTelemetrySdk
 
@@ -123,7 +124,7 @@ class StorageEmbraceLogExporterTests: XCTestCase {
     func test_rawCrashLogs_fromMetrickKit_getsExported() {
         let logData = randomLogData(
             body: "example",
-            attributes: [
+            attributes: [ 
                 "emb.type": .string(LogType.crash.rawValue),
                 "emb.provider": .string("metrickit")
             ]
@@ -134,12 +135,201 @@ class StorageEmbraceLogExporterTests: XCTestCase {
         thenBatchAdded(count: 1)
         thenResult(is: .success)
     }
+
+
+    // MARK: Limits
+    func test_limits_ignored() {
+        let internalLog = randomLogData(
+            body: "example",
+            attributes: [ "emb.type": .string(LogType.internal.rawValue) ]
+        )
+
+        let metricKitCrash = randomLogData(
+            body: "example",
+            attributes: [
+                "emb.type": .string(LogType.crash.rawValue),
+                "emb.provider": .string("metrickit")
+            ]
+        )
+
+        let metricKitHang = randomLogData(
+            body: "example",
+            attributes: [
+                "emb.type": .string(LogType.hang.rawValue),
+                "emb.provider": .string("metrickit")
+            ]
+        )
+
+        givenStorageEmbraceLogExporter(initialState: .active)
+        givenLogsLimits(LogsLimits(info: 0, warning: 0, error: 0))
+        whenInvokingExport(withLogs: [internalLog, metricKitCrash, metricKitHang])
+        thenBatchAdded(count: 3)
+        thenResult(is: .success)
+    }
+
+    func test_limits_empty() {
+        let info = randomLogData(
+            body: "example",
+            severity: Severity.info,
+            attributes: [ "emb.type": .string(LogType.breadcrumb.rawValue) ]
+        )
+
+        let warning = randomLogData(
+            body: "example",
+            severity: Severity.warn,
+            attributes: [ "emb.type": .string(LogType.breadcrumb.rawValue) ]
+        )
+
+        let error = randomLogData(
+            body: "example",
+            severity: Severity.error,
+            attributes: [ "emb.type": .string(LogType.breadcrumb.rawValue) ]
+        )
+
+        givenStorageEmbraceLogExporter(initialState: .active)
+        givenLogsLimits(LogsLimits(info: 0, warning: 0, error: 0))
+        whenInvokingExport(withLogs: [info, warning, error])
+        thenBatchAdded(count: 0)
+        thenResult(is: .success)
+    }
+
+    func test_limits_info() {
+        let info = randomLogData(
+            body: "example",
+            severity: Severity.info,
+            attributes: [ "emb.type": .string(LogType.breadcrumb.rawValue) ]
+        )
+
+        let warning = randomLogData(
+            body: "example",
+            severity: Severity.warn,
+            attributes: [ "emb.type": .string(LogType.breadcrumb.rawValue) ]
+        )
+
+        let error = randomLogData(
+            body: "example",
+            severity: Severity.error,
+            attributes: [ "emb.type": .string(LogType.breadcrumb.rawValue) ]
+        )
+
+        givenStorageEmbraceLogExporter(initialState: .active)
+        givenLogsLimits(LogsLimits(info: 1, warning: 0, error: 0))
+        whenInvokingExport(withLogs: [info, warning, error])
+        thenBatchAdded(count: 1)
+        thenResult(is: .success)
+    }
+
+    func test_limits_warning() {
+        let info = randomLogData(
+            body: "example",
+            severity: Severity.info,
+            attributes: [ "emb.type": .string(LogType.breadcrumb.rawValue) ]
+        )
+
+        let warning = randomLogData(
+            body: "example",
+            severity: Severity.warn,
+            attributes: [ "emb.type": .string(LogType.breadcrumb.rawValue) ]
+        )
+
+        let error = randomLogData(
+            body: "example",
+            severity: Severity.error,
+            attributes: [ "emb.type": .string(LogType.breadcrumb.rawValue) ]
+        )
+
+        givenStorageEmbraceLogExporter(initialState: .active)
+        givenLogsLimits(LogsLimits(info: 0, warning: 1, error: 0))
+        whenInvokingExport(withLogs: [info, warning, error])
+        thenBatchAdded(count: 1)
+        thenResult(is: .success)
+    }
+
+    func test_limits_error() {
+        let info = randomLogData(
+            body: "example",
+            severity: Severity.info,
+            attributes: [ "emb.type": .string(LogType.breadcrumb.rawValue) ]
+        )
+
+        let warning = randomLogData(
+            body: "example",
+            severity: Severity.warn,
+            attributes: [ "emb.type": .string(LogType.breadcrumb.rawValue) ]
+        )
+
+        let error = randomLogData(
+            body: "example",
+            severity: Severity.error,
+            attributes: [ "emb.type": .string(LogType.breadcrumb.rawValue) ]
+        )
+
+        givenStorageEmbraceLogExporter(initialState: .active)
+        givenLogsLimits(LogsLimits(info: 0, warning: 0, error: 1))
+        whenInvokingExport(withLogs: [info, warning, error])
+        thenBatchAdded(count: 1)
+        thenResult(is: .success)
+    }
+
+    func test_limit_reached() {
+        let info1 = randomLogData(
+            body: "example1",
+            severity: Severity.info,
+            attributes: [ "emb.type": .string(LogType.breadcrumb.rawValue) ]
+        )
+
+        let info2 = randomLogData(
+            body: "example2",
+            severity: Severity.info,
+            attributes: [ "emb.type": .string(LogType.breadcrumb.rawValue) ]
+        )
+
+        givenStorageEmbraceLogExporter(initialState: .active)
+        givenLogsLimits(LogsLimits(info: 1, warning: 0, error: 0))
+        whenInvokingExport(withLogs: [info1])
+        thenBatchAdded(count: 1)
+        thenResult(is: .success)
+
+        whenInvokingExport(withLogs: [info2])
+        thenBatchAdded(count: 1) // count still 1
+        thenResult(is: .success)
+    }
+
+    func test_limit_reset() {
+        let info1 = randomLogData(
+            body: "example1",
+            severity: Severity.info,
+            attributes: [ "emb.type": .string(LogType.breadcrumb.rawValue) ]
+        )
+
+        let info2 = randomLogData(
+            body: "example2",
+            severity: Severity.info,
+            attributes: [ "emb.type": .string(LogType.breadcrumb.rawValue) ]
+        )
+
+        givenStorageEmbraceLogExporter(initialState: .active)
+        givenLogsLimits(LogsLimits(info: 1, warning: 0, error: 0))
+        whenInvokingExport(withLogs: [info1])
+        thenBatchAdded(count: 1)
+        thenResult(is: .success)
+
+        whenANewSessionStarts()
+
+        whenInvokingExport(withLogs: [info2])
+        thenBatchAdded(count: 2)
+        thenResult(is: .success)
+    }
 }
 
 private extension StorageEmbraceLogExporterTests {
     func givenStorageEmbraceLogExporter(initialState: StorageEmbraceLogExporter.State = .active) {
         batcher = SpyLogBatcher()
         sut = .init(logBatcher: batcher, state: initialState)
+    }
+
+    func givenLogsLimits(_ limits: LogsLimits) {
+        batcher.limits = limits
     }
 
     func whenInvokingExport(withLogs logsData: [ReadableLogRecord]) {
@@ -152,6 +342,10 @@ private extension StorageEmbraceLogExporterTests {
 
     func whenInvokingForceFlush() {
         result = sut.forceFlush()
+    }
+
+    func whenANewSessionStarts() {
+        NotificationCenter.default.post(name: .embraceSessionDidStart, object: nil)
     }
 
     func thenState(is newState: StorageEmbraceLogExporter.State) {
@@ -171,11 +365,12 @@ private extension StorageEmbraceLogExporterTests {
         XCTAssertEqual(record.attributes, attributes)
     }
 
-    func randomLogData(body: String? = nil, attributes: [String: AttributeValue] = [:]) -> ReadableLogRecord {
+    func randomLogData(body: String? = nil, severity: Severity? = nil, attributes: [String: AttributeValue] = [:]) -> ReadableLogRecord {
         ReadableLogRecord(
             resource: .init(),
             instrumentationScopeInfo: .init(),
             timestamp: Date(),
+            severity: severity,
             body: .string(body ?? ""),
             attributes: attributes )
     }
@@ -212,4 +407,6 @@ class SpyLogBatcher: LogBatcher {
         didCallRenewBatch = true
         renewBatchInvocationCount += 1
     }
+
+    var limits = LogsLimits()
 }

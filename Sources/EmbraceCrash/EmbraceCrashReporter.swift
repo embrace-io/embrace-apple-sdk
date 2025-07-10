@@ -5,6 +5,7 @@
 import Foundation
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceCommonInternal
+import EmbraceSemantics
 #endif
 
 #if canImport(KSCrashRecording)
@@ -17,7 +18,6 @@ import EmbraceCommonInternal
 /// Internally uses KSCrash to capture data from crashes.
 @objc(EMBEmbraceCrashReporter)
 public final class EmbraceCrashReporter: NSObject, CrashReporter {
-    private static let providerIdentifier = "kscrash"
 
     struct KSCrashKey {
         static let user = "user"
@@ -208,7 +208,7 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
                 // add report
                 let crashReport = EmbraceCrashReport(
                     payload: payload,
-                    provider: EmbraceCrashReporter.providerIdentifier,
+                    provider: LogSemantics.Crash.ksCrashProvider,
                     internalId: Int(id),
                     sessionId: sessionId?.toString,
                     timestamp: timestamp

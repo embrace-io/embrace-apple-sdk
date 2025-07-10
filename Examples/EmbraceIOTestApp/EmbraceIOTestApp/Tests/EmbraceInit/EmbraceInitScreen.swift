@@ -7,6 +7,7 @@
 import SwiftUI
 import EmbraceIO
 import EmbraceCrash
+import EmbraceObjCUtilsInternal
 import OpenTelemetrySdk
 
 struct EmbraceInitScreen: View {
@@ -22,6 +23,13 @@ struct EmbraceInitScreen: View {
                         .foregroundStyle(.embraceSteel)
                 }
                 .tint(.embracePurple)
+                Section {
+                    EmbraceInitScreenForceStateView(forceInitState: $viewModel.forceInitState)
+                } header: {
+                    Text("Force Start State")
+                        .textCase(nil)
+                        .font(.embraceFont(size: 15))
+                }
                 ForEach($viewModel.formFields, id:\.name) { $section in
                     Section {
                         ForEach($section.items, id:\.name) { $item in
@@ -62,6 +70,24 @@ struct EmbraceInitScreen: View {
 
 private extension EmbraceInitScreen {
     func startEmbrace() {
+        switch viewModel.forceInitState {
+        case .off:
+            break
+        case .cold:
+            UserDefaults.standard.setValue(nil, forKey: "emb.buildUUID")
+            UserDefaults.standard.setValue(0, forKey: "emb.bootTime")
+        case .warm:
+            let oldBuildUUID = UserDefaults.standard.string(forKey: "emb.buildUUID")
+            let oldBootTime = UserDefaults.standard.double(forKey: "emb.bootTime")
+            let newBuildUUID = EMBDevice.buildUUID?.uuidString
+            let newBootTime = EMBDevice.bootTime.doubleValue
+            if (oldBuildUUID == nil || oldBootTime == 0) ||
+                (oldBuildUUID != newBuildUUID && oldBootTime != newBootTime) {
+                UserDefaults.standard.setValue(newBuildUUID, forKey: "emb.buildUUID")
+                UserDefaults.standard.setValue(newBootTime, forKey: "emb.bootTime")
+            }
+        }
+
         self.dataCollector.networkSpy?.simulateEmbraceAPI = viewModel.simulateEmbraceAPI
         do {
             viewModel.showProgressview = true
@@ -82,6 +108,9 @@ private extension EmbraceInitScreen {
                               export: .init(spanExporter: dataCollector.spanExporter, logExporter: dataCollector.logExporter))
                 ).start()
             viewModel.showProgressview = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                NotificationCenter.default.post(name: NSNotification.Name("UIApplicationDidFinishLaunchingNotification"), object: nil)
+            }
         } catch let e {
             viewModel.showProgressview = false
             print("Error initializing Embrace: \(e)")

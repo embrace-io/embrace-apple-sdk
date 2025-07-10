@@ -18,6 +18,7 @@ public extension LogSemantics {
         public static let keyProvider = "emb.provider"
         public static let keyPayload = "emb.payload"
 
+        public static let ksCrashProvider = "kscrash"
         public static let metrickitProvider = "metrickit"
     }
 }

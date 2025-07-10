@@ -10,6 +10,7 @@ import EmbraceCommonInternal
 import EmbraceSemantics
 import EmbraceConfigInternal
 import EmbraceOTelInternal
+import EmbraceConfiguration
 #endif
 
 protocol LogControllable: LogBatcherDelegate {
@@ -39,6 +40,16 @@ class LogController: LogControllable {
     /// This will probably be injected eventually.
     /// For consistency, I created a constant
     static let maxLogsPerBatch: Int = 20
+
+    struct MutableState {
+        var limits: LogsLimits = LogsLimits()
+    }
+    private let state = EmbraceMutex(MutableState())
+
+    var limits: LogsLimits {
+        get { state.withLock { $0.limits } }
+        set { state.withLock { $0.limits = newValue } }
+    }
 
     static let attachmentLimit: Int = 5
     static let attachmentSizeLimit: Int = 1048576 // 1 MiB

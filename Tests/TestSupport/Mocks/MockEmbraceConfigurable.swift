@@ -18,6 +18,8 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         isMetricKitCrashCaptureEnabled: Bool = false,
         metricKitCrashSignals: [String] = [],
         isMetricKitHangCaptureEnabled: Bool = false,
+        isSwiftUiViewInstrumentationEnabled: Bool = false,
+        logsLimits: LogsLimits = LogsLimits(),
         internalLogLimits: InternalLogLimits = InternalLogLimits(),
         networkPayloadCaptureRules: [NetworkPayloadCaptureRule] = [],
         updateCompletionParamDidUpdate: Bool = false,
@@ -31,6 +33,8 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         self._isMetricKitCrashCaptureEnabled = isMetricKitCrashCaptureEnabled
         self._metricKitCrashSignals = metricKitCrashSignals
         self._isMetricKitHangCaptureEnabled = isMetricKitHangCaptureEnabled
+        self._isSwiftUiViewInstrumentationEnabled = isSwiftUiViewInstrumentationEnabled
+        self._logsLimits = logsLimits
         self._internalLogLimits = internalLogLimits
         self._networkPayloadCaptureRules = networkPayloadCaptureRules
         self.updateCompletionParamDidUpdate = updateCompletionParamDidUpdate
@@ -133,6 +137,31 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         }
         set {
             _isMetricKitHangCaptureEnabled = newValue
+        }
+    }
+
+    
+    private var _isSwiftUiViewInstrumentationEnabled: Bool
+    public let isSwiftUiViewInstrumentationEnabledExpectation = XCTestExpectation(description: "isSwiftUiViewInstrumentationEnabled called")
+    public var isSwiftUiViewInstrumentationEnabled: Bool {
+        get {
+            isSwiftUiViewInstrumentationEnabledExpectation.fulfill()
+            return _isSwiftUiViewInstrumentationEnabled
+        }
+        set {
+            _isSwiftUiViewInstrumentationEnabled = newValue
+        }
+    }
+
+    private var _logsLimits: LogsLimits
+    public let logsLimitsExpectation = XCTestExpectation(description: "logsLimits called")
+    public var logsLimits: LogsLimits {
+        get {
+            logsLimitsExpectation.fulfill()
+            return _logsLimits
+        }
+        set {
+            _logsLimits = newValue
         }
     }
 

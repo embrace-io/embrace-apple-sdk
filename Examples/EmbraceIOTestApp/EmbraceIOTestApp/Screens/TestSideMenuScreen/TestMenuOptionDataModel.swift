@@ -8,7 +8,7 @@ import SwiftUI
 
 enum TestMenuOptionDataModel: Int, CaseIterable {
     case embraceInit = 1000
-    case metadata
+    case startup
     case viewController
     case networking
     case logging
@@ -20,8 +20,8 @@ enum TestMenuOptionDataModel: Int, CaseIterable {
         switch self {
         case .embraceInit:
             "EmbraceIO Initialization"
-        case .metadata:
-            "Metadata Tests"
+        case .startup:
+            "Startup Tests"
         case .viewController:
             "ViewController Tests"
         case .networking:
@@ -41,7 +41,7 @@ enum TestMenuOptionDataModel: Int, CaseIterable {
         switch self {
         case .embraceInit:
             "embraceInit"
-        case .metadata:
+        case .startup:
             "metadata"
         case .viewController:
             "viewController"
@@ -62,8 +62,8 @@ enum TestMenuOptionDataModel: Int, CaseIterable {
         switch self {
         case .embraceInit:
             EmbraceInitScreen()
-        case .metadata:
-            TestScreen<MetadataTestsDataModel>()
+        case .startup:
+            TestScreen<StartupTestsDataModel>()
         case .viewController:
             TestScreen<ViewControllerTestsDataModel>()
         case .networking:
