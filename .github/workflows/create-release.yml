@@ -67,12 +67,12 @@ jobs:
           # - x.y.z-rc1
           if [ "$IS_PRODUCTION_READY" == "true" ]; then
             if ! [[ "$RC_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-              echo "Error: RC_VERSION of '$RC_VERSION' is not in the correct production-ready format."
+              echo "::error::RC_VERSION of '$RC_VERSION' is not in the correct production-ready format."
               exit 1
             fi
           else
             if ! [[ "$RC_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)*)?$ ]]; then
-              echo "Error: RC_VERSION of '$RC_VERSION' is not compliant with pre-release semver."
+              echo "::error::RC_VERSION of '$RC_VERSION' is not compliant with pre-release semver."
               exit 1
             fi
 
@@ -86,7 +86,7 @@ jobs:
           fi
 
           echo "rc_version=$RC_VERSION" >> $GITHUB_OUTPUT
-          echo "Using RC_VERSION of $RC_VERSION"
+          echo "::notice::Using RC_VERSION of $RC_VERSION"
 
   build_release_candidate:
     name: Bump Version and Build Release
@@ -118,7 +118,7 @@ jobs:
 
       - name: Bump Version
         run: |
-          echo "Bumping version to '$RC_VERSION'"
+          echo "::notice::Bumping version to '$RC_VERSION'"
           bin/version_bump $RC_VERSION
 
           # DEV: show diff
@@ -169,17 +169,21 @@ jobs:
           RC_VERSION: ${{ needs.extractor.outputs.rc_version}}
           IS_PRODUCTION_READY: ${{ needs.extractor.outputs.is_production_ready }}
         run: |
-          echo "Creating Release $RC_VERSION in Github"
-          PRERELEASE_FLAG=""
-          if [ "$IS_PRODUCTION_READY" == "false" ]; then
-            PRERELEASE_FLAG="--prerelease"
+          echo "::notice::Creating Release $RC_VERSION in Github"
+          if gh release view $RC_VERSION --repo embrace-io/embrace-apple-sdk > /dev/null 2>&1; then
+            echo "::warning::Version '$RC_VERSION' already exists in GitHub. Skipping and continuing"
+          else 
+            PRERELEASE_FLAG=""
+            if [ "$IS_PRODUCTION_READY" == "false" ]; then
+              PRERELEASE_FLAG="--prerelease"
+            fi
+            gh release create $RC_VERSION --title "$RC_VERSION" $PRERELEASE_FLAG --repo embrace-io/embrace-apple-sdk  --verify-tag
           fi
-          gh release create $RC_VERSION --title "$RC_VERSION" $PRERELEASE_FLAG --repo embrace-io/embrace-apple-sdk  --verify-tag
 
   push_podspec:
     name: Push Podspec to Cocoapods
     runs-on: macos-14
-    timeout-minutes: 10
+    timeout-minutes: 30
     needs:
       - extractor
       - create_github_release
@@ -203,8 +207,11 @@ jobs:
 
       - name: Push EmbraceIO Podspec
         run: |
-          pod trunk push embrace-apple-sdk/EmbraceIO.podspec --allow-warnings
-
+          if pod trunk info EmbraceIO 2>&1 | grep -F " - $RC_VERSION (" > /dev/null; then
+            echo "::warning::Version '$RC_VERSION' already exists in CocoaPods. Skipping and continuing"
+          else
+            pod trunk push embrace-apple-sdk/EmbraceIO.podspec --allow-warnings
+          fi
   create_internal_release:
     runs-on: ubuntu-latest
     timeout-minutes: 5
