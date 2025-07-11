@@ -111,6 +111,12 @@ private extension EmbraceInitScreen {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 NotificationCenter.default.post(name: NSNotification.Name("UIApplicationDidFinishLaunchingNotification"), object: nil)
             }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                Embrace.client?.buildSpan(name: "app-initialization-sdTextNowSwift.AppHealthInitializer: 0x6000000094a0").startSpan().end(time: Date(timeIntervalSinceNow: 1000))
+                Embrace.client?.buildSpan(name: "Test Custom Span").startSpan().end(time: Date(timeIntervalSinceNow: 1000))
+                Embrace.client?.buildSpan(name: "Test Custom Span With Brackets <ASDASD>").startSpan().end(time: Date(timeIntervalSinceNow: 1000))
+                Embrace.client?.buildSpan(name: "Test Custom Span With Brackets <ASDASD:0x123123>app-initialization-TextNowSwift.AppHealthInitializer: 0x6000000094a0").startSpan().end(time: Date(timeIntervalSinceNow: 1000))
+            }
         } catch let e {
             viewModel.showProgressview = false
             print("Error initializing Embrace: \(e)")

@@ -18,7 +18,7 @@ struct MockData {
                         "views": 100,
                         "web_views": 100
                       },
-                      "ui_load_instrumentation_enabled": true,
+                      "ui_load_instrumentation_enabled_v2": true,
                       "signal_strength_enabled": false,
                       "screenshots_enabled": false,
                       "disable_session_control": false,
@@ -27,6 +27,7 @@ struct MockData {
                       },
                       "urlconnection_request_enabled": true,
                       "threshold": 100,
+                      "swift_ui_view_instrumentation_enabled": true,
                       "offset": 0,
                       "session_control": {
                         "enable": true,

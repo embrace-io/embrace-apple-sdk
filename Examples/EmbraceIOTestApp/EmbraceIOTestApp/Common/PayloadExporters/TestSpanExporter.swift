@@ -38,6 +38,7 @@ import EmbraceCore
 
         spans.forEach {
             cachedExportedSpans[$0.name, default: []].append($0)
+            print("Captured Span: \($0.name)")
         }
 
         if !embraceStarted && spans.contains(where: { $0.name == "emb-sdk-start-process" }) {
