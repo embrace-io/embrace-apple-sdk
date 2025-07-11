@@ -12,7 +12,7 @@ import EmbraceSemantics
 #endif
 
 /// Note: Currently we only have 1 type of custom SpanEvent (breadcrumbs)
-/// However this class was built in a way that should be easy to add limits for any type of event in the feature
+/// However this class was built in a way that should be easy to add limits for any type of event in the future
 class SpanEventsLimiter {
     struct MutableState {
         var counter: [String: UInt] = [:]
