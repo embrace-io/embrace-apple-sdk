@@ -95,6 +95,7 @@ extension MetadataRecord: EmbraceStorageRecord {
         let collectedAtAttribute = NSAttributeDescription()
         collectedAtAttribute.name = "collectedAt"
         collectedAtAttribute.attributeType = .dateAttributeType
+        collectedAtAttribute.defaultValue = Date()
 
         entity.properties = [
             keyAttribute,

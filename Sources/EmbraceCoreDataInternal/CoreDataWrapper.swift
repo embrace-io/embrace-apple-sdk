@@ -138,7 +138,9 @@ public class CoreDataWrapper {
             }
 
             do {
-                try context.save()
+                if context.hasChanges {
+                    try context.save()
+                }
             } catch {
                 let name = context.name ?? "???"
                 self.logger.critical("Error saving CoreData \"\(name)\": \(error.localizedDescription)")

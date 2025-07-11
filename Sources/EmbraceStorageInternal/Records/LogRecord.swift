@@ -111,6 +111,7 @@ extension LogRecord: EmbraceStorageRecord {
         let timestampAttribute = NSAttributeDescription()
         timestampAttribute.name = "timestamp"
         timestampAttribute.attributeType = .dateAttributeType
+        timestampAttribute.defaultValue = Date()
 
         // child
         let keyAttribute = NSAttributeDescription()

@@ -118,13 +118,12 @@ extension EmbraceStorage {
         }
     }
 
-    /// Returns the `MetadataRecord` for the given values.
-    func fetchMetadataRecord(
+    func fetchMetadataRequest(
         key: String,
         type: MetadataRecordType,
         lifespan: MetadataRecordLifespan,
         lifespanId: String = ""
-    ) -> MetadataRecord? {
+    ) -> NSFetchRequest<MetadataRecord> {
 
         let request = MetadataRecord.createFetchRequest()
         request.fetchLimit = 1
@@ -136,7 +135,17 @@ extension EmbraceStorage {
             lifespanId
         )
 
-        return coreData.fetch(withRequest: request).first
+        return request
+    }
+
+    func fetchMetadata(request: NSFetchRequest<MetadataRecord>, context: NSManagedObjectContext) -> MetadataRecord? {
+        do {
+            return try context.fetch(request).first
+        } catch {
+            logger.error("Error fetching existing metadata!:\n\(error.localizedDescription)")
+        }
+
+        return nil
     }
 
     /// Returns an immutable copy of the `MetadataRecord` for the given values.
@@ -146,14 +155,23 @@ extension EmbraceStorage {
         lifespan: MetadataRecordLifespan,
         lifespanId: String = ""
     ) -> EmbraceMetadata? {
-        guard let record = fetchMetadataRecord(key: key, type: type, lifespan: lifespan, lifespanId: lifespanId) else {
-            return nil
-        }
 
         var result: EmbraceMetadata?
-        coreData.context.performAndWait {
-            result = record.toImmutable()
+
+        coreData.performOperation(name: "FetchMetadata") { context in
+            guard let context else {
+                return
+            }
+
+            // fetch existing metadata
+            let request = fetchMetadataRequest(key: key, type: type, lifespan: lifespan, lifespanId: lifespanId)
+            guard let metadata = fetchMetadata(request: request, context: context) else {
+                return
+            }
+
+            result = metadata.toImmutable()
         }
+
         return result
     }
 
@@ -168,15 +186,6 @@ extension EmbraceStorage {
         lifespanId: String
     ) -> EmbraceMetadata? {
 
-        guard let metadata = fetchMetadataRecord(
-            key: key,
-            type: type,
-            lifespan: lifespan,
-            lifespanId: lifespanId
-        ) else {
-            return nil
-        }
-
         var result: EmbraceMetadata?
 
         coreData.performOperation(name: "UpdateMetadata") { context in
@@ -184,14 +193,21 @@ extension EmbraceStorage {
                 return
             }
 
+            // fetch existing metadata
+            let request = fetchMetadataRequest(key: key, type: type, lifespan: lifespan, lifespanId: lifespanId)
+            guard let metadata = fetchMetadata(request: request, context: context) else {
+                return
+            }
+
             metadata.value = value
-            result = metadata.toImmutable()
 
             do {
                 try context.save()
             } catch {
                 logger.error("Error updating metadata! key: \(key), lifespan \(lifespan.rawValue), id \(lifespanId)")
             }
+
+            result = metadata.toImmutable()
         }
 
         return result
@@ -230,16 +246,8 @@ extension EmbraceStorage {
         lifespan: MetadataRecordLifespan,
         lifespanId: String
     ) {
-        guard let metadata = fetchMetadataRecord(
-            key: key,
-            type: type,
-            lifespan: lifespan,
-            lifespanId: lifespanId
-        ) else {
-            return
-        }
-
-        coreData.deleteRecord(metadata)
+        let request = fetchMetadataRequest(key: key, type: type, lifespan: lifespan, lifespanId: lifespanId)
+        coreData.deleteRecords(withRequest: request)
     }
 
     /// Removes all `MetadataRecords` for the given type and lifespans.
@@ -296,10 +304,6 @@ extension EmbraceStorage {
     /// Increments the numeric value by 1 of a permanent resource for the given key.
     /// If no record exists it will create one with a value of 1.
     public func incrementCountForPermanentResource(key: String) -> Int {
-        guard let record = fetchMetadataRecord(key: key, type: .requiredResource, lifespan: .permanent) else {
-            addMetadata(key: key, value: "1", type: .requiredResource, lifespan: .permanent)
-            return 1
-        }
 
         var result: Int = 1
 
@@ -308,8 +312,25 @@ extension EmbraceStorage {
                 return
             }
 
-            result = (Int(record.value) ?? 0) + 1
-            record.value = String(result)
+            // fetch existing metadata
+            let request = fetchMetadataRequest(key: key, type: .requiredResource, lifespan: .permanent)
+
+            // update it if it exists
+            if let metadata = fetchMetadata(request: request, context: context) {
+                result = (Int(metadata.value) ?? 0) + 1
+                metadata.value = String(result)
+
+            // create it with a value of 1 if it doesn't exist
+            } else {
+                _ = MetadataRecord.create(
+                    context: context,
+                    key: key,
+                    value: "1",
+                    type: .requiredResource,
+                    lifespan: .permanent,
+                    lifespanId: ""
+                )
+            }
 
             do {
                 try context.save()

@@ -106,6 +106,7 @@ extension SpanRecord: EmbraceStorageRecord {
         let startTimeAttribute = NSAttributeDescription()
         startTimeAttribute.name = "startTime"
         startTimeAttribute.attributeType = .dateAttributeType
+        startTimeAttribute.defaultValue = Date()
 
         let endTimeAttribute = NSAttributeDescription()
         endTimeAttribute.name = "endTime"

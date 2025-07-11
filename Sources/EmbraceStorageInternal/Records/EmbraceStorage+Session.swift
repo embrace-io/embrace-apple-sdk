@@ -38,39 +38,21 @@ extension EmbraceStorage {
     ) -> EmbraceSession? {
 
         // update existing?
-        if let session = fetchSessionRecord(id: id) {
-            var result: EmbraceSession?
-
-            coreData.performOperation(name: "UpdateExistingSession") { context in
-                guard let context else {
-                    return
-                }
-
-                session.state = state.rawValue
-                session.processIdRaw = processId.hex
-                session.traceId = traceId
-                session.spanId = spanId
-                session.startTime = startTime
-                session.endTime = endTime
-                session.crashReportId = crashReportId
-                session.coldStart = coldStart
-                session.cleanExit = cleanExit
-                session.appTerminated = appTerminated
-
-                if let lastHeartbeatTime = lastHeartbeatTime {
-                    session.lastHeartbeatTime = lastHeartbeatTime
-                }
-
-                result = session.toImmutable()
-
-                do {
-                    try context.save()
-                } catch {
-                    logger.error("Error updating session \(id.toString)!")
-                }
-            }
-
-            return result
+        if let session = updateExistingSession(
+            id: id,
+            processId: processId,
+            state: state,
+            traceId: traceId,
+            spanId: spanId,
+            startTime: startTime,
+            endTime: endTime,
+            lastHeartbeatTime: lastHeartbeatTime,
+            crashReportId: crashReportId,
+            coldStart: coldStart,
+            cleanExit: cleanExit,
+            appTerminated: appTerminated
+        ) {
+            return session
         }
 
         // create new
@@ -103,14 +85,67 @@ extension EmbraceStorage {
         return request
     }
 
-    /// Fetches the stored `SessionRecord` synchronously with the given identifier, if any.
-    /// - Parameters:
-    ///   - id: Identifier of the session
-    /// - Returns: The stored `SessionRecord`, if any
-    func fetchSessionRecord(id: SessionIdentifier) -> SessionRecord? {
-        let request = fetchSessionRequest(id: id)
-        return coreData.fetch(withRequest: request).first
+    public func updateExistingSession(
+        id: SessionIdentifier,
+        processId: ProcessIdentifier,
+        state: SessionState,
+        traceId: String,
+        spanId: String,
+        startTime: Date,
+        endTime: Date? = nil,
+        lastHeartbeatTime: Date? = nil,
+        crashReportId: String? = nil,
+        coldStart: Bool = false,
+        cleanExit: Bool = false,
+        appTerminated: Bool = false
+    ) -> EmbraceSession? {
+        var result: EmbraceSession?
+
+        coreData.performOperation(name: "UpdateExistingSession") { context in
+            guard let context else {
+                return
+            }
+
+            // fetch existing session
+            let request = fetchSessionRequest(id: id)
+            var session: SessionRecord?
+            do {
+                session = try context.fetch(request).first
+            } catch {
+                logger.error("Error fetching existing session \(id)!")
+            }
+
+            guard let session else {
+                return
+            }
+
+            session.state = state.rawValue
+            session.processIdRaw = processId.hex
+            session.traceId = traceId
+            session.spanId = spanId
+            session.startTime = startTime
+            session.endTime = endTime
+            session.crashReportId = crashReportId
+            session.coldStart = coldStart
+            session.cleanExit = cleanExit
+            session.appTerminated = appTerminated
+
+            if let lastHeartbeatTime = lastHeartbeatTime {
+                session.lastHeartbeatTime = lastHeartbeatTime
+            }
+
+            result = session.toImmutable()
+
+            do {
+                try context.save()
+            } catch {
+                logger.error("Error updating session \(id.toString)!")
+            }
+        }
+
+        return result
     }
+
 
     /// Fetches the stored `SessionRecord` synchronously with the given identifier, if any.
     /// - Parameters:
