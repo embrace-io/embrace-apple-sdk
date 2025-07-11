@@ -74,9 +74,12 @@ struct CreateSpanView: View {
                 }
             }
         }.popUp("Span was created ✅", shouldShow: $showPopup)
+        #if !os(macOS)
             .textInputAutocapitalization(.never)
-            .autocorrectionDisabled()
             .navigationBarTitle("Create Span")
+        #endif
+            .autocorrectionDisabled()
+            
     }
 
     func removeAttributes(at offsets: IndexSet) {

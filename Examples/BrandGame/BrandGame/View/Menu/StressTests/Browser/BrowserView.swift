@@ -19,7 +19,10 @@ struct BrowserView: View {
             HStack {
                 TextField("Enter URL", text: $urlString, onCommit: {
                     loadURL()
-                }).keyboardType(.URL)
+                })
+                #if !os(macOS)
+                .keyboardType(.URL)
+                #endif
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 Button {
                     loadURL()

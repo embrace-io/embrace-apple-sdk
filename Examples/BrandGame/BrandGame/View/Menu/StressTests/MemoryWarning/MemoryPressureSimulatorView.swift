@@ -3,8 +3,9 @@
 //
 
 import SwiftUI
+import EmbraceMacros
 
-struct MemoryPressureSimulatorView: View {
+@EmbraceTrace struct MemoryPressureSimulatorView: View {
     @State var simulator: MemoryPressureSimulator = .init()
 
     var body: some View {
@@ -38,7 +39,9 @@ struct MemoryPressureSimulatorView: View {
     }
 
     private func executeMemoryWarning() {
+        #if !os(macOS)
         UIApplication.shared.perform(Selector(("_performMemoryWarning")))
+        #endif
     }
 }
 
