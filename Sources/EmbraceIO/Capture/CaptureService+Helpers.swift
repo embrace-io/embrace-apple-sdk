@@ -60,4 +60,8 @@ import EmbraceCaptureService
     ) -> PushNotificationCaptureService {
         return PushNotificationCaptureService(options: options)
     }
+    
+    static func hangWatchdog() -> HangCaptureService {
+        return HangCaptureService()
+    }
 }
