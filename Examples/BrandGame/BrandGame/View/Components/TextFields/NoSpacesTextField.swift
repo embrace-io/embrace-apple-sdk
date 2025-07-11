@@ -30,7 +30,9 @@ struct NoSpacesTextField: View {
                     text = modifiedString
                 }
             }
+        #if !os(macOS)
             .textInputAutocapitalization(.never)
+        #endif
             .disableAutocorrection(!autocorrectionEnabled)
     }
 }

@@ -7,6 +7,7 @@ import EmbraceOTelInternal
 import OpenTelemetryApi
 import OpenTelemetrySdk
 import SwiftUI
+#if canImport(UIKit)
 import UIKit
 
 extension RunLoop {
@@ -239,3 +240,4 @@ final class EmbraceTraceViewTests: XCTestCase {
         window.isHidden = true
     }
 }
+#endif

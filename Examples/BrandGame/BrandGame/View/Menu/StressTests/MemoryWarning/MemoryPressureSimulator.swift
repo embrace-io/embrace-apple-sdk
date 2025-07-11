@@ -2,7 +2,12 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
+import Foundation
+#if os(macOS)
+import AppKit
+#else
 import UIKit
+#endif
 
 @Observable
 class MemoryPressureSimulator {
@@ -20,17 +25,20 @@ class MemoryPressureSimulator {
         timer: Timer? = nil,
         notificationCenter: NotificationCenter = .default
     ) {
+        
         self.totalMemoryBytes = totalMemoryBytes
         self.isSimulating = isSimulating
         self.dataStorage = dataStorage
         self.timer = timer
         self.notificationCenter = notificationCenter
+        #if !os(macOS)
         self.notificationCenter.addObserver(
             self,
             selector: #selector(self.handleMemoryWarning),
             name: UIApplication.didReceiveMemoryWarningNotification,
             object: nil
         )
+        #endif
     }
 
     func startSimulating() {

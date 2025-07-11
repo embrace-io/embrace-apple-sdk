@@ -26,13 +26,13 @@ import EmbraceCommonInternal
     let sessionLinkGracePeriod: TimeInterval = 5
 
     func install() {
-#if !os(tvOS)
+#if !os(tvOS) && !os(macOS)
         MXMetricManager.shared.add(self)
 #endif
     }
 
     func uninstall() {
-#if !os(tvOS)
+#if !os(tvOS) && !os(macOS)
         MXMetricManager.shared.remove(self)
 #endif
     }
@@ -88,7 +88,7 @@ import EmbraceCommonInternal
     }
 }
 
-#if !os(tvOS)
+#if !os(tvOS) && !os(macOS)
 extension MetricKitHandler: MXMetricManagerSubscriber {
     func didReceive(_ payloads: [MXMetricPayload]) {
         // noop for now

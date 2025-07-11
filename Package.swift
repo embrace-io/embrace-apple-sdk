@@ -29,7 +29,7 @@ if ProcessInfo.processInfo.environment["EMBRACE_ENABLE_TUIST_OBJC_LINK"] != nil 
 let package = Package(
     name: "EmbraceIO",
     platforms: [
-        .iOS(.v13), .tvOS(.v13), .macOS(.v13), .watchOS(.v6)
+        .iOS(.v13), .tvOS(.v13), .macOS(.v14), .watchOS(.v6)
     ],
     products: [
         .library(name: "EmbraceIO", targets: ["EmbraceIO"]),
@@ -37,7 +37,7 @@ let package = Package(
         .library(name: "EmbraceCrash", targets: ["EmbraceCrash"]),
         .library(name: "EmbraceCrashlyticsSupport", targets: ["EmbraceCrashlyticsSupport"]),
         .library(name: "EmbraceSemantics", targets: ["EmbraceSemantics"]),
-        .library(name: "EmbraceMacros", targets: ["EmbraceMacros", "EmbraceCore"])
+        .library(name: "EmbraceMacros", targets: ["EmbraceMacros"]),
     ],
     dependencies: [
         .package(

@@ -130,17 +130,19 @@ fileprivate class BackgroundTaskProvider {
     }
 }
 
-#else
-
+#elseif os(watchOS)
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+import EmbraceCommonInternal
+#endif
 // TODO: Implement WatchOS Version
 class BackgroundTaskWrapper {
     
     let name: String
-    private var taskID: UIBackgroundTaskIdentifier
+//    private var taskID: UIBackgroundTaskIdentifier
     
-    init(name: String) {
+    init?(name: String, logger: InternalLogger) {
         self.name = name
-        self.taskID = .invalid
+//        self.taskID = .invalid
     }
     
     deinit {
@@ -154,5 +156,26 @@ class BackgroundTaskWrapper {
     private func endTask() {
     }
 }
-
+#else
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+import EmbraceCommonInternal
+#endif
+class BackgroundTaskWrapper {
+    let name: String
+    
+    init?(name: String, logger: InternalLogger) {
+        self.name = name
+    }
+    
+    deinit {
+        endTask()
+    }
+    
+    func finish() {
+        endTask()
+    }
+    
+    private func endTask() {
+    }
+}
 #endif
