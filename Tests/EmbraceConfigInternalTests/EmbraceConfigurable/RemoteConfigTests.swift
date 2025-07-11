@@ -92,6 +92,18 @@ final class RemoteConfigTests: XCTestCase {
         XCTAssertFalse(config.isNetworkSpansForwardingEnabled)
     }
 
+    func test_SpanEventsLimits() {
+        // given a config
+        let config = RemoteConfig(options: options, logger: logger)
+
+        config.payload.breadcrumbLimit = 987
+
+        XCTAssertEqual(
+            config.spanEventsLimits,
+            SpanEventsLimits(breadcrumb: 987)
+        )
+    }
+
     func test_LogsLimits() {
         // given a config
         let config = RemoteConfig(options: options, logger: logger)

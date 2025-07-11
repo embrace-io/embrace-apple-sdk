@@ -18,7 +18,7 @@ private struct EmbraceTraceViewLoggerEnvironmentKey: EnvironmentKey {
     static let defaultValue: EmbraceTraceViewLogger = EmbraceTraceViewLogger(
         otel: Embrace.client,
         logger: Embrace.logger,
-        config: Embrace.client?.config?.configurable
+        config: Embrace.client?.config.configurable
     )
 }
 

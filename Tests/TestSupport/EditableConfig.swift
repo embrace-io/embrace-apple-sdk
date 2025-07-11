@@ -23,6 +23,8 @@ public class EditableConfig: EmbraceConfigurable {
 
     public var isSwiftUiViewInstrumentationEnabled: Bool = false
 
+    public var spanEventsLimits = SpanEventsLimits()
+
     public var logsLimits = LogsLimits()
 
     public var internalLogLimits = InternalLogLimits()

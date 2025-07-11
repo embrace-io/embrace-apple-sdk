@@ -19,6 +19,7 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         metricKitCrashSignals: [String] = [],
         isMetricKitHangCaptureEnabled: Bool = false,
         isSwiftUiViewInstrumentationEnabled: Bool = false,
+        spanEventsLimits: SpanEventsLimits = SpanEventsLimits(),
         logsLimits: LogsLimits = LogsLimits(),
         internalLogLimits: InternalLogLimits = InternalLogLimits(),
         networkPayloadCaptureRules: [NetworkPayloadCaptureRule] = [],
@@ -34,6 +35,7 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         self._metricKitCrashSignals = metricKitCrashSignals
         self._isMetricKitHangCaptureEnabled = isMetricKitHangCaptureEnabled
         self._isSwiftUiViewInstrumentationEnabled = isSwiftUiViewInstrumentationEnabled
+        self._spanEventsLimits = spanEventsLimits
         self._logsLimits = logsLimits
         self._internalLogLimits = internalLogLimits
         self._networkPayloadCaptureRules = networkPayloadCaptureRules
@@ -150,6 +152,18 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         }
         set {
             _isSwiftUiViewInstrumentationEnabled = newValue
+        }
+    }
+
+    private var _spanEventsLimits: SpanEventsLimits
+    public let spanEventsLimitsExpectation = XCTestExpectation(description: "spanEventsLimits called")
+    public var spanEventsLimits: SpanEventsLimits {
+        get {
+            spanEventsLimitsExpectation.fulfill()
+            return _spanEventsLimits
+        }
+        set {
+            _spanEventsLimits = newValue
         }
     }
 

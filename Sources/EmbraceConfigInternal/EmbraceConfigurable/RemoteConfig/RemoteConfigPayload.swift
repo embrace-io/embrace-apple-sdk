@@ -23,6 +23,8 @@ public struct RemoteConfigPayload: Decodable, Equatable {
 
     var swiftUiViewInstrumentationEnabled: Bool
 
+    var breadcrumbLimit: Int
+
     var logsInfoLimit: Int
     var logsWarningLimit: Int
     var logsErrorLimit: Int
@@ -54,6 +56,11 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         case metricKitEnabledThreshold = "metrickit_v2_pct_enabled"
         case metricKitReportersEnabled = "metrickit_v2_reporters_enabled"
         case metricKitCrashSignalsEnabled = "metrickit_v2_crash_signals_enabled"
+
+        case ui
+        enum UICodingKeys: String, CodingKey {
+            case breadcrumbs
+        }
 
         case logLimits = "log"
         enum LogLimitsCodingKeys: String, CodingKey {
@@ -123,6 +130,21 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             Bool.self,
             forKey: .swiftUiViewInstrumentationEnabled
         ) ?? defaultPayload.swiftUiViewInstrumentationEnabled
+
+        // span events
+        if rootContainer.contains(.ui) {
+            let uiContainer = try rootContainer.nestedContainer(
+                keyedBy: CodingKeys.UICodingKeys.self,
+                forKey: .ui
+            )
+
+            breadcrumbLimit = try uiContainer.decodeIfPresent(
+                Int.self,
+                forKey: CodingKeys.UICodingKeys.breadcrumbs
+            ) ?? defaultPayload.breadcrumbLimit
+        } else {
+            breadcrumbLimit = defaultPayload.breadcrumbLimit
+        }
 
         // logs limit
         if rootContainer.contains(.logLimits) {
@@ -238,6 +260,8 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         metricKitHangCaptureEnabled = false
 
         swiftUiViewInstrumentationEnabled = true
+
+        breadcrumbLimit = 100
 
         logsInfoLimit = 100
         logsWarningLimit = 200

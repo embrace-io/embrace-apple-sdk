@@ -23,6 +23,8 @@ public class DefaultConfig: EmbraceConfigurable {
 
     public let isSwiftUiViewInstrumentationEnabled: Bool = false
 
+    public let spanEventsLimits = SpanEventsLimits()
+
     public let logsLimits = LogsLimits()
 
     public let internalLogLimits = InternalLogLimits()

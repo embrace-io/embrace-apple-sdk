@@ -16,15 +16,23 @@ public final class EmbraceOTel: NSObject {
     let instrumentationName = "EmbraceOpenTelemetry"
     let instrumentationVersion = "semver:\(EmbraceMeta.sdkVersion)"
 
+
     public private(set) static var processor: SingleSpanProcessor?
 
     /// Setup the OpenTelemetryApi
     /// - Parameter: spanProcessor The processor in which to run during the lifetime of each Span
     public static func setup(spanProcessors: [SpanProcessor]) {
         let resource = Resource()
+
+        // the default span event limit was 128 but we need a way higher limit
+        // this will mainly be used to apply breadcrumb limits when building the payloads
+        let limits = SpanLimits()
+            .settingEventCountLimit(9999)
+
         OpenTelemetry.registerTracerProvider(
             tracerProvider: TracerProviderSdk(
                 resource: resource,
+                spanLimits: limits,
                 spanProcessors: spanProcessors
             )
         )
