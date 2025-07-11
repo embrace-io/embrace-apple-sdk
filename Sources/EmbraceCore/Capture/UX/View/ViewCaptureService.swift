@@ -26,7 +26,7 @@ public final class ViewCaptureService: CaptureService, UIViewControllerHandlerDa
     }
 
     var instrumentFirstRender: Bool {
-        return options.instrumentFirstRender && Embrace.client?.config?.isUiLoadInstrumentationEnabled == true
+        return options.instrumentFirstRender && Embrace.client?.config.isUiLoadInstrumentationEnabled == true
     }
 
     @objc public convenience init(options: ViewCaptureService.Options) {

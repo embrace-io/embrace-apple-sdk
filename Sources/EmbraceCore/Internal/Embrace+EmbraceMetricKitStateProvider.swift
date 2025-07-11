@@ -8,18 +8,18 @@ import EmbraceCommonInternal
 
 extension Embrace: EmbraceMetricKitStateProvider {
     public var isMetricKitEnabled: Bool {
-        config?.isMetrickKitEnabled ?? false
+        config.isMetrickKitEnabled
     }
 
     public var isMetricKitCrashCaptureEnabled: Bool {
-        config?.isMetricKitCrashCaptureEnabled ?? false
+        config.isMetricKitCrashCaptureEnabled
     }
 
     public var metricKitCrashSignals: [Int] {
-        config?.metricKitCrashSignals.map { $0.rawValue } ?? [CrashSignal.SIGKILL.rawValue]
+        config.metricKitCrashSignals.map { $0.rawValue }
     }
 
     public var isMetricKitHangCaptureEnabled: Bool {
-        config?.isMetricKitHangCaptureEnabled ?? false
+        config.isMetricKitHangCaptureEnabled
     }
 }
