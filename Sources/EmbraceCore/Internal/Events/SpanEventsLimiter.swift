@@ -19,7 +19,7 @@ class SpanEventsLimiter {
         var limits: SpanEventsLimits = SpanEventsLimits()
     }
     var state = EmbraceMutex(MutableState())
-    private let notificationCenter: NotificationCenter
+    let notificationCenter: NotificationCenter
 
     init(spanEventsLimits: SpanEventsLimits, configNotificationCenter: NotificationCenter) {
         self.state.withLock {
@@ -48,7 +48,7 @@ class SpanEventsLimiter {
     }
 
     @objc func onConfigUpdated(notification: Notification) {
-        guard let config = notification.object as? EmbraceConfig else {
+        guard let config = notification.object as? EmbraceConfigurable else {
             return
         }
 
@@ -63,9 +63,9 @@ class SpanEventsLimiter {
         }
     }
 
-    private func limitForEventType(_ type: String?) -> UInt? {
-        if type == SpanEventSemantics.Breadcrumb.name {
-            return state.safeValue.limits.breadcrumb
+    private func limitForEventType(_ type: String?, limits: SpanEventsLimits) -> UInt? {
+        if type == SpanEventType.breadcrumb.rawValue {
+            return limits.breadcrumb
         }
 
         return nil
@@ -78,7 +78,7 @@ class SpanEventsLimiter {
             for event in events {
                 // check limit for event type
                 guard let eventType = event.attributes[SpanEventSemantics.keyEmbraceType]?.description,
-                      let limit = limitForEventType(eventType) else {
+                      let limit = limitForEventType(eventType, limits: $0.limits) else {
                     result.append(event)
                     continue
                 }
