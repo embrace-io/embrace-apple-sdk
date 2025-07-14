@@ -79,7 +79,7 @@ jobs:
         with:
           path: .build/test/output
           title: "Test Results"
-          show-passed-tests: true
+          show-passed-tests: false
           show-code-coverage: true
           upload-bundles: "never" # Uploading the `xcresult` using the xcresultool action seems to fail; 
 

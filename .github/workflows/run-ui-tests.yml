@@ -74,6 +74,6 @@ jobs:
         with:
           path: .build/test/output.xcresult
           title: "UI Test Results"
-          show-passed-tests: true
+          show-passed-tests: false
           show-code-coverage: false
           upload-bundles: "never" # Uploading the `xcresult` using the xcresultool action seems to fail
