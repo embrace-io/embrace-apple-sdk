@@ -30,7 +30,7 @@ public extension EmbraceUpload {
             enableBackgroundTasks: Bool = true,
             cacheLimit: UInt = 0,
             cacheDaysLimit: UInt = 7,
-            resetCache: Bool = false,
+            resetCache: Bool = false
         ) {
             self.storageMechanism = storageMechanism
             self.enableBackgroundTasks = enableBackgroundTasks
