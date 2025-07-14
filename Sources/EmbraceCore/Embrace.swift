@@ -329,6 +329,9 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
 
                     // retry any remaining cached upload data
                     self?.upload?.retryCachedData()
+
+                    // remove old versions data
+                    self?.cleanUpOldVersionsData()
                 }
 
                 if let appId = options.appId {

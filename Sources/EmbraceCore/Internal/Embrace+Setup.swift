@@ -121,5 +121,20 @@ extension Embrace {
             .startSpan()
             .end()
     }
+}
 
+extension Embrace {
+    func cleanUpOldVersionsData() {
+        let urls = EmbraceFileSystem.oldVersionsDirectories()
+
+        for url in urls {
+            if FileManager.default.fileExists(atPath: url.path) {
+                do {
+                    try FileManager.default.removeItem(at: url)
+                } catch {
+                    Embrace.logger.error("Error removing data from an old version!:\n\(error)")
+                }
+            }
+        }
+    }
 }
