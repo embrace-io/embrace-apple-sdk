@@ -151,7 +151,7 @@ public struct EmbraceFileSystem {
             return result
         }
 
-        for i in version...1 {
+        for i in stride(from: version - 1, to: 0, by: -1) {
             let components = [rootDirectoryName, "v\(i)"]
             let url = baseURL.appendingPathComponent(components.joined(separator: "/"))
             result.append(url)

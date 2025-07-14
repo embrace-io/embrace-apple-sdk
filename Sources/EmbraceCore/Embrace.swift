@@ -421,6 +421,11 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         }
     }
 
+    /// Call this if you want the Embrace SDK to clear the upload cache data on the next launch.
+    @objc public func resetUploadCache() {
+        Embrace.resetUploadCache = true
+    }
+
     /// Called every time the remote config changes
     @objc private func onConfigUpdated() {
         if let config = config {

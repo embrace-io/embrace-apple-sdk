@@ -22,16 +22,21 @@ public extension EmbraceUpload {
         /// Determines the maximum amount of days a request will be cached. Use 0 to disable.
         public let cacheDaysLimit: UInt
 
+        /// If enabled, the cache will be emptied when created
+        public let resetCache: Bool
+
         public init(
             storageMechanism: StorageMechanism,
             enableBackgroundTasks: Bool = true,
             cacheLimit: UInt = 0,
-            cacheDaysLimit: UInt = 7
+            cacheDaysLimit: UInt = 7,
+            resetCache: Bool = false,
         ) {
             self.storageMechanism = storageMechanism
             self.enableBackgroundTasks = enableBackgroundTasks
             self.cacheLimit = cacheLimit
             self.cacheDaysLimit = cacheDaysLimit
+            self.resetCache = resetCache
         }
     }
 }

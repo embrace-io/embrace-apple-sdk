@@ -14,6 +14,7 @@ import EmbraceUploadInternal
 import OpenTelemetryApi
 
 extension Embrace {
+
     static func createStorage(options: Embrace.Options) throws -> EmbraceStorage {
 
         let partitionId = options.appId ?? EmbraceFileSystem.defaultPartitionId
@@ -66,7 +67,9 @@ extension Embrace {
             name: "EmbraceUploadStorage",
             baseURL: cacheUrl
         )
-        let cache = EmbraceUpload.CacheOptions(storageMechanism: storageMechanism)
+
+        let cache = EmbraceUpload.CacheOptions(storageMechanism: storageMechanism, resetCache: resetUploadCache)
+        resetUploadCache = false
 
         // metadata
         let metadata = EmbraceUpload.MetadataOptions(
@@ -95,6 +98,12 @@ extension Embrace {
         ManualSessionLifecycle(controller: controller)
     }
 #endif
+
+    static let resetUploadCacheKey = "emb.reset-upload-cache"
+    static var resetUploadCache: Bool {
+        get { UserDefaults.standard.bool(forKey: Embrace.resetUploadCacheKey) }
+        set { UserDefaults.standard.set(newValue, forKey: Embrace.resetUploadCacheKey)}
+    }
 }
 
 /// Extension to handle observability of SDK startup
