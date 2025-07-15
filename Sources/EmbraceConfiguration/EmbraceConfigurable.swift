@@ -25,6 +25,8 @@ import Foundation
 
     var isSwiftUiViewInstrumentationEnabled: Bool { get }
 
+    var spanEventsLimits: SpanEventsLimits { get }
+
     var logsLimits: LogsLimits { get }
 
     var internalLogLimits: InternalLogLimits { get }

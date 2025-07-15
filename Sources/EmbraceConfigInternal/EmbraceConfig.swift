@@ -127,6 +127,10 @@ extension EmbraceConfig /* EmbraceConfigurable delegation */ {
         return configurable.isSwiftUiViewInstrumentationEnabled
     }
 
+    public var spanEventsLimits: SpanEventsLimits {
+        configurable.spanEventsLimits
+    }
+
     public var logsLimits: LogsLimits {
         configurable.logsLimits
     }

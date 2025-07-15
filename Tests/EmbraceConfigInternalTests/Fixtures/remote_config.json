@@ -8,6 +8,9 @@
     },
     "ui_load_instrumentation_enabled_v2": false,
     "swift_ui_view_instrumentation_enabled": false,
+    "ui":{
+       "breadcrumbs": 1234
+    },
     "log": {
         "info_limit": 40,
         "warning_limit": 50,
