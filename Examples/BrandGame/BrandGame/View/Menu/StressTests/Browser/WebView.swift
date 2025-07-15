@@ -5,16 +5,16 @@
 import SwiftUI
 import WebKit
 
-struct WebView: UIViewRepresentable {
+struct WebView: ViewRepresentable {
     @Binding var urlString: String
     var webView: WKWebView = WKWebView()
 
-    func makeUIView(context: Context) -> WKWebView {
+    func makeView(context: Context) -> WKWebView {
         webView.navigationDelegate = context.coordinator
         return webView
     }
 
-    func updateUIView(_ webView: WKWebView, context: Context) {
+    func updateView(_ webView: WKWebView, context: Context) {
         if let url = URL(string: urlString) {
             webView.load(URLRequest(url: url))
         }

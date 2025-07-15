@@ -138,6 +138,8 @@ struct NetworkStressTest: View {
 #Preview {
     NavigationStack {
         NetworkStressTest()
+        #if !os(macOS)
             .navigationBarTitleDisplayMode(.inline)
+        #endif
     }
 }

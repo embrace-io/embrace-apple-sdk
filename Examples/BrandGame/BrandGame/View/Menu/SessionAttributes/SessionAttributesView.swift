@@ -65,7 +65,9 @@ struct SessionAttributesView: View {
             }
         }
         .popUp("\(property.type.rawValue) was \(action.rawValue)ed", shouldShow: $showPopUp)
+        #if !os(macOS)
         .navigationBarTitle("Session Attributes", displayMode: .inline)
+        #endif
     }
 }
 

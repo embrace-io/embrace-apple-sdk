@@ -7,6 +7,8 @@ import EmbraceOTelInternal
 import OpenTelemetryApi
 import OpenTelemetrySdk
 import SwiftUI
+
+#if canImport(UIKit)
 import UIKit
 
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
@@ -78,3 +80,4 @@ final class EmbraceTraceViewPerfTests: XCTestCase {
     }
     
 }
+#endif

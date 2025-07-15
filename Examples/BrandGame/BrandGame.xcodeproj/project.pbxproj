@@ -43,6 +43,13 @@
 		7BCB66282AC4742800ABD33A /* MenuList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BCB66272AC4742800ABD33A /* MenuList.swift */; };
 		7BCB662A2AC4767B00ABD33A /* MainMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BCB66292AC4767B00ABD33A /* MainMenu.swift */; };
 		7BCB662E2AC476BC00ABD33A /* NetworkStressTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BCB662D2AC476BC00ABD33A /* NetworkStressTest.swift */; };
+		9618109E2E1592B4009CC62C /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = 9618109D2E1592B4009CC62C /* EmbraceCore */; };
+		961810A02E1592B4009CC62C /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = 9618109F2E1592B4009CC62C /* EmbraceCrash */; };
+		961810A22E1592B4009CC62C /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 961810A12E1592B4009CC62C /* EmbraceCrashlyticsSupport */; };
+		961810A42E1592B4009CC62C /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = 961810A32E1592B4009CC62C /* EmbraceIO */; };
+		961810A62E1592B4009CC62C /* EmbraceMacros in Frameworks */ = {isa = PBXBuildFile; productRef = 961810A52E1592B4009CC62C /* EmbraceMacros */; };
+		961810A82E1592B4009CC62C /* EmbraceSemantics in Frameworks */ = {isa = PBXBuildFile; productRef = 961810A72E1592B4009CC62C /* EmbraceSemantics */; };
+		961810AA2E217326009CC62C /* Cocoa.swift in Sources */ = {isa = PBXBuildFile; fileRef = 961810A92E217326009CC62C /* Cocoa.swift */; };
 		FA3B0A112C3C2A5600315578 /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = FA3B0A102C3C2A5600315578 /* EmbraceCore */; };
 		FA3B0A132C3C2A5600315578 /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = FA3B0A122C3C2A5600315578 /* EmbraceCrash */; };
 		FA3B0A152C3C2A5600315578 /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = FA3B0A142C3C2A5600315578 /* EmbraceCrashlyticsSupport */; };
@@ -134,6 +141,7 @@
 		7BCB66272AC4742800ABD33A /* MenuList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuList.swift; sourceTree = "<group>"; };
 		7BCB66292AC4767B00ABD33A /* MainMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainMenu.swift; sourceTree = "<group>"; };
 		7BCB662D2AC476BC00ABD33A /* NetworkStressTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkStressTest.swift; sourceTree = "<group>"; };
+		961810A92E217326009CC62C /* Cocoa.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cocoa.swift; sourceTree = "<group>"; };
 		FA4C5F322C486E13005C0371 /* CreateSpanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateSpanView.swift; sourceTree = "<group>"; };
 		FA4C5F342C487B45005C0371 /* AttributesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributesView.swift; sourceTree = "<group>"; };
 		FA4FA4F92C62DBB600E66300 /* NoSpacesTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoSpacesTextField.swift; sourceTree = "<group>"; };
@@ -158,10 +166,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				7B3BD2192BBC5A1600938444 /* StdoutExporter in Frameworks */,
+				961810A62E1592B4009CC62C /* EmbraceMacros in Frameworks */,
 				FAEF5A132C6BA46F00484474 /* EmbraceCrash in Frameworks */,
+				961810A42E1592B4009CC62C /* EmbraceIO in Frameworks */,
 				FA3B0A132C3C2A5600315578 /* EmbraceCrash in Frameworks */,
 				FA716C822C45B94A00AD0161 /* EmbraceCrashlyticsSupport in Frameworks */,
 				FA3B0A152C3C2A5600315578 /* EmbraceCrashlyticsSupport in Frameworks */,
+				9618109E2E1592B4009CC62C /* EmbraceCore in Frameworks */,
 				FA716C7E2C45B94A00AD0161 /* EmbraceCore in Frameworks */,
 				FA716C802C45B94A00AD0161 /* EmbraceCrash in Frameworks */,
 				FA716C842C45B94A00AD0161 /* EmbraceIO in Frameworks */,
@@ -172,9 +183,12 @@
 				FAF85DF52C45B1C6002306FF /* EmbraceCore in Frameworks */,
 				FAF85DF92C45B1C6002306FF /* EmbraceCrashlyticsSupport in Frameworks */,
 				FAF85DF72C45B1C6002306FF /* EmbraceCrash in Frameworks */,
+				961810A02E1592B4009CC62C /* EmbraceCrash in Frameworks */,
 				FAEF5A152C6BA46F00484474 /* EmbraceCrashlyticsSupport in Frameworks */,
 				FAEF5A192C6BA46F00484474 /* EmbraceSemantics in Frameworks */,
 				FAEF5A112C6BA46F00484474 /* EmbraceCore in Frameworks */,
+				961810A82E1592B4009CC62C /* EmbraceSemantics in Frameworks */,
+				961810A22E1592B4009CC62C /* EmbraceCrashlyticsSupport in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -294,6 +308,7 @@
 			isa = PBXGroup;
 			children = (
 				7B5630A42AC1331000E0DF39 /* Color+Random.swift */,
+				961810A92E217326009CC62C /* Cocoa.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -548,6 +563,12 @@
 				FAEF5A142C6BA46F00484474 /* EmbraceCrashlyticsSupport */,
 				FAEF5A162C6BA46F00484474 /* EmbraceIO */,
 				FAEF5A182C6BA46F00484474 /* EmbraceSemantics */,
+				9618109D2E1592B4009CC62C /* EmbraceCore */,
+				9618109F2E1592B4009CC62C /* EmbraceCrash */,
+				961810A12E1592B4009CC62C /* EmbraceCrashlyticsSupport */,
+				961810A32E1592B4009CC62C /* EmbraceIO */,
+				961810A52E1592B4009CC62C /* EmbraceMacros */,
+				961810A72E1592B4009CC62C /* EmbraceSemantics */,
 			);
 			productName = BrandGame;
 			productReference = 7B56308A2ABE743400E0DF39 /* BrandGame.app */;
@@ -579,7 +600,7 @@
 			mainGroup = 7B5630812ABE743400E0DF39;
 			packageReferences = (
 				7B3BD1FD2BBC5A1600938444 /* XCRemoteSwiftPackageReference "opentelemetry-swift" */,
-				FAEF5A0F2C6BA46F00484474 /* XCLocalSwiftPackageReference "../.." */,
+				9618109C2E1592B4009CC62C /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */,
 			);
 			productRefGroup = 7B56308B2ABE743400E0DF39 /* Products */;
 			projectDirPath = "";
@@ -686,6 +707,7 @@
 				FA9505162B86640F00562A4C /* LoggingView.swift in Sources */,
 				7B3143B92AFDC8EC00BA0D2F /* RightBracketShape.swift in Sources */,
 				7B3143B52AFDC50E00BA0D2F /* LeftDotShape.swift in Sources */,
+				961810AA2E217326009CC62C /* Cocoa.swift in Sources */,
 				7B62ADA32B0068280087C2AE /* SimonMinigameView.swift in Sources */,
 				7B3143B32AFDC2D300BA0D2F /* LeftBracketShape.swift in Sources */,
 				7B4FFC2D2B1E5B7B006239F7 /* Endpoints+InfoPlist.swift in Sources */,
@@ -828,7 +850,7 @@
 				CURRENT_PROJECT_VERSION = 5;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_ASSET_PATHS = "\"BrandGame/Preview Content\"";
-				DEVELOPMENT_TEAM = L5RVT7J8CV;
+				DEVELOPMENT_TEAM = 2Z8M9MTEVV;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -846,6 +868,9 @@
 				MARKETING_VERSION = 1.1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = io.embrace.BrandGame;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -860,7 +885,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_ASSET_PATHS = "\"BrandGame/Preview Content\"";
-				DEVELOPMENT_TEAM = L5RVT7J8CV;
+				DEVELOPMENT_TEAM = 2Z8M9MTEVV;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -878,6 +903,9 @@
 				MARKETING_VERSION = 1.1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = io.embrace.BrandGame;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -908,9 +936,9 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		FAEF5A0F2C6BA46F00484474 /* XCLocalSwiftPackageReference "../.." */ = {
+		9618109C2E1592B4009CC62C /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = ../..;
+			relativePath = "../../../embrace-apple-sdk";
 		};
 /* End XCLocalSwiftPackageReference section */
 
@@ -930,6 +958,30 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 7B3BD1FD2BBC5A1600938444 /* XCRemoteSwiftPackageReference "opentelemetry-swift" */;
 			productName = StdoutExporter;
+		};
+		9618109D2E1592B4009CC62C /* EmbraceCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EmbraceCore;
+		};
+		9618109F2E1592B4009CC62C /* EmbraceCrash */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EmbraceCrash;
+		};
+		961810A12E1592B4009CC62C /* EmbraceCrashlyticsSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EmbraceCrashlyticsSupport;
+		};
+		961810A32E1592B4009CC62C /* EmbraceIO */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EmbraceIO;
+		};
+		961810A52E1592B4009CC62C /* EmbraceMacros */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EmbraceMacros;
+		};
+		961810A72E1592B4009CC62C /* EmbraceSemantics */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EmbraceSemantics;
 		};
 		FA3B0A102C3C2A5600315578 /* EmbraceCore */ = {
 			isa = XCSwiftPackageProductDependency;

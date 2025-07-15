@@ -106,7 +106,9 @@ struct UserInfo: View {
                 }
             }
         }
+        #if !os(macOS)
         .textInputAutocapitalization(.never)
+        #endif
         .autocorrectionDisabled()
         .onAppear {
             user.refresh()
