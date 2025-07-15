@@ -36,52 +36,59 @@ extension EmbraceStorage {
         cleanExit: Bool = false,
         appTerminated: Bool = false
     ) -> EmbraceSession? {
-
-        // update existing?
-        if let session = updateExistingSession(
-            id: id,
-            processId: processId,
-            state: state,
-            traceId: traceId,
-            spanId: spanId,
-            startTime: startTime,
-            endTime: endTime,
-            lastHeartbeatTime: lastHeartbeatTime,
-            crashReportId: crashReportId,
-            coldStart: coldStart,
-            cleanExit: cleanExit,
-            appTerminated: appTerminated
-        ) {
-            return session
+        
+        var result: EmbraceSession? = nil
+        
+        coreData.performOperation { _ in
+            
+            // update existing?
+            if let session = updateExistingSession(
+                id: id,
+                processId: processId,
+                state: state,
+                traceId: traceId,
+                spanId: spanId,
+                startTime: startTime,
+                endTime: endTime,
+                lastHeartbeatTime: lastHeartbeatTime,
+                crashReportId: crashReportId,
+                coldStart: coldStart,
+                cleanExit: cleanExit,
+                appTerminated: appTerminated
+            ) {
+                result = session
+                return
+            }
+            
+            // create new
+            if let session = SessionRecord.create(
+                context: coreData.context,
+                id: id,
+                processId: processId,
+                state: state,
+                traceId: traceId,
+                spanId: spanId,
+                startTime: startTime,
+                endTime: endTime,
+                lastHeartbeatTime: lastHeartbeatTime,
+                coldStart: coldStart,
+                cleanExit: cleanExit,
+                appTerminated: appTerminated
+            ) {
+                coreData.save()
+                result = session
+                return
+            }
+            
         }
-
-        // create new
-        if let session = SessionRecord.create(
-            context: coreData.context,
-            id: id,
-            processId: processId,
-            state: state,
-            traceId: traceId,
-            spanId: spanId,
-            startTime: startTime,
-            endTime: endTime,
-            lastHeartbeatTime: lastHeartbeatTime,
-            coldStart: coldStart,
-            cleanExit: cleanExit,
-            appTerminated: appTerminated
-        ) {
-            coreData.save()
-            return session
-        }
-
-        return nil
+        
+        return result
     }
 
     func fetchSessionRequest(id: SessionIdentifier) -> NSFetchRequest<SessionRecord> {
         let request = SessionRecord.createFetchRequest()
         request.fetchLimit = 1
         request.predicate = NSPredicate(format: "idRaw == %@", id.toString)
-
         return request
     }
 
@@ -101,21 +108,11 @@ extension EmbraceStorage {
     ) -> EmbraceSession? {
         var result: EmbraceSession?
 
-        coreData.performOperation(name: "UpdateExistingSession") { context in
-            guard let context else {
-                return
-            }
-
+        coreData.performOperation { context in
+            
             // fetch existing session
             let request = fetchSessionRequest(id: id)
-            var session: SessionRecord?
-            do {
-                session = try context.fetch(request).first
-            } catch {
-                logger.error("Error fetching existing session \(id)!")
-            }
-
-            guard let session else {
+            guard let session = coreData.fetch(withRequest: request).first else {
                 return
             }
 
@@ -130,17 +127,12 @@ extension EmbraceStorage {
             session.cleanExit = cleanExit
             session.appTerminated = appTerminated
 
-            if let lastHeartbeatTime = lastHeartbeatTime {
+            if let lastHeartbeatTime {
                 session.lastHeartbeatTime = lastHeartbeatTime
             }
 
+            coreData.save()
             result = session.toImmutable()
-
-            do {
-                try context.save()
-            } catch {
-                logger.error("Error updating session \(id.toString)!")
-            }
         }
 
         return result
@@ -276,13 +268,8 @@ extension EmbraceStorage {
                 session.crashReportId = crashReportId
             }
 
+            coreData.save()
             result = session.toImmutable()
-
-            do {
-                try coreData.context.save()
-            } catch {
-                logger.error("Error updating session \(sessionId.toString)!")
-            }
         }
 
         return result

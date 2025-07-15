@@ -96,25 +96,11 @@ extension EmbraceStorage {
         sessionId: SessionIdentifier? = nil
     ) -> EmbraceSpan? {
         var result: EmbraceSpan?
-
-        coreData.performOperation(name: "UpdateExistingSpan") { context in
-            guard let context else {
-                return
-            }
-
-            // fetch existing span
-            let request = fetchSpanRequest(id: id, traceId: traceId)
-            var span: SpanRecord?
-            do {
-                span = try context.fetch(request).first
-            } catch {
-                logger.error("Error fetching existing span \(id)!")
-            }
-
-            guard let span else {
-                return
-            }
-
+        
+        let request = fetchSpanRequest(id: id, traceId: traceId)
+        coreData.fetchFirstAndPerform(withRequest: request) { span in
+            guard let span else { return }
+            
             // prevent modifications on closed spans!
             if span.endTime == nil {
                 span.name = name
@@ -124,14 +110,9 @@ extension EmbraceStorage {
                 span.endTime = endTime
                 span.processIdRaw = processId.hex
                 span.sessionIdRaw = sessionId?.toString
-
-                do {
-                    try context.save()
-                } catch {
-                    logger.error("Error updating span \(id)!")
-                }
+                coreData.save()
             }
-
+            
             result = span.toImmutable()
         }
 
@@ -189,12 +170,7 @@ extension EmbraceStorage {
             for span in spans {
                 span.endTime = endTime
             }
-
-            do {
-                try self?.coreData.context.save()
-            } catch {
-                self?.logger.warning("Error closing open spans:\n\(error.localizedDescription)")
-            }
+            coreData.save()
         }
     }
 

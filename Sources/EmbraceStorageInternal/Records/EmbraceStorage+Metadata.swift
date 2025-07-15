@@ -64,7 +64,7 @@ extension EmbraceStorage {
     /// Adds or updates all the given required resources
     public func addRequiredResources(_ map: [String: String], processId: ProcessIdentifier = .current) {
         
-        coreData.performOperation(save: true) { context in
+        coreData.performOperation { context in
 
             guard let description = NSEntityDescription.entity(forEntityName: MetadataRecord.entityName, in: context) else {
                 logger.error("Error finding entity description for MetadataRecord!")
@@ -105,6 +105,7 @@ extension EmbraceStorage {
                     record?.collectedAt = Date()
                 }
             }
+            coreData.save()
         }
     }
 
@@ -148,11 +149,7 @@ extension EmbraceStorage {
 
         var result: EmbraceMetadata?
 
-        coreData.performOperation(name: "FetchMetadata") { context in
-            guard let context else {
-                return
-            }
-
+        coreData.performOperation { context in
             // fetch existing metadata
             let request = fetchMetadataRequest(key: key, type: type, lifespan: lifespan, lifespanId: lifespanId)
             guard let metadata = fetchMetadata(request: request, context: context) else {
