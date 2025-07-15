@@ -18,7 +18,7 @@ class SpansPayloadBuilder {
         for session: EmbraceSession,
         storage: EmbraceStorage,
         customProperties: [EmbraceMetadata] = [],
-        sessionNumber: Int = -1,
+        sessionNumber: Int = -1
     ) -> (spans: [SpanPayload], spanSnapshots: [SpanPayload]) {
 
         let endTime = session.endTime ?? session.lastHeartbeatTime
