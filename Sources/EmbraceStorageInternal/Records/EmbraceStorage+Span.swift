@@ -39,35 +39,18 @@ extension EmbraceStorage {
     ) -> EmbraceSpan? {
 
         // update existing?
-        if let span = fetchSpanRecord(id: id, traceId: traceId) {
-            var result: EmbraceSpan?
-
-            coreData.performOperation(name: "UpdateExistingSpan") { context in
-                guard let context else {
-                    return
-                }
-
-                // prevent modifications on closed spans!
-                if span.endTime == nil {
-                    span.name = name
-                    span.typeRaw = type.rawValue
-                    span.data = data
-                    span.startTime = startTime
-                    span.endTime = endTime
-                    span.processIdRaw = processId.hex
-                    span.sessionIdRaw = sessionId?.toString
-
-                    do {
-                        try context.save()
-                    } catch {
-                        logger.error("Error updating span \(id)!")
-                    }
-                }
-
-                result = span.toImmutable()
-            }
-
-            return result
+        if let span = updateExistingSpan(
+            id: id,
+            name: name,
+            traceId: traceId,
+            type: type,
+            data: data,
+            startTime: startTime,
+            endTime: endTime,
+            processId: processId,
+            sessionId: sessionId
+        ) {
+            return span
         }
 
         // make space if needed
@@ -101,14 +84,58 @@ extension EmbraceStorage {
         return request
     }
 
-    /// Fetches the stored `SpanRecord` synchronously with the given identifiers, if any.
-    /// - Parameters:
-    ///   - id: Identifier of the span
-    ///   - traceId: Identifier of the trace containing this span
-    /// - Returns: The stored `SpanRecord`, if any
-    func fetchSpanRecord(id: String, traceId: String) -> SpanRecord? {
-        let request = fetchSpanRequest(id: id, traceId: traceId)
-        return coreData.fetch(withRequest: request).first
+    func updateExistingSpan(
+        id: String,
+        name: String,
+        traceId: String,
+        type: SpanType,
+        data: Data,
+        startTime: Date,
+        endTime: Date? = nil,
+        processId: ProcessIdentifier = .current,
+        sessionId: SessionIdentifier? = nil
+    ) -> EmbraceSpan? {
+        var result: EmbraceSpan?
+
+        coreData.performOperation(name: "UpdateExistingSpan") { context in
+            guard let context else {
+                return
+            }
+
+            // fetch existing span
+            let request = fetchSpanRequest(id: id, traceId: traceId)
+            var span: SpanRecord?
+            do {
+                span = try context.fetch(request).first
+            } catch {
+                logger.error("Error fetching existing span \(id)!")
+            }
+
+            guard let span else {
+                return
+            }
+
+            // prevent modifications on closed spans!
+            if span.endTime == nil {
+                span.name = name
+                span.typeRaw = type.rawValue
+                span.data = data
+                span.startTime = startTime
+                span.endTime = endTime
+                span.processIdRaw = processId.hex
+                span.sessionIdRaw = sessionId?.toString
+
+                do {
+                    try context.save()
+                } catch {
+                    logger.error("Error updating span \(id)!")
+                }
+            }
+
+            result = span.toImmutable()
+        }
+
+        return result
     }
 
     /// Fetches the stored `SpanRecord` synchronously with the given identifiers, if any.
