@@ -132,6 +132,11 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
     }
 
     func finish(task: URLSessionTask, bodySize: Int, error: (any Error)?) {
+        // save a local copy of the task in case it gets released
+        guard let _task = task.copy() as? URLSessionTask else {
+            return
+        }
+
         // save end time for payload capture
         let embraceEndTime = Date()
 
@@ -140,20 +145,20 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
             if self.payloadCaptureHandler.isEnabled() {
                 var data: Data?
                 self.capturedDataQueue.sync {
-                    data = task.embraceData
+                    data = _task.embraceData
                 }
 
                 self.payloadCaptureHandler.process(
-                    request: task.currentRequest ?? task.originalRequest,
-                    response: task.response,
+                    request: _task.currentRequest ?? _task.originalRequest,
+                    response: _task.response,
                     data: data,
                     error: error,
-                    startTime: task.embraceStartTime,
+                    startTime: _task.embraceStartTime,
                     endTime: embraceEndTime
                 )
             }
 
-            self.handleTaskFinished(task, bodySize: bodySize, error: error)
+            self.handleTaskFinished(_task, bodySize: bodySize, error: error)
         }
     }
 
