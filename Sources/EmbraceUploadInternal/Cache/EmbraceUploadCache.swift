@@ -107,13 +107,26 @@ class EmbraceUploadCache {
     /// - Returns: Boolean indicating if the operation was successful
     @discardableResult func saveUploadData(id: String, type: EmbraceUploadType, data: Data) -> Bool {
 
-        // update if it already exists
-        if let record = fetchUploadData(id: id, type: type) {
+        var result = false
 
-            coreData.performOperation(save: true) { context in
-                record.data = data
+        // update if it already exists
+        let request = fetchUploadDataRequest(id: id, type: type)
+        coreData.fetchFirstAndPerform(withRequest: request) { [weak self] record in
+            guard let uploadData = record else {
+                return
             }
 
+            uploadData.data = data
+
+            do {
+                try self?.coreData.context.save()
+                result = true
+            } catch {
+                self?.logger.warning("Error upading upload data:\n\(error.localizedDescription)")
+            }
+        }
+
+        if result {
             return true
         }
 
@@ -121,8 +134,6 @@ class EmbraceUploadCache {
         checkCountLimit()
 
         // insert new
-        var result = true
-
         coreData.performOperation("CreateUploadData") { context in
             if let record = UploadDataRecord.create(
                 context: context,
@@ -135,12 +146,10 @@ class EmbraceUploadCache {
 
                 do {
                     try context.save()
+                    result = true
                 } catch {
                     context.delete(record)
-                    result = false
                 }
-            } else {
-                result = false
             }
         }
 
