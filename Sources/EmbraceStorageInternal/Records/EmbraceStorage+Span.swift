@@ -119,6 +119,31 @@ extension EmbraceStorage {
         return result
     }
 
+    /// Ends the stored `SpanRecord` synchronously with the given identifiers and end time.
+    /// Should only be used for sessions!
+    /// - Parameters:
+    ///   - id: Identifier of the span
+    ///   - traceId: Identifier of the trace containing this span
+    @discardableResult
+    public func endSpan(id: String, traceId: String, endTime: Date) -> EmbraceSpan? {
+        var result: EmbraceSpan?
+
+        let request = fetchSpanRequest(id: id, traceId: traceId)
+        coreData.fetchFirstAndPerform(withRequest: request) { span in
+            guard let span else { return }
+
+            // prevent modifications on closed spans!
+            if span.endTime == nil {
+                span.endTime = endTime
+                coreData.save()
+            }
+
+            result = span.toImmutable()
+        }
+
+        return result
+    }
+
     /// Fetches the stored `SpanRecord` synchronously with the given identifiers, if any.
     /// - Parameters:
     ///   - id: Identifier of the span

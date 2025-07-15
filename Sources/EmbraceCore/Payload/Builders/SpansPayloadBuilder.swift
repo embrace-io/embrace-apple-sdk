@@ -17,7 +17,8 @@ class SpansPayloadBuilder {
     class func build(
         for session: EmbraceSession,
         storage: EmbraceStorage,
-        sessionNumber: Int = -1
+        customProperties: [EmbraceMetadata] = [],
+        sessionNumber: Int = -1,
     ) -> (spans: [SpanPayload], spanSnapshots: [SpanPayload]) {
 
         let endTime = session.endTime ?? session.lastHeartbeatTime
@@ -34,6 +35,7 @@ class SpansPayloadBuilder {
         if let sessionSpanPayload = buildSessionSpanPayload(
             for: session,
             storage: storage,
+            customProperties: customProperties,
             sessionNumber: sessionNumber
         ) {
             spans.append(sessionSpanPayload)
@@ -68,6 +70,7 @@ class SpansPayloadBuilder {
     class func buildSessionSpanPayload(
         for session: EmbraceSession,
         storage: EmbraceStorage,
+        customProperties: [EmbraceMetadata] = [],
         sessionNumber: Int
     ) -> SpanPayload? {
         do {
@@ -77,16 +80,11 @@ class SpansPayloadBuilder {
             if let rawData = sessionSpan?.data {
                 spanData = try JSONDecoder().decode(SpanData.self, from: rawData)
             }
-
-            var properties: [EmbraceMetadata] = []
-            if let sessionId = session.id {
-                properties = storage.fetchCustomPropertiesForSessionId(sessionId)
-            }
-
+            
             return SessionSpanUtils.payload(
                 from: session,
                 spanData: spanData,
-                properties: properties,
+                properties: customProperties,
                 sessionNumber: sessionNumber
             )
 

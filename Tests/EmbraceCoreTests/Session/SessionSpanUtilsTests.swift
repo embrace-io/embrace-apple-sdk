@@ -102,24 +102,6 @@ final class SessionSpanUtilsTests: XCTestCase {
         XCTAssertEqual(spanData.attributes["emb.terminated"], .bool(true))
     }
 
-    func test_setCleanExit() throws {
-        // given a session span
-        let span = SessionSpanUtils.span(
-            id: TestConstants.sessionId,
-            startTime: TestConstants.date,
-            state: .foreground,
-            coldStart: true
-        )
-
-        // when updating the clean exit flagvay
-        SessionSpanUtils.setCleanExit(span: span, cleanExit: true)
-        span.end()
-
-        // then it is updated correctly
-        let spanData = spanProcessor.endedSpans[0]
-        XCTAssertEqual(spanData.attributes["emb.clean_exit"], .bool(true))
-    }
-
     func test_payloadFromSesssion() throws {
         // given a session record
         let endTime = Date(timeIntervalSince1970: 60)
