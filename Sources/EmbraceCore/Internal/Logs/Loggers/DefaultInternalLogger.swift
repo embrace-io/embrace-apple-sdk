@@ -121,7 +121,7 @@ class DefaultInternalLogger: BaseInternalLogger {
                         break
                     }
 
-                    file.write(data)
+                    try file.write(contentsOf: data)
                     self.exportByteCount += data.count
                 }
 
