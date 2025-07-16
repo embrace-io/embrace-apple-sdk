@@ -286,12 +286,13 @@ final class SpansPayloadBuilderTests: XCTestCase {
         XCTAssertNil(attribute)
     }
 
-    func test_hardLimit() throws {
-        // given more than 1000 spans
-        for _ in 1...1100 {
+    func test_hardLimit_Type_Performance() throws {
+        // given more than 500 spans
+        for _ in 1...1800 {
             _ = try addSpan(
                 startTime: Date(timeIntervalSince1970: 55),
-                endTime: Date(timeIntervalSince1970: 60)
+                endTime: Date(timeIntervalSince1970: 60),
+                type: .performance
             )
         }
 
@@ -299,7 +300,104 @@ final class SpansPayloadBuilderTests: XCTestCase {
         let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
 
         // then the spans are retrieved correctly
-        XCTAssertEqual(closed.count, 1001) // 1000 spans + session span
+        XCTAssertEqual(closed.count, 501) // 1000 spans + session span
+        XCTAssertEqual(closed[0].name, "emb-session") // session span always first
+        XCTAssertEqual(open.count, 0)
+    }
+
+    func test_hardLimit_Type_UX() throws {
+        // given more than 1500 spans
+        for _ in 1...1800 {
+            _ = try addSpan(
+                startTime: Date(timeIntervalSince1970: 55),
+                endTime: Date(timeIntervalSince1970: 60),
+                type: .ux
+            )
+        }
+
+        // when building the spans payload
+        let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
+
+        // then the spans are retrieved correctly
+        XCTAssertEqual(closed.count, 1501) // 1000 spans + session span
+        XCTAssertEqual(closed[0].name, "emb-session") // session span always first
+        XCTAssertEqual(open.count, 0)
+    }
+
+    func test_hardLimit_Type_System() throws {
+        // given more than 1500 spans
+        for _ in 1...1800 {
+            _ = try addSpan(
+                startTime: Date(timeIntervalSince1970: 55),
+                endTime: Date(timeIntervalSince1970: 60),
+                type: .system
+            )
+        }
+
+        // when building the spans payload
+        let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
+
+        // then the spans are retrieved correctly
+        XCTAssertEqual(closed.count, 1501) // 1000 spans + session span
+        XCTAssertEqual(closed[0].name, "emb-session") // session span always first
+        XCTAssertEqual(open.count, 0)
+    }
+
+    func test_hardLimits() throws {
+        // given more than 800 spans
+        for _ in 1...850 {
+            _ = try addSpan(
+                startTime: Date(timeIntervalSince1970: 55),
+                endTime: Date(timeIntervalSince1970: 60),
+                type: .init(ux: "Test_1")
+            )
+        }
+
+        for _ in 1...850 {
+            _ = try addSpan(
+                startTime: Date(timeIntervalSince1970: 55),
+                endTime: Date(timeIntervalSince1970: 60),
+                type: .init(ux: "Test_2")
+            )
+        }
+
+        for _ in 1...850 {
+            _ = try addSpan(
+                startTime: Date(timeIntervalSince1970: 55),
+                endTime: Date(timeIntervalSince1970: 60),
+                type: .init(system: "Test_1")
+            )
+        }
+
+        for _ in 1...850 {
+            _ = try addSpan(
+                startTime: Date(timeIntervalSince1970: 55),
+                endTime: Date(timeIntervalSince1970: 60),
+                type: .init(system: "Test_2")
+            )
+        }
+
+        for _ in 1...850 {
+            _ = try addSpan(
+                startTime: Date(timeIntervalSince1970: 55),
+                endTime: Date(timeIntervalSince1970: 60),
+                type: .init(performance: "Test_1")
+            )
+        }
+
+        for _ in 1...550 {
+            _ = try addSpan(
+                startTime: Date(timeIntervalSince1970: 55),
+                endTime: Date(timeIntervalSince1970: 60),
+                type: .performance
+            )
+        }
+
+        // when building the spans payload
+        let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
+
+        // then the spans are retrieved correctly
+        XCTAssertEqual(closed.count, 4751) // 8000 spans + session span
         XCTAssertEqual(closed[0].name, "emb-session") // session span always first
         XCTAssertEqual(open.count, 0)
     }

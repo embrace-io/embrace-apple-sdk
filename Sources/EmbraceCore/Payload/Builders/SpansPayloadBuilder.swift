@@ -12,8 +12,6 @@ import OpenTelemetrySdk
 
 class SpansPayloadBuilder {
 
-    static let spanCountLimit = 1000
-
     class func build(
         for session: EmbraceSession,
         storage: EmbraceStorage,
@@ -24,7 +22,7 @@ class SpansPayloadBuilder {
 
         // fetch spans that started during the session
         // ignore spans where emb.type == session
-        let records = storage.fetchSpans(for: session, ignoreSessionSpans: true, limit: spanCountLimit)
+        let records = storage.fetchSpans(for: session, ignoreSessionSpans: true)
 
         // decode spans and separate them by closed/open
         var spans: [SpanPayload] = []
