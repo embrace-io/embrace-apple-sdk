@@ -74,14 +74,6 @@ public class SingleSpanProcessor: SpanProcessor {
             return
         }
 
-        // Prevent exporting our session spans on end.
-        // This process is handled by the `SessionController` to prevent
-        // race conditions when a session ends and its payload gets built.
-        if let spanType = span.getAttributes()[SpanSemantics.keyEmbraceType]?.description,
-           spanType == SpanType.session.rawValue {
-            return
-        }
-
         var data = span.toSpanData()
         if data.hasEnded && data.status == .unset {
             if let errorCode = data.errorCode {

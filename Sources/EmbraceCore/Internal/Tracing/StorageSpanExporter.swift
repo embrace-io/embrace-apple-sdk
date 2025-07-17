@@ -7,6 +7,7 @@ import Foundation
 import EmbraceStorageInternal
 import EmbraceOTelInternal
 import EmbraceCommonInternal
+import EmbraceSemantics
 #endif
 import OpenTelemetrySdk
 
@@ -39,6 +40,14 @@ class StorageSpanExporter: SpanExporter {
 
                     // spanData endTime is non-optional and will be set during `toSpanData()`
                     let endTime = spanData.hasEnded ? spanData.endTime : nil
+
+                    // Prevent exporting our session spans on end.
+                    // This process is handled by the `SessionController` to prevent
+                    // race conditions when a session ends and its payload gets built.
+                    if endTime != nil &&
+                       spanData.attributes[SpanSemantics.keyEmbraceType]?.description == SpanType.session.rawValue {
+                        continue
+                    }
 
                     storage.upsertSpan(
                         id: spanData.spanId.hexString,

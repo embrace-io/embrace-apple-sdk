@@ -205,7 +205,7 @@ class SessionController: SessionControllable {
             // end span
             if let currentSessionSpan {
                 // Ending span for otel processors
-                // Note: our processor wont trigger an update on the stored span
+                // Note: our exporter wont trigger an update on the stored span
                 // to prevent race conditions.
                 currentSessionSpan.end(time: now)
 
