@@ -109,32 +109,26 @@ class EmbraceUploadCache {
 
         var result = false
 
-        // update if it already exists
-        let request = fetchUploadDataRequest(id: id, type: type)
-        coreData.fetchFirstAndPerform(withRequest: request) { [weak self] record in
-            guard let uploadData = record else {
-                return
-            }
+        coreData.performOperation { context in
 
-            uploadData.data = data
-
+            // update if it already exists
+            let request = fetchUploadDataRequest(id: id, type: type)
             do {
-                try self?.coreData.context.save()
-                result = true
+                if let uploadData = try context.fetch(request).first {
+                    uploadData.data = data
+                    try context.save()
+
+                    result = true
+                    return
+                }
             } catch {
-                self?.logger.warning("Error upading upload data:\n\(error.localizedDescription)")
+                logger.warning("Error upading upload data:\n\(error.localizedDescription)")
             }
-        }
 
-        if result {
-            return true
-        }
+            // check limit and delete if necessary
+            checkCountLimit(context)
 
-        // check limit and delete if necessary
-        checkCountLimit()
-
-        // insert new
-        coreData.performOperation("CreateUploadData") { context in
+            // insert new
             if let record = UploadDataRecord.create(
                 context: context,
                 id: id,
@@ -158,34 +152,28 @@ class EmbraceUploadCache {
 
     // Checks the amount of records stored and deletes the oldest ones if the total amount
     // surpasses the limit.
-    func checkCountLimit() {
+    func checkCountLimit(_ context: NSManagedObjectContext) {
         guard options.cacheLimit > 0 else {
             return
         }
 
-        coreData.performOperation { [weak self] context in
-            guard let self else {
-                return
-            }
+        do {
+            let request = NSFetchRequest<UploadDataRecord>(entityName: UploadDataRecord.entityName)
+            let count = try context.count(for: request)
 
-            do {
-                let request = NSFetchRequest<UploadDataRecord>(entityName: UploadDataRecord.entityName)
-                let count = try context.count(for: request)
+            if count >= self.options.cacheLimit {
+                request.sortDescriptors = [NSSortDescriptor(key: "date", ascending: true)]
+                request.fetchLimit = max(0, count - Int(self.options.cacheLimit) + 10)
 
-                if count >= self.options.cacheLimit {
-                    request.sortDescriptors = [NSSortDescriptor(key: "date", ascending: true)]
-                    request.fetchLimit = max(0, count - Int(self.options.cacheLimit) + 10)
-
-                    let result = try context.fetch(request)
-                    for uploadData in result {
-                        context.delete(uploadData)
-                    }
-
-                    try context.save()
+                let result = try context.fetch(request)
+                for uploadData in result {
+                    context.delete(uploadData)
                 }
-            } catch { 
-                logger.error("error checking count limit:\n\(error.localizedDescription)")
+
+                try context.save()
             }
+        } catch {
+            logger.error("error checking count limit:\n\(error.localizedDescription)")
         }
     }
 
