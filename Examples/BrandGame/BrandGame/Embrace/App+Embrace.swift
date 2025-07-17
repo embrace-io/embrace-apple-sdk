@@ -7,10 +7,10 @@ import StdoutExporter
 
 extension BrandGameApp {
 #if DEBUG
-    // https://dash.embrace.io/app/AK5HV
+    // https://dash.embrace.io/app/dcdt4
     var embraceOptions: Embrace.Options {
         return .init(
-            appId: "AK5HV",
+            appId: "dcdt4",
             appGroupId: nil,
             platform: .default,
             endpoints: Embrace.Endpoints.fromInfoPlist(),
