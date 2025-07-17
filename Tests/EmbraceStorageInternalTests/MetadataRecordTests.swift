@@ -862,7 +862,7 @@ class MetadataRecordTests: XCTestCase {
             key: "test5",
             value: "test",
             type: .personaTag,
-            lifespan: .permanent,
+            lifespan: .permanent
         )
         storage.addMetadata(
             key: "test6",
@@ -936,7 +936,7 @@ class MetadataRecordTests: XCTestCase {
             key: "test5",
             value: "test",
             type: .personaTag,
-            lifespan: .permanent,
+            lifespan: .permanent
         )
         storage.addMetadata(
             key: "test6",
@@ -1010,7 +1010,7 @@ class MetadataRecordTests: XCTestCase {
             key: "test5",
             value: "test",
             type: .personaTag,
-            lifespan: .permanent,
+            lifespan: .permanent
         )
         storage.addMetadata(
             key: "test6",
