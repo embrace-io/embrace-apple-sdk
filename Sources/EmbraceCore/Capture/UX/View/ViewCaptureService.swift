@@ -8,6 +8,7 @@ import SwiftUI
 import EmbraceCaptureService
 import EmbraceCommonInternal
 import EmbraceOTelInternal
+import EmbraceConfigInternal
 #endif
 import OpenTelemetryApi
 import Foundation
@@ -28,6 +29,8 @@ public final class ViewCaptureService: CaptureService, UIViewControllerHandlerDa
     var instrumentFirstRender: Bool {
         return options.instrumentFirstRender && Embrace.client?.config.isUiLoadInstrumentationEnabled == true
     }
+
+    var blockList: ViewControllerBlockList
 
     @objc public convenience init(options: ViewCaptureService.Options) {
         self.init(options: options, lock: NSLock())
@@ -51,6 +54,34 @@ public final class ViewCaptureService: CaptureService, UIViewControllerHandlerDa
         self.swizzlerCache = swizzlerCache
         self.bundlePath = bundle.bundlePath
         self.lock = lock
+        self.blockList = options.viewControllerBlockList
+
+        super.init()
+
+        Embrace.notificationCenter.addObserver(
+            self,
+            selector: #selector(onConfigUpdated),
+            name: .embraceConfigUpdated, object: nil
+        )
+        updateBlockList(config: Embrace.client?.config)
+    }
+
+    deinit {
+        Embrace.notificationCenter.removeObserver(self)
+    }
+
+    @objc private func onConfigUpdated(_ notification: Notification) {
+        let config = notification.object as? EmbraceConfig
+        updateBlockList(config: config)
+    }
+
+    private func updateBlockList(config: EmbraceConfig?) {
+        if let list = config?.uiInstrumentationBlockList {
+            let blockHostingControllers = config?.uiInstrumentationCaptureHostingControllers ?? true
+            blockList = ViewControllerBlockList(names: list, blockHostingControllers: blockHostingControllers)
+        } else {
+            blockList = options.viewControllerBlockList
+        }
     }
 
     func onViewBecameInteractive(_ vc: UIViewController) {

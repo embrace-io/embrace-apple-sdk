@@ -11,6 +11,12 @@ public class DefaultConfig: EmbraceConfigurable {
 
     public let isUiLoadInstrumentationEnabled: Bool = false
 
+    public let uiInstrumentationBlockList: [String] = []
+
+    public let uiInstrumentationCaptureHostingControllers: Bool = false
+
+    public let isSwiftUiViewInstrumentationEnabled: Bool = true
+
     public let isMetricKitEnabled: Bool = false
 
     public var isMetricKitInstrumentationEnabled: Bool = false
@@ -20,8 +26,6 @@ public class DefaultConfig: EmbraceConfigurable {
     public var metricKitCrashSignals: [String] = []
 
     public var isMetricKitHangCaptureEnabled: Bool = false
-
-    public let isSwiftUiViewInstrumentationEnabled: Bool = false
 
     public let spanEventsLimits = SpanEventsLimits()
 

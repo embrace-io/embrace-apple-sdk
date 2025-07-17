@@ -105,6 +105,18 @@ extension EmbraceConfig /* EmbraceConfigurable delegation */ {
         configurable.isUiLoadInstrumentationEnabled
     }
 
+    public var uiInstrumentationBlockList: [String] {
+        configurable.uiInstrumentationBlockList
+    }
+
+    public var uiInstrumentationCaptureHostingControllers: Bool {
+        configurable.uiInstrumentationCaptureHostingControllers
+    }
+
+    public var isSwiftUiViewInstrumentationEnabled: Bool {
+        return configurable.isSwiftUiViewInstrumentationEnabled
+    }
+
     public var isMetrickKitEnabled: Bool {
         configurable.isMetricKitEnabled
     }
@@ -121,10 +133,6 @@ extension EmbraceConfig /* EmbraceConfigurable delegation */ {
 
     public var isMetricKitHangCaptureEnabled: Bool {
         configurable.isMetricKitHangCaptureEnabled
-    }
-
-    public var isSwiftUiViewInstrumentationEnabled: Bool {
-        return configurable.isSwiftUiViewInstrumentationEnabled
     }
 
     public var spanEventsLimits: SpanEventsLimits {
