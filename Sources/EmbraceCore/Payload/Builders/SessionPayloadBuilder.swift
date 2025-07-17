@@ -25,7 +25,7 @@ class SessionPayloadBuilder {
             for: session,
             storage: storage,
             customProperties: properties,
-            sessionNumber: counter,
+            sessionNumber: counter
         )
 
         // build resources payload
