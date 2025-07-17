@@ -26,6 +26,12 @@ class EmbraceUploadCache {
             try? FileManager.default.removeItem(at: url)
         }
 
+        // remove active cache if needed
+        if options.resetCache,
+           let cacheUrl = options.storageMechanism.fileURL {
+            try? FileManager.default.removeItem(at: cacheUrl)
+        }
+
         // create core data stack
         let coreDataOptions = CoreDataWrapper.Options(
             storageMechanism: options.storageMechanism,

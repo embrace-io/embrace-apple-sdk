@@ -337,6 +337,9 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
 
                     // retry any remaining cached upload data
                     self?.upload?.retryCachedData()
+
+                    // remove old versions data
+                    self?.cleanUpOldVersionsData()
                 }
 
                 if let appId = options.appId {
@@ -424,6 +427,11 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         processingQueue.async {
             self.sessionLifecycle.endSession()
         }
+    }
+
+    /// Call this if you want the Embrace SDK to clear the upload cache data on the next launch.
+    @objc public func resetUploadCache() {
+        Embrace.resetUploadCache = true
     }
 
     /// Called every time the remote config changes

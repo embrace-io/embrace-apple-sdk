@@ -14,6 +14,7 @@ import EmbraceUploadInternal
 import OpenTelemetryApi
 
 extension Embrace {
+
     static func createStorage(options: Embrace.Options) throws -> EmbraceStorage {
 
         let partitionId = options.appId ?? EmbraceFileSystem.defaultPartitionId
@@ -66,7 +67,9 @@ extension Embrace {
             name: "EmbraceUploadStorage",
             baseURL: cacheUrl
         )
-        let cache = EmbraceUpload.CacheOptions(storageMechanism: storageMechanism)
+
+        let cache = EmbraceUpload.CacheOptions(storageMechanism: storageMechanism, resetCache: resetUploadCache)
+        resetUploadCache = false
 
         // metadata
         let metadata = EmbraceUpload.MetadataOptions(
@@ -95,6 +98,12 @@ extension Embrace {
         ManualSessionLifecycle(controller: controller)
     }
 #endif
+
+    static let resetUploadCacheKey = "emb.reset-upload-cache"
+    static var resetUploadCache: Bool {
+        get { UserDefaults.standard.bool(forKey: Embrace.resetUploadCacheKey) }
+        set { UserDefaults.standard.set(newValue, forKey: Embrace.resetUploadCacheKey)}
+    }
 }
 
 /// Extension to handle observability of SDK startup
@@ -121,5 +130,20 @@ extension Embrace {
             .startSpan()
             .end()
     }
+}
 
+extension Embrace {
+    func cleanUpOldVersionsData() {
+        let urls = EmbraceFileSystem.oldVersionsDirectories()
+
+        for url in urls {
+            if FileManager.default.fileExists(atPath: url.path) {
+                do {
+                    try FileManager.default.removeItem(at: url)
+                } catch {
+                    Embrace.logger.error("Error removing data from an old version!:\n\(error)")
+                }
+            }
+        }
+    }
 }
