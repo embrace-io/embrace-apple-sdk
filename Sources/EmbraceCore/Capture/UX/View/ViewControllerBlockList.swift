@@ -40,7 +40,7 @@ public class ViewControllerBlockList: NSObject {
             return false
         }
 
-        if name(for: vc).contains("HOSTINGCONTROLLER") {
+        if vc is EmbraceIdentifiableHostingController {
             return true
         }
 
@@ -56,6 +56,10 @@ public class ViewControllerBlockList: NSObject {
         NSStringFromClass(type(of: vc)).uppercased()
     }
 }
+
+/// This protocol is solely used to identify `UIHostingControllers` and subclasses of it
+protocol EmbraceIdentifiableHostingController: AnyObject { }
+extension UIHostingController: EmbraceIdentifiableHostingController { }
 
 
 #endif

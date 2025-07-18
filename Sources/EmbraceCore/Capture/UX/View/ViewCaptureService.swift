@@ -9,6 +9,7 @@ import EmbraceCaptureService
 import EmbraceCommonInternal
 import EmbraceOTelInternal
 import EmbraceConfigInternal
+import EmbraceConfiguration
 #endif
 import OpenTelemetryApi
 import Foundation
@@ -63,7 +64,7 @@ public final class ViewCaptureService: CaptureService, UIViewControllerHandlerDa
             selector: #selector(onConfigUpdated),
             name: .embraceConfigUpdated, object: nil
         )
-        updateBlockList(config: Embrace.client?.config)
+        updateBlockList(config: Embrace.client?.config.configurable)
     }
 
     deinit {
@@ -71,11 +72,11 @@ public final class ViewCaptureService: CaptureService, UIViewControllerHandlerDa
     }
 
     @objc private func onConfigUpdated(_ notification: Notification) {
-        let config = notification.object as? EmbraceConfig
+        let config = notification.object as? EmbraceConfigurable
         updateBlockList(config: config)
     }
 
-    private func updateBlockList(config: EmbraceConfig?) {
+    private func updateBlockList(config: EmbraceConfigurable?) {
         if let list = config?.uiInstrumentationBlockList {
             let blockHostingControllers = config?.uiInstrumentationCaptureHostingControllers ?? true
             blockList = ViewControllerBlockList(names: list, blockHostingControllers: blockHostingControllers)

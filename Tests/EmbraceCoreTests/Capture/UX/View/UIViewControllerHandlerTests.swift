@@ -151,6 +151,64 @@ class UIViewControllerHandlerTests: XCTestCase {
         }
     }
 
+    func test_onViewDidLoad_vcBlocked_byType() {
+        // given a handler with a block list
+        dataSource.blockList = ViewControllerBlockList(types: [MockViewController.self])
+
+        // when view did load is called
+        let vc = MockViewController()
+        handler.onViewDidLoadStart(vc)
+
+        // then no spans are created
+        wait {
+            return self.otel.spanProcessor.startedSpans.count == 0
+        }
+    }
+
+    func test_onViewDidLoad_vcBlocked_byName() {
+        // given a handler with a block list
+        dataSource.blockList = ViewControllerBlockList(names: ["Mock"])
+
+        // when view did load is called
+        let vc = MockViewController()
+        handler.onViewDidLoadStart(vc)
+
+        // then no spans are created
+        wait {
+            return self.otel.spanProcessor.startedSpans.count == 0
+        }
+    }
+
+    func test_onViewDidLoad_vcBlocked_hostingController() {
+        // given a handler with a block list
+        dataSource.blockList = ViewControllerBlockList(blockHostingControllers: true)
+
+        // when view did load is called
+        let vc = TestHostingSubclassController(rootView: TestView())
+        handler.onViewDidLoadStart(vc)
+
+        // then no spans are created
+        wait {
+            return self.otel.spanProcessor.startedSpans.count == 0
+        }
+    }
+
+    func test_onViewDidLoad_vcBlocked_hostingControllerChild() {
+        // given a handler with a block list
+        dataSource.blockList = ViewControllerBlockList(blockHostingControllers: true)
+
+        // when view did load is called
+        let parent = TestHostingSubclassController(rootView: TestView())
+        let vc = MockViewController()
+        parent.addChild(vc)
+        handler.onViewDidLoadStart(vc)
+
+        // then no spans are created
+        wait {
+            return self.otel.spanProcessor.startedSpans.count == 0
+        }
+    }
+
     func test_onViewDidAppear_instrumentationDisabled() {
         // given a handler with instrumentation disabled
         dataSource.instrumentVisibility = false

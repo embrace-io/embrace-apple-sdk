@@ -9,7 +9,7 @@ public class DefaultConfig: EmbraceConfigurable {
 
     public let isNetworkSpansForwardingEnabled: Bool = false
 
-    public let isUiLoadInstrumentationEnabled: Bool = false
+    public let isUiLoadInstrumentationEnabled: Bool = true
 
     public let uiInstrumentationBlockList: [String] = []
 
