@@ -101,7 +101,7 @@ import Foundation
         label: "com.embrace.synchronization",
         qos: .utility,
         autoreleaseFrequency: .workItem,
-        target: .global(qos: .utility)
+        target: .global(qos: .userInitiated)
     )
 
     static let notificationCenter: NotificationCenter = NotificationCenter()
@@ -125,14 +125,16 @@ import Foundation
         if ProcessInfo.processInfo.isSwiftUIPreview {
             throw EmbraceSetupError.initializationNotAllowed("Embrace cannot be initialized on SwiftUI Previews")
         }
-
+        
+        let setupTime = Date()
+        
         return try Embrace.synchronizationQueue.sync {
             if let client = client {
                 Embrace.logger.warning("Embrace was already initialized!")
                 return client
             }
 
-            EMBStartupTracker.shared().sdkSetupStartTime = Date()
+            EMBStartupTracker.shared().sdkSetupStartTime = setupTime
 
             try options.validate()
 
@@ -364,7 +366,7 @@ import Foundation
             throw EmbraceSetupError.invalidThread("Embrace must be stopped on the main thread")
         }
 
-        Embrace.synchronizationQueue.sync {
+        Embrace.synchronizationQueue.async { [self] in
             guard state != .stopped else {
                 Embrace.logger.warning("Embrace was already stopped!")
                 return
