@@ -31,7 +31,7 @@ struct EmbraceInitScreenViewModel {
     var formFields: [EmbraceInitScreenFormSection] = [
         .init(name: "APP ID",
               items: [.init(name: "APP ID",
-                            value: "AK5HV")]),
+                            value: "dcdt4")]),
         .init(name: "API Base URL",
               items: [.init(name: "Base URL",
                             value: "http://127.0.0.1:8989/api")]),
