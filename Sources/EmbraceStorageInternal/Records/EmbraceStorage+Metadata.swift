@@ -146,20 +146,15 @@ extension EmbraceStorage {
         lifespan: MetadataRecordLifespan,
         lifespanId: String = ""
     ) -> EmbraceMetadata? {
-
-        var result: EmbraceMetadata?
-
         coreData.performOperation { context in
             // fetch existing metadata
             let request = fetchMetadataRequest(key: key, type: type, lifespan: lifespan, lifespanId: lifespanId)
             guard let metadata = fetchMetadata(request: request, context: context) else {
-                return
+                return nil
             }
 
-            result = metadata.toImmutable()
+            return metadata.toImmutable()
         }
-
-        return result
     }
 
     /// Updates the `MetadataRecord` for the given key, type and lifespan with a new given value.
@@ -172,20 +167,15 @@ extension EmbraceStorage {
         lifespan: MetadataRecordLifespan,
         lifespanId: String
     ) -> EmbraceMetadata? {
-
-        var result: EmbraceMetadata?
-
         coreData.performOperation(save: true) { context in
             // fetch existing metadata
             let request = fetchMetadataRequest(key: key, type: type, lifespan: lifespan, lifespanId: lifespanId)
             guard let metadata = fetchMetadata(request: request, context: context) else {
-                return
+                return nil
             }
             metadata.value = value
-            result = metadata.toImmutable()
+            return metadata.toImmutable()
         }
-
-        return result
     }
 
     /// Removes all `MetadataRecords` that don't correspond to the given session and process ids.
@@ -279,32 +269,29 @@ extension EmbraceStorage {
     /// Increments the numeric value by 1 of a permanent resource for the given key.
     /// If no record exists it will create one with a value of 1.
     public func incrementCountForPermanentResource(key: String) -> Int {
-
-        var result: Int = 1
-
         coreData.performOperation(save: true) { context in
             // fetch existing metadata
             let request = fetchMetadataRequest(key: key, type: .requiredResource, lifespan: .permanent)
 
             // update it if it exists
             if let metadata = fetchMetadata(request: request, context: context) {
-                result = (Int(metadata.value) ?? 0) + 1
-                metadata.value = String(result)
-
+                let val = (Int(metadata.value) ?? 0) + 1
+                metadata.value = String(val)
+                return val
             // create it with a value of 1 if it doesn't exist
             } else {
+                let val = 1
                 _ = MetadataRecord.create(
                     context: context,
                     key: key,
-                    value: "1",
+                    value: String(val),
                     type: .requiredResource,
                     lifespan: .permanent,
                     lifespanId: ""
                 )
+                return val
             }
         }
-
-        return result
     }
 
     /// Returns immutable copies of all records with types `.requiredResource` or `.resource`

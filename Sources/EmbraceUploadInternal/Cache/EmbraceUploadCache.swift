@@ -107,8 +107,6 @@ class EmbraceUploadCache {
     /// - Returns: Boolean indicating if the operation was successful
     @discardableResult func saveUploadData(id: String, type: EmbraceUploadType, data: Data) -> Bool {
 
-        var result = false
-
         coreData.performOperation { context in
 
             // update if it already exists
@@ -117,9 +115,7 @@ class EmbraceUploadCache {
                 if let uploadData = try context.fetch(request).first {
                     uploadData.data = data
                     try context.save()
-
-                    result = true
-                    return
+                    return true
                 }
             } catch {
                 logger.warning("Error upading upload data:\n\(error.localizedDescription)")
@@ -140,14 +136,13 @@ class EmbraceUploadCache {
 
                 do {
                     try context.save()
-                    result = true
+                    return true
                 } catch {
                     context.delete(record)
                 }
             }
+            return false
         }
-
-        return result
     }
 
     // Checks the amount of records stored and deletes the oldest ones if the total amount
