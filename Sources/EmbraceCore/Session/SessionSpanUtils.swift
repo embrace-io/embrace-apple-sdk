@@ -35,10 +35,6 @@ struct SessionSpanUtils {
         span?.setAttribute(key: SpanSemantics.Session.keyTerminated, value: terminated)
     }
 
-    static func setCleanExit(span: Span?, cleanExit: Bool) {
-        span?.setAttribute(key: SpanSemantics.Session.keyCleanExit, value: cleanExit)
-    }
-
     static func payload(
         from session: EmbraceSession,
         spanData: SpanData? = nil,

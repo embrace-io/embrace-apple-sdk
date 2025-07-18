@@ -23,7 +23,7 @@ class SpanRecordTests: XCTestCase {
         storage.upsertSpan(
             id: "id",
             name: "a name",
-            traceId: "tradeId",
+            traceId: "traceId",
             type: .performance,
             data: Data(),
             startTime: Date()
@@ -33,6 +33,51 @@ class SpanRecordTests: XCTestCase {
         let spans: [SpanRecord] = storage.fetchAll()
         XCTAssertEqual(spans.count, 1)
         XCTAssertEqual(spans[0].id, "id")
+    }
+
+    func test_endSpan() throws {
+        // given inserted span
+        storage.upsertSpan(
+            id: "id",
+            name: "a name",
+            traceId: "traceId",
+            type: .performance,
+            data: Data(),
+            startTime: Date()
+        )
+
+        // when ending the span
+        storage.endSpan(id: "id", traceId: "traceId", endTime: Date())
+
+        // then span should be updated correctly
+        let spans: [SpanRecord] = storage.fetchAll()
+        XCTAssertEqual(spans.count, 1)
+        XCTAssertEqual(spans[0].id, "id")
+        XCTAssertNotNil(spans[0].endTime)
+    }
+
+    func test_endSpan_alreadyEnded() throws {
+        // given inserted span with an end time
+        let originalDate = Date(timeIntervalSince1970: 1)
+        storage.upsertSpan(
+            id: "id",
+            name: "a name",
+            traceId: "traceId",
+            type: .performance,
+            data: Data(),
+            startTime: Date(),
+            endTime: originalDate
+        )
+
+        // when attempting to end the span again
+        let date = Date(timeIntervalSince1970: 123)
+        storage.endSpan(id: "id", traceId: "traceId", endTime: date)
+
+        // then span should not be updated
+        let spans: [SpanRecord] = storage.fetchAll()
+        XCTAssertEqual(spans.count, 1)
+        XCTAssertEqual(spans[0].id, "id")
+        XCTAssertEqual(spans[0].endTime!.timeIntervalSince1970, originalDate.timeIntervalSince1970, accuracy: 0.01)
     }
 
     func test_fetchSpan() throws {

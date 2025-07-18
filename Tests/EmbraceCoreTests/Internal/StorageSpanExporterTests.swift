@@ -118,4 +118,63 @@ final class StorageSpanExporterTests: XCTestCase {
         let spanData = try JSONDecoder().decode(SpanData.self, from: exportedSpan!.data)
         XCTAssertEqual(spanData.attributes, ["foo": .string("baz")])
     }
+
+    func test_noExport_onSessionEnd() throws {
+        // given an exporter
+        let storage = try EmbraceStorage.createInMemoryDb()
+        let sessionController = MockSessionController()
+        sessionController.startSession(state: .foreground)
+        let exporter = StorageSpanExporter(options: .init(storage: storage, sessionController: sessionController), logger: MockLogger())
+
+        let traceId = TraceId.random()
+        let spanId = SpanId.random()
+        let name = "target_span"
+
+        let startTime = Date()
+        let endTime = startTime.addingTimeInterval(2000)
+
+        let openSessionSpan = SpanData(
+            traceId: traceId,
+            spanId: spanId,
+            parentSpanId: nil,
+            name: name,
+            kind: .internal,
+            startTime: startTime,
+            attributes: ["emb.type": .string("ux.session")],
+            endTime: endTime,
+            hasEnded: false
+        )
+
+        let closedSessionSpan = SpanData(
+            traceId: traceId,
+            spanId: spanId,
+            parentSpanId: nil,
+            name: name,
+            kind: .internal,
+            startTime: startTime,
+            attributes: ["emb.type": .string("ux.session")],
+            endTime: endTime,
+            hasEnded: true
+        )
+
+        // when an open session span is exported
+        _ = exporter.export(spans: [openSessionSpan])
+
+        // then the data is exported
+        var exportedSpans: [SpanRecord] = storage.fetchAll()
+        XCTAssertTrue(exportedSpans.count == 1)
+        XCTAssertEqual(exportedSpans[0].traceId, traceId.hexString)
+        XCTAssertEqual(exportedSpans[0].id, spanId.hexString)
+        XCTAssertNil(exportedSpans[0].endTime)
+
+        // when a closed session span is exported
+        _ = exporter.export(spans: [closedSessionSpan])
+
+        // then the data is NOT exported
+        exportedSpans = storage.fetchAll()
+        XCTAssertTrue(exportedSpans.count == 1)
+        XCTAssertEqual(exportedSpans[0].traceId, traceId.hexString)
+        XCTAssertEqual(exportedSpans[0].id, spanId.hexString)
+        XCTAssertNil(exportedSpans[0].endTime)
+    }
 }

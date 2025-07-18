@@ -329,19 +329,15 @@ extension EmbraceStorage {
         return result
     }
 
-    /// Returns immutable copies of all records with types `.requiredResource` or `.resource` that are tied to a given session id
-    public func fetchResourcesForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata] {
-
-        guard let session = fetchSession(id: sessionId) else {
-            return []
-        }
+    /// Returns immutable copies of all records with types `.requiredResource` or `.resource` that are tied to a given session id or process id
+    public func fetchResources(sessionId: String, processId: String) -> [EmbraceMetadata] {
 
         let request = MetadataRecord.createFetchRequest()
         request.predicate = NSCompoundPredicate(
             type: .and,
             subpredicates: [
                 resourcePredicate(),
-                lifespanPredicate(session: session)
+                lifespanPredicate(sessionId: sessionId, processId: processId)
             ]
         )
 
@@ -358,6 +354,15 @@ extension EmbraceStorage {
         return result
     }
 
+    /// Returns immutable copies of all records with types `.requiredResource` or `.resource` that are tied to a given session id
+    public func fetchResourcesForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata] {
+        guard let session = fetchSession(id: sessionId) else {
+            return []
+        }
+
+        return fetchResources(sessionId: session.idRaw, processId: session.processIdRaw)
+    }
+
     /// Returns immutable copies of all records with types `.requiredResource` or `.resource` that are tied to a given process id
     public func fetchResourcesForProcessId(_ processId: ProcessIdentifier) -> [EmbraceMetadata] {
 
@@ -366,7 +371,31 @@ extension EmbraceStorage {
             type: .and,
             subpredicates: [
                 resourcePredicate(),
-                lifespanPredicate(processId: processId)
+                lifespanPredicate(processId: processId.hex)
+            ]
+        )
+
+        // fetch
+        var result: [EmbraceMetadata] = []
+        coreData.fetchAndPerform(withRequest: request) { records in
+
+            // convert to immutable structs
+            result = records.map {
+                $0.toImmutable()
+            }
+        }
+
+        return result
+    }
+
+    /// Returns immutable copies of all records of the `.customProperty` type that are tied to a given session id and process id
+    public func fetchCustomProperties(sessionId: String, processId: String) -> [EmbraceMetadata] {
+        let request = MetadataRecord.createFetchRequest()
+        request.predicate = NSCompoundPredicate(
+            type: .and,
+            subpredicates: [
+                customPropertyPredicate(),
+                lifespanPredicate(sessionId: sessionId, processId: processId)
             ]
         )
 
@@ -389,12 +418,17 @@ extension EmbraceStorage {
             return []
         }
 
+        return fetchCustomProperties(sessionId: session.idRaw, processId: session.processIdRaw)
+    }
+
+    /// Returns immutable copies of all records of the `.personaTag` type that are tied to a given session id and process id
+    public func fetchPersonaTags(sessionId: String, processId: String) -> [EmbraceMetadata] {
         let request = MetadataRecord.createFetchRequest()
         request.predicate = NSCompoundPredicate(
             type: .and,
             subpredicates: [
-                customPropertyPredicate(),
-                lifespanPredicate(session: session)
+                personaTagPredicate(),
+                lifespanPredicate(sessionId: sessionId, processId: processId)
             ]
         )
 
@@ -417,26 +451,7 @@ extension EmbraceStorage {
             return []
         }
 
-        let request = MetadataRecord.createFetchRequest()
-        request.predicate = NSCompoundPredicate(
-            type: .and,
-            subpredicates: [
-                personaTagPredicate(),
-                lifespanPredicate(session: session)
-            ]
-        )
-
-        // fetch
-        var result: [EmbraceMetadata] = []
-        coreData.fetchAndPerform(withRequest: request) { records in
-
-            // convert to immutable structs
-            result = records.map {
-                $0.toImmutable()
-            }
-        }
-
-        return result
+        return fetchPersonaTags(sessionId: session.idRaw, processId: session.processIdRaw)
     }
 
     /// Returns immutable copies of all records of the `.personaTag` type that are tied to a given process id
@@ -447,7 +462,7 @@ extension EmbraceStorage {
             type: .and,
             subpredicates: [
                 personaTagPredicate(),
-                lifespanPredicate(processId: processId)
+                lifespanPredicate(processId: processId.hex)
             ]
         )
 
@@ -518,18 +533,18 @@ extension EmbraceStorage {
         return NSPredicate(format: "typeRaw == %@", MetadataRecordType.personaTag.rawValue)
     }
 
-    private func lifespanPredicate(session: EmbraceSession) -> NSPredicate {
+    private func lifespanPredicate(sessionId: String, processId: String) -> NSPredicate {
         // match the session id
         let sessionIdPredicate = NSPredicate(
             format: "lifespanRaw == %@ AND lifespanId == %@",
             MetadataRecordLifespan.session.rawValue,
-            session.idRaw
+            sessionId
         )
         // or match the process id
         let processIdPredicate = NSPredicate(
             format: "lifespanRaw == %@ AND lifespanId == %@",
             MetadataRecordLifespan.process.rawValue,
-            session.processIdRaw
+            processId
         )
         // or are permanent
         let permanentPredicate = NSPredicate(
@@ -547,12 +562,12 @@ extension EmbraceStorage {
         )
     }
 
-    private func lifespanPredicate(processId: ProcessIdentifier) -> NSPredicate {
+    private func lifespanPredicate(processId: String) -> NSPredicate {
         // match the process id
         let processIdPredicate = NSPredicate(
             format: "lifespanRaw == %@ AND lifespanId == %@",
             MetadataRecordLifespan.process.rawValue,
-            processId.hex
+            processId
         )
         // or are permanent
         let permanentPredicate = NSPredicate(

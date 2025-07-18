@@ -202,9 +202,22 @@ class SessionController: SessionControllable {
             // end log batches
             logBatcher?.forceEndCurrentBatch(waitUntilFinished: true)
 
-            currentSessionSpan?.end(time: now)
-            SessionSpanUtils.setCleanExit(span: currentSessionSpan, cleanExit: true)
+            // end span
+            if let currentSessionSpan {
+                // Ending span for otel processors
+                // Note: our exporter wont trigger an update on the stored span
+                // to prevent race conditions.
+                currentSessionSpan.end(time: now)
 
+                // Manually updating the span record synchronously.
+                storage?.endSpan(
+                    id: currentSessionSpan.context.spanId.hexString,
+                    traceId: currentSessionSpan.context.traceId.hexString,
+                    endTime: now
+                )
+            }
+
+            // update session end time and clean exit
             if let sessionId = session.id {
                 currentSession = storage?.updateSession(sessionId: sessionId, endTime: now, cleanExit: true)
             }
@@ -213,9 +226,6 @@ class SessionController: SessionControllable {
             if session.state == SessionState.foreground.rawValue {
                 Embrace.notificationCenter.post(name: .embraceForegroundSessionDidEnd, object: now)
             }
-
-            // save session record
-            save()
 
             // upload session
             uploadSession()
