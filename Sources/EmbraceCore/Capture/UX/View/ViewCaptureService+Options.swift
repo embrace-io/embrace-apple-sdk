@@ -34,7 +34,7 @@ extension ViewCaptureService {
         @objc public init(
             instrumentVisibility: Bool,
             instrumentFirstRender: Bool,
-            viewControllerBlockList: ViewControllerBlockList
+            viewControllerBlockList: ViewControllerBlockList = ViewControllerBlockList()
         ) {
             self.instrumentVisibility = instrumentVisibility
             self.instrumentFirstRender = instrumentFirstRender
@@ -44,8 +44,7 @@ extension ViewCaptureService {
         @objc public convenience override init() {
             self.init(
                 instrumentVisibility: true,
-                instrumentFirstRender: true,
-                viewControllerBlockList: ViewControllerBlockList()
+                instrumentFirstRender: true
             )
         }
     }

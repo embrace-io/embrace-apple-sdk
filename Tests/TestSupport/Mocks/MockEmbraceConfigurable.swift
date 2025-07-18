@@ -14,11 +14,13 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         isBackgroundSessionEnabled: Bool = false,
         isNetworkSpansForwardingEnabled: Bool = false,
         isUiLoadInstrumentationEnabled: Bool = false,
+        uiInstrumentationBlockList: [String] = [],
+        uiInstrumentationCaptureHostingControllers: Bool = false,
+        isSwiftUiViewInstrumentationEnabled: Bool = false,
         isMetricKitEnabled: Bool = false,
         isMetricKitCrashCaptureEnabled: Bool = false,
         metricKitCrashSignals: [String] = [],
         isMetricKitHangCaptureEnabled: Bool = false,
-        isSwiftUiViewInstrumentationEnabled: Bool = false,
         spanEventsLimits: SpanEventsLimits = SpanEventsLimits(),
         logsLimits: LogsLimits = LogsLimits(),
         internalLogLimits: InternalLogLimits = InternalLogLimits(),
@@ -30,11 +32,13 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         self._isBackgroundSessionEnabled = isBackgroundSessionEnabled
         self._isNetworkSpansForwardingEnabled = isNetworkSpansForwardingEnabled
         self._isUiLoadInstrumentationEnabled = isUiLoadInstrumentationEnabled
+        self._uiInstrumentationBlockList = uiInstrumentationBlockList
+        self._uiInstrumentationCaptureHostingControllers = uiInstrumentationCaptureHostingControllers
+        self._isSwiftUiViewInstrumentationEnabled = isSwiftUiViewInstrumentationEnabled
         self._isMetricKitEnabled = isMetricKitEnabled
         self._isMetricKitCrashCaptureEnabled = isMetricKitCrashCaptureEnabled
         self._metricKitCrashSignals = metricKitCrashSignals
         self._isMetricKitHangCaptureEnabled = isMetricKitHangCaptureEnabled
-        self._isSwiftUiViewInstrumentationEnabled = isSwiftUiViewInstrumentationEnabled
         self._spanEventsLimits = spanEventsLimits
         self._logsLimits = logsLimits
         self._internalLogLimits = internalLogLimits
@@ -94,6 +98,42 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         }
     }
 
+    private var _uiInstrumentationBlockList: [String]
+    public let uiInstrumentationBlockListExpectation = XCTestExpectation(description: "uiInstrumentationBlockList called")
+    public var uiInstrumentationBlockList: [String] {
+        get {
+            uiInstrumentationBlockListExpectation.fulfill()
+            return _uiInstrumentationBlockList
+        }
+        set {
+            _uiInstrumentationBlockList = newValue
+        }
+    }
+
+    private var _uiInstrumentationCaptureHostingControllers: Bool
+    public let uiInstrumentationCaptureHostingControllersExpectation = XCTestExpectation(description: "uiInstrumentationCaptureHostingControllers called")
+    public var uiInstrumentationCaptureHostingControllers: Bool {
+        get {
+            uiInstrumentationCaptureHostingControllersExpectation.fulfill()
+            return _uiInstrumentationCaptureHostingControllers
+        }
+        set {
+            _uiInstrumentationCaptureHostingControllers = newValue
+        }
+    }
+
+    private var _isSwiftUiViewInstrumentationEnabled: Bool
+    public let isSwiftUiViewInstrumentationEnabledExpectation = XCTestExpectation(description: "isSwiftUiViewInstrumentationEnabled called")
+    public var isSwiftUiViewInstrumentationEnabled: Bool {
+        get {
+            isSwiftUiViewInstrumentationEnabledExpectation.fulfill()
+            return _isSwiftUiViewInstrumentationEnabled
+        }
+        set {
+            _isSwiftUiViewInstrumentationEnabled = newValue
+        }
+    }
+
     private var _isMetricKitEnabled: Bool
     public let isMetricKitEnabledExpectation = XCTestExpectation(description: "isMetricKitEnabled called")
     public var isMetricKitEnabled: Bool {
@@ -139,19 +179,6 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         }
         set {
             _isMetricKitHangCaptureEnabled = newValue
-        }
-    }
-
-    
-    private var _isSwiftUiViewInstrumentationEnabled: Bool
-    public let isSwiftUiViewInstrumentationEnabledExpectation = XCTestExpectation(description: "isSwiftUiViewInstrumentationEnabled called")
-    public var isSwiftUiViewInstrumentationEnabled: Bool {
-        get {
-            isSwiftUiViewInstrumentationEnabledExpectation.fulfill()
-            return _isSwiftUiViewInstrumentationEnabled
-        }
-        set {
-            _isSwiftUiViewInstrumentationEnabled = newValue
         }
     }
 
