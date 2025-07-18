@@ -15,6 +15,7 @@ class MockUIViewControllerHandlerDataSource: UIViewControllerHandlerDataSource {
     var otel: EmbraceOpenTelemetry? = MockEmbraceOpenTelemetry()
     var instrumentVisibility: Bool = true
     var instrumentFirstRender: Bool = true
+    var blockList: ViewControllerBlockList = ViewControllerBlockList()
 }
 
 #endif
