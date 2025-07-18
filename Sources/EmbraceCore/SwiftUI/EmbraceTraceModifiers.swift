@@ -64,3 +64,17 @@ public extension View {
         ) { self }
     }
 }
+
+@available(iOS 14, tvOS 14, *)
+public extension View {
+
+    func embraceSurface(
+        _ viewName: String,
+        attributes: [String: String]? = nil
+    ) -> some View {
+        EmbraceTraceSurfaceView(
+            viewName,
+            attributes: attributes
+        ) { self }
+    }
+}
