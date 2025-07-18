@@ -86,7 +86,7 @@ class TestFakeHostingController: UIViewController {
 }
 
 struct TestView: View {
-    var body: some View { }
+    var body: some View { EmptyView() }
 }
 
 class TestHostingSubclassController: UIHostingController<TestView> {
