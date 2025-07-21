@@ -3,12 +3,13 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
+    import EmbraceCommonInternal
 #endif
 
-public extension EmbraceConfig {
-    class Options {
+extension EmbraceConfig {
+    public class Options {
         let minimumUpdateInterval: TimeInterval
 
         public init(

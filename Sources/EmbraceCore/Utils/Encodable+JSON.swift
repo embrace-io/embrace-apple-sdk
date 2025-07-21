@@ -26,7 +26,8 @@ extension KeyedEncodingContainerProtocol where Key == JSONCodingKeys {
 
             // special case for booleans
             if value is Bool,
-               let bval = value as? NSNumber {
+                let bval = value as? NSNumber
+            {
                 if bval === kCFBooleanTrue || bval === kCFBooleanFalse {
                     try encode(bval.boolValue, forKey: key)
                 } else if value is Int {
@@ -143,7 +144,7 @@ extension UnkeyedEncodingContainer {
             case Optional<Any>.none:
                 try encodeNil()
             default:
-                let keys = JSONCodingKeys(intValue: index).map({ [ $0 ] }) ?? []
+                let keys = JSONCodingKeys(intValue: index).map({ [$0] }) ?? []
                 throw EncodingError.invalidValue(
                     value,
                     EncodingError.Context(codingPath: codingPath + keys, debugDescription: "Invalid JSON value")

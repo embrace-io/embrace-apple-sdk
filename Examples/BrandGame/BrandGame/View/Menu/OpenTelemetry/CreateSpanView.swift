@@ -2,8 +2,8 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import SwiftUI
 import OpenTelemetryApi
+import SwiftUI
 
 struct CreateSpanView: View {
     private let tracer: Tracer
@@ -47,19 +47,21 @@ struct CreateSpanView: View {
                         TextField("", text: $keyAttr)
                         Divider()
                         TextField("", text: $valueAttr)
-                        Button(action: {
-                            guard !keyAttr.isEmpty && !valueAttr.isEmpty else {
-                                return
-                            }
-                            attributes.append(.init(key: keyAttr, value: valueAttr).pruned())
-                            keyAttr = ""
-                            valueAttr = ""
-                        }, label: {
-                            Image(systemName: "plus.circle.fill")
-                                .resizable()
-                                .frame(width: 30, height: 30)
-                                .foregroundColor(.blue)
-                        })
+                        Button(
+                            action: {
+                                guard !keyAttr.isEmpty && !valueAttr.isEmpty else {
+                                    return
+                                }
+                                attributes.append(.init(key: keyAttr, value: valueAttr).pruned())
+                                keyAttr = ""
+                                valueAttr = ""
+                            },
+                            label: {
+                                Image(systemName: "plus.circle.fill")
+                                    .resizable()
+                                    .frame(width: 30, height: 30)
+                                    .foregroundColor(.blue)
+                            })
                     }
                 }
             }

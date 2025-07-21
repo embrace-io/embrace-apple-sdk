@@ -2,8 +2,8 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
 import TestSupport
+import XCTest
 
 @testable import EmbraceCore
 
@@ -86,17 +86,17 @@ class DownloadTaskWithURLWithCompletionSwizzlerTests: XCTestCase {
     }
 }
 
-private extension DownloadTaskWithURLWithCompletionSwizzlerTests {
-    func givenDownloadTaskWithURLRequestAndCompletionSwizzler() {
+extension DownloadTaskWithURLWithCompletionSwizzlerTests {
+    fileprivate func givenDownloadTaskWithURLRequestAndCompletionSwizzler() {
         handler = MockURLSessionTaskHandler()
         sut = DownloadTaskWithURLRequestWithCompletionSwizzler(handler: handler)
     }
 
-    func givenSwizzlingWasDone() throws {
+    fileprivate func givenSwizzlingWasDone() throws {
         try sut.install()
     }
 
-    func givenSuccessfulRequest() {
+    fileprivate func givenSuccessfulRequest() {
         var url = URL(string: "https://embrace.io")!
         let mockData = "Mock Data".data(using: .utf8)!
         let mockResponse = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil)!
@@ -105,7 +105,7 @@ private extension DownloadTaskWithURLWithCompletionSwizzlerTests {
         request.httpMethod = "POST"
     }
 
-    func givenFailedRequest() {
+    fileprivate func givenFailedRequest() {
         var url = URL(string: "https://embrace.io")!
         let error = NSError(domain: UUID().uuidString, code: 0)
         let mockResponse = HTTPURLResponse(url: url, statusCode: 400, httpVersion: nil, headerFields: nil)!
@@ -114,11 +114,13 @@ private extension DownloadTaskWithURLWithCompletionSwizzlerTests {
         request.httpMethod = "POST"
     }
 
-    func givenProxiedUrlSession() {
+    fileprivate func givenProxiedUrlSession() {
         session = ProxiedURLSessionProvider.default()
     }
 
-    func whenInvokingDownloadTaskWithURLRequest(completionHandler: @escaping (URL?, URLResponse?, Error?) -> Void) {
+    fileprivate func whenInvokingDownloadTaskWithURLRequest(
+        completionHandler: @escaping (URL?, URLResponse?, Error?) -> Void
+    ) {
         downloadTask = session.downloadTask(with: request) { url, response, error in
             completionHandler(url, response, error)
 
@@ -126,26 +128,26 @@ private extension DownloadTaskWithURLWithCompletionSwizzlerTests {
         downloadTask.resume()
     }
 
-    func thenHandlerShouldHaveInvokedCreateWithTask() {
+    fileprivate func thenHandlerShouldHaveInvokedCreateWithTask() {
         XCTAssertTrue(handler.didInvokeCreate)
         XCTAssertEqual(handler.createReceivedTask, downloadTask)
     }
 
-    func thenHandlerShouldntHaveInvokedCreate() {
+    fileprivate func thenHandlerShouldntHaveInvokedCreate() {
         XCTAssertFalse(handler.didInvokeCreate)
     }
 
-    func thenHandlerShouldHaveInvokedFinishTask() {
+    fileprivate func thenHandlerShouldHaveInvokedFinishTask() {
         XCTAssertTrue(handler.didInvokeFinishWithData)
         XCTAssertNotNil(handler.finishWithDataReceivedParameters?.1)
     }
 
-    func thenHandlerShouldHaveInvokedFinishTaskWithError() {
+    fileprivate func thenHandlerShouldHaveInvokedFinishTaskWithError() {
         XCTAssertTrue(handler.didInvokeFinishWithData)
         XCTAssertNotNil(handler.finishWithDataReceivedParameters?.2)
     }
 
-    func thenDataTaskShouldHaveEmbraceHeaders() throws {
+    fileprivate func thenDataTaskShouldHaveEmbraceHeaders() throws {
         let headers = try XCTUnwrap(downloadTask.originalRequest?.allHTTPHeaderFields)
         XCTAssertNotNil(headers["x-emb-id"])
         XCTAssertNotNil(headers["x-emb-st"])

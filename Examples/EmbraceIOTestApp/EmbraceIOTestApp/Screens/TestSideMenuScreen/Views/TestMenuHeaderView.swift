@@ -20,7 +20,6 @@ struct TestMenuHeaderView: View {
     }
 }
 
-
 #Preview {
     return TestMenuHeaderView()
 }

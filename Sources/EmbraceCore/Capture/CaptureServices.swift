@@ -3,12 +3,13 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCaptureService
-import EmbraceCommonInternal
-import EmbraceStorageInternal
-import EmbraceUploadInternal
-import EmbraceConfiguration
+    import EmbraceCaptureService
+    import EmbraceCommonInternal
+    import EmbraceStorageInternal
+    import EmbraceUploadInternal
+    import EmbraceConfiguration
 #endif
 
 final class CaptureServices {
@@ -146,8 +147,8 @@ final class CaptureServices {
     }
 }
 
-private extension Array where Element == CaptureService {
-    var unique: [CaptureService] {
+extension Array where Element == CaptureService {
+    fileprivate var unique: [CaptureService] {
         var unique = [String: CaptureService]()
 
         for service in self {

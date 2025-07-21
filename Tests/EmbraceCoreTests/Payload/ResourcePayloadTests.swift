@@ -2,12 +2,13 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
+@_implementationOnly import EmbraceObjCUtilsInternal
 import EmbraceStorageInternal
 import OpenTelemetrySdk
-@testable import EmbraceCore
 import TestSupport
-@_implementationOnly import EmbraceObjCUtilsInternal
+import XCTest
+
+@testable import EmbraceCore
 
 class ResourcePayloadTests: XCTestCase {
     func test_encodeToJSONProperly() throws {
@@ -29,7 +30,8 @@ class ResourcePayloadTests: XCTestCase {
             MockMetadata.createResourceRecord(key: DeviceResourceKey.isJailbroken.rawValue, value: "true"),
             MockMetadata.createResourceRecord(key: DeviceResourceKey.totalDiskSpace.rawValue, value: "494384795648"),
             MockMetadata.createResourceRecord(key: DeviceResourceKey.architecture.rawValue, value: "arm64"),
-            MockMetadata.createResourceRecord(key: ResourceAttributes.deviceModelIdentifier.rawValue, value: "arm64_model"),
+            MockMetadata.createResourceRecord(
+                key: ResourceAttributes.deviceModelIdentifier.rawValue, value: "arm64_model"),
             MockMetadata.createResourceRecord(key: ResourceAttributes.deviceManufacturer.rawValue, value: "Apple"),
             MockMetadata.createResourceRecord(key: DeviceResourceKey.screenResolution.rawValue, value: "1179x2556"),
             MockMetadata.createResourceRecord(key: ResourceAttributes.osVersion.rawValue, value: "17.0.1"),
@@ -65,7 +67,7 @@ class ResourcePayloadTests: XCTestCase {
         XCTAssertEqual(json["process_pre_warm"] as? Bool, true)
 
         XCTAssertEqual(json["jailbroken"] as? Bool, true)
-        XCTAssertEqual(json["disk_total_capacity"] as? Int, 494384795648)
+        XCTAssertEqual(json["disk_total_capacity"] as? Int, 494_384_795_648)
         XCTAssertEqual(json["device_architecture"] as? String, "arm64")
         XCTAssertEqual(json["device_model"] as? String, "arm64_model")
         XCTAssertEqual(json["device_manufacturer"] as? String, "Apple")

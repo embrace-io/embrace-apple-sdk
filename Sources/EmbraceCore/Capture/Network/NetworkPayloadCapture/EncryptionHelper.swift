@@ -2,16 +2,17 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
-import Security
 import CommonCrypto
 import CryptoKit
+import Foundation
+import Security
 
 class EncryptionHelper {
 
     class func rsaEncrypt(publicKey: String, data: Data) -> RSA.Result? {
         guard let key = RSA.createKey(for: publicKey),
-              RSA.isEncryptionPossible(forKey: key) else {
+            RSA.isEncryptionPossible(forKey: key)
+        else {
             return nil
         }
 
@@ -20,7 +21,8 @@ class EncryptionHelper {
 
     class func aesEncrypt(data: Data) -> AES.Result? {
         guard let key = AES.createRandomKey(),
-              let iv = AES.createRandomIv() else {
+            let iv = AES.createRandomIv()
+        else {
             return nil
         }
 
@@ -42,13 +44,15 @@ struct RSA {
     static func createKey(for publicKey: String) -> SecKey? {
         var createKeyError: Unmanaged<CFError>?
 
-        let attributes = [
-            kSecAttrKeyClass as String: kSecAttrKeyClassPublic,
-            kSecAttrKeyType as String: kSecAttrKeyTypeRSA
-        ] as CFDictionary
+        let attributes =
+            [
+                kSecAttrKeyClass as String: kSecAttrKeyClassPublic,
+                kSecAttrKeyType as String: kSecAttrKeyTypeRSA
+            ] as CFDictionary
 
         guard let keyData = Data(base64Encoded: publicKey),
-              let key = SecKeyCreateWithData(keyData as CFData, attributes, &createKeyError) else {
+            let key = SecKeyCreateWithData(keyData as CFData, attributes, &createKeyError)
+        else {
 
             if let createKeyError = createKeyError {
                 Embrace.logger.debug("Error creating public key \(publicKey)!:\n\(createKeyError)")
@@ -72,12 +76,14 @@ struct RSA {
 
     static func encrypt(data: Data, key: SecKey) -> Result? {
         var error: Unmanaged<CFError>?
-        guard let encryptedData = SecKeyCreateEncryptedData(
-            key,
-            .rsaEncryptionPKCS1,
-            data as CFData,
-            &error
-        ) as Data? else {
+        guard
+            let encryptedData = SecKeyCreateEncryptedData(
+                key,
+                .rsaEncryptionPKCS1,
+                data as CFData,
+                &error
+            ) as Data?
+        else {
             if let error = error {
                 Embrace.logger.debug("Encryption error:\n\(error)")
             }
@@ -123,11 +129,12 @@ struct AES {
         var status = CCCryptorStatus(kCCSuccess)
 
         data.withUnsafeBytes { (dataBytes: UnsafeRawBufferPointer) in
-            key.withUnsafeBytes { (keyBytes: UnsafeRawBufferPointer)  in
+            key.withUnsafeBytes { (keyBytes: UnsafeRawBufferPointer) in
                 iv.withUnsafeBytes { (ivBytes: UnsafeRawBufferPointer) in
                     guard let dataPointer = dataBytes.baseAddress,
-                          let keyPointer = keyBytes.baseAddress,
-                          let ivPointer = ivBytes.baseAddress else {
+                        let keyPointer = keyBytes.baseAddress,
+                        let ivPointer = ivBytes.baseAddress
+                    else {
                         status = -1
                         return
                     }

@@ -6,7 +6,8 @@
 
 import SwiftUI
 
-struct TestScreen<T: RawRepresentable & CaseIterable & TestScreenDataModel>: View where T.RawValue == Int, T.AllCases: RandomAccessCollection {
+struct TestScreen<T: RawRepresentable & CaseIterable & TestScreenDataModel>: View
+where T.RawValue == Int, T.AllCases: RandomAccessCollection {
     @Environment(DataCollector.self) private var dataCollector
 
     var body: some View {

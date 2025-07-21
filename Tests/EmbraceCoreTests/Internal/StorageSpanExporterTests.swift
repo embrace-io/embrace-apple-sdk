@@ -2,13 +2,14 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceStorageInternal
+import OpenTelemetryApi
+import TestSupport
 import XCTest
+
 @testable import EmbraceCore
 @testable import EmbraceOTelInternal
 @testable import OpenTelemetrySdk
-import OpenTelemetryApi
-import EmbraceStorageInternal
-import TestSupport
 
 final class StorageSpanExporterTests: XCTestCase {
     func test_DB_preventsClosedSpan_fromUpdatingEndTime() throws {
@@ -16,7 +17,8 @@ final class StorageSpanExporterTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         let sessionController = MockSessionController()
         sessionController.startSession(state: .foreground)
-        let exporter = StorageSpanExporter(options: .init(storage: storage, sessionController: sessionController), logger: MockLogger())
+        let exporter = StorageSpanExporter(
+            options: .init(storage: storage, sessionController: sessionController), logger: MockLogger())
 
         let traceId = TraceId.random()
         let spanId = SpanId.random()
@@ -69,7 +71,8 @@ final class StorageSpanExporterTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         let sessionController = MockSessionController()
         sessionController.startSession(state: .foreground)
-        let exporter = StorageSpanExporter(options: .init(storage: storage, sessionController: sessionController), logger: MockLogger())
+        let exporter = StorageSpanExporter(
+            options: .init(storage: storage, sessionController: sessionController), logger: MockLogger())
 
         let traceId = TraceId.random()
         let spanId = SpanId.random()
@@ -124,7 +127,8 @@ final class StorageSpanExporterTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         let sessionController = MockSessionController()
         sessionController.startSession(state: .foreground)
-        let exporter = StorageSpanExporter(options: .init(storage: storage, sessionController: sessionController), logger: MockLogger())
+        let exporter = StorageSpanExporter(
+            options: .init(storage: storage, sessionController: sessionController), logger: MockLogger())
 
         let traceId = TraceId.random()
         let spanId = SpanId.random()

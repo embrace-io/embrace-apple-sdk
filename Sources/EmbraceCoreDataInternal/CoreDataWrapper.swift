@@ -7,7 +7,7 @@ import Foundation
 import UIKit
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
+    import EmbraceCommonInternal
 #endif
 
 public class CoreDataWrapper {
@@ -62,7 +62,7 @@ public class CoreDataWrapper {
                 logger.critical("Error initializing CoreData \"\(name)\": \(error.localizedDescription)")
             }
         }
-        
+
         context = container.newBackgroundContext()
     }
 
@@ -92,9 +92,9 @@ public class CoreDataWrapper {
 
 // MARK: - Fetch
 
-public extension CoreDataWrapper {
+extension CoreDataWrapper {
     /// Synchronously fetches the records that satisfy the given request
-    func fetch<T>(withRequest request: NSFetchRequest<T>) -> [T] where T: NSManagedObject {
+    public func fetch<T>(withRequest request: NSFetchRequest<T>) -> [T] where T: NSManagedObject {
         performOperation {
             do {
                 return try $0.fetch(request)
@@ -106,9 +106,8 @@ public extension CoreDataWrapper {
     }
 
     /// Synchronously fetches the records that satisfy the given request and calls the block with them.
-    func fetchAndPerform<T>(withRequest request: NSFetchRequest<T>, block: ([T]) -> Void)
-        where T: NSManagedObject
-    {
+    public func fetchAndPerform<T>(withRequest request: NSFetchRequest<T>, block: ([T]) -> Void)
+    where T: NSManagedObject {
         performOperation {
             do {
                 let result = try $0.fetch(request)
@@ -120,9 +119,8 @@ public extension CoreDataWrapper {
     }
 
     /// Synchronously fetches the first record that satisfy the given request and calls the block with it.
-    func fetchFirstAndPerform<T>(withRequest request: NSFetchRequest<T>, block: (T?) -> Void)
-        where T: NSManagedObject
-    {
+    public func fetchFirstAndPerform<T>(withRequest request: NSFetchRequest<T>, block: (T?) -> Void)
+    where T: NSManagedObject {
         performOperation {
             do {
                 let result = try $0.fetch(request)
@@ -134,7 +132,7 @@ public extension CoreDataWrapper {
     }
 
     /// Synchronously fetches the count of records that satisfy the given request.
-    func count<T>(withRequest request: NSFetchRequest<T>) -> Int where T: NSManagedObject {
+    public func count<T>(withRequest request: NSFetchRequest<T>) -> Int where T: NSManagedObject {
         performOperation {
             do {
                 return try $0.count(for: request)
@@ -148,16 +146,16 @@ public extension CoreDataWrapper {
 
 // MARK: - Deletion
 
-public extension CoreDataWrapper {
+extension CoreDataWrapper {
     /// Synchronously deletes record from the database and saves.
-    func deleteRecord<T>(_ record: T) where T: NSManagedObject {
+    public func deleteRecord<T>(_ record: T) where T: NSManagedObject {
         performOperation(save: true) {
             $0.delete(record)
         }
     }
 
     /// Synchronously deletes requested records from the database and saves.
-    func deleteRecords<T>(_ records: [T]) where T: NSManagedObject {
+    public func deleteRecords<T>(_ records: [T]) where T: NSManagedObject {
         performOperation(save: true) {
             for record in records {
                 $0.delete(record)
@@ -166,7 +164,7 @@ public extension CoreDataWrapper {
     }
 
     /// Synchronously deletes requested records that satisfy the given request from the database and saves.
-    func deleteRecords<T>(withRequest request: NSFetchRequest<T>) where T: NSManagedObject {
+    public func deleteRecords<T>(withRequest request: NSFetchRequest<T>) where T: NSManagedObject {
         performOperation(save: true) {
             do {
                 let records = try $0.fetch(request)
@@ -201,10 +199,10 @@ extension CoreDataWrapper {
 
 // MARK: - Testing
 
-public extension CoreDataWrapper {
+extension CoreDataWrapper {
     /// Removes the database file
     /// - Note: Only used in tests!!!
-    func destroy() {
+    public func destroy() {
         guard isTesting else {
             return
         }

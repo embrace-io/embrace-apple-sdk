@@ -8,7 +8,7 @@ import SwiftUI
 
 struct TestReportCardSectionsView: View {
     var body: some View {
-        VStack{
+        VStack {
             HStack {
                 Text("Target")
                     .font(.embraceFont(size: 12))

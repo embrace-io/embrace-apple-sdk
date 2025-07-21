@@ -2,8 +2,9 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
 import TestSupport
+import XCTest
+
 @testable import EmbraceStorageInternal
 
 class EmbraceStorageTests: XCTestCase {
@@ -31,7 +32,7 @@ class EmbraceStorageTests: XCTestCase {
         // then record should exist in storage
         var spans: [SpanRecord] = storage.fetchAll()
         XCTAssertEqual(spans.count, 1)
-        XCTAssertNotNil(spans.first(where: { $0.name == "a name"}))
+        XCTAssertNotNil(spans.first(where: { $0.name == "a name" }))
         let span = spans[0]
 
         // when deleting record

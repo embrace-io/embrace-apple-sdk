@@ -2,12 +2,13 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
+import OpenTelemetrySdk
+import TestSupport
 import XCTest
+
 @testable import EmbraceCore
 @testable import EmbraceOTelInternal
 @testable import EmbraceStorageInternal
-import OpenTelemetrySdk
-import TestSupport
 
 class DummyEmbraceResourceProvider: EmbraceResourceProvider {
     func getResource() -> Resource { Resource() }
@@ -16,7 +17,6 @@ class DummyEmbraceResourceProvider: EmbraceResourceProvider {
 class EmbraceLoggerSharedStateTests: XCTestCase {
     private var sut: DefaultEmbraceLogSharedState!
     let sdkStateProvider = MockEmbraceSDKStateProvider()
-
 
     func test_default_hasDefaultEmbraceLoggerConfig() throws {
         try whenInvokingDefaultEmbraceLoggerSharedState()
@@ -42,16 +42,16 @@ class EmbraceLoggerSharedStateTests: XCTestCase {
     }
 }
 
-private extension EmbraceLoggerSharedStateTests {
-    func givenEmbraceLoggerSharedState(config: any EmbraceLoggerConfig) {
+extension EmbraceLoggerSharedStateTests {
+    fileprivate func givenEmbraceLoggerSharedState(config: any EmbraceLoggerConfig) {
         sut = .init(config: config, processors: [], resourceProvider: DummyEmbraceResourceProvider())
     }
 
-    func whenInvokingUpdate(withConfig config: any EmbraceLoggerConfig) {
+    fileprivate func whenInvokingUpdate(withConfig config: any EmbraceLoggerConfig) {
         sut.update(config)
     }
 
-    func whenInvokingDefaultEmbraceLoggerSharedState() throws {
+    fileprivate func whenInvokingDefaultEmbraceLoggerSharedState() throws {
         sut = try .create(
             storage: EmbraceStorage.createInMemoryDb(),
             batcher: SpyLogBatcher(),
@@ -59,11 +59,11 @@ private extension EmbraceLoggerSharedStateTests {
         )
     }
 
-    func thenConfig(is config: any EmbraceLoggerConfig) {
+    fileprivate func thenConfig(is config: any EmbraceLoggerConfig) {
         XCTAssertEqual(sut.config.logAmountLimit, config.logAmountLimit)
     }
 
-    func thenProcessorsArrayHasDefaultProcessors() {
+    fileprivate func thenProcessorsArrayHasDefaultProcessors() {
         XCTAssertFalse(sut.processors.isEmpty)
     }
 }

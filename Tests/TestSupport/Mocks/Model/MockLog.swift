@@ -2,8 +2,8 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
 import EmbraceCommonInternal
+import Foundation
 import OpenTelemetryApi
 
 public class MockLog: EmbraceLog {

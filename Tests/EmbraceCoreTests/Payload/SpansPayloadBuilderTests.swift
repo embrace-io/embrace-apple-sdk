@@ -2,13 +2,14 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-@testable import EmbraceCore
-import EmbraceStorageInternal
 import EmbraceCommonInternal
-@testable import EmbraceOTelInternal
-import TestSupport
+import EmbraceStorageInternal
 import OpenTelemetryApi
+import TestSupport
+import XCTest
+
+@testable import EmbraceCore
+@testable import EmbraceOTelInternal
 @testable import OpenTelemetrySdk
 
 final class SpansPayloadBuilderTests: XCTestCase {
@@ -130,7 +131,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
 
         // then the spans are retrieved correctly
         XCTAssertEqual(closed.count, 2)
-        XCTAssertEqual(closed[0].name, "emb-session") // session span always first
+        XCTAssertEqual(closed[0].name, "emb-session")  // session span always first
         XCTAssertEqual(closed[1], payload)
         XCTAssertEqual(open.count, 0)
     }
@@ -148,7 +149,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
 
         // then the spans are retrieved correctly
         XCTAssertEqual(closed.count, 1)
-        XCTAssertEqual(closed[0].name, "emb-session") // session span always first
+        XCTAssertEqual(closed[0].name, "emb-session")  // session span always first
         XCTAssertEqual(open.count, 1)
         XCTAssertEqual(open[0], payload)
     }
@@ -166,7 +167,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
 
         // then the spans are retrieved correctly
         XCTAssertEqual(closed.count, 2)
-        XCTAssertEqual(closed[0].name, "emb-session") // session span always first
+        XCTAssertEqual(closed[0].name, "emb-session")  // session span always first
         XCTAssertEqual(closed[1], payload)
         XCTAssertEqual(open.count, 0)
     }
@@ -184,7 +185,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
 
         // then the spans are retrieved correctly
         XCTAssertEqual(closed.count, 1)
-        XCTAssertEqual(closed[0].name, "emb-session") // session span always first
+        XCTAssertEqual(closed[0].name, "emb-session")  // session span always first
         XCTAssertEqual(open.count, 1)
         XCTAssertEqual(open[0], payload)
     }
@@ -201,7 +202,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
 
         // then the spans are retrieved correctly
         XCTAssertEqual(closed.count, 1)
-        XCTAssertEqual(closed[0].name, "emb-session") // session span always first
+        XCTAssertEqual(closed[0].name, "emb-session")  // session span always first
         XCTAssertEqual(open.count, 0)
     }
 
@@ -221,7 +222,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
 
         // then the spans are retrieved correctly
         XCTAssertEqual(closed.count, 2)
-        XCTAssertEqual(closed[0].name, "emb-session") // session span always first
+        XCTAssertEqual(closed[0].name, "emb-session")  // session span always first
         XCTAssertEqual(closed[0].status, "error")
         XCTAssertEqual(closed[1], payload)
         XCTAssertEqual(closed[1].status, "error")
@@ -248,7 +249,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
 
         // then the spans are retrieved correctly
         XCTAssertEqual(closed.count, 2)
-        XCTAssertEqual(closed[0].name, "emb-session") // session span always first
+        XCTAssertEqual(closed[0].name, "emb-session")  // session span always first
         XCTAssertEqual(closed[0].status, "error")
         XCTAssertEqual(closed[1], payload)
         XCTAssertEqual(closed[1].status, "error")
@@ -275,7 +276,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
 
         // then the spans are retrieved correctly
         XCTAssertEqual(closed.count, 2)
-        XCTAssertEqual(closed[0].name, "emb-session") // session span always first
+        XCTAssertEqual(closed[0].name, "emb-session")  // session span always first
         XCTAssertEqual(closed[0].status, "error")
         XCTAssertEqual(closed[1], payload)
         XCTAssertEqual(closed[1].status, "ok")
@@ -299,8 +300,8 @@ final class SpansPayloadBuilderTests: XCTestCase {
         let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
 
         // then the spans are retrieved correctly
-        XCTAssertEqual(closed.count, 1001) // 1000 spans + session span
-        XCTAssertEqual(closed[0].name, "emb-session") // session span always first
+        XCTAssertEqual(closed.count, 1001)  // 1000 spans + session span
+        XCTAssertEqual(closed[0].name, "emb-session")  // session span always first
         XCTAssertEqual(open.count, 0)
     }
 
@@ -326,8 +327,8 @@ final class SpansPayloadBuilderTests: XCTestCase {
         let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
 
         // then only the correct session span is included
-        XCTAssertEqual(closed.count, 1) // 1000 spans + session span
-        XCTAssertEqual(closed[0].name, "emb-session") // session span always first
+        XCTAssertEqual(closed.count, 1)  // 1000 spans + session span
+        XCTAssertEqual(closed[0].name, "emb-session")  // session span always first
         XCTAssertEqual(open.count, 0)
     }
 }

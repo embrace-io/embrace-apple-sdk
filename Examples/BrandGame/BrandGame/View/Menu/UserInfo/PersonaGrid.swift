@@ -2,8 +2,8 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import SwiftUI
 import EmbraceIO
+import SwiftUI
 
 struct PersonaGrid: View {
 
@@ -32,7 +32,7 @@ struct PersonaGrid: View {
         let count = Self.quickPersonas.count
 
         return stride(from: 0, to: count, by: size).map {
-            Array(Self.quickPersonas[$0 ..< Swift.min($0 + size, count)])
+            Array(Self.quickPersonas[$0..<Swift.min($0 + size, count)])
         }
     }
 

@@ -3,15 +3,16 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCaptureService
-import EmbraceCore
-import EmbraceCommonInternal
-import EmbraceCrash
-import EmbraceOTelInternal
+    import EmbraceCaptureService
+    import EmbraceCore
+    import EmbraceCommonInternal
+    import EmbraceCrash
+    import EmbraceOTelInternal
 #endif
 
-public extension Embrace.Options {
+extension Embrace.Options {
 
     /// Convenience initializer for `Embrace.Options` that automatically includes the default `CaptureServices` and `CrashReporter`,
     /// You can see list of platform service defaults in ``CaptureServiceBuilder.addDefaults``.
@@ -26,7 +27,7 @@ public extension Embrace.Options {
     ///   - endpoints: `Embrace.Endpoints` instance.
     ///   - logLevel: `LogLevel` for Embrace console logs
     ///   - export: `OpenTelemetryExport` object to export telemetry outside of the Embrace backend.
-    @objc convenience init(
+    @objc public convenience init(
         appId: String,
         appGroupId: String? = nil,
         platform: Platform = .default,
@@ -56,7 +57,7 @@ public extension Embrace.Options {
     ///   - appId: The `appId` of the project.
     ///   - appGroupId: The app group identifier used by the app, if any.
     ///   - platform: `Platform` in which the app will run. Defaults to `.iOS`.
-    @objc convenience init(
+    @objc public convenience init(
         appId: String,
         appGroupId: String? = nil,
         platform: Platform = .default
@@ -70,7 +71,7 @@ public extension Embrace.Options {
             processors: nil
         )
     }
-    
+
     /// Convenience initializer for `Embrace.Options` that automatically includes the default `CaptureServices`, `CrashReporter` and `OpenTelemetryProcessor`'s.
     /// You can see list of platform service defaults in ``CaptureServiceBuilder.addDefaults``.
     ///
@@ -82,7 +83,7 @@ public extension Embrace.Options {
     ///   - appGroupId: The app group identifier used by the app, if any.
     ///   - platform: `Platform` in which the app will run. Defaults to `.iOS`.
     ///   - processors: Extra `OpenTelemetryProcessor`s to include.
-    @objc convenience init(
+    @objc public convenience init(
         appId: String,
         appGroupId: String? = nil,
         platform: Platform = .default,
@@ -97,7 +98,7 @@ public extension Embrace.Options {
             processors: processors
         )
     }
-    
+
     /// Initializer for `Embrace.Options` that does not require an appId.
 
     /// Use this initializer if you don't want the SDK to send data to Embrace's servers.
@@ -109,7 +110,7 @@ public extension Embrace.Options {
     /// - Parameters:
     ///   - export: `OpenTelemetryExport` object to export telemetry using OpenTelemetry protocols
     ///   - logLevel: The `LogLevel` to use for console logs.
-    @objc convenience init(export: OpenTelemetryExport, logLevel: LogLevel = .default) {
+    @objc public convenience init(export: OpenTelemetryExport, logLevel: LogLevel = .default) {
         self.init(
             export: export,
             captureServices: .automatic,
@@ -125,8 +126,8 @@ extension Embrace.Options: ExpressibleByStringLiteral {
     }
 }
 
-public extension Array where Element == CaptureService {
-    static var automatic: [CaptureService] {
+extension Array where Element == CaptureService {
+    public static var automatic: [CaptureService] {
         return CaptureServiceBuilder()
             .addDefaults()
             .build()

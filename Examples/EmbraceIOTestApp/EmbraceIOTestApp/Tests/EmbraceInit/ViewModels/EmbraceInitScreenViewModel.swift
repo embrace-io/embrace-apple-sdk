@@ -4,8 +4,8 @@
 //
 //
 
-import SwiftUI
 import EmbraceCore
+import SwiftUI
 
 struct EmbraceInitScreenFormSectionItem {
     var name: String
@@ -29,28 +29,40 @@ struct EmbraceInitScreenViewModel {
     var forceInitState: EmbraceInitForceState = .off
 
     var formFields: [EmbraceInitScreenFormSection] = [
-        .init(name: "APP ID",
-              items: [.init(name: "APP ID",
-                            value: "dcdt4")]),
-        .init(name: "API Base URL",
-              items: [.init(name: "Base URL",
-                            value: "http://127.0.0.1:8989/api")]),
-        .init(name: "Config Base URL",
-              items: [.init(name: "Config Base URL",
-                            value: "http://127.0.0.1:8989/api")])
+        .init(
+            name: "APP ID",
+            items: [
+                .init(
+                    name: "APP ID",
+                    value: "dcdt4")
+            ]),
+        .init(
+            name: "API Base URL",
+            items: [
+                .init(
+                    name: "Base URL",
+                    value: "http://127.0.0.1:8989/api")
+            ]),
+        .init(
+            name: "Config Base URL",
+            items: [
+                .init(
+                    name: "Config Base URL",
+                    value: "http://127.0.0.1:8989/api")
+            ])
     ]
 
     var appId: String {
         formFields[0].items[0].value
     }
-    
+
     var baseURL: String {
         formFields[1].items[0].value
     }
-    
+
     var configBaseURL: String {
         formFields[2].items[0].value
     }
-    
+
     var showProgressview: Bool = false
 }

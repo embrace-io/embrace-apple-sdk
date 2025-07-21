@@ -3,18 +3,19 @@
 //
 
 import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceConfigInternal
-import EmbraceStorageInternal
-import EmbraceUploadInternal
-import EmbraceOTelInternal
-#endif
 import OpenTelemetryApi
 
-public extension Notification.Name {
-    static let embraceSessionDidStart = Notification.Name("embrace.session.did_start")
-    static let embraceSessionWillEnd = Notification.Name("embrace.session.will_end")
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+    import EmbraceConfigInternal
+    import EmbraceStorageInternal
+    import EmbraceUploadInternal
+    import EmbraceOTelInternal
+#endif
+
+extension Notification.Name {
+    public static let embraceSessionDidStart = Notification.Name("embrace.session.did_start")
+    public static let embraceSessionWillEnd = Notification.Name("embrace.session.will_end")
 }
 
 /// The source of truth for sessions. Provides the CRUD functionality for a given EmbraceSession
@@ -119,9 +120,7 @@ class SessionController: SessionControllable {
         // app starts, so we need to delay the logic!
         //
         // +
-        if isColdStart == false &&
-           state == .background &&
-           backgroundSessionsEnabled == false {
+        if isColdStart == false && state == .background && backgroundSessionsEnabled == false {
             return nil
         }
         // -
@@ -185,9 +184,9 @@ class SessionController: SessionControllable {
             // If the session is a background session and background sessions
             // are disabled in the config, we drop the session!
             // +
-            if session.coldStart == true &&
-               session.state == SessionState.background.rawValue &&
-               backgroundSessionsEnabled == false {
+            if session.coldStart == true && session.state == SessionState.background.rawValue
+                && backgroundSessionsEnabled == false
+            {
                 delete()
                 return now
             }
@@ -278,8 +277,9 @@ class SessionController: SessionControllable {
 
     func uploadSession() {
         guard let storage = storage,
-              let upload = upload,
-              let session = currentSession else {
+            let upload = upload,
+            let session = currentSession
+        else {
             return
         }
 

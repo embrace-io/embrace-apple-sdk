@@ -17,9 +17,9 @@ struct TestComponentViewLabel: View {
     private var result: TestResult {
         switch state {
         case .idle:
-                .unknown
+            .unknown
         case .testing:
-                .testing
+            .testing
         case .testComplete(let result):
             result
         }

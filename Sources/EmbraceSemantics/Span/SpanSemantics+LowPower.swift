@@ -3,15 +3,15 @@
 //
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
+    import EmbraceCommonInternal
 #endif
 
-public extension SpanType {
-    static let lowPower = SpanType(system: "low_power")
+extension SpanType {
+    public static let lowPower = SpanType(system: "low_power")
 }
 
-public extension SpanSemantics {
-    struct LowPower {
+extension SpanSemantics {
+    public struct LowPower {
         public static let name = "emb-device-low-power"
         public static let keyStartReason = "start_reason"
         public static let systemQuery = "system_query"

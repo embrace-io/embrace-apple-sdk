@@ -3,10 +3,11 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import OpenTelemetryApi
-@_implementationOnly import EmbraceObjCUtilsInternal
+    import EmbraceCommonInternal
+    import OpenTelemetryApi
+    @_implementationOnly import EmbraceObjCUtilsInternal
 #endif
 
 class AppInfoCaptureService: ResourceCaptureService {
@@ -50,7 +51,8 @@ class AppInfoCaptureService: ResourceCaptureService {
 
         // process start time
         if let processStartTime = ProcessMetadata.startTime {
-            resourcesMap[AppResourceKey.processStartTime.rawValue] = String(processStartTime.nanosecondsSince1970Truncated)
+            resourcesMap[AppResourceKey.processStartTime.rawValue] = String(
+                processStartTime.nanosecondsSince1970Truncated)
         }
 
         addRequiredResources(resourcesMap)

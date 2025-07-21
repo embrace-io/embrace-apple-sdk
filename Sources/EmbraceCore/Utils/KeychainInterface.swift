@@ -48,19 +48,19 @@ class DefaultKeychainInterface: KeychainInterface {
         completion: @escaping (OSStatus) -> Void
     ) {
         /*
-
+        
          Why Async in `setValue` but not in `valueFor`?
          -> The decision to make this method asynchronous, while keeping `valueFor` synchronous, is based on the nature of Keychain operations and their expected performance characteristics:
-
+        
          `setValue` (Write Operations):
          * Writing to the Keychain (in this case using `SecItemAdd`) often requires coordination with the system's `securityd` process.
          * These tasks can occasionally take time, especially under system load or network conditions, which can block the calling thread.
          * Performing this on the Main Thread risks causing UI freezes or App Hangs, making it necessary to offload the operation to a background thread.
-
+        
          `valueFor` (Read Operations):
          * Reading from the Keychain (in this case using `SecItemCopyMatching`) is generally faster because it doesn't modify the Keychain.
          * The system can return cached results for some queries, making read operations more predictable in terms of performance.
-
+        
          */
         queue.async {
             guard let dataFromString = value.data(using: String.Encoding.utf8, allowLossyConversion: false) else {

@@ -3,8 +3,9 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
+    import EmbraceCommonInternal
 #endif
 
 public protocol EmbraceLogUploader: AnyObject {
@@ -202,7 +203,8 @@ public class EmbraceUpload: EmbraceLogUploader {
             urlSession: urlSession,
             data: data,
             retryCount: options.redundancy.automaticRetryCount,
-            attemptCount: attemptCount) { [weak self] (result, attemptCount) in
+            attemptCount: attemptCount
+        ) { [weak self] (result, attemptCount) in
 
             self?.queue.async { [weak self] in
 
@@ -223,11 +225,13 @@ public class EmbraceUpload: EmbraceLogUploader {
         operationQueue.addOperation(uploadOperation)
     }
 
-    func reUploadData(id: String,
-                      data: Data,
-                      type: EmbraceUploadType,
-                      attemptCount: Int,
-                      completion: @escaping (() -> Void)) {
+    func reUploadData(
+        id: String,
+        data: Data,
+        type: EmbraceUploadType,
+        attemptCount: Int,
+        completion: @escaping (() -> Void)
+    ) {
         let totalPendingRetries = options.redundancy.maximumAmountOfRetries - attemptCount
         let retries = min(options.redundancy.automaticRetryCount, totalPendingRetries)
 
@@ -241,17 +245,18 @@ public class EmbraceUpload: EmbraceLogUploader {
             retryCount: retries,
             exponentialBackoffBehavior: options.redundancy.exponentialBackoffBehavior,
             attemptCount: attemptCount,
-            logger: logger) { [weak self] (result, attemptCount) in
-                self?.queue.async { [weak self] in
-                    self?.handleOperationFinished(
-                        id: id,
-                        type: type,
-                        result: result,
-                        attemptCount: attemptCount
-                    )
-                    completion()
-                }
+            logger: logger
+        ) { [weak self] (result, attemptCount) in
+            self?.queue.async { [weak self] in
+                self?.handleOperationFinished(
+                    id: id,
+                    type: type,
+                    result: result,
+                    attemptCount: attemptCount
+                )
+                completion()
             }
+        }
         operationQueue.addOperation(uploadOperation)
     }
 

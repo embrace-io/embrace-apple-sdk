@@ -2,8 +2,8 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
 import OpenTelemetryApi
+import XCTest
 
 @testable import EmbraceOTelInternal
 
@@ -60,44 +60,44 @@ class EmbraceLoggerProviderTests: XCTestCase {
     }
 }
 
-private extension EmbraceLoggerProviderTests {
-    func givenSharedState(config: any EmbraceLoggerConfig) {
+extension EmbraceLoggerProviderTests {
+    fileprivate func givenSharedState(config: any EmbraceLoggerConfig) {
         sharedState = MockEmbraceLogSharedState(config: config)
     }
 
-    func givenLoggerBuilderProvider() {
+    fileprivate func givenLoggerBuilderProvider() {
         sut = DefaultEmbraceLoggerProvider(sharedState: sharedState)
     }
 
-    func givenLoggerWasCreatedWithProvider() {
+    fileprivate func givenLoggerWasCreatedWithProvider() {
         resultLogger = sut.get()
     }
 
-    func whenInvokingGet(withInstrumentationScopeName instrumentationScopeName: String) {
+    fileprivate func whenInvokingGet(withInstrumentationScopeName instrumentationScopeName: String) {
         resultLogger = sut.get(instrumentationScopeName: instrumentationScopeName)
     }
 
-    func whenInvokingGet() {
+    fileprivate func whenInvokingGet() {
         resultLogger = sut.get()
     }
 
-    func whenInvokingLoggerBuilder(withInstrumentationScopeName instrumentationScopeName: String = "") {
+    fileprivate func whenInvokingLoggerBuilder(withInstrumentationScopeName instrumentationScopeName: String = "") {
         resultLoggerBuilder = sut.loggerBuilder(instrumentationScopeName: instrumentationScopeName)
     }
 
-    func whenInvokingProviderUpdate(withConfig config: any EmbraceLoggerConfig) {
+    fileprivate func whenInvokingProviderUpdate(withConfig config: any EmbraceLoggerConfig) {
         sut.update(config)
     }
 
-    func thenLoggerIsEmbraceLogger() {
+    fileprivate func thenLoggerIsEmbraceLogger() {
         XCTAssertTrue(resultLogger is EmbraceLogger)
     }
 
-    func thenLoggerBuilderIsEmbraceLoggerBuilder() {
+    fileprivate func thenLoggerBuilderIsEmbraceLoggerBuilder() {
         XCTAssertTrue(resultLoggerBuilder is EmbraceLoggerBuilder)
     }
 
-    func thenLoggersConfigIsRandomEmbraceLoggerConfig() throws {
+    fileprivate func thenLoggersConfigIsRandomEmbraceLoggerConfig() throws {
         let embraceLogger = try XCTUnwrap(resultLogger as? EmbraceLogger)
         XCTAssertTrue(embraceLogger.sharedState.config is RandomConfig)
     }

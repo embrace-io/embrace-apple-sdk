@@ -2,17 +2,19 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-import TestSupport
 import EmbraceCommonInternal
-@testable import EmbraceCore
 import EmbraceStorageInternal
+import TestSupport
+import XCTest
+
+@testable import EmbraceCore
 
 class MetricKitHangCaptureServiceTests: XCTestCase {
 
-    func options(provider: MetricKitPayloadProvider,
-                 fetcher: EmbraceStorageMetadataFetcher? = nil,
-                 stateProvider: EmbraceMetricKitStateProvider? = nil
+    func options(
+        provider: MetricKitPayloadProvider,
+        fetcher: EmbraceStorageMetadataFetcher? = nil,
+        stateProvider: EmbraceMetricKitStateProvider? = nil
     ) -> MetricKitHangCaptureService.Options {
         return MetricKitHangCaptureService.Options(
             payloadProvider: provider,
@@ -58,8 +60,10 @@ class MetricKitHangCaptureServiceTests: XCTestCase {
         XCTAssertEqual(log.attributes["emb.provider"], .string("metrickit"))
         XCTAssertEqual(log.attributes["emb.payload"], .string("test"))
         XCTAssertNotNil(log.attributes["emb.payload.timestamp"])
-        XCTAssertEqual(log.attributes["diagnostic.timestamp_start"], .string(String(startTime.nanosecondsSince1970Truncated)))
-        XCTAssertEqual(log.attributes["diagnostic.timestamp_end"], .string(String(endTime.nanosecondsSince1970Truncated)))
+        XCTAssertEqual(
+            log.attributes["diagnostic.timestamp_start"], .string(String(startTime.nanosecondsSince1970Truncated)))
+        XCTAssertEqual(
+            log.attributes["diagnostic.timestamp_end"], .string(String(endTime.nanosecondsSince1970Truncated)))
     }
 
     func test_not_started() throws {

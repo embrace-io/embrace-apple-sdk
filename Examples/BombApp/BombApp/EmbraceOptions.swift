@@ -7,9 +7,9 @@ import EmbraceIO
 extension Embrace.Endpoints {
     static func fromInfoPlist() -> Embrace.Endpoints? {
         guard let endpoints = Bundle.main.infoDictionary?["EmbraceEndpoints"] as? [String: String],
-              let baseURL = value(from: endpoints, key: "baseURL"),
-              let developmentBaseURL = value(from: endpoints, key: "developmentBaseURL"),
-              let configBaseURL = value(from: endpoints, key: "configBaseURL")
+            let baseURL = value(from: endpoints, key: "baseURL"),
+            let developmentBaseURL = value(from: endpoints, key: "developmentBaseURL"),
+            let configBaseURL = value(from: endpoints, key: "configBaseURL")
         else {
             return nil
         }
@@ -26,7 +26,7 @@ extension Embrace.Endpoints {
             return nil
         }
 
-        let scheme = value.contains("localhost") ||  value.contains("127.0.0.1") ? "http://" : "https://"
+        let scheme = value.contains("localhost") || value.contains("127.0.0.1") ? "http://" : "https://"
         return scheme + value
     }
 }

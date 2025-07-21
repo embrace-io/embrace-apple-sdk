@@ -3,7 +3,7 @@
 //
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
+    import EmbraceCommonInternal
 #endif
 
 extension Embrace: EmbraceMetricKitStateProvider {

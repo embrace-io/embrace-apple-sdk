@@ -3,13 +3,14 @@
 //
 
 import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceOTelInternal
-import EmbraceSemantics
-#endif
 import OpenTelemetryApi
 import OpenTelemetrySdk
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+    import EmbraceOTelInternal
+    import EmbraceSemantics
+#endif
 
 extension Embrace: EmbraceOpenTelemetry {
     private var exporter: SpanExporter {
@@ -69,7 +70,8 @@ extension Embrace: EmbraceOpenTelemetry {
         events: [RecordingSpanEvent],
         errorCode: SpanErrorCode?
     ) {
-        let builder = otel
+        let builder =
+            otel
             .buildSpan(name: name, type: type, attributes: attributes)
             .setStartTime(time: startTime)
 
@@ -257,7 +259,7 @@ extension Embrace: EmbraceOpenTelemetry {
     }
 }
 
-extension Embrace { // MARK: Static methods
+extension Embrace {  // MARK: Static methods
 
     /// Starts a span and executes the block. The span will be ended when the block returns.
     /// - Parameters:
@@ -292,7 +294,7 @@ extension Embrace { // MARK: Static methods
     }
 }
 
-extension Embrace { // MARK: Internal methods
+extension Embrace {  // MARK: Internal methods
 
     /// Starts a span and executes the block. The span will be ended when the block returns
     /// - Parameters:

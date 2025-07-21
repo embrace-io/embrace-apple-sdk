@@ -4,6 +4,7 @@
 
 import Foundation
 import XCTest
+
 @testable import EmbraceCore
 
 // swiftlint:disable force_try force_cast nesting

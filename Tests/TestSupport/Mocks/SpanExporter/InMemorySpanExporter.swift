@@ -3,9 +3,9 @@
 //
 
 import EmbraceOTelInternal
+import Foundation
 import OpenTelemetryApi
 import OpenTelemetrySdk
-import Foundation
 
 public class InMemorySpanExporter: SpanExporter {
 
@@ -17,7 +17,7 @@ public class InMemorySpanExporter: SpanExporter {
 
     private var onFlush: (() -> Void)?
 
-    public init() { }
+    public init() {}
 
     public func onExportComplete(completion: (() -> Void)?) {
         self.onExportComplete = completion

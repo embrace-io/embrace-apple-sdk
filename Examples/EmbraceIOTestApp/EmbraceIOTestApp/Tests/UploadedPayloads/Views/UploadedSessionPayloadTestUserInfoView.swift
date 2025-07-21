@@ -4,9 +4,9 @@
 //
 //
 
-import SwiftUI
 import Combine
 import EmbraceIO
+import SwiftUI
 
 struct UploadedSessionPayloadTestUserInfoView: View {
     @Binding var username: String
@@ -23,7 +23,7 @@ struct UploadedSessionPayloadTestUserInfoView: View {
             TextField("User Name", text: $username)
                 .font(.embraceFont(size: 18))
                 .foregroundStyle(.embraceSilver)
-                .padding([.leading, .trailing,], 5)
+                .padding([.leading, .trailing], 5)
                 .textFieldStyle(RoundedStyle())
                 .accessibilityIdentifier("SessionTests_UserInfo_Username")
                 .padding(.bottom, 5)
@@ -34,7 +34,7 @@ struct UploadedSessionPayloadTestUserInfoView: View {
             TextField("User Email", text: $email)
                 .font(.embraceFont(size: 18))
                 .foregroundStyle(.embraceSilver)
-                .padding([.leading, .trailing,], 5)
+                .padding([.leading, .trailing], 5)
                 .textFieldStyle(RoundedStyle())
                 .accessibilityIdentifier("SessionTests_UserInfo_Email")
                 .padding(.bottom, 5)
@@ -45,7 +45,7 @@ struct UploadedSessionPayloadTestUserInfoView: View {
             TextField("User Identifier", text: $identifier)
                 .font(.embraceFont(size: 18))
                 .foregroundStyle(.embraceSilver)
-                .padding([.leading, .trailing,], 5)
+                .padding([.leading, .trailing], 5)
                 .textFieldStyle(RoundedStyle())
                 .accessibilityIdentifier("SessionTests_UserInfo_Identifier")
                 .padding(.bottom, 20)
@@ -69,9 +69,11 @@ struct UploadedSessionPayloadTestUserInfoView: View {
     @State var email: String = ""
     @State var identifier: String = ""
 
-    return UploadedSessionPayloadTestUserInfoView(username: $username,
-                                                  email: $email,
-                                                  identifier: $identifier) {
-        
+    return UploadedSessionPayloadTestUserInfoView(
+        username: $username,
+        email: $email,
+        identifier: $identifier
+    ) {
+
     }
 }

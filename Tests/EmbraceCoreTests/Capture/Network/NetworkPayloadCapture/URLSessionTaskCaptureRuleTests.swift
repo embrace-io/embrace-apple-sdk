@@ -2,12 +2,13 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
+import EmbraceStorageInternal
 import TestSupport
-@testable import EmbraceCore
+import XCTest
+
 @testable import EmbraceConfigInternal
 @testable import EmbraceConfiguration
-import EmbraceStorageInternal
+@testable import EmbraceCore
 
 class URLSessionTaskCaptureRuleTests: XCTestCase {
 
@@ -16,7 +17,7 @@ class URLSessionTaskCaptureRuleTests: XCTestCase {
         urlRegex: "www.test.com/user/*",
         statusCodes: [500],
         method: "GET",
-        expiration: 9999999999,
+        expiration: 9_999_999_999,
         publicKey: TestConstants.rsaSanitizedPublicKey
     )
 
@@ -25,7 +26,7 @@ class URLSessionTaskCaptureRuleTests: XCTestCase {
         urlRegex: "www.test.com/test",
         statusCodes: [-1],
         method: "POST",
-        expiration: 9999999999,
+        expiration: 9_999_999_999,
         publicKey: TestConstants.rsaPublicKey
     )
 

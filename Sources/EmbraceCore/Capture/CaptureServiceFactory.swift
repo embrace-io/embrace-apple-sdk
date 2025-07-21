@@ -3,10 +3,10 @@
 //
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCaptureService
+    import EmbraceCaptureService
 #endif
 
-public enum CaptureServiceFactory { }
+public enum CaptureServiceFactory {}
 
 extension CaptureServiceFactory {
 

@@ -3,10 +3,11 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceStorageInternal
-import EmbraceCommonInternal
-@_implementationOnly import EmbraceObjCUtilsInternal
+    import EmbraceStorageInternal
+    import EmbraceCommonInternal
+    @_implementationOnly import EmbraceObjCUtilsInternal
 #endif
 
 struct AppInfoPayload: Codable {
@@ -32,7 +33,7 @@ struct AppInfoPayload: Codable {
         case appBundleId = "bid"
     }
 
-    init (with resources: [EmbraceMetadata]) {
+    init(with resources: [EmbraceMetadata]) {
         self.appBundleId = Bundle.main.bundleIdentifier
 
         resources.forEach { resource in

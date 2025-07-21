@@ -3,8 +3,9 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
+    import EmbraceCommonInternal
 #endif
 
 /// Levels ordered by severity
@@ -18,9 +19,9 @@ import EmbraceCommonInternal
     case critical
 
     #if DEBUG
-    public static let `default`: LogLevel = .debug
+        public static let `default`: LogLevel = .debug
     #else
-    public static let `default`: LogLevel = .error
+        public static let `default`: LogLevel = .error
     #endif
 
     var severity: LogSeverity {

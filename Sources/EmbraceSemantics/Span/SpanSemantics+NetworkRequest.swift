@@ -2,18 +2,18 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-#endif
-
 import OpenTelemetryApi
 
-public extension SpanType {
-    static let networkRequest = SpanType(performance: "network_request")
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+#endif
+
+extension SpanType {
+    public static let networkRequest = SpanType(performance: "network_request")
 }
 
-public extension SpanSemantics {
-    struct NetworkRequest {
+extension SpanSemantics {
+    public struct NetworkRequest {
         public static let keyUrl = SemanticAttributes.urlFull.rawValue
         public static let keyMethod = SemanticAttributes.httpRequestMethod.rawValue
         public static let keyBodySize = SemanticAttributes.httpRequestBodySize.rawValue

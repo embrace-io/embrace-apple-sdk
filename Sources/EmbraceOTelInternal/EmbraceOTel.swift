@@ -3,19 +3,19 @@
 //
 
 import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceSemantics
-#endif
 import OpenTelemetryApi
 import OpenTelemetrySdk
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+    import EmbraceSemantics
+#endif
 
 @objc(EMBEmbraceOTel)
 public final class EmbraceOTel: NSObject {
 
     let instrumentationName = "EmbraceOpenTelemetry"
     let instrumentationVersion = "semver:\(EmbraceMeta.sdkVersion)"
-
 
     public private(set) static var processor: SingleSpanProcessor?
 
@@ -75,10 +75,10 @@ extension EmbraceOTel: EmbraceOTelBridge {
     ) -> SpanBuilder {
 
         let builder = tracer.spanBuilder(spanName: name)
-                        .setAttribute(
-                            key: SpanSemantics.keyEmbraceType,
-                            value: type.rawValue
-                        )
+            .setAttribute(
+                key: SpanSemantics.keyEmbraceType,
+                value: type.rawValue
+            )
 
         for (key, value) in attributes {
             builder.setAttribute(key: key, value: value)

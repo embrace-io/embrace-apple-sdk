@@ -18,9 +18,7 @@ public struct RecordingSpanEvent: SpanEvent, Codable, Equatable {
 }
 
 public func == (lhs: RecordingSpanEvent, rhs: RecordingSpanEvent) -> Bool {
-    return lhs.name == rhs.name &&
-        lhs.timestamp == rhs.timestamp &&
-        lhs.attributes == rhs.attributes
+    return lhs.name == rhs.name && lhs.timestamp == rhs.timestamp && lhs.attributes == rhs.attributes
 }
 
 public func == (lhs: [RecordingSpanEvent], rhs: [RecordingSpanEvent]) -> Bool {

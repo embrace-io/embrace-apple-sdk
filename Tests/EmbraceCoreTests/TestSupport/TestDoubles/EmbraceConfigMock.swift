@@ -2,9 +2,10 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-@testable import EmbraceConfigInternal
-import TestSupport
 import Foundation
+import TestSupport
+
+@testable import EmbraceConfigInternal
 
 class EmbraceConfigMock {
     static func `default`(sdkEnabled: Bool = true) -> EmbraceConfig {

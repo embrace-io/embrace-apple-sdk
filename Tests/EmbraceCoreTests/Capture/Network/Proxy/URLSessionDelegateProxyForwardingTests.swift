@@ -3,6 +3,7 @@
 //
 
 import XCTest
+
 @testable import EmbraceCore
 @testable @_implementationOnly import EmbraceObjCUtilsInternal
 
@@ -34,44 +35,47 @@ class URLSessionDelegateProxyForwardingTests: XCTestCase {
 }
 
 // MARK: - Private Utility Methods
-private extension URLSessionDelegateProxyForwardingTests {
-    func givenProxyContainingDelegateWithoutImplementingMethods() {
+extension URLSessionDelegateProxyForwardingTests {
+    fileprivate func givenProxyContainingDelegateWithoutImplementingMethods() {
         originalDelegate = .init()
         handler = .init()
         sut = EMBURLSessionDelegateProxy(delegate: originalDelegate, handler: handler)
     }
 
-    func whenInvokingDidCompleteWithError() {
-        (sut as URLSessionDataDelegate).urlSession?(.shared,
-                                                    task: aTask(),
-                                                    didCompleteWithError: NSError(domain: "domain", code: 1234))
+    fileprivate func whenInvokingDidCompleteWithError() {
+        (sut as URLSessionDataDelegate).urlSession?(
+            .shared,
+            task: aTask(),
+            didCompleteWithError: NSError(domain: "domain", code: 1234))
     }
 
-    func whenInvokingMethodThatIsNotImplementedInProxyNorDelegate() {
-        (sut as URLSessionDataDelegate).urlSession?(.shared,
-                                                    dataTask: aTask(),
-                                                    willCacheResponse: .init(),
-                                                    completionHandler: { _ in })
+    fileprivate func whenInvokingMethodThatIsNotImplementedInProxyNorDelegate() {
+        (sut as URLSessionDataDelegate).urlSession?(
+            .shared,
+            dataTask: aTask(),
+            willCacheResponse: .init(),
+            completionHandler: { _ in })
     }
 
-    func whenInvokingMethodFromNonConformantDelegate() {
-        (sut as? URLSessionWebSocketDelegate)?.urlSession?(.shared,
-                                                         webSocketTask: aWebSocketTask(),
-                                                         didCloseWith: .abnormalClosure,
-                                                         reason: Data())
+    fileprivate func whenInvokingMethodFromNonConformantDelegate() {
+        (sut as? URLSessionWebSocketDelegate)?.urlSession?(
+            .shared,
+            webSocketTask: aWebSocketTask(),
+            didCloseWith: .abnormalClosure,
+            reason: Data())
     }
 
-    func thenProxyShouldHaveFinishedTaskInHandler() {
+    fileprivate func thenProxyShouldHaveFinishedTaskInHandler() {
         XCTAssertTrue(handler.didInvokeFinishWithData)
     }
 
-    func aTask() -> URLSessionDataTask {
+    fileprivate func aTask() -> URLSessionDataTask {
         let url = URL(string: "https://embrace.io")!
         let request = URLRequest(url: url)
         return URLSession.shared.dataTask(with: request)
     }
 
-    func aWebSocketTask() -> URLSessionWebSocketTask {
+    fileprivate func aWebSocketTask() -> URLSessionWebSocketTask {
         URLSession.shared.webSocketTask(with: URLRequest(url: URL(string: "https://embrace.io")!))
     }
 }

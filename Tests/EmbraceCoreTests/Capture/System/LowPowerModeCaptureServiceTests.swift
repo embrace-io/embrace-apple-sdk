@@ -2,13 +2,14 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-import TestSupport
 import EmbraceCommonInternal
 import OpenTelemetryApi
 import OpenTelemetrySdk
-@testable import EmbraceOTelInternal
+import TestSupport
+import XCTest
+
 @testable import EmbraceCore
+@testable import EmbraceOTelInternal
 
 // swiftlint:disable force_cast
 

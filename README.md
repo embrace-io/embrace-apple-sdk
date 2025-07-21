@@ -148,7 +148,7 @@ There is also the `bin/test` command that can be used to run tests from the comm
 bin/test | xcpretty
 ```
 
-## Linting and Guidelines
+## Linting, Formatting and Guidelines
 
 We use [SwiftLint](https://github.com/realm/SwiftLint) to enforce consistency and every pull request must pass a lint check to be merged.
 
@@ -159,10 +159,41 @@ We recommend homebrew:
 brew install swiftlint
 ```
 
+
 Once `swiftlint` is in your PATH, you can run the linter:
 ```sh
 swiftlint --fix
 ```
+
+### Formatting Code
+
+To ensure consistent formatting across the codebase, we use both [swift-format](https://github.com/apple/swift-format) and [clang-format](https://clang.llvm.org/docs/ClangFormat.html).
+
+The easiest way to run both formatters is via:
+
+```sh
+make format
+```
+
+This will automatically apply formatting to all Swift and C/Obj-C files using project-defined configurations (e.g., `.swift-format`, `.clang-format`).
+
+To install the tools via Homebrew:
+
+```sh
+brew install swift-format
+brew install clang-format
+```
+
+You can also run individual format targets:
+
+```sh
+make format 
+make check-format 
+make swift-format 
+make check-swift-format
+```
+
+Make sure your code is formatted before submitting a pull request.
 
 ### Using SwiftLint
 
@@ -210,4 +241,3 @@ For urgent matters (such as outages) or issues concerning the Embrace service or
 [![Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-orange)](./LICENSE.txt)
 
 Embrace Apple SDK is published under the Apache-2.0 license.
-

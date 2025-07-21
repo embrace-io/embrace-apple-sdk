@@ -2,8 +2,8 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
 import EmbraceCommonInternal
+import Foundation
 import OpenTelemetryApi
 
 public class MockMetadata: EmbraceMetadata {
@@ -31,8 +31,8 @@ public class MockMetadata: EmbraceMetadata {
     }
 }
 
-public extension MockMetadata {
-    static func createSessionPropertyRecord(
+extension MockMetadata {
+    public static func createSessionPropertyRecord(
         key: String,
         value: AttributeValue,
         sessionId: SessionIdentifier = .random
@@ -46,7 +46,7 @@ public extension MockMetadata {
         )
     }
 
-    static func createUserMetadata(key: String, value: String) -> EmbraceMetadata {
+    public static func createUserMetadata(key: String, value: String) -> EmbraceMetadata {
         MockMetadata(
             key: key,
             value: value,
@@ -56,7 +56,7 @@ public extension MockMetadata {
         )
     }
 
-    static func createResourceRecord(key: String, value: String) -> EmbraceMetadata {
+    public static func createResourceRecord(key: String, value: String) -> EmbraceMetadata {
         MockMetadata(
             key: key,
             value: value,
@@ -66,7 +66,7 @@ public extension MockMetadata {
         )
     }
 
-    static func createPersonaTagRecord(value: String) -> EmbraceMetadata {
+    public static func createPersonaTagRecord(value: String) -> EmbraceMetadata {
         MockMetadata(
             key: value,
             value: value,

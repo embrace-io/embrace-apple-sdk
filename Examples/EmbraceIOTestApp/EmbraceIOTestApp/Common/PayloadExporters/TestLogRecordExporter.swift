@@ -4,8 +4,8 @@
 //
 //
 
-import SwiftUI
 import OpenTelemetrySdk
+import SwiftUI
 
 @Observable class TestLogRecordExporter: LogRecordExporter {
     func forceFlush(explicitTimeout: TimeInterval?) -> OpenTelemetrySdk.ExportResult { return .success }
@@ -15,7 +15,7 @@ import OpenTelemetrySdk
     private(set) var cachedExportedLogs: [ReadableLogRecord] = []
     private(set) var latestExportedLogs: [ReadableLogRecord] = []
 
-    func export(logRecords: [ReadableLogRecord], explicitTimeout : TimeInterval?) -> ExportResult {
+    func export(logRecords: [ReadableLogRecord], explicitTimeout: TimeInterval?) -> ExportResult {
         latestExportedLogs = logRecords
         logRecords.forEach { cachedExportedLogs.append($0) }
         NotificationCenter.default.post(name: NSNotification.Name("TestLogRecordExporter.LogsUpdated"), object: nil)

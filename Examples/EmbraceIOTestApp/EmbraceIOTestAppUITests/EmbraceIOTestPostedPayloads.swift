@@ -5,6 +5,7 @@
 //
 
 import XCTest
+
 @testable import EmbraceCommonInternal
 
 final class EmbraceIOTestPostedPayloads: XCTestCase {
@@ -17,7 +18,8 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
         let initButton = app.buttons["EmbraceInitButton"]
         initButton.tap()
 
-        XCTAssertNotNil(initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
+        XCTAssertNotNil(
+            initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
 
         let sideMenuButton = app.buttons["SideMenuButton"]
         sideMenuButton.tap()
@@ -32,7 +34,7 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
     }
 
     private func runSessionSpanTest() -> Bool {
-        let enabled = NSPredicate(format:"enabled == true")
+        let enabled = NSPredicate(format: "enabled == true")
         let testButton = app.buttons["sessionPayloadTestButton"]
         let buttonEnabled = expectation(for: enabled, evaluatedWith: testButton, handler: nil)
         wait(for: [buttonEnabled], timeout: 5.0)

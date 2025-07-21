@@ -2,14 +2,15 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-@testable import EmbraceCore
 import EmbraceCommonInternal
-import EmbraceStorageInternal
-import TestSupport
 import EmbraceOTelInternal
+import EmbraceStorageInternal
 import OpenTelemetryApi
 import OpenTelemetrySdk
+import TestSupport
+import XCTest
+
+@testable import EmbraceCore
 
 final class SessionSpanUtilsTests: XCTestCase {
 
@@ -279,14 +280,14 @@ final class SessionSpanUtilsTests: XCTestCase {
         // when building the session span payload
         let payload = SessionSpanUtils.payload(from: session, properties: properties, sessionNumber: 100)
 
-        XCTAssertFalse(payload.attributes.contains(where: { $0.key == "emb.user.username "}))
-        XCTAssertFalse(payload.attributes.contains(where: { $0.key == "emb.user.email"}))
-        XCTAssertFalse(payload.attributes.contains(where: { $0.key == "emb.user.identifierj"}))
+        XCTAssertFalse(payload.attributes.contains(where: { $0.key == "emb.user.username " }))
+        XCTAssertFalse(payload.attributes.contains(where: { $0.key == "emb.user.email" }))
+        XCTAssertFalse(payload.attributes.contains(where: { $0.key == "emb.user.identifierj" }))
     }
 }
 
-private extension SessionSpanUtilsTests {
-    func givenSessionRecord() -> MockSession {
+extension SessionSpanUtilsTests {
+    fileprivate func givenSessionRecord() -> MockSession {
         let endTime = Date(timeIntervalSince1970: 60)
         let heartbeat = Date(timeIntervalSince1970: 58)
 
@@ -305,7 +306,9 @@ private extension SessionSpanUtilsTests {
             appTerminated: .random())
     }
 
-    func givenCustomProperty(withKey key: String, value: String, lifespan: MetadataRecordLifespan) -> MockMetadata {
+    fileprivate func givenCustomProperty(withKey key: String, value: String, lifespan: MetadataRecordLifespan)
+        -> MockMetadata
+    {
         MockMetadata(
             key: key,
             value: value,

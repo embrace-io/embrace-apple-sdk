@@ -3,10 +3,11 @@
 //
 
 import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceOTelInternal
-#endif
 import OpenTelemetrySdk
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceOTelInternal
+#endif
 
 class WhitespaceSpanNameValidator: SpanDataValidator {
     func validate(data: inout SpanData) -> Bool {

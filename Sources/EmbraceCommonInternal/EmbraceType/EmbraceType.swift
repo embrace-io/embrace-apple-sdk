@@ -67,7 +67,8 @@ extension EmbraceType {
     public init?(rawValue: String) {
         let components = rawValue.components(separatedBy: ".")
         guard let first = components.first,
-            let primary = PrimaryType(rawValue: first) else {
+            let primary = PrimaryType(rawValue: first)
+        else {
             return nil
         }
 
@@ -84,8 +85,9 @@ extension EmbraceType {
         let rawValue = try container.decode(String.self)
 
         guard let embType = Self(rawValue: rawValue) else {
-            throw DecodingError.dataCorruptedError(in: container,
-                                                   debugDescription: "Invalid EmbraceType: '\(rawValue.prefix(20))'")
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Invalid EmbraceType: '\(rawValue.prefix(20))'")
         }
 
         self = embType
