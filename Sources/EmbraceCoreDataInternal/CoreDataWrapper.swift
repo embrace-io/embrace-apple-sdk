@@ -76,6 +76,11 @@ public class CoreDataWrapper {
     public func performOperation<Result>(
         _ name: String = #function, save _: Bool = false, _ block: (NSManagedObjectContext) -> Result
     ) -> Result {
+        
+        if Thread.isMainThread {
+            logger.critical("performBlockAndWait on main thread can easily deadlock!")
+        }
+        
         var result: Result!
         let taskAssertion = BackgroundTaskWrapper(name: name, logger: logger)
         context.performAndWait {
