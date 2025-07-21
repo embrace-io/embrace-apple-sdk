@@ -166,7 +166,7 @@ extension SessionRecord: EmbraceStorageRecord {
             crashReportIdAttribute,
             coldStartAttribute,
             cleanExitAttribute,
-            appTerminatedAttribute,
+            appTerminatedAttribute
         ]
 
         return entity

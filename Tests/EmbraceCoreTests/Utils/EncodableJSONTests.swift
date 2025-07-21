@@ -50,7 +50,7 @@ class EncodableJSONTests: XCTestCase {
             "uint64": UInt64(integerLiteral: 9),
             "float": Float(floatLiteral: 10),
             "double": Double(floatLiteral: 11),
-            "null": NSNull(),
+            "null": NSNull()
         ]
 
         // when enconding

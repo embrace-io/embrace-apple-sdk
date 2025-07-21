@@ -26,7 +26,7 @@ class MetadataPayloadTests: XCTestCase {
 
             // persona tags
             MockMetadata.createPersonaTagRecord(value: "tag1"),
-            MockMetadata.createPersonaTagRecord(value: "tag2"),
+            MockMetadata.createPersonaTagRecord(value: "tag2")
         ])
 
         let jsonData = try JSONEncoder().encode(payloadStruct)

@@ -31,7 +31,7 @@ final class EmbraceResourceProviderTests: XCTestCase {
         let provider = MockResourceProvider(
             resource: Resource(attributes: [
                 "service.name": .string("example"),
-                "telemetry.sdk.language": .string("bacon"),
+                "telemetry.sdk.language": .string("bacon")
             ]))
         let resource = provider.getResource()
 
@@ -45,7 +45,7 @@ final class EmbraceResourceProviderTests: XCTestCase {
             resource: Resource(attributes: [
                 "my.name": .string("bob"),
                 "my.age": .int(42),
-                "service.name": .string("example"),
+                "service.name": .string("example")
             ]))
         let resource = provider.getResource()
 

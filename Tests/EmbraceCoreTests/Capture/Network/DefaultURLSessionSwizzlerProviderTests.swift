@@ -28,7 +28,7 @@ class DefaultURLSessionSwizzlerProviderTests: XCTestCase {
             DownloadTaskWithURLRequestWithCompletionSwizzler.self,
             UploadTaskWithStreamedRequestSwizzler.self,
             URLSessionInitWithDelegateSwizzler.self,
-            SessionTaskResumeSwizzler.self,
+            SessionTaskResumeSwizzler.self
         ]
 
         // When

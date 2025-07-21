@@ -47,7 +47,7 @@ struct RSA {
         let attributes =
             [
                 kSecAttrKeyClass as String: kSecAttrKeyClassPublic,
-                kSecAttrKeyType as String: kSecAttrKeyTypeRSA,
+                kSecAttrKeyType as String: kSecAttrKeyTypeRSA
             ] as CFDictionary
 
         guard let keyData = Data(base64Encoded: publicKey),

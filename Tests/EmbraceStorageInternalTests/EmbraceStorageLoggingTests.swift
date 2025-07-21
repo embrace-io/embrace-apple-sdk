@@ -77,7 +77,7 @@ class EmbraceStorageLoggingTests: XCTestCase {
 
         sut.remove(logs: [
             firstLogToDelete,
-            secondLogToDelete,
+            secondLogToDelete
         ])
 
         let logs: [LogRecord] = sut.fetchAll()

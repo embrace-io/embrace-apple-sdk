@@ -19,7 +19,7 @@ class SpanPayloadTests: XCTestCase {
             "bool": .bool(true),
             "double": .double(123.456),
             "int": .int(123456),
-            "string": .string("test"),
+            "string": .string("test")
         ]
     }
 

@@ -45,7 +45,7 @@ class DeviceInfoCaptureService: ResourceCaptureService {
             ResourceAttributes.deviceModelIdentifier.rawValue: EMBDevice.model,
 
             // architecture
-            DeviceResourceKey.architecture.rawValue: EMBDevice.architecture,
+            DeviceResourceKey.architecture.rawValue: EMBDevice.architecture
         ]
 
         addRequiredResources(resourcesMap)

@@ -33,7 +33,7 @@ class LogPayloadBuilderTests: XCTestCase {
             "string_attribute": .string("string"),
             "integer_attribute": .int(1),
             "boolean_attribute": .bool(false),
-            "double_attribute": .double(5.0),
+            "double_attribute": .double(5.0)
         ]
         let record = MockLog(
             id: .random,
@@ -102,7 +102,7 @@ class LogPayloadBuilderTests: XCTestCase {
             body: "test",
             attributes: [
                 "key1": "value1",
-                "key2": "value2",
+                "key2": "value2"
             ],
             storage: storage,
             sessionId: TestConstants.sessionId

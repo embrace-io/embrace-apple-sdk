@@ -169,7 +169,7 @@ class UploadedSessionPayloadTest: PayloadTest {
             "process_pre_warm",
             "process_start_time",
             "screen_resolution",
-            "sdk_version",
+            "sdk_version"
         ]
     }
 

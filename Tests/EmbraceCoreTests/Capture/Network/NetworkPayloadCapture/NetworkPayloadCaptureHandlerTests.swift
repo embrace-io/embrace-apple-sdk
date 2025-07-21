@@ -30,7 +30,7 @@ class NetworkPayloadCaptureHandlerTests: XCTestCase {
             method: "POST",
             expiration: 9_999_999_999,
             publicKey: TestConstants.rsaSanitizedPublicKey
-        ),
+        )
     ]
 
     func test_updateRules() throws {

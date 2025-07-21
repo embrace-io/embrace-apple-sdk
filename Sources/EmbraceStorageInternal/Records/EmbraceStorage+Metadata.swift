@@ -326,7 +326,7 @@ extension EmbraceStorage {
             type: .and,
             subpredicates: [
                 resourcePredicate(),
-                lifespanPredicate(sessionId: sessionId, processId: processId),
+                lifespanPredicate(sessionId: sessionId, processId: processId)
             ]
         )
 
@@ -360,7 +360,7 @@ extension EmbraceStorage {
             type: .and,
             subpredicates: [
                 resourcePredicate(),
-                lifespanPredicate(processId: processId.hex),
+                lifespanPredicate(processId: processId.hex)
             ]
         )
 
@@ -384,7 +384,7 @@ extension EmbraceStorage {
             type: .and,
             subpredicates: [
                 customPropertyPredicate(),
-                lifespanPredicate(sessionId: sessionId, processId: processId),
+                lifespanPredicate(sessionId: sessionId, processId: processId)
             ]
         )
 
@@ -417,7 +417,7 @@ extension EmbraceStorage {
             type: .and,
             subpredicates: [
                 personaTagPredicate(),
-                lifespanPredicate(sessionId: sessionId, processId: processId),
+                lifespanPredicate(sessionId: sessionId, processId: processId)
             ]
         )
 
@@ -451,7 +451,7 @@ extension EmbraceStorage {
             type: .and,
             subpredicates: [
                 personaTagPredicate(),
-                lifespanPredicate(processId: processId.hex),
+                lifespanPredicate(processId: processId.hex)
             ]
         )
 
@@ -546,7 +546,7 @@ extension EmbraceStorage {
             subpredicates: [
                 sessionIdPredicate,
                 processIdPredicate,
-                permanentPredicate,
+                permanentPredicate
             ]
         )
     }
@@ -568,7 +568,7 @@ extension EmbraceStorage {
             type: .or,
             subpredicates: [
                 processIdPredicate,
-                permanentPredicate,
+                permanentPredicate
             ]
         )
     }

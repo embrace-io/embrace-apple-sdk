@@ -10,7 +10,7 @@ struct NetworkStressTest: View {
     static let quickURLs = [
         "https://www.example.com",
         "https://www.google.com",
-        "https://www.apple.com",
+        "https://www.apple.com"
 
     ]
 

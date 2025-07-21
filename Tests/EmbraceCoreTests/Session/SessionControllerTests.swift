@@ -382,7 +382,7 @@ final class SessionControllerTests: XCTestCase {
                 .init(name: "appId", value: TestConstants.appId),
                 .init(name: "osVersion", value: TestConstants.osVersion),
                 .init(name: "appVersion", value: TestConstants.appVersion),
-                .init(name: "sdkVersion", value: TestConstants.sdkVersion),
+                .init(name: "sdkVersion", value: TestConstants.sdkVersion)
             ])
         } else {
             XCTFail("This will fail on versions prior to iOS 16.0")

@@ -40,7 +40,7 @@ extension W3C {
             "00",
             traceId,
             spanId,
-            sampled ? "01" : "00",
+            sampled ? "01" : "00"
         ].joined(separator: "-")
     }
 

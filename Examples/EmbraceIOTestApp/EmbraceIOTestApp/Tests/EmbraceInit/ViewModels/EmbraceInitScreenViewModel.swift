@@ -49,7 +49,7 @@ struct EmbraceInitScreenViewModel {
                 .init(
                     name: "Config Base URL",
                     value: "http://127.0.0.1:8989/api")
-            ]),
+            ])
     ]
 
     var appId: String {

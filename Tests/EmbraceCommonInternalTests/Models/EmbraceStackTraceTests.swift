@@ -64,7 +64,7 @@ class EmbraceStackTraceTests: XCTestCase {
             "28  PlugInKit                           0x0000000198cce180 pkIsServiceAccount + 36640",
             "29  ExtensionFoundation                 0x00000001e6485280 EXExtensionMain + 304",
             "30  Foundation                          0x000000018bb13668 NSExtensionMain + 204",
-            "31  dyld                                0x000000018a4fb154 start + 2476",
+            "31  dyld                                0x000000018a4fb154 start + 2476"
         ]
         let embraceStackTrace = try EmbraceStackTrace(frames: customStackTrace)
         XCTAssertEqual(embraceStackTrace.frames.count, customStackTrace.count)
@@ -74,7 +74,7 @@ class EmbraceStackTraceTests: XCTestCase {
         let invalidStackTrace = [
             "0   Page_Contents                       0x000000010af45dec main + 136",  // valid frame
             "a",  // invalid frame
-            "2   CoreFoundation                      0x000000018a965070 __CFRUNLOOP_IS_CALLING_OUT_TO_A_BLOCK__ + 28",  // valid frame
+            "2   CoreFoundation                      0x000000018a965070 __CFRUNLOOP_IS_CALLING_OUT_TO_A_BLOCK__ + 28"  // valid frame
         ]
         XCTAssertThrowsError(try EmbraceStackTrace(frames: invalidStackTrace)) { error in
             if let error = error as? EmbraceStackTraceError {

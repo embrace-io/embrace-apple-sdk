@@ -83,7 +83,7 @@ final class EmbraceSetupCaptureServicesTests: XCTestCase {
             captureServices: [
                 ExampleCaptureService(),
                 ExampleCaptureService(),
-                ExampleCaptureService(),
+                ExampleCaptureService()
             ],
             crashReporter: nil
         )

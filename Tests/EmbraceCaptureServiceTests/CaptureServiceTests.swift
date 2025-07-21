@@ -158,7 +158,7 @@ class CaptureServiceTests: XCTestCase {
         service.add(events: [
             RecordingSpanEvent(name: "test1", timestamp: Date()),
             RecordingSpanEvent(name: "test2", timestamp: Date()),
-            RecordingSpanEvent(name: "test3", timestamp: Date()),
+            RecordingSpanEvent(name: "test3", timestamp: Date())
         ])
 
         // then the events are correctly added

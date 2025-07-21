@@ -62,7 +62,7 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
             MockMetadata.createSessionPropertyRecord(
                 key: "custom_prop_double", value: .double(3.0), sessionId: sessionId),
             MockMetadata.createSessionPropertyRecord(
-                key: "custom_prop_string", value: .string("hello"), sessionId: sessionId),
+                key: "custom_prop_string", value: .string("hello"), sessionId: sessionId)
         ]
         )
         givenEmbraceLogAttributesBuilder()
@@ -74,7 +74,7 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
             "emb.properties.custom_prop_int": "1",
             "emb.properties.custom_prop_bool": "false",
             "emb.properties.custom_prop_double": "3.0",
-            "emb.properties.custom_prop_string": "hello",
+            "emb.properties.custom_prop_string": "hello"
         ])
     }
 

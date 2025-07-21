@@ -114,7 +114,7 @@ final class EmbraceOTelTests: XCTestCase {
                 span.toSpanData().attributes,
                 [
                     "foo": .string("bar"),
-                    "emb.type": .string("perf"),
+                    "emb.type": .string("perf")
                 ])
 
         } else {

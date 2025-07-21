@@ -144,7 +144,7 @@ extension UserInfo {
             PersonaTag.guest,
             PersonaTag.pro,
             PersonaTag.mvp,
-            PersonaTag.vip,
+            PersonaTag.vip
         ]
     }
 
@@ -153,7 +153,7 @@ extension UserInfo {
             Color.embraceLead,
             Color.embracePink,
             Color.embracePurple,
-            Color.embraceSilver,
+            Color.embraceSilver
         ]
     }
 }

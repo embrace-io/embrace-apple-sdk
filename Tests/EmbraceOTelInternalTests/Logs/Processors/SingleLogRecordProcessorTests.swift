@@ -63,7 +63,7 @@ class SingleLogRecordProcessorTests: XCTestCase {
                 successfulFlushExporter(),
                 failingFlushExporter(),
                 successfulFlushExporter(),
-                successfulFlushExporter(),
+                successfulFlushExporter()
             ]
         )
         whenInvokingForceFlush()

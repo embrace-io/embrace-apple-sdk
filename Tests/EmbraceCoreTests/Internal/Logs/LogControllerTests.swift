@@ -180,7 +180,7 @@ class LogControllerTests: XCTestCase {
             LogController.Error.couldntCreatePayload(reason: UUID().uuidString),
             LogController.Error.couldntUpload(reason: UUID().uuidString),
             LogController.Error.couldntAccessStorageModule,
-            LogController.Error.couldntAccessUploadModule,
+            LogController.Error.couldntAccessUploadModule
         ]
         allCases.forEach {
             let convertedError = $0 as NSError

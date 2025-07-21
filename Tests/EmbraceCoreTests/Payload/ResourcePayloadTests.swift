@@ -46,7 +46,7 @@ class ResourcePayloadTests: XCTestCase {
 
             // Random properties that should be used
             MockMetadata.createUserMetadata(key: "random_user_metadata_property", value: "value1"),
-            MockMetadata.createResourceRecord(key: "random_resource_property", value: "value2"),
+            MockMetadata.createResourceRecord(key: "random_resource_property", value: "value2")
         ])
 
         let jsonData = try JSONEncoder().encode(payloadStruct)

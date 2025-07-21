@@ -111,7 +111,7 @@ extension LoggingView {
                     frames: [
                         "0 BrandGame 0x0000000005678def [SomeClass method] + 48",
                         "1 Random Library 0x0000000001234abc [Random init]",
-                        "2 \(UUID().uuidString) 0x0000000001234abc [\(UUID().uuidString) \(UUID().uuidString))]",
+                        "2 \(UUID().uuidString) 0x0000000001234abc [\(UUID().uuidString) \(UUID().uuidString))]"
                     ])
             )
         case .none:

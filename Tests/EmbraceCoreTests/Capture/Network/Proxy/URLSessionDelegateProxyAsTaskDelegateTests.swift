@@ -82,7 +82,7 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
         wait(
             for: [
                 sessionDelegate.didReceiveDataExpectation,
-                sessionDelegate.didCompleteWithErrorExpectation,
+                sessionDelegate.didCompleteWithErrorExpectation
             ], timeout: Self.timeoutQuick)
 
         unswizzleDefaultCaptureService()
@@ -121,7 +121,7 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
                 sessionDelegate.didReceiveDataExpectation,
                 sessionDelegate.didCompleteWithErrorExpectation,
                 taskDelegate.didReceiveDataExpectation,
-                taskDelegate.didCompleteWithErrorExpectation,
+                taskDelegate.didCompleteWithErrorExpectation
             ], timeout: Self.timeoutQuick)
 
         XCTAssertTrue(try XCTUnwrap(otherSwizzler?.proxy?.didInvokeRespondsTo))
@@ -160,7 +160,7 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
                 sessionDelegate.didReceiveDataExpectation,
                 sessionDelegate.didCompleteWithErrorExpectation,
                 taskDelegate.didReceiveDataExpectation,
-                taskDelegate.didCompleteWithErrorExpectation,
+                taskDelegate.didCompleteWithErrorExpectation
             ], timeout: Self.timeoutQuick)
 
         XCTAssertTrue(try XCTUnwrap(otherSwizzler?.proxy?.didInvokeRespondsTo))
@@ -192,7 +192,7 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
                 sessionDelegate.didReceiveDataExpectation,
                 sessionDelegate.didCompleteWithErrorExpectation,
                 taskDelegate.didReceiveDataExpectation,
-                taskDelegate.didCompleteWithErrorExpectation,
+                taskDelegate.didCompleteWithErrorExpectation
             ], timeout: Self.timeoutQuick)
         unswizzleDefaultCaptureService()
     }
@@ -213,7 +213,7 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
         wait(
             for: [
                 sessionDelegate.didReceiveDataExpectation,
-                sessionDelegate.didCompleteWithErrorExpectation,
+                sessionDelegate.didCompleteWithErrorExpectation
             ], timeout: Self.timeoutQuick)
 
         unswizzleDefaultCaptureService()

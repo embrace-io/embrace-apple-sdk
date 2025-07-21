@@ -436,7 +436,7 @@
                 type: type,
                 attributes: [
                     SpanSemantics.View.keyViewTitle: viewName,
-                    SpanSemantics.View.keyViewName: className,
+                    SpanSemantics.View.keyViewName: className
                 ],
                 autoTerminationCode: nil
             )

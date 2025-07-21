@@ -91,7 +91,7 @@ final class EmbraceStorage_SpanTests: XCTestCase {
                 "performance 0",
                 "performance 1",
                 "performance 2",
-                "network 2",
+                "network 2"
             ]
         )
     }

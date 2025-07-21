@@ -33,7 +33,7 @@ struct DefaultURLSessionSwizzlerProvider: URLSessionSwizzlerProvider {
             DownloadTaskWithURLRequestWithCompletionSwizzler.self,
 
             // Upload Streaming Tasks
-            UploadTaskWithStreamedRequestSwizzler.self,
+            UploadTaskWithStreamedRequestSwizzler.self
         ]
         var swizzlers: [any URLSessionSwizzler] = []
 

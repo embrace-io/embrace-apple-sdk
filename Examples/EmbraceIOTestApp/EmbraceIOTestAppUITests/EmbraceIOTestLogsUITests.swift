@@ -208,7 +208,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
     private var customStackTrace: EmbraceStackTrace {
         try! EmbraceStackTrace(frames: [
             "0 EmbraceIOTestApp 0x0000000005678def [SomeClass method] + 48",
-            "1 Random Library 0x0000000001234abc [Random init]",
+            "1 Random Library 0x0000000001234abc [Random init]"
         ])
     }
 

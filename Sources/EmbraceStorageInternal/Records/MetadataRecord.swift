@@ -104,7 +104,7 @@ extension MetadataRecord: EmbraceStorageRecord {
             typeAttribute,
             lifespanAttribute,
             lifespanIdAttribute,
-            collectedAtAttribute,
+            collectedAtAttribute
         ]
 
         return entity

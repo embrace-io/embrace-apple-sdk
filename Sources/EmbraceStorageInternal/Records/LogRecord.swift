@@ -149,14 +149,14 @@ extension LogRecord: EmbraceStorageRecord {
             severityAttribute,
             bodyAttribute,
             timestampAttribute,
-            parentRelationship,
+            parentRelationship
         ]
 
         child.properties = [
             keyAttribute,
             valueAttribute,
             typeAttribute,
-            childRelationship,
+            childRelationship
         ]
 
         return [entity, child]

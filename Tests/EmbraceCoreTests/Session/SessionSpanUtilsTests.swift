@@ -229,7 +229,7 @@ final class SessionSpanUtilsTests: XCTestCase {
         let properties = [
             givenCustomProperty(withKey: "a_permanent_key", value: "a_permanent_value", lifespan: .permanent),
             givenCustomProperty(withKey: "a_process_key", value: "a_process_value", lifespan: .permanent),
-            givenCustomProperty(withKey: "a_session_key", value: "a_session_value", lifespan: .permanent),
+            givenCustomProperty(withKey: "a_session_key", value: "a_session_value", lifespan: .permanent)
         ]
 
         // when building the session span payload

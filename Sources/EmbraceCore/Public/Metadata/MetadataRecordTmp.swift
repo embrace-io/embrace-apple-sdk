@@ -86,7 +86,7 @@ extension MetadataRecordTmp {
             typeAttribute,
             lifespanAttribute,
             lifespanIdAttribute,
-            dateAttribute,
+            dateAttribute
         ]
 
         return entity

@@ -113,10 +113,10 @@ final class SpanEventsLimiterTests: XCTestCase {
                 PushNotificationEvent.Constants.apsAlert: [
                     PushNotificationEvent.Constants.apsTitle: "title",
                     PushNotificationEvent.Constants.apsSubtitle: "subtitle",
-                    PushNotificationEvent.Constants.apsBody: "body",
+                    PushNotificationEvent.Constants.apsBody: "body"
                 ],
                 PushNotificationEvent.Constants.apsCategory: "category",
-                PushNotificationEvent.Constants.apsBadge: 1,
+                PushNotificationEvent.Constants.apsBadge: 1
             ]
         ]
 

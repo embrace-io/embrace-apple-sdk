@@ -36,7 +36,7 @@ class AppInfoCaptureService: ResourceCaptureService {
             AppResourceKey.processIdentifier.rawValue: ProcessIdentifier.current.hex,
 
             // pre-warm
-            AppResourceKey.processPreWarm.rawValue: isPreWarm,
+            AppResourceKey.processPreWarm.rawValue: isPreWarm
         ]
 
         // app version

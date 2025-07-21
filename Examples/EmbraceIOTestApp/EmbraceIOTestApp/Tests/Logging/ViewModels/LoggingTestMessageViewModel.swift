@@ -90,7 +90,7 @@ extension StackTraceBehavior: CaseIterable {
         do {
             let stackTrace = try EmbraceStackTrace(frames: [
                 "0 EmbraceIOTestApp 0x0000000005678def [SomeClass method] + 48",
-                "1 Random Library 0x0000000001234abc [Random init]",
+                "1 Random Library 0x0000000001234abc [Random init]"
             ])
             return stackTrace
         } catch {

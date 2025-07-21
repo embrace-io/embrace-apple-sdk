@@ -19,7 +19,7 @@ class SpanEventBreadcrumbTests: XCTestCase {
             .random(),
             properties: [
                 "first_key": "a_value",
-                "second_key": "another_value",
+                "second_key": "another_value"
             ])
         let breadcrumb = try XCTUnwrap(spanEvent as? Breadcrumb)
         XCTAssertEqual(breadcrumb.attributes["first_key"], .string("a_value"))

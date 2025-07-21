@@ -23,7 +23,7 @@ class DefaultKeychainInterface: KeychainInterface {
             kSecAttrService: service,
             kSecAttrAccount: account,
             kSecReturnData: true,
-            kSecMatchLimit: kSecMatchLimitOne,
+            kSecMatchLimit: kSecMatchLimitOne
         ]
 
         var dataTypeRef: AnyObject?
@@ -72,7 +72,7 @@ class DefaultKeychainInterface: KeychainInterface {
                 kSecClass: kSecClassGenericPassword,
                 kSecAttrService: service,
                 kSecAttrAccount: account,
-                kSecValueData: dataFromString,
+                kSecValueData: dataFromString
             ]
 
             // Add the new keychain item
@@ -84,7 +84,7 @@ class DefaultKeychainInterface: KeychainInterface {
         let keychainQuery: NSMutableDictionary = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: service,
-            kSecAttrAccount: account,
+            kSecAttrAccount: account
         ]
 
         return SecItemDelete(keychainQuery)

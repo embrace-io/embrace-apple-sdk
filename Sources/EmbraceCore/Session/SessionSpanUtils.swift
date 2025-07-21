@@ -94,7 +94,7 @@ extension SpanPayload {
             Attribute(
                 key: SpanSemantics.Session.keySessionNumber,
                 value: String(sessionNumber)
-            ),
+            )
         ]
 
         if let crashId = session.crashReportId {

@@ -47,7 +47,7 @@ class StorageEmbraceLogExporterTests: XCTestCase {
                 "foo": .string("bar"),
                 "age": .int(42),
                 "grade": .double(96.7),
-                "alive": .bool(true),
+                "alive": .bool(true)
             ])
 
         givenStorageEmbraceLogExporter(initialState: .active)
@@ -61,7 +61,7 @@ class StorageEmbraceLogExporterTests: XCTestCase {
                 "foo": .string("bar"),
                 "age": .int(42),
                 "grade": .double(96.7),
-                "alive": .bool(true),
+                "alive": .bool(true)
             ])
     }
 
@@ -131,7 +131,7 @@ class StorageEmbraceLogExporterTests: XCTestCase {
             body: "example",
             attributes: [
                 "emb.type": .string(LogType.crash.rawValue),
-                "emb.provider": .string("metrickit"),
+                "emb.provider": .string("metrickit")
             ]
         )
 
@@ -152,7 +152,7 @@ class StorageEmbraceLogExporterTests: XCTestCase {
             body: "example",
             attributes: [
                 "emb.type": .string(LogType.crash.rawValue),
-                "emb.provider": .string("metrickit"),
+                "emb.provider": .string("metrickit")
             ]
         )
 
@@ -160,7 +160,7 @@ class StorageEmbraceLogExporterTests: XCTestCase {
             body: "example",
             attributes: [
                 "emb.type": .string(LogType.hang.rawValue),
-                "emb.provider": .string("metrickit"),
+                "emb.provider": .string("metrickit")
             ]
         )
 

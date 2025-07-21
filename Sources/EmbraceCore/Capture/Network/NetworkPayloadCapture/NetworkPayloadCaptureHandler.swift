@@ -167,7 +167,7 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
                     LogSemantics.NetworkCapture.keyPayloadAlgorithm: result.payloadAlgorithm,
                     LogSemantics.NetworkCapture.keyEncryptedKey: result.key,
                     LogSemantics.NetworkCapture.keyKeyAlgorithm: result.keyAlgorithm,
-                    LogSemantics.NetworkCapture.keyAesIv: result.iv,
+                    LogSemantics.NetworkCapture.keyAesIv: result.iv
                 ],
                 stackTraceBehavior: .default
             )

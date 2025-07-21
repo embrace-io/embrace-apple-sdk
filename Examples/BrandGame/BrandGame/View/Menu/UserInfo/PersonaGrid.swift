@@ -52,7 +52,7 @@ extension PersonaGrid {
             PersonaTag.guest,
             PersonaTag.pro,
             PersonaTag.mvp,
-            PersonaTag.vip,
+            PersonaTag.vip
         ]
     }
 
@@ -61,7 +61,7 @@ extension PersonaGrid {
             Color.embraceLead,
             Color.embracePink,
             Color.embracePurple,
-            Color.embraceSilver,
+            Color.embraceSilver
         ]
     }
 }

@@ -44,7 +44,7 @@ class URLSessionCaptureServiceTests: XCTestCase {
         givenURLSessionSwizzlerProvider(withSwizzlers: [
             MockURLSessionSwizzler(),
             MockURLSessionSwizzler(),
-            MockURLSessionSwizzler(),
+            MockURLSessionSwizzler()
         ])
         givenURLSessionCaptureService()
         whenInvokingInstall()
@@ -56,7 +56,7 @@ class URLSessionCaptureServiceTests: XCTestCase {
             ThrowingURLSessionSwizzler(),
             MockURLSessionSwizzler(),
             ThrowingURLSessionSwizzler(),
-            MockURLSessionSwizzler(),
+            MockURLSessionSwizzler()
         ])
         givenURLSessionCaptureService()
         whenInvokingInstall()

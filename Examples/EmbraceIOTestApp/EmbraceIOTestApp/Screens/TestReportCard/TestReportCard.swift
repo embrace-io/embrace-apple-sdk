@@ -29,12 +29,12 @@ struct TestReportCard: View {
     @State var passReport: TestReport =
         .init(items: [
             .init(target: "viewDidLoad", expected: "viewDidLoad", recorded: "found", result: .success),
-            .init(target: "customViewName", expected: "A custom Name", recorded: "View Controller", result: .success),
+            .init(target: "customViewName", expected: "A custom Name", recorded: "View Controller", result: .success)
         ])
     @State var failReport: TestReport =
         .init(items: [
             .init(target: "viewDidLoad", expected: "viewDidLoad", recorded: "found", result: .success),
-            .init(target: "customViewName", expected: "A custom Name", recorded: "View Controller", result: .fail),
+            .init(target: "customViewName", expected: "A custom Name", recorded: "View Controller", result: .fail)
         ])
 
     @State var passedPresented: Bool = false

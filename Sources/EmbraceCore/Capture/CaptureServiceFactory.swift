@@ -13,7 +13,7 @@ extension CaptureServiceFactory {
     static var requiredServices: [CaptureService] {
         return [
             AppInfoCaptureService(),
-            DeviceInfoCaptureService(),
+            DeviceInfoCaptureService()
         ]
     }
 

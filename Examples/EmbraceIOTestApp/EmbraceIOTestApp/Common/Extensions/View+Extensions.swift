@@ -19,7 +19,7 @@ struct NavigationBarModifier: ViewModifier {
     init(backgroundColor: UIColor = .embraceLead, foregroundColor: UIColor = .embraceYellow) {
         let navBarAppearance = UINavigationBarAppearance()
         navBarAppearance.titleTextAttributes = [
-            .foregroundColor: foregroundColor, .font: UIFont.systemFont(ofSize: 20, weight: .bold),
+            .foregroundColor: foregroundColor, .font: UIFont.systemFont(ofSize: 20, weight: .bold)
         ]
         navBarAppearance.largeTitleTextAttributes = [.foregroundColor: foregroundColor]
         navBarAppearance.backgroundColor = backgroundColor

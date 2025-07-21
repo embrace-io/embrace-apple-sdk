@@ -41,7 +41,7 @@ class MetadataResourceTest: PayloadTest {
             "service.version",
             "telemetry.sdk.language",
             "os.type",
-            "os.version",
+            "os.version"
         ]
     }
 

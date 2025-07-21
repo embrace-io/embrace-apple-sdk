@@ -307,7 +307,7 @@ class UnsentDataHandler {
         let id = LogIdentifier().toString
         let attributes: [String: String] = [
             LogSemantics.keyId: id,
-            LogSemantics.keyEmbraceType: LogType.internal.rawValue,
+            LogSemantics.keyEmbraceType: LogType.internal.rawValue
         ]
 
         let payload = LogPayloadBuilder.build(

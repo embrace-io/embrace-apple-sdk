@@ -46,7 +46,7 @@ final class PayloadUtilTests: XCTestCase {
             "int": .int(123456),
             "intArray": .intArray([123456, 987654]),
             "string": .string("test"),
-            "stringArray": .stringArray(["test1", "test2"]),
+            "stringArray": .stringArray(["test1", "test2"])
         ]
 
         // when converting them

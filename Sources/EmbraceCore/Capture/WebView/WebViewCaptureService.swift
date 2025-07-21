@@ -103,7 +103,7 @@
 
             var attributes: [String: AttributeValue] = [
                 SpanEventSemantics.keyEmbraceType: .string(SpanEventType.webView.rawValue),
-                SpanEventSemantics.WebView.keyUrl: .string(urlString),
+                SpanEventSemantics.WebView.keyUrl: .string(urlString)
             ]
 
             if let errorCode = statusCode, errorCode != 200 {
