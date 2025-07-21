@@ -29,7 +29,14 @@
             let block3: (URLSession.AuthChallengeDisposition, URLCredential?) -> Void = { _, _ in }
             let block4: (Bool) -> Void = { _ in }
 
-            proxy.webView(webView, decidePolicyFor: WKNavigationResponse(), decisionHandler: block)
+            let expectedCallbackCount: Int
+
+            #if !os(macOS)
+                expectedCallbackCount = 14
+                proxy.webView(webView, decidePolicyFor: WKNavigationResponse(), decisionHandler: block)
+            #else
+                expectedCallbackCount = 12
+            #endif
             proxy.webView(webView, didFailProvisionalNavigation: navigation, withError: error)
             proxy.webView(webView, didFail: navigation, withError: error)
 
@@ -51,10 +58,12 @@
             delegate.webView?(
                 webView, authenticationChallenge: URLAuthenticationChallenge(), shouldAllowDeprecatedTLS: block4)
             delegate.webView?(webView, navigationAction: WKNavigationAction(), didBecome: download)
-            delegate.webView?(webView, navigationResponse: WKNavigationResponse(), didBecome: download)
+            #if !os(macOS)
+                delegate.webView?(webView, navigationResponse: WKNavigationResponse(), didBecome: download)
+            #endif
 
             // then the delegate calls are forwarded
-            XCTAssertEqual(originalDelegate.callCount, 14)
+            XCTAssertEqual(originalDelegate.callCount, expectedCallbackCount)
         }
 
         func test_callback() {
@@ -71,12 +80,21 @@
             let block: (WKNavigationResponsePolicy) -> Void = { _ in }
             let error = NSError(domain: "com.embrace.test", code: 0)
 
-            proxy.webView(webView, decidePolicyFor: WKNavigationResponse(), decisionHandler: block)
+            let expectedCount: Int
+            #if !os(macOS)
+                // WKNavigationResponse dealloc crashes in a weird way on macOS.
+                proxy.webView(webView, decidePolicyFor: WKNavigationResponse(), decisionHandler: block)
+                expectedCount = 3
+            #else
+                expectedCount = 2
+            #endif
+
             proxy.webView(webView, didFailProvisionalNavigation: navigation, withError: error)
             proxy.webView(webView, didFail: navigation, withError: error)
 
             // then the callback is called
-            XCTAssertEqual(callCount, 3)
+            XCTAssertEqual(callCount, expectedCount)
         }
     }
+
 #endif

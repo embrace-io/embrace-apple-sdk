@@ -33,7 +33,7 @@
     if (self) {
         _nextRenderBlock = NULL;
 #if TARGET_OS_OSX
-        _link = [NSScreen.mainScreen displayLinkWithTarget:[EMBDisplayLinkProxy shared] selector:@selector(_tick)];
+        _link = [NSScreen.mainScreen displayLinkWithTarget:self selector:@selector(_tick)];
 #else
         _link = [CADisplayLink displayLinkWithTarget:self selector:@selector(_tick)];
 #endif
