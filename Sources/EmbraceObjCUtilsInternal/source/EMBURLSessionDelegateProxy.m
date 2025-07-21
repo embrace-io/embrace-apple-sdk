@@ -1,10 +1,10 @@
 //
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
-    
+
 #import "EMBURLSessionDelegateProxy.h"
-#import "EMBURLSessionDelegateProxyFunctions.h"
 #import <Foundation/Foundation.h>
+#import "EMBURLSessionDelegateProxyFunctions.h"
 #import "objc/runtime.h"
 
 #define DID_FINISH_COLLECTING_METRICS @selector(URLSession:task:didFinishCollectingMetrics:)
@@ -20,7 +20,8 @@
 
 @implementation EMBURLSessionDelegateProxy
 
-- (instancetype)initWithDelegate:(id<NSURLSessionDelegate>)delegate handler:(id<URLSessionTaskHandler>)handler {
+- (instancetype)initWithDelegate:(id<NSURLSessionDelegate>)delegate handler:(id<URLSessionTaskHandler>)handler
+{
     _originalDelegate = delegate;
     _handler = handler;
     return self;
@@ -28,26 +29,28 @@
 
 #pragma mark - Forwarding Methods
 
-- (BOOL)respondsToSelector:(SEL)aSelector {
-    if (sel_isEqual(aSelector, DID_FINISH_COLLECTING_METRICS) ||
-        sel_isEqual(aSelector, DID_RECEIVE_DATA_SELECTOR) ||
-        sel_isEqual(aSelector, DID_FINISH_DOWNLOADING) ||
-        sel_isEqual(aSelector, DID_COMPLETE_WITH_ERROR) ||
+- (BOOL)respondsToSelector:(SEL)aSelector
+{
+    if (sel_isEqual(aSelector, DID_FINISH_COLLECTING_METRICS) || sel_isEqual(aSelector, DID_RECEIVE_DATA_SELECTOR) ||
+        sel_isEqual(aSelector, DID_FINISH_DOWNLOADING) || sel_isEqual(aSelector, DID_COMPLETE_WITH_ERROR) ||
         sel_isEqual(aSelector, DID_BECOME_INVALID_WITH_ERROR)) {
         return YES;
     }
     return [self.originalDelegate respondsToSelector:aSelector];
 }
 
-- (id)forwardingTargetForSelector:(SEL)aSelector {
+- (id)forwardingTargetForSelector:(SEL)aSelector
+{
     return self.originalDelegate;
 }
 
-- (NSMethodSignature *)methodSignatureForSelector:(SEL)selector {
+- (NSMethodSignature *)methodSignatureForSelector:(SEL)selector
+{
     return [(NSObject *)self.originalDelegate methodSignatureForSelector:selector];
 }
 
-- (void)forwardInvocation:(NSInvocation *)invocation {
+- (void)forwardInvocation:(NSInvocation *)invocation
+{
     [invocation invokeWithTarget:self.originalDelegate];
 }
 
@@ -63,7 +66,8 @@
 
 #pragma mark - NSURLSessionDelegate Methods
 
-- (id)getTargetForSelector:(SEL)selector session:(NSURLSession *)session {
+- (id)getTargetForSelector:(SEL)selector session:(NSURLSession *)session
+{
     // check if the originalDelegate responds to the selector
     if ((self.originalDelegate) && ([self.originalDelegate respondsToSelector:selector])) {
         return self.originalDelegate;
@@ -89,7 +93,8 @@
     return nil;
 }
 
-- (void)URLSession:(NSURLSession *)session didBecomeInvalidWithError:(NSError *)error {
+- (void)URLSession:(NSURLSession *)session didBecomeInvalidWithError:(NSError *)error
+{
     if ([self.originalDelegate respondsToSelector:@selector(URLSession:didBecomeInvalidWithError:)]) {
         [self.originalDelegate URLSession:session didBecomeInvalidWithError:error];
     }
@@ -97,7 +102,8 @@
 
 #pragma mark - NSURLSessionTaskDelegate Methods
 
-- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error {
+- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error
+{
     [self.handler finishWithTask:task data:nil error:error];
     id target = [self getTargetForSelector:DID_COMPLETE_WITH_ERROR session:session];
 
@@ -106,7 +112,10 @@
     }
 }
 
-- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didFinishCollectingMetrics:(NSURLSessionTaskMetrics *)metrics {
+- (void)URLSession:(NSURLSession *)session
+                          task:(NSURLSessionTask *)task
+    didFinishCollectingMetrics:(NSURLSessionTaskMetrics *)metrics
+{
     NSInteger totalBytes = 0;
     for (NSURLSessionTaskTransactionMetrics *transaction in metrics.transactionMetrics) {
         totalBytes += transaction.countOfResponseBodyBytesReceived;
@@ -123,7 +132,8 @@
 
 #pragma mark - NSURLSessionDataDelegate Methods
 
-- (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveData:(NSData *)data {
+- (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveData:(NSData *)data
+{
     [self.handler addData:data dataTask:dataTask];
     id target = [self getTargetForSelector:DID_RECEIVE_DATA_SELECTOR session:session];
 
@@ -133,14 +143,17 @@
 }
 
 - (void)URLSession:(NSURLSession *)session
-          dataTask:(NSURLSessionDataTask *)dataTask
-didReceiveResponse:(NSURLResponse *)response
- completionHandler:(void (^)(NSURLSessionResponseDisposition))completionHandler {
-
+              dataTask:(NSURLSessionDataTask *)dataTask
+    didReceiveResponse:(NSURLResponse *)response
+     completionHandler:(void (^)(NSURLSessionResponseDisposition))completionHandler
+{
     id target = [self getTargetForSelector:DID_RECEIVE_RESPONSE session:session];
 
     if (target) {
-        [(id<NSURLSessionDataDelegate>)target URLSession:session dataTask:dataTask didReceiveResponse:response completionHandler:completionHandler];
+        [(id<NSURLSessionDataDelegate>)target URLSession:session
+                                                dataTask:dataTask
+                                      didReceiveResponse:response
+                                       completionHandler:completionHandler];
     } else {
         completionHandler(NSURLSessionResponseAllow);
     }
@@ -149,15 +162,15 @@ didReceiveResponse:(NSURLResponse *)response
 #pragma mark - NSURLSessionDownloadDelegate Methods
 
 - (void)URLSession:(NSURLSession *)session
-     downloadTask:(NSURLSessionDownloadTask *)downloadTask
-didFinishDownloadingToURL:(NSURL *)location {
-
+                 downloadTask:(NSURLSessionDownloadTask *)downloadTask
+    didFinishDownloadingToURL:(NSURL *)location
+{
     id target = [self getTargetForSelector:DID_FINISH_DOWNLOADING session:session];
 
     if (target) {
         [(id<NSURLSessionDownloadDelegate>)target URLSession:session
-                                            downloadTask:downloadTask
-                               didFinishDownloadingToURL:location];
+                                                downloadTask:downloadTask
+                                   didFinishDownloadingToURL:location];
     }
 }
 

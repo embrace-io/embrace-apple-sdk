@@ -6,7 +6,8 @@
 
 @implementation EMBStartupTracker
 
-+ (instancetype)shared {
++ (instancetype)shared
+{
     static EMBStartupTracker *sharedInstance = nil;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
@@ -15,7 +16,8 @@
     return sharedInstance;
 }
 
-- (void)setFirstFrameTime:(NSDate *)firstFrameTime {
+- (void)setFirstFrameTime:(NSDate *)firstFrameTime
+{
     _firstFrameTime = firstFrameTime;
 
     if (self.onFirstFrameTimeSet) {
@@ -23,7 +25,8 @@
     }
 }
 
-- (void)trackDidFinishLaunching {
+- (void)trackDidFinishLaunching
+{
     self.appDidFinishLaunchingEndTime = nil;
 
     [[NSNotificationCenter defaultCenter] addObserver:self
@@ -32,7 +35,8 @@
                                                object:nil];
 }
 
-- (void)onAppDidFinishLaunching:(NSNotification *)notification {
+- (void)onAppDidFinishLaunching:(NSNotification *)notification
+{
     NSDate *now = NSDate.date;
     self.appDidFinishLaunchingEndTime = now;
 

@@ -28,9 +28,19 @@
 
 @implementation CRLCrashNSLog
 
-- (NSString *)category { return @"Objective-C"; }
-- (NSString *)title { return @"Access a non-object as an object"; }
-- (NSString *)desc { return @"Call NSLog(@\"%@\", 16);, causing a crash when the runtime attempts to treat 16 as a pointer to an object."; }
+- (NSString *)category
+{
+    return @"Objective-C";
+}
+- (NSString *)title
+{
+    return @"Access a non-object as an object";
+}
+- (NSString *)desc
+{
+    return @"Call NSLog(@\"%@\", 16);, causing a crash when the runtime attempts to treat 16 as a pointer to an "
+           @"object.";
+}
 
 - (void)crash
 {
@@ -38,7 +48,7 @@
 #define __bridge
 #endif
 
-	NSLog(@"%@", (__bridge id)(void *)16);
+    NSLog(@"%@", (__bridge id)(void *)16);
 }
 
 @end
