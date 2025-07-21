@@ -126,8 +126,7 @@ class SessionController: SessionControllable {
         // -
 
         // we lock after end session to avoid a deadlock
-
-        return lock.locked {
+        let session = lock.locked {
 
             // create session span
             let newId = SessionIdentifier.random
@@ -152,14 +151,16 @@ class SessionController: SessionControllable {
             // start heartbeat
             heartbeat.start()
 
-            // post notification
-            NotificationCenter.default.post(name: .embraceSessionDidStart, object: session)
-
             firstSession = false
             attachmentCount = 0
 
             return session
         }
+        
+        // post notification
+        NotificationCenter.default.post(name: .embraceSessionDidStart, object: session)
+        
+        return session
     }
 
     /// Ends the session
