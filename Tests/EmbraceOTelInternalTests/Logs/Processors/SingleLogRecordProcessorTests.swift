@@ -2,10 +2,10 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
 import Foundation
 import OpenTelemetrySdk
 import TestSupport
+import XCTest
 
 @testable import EmbraceOTelInternal
 
@@ -63,7 +63,7 @@ class SingleLogRecordProcessorTests: XCTestCase {
                 successfulFlushExporter(),
                 failingFlushExporter(),
                 successfulFlushExporter(),
-                successfulFlushExporter()
+                successfulFlushExporter(),
             ]
         )
         whenInvokingForceFlush()
@@ -77,79 +77,79 @@ class SingleLogRecordProcessorTests: XCTestCase {
     }
 }
 
-private extension SingleLogRecordProcessorTests {
-    func givenProcessorWithAnExporter() {
+extension SingleLogRecordProcessorTests {
+    fileprivate func givenProcessorWithAnExporter() {
         exporter = SpyEmbraceLogRecordExporter()
         exporter.stubbedExportResponse = .success
         exporter.stubbedForceFlushResponse = .success
         givenProcessor(withExporters: [exporter])
     }
 
-    func givenProcessor(withExporters exporters: [LogRecordExporter]) {
+    fileprivate func givenProcessor(withExporters exporters: [LogRecordExporter]) {
         sdkStateProvider = MockEmbraceSDKStateProvider()
         sut = .init(exporters: exporters, sdkStateProvider: sdkStateProvider)
     }
 
-    func givenDisabledSDK() {
+    fileprivate func givenDisabledSDK() {
         sdkStateProvider.isEnabled = false
     }
 
-    func whenInvokingEmit(withLog log: ReadableLogRecord) {
+    fileprivate func whenInvokingEmit(withLog log: ReadableLogRecord) {
         sut.onEmit(logRecord: log)
     }
 
-    func whenInvokingShutdown() {
+    fileprivate func whenInvokingShutdown() {
         result = sut.shutdown()
     }
 
-    func whenInvokingForceFlush() {
+    fileprivate func whenInvokingForceFlush() {
         result = sut.forceFlush()
     }
 
-    func thenExportInvokesForceFlush() {
+    fileprivate func thenExportInvokesForceFlush() {
         XCTAssertTrue(exporter.didCallForceFlush)
     }
 
-    func thenExporterInvokesShutdown() {
+    fileprivate func thenExporterInvokesShutdown() {
         XCTAssertTrue(exporter.didCallShutdown)
     }
 
-    func thenExporterInvokesExport() {
+    fileprivate func thenExporterInvokesExport() {
         XCTAssertTrue(exporter.didCallExport)
     }
 
-    func thenExportDoesNotInvokeExport() {
+    fileprivate func thenExportDoesNotInvokeExport() {
         XCTAssertFalse(exporter.didCallExport)
     }
 
-    func thenExportDoesNotInvokeForceFlush() {
+    fileprivate func thenExportDoesNotInvokeForceFlush() {
         XCTAssertFalse(exporter.didCallForceFlush)
     }
 
-    func thenExporterReceivesOneLog() {
+    fileprivate func thenExporterReceivesOneLog() {
         XCTAssertEqual(exporter.exportLogRecordsReceivedParameter.count, 1)
     }
 
-    func thenExporterReceivesNoLogs() {
+    fileprivate func thenExporterReceivesNoLogs() {
         XCTAssertEqual(exporter.exportLogRecordsReceivedParameter.count, 0)
     }
 
-    func thenExportResult(is resultValue: ExportResult) {
+    fileprivate func thenExportResult(is resultValue: ExportResult) {
         XCTAssertEqual(result, resultValue)
     }
 
-    func thenExporterReceivesTheLog(withTestId testId: String) throws {
+    fileprivate func thenExporterReceivesTheLog(withTestId testId: String) throws {
         let log = try XCTUnwrap(exporter.exportLogRecordsReceivedParameter.first)
         XCTAssertEqual(try log.getTestId(), testId)
     }
 
-    func failingFlushExporter() -> SpyEmbraceLogRecordExporter {
+    fileprivate func failingFlushExporter() -> SpyEmbraceLogRecordExporter {
         let exporter = SpyEmbraceLogRecordExporter()
         exporter.stubbedForceFlushResponse = .failure
         return exporter
     }
 
-    func successfulFlushExporter() -> SpyEmbraceLogRecordExporter {
+    fileprivate func successfulFlushExporter() -> SpyEmbraceLogRecordExporter {
         let exporter = SpyEmbraceLogRecordExporter()
         exporter.stubbedForceFlushResponse = .success
         return exporter

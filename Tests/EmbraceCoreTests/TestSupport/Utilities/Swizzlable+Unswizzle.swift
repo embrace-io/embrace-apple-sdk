@@ -2,19 +2,19 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
-import EmbraceCore
 import EmbraceCommonInternal
+import EmbraceCore
+import Foundation
 
-public extension Swizzlable {
-    func unswizzleInstanceMethod() throws {
+extension Swizzlable {
+    public func unswizzleInstanceMethod() throws {
         guard let method = class_getInstanceMethod(baseClass, Self.selector) else {
             throw UnswizzleError.noMethodForSelector(value: Self.selector, class: baseClass)
         }
         try unswizzle(method: method)
     }
 
-    func unswizzleClassMethod() throws {
+    public func unswizzleClassMethod() throws {
         guard let method = class_getClassMethod(baseClass, Self.selector) else {
             throw UnswizzleError.noMethodForSelector(value: Self.selector, class: baseClass)
         }
@@ -23,11 +23,13 @@ public extension Swizzlable {
 
     private func unswizzle(method: Method) throws {
         let swizzlerClassName = String(describing: type(of: self))
-        guard let originalImplementation = SwizzleCache.shared.getOriginalMethodImplementation(
-            forMethod: method,
-            inClass: baseClass,
-            swizzler: swizzlerClassName
-        ) else {
+        guard
+            let originalImplementation = SwizzleCache.shared.getOriginalMethodImplementation(
+                forMethod: method,
+                inClass: baseClass,
+                swizzler: swizzlerClassName
+            )
+        else {
             throw UnswizzleError.implementationInCacheNotFound(method: method)
         }
         method_setImplementation(method, originalImplementation)

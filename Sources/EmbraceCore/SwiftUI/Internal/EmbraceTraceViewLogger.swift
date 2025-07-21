@@ -3,14 +3,15 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
+import OpenTelemetryApi
 import SwiftUI
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
     import EmbraceConfiguration
     import EmbraceOTelInternal
     import EmbraceSemantics
 #endif
-import OpenTelemetryApi
 
 /// The environment key for injecting `EmbraceTraceViewLogger` into SwiftUI's `EnvironmentValues`.
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
@@ -178,14 +179,16 @@ extension EmbraceTraceViewLogger {
         _ function: StaticString = #function,
         _ completed: @escaping () -> Void
     ) -> Span? {
-        guard let span = startSpan(
-            name,
-            semantics: semantics,
-            time: time,
-            parent: parent,
-            attributes: attributes,
-            function
-        ) else {
+        guard
+            let span = startSpan(
+                name,
+                semantics: semantics,
+                time: time,
+                parent: parent,
+                attributes: attributes,
+                function
+            )
+        else {
             return nil
         }
 

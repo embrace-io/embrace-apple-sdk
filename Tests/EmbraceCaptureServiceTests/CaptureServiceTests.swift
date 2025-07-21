@@ -2,10 +2,11 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-@testable import EmbraceCaptureService
-import TestSupport
 import EmbraceOTelInternal
+import TestSupport
+import XCTest
+
+@testable import EmbraceCaptureService
 
 class MockCaptureService: CaptureService {
     var installCalled = false
@@ -157,7 +158,7 @@ class CaptureServiceTests: XCTestCase {
         service.add(events: [
             RecordingSpanEvent(name: "test1", timestamp: Date()),
             RecordingSpanEvent(name: "test2", timestamp: Date()),
-            RecordingSpanEvent(name: "test3", timestamp: Date())
+            RecordingSpanEvent(name: "test3", timestamp: Date()),
         ])
 
         // then the events are correctly added

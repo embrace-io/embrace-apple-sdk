@@ -2,10 +2,11 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
 import TestSupport
-@testable import EmbraceCore
+import XCTest
+
 @testable import EmbraceCommonInternal
+@testable import EmbraceCore
 
 // swiftlint:disable force_try
 
@@ -87,63 +88,63 @@ class DataTaskWithURLAndCompletionSwizzlerTests: XCTestCase {
     }
 }
 
-private extension DataTaskWithURLAndCompletionSwizzlerTests {
-    func givenDataTaskWithURLAndCompletionSwizzler() {
+extension DataTaskWithURLAndCompletionSwizzlerTests {
+    fileprivate func givenDataTaskWithURLAndCompletionSwizzler() {
         handler = MockURLSessionTaskHandler()
         sut = DataTaskWithURLAndCompletionSwizzler(handler: handler)
         sut2 = DataTaskWithURLRequestAndCompletionSwizzler(handler: handler)
     }
 
-    func givenSwizzlingWasDone() throws {
+    fileprivate func givenSwizzlingWasDone() throws {
         try sut.install()
         try sut2.install()
     }
 
-    func givenProxiedUrlSession() {
+    fileprivate func givenProxiedUrlSession() {
         session = ProxiedURLSessionProvider.default()
     }
 
-    func givenSuccessfulRequest() {
+    fileprivate func givenSuccessfulRequest() {
         url = URL(string: "https://embrace.io")!
         let mockData = "Mock Data".data(using: .utf8)!
         let mockResponse = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil)!
         url.mockResponse = .successful(withData: mockData, response: mockResponse)
     }
 
-    func givenFailedRequest() {
+    fileprivate func givenFailedRequest() {
         url = URL(string: "https://embrace.io")!
         let error = NSError(domain: UUID().uuidString, code: 0)
         let mockResponse = HTTPURLResponse(url: url, statusCode: 400, httpVersion: nil, headerFields: nil)!
         url.mockResponse = .failure(withError: error, response: mockResponse)
     }
 
-    func whenInvokingDataTaskWithUrl(completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void) {
+    fileprivate func whenInvokingDataTaskWithUrl(completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void) {
         dataTask = session.dataTask(with: url) { data, response, error in
             completionHandler(data, response, error)
         }
         dataTask.resume()
     }
 
-    func thenHandlerShouldHaveInvokedCreateWithTask() {
+    fileprivate func thenHandlerShouldHaveInvokedCreateWithTask() {
         XCTAssertTrue(handler.didInvokeCreate)
         XCTAssertEqual(handler.createReceivedTask, dataTask)
     }
 
-    func thenHandlerShouldntHaveInvokedCreate() {
+    fileprivate func thenHandlerShouldntHaveInvokedCreate() {
         XCTAssertFalse(handler.didInvokeCreate)
     }
 
-    func thenHandlerShouldHaveInvokedFinishTask() {
+    fileprivate func thenHandlerShouldHaveInvokedFinishTask() {
         XCTAssertTrue(handler.didInvokeFinishWithData)
         XCTAssertNotNil(handler.finishWithDataReceivedParameters?.1)
     }
 
-    func thenHandlerShouldHaveInvokedFinishTaskWithError() {
+    fileprivate func thenHandlerShouldHaveInvokedFinishTaskWithError() {
         XCTAssertTrue(handler.didInvokeFinishWithData)
         XCTAssertNotNil(handler.finishWithDataReceivedParameters?.2)
     }
 
-    func thenDataTaskShouldHaveHeaders() throws {
+    fileprivate func thenDataTaskShouldHaveHeaders() throws {
         let headers = try XCTUnwrap(dataTask.originalRequest?.allHTTPHeaderFields)
         XCTAssertNotNil(headers["x-emb-id"])
         XCTAssertNotNil(headers["x-emb-st"])

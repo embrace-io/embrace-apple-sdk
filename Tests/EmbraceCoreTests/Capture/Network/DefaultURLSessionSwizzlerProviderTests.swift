@@ -28,7 +28,7 @@ class DefaultURLSessionSwizzlerProviderTests: XCTestCase {
             DownloadTaskWithURLRequestWithCompletionSwizzler.self,
             UploadTaskWithStreamedRequestSwizzler.self,
             URLSessionInitWithDelegateSwizzler.self,
-            SessionTaskResumeSwizzler.self
+            SessionTaskResumeSwizzler.self,
         ]
 
         // When
@@ -39,7 +39,7 @@ class DefaultURLSessionSwizzlerProviderTests: XCTestCase {
         for swizzler in swizzlers {
             XCTAssertTrue(
                 expectedTypes.contains { $0 == type(of: swizzler) },
-                "Type \(type(of: swizzler)) is not found" )
+                "Type \(type(of: swizzler)) is not found")
         }
     }
 }

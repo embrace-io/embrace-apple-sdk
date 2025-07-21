@@ -22,10 +22,11 @@ extension URLSessionTask {
 
         set {
             let value: NSNumber = NSNumber(booleanLiteral: newValue)
-            objc_setAssociatedObject(self,
-                                     &AssociatedKeys.embraceCaptured,
-                                     value,
-                                     .OBJC_ASSOCIATION_RETAIN)
+            objc_setAssociatedObject(
+                self,
+                &AssociatedKeys.embraceCaptured,
+                value,
+                .OBJC_ASSOCIATION_RETAIN)
         }
     }
 
@@ -37,27 +38,31 @@ extension URLSessionTask {
     /// to ensure thread safety, since `URLSessionTask` is shared across threads.
     var embraceData: Data? {
         get {
-            return objc_getAssociatedObject(self,
-                                            &AssociatedKeys.embraceData) as? Data
+            return objc_getAssociatedObject(
+                self,
+                &AssociatedKeys.embraceData) as? Data
         }
         set {
-            objc_setAssociatedObject(self,
-                                     &AssociatedKeys.embraceData,
-                                     newValue,
-                                     .OBJC_ASSOCIATION_COPY)
+            objc_setAssociatedObject(
+                self,
+                &AssociatedKeys.embraceData,
+                newValue,
+                .OBJC_ASSOCIATION_COPY)
         }
     }
 
     var embraceStartTime: Date? {
         get {
-            return objc_getAssociatedObject(self,
-                                            &AssociatedKeys.embraceStartTime) as? Date
+            return objc_getAssociatedObject(
+                self,
+                &AssociatedKeys.embraceStartTime) as? Date
         }
         set {
-            objc_setAssociatedObject(self,
-                                     &AssociatedKeys.embraceStartTime,
-                                     newValue,
-                                     .OBJC_ASSOCIATION_RETAIN)
+            objc_setAssociatedObject(
+                self,
+                &AssociatedKeys.embraceStartTime,
+                newValue,
+                .OBJC_ASSOCIATION_RETAIN)
         }
     }
 }

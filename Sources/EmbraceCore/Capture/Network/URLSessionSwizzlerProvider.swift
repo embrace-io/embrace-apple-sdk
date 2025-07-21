@@ -3,8 +3,9 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-@_implementationOnly import EmbraceObjCUtilsInternal
+    @_implementationOnly import EmbraceObjCUtilsInternal
 #endif
 
 protocol URLSessionSwizzlerProvider {
@@ -32,7 +33,7 @@ struct DefaultURLSessionSwizzlerProvider: URLSessionSwizzlerProvider {
             DownloadTaskWithURLRequestWithCompletionSwizzler.self,
 
             // Upload Streaming Tasks
-            UploadTaskWithStreamedRequestSwizzler.self
+            UploadTaskWithStreamedRequestSwizzler.self,
         ]
         var swizzlers: [any URLSessionSwizzler] = []
 
@@ -63,7 +64,8 @@ struct DefaultURLSessionSwizzlerProvider: URLSessionSwizzlerProvider {
     /// - Returns: `true` if the implementations of the specified selector are the same in both classes; `false` otherwise.
     func hasTheSameImplementation(for selector: Selector, lhs: AnyClass, rhs: AnyClass) -> Bool {
         guard let leftImplementation = class_getMethodImplementation(lhs, selector),
-              let rightImplementation = class_getMethodImplementation(rhs, selector) else {
+            let rightImplementation = class_getMethodImplementation(rhs, selector)
+        else {
             return false
         }
 

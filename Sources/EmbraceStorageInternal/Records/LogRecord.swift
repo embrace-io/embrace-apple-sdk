@@ -2,18 +2,19 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-#endif
-import OpenTelemetryApi
 import CoreData
+import Foundation
+import OpenTelemetryApi
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+#endif
 
 @objc(LogRecord)
 public class LogRecord: NSManagedObject {
-    @NSManaged public var idRaw: String // LogIdentifier
-    @NSManaged public var processIdRaw: String // ProcessIdentifier
-    @NSManaged public var severityRaw: Int // LogSeverity
+    @NSManaged public var idRaw: String  // LogIdentifier
+    @NSManaged public var processIdRaw: String  // ProcessIdentifier
+    @NSManaged public var severityRaw: Int  // LogSeverity
     @NSManaged public var body: String
     @NSManaged public var timestamp: Date
     @NSManaged public var attributes: Set<LogAttributeRecord>
@@ -148,14 +149,14 @@ extension LogRecord: EmbraceStorageRecord {
             severityAttribute,
             bodyAttribute,
             timestampAttribute,
-            parentRelationship
+            parentRelationship,
         ]
 
         child.properties = [
             keyAttribute,
             valueAttribute,
             typeAttribute,
-            childRelationship
+            childRelationship,
         ]
 
         return [entity, child]

@@ -3,8 +3,9 @@
 //
 
 import Foundation
-@testable import EmbraceOTelInternal
 import OpenTelemetrySdk
+
+@testable import EmbraceOTelInternal
 
 class SpyLoggerProcessor: LogRecordProcessor {
     var receivedLogRecord: ReadableLogRecord?

@@ -3,20 +3,21 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceOTelInternal
-import EmbraceStorageInternal
-import EmbraceConfigInternal
-import EmbraceConfiguration
+    import EmbraceCommonInternal
+    import EmbraceOTelInternal
+    import EmbraceStorageInternal
+    import EmbraceConfigInternal
+    import EmbraceConfiguration
 #endif
 
 class BaseInternalLogger: InternalLogger {
 
     #if DEBUG
-    var level: LogLevel = .debug
+        var level: LogLevel = .debug
     #else
-    var level: LogLevel = .error
+        var level: LogLevel = .error
     #endif
 
     var otel: EmbraceOpenTelemetry?
@@ -168,7 +169,8 @@ class BaseInternalLogger: InternalLogger {
             initialAttributes: attributes
         )
 
-        let attributes = attributesBuilder
+        let attributes =
+            attributesBuilder
             .addLogType(.internal)
             .addApplicationState()
             .addSessionIdentifier()

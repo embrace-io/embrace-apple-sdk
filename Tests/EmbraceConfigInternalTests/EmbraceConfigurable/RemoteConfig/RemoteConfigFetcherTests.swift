@@ -2,10 +2,11 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-import TestSupport
-@testable import EmbraceConfigInternal
 import EmbraceCommonInternal
+import TestSupport
+import XCTest
+
+@testable import EmbraceConfigInternal
 
 class RemoteConfigFetcherTests: XCTestCase {
     static var urlSessionConfig: URLSessionConfiguration!
@@ -53,7 +54,7 @@ class RemoteConfigFetcherTests: XCTestCase {
                 .init(name: "appId", value: TestConstants.appId),
                 .init(name: "osVersion", value: TestConstants.osVersion),
                 .init(name: "appVersion", value: TestConstants.appVersion),
-                .init(name: "sdkVersion", value: TestConstants.sdkVersion)
+                .init(name: "sdkVersion", value: TestConstants.sdkVersion),
             ])
         } else {
             XCTFail("This will fail on versions prior to iOS 16.0")
@@ -77,7 +78,7 @@ class RemoteConfigFetcherTests: XCTestCase {
                 .init(name: "osVersion", value: TestConstants.osVersion),
                 .init(name: "appVersion", value: TestConstants.appVersion),
                 .init(name: "deviceId", value: TestConstants.deviceId.hex),
-                .init(name: "sdkVersion", value: TestConstants.sdkVersion)
+                .init(name: "sdkVersion", value: TestConstants.sdkVersion),
             ])
         } else {
             XCTFail("This will fail on versions prior to iOS 16.0")

@@ -2,11 +2,12 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
 import EmbraceCaptureService
 import EmbraceCommonInternal
-@testable import EmbraceCore
 import TestSupport
+import XCTest
+
+@testable import EmbraceCore
 
 class URLSessionCaptureServiceTests: XCTestCase {
     private var sut: URLSessionCaptureService!
@@ -40,19 +41,23 @@ class URLSessionCaptureServiceTests: XCTestCase {
     }
 
     func test_onInstall_shouldInvokeInstallOnEverySwizzler() {
-        givenURLSessionSwizzlerProvider(withSwizzlers: [MockURLSessionSwizzler(),
-                                                        MockURLSessionSwizzler(),
-                                                        MockURLSessionSwizzler()])
+        givenURLSessionSwizzlerProvider(withSwizzlers: [
+            MockURLSessionSwizzler(),
+            MockURLSessionSwizzler(),
+            MockURLSessionSwizzler(),
+        ])
         givenURLSessionCaptureService()
         whenInvokingInstall()
         thenEachSwizzlerShouldHaveBeenInstalled()
     }
 
     func test_onInstallWithFailingSwizzler_shouldContinueToInvokeInstallOnEverySwizzler() {
-        givenURLSessionSwizzlerProvider(withSwizzlers: [ThrowingURLSessionSwizzler(),
-                                                        MockURLSessionSwizzler(),
-                                                        ThrowingURLSessionSwizzler(),
-                                                        MockURLSessionSwizzler()])
+        givenURLSessionSwizzlerProvider(withSwizzlers: [
+            ThrowingURLSessionSwizzler(),
+            MockURLSessionSwizzler(),
+            ThrowingURLSessionSwizzler(),
+            MockURLSessionSwizzler(),
+        ])
         givenURLSessionCaptureService()
         whenInvokingInstall()
         thenEachSwizzlerShouldHaveBeenInstalled()
@@ -67,42 +72,42 @@ class URLSessionCaptureServiceTests: XCTestCase {
     }
 }
 
-private extension URLSessionCaptureServiceTests {
-    func givenURLSessionSwizzlerProvider(withSwizzlers swizzlers: [any URLSessionSwizzler] = []) {
+extension URLSessionCaptureServiceTests {
+    fileprivate func givenURLSessionSwizzlerProvider(withSwizzlers swizzlers: [any URLSessionSwizzler] = []) {
         provider = MockedURLSessionSwizzlerProvider(swizzlers: swizzlers)
     }
 
-    func givenURLSessionCaptureService() {
+    fileprivate func givenURLSessionCaptureService() {
         whenInitializingURLSessionCaptureService()
     }
 
-    func whenInitializingURLSessionCaptureService() {
+    fileprivate func whenInitializingURLSessionCaptureService() {
         lock = DummyLock()
         sut = URLSessionCaptureService(lock: lock, swizzlerProvider: provider)
     }
 
-    func whenInvokingStart() {
+    fileprivate func whenInvokingStart() {
         sut.start()
     }
 
-    func whenInvokingStop() {
+    fileprivate func whenInvokingStop() {
         sut.stop()
     }
 
-    func whenInvokingInstall() {
+    fileprivate func whenInvokingInstall() {
         handler = MockURLSessionTaskHandler()
         sut.install(otel: otel)
     }
 
-    func thenProviderShouldGetAllSwizzlers() {
+    fileprivate func thenProviderShouldGetAllSwizzlers() {
         XCTAssertTrue(provider.didGetAll)
     }
 
-    func thenCaptureServiceStatus(is state: CaptureServiceState) {
+    fileprivate func thenCaptureServiceStatus(is state: CaptureServiceState) {
         XCTAssertEqual(sut.state, state)
     }
 
-    func thenEachSwizzlerShouldHaveBeenInstalled() {
+    fileprivate func thenEachSwizzlerShouldHaveBeenInstalled() {
         provider.swizzlers.forEach {
             guard let swizzler = $0 as? MockURLSessionSwizzler else {
                 XCTFail("Swizzler should be a spy")
@@ -113,7 +118,7 @@ private extension URLSessionCaptureServiceTests {
         }
     }
 
-    func thenEachSwizzlerShouldHaveBeenInstalledOnce() {
+    fileprivate func thenEachSwizzlerShouldHaveBeenInstalledOnce() {
         provider.swizzlers.forEach {
             guard let swizzler = $0 as? MockURLSessionSwizzler else {
                 XCTFail("Swizzler should be a spy")

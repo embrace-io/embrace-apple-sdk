@@ -4,10 +4,11 @@
 
 import Foundation
 import UserNotifications
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceOTelInternal
-import EmbraceCaptureService
+    import EmbraceCommonInternal
+    import EmbraceOTelInternal
+    import EmbraceCaptureService
 #endif
 
 /// Service that generates OpenTelemetry span events when notifications are received through the `UNUserNotificationCenter`.
@@ -66,8 +67,10 @@ import EmbraceCaptureService
 
 // swiftlint:disable line_length
 struct UNUserNotificationCenterSetDelegateSwizzler: Swizzlable {
-    typealias ImplementationType = @convention(c) (UNUserNotificationCenter, Selector, UNUserNotificationCenterDelegate) -> Void
-    typealias BlockImplementationType = @convention(block) (UNUserNotificationCenter, UNUserNotificationCenterDelegate) -> Void
+    typealias ImplementationType = @convention(c) (UNUserNotificationCenter, Selector, UNUserNotificationCenterDelegate)
+        -> Void
+    typealias BlockImplementationType = @convention(block) (UNUserNotificationCenter, UNUserNotificationCenterDelegate)
+        -> Void
     static var selector: Selector = #selector(setter: UNUserNotificationCenter.delegate)
     var baseClass: AnyClass
     let proxy: UNUserNotificationCenterDelegateProxy

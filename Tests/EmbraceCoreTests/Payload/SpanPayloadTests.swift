@@ -3,10 +3,11 @@
 //
 
 import Foundation
+import OpenTelemetryApi
 import XCTest
+
 @testable import EmbraceCore
 @testable import EmbraceOTelInternal
-import OpenTelemetryApi
 @testable import OpenTelemetrySdk
 
 // swiftlint:disable force_cast
@@ -18,7 +19,7 @@ class SpanPayloadTests: XCTestCase {
             "bool": .bool(true),
             "double": .double(123.456),
             "int": .int(123456),
-            "string": .string("test")
+            "string": .string("test"),
         ]
     }
 
@@ -44,7 +45,7 @@ class SpanPayloadTests: XCTestCase {
                         traceId: .random(),
                         spanId: .random(),
                         traceFlags: .init(),
-                        traceState: .init() ),
+                        traceState: .init()),
                     attributes: testAttributes
                 )
             ],

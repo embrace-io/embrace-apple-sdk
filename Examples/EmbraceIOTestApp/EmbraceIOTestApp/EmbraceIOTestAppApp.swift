@@ -4,9 +4,9 @@
 //
 //
 
-import SwiftUI
 import EmbraceIO
 import OpenTelemetrySdk
+import SwiftUI
 
 @main
 struct EmbraceIOTestAppApp: App {

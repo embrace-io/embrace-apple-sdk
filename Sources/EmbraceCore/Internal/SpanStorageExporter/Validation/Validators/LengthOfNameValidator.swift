@@ -2,12 +2,13 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceOTelInternal
-import EmbraceSemantics
-import EmbraceCommonInternal
-#endif
 import OpenTelemetrySdk
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceOTelInternal
+    import EmbraceSemantics
+    import EmbraceCommonInternal
+#endif
 
 /// Validates the length of ``SpanData.name``.
 /// This compares the length of the String in characters, not bytes.

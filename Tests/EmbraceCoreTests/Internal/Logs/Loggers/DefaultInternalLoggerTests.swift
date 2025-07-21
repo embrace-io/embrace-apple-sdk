@@ -2,15 +2,16 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-@testable import EmbraceCore
-import TestSupport
-import EmbraceStorageInternal
+import EmbraceCommonInternal
 import EmbraceConfigInternal
 import EmbraceConfiguration
-import OpenTelemetryApi
-import EmbraceCommonInternal
+import EmbraceStorageInternal
 import OSLog
+import OpenTelemetryApi
+import TestSupport
+import XCTest
+
+@testable import EmbraceCore
 
 @available(iOS 15.0, tvOS 15.0, *)
 class DefaultInternalLoggerTests: XCTestCase {
@@ -20,7 +21,8 @@ class DefaultInternalLoggerTests: XCTestCase {
 
     override func setUpWithError() throws {
         try? FileManager.default.removeItem(at: fileProvider.tmpDirectory)
-        try? FileManager.default.createDirectory(at: fileProvider.directoryURL(for: "DefaultInternalLoggerTests")!, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(
+            at: fileProvider.directoryURL(for: "DefaultInternalLoggerTests")!, withIntermediateDirectories: true)
     }
 
     func skip_test_categories() throws {
@@ -43,7 +45,8 @@ class DefaultInternalLoggerTests: XCTestCase {
         let store = try OSLogStore(scope: .currentProcessIdentifier)
         let position = store.position(timeIntervalSinceLatestBoot: 0)
 
-        let defaultEntries: [String] = try store
+        let defaultEntries: [String] =
+            try store
             .getEntries(at: position)
             .compactMap { $0 as? OSLogEntryLog }
             .filter { $0.subsystem == "com.embrace.logger" && $0.category == "internal" }
@@ -55,7 +58,8 @@ class DefaultInternalLoggerTests: XCTestCase {
         XCTAssert(defaultEntries.contains("warning"))
         XCTAssert(defaultEntries.contains("error"))
 
-        let customExportEntries: [String] = try store
+        let customExportEntries: [String] =
+            try store
             .getEntries(at: position)
             .compactMap { $0 as? OSLogEntryLog }
             .filter { $0.subsystem == "com.embrace.logger" && $0.category == category }
@@ -88,12 +92,8 @@ class DefaultInternalLoggerTests: XCTestCase {
                 return false
             }
 
-            return log.contains("startup1") &&
-                   log.contains("startup2") &&
-                   log.contains("startup3") &&
-                   log.contains("startup4") &&
-                   log.contains("startup5") &&
-                   log.contains("critical")
+            return log.contains("startup1") && log.contains("startup2") && log.contains("startup3")
+                && log.contains("startup4") && log.contains("startup5") && log.contains("critical")
         }
     }
 

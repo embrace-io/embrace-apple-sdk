@@ -2,12 +2,12 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceStorageInternal
+import OpenTelemetrySdk
+import TestSupport
 import XCTest
 
 @testable import EmbraceCore
-import EmbraceStorageInternal
-import TestSupport
-import OpenTelemetrySdk
 
 class DefaultLogBatcherTests: XCTestCase {
     private var sut: DefaultLogBatcher!
@@ -59,45 +59,47 @@ class DefaultLogBatcherTests: XCTestCase {
     }
 }
 
-private extension DefaultLogBatcherTests {
-    func givenDefaultLogBatcher(limits: LogBatchLimits = .init()) {
+extension DefaultLogBatcherTests {
+    fileprivate func givenDefaultLogBatcher(limits: LogBatchLimits = .init()) {
         repository = .init()
         delegate = .init()
         sut = .init(repository: repository, logLimits: limits, delegate: delegate, processorQueue: .main)
     }
 
-    func randomLogRecord() -> ReadableLogRecord {
+    fileprivate func randomLogRecord() -> ReadableLogRecord {
         return ReadableLogRecord(
-            resource: Resource(), 
-            instrumentationScopeInfo: InstrumentationScopeInfo(), 
+            resource: Resource(),
+            instrumentationScopeInfo: InstrumentationScopeInfo(),
             timestamp: Date(),
             attributes: [:]
         )
     }
 
-    func whenInvokingAddLogRecord(withLogRecord logRecord: ReadableLogRecord) {
+    fileprivate func whenInvokingAddLogRecord(withLogRecord logRecord: ReadableLogRecord) {
         sut.addLogRecord(logRecord: logRecord)
     }
 
-    func thenLogRepositoryCreateMethodWasInvoked() {
-        wait(timeout: 1.0, until: {
-            self.repository.didCallCreate
-        })
+    fileprivate func thenLogRepositoryCreateMethodWasInvoked() {
+        wait(
+            timeout: 1.0,
+            until: {
+                self.repository.didCallCreate
+            })
     }
 
-    func thenDelegateShouldntInvokeBatchFinished() {
+    fileprivate func thenDelegateShouldntInvokeBatchFinished() {
         wait(timeout: 1.0, until: { !self.delegate.didCallBatchFinished })
     }
 
-    func thenDelegateShouldInvokeBatchFinished() {
+    fileprivate func thenDelegateShouldInvokeBatchFinished() {
         wait(timeout: 1.0, until: { self.delegate.didCallBatchFinished })
     }
 
-    func thenDelegateShouldntInvokeBatchFinishedAfterBatchLifespan(_ lifespan: TimeInterval) {
+    fileprivate func thenDelegateShouldntInvokeBatchFinishedAfterBatchLifespan(_ lifespan: TimeInterval) {
         wait(timeout: lifespan, until: { !self.delegate.didCallBatchFinished })
     }
 
-    func thenDelegateShouldInvokeBatchFinishedAfterBatchLifespan(_ lifespan: TimeInterval) {
+    fileprivate func thenDelegateShouldInvokeBatchFinishedAfterBatchLifespan(_ lifespan: TimeInterval) {
         wait(timeout: lifespan, until: { self.delegate.didCallBatchFinished })
     }
 }

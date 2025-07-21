@@ -39,8 +39,8 @@ import Foundation
     case SIGTHR = 32
 }
 
-public extension CrashSignal {
-    static func from(string: String) -> CrashSignal? {
+extension CrashSignal {
+    public static func from(string: String) -> CrashSignal? {
         switch string.uppercased() {
         case "SIGHUP": return SIGHUP
         case "SIGINT": return SIGINT
@@ -78,7 +78,7 @@ public extension CrashSignal {
         }
     }
 
-    var stringValue: String {
+    public var stringValue: String {
         switch self {
         case .SIGHUP: return "SIGHUP"
         case .SIGINT: return "SIGINT"

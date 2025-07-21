@@ -2,12 +2,13 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceStorageInternal
-#endif
 import CoreData
+import Foundation
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+    import EmbraceStorageInternal
+#endif
 
 @objc(MetadataRecordTmp)
 public class MetadataRecordTmp: NSManagedObject {
@@ -85,7 +86,7 @@ extension MetadataRecordTmp {
             typeAttribute,
             lifespanAttribute,
             lifespanIdAttribute,
-            dateAttribute
+            dateAttribute,
         ]
 
         return entity

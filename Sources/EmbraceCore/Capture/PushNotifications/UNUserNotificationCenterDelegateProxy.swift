@@ -3,8 +3,9 @@
 //
 
 import UserNotifications
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceOTelInternal
+    import EmbraceOTelInternal
 #endif
 
 class UNUserNotificationCenterDelegateProxy: NSObject {
@@ -19,8 +20,9 @@ class UNUserNotificationCenterDelegateProxy: NSObject {
         // We will only respond to the given selectors if and only if the `originalDelegate` we are proxying also implements them.
         // If this condition is not met, we risk stealing the notification from the app, which is undesirable.
         if super.responds(to: aSelector),
-           let originalDelegate = originalDelegate,
-           originalDelegate.responds(to: aSelector) {
+            let originalDelegate = originalDelegate,
+            originalDelegate.responds(to: aSelector)
+        {
             return true
         }
         return false
@@ -66,35 +68,35 @@ extension UNUserNotificationCenterDelegateProxy: UNUserNotificationCenterDelegat
                 ?? completionHandler(.alert)
         }
     }
-#if !os(tvOS)
-    func userNotificationCenter(
-        _ center: UNUserNotificationCenter,
-        didReceive response: UNNotificationResponse,
-        withCompletionHandler completionHandler: @escaping () -> Void
-    ) {
+    #if !os(tvOS)
+        func userNotificationCenter(
+            _ center: UNUserNotificationCenter,
+            didReceive response: UNNotificationResponse,
+            withCompletionHandler completionHandler: @escaping () -> Void
+        ) {
 
-        // generate span event
-        if let event = try? PushNotificationEvent(notification: response.notification, captureData: captureData) {
-            Embrace.client?.add(event: event)
+            // generate span event
+            if let event = try? PushNotificationEvent(notification: response.notification, captureData: captureData) {
+                Embrace.client?.add(event: event)
+            }
+
+            // call original
+            originalDelegate?.userNotificationCenter?(
+                center,
+                didReceive: response,
+                withCompletionHandler: completionHandler
+            )
+                ?? completionHandler()
         }
 
-        // call original
-        originalDelegate?.userNotificationCenter?(
-            center,
-            didReceive: response,
-            withCompletionHandler: completionHandler
-        )
-            ?? completionHandler()
-    }
-
-#if !os(watchOS)
-    func userNotificationCenter(
-        _ center: UNUserNotificationCenter,
-        openSettingsFor notification: UNNotification?
-    ) {
-        // call original
-        originalDelegate?.userNotificationCenter?(center, openSettingsFor: notification)
-    }
-#endif
-#endif
+        #if !os(watchOS)
+            func userNotificationCenter(
+                _ center: UNUserNotificationCenter,
+                openSettingsFor notification: UNNotification?
+            ) {
+                // call original
+                originalDelegate?.userNotificationCenter?(center, openSettingsFor: notification)
+            }
+        #endif
+    #endif
 }

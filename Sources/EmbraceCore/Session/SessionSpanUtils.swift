@@ -3,14 +3,15 @@
 //
 
 import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceStorageInternal
-import EmbraceOTelInternal
-import EmbraceSemantics
-#endif
 import OpenTelemetryApi
 import OpenTelemetrySdk
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+    import EmbraceStorageInternal
+    import EmbraceOTelInternal
+    import EmbraceSemantics
+#endif
 
 struct SessionSpanUtils {
 
@@ -45,8 +46,8 @@ struct SessionSpanUtils {
     }
 }
 
-fileprivate extension SpanPayload {
-    init(
+extension SpanPayload {
+    fileprivate init(
         from session: EmbraceSession,
         spanData: SpanData? = nil,
         properties: [EmbraceMetadata],
@@ -58,8 +59,8 @@ fileprivate extension SpanPayload {
         self.name = SpanSemantics.Session.name
         self.status = session.crashReportId != nil ? Status.sessionCrashedError().name : Status.ok.name
         self.startTime = session.startTime.nanosecondsSince1970Truncated
-        self.endTime = session.endTime?.nanosecondsSince1970Truncated ??
-                       session.lastHeartbeatTime.nanosecondsSince1970Truncated
+        self.endTime =
+            session.endTime?.nanosecondsSince1970Truncated ?? session.lastHeartbeatTime.nanosecondsSince1970Truncated
 
         var attributeArray: [Attribute] = [
             Attribute(
@@ -93,14 +94,15 @@ fileprivate extension SpanPayload {
             Attribute(
                 key: SpanSemantics.Session.keySessionNumber,
                 value: String(sessionNumber)
-            )
+            ),
         ]
 
         if let crashId = session.crashReportId {
-            attributeArray.append(Attribute(
-                key: SpanSemantics.Session.keyCrashId,
-                value: crashId
-            ))
+            attributeArray.append(
+                Attribute(
+                    key: SpanSemantics.Session.keyCrashId,
+                    value: crashId
+                ))
         }
 
         attributeArray.append(
@@ -127,7 +129,7 @@ fileprivate extension SpanPayload {
     }
 }
 
-internal extension OpenTelemetryApi.Status {
+extension OpenTelemetryApi.Status {
     static func sessionCrashedError() -> Status {
         return Status.error(description: "Session crashed!")
     }

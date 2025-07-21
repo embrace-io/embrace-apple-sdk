@@ -3,13 +3,13 @@
 //
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
+    import EmbraceCommonInternal
 #endif
 
 // MARK: - System
 extension LogType {
 
-    /// Used for Embrace Log messages. Use this type for common application logs 
+    /// Used for Embrace Log messages. Use this type for common application logs
     public static let message = LogType(system: "log")
 
     /// Used for exception messages

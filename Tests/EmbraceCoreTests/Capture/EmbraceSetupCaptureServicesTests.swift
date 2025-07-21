@@ -2,9 +2,9 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
 import EmbraceCaptureService
 import EmbraceCommonInternal
+import XCTest
 
 @testable import EmbraceCore
 
@@ -15,11 +15,11 @@ final class EmbraceSetupCaptureServicesTests: XCTestCase {
 
     class ExampleCrashReporter: CrashReporter {
         var currentSessionId: String?
-        func install(context: CrashReporterContext, logger: InternalLogger) { }
+        func install(context: CrashReporterContext, logger: InternalLogger) {}
         func getLastRunState() -> LastRunState { return .cleanExit }
-        func fetchUnsentCrashReports(completion: @escaping ([EmbraceCrashReport]) -> Void) { }
+        func fetchUnsentCrashReports(completion: @escaping ([EmbraceCrashReport]) -> Void) {}
         var onNewReport: ((EmbraceCrashReport) -> Void)?
-        func deleteCrashReport(id: Int) { }
+        func deleteCrashReport(id: Int) {}
         var disableMetricKitReports: Bool = true
     }
 
@@ -30,7 +30,7 @@ final class EmbraceSetupCaptureServicesTests: XCTestCase {
     func test_setup() throws {
         let options = Embrace.Options(
             appId: "myAPP",
-            captureServices: [ ExampleCaptureService() ],
+            captureServices: [ExampleCaptureService()],
             crashReporter: ExampleCrashReporter()
         )
         try Embrace.setup(options: options)
@@ -48,7 +48,7 @@ final class EmbraceSetupCaptureServicesTests: XCTestCase {
 
         let options = Embrace.Options(
             appId: "myAPP",
-            captureServices: [ ExampleCaptureService() ],
+            captureServices: [ExampleCaptureService()],
             crashReporter: crashReporter
         )
         try Embrace.setup(options: options)
@@ -66,7 +66,7 @@ final class EmbraceSetupCaptureServicesTests: XCTestCase {
 
         let options = Embrace.Options(
             appId: "myAPP",
-            captureServices: [ ExampleCaptureService() ],
+            captureServices: [ExampleCaptureService()],
             crashReporter: crashReporter
         )
         try Embrace.setup(options: options)
@@ -83,7 +83,7 @@ final class EmbraceSetupCaptureServicesTests: XCTestCase {
             captureServices: [
                 ExampleCaptureService(),
                 ExampleCaptureService(),
-                ExampleCaptureService()
+                ExampleCaptureService(),
             ],
             crashReporter: nil
         )

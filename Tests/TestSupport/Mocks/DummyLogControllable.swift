@@ -2,16 +2,17 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
-@testable import EmbraceCore
 import EmbraceCommonInternal
-import EmbraceStorageInternal
 import EmbraceConfiguration
+import EmbraceStorageInternal
+import Foundation
+
+@testable import EmbraceCore
 
 public class DummyLogControllable: LogControllable {
 
     public init() {}
-    
+
     public func uploadAllPersistedLogs() {}
 
     public func createLog(
@@ -22,9 +23,9 @@ public class DummyLogControllable: LogControllable {
         attachment: Data?,
         attachmentId: String?,
         attachmentUrl: URL?,
-        attributes: [String : String],
+        attributes: [String: String],
         stackTraceBehavior: StackTraceBehavior
-    ) { }
+    ) {}
 
     public func batchFinished(withLogs logs: [EmbraceLog]) {}
 

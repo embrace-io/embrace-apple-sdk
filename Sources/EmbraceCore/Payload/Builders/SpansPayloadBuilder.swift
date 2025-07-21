@@ -3,12 +3,13 @@
 //
 
 import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceStorageInternal
-import EmbraceOTelInternal
-#endif
 import OpenTelemetrySdk
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+    import EmbraceStorageInternal
+    import EmbraceOTelInternal
+#endif
 
 class SpansPayloadBuilder {
 
@@ -80,7 +81,7 @@ class SpansPayloadBuilder {
             if let rawData = sessionSpan?.data {
                 spanData = try JSONDecoder().decode(SpanData.self, from: rawData)
             }
-            
+
             return SessionSpanUtils.payload(
                 from: session,
                 spanData: spanData,

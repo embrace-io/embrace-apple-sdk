@@ -2,12 +2,13 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
 import EmbraceCommonInternal
-@testable import EmbraceCore
-@testable import EmbraceStorageInternal
 import OpenTelemetryApi
 import TestSupport
+import XCTest
+
+@testable import EmbraceCore
+@testable import EmbraceStorageInternal
 
 class ResourceCaptureServiceTests: XCTestCase {
 
@@ -21,7 +22,7 @@ class ResourceCaptureServiceTests: XCTestCase {
         let map = [
             "key1": "value1",
             "key2": "value2",
-            "key3": "value3"
+            "key3": "value3",
         ]
         service.addRequiredResources(map)
 

@@ -2,8 +2,9 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
 import EmbraceOTelInternal
+import XCTest
+
 @testable import EmbraceCore
 
 class SpanEventBreadcrumbTests: XCTestCase {
@@ -14,10 +15,12 @@ class SpanEventBreadcrumbTests: XCTestCase {
     }
 
     func test_breadcrumbWithProperties_forwardsPropertiesAsBreadcrumbAttributesWithoutRemovingDefault() throws {
-        let spanEvent: SpanEvent = .breadcrumb(.random(), properties: [
-            "first_key": "a_value",
-            "second_key": "another_value"
-        ])
+        let spanEvent: SpanEvent = .breadcrumb(
+            .random(),
+            properties: [
+                "first_key": "a_value",
+                "second_key": "another_value",
+            ])
         let breadcrumb = try XCTUnwrap(spanEvent as? Breadcrumb)
         XCTAssertEqual(breadcrumb.attributes["first_key"], .string("a_value"))
         XCTAssertEqual(breadcrumb.attributes["second_key"], .string("another_value"))

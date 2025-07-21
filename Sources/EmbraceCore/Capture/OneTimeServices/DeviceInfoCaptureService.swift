@@ -3,11 +3,12 @@
 //
 
 import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-@_implementationOnly import EmbraceObjCUtilsInternal
-#endif
 import OpenTelemetrySdk
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+    @_implementationOnly import EmbraceObjCUtilsInternal
+#endif
 
 class DeviceInfoCaptureService: ResourceCaptureService {
 
@@ -44,7 +45,7 @@ class DeviceInfoCaptureService: ResourceCaptureService {
             ResourceAttributes.deviceModelIdentifier.rawValue: EMBDevice.model,
 
             // architecture
-            DeviceResourceKey.architecture.rawValue: EMBDevice.architecture
+            DeviceResourceKey.architecture.rawValue: EMBDevice.architecture,
         ]
 
         addRequiredResources(resourcesMap)

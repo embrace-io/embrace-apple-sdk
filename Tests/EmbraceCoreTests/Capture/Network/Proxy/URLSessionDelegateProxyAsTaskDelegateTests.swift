@@ -2,9 +2,10 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-@testable import EmbraceCore
 import TestSupport
+import XCTest
+
+@testable import EmbraceCore
 
 final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
     private var otherSwizzler: DummyURLSessionInitWithDelegateSwizzler?
@@ -78,10 +79,11 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
         task.resume()
 
         let sessionDelegate = try XCTUnwrap(sessionDelegate as? FullyImplementedURLSessionDelegate)
-        wait(for: [
-            sessionDelegate.didReceiveDataExpectation,
-            sessionDelegate.didCompleteWithErrorExpectation
-        ], timeout: Self.timeoutQuick)
+        wait(
+            for: [
+                sessionDelegate.didReceiveDataExpectation,
+                sessionDelegate.didCompleteWithErrorExpectation,
+            ], timeout: Self.timeoutQuick)
 
         unswizzleDefaultCaptureService()
     }
@@ -114,12 +116,13 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
         let sessionDelegate = try XCTUnwrap(sessionDelegate as? FullyImplementedURLSessionDelegate)
         sessionDelegate.didReceiveDataExpectation.isInverted = true
         sessionDelegate.didCompleteWithErrorExpectation.isInverted = true
-        wait(for: [
-            sessionDelegate.didReceiveDataExpectation,
-            sessionDelegate.didCompleteWithErrorExpectation,
-            taskDelegate.didReceiveDataExpectation,
-            taskDelegate.didCompleteWithErrorExpectation
-        ], timeout: Self.timeoutQuick)
+        wait(
+            for: [
+                sessionDelegate.didReceiveDataExpectation,
+                sessionDelegate.didCompleteWithErrorExpectation,
+                taskDelegate.didReceiveDataExpectation,
+                taskDelegate.didCompleteWithErrorExpectation,
+            ], timeout: Self.timeoutQuick)
 
         XCTAssertTrue(try XCTUnwrap(otherSwizzler?.proxy?.didInvokeRespondsTo))
         XCTAssertTrue(try XCTUnwrap(otherSwizzler?.proxy?.didInvokeForwardingTarget))
@@ -152,12 +155,13 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
         let sessionDelegate = try XCTUnwrap(sessionDelegate as? FullyImplementedURLSessionDelegate)
         sessionDelegate.didReceiveDataExpectation.isInverted = true
         sessionDelegate.didCompleteWithErrorExpectation.isInverted = true
-        wait(for: [
-            sessionDelegate.didReceiveDataExpectation,
-            sessionDelegate.didCompleteWithErrorExpectation,
-            taskDelegate.didReceiveDataExpectation,
-            taskDelegate.didCompleteWithErrorExpectation
-        ], timeout: Self.timeoutQuick)
+        wait(
+            for: [
+                sessionDelegate.didReceiveDataExpectation,
+                sessionDelegate.didCompleteWithErrorExpectation,
+                taskDelegate.didReceiveDataExpectation,
+                taskDelegate.didCompleteWithErrorExpectation,
+            ], timeout: Self.timeoutQuick)
 
         XCTAssertTrue(try XCTUnwrap(otherSwizzler?.proxy?.didInvokeRespondsTo))
         XCTAssertTrue(try XCTUnwrap(otherSwizzler?.proxy?.didInvokeForwardingTarget))
@@ -183,12 +187,13 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
         let sessionDelegate = try XCTUnwrap(sessionDelegate as? FullyImplementedURLSessionDelegate)
         sessionDelegate.didReceiveDataExpectation.isInverted = true
         sessionDelegate.didCompleteWithErrorExpectation.isInverted = true
-        wait(for: [
-            sessionDelegate.didReceiveDataExpectation,
-            sessionDelegate.didCompleteWithErrorExpectation,
-            taskDelegate.didReceiveDataExpectation,
-            taskDelegate.didCompleteWithErrorExpectation
-        ], timeout: Self.timeoutQuick)
+        wait(
+            for: [
+                sessionDelegate.didReceiveDataExpectation,
+                sessionDelegate.didCompleteWithErrorExpectation,
+                taskDelegate.didReceiveDataExpectation,
+                taskDelegate.didCompleteWithErrorExpectation,
+            ], timeout: Self.timeoutQuick)
         unswizzleDefaultCaptureService()
     }
 
@@ -205,11 +210,12 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
         task.resume()
 
         let sessionDelegate = try XCTUnwrap(sessionDelegate as? FullyImplementedURLSessionDelegate)
-        wait(for: [
-            sessionDelegate.didReceiveDataExpectation,
-            sessionDelegate.didCompleteWithErrorExpectation
-        ], timeout: Self.timeoutQuick)
-        
+        wait(
+            for: [
+                sessionDelegate.didReceiveDataExpectation,
+                sessionDelegate.didCompleteWithErrorExpectation,
+            ], timeout: Self.timeoutQuick)
+
         unswizzleDefaultCaptureService()
     }
 

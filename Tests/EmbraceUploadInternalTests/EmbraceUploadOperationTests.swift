@@ -2,8 +2,9 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
 import TestSupport
+import XCTest
+
 @testable import EmbraceUploadInternal
 
 extension EmbraceUpload.ExponentialBackoff {
@@ -276,7 +277,7 @@ class EmbraceUploadOperationTests: XCTestCase {
 
     func test_onReceivingServerIssuesStatusCode_shouldRetryRequestTheAmountOfRetryCounts() throws {
         // mock error response
-        let serverSideErrorStatusCode = try XCTUnwrap((500...599).map { $0}.randomElement())
+        let serverSideErrorStatusCode = try XCTUnwrap((500...599).map { $0 }.randomElement())
         EmbraceHTTPMock.mock(
             url: TestConstants.url,
             response: .withData(
@@ -430,4 +431,3 @@ class EmbraceUploadOperationTests: XCTestCase {
         XCTAssertEqual(headers["x-emb-retry-count"], "1")
     }
 }
-

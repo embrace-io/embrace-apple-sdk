@@ -10,8 +10,10 @@ extension XCTestCase {
     /// - Parameters:
     ///   - timeout: The longest time you are willing to wait
     ///   - interval: The interval in which to check the block
-    ///   - block: A block to execute, return true 
-    public func wait(timeout: TimeInterval = .defaultTimeout, interval: TimeInterval = 0.1, until block: @escaping () throws -> Bool) {
+    ///   - block: A block to execute, return true
+    public func wait(
+        timeout: TimeInterval = .defaultTimeout, interval: TimeInterval = 0.1, until block: @escaping () throws -> Bool
+    ) {
         let expectation = expectation(description: "wait for block to pass")
         let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { _ in
             do {

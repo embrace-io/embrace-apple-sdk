@@ -12,4 +12,4 @@ public protocol SpanEvent {
     var attributes: [String: AttributeValue] { get }
 }
 
-extension SpanData.Event: SpanEvent { }
+extension SpanData.Event: SpanEvent {}

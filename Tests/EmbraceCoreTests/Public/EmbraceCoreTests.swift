@@ -2,12 +2,13 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-@testable import EmbraceCore
 import EmbraceCommonInternal
-import EmbraceStorageInternal
 import EmbraceOTelInternal
+import EmbraceStorageInternal
 import OpenTelemetrySdk
+import XCTest
+
+@testable import EmbraceCore
 /*
 final class EmbraceCoreTests: XCTestCase {
 
@@ -311,7 +312,7 @@ final class EmbraceCoreTests: XCTestCase {
 
             let embrace = Embrace.client
             Embrace.client = nil
-            
+
             return embrace
         }
     }

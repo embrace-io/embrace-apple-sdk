@@ -1,13 +1,14 @@
 //
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
-    
-import XCTest
-@testable import EmbraceCore
-import EmbraceOTelInternal
-import EmbraceConfiguration
+
 import EmbraceConfigInternal
+import EmbraceConfiguration
+import EmbraceOTelInternal
 import TestSupport
+import XCTest
+
+@testable import EmbraceCore
 
 final class SpanEventsLimiterTests: XCTestCase {
 
@@ -112,10 +113,10 @@ final class SpanEventsLimiterTests: XCTestCase {
                 PushNotificationEvent.Constants.apsAlert: [
                     PushNotificationEvent.Constants.apsTitle: "title",
                     PushNotificationEvent.Constants.apsSubtitle: "subtitle",
-                    PushNotificationEvent.Constants.apsBody: "body"
+                    PushNotificationEvent.Constants.apsBody: "body",
                 ],
                 PushNotificationEvent.Constants.apsCategory: "category",
-                PushNotificationEvent.Constants.apsBadge: 1
+                PushNotificationEvent.Constants.apsBadge: 1,
             ]
         ]
 

@@ -2,9 +2,10 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-import TestSupport
 import EmbraceCommonInternal
+import TestSupport
+import XCTest
+
 @testable import EmbraceStorageInternal
 
 class MetadataRecordTests: XCTestCase {
@@ -50,7 +51,7 @@ class MetadataRecordTests: XCTestCase {
 
         // then the record count should be the limit
         let records: [MetadataRecord] = storage.fetchAll()
-        XCTAssertEqual(records.count,  storage.options.resourcesLimit)
+        XCTAssertEqual(records.count, storage.options.resourcesLimit)
     }
 
     func test_addMetadata_customPropertiesLimit() throws {
@@ -72,7 +73,7 @@ class MetadataRecordTests: XCTestCase {
 
         // then the record count should be the limit
         let records: [MetadataRecord] = storage.fetchAll()
-        XCTAssertEqual(records.count,  storage.options.customPropertiesLimit)
+        XCTAssertEqual(records.count, storage.options.customPropertiesLimit)
     }
 
     func test_addMetadata_resourceLimit_lifespanId() throws {
@@ -506,7 +507,8 @@ class MetadataRecordTests: XCTestCase {
         )
 
         // when fetching all resources by session id and process id
-        let resources = storage.fetchResources(sessionId: TestConstants.sessionId.toString, processId: TestConstants.processId.hex)
+        let resources = storage.fetchResources(
+            sessionId: TestConstants.sessionId.toString, processId: TestConstants.processId.hex)
 
         // then the correct records are fetched
         XCTAssertEqual(resources.count, 3)
@@ -731,7 +733,8 @@ class MetadataRecordTests: XCTestCase {
         )
 
         // when fetching all resources by session id and process id
-        let resources = storage.fetchCustomProperties(sessionId: TestConstants.sessionId.toString, processId: TestConstants.processId.hex)
+        let resources = storage.fetchCustomProperties(
+            sessionId: TestConstants.sessionId.toString, processId: TestConstants.processId.hex)
 
         // then the correct records are fetched
         XCTAssertEqual(resources.count, 3)
@@ -880,7 +883,8 @@ class MetadataRecordTests: XCTestCase {
         )
 
         // when fetching all persona tags by session id and process id
-        let resources = storage.fetchPersonaTags(sessionId: TestConstants.sessionId.toString, processId: TestConstants.processId.hex)
+        let resources = storage.fetchPersonaTags(
+            sessionId: TestConstants.sessionId.toString, processId: TestConstants.processId.hex)
 
         // then the correct records are fetched
         XCTAssertEqual(resources.count, 3)

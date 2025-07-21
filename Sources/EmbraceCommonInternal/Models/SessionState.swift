@@ -11,15 +11,15 @@ public enum SessionState: String {
 }
 
 #if canImport(UIKit) && !os(watchOS)
-import UIKit
+    import UIKit
 
-public extension SessionState {
-    init?(appState: UIApplication.State) {
-        if appState == .background {
-            self = .background
-        } else {
-            self = .foreground
+    extension SessionState {
+        public init?(appState: UIApplication.State) {
+            if appState == .background {
+                self = .background
+            } else {
+                self = .foreground
+            }
         }
     }
-}
 #endif

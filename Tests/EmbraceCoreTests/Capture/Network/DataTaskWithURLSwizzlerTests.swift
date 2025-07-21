@@ -2,10 +2,11 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
 import TestSupport
-@testable import EmbraceCore
+import XCTest
+
 @testable import EmbraceCommonInternal
+@testable import EmbraceCore
 
 class DataTaskWithURLSwizzlerTests: XCTestCase {
     private var session: URLSession!
@@ -34,23 +35,23 @@ class DataTaskWithURLSwizzlerTests: XCTestCase {
     }
 }
 
-private extension DataTaskWithURLSwizzlerTests {
-    func givenDataTaskWithURLSwizzler() {
+extension DataTaskWithURLSwizzlerTests {
+    fileprivate func givenDataTaskWithURLSwizzler() {
         handler = MockURLSessionTaskHandler()
         sut = DataTaskWithURLSwizzler(handler: handler)
         sut2 = DataTaskWithURLRequestSwizzler(handler: handler)
     }
 
-    func givenSwizzlingWasDone() throws {
+    fileprivate func givenSwizzlingWasDone() throws {
         try sut.install()
         try sut2.install()
     }
 
-    func givenProxiedUrlSession() {
+    fileprivate func givenProxiedUrlSession() {
         session = ProxiedURLSessionProvider.default()
     }
 
-    func whenInvokingDataTaskWithUrl() {
+    fileprivate func whenInvokingDataTaskWithUrl() {
         var url = URL(string: "https://embrace.io")!
         let mockData = "Mock Data".data(using: .utf8)!
         let mockResponse = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil)!
@@ -59,12 +60,12 @@ private extension DataTaskWithURLSwizzlerTests {
         dataTask.resume()
     }
 
-    func thenHandlerShouldHaveInvokedCreateWithTask() {
+    fileprivate func thenHandlerShouldHaveInvokedCreateWithTask() {
         XCTAssertTrue(handler.didInvokeCreate)
         XCTAssertEqual(handler.createReceivedTask, dataTask)
     }
 
-    func thenHandlerShouldntHaveInvokedCreate() {
+    fileprivate func thenHandlerShouldntHaveInvokedCreate() {
         XCTAssertFalse(handler.didInvokeCreate)
     }
 }

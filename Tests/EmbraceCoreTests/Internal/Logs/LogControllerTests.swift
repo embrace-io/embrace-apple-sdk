@@ -2,15 +2,15 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceCommonInternal
+import EmbraceConfigInternal
+import EmbraceStorageInternal
+import EmbraceUploadInternal
+import OpenTelemetryApi
+import TestSupport
 import XCTest
 
 @testable import EmbraceCore
-import EmbraceStorageInternal
-import EmbraceUploadInternal
-import EmbraceCommonInternal
-import EmbraceConfigInternal
-import TestSupport
-import OpenTelemetryApi
 
 class LogControllerTests: XCTestCase {
     private var sut: LogController!
@@ -180,7 +180,7 @@ class LogControllerTests: XCTestCase {
             LogController.Error.couldntCreatePayload(reason: UUID().uuidString),
             LogController.Error.couldntUpload(reason: UUID().uuidString),
             LogController.Error.couldntAccessStorageModule,
-            LogController.Error.couldntAccessUploadModule
+            LogController.Error.couldntAccessUploadModule,
         ]
         allCases.forEach {
             let convertedError = $0 as NSError
@@ -256,7 +256,6 @@ class LogControllerTests: XCTestCase {
         thenLogHasntGotAnEmbbededStackTraceInTheAttributes()
     }
 
-
     func testErrorLog_createLogByWithNotIncludedStacktrace_doesntAddStackTraceToAttributes() throws {
         givenLogController()
         whenCreatingLog(severity: .error, stackTraceBehavior: .notIncluded)
@@ -284,12 +283,12 @@ class LogControllerTests: XCTestCase {
     }
 }
 
-private extension LogControllerTests {
-    func randomSeverity(from severities: [LogSeverity]) -> LogSeverity {
+extension LogControllerTests {
+    fileprivate func randomSeverity(from severities: [LogSeverity]) -> LogSeverity {
         severities.randomElement()!
     }
 
-    func givenLogControllerWithNoStorage() {
+    fileprivate func givenLogControllerWithNoStorage() {
         sut = .init(
             storage: nil,
             upload: upload,
@@ -300,7 +299,7 @@ private extension LogControllerTests {
         sut.otel = otelBridge
     }
 
-    func givenLogController() {
+    fileprivate func givenLogController() {
         sut = .init(
             storage: storage,
             upload: upload,
@@ -311,31 +310,31 @@ private extension LogControllerTests {
         sut.otel = otelBridge
     }
 
-    func givenEmbraceLogUploader() {
+    fileprivate func givenEmbraceLogUploader() {
         upload = .init()
         upload.stubbedLogCompletion = .success(())
         upload.stubbedAttachmentCompletion = .success(())
     }
 
-    func givenFailingLogUploader() {
+    fileprivate func givenFailingLogUploader() {
         upload = .init()
         upload.stubbedLogCompletion = .failure(RandomError())
         upload.stubbedAttachmentCompletion = .failure(RandomError())
     }
 
-    func givenSDKEnabled(_ sdkEnabled: Bool = true) {
+    fileprivate func givenSDKEnabled(_ sdkEnabled: Bool = true) {
         sdkStateProvider.isEnabled = sdkEnabled
     }
 
-    func givenOTelBridge() {
+    fileprivate func givenOTelBridge() {
         otelBridge = MockEmbraceOTelBridge()
     }
 
-    func givenSessionControllerWithoutSession() {
+    fileprivate func givenSessionControllerWithoutSession() {
         sessionController = .init()
     }
 
-    func givenSessionControllerWithSession() {
+    fileprivate func givenSessionControllerWithSession() {
         sessionController = .init()
         sessionController.currentSession = MockSession(
             id: .random,
@@ -347,20 +346,20 @@ private extension LogControllerTests {
         )
     }
 
-    func givenStorage(withLogs logs: [EmbraceLog] = []) {
+    fileprivate func givenStorage(withLogs logs: [EmbraceLog] = []) {
         storage = .init()
         storage?.stubbedFetchAllExcludingProcessIdentifier = logs
     }
 
-    func whenInvokingSetup() {
+    fileprivate func whenInvokingSetup() {
         sut.uploadAllPersistedLogs()
     }
 
-    func whenInvokingBatchFinished(withLogs logs: [EmbraceLog]) {
+    fileprivate func whenInvokingBatchFinished(withLogs logs: [EmbraceLog]) {
         sut.batchFinished(withLogs: logs)
     }
 
-    func whenAttachmentLimitIsReached() {
+    fileprivate func whenAttachmentLimitIsReached() {
         sut.sessionController?.increaseAttachmentCount()
         sut.sessionController?.increaseAttachmentCount()
         sut.sessionController?.increaseAttachmentCount()
@@ -368,54 +367,54 @@ private extension LogControllerTests {
         sut.sessionController?.increaseAttachmentCount()
     }
 
-    func whenCreatingLog(
+    fileprivate func whenCreatingLog(
         severity: LogSeverity = .info,
         stackTraceBehavior: StackTraceBehavior = .default
     ) {
         sut.createLog("test", severity: severity, stackTraceBehavior: stackTraceBehavior)
     }
 
-    func whenCreatingLogWithAttachment() {
+    fileprivate func whenCreatingLogWithAttachment() {
         sut.createLog("test", severity: .info, attachment: TestConstants.data)
     }
 
-    func whenCreatingLogWithBigAttachment() {
+    fileprivate func whenCreatingLogWithBigAttachment() {
         var str = ""
-        for _ in 1...1048600 {
+        for _ in 1...1_048_600 {
             str += "."
         }
         sut.createLog("test", severity: .info, attachment: str.data(using: .utf8)!)
     }
 
-    func whenCreatingLogWithPreUploadedAttachment() {
+    fileprivate func whenCreatingLogWithPreUploadedAttachment() {
         let url = URL(string: "http//embrace.test.com/attachment/123", testName: testName)!
         sut.createLog("test", severity: .info, attachmentId: UUID().withoutHyphen, attachmentUrl: url)
     }
 
-    func thenDoesntTryToUploadAnything() {
+    fileprivate func thenDoesntTryToUploadAnything() {
         XCTAssertFalse(upload.didCallUploadLog)
     }
 
-    func thenFetchesAllLogsExcluding(pid: ProcessIdentifier) throws {
+    fileprivate func thenFetchesAllLogsExcluding(pid: ProcessIdentifier) throws {
         let unwrappedStorage = try XCTUnwrap(storage)
         XCTAssertTrue(unwrappedStorage.didCallFetchAllExcludingProcessIdentifier)
         XCTAssertEqual(unwrappedStorage.fetchAllExcludingProcessIdentifierReceivedParameter, pid)
     }
 
-    func thenStorageShouldHaveRemoveAllLogs() throws {
+    fileprivate func thenStorageShouldHaveRemoveAllLogs() throws {
         let unwrappedStorage = try XCTUnwrap(storage)
         XCTAssertTrue(unwrappedStorage.didCallRemoveAllLogs)
     }
 
-    func thenLogUploadShouldUpload(times: Int) {
+    fileprivate func thenLogUploadShouldUpload(times: Int) {
         XCTAssertEqual(upload.didCallUploadLogCount, times)
     }
 
-    func thenLogUploaderShouldSendLogs() {
+    fileprivate func thenLogUploaderShouldSendLogs() {
         XCTAssertTrue(upload.didCallUploadLog)
     }
 
-    func thenStorageShouldCallRemove(withLogs logs: [EmbraceLog]) throws {
+    fileprivate func thenStorageShouldCallRemove(withLogs logs: [EmbraceLog]) throws {
         let unwrappedStorage = try XCTUnwrap(storage)
         wait(timeout: 1.0) {
             let expectedIds = logs.map { $0.idRaw }
@@ -425,18 +424,18 @@ private extension LogControllerTests {
         }
     }
 
-    func thenStorageShouldntCallRemoveLogs() throws {
+    fileprivate func thenStorageShouldntCallRemoveLogs() throws {
         let unwrappedStorage = try XCTUnwrap(storage)
         XCTAssertFalse(unwrappedStorage.didCallRemoveLogs)
     }
 
-    func thenFetchesResourcesFromStorage(sessionId: SessionIdentifier?) throws {
+    fileprivate func thenFetchesResourcesFromStorage(sessionId: SessionIdentifier?) throws {
         let unwrappedStorage = try XCTUnwrap(storage)
         XCTAssertTrue(unwrappedStorage.didCallFetchResourcesForSessionId)
         XCTAssertEqual(unwrappedStorage.fetchResourcesForSessionIdReceivedParameter, sessionId)
     }
 
-    func thenFetchesMetadataFromStorage(sessionId: SessionIdentifier?) throws {
+    fileprivate func thenFetchesMetadataFromStorage(sessionId: SessionIdentifier?) throws {
         let unwrappedStorage = try XCTUnwrap(storage)
         XCTAssertTrue(unwrappedStorage.didCallFetchCustomPropertiesForSessionId)
         XCTAssertEqual(unwrappedStorage.fetchCustomPropertiesForSessionIdReceivedParameter, sessionId)
@@ -444,19 +443,19 @@ private extension LogControllerTests {
         XCTAssertEqual(unwrappedStorage.fetchPersonaTagsForSessionIdReceivedParameter, sessionId)
     }
 
-    func thenFetchesResourcesFromStorage(processId: ProcessIdentifier) throws {
+    fileprivate func thenFetchesResourcesFromStorage(processId: ProcessIdentifier) throws {
         let unwrappedStorage = try XCTUnwrap(storage)
         XCTAssertTrue(unwrappedStorage.didCallFetchResourcesForProcessId)
         XCTAssertEqual(unwrappedStorage.fetchResourcesForProcessIdReceivedParameter, processId)
     }
 
-    func thenFetchesMetadataFromStorage(processId: ProcessIdentifier) throws {
+    fileprivate func thenFetchesMetadataFromStorage(processId: ProcessIdentifier) throws {
         let unwrappedStorage = try XCTUnwrap(storage)
         XCTAssertTrue(unwrappedStorage.didCallFetchPersonaTagsForProcessId)
         XCTAssertEqual(unwrappedStorage.fetchPersonaTagsForProcessIdReceivedParameter, processId)
     }
 
-    func thenLogIsCreatedCorrectly() {
+    fileprivate func thenLogIsCreatedCorrectly() {
         let log = otelBridge.otel.logs.first
         XCTAssertNotNil(log)
         XCTAssertEqual(log!.body!.description, "test")
@@ -464,7 +463,7 @@ private extension LogControllerTests {
         XCTAssertEqual(log!.attributes["emb.type"]!.description, "sys.log")
     }
 
-    func thenLogHasAnEmbbededStackTraceInTheAttributes() {
+    fileprivate func thenLogHasAnEmbbededStackTraceInTheAttributes() {
         wait {
             let log = self.otelBridge.otel.logs.first
 
@@ -472,7 +471,7 @@ private extension LogControllerTests {
         }
     }
 
-    func thenLogHasntGotAnEmbbededStackTraceInTheAttributes() {
+    fileprivate func thenLogHasntGotAnEmbbededStackTraceInTheAttributes() {
         wait {
             let log = self.otelBridge.otel.logs.first
 
@@ -480,7 +479,7 @@ private extension LogControllerTests {
         }
     }
 
-    func thenLogWithSuccessfulAttachmentIsCreatedCorrectly() {
+    fileprivate func thenLogWithSuccessfulAttachmentIsCreatedCorrectly() {
         wait {
             let log = self.otelBridge.otel.logs.first
 
@@ -491,19 +490,20 @@ private extension LogControllerTests {
         }
     }
 
-    func thenLogWithUnsuccessfulAttachmentIsCreatedCorrectly(errorCode: String?) {
+    fileprivate func thenLogWithUnsuccessfulAttachmentIsCreatedCorrectly(errorCode: String?) {
         wait {
             let log = self.otelBridge.otel.logs.first
 
             let attachmentIdFound = log!.attributes["emb.attachment_id"] != nil
             let attachmentSizeFound = log!.attributes["emb.attachment_size"] != nil
-            let attachmentErrorFound = errorCode == nil || log!.attributes["emb.attachment_error_code"]!.description == errorCode
+            let attachmentErrorFound =
+                errorCode == nil || log!.attributes["emb.attachment_error_code"]!.description == errorCode
 
             return attachmentIdFound && attachmentSizeFound && attachmentErrorFound
         }
     }
 
-    func thenLogWithPreuploadedAttachmentIsCreatedCorrectly() {
+    fileprivate func thenLogWithPreuploadedAttachmentIsCreatedCorrectly() {
         wait {
             let log = self.otelBridge.otel.logs.first
 
@@ -514,7 +514,7 @@ private extension LogControllerTests {
         }
     }
 
-    func randomLogRecord(sessionId: SessionIdentifier? = nil) -> EmbraceLog {
+    fileprivate func randomLogRecord(sessionId: SessionIdentifier? = nil) -> EmbraceLog {
 
         var attributes: [String: AttributeValue] = [:]
         if let sessionId = sessionId {
@@ -530,7 +530,7 @@ private extension LogControllerTests {
         )
     }
 
-    func logsForMoreThanASingleBatch() -> [EmbraceLog] {
+    fileprivate func logsForMoreThanASingleBatch() -> [EmbraceLog] {
         return (1...LogController.maxLogsPerBatch + 1).map { _ in
             randomLogRecord()
         }

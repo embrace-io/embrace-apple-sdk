@@ -3,9 +3,10 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceStorageInternal
+    import EmbraceCommonInternal
+    import EmbraceStorageInternal
 #endif
 
 class SessionPayloadBuilder {
@@ -29,8 +30,9 @@ class SessionPayloadBuilder {
         )
 
         // build resources payload
-        let resources: [EmbraceMetadata] = storage.fetchResources(sessionId: session.idRaw, processId: session.processIdRaw)
-        let resourcePayload =  ResourcePayload(from: resources)
+        let resources: [EmbraceMetadata] = storage.fetchResources(
+            sessionId: session.idRaw, processId: session.processIdRaw)
+        let resourcePayload = ResourcePayload(from: resources)
 
         // build metadata payload
         var metadata: [EmbraceMetadata] = []
@@ -38,7 +40,7 @@ class SessionPayloadBuilder {
         let tags = storage.fetchPersonaTags(sessionId: session.idRaw, processId: session.processIdRaw)
         metadata.append(contentsOf: properties)
         metadata.append(contentsOf: tags)
-        let metadataPayload =  MetadataPayload(from: metadata)
+        let metadataPayload = MetadataPayload(from: metadata)
 
         // build payload
         return PayloadEnvelope(

@@ -2,11 +2,12 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-#endif
 import CoreData
+import Foundation
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+#endif
 
 public protocol EmbraceStorageMetadataFetcher: AnyObject {
     func fetchAllResources() -> [EmbraceMetadata]
@@ -63,10 +64,11 @@ extension EmbraceStorage {
 
     /// Adds or updates all the given required resources
     public func addRequiredResources(_ map: [String: String], processId: ProcessIdentifier = .current) {
-        
+
         coreData.performOperation { context in
 
-            guard let description = NSEntityDescription.entity(forEntityName: MetadataRecord.entityName, in: context) else {
+            guard let description = NSEntityDescription.entity(forEntityName: MetadataRecord.entityName, in: context)
+            else {
                 logger.error("Error finding entity description for MetadataRecord!")
                 return
             }
@@ -94,7 +96,7 @@ extension EmbraceStorage {
                 if let record = record {
                     record.value = value
 
-                // create
+                    // create
                 } else {
                     record = MetadataRecord(entity: description, insertInto: context)
                     record?.key = key
@@ -278,7 +280,7 @@ extension EmbraceStorage {
                 let val = (Int(metadata.value) ?? 0) + 1
                 metadata.value = String(val)
                 return val
-            // create it with a value of 1 if it doesn't exist
+                // create it with a value of 1 if it doesn't exist
             } else {
                 let val = 1
                 _ = MetadataRecord.create(
@@ -324,7 +326,7 @@ extension EmbraceStorage {
             type: .and,
             subpredicates: [
                 resourcePredicate(),
-                lifespanPredicate(sessionId: sessionId, processId: processId)
+                lifespanPredicate(sessionId: sessionId, processId: processId),
             ]
         )
 
@@ -358,7 +360,7 @@ extension EmbraceStorage {
             type: .and,
             subpredicates: [
                 resourcePredicate(),
-                lifespanPredicate(processId: processId.hex)
+                lifespanPredicate(processId: processId.hex),
             ]
         )
 
@@ -382,7 +384,7 @@ extension EmbraceStorage {
             type: .and,
             subpredicates: [
                 customPropertyPredicate(),
-                lifespanPredicate(sessionId: sessionId, processId: processId)
+                lifespanPredicate(sessionId: sessionId, processId: processId),
             ]
         )
 
@@ -415,7 +417,7 @@ extension EmbraceStorage {
             type: .and,
             subpredicates: [
                 personaTagPredicate(),
-                lifespanPredicate(sessionId: sessionId, processId: processId)
+                lifespanPredicate(sessionId: sessionId, processId: processId),
             ]
         )
 
@@ -449,7 +451,7 @@ extension EmbraceStorage {
             type: .and,
             subpredicates: [
                 personaTagPredicate(),
-                lifespanPredicate(processId: processId.hex)
+                lifespanPredicate(processId: processId.hex),
             ]
         )
 
@@ -544,7 +546,7 @@ extension EmbraceStorage {
             subpredicates: [
                 sessionIdPredicate,
                 processIdPredicate,
-                permanentPredicate
+                permanentPredicate,
             ]
         )
     }
@@ -566,7 +568,7 @@ extension EmbraceStorage {
             type: .or,
             subpredicates: [
                 processIdPredicate,
-                permanentPredicate
+                permanentPredicate,
             ]
         )
     }

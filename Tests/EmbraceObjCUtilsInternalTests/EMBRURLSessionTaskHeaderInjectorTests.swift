@@ -2,8 +2,9 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
 import TestSupport
+import XCTest
+
 @testable @_implementationOnly import EmbraceObjCUtilsInternal
 
 final class EMBRURLSessionTaskHeaderInjectorTests: XCTestCase {
@@ -34,12 +35,13 @@ extension EMBRURLSessionTaskHeaderInjectorTests {
         urlSessionconfig.httpMaximumConnectionsPerHost = .max
         urlSessionconfig.protocolClasses = [EmbraceHTTPMock.self]
         task = URLSession(configuration: urlSessionconfig)
-            .dataTask(with:
-                        URLRequest(
-                            url: URL(
-                                string: "https://embrace.io/"
-                            )!
-                        )
+            .dataTask(
+                with:
+                    URLRequest(
+                        url: URL(
+                            string: "https://embrace.io/"
+                        )!
+                    )
             )
     }
 

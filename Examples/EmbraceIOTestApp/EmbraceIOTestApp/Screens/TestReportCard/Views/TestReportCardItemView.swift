@@ -43,11 +43,13 @@ struct TestReportCardItemView: View {
     }
 }
 
-
 #Preview {
-    var passedItem: TestReportItem = .init(target: "viewDidLoad", expected: "viewDidLoad", recorded: "found", result: .success)
-    var failItem: TestReportItem = .init(target: "viewDidLoad", expected: "viewDidLoad", recorded: "not found", result: .fail)
-    var warningItem: TestReportItem = .init(target: "viewDidLoad", expected: "viewDidLoad", recorded: "not found", result: .warning)
+    var passedItem: TestReportItem = .init(
+        target: "viewDidLoad", expected: "viewDidLoad", recorded: "found", result: .success)
+    var failItem: TestReportItem = .init(
+        target: "viewDidLoad", expected: "viewDidLoad", recorded: "not found", result: .fail)
+    var warningItem: TestReportItem = .init(
+        target: "viewDidLoad", expected: "viewDidLoad", recorded: "not found", result: .warning)
     return VStack {
         TestReportCardItemView(item: passedItem)
             .padding(.bottom, 40)

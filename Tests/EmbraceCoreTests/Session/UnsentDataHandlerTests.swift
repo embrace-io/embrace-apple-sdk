@@ -2,13 +2,14 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
-import XCTest
-@testable import EmbraceCore
 import EmbraceCommonInternal
+import Foundation
+import TestSupport
+import XCTest
+
+@testable import EmbraceCore
 @testable import EmbraceStorageInternal
 @testable import EmbraceUploadInternal
-import TestSupport
 
 class UnsentDataHandlerTests: XCTestCase {
     let logger = MockLogger()
@@ -31,7 +32,8 @@ class UnsentDataHandlerTests: XCTestCase {
         try? FileManager.default.removeItem(at: filePathProvider.tmpDirectory)
 
         criticalLogsFilePath = filePathProvider.fileURL(for: "UnsentDataHandlerTests", name: "file")
-        try? FileManager.default.createDirectory(at: filePathProvider.directoryURL(for: "UnsentDataHandlerTests")!, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(
+            at: filePathProvider.directoryURL(for: "UnsentDataHandlerTests")!, withIntermediateDirectories: true)
 
         context = CrashReporterContext(
             appId: TestConstants.appId,
@@ -46,7 +48,8 @@ class UnsentDataHandlerTests: XCTestCase {
 
         uploadOptions = EmbraceUpload.Options(
             endpoints: testEndpointOptions(forTest: testName),
-            cache: EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false),
+            cache: EmbraceUpload.CacheOptions(
+                storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false),
             metadata: UnsentDataHandlerTests.testMetadataOptions,
             redundancy: UnsentDataHandlerTests.testRedundancyOptions,
             urlSessionConfiguration: urlSessionconfig
@@ -70,7 +73,8 @@ class UnsentDataHandlerTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         defer { storage.coreData.destroy() }
 
-        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
+        let upload = try EmbraceUpload(
+            options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
 
         let otel = MockEmbraceOpenTelemetry()
 
@@ -112,7 +116,8 @@ class UnsentDataHandlerTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         defer { storage.coreData.destroy() }
 
-        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
+        let upload = try EmbraceUpload(
+            options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
 
         let otel = MockEmbraceOpenTelemetry()
 
@@ -159,7 +164,8 @@ class UnsentDataHandlerTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         defer { storage.coreData.destroy() }
 
-        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
+        let upload = try EmbraceUpload(
+            options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
 
         let otel = MockEmbraceOpenTelemetry()
 
@@ -183,7 +189,8 @@ class UnsentDataHandlerTests: XCTestCase {
         let expectation1 = XCTestExpectation()
         listener.onUpdatedObjects = { records in
             if let record = records.first as? SessionRecord,
-               record.crashReportId != nil {
+                record.crashReportId != nil
+            {
                 expectation1.fulfill()
             }
         }
@@ -196,8 +203,8 @@ class UnsentDataHandlerTests: XCTestCase {
         // then a crash report was sent
         // then a session request was sent
         wait(timeout: .veryLongTimeout) {
-            EmbraceHTTPMock.requestsForUrl(self.testLogsUrl()).count == 1 &&
-            EmbraceHTTPMock.requestsForUrl(self.testSpansUrl()).count == 1
+            EmbraceHTTPMock.requestsForUrl(self.testLogsUrl()).count == 1
+                && EmbraceHTTPMock.requestsForUrl(self.testSpansUrl()).count == 1
         }
 
         // then the total amount of requests is correct
@@ -234,7 +241,8 @@ class UnsentDataHandlerTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         defer { storage.coreData.destroy() }
 
-        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
+        let upload = try EmbraceUpload(
+            options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
 
         let otel = MockEmbraceOpenTelemetry()
 
@@ -247,7 +255,8 @@ class UnsentDataHandlerTests: XCTestCase {
         let didSendCrashesExpectation = XCTestExpectation()
         listener.onUpdatedObjects = { records in
             if let record = records.first as? SessionRecord,
-                record.crashReportId != nil {
+                record.crashReportId != nil
+            {
                 didSendCrashesExpectation.fulfill()
             }
         }
@@ -271,8 +280,8 @@ class UnsentDataHandlerTests: XCTestCase {
         // then a crash report request was attempted
         // then a session request was attempted
         wait(timeout: .veryLongTimeout) {
-            EmbraceHTTPMock.requestsForUrl(self.testLogsUrl()).count > 0 &&
-            EmbraceHTTPMock.requestsForUrl(self.testSpansUrl()).count > 0
+            EmbraceHTTPMock.requestsForUrl(self.testLogsUrl()).count > 0
+                && EmbraceHTTPMock.requestsForUrl(self.testSpansUrl()).count > 0
         }
 
         // then the total amount of requests is correct
@@ -310,7 +319,8 @@ class UnsentDataHandlerTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         defer { storage.coreData.destroy() }
 
-        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
+        let upload = try EmbraceUpload(
+            options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
 
         let otel = MockEmbraceOpenTelemetry()
 
@@ -333,8 +343,9 @@ class UnsentDataHandlerTests: XCTestCase {
         let expectation1 = XCTestExpectation()
         listener.onUpdatedObjects = { records in
             if let record = records.first as? SessionRecord,
-               record.crashReportId != nil,
-               record.endTime != nil {
+                record.crashReportId != nil,
+                record.endTime != nil
+            {
                 expectation1.fulfill()
             }
         }
@@ -347,8 +358,8 @@ class UnsentDataHandlerTests: XCTestCase {
         // then a crash report was sent
         // then a session request was sent
         wait(timeout: .veryLongTimeout) {
-            EmbraceHTTPMock.requestsForUrl(self.testLogsUrl()).count == 1 &&
-            EmbraceHTTPMock.requestsForUrl(self.testSpansUrl()).count == 1
+            EmbraceHTTPMock.requestsForUrl(self.testLogsUrl()).count == 1
+                && EmbraceHTTPMock.requestsForUrl(self.testSpansUrl()).count == 1
         }
 
         // then the total amount of requests is correct
@@ -385,7 +396,8 @@ class UnsentDataHandlerTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         defer { storage.coreData.destroy() }
 
-        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
+        let upload = try EmbraceUpload(
+            options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
         let otel = MockEmbraceOpenTelemetry()
 
         // given a crash reporter
@@ -447,7 +459,8 @@ class UnsentDataHandlerTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         defer { storage.coreData.destroy() }
 
-        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
+        let upload = try EmbraceUpload(
+            options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
 
         let otel = MockEmbraceOpenTelemetry()
 
@@ -513,7 +526,8 @@ class UnsentDataHandlerTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         defer { storage.coreData.destroy() }
 
-        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
+        let upload = try EmbraceUpload(
+            options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
 
         let otel = MockEmbraceOpenTelemetry()
 
@@ -573,11 +587,11 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // then all metadata is cleaned up
         let records: [MetadataRecord] = storage.fetchAll()
-        XCTAssertNotNil(records.first(where: { $0.key == "permanent"}))
-        XCTAssertNotNil(records.first(where: { $0.key == "sameSessionId"}))
-        XCTAssertNotNil(records.first(where: { $0.key == "sameProcessId"}))
-        XCTAssertNil(records.first(where: { $0.key == "differentSessionId"}))
-        XCTAssertNil(records.first(where: { $0.key == "differentProcessId"}))
+        XCTAssertNotNil(records.first(where: { $0.key == "permanent" }))
+        XCTAssertNotNil(records.first(where: { $0.key == "sameSessionId" }))
+        XCTAssertNotNil(records.first(where: { $0.key == "sameProcessId" }))
+        XCTAssertNil(records.first(where: { $0.key == "differentSessionId" }))
+        XCTAssertNil(records.first(where: { $0.key == "differentProcessId" }))
     }
 
     func test_spanCleanUp_uploadSession() throws {
@@ -589,7 +603,8 @@ class UnsentDataHandlerTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         defer { storage.coreData.destroy() }
 
-        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
+        let upload = try EmbraceUpload(
+            options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
 
         // given an unfinished session in the storage
         let session = storage.addSession(
@@ -633,7 +648,8 @@ class UnsentDataHandlerTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         defer { storage.coreData.destroy() }
 
-        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
+        let upload = try EmbraceUpload(
+            options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
 
         // given an unfinished session in the storage
         let session = storage.addSession(
@@ -673,9 +689,9 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // then metadata is correctly cleaned up
         let records: [MetadataRecord] = storage.fetchAll()
-        XCTAssertNotNil(records.first(where: { $0.key == "permanent"}))
-        XCTAssertNotNil(records.first(where: { $0.key == "sameProcessId"}))
-        XCTAssertNil(records.first(where: { $0.key == "differentProcessId"}))
+        XCTAssertNotNil(records.first(where: { $0.key == "permanent" }))
+        XCTAssertNotNil(records.first(where: { $0.key == "sameProcessId" }))
+        XCTAssertNil(records.first(where: { $0.key == "differentProcessId" }))
     }
 
     func test_logsUpload() throws {
@@ -687,7 +703,8 @@ class UnsentDataHandlerTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         defer { storage.coreData.destroy() }
 
-        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
+        let upload = try EmbraceUpload(
+            options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
         let logController = LogController(
             storage: storage,
             upload: upload,
@@ -723,7 +740,8 @@ class UnsentDataHandlerTests: XCTestCase {
         EmbraceHTTPMock.mock(url: testLogsUrl())
 
         // given upload module
-        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
+        let upload = try EmbraceUpload(
+            options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
 
         // given critical logs file present
         try "TEST".write(to: criticalLogsFilePath, atomically: true, encoding: .utf8)
@@ -741,7 +759,8 @@ class UnsentDataHandlerTests: XCTestCase {
         EmbraceHTTPMock.mock(url: testLogsUrl())
 
         // given upload module
-        let upload = try EmbraceUpload(options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
+        let upload = try EmbraceUpload(
+            options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
 
         // when sending critical logs without a file present
         UnsentDataHandler.sendCriticalLogs(fileUrl: criticalLogsFilePath, upload: upload)
@@ -752,8 +771,8 @@ class UnsentDataHandlerTests: XCTestCase {
     }
 }
 
-private extension UnsentDataHandlerTests {
-    func testEndpointOptions(forTest testName: String) -> EmbraceUpload.EndpointOptions {
+extension UnsentDataHandlerTests {
+    fileprivate func testEndpointOptions(forTest testName: String) -> EmbraceUpload.EndpointOptions {
         .init(
             spansURL: testSpansUrl(forTest: testName),
             logsURL: testLogsUrl(forTest: testName),
@@ -761,19 +780,19 @@ private extension UnsentDataHandlerTests {
         )
     }
 
-    func testSpansUrl(forTest testName: String = #function) -> URL {
+    fileprivate func testSpansUrl(forTest testName: String = #function) -> URL {
         var url = URL(string: "https://embrace.test.com/sessions")!
         url.testName = testName
         return url
     }
 
-    func testLogsUrl(forTest testName: String = #function) -> URL {
+    fileprivate func testLogsUrl(forTest testName: String = #function) -> URL {
         var url = URL(string: "https://embrace.test.com/logs")!
         url.testName = testName
         return url
     }
 
-    func testAttachmentsUrl(forTest testName: String = #function) -> URL {
+    fileprivate func testAttachmentsUrl(forTest testName: String = #function) -> URL {
         var url = URL(string: "https://embrace.test.com/attachments")!
         url.testName = testName
         return url

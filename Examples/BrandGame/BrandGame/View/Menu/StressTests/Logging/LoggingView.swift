@@ -2,9 +2,9 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import SwiftUI
-import EmbraceIO
 import EmbraceCommonInternal
+import EmbraceIO
+import SwiftUI
 
 struct LoggingView: View {
     @State private var logMessage: String = "This is the log message..."
@@ -69,15 +69,15 @@ struct LoggingView: View {
     }
 }
 
-private extension LoggingView {
-    func calculateCellWidth(basedOnProxy geometryProxy: GeometryProxy) -> Double {
+extension LoggingView {
+    fileprivate func calculateCellWidth(basedOnProxy geometryProxy: GeometryProxy) -> Double {
         let fulldWidth = geometryProxy.size.width
         let insets = geometryProxy.safeAreaInsets.leading + geometryProxy.safeAreaInsets.trailing
         let availableSpace = fulldWidth - insets
         return availableSpace / 2.0
     }
 
-    func executeLog() {
+    fileprivate func executeLog() {
         guard !logMessage.isEmpty else {
             print("Cant log empty message")
             return
@@ -99,26 +99,27 @@ private extension LoggingView {
         cleanUpFields()
     }
 
-    func getStackTraceBehavior() throws -> StackTraceBehavior {
+    fileprivate func getStackTraceBehavior() throws -> StackTraceBehavior {
         switch Behavior(rawValue: behavior) {
         case .default:
             return .default
         case .notIncluded:
             return .notIncluded
         case .custom:
-            return .custom(try EmbraceStackTrace(
-                frames: [
-                    "0 BrandGame 0x0000000005678def [SomeClass method] + 48",
-                    "1 Random Library 0x0000000001234abc [Random init]",
-                    "2 \(UUID().uuidString) 0x0000000001234abc [\(UUID().uuidString) \(UUID().uuidString))]"
-                ])
+            return .custom(
+                try EmbraceStackTrace(
+                    frames: [
+                        "0 BrandGame 0x0000000005678def [SomeClass method] + 48",
+                        "1 Random Library 0x0000000001234abc [Random init]",
+                        "2 \(UUID().uuidString) 0x0000000001234abc [\(UUID().uuidString) \(UUID().uuidString))]",
+                    ])
             )
         case .none:
             throw NSError(domain: "BrandGame", code: -1, userInfo: [:])
         }
     }
 
-    func cleanUpFields() {
+    fileprivate func cleanUpFields() {
         guard shouldCleanUp else {
             return
         }

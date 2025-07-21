@@ -4,12 +4,13 @@
 
 import Foundation
 import OSLog
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceOTelInternal
-import EmbraceStorageInternal
-import EmbraceConfigInternal
-import EmbraceConfiguration
+    import EmbraceCommonInternal
+    import EmbraceOTelInternal
+    import EmbraceStorageInternal
+    import EmbraceConfigInternal
+    import EmbraceConfiguration
 #endif
 
 class DefaultInternalLogger: BaseInternalLogger {
@@ -68,8 +69,9 @@ class DefaultInternalLogger: BaseInternalLogger {
             }
 
             guard let fileURL = self.exportFilePath,
-                  self.exporting == false,
-                  self.exportLimitReached == false else {
+                self.exporting == false,
+                self.exportLimitReached == false
+            else {
                 return
             }
 
@@ -89,7 +91,8 @@ class DefaultInternalLogger: BaseInternalLogger {
                 }
 
                 // fetch log entries
-                let entries: [OSLogEntryLog] = try store
+                let entries: [OSLogEntryLog] =
+                    try store
                     .getEntries(at: position)
                     .compactMap { $0 as? OSLogEntryLog }
                     .filter { $0.subsystem == self.subsystem && $0.category == self.customExportCategory }

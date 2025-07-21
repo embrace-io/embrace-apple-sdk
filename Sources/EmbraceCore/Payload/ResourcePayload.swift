@@ -3,12 +3,13 @@
 //
 
 import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceStorageInternal
-@_implementationOnly import EmbraceObjCUtilsInternal
-import EmbraceCommonInternal
-#endif
 import OpenTelemetrySdk
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceStorageInternal
+    @_implementationOnly import EmbraceObjCUtilsInternal
+    import EmbraceCommonInternal
+#endif
 
 struct ResourcePayload: Codable {
     var jailbroken: Bool?
@@ -40,7 +41,7 @@ struct ResourcePayload: Codable {
         DeviceResourceKey.locale.rawValue,
         DeviceResourceKey.timezone.rawValue,
         DeviceResourceKey.osDescription.rawValue,
-        SessionPayloadBuilder.resourceName
+        SessionPayloadBuilder.resourceName,
     ]
 
     enum CodingKeys: String, CodingKey, CaseIterable {

@@ -5,6 +5,7 @@
 import Foundation
 
 class NotImplementedURLSessionDelegate: NSObject,
-                                        URLSessionTaskDelegate,
-                                        URLSessionDataDelegate,
-                                        URLSessionStreamDelegate { }
+    URLSessionTaskDelegate,
+    URLSessionDataDelegate,
+    URLSessionStreamDelegate
+{}

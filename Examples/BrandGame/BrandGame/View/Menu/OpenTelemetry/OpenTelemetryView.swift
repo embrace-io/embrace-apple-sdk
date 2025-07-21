@@ -2,9 +2,9 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import SwiftUI
 import EmbraceIO
 import OpenTelemetryApi
+import SwiftUI
 
 struct OpenTelemetryView: View {
     @State private var name: String = "EmbraceOpenTelemetry"
@@ -67,28 +67,29 @@ struct OpenTelemetryView: View {
     }
 }
 
-private extension OpenTelemetryView {
-    func getOpenTelemetryTracer() {
+extension OpenTelemetryView {
+    fileprivate func getOpenTelemetryTracer() {
         do {
-            tracer = switch selectedProviderSDK {
-            case .embrace:
-                try getEmbraceTracer()
-            case .otel:
-                try getOTelSDKTracer()
-            }
+            tracer =
+                switch selectedProviderSDK {
+                case .embrace:
+                    try getEmbraceTracer()
+                case .otel:
+                    try getOTelSDKTracer()
+                }
 
         } catch let exception {
             print(exception.localizedDescription)
         }
     }
 
-    func getEmbraceTracer() throws -> Tracer {
+    fileprivate func getEmbraceTracer() throws -> Tracer {
         guard let embrace = Embrace.client else { throw CreateTracerError.embraceClientDoesNotExist }
         guard !name.isEmpty else { throw CreateTracerError.nameCannotBeEmpty }
         return embrace.tracer(instrumentationName: name)
     }
 
-    func getOTelSDKTracer() throws -> Tracer {
+    fileprivate func getOTelSDKTracer() throws -> Tracer {
         guard !name.isEmpty else { throw CreateTracerError.nameCannotBeEmpty }
         guard !version.isEmpty else { throw CreateTracerError.versionCannotBeEmpty }
         guard isValidSemver(version: version) else { throw CreateTracerError.versionIsNotSemver }
@@ -98,19 +99,19 @@ private extension OpenTelemetryView {
         )
     }
 
-    func isValidSemver(version: String) -> Bool {
+    fileprivate func isValidSemver(version: String) -> Bool {
         // swiftlint:disable line_length
         let regex = #"""
-        ^(\d+)\.(\d+)\.(\d+)(?:-((?:\d+|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:\d+|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$
-        """#
+            ^(\d+)\.(\d+)\.(\d+)(?:-((?:\d+|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:\d+|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$
+            """#
         // swiftlint:enable line_length
         let result = version.range(of: regex, options: .regularExpression)
         return result != nil
     }
 }
 
-private extension OpenTelemetryView {
-    enum TracerProviderSDK: String, CaseIterable, Identifiable {
+extension OpenTelemetryView {
+    fileprivate enum TracerProviderSDK: String, CaseIterable, Identifiable {
         case embrace = "Embrace"
         case otel = "OpenTelemetry"
 
@@ -118,8 +119,8 @@ private extension OpenTelemetryView {
     }
 }
 
-private extension OpenTelemetryView {
-    enum CreateTracerError: LocalizedError {
+extension OpenTelemetryView {
+    fileprivate enum CreateTracerError: LocalizedError {
         case embraceClientDoesNotExist
         case nameCannotBeEmpty
         case versionCannotBeEmpty

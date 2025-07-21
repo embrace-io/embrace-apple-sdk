@@ -3,10 +3,11 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import OpenTelemetryApi
-@_implementationOnly import EmbraceObjCUtilsInternal
+    import EmbraceCommonInternal
+    import OpenTelemetryApi
+    @_implementationOnly import EmbraceObjCUtilsInternal
 #endif
 
 class AppInfoCaptureService: ResourceCaptureService {
@@ -35,7 +36,7 @@ class AppInfoCaptureService: ResourceCaptureService {
             AppResourceKey.processIdentifier.rawValue: ProcessIdentifier.current.hex,
 
             // pre-warm
-            AppResourceKey.processPreWarm.rawValue: isPreWarm
+            AppResourceKey.processPreWarm.rawValue: isPreWarm,
         ]
 
         // app version
@@ -50,7 +51,8 @@ class AppInfoCaptureService: ResourceCaptureService {
 
         // process start time
         if let processStartTime = ProcessMetadata.startTime {
-            resourcesMap[AppResourceKey.processStartTime.rawValue] = String(processStartTime.nanosecondsSince1970Truncated)
+            resourcesMap[AppResourceKey.processStartTime.rawValue] = String(
+                processStartTime.nanosecondsSince1970Truncated)
         }
 
         addRequiredResources(resourcesMap)

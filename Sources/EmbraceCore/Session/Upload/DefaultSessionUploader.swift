@@ -3,10 +3,11 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceStorageInternal
-import EmbraceUploadInternal
+    import EmbraceCommonInternal
+    import EmbraceStorageInternal
+    import EmbraceUploadInternal
 #endif
 
 // used for tests

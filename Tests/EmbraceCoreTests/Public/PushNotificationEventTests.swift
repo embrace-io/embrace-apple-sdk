@@ -2,10 +2,11 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-@testable import EmbraceCore
-import XCTest
-import TestSupport
 import EmbraceSemantics
+import TestSupport
+import XCTest
+
+@testable import EmbraceCore
 
 // swiftlint:disable force_cast force_try
 class PushNotificationEventTests: XCTestCase {
@@ -15,10 +16,10 @@ class PushNotificationEventTests: XCTestCase {
             PushNotificationEvent.Constants.apsAlert: [
                 PushNotificationEvent.Constants.apsTitle: "title",
                 PushNotificationEvent.Constants.apsSubtitle: "subtitle",
-                PushNotificationEvent.Constants.apsBody: "body"
+                PushNotificationEvent.Constants.apsBody: "body",
             ],
             PushNotificationEvent.Constants.apsCategory: "category",
-            PushNotificationEvent.Constants.apsBadge: 1
+            PushNotificationEvent.Constants.apsBadge: 1,
         ]
     ]
 
@@ -27,10 +28,10 @@ class PushNotificationEventTests: XCTestCase {
             PushNotificationEvent.Constants.apsAlert: [
                 PushNotificationEvent.Constants.apsTitleLocalized: "title",
                 PushNotificationEvent.Constants.apsSubtitleLocalized: "subtitle",
-                PushNotificationEvent.Constants.apsBodyLocalized: "body"
+                PushNotificationEvent.Constants.apsBodyLocalized: "body",
             ],
             PushNotificationEvent.Constants.apsCategory: "category",
-            PushNotificationEvent.Constants.apsBadge: 1
+            PushNotificationEvent.Constants.apsBadge: 1,
         ]
     ]
 

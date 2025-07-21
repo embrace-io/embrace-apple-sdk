@@ -2,9 +2,10 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
 import EmbraceStorageInternal
 import TestSupport
+import XCTest
+
 @testable import EmbraceCore
 
 class MetadataPayloadTests: XCTestCase {
@@ -25,7 +26,7 @@ class MetadataPayloadTests: XCTestCase {
 
             // persona tags
             MockMetadata.createPersonaTagRecord(value: "tag1"),
-            MockMetadata.createPersonaTagRecord(value: "tag2")
+            MockMetadata.createPersonaTagRecord(value: "tag2"),
         ])
 
         let jsonData = try JSONEncoder().encode(payloadStruct)

@@ -2,15 +2,15 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import SwiftUI
 import Charts
+import SwiftUI
 
 struct NetworkStressTest: View {
 
     static let quickURLs = [
         "https://www.example.com",
         "https://www.google.com",
-        "https://www.apple.com"
+        "https://www.apple.com",
 
     ]
 
@@ -54,9 +54,10 @@ struct NetworkStressTest: View {
                 }
 
                 TextField("URL", text: $inputURL)
-                Stepper("^[\(inputCount) Request](inflect: true)",
-                        value: $inputCount,
-                        in: 1...1000, step: 1)
+                Stepper(
+                    "^[\(inputCount) Request](inflect: true)",
+                    value: $inputCount,
+                    in: 1...1000, step: 1)
 
                 Button("Submit") {
                     didSubmit = true
@@ -107,7 +108,8 @@ struct NetworkStressTest: View {
     private func performNewConcurrencyRequests() async {
         for index in 0..<inputCount {
             if let request = NetworkRequest(string: inputURL, idx: index),
-               let response = await request.execute() {
+                let response = await request.execute()
+            {
                 responses.append(response)
             }
         }
@@ -127,7 +129,8 @@ struct NetworkStressTest: View {
                         group.leave()
                     }
                 }
-            }        }
+            }
+        }
 
         group.notify(queue: .main) {
             completion()

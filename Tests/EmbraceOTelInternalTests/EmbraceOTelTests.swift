@@ -1,12 +1,12 @@
-import XCTest
-
-@testable import EmbraceOTelInternal
-@testable import EmbraceCore
 import EmbraceCommonInternal
+import EmbraceStorageInternal
 import OpenTelemetryApi
 import OpenTelemetrySdk
-import EmbraceStorageInternal
 import TestSupport
+import XCTest
+
+@testable import EmbraceCore
+@testable import EmbraceOTelInternal
 
 final class EmbraceOTelTests: XCTestCase {
 
@@ -17,15 +17,16 @@ final class EmbraceOTelTests: XCTestCase {
     override func setUpWithError() throws {
         EmbraceOTel.setup(spanProcessors: [MockSpanProcessor()])
 
-        EmbraceOTel.setup(logSharedState: DefaultEmbraceLogSharedState.create(
-            storage: try .createInMemoryDb(),
-            batcher: DummyLogBatcher(),
-            exporter: logExporter,
-            sdkStateProvider: sdkStateProvider
-        ))
+        EmbraceOTel.setup(
+            logSharedState: DefaultEmbraceLogSharedState.create(
+                storage: try .createInMemoryDb(),
+                batcher: DummyLogBatcher(),
+                exporter: logExporter,
+                sdkStateProvider: sdkStateProvider
+            ))
     }
 
-// MARK: Register Tracer
+    // MARK: Register Tracer
 
     func test_setup_setsTracerProviderSdk() {
         // DEV: test "setUpWithError" calls EmbraceOTel.setup method
@@ -36,7 +37,7 @@ final class EmbraceOTelTests: XCTestCase {
         XCTAssertTrue(EmbraceOTel().tracer is TracerSdk)
     }
 
-// MARK: Register Logger
+    // MARK: Register Logger
 
     func test_setupLoggerProvider_setsLoggerProvider() {
         EmbraceOTel.setup(logSharedState: MockEmbraceLogSharedState())
@@ -48,14 +49,14 @@ final class EmbraceOTelTests: XCTestCase {
         XCTAssertTrue(EmbraceOTel().logger is EmbraceLogger)
     }
 
-// MARK: init
+    // MARK: init
 
     func test_init_hasCorrectInstrumentationName() {
         let otel = EmbraceOTel()
         XCTAssertEqual(otel.instrumentationName, "EmbraceOpenTelemetry")
     }
 
-// MARK: tracer
+    // MARK: tracer
 
     func test_tracer_returnsTracerWithCorrectInstrumentationName() throws {
         let otel = EmbraceOTel()
@@ -100,22 +101,25 @@ final class EmbraceOTelTests: XCTestCase {
 
     func test_buildSpan_withAttributes_appendsAttributes() throws {
         let otel = EmbraceOTel()
-        let builder = otel
-                        .buildSpan(
-                            name: "example",
-                            type: .performance,
-                            attributes: ["foo": "bar"]
-                        )
+        let builder =
+            otel
+            .buildSpan(
+                name: "example",
+                type: .performance,
+                attributes: ["foo": "bar"]
+            )
 
         if let span = builder.startSpan() as? ReadableSpan {
-            XCTAssertEqual(span.toSpanData().attributes, [
-                "foo": .string("bar"),
-                "emb.type": .string("perf")
-            ])
+            XCTAssertEqual(
+                span.toSpanData().attributes,
+                [
+                    "foo": .string("bar"),
+                    "emb.type": .string("perf"),
+                ])
 
         } else {
             throw XCTSkip("Test failing consistently in CI")
-//            XCTFail("Builder did not return a RecordingSpan")
+            //            XCTFail("Builder did not return a RecordingSpan")
         }
     }
 

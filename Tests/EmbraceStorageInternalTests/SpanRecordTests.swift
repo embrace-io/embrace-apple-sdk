@@ -2,9 +2,10 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-import TestSupport
 import EmbraceCommonInternal
+import TestSupport
+import XCTest
+
 @testable import EmbraceStorageInternal
 
 class SpanRecordTests: XCTestCase {

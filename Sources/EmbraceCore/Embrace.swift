@@ -3,37 +3,36 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceConfigInternal
-import EmbraceOTelInternal
-import EmbraceStorageInternal
-import EmbraceUploadInternal
-@_implementationOnly import EmbraceObjCUtilsInternal
+    import EmbraceCommonInternal
+    import EmbraceConfigInternal
+    import EmbraceOTelInternal
+    import EmbraceStorageInternal
+    import EmbraceUploadInternal
+    @_implementationOnly import EmbraceObjCUtilsInternal
 #endif
 
-/**
- Main class used to interact with the Embrace SDK.
-
-To start the SDK you first need to configure it using an `Embrace.Options` instance passed in the `setup` static method.
- Once the SDK is setup, you can start it by calling the `start` instance method.
-
- **Please note that even if you setup the SDK, an Embrace session will not begin until `start` is called. This means data may not be correctly attached to that session.**
-
- Example:
- ```swift
- import EmbraceIO
- 
- let options = Embrace.Options(appId: "appId", platform: .iOS)
- try Embrace.setup(options: options)
- try Embrace.client?.start()
- ```
-*/
+/// Main class used to interact with the Embrace SDK.
+///
+/// To start the SDK you first need to configure it using an `Embrace.Options` instance passed in the `setup` static method.
+/// Once the SDK is setup, you can start it by calling the `start` instance method.
+///
+/// **Please note that even if you setup the SDK, an Embrace session will not begin until `start` is called. This means data may not be correctly attached to that session.**
+///
+/// Example:
+/// ```swift
+/// import EmbraceIO
+///
+/// let options = Embrace.Options(appId: "appId", platform: .iOS)
+/// try Embrace.setup(options: options)
+/// try Embrace.client?.start()
+/// ```
 @objc public class Embrace: NSObject {
 
     /**
      Returns the current `Embrace` client.
-
+    
      This will be `nil` until the `setup` method is called, or if the setup process fails.
      */
     @objc public internal(set) static var client: Embrace?
@@ -97,7 +96,7 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         autoreleaseFrequency: .workItem,
         target: .global(qos: .utility)
     )
-    
+
     private static let synchronizationQueue = DispatchQueue(
         label: "com.embrace.synchronization",
         qos: .utility,
@@ -157,9 +156,11 @@ To start the SDK you first need to configure it using an `Embrace.Options` insta
         Embrace.notificationCenter.removeObserver(self)
     }
 
-    init(options: Embrace.Options,
-         logControllable: LogControllable? = nil,
-         embraceStorage: EmbraceStorage? = nil) throws {
+    init(
+        options: Embrace.Options,
+        logControllable: LogControllable? = nil,
+        embraceStorage: EmbraceStorage? = nil
+    ) throws {
 
         self.options = options
         self.logLevel = options.logLevel

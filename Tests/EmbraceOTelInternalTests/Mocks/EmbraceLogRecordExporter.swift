@@ -2,9 +2,10 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-@testable import EmbraceOTelInternal
-import OpenTelemetrySdk
 import Foundation
+import OpenTelemetrySdk
+
+@testable import EmbraceOTelInternal
 
 class SpyEmbraceLogRecordExporter: LogRecordExporter {
     var exportLogRecordsReceivedParameter: [ReadableLogRecord] = []

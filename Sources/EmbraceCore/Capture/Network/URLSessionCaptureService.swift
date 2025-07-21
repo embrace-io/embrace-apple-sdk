@@ -3,10 +3,11 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCaptureService
-import EmbraceCommonInternal
-@_implementationOnly import EmbraceObjCUtilsInternal
+    import EmbraceCaptureService
+    import EmbraceCommonInternal
+    @_implementationOnly import EmbraceObjCUtilsInternal
 #endif
 
 typealias URLSessionCompletion = (Data?, URLResponse?, Error?) -> Void
@@ -93,8 +94,12 @@ public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandl
 // swiftlint:disable line_length
 
 struct URLSessionInitWithDelegateSwizzler: URLSessionSwizzler {
-    typealias ImplementationType = @convention(c) (URLSession, Selector, URLSessionConfiguration, URLSessionDelegate?, OperationQueue?) -> URLSession
-    typealias BlockImplementationType = @convention(block) (URLSession, URLSessionConfiguration, URLSessionDelegate?, OperationQueue?) -> URLSession
+    typealias ImplementationType = @convention(c) (
+        URLSession, Selector, URLSessionConfiguration, URLSessionDelegate?, OperationQueue?
+    ) -> URLSession
+    typealias BlockImplementationType = @convention(block) (
+        URLSession, URLSessionConfiguration, URLSessionDelegate?, OperationQueue?
+    ) -> URLSession
     static var selector: Selector = #selector(
         URLSession.init(configuration:delegate:delegateQueue:)
     )
@@ -119,7 +124,8 @@ struct URLSessionInitWithDelegateSwizzler: URLSessionSwizzler {
                 // Add protection against re-proxying our own proxy
                 guard !(proxiedDelegate is EMBURLSessionDelegateProxy) else {
                     if let newDelegate = proxiedDelegate as? EMBURLSessionDelegateProxy,
-                       let originalDelegate = newDelegate.originalDelegate as? URLSessionDelegate {
+                        let originalDelegate = newDelegate.originalDelegate as? URLSessionDelegate
+                    {
                         return originalImplementation(urlSession, Self.selector, configuration, originalDelegate, queue)
                     }
                     return originalImplementation(urlSession, Self.selector, configuration, delegate, queue)
@@ -257,10 +263,13 @@ struct DataTaskWithURLRequestSwizzler: URLSessionSwizzler {
 }
 
 struct DataTaskWithURLAndCompletionSwizzler: URLSessionSwizzler {
-    typealias ImplementationType = @convention(c) (URLSession, Selector, URL, URLSessionCompletion?) -> URLSessionDataTask
-    typealias BlockImplementationType = @convention(block) (URLSession, URL, URLSessionCompletion?) -> URLSessionDataTask
+    typealias ImplementationType = @convention(c) (URLSession, Selector, URL, URLSessionCompletion?) ->
+        URLSessionDataTask
+    typealias BlockImplementationType = @convention(block) (URLSession, URL, URLSessionCompletion?) ->
+        URLSessionDataTask
     static var selector: Selector = #selector(
-        URLSession.dataTask(with:completionHandler:) as (URLSession) -> (URL, @escaping URLSessionCompletion) -> URLSessionDataTask
+        URLSession.dataTask(with:completionHandler:)
+            as (URLSession) -> (URL, @escaping URLSessionCompletion) -> URLSessionDataTask
     )
     var baseClass: AnyClass
 
@@ -284,11 +293,14 @@ struct DataTaskWithURLAndCompletionSwizzler: URLSessionSwizzler {
 }
 
 struct DataTaskWithURLRequestAndCompletionSwizzler: URLSessionSwizzler {
-    typealias ImplementationType = @convention(c) (URLSession, Selector, URLRequest, URLSessionCompletion?) -> URLSessionDataTask
-    typealias BlockImplementationType = @convention(block) (URLSession, URLRequest, URLSessionCompletion?) -> URLSessionDataTask
+    typealias ImplementationType = @convention(c) (URLSession, Selector, URLRequest, URLSessionCompletion?) ->
+        URLSessionDataTask
+    typealias BlockImplementationType = @convention(block) (URLSession, URLRequest, URLSessionCompletion?) ->
+        URLSessionDataTask
 
     static var selector: Selector = #selector(
-        URLSession.dataTask(with:completionHandler:) as (URLSession) -> (URLRequest, @escaping URLSessionCompletion) -> URLSessionDataTask
+        URLSession.dataTask(with:completionHandler:)
+            as (URLSession) -> (URLRequest, @escaping URLSessionCompletion) -> URLSessionDataTask
     )
 
     var baseClass: AnyClass
@@ -357,11 +369,14 @@ struct UploadTaskWithRequestFromDataSwizzler: URLSessionSwizzler {
 }
 
 struct UploadTaskWithRequestFromDataWithCompletionSwizzler: URLSessionSwizzler {
-    typealias ImplementationType = @convention(c) (URLSession, Selector, URLRequest, Data?, URLSessionCompletion?) -> URLSessionUploadTask
-    typealias BlockImplementationType = @convention(block) (URLSession, URLRequest, Data?, URLSessionCompletion?) -> URLSessionUploadTask
+    typealias ImplementationType = @convention(c) (URLSession, Selector, URLRequest, Data?, URLSessionCompletion?) ->
+        URLSessionUploadTask
+    typealias BlockImplementationType = @convention(block) (URLSession, URLRequest, Data?, URLSessionCompletion?) ->
+        URLSessionUploadTask
 
     static var selector: Selector = #selector(
-        URLSession.uploadTask(with:from:completionHandler:) as (URLSession) -> (URLRequest, Data?, @escaping URLSessionCompletion) -> URLSessionUploadTask
+        URLSession.uploadTask(with:from:completionHandler:)
+            as (URLSession) -> (URLRequest, Data?, @escaping URLSessionCompletion) -> URLSessionUploadTask
     )
 
     private let handler: URLSessionTaskHandler
@@ -374,7 +389,8 @@ struct UploadTaskWithRequestFromDataWithCompletionSwizzler: URLSessionSwizzler {
 
     func install() throws {
         try swizzleInstanceMethod { originalImplementation -> BlockImplementationType in
-            return { [weak handler = self.handler] urlSession, urlRequest, uploadData, completion -> URLSessionUploadTask in
+            return {
+                [weak handler = self.handler] urlSession, urlRequest, uploadData, completion -> URLSessionUploadTask in
 
                 guard let completion = completion else {
                     let task = originalImplementation(urlSession, Self.selector, urlRequest, uploadData, completion)
@@ -384,7 +400,8 @@ struct UploadTaskWithRequestFromDataWithCompletionSwizzler: URLSessionSwizzler {
 
                 let request = urlRequest.addEmbraceHeaders()
                 var originalTask: URLSessionUploadTask?
-                let uploadTask = originalImplementation(urlSession, Self.selector, request, uploadData) { data, response, error in
+                let uploadTask = originalImplementation(urlSession, Self.selector, request, uploadData) {
+                    data, response, error in
                     if let task = originalTask {
                         handler?.finish(task: task, data: data, error: error)
                     }
@@ -427,11 +444,14 @@ struct UploadTaskWithRequestFromFileSwizzler: URLSessionSwizzler {
 }
 
 struct UploadTaskWithRequestFromFileWithCompletionSwizzler: URLSessionSwizzler {
-    typealias ImplementationType = @convention(c) (URLSession, Selector, URLRequest, URL, URLSessionCompletion?) -> URLSessionUploadTask
-    typealias BlockImplementationType = @convention(block) (URLSession, URLRequest, URL, URLSessionCompletion?) -> URLSessionUploadTask
+    typealias ImplementationType = @convention(c) (URLSession, Selector, URLRequest, URL, URLSessionCompletion?) ->
+        URLSessionUploadTask
+    typealias BlockImplementationType = @convention(block) (URLSession, URLRequest, URL, URLSessionCompletion?) ->
+        URLSessionUploadTask
 
     static var selector: Selector = #selector(
-        URLSession.uploadTask(with:fromFile:completionHandler:) as (URLSession) -> (URLRequest, URL, @escaping URLSessionCompletion) -> URLSessionUploadTask
+        URLSession.uploadTask(with:fromFile:completionHandler:)
+            as (URLSession) -> (URLRequest, URL, @escaping URLSessionCompletion) -> URLSessionUploadTask
     )
     private let handler: URLSessionTaskHandler
     var baseClass: AnyClass
@@ -454,7 +474,8 @@ struct UploadTaskWithRequestFromFileWithCompletionSwizzler: URLSessionSwizzler {
                 }
 
                 var originalTask: URLSessionUploadTask?
-                let uploadTask = originalImplementation(urlSession, Self.selector, request, url) { data, response, error in
+                let uploadTask = originalImplementation(urlSession, Self.selector, request, url) {
+                    data, response, error in
                     if let task = originalTask {
                         handler?.finish(task: task, data: data, error: error)
                     }
@@ -497,11 +518,14 @@ struct DownloadTaskWithURLRequestSwizzler: URLSessionSwizzler {
 }
 
 struct DownloadTaskWithURLRequestWithCompletionSwizzler: URLSessionSwizzler {
-    typealias ImplementationType = @convention(c) (URLSession, Selector, URLRequest, DownloadTaskCompletion?) -> URLSessionDownloadTask
-    typealias BlockImplementationType = @convention(block) (URLSession, URLRequest, DownloadTaskCompletion?) -> URLSessionDownloadTask
+    typealias ImplementationType = @convention(c) (URLSession, Selector, URLRequest, DownloadTaskCompletion?) ->
+        URLSessionDownloadTask
+    typealias BlockImplementationType = @convention(block) (URLSession, URLRequest, DownloadTaskCompletion?) ->
+        URLSessionDownloadTask
 
     static var selector: Selector = #selector(
-        URLSession.downloadTask(with:completionHandler:) as (URLSession) -> (URLRequest, @escaping DownloadTaskCompletion) -> URLSessionDownloadTask
+        URLSession.downloadTask(with:completionHandler:)
+            as (URLSession) -> (URLRequest, @escaping DownloadTaskCompletion) -> URLSessionDownloadTask
     )
 
     private let handler: URLSessionTaskHandler
@@ -563,7 +587,8 @@ struct UploadTaskWithStreamedRequestSwizzler: URLSessionSwizzler {
         try swizzleInstanceMethod { originalImplementation -> BlockImplementationType in
             return { [weak handler = self.handler] urlSession, urlRequest -> URLSessionUploadTask in
                 let request = urlRequest.addEmbraceHeaders()
-                let uploadTask = originalImplementation(urlSession, UploadTaskWithStreamedRequestSwizzler.selector, request)
+                let uploadTask = originalImplementation(
+                    urlSession, UploadTaskWithStreamedRequestSwizzler.selector, request)
                 handler?.create(task: uploadTask)
                 return uploadTask
             }

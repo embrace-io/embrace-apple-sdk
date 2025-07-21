@@ -5,6 +5,7 @@
 //
 
 import XCTest
+
 @testable import EmbraceCommonInternal
 
 final class EmbraceIOTestLogsUITests: XCTestCase {
@@ -16,7 +17,8 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         let initButton = app.buttons["EmbraceInitButton"]
         initButton.tap()
 
-        XCTAssertNotNil(initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
+        XCTAssertNotNil(
+            initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
 
         let sideMenuButton = app.buttons["SideMenuButton"]
         sideMenuButton.tap()
@@ -36,7 +38,9 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
 
         _ = waitUntilElementHasFocus(element: logMessageTextField)
 
-        logMessageTextField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: (logMessageTextField.value as? String ?? "").count))
+        logMessageTextField.typeText(
+            String(
+                repeating: XCUIKeyboardKey.delete.rawValue, count: (logMessageTextField.value as? String ?? "").count))
 
         logMessageTextField.typeText("Some Custom Message")
         logMessageTextField.typeText(XCUIKeyboardKey.return.rawValue)
@@ -204,7 +208,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
     private var customStackTrace: EmbraceStackTrace {
         try! EmbraceStackTrace(frames: [
             "0 EmbraceIOTestApp 0x0000000005678def [SomeClass method] + 48",
-            "1 Random Library 0x0000000001234abc [Random init]"
+            "1 Random Library 0x0000000001234abc [Random init]",
         ])
     }
 
@@ -283,7 +287,10 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
 
         _ = waitUntilElementHasFocus(element: logMessageAttributeKeyTextField)
 
-        logMessageAttributeKeyTextField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: (logMessageAttributeKeyTextField.value as? String ?? "").count))
+        logMessageAttributeKeyTextField.typeText(
+            String(
+                repeating: XCUIKeyboardKey.delete.rawValue,
+                count: (logMessageAttributeKeyTextField.value as? String ?? "").count))
 
         logMessageAttributeKeyTextField.typeText("SomeCustomKey")
         logMessageAttributeKeyTextField.typeText(XCUIKeyboardKey.return.rawValue)
@@ -293,7 +300,10 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
 
         _ = waitUntilElementHasFocus(element: logMessageAttributeValueTextField)
 
-        logMessageAttributeValueTextField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: (logMessageAttributeValueTextField.value as? String ?? "").count))
+        logMessageAttributeValueTextField.typeText(
+            String(
+                repeating: XCUIKeyboardKey.delete.rawValue,
+                count: (logMessageAttributeValueTextField.value as? String ?? "").count))
 
         logMessageAttributeValueTextField.typeText("Some Custom Value")
         logMessageAttributeValueTextField.typeText(XCUIKeyboardKey.return.rawValue)

@@ -9,7 +9,7 @@ extension Collection where Element == SpanDataValidator {
     static var `default`: [Element] {
         return [
             WhitespaceSpanNameValidator(),
-            LengthOfNameValidator()
+            LengthOfNameValidator(),
         ]
     }
 

@@ -6,8 +6,9 @@
  * This code was extracted from https://github.com/1024jp/GzipSwift under the MIT license
  */
 
-import struct Foundation.Data
 import zlib
+
+import struct Foundation.Data
 
 enum Gzip {
 
@@ -93,9 +94,9 @@ struct GzipError: Swift.Error, Sendable {
     }
 }
 
-private extension GzipError.Kind {
+extension GzipError.Kind {
 
-    init(code: Int32) {
+    fileprivate init(code: Int32) {
 
         switch code {
         case Z_STREAM_ERROR:
@@ -257,9 +258,11 @@ extension Data {
 
                 self.withUnsafeBytes { (inputPointer: UnsafeRawBufferPointer) in
                     let inputStartPosition = totalIn + stream.total_in
-                    stream.next_in = UnsafeMutablePointer<Bytef>(mutating: inputPointer
-                        .bindMemory(to: Bytef.self)
-                        .baseAddress!
+                    stream.next_in = UnsafeMutablePointer<Bytef>(
+                        mutating:
+                            inputPointer
+                            .bindMemory(to: Bytef.self)
+                            .baseAddress!
                     ).advanced(by: Int(inputStartPosition))
                     stream.avail_in = uInt(inputCount) - uInt(inputStartPosition)
 
@@ -277,7 +280,7 @@ extension Data {
 
                     stream.next_in = nil
                 }
-            } while (status == Z_OK)
+            } while status == Z_OK
 
             totalIn += stream.total_in
 
@@ -292,7 +295,7 @@ extension Data {
 
             totalOut += stream.total_out
 
-        } while (totalIn < self.count)
+        } while totalIn < self.count
 
         data.count = Int(totalOut)
 

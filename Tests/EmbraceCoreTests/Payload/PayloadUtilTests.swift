@@ -2,12 +2,13 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-@testable import EmbraceCore
-@testable import EmbraceStorageInternal
-@testable import EmbraceCommonInternal
 import OpenTelemetryApi
 import TestSupport
+import XCTest
+
+@testable import EmbraceCommonInternal
+@testable import EmbraceCore
+@testable import EmbraceStorageInternal
 
 final class PayloadUtilTests: XCTestCase {
     func test_fetchResources() throws {
@@ -45,7 +46,7 @@ final class PayloadUtilTests: XCTestCase {
             "int": .int(123456),
             "intArray": .intArray([123456, 987654]),
             "string": .string("test"),
-            "stringArray": .stringArray(["test1", "test2"])
+            "stringArray": .stringArray(["test1", "test2"]),
         ]
 
         // when converting them

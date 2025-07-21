@@ -2,11 +2,12 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-#endif
 import CoreData
+import Foundation
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+#endif
 
 extension EmbraceStorage {
     /// Adds a session to the storage synchronously.
@@ -37,7 +38,7 @@ extension EmbraceStorage {
         appTerminated: Bool = false
     ) -> EmbraceSession? {
         coreData.performOperation { _ in
-            
+
             // update existing?
             if let session = updateExistingSession(
                 id: id,
@@ -55,7 +56,7 @@ extension EmbraceStorage {
             ) {
                 return session
             }
-            
+
             // create new
             if let session = SessionRecord.create(
                 context: coreData.context,
@@ -74,7 +75,7 @@ extension EmbraceStorage {
                 coreData.save()
                 return session
             }
-            
+
             return nil
         }
     }
@@ -101,7 +102,7 @@ extension EmbraceStorage {
         appTerminated: Bool = false
     ) -> EmbraceSession? {
         coreData.performOperation { context in
-            
+
             // fetch existing session
             let request = fetchSessionRequest(id: id)
             guard let session = coreData.fetch(withRequest: request).first else {
@@ -127,7 +128,6 @@ extension EmbraceStorage {
             return session.toImmutable()
         }
     }
-
 
     /// Fetches the stored `SessionRecord` synchronously with the given identifier, if any.
     /// - Parameters:

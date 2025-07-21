@@ -2,14 +2,15 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-import TestSupport
-@testable import EmbraceStorageInternal
 import EmbraceCommonInternal
 import OpenTelemetryApi
+import TestSupport
+import XCTest
 
-fileprivate extension Date {
-    static func relative(_ interval: TimeInterval, from reference: Date = Date()) -> Date {
+@testable import EmbraceStorageInternal
+
+extension Date {
+    fileprivate static func relative(_ interval: TimeInterval, from reference: Date = Date()) -> Date {
         reference.addingTimeInterval(interval)
     }
 }
@@ -73,8 +74,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
     // MARK: Tests
     // MARK: - Spans
     func test_withoutAnySpans_returnsEmptyArray() throws {
-    // session  :      ---------------
-    // span     :
+        // session  :      ---------------
+        // span     :
         let session = sessionRecord(
             startTime: .relative(-20),
             endTime: .relative(-5)
@@ -84,8 +85,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
     }
 
     func test_withSpanBeforeSession_returnsEmptyArray() throws {
-    // session  :      ---------------
-    // span     :----
+        // session  :      ---------------
+        // span     :----
         let session = sessionRecord(
             startTime: .relative(-20),
             endTime: .relative(-5)
@@ -114,8 +115,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
     }
 
     func test_withSpanAfterSession_returnsEmptyArray() throws {
-    // session  :      ---------------
-    // span     :                       ----
+        // session  :      ---------------
+        // span     :                       ----
         let session = sessionRecord(
             startTime: .relative(-20),
             endTime: .relative(-5)
@@ -128,8 +129,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
     }
 
     func test_withSpanOverlapSessionStart_returnsSpanInArray() throws {
-    // session  :      ---------------
-    // span     :    ----
+        // session  :      ---------------
+        // span     :    ----
         let session = sessionRecord(
             startTime: .relative(-20),
             endTime: .relative(-5)
@@ -143,8 +144,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
     }
 
     func test_withSpanOverlapsSessionEnd_returnsSpanInArray() throws {
-    // session  :      ---------------
-    // span     :                   ----
+        // session  :      ---------------
+        // span     :                   ----
         let session = sessionRecord(
             startTime: .relative(-20),
             endTime: .relative(-5)
@@ -158,8 +159,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
     }
 
     func test_withSpanOverlapsSessionEntirely_returnsSpanInArray() throws {
-    // session  :      ---------------
-    // span     :    --------------------
+        // session  :      ---------------
+        // span     :    --------------------
         let session = sessionRecord(
             startTime: .relative(-20),
             endTime: .relative(-10)
@@ -172,10 +173,10 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         XCTAssertEqual(results[0].id, span.id)
     }
 
-// MARK: - Test Open Spans
+    // MARK: - Test Open Spans
     func test_withOpenSpan_startedBeforeSession_returnsSpanInArray() throws {
-    // session  :      ---------------
-    // span     :    -------------------...
+        // session  :      ---------------
+        // span     :    -------------------...
         let session = sessionRecord(
             startTime: .relative(-20),
             endTime: .relative(-5)
@@ -189,8 +190,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
     }
 
     func test_withOpenSpan_startedAfterSession_returnsSpanInArray() throws {
-    // session  :      ---------------
-    // span     :             -----------...
+        // session  :      ---------------
+        // span     :             -----------...
         let session = sessionRecord(
             startTime: .relative(-20),
             endTime: .relative(-5)
@@ -204,8 +205,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
     }
 
     func test_withOpenSpan_startedBeforeColdStartSession_returnsSpanInArray() throws {
-    // session  :      ---------------
-    // span     :    -------------------...
+        // session  :      ---------------
+        // span     :    -------------------...
         let session = sessionRecord(
             startTime: .relative(-20),
             endTime: .relative(-5),
@@ -220,8 +221,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
     }
 
     func test_withOpenSpan_startedAfterColdStartSession_returnsSpanInArray() throws {
-    // session  :      ---------------
-    // span     :             -----------...
+        // session  :      ---------------
+        // span     :             -----------...
         let session = sessionRecord(
             startTime: .relative(-20),
             endTime: .relative(-5),
@@ -236,8 +237,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
     }
 
     func test_withOpenSpan_startedAfterColdStartSessionEnds_returnsEmptyArray() throws {
-    // session  :      ---------------
-    // span     :                       ---...
+        // session  :      ---------------
+        // span     :                       ---...
         let session = sessionRecord(
             startTime: .relative(-20),
             endTime: .relative(-5),
@@ -252,8 +253,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
 
     // MARK: Tests with irrelevant spans
     func test_withMultipleSpans_oneAfterColdStartSessionEnds_returnsRelevantSpansOnly() throws {
-    // session  :      ---------------
-    // span     :    -a--    -b--           -c----
+        // session  :      ---------------
+        // span     :    -a--    -b--           -c----
         let session = sessionRecord(
             startTime: .relative(-20),
             endTime: .relative(-10),
@@ -271,8 +272,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
     }
 
     func test_withMultipleSpans_oneBeforeColdStartSessionBegins_returnsRelevantSpansOnly() throws {
-    // session  :      ---------------
-    // span     : -a-         -b--           -c----
+        // session  :      ---------------
+        // span     : -a-         -b--           -c----
         let session = sessionRecord(
             startTime: .relative(-20),
             endTime: .relative(-10),
@@ -290,8 +291,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
     }
 
     func test_withMultipleSpans_oneBeforeWarmStartSessionBegins_returnsRelevantSpansOnly() throws {
-    // session  :      ---------------
-    // span     : -a-         -b--           -c----
+        // session  :      ---------------
+        // span     : -a-         -b--           -c----
         let session = sessionRecord(
             startTime: .relative(-20),
             endTime: .relative(-10),
@@ -310,8 +311,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
 
     // MARK: Tests when spans match session boundary
     func test_withSpanEndAtIsEqualToSessionStart_returnsEmptyArray() throws {
-    // session  :      |---------------
-    // span     :  ----|
+        // session  :      |---------------
+        // span     :  ----|
         let boundary: Date = .relative(-20)
 
         let session = sessionRecord(
@@ -326,8 +327,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
     }
 
     func test_withSpanEndAtIsEqualToSessionStart_whenColdStart_returnsSpan() throws {
-    // session  :      |---------------
-    // span     :  ----|
+        // session  :      |---------------
+        // span     :  ----|
         let boundary: Date = .relative(-20)
 
         let session = sessionRecord(
@@ -343,8 +344,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
     }
 
     func test_withSpanStartAtIsEqualToSessionEnd_returnsEmptyArray() throws {
-    // session  :      ---------------|
-    // span     :                     |----
+        // session  :      ---------------|
+        // span     :                     |----
         let boundary: Date = .relative(-5)
 
         let session = sessionRecord(
@@ -359,8 +360,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
     }
 
     func test_ignoreSessionSpanFlag_whenTrue_doesNotReturnSessionSpan() throws {
-    // session  :      ---------------
-    // span     :      ---------------
+        // session  :      ---------------
+        // span     :      ---------------
         let session = sessionRecord(
             startTime: .relative(-20),
             endTime: .relative(-10)
@@ -377,8 +378,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
     }
 
     func test_ignoreSessionSpanFlag_whenFalse_doesReturnSessionSpan() throws {
-    // session  :      ---------------
-    // span     :      ---------------
+        // session  :      ---------------
+        // span     :      ---------------
         let session = sessionRecord(
             startTime: .relative(-20),
             endTime: .relative(-10)
@@ -395,17 +396,21 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
     }
 
     func test_spansWithSessionId() throws {
-    // session  :      ---------------
-    // span     : -a-         -b--           -c----
+        // session  :      ---------------
+        // span     : -a-         -b--           -c----
         let session = sessionRecord(
             startTime: .relative(-20),
             endTime: .relative(-10),
             coldStart: false
         )
 
-        let spanA = addSpanRecord(name: "span-a", startTime: .relative(-28), endTime: .relative(-22), sessionIdentifier: session.id)
-        let spanB = addSpanRecord(name: "span-b", startTime: .relative(-16), endTime: .relative(-12), sessionIdentifier: SessionIdentifier.random)
-        let spanC = addSpanRecord(name: "span-c", startTime: .relative(-6), endTime: .relative(-2), sessionIdentifier: session.id)
+        let spanA = addSpanRecord(
+            name: "span-a", startTime: .relative(-28), endTime: .relative(-22), sessionIdentifier: session.id)
+        let spanB = addSpanRecord(
+            name: "span-b", startTime: .relative(-16), endTime: .relative(-12),
+            sessionIdentifier: SessionIdentifier.random)
+        let spanC = addSpanRecord(
+            name: "span-c", startTime: .relative(-6), endTime: .relative(-2), sessionIdentifier: session.id)
         let results = storage.fetchSpans(for: session)
 
         XCTAssertNotNil(results.first(where: { $0.id == spanA.id && $0.name == "span-a" }))

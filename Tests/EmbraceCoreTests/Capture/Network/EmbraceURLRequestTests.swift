@@ -2,16 +2,17 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-import TestSupport
 import EmbraceCommonInternal
+import TestSupport
+import XCTest
+
 @testable import EmbraceCore
 
 class URLSessionExtensionTests: XCTestCase {
     private var sut: URLRequest!
 
     override func setUpWithError() throws {
-       sut = URLRequest(url: URL(string: "https://www.embrace.io")!)
+        sut = URLRequest(url: URL(string: "https://www.embrace.io")!)
     }
 
     func test_addEmbraceHeaders_addsUUIDAsIdHeader() throws {

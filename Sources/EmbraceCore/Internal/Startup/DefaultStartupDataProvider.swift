@@ -3,7 +3,7 @@
 //
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-@_implementationOnly import EmbraceObjCUtilsInternal
+    @_implementationOnly import EmbraceObjCUtilsInternal
 #endif
 
 class DefaultStartupDataProvider: StartupDataProvider {
@@ -33,8 +33,7 @@ class DefaultStartupDataProvider: StartupDataProvider {
         UserDefaults.standard.setValue(newBootTime, forKey: bootTimeKey)
 
         // compare to determine if its a cold or warm startup
-        if (oldBuildUUID == nil || oldBootTime == 0) ||
-           (oldBuildUUID != newBuildUUID && oldBootTime != newBootTime) {
+        if (oldBuildUUID == nil || oldBootTime == 0) || (oldBuildUUID != newBuildUUID && oldBootTime != newBootTime) {
             startupType = .cold
         } else {
             startupType = .warm

@@ -2,11 +2,12 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-#endif
 import CoreData
+import Foundation
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+#endif
 
 /// Represents a span in the storage
 @objc(SpanRecord)
@@ -14,12 +15,12 @@ public class SpanRecord: NSManagedObject {
     @NSManaged public var id: String
     @NSManaged public var name: String
     @NSManaged public var traceId: String
-    @NSManaged public var typeRaw: String // SpanType
+    @NSManaged public var typeRaw: String  // SpanType
     @NSManaged public var data: Data
     @NSManaged public var startTime: Date
     @NSManaged public var endTime: Date?
-    @NSManaged public var processIdRaw: String // ProcessIdentifier
-    @NSManaged public var sessionIdRaw: String? // SessionIdentifier
+    @NSManaged public var processIdRaw: String  // ProcessIdentifier
+    @NSManaged public var sessionIdRaw: String?  // SessionIdentifier
 
     class func create(
         context: NSManagedObjectContext,
@@ -131,7 +132,7 @@ extension SpanRecord: EmbraceStorageRecord {
             startTimeAttribute,
             endTimeAttribute,
             processIdAttribute,
-            sessionIdAttribute
+            sessionIdAttribute,
         ]
 
         return entity

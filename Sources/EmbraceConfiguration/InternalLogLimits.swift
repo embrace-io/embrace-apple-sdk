@@ -27,10 +27,7 @@ import Foundation
         }
 
         return
-            trace == other.trace &&
-            debug == other.debug &&
-            info == other.info &&
-            warning == other.warning &&
-            error == other.error
+            trace == other.trace && debug == other.debug && info == other.info && warning == other.warning
+            && error == other.error
     }
 }

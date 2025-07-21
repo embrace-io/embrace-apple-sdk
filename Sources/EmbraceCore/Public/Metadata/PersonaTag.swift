@@ -5,16 +5,16 @@
 import Foundation
 
 /// Convenience declarations for common patterns using User Personas
-public extension PersonaTag {
-    static let free: PersonaTag = "free"
-    static let preview: PersonaTag = "preview"
-    static let subscriber: PersonaTag = "subscriber"
-    static let payer: PersonaTag = "payer"
-    static let guest: PersonaTag = "guest"
+extension PersonaTag {
+    public static let free: PersonaTag = "free"
+    public static let preview: PersonaTag = "preview"
+    public static let subscriber: PersonaTag = "subscriber"
+    public static let payer: PersonaTag = "payer"
+    public static let guest: PersonaTag = "guest"
 
-    static let pro: PersonaTag = "pro"
-    static let mvp: PersonaTag = "mvp"
-    static let vip: PersonaTag = "vip"
+    public static let pro: PersonaTag = "pro"
+    public static let mvp: PersonaTag = "mvp"
+    public static let vip: PersonaTag = "vip"
 }
 
 /// A PersonaTag is used by the ``MetadataHandler`` in order to tag app users with values to summarize their traits or behavior

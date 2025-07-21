@@ -12,7 +12,9 @@ class StdoutLogExporter: LogRecordExporter {
         self.isDebug = isDebug
     }
 
-    func export(logRecords: [OpenTelemetrySdk.ReadableLogRecord], explicitTimeout: TimeInterval?) -> OpenTelemetrySdk.ExportResult {
+    func export(logRecords: [OpenTelemetrySdk.ReadableLogRecord], explicitTimeout: TimeInterval?)
+        -> OpenTelemetrySdk.ExportResult
+    {
         if isDebug {
             for logRecord in logRecords {
                 print(String(repeating: "-", count: 40))
@@ -44,6 +46,6 @@ class StdoutLogExporter: LogRecordExporter {
         return .success
     }
 
-    func shutdown(explicitTimeout: TimeInterval?) { }
+    func shutdown(explicitTimeout: TimeInterval?) {}
 
 }

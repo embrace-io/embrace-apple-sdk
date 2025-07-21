@@ -1,3 +1,5 @@
+# Taken from KSCrash: https://github.com/kstenerud/KSCrash
+#
 # Directories to search
 SEARCH_DIRS = Sources Tests Examples
 SWIFT_SEARCH_DIRS = Sources Tests Examples

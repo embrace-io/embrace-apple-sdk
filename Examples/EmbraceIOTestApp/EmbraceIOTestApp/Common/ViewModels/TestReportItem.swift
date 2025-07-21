@@ -25,7 +25,7 @@ struct TestReportItem: Identifiable {
         let result: TestResult = expected == recorded ? .success : .fail
         let expectedStr = expected as? String ?? String(describing: expected)
         let recordedStr = recorded as? String ?? String(describing: recorded)
-        
+
         self.init(target: target, expected: expectedStr, recorded: recordedStr, result: result)
     }
 
