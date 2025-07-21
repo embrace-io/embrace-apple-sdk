@@ -1,4 +1,4 @@
-# Taken from KSCrash: https://github.com/kstenerud/KSCrash
+# Taken and modified from KSCrash: https://github.com/kstenerud/KSCrash
 #
 # Directories to search
 SEARCH_DIRS = Sources Tests Examples
@@ -8,9 +8,11 @@ SWIFT_SEARCH_DIRS = Sources Tests Examples
 FILE_EXTENSIONS = c cpp h m mm
 
 # Check for clang-format-18 first, then fall back to clang-format
+# brew install clang-format
 CLANG_FORMAT := $(shell command -v clang-format-18 2> /dev/null || command -v clang-format 2> /dev/null)
 
 # Swift format command (using toolchain)
+# brew install swift-format
 SWIFT_FORMAT_CMD = swift format
 
 # Define the default target
