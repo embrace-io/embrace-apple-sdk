@@ -4,7 +4,7 @@
 
 import Foundation
 
-class AsyncOperation: Operation {
+class AsyncOperation: Operation, @unchecked Sendable  {
     private let lockQueue = DispatchQueue(label: "com.embrace.asyncoperation", attributes: .concurrent)
 
     override var isAsynchronous: Bool {
