@@ -2,10 +2,11 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-import EmbraceStorageInternal
 import EmbraceCommonInternal
+import EmbraceStorageInternal
 import TestSupport
+import XCTest
+
 @testable import EmbraceCore
 
 class EmbraceLogAttributesBuilderTests: XCTestCase {
@@ -56,9 +57,13 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
         givenSessionController(sessionWithId: sessionId)
         givenMetadataFetcher(with: [
             MockMetadata.createSessionPropertyRecord(key: "custom_prop_int", value: .int(1), sessionId: sessionId),
-            MockMetadata.createSessionPropertyRecord(key: "custom_prop_bool", value: .bool(false), sessionId: sessionId),
-            MockMetadata.createSessionPropertyRecord(key: "custom_prop_double", value: .double(3.0), sessionId: sessionId),
-            MockMetadata.createSessionPropertyRecord(key: "custom_prop_string", value: .string("hello"), sessionId: sessionId)]
+            MockMetadata.createSessionPropertyRecord(
+                key: "custom_prop_bool", value: .bool(false), sessionId: sessionId),
+            MockMetadata.createSessionPropertyRecord(
+                key: "custom_prop_double", value: .double(3.0), sessionId: sessionId),
+            MockMetadata.createSessionPropertyRecord(
+                key: "custom_prop_string", value: .string("hello"), sessionId: sessionId)
+        ]
         )
         givenEmbraceLogAttributesBuilder()
 
@@ -172,8 +177,8 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
 
 }
 
-private extension EmbraceLogAttributesBuilderTests {
-    func givenSessionController(
+extension EmbraceLogAttributesBuilderTests {
+    fileprivate func givenSessionController(
         sessionWithId sessionId: SessionIdentifier = .random,
         sessionState: SessionState = .foreground
     ) {
@@ -181,15 +186,15 @@ private extension EmbraceLogAttributesBuilderTests {
         controller.currentSession = MockSession.with(id: sessionId, state: sessionState)
     }
 
-    func givenSessionControllerWithNoSession() {
+    fileprivate func givenSessionControllerWithNoSession() {
         controller = MockSessionController()
     }
 
-    func givenMetadataFetcher(with metadata: [EmbraceMetadata]? = nil) {
+    fileprivate func givenMetadataFetcher(with metadata: [EmbraceMetadata]? = nil) {
         storage = .init(metadata: metadata ?? [])
     }
 
-    func givenEmbraceLogAttributesBuilder(withInitialAttributes attributes: [String: String] = [:]) {
+    fileprivate func givenEmbraceLogAttributesBuilder(withInitialAttributes attributes: [String: String] = [:]) {
         sut = .init(
             storage: storage,
             sessionControllable: controller,
@@ -197,35 +202,35 @@ private extension EmbraceLogAttributesBuilderTests {
         )
     }
 
-    func whenInvokingBuild() {
+    fileprivate func whenInvokingBuild() {
         result = sut.build()
     }
 
-    func whenInvokingAddStackTrace(withStack stacktrace: [String]) {
+    fileprivate func whenInvokingAddStackTrace(withStack stacktrace: [String]) {
         sut.addStackTrace(stacktrace)
     }
 
-    func whenInvokingAddSessionIdentifier() {
+    fileprivate func whenInvokingAddSessionIdentifier() {
         sut.addSessionIdentifier()
     }
 
-    func whenInvokingAddApplicationProperties() {
+    fileprivate func whenInvokingAddApplicationProperties() {
         sut.addApplicationProperties()
     }
 
-    func whenInvokingAddApplicationState() {
+    fileprivate func whenInvokingAddApplicationState() {
         sut.addApplicationState()
     }
 
-    func whenInvokingAddLogType(_ logType: LogType) {
+    fileprivate func whenInvokingAddLogType(_ logType: LogType) {
         sut.addLogType(logType)
     }
 
-    func thenResultingAttributes(is dict: [String: String]) {
+    fileprivate func thenResultingAttributes(is dict: [String: String]) {
         XCTAssertEqual(result, dict)
     }
 
-    func thenResultingAttributes(containsKey key: String) {
+    fileprivate func thenResultingAttributes(containsKey key: String) {
         XCTAssertNotNil(result[key])
     }
 }

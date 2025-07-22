@@ -2,11 +2,10 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
 import EmbraceCore
-
 import EmbraceOTelInternal
 import OpenTelemetryApi
+import XCTest
 
 final class W3C_TraceParentTests: XCTestCase {
 

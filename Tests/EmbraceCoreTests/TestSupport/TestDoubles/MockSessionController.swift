@@ -2,11 +2,12 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
-@testable import EmbraceCore
 import EmbraceCommonInternal
 import EmbraceStorageInternal
+import Foundation
 import TestSupport
+
+@testable import EmbraceCore
 
 class MockSessionController: SessionControllable {
 
@@ -24,7 +25,7 @@ class MockSessionController: SessionControllable {
     weak var storage: EmbraceStorage?
     var currentSession: EmbraceSession?
 
-    func clear() { }
+    func clear() {}
 
     @discardableResult
     func startSession(state: SessionState) -> EmbraceSession? {

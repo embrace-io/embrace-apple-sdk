@@ -28,10 +28,10 @@ extension EmbraceStackTraceError: LocalizedError, CustomNSError {
         switch self {
         case .invalidFormat:
             return """
-                Invalid stack trace format. Each frame should follow this format:
-                <index> <image> <memory address> <symbol> [ + <offset> ]
-                The "+ <offset>" part is optional.
-            """
+                    Invalid stack trace format. Each frame should follow this format:
+                    <index> <image> <memory address> <symbol> [ + <offset> ]
+                    The "+ <offset>" part is optional.
+                """
         case .frameIsTooLong:
             return "The stacktrace contains frames that are longer than 10.000 characters."
         }

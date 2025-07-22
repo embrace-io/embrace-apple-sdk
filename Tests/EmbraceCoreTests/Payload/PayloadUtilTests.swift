@@ -2,12 +2,13 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-@testable import EmbraceCore
-@testable import EmbraceStorageInternal
-@testable import EmbraceCommonInternal
 import OpenTelemetryApi
 import TestSupport
+import XCTest
+
+@testable import EmbraceCommonInternal
+@testable import EmbraceCore
+@testable import EmbraceStorageInternal
 
 final class PayloadUtilTests: XCTestCase {
     func test_fetchResources() throws {

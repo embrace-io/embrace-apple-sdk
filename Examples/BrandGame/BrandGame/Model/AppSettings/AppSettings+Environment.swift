@@ -9,8 +9,8 @@ private struct AppSettingsEnvironmentKey: EnvironmentKey {
 }
 
 extension EnvironmentValues {
-  var settings: AppSettings {
-    get { self[AppSettingsEnvironmentKey.self] }
-    set { self[AppSettingsEnvironmentKey.self] = newValue }
-  }
+    var settings: AppSettings {
+        get { self[AppSettingsEnvironmentKey.self] }
+        set { self[AppSettingsEnvironmentKey.self] = newValue }
+    }
 }

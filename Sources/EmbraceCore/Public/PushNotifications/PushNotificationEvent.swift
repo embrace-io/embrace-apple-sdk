@@ -3,13 +3,14 @@
 //
 
 import Foundation
-import UserNotifications
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceOTelInternal
-import EmbraceCommonInternal
-import EmbraceSemantics
-#endif
 import OpenTelemetryApi
+import UserNotifications
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceOTelInternal
+    import EmbraceCommonInternal
+    import EmbraceSemantics
+#endif
 
 /// Class used to represent a Push Notification as a SpanEvent.
 /// Usage example:
@@ -25,15 +26,16 @@ public class PushNotificationEvent: NSObject, SpanEvent {
     ///   - notification: The `UNNotification` received by the app
     ///   - captureData: Whether or not Embrace should parse the data inside the push notification
     /// - Throws: `PushNotificationError.invalidPayload` if the `aps` object is not present in the `userInfo` of the `UNNotification`.
-    convenience init(notification: UNNotification,
-                     timestamp: Date = Date(),
-                     attributes: [String: AttributeValue] = [:],
-                     captureData: Bool = true
+    convenience init(
+        notification: UNNotification,
+        timestamp: Date = Date(),
+        attributes: [String: AttributeValue] = [:],
+        captureData: Bool = true
     ) throws {
         var userInfo: [AnyHashable: Any] = [:]
-#if !os(tvOS)
-        userInfo = notification.request.content.userInfo
-#endif
+        #if !os(tvOS)
+            userInfo = notification.request.content.userInfo
+        #endif
         try self.init(userInfo: userInfo, attributes: attributes, captureData: captureData)
     }
 
@@ -42,10 +44,11 @@ public class PushNotificationEvent: NSObject, SpanEvent {
     ///   - userInfo: The `userInfo` dictionary from a push notification		o	or
     ///   - captureData: Whether or not Embrace should parse the data inside the push notification
     /// - Throws: `PushNotificationError.invalidPayload` if the `aps` object is not present in the `userInfo` of the `UNNotification`.
-    init(userInfo: [AnyHashable: Any],
-         timestamp: Date = Date(),
-         attributes: [String: AttributeValue] = [:],
-         captureData: Bool = true
+    init(
+        userInfo: [AnyHashable: Any],
+        timestamp: Date = Date(),
+        attributes: [String: AttributeValue] = [:],
+        captureData: Bool = true
     ) throws {
 
         // find aps key
@@ -67,9 +70,9 @@ public class PushNotificationEvent: NSObject, SpanEvent {
         // set types
         dict[SpanEventSemantics.keyEmbraceType] = .string(SpanEventType.pushNotification.rawValue)
         dict[SpanEventSemantics.PushNotification.keyType] =
-            isSilent(userInfo: apsDict) ?
-            .string(SpanEventSemantics.PushNotification.silentType) :
-            .string(SpanEventSemantics.PushNotification.notificationType)
+            isSilent(userInfo: apsDict)
+            ? .string(SpanEventSemantics.PushNotification.silentType)
+            : .string(SpanEventSemantics.PushNotification.notificationType)
 
         // capture data if enabled
         if captureData {
@@ -78,14 +81,17 @@ public class PushNotificationEvent: NSObject, SpanEvent {
             var body: String?
 
             if let alertData = apsDict[Constants.apsAlert] as? [AnyHashable: Any] {
-                title = alertData[Constants.apsTitle] as? String
-                ?? alertData[Constants.apsTitleLocalized] as? String
+                title =
+                    alertData[Constants.apsTitle] as? String
+                    ?? alertData[Constants.apsTitleLocalized] as? String
 
-                subtitle = alertData[Constants.apsSubtitle] as? String
-                ?? alertData[Constants.apsSubtitleLocalized] as? String
+                subtitle =
+                    alertData[Constants.apsSubtitle] as? String
+                    ?? alertData[Constants.apsSubtitleLocalized] as? String
 
-                body = alertData[Constants.apsBody] as? String
-                ?? alertData[Constants.apsBodyLocalized] as? String
+                body =
+                    alertData[Constants.apsBody] as? String
+                    ?? alertData[Constants.apsBodyLocalized] as? String
             }
 
             let category = apsDict[Constants.apsCategory] as? String
@@ -139,15 +145,15 @@ public class PushNotificationEvent: NSObject, SpanEvent {
     }
 }
 
-public extension SpanEvent where Self == PushNotificationEvent {
-    static func push(notification: UNNotification, properties: [String: String] = [:]) throws -> SpanEvent {
+extension SpanEvent where Self == PushNotificationEvent {
+    public static func push(notification: UNNotification, properties: [String: String] = [:]) throws -> SpanEvent {
         let otelAttributes = properties.reduce(into: [String: AttributeValue]()) {
             $0[$1.key] = AttributeValue.string($1.value)
         }
         return try PushNotificationEvent(notification: notification, attributes: otelAttributes)
     }
 
-    static func push(userInfo: [AnyHashable: Any], properties: [String: String] = [:]) throws -> SpanEvent {
+    public static func push(userInfo: [AnyHashable: Any], properties: [String: String] = [:]) throws -> SpanEvent {
         let otelAttributes = properties.reduce(into: [String: AttributeValue]()) {
             $0[$1.key] = AttributeValue.string($1.value)
         }

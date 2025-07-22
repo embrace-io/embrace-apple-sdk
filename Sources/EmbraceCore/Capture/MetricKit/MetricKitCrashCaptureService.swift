@@ -3,14 +3,14 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCaptureService
-import EmbraceCommonInternal
+    import EmbraceCaptureService
+    import EmbraceCommonInternal
+    import EmbraceSemantics
 #endif
 
 class MetricKitCrashCaptureService: CaptureService, MetricKitCrashPayloadListener {
-
-    let providerIdentifier = "metrickit"
 
     let options: MetricKitCrashCaptureService.Options
 
@@ -24,10 +24,11 @@ class MetricKitCrashCaptureService: CaptureService, MetricKitCrashPayloadListene
 
     func didReceive(payload: Data, signal: Int, sessionId: SessionIdentifier?) {
         guard state == .active,
-              let stateProvider = options.stateProvider,
-              stateProvider.isMetricKitEnabled,
-              stateProvider.isMetricKitCrashCaptureEnabled,
-              stateProvider.metricKitCrashSignals.contains(signal) else {
+            let stateProvider = options.stateProvider,
+            stateProvider.isMetricKitEnabled,
+            stateProvider.isMetricKitCrashCaptureEnabled,
+            stateProvider.metricKitCrashSignals.contains(signal)
+        else {
             return
         }
 
@@ -43,12 +44,15 @@ class MetricKitCrashCaptureService: CaptureService, MetricKitCrashPayloadListene
             initialAttributes: [:]
         )
 
-        let attributes = attributesBuilder
+        let attributes =
+            attributesBuilder
             .addLogType(.crash)
             .addApplicationProperties(sessionId: sessionId)
             .addApplicationState(SessionState.unknown.rawValue)
             .addSessionIdentifier(sessionId?.toString)
-            .addCrashReportProperties(id: UUID().withoutHyphen, provider: providerIdentifier, payload: payloadString)
+            .addCrashReportProperties(
+                id: UUID().withoutHyphen, provider: LogSemantics.Crash.metrickitProvider, payload: payloadString
+            )
             .build()
 
         otel?.log(

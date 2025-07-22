@@ -2,11 +2,11 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
-import XCTest
-import TestSupport
 import EmbraceCommonInternal
 import EmbraceStorageInternal
+import Foundation
+import TestSupport
+import XCTest
 
 @testable import EmbraceCore
 
@@ -64,47 +64,49 @@ class LogsBatchTests: XCTestCase {
     }
 }
 
-private extension LogsBatchTests {
-    func givenNonZeroLogLimits() {
-       givenLimits(
+extension LogsBatchTests {
+    fileprivate func givenNonZeroLogLimits() {
+        givenLimits(
             maxBatchAge: .random(in: 1..<100),
             maxLogsPerBatch: .random(in: 1..<100)
         )
     }
 
-    func givenLimits(maxBatchAge: Double = .random(in: 1..<100), maxLogsPerBatch: Int = .random(in: 1..<100)) {
+    fileprivate func givenLimits(
+        maxBatchAge: Double = .random(in: 1..<100), maxLogsPerBatch: Int = .random(in: 1..<100)
+    ) {
         limits = .init(maxBatchAge: maxBatchAge, maxLogsPerBatch: maxLogsPerBatch)
     }
 
-    func givenLogBatch(logs: [EmbraceLog] = []) {
+    fileprivate func givenLogBatch(logs: [EmbraceLog] = []) {
         sut = .init(limits: limits, logs: logs)
     }
 
-    func whenInitializing() {
+    fileprivate func whenInitializing() {
         givenLogBatch(logs: [])
     }
 
-    func whenAddingLog(_ log: EmbraceLog) {
+    fileprivate func whenAddingLog(_ log: EmbraceLog) {
         batchingResult = sut.add(log: log)
     }
 
-    func thenResult(is result: LogsBatch.BatchingResult) {
+    fileprivate func thenResult(is result: LogsBatch.BatchingResult) {
         XCTAssertEqual(batchingResult, result)
     }
 
-    func thenBatchLogCount(is batchLogCount: Int) {
+    fileprivate func thenBatchLogCount(is batchLogCount: Int) {
         XCTAssertEqual(sut.logs.count, batchLogCount)
     }
 
-    func thenBatch(is state: LogsBatch.BatchState) {
+    fileprivate func thenBatch(is state: LogsBatch.BatchState) {
         XCTAssertEqual(sut.batchState, state)
     }
 
-    func recentLog() -> EmbraceLog {
+    fileprivate func recentLog() -> EmbraceLog {
         randomLog(date: Date())
     }
 
-    func randomLog(date: Date = Date()) -> EmbraceLog {
+    fileprivate func randomLog(date: Date = Date()) -> EmbraceLog {
         return MockLog(
             id: .init(),
             processId: .random,

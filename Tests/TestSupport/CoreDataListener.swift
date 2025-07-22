@@ -2,8 +2,8 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
 import CoreData
+import Foundation
 
 public class CoreDataListener {
 
@@ -26,15 +26,21 @@ public class CoreDataListener {
 
     @objc func contextObjectsDidChange(_ notification: Notification) {
 
-        if let insertedObjects = notification.userInfo?[NSInsertedObjectsKey] as? Set<NSManagedObject>, !insertedObjects.isEmpty {
+        if let insertedObjects = notification.userInfo?[NSInsertedObjectsKey] as? Set<NSManagedObject>,
+            !insertedObjects.isEmpty
+        {
             onInsertedObjects?(insertedObjects)
         }
 
-        if let updatedObjects = notification.userInfo?[NSUpdatedObjectsKey] as? Set<NSManagedObject>, !updatedObjects.isEmpty {
+        if let updatedObjects = notification.userInfo?[NSUpdatedObjectsKey] as? Set<NSManagedObject>,
+            !updatedObjects.isEmpty
+        {
             onUpdatedObjects?(updatedObjects)
         }
 
-        if let deletedObjects = notification.userInfo?[NSDeletedObjectsKey] as? Set<NSManagedObject>, !deletedObjects.isEmpty {
+        if let deletedObjects = notification.userInfo?[NSDeletedObjectsKey] as? Set<NSManagedObject>,
+            !deletedObjects.isEmpty
+        {
             onDeletedObjects?(deletedObjects)
         }
     }

@@ -2,10 +2,11 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
 import TestSupport
-@testable import EmbraceCore
+import XCTest
+
 @testable import EmbraceCommonInternal
+@testable import EmbraceCore
 
 class DataTaskWithURLRequestSwizzlerTests: XCTestCase {
     private var session: URLSession!
@@ -41,21 +42,21 @@ class DataTaskWithURLRequestSwizzlerTests: XCTestCase {
     }
 }
 
-private extension DataTaskWithURLRequestSwizzlerTests {
-    func givenDataTaskWithURLRequestSwizzler() {
+extension DataTaskWithURLRequestSwizzlerTests {
+    fileprivate func givenDataTaskWithURLRequestSwizzler() {
         handler = MockURLSessionTaskHandler()
         sut = DataTaskWithURLRequestSwizzler(handler: handler)
     }
 
-    func givenSwizzlingWasDone() throws {
+    fileprivate func givenSwizzlingWasDone() throws {
         try sut.install()
     }
 
-    func givenProxiedUrlSession() {
+    fileprivate func givenProxiedUrlSession() {
         session = ProxiedURLSessionProvider.default()
     }
 
-    func whenInvokingDataTaskWithUrl() {
+    fileprivate func whenInvokingDataTaskWithUrl() {
         var url = URL(string: "https://embrace.io")!
         let request = URLRequest(url: url)
         let mockData = "Mock Data".data(using: .utf8)!
@@ -65,16 +66,16 @@ private extension DataTaskWithURLRequestSwizzlerTests {
         dataTask.resume()
     }
 
-    func thenHandlerShouldHaveInvokedCreateWithTask() {
+    fileprivate func thenHandlerShouldHaveInvokedCreateWithTask() {
         XCTAssertTrue(handler.didInvokeCreate)
         XCTAssertEqual(handler.createReceivedTask, dataTask)
     }
 
-    func thenHandlerShouldntHaveInvokedCreate() {
+    fileprivate func thenHandlerShouldntHaveInvokedCreate() {
         XCTAssertFalse(handler.didInvokeCreate)
     }
 
-    func thenDataTaskShouldHaveEmbraceHeaders() throws {
+    fileprivate func thenDataTaskShouldHaveEmbraceHeaders() throws {
         let headers = try XCTUnwrap(dataTask.originalRequest?.allHTTPHeaderFields)
         XCTAssertNotNil(headers["x-emb-id"])
         XCTAssertNotNil(headers["x-emb-st"])

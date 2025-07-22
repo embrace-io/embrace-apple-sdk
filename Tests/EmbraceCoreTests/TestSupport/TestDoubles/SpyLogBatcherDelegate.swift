@@ -3,6 +3,8 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceConfiguration
+
 @testable import EmbraceCore
 
 class SpyLogBatcherDelegate: LogBatcherDelegate {
@@ -10,4 +12,6 @@ class SpyLogBatcherDelegate: LogBatcherDelegate {
     func batchFinished(withLogs logs: [EmbraceLog]) {
         didCallBatchFinished = true
     }
+
+    var limits = LogsLimits()
 }

@@ -1,0 +1,5 @@
+Sources/KSCrashRecordingCore/KSObjCApple.h
+Sources/KSCrashDemangleFilter/llvm/*
+Sources/KSCrashDemangleFilter/llvm/*/*
+Sources/KSCrashDemangleFilter/swift/*
+Sources/KSCrashDemangleFilter/swift/*/*

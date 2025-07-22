@@ -4,8 +4,8 @@
 //
 //
 
-import OpenTelemetrySdk
 import OpenTelemetryApi
+import OpenTelemetrySdk
 import SwiftUI
 
 class ViewControllerViewDidLoadTest: PayloadTest {
@@ -20,7 +20,8 @@ class ViewControllerViewDidLoadTest: PayloadTest {
     func test(spans: [OpenTelemetrySdk.SpanData]) -> TestReport {
         var testItems = [TestReportItem]()
 
-        let (existenceReport, viewDidLoadSpan) = evaluateSpanExistence(identifiedBy: "TestViewController", underAttributeKey: "view.name", on: spans)
+        let (existenceReport, viewDidLoadSpan) = evaluateSpanExistence(
+            identifiedBy: "TestViewController", underAttributeKey: "view.name", on: spans)
         testItems.append(existenceReport)
         guard let viewDidLoadSpan = viewDidLoadSpan else {
             return .init(items: testItems)

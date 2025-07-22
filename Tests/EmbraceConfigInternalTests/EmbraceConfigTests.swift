@@ -2,10 +2,11 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-import TestSupport
-@testable import EmbraceConfigInternal
 import EmbraceConfiguration
+import TestSupport
+import XCTest
+
+@testable import EmbraceConfigInternal
 
 final class EmbraceConfigTests: XCTestCase {
 

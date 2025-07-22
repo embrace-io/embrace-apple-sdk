@@ -180,7 +180,7 @@
 
 @attached(member, names: arbitrary)
 public macro EmbraceTrace() =
-#externalMacro(
-    module: "EmbraceMacroPlugin",
-    type: "EmbraceTraceMacro"
-)
+    #externalMacro(
+        module: "EmbraceMacroPlugin",
+        type: "EmbraceTraceMacro"
+    )

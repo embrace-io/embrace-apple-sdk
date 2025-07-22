@@ -32,44 +32,46 @@ static NSMutableSet *crashTypes = nil;
 
 + (void)initialize
 {
-	static dispatch_once_t predicate = 0;
-	
-	dispatch_once(&predicate, ^ { crashTypes = [[NSMutableSet alloc] init]; });
+    static dispatch_once_t predicate = 0;
+
+    dispatch_once(&predicate, ^{
+        crashTypes = [[NSMutableSet alloc] init];
+    });
 }
 
 + (NSArray *)allCrashes
 {
-	return crashTypes.allObjects;
+    return crashTypes.allObjects;
 }
 
 + (void)registerCrash:(CRLCrash *)crash
 {
-	[crashTypes addObject:crash];
+    [crashTypes addObject:crash];
 }
 
 + (void)unregisterCrash:(CRLCrash *)crash
 {
-	[crashTypes removeObject:crash];
+    [crashTypes removeObject:crash];
 }
 
 - (NSString *)category
 {
-	return @"NONE";
+    return @"NONE";
 }
 
 - (NSString *)title
 {
-	return @"NONE";
+    return @"NONE";
 }
 
 - (NSString *)desc
 {
-	return @"NONE";
+    return @"NONE";
 }
 
 - (void)crash
 {
-	NSLog(@"I'm supposed to crash here.");
+    NSLog(@"I'm supposed to crash here.");
 }
 
 @end

@@ -3,18 +3,19 @@
 //
 
 import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceConfigInternal
-import EmbraceStorageInternal
-import EmbraceUploadInternal
-import EmbraceOTelInternal
-#endif
 import OpenTelemetryApi
 
-public extension Notification.Name {
-    static let embraceSessionDidStart = Notification.Name("embrace.session.did_start")
-    static let embraceSessionWillEnd = Notification.Name("embrace.session.will_end")
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+    import EmbraceConfigInternal
+    import EmbraceStorageInternal
+    import EmbraceUploadInternal
+    import EmbraceOTelInternal
+#endif
+
+extension Notification.Name {
+    public static let embraceSessionDidStart = Notification.Name("embrace.session.did_start")
+    public static let embraceSessionWillEnd = Notification.Name("embrace.session.will_end")
 }
 
 /// The source of truth for sessions. Provides the CRUD functionality for a given EmbraceSession
@@ -41,6 +42,7 @@ class SessionController: SessionControllable {
     private weak var logBatcher: LogBatcher?
     weak var storage: EmbraceStorage?
     weak var upload: EmbraceUpload?
+    private let uploader: SessionUploader
     weak var config: EmbraceConfig?
     weak var sdkStateProvider: EmbraceSDKStateProvider?
 
@@ -55,6 +57,7 @@ class SessionController: SessionControllable {
     init(
         storage: EmbraceStorage,
         upload: EmbraceUpload?,
+        uploader: SessionUploader = DefaultSessionUploader(),
         config: EmbraceConfig?,
         heartbeatInterval: TimeInterval = SessionHeartbeat.defaultInterval,
         queue: DispatchableQueue = .with(label: "com.embrace.session_controller_upload"),
@@ -62,6 +65,7 @@ class SessionController: SessionControllable {
     ) {
         self.storage = storage
         self.upload = upload
+        self.uploader = uploader
         self.config = config
 
         self.heartbeat = SessionHeartbeat(queue: heartbeatQueue, interval: heartbeatInterval)
@@ -116,9 +120,7 @@ class SessionController: SessionControllable {
         // app starts, so we need to delay the logic!
         //
         // +
-        if isColdStart == false &&
-           state == .background &&
-           backgroundSessionsEnabled == false {
+        if isColdStart == false && state == .background && backgroundSessionsEnabled == false {
             return nil
         }
         // -
@@ -182,9 +184,9 @@ class SessionController: SessionControllable {
             // If the session is a background session and background sessions
             // are disabled in the config, we drop the session!
             // +
-            if session.coldStart == true &&
-               session.state == SessionState.background.rawValue &&
-               backgroundSessionsEnabled == false {
+            if session.coldStart == true && session.state == SessionState.background.rawValue
+                && backgroundSessionsEnabled == false
+            {
                 delete()
                 return now
             }
@@ -199,20 +201,30 @@ class SessionController: SessionControllable {
             // end log batches
             logBatcher?.forceEndCurrentBatch(waitUntilFinished: true)
 
-            currentSessionSpan?.end(time: now)
-            SessionSpanUtils.setCleanExit(span: currentSessionSpan, cleanExit: true)
+            // end span
+            if let currentSessionSpan {
+                // Ending span for otel processors
+                // Note: our exporter wont trigger an update on the stored span
+                // to prevent race conditions.
+                currentSessionSpan.end(time: now)
 
+                // Manually updating the span record synchronously.
+                storage?.endSpan(
+                    id: currentSessionSpan.context.spanId.hexString,
+                    traceId: currentSessionSpan.context.traceId.hexString,
+                    endTime: now
+                )
+            }
+
+            // update session end time and clean exit
             if let sessionId = session.id {
-                storage?.updateSession(sessionId: sessionId, endTime: now, cleanExit: true)
+                currentSession = storage?.updateSession(sessionId: sessionId, endTime: now, cleanExit: true)
             }
 
             // post internal notification
             if session.state == SessionState.foreground.rawValue {
                 Embrace.notificationCenter.post(name: .embraceForegroundSessionDidEnd, object: now)
             }
-
-            // save session record
-            save()
 
             // upload session
             uploadSession()
@@ -265,13 +277,14 @@ class SessionController: SessionControllable {
 
     func uploadSession() {
         guard let storage = storage,
-              let upload = upload,
-              let session = currentSession else {
+            let upload = upload,
+            let session = currentSession
+        else {
             return
         }
 
-        queue.async {
-            UnsentDataHandler.sendSession(session, storage: storage, upload: upload)
+        queue.async { [weak self] in
+            self?.uploader.uploadSession(session, storage: storage, upload: upload)
         }
     }
 

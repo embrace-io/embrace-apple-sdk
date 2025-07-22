@@ -3,21 +3,25 @@
 //
 
 import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceStorageInternal
-import EmbraceCommonInternal
-#endif
 import OpenTelemetryApi
 import OpenTelemetrySdk
 
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceStorageInternal
+    import EmbraceCommonInternal
+    import EmbraceConfiguration
+#endif
+
 protocol LogBatcherDelegate: AnyObject {
     func batchFinished(withLogs logs: [EmbraceLog])
+    var limits: LogsLimits { get set }
 }
 
 protocol LogBatcher: AnyObject {
     func addLogRecord(logRecord: ReadableLogRecord)
     func renewBatch(withLogs logRecords: [EmbraceLog])
     func forceEndCurrentBatch(waitUntilFinished: Bool)
+    var limits: LogsLimits { get }
 }
 
 class DefaultLogBatcher: LogBatcher {
@@ -28,6 +32,10 @@ class DefaultLogBatcher: LogBatcher {
     private weak var delegate: LogBatcherDelegate?
     private var batchDeadlineWorkItem: DispatchWorkItem?
     private var batch: LogsBatch?
+
+    var limits: LogsLimits {
+        delegate?.limits ?? .init()
+    }
 
     init(
         repository: LogRepository,
@@ -57,7 +65,7 @@ class DefaultLogBatcher: LogBatcher {
     }
 }
 
-internal extension DefaultLogBatcher {
+extension DefaultLogBatcher {
     /// Forces the current batch to end and renews it, optionally waiting for completion.
     ///
     /// This method ensures that any pending logs are flushed by rewewing the batch.

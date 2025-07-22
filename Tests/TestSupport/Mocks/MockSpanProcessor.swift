@@ -2,8 +2,8 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
 import EmbraceOTelInternal
+import Foundation
 import OpenTelemetryApi
 import OpenTelemetrySdk
 
@@ -14,7 +14,7 @@ public class MockSpanProcessor: SpanProcessor {
     private(set) public var didShutdown = false
     private(set) public var didForceFlush = false
 
-    public init() { }
+    public init() {}
 
     public let isStartRequired: Bool = true
 

@@ -3,10 +3,11 @@
 //
 
 import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceOTelInternal
-#endif
 import OpenTelemetryApi
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceOTelInternal
+#endif
 
 extension NSObject {
     private struct AssociatedKeys {
@@ -15,14 +16,16 @@ extension NSObject {
 
     var emb_associatedSpan: Span? {
         get {
-            return objc_getAssociatedObject(self,
-                                            &AssociatedKeys.embraceSpanKey) as? Span
+            return objc_getAssociatedObject(
+                self,
+                &AssociatedKeys.embraceSpanKey) as? Span
         }
         set {
-            objc_setAssociatedObject(self,
-                                     &AssociatedKeys.embraceSpanKey,
-                                     newValue,
-                                     .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+            objc_setAssociatedObject(
+                self,
+                &AssociatedKeys.embraceSpanKey,
+                newValue,
+                .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         }
     }
 }

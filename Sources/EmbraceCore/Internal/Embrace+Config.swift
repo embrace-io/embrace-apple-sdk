@@ -3,11 +3,12 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-@_implementationOnly import EmbraceObjCUtilsInternal
-import EmbraceConfigInternal
-import EmbraceCommonInternal
-import EmbraceConfiguration
+    @_implementationOnly import EmbraceObjCUtilsInternal
+    import EmbraceConfigInternal
+    import EmbraceCommonInternal
+    import EmbraceConfiguration
 #endif
 
 extension Embrace {

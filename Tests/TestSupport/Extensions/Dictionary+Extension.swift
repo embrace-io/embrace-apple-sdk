@@ -4,6 +4,6 @@
 
 import Foundation
 
-public extension Dictionary {
-    static func empty() -> Dictionary { [:] }
+extension Dictionary {
+    public static func empty() -> Dictionary { [:] }
 }

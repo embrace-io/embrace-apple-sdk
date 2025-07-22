@@ -4,9 +4,9 @@
 //
 //
 
-import SwiftUI
-import OpenTelemetrySdk
 import EmbraceCore
+import OpenTelemetrySdk
+import SwiftUI
 
 @Observable class TestSpanExporter: SpanExporter {
     private(set) var cachedExportedSpans: [String: [SpanData]] = [:]

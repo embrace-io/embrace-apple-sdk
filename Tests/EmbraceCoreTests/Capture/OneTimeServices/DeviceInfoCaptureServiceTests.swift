@@ -2,12 +2,13 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-@testable import EmbraceCore
 import EmbraceCommonInternal
 @_implementationOnly import EmbraceObjCUtilsInternal
 import EmbraceStorageInternal
 import OpenTelemetrySdk
+import XCTest
+
+@testable import EmbraceCore
 
 final class DeviceInfoCaptureServiceTests: XCTestCase {
 

@@ -2,8 +2,8 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
 import EmbraceCommonInternal
+import Foundation
 
 class CrashReporterMock: CrashReporter {
 
@@ -20,15 +20,16 @@ class CrashReporterMock: CrashReporter {
         mockReports: [EmbraceCrashReport]? = nil
     ) {
         self.currentSessionId = currentSessionId
-        self.mockReports = mockReports ?? [
-            EmbraceCrashReport(
-                payload: "test",
-                provider: "mock",
-                internalId: 123,
-                sessionId: crashSessionId ?? SessionIdentifier.random.toString,
-                timestamp: Date()
-            )
-        ]
+        self.mockReports =
+            mockReports ?? [
+                EmbraceCrashReport(
+                    payload: "test",
+                    provider: "mock",
+                    internalId: 123,
+                    sessionId: crashSessionId ?? SessionIdentifier.random.toString,
+                    timestamp: Date()
+                )
+            ]
     }
 
     public var forcedLastRunState: LastRunState = .crash
@@ -45,7 +46,7 @@ class CrashReporterMock: CrashReporter {
             report.internalId == id
         }
     }
-    
+
     func install(context: CrashReporterContext, logger: InternalLogger) {
 
     }

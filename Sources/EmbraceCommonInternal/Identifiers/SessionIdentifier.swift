@@ -13,7 +13,8 @@ public struct SessionIdentifier: Equatable {
 
     public init?(string: String?) {
         guard let string = string,
-              let uuid = UUID(withoutHyphen: string) else {
+            let uuid = UUID(withoutHyphen: string)
+        else {
             return nil
         }
 

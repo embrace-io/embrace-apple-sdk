@@ -2,9 +2,9 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
+import Foundation
 import OpenTelemetryApi
 import OpenTelemetrySdk
-import Foundation
 
 public protocol EmbraceLogSharedState {
     var processors: [LogRecordProcessor] { get }

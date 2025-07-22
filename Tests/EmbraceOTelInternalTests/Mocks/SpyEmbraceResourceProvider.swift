@@ -4,6 +4,7 @@
 
 import Foundation
 import OpenTelemetrySdk
+
 @testable import EmbraceOTelInternal
 
 class SpyEmbraceResourceProvider: EmbraceResourceProvider {

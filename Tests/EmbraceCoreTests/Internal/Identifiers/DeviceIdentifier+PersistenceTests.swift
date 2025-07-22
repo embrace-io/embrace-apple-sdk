@@ -2,12 +2,13 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
-import XCTest
-import EmbraceStorageInternal
-@testable import EmbraceCore
 import EmbraceCommonInternal
+import EmbraceStorageInternal
+import Foundation
 import TestSupport
+import XCTest
+
+@testable import EmbraceCore
 
 class DeviceIdentifier_PersistenceTests: XCTestCase {
 
@@ -20,7 +21,8 @@ class DeviceIdentifier_PersistenceTests: XCTestCase {
         try? FileManager.default.removeItem(at: fileProvider.tmpDirectory)
 
         fileURL = fileProvider.fileURL(for: "DeviceIdentifier_PersistenceTests", name: "file")!
-        try? FileManager.default.createDirectory(at: fileProvider.directoryURL(for: "DeviceIdentifier_PersistenceTests")!, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(
+            at: fileProvider.directoryURL(for: "DeviceIdentifier_PersistenceTests")!, withIntermediateDirectories: true)
     }
 
     override func tearDownWithError() throws {

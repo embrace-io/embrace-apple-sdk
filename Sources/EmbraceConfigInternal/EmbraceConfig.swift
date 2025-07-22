@@ -3,13 +3,14 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceConfiguration
+    import EmbraceCommonInternal
+    import EmbraceConfiguration
 #endif
 
-public extension Notification.Name {
-    static let embraceConfigUpdated = Notification.Name("embraceConfigUpdated")
+extension Notification.Name {
+    public static let embraceConfigUpdated = Notification.Name("embraceConfigUpdated")
 }
 
 public class EmbraceConfig {
@@ -69,7 +70,7 @@ public class EmbraceConfig {
                 if let error = error {
                     self?.logger.error(
                         "Failed update in EmbraceConfig",
-                        attributes: [ "error.message": error.localizedDescription ]
+                        attributes: ["error.message": error.localizedDescription]
                     )
                 }
 
@@ -122,13 +123,21 @@ extension EmbraceConfig /* EmbraceConfigurable delegation */ {
     public var isMetricKitHangCaptureEnabled: Bool {
         configurable.isMetricKitHangCaptureEnabled
     }
-    
+
     public var isSwiftUiViewInstrumentationEnabled: Bool {
         return configurable.isSwiftUiViewInstrumentationEnabled
     }
-    
+
+    public var spanEventsLimits: SpanEventsLimits {
+        configurable.spanEventsLimits
+    }
+
+    public var logsLimits: LogsLimits {
+        configurable.logsLimits
+    }
+
     public var internalLogLimits: InternalLogLimits {
-         configurable.internalLogLimits
+        configurable.internalLogLimits
     }
 
     public var networkPayloadCaptureRules: [NetworkPayloadCaptureRule] {

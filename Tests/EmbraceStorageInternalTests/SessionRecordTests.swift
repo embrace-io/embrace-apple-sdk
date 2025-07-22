@@ -2,9 +2,10 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-import TestSupport
 import EmbraceCommonInternal
+import TestSupport
+import XCTest
+
 @testable import EmbraceStorageInternal
 
 class SessionRecordTests: XCTestCase {
@@ -132,5 +133,6 @@ class SessionRecordTests: XCTestCase {
         XCTAssertEqual(session!.traceId, session1!.traceId)
         XCTAssertEqual(session!.spanId, session1!.spanId)
         XCTAssertEqual(session!.processIdRaw, session1!.processIdRaw)
-        XCTAssertEqual(session!.state, session1!.state)    }
+        XCTAssertEqual(session!.state, session1!.state)
+    }
 }

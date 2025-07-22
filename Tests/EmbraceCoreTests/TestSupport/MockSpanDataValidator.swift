@@ -2,10 +2,11 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
-@testable import EmbraceCore
 import EmbraceOTelInternal
+import Foundation
 import OpenTelemetrySdk
+
+@testable import EmbraceCore
 
 class MockSpanDataValidator: SpanDataValidator {
 

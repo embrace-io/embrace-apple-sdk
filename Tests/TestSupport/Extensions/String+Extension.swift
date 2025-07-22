@@ -4,8 +4,8 @@
 
 import Foundation
 
-public extension String {
-    var isUUID: Bool {
+extension String {
+    public var isUUID: Bool {
         return UUID(uuidString: self) != nil
     }
 }

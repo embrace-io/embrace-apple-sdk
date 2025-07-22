@@ -3,6 +3,7 @@
 //
 
 import Foundation
+
 @testable import EmbraceCore
 
 class SpyNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
@@ -13,7 +14,6 @@ class SpyNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
         return stubbedIsEnabled
     }
 
-
     var didCallProcess: Bool = false
     func process(
         request: URLRequest?,
@@ -21,7 +21,8 @@ class SpyNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
         data: Data?,
         error: (any Error)?,
         startTime: Date?,
-        endTime: Date?) {
-            didCallProcess = true
+        endTime: Date?
+    ) {
+        didCallProcess = true
     }
 }

@@ -11,7 +11,7 @@ struct RoundedStyle: TextFieldStyle {
         configuration
             .padding()
             .background {
-                RoundedRectangle(cornerRadius:  15)
+                RoundedRectangle(cornerRadius: 15)
                     .foregroundStyle(.white.opacity(0.1))
             }
     }

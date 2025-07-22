@@ -2,10 +2,11 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-@testable import EmbraceCore
-import XCTest
-import TestSupport
 import EmbraceSemantics
+import TestSupport
+import XCTest
+
+@testable import EmbraceCore
 
 // swiftlint:disable force_cast force_try
 class PushNotificationEventTests: XCTestCase {

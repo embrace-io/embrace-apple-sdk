@@ -7,15 +7,14 @@
 
 #import "EMBBinaryImageProvider.h"
 #import "EMBDevice.h"
-#import "EMBStackTraceProccessor.h"
+#import "EMBDisplayLinkProxy.h"
+#import "EMBLoaderClass.h"
 #import "EMBRURLSessionTaskHeaderInjector.h"
+#import "EMBStackTraceProccessor.h"
+#import "EMBStartupTracker.h"
 #import "EMBURLSessionDelegateForwarder.h"
 #import "EMBURLSessionDelegateProxy.h"
-#import "EMBWKNavigationDelegateProxy.h"
 #import "EMBURLSessionDelegateProxyFunctions.h"
-
-#import "EMBLoaderClass.h"
-#import "EMBDisplayLinkProxy.h"
-#import "EMBStartupTracker.h"
+#import "EMBWKNavigationDelegateProxy.h"
 
 #endif /* EmbraceObjCUtilsInternal_h */

@@ -2,11 +2,12 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
 import CoreData
+import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceSemantics
+    import EmbraceCommonInternal
+    import EmbraceSemantics
 #endif
 
 extension EmbraceStorage {
@@ -39,35 +40,18 @@ extension EmbraceStorage {
     ) -> EmbraceSpan? {
 
         // update existing?
-        if let span = fetchSpanRecord(id: id, traceId: traceId) {
-            var result: EmbraceSpan?
-
-            coreData.performOperation(name: "UpdateExistingSpan") { context in
-                guard let context else {
-                    return
-                }
-
-                // prevent modifications on closed spans!
-                if span.endTime == nil {
-                    span.name = name
-                    span.typeRaw = type.rawValue
-                    span.data = data
-                    span.startTime = startTime
-                    span.endTime = endTime
-                    span.processIdRaw = processId.hex
-                    span.sessionIdRaw = sessionId?.toString
-
-                    do {
-                        try context.save()
-                    } catch {
-                        logger.error("Error updating span \(id)!")
-                    }
-                }
-
-                result = span.toImmutable()
-            }
-
-            return result
+        if let span = updateExistingSpan(
+            id: id,
+            name: name,
+            traceId: traceId,
+            type: type,
+            data: data,
+            startTime: startTime,
+            endTime: endTime,
+            processId: processId,
+            sessionId: sessionId
+        ) {
+            return span
         }
 
         // make space if needed
@@ -101,14 +85,64 @@ extension EmbraceStorage {
         return request
     }
 
-    /// Fetches the stored `SpanRecord` synchronously with the given identifiers, if any.
+    func updateExistingSpan(
+        id: String,
+        name: String,
+        traceId: String,
+        type: SpanType,
+        data: Data,
+        startTime: Date,
+        endTime: Date? = nil,
+        processId: ProcessIdentifier = .current,
+        sessionId: SessionIdentifier? = nil
+    ) -> EmbraceSpan? {
+        var result: EmbraceSpan?
+
+        let request = fetchSpanRequest(id: id, traceId: traceId)
+        coreData.fetchFirstAndPerform(withRequest: request) { span in
+            guard let span else { return }
+
+            // prevent modifications on closed spans!
+            if span.endTime == nil {
+                span.name = name
+                span.typeRaw = type.rawValue
+                span.data = data
+                span.startTime = startTime
+                span.endTime = endTime
+                span.processIdRaw = processId.hex
+                span.sessionIdRaw = sessionId?.toString
+                coreData.save()
+            }
+
+            result = span.toImmutable()
+        }
+
+        return result
+    }
+
+    /// Ends the stored `SpanRecord` synchronously with the given identifiers and end time.
+    /// Should only be used for sessions!
     /// - Parameters:
     ///   - id: Identifier of the span
     ///   - traceId: Identifier of the trace containing this span
-    /// - Returns: The stored `SpanRecord`, if any
-    func fetchSpanRecord(id: String, traceId: String) -> SpanRecord? {
+    @discardableResult
+    public func endSpan(id: String, traceId: String, endTime: Date) -> EmbraceSpan? {
+        var result: EmbraceSpan?
+
         let request = fetchSpanRequest(id: id, traceId: traceId)
-        return coreData.fetch(withRequest: request).first
+        coreData.fetchFirstAndPerform(withRequest: request) { span in
+            guard let span else { return }
+
+            // prevent modifications on closed spans!
+            if span.endTime == nil {
+                span.endTime = endTime
+                coreData.save()
+            }
+
+            result = span.toImmutable()
+        }
+
+        return result
     }
 
     /// Fetches the stored `SpanRecord` synchronously with the given identifiers, if any.
@@ -162,12 +196,7 @@ extension EmbraceStorage {
             for span in spans {
                 span.endTime = endTime
             }
-
-            do {
-                try self?.coreData.context.save()
-            } catch {
-                self?.logger.warning("Error closing open spans:\n\(error.localizedDescription)")
-            }
+            coreData.save()
         }
     }
 
@@ -251,8 +280,8 @@ extension EmbraceStorage {
 }
 
 // MARK: - Database operations
-fileprivate extension EmbraceStorage {
-    func removeOldSpanIfNeeded(forType type: SpanType) {
+extension EmbraceStorage {
+    fileprivate func removeOldSpanIfNeeded(forType type: SpanType) {
         // check limit and delete if necessary
         // default to 1500 if limit is not set
         let limit = options.spanLimits[type, default: Self.defaultSpanLimitByType]
@@ -263,7 +292,7 @@ fileprivate extension EmbraceStorage {
 
         if count >= limit {
             request.fetchLimit = count - limit + 1
-            request.sortDescriptors = [ NSSortDescriptor(key: "startTime", ascending: true) ]
+            request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: true)]
 
             coreData.deleteRecords(withRequest: request)
         }

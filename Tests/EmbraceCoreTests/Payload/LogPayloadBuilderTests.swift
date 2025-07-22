@@ -2,12 +2,13 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-import EmbraceStorageInternal
 import EmbraceCommonInternal
-import TestSupport
-@testable import EmbraceCore
+import EmbraceStorageInternal
 import OpenTelemetryApi
+import TestSupport
+import XCTest
+
+@testable import EmbraceCore
 
 class LogPayloadBuilderTests: XCTestCase {
     func test_build_addsLogIdAttribute() throws {
@@ -22,7 +23,7 @@ class LogPayloadBuilderTests: XCTestCase {
 
         let payload = LogPayloadBuilder.build(log: record)
 
-        let attribute = payload.attributes.first(where: { $0.key == "log.record.uid"})
+        let attribute = payload.attributes.first(where: { $0.key == "log.record.uid" })
         XCTAssertNotNil(attribute)
         XCTAssertEqual(attribute?.value, logId.toString)
     }

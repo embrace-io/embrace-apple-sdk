@@ -2,8 +2,9 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
 import TestSupportObjc
+import XCTest
+
 @testable import EmbraceCore
 @testable @_implementationOnly import EmbraceObjCUtilsInternal
 
@@ -56,23 +57,24 @@ class URLSessionDelegateProxyToNonConformantTests: XCTestCase {
     }
 }
 
-private extension URLSessionDelegateProxyToNonConformantTests {
-    func givenProxyContainingDelegateImplemetingMethodsButNotConformingToSpecificProtocols() {
+extension URLSessionDelegateProxyToNonConformantTests {
+    fileprivate func givenProxyContainingDelegateImplemetingMethodsButNotConformingToSpecificProtocols() {
         originalDelegate = URLSessionDelegateImplementerButWithoutConforming()
         handler = .init()
         urlSession = URLSession(configuration: .ephemeral)
         sut = EMBURLSessionDelegateProxy(delegate: originalDelegate, handler: handler)
     }
 
-    func whenInvokingDidReceiveData(_ data: Data) {
+    fileprivate func whenInvokingDidReceiveData(_ data: Data) {
         dataTask = aDataTask()
-        (sut as URLSessionDataDelegate).urlSession?(urlSession,
-                                                    dataTask: dataTask,
-                                                    didReceive: data
+        (sut as URLSessionDataDelegate).urlSession?(
+            urlSession,
+            dataTask: dataTask,
+            didReceive: data
         )
     }
 
-    func whenInvokingDidBecomeInvalidWithError() {
+    fileprivate func whenInvokingDidBecomeInvalidWithError() {
         sut.urlSession(
             urlSession,
             didBecomeInvalidWithError: NSError(
@@ -83,7 +85,7 @@ private extension URLSessionDelegateProxyToNonConformantTests {
         )
     }
 
-    func whenInvokingDidFinishCollectingMetrics() {
+    fileprivate func whenInvokingDidFinishCollectingMetrics() {
         sut.urlSession(
             urlSession,
             task: aDataTask(),
@@ -91,7 +93,7 @@ private extension URLSessionDelegateProxyToNonConformantTests {
         )
     }
 
-    func whenInvokindDidCompleteWithError() {
+    fileprivate func whenInvokindDidCompleteWithError() {
         sut.urlSession(
             urlSession,
             task: aDataTask(),
@@ -102,7 +104,7 @@ private extension URLSessionDelegateProxyToNonConformantTests {
         )
     }
 
-    func whenInvokingDidFinishDownloadingToURL() throws {
+    fileprivate func whenInvokingDidFinishDownloadingToURL() throws {
         sut.urlSession(
             urlSession,
             downloadTask: aDownloadTask(),
@@ -110,47 +112,47 @@ private extension URLSessionDelegateProxyToNonConformantTests {
         )
     }
 
-    func thenDidFinishDownloadingToURLShouldBeCalledOnDelegate() throws {
+    fileprivate func thenDidFinishDownloadingToURLShouldBeCalledOnDelegate() throws {
         XCTAssertTrue(try XCTUnwrap(originalDelegate).didInvokedDidFinishDownloadingToURL)
     }
 
-    func thenDidCompleteWithErrorShouldBeCalledOnDelegate() throws {
+    fileprivate func thenDidCompleteWithErrorShouldBeCalledOnDelegate() throws {
         XCTAssertTrue(try XCTUnwrap(originalDelegate).didInvokedDidCompleteWithError)
     }
 
-    func thenDidFinishCollectingMetricsShouldBeCalledOnDelegate() throws {
+    fileprivate func thenDidFinishCollectingMetricsShouldBeCalledOnDelegate() throws {
         XCTAssertTrue(try XCTUnwrap(originalDelegate).didInvokeDidFinishCollectingMetrics)
     }
 
-    func thenDidBecomeInvalidWithErrorShouldBeCalledOnDelegate() throws {
+    fileprivate func thenDidBecomeInvalidWithErrorShouldBeCalledOnDelegate() throws {
         XCTAssertTrue(try XCTUnwrap(originalDelegate).didInvokeDidBecomeInvalidWithError)
     }
 
-    func thenDidReceiveDataShouldBeCalledOnDelegate() throws {
+    fileprivate func thenDidReceiveDataShouldBeCalledOnDelegate() throws {
         XCTAssertTrue(try XCTUnwrap(originalDelegate).didInvokeDidReceiveData)
     }
 
-    func thenTaskShouldHaveAddedEmbraceData(equalsTo data: Data) {
+    fileprivate func thenTaskShouldHaveAddedEmbraceData(equalsTo data: Data) {
         XCTAssertEqual(handler.receivedData, data)
     }
 
-    func thenHandlerShouldHaveInvokedFinishWithData() {
+    fileprivate func thenHandlerShouldHaveInvokedFinishWithData() {
         XCTAssertTrue(handler.didInvokeFinishWithData)
     }
 
-    func thenHandlerShouldHaveInvokedFinishWithBodySize() {
+    fileprivate func thenHandlerShouldHaveInvokedFinishWithBodySize() {
         XCTAssertTrue(handler.didInvokeFinishWithBodySize)
     }
 }
 
-private extension URLSessionDelegateProxyToNonConformantTests {
-    func aDataTask() -> URLSessionDataTask {
+extension URLSessionDelegateProxyToNonConformantTests {
+    fileprivate func aDataTask() -> URLSessionDataTask {
         let url = URL(string: "https://embrace.io")!
         let request = URLRequest(url: url)
         return urlSession.dataTask(with: request)
     }
 
-    func aDownloadTask() -> URLSessionDownloadTask {
+    fileprivate func aDownloadTask() -> URLSessionDownloadTask {
         let url = URL(string: "https://embrace.io")!
         let request = URLRequest(url: url)
         return urlSession.downloadTask(with: request)

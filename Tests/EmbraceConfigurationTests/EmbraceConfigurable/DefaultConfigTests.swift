@@ -2,8 +2,8 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
 import EmbraceConfiguration
+import XCTest
 
 final class DefaultConfigTests: XCTestCase {
 
@@ -18,6 +18,8 @@ final class DefaultConfigTests: XCTestCase {
         XCTAssertFalse(config.isMetricKitCrashCaptureEnabled)
         XCTAssertEqual(config.metricKitCrashSignals, [])
         XCTAssertFalse(config.isMetricKitHangCaptureEnabled)
+        XCTAssertEqual(config.spanEventsLimits, SpanEventsLimits())
+        XCTAssertEqual(config.logsLimits, LogsLimits())
         XCTAssertEqual(config.internalLogLimits, InternalLogLimits())
         XCTAssertTrue(config.networkPayloadCaptureRules.isEmpty)
     }

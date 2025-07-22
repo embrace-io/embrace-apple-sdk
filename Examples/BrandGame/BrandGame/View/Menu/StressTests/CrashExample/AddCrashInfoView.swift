@@ -2,8 +2,8 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import SwiftUI
 import EmbraceIO
+import SwiftUI
 
 struct AddCrashInfoView: View {
     @Environment(\.dismiss) private var dismiss

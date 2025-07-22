@@ -35,7 +35,7 @@ class DefaultEmbraceLoggerProvider: EmbraceLoggerProvider {
     }
 
     /// This method, defined by the `LoggerProvider` protocol, is intended to
-    /// create a `LoggerBuilder` for a named `Logger` instance. 
+    /// create a `LoggerBuilder` for a named `Logger` instance.
     ///
     /// In our implementation, the `instrumentationScopeName` parameter is not utilized since we
     /// consistently create an `EmbraceLoggerBuilder`. This builder, in turn, produces an `EmbraceLogger`

@@ -35,15 +35,15 @@ public protocol Swizzlable {
     func swizzleClassMethod(_ block: (ImplementationType) -> BlockImplementationType) throws
 }
 
-public extension Swizzlable {
-    func swizzleInstanceMethod(_ block: (ImplementationType) -> BlockImplementationType) throws {
+extension Swizzlable {
+    public func swizzleInstanceMethod(_ block: (ImplementationType) -> BlockImplementationType) throws {
         guard let method = class_getInstanceMethod(baseClass, Self.selector) else {
             throw EmbraceSwizzableError.methodNotFound(selectorName: "\(Self.selector)", className: "\(type(of: self))")
         }
         swizzle(method: method, withBlock: block)
     }
 
-    func swizzleClassMethod(_ block: (ImplementationType) -> BlockImplementationType) throws {
+    public func swizzleClassMethod(_ block: (ImplementationType) -> BlockImplementationType) throws {
         guard let method = class_getClassMethod(baseClass, Self.selector) else {
             throw EmbraceSwizzableError.methodNotFound(selectorName: "\(Self.selector)", className: "\(type(of: self))")
         }
@@ -53,8 +53,9 @@ public extension Swizzlable {
     private func swizzle(method: Method, withBlock block: (ImplementationType) -> BlockImplementationType) {
         let originalImplementation = method_getImplementation(method)
         saveInCache(originalImplementation: originalImplementation, forMethod: method)
-        let originalTypifiedImplementation = unsafeBitCast(originalImplementation,
-                                                          to: ImplementationType.self)
+        let originalTypifiedImplementation = unsafeBitCast(
+            originalImplementation,
+            to: ImplementationType.self)
         let newImplementationBlock: BlockImplementationType = block(originalTypifiedImplementation)
         let newImplementation = imp_implementationWithBlock(newImplementationBlock)
         method_setImplementation(method, newImplementation)
@@ -62,11 +63,12 @@ public extension Swizzlable {
 
     private func saveInCache(originalImplementation: IMP, forMethod method: Method) {
         #if DEBUG
-        let swizzlerClassName = String(describing: type(of: self))
-        SwizzleCache.shared.addMethodImplementation(originalImplementation,
-                                                    forMethod: method,
-                                                    inClass: baseClass,
-                                                    swizzler: swizzlerClassName)
+            let swizzlerClassName = String(describing: type(of: self))
+            SwizzleCache.shared.addMethodImplementation(
+                originalImplementation,
+                forMethod: method,
+                inClass: baseClass,
+                swizzler: swizzlerClassName)
         #endif
     }
 }

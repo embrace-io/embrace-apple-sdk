@@ -3,12 +3,13 @@
 //
 
 import OpenTelemetrySdk
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
+    import EmbraceCommonInternal
 #endif
 
-public extension Array where Element == any LogRecordProcessor {
-    static func `default`(
+extension Array where Element == any LogRecordProcessor {
+    public static func `default`(
         withExporters exporters: [LogRecordExporter],
         sdkStateProvider: EmbraceSDKStateProvider
     ) -> [LogRecordProcessor] {

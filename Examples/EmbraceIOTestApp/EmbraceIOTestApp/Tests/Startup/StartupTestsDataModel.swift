@@ -72,13 +72,16 @@ enum StartupTestsDataModel: Int, TestScreenDataModel, CaseIterable {
         case .sdkStart:
             TestSpanScreenButtonView(viewModel: .init(dataModel: self, payloadTestObject: StartupSDKStartSpanTest()))
         case .startProcess:
-            TestSpanScreenButtonView(viewModel: .init(dataModel: self, payloadTestObject: StartupStartupProcessSpanTest()))
+            TestSpanScreenButtonView(
+                viewModel: .init(dataModel: self, payloadTestObject: StartupStartupProcessSpanTest()))
         case .startState:
             StartupStateTestUIComponent(dataModel: self)
         case .processLaunch:
-            TestSpanScreenButtonView(viewModel: .init(dataModel: self, payloadTestObject: StartupProcessLaunchSpanTest()))
+            TestSpanScreenButtonView(
+                viewModel: .init(dataModel: self, payloadTestObject: StartupProcessLaunchSpanTest()))
         case .appStartup:
-            TestSpanScreenButtonView(viewModel: .init(dataModel: self, payloadTestObject: StartupAppStartupInitSpanTest()))
+            TestSpanScreenButtonView(
+                viewModel: .init(dataModel: self, payloadTestObject: StartupAppStartupInitSpanTest()))
         case .firstFrameCapture:
             TestSpanScreenButtonView(viewModel: .init(dataModel: self, payloadTestObject: StartupFirstFrameSpanTest()))
         case .resourceMetadata:

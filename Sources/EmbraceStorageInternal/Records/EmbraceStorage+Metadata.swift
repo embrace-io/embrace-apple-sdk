@@ -2,11 +2,12 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-#endif
 import CoreData
+import Foundation
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+#endif
 
 public protocol EmbraceStorageMetadataFetcher: AnyObject {
     func fetchAllResources() -> [EmbraceMetadata]
@@ -63,13 +64,11 @@ extension EmbraceStorage {
 
     /// Adds or updates all the given required resources
     public func addRequiredResources(_ map: [String: String], processId: ProcessIdentifier = .current) {
-        
-        coreData.performOperation(name: "UpsertRequiredResources") { context in
-            guard let context else {
-                return
-            }
 
-            guard let description = NSEntityDescription.entity(forEntityName: MetadataRecord.entityName, in: context) else {
+        coreData.performOperation { context in
+
+            guard let description = NSEntityDescription.entity(forEntityName: MetadataRecord.entityName, in: context)
+            else {
                 logger.error("Error finding entity description for MetadataRecord!")
                 return
             }
@@ -97,7 +96,7 @@ extension EmbraceStorage {
                 if let record = record {
                     record.value = value
 
-                // create
+                    // create
                 } else {
                     record = MetadataRecord(entity: description, insertInto: context)
                     record?.key = key
@@ -108,23 +107,16 @@ extension EmbraceStorage {
                     record?.collectedAt = Date()
                 }
             }
-
-            // save all
-            do {
-                try context.save()
-            } catch {
-                logger.error("Error when saving new required resources:\n\(error.localizedDescription)")
-            }
+            coreData.save()
         }
     }
 
-    /// Returns the `MetadataRecord` for the given values.
-    func fetchMetadataRecord(
+    func fetchMetadataRequest(
         key: String,
         type: MetadataRecordType,
         lifespan: MetadataRecordLifespan,
         lifespanId: String = ""
-    ) -> MetadataRecord? {
+    ) -> NSFetchRequest<MetadataRecord> {
 
         let request = MetadataRecord.createFetchRequest()
         request.fetchLimit = 1
@@ -136,7 +128,17 @@ extension EmbraceStorage {
             lifespanId
         )
 
-        return coreData.fetch(withRequest: request).first
+        return request
+    }
+
+    func fetchMetadata(request: NSFetchRequest<MetadataRecord>, context: NSManagedObjectContext) -> MetadataRecord? {
+        do {
+            return try context.fetch(request).first
+        } catch {
+            logger.error("Error fetching existing metadata!:\n\(error.localizedDescription)")
+        }
+
+        return nil
     }
 
     /// Returns an immutable copy of the `MetadataRecord` for the given values.
@@ -146,15 +148,15 @@ extension EmbraceStorage {
         lifespan: MetadataRecordLifespan,
         lifespanId: String = ""
     ) -> EmbraceMetadata? {
-        guard let record = fetchMetadataRecord(key: key, type: type, lifespan: lifespan, lifespanId: lifespanId) else {
-            return nil
-        }
+        coreData.performOperation { context in
+            // fetch existing metadata
+            let request = fetchMetadataRequest(key: key, type: type, lifespan: lifespan, lifespanId: lifespanId)
+            guard let metadata = fetchMetadata(request: request, context: context) else {
+                return nil
+            }
 
-        var result: EmbraceMetadata?
-        coreData.context.performAndWait {
-            result = record.toImmutable()
+            return metadata.toImmutable()
         }
-        return result
     }
 
     /// Updates the `MetadataRecord` for the given key, type and lifespan with a new given value.
@@ -167,34 +169,15 @@ extension EmbraceStorage {
         lifespan: MetadataRecordLifespan,
         lifespanId: String
     ) -> EmbraceMetadata? {
-
-        guard let metadata = fetchMetadataRecord(
-            key: key,
-            type: type,
-            lifespan: lifespan,
-            lifespanId: lifespanId
-        ) else {
-            return nil
-        }
-
-        var result: EmbraceMetadata?
-
-        coreData.performOperation(name: "UpdateMetadata") { context in
-            guard let context else {
-                return
+        coreData.performOperation(save: true) { context in
+            // fetch existing metadata
+            let request = fetchMetadataRequest(key: key, type: type, lifespan: lifespan, lifespanId: lifespanId)
+            guard let metadata = fetchMetadata(request: request, context: context) else {
+                return nil
             }
-
             metadata.value = value
-            result = metadata.toImmutable()
-
-            do {
-                try context.save()
-            } catch {
-                logger.error("Error updating metadata! key: \(key), lifespan \(lifespan.rawValue), id \(lifespanId)")
-            }
+            return metadata.toImmutable()
         }
-
-        return result
     }
 
     /// Removes all `MetadataRecords` that don't correspond to the given session and process ids.
@@ -230,16 +213,8 @@ extension EmbraceStorage {
         lifespan: MetadataRecordLifespan,
         lifespanId: String
     ) {
-        guard let metadata = fetchMetadataRecord(
-            key: key,
-            type: type,
-            lifespan: lifespan,
-            lifespanId: lifespanId
-        ) else {
-            return
-        }
-
-        coreData.deleteRecord(metadata)
+        let request = fetchMetadataRequest(key: key, type: type, lifespan: lifespan, lifespanId: lifespanId)
+        coreData.deleteRecords(withRequest: request)
     }
 
     /// Removes all `MetadataRecords` for the given type and lifespans.
@@ -296,29 +271,29 @@ extension EmbraceStorage {
     /// Increments the numeric value by 1 of a permanent resource for the given key.
     /// If no record exists it will create one with a value of 1.
     public func incrementCountForPermanentResource(key: String) -> Int {
-        guard let record = fetchMetadataRecord(key: key, type: .requiredResource, lifespan: .permanent) else {
-            addMetadata(key: key, value: "1", type: .requiredResource, lifespan: .permanent)
-            return 1
-        }
+        coreData.performOperation(save: true) { context in
+            // fetch existing metadata
+            let request = fetchMetadataRequest(key: key, type: .requiredResource, lifespan: .permanent)
 
-        var result: Int = 1
-
-        coreData.performOperation(name: "IncrementCountForPermanentResource") { context in
-            guard let context else {
-                return
+            // update it if it exists
+            if let metadata = fetchMetadata(request: request, context: context) {
+                let val = (Int(metadata.value) ?? 0) + 1
+                metadata.value = String(val)
+                return val
+                // create it with a value of 1 if it doesn't exist
+            } else {
+                let val = 1
+                _ = MetadataRecord.create(
+                    context: context,
+                    key: key,
+                    value: String(val),
+                    type: .requiredResource,
+                    lifespan: .permanent,
+                    lifespanId: ""
+                )
+                return val
             }
-
-            result = (Int(record.value) ?? 0) + 1
-            record.value = String(result)
-
-            do {
-                try context.save()
-            } catch {
-                logger.error("Error updating metadata counter! key: \(key)")
-            }
         }
-
-        return result
     }
 
     /// Returns immutable copies of all records with types `.requiredResource` or `.resource`
@@ -343,19 +318,15 @@ extension EmbraceStorage {
         return result
     }
 
-    /// Returns immutable copies of all records with types `.requiredResource` or `.resource` that are tied to a given session id
-    public func fetchResourcesForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata] {
-
-        guard let session = fetchSession(id: sessionId) else {
-            return []
-        }
+    /// Returns immutable copies of all records with types `.requiredResource` or `.resource` that are tied to a given session id or process id
+    public func fetchResources(sessionId: String, processId: String) -> [EmbraceMetadata] {
 
         let request = MetadataRecord.createFetchRequest()
         request.predicate = NSCompoundPredicate(
             type: .and,
             subpredicates: [
                 resourcePredicate(),
-                lifespanPredicate(session: session)
+                lifespanPredicate(sessionId: sessionId, processId: processId)
             ]
         )
 
@@ -372,6 +343,15 @@ extension EmbraceStorage {
         return result
     }
 
+    /// Returns immutable copies of all records with types `.requiredResource` or `.resource` that are tied to a given session id
+    public func fetchResourcesForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata] {
+        guard let session = fetchSession(id: sessionId) else {
+            return []
+        }
+
+        return fetchResources(sessionId: session.idRaw, processId: session.processIdRaw)
+    }
+
     /// Returns immutable copies of all records with types `.requiredResource` or `.resource` that are tied to a given process id
     public func fetchResourcesForProcessId(_ processId: ProcessIdentifier) -> [EmbraceMetadata] {
 
@@ -380,7 +360,31 @@ extension EmbraceStorage {
             type: .and,
             subpredicates: [
                 resourcePredicate(),
-                lifespanPredicate(processId: processId)
+                lifespanPredicate(processId: processId.hex)
+            ]
+        )
+
+        // fetch
+        var result: [EmbraceMetadata] = []
+        coreData.fetchAndPerform(withRequest: request) { records in
+
+            // convert to immutable structs
+            result = records.map {
+                $0.toImmutable()
+            }
+        }
+
+        return result
+    }
+
+    /// Returns immutable copies of all records of the `.customProperty` type that are tied to a given session id and process id
+    public func fetchCustomProperties(sessionId: String, processId: String) -> [EmbraceMetadata] {
+        let request = MetadataRecord.createFetchRequest()
+        request.predicate = NSCompoundPredicate(
+            type: .and,
+            subpredicates: [
+                customPropertyPredicate(),
+                lifespanPredicate(sessionId: sessionId, processId: processId)
             ]
         )
 
@@ -403,12 +407,17 @@ extension EmbraceStorage {
             return []
         }
 
+        return fetchCustomProperties(sessionId: session.idRaw, processId: session.processIdRaw)
+    }
+
+    /// Returns immutable copies of all records of the `.personaTag` type that are tied to a given session id and process id
+    public func fetchPersonaTags(sessionId: String, processId: String) -> [EmbraceMetadata] {
         let request = MetadataRecord.createFetchRequest()
         request.predicate = NSCompoundPredicate(
             type: .and,
             subpredicates: [
-                customPropertyPredicate(),
-                lifespanPredicate(session: session)
+                personaTagPredicate(),
+                lifespanPredicate(sessionId: sessionId, processId: processId)
             ]
         )
 
@@ -431,26 +440,7 @@ extension EmbraceStorage {
             return []
         }
 
-        let request = MetadataRecord.createFetchRequest()
-        request.predicate = NSCompoundPredicate(
-            type: .and,
-            subpredicates: [
-                personaTagPredicate(),
-                lifespanPredicate(session: session)
-            ]
-        )
-
-        // fetch
-        var result: [EmbraceMetadata] = []
-        coreData.fetchAndPerform(withRequest: request) { records in
-
-            // convert to immutable structs
-            result = records.map {
-                $0.toImmutable()
-            }
-        }
-
-        return result
+        return fetchPersonaTags(sessionId: session.idRaw, processId: session.processIdRaw)
     }
 
     /// Returns immutable copies of all records of the `.personaTag` type that are tied to a given process id
@@ -461,7 +451,7 @@ extension EmbraceStorage {
             type: .and,
             subpredicates: [
                 personaTagPredicate(),
-                lifespanPredicate(processId: processId)
+                lifespanPredicate(processId: processId.hex)
             ]
         )
 
@@ -532,18 +522,18 @@ extension EmbraceStorage {
         return NSPredicate(format: "typeRaw == %@", MetadataRecordType.personaTag.rawValue)
     }
 
-    private func lifespanPredicate(session: EmbraceSession) -> NSPredicate {
+    private func lifespanPredicate(sessionId: String, processId: String) -> NSPredicate {
         // match the session id
         let sessionIdPredicate = NSPredicate(
             format: "lifespanRaw == %@ AND lifespanId == %@",
             MetadataRecordLifespan.session.rawValue,
-            session.idRaw
+            sessionId
         )
         // or match the process id
         let processIdPredicate = NSPredicate(
             format: "lifespanRaw == %@ AND lifespanId == %@",
             MetadataRecordLifespan.process.rawValue,
-            session.processIdRaw
+            processId
         )
         // or are permanent
         let permanentPredicate = NSPredicate(
@@ -561,12 +551,12 @@ extension EmbraceStorage {
         )
     }
 
-    private func lifespanPredicate(processId: ProcessIdentifier) -> NSPredicate {
+    private func lifespanPredicate(processId: String) -> NSPredicate {
         // match the process id
         let processIdPredicate = NSPredicate(
             format: "lifespanRaw == %@ AND lifespanId == %@",
             MetadataRecordLifespan.process.rawValue,
-            processId.hex
+            processId
         )
         // or are permanent
         let permanentPredicate = NSPredicate(

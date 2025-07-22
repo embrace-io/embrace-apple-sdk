@@ -2,8 +2,9 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
 import TestSupport
+import XCTest
+
 @testable import EmbraceConfigInternal
 
 // swiftlint:disable force_try
@@ -27,6 +28,10 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssertEqual(payload.metricKitCrashSignals, ["SIGKILL"])
         XCTAssertEqual(payload.metricKitHangCaptureEnabled, false)
         XCTAssertEqual(payload.swiftUiViewInstrumentationEnabled, true)
+        XCTAssertEqual(payload.breadcrumbLimit, 100)
+        XCTAssertEqual(payload.logsInfoLimit, 100)
+        XCTAssertEqual(payload.logsWarningLimit, 200)
+        XCTAssertEqual(payload.logsErrorLimit, 500)
         XCTAssertEqual(payload.internalLogsTraceLimit, 0)
         XCTAssertEqual(payload.internalLogsDebugLimit, 0)
         XCTAssertEqual(payload.internalLogsInfoLimit, 0)
@@ -48,6 +53,10 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssertEqual(payload.networkSpansForwardingThreshold, 25)
         XCTAssertEqual(payload.uiLoadInstrumentationEnabled, false)
         XCTAssertEqual(payload.swiftUiViewInstrumentationEnabled, false)
+        XCTAssertEqual(payload.breadcrumbLimit, 1234)
+        XCTAssertEqual(payload.logsInfoLimit, 40)
+        XCTAssertEqual(payload.logsWarningLimit, 50)
+        XCTAssertEqual(payload.logsErrorLimit, 60)
         XCTAssertEqual(payload.internalLogsTraceLimit, 10)
         XCTAssertEqual(payload.internalLogsDebugLimit, 20)
         XCTAssertEqual(payload.internalLogsInfoLimit, 30)
@@ -59,14 +68,14 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssertEqual(rule1!.urlRegex, "www.test.com/user/*")
         XCTAssertEqual(rule1!.statusCodes, [200, 201, 404, -1])
         XCTAssertEqual(rule1!.method, "GET")
-        XCTAssertEqual(rule1!.expiration, 1723570602)
+        XCTAssertEqual(rule1!.expiration, 1_723_570_602)
         XCTAssertEqual(rule1!.publicKey, "key")
 
         let rule2 = payload.networkPayloadCaptureRules.first { $0.id == "rule2" }
         XCTAssertEqual(rule2!.urlRegex, "www.test.com/test")
         XCTAssertNil(rule2!.statusCodes)
         XCTAssertNil(rule2!.method)
-        XCTAssertEqual(rule2!.expiration, 1723570602)
+        XCTAssertEqual(rule2!.expiration, 1_723_570_602)
         XCTAssertEqual(rule2!.publicKey, "key")
 
         XCTAssertEqual(payload.metricKitEnabledThreshold, 55)
@@ -92,6 +101,10 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssertEqual(payload.metricKitCrashSignals, ["SIGKILL"])
         XCTAssertEqual(payload.metricKitHangCaptureEnabled, false)
         XCTAssertEqual(payload.swiftUiViewInstrumentationEnabled, true)
+        XCTAssertEqual(payload.breadcrumbLimit, 100)
+        XCTAssertEqual(payload.logsInfoLimit, 100)
+        XCTAssertEqual(payload.logsWarningLimit, 200)
+        XCTAssertEqual(payload.logsErrorLimit, 500)
         XCTAssertEqual(payload.internalLogsTraceLimit, 0)
         XCTAssertEqual(payload.internalLogsDebugLimit, 0)
         XCTAssertEqual(payload.internalLogsInfoLimit, 0)

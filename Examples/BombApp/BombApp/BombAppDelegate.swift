@@ -2,8 +2,8 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Firebase
 import EmbraceIO
+import Firebase
 import UIKit
 
 class BombAppDelegate: NSObject, UIApplicationDelegate {

@@ -19,7 +19,9 @@ class StartupProcessLaunchSpanTest: PayloadTest {
         var testItems = [TestReportItem]()
 
         guard let setupSpan = spans.first, setupSpan.name == testRelevantSpanName else {
-            return .init(items: [.init(target: "\(testRelevantSpanName) span", expected: "exists", recorded: "missing", result: .fail)])
+            return .init(items: [
+                .init(target: "\(testRelevantSpanName) span", expected: "exists", recorded: "missing", result: .fail)
+            ])
         }
 
         testItems.append(.init(target: "\(testRelevantSpanName) span", expected: "exists", recorded: "exists"))
@@ -28,7 +30,8 @@ class StartupProcessLaunchSpanTest: PayloadTest {
         if let embPrivate = setupSpan.attributes["emb.private"]?.description {
             testItems.append(.init(target: "emb.private value", expected: "true", recorded: embPrivate))
         } else {
-            testItems.append(.init(target: "emb.private attribute", expected: "exists", recorded: "missing", result: .fail))
+            testItems.append(
+                .init(target: "emb.private attribute", expected: "exists", recorded: "missing", result: .fail))
         }
 
         MetadataResourceTest.testMetadataInclussion(on: setupSpan.resource, testItems: &testItems)

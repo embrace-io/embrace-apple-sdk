@@ -2,11 +2,15 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-@testable import EmbraceCore
 import EmbraceCommonInternal
+import EmbraceConfiguration
 import OpenTelemetrySdk
 
+@testable import EmbraceCore
+
 class DummyLogBatcher: LogBatcher {
+    var limits = LogsLimits()
+
     func addLogRecord(logRecord: ReadableLogRecord) {
     }
 

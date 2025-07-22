@@ -3,8 +3,9 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
+    import EmbraceCommonInternal
 #endif
 
 extension DeviceIdentifier {
@@ -12,9 +13,10 @@ extension DeviceIdentifier {
 
         // retrieve from file
         if let fileURL = fileURL,
-           FileManager.default.fileExists(atPath: fileURL.path),
-           let deviceId = try? String(contentsOf: fileURL),
-           let uuid = UUID(uuidString: deviceId) {
+            FileManager.default.fileExists(atPath: fileURL.path),
+            let deviceId = try? String(contentsOf: fileURL),
+            let uuid = UUID(uuidString: deviceId)
+        {
             return DeviceIdentifier(value: uuid)
         }
 

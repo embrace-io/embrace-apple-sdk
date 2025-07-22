@@ -2,11 +2,12 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-#endif
 import CoreData
+import Foundation
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+#endif
 
 extension EmbraceStorage {
     /// Adds a session to the storage synchronously.
@@ -36,80 +37,96 @@ extension EmbraceStorage {
         cleanExit: Bool = false,
         appTerminated: Bool = false
     ) -> EmbraceSession? {
+        coreData.performOperation { _ in
 
-        // update existing?
-        if let session = fetchSessionRecord(id: id) {
-            var result: EmbraceSession?
-
-            coreData.performOperation(name: "UpdateExistingSession") { context in
-                guard let context else {
-                    return
-                }
-
-                session.state = state.rawValue
-                session.processIdRaw = processId.hex
-                session.traceId = traceId
-                session.spanId = spanId
-                session.startTime = startTime
-                session.endTime = endTime
-                session.crashReportId = crashReportId
-                session.coldStart = coldStart
-                session.cleanExit = cleanExit
-                session.appTerminated = appTerminated
-
-                if let lastHeartbeatTime = lastHeartbeatTime {
-                    session.lastHeartbeatTime = lastHeartbeatTime
-                }
-
-                result = session.toImmutable()
-
-                do {
-                    try context.save()
-                } catch {
-                    logger.error("Error updating session \(id.toString)!")
-                }
+            // update existing?
+            if let session = updateExistingSession(
+                id: id,
+                processId: processId,
+                state: state,
+                traceId: traceId,
+                spanId: spanId,
+                startTime: startTime,
+                endTime: endTime,
+                lastHeartbeatTime: lastHeartbeatTime,
+                crashReportId: crashReportId,
+                coldStart: coldStart,
+                cleanExit: cleanExit,
+                appTerminated: appTerminated
+            ) {
+                return session
             }
 
-            return result
-        }
+            // create new
+            if let session = SessionRecord.create(
+                context: coreData.context,
+                id: id,
+                processId: processId,
+                state: state,
+                traceId: traceId,
+                spanId: spanId,
+                startTime: startTime,
+                endTime: endTime,
+                lastHeartbeatTime: lastHeartbeatTime,
+                coldStart: coldStart,
+                cleanExit: cleanExit,
+                appTerminated: appTerminated
+            ) {
+                coreData.save()
+                return session
+            }
 
-        // create new
-        if let session = SessionRecord.create(
-            context: coreData.context,
-            id: id,
-            processId: processId,
-            state: state,
-            traceId: traceId,
-            spanId: spanId,
-            startTime: startTime,
-            endTime: endTime,
-            lastHeartbeatTime: lastHeartbeatTime,
-            coldStart: coldStart,
-            cleanExit: cleanExit,
-            appTerminated: appTerminated
-        ) {
-            coreData.save()
-            return session
+            return nil
         }
-
-        return nil
     }
 
     func fetchSessionRequest(id: SessionIdentifier) -> NSFetchRequest<SessionRecord> {
         let request = SessionRecord.createFetchRequest()
         request.fetchLimit = 1
         request.predicate = NSPredicate(format: "idRaw == %@", id.toString)
-
         return request
     }
 
-    /// Fetches the stored `SessionRecord` synchronously with the given identifier, if any.
-    /// - Parameters:
-    ///   - id: Identifier of the session
-    /// - Returns: The stored `SessionRecord`, if any
-    func fetchSessionRecord(id: SessionIdentifier) -> SessionRecord? {
-        let request = fetchSessionRequest(id: id)
-        return coreData.fetch(withRequest: request).first
+    public func updateExistingSession(
+        id: SessionIdentifier,
+        processId: ProcessIdentifier,
+        state: SessionState,
+        traceId: String,
+        spanId: String,
+        startTime: Date,
+        endTime: Date? = nil,
+        lastHeartbeatTime: Date? = nil,
+        crashReportId: String? = nil,
+        coldStart: Bool = false,
+        cleanExit: Bool = false,
+        appTerminated: Bool = false
+    ) -> EmbraceSession? {
+        coreData.performOperation { context in
+
+            // fetch existing session
+            let request = fetchSessionRequest(id: id)
+            guard let session = coreData.fetch(withRequest: request).first else {
+                return nil
+            }
+
+            session.state = state.rawValue
+            session.processIdRaw = processId.hex
+            session.traceId = traceId
+            session.spanId = spanId
+            session.startTime = startTime
+            session.endTime = endTime
+            session.crashReportId = crashReportId
+            session.coldStart = coldStart
+            session.cleanExit = cleanExit
+            session.appTerminated = appTerminated
+
+            if let lastHeartbeatTime {
+                session.lastHeartbeatTime = lastHeartbeatTime
+            }
+
+            coreData.save()
+            return session.toImmutable()
+        }
     }
 
     /// Fetches the stored `SessionRecord` synchronously with the given identifier, if any.
@@ -241,13 +258,8 @@ extension EmbraceStorage {
                 session.crashReportId = crashReportId
             }
 
+            coreData.save()
             result = session.toImmutable()
-
-            do {
-                try coreData.context.save()
-            } catch {
-                logger.error("Error updating session \(sessionId.toString)!")
-            }
         }
 
         return result
