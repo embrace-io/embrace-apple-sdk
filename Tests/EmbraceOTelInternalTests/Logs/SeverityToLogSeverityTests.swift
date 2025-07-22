@@ -2,12 +2,11 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceCommonInternal
+import OpenTelemetryApi
 import XCTest
 
 @testable import EmbraceOTelInternal
-
-import EmbraceCommonInternal
-import OpenTelemetryApi
 
 class SeverityToLogSeverityTests: XCTestCase {
     func testSeverityInfo_toLogSeverity_shouldBeLogSeverityInfo() {

@@ -2,10 +2,10 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
 import OpenTelemetryApi
-
 import TestSupport
+import XCTest
+
 @testable import EmbraceOTelInternal
 
 class EmbraceLoggerTests: XCTestCase {
@@ -37,28 +37,28 @@ class EmbraceLoggerTests: XCTestCase {
     }
 }
 
-private extension EmbraceLoggerTests {
-    func givenEmbraceLogger() {
+extension EmbraceLoggerTests {
+    fileprivate func givenEmbraceLogger() {
         sut = .init(sharedState: MockEmbraceLogSharedState())
     }
 
-    func whenInvokingLogRecordBuilder() {
+    fileprivate func whenInvokingLogRecordBuilder() {
         logRecordBuilder = sut.logRecordBuilder()
     }
 
-    func whenInvokingEventBuilder(withName name: String = UUID().uuidString) {
+    fileprivate func whenInvokingEventBuilder(withName name: String = UUID().uuidString) {
         eventBuilder = sut.eventBuilder(name: name)
     }
 
-    func thenProducedBuilderIsEmbraceLogRecordBuilder() {
+    fileprivate func thenProducedBuilderIsEmbraceLogRecordBuilder() {
         XCTAssertTrue(logRecordBuilder is EmbraceLogRecordBuilder)
     }
 
-    func thenProducedEventBuilderIsEmbraceLogRecordBuilder() {
+    fileprivate func thenProducedEventBuilderIsEmbraceLogRecordBuilder() {
         XCTAssertTrue(eventBuilder is EmbraceLogRecordBuilder)
     }
 
-    func thenEventBuilderHas(attributes: [String: AttributeValue]) throws {
+    fileprivate func thenEventBuilderHas(attributes: [String: AttributeValue]) throws {
         let builder = try XCTUnwrap(eventBuilder as? EmbraceLogRecordBuilder)
         attributes.forEach {
             XCTAssertEqual(builder.attributes[$0.key], $0.value)

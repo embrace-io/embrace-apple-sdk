@@ -30,13 +30,13 @@ public struct EmbraceFileSystem {
         }
 
         #if os(tvOS)
-        //  tvOS is an "always connected" system, therefore Apple does not let data
-        //      be stored outside of the "Caches" directory
-        //  From https://developer.apple.com/library/archive/documentation/General/Conceptual/AppleTV_PG/index.html#//apple_ref/doc/uid/TP40015241
-        //      > Local Storage for Your App Is Limited
-        let directory = FileManager.SearchPathDirectory.cachesDirectory
+            //  tvOS is an "always connected" system, therefore Apple does not let data
+            //      be stored outside of the "Caches" directory
+            //  From https://developer.apple.com/library/archive/documentation/General/Conceptual/AppleTV_PG/index.html#//apple_ref/doc/uid/TP40015241
+            //      > Local Storage for Your App Is Limited
+            let directory = FileManager.SearchPathDirectory.cachesDirectory
         #else
-        let directory = FileManager.SearchPathDirectory.applicationSupportDirectory
+            let directory = FileManager.SearchPathDirectory.applicationSupportDirectory
         #endif
 
         do {
@@ -73,7 +73,8 @@ public struct EmbraceFileSystem {
     /// ```
     static func storageDirectoryURL(
         partitionId: String,
-        appGroupId: String? = nil) -> URL? {
+        appGroupId: String? = nil
+    ) -> URL? {
         return directoryURL(
             name: storageDirectoryName,
             partitionId: partitionId,
@@ -87,7 +88,8 @@ public struct EmbraceFileSystem {
     /// ```
     static func uploadsDirectoryPath(
         partitionIdentifier: String,
-        appGroupId: String? = nil) -> URL? {
+        appGroupId: String? = nil
+    ) -> URL? {
         return directoryURL(
             name: uploadsDirectoryName,
             partitionId: partitionIdentifier,

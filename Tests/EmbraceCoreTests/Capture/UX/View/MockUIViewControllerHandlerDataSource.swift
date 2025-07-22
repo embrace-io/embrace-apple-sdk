@@ -4,17 +4,17 @@
 
 #if canImport(UIKit) && !os(watchOS)
 
-import Foundation
-@testable import EmbraceCore
-import EmbraceCaptureService
-import EmbraceOTelInternal
-import TestSupport
+    import Foundation
+    @testable import EmbraceCore
+    import EmbraceCaptureService
+    import EmbraceOTelInternal
+    import TestSupport
 
-class MockUIViewControllerHandlerDataSource: UIViewControllerHandlerDataSource {
-    var state: CaptureServiceState = .active
-    var otel: EmbraceOpenTelemetry? = MockEmbraceOpenTelemetry()
-    var instrumentVisibility: Bool = true
-    var instrumentFirstRender: Bool = true
-}
+    class MockUIViewControllerHandlerDataSource: UIViewControllerHandlerDataSource {
+        var state: CaptureServiceState = .active
+        var otel: EmbraceOpenTelemetry? = MockEmbraceOpenTelemetry()
+        var instrumentVisibility: Bool = true
+        var instrumentFirstRender: Bool = true
+    }
 
 #endif

@@ -2,10 +2,11 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-@testable import EmbraceCore
 import EmbraceOTelInternal
 import OpenTelemetrySdk
+import XCTest
+
+@testable import EmbraceCore
 
 final class LengthOfBodyValidatorTests: XCTestCase {
 

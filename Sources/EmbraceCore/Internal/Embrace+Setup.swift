@@ -3,15 +3,16 @@
 //
 
 import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceConfigInternal
-import EmbraceOTelInternal
-import EmbraceStorageInternal
-import EmbraceUploadInternal
-@_implementationOnly import EmbraceObjCUtilsInternal
-#endif
 import OpenTelemetryApi
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+    import EmbraceConfigInternal
+    import EmbraceOTelInternal
+    import EmbraceStorageInternal
+    import EmbraceUploadInternal
+    @_implementationOnly import EmbraceObjCUtilsInternal
+#endif
 
 extension Embrace {
     static func createStorage(options: Embrace.Options) throws -> EmbraceStorage {
@@ -41,8 +42,9 @@ extension Embrace {
         }
 
         guard let spansURL = URL.spansEndpoint(basePath: endpoints.baseURL),
-              let logsURL = URL.logsEndpoint(basePath: endpoints.baseURL),
-              let attachmentsURL = URL.attachmentsEndpoint(basePath: endpoints.baseURL) else {
+            let logsURL = URL.logsEndpoint(basePath: endpoints.baseURL),
+            let attachmentsURL = URL.attachmentsEndpoint(basePath: endpoints.baseURL)
+        else {
             Embrace.logger.critical("Failed to initialize endpoints with baseUrl = \(endpoints.baseURL)")
             return nil
         }
@@ -54,10 +56,12 @@ extension Embrace {
         )
 
         // cache
-        guard let cacheUrl = EmbraceFileSystem.uploadsDirectoryPath(
-            partitionIdentifier: appId,
-            appGroupId: options.appGroupId
-        ) else {
+        guard
+            let cacheUrl = EmbraceFileSystem.uploadsDirectoryPath(
+                partitionIdentifier: appId,
+                appGroupId: options.appGroupId
+            )
+        else {
             Embrace.logger.critical("Failed to initialize upload cache!")
             return nil
         }
@@ -86,15 +90,15 @@ extension Embrace {
 
         return nil
     }
-#if os(iOS)
-    static func createSessionLifecycle(controller: SessionControllable) -> SessionLifecycle {
-        iOSSessionLifecycle(controller: controller)
-    }
-#else
-    static func createSessionLifecycle(controller: SessionControllable) -> SessionLifecycle {
-        ManualSessionLifecycle(controller: controller)
-    }
-#endif
+    #if os(iOS)
+        static func createSessionLifecycle(controller: SessionControllable) -> SessionLifecycle {
+            iOSSessionLifecycle(controller: controller)
+        }
+    #else
+        static func createSessionLifecycle(controller: SessionControllable) -> SessionLifecycle {
+            ManualSessionLifecycle(controller: controller)
+        }
+    #endif
 }
 
 /// Extension to handle observability of SDK startup

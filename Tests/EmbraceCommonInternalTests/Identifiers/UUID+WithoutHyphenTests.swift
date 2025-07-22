@@ -3,6 +3,7 @@
 //
 
 import XCTest
+
 @testable import EmbraceCore
 
 final class UUID_WithoutHyphenTests: XCTestCase {

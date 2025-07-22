@@ -4,10 +4,10 @@
 
 import Foundation
 
-public extension URL {
+extension URL {
     private static var testNameKey: UInt8 = 4
 
-    var testName: String? {
+    public var testName: String? {
         get {
             return objc_getAssociatedObject(self, &URL.testNameKey) as? String
         }
@@ -21,7 +21,7 @@ public extension URL {
         }
     }
 
-    init?(string: String, testName: String) {
+    public init?(string: String, testName: String) {
         self.init(string: string)
         self.testName = testName
     }
@@ -87,7 +87,8 @@ public class EmbraceHTTPMock: URLProtocol {
 
     /// Returns the total amount of requests that were executed.
     public class func totalRequestCount(_ testName: String = #function) -> Int {
-        return requests
+        return
+            requests
             .filter { $0.key.contains(testName) }
             .values
             .reduce(0) { $0 + $1.count }

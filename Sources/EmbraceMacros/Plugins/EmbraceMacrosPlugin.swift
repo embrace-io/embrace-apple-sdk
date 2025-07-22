@@ -13,7 +13,7 @@ import SwiftSyntaxMacros
 ///
 @main
 struct EmbraceMacrosPlugin: CompilerPlugin {
-    
+
     /// The collection of macros provided by this plugin.
     ///
     /// This array lists all macro types that this plugin makes available

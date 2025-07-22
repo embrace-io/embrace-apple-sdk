@@ -3,7 +3,7 @@
 //
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceOTelInternal
+    import EmbraceOTelInternal
 #endif
 
 struct SpanLinkPayload: Encodable {
@@ -34,7 +34,6 @@ struct SpanLinkPayload: Encodable {
 extension SpanLinkPayload: Equatable {
     public static func == (lhs: SpanLinkPayload, rhs: SpanLinkPayload) -> Bool {
         return
-            lhs.traceId == rhs.traceId &&
-            lhs.spanId == rhs.spanId
+            lhs.traceId == rhs.traceId && lhs.spanId == rhs.spanId
     }
 }

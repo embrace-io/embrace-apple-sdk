@@ -2,9 +2,9 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import SwiftUI
 import Combine
 import EmbraceCore
+import SwiftUI
 
 struct UserInfo: View {
 
@@ -123,7 +123,7 @@ struct UserInfo: View {
         let count = Self.quickPersonas.count
 
         return stride(from: 0, to: count, by: size).map {
-            Array(Self.quickPersonas[$0 ..< Swift.min($0 + size, count)])
+            Array(Self.quickPersonas[$0..<Swift.min($0 + size, count)])
         }
     }
 
@@ -162,7 +162,7 @@ extension PersonaTag: Identifiable {
     public var id: String { rawValue }
 }
 
-extension PersonaTag: Hashable { }
+extension PersonaTag: Hashable {}
 
 #Preview {
     UserInfo()

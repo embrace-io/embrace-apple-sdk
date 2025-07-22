@@ -1,5 +1,5 @@
-import Foundation
 import EmbraceOTelInternal
+import Foundation
 import OpenTelemetryApi
 import OpenTelemetrySdk
 
@@ -12,11 +12,11 @@ public struct NoopSpanProcessor: SpanProcessor {
 
     public let isEndRequired: Bool = true
 
-    public func onStart(parentContext: SpanContext?, span: ReadableSpan) { }
+    public func onStart(parentContext: SpanContext?, span: ReadableSpan) {}
 
-    public mutating func onEnd(span: ReadableSpan) { }
+    public mutating func onEnd(span: ReadableSpan) {}
 
-    public func forceFlush(timeout: TimeInterval?) { }
+    public func forceFlush(timeout: TimeInterval?) {}
 
-    public mutating func shutdown(explicitTimeout: TimeInterval?) { }
+    public mutating func shutdown(explicitTimeout: TimeInterval?) {}
 }

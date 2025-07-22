@@ -16,5 +16,5 @@ class DummyEmbraceLogShared: EmbraceLogSharedState {
         self.resourceProvider = resourceProvider
     }
 
-    func update(_ config: any EmbraceLoggerConfig) { }
+    func update(_ config: any EmbraceLoggerConfig) {}
 }

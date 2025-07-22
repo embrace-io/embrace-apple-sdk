@@ -20,18 +20,18 @@ struct StartupStateTestUIComponent: View {
     }
 
     var body: some View {
-            VStack {
-                Toggle("Cold Start State Expected", isOn: $viewModel.coldStartExpected)
-                    .font(.embraceFont(size: 18))
-                    .tint(.embracePurple)
-                    .accessibilityIdentifier("coldStartExpectedToggle")
-                    .padding([.leading, .trailing, .bottom], 5)
-                TestScreenButtonView(viewModel: viewModel)
-                    .onAppear {
-                        viewModel.spanExporter = spanExporter
-                    }
-            }
-            .padding([.top], 15)
+        VStack {
+            Toggle("Cold Start State Expected", isOn: $viewModel.coldStartExpected)
+                .font(.embraceFont(size: 18))
+                .tint(.embracePurple)
+                .accessibilityIdentifier("coldStartExpectedToggle")
+                .padding([.leading, .trailing, .bottom], 5)
+            TestScreenButtonView(viewModel: viewModel)
+                .onAppear {
+                    viewModel.spanExporter = spanExporter
+                }
+        }
+        .padding([.top], 15)
     }
 }
 

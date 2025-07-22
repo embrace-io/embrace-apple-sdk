@@ -3,12 +3,13 @@
 //
 
 import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceOTelInternal
-import EmbraceStorageInternal
-import EmbraceCommonInternal
-#endif
 import OpenTelemetrySdk
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceOTelInternal
+    import EmbraceStorageInternal
+    import EmbraceCommonInternal
+#endif
 
 extension Collection where Element == SpanProcessor {
     static func processors(
@@ -28,12 +29,13 @@ extension Collection where Element == SpanProcessor {
         ]
 
         if let external = export?.spanExporter {
-            processors.append(BatchSpanProcessor(spanExporter: external) { [weak storage] items in
-                let resource = getResource(storage: storage)
-                for idx in items.indices {
-                    items[idx].settingResource(resource)
-                }
-            })
+            processors.append(
+                BatchSpanProcessor(spanExporter: external) { [weak storage] items in
+                    let resource = getResource(storage: storage)
+                    for idx in items.indices {
+                        items[idx].settingResource(resource)
+                    }
+                })
         }
 
         return processors

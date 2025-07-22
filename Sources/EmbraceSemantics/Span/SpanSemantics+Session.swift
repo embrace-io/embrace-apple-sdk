@@ -3,15 +3,15 @@
 //
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
+    import EmbraceCommonInternal
 #endif
 
-public extension SpanType {
-    static let session = SpanType(ux: "session")
+extension SpanType {
+    public static let session = SpanType(ux: "session")
 }
 
-public extension SpanSemantics {
-    struct Session {
+extension SpanSemantics {
+    public struct Session {
         public static let name = "emb-session"
         public static let keyId = "session.id"
         public static let keyState = "emb.state"

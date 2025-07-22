@@ -2,9 +2,9 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
 import OpenTelemetryApi
 import OpenTelemetrySdk
+import XCTest
 
 @testable import EmbraceOTelInternal
 
@@ -39,10 +39,11 @@ class EmbraceLogRecordBuilderTests: XCTestCase {
     }
 
     func test_onSetSpanContext_valueShouldBeAddedToRecordLogOnEmit() {
-        let spanContext = SpanContext.create(traceId: .random(),
-                                         spanId: .random(),
-                                         traceFlags: .init(),
-                                         traceState: .init())
+        let spanContext = SpanContext.create(
+            traceId: .random(),
+            spanId: .random(),
+            traceFlags: .init(),
+            traceState: .init())
         givenEmbraceLogRecordBuilder()
         whenSetting(spanContext: spanContext)
         whenCallingEmit()
@@ -57,10 +58,11 @@ class EmbraceLogRecordBuilderTests: XCTestCase {
     }
 
     func test_whenActiveSpanContextSet_andExplicitlySet_explicitValueShouldBeAddedToRecordLogOnEmit() {
-        let explicitContext = SpanContext.create(traceId: .random(),
-                                         spanId: .random(),
-                                         traceFlags: .init(),
-                                         traceState: .init())
+        let explicitContext = SpanContext.create(
+            traceId: .random(),
+            spanId: .random(),
+            traceFlags: .init(),
+            traceState: .init())
 
         givenEmbraceLogRecordBuilder()
         _ = whenSpanContextActive()
@@ -114,28 +116,28 @@ class EmbraceLogRecordBuilderTests: XCTestCase {
     }
 }
 
-private extension EmbraceLogRecordBuilderTests {
-    func givenEmbraceLogRecordBuilder() {
+extension EmbraceLogRecordBuilderTests {
+    fileprivate func givenEmbraceLogRecordBuilder() {
         sut = .init(sharedState: MockEmbraceLogSharedState(processors: [processor]), attributes: [:])
     }
 
-    func whenCallingEmit() {
+    fileprivate func whenCallingEmit() {
         sut.emit()
     }
 
-    func whenSetting(timestamp: Date) {
+    fileprivate func whenSetting(timestamp: Date) {
         _ = sut.setTimestamp(timestamp)
     }
 
-    func whenSetting(observedTimestamp: Date) {
+    fileprivate func whenSetting(observedTimestamp: Date) {
         _ = sut.setObservedTimestamp(observedTimestamp)
     }
 
-    func whenSetting(spanContext: SpanContext) {
+    fileprivate func whenSetting(spanContext: SpanContext) {
         _ = sut.setSpanContext(spanContext)
     }
 
-    func whenSpanContextActive() -> SpanContext {
+    fileprivate func whenSpanContextActive() -> SpanContext {
         let span = OpenTelemetry.instance.tracerProvider
             .get(instrumentationName: "test", instrumentationVersion: nil)
             .spanBuilder(spanName: "example-span")
@@ -147,19 +149,19 @@ private extension EmbraceLogRecordBuilderTests {
         return span.context
     }
 
-    func whenSetting(severity: Severity) {
+    fileprivate func whenSetting(severity: Severity) {
         _ = sut.setSeverity(severity)
     }
 
-    func whenSetting(body: String) {
+    fileprivate func whenSetting(body: String) {
         _ = sut.setBody(.string(body))
     }
 
-    func whenSetting(attribute: [String: AttributeValue]) {
+    fileprivate func whenSetting(attribute: [String: AttributeValue]) {
         _ = sut.setAttributes(attribute)
     }
 
-    func thenProducedRecordHas(attribute: [String: AttributeValue]) {
+    fileprivate func thenProducedRecordHas(attribute: [String: AttributeValue]) {
         XCTAssertTrue(processor.didCallOnEmit)
         XCTAssertNotNil(processor.receivedLogRecord)
         attribute.forEach {
@@ -167,48 +169,48 @@ private extension EmbraceLogRecordBuilderTests {
         }
     }
 
-    func thenProducedRecordHas(body: String) {
+    fileprivate func thenProducedRecordHas(body: String) {
         XCTAssertTrue(processor.didCallOnEmit)
         XCTAssertNotNil(processor.receivedLogRecord)
         XCTAssertEqual(processor.receivedLogRecord?.body, .string(body))
     }
 
-    func thenProducedRecordHas(severity: Severity) {
+    fileprivate func thenProducedRecordHas(severity: Severity) {
         XCTAssertTrue(processor.didCallOnEmit)
         XCTAssertNotNil(processor.receivedLogRecord)
         XCTAssertEqual(processor.receivedLogRecord?.severity, severity)
     }
 
-    func thenProducedRecordHas(spanContext: SpanContext) {
+    fileprivate func thenProducedRecordHas(spanContext: SpanContext) {
         XCTAssertTrue(processor.didCallOnEmit)
         XCTAssertNotNil(processor.receivedLogRecord)
         XCTAssertEqual(processor.receivedLogRecord?.spanContext, spanContext)
     }
 
-    func thenProducedRecordHas(instrumentationInfo: InstrumentationScopeInfo) {
+    fileprivate func thenProducedRecordHas(instrumentationInfo: InstrumentationScopeInfo) {
         XCTAssertTrue(processor.didCallOnEmit)
         XCTAssertNotNil(processor.receivedLogRecord)
         XCTAssertEqual(processor.receivedLogRecord?.instrumentationScopeInfo, instrumentationInfo)
     }
 
-    func thenProducedRecordHas(observedTimestamp: Date) {
+    fileprivate func thenProducedRecordHas(observedTimestamp: Date) {
         XCTAssertTrue(processor.didCallOnEmit)
         XCTAssertNotNil(processor.receivedLogRecord)
         XCTAssertEqual(processor.receivedLogRecord?.observedTimestamp, observedTimestamp)
     }
 
-    func thenProducedRecordHas(timestamp: Date) {
+    fileprivate func thenProducedRecordHas(timestamp: Date) {
         XCTAssertTrue(processor.didCallOnEmit)
         XCTAssertNotNil(processor.receivedLogRecord)
         XCTAssertEqual(processor.receivedLogRecord?.timestamp, timestamp)
     }
 
-    func thenProducedRecordHasTimestamp() {
+    fileprivate func thenProducedRecordHasTimestamp() {
         XCTAssertTrue(processor.didCallOnEmit)
         XCTAssertNotNil(processor.receivedLogRecord?.timestamp)
     }
 
-    func thenProducedRecordHasObservedTimestamp() {
+    fileprivate func thenProducedRecordHasObservedTimestamp() {
         XCTAssertTrue(processor.didCallOnEmit)
         XCTAssertNotNil(processor.receivedLogRecord?.observedTimestamp)
     }

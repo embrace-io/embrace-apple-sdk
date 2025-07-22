@@ -3,9 +3,9 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "objc/runtime.h"
 #import "EMBURLSessionDelegateProxy.h"
 #import "EMBURLSessionDelegateProxyFunctions.h"
+#import "objc/runtime.h"
 
 @interface EMBURLSessionDelegateProxy (FRPPatch)
 @end
@@ -36,31 +36,46 @@
  with Firebase’s swizzling approach (unless Firebase updates its logic to properly respect `respondsToSelector:`
  in proxy scenarios).
 */
-+ (void)initialize {
++ (void)initialize
+{
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         Class firebaseClass = NSClassFromString(@"FPRSwizzledObject");
         if (firebaseClass) {
-            class_addMethod(self, WILL_PERFORM_REDIRECTION, (IMP)proxy_URLSession_task_willPerformHTTPRedirection, "v@:@@@@@");
+            class_addMethod(self, WILL_PERFORM_REDIRECTION, (IMP)proxy_URLSession_task_willPerformHTTPRedirection,
+                            "v@:@@@@@");
             class_addMethod(self, DID_RECEIVE_CHALLENGE, (IMP)proxy_URLSession_didReceiveChallenge, "v@:@@?");
-            class_addMethod(self, DID_FINISH_EVENTS_BACKGROUND, (IMP)proxy_URLSessionDidFinishEventsForBackgroundURLSession, "v@:@");
+            class_addMethod(self, DID_FINISH_EVENTS_BACKGROUND,
+                            (IMP)proxy_URLSessionDidFinishEventsForBackgroundURLSession, "v@:@");
             class_addMethod(self, DID_CREATE_TASK, (IMP)proxy_URLSession_didCreateTask, "v@:@@");
-            class_addMethod(self, WILL_BEGIN_DELAYED_REQUEST, (IMP)proxy_URLSession_task_willBeginDelayedRequest, "v@:@@@@?");
-            class_addMethod(self, IS_WAITING_FOR_CONNECTIVITY, (IMP)proxy_URLSession_taskIsWaitingForConnectivity, "v@:@@");
-            class_addMethod(self, TASK_DID_RECEIVE_CHALLENGE, (IMP)proxy_URLSession_task_didReceiveChallenge, "v@:@@@?");
+            class_addMethod(self, WILL_BEGIN_DELAYED_REQUEST, (IMP)proxy_URLSession_task_willBeginDelayedRequest,
+                            "v@:@@@@?");
+            class_addMethod(self, IS_WAITING_FOR_CONNECTIVITY, (IMP)proxy_URLSession_taskIsWaitingForConnectivity,
+                            "v@:@@");
+            class_addMethod(self, TASK_DID_RECEIVE_CHALLENGE, (IMP)proxy_URLSession_task_didReceiveChallenge,
+                            "v@:@@@?");
             class_addMethod(self, TASK_NEED_NEW_BODY_STREAM, (IMP)proxy_URLSession_task_needNewBodyStream, "v@:@@?");
-            class_addMethod(self, TASK_NEED_NEW_BODY_STREAM_OFFSET, (IMP)proxy_URLSession_task_needNewBodyStreamFromOffset, "v@:@@q@?");
+            class_addMethod(self, TASK_NEED_NEW_BODY_STREAM_OFFSET,
+                            (IMP)proxy_URLSession_task_needNewBodyStreamFromOffset, "v@:@@q@?");
             class_addMethod(self, TASK_DID_SEND_BODY_DATA, (IMP)proxy_URLSession_task_didSendBodyData, "v@:@@qqq");
-            class_addMethod(self, TASK_DID_RECEIVE_INFO_RESPONSE, (IMP)proxy_URLSession_task_didReceiveInformationalResponse, "v@:@@@");
-            class_addMethod(self, DATATASK_BECOME_DOWNLOADTASK, (IMP)proxy_URLSession_dataTask_didBecomeDownloadTask, "v@:@@@");
-            class_addMethod(self, DATATASK_BECOME_STREAMTASK, (IMP)proxy_URLSession_dataTask_didBecomeStreamTask, "v@:@@@");
-            class_addMethod(self, DATATASK_WILL_CACHE_RESPONSE, (IMP)proxy_URLSession_dataTask_willCacheResponse, "v@:@@@?");
-            class_addMethod(self, DOWNLOADTASK_DID_WRITE_DATA, (IMP)proxy_URLSession_downloadTask_didWriteData, "v@:@@qqq");
-            class_addMethod(self, DOWNLOADTASK_DID_RESUME, (IMP)proxy_URLSession_downloadTask_didResumeAtOffset, "v@:@@qq");
+            class_addMethod(self, TASK_DID_RECEIVE_INFO_RESPONSE,
+                            (IMP)proxy_URLSession_task_didReceiveInformationalResponse, "v@:@@@");
+            class_addMethod(self, DATATASK_BECOME_DOWNLOADTASK, (IMP)proxy_URLSession_dataTask_didBecomeDownloadTask,
+                            "v@:@@@");
+            class_addMethod(self, DATATASK_BECOME_STREAMTASK, (IMP)proxy_URLSession_dataTask_didBecomeStreamTask,
+                            "v@:@@@");
+            class_addMethod(self, DATATASK_WILL_CACHE_RESPONSE, (IMP)proxy_URLSession_dataTask_willCacheResponse,
+                            "v@:@@@?");
+            class_addMethod(self, DOWNLOADTASK_DID_WRITE_DATA, (IMP)proxy_URLSession_downloadTask_didWriteData,
+                            "v@:@@qqq");
+            class_addMethod(self, DOWNLOADTASK_DID_RESUME, (IMP)proxy_URLSession_downloadTask_didResumeAtOffset,
+                            "v@:@@qq");
             class_addMethod(self, READ_CLOSED_STREAMTASK, (IMP)proxy_URLSession_readClosedForStreamTask, "v@:@@");
             class_addMethod(self, WRITE_CLOSED_STREAMTASK, (IMP)proxy_URLSession_writeClosedForStreamTask, "v@:@@");
-            class_addMethod(self, BETTER_ROUTE_DISCOVERED, (IMP)proxy_URLSession_betterRouteDiscoveredForStreamTask, "v@:@@");
-            class_addMethod(self, STREAMTASK_BECOME_STREAMS, (IMP)proxy_URLSession_streamTask_didBecomeInputStream_outputStream, "v@:@@@@");
+            class_addMethod(self, BETTER_ROUTE_DISCOVERED, (IMP)proxy_URLSession_betterRouteDiscoveredForStreamTask,
+                            "v@:@@");
+            class_addMethod(self, STREAMTASK_BECOME_STREAMS,
+                            (IMP)proxy_URLSession_streamTask_didBecomeInputStream_outputStream, "v@:@@@@");
         }
     });
 }

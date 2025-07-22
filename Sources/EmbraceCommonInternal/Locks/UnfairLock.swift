@@ -7,7 +7,7 @@ import Foundation
 /// Wrapper around `os_unfair_lock` as the direct usage of the API would create
 /// crashes due to how Swift's memory model works.
 ///
-/// For more information: 
+/// For more information:
 /// - Swift law of exclusivity: https://github.com/apple/swift-evolution/blob/main/proposals/0176-enforce-exclusive-access-to-memory.md
 final public class UnfairLock {
     private var _lock: UnsafeMutablePointer<os_unfair_lock>

@@ -27,12 +27,12 @@ struct PillText<S: ShapeStyle>: View {
         Text(text)
             .padding(.horizontal, cornerSize.width / 2)
             .padding(.vertical, cornerSize.height / 4)
-            .background( style.opacity(selected ? 1 : 0))
+            .background(style.opacity(selected ? 1 : 0))
             .clipShape(RoundedRectangle(cornerSize: cornerSize))
             .overlay(
                 RoundedRectangle(cornerSize: cornerSize)
                     .stroke(style, lineWidth: 2)
-            ) // Border
+            )  // Border
     }
 }
 

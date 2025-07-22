@@ -18,7 +18,7 @@ struct TestReportCard: View {
                 .padding(.leading, 5)
             List(report.items) { item in
                 TestReportCardItemView(item: item)
-                .listRowInsets(EdgeInsets(top: 0, leading: 5, bottom: 0, trailing: 0))
+                    .listRowInsets(EdgeInsets(top: 0, leading: 5, bottom: 0, trailing: 0))
             }
             .contentMargins(0)
         }

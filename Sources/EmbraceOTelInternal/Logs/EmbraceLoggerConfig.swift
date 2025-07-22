@@ -14,10 +14,9 @@ public protocol EmbraceLoggerConfig: Equatable {
 
 extension EmbraceLoggerConfig {
     static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.batchLifetimeInSeconds == rhs.batchLifetimeInSeconds &&
-        lhs.maximumTimeBetweenLogsInSeconds == rhs.maximumTimeBetweenLogsInSeconds &&
-        lhs.maximumMessageLength == rhs.maximumMessageLength &&
-        lhs.maximumAttributes == rhs.maximumAttributes &&
-        lhs.logAmountLimit == rhs.logAmountLimit
+        lhs.batchLifetimeInSeconds == rhs.batchLifetimeInSeconds
+            && lhs.maximumTimeBetweenLogsInSeconds == rhs.maximumTimeBetweenLogsInSeconds
+            && lhs.maximumMessageLength == rhs.maximumMessageLength && lhs.maximumAttributes == rhs.maximumAttributes
+            && lhs.logAmountLimit == rhs.logAmountLimit
     }
 }

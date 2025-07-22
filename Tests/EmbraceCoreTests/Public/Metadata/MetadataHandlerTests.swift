@@ -2,12 +2,13 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-@testable import EmbraceCore
-import XCTest
-import EmbraceStorageInternal
-import EmbraceCommonInternal
-import TestSupport
 import CoreData
+import EmbraceCommonInternal
+import EmbraceStorageInternal
+import TestSupport
+import XCTest
+
+@testable import EmbraceCore
 
 // swiftlint:disable force_cast
 
@@ -151,8 +152,12 @@ final class MetadataHandlerTests: XCTestCase {
 
         // then customProperties and resources should be at their limit
         let metadata: [MetadataRecord] = storage.fetchAll()
-        XCTAssertEqual(metadata.filter({ $0.typeRaw == MetadataRecordType.customProperty.rawValue }).count, storage.options.resourcesLimit)
-        XCTAssertEqual(metadata.filter({ $0.typeRaw == MetadataRecordType.resource.rawValue }).count, storage.options.resourcesLimit)
+        XCTAssertEqual(
+            metadata.filter({ $0.typeRaw == MetadataRecordType.customProperty.rawValue }).count,
+            storage.options.resourcesLimit)
+        XCTAssertEqual(
+            metadata.filter({ $0.typeRaw == MetadataRecordType.resource.rawValue }).count,
+            storage.options.resourcesLimit)
     }
 
     // MARK: Removing Metadata
@@ -219,13 +224,13 @@ final class MetadataHandlerTests: XCTestCase {
         let result2 = fetch2.first { record in
             record.key == "foo"
         }
-        XCTAssertNil(result2)    // not present from second session
+        XCTAssertNil(result2)  // not present from second session
 
         let fetch3 = storage.fetchCustomPropertiesForSessionId(firstSessionId)
         let result3 = fetch3.first { record in
             record.key == "foo"
         }
-        XCTAssertNotNil(result3) // still present in first session
+        XCTAssertNotNil(result3)  // still present in first session
     }
 
     func test_remove_removesMetadata_withProcessLifespan() throws {
@@ -296,7 +301,7 @@ final class MetadataHandlerTests: XCTestCase {
         let result2 = fetch2.first { record in
             record.key == "foo"
         }
-        XCTAssertNil(result2)    // not present from second session
+        XCTAssertNil(result2)  // not present from second session
     }
 
     func test_remove_removesMetadata_withPermanentLifespan() throws {
@@ -339,13 +344,15 @@ final class MetadataHandlerTests: XCTestCase {
             toPath: baseUrl.appendingPathComponent("EmbraceMetadataTmp.sqlite").path
         )
 
-        try? FileManager.default.removeItem(atPath: baseUrl.appendingPathComponent("EmbraceMetadataTmp.sqlite-shm").path)
+        try? FileManager.default.removeItem(
+            atPath: baseUrl.appendingPathComponent("EmbraceMetadataTmp.sqlite-shm").path)
         try FileManager.default.copyItem(
             atPath: sqliteShmFile,
             toPath: baseUrl.appendingPathComponent("EmbraceMetadataTmp.sqlite-shm").path
         )
 
-        try? FileManager.default.removeItem(atPath: baseUrl.appendingPathComponent("EmbraceMetadataTmp.sqlite-wal").path)
+        try? FileManager.default.removeItem(
+            atPath: baseUrl.appendingPathComponent("EmbraceMetadataTmp.sqlite-wal").path)
         try FileManager.default.copyItem(
             atPath: sqliteWalFile,
             toPath: baseUrl.appendingPathComponent("EmbraceMetadataTmp.sqlite-wal").path
@@ -389,7 +396,8 @@ final class MetadataHandlerTests: XCTestCase {
         XCTAssertEqual(property!.lifespanId, "54321")
 
         // and the temporary db file is removed
-        XCTAssertFalse(FileManager.default.fileExists(atPath: baseUrl.appendingPathComponent("EmbraceMetadataTmp.sqlite").path))
+        XCTAssertFalse(
+            FileManager.default.fileExists(atPath: baseUrl.appendingPathComponent("EmbraceMetadataTmp.sqlite").path))
     }
 
     func skip_test_coreDataClone_noFile() throws {

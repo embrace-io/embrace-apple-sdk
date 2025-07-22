@@ -2,19 +2,20 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-#endif
-import OpenTelemetryApi
 import CoreData
+import Foundation
+import OpenTelemetryApi
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+#endif
 
 @objc(MetadataRecord)
 public class MetadataRecord: NSManagedObject {
     @NSManaged public var key: String
     @NSManaged public var value: String
-    @NSManaged public var typeRaw: String // MetadataRecordType
-    @NSManaged public var lifespanRaw: String // MetadataRecordLifespan
+    @NSManaged public var typeRaw: String  // MetadataRecordType
+    @NSManaged public var lifespanRaw: String  // MetadataRecordLifespan
     @NSManaged public var lifespanId: String
     @NSManaged public var collectedAt: Date
 
@@ -95,6 +96,7 @@ extension MetadataRecord: EmbraceStorageRecord {
         let collectedAtAttribute = NSAttributeDescription()
         collectedAtAttribute.name = "collectedAt"
         collectedAtAttribute.attributeType = .dateAttributeType
+        collectedAtAttribute.defaultValue = Date()
 
         entity.properties = [
             keyAttribute,

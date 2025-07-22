@@ -3,8 +3,9 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
+    import EmbraceCommonInternal
 #endif
 
 class CrashlyticsWrapper {
@@ -39,13 +40,14 @@ class CrashlyticsWrapper {
     @ThreadSafe private(set) var retryCount: Int = 0
 
     convenience init(maxRetryCount: Int = 5, retryDelay: Double = 1.0) {
-        self.init(options: Options(
-            className: "FIRCrashlytics",
-            singletonSelector: NSSelectorFromString("crashlytics"),
-            setValueSelector: NSSelectorFromString("setCustomValue:forKey:"),
-            maxRetryCount: maxRetryCount,
-            retryDelay: retryDelay
-        ))
+        self.init(
+            options: Options(
+                className: "FIRCrashlytics",
+                singletonSelector: NSSelectorFromString("crashlytics"),
+                setValueSelector: NSSelectorFromString("setCustomValue:forKey:"),
+                maxRetryCount: maxRetryCount,
+                retryDelay: retryDelay
+            ))
     }
 
     init(options: CrashlyticsWrapper.Options) {

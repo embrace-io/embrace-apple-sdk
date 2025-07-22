@@ -3,15 +3,15 @@
 //
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
+    import EmbraceCommonInternal
 #endif
 
-public extension SpanEventType {
-    static let pushNotification = SpanEventType(system: "push_notification")
+extension SpanEventType {
+    public static let pushNotification = SpanEventType(system: "push_notification")
 }
 
-public extension SpanEventSemantics {
-    struct PushNotification {
+extension SpanEventSemantics {
+    public struct PushNotification {
         public static let name = "emb-push-notification"
 
         public static let keyType = "notification.type"
@@ -26,11 +26,12 @@ public extension SpanEventSemantics {
     }
 }
 
-public extension SpanType {
+extension SpanType {
     @available(
         *,
         deprecated,
         renamed: "SpanEventType.pushNotification",
-        message: "Has been moved to `SpanEventType.pushNotification`")
-    static let pushNotification = SpanEventType(system: "push_notification")
+        message: "Has been moved to `SpanEventType.pushNotification`"
+    )
+    public static let pushNotification = SpanEventType(system: "push_notification")
 }

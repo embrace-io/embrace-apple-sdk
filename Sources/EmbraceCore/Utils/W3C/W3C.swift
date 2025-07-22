@@ -3,5 +3,5 @@
 //
 
 public struct W3C {
-    private init() { }
+    private init() {}
 }

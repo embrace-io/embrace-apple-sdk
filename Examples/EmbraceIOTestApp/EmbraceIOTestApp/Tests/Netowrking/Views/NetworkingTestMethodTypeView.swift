@@ -4,8 +4,8 @@
 //
 //
 
-import SwiftUI
 import EmbraceCommonInternal
+import SwiftUI
 
 struct NetworkingTestMethodTypeView: View {
     @Binding var requestMethod: URLRequestMethod

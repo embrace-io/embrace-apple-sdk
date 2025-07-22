@@ -4,8 +4,8 @@
 //
 //
 
-import SwiftUI
 import EmbraceCommonInternal
+import SwiftUI
 
 struct LoggingTestsSeverityTypeView: View {
     @Binding var logSeverity: LogSeverity

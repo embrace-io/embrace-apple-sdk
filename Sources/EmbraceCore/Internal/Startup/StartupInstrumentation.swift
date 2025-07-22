@@ -3,13 +3,14 @@
 //
 
 import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceOTelInternal
-import EmbraceSemantics
-@_implementationOnly import EmbraceObjCUtilsInternal
-#endif
 import OpenTelemetryApi
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+    import EmbraceOTelInternal
+    import EmbraceSemantics
+    @_implementationOnly import EmbraceObjCUtilsInternal
+#endif
 
 @objc(EMBStartupInstrumentation)
 public class StartupInstrumentation: NSObject {
@@ -47,7 +48,8 @@ public class StartupInstrumentation: NSObject {
 
     func buildMainSpans() {
         guard let otel = otel,
-              let processStartTime = provider.processStartTime else {
+            let processStartTime = provider.processStartTime
+        else {
             return
         }
 
@@ -107,7 +109,8 @@ public class StartupInstrumentation: NSObject {
 
     func buildSecondarySpans(_ appDidFinishLaunchingTime: Date?) {
         guard let otel = otel,
-              let appDidFinishLaunchingTime = appDidFinishLaunchingTime else {
+            let appDidFinishLaunchingTime = appDidFinishLaunchingTime
+        else {
             return
         }
 
@@ -130,7 +133,8 @@ public class StartupInstrumentation: NSObject {
 
             // sdk setup
             if let sdkSetupStartTime = provider.sdkSetupStartTime,
-               let sdkSetupEndTime = provider.sdkSetupEndTime {
+                let sdkSetupEndTime = provider.sdkSetupEndTime
+            {
                 otel.recordCompletedSpan(
                     name: SpanSemantics.Startup.sdkSetup,
                     type: .startup,
@@ -145,7 +149,8 @@ public class StartupInstrumentation: NSObject {
 
             // sdk startup
             if let sdkStartStarTime = provider.sdkStartStartTime,
-               let sdkStartEndTime = provider.sdkStartEndTime {
+                let sdkStartEndTime = provider.sdkStartEndTime
+            {
                 otel.recordCompletedSpan(
                     name: SpanSemantics.Startup.sdkStart,
                     type: .startup,

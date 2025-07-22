@@ -2,8 +2,8 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
 import EmbraceCommonInternal
+import Foundation
 
 public class MockSession: EmbraceSession {
     public var idRaw: String
@@ -48,8 +48,8 @@ public class MockSession: EmbraceSession {
     }
 }
 
-public extension MockSession {
-    static func with(id: SessionIdentifier, state: SessionState) -> MockSession {
+extension MockSession {
+    public static func with(id: SessionIdentifier, state: SessionState) -> MockSession {
         MockSession(
             id: id,
             processId: .random,

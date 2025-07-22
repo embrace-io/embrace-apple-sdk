@@ -3,13 +3,14 @@
 //
 
 import Foundation
+
 @testable import EmbraceCore
 
 class MockStartupDataProvider: StartupDataProvider {
 
     var onFirstFrameTimeSet: ((Date) -> Void)?
     var onAppDidFinishLaunchingEndTimeSet: ((Date) -> Void)?
-    
+
     var startupType: StartupType = .cold
     var isPrewarm: Bool = false
     var processStartTime: Date? = Date(timeIntervalSince1970: 8)

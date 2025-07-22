@@ -61,7 +61,7 @@ extension NetworkStressTest {
                 guard let httpResponse = response.1 as? HTTPURLResponse else {
                     return nil
                 }
-                
+
                 return NetworkResponse(
                     id: idx,
                     requestURL: url,

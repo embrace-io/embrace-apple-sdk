@@ -4,12 +4,13 @@
 
 import Foundation
 import OpenTelemetryApi
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceSemantics
+    import EmbraceCommonInternal
+    import EmbraceSemantics
 #endif
 
-public extension StartupInstrumentation {
+extension StartupInstrumentation {
 
     /// Method used to build a span to be included as a child span to the startup instrumentation root span.
     /// - Parameters:
@@ -18,7 +19,7 @@ public extension StartupInstrumentation {
     ///    - startTime: The start time of the span.
     ///    - attributes: A dictionary of attributes to set on the span.
     /// - Returns: An OpenTelemetry `SpanBuilder` or nil if the root span was not found.
-    func buildChildSpan(
+    public func buildChildSpan(
         name: String,
         type: SpanType = .startup,
         startTime: Date = Date(),
@@ -55,7 +56,7 @@ public extension StartupInstrumentation {
     ///    - attributes: A dictionary of attributes to set on the span.
     /// - Returns: A boolean indicating if the operation was succesful.
     @discardableResult
-    func recordCompletedChildSpan(
+    public func recordCompletedChildSpan(
         name: String,
         type: SpanType = .viewLoad,
         startTime: Date,
@@ -92,7 +93,7 @@ public extension StartupInstrumentation {
     ///   - attributes: A dictionary of attributes to add to the trace. Each key-value pair represents an attribute.
     /// - Returns: A boolean indicating if the operation was succesful.
     @discardableResult
-    func addAttributesToTrace(_ attributes: [String: String]) -> Bool {
+    public func addAttributesToTrace(_ attributes: [String: String]) -> Bool {
 
         return state.withLock {
             guard let rootSpan = $0.rootSpan else {

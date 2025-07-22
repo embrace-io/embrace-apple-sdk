@@ -4,10 +4,10 @@
 //
 //
 
-import OpenTelemetrySdk
-import OpenTelemetryApi
-import SwiftUI
 import EmbraceIO
+import OpenTelemetryApi
+import OpenTelemetrySdk
+import SwiftUI
 
 class FinishedSessionTest: PayloadTest {
     var testRelevantPayloadNames: [String] { ["emb-session", "POST /api/v2/spans"] }
@@ -33,7 +33,8 @@ class FinishedSessionTest: PayloadTest {
     func test(spans: [OpenTelemetrySdk.SpanData]) -> TestReport {
         var testItems = [TestReportItem]()
 
-        let (resultItem, sessionSpan) = evaluateSpanExistence(identifiedBy: currentSession, underAttributeKey: "session.id", on: spans)
+        let (resultItem, sessionSpan) = evaluateSpanExistence(
+            identifiedBy: currentSession, underAttributeKey: "session.id", on: spans)
         testItems.append(resultItem)
 
         guard let sessionSpan = sessionSpan else {
@@ -43,10 +44,11 @@ class FinishedSessionTest: PayloadTest {
         /// The post span exported doesn't contain anything that ties it to the session span it uploaded. I'm checking that the span was created after the last session ended.
         /// This is our best guess this Post Span is related to the last ended session.
         /// It'll... Do for now.
-        guard let _ = spans.first(where: {
-            $0.name == "POST /api/v2/spans" &&
-            $0.startTime > sessionSpan.endTime
-        }) else {
+        guard
+            spans.first(where: {
+                $0.name == "POST /api/v2/spans" && $0.startTime > sessionSpan.endTime
+            }) != nil
+        else {
             testItems.append(.init(target: "POST Session Span", expected: "existing", recorded: "missing"))
             return .init(items: testItems)
         }

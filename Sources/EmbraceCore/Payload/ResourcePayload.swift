@@ -3,12 +3,13 @@
 //
 
 import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceStorageInternal
-@_implementationOnly import EmbraceObjCUtilsInternal
-import EmbraceCommonInternal
-#endif
 import OpenTelemetrySdk
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceStorageInternal
+    @_implementationOnly import EmbraceObjCUtilsInternal
+    import EmbraceCommonInternal
+#endif
 
 struct ResourcePayload: Codable {
     var jailbroken: Bool?

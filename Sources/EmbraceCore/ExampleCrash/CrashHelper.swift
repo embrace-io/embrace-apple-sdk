@@ -10,7 +10,7 @@ public enum ExampleCrash: String, CaseIterable {
     case indexOutOfBounds
 }
 
-enum CrashHelper { }
+enum CrashHelper {}
 extension CrashHelper {
     static func crash(example: ExampleCrash = .unwrapOptional) -> Never {
         switch example {

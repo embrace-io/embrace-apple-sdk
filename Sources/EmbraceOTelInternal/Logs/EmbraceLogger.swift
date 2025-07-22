@@ -9,8 +9,10 @@ class EmbraceLogger: Logger {
     let sharedState: EmbraceLogSharedState
     private let attributes: [String: AttributeValue]
 
-    init(sharedState: EmbraceLogSharedState,
-         attributes: [String: AttributeValue] = [:]) {
+    init(
+        sharedState: EmbraceLogSharedState,
+        attributes: [String: AttributeValue] = [:]
+    ) {
         self.sharedState = sharedState
         self.attributes = attributes
     }
@@ -21,12 +23,14 @@ class EmbraceLogger: Logger {
     /// - Parameter name: the name of the event. **Won't be used**.
     /// - Returns: a `EmbraceLogRecordBuilder` instance.
     func eventBuilder(name: String) -> EventBuilder {
-        EmbraceLogRecordBuilder(sharedState: sharedState,
-                                attributes: attributes)
+        EmbraceLogRecordBuilder(
+            sharedState: sharedState,
+            attributes: attributes)
     }
 
     func logRecordBuilder() -> LogRecordBuilder {
-        EmbraceLogRecordBuilder(sharedState: sharedState,
-                                attributes: attributes)
+        EmbraceLogRecordBuilder(
+            sharedState: sharedState,
+            attributes: attributes)
     }
 }

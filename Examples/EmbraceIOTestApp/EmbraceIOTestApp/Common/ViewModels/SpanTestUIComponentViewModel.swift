@@ -4,8 +4,8 @@
 //
 //
 
-import SwiftUI
 import OpenTelemetrySdk
+import SwiftUI
 
 class SpanTestUIComponentViewModel: UIComponentViewModelBase {
     var spanExporter: TestSpanExporter = .init()
@@ -13,7 +13,7 @@ class SpanTestUIComponentViewModel: UIComponentViewModelBase {
 
     override func testButtonPressed() {
         super.testButtonPressed()
-        
+
         // if test object requirest tests to be run immediately if relevant spans are already present
         guard !payloadTestObject.runImmediatelyIfSpansFound || !allRevelantSpansAreAlreadyCached else {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
@@ -47,7 +47,9 @@ class SpanTestUIComponentViewModel: UIComponentViewModelBase {
     }
 
     private func registerForNotification() {
-        observingObject = NotificationCenter.default.addObserver(forName: .init("TestSpanExporter.SpansUpdated"), object: nil, queue: nil) { [weak self] _ in
+        observingObject = NotificationCenter.default.addObserver(
+            forName: .init("TestSpanExporter.SpansUpdated"), object: nil, queue: nil
+        ) { [weak self] _ in
             guard let self = self else { return }
             if self.allRevelantSpansAreAlreadyCached {
                 self.performTest()
@@ -69,6 +71,7 @@ class SpanTestUIComponentViewModel: UIComponentViewModelBase {
     private func unregisterNotification() {
         guard let observingObject = observingObject else { return }
 
-        NotificationCenter.default.removeObserver(observingObject, name: .init("TestSpanExporter.SpansUpdated"), object: nil)
+        NotificationCenter.default.removeObserver(
+            observingObject, name: .init("TestSpanExporter.SpansUpdated"), object: nil)
     }
 }

@@ -2,8 +2,8 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
 import EmbraceCommonInternal
+import XCTest
 
 @testable import EmbraceStorageInternal
 
@@ -88,9 +88,9 @@ class EmbraceStorageLoggingTests: XCTestCase {
     }
 }
 
-private extension EmbraceStorageLoggingTests {
+extension EmbraceStorageLoggingTests {
     @discardableResult
-    func createInfoLog(withId id: UUID = UUID(), pid: ProcessIdentifier = .random) -> EmbraceLog {
+    fileprivate func createInfoLog(withId id: UUID = UUID(), pid: ProcessIdentifier = .random) -> EmbraceLog {
         return sut.createLog(
             id: LogIdentifier.init(value: id),
             processId: pid,

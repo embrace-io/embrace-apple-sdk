@@ -32,9 +32,9 @@
 + (void)registerCrash:(CRLCrash *)crash;
 + (void)unregisterCrash:(CRLCrash *)crash;
 
-@property(nonatomic,copy,readonly) NSString *category;
-@property(nonatomic,copy,readonly) NSString *title;
-@property(nonatomic,copy,readonly) NSString *desc;
+@property(nonatomic, copy, readonly) NSString *category;
+@property(nonatomic, copy, readonly) NSString *title;
+@property(nonatomic, copy, readonly) NSString *desc;
 
 - (void)crash;
 

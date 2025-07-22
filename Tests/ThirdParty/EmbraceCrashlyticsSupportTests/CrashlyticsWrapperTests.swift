@@ -2,9 +2,10 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-@testable import EmbraceCrashlyticsSupport
-import XCTest
 import TestSupport
+import XCTest
+
+@testable import EmbraceCrashlyticsSupport
 
 class CrashlyticsWrapperTests: XCTestCase {
 

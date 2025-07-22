@@ -39,7 +39,7 @@ class MemoryPressureSimulator {
             guard let self = self else {
                 return
             }
-            let dataSize = 10 * 1024 * 1024 // 10 MB
+            let dataSize = 10 * 1024 * 1024  // 10 MB
             let data = Data(repeating: 0, count: dataSize)
             self.dataStorage.append(data)
             self.totalMemoryBytes += data.count

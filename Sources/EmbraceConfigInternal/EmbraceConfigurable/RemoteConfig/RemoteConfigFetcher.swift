@@ -3,8 +3,9 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
+    import EmbraceCommonInternal
 #endif
 
 class RemoteConfigFetcher {
@@ -45,7 +46,8 @@ class RemoteConfigFetcher {
             }
 
             guard let httpResponse = response as? HTTPURLResponse else {
-                self?.logger.error("Error fetching remote config - Invalid response:\n\(String(describing: response?.description))")
+                self?.logger.error(
+                    "Error fetching remote config - Invalid response:\n\(String(describing: response?.description))")
                 completion(nil, nil)
                 return
             }

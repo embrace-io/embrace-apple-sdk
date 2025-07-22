@@ -3,18 +3,20 @@
 //
 
 import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceStorageInternal
-import EmbraceOTelInternal
-#endif
 import OpenTelemetrySdk
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+    import EmbraceStorageInternal
+    import EmbraceOTelInternal
+#endif
 
 class SpansPayloadBuilder {
 
     class func build(
         for session: EmbraceSession,
         storage: EmbraceStorage,
+        customProperties: [EmbraceMetadata] = [],
         sessionNumber: Int = -1
     ) -> (spans: [SpanPayload], spanSnapshots: [SpanPayload]) {
 
@@ -32,6 +34,7 @@ class SpansPayloadBuilder {
         if let sessionSpanPayload = buildSessionSpanPayload(
             for: session,
             storage: storage,
+            customProperties: customProperties,
             sessionNumber: sessionNumber
         ) {
             spans.append(sessionSpanPayload)
@@ -66,6 +69,7 @@ class SpansPayloadBuilder {
     class func buildSessionSpanPayload(
         for session: EmbraceSession,
         storage: EmbraceStorage,
+        customProperties: [EmbraceMetadata] = [],
         sessionNumber: Int
     ) -> SpanPayload? {
         do {
@@ -76,15 +80,10 @@ class SpansPayloadBuilder {
                 spanData = try JSONDecoder().decode(SpanData.self, from: rawData)
             }
 
-            var properties: [EmbraceMetadata] = []
-            if let sessionId = session.id {
-                properties = storage.fetchCustomPropertiesForSessionId(sessionId)
-            }
-
             return SessionSpanUtils.payload(
                 from: session,
                 spanData: spanData,
-                properties: properties,
+                properties: customProperties,
                 sessionNumber: sessionNumber
             )
 

@@ -12,7 +12,7 @@ struct LoggingTestsAttachmentView: View {
     /// This is a controlled test app. Make sure hardcoded file sizes are powers of 2.
     /// If values here are tweaked, please update the UI Test on EmbraceIOTestLogsUITests to set the correct normalized slider position to match the max file size.
     private var step: Float { 8192 }
-    private var maxAllowedSize: Float { 1048576 }
+    private var maxAllowedSize: Float { 1_048_576 }
     private var maxSize: Float { step * 150 }
     var body: some View {
         VStack {
@@ -24,8 +24,7 @@ struct LoggingTestsAttachmentView: View {
                 .foregroundStyle(attachmentSize > maxAllowedSize ? .embracePink : .embraceSteel)
             Slider(value: $attachmentSize, in: step...maxSize, step: step) {
 
-            }
-            minimumValueLabel: {
+            } minimumValueLabel: {
                 Text("8KB")
             } maximumValueLabel: {
                 Text("1.17 MB")
@@ -51,7 +50,7 @@ struct LoggingTestsAttachmentView: View {
             return "\(bytes) B"
         }
 
-        if bytes < 1048576 {
+        if bytes < 1_048_576 {
             return "\(String(format: "%.0f", kilobytes(bytes))) KB"
         }
 

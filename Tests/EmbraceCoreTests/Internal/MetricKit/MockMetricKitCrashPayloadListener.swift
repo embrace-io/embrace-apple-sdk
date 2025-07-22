@@ -2,9 +2,10 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
-@testable import EmbraceCore
 import EmbraceCommonInternal
+import Foundation
+
+@testable import EmbraceCore
 
 class MockMetricKitCrashPayloadListener: MetricKitCrashPayloadListener {
 

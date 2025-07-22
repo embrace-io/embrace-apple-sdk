@@ -2,9 +2,10 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-@testable import EmbraceCore
 import EmbraceOTelInternal
 import OpenTelemetrySdk
+
+@testable import EmbraceCore
 
 class MockLogDataValidator: LogDataValidator {
 

@@ -3,7 +3,7 @@
 //
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceOTelInternal
+    import EmbraceOTelInternal
 #endif
 
 struct DefaultEmbraceLoggerConfig: EmbraceLoggerConfig {

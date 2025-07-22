@@ -2,8 +2,8 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
 import EmbraceIO
+import Foundation
 
 class Request: ObservableObject {
     @Published var requestResult: String = ""
