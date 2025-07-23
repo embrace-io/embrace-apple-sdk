@@ -31,7 +31,7 @@ public final class ViewCaptureService: CaptureService, UIViewControllerHandlerDa
         return options.instrumentFirstRender && Embrace.client?.config.isUiLoadInstrumentationEnabled == true
     }
 
-    var blockList: ViewControllerBlockList
+    var blockList = EmbraceMutex(ViewControllerBlockList())
 
     @objc public convenience init(options: ViewCaptureService.Options) {
         self.init(options: options, lock: NSLock())
@@ -55,7 +55,7 @@ public final class ViewCaptureService: CaptureService, UIViewControllerHandlerDa
         self.swizzlerCache = swizzlerCache
         self.bundlePath = bundle.bundlePath
         self.lock = lock
-        self.blockList = options.viewControllerBlockList
+        self.blockList.safeValue = options.viewControllerBlockList
 
         super.init()
 
@@ -79,10 +79,14 @@ public final class ViewCaptureService: CaptureService, UIViewControllerHandlerDa
     private func updateBlockList(config: EmbraceConfigurable?) {
         if let list = config?.uiInstrumentationBlockList {
             let blockHostingControllers = config?.uiInstrumentationCaptureHostingControllers ?? true
-            blockList = ViewControllerBlockList(names: list, blockHostingControllers: blockHostingControllers)
+            blockList.safeValue = ViewControllerBlockList(names: list, blockHostingControllers: blockHostingControllers)
         } else {
-            blockList = options.viewControllerBlockList
+            blockList.safeValue = options.viewControllerBlockList
         }
+    }
+
+    func isViewControllerBlocked(_ vc: UIViewController) -> Bool {
+        return blockList.safeValue.isBlocked(viewController: vc)
     }
 
     func onViewBecameInteractive(_ vc: UIViewController) {

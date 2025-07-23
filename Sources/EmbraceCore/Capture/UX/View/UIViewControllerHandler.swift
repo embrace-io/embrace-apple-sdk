@@ -18,7 +18,8 @@ protocol UIViewControllerHandlerDataSource: AnyObject {
 
     var instrumentVisibility: Bool { get }
     var instrumentFirstRender: Bool { get }
-    var blockList: ViewControllerBlockList { get }
+
+    func isViewControllerBlocked(_ vc: UIViewController) -> Bool
 }
 
 class UIViewControllerHandler {
@@ -88,7 +89,7 @@ class UIViewControllerHandler {
         guard dataSource?.state == .active,
               dataSource?.instrumentFirstRender == true,
               vc.emb_shouldCaptureView,
-              dataSource?.blockList.isBlocked(viewController: vc) == false,
+              dataSource?.isViewControllerBlocked(vc) == false,
               let otel = dataSource?.otel else {
             return
         }

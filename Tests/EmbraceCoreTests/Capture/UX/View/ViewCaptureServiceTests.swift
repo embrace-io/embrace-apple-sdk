@@ -84,9 +84,9 @@ class ViewCaptureServiceTests: XCTestCase {
         service = ViewCaptureService(options: options, handler: handler, lock: NSLock())
 
         // then it has the correct block list
-        XCTAssert(service.blockList.types.contains { $0 == MockViewController.self })
-        XCTAssert(service.blockList.names.contains("TEST"))
-        XCTAssert(service.blockList.blockHostingControllers)
+        XCTAssert(service.blockList.safeValue.types.contains { $0 == MockViewController.self })
+        XCTAssert(service.blockList.safeValue.names.contains("TEST"))
+        XCTAssert(service.blockList.safeValue.blockHostingControllers)
     }
 
     func test_blockList_remoteConfig() {
@@ -96,9 +96,9 @@ class ViewCaptureServiceTests: XCTestCase {
         service = ViewCaptureService(options: options, handler: handler, lock: NSLock())
 
         // then it has the correct block list
-        XCTAssert(service.blockList.types.contains { $0 == MockViewController.self })
-        XCTAssert(service.blockList.names.contains("TEST"))
-        XCTAssert(service.blockList.blockHostingControllers)
+        XCTAssert(service.blockList.safeValue.types.contains { $0 == MockViewController.self })
+        XCTAssert(service.blockList.safeValue.names.contains("TEST"))
+        XCTAssert(service.blockList.safeValue.blockHostingControllers)
 
         // when the remote config changes
         let config = EditableConfig()
@@ -107,11 +107,11 @@ class ViewCaptureServiceTests: XCTestCase {
         Embrace.notificationCenter.post(name: .embraceConfigUpdated, object: config)
 
         // then the blocklist is updated
-        XCTAssert(service.blockList.types.isEmpty)
-        XCTAssert(service.blockList.names.contains("MYCUSTOMVIEWCONTROLLER"))
-        XCTAssert(service.blockList.names.contains("MYSPECIALVIEWCONTROLLER"))
-        XCTAssertEqual(service.blockList.names.count, 2)
-        XCTAssertFalse(service.blockList.blockHostingControllers)
+        XCTAssert(service.blockList.safeValue.types.isEmpty)
+        XCTAssert(service.blockList.safeValue.names.contains("MYCUSTOMVIEWCONTROLLER"))
+        XCTAssert(service.blockList.safeValue.names.contains("MYSPECIALVIEWCONTROLLER"))
+        XCTAssertEqual(service.blockList.safeValue.names.count, 2)
+        XCTAssertFalse(service.blockList.safeValue.blockHostingControllers)
     }
 }
 
