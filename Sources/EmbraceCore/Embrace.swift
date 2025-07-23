@@ -327,11 +327,12 @@ import Foundation
                 sessionLifecycle.startSession()
                 captureServices.install()
 
-                metricKit.install()
-
                 // save latest session in memory before its sent and deleted
                 // this will be used to link metric kit payloads to the session
-                metricKit.lastSession = storage.fetchLatestSession()
+                storage.fetchLatestSession { [self] session in
+                    metricKit.lastSession = session
+                    metricKit.install()
+                }
 
                 self.captureServices.start()
 

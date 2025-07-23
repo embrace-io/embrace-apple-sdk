@@ -45,32 +45,26 @@ public class SessionRecord: NSManagedObject {
         coldStart: Bool = false,
         cleanExit: Bool = false,
         appTerminated: Bool = false
-    ) -> EmbraceSession? {
-        var result: EmbraceSession?
-
-        context.performAndWait {
-            guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
-                return
-            }
-
-            let record = SessionRecord(entity: description, insertInto: context)
-            record.idRaw = id.toString
-            record.processIdRaw = processId.hex
-            record.state = state.rawValue
-            record.traceId = traceId
-            record.spanId = spanId
-            record.startTime = startTime
-            record.endTime = endTime
-            record.lastHeartbeatTime = lastHeartbeatTime ?? startTime
-            record.crashReportId = crashReportId
-            record.coldStart = coldStart
-            record.cleanExit = cleanExit
-            record.appTerminated = appTerminated
-
-            result = record.toImmutable()
+    ) -> SessionRecord? {
+        guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
+            return nil
         }
 
-        return result
+        let record = SessionRecord(entity: description, insertInto: context)
+        record.idRaw = id.toString
+        record.processIdRaw = processId.hex
+        record.state = state.rawValue
+        record.traceId = traceId
+        record.spanId = spanId
+        record.startTime = startTime
+        record.endTime = endTime
+        record.lastHeartbeatTime = lastHeartbeatTime ?? startTime
+        record.crashReportId = crashReportId
+        record.coldStart = coldStart
+        record.cleanExit = cleanExit
+        record.appTerminated = appTerminated
+
+        return record
     }
 
     static func createFetchRequest() -> NSFetchRequest<SessionRecord> {
