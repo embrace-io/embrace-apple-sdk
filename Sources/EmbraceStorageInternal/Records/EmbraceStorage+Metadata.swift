@@ -65,7 +65,7 @@ extension EmbraceStorage {
     /// Adds or updates all the given required resources
     public func addRequiredResources(_ map: [String: String], processId: ProcessIdentifier = .current) {
 
-        coreData.performOperation { context in
+        coreData.performAsyncOperation { [self] context in
 
             guard let description = NSEntityDescription.entity(forEntityName: MetadataRecord.entityName, in: context)
             else {

@@ -57,40 +57,44 @@ class UnsentDataHandler {
         crashReporter: CrashReporter,
         crashReports: [EmbraceCrashReport]
     ) {
-        // send crash reports
-        for report in crashReports {
+        storage.coreData.performAsyncOperation { [self] _ in
 
-            // link session with crash report if possible
-            var session: EmbraceSession?
+            // send crash reports
+            for report in crashReports {
 
-            // set crash reportId on session
-            if let sessionId = SessionIdentifier(string: report.sessionId) {
-                storage.updateSession(
-                    sessionId: sessionId,
-                    endTime: report.timestamp,
-                    crashReportId: report.id.uuidString
+                // link session with crash report if possible
+                var session: EmbraceSession? = nil
+
+                if let sessionId = SessionIdentifier(string: report.sessionId) {
+                    if let fetchedSession = storage.fetchSession(id: sessionId) {
+                        session = storage.updateSession(
+                            session: fetchedSession,
+                            endTime: report.timestamp,
+                            crashReportId: report.id.uuidString
+                        )
+                    }
+                }
+
+                // send crash log
+                sendCrashLog(
+                    report: report,
+                    reporter: crashReporter,
+                    session: session,
+                    storage: storage,
+                    upload: upload,
+                    otel: otel
                 )
-
-                session = storage.fetchSession(id: sessionId)
             }
 
-            // send crash log
-            sendCrashLog(
-                report: report,
-                reporter: crashReporter,
-                session: session,
+            // send sessions
+            sendSessions(
                 storage: storage,
                 upload: upload,
-                otel: otel
+                currentSessionId: currentSessionId
             )
+
         }
 
-        // send sessions
-        sendSessions(
-            storage: storage,
-            upload: upload,
-            currentSessionId: currentSessionId
-        )
     }
 
     static public func sendCrashLog(

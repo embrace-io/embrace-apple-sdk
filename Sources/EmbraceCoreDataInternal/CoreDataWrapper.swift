@@ -76,10 +76,12 @@ public class CoreDataWrapper {
     public func performOperation<Result>(
         _ name: String = #function, save _: Bool = false, _ block: (NSManagedObjectContext) -> Result
     ) -> Result {
-        
+
         if Thread.isMainThread {
             logger.critical("performBlockAndWait on main thread can easily deadlock!")
         }
+        precondition(!Thread.isMainThread, "performBlockAndWait on main thread can easily deadlock!")
+        dispatchPrecondition(condition: .notOnQueue(.main))
         
         var result: Result!
         let taskAssertion = BackgroundTaskWrapper(name: name, logger: logger)
@@ -91,9 +93,29 @@ public class CoreDataWrapper {
         return result
     }
 
+    /// Asynchronously performs the given block on the current context
+    /// behind a background task assertion.
+    /// And automatically save if requested.
+    public func performAsyncOperation(
+        _ name: String = #function, save _: Bool = false, _ block: @escaping (NSManagedObjectContext) -> Void
+    ) {
+        let taskAssertion = BackgroundTaskWrapper(name: name, logger: logger)
+        let cntxt: NSManagedObjectContext = context
+        cntxt.perform { [self, cntxt] in
+            block(cntxt)
+            saveIfNeeded()
+            taskAssertion?.finish()
+        }
+    }
+
     /// Requests all changes to be saved to disk as soon as possible
     public func save() {
         performOperation(save: true) { _ in }
+    }
+
+    /// Requests all changes to be saved to disk async
+    public func saveAsync() {
+        performAsyncOperation(save: true) { _ in }
     }
 }
 
