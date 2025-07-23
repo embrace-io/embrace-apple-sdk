@@ -42,7 +42,7 @@ extension EmbraceStorage {
         let hbTime = lastHeartbeatTime ?? Date()
 
         coreData.performAsyncOperation { [self] _ in
-            if let session = SessionRecord.create(
+            if SessionRecord.create(
                 context: coreData.context,
                 id: id,
                 processId: processId,

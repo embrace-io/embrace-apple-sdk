@@ -74,7 +74,7 @@ public class CoreDataWrapper {
     /// Note we do not cancel currently any tasks on assertion expiry,
     /// Note don't we care if a task assertion is actually given to us.
     public func performOperation<Result>(
-        _ name: String = #function, save _: Bool = false, _ block: (NSManagedObjectContext) -> Result
+        _ name: String = #function, save: Bool = false, _ block: (NSManagedObjectContext) -> Result
     ) -> Result {
 
         if !isTesting {
@@ -89,7 +89,9 @@ public class CoreDataWrapper {
         let taskAssertion = BackgroundTaskWrapper(name: name, logger: logger)
         context.performAndWait {
             result = block(context)
-            saveIfNeeded()
+            if save {
+                saveIfNeeded()
+            }
         }
         taskAssertion?.finish()
         return result
@@ -99,13 +101,15 @@ public class CoreDataWrapper {
     /// behind a background task assertion.
     /// And automatically save if requested.
     public func performAsyncOperation(
-        _ name: String = #function, save _: Bool = false, _ block: @escaping (NSManagedObjectContext) -> Void
+        _ name: String = #function, save: Bool = false, _ block: @escaping (NSManagedObjectContext) -> Void
     ) {
         let taskAssertion = BackgroundTaskWrapper(name: name, logger: logger)
         let cntxt: NSManagedObjectContext = context
         cntxt.perform { [self, cntxt] in
             block(cntxt)
-            saveIfNeeded()
+            if save {
+                saveIfNeeded()
+            }
             taskAssertion?.finish()
         }
     }
