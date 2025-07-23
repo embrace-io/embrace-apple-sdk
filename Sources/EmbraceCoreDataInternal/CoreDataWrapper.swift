@@ -82,7 +82,7 @@ public class CoreDataWrapper {
         }
         precondition(!Thread.isMainThread, "performBlockAndWait on main thread can easily deadlock!")
         dispatchPrecondition(condition: .notOnQueue(.main))
-        
+
         var result: Result!
         let taskAssertion = BackgroundTaskWrapper(name: name, logger: logger)
         context.performAndWait {
