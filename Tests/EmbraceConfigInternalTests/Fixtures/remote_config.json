@@ -7,6 +7,8 @@
         "pct_enabled": 25
     },
     "ui_load_instrumentation_enabled_v2": false,
+    "ui_load_instrumentation_blocklist": "MyViewController,TestViewController",
+    "ui_load_instrumentation_hosting_controller_capture": true,
     "swift_ui_view_instrumentation_enabled": false,
     "ui":{
        "breadcrumbs": 1234

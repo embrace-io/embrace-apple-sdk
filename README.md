@@ -172,7 +172,7 @@ To ensure consistent formatting across the codebase, we use both [swift-format](
 The easiest way to run both formatters is via:
 
 ```sh
-make format
+make all
 ```
 
 This will automatically apply formatting to all Swift and C/Obj-C files using project-defined configurations (e.g., `.swift-format`, `.clang-format`).

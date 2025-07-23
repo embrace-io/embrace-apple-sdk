@@ -15,14 +15,16 @@ public struct RemoteConfigPayload: Decodable, Equatable {
     var sdkEnabledThreshold: Float
     var backgroundSessionThreshold: Float
     var networkSpansForwardingThreshold: Float
+
     var uiLoadInstrumentationEnabled: Bool
+    var viewControllerClassNameBlocklist: [String]
+    var uiInstrumentationCaptureHostingControllers: Bool
+    var swiftUiViewInstrumentationEnabled: Bool
 
     var metricKitEnabledThreshold: Float
     var metricKitCrashCaptureEnabled: Bool
     var metricKitCrashSignals: [String]
     var metricKitHangCaptureEnabled: Bool
-
-    var swiftUiViewInstrumentationEnabled: Bool
 
     var breadcrumbLimit: Int
 
@@ -52,6 +54,8 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         }
 
         case uiLoadInstrumentationEnabled = "ui_load_instrumentation_enabled_v2"
+        case uiLoadInstrumentationBlocklist = "ui_load_instrumentation_blocklist"
+        case uiLoadCaptureHostingControllers = "ui_load_instrumentation_hosting_controller_capture"
         case swiftUiViewInstrumentationEnabled = "swift_ui_view_instrumentation_enabled"
 
         case metricKitEnabledThreshold = "metrickit_v2_pct_enabled"
@@ -129,6 +133,23 @@ public struct RemoteConfigPayload: Decodable, Equatable {
                 Bool.self,
                 forKey: .uiLoadInstrumentationEnabled
             ) ?? defaultPayload.uiLoadInstrumentationEnabled
+
+        // ui block list
+        if let strArray = try rootContainer.decodeIfPresent(
+            String.self,
+            forKey: .uiLoadInstrumentationBlocklist
+        )?.uppercased() {
+            viewControllerClassNameBlocklist = strArray.components(separatedBy: ",")
+        } else {
+            viewControllerClassNameBlocklist = defaultPayload.viewControllerClassNameBlocklist
+        }
+
+        // hosting controllers capture
+        uiInstrumentationCaptureHostingControllers =
+            try rootContainer.decodeIfPresent(
+                Bool.self,
+                forKey: .uiLoadCaptureHostingControllers
+            ) ?? defaultPayload.uiInstrumentationCaptureHostingControllers
 
         // SwiftUI View instrumentation
         swiftUiViewInstrumentationEnabled =
@@ -269,14 +290,16 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         sdkEnabledThreshold = 100.0
         backgroundSessionThreshold = 0.0
         networkSpansForwardingThreshold = 0.0
+
         uiLoadInstrumentationEnabled = true
+        viewControllerClassNameBlocklist = []
+        uiInstrumentationCaptureHostingControllers = false
+        swiftUiViewInstrumentationEnabled = true
 
         metricKitEnabledThreshold = 0.0
         metricKitCrashCaptureEnabled = false
         metricKitCrashSignals = [CrashSignal.SIGKILL.stringValue]
         metricKitHangCaptureEnabled = false
-
-        swiftUiViewInstrumentationEnabled = true
 
         breadcrumbLimit = 100
 

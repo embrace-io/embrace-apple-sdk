@@ -96,6 +96,12 @@ extension RemoteConfig: EmbraceConfigurable {
 
     public var isUiLoadInstrumentationEnabled: Bool { payload.uiLoadInstrumentationEnabled }
 
+    public var viewControllerClassNameBlocklist: [String] { payload.viewControllerClassNameBlocklist }
+
+    public var uiInstrumentationCaptureHostingControllers: Bool { payload.uiInstrumentationCaptureHostingControllers }
+
+    public var isSwiftUiViewInstrumentationEnabled: Bool { payload.swiftUiViewInstrumentationEnabled }
+
     public var isMetricKitEnabled: Bool { isEnabled(threshold: payload.metricKitEnabledThreshold) }
 
     public var isMetricKitCrashCaptureEnabled: Bool { payload.metricKitCrashCaptureEnabled }
@@ -103,8 +109,6 @@ extension RemoteConfig: EmbraceConfigurable {
     public var metricKitCrashSignals: [String] { payload.metricKitCrashSignals }
 
     public var isMetricKitHangCaptureEnabled: Bool { payload.metricKitHangCaptureEnabled }
-
-    public var isSwiftUiViewInstrumentationEnabled: Bool { payload.swiftUiViewInstrumentationEnabled }
 
     public var networkPayloadCaptureRules: [NetworkPayloadCaptureRule] { payload.networkPayloadCaptureRules }
 
