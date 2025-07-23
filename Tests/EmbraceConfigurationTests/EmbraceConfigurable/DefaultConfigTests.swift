@@ -14,7 +14,7 @@ final class DefaultConfigTests: XCTestCase {
         XCTAssertFalse(config.isBackgroundSessionEnabled)
         XCTAssertFalse(config.isNetworkSpansForwardingEnabled)
         XCTAssertTrue(config.isUiLoadInstrumentationEnabled)
-        XCTAssertTrue(config.uiInstrumentationBlockList.isEmpty)
+        XCTAssertTrue(config.viewControllerClassNameBlocklist.isEmpty)
         XCTAssertFalse(config.uiInstrumentationCaptureHostingControllers)
         XCTAssertTrue(config.isSwiftUiViewInstrumentationEnabled)
         XCTAssertFalse(config.isMetricKitEnabled)

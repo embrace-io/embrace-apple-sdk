@@ -16,7 +16,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
     var networkSpansForwardingThreshold: Float
 
     var uiLoadInstrumentationEnabled: Bool
-    var uiInstrumentationBlockList: [String]
+    var viewControllerClassNameBlocklist: [String]
     var uiInstrumentationCaptureHostingControllers: Bool
     var swiftUiViewInstrumentationEnabled: Bool
 
@@ -134,9 +134,9 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             String.self,
             forKey: .uiLoadInstrumentationBlocklist
         )?.uppercased() {
-            uiInstrumentationBlockList = strArray.components(separatedBy: ",")
+            viewControllerClassNameBlocklist = strArray.components(separatedBy: ",")
         } else {
-            uiInstrumentationBlockList = defaultPayload.uiInstrumentationBlockList
+            viewControllerClassNameBlocklist = defaultPayload.viewControllerClassNameBlocklist
         }
 
         // hosting controllers capture
@@ -274,7 +274,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         networkSpansForwardingThreshold = 0.0
 
         uiLoadInstrumentationEnabled = true
-        uiInstrumentationBlockList = []
+        viewControllerClassNameBlocklist = []
         uiInstrumentationCaptureHostingControllers = false
         swiftUiViewInstrumentationEnabled = true
 

@@ -102,7 +102,7 @@ class ViewCaptureServiceTests: XCTestCase {
 
         // when the remote config changes
         let config = EditableConfig()
-        config.uiInstrumentationBlockList = ["MyCustomViewController", "MySpecialViewController"]
+        config.viewControllerClassNameBlocklist = ["MyCustomViewController", "MySpecialViewController"]
         config.uiInstrumentationCaptureHostingControllers = false
         Embrace.notificationCenter.post(name: .embraceConfigUpdated, object: config)
 

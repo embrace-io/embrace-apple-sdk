@@ -105,8 +105,8 @@ extension EmbraceConfig /* EmbraceConfigurable delegation */ {
         configurable.isUiLoadInstrumentationEnabled
     }
 
-    public var uiInstrumentationBlockList: [String] {
-        configurable.uiInstrumentationBlockList
+    public var viewControllerClassNameBlocklist: [String] {
+        configurable.viewControllerClassNameBlocklist
     }
 
     public var uiInstrumentationCaptureHostingControllers: Bool {

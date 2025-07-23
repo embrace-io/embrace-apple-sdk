@@ -15,7 +15,7 @@ import Foundation
 
     var isUiLoadInstrumentationEnabled: Bool { get }
 
-    var uiInstrumentationBlockList: [String] { get }
+    var viewControllerClassNameBlocklist: [String] { get }
 
     var uiInstrumentationCaptureHostingControllers: Bool { get }
 

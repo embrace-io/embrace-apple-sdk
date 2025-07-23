@@ -77,7 +77,7 @@ public final class ViewCaptureService: CaptureService, UIViewControllerHandlerDa
     }
 
     private func updateBlockList(config: EmbraceConfigurable?) {
-        if let list = config?.uiInstrumentationBlockList {
+        if let list = config?.viewControllerClassNameBlocklist {
             let blockHostingControllers = config?.uiInstrumentationCaptureHostingControllers ?? true
             blockList.safeValue = ViewControllerBlockList(names: list, blockHostingControllers: blockHostingControllers)
         } else {

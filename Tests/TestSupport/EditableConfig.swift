@@ -13,7 +13,7 @@ public class EditableConfig: EmbraceConfigurable {
 
     public var isUiLoadInstrumentationEnabled: Bool = false
 
-    public var uiInstrumentationBlockList: [String] = []
+    public var viewControllerClassNameBlocklist: [String] = []
 
     public var uiInstrumentationCaptureHostingControllers: Bool = false
 

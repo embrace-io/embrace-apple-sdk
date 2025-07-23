@@ -14,7 +14,7 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         isBackgroundSessionEnabled: Bool = false,
         isNetworkSpansForwardingEnabled: Bool = false,
         isUiLoadInstrumentationEnabled: Bool = false,
-        uiInstrumentationBlockList: [String] = [],
+        viewControllerClassNameBlocklist: [String] = [],
         uiInstrumentationCaptureHostingControllers: Bool = false,
         isSwiftUiViewInstrumentationEnabled: Bool = false,
         isMetricKitEnabled: Bool = false,
@@ -32,7 +32,7 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         self._isBackgroundSessionEnabled = isBackgroundSessionEnabled
         self._isNetworkSpansForwardingEnabled = isNetworkSpansForwardingEnabled
         self._isUiLoadInstrumentationEnabled = isUiLoadInstrumentationEnabled
-        self._uiInstrumentationBlockList = uiInstrumentationBlockList
+        self._viewControllerClassNameBlocklist = viewControllerClassNameBlocklist
         self._uiInstrumentationCaptureHostingControllers = uiInstrumentationCaptureHostingControllers
         self._isSwiftUiViewInstrumentationEnabled = isSwiftUiViewInstrumentationEnabled
         self._isMetricKitEnabled = isMetricKitEnabled
@@ -98,15 +98,15 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         }
     }
 
-    private var _uiInstrumentationBlockList: [String]
-    public let uiInstrumentationBlockListExpectation = XCTestExpectation(description: "uiInstrumentationBlockList called")
-    public var uiInstrumentationBlockList: [String] {
+    private var _viewControllerClassNameBlocklist: [String]
+    public let viewControllerClassNameBlocklistExpectation = XCTestExpectation(description: "viewControllerClassNameBlocklist called")
+    public var viewControllerClassNameBlocklist: [String] {
         get {
-            uiInstrumentationBlockListExpectation.fulfill()
-            return _uiInstrumentationBlockList
+            viewControllerClassNameBlocklistExpectation.fulfill()
+            return _viewControllerClassNameBlocklist
         }
         set {
-            _uiInstrumentationBlockList = newValue
+            _viewControllerClassNameBlocklist = newValue
         }
     }
 
