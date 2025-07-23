@@ -2,8 +2,8 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import SwiftUI
 import EmbraceIO
+import SwiftUI
 
 struct SessionAttributesView: View {
     @State private var property = Property()
@@ -39,9 +39,11 @@ struct SessionAttributesView: View {
                 }
 
                 if action == .delete {
-                    Toggle(isOn: $appliesToAllAttributes, label: {
-                        Text("\(action.rawValue) all?")
-                    })
+                    Toggle(
+                        isOn: $appliesToAllAttributes,
+                        label: {
+                            Text("\(action.rawValue) all?")
+                        })
                 }
 
                 if !(action == .delete && appliesToAllAttributes) {
@@ -70,8 +72,8 @@ struct SessionAttributesView: View {
 }
 
 // MARK: - Private Methods / Logic
-private extension SessionAttributesView {
-    func isExecuteDisabled() -> Bool {
+extension SessionAttributesView {
+    fileprivate func isExecuteDisabled() -> Bool {
         switch action {
         case .add, .update:
             return property.key.isEmpty || property.value.isEmpty
@@ -80,7 +82,7 @@ private extension SessionAttributesView {
         }
     }
 
-    func execute() {
+    fileprivate func execute() {
         do {
             switch action {
             case .add:
@@ -98,7 +100,7 @@ private extension SessionAttributesView {
         }
     }
 
-    func addProperty() throws {
+    fileprivate func addProperty() throws {
         let metadata = Embrace.client?.metadata
         switch property.type {
         case .resource:
@@ -116,7 +118,7 @@ private extension SessionAttributesView {
         }
     }
 
-    func updateProperty() throws {
+    fileprivate func updateProperty() throws {
         let metadata = Embrace.client?.metadata
         switch property.type {
         case .resource:
@@ -134,7 +136,7 @@ private extension SessionAttributesView {
         }
     }
 
-    func deleteProperty () throws {
+    fileprivate func deleteProperty() throws {
         let metadata = Embrace.client?.metadata
         switch property.type {
         case .resource:
@@ -158,7 +160,7 @@ private extension SessionAttributesView {
         }
     }
 
-    func resetFields() {
+    fileprivate func resetFields() {
         property = Property()
         action = .add
         appliesToAllAttributes = false
@@ -166,15 +168,15 @@ private extension SessionAttributesView {
 }
 
 // MARK: - Types
-private extension SessionAttributesView {
-    enum AttributeType: String, CaseIterable, Identifiable {
+extension SessionAttributesView {
+    fileprivate enum AttributeType: String, CaseIterable, Identifiable {
         case sessionProperty = "Session Property"
         case resource = "Resource"
 
         var id: String { self.rawValue }
     }
 
-    enum Lifespan: String, CaseIterable, Identifiable {
+    fileprivate enum Lifespan: String, CaseIterable, Identifiable {
         case session = "Session"
         case process = "Process"
         case permanent = "Permanent"
@@ -193,7 +195,7 @@ private extension SessionAttributesView {
         }
     }
 
-    enum Action: String, CaseIterable, Identifiable {
+    fileprivate enum Action: String, CaseIterable, Identifiable {
         case add = "Add"
         case update = "Update"
         case delete = "Delete"
@@ -201,7 +203,7 @@ private extension SessionAttributesView {
         var id: String { self.rawValue }
     }
 
-    struct Property {
+    fileprivate struct Property {
         var type: AttributeType = .sessionProperty
         var lifespan: Lifespan = .session
         var key: String = ""

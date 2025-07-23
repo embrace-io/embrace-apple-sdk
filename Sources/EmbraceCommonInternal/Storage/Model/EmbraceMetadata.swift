@@ -38,12 +38,12 @@ public protocol EmbraceMetadata {
     var collectedAt: Date { get }
 }
 
-public extension EmbraceMetadata {
-    var type: MetadataRecordType? {
+extension EmbraceMetadata {
+    public var type: MetadataRecordType? {
         return MetadataRecordType(rawValue: typeRaw)
     }
 
-    var lifespan: MetadataRecordLifespan? {
+    public var lifespan: MetadataRecordLifespan? {
         return MetadataRecordLifespan(rawValue: lifespanRaw)
     }
 }

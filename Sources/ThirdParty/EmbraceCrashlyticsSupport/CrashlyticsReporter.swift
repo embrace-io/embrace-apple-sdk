@@ -3,8 +3,9 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
+    import EmbraceCommonInternal
 #endif
 
 /// Special `CrashReporter` implementation that captures crash data from Crashlytics reports.
@@ -24,10 +25,11 @@ public final class CrashlyticsReporter: NSObject, CrashReporter {
     }
 
     @objc public convenience override init() {
-        self.init(options: Options(
-            domain: "crashlyticsreports-pa.googleapis.com",
-            path: "batchlog"
-        ))
+        self.init(
+            options: Options(
+                domain: "crashlyticsreports-pa.googleapis.com",
+                path: "batchlog"
+            ))
     }
 
     init(options: CrashlyticsReporter.Options) {
@@ -84,7 +86,8 @@ public final class CrashlyticsReporter: NSObject, CrashReporter {
         }
 
         guard let request = task.originalRequest,
-              let urlString = request.url?.absoluteString else {
+            let urlString = request.url?.absoluteString
+        else {
             return
         }
 

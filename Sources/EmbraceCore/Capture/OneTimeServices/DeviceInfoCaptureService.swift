@@ -3,11 +3,12 @@
 //
 
 import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-@_implementationOnly import EmbraceObjCUtilsInternal
-#endif
 import OpenTelemetrySdk
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+    @_implementationOnly import EmbraceObjCUtilsInternal
+#endif
 
 class DeviceInfoCaptureService: ResourceCaptureService {
 

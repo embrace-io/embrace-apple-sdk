@@ -3,6 +3,7 @@
 //
 
 import XCTest
+
 @testable import EmbraceCore
 
 class URLSessionTaskExtensionTests: XCTestCase {
@@ -22,24 +23,24 @@ class URLSessionTaskExtensionTests: XCTestCase {
     }
 }
 
-private extension URLSessionTaskExtensionTests {
-    func givenRandomURLSessionTask() {
+extension URLSessionTaskExtensionTests {
+    fileprivate func givenRandomURLSessionTask() {
         sut = URLSession.shared.dataTask(with: URLRequest(url: URL(string: "https://embrace.io")!))
     }
 
-    func givenRandomDataToSet() {
+    fileprivate func givenRandomDataToSet() {
         dataToSet = UUID().uuidString.data(using: .utf8)!
     }
 
-    func whenInvokingSetEmbraceData() {
+    fileprivate func whenInvokingSetEmbraceData() {
         sut.embraceData = dataToSet
     }
 
-    func thenEmbraceDataIsNil() {
+    fileprivate func thenEmbraceDataIsNil() {
         XCTAssertNil(sut.embraceData)
     }
 
-    func thenEmbraceDataShouldHaveThatData() {
+    fileprivate func thenEmbraceDataShouldHaveThatData() {
         XCTAssertEqual(dataToSet, sut.embraceData)
     }
 }

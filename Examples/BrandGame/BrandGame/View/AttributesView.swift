@@ -19,16 +19,19 @@ struct AttributesView: View {
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                 TextField("Value", text: $value)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
-                Button(action: {
-                    attributes[key] = value
-                    key = ""
-                    value = ""
-                }, label: {
-                    Image(systemName: "plus.circle.fill")
-                        .resizable()
-                        .frame(width: 30, height: 30)
-                        .foregroundColor(.blue)
-                })
+                Button(
+                    action: {
+                        attributes[key] = value
+                        key = ""
+                        value = ""
+                    },
+                    label: {
+                        Image(systemName: "plus.circle.fill")
+                            .resizable()
+                            .frame(width: 30, height: 30)
+                            .foregroundColor(.blue)
+                    }
+                )
                 .disabled(key.isEmpty || value.isEmpty)
             }
 

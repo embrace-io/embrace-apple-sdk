@@ -2,11 +2,12 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-#endif
 import CoreData
+import Foundation
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+#endif
 
 extension EmbraceStorage {
     /// Adds a session to the storage synchronously.
@@ -36,11 +37,8 @@ extension EmbraceStorage {
         cleanExit: Bool = false,
         appTerminated: Bool = false
     ) -> EmbraceSession? {
-        
-        var result: EmbraceSession? = nil
-        
         coreData.performOperation { _ in
-            
+
             // update existing?
             if let session = updateExistingSession(
                 id: id,
@@ -56,10 +54,9 @@ extension EmbraceStorage {
                 cleanExit: cleanExit,
                 appTerminated: appTerminated
             ) {
-                result = session
-                return
+                return session
             }
-            
+
             // create new
             if let session = SessionRecord.create(
                 context: coreData.context,
@@ -76,13 +73,11 @@ extension EmbraceStorage {
                 appTerminated: appTerminated
             ) {
                 coreData.save()
-                result = session
-                return
+                return session
             }
-            
+
+            return nil
         }
-        
-        return result
     }
 
     func fetchSessionRequest(id: SessionIdentifier) -> NSFetchRequest<SessionRecord> {
@@ -106,14 +101,12 @@ extension EmbraceStorage {
         cleanExit: Bool = false,
         appTerminated: Bool = false
     ) -> EmbraceSession? {
-        var result: EmbraceSession?
-
         coreData.performOperation { context in
-            
+
             // fetch existing session
             let request = fetchSessionRequest(id: id)
             guard let session = coreData.fetch(withRequest: request).first else {
-                return
+                return nil
             }
 
             session.state = state.rawValue
@@ -132,12 +125,9 @@ extension EmbraceStorage {
             }
 
             coreData.save()
-            result = session.toImmutable()
+            return session.toImmutable()
         }
-
-        return result
     }
-
 
     /// Fetches the stored `SessionRecord` synchronously with the given identifier, if any.
     /// - Parameters:

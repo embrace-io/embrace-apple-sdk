@@ -2,10 +2,11 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-#endif
 import OpenTelemetryApi
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+#endif
 
 public struct LogSemantics {
     public static let keyEmbraceType = "emb.type"

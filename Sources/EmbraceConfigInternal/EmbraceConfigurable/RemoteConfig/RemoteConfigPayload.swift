@@ -3,9 +3,10 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceConfiguration
-import EmbraceCommonInternal
+    import EmbraceConfiguration
+    import EmbraceCommonInternal
 #endif
 
 // swiftlint:disable nesting
@@ -90,10 +91,11 @@ public struct RemoteConfigPayload: Decodable, Equatable {
 
         // sdk enabled
         let rootContainer = try decoder.container(keyedBy: CodingKeys.self)
-        sdkEnabledThreshold = try rootContainer.decodeIfPresent(
-            Float.self,
-            forKey: .sdkEnabledThreshold
-        ) ?? defaultPayload.sdkEnabledThreshold
+        sdkEnabledThreshold =
+            try rootContainer.decodeIfPresent(
+                Float.self,
+                forKey: .sdkEnabledThreshold
+            ) ?? defaultPayload.sdkEnabledThreshold
 
         // background session
         if rootContainer.contains(.background) {
@@ -101,10 +103,11 @@ public struct RemoteConfigPayload: Decodable, Equatable {
                 keyedBy: CodingKeys.BackgroundCodingKeys.self,
                 forKey: .background
             )
-            backgroundSessionThreshold = try backgroundContainer.decodeIfPresent(
-                Float.self,
-                forKey: CodingKeys.BackgroundCodingKeys.threshold
-            ) ?? defaultPayload.backgroundSessionThreshold
+            backgroundSessionThreshold =
+                try backgroundContainer.decodeIfPresent(
+                    Float.self,
+                    forKey: CodingKeys.BackgroundCodingKeys.threshold
+                ) ?? defaultPayload.backgroundSessionThreshold
         } else {
             backgroundSessionThreshold = defaultPayload.backgroundSessionThreshold
         }
@@ -115,19 +118,21 @@ public struct RemoteConfigPayload: Decodable, Equatable {
                 keyedBy: CodingKeys.NetworkSpansForwardingCodingKeys.self,
                 forKey: .networkSpansForwarding
             )
-            networkSpansForwardingThreshold = try networkSpansForwardingContainer.decodeIfPresent(
-                Float.self,
-                forKey: CodingKeys.NetworkSpansForwardingCodingKeys.threshold
-            ) ?? defaultPayload.networkSpansForwardingThreshold
+            networkSpansForwardingThreshold =
+                try networkSpansForwardingContainer.decodeIfPresent(
+                    Float.self,
+                    forKey: CodingKeys.NetworkSpansForwardingCodingKeys.threshold
+                ) ?? defaultPayload.networkSpansForwardingThreshold
         } else {
             networkSpansForwardingThreshold = defaultPayload.networkSpansForwardingThreshold
         }
 
         // ui load instrumentation
-        uiLoadInstrumentationEnabled = try rootContainer.decodeIfPresent(
-            Bool.self,
-            forKey: .uiLoadInstrumentationEnabled
-        ) ?? defaultPayload.uiLoadInstrumentationEnabled
+        uiLoadInstrumentationEnabled =
+            try rootContainer.decodeIfPresent(
+                Bool.self,
+                forKey: .uiLoadInstrumentationEnabled
+            ) ?? defaultPayload.uiLoadInstrumentationEnabled
 
         // ui block list
         if let strArray = try rootContainer.decodeIfPresent(
@@ -146,10 +151,11 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         ) ?? defaultPayload.uiInstrumentationCaptureHostingControllers
 
         // SwiftUI View instrumentation
-        swiftUiViewInstrumentationEnabled = try rootContainer.decodeIfPresent(
-            Bool.self,
-            forKey: .swiftUiViewInstrumentationEnabled
-        ) ?? defaultPayload.swiftUiViewInstrumentationEnabled
+        swiftUiViewInstrumentationEnabled =
+            try rootContainer.decodeIfPresent(
+                Bool.self,
+                forKey: .swiftUiViewInstrumentationEnabled
+            ) ?? defaultPayload.swiftUiViewInstrumentationEnabled
 
         // span events
         if rootContainer.contains(.ui) {
@@ -158,10 +164,11 @@ public struct RemoteConfigPayload: Decodable, Equatable {
                 forKey: .ui
             )
 
-            breadcrumbLimit = try uiContainer.decodeIfPresent(
-                Int.self,
-                forKey: CodingKeys.UICodingKeys.breadcrumbs
-            ) ?? defaultPayload.breadcrumbLimit
+            breadcrumbLimit =
+                try uiContainer.decodeIfPresent(
+                    Int.self,
+                    forKey: CodingKeys.UICodingKeys.breadcrumbs
+                ) ?? defaultPayload.breadcrumbLimit
         } else {
             breadcrumbLimit = defaultPayload.breadcrumbLimit
         }
@@ -173,20 +180,23 @@ public struct RemoteConfigPayload: Decodable, Equatable {
                 forKey: .logLimits
             )
 
-            logsInfoLimit = try logsLimitsContainer.decodeIfPresent(
-                Int.self,
-                forKey: CodingKeys.LogLimitsCodingKeys.info
-            ) ?? defaultPayload.logsInfoLimit
+            logsInfoLimit =
+                try logsLimitsContainer.decodeIfPresent(
+                    Int.self,
+                    forKey: CodingKeys.LogLimitsCodingKeys.info
+                ) ?? defaultPayload.logsInfoLimit
 
-            logsWarningLimit = try logsLimitsContainer.decodeIfPresent(
-                Int.self,
-                forKey: CodingKeys.LogLimitsCodingKeys.warning
-            ) ?? defaultPayload.logsWarningLimit
+            logsWarningLimit =
+                try logsLimitsContainer.decodeIfPresent(
+                    Int.self,
+                    forKey: CodingKeys.LogLimitsCodingKeys.warning
+                ) ?? defaultPayload.logsWarningLimit
 
-            logsErrorLimit = try logsLimitsContainer.decodeIfPresent(
-                Int.self,
-                forKey: CodingKeys.LogLimitsCodingKeys.error
-            ) ?? defaultPayload.logsErrorLimit
+            logsErrorLimit =
+                try logsLimitsContainer.decodeIfPresent(
+                    Int.self,
+                    forKey: CodingKeys.LogLimitsCodingKeys.error
+                ) ?? defaultPayload.logsErrorLimit
 
         } else {
             logsInfoLimit = defaultPayload.logsInfoLimit
@@ -201,30 +211,35 @@ public struct RemoteConfigPayload: Decodable, Equatable {
                 forKey: .internalLogLimits
             )
 
-            internalLogsTraceLimit = try internalLogsLimitsContainer.decodeIfPresent(
-                Int.self,
-                forKey: CodingKeys.InternalLogLimitsCodingKeys.trace
-            ) ?? defaultPayload.internalLogsTraceLimit
+            internalLogsTraceLimit =
+                try internalLogsLimitsContainer.decodeIfPresent(
+                    Int.self,
+                    forKey: CodingKeys.InternalLogLimitsCodingKeys.trace
+                ) ?? defaultPayload.internalLogsTraceLimit
 
-            internalLogsDebugLimit = try internalLogsLimitsContainer.decodeIfPresent(
-                Int.self,
-                forKey: CodingKeys.InternalLogLimitsCodingKeys.debug
-            ) ?? defaultPayload.internalLogsDebugLimit
+            internalLogsDebugLimit =
+                try internalLogsLimitsContainer.decodeIfPresent(
+                    Int.self,
+                    forKey: CodingKeys.InternalLogLimitsCodingKeys.debug
+                ) ?? defaultPayload.internalLogsDebugLimit
 
-            internalLogsInfoLimit = try internalLogsLimitsContainer.decodeIfPresent(
-                Int.self,
-                forKey: CodingKeys.InternalLogLimitsCodingKeys.info
-            ) ?? defaultPayload.internalLogsInfoLimit
+            internalLogsInfoLimit =
+                try internalLogsLimitsContainer.decodeIfPresent(
+                    Int.self,
+                    forKey: CodingKeys.InternalLogLimitsCodingKeys.info
+                ) ?? defaultPayload.internalLogsInfoLimit
 
-            internalLogsWarningLimit = try internalLogsLimitsContainer.decodeIfPresent(
-                Int.self,
-                forKey: CodingKeys.InternalLogLimitsCodingKeys.warning
-            ) ?? defaultPayload.internalLogsWarningLimit
+            internalLogsWarningLimit =
+                try internalLogsLimitsContainer.decodeIfPresent(
+                    Int.self,
+                    forKey: CodingKeys.InternalLogLimitsCodingKeys.warning
+                ) ?? defaultPayload.internalLogsWarningLimit
 
-            internalLogsErrorLimit = try internalLogsLimitsContainer.decodeIfPresent(
-                Int.self,
-                forKey: CodingKeys.InternalLogLimitsCodingKeys.error
-            ) ?? defaultPayload.internalLogsErrorLimit
+            internalLogsErrorLimit =
+                try internalLogsLimitsContainer.decodeIfPresent(
+                    Int.self,
+                    forKey: CodingKeys.InternalLogLimitsCodingKeys.error
+                ) ?? defaultPayload.internalLogsErrorLimit
 
         } else {
             internalLogsTraceLimit = defaultPayload.internalLogsTraceLimit
@@ -235,16 +250,18 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         }
 
         // network payload capture
-        networkPayloadCaptureRules = (try? rootContainer.decodeIfPresent(
-            [NetworkPayloadCaptureRule].self,
-            forKey: .networkPayLoadCapture
-        )) ?? defaultPayload.networkPayloadCaptureRules
+        networkPayloadCaptureRules =
+            (try? rootContainer.decodeIfPresent(
+                [NetworkPayloadCaptureRule].self,
+                forKey: .networkPayLoadCapture
+            )) ?? defaultPayload.networkPayloadCaptureRules
 
         // metric kit
-        metricKitEnabledThreshold = try rootContainer.decodeIfPresent(
-            Float.self,
-            forKey: .metricKitEnabledThreshold
-        ) ?? defaultPayload.metricKitEnabledThreshold
+        metricKitEnabledThreshold =
+            try rootContainer.decodeIfPresent(
+                Float.self,
+                forKey: .metricKitEnabledThreshold
+            ) ?? defaultPayload.metricKitEnabledThreshold
 
         if let strArray = try rootContainer.decodeIfPresent(
             String.self,

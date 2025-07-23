@@ -3,6 +3,7 @@
 //
 
 import XCTest
+
 @testable import EmbraceCore
 @testable @_implementationOnly import EmbraceObjCUtilsInternal
 
@@ -56,48 +57,50 @@ class URLSessionInitWithDelegateSwizzlerTests: XCTestCase {
     }
 }
 
-private extension URLSessionInitWithDelegateSwizzlerTests {
-    func givenURLSessionInitWithDelegateSwizzler() {
+extension URLSessionInitWithDelegateSwizzlerTests {
+    fileprivate func givenURLSessionInitWithDelegateSwizzler() {
         let handler = MockURLSessionTaskHandler()
         sut = URLSessionInitWithDelegateSwizzler(handler: handler)
     }
 
-    func givenSwizzlingWasDone() throws {
+    fileprivate func givenSwizzlingWasDone() throws {
         try sut.install()
     }
 
-    func whenInitializingURLSessionWithDelegate(_ delegate: URLSessionDelegate = DummyURLSessionDelegate()) {
-        session = URLSession(configuration: .default,
-                             delegate: delegate,
-                             delegateQueue: nil)
+    fileprivate func whenInitializingURLSessionWithDelegate(_ delegate: URLSessionDelegate = DummyURLSessionDelegate())
+    {
+        session = URLSession(
+            configuration: .default,
+            delegate: delegate,
+            delegateQueue: nil)
     }
 
-    func whenInitializingURLSessionWithPreviouslySwizzledProxy() {
+    fileprivate func whenInitializingURLSessionWithPreviouslySwizzledProxy() {
         previouslySwizzledProxy = .init(delegate: nil, handler: MockURLSessionTaskHandler())
         whenInitializingURLSessionWithDelegate(previouslySwizzledProxy)
     }
 
-    func whenInitializingURLSessionWithoutDelegate() {
+    fileprivate func whenInitializingURLSessionWithoutDelegate() {
         session = URLSession(configuration: .default)
     }
 
-    func thenSessionsDelegateShouldntBeDummyDelegate() {
+    fileprivate func thenSessionsDelegateShouldntBeDummyDelegate() {
         XCTAssertFalse(session.delegate.self is DummyURLSessionDelegate)
     }
 
-    func thenSessionsDelegateShouldBeAnEmbracesProxy() {
+    fileprivate func thenSessionsDelegateShouldBeAnEmbracesProxy() {
         XCTAssertTrue(session.delegate.self is EMBURLSessionDelegateProxy)
     }
 
-    func thenSessionsDelegateShouldntBeEmbracesProxy() {
+    fileprivate func thenSessionsDelegateShouldntBeEmbracesProxy() {
         XCTAssertFalse(session.delegate.self is EMBURLSessionDelegateProxy)
     }
 
-    func thenSessionDelegateShouldBePreviouslySwizzledProxy() {
+    fileprivate func thenSessionDelegateShouldBePreviouslySwizzledProxy() {
         XCTAssertTrue(session.delegate === previouslySwizzledProxy)
     }
 
-    func thenBaseClassShouldBeURLSession() {
+    fileprivate func thenBaseClassShouldBeURLSession() {
         XCTAssertTrue(sut.baseClass == URLSession.self)
     }
 }

@@ -4,8 +4,8 @@
 
 import Foundation
 
-public extension EmbraceUpload {
-    class RedundancyOptions {
+extension EmbraceUpload {
+    public class RedundancyOptions {
         /// Total amount of times a request will be immediately retried in case of error. Use 0 to disable.
         public let automaticRetryCount: Int
 

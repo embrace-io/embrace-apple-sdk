@@ -2,11 +2,12 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
 import CoreData
+import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceSemantics
+    import EmbraceCommonInternal
+    import EmbraceSemantics
 #endif
 
 extension EmbraceStorage {
@@ -96,11 +97,11 @@ extension EmbraceStorage {
         sessionId: SessionIdentifier? = nil
     ) -> EmbraceSpan? {
         var result: EmbraceSpan?
-        
+
         let request = fetchSpanRequest(id: id, traceId: traceId)
         coreData.fetchFirstAndPerform(withRequest: request) { span in
             guard let span else { return }
-            
+
             // prevent modifications on closed spans!
             if span.endTime == nil {
                 span.name = name
@@ -112,7 +113,32 @@ extension EmbraceStorage {
                 span.sessionIdRaw = sessionId?.toString
                 coreData.save()
             }
-            
+
+            result = span.toImmutable()
+        }
+
+        return result
+    }
+
+    /// Ends the stored `SpanRecord` synchronously with the given identifiers and end time.
+    /// Should only be used for sessions!
+    /// - Parameters:
+    ///   - id: Identifier of the span
+    ///   - traceId: Identifier of the trace containing this span
+    @discardableResult
+    public func endSpan(id: String, traceId: String, endTime: Date) -> EmbraceSpan? {
+        var result: EmbraceSpan?
+
+        let request = fetchSpanRequest(id: id, traceId: traceId)
+        coreData.fetchFirstAndPerform(withRequest: request) { span in
+            guard let span else { return }
+
+            // prevent modifications on closed spans!
+            if span.endTime == nil {
+                span.endTime = endTime
+                coreData.save()
+            }
+
             result = span.toImmutable()
         }
 
@@ -254,8 +280,8 @@ extension EmbraceStorage {
 }
 
 // MARK: - Database operations
-fileprivate extension EmbraceStorage {
-    func removeOldSpanIfNeeded(forType type: SpanType) {
+extension EmbraceStorage {
+    fileprivate func removeOldSpanIfNeeded(forType type: SpanType) {
         // check limit and delete if necessary
         // default to 1500 if limit is not set
         let limit = options.spanLimits[type, default: Self.defaultSpanLimitByType]
@@ -266,7 +292,7 @@ fileprivate extension EmbraceStorage {
 
         if count >= limit {
             request.fetchLimit = count - limit + 1
-            request.sortDescriptors = [ NSSortDescriptor(key: "startTime", ascending: true) ]
+            request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: true)]
 
             coreData.deleteRecords(withRequest: request)
         }

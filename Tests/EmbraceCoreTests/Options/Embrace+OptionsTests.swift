@@ -2,12 +2,12 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-import EmbraceCore
 import EmbraceConfigInternal
 import EmbraceConfiguration
+import EmbraceCore
 import EmbraceOTelInternal
 import TestSupport
+import XCTest
 
 final class Embrace_OptionsTests: XCTestCase {
 
@@ -29,7 +29,7 @@ final class Embrace_OptionsTests: XCTestCase {
         XCTAssertEqual(options.export, export)
         XCTAssertNil(options.appId)
     }
-    
+
     func test_init_withProcessors() throws {
         let processor = OpenTelemetryProcessor(processor: InMemorySpanProcessor())
         let options = Embrace.Options(
@@ -41,7 +41,7 @@ final class Embrace_OptionsTests: XCTestCase {
         XCTAssertEqual(options.processors, [processor])
         XCTAssertNotNil(options.appId)
     }
-    
+
     func test_init_withRuntimeConfiguration_usesInjectedObject() throws {
         let mockObj = MockEmbraceConfigurable()
 

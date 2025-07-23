@@ -3,9 +3,10 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceStorageInternal
+    import EmbraceCommonInternal
+    import EmbraceStorageInternal
 #endif
 
 @objc extension MetadataHandler {

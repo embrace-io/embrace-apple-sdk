@@ -27,14 +27,23 @@
 
 @implementation CRLCrashNULL
 
-- (NSString *)category { return @"SIGSEGV"; }
-- (NSString *)title { return @"Dereference a NULL pointer"; }
-- (NSString *)desc { return @"Attempt to read from 0x0, which causes a segmentation violation."; }
+- (NSString *)category
+{
+    return @"SIGSEGV";
+}
+- (NSString *)title
+{
+    return @"Dereference a NULL pointer";
+}
+- (NSString *)desc
+{
+    return @"Attempt to read from 0x0, which causes a segmentation violation.";
+}
 
 - (void)crash
 {
-  volatile char *ptr = NULL;
-  (void)*ptr;
+    volatile char *ptr = NULL;
+    (void)*ptr;
 }
 
 @end

@@ -3,12 +3,13 @@
 //
 
 import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceOTelInternal
-import EmbraceCommonInternal
-import EmbraceSemantics
-#endif
 import OpenTelemetryApi
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceOTelInternal
+    import EmbraceCommonInternal
+    import EmbraceSemantics
+#endif
 
 /// Class used to represent a Breadcrumb as a SpanEvent.
 /// Usage example:
@@ -32,8 +33,8 @@ public class Breadcrumb: NSObject, SpanEvent {
     }
 }
 
-public extension SpanEvent where Self == Breadcrumb {
-    static func breadcrumb(
+extension SpanEvent where Self == Breadcrumb {
+    public static func breadcrumb(
         _ message: String,
         properties: [String: String] = [:]
     ) -> SpanEvent {

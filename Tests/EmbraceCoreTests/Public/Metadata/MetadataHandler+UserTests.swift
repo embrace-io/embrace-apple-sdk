@@ -2,11 +2,11 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceStorageInternal
+import TestSupport
 import XCTest
 
 @testable import EmbraceCore
-import EmbraceStorageInternal
-import TestSupport
 
 final class MetadataHandler_UserTests: XCTestCase {
 
@@ -88,7 +88,7 @@ final class MetadataHandler_UserTests: XCTestCase {
             sessionController: sessionController,
             syncronizationQueue: MockQueue()
         )
-        
+
         handler.userName = "example"
         handler.userIdentifier = "my-example-identifier"
         handler.userEmail = "example@example.com"

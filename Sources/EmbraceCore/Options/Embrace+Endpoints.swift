@@ -17,7 +17,7 @@ extension Embrace {
         @objc public let configBaseURL: String
 
         @available(*, deprecated, message: "Development base URL is not used anymore.")
-        @objc public let developmentBaseURL: String = "" // TODO: Remove in next major version
+        @objc public let developmentBaseURL: String = ""  // TODO: Remove in next major version
 
         /// Initializer that allows for custom endpoints.
         /// - Note: If you wish to use the default endpoints please refer to the convenience initializer: `init(appId: String)`.

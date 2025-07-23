@@ -1,11 +1,12 @@
 //
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
-    
-@testable import EmbraceCore
+
 import EmbraceCommonInternal
 import EmbraceStorageInternal
 import EmbraceUploadInternal
+
+@testable import EmbraceCore
 
 class MockSessionUploader: SessionUploader {
 

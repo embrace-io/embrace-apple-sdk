@@ -16,12 +16,12 @@ public protocol EmbraceLog {
     func attribute(forKey key: String) -> EmbraceLogAttribute?
 }
 
-public extension EmbraceLog {
-    var processId: ProcessIdentifier? {
+extension EmbraceLog {
+    public var processId: ProcessIdentifier? {
         return ProcessIdentifier(hex: processIdRaw)
     }
 
-    var severity: LogSeverity {
+    public var severity: LogSeverity {
         return LogSeverity(rawValue: severityRaw) ?? .info
     }
 }

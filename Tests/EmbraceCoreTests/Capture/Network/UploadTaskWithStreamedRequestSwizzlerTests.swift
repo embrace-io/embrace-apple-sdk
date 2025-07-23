@@ -2,8 +2,8 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
 import TestSupport
+import XCTest
 
 @testable import EmbraceCore
 
@@ -46,21 +46,21 @@ class UploadTaskWithStreamedRequestSwizzlerTests: XCTestCase {
     }
 }
 
-private extension UploadTaskWithStreamedRequestSwizzlerTests {
-    func givenUploadTaskWithStreamedRequestSwizzler() {
+extension UploadTaskWithStreamedRequestSwizzlerTests {
+    fileprivate func givenUploadTaskWithStreamedRequestSwizzler() {
         handler = MockURLSessionTaskHandler()
         sut = UploadTaskWithStreamedRequestSwizzler(handler: handler)
     }
 
-    func givenSwizzlingWasDone() throws {
+    fileprivate func givenSwizzlingWasDone() throws {
         try sut.install()
     }
 
-    func givenProxiedUrlSession() {
+    fileprivate func givenProxiedUrlSession() {
         session = ProxiedURLSessionProvider.default()
     }
 
-    func givenSuccessfulRequest() {
+    fileprivate func givenSuccessfulRequest() {
         var url = URL(string: "https://embrace.io")!
         let mockData = "Mock Data".data(using: .utf8)!
         let mockResponse = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil)!
@@ -68,7 +68,7 @@ private extension UploadTaskWithStreamedRequestSwizzlerTests {
         request = URLRequest(url: url)
     }
 
-    func givenFailedRequest() {
+    fileprivate func givenFailedRequest() {
         var url = URL(string: "https://embrace.io")!
         let error = NSError(domain: UUID().uuidString, code: 0)
         let mockResponse = HTTPURLResponse(url: url, statusCode: 400, httpVersion: nil, headerFields: nil)!
@@ -76,21 +76,21 @@ private extension UploadTaskWithStreamedRequestSwizzlerTests {
         request = URLRequest(url: url)
     }
 
-    func whenInvokingUploadTaskWithStreamedRequest() {
+    fileprivate func whenInvokingUploadTaskWithStreamedRequest() {
         uploadTask = session.uploadTask(withStreamedRequest: request)
         uploadTask.resume()
     }
 
-    func thenHandlerShouldHaveInvokedCreateWithTask() {
+    fileprivate func thenHandlerShouldHaveInvokedCreateWithTask() {
         XCTAssertTrue(handler.didInvokeCreate)
         XCTAssertEqual(handler.createReceivedTask, uploadTask)
     }
 
-    func thenHandlerShouldntHaveInvokedCreate() {
+    fileprivate func thenHandlerShouldntHaveInvokedCreate() {
         XCTAssertFalse(handler.didInvokeCreate)
     }
 
-    func thenTaskShouldHaveEmbraceHeaders() throws {
+    fileprivate func thenTaskShouldHaveEmbraceHeaders() throws {
         let headers = try XCTUnwrap(uploadTask.originalRequest?.allHTTPHeaderFields)
         XCTAssertNotNil(headers["x-emb-id"])
         XCTAssertNotNil(headers["x-emb-st"])

@@ -1,37 +1,37 @@
 //
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
-    
+
 #import "URLSessionDelegateImplementerButWithoutConforming.h"
 
 @implementation URLSessionDelegateImplementerButWithoutConforming
 
-- (void)URLSession:(NSURLSession *)session
-          dataTask:(NSURLSessionDataTask *)dataTask
-    didReceiveData:(NSData *)data {
+- (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveData:(NSData *)data
+{
     self.didInvokeDidReceiveData = YES;
 }
 
-- (void)URLSession:(nonnull NSURLSession *)session
-didBecomeInvalidWithError:(nullable NSError *)error {
+- (void)URLSession:(nonnull NSURLSession *)session didBecomeInvalidWithError:(nullable NSError *)error
+{
     self.didInvokeDidBecomeInvalidWithError = YES;
 }
 
 - (void)URLSession:(NSURLSession *)session
-              task:(NSURLSessionTask *)task
-didFinishCollectingMetrics:(NSURLSessionTaskMetrics *)metrics {
+                          task:(NSURLSessionTask *)task
+    didFinishCollectingMetrics:(NSURLSessionTaskMetrics *)metrics
+{
     self.didInvokeDidFinishCollectingMetrics = YES;
 }
 
-- (void)URLSession:(NSURLSession *)session 
-              task:(NSURLSessionTask *)task
-didCompleteWithError:(nullable NSError *)error {
+- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(nullable NSError *)error
+{
     self.didInvokedDidCompleteWithError = YES;
 }
 
-- (void)URLSession:(NSURLSession *)session 
-      downloadTask:(NSURLSessionDownloadTask *)downloadTask
-didFinishDownloadingToURL:(NSURL *)location {
+- (void)URLSession:(NSURLSession *)session
+                 downloadTask:(NSURLSessionDownloadTask *)downloadTask
+    didFinishDownloadingToURL:(NSURL *)location
+{
     self.didInvokedDidFinishDownloadingToURL = YES;
 }
 

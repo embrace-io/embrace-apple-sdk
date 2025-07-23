@@ -32,7 +32,9 @@ class LogTestUIComponentViewModel: UIComponentViewModelBase {
     }
 
     private func registerForNotification() {
-        observingObject = NotificationCenter.default.addObserver(forName: .init("TestLogRecordExporter.LogsUpdated"), object: nil, queue: nil) { [weak self] _ in
+        observingObject = NotificationCenter.default.addObserver(
+            forName: .init("TestLogRecordExporter.LogsUpdated"), object: nil, queue: nil
+        ) { [weak self] _ in
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
                 self?.performTest()
             }
@@ -48,6 +50,7 @@ class LogTestUIComponentViewModel: UIComponentViewModelBase {
     private func unregisterNotification() {
         guard let observingObject = observingObject else { return }
 
-        NotificationCenter.default.removeObserver(observingObject, name: .init("TestLogRecordExporter.LogsUpdated"), object: nil)
+        NotificationCenter.default.removeObserver(
+            observingObject, name: .init("TestLogRecordExporter.LogsUpdated"), object: nil)
     }
 }

@@ -77,11 +77,11 @@ final class EmbraceTraceViewState<Value: Equatable> {
     /// - Returns: A multi-line string containing all tracked metrics
     public func debugDescription() -> String {
         return """
-        EmbraceTraceViewState Debug Info:
-        ├─ Initialize: \(initialize) times, first at \(initializeTime?.description ?? "never")
-        ├─ Body: \(body) times, last at \(bodyTime?.description ?? "never")
-        ├─ Appear: \(appear) times, last at \(appearTime?.description ?? "never")
-        └─ Disappear: \(disappear) times, last at \(disappearTime?.description ?? "never")
-        """
+            EmbraceTraceViewState Debug Info:
+            ├─ Initialize: \(initialize) times, first at \(initializeTime?.description ?? "never")
+            ├─ Body: \(body) times, last at \(bodyTime?.description ?? "never")
+            ├─ Appear: \(appear) times, last at \(appearTime?.description ?? "never")
+            └─ Disappear: \(disappear) times, last at \(disappearTime?.description ?? "never")
+            """
     }
 }

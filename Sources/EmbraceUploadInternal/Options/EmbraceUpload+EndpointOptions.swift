@@ -4,8 +4,8 @@
 
 import Foundation
 
-public extension EmbraceUpload {
-    class EndpointOptions {
+extension EmbraceUpload {
+    public class EndpointOptions {
         /// URL for the spans upload endpoint
         public let spansURL: URL
 

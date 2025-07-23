@@ -6,11 +6,11 @@
 //  Copyright © 2016 embrace.io. All rights reserved.
 //
 
+#import "EMBDevice.h"
 #import <dlfcn.h>
 #import <mach-o/dyld.h>
 #import <mach-o/ldsyms.h>
 #import <sys/sysctl.h>
-#import "EMBDevice.h"
 
 #if __has_include(<WatchKit/WatchKit.h>)
 #define WATCHKIT_AVAILABLE 1
@@ -28,8 +28,8 @@
 #endif
 
 #if __has_include(<CoreTelephony/CTTelephonyNetworkInfo.h>)
-#import <CoreTelephony/CTTelephonyNetworkInfo.h>
 #import <CoreTelephony/CTCarrier.h>
+#import <CoreTelephony/CTTelephonyNetworkInfo.h>
 #endif
 
 NSString *const EMBAppEnvironmentDevelopmentValue = @"dev";
@@ -67,7 +67,7 @@ typedef NS_ENUM(NSInteger, EMBReleaseMode) {
 
 + (NSString *)appVersion
 {
-    NSString* _appVersion = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleShortVersionString"];
+    NSString *_appVersion = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleShortVersionString"];
     // Just in case folks get too creative with version numbers we're trimming the start/end of spaces, newlines, etc.
     _appVersion = [_appVersion stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
     return _appVersion;
@@ -77,7 +77,7 @@ typedef NS_ENUM(NSInteger, EMBReleaseMode) {
 {
     NSString *env;
     EMBReleaseMode mode = [self getReleaseMode];
-    
+
     switch (mode) {
         case EMBReleaseEnterprise:
         case EMBReleaseAppStore:
@@ -87,7 +87,7 @@ typedef NS_ENUM(NSInteger, EMBReleaseMode) {
             env = EMBAppEnvironmentDevelopmentValue;
             break;
     }
-    
+
     return env;
 }
 
@@ -95,7 +95,7 @@ typedef NS_ENUM(NSInteger, EMBReleaseMode) {
 {
     NSString *env;
     EMBReleaseMode mode = [self getReleaseMode];
-    
+
     switch (mode) {
         case EMBReleaseUnknownDueToErrorGettingBinary:
             env = EMBEnvUnknownDueToErrorGettingBinaryValue;
@@ -130,7 +130,7 @@ typedef NS_ENUM(NSInteger, EMBReleaseMode) {
         default:
             break;
     }
-    
+
     return env;
 }
 
@@ -142,30 +142,30 @@ typedef NS_ENUM(NSInteger, EMBReleaseMode) {
 + (NSUUID *)buildUUID
 {
     const struct mach_header *machHeader = NULL;
-    
+
     uint32_t imageCount = _dyld_image_count();
     for (uint32_t i = 0; i < imageCount; ++i) {
         const struct mach_header *header = _dyld_get_image_header(i);
         if (header == NULL) {
             continue;
         }
-        
+
         if (header->filetype == MH_EXECUTE) {
             machHeader = header;
             break;
         }
     }
-    
+
     if (machHeader == NULL) {
         return nil;
     }
-    
+
     BOOL is64bit = machHeader->magic == MH_MAGIC_64 || machHeader->magic == MH_CIGAM_64;
     uintptr_t cursor = (uintptr_t)machHeader + (is64bit ? sizeof(struct mach_header_64) : sizeof(struct mach_header));
     const struct segment_command *segmentCommand = NULL;
     for (uint32_t i = 0; i < machHeader->ncmds; ++i, cursor += segmentCommand->cmdsize) {
         segmentCommand = (struct segment_command *)cursor;
-        
+
         if (segmentCommand->cmd == LC_UUID) {
             const struct uuid_command *uuidCommand = (const struct uuid_command *)segmentCommand;
             return [[NSUUID alloc] initWithUUIDBytes:uuidCommand->uuid];
@@ -181,18 +181,18 @@ typedef NS_ENUM(NSInteger, EMBReleaseMode) {
 
 + (NSString *)model
 {
-    NSString* _model = NULL;
+    NSString *_model = NULL;
     size_t size;
     sysctlbyname("hw.machine", NULL, &size, NULL, 0);
     char *name = malloc(size);
     sysctlbyname("hw.machine", name, &size, NULL, 0);
     _model = [NSString stringWithUTF8String:name];
     free(name);
-    
+
     if (!_model) {
         _model = @"Not available.";
     }
-    
+
     return _model;
 }
 
@@ -204,51 +204,48 @@ typedef NS_ENUM(NSInteger, EMBReleaseMode) {
     cpu_subtype_t subtype;
     size = sizeof(type);
     sysctlbyname("hw.cputype", &type, &size, NULL, 0);
-    
+
     size = sizeof(subtype);
     sysctlbyname("hw.cpusubtype", &subtype, &size, NULL, 0);
-    
+
     // values for cputype and cpusubtype are defined in mach/machine.h
     if (type == CPU_TYPE_X86) {
         [cpu appendString:@"x86"];
-    }
-    else if (type == CPU_TYPE_ARM) {
+    } else if (type == CPU_TYPE_ARM) {
         [cpu appendString:@"arm"];
-        
-        switch(subtype) {
+
+        switch (subtype) {
             case CPU_SUBTYPE_ARM_V7:
                 [cpu appendString:@"v7"];
                 break;
-                
+
             case CPU_SUBTYPE_ARM_V7S:
                 [cpu appendString:@"v7s"];
                 break;
             default:
                 break;
         }
-    }
-    else if (type == CPU_TYPE_ARM64) {
+    } else if (type == CPU_TYPE_ARM64) {
         [cpu appendString:@"arm64"];
-        
-        switch(subtype) {
+
+        switch (subtype) {
             case CPU_SUBTYPE_ARM64E:
                 [cpu appendString:@"e"];
                 break;
             default:
                 break;
         }
-    }
-    else {
+    } else {
         [cpu appendString:@"unknown"];
     }
-    
+
     return cpu;
 }
 
 + (BOOL)isJailbroken
 {
     BOOL jailbroken = false;
-    
+
 #if !TARGET_OS_SIMULATOR && UIKIT_AVAILABLE
     NSFileManager *fileManager = [NSFileManager defaultManager];
     NSString *filePath;
@@ -256,63 +253,64 @@ typedef NS_ENUM(NSInteger, EMBReleaseMode) {
     NSDictionary *bundleInfoDictionary = [[NSBundle mainBundle] infoDictionary];
     NSEnumerator *infoEnumerator = [bundleInfoDictionary keyEnumerator];
     NSString *key;
-    
+
     while ((key = [infoEnumerator nextObject])) {
         if ([[key lowercaseString] isEqualToString:signerIdentityString]) {
             signerIdentityKey = [key copy];
             break;
         }
     }
-    
+
     jailbroken = signerIdentityKey != nil;
-    
+
     if (!jailbroken) {
-        NSArray *filePaths = @[@"/usr/sbin/sshd",
-                               @"/Library/MobileSubstrate/MobileSubstrate.dylib",
-                               @"/bin/bash",
-                               @"/usr/libexec/sftp-server",
-                               @"/Applications/Cydia.app",
-                               @"/Applications/blackra1n.app",
-                               @"/Applications/FakeCarrier.app",
-                               @"/Applications/Icy.app",
-                               @"/Applications/IntelliScreen.app",
-                               @"/Applications/MxTube.app",
-                               @"/Applications/RockApp.app",
-                               @"/Applications/SBSettings.app",
-                               @"/Applications/WinterBoard.app",
-                               @"/Library/MobileSubstrate/DynamicLibraries/LiveClock.plist",
-                               @"/Library/MobileSubstrate/DynamicLibraries/Veency.plist",
-                               @"/private/var/lib/apt",
-                               @"/private/var/lib/cydia",
-                               @"/private/var/mobile/Library/SBSettings/Themes",
-                               @"/private/var/stash",
-                               @"/private/var/tmp/cydia.log",
-                               @"/System/Library/LaunchDaemons/com.ikey.bbot.plist",
-                               @"/System/Library/LaunchDaemons/com.saurik.Cydia.Startup.plist"];
-        
+        NSArray *filePaths = @[
+            @"/usr/sbin/sshd",
+            @"/Library/MobileSubstrate/MobileSubstrate.dylib",
+            @"/bin/bash",
+            @"/usr/libexec/sftp-server",
+            @"/Applications/Cydia.app",
+            @"/Applications/blackra1n.app",
+            @"/Applications/FakeCarrier.app",
+            @"/Applications/Icy.app",
+            @"/Applications/IntelliScreen.app",
+            @"/Applications/MxTube.app",
+            @"/Applications/RockApp.app",
+            @"/Applications/SBSettings.app",
+            @"/Applications/WinterBoard.app",
+            @"/Library/MobileSubstrate/DynamicLibraries/LiveClock.plist",
+            @"/Library/MobileSubstrate/DynamicLibraries/Veency.plist",
+            @"/private/var/lib/apt",
+            @"/private/var/lib/cydia",
+            @"/private/var/mobile/Library/SBSettings/Themes",
+            @"/private/var/stash",
+            @"/private/var/tmp/cydia.log",
+            @"/System/Library/LaunchDaemons/com.ikey.bbot.plist",
+            @"/System/Library/LaunchDaemons/com.saurik.Cydia.Startup.plist"
+        ];
+
         for (filePath in filePaths) {
             jailbroken = [fileManager fileExistsAtPath:filePath];
-            
+
             if (jailbroken) {
                 break;
             }
         }
     }
-    
+
     if (!jailbroken) {
         // Valid test only if running as root on a jailbroken device
         NSData *jailbrokenTestData = [@"Jailbroken filesystem test." dataUsingEncoding:NSUTF8StringEncoding];
         filePath = @"/private/embjailbrokentest.txt";
         jailbroken = [jailbrokenTestData writeToFile:filePath atomically:NO];
-        
+
         if (jailbroken) {
             [fileManager removeItemAtPath:filePath error:nil];
         }
     }
 #endif
-    
+
     return jailbroken;
-    
 }
 
 + (NSString *)locale
@@ -320,7 +318,7 @@ typedef NS_ENUM(NSInteger, EMBReleaseMode) {
     return [[NSLocale currentLocale] localeIdentifier] ?: @"";
 }
 
-//TotalDiskSpace
+// TotalDiskSpace
 + (NSNumber *)totalDiskSpace
 {
     NSFileManager *fileManager = [NSFileManager defaultManager];
@@ -335,7 +333,7 @@ typedef NS_ENUM(NSInteger, EMBReleaseMode) {
 #elif UIKIT_AVAILABLE
     return [UIDevice currentDevice].systemName;
 #else
-    return  @"macOS";
+    return @"macOS";
 #endif
 }
 
@@ -343,9 +341,12 @@ typedef NS_ENUM(NSInteger, EMBReleaseMode) {
 {
     NSOperatingSystemVersion operatingSystemVersion = [NSProcessInfo processInfo].operatingSystemVersion;
     if (operatingSystemVersion.patchVersion == 0) {
-        return [NSString stringWithFormat: @"%i.%i", (int)operatingSystemVersion.majorVersion, (int)operatingSystemVersion.minorVersion];
+        return [NSString stringWithFormat:@"%i.%i", (int)operatingSystemVersion.majorVersion,
+                                          (int)operatingSystemVersion.minorVersion];
     } else {
-        return [NSString stringWithFormat: @"%i.%i.%i", (int)operatingSystemVersion.majorVersion, (int)operatingSystemVersion.minorVersion, (int)operatingSystemVersion.patchVersion];
+        return [NSString stringWithFormat:@"%i.%i.%i", (int)operatingSystemVersion.majorVersion,
+                                          (int)operatingSystemVersion.minorVersion,
+                                          (int)operatingSystemVersion.patchVersion];
     }
 }
 
@@ -355,7 +356,7 @@ typedef NS_ENUM(NSInteger, EMBReleaseMode) {
     size_t s = 0;
     sysctl(cmd, sizeof(cmd) / sizeof(cmd[0]), NULL, &s, NULL, 0);
     char b[s];
-    
+
     if (sysctl(cmd, sizeof(cmd) / sizeof(cmd[0]), b, &s, NULL, 0) != -1) {
         return [NSString stringWithCString:b encoding:[NSString defaultCStringEncoding]];
     } else {
@@ -375,7 +376,7 @@ typedef NS_ENUM(NSInteger, EMBReleaseMode) {
 #else
     // There is no provisioning profile in AppStore Apps
     NSString *provisioningPath = [[NSBundle mainBundle] pathForResource:@"embedded" ofType:@"mobileprovision"];
-    
+
     // If there is no provisioningPath, this must be an app store or TF release
     if (!provisioningPath) {
         NSURL *receiptURL = [[NSBundle mainBundle] appStoreReceiptURL];
@@ -386,37 +387,43 @@ typedef NS_ENUM(NSInteger, EMBReleaseMode) {
             return EMBReleaseAppStore;
         }
     }
-    
+
     // NSISOLatin1 keeps the binary wrapper from being parsed as unicode and dropped as invalid
     NSError *binaryError;
-    NSString *binaryString = [NSString stringWithContentsOfFile:provisioningPath encoding:NSISOLatin1StringEncoding error:&binaryError];
-    
+    NSString *binaryString = [NSString stringWithContentsOfFile:provisioningPath
+                                                       encoding:NSISOLatin1StringEncoding
+                                                          error:&binaryError];
+
     if (!binaryString || binaryError) {
         return EMBReleaseUnknownDueToErrorGettingBinary;
     }
-    
+
     NSString *plistString;
     NSScanner *scanner = [NSScanner scannerWithString:binaryString];
     BOOL beginFound = [scanner scanUpToString:@"<plist" intoString:nil];
     BOOL endFound = [scanner scanUpToString:@"</plist>" intoString:&plistString];
     plistString = [NSString stringWithFormat:@"%@</plist>", plistString];
-    
+
     if (!beginFound || !endFound) {
         return EMBReleaseUnknownDueToErrorScanningBinary;
     }
-    
+
     NSData *plistDataLatin1 = [plistString dataUsingEncoding:NSISOLatin1StringEncoding];
     NSError *plistError;
-    NSDictionary *mobileProvision = [NSPropertyListSerialization propertyListWithData:plistDataLatin1 options:NSPropertyListImmutable format:NULL error:&plistError];
-    
+    NSDictionary *mobileProvision = [NSPropertyListSerialization propertyListWithData:plistDataLatin1
+                                                                              options:NSPropertyListImmutable
+                                                                               format:NULL
+                                                                                error:&plistError];
+
     if (!mobileProvision || plistError) {
         return EMBReleaseUnknownDueToErrorParsingPlist;
     }
-    
+
     if ([[mobileProvision objectForKey:@"ProvisionsAllDevices"] boolValue]) {
         // enterprise distribution contains ProvisionsAllDevices - true
         return EMBReleaseEnterprise;
-    } else if ([mobileProvision objectForKey:@"ProvisionedDevices"] && [[mobileProvision objectForKey:@"ProvisionedDevices"] count] > 0) {
+    } else if ([mobileProvision objectForKey:@"ProvisionedDevices"] &&
+               [[mobileProvision objectForKey:@"ProvisionedDevices"] count] > 0) {
         NSDictionary *entitlements = [mobileProvision objectForKey:@"Entitlements"];
         if ([[entitlements objectForKey:@"get-task-allow"] boolValue]) {
             // development contains UDIDs and get-task-allow is true
@@ -428,7 +435,7 @@ typedef NS_ENUM(NSInteger, EMBReleaseMode) {
     } else {
         return EMBReleaseUnknownDueToMissingInfo;
     }
-    
+
 #endif
 }
 
@@ -437,10 +444,10 @@ typedef NS_ENUM(NSInteger, EMBReleaseMode) {
 // running under the debugger or has a debugger attached post facto).
 + (BOOL)isDebuggerAttached
 {
-    int                 junk;
-    int                 mib[4];
-    struct kinfo_proc   info;
-    size_t              size;
+    int junk;
+    int mib[4];
+    struct kinfo_proc info;
+    size_t size;
 
     // Initialize the flags so that, if sysctl fails for some bizarre
     // reason, we get a predictable result.
@@ -463,7 +470,7 @@ typedef NS_ENUM(NSInteger, EMBReleaseMode) {
 
     // We're being debugged if the P_TRACED flag is set.
 
-    return ( (info.kp_proc.p_flag & P_TRACED) != 0 );
+    return ((info.kp_proc.p_flag & P_TRACED) != 0);
 }
 
 + (NSNumber *)bootTime
@@ -472,7 +479,7 @@ typedef NS_ENUM(NSInteger, EMBReleaseMode) {
     size_t len = sizeof(tv);
 
     // Get the boottime from the kernel
-    int ret = sysctl((int[]){CTL_KERN, KERN_BOOTTIME}, 2, &tv, &len, NULL, 0);
+    int ret = sysctl((int[]) { CTL_KERN, KERN_BOOTTIME }, 2, &tv, &len, NULL, 0);
     if (ret == -1) return nil;
 
     // Combine seconds and microseconds to preserve maximum precision

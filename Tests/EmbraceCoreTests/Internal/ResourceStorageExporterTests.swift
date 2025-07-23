@@ -1,3 +1,5 @@
+import EmbraceStorageInternal
+import OpenTelemetryApi
 //
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
@@ -5,8 +7,6 @@ import XCTest
 
 @testable import EmbraceCore
 @testable import EmbraceOTelInternal
-import OpenTelemetryApi
-import EmbraceStorageInternal
 
 final class ResourceStorageExporterTests: XCTestCase {
     func test_exporter_gets_every_type_of_resource() throws {
@@ -48,6 +48,8 @@ final class ResourceStorageExporterTests: XCTestCase {
             .compactMap { $0 }
             .joined(separator: ":")
         XCTAssertEqual(resource.attributes["service.name"], .string(serviceName))
-        XCTAssertEqual(resource.attributes["service.version"], .string(Bundle.main.infoDictionary!["CFBundleShortVersionString"] as! String))
+        XCTAssertEqual(
+            resource.attributes["service.version"],
+            .string(Bundle.main.infoDictionary!["CFBundleShortVersionString"] as! String))
     }
 }

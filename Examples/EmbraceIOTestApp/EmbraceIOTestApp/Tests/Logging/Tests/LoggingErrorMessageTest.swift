@@ -1,3 +1,5 @@
+import EmbraceCommonInternal
+import EmbraceIO
 //
 //  LoggingErrorMessageTest.swift
 //  EmbraceIOTestApp
@@ -5,8 +7,6 @@
 //
 import Foundation
 import OpenTelemetrySdk
-import EmbraceIO
-import EmbraceCommonInternal
 
 class LoggingErrorMessageTest: PayloadTest {
     var testRelevantPayloadNames: [String] { [loggedMessage] }
@@ -25,16 +25,18 @@ class LoggingErrorMessageTest: PayloadTest {
 
     func runTestPreparations() {
         if includeAttachment {
-            Embrace.client?.log(loggedMessage,
-                                severity: loggedMessageSeverity,
-                                attachment: createDummyDataOfSize(attachmentSize),
-                                attributes: logProperties,
-                                stackTraceBehavior: stackTraceBehavior)
+            Embrace.client?.log(
+                loggedMessage,
+                severity: loggedMessageSeverity,
+                attachment: createDummyDataOfSize(attachmentSize),
+                attributes: logProperties,
+                stackTraceBehavior: stackTraceBehavior)
         } else {
-            Embrace.client?.log(loggedMessage,
-                                severity: loggedMessageSeverity,
-                                attributes: logProperties,
-                                stackTraceBehavior: stackTraceBehavior)
+            Embrace.client?.log(
+                loggedMessage,
+                severity: loggedMessageSeverity,
+                attributes: logProperties,
+                stackTraceBehavior: stackTraceBehavior)
         }
     }
 
@@ -49,17 +51,23 @@ class LoggingErrorMessageTest: PayloadTest {
 
         testItems.append(.init(target: loggedMessage, expected: "exists", recorded: "exists", result: .success))
 
+        testItems.append(
+            .init(
+                target: "Severity", expected: expectedSeverityText(loggedMessageSeverity),
+                recorded: log.severity?.description))
 
-        testItems.append(.init(target: "Severity", expected: expectedSeverityText(loggedMessageSeverity), recorded: log.severity?.description))
-
-        testItems.append(.init(target: "Stacktrace", expected: stacktraceExpected ? "found" : "missing", recorded: log.attributes["emb.stacktrace.ios"] != nil ? "found" : "missing"))
+        testItems.append(
+            .init(
+                target: "Stacktrace", expected: stacktraceExpected ? "found" : "missing",
+                recorded: log.attributes["emb.stacktrace.ios"] != nil ? "found" : "missing"))
 
         if includeAttachment {
             testItems.append(evaluate("emb.attachment_id", expectedToExist: true, on: log.attributes))
             testItems.append(evaluate("emb.attachment_size", expecting: "\(attachmentSize)", on: log.attributes))
 
-            if attachmentSize > 1048576 {
-                testItems.append(evaluate("emb.attachment_error_code", expecting: "ATTACHMENT_TOO_LARGE", on: log.attributes))
+            if attachmentSize > 1_048_576 {
+                testItems.append(
+                    evaluate("emb.attachment_error_code", expecting: "ATTACHMENT_TOO_LARGE", on: log.attributes))
             } else {
                 testItems.append(evaluate("emb.attachment_error_code", expectedToExist: false, on: log.attributes))
             }
@@ -114,7 +122,7 @@ class LoggingErrorMessageTest: PayloadTest {
 
     /// Size in bytes of the dummy data
     private func createDummyDataOfSize(_ size: Int) -> Data {
-        let bytes = [UInt32](repeating: 0, count: size/4).map { _ in arc4random() }
+        let bytes = [UInt32](repeating: 0, count: size / 4).map { _ in arc4random() }
         return Data(bytes: bytes, count: size)
     }
 }

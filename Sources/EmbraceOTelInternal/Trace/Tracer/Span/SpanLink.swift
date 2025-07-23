@@ -10,4 +10,4 @@ public protocol SpanLink {
     var attributes: [String: AttributeValue] { get }
 }
 
-extension SpanData.Link: SpanLink { }
+extension SpanData.Link: SpanLink {}

@@ -3,12 +3,13 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceStorageInternal
-import EmbraceUploadInternal
-import EmbraceOTelInternal
-import EmbraceSemantics
+    import EmbraceCommonInternal
+    import EmbraceStorageInternal
+    import EmbraceUploadInternal
+    import EmbraceOTelInternal
+    import EmbraceSemantics
 #endif
 
 class UnsentDataHandler {
@@ -22,7 +23,8 @@ class UnsentDataHandler {
     ) {
 
         guard let storage = storage,
-              let upload = upload else {
+            let upload = upload
+        else {
             return
         }
 
@@ -137,12 +139,15 @@ class UnsentDataHandler {
                     }
 
                 case .failure(let error):
-                    Embrace.logger.warning("Error trying to upload crash report \(report.id):\n\(error.localizedDescription)")
+                    Embrace.logger.warning(
+                        "Error trying to upload crash report \(report.id):\n\(error.localizedDescription)")
                 }
             }
 
         } catch {
-            Embrace.logger.warning("Error encoding crash report \(report.id) for session \(String(describing: report.sessionId)):\n" + error.localizedDescription)
+            Embrace.logger.warning(
+                "Error encoding crash report \(report.id) for session \(String(describing: report.sessionId)):\n"
+                    + error.localizedDescription)
         }
     }
 
@@ -161,7 +166,8 @@ class UnsentDataHandler {
             initialAttributes: [:]
         )
 
-        let attributes = attributesBuilder
+        let attributes =
+            attributesBuilder
             .addLogType(.crash)
             .addApplicationProperties()
             .addApplicationState()
@@ -197,7 +203,8 @@ class UnsentDataHandler {
         for session in sessions {
             // ignore current session
             if let currentSessionId = currentSessionId,
-               currentSessionId == session.id {
+                currentSessionId == session.id
+            {
                 continue
             }
 
@@ -245,7 +252,8 @@ class UnsentDataHandler {
                 }
 
             case .failure(let error):
-                Embrace.logger.warning("Error trying to upload session \(session.idRaw):\n\(error.localizedDescription)")
+                Embrace.logger.warning(
+                    "Error trying to upload session \(session.idRaw):\n\(error.localizedDescription)")
             }
         }
     }
@@ -283,7 +291,8 @@ class UnsentDataHandler {
         }
 
         guard let upload = upload,
-              let fileUrl = fileUrl else {
+            let fileUrl = fileUrl
+        else {
             return
         }
 

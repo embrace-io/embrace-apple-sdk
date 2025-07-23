@@ -2,13 +2,17 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
 import EmbraceCommonInternal
+import Foundation
 import XCTest
 
 class DummyURLSessionInitWithDelegateSwizzler: Swizzlable {
-    typealias ImplementationType = @convention(c) (URLSession, Selector, URLSessionConfiguration, URLSessionDelegate?, OperationQueue?) -> URLSession
-    typealias BlockImplementationType = @convention(block) (URLSession, URLSessionConfiguration, URLSessionDelegate?, OperationQueue?) -> URLSession
+    typealias ImplementationType = @convention(c) (
+        URLSession, Selector, URLSessionConfiguration, URLSessionDelegate?, OperationQueue?
+    ) -> URLSession
+    typealias BlockImplementationType = @convention(block) (
+        URLSession, URLSessionConfiguration, URLSessionDelegate?, OperationQueue?
+    ) -> URLSession
     static var selector: Selector = #selector(
         URLSession.init(configuration:delegate:delegateQueue:)
     )

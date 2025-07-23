@@ -4,8 +4,8 @@
 //
 //
 
-import SwiftUI
 import EmbraceCommonInternal
+import SwiftUI
 
 struct LoggingTestsStackTraceSelectionView: View {
     @Binding var stacktraceBehavior: StackTraceBehavior

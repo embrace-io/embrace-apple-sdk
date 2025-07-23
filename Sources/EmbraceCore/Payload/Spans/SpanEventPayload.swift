@@ -3,8 +3,9 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceOTelInternal
+    import EmbraceOTelInternal
 #endif
 
 struct SpanEventPayload: Encodable {
@@ -35,7 +36,6 @@ struct SpanEventPayload: Encodable {
 extension SpanEventPayload: Equatable {
     public static func == (lhs: SpanEventPayload, rhs: SpanEventPayload) -> Bool {
         return
-            lhs.name == rhs.name &&
-            lhs.timestamp == rhs.timestamp
+            lhs.name == rhs.name && lhs.timestamp == rhs.timestamp
     }
 }

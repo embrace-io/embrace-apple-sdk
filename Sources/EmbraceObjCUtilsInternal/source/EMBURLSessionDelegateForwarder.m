@@ -1,7 +1,6 @@
 //
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
-    
 
 #import "EMBURLSessionDelegateForwarder.h"
 
@@ -10,8 +9,9 @@
 #pragma mark - Forwarding of NSURLSessionDelegate methods
 
 - (void)forwardToObject:(NSObject *)object
-             URLSession:(nonnull NSURLSession *)session
-didBecomeInvalidWithError:(nullable NSError *)error {
+                   URLSession:(nonnull NSURLSession *)session
+    didBecomeInvalidWithError:(nullable NSError *)error
+{
     id<NSURLSessionDelegate> sessionDelegate = (id<NSURLSessionDelegate>)object;
     [sessionDelegate URLSession:session didBecomeInvalidWithError:error];
 }
@@ -21,7 +21,8 @@ didBecomeInvalidWithError:(nullable NSError *)error {
 - (void)forwardToObject:(NSObject *)object
              URLSession:(nonnull NSURLSession *)session
                dataTask:(nonnull NSURLSessionDataTask *)task
-         didReceiveData:(nonnull NSData *)data {
+         didReceiveData:(nonnull NSData *)data
+{
     id<NSURLSessionDataDelegate> dataDelegate = (id<NSURLSessionDataDelegate>)object;
     [dataDelegate URLSession:session dataTask:task didReceiveData:data];
 }
@@ -29,17 +30,19 @@ didBecomeInvalidWithError:(nullable NSError *)error {
 #pragma mark - Forwarding of NSURLSessionTaskDelegate methods
 
 - (void)forwardToObject:(NSObject *)object
-             URLSession:(nonnull NSURLSession *)session
-                   task:(nonnull NSURLSessionTask *)task
-didFinishCollectiongMetrics:(nonnull NSURLSessionTaskMetrics *)metrics{
+                     URLSession:(nonnull NSURLSession *)session
+                           task:(nonnull NSURLSessionTask *)task
+    didFinishCollectiongMetrics:(nonnull NSURLSessionTaskMetrics *)metrics
+{
     id<NSURLSessionTaskDelegate> taskDelegate = (id<NSURLSessionTaskDelegate>)object;
     [taskDelegate URLSession:session task:task didFinishCollectingMetrics:metrics];
 }
 
 - (void)forwardToObject:(NSObject *)object
-             URLSession:(nonnull NSURLSession *)session
-                   task:(nonnull NSURLSessionTask *)task
-   didCompleteWithError:(nullable NSError *)error {
+              URLSession:(nonnull NSURLSession *)session
+                    task:(nonnull NSURLSessionTask *)task
+    didCompleteWithError:(nullable NSError *)error
+{
     id<NSURLSessionTaskDelegate> taskDelegate = (id<NSURLSessionTaskDelegate>)object;
     [taskDelegate URLSession:session task:task didCompleteWithError:error];
 }
@@ -47,9 +50,10 @@ didFinishCollectiongMetrics:(nonnull NSURLSessionTaskMetrics *)metrics{
 #pragma mark - Forwarding of NSURLSessionDownloadDelegate methods
 
 - (void)forwardToObject:(NSObject *)object
-             URLSession:(nonnull NSURLSession *)session
-           downloadTask:(nonnull NSURLSessionDownloadTask *)task
-didFinishDownloadingToURL:(nonnull NSURL *)url {
+                   URLSession:(nonnull NSURLSession *)session
+                 downloadTask:(nonnull NSURLSessionDownloadTask *)task
+    didFinishDownloadingToURL:(nonnull NSURL *)url
+{
     id<NSURLSessionDownloadDelegate> downloadDelegate = (id<NSURLSessionDownloadDelegate>)object;
     [downloadDelegate URLSession:session downloadTask:task didFinishDownloadingToURL:url];
 }

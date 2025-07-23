@@ -4,12 +4,14 @@
 //
 //
 
-import OpenTelemetrySdk
 import OpenTelemetryApi
+import OpenTelemetrySdk
 import SwiftUI
 
 class ViewControllerViewDidAppearTest: PayloadTest {
-    var testRelevantPayloadNames: [String] { ["emb-view-did-load", "emb-view-will-appear", "emb-view-is-appearing", "emb-view-did-appear"] }
+    var testRelevantPayloadNames: [String] {
+        ["emb-view-did-load", "emb-view-will-appear", "emb-view-is-appearing", "emb-view-did-appear"]
+    }
     var requiresCleanup: Bool { true }
     var testType: TestType { .Spans }
 
@@ -33,10 +35,22 @@ class ViewControllerViewDidAppearTest: PayloadTest {
         let viewIsAppearingSpan = relevantSpans.first(where: { $0.name == "emb-view-is-appearing" })
         let viewDidAppearSpan = relevantSpans.first(where: { $0.name == "emb-view-did-appear" })
 
-        testItems.append(.init(target: "viewDidLoad Span", expected: "exists", recorded: viewDidLoadSpan != nil ? "exists" : "missing"))
-        testItems.append(.init(target: "viewWillAppear Span", expected: "exists", recorded: viewDidLoadSpan != nil ? "exists" : "missing"))
-        testItems.append(.init(target: "viewIsAppearing Span", expected: "exists", recorded: viewDidLoadSpan != nil ? "exists" : "missing"))
-        testItems.append(.init(target: "viewDidAppear Span", expected: "exists", recorded: viewDidLoadSpan != nil ? "exists" : "missing"))
+        testItems.append(
+            .init(
+                target: "viewDidLoad Span", expected: "exists", recorded: viewDidLoadSpan != nil ? "exists" : "missing")
+        )
+        testItems.append(
+            .init(
+                target: "viewWillAppear Span", expected: "exists",
+                recorded: viewDidLoadSpan != nil ? "exists" : "missing"))
+        testItems.append(
+            .init(
+                target: "viewIsAppearing Span", expected: "exists",
+                recorded: viewDidLoadSpan != nil ? "exists" : "missing"))
+        testItems.append(
+            .init(
+                target: "viewDidAppear Span", expected: "exists",
+                recorded: viewDidLoadSpan != nil ? "exists" : "missing"))
 
         guard
             let viewDidLoadSpan = viewDidLoadSpan,
@@ -47,16 +61,29 @@ class ViewControllerViewDidAppearTest: PayloadTest {
             return .init(items: testItems)
         }
 
-        testItems.append(.init(target: "viewDidLoad Span Ended", expected: "yes", recorded: viewDidLoadSpan.hasEnded ? "yes" : "no"))
-        testItems.append(.init(target: "viewWillAppear Span Ended", expected: "yes", recorded: viewWillAppearSpan.hasEnded ? "yes" : "no"))
-        testItems.append(.init(target: "viewIsAppearing Span Ended", expected: "yes", recorded: viewIsAppearingSpan.hasEnded ? "yes" : "no"))
-        testItems.append(.init(target: "viewDidAppear Span Ended", expected: "yes", recorded: viewDidAppearSpan.hasEnded ? "yes" : "no"))
+        testItems.append(
+            .init(target: "viewDidLoad Span Ended", expected: "yes", recorded: viewDidLoadSpan.hasEnded ? "yes" : "no"))
+        testItems.append(
+            .init(
+                target: "viewWillAppear Span Ended", expected: "yes",
+                recorded: viewWillAppearSpan.hasEnded ? "yes" : "no"))
+        testItems.append(
+            .init(
+                target: "viewIsAppearing Span Ended", expected: "yes",
+                recorded: viewIsAppearingSpan.hasEnded ? "yes" : "no"))
+        testItems.append(
+            .init(
+                target: "viewDidAppear Span Ended", expected: "yes", recorded: viewDidAppearSpan.hasEnded ? "yes" : "no"
+            ))
 
         let order = [viewDidAppearSpan, viewIsAppearingSpan, viewWillAppearSpan, viewDidLoadSpan].sorted { lhs, rhs in
             lhs.startTime < rhs.startTime
         }
 
-        testItems.append(.init(target: "Span Trigger Order", expected: "didLoad, willAppear, isAppearing, didAppear", recorded: spanOrderString(order)))
+        testItems.append(
+            .init(
+                target: "Span Trigger Order", expected: "didLoad, willAppear, isAppearing, didAppear",
+                recorded: spanOrderString(order)))
 
         MetadataResourceTest.testMetadataInclussion(on: viewDidLoadSpan.resource, testItems: &testItems)
         testItems.append(contentsOf: OTelSemanticsValidation.validateAttributeNames(viewDidLoadSpan.attributes))

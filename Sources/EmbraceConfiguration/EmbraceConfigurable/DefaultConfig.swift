@@ -39,7 +39,7 @@ public class DefaultConfig: EmbraceConfigurable {
         completion(false, nil)
     }
 
-    public init() { }
+    public init() {}
 }
 
 extension EmbraceConfigurable where Self == DefaultConfig {

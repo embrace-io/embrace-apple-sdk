@@ -3,12 +3,13 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceConfigInternal
-import EmbraceConfiguration
-import EmbraceOTelInternal
-import EmbraceSemantics
+    import EmbraceCommonInternal
+    import EmbraceConfigInternal
+    import EmbraceConfiguration
+    import EmbraceOTelInternal
+    import EmbraceSemantics
 #endif
 
 /// Note: Currently we only have 1 type of custom SpanEvent (breadcrumbs)
@@ -78,7 +79,8 @@ class SpanEventsLimiter {
             for event in events {
                 // check limit for event type
                 guard let eventType = event.attributes[SpanEventSemantics.keyEmbraceType]?.description,
-                      let limit = limitForEventType(eventType, limits: $0.limits) else {
+                    let limit = limitForEventType(eventType, limits: $0.limits)
+                else {
                     result.append(event)
                     continue
                 }

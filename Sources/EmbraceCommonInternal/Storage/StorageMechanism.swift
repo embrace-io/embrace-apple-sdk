@@ -9,10 +9,10 @@ public enum StorageMechanism {
     case onDisk(name: String, baseURL: URL)
 }
 
-public extension StorageMechanism {
+extension StorageMechanism {
 
     /// Name identifier
-    var name: String {
+    public var name: String {
         switch self {
         case .onDisk(let name, _): return name
         case .inMemory(let name): return name
@@ -20,7 +20,7 @@ public extension StorageMechanism {
     }
 
     /// URL pointing to the folder where the storage will be saved
-    var baseUrl: URL? {
+    public var baseUrl: URL? {
         switch self {
         case .onDisk(_, let url):
             return url
@@ -30,7 +30,7 @@ public extension StorageMechanism {
     }
 
     /// URL pointing to the folder where the storage will be saved
-    var fileName: String? {
+    public var fileName: String? {
         switch self {
         case .onDisk(let name, _):
             return name + ".sqlite"
@@ -40,7 +40,7 @@ public extension StorageMechanism {
     }
 
     /// URL to the storage file
-    var fileURL: URL? {
+    public var fileURL: URL? {
         switch self {
         case .onDisk(let name, let url):
             return url.appendingPathComponent(name + ".sqlite")

@@ -31,9 +31,11 @@ enum ViewControllerTestsDataModel: Int, TestScreenDataModel, CaseIterable {
     @ViewBuilder var uiComponent: some View {
         switch self {
         case .viewDidLoad:
-            TestSpanScreenButtonView(viewModel: .init(dataModel: self, payloadTestObject: ViewControllerViewDidLoadTest()))
+            TestSpanScreenButtonView(
+                viewModel: .init(dataModel: self, payloadTestObject: ViewControllerViewDidLoadTest()))
         case .viewDidAppearMeasurement:
-            TestSpanScreenButtonView(viewModel: .init(dataModel: self, payloadTestObject: ViewControllerViewDidAppearTest()))
+            TestSpanScreenButtonView(
+                viewModel: .init(dataModel: self, payloadTestObject: ViewControllerViewDidAppearTest()))
         }
     }
 }

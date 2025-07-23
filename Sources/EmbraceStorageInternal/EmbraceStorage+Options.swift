@@ -3,14 +3,15 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
+    import EmbraceCommonInternal
 #endif
 
-public extension EmbraceStorage {
+extension EmbraceStorage {
 
     /// Class used to configure a EmbraceStorage instance
-    class Options {
+    public class Options {
         /// Determines where the db is going to be
         public let storageMechanism: StorageMechanism
 

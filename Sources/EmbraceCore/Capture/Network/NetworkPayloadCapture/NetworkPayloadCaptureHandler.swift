@@ -3,13 +3,14 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceConfigInternal
-import EmbraceCommonInternal
-import EmbraceOTelInternal
-import EmbraceStorageInternal
-import EmbraceSemantics
-import EmbraceConfiguration
+    import EmbraceConfigInternal
+    import EmbraceCommonInternal
+    import EmbraceOTelInternal
+    import EmbraceStorageInternal
+    import EmbraceSemantics
+    import EmbraceConfiguration
 #endif
 
 protocol NetworkPayloadCaptureHandler {
@@ -132,16 +133,18 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
             }
 
             // generate payload
-            guard let payload = EncryptedNetworkPayload(
-                request: request,
-                response: response,
-                data: data,
-                error: error,
-                startTime: startTime,
-                endTime: endTime,
-                matchedUrl: rule.urlRegex,
-                sessionId: protectedDataCopy.currentSessionId
-            ) else {
+            guard
+                let payload = EncryptedNetworkPayload(
+                    request: request,
+                    response: response,
+                    data: data,
+                    error: error,
+                    startTime: startTime,
+                    endTime: endTime,
+                    matchedUrl: rule.urlRegex,
+                    sessionId: protectedDataCopy.currentSessionId
+                )
+            else {
                 Embrace.logger.debug("Couldn't generate payload for task \(rule.urlRegex)!")
                 return
             }

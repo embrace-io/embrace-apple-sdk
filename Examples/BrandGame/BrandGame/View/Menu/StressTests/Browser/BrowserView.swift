@@ -17,10 +17,13 @@ struct BrowserView: View {
         VStack {
             webView
             HStack {
-                TextField("Enter URL", text: $urlString, onCommit: {
-                    loadURL()
-                }).keyboardType(.URL)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
+                TextField(
+                    "Enter URL", text: $urlString,
+                    onCommit: {
+                        loadURL()
+                    }
+                ).keyboardType(.URL)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
                 Button {
                     loadURL()
                 } label: {

@@ -3,7 +3,7 @@
 //
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceStorageInternal
+    import EmbraceStorageInternal
 #endif
 
 extension StorageSpanExporter {

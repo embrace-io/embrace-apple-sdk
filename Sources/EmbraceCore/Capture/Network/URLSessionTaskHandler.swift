@@ -4,12 +4,13 @@
 
 import Foundation
 import OpenTelemetryApi
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCaptureService
-import EmbraceCommonInternal
-import EmbraceOTelInternal
-@_implementationOnly import EmbraceObjCUtilsInternal
-import EmbraceSemantics
+    import EmbraceCaptureService
+    import EmbraceCommonInternal
+    import EmbraceOTelInternal
+    @_implementationOnly import EmbraceObjCUtilsInternal
+    import EmbraceSemantics
 #endif
 
 extension Notification.Name {
@@ -32,14 +33,17 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
     private let payloadCaptureHandler: NetworkPayloadCaptureHandler
     weak var dataSource: URLSessionTaskHandlerDataSource?
 
-    init(processingQueue: DispatchableQueue = DefaultURLSessionTaskHandler.queue(),
-         capturedDataQueue: DispatchableQueue = DefaultURLSessionTaskHandler.capturedDataQueue(),
-         dataSource: URLSessionTaskHandlerDataSource?,
-         payloadCaptureHandler: NetworkPayloadCaptureHandler? = nil) {
+    init(
+        processingQueue: DispatchableQueue = DefaultURLSessionTaskHandler.queue(),
+        capturedDataQueue: DispatchableQueue = DefaultURLSessionTaskHandler.capturedDataQueue(),
+        dataSource: URLSessionTaskHandlerDataSource?,
+        payloadCaptureHandler: NetworkPayloadCaptureHandler? = nil
+    ) {
         self.queue = processingQueue
         self.capturedDataQueue = capturedDataQueue
         self.dataSource = dataSource
-        self.payloadCaptureHandler = payloadCaptureHandler ?? DefaultNetworkPayloadCaptureHandler(otel: dataSource?.otel)
+        self.payloadCaptureHandler =
+            payloadCaptureHandler ?? DefaultNetworkPayloadCaptureHandler(otel: dataSource?.otel)
     }
 
     @discardableResult
@@ -65,7 +69,8 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
             guard
                 var request = task.originalRequest,
                 let url = request.url,
-                let otel = self.dataSource?.otel else {
+                let otel = self.dataSource?.otel
+            else {
                 return
             }
 
@@ -94,12 +99,12 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
              The `{http.route}` corresponds to the template of the path so it's necessary to understand the templating system being employed.
              For instance, a template for a request such as http://embrace.io/users/12345?hello=world
              would be reported as /users/:userId (or /users/:userId? in other templating system).
-
+            
              Until a decision is made regarding the method to convey this information and the heuristics to extract it,
              the `.path` method will be utilized temporarily. This approach may introduce higher cardinality on the backend,
              which is less than optimal.
              It will be important to address this in the near future to enhance performance for the backend.
-
+            
              Additional information can be found at:
              - HTTP Name attribute: https://opentelemetry.io/docs/specs/semconv/http/http-spans/#name
              - HTTP Attributes: https://opentelemetry.io/docs/specs/semconv/attributes-registry/http/
@@ -256,7 +261,8 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
 
     func addTracingHeader(task: URLSessionTask, span: Span) -> String? {
         guard dataSource?.injectTracingHeader == true,
-              task.originalRequest != nil else {
+            task.originalRequest != nil
+        else {
             return nil
         }
 
@@ -294,12 +300,12 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
     }
 }
 
-private extension DefaultURLSessionTaskHandler {
-    static func queue() -> DispatchableQueue {
+extension DefaultURLSessionTaskHandler {
+    fileprivate static func queue() -> DispatchableQueue {
         .with(label: "com.embrace.URLSessionTaskHandler", qos: .utility)
     }
 
-    static func capturedDataQueue() -> DispatchableQueue {
+    fileprivate static func capturedDataQueue() -> DispatchableQueue {
         .with(label: "com.embrace.URLSessionTask.embraceData", qos: .utility)
     }
 }

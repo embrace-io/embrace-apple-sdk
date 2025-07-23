@@ -2,13 +2,14 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
 import TestSupport
-@testable import EmbraceCore
-@testable import EmbraceConfigInternal
-@testable import EmbraceStorageInternal
-@testable import EmbraceConfiguration
+import XCTest
+
 @testable import EmbraceCommonInternal
+@testable import EmbraceConfigInternal
+@testable import EmbraceConfiguration
+@testable import EmbraceCore
+@testable import EmbraceStorageInternal
 
 class NetworkPayloadCaptureHandlerTests: XCTestCase {
 
@@ -18,7 +19,7 @@ class NetworkPayloadCaptureHandlerTests: XCTestCase {
             urlRegex: "www.test.com/user/*",
             statusCodes: [500],
             method: "GET",
-            expiration: 9999999999,
+            expiration: 9_999_999_999,
             publicKey: TestConstants.rsaSanitizedPublicKey
         ),
 
@@ -27,7 +28,7 @@ class NetworkPayloadCaptureHandlerTests: XCTestCase {
             urlRegex: "www.test.com/test/*",
             statusCodes: [-1],
             method: "POST",
-            expiration: 9999999999,
+            expiration: 9_999_999_999,
             publicKey: TestConstants.rsaSanitizedPublicKey
         )
     ]
@@ -189,21 +190,21 @@ class NetworkPayloadCaptureHandlerTests: XCTestCase {
 
 extension DefaultNetworkPayloadCaptureHandler {
     var rules: [URLSessionTaskCaptureRule] {
-        get { state.withLock { $0.rules } }
+        state.withLock { $0.rules }
     }
-    
+
     var rulesTriggeredMap: [String: Bool] {
         get { state.withLock { $0.rulesTriggeredMap } }
-        set { state.withLock { $0.rulesTriggeredMap = newValue }}
+        set { state.withLock { $0.rulesTriggeredMap = newValue } }
     }
-    
+
     var active: Bool {
         get { state.withLock { $0.active } }
-        set { state.withLock { $0.active = newValue }}
+        set { state.withLock { $0.active = newValue } }
     }
-    
+
     var currentSessionId: SessionIdentifier? {
         get { state.withLock { $0.currentSessionId } }
-        set { state.withLock { $0.currentSessionId = newValue }}
+        set { state.withLock { $0.currentSessionId = newValue } }
     }
 }

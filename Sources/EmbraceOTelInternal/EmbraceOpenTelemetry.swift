@@ -4,16 +4,18 @@
 
 import Foundation
 import OpenTelemetryApi
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceSemantics
+    import EmbraceCommonInternal
+    import EmbraceSemantics
 #endif
 
 public protocol EmbraceOpenTelemetry: AnyObject {
-    func buildSpan(name: String,
-                   type: SpanType,
-                   attributes: [String: String],
-                   autoTerminationCode: SpanErrorCode?
+    func buildSpan(
+        name: String,
+        type: SpanType,
+        attributes: [String: String],
+        autoTerminationCode: SpanErrorCode?
     ) -> SpanBuilder
 
     func recordCompletedSpan(

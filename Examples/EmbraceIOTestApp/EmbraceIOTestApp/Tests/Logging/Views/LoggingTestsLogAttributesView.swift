@@ -22,7 +22,7 @@ struct LoggingTestsLogAttributesView: View {
                     TextField("A key", text: $attributeKey)
                         .font(.embraceFont(size: 18))
                         .foregroundStyle(.embraceSilver)
-                        .padding([.leading, .trailing,], 5)
+                        .padding([.leading, .trailing], 5)
                         .textFieldStyle(RoundedStyle())
                         .accessibilityIdentifier("LogTestsAttributes_Key")
                 }
@@ -34,7 +34,7 @@ struct LoggingTestsLogAttributesView: View {
                     TextField("A value", text: $attributeValue)
                         .font(.embraceFont(size: 18))
                         .foregroundStyle(.embraceSilver)
-                        .padding([.leading, .trailing,], 5)
+                        .padding([.leading, .trailing], 5)
                         .textFieldStyle(RoundedStyle())
                         .accessibilityIdentifier("LogTestsAttributes_Value")
                 }

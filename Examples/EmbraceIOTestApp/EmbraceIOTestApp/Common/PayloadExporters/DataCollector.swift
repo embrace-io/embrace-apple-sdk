@@ -4,8 +4,8 @@
 //
 //
 
-import SwiftUI
 import OpenTelemetrySdk
+import SwiftUI
 
 @Observable class DataCollector: NSObject {
     private(set) var logExporter = TestLogRecordExporter()

@@ -2,9 +2,10 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-import TestSupport
 import EmbraceCommonInternal
+import TestSupport
+import XCTest
+
 @testable import EmbraceStorageInternal
 
 class MetadataRecordTests: XCTestCase {
@@ -50,7 +51,7 @@ class MetadataRecordTests: XCTestCase {
 
         // then the record count should be the limit
         let records: [MetadataRecord] = storage.fetchAll()
-        XCTAssertEqual(records.count,  storage.options.resourcesLimit)
+        XCTAssertEqual(records.count, storage.options.resourcesLimit)
     }
 
     func test_addMetadata_customPropertiesLimit() throws {
@@ -72,7 +73,7 @@ class MetadataRecordTests: XCTestCase {
 
         // then the record count should be the limit
         let records: [MetadataRecord] = storage.fetchAll()
-        XCTAssertEqual(records.count,  storage.options.customPropertiesLimit)
+        XCTAssertEqual(records.count, storage.options.customPropertiesLimit)
     }
 
     func test_addMetadata_resourceLimit_lifespanId() throws {
@@ -444,6 +445,82 @@ class MetadataRecordTests: XCTestCase {
         XCTAssertNil(resources.first(where: { $0.key == "test6" }))
     }
 
+    func test_fetchResources() throws {
+        // given a session in storage
+        storage.addSession(
+            id: TestConstants.sessionId,
+            processId: TestConstants.processId,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date()
+        )
+
+        // given inserted records
+        storage.addMetadata(
+            key: "test1",
+            value: "test",
+            type: .resource,
+            lifespan: .process,
+            lifespanId: TestConstants.processId.hex
+        )
+        storage.addMetadata(
+            key: "test2",
+            value: "test",
+            type: .resource,
+            lifespan: .process,
+            lifespanId: "test"
+        )
+        storage.addMetadata(
+            key: "test3",
+            value: "test",
+            type: .resource,
+            lifespan: .session,
+            lifespanId: TestConstants.sessionId.toString
+        )
+        storage.addMetadata(
+            key: "test4",
+            value: "test",
+            type: .resource,
+            lifespan: .session,
+            lifespanId: "test"
+        )
+        storage.addMetadata(
+            key: "test5",
+            value: "test",
+            type: .resource,
+            lifespan: .permanent
+        )
+        storage.addMetadata(
+            key: "test6",
+            value: "test",
+            type: .customProperty,
+            lifespan: .process,
+            lifespanId: TestConstants.processId.hex
+        )
+        storage.addMetadata(
+            key: "test7",
+            value: "test",
+            type: .customProperty,
+            lifespan: .session,
+            lifespanId: TestConstants.sessionId.toString
+        )
+
+        // when fetching all resources by session id and process id
+        let resources = storage.fetchResources(
+            sessionId: TestConstants.sessionId.toString, processId: TestConstants.processId.hex)
+
+        // then the correct records are fetched
+        XCTAssertEqual(resources.count, 3)
+        XCTAssertNotNil(resources.first(where: { $0.key == "test1" }))
+        XCTAssertNil(resources.first(where: { $0.key == "test2" }))
+        XCTAssertNotNil(resources.first(where: { $0.key == "test3" }))
+        XCTAssertNil(resources.first(where: { $0.key == "test4" }))
+        XCTAssertNotNil(resources.first(where: { $0.key == "test5" }))
+        XCTAssertNil(resources.first(where: { $0.key == "test6" }))
+        XCTAssertNil(resources.first(where: { $0.key == "test7" }))
+    }
+
     func test_fetchResourcesForSessionId() throws {
         // given a session in storage
         storage.addSession(
@@ -507,6 +584,157 @@ class MetadataRecordTests: XCTestCase {
 
         // when fetching all resources by session id
         let resources = storage.fetchResourcesForSessionId(TestConstants.sessionId)
+
+        // then the correct records are fetched
+        XCTAssertEqual(resources.count, 3)
+        XCTAssertNotNil(resources.first(where: { $0.key == "test1" }))
+        XCTAssertNil(resources.first(where: { $0.key == "test2" }))
+        XCTAssertNotNil(resources.first(where: { $0.key == "test3" }))
+        XCTAssertNil(resources.first(where: { $0.key == "test4" }))
+        XCTAssertNotNil(resources.first(where: { $0.key == "test5" }))
+        XCTAssertNil(resources.first(where: { $0.key == "test6" }))
+        XCTAssertNil(resources.first(where: { $0.key == "test7" }))
+    }
+
+    func test_fetchResourcesForProcessId() throws {
+        // given a session in storage
+        storage.addSession(
+            id: TestConstants.sessionId,
+            processId: TestConstants.processId,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date()
+        )
+
+        // given inserted records
+        storage.addMetadata(
+            key: "test1",
+            value: "test",
+            type: .resource,
+            lifespan: .process,
+            lifespanId: TestConstants.processId.hex
+        )
+        storage.addMetadata(
+            key: "test2",
+            value: "test",
+            type: .resource,
+            lifespan: .process,
+            lifespanId: "test"
+        )
+        storage.addMetadata(
+            key: "test3",
+            value: "test",
+            type: .resource,
+            lifespan: .session,
+            lifespanId: TestConstants.sessionId.toString
+        )
+        storage.addMetadata(
+            key: "test4",
+            value: "test",
+            type: .resource,
+            lifespan: .session,
+            lifespanId: "test"
+        )
+        storage.addMetadata(
+            key: "test5",
+            value: "test",
+            type: .resource,
+            lifespan: .permanent
+        )
+        storage.addMetadata(
+            key: "test6",
+            value: "test",
+            type: .customProperty,
+            lifespan: .process,
+            lifespanId: TestConstants.processId.hex
+        )
+        storage.addMetadata(
+            key: "test7",
+            value: "test",
+            type: .customProperty,
+            lifespan: .session,
+            lifespanId: TestConstants.sessionId.toString
+        )
+
+        // when fetching all resources by process id
+        let resources = storage.fetchResourcesForProcessId(TestConstants.processId)
+
+        // then the correct records are fetched
+        XCTAssertEqual(resources.count, 2)
+        XCTAssertNotNil(resources.first(where: { $0.key == "test1" }))
+        XCTAssertNil(resources.first(where: { $0.key == "test2" }))
+        XCTAssertNil(resources.first(where: { $0.key == "test3" }))
+        XCTAssertNil(resources.first(where: { $0.key == "test4" }))
+        XCTAssertNotNil(resources.first(where: { $0.key == "test5" }))
+        XCTAssertNil(resources.first(where: { $0.key == "test6" }))
+        XCTAssertNil(resources.first(where: { $0.key == "test7" }))
+    }
+
+    func test_fetchCustomProperties() throws {
+        // given a session in storage
+        storage.addSession(
+            id: TestConstants.sessionId,
+            processId: TestConstants.processId,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date()
+        )
+
+        // given inserted records
+        storage.addMetadata(
+            key: "test1",
+            value: "test",
+            type: .customProperty,
+            lifespan: .process,
+            lifespanId: TestConstants.processId.hex
+        )
+        storage.addMetadata(
+            key: "test2",
+            value: "test",
+            type: .customProperty,
+            lifespan: .process,
+            lifespanId: "test"
+        )
+        storage.addMetadata(
+            key: "test3",
+            value: "test",
+            type: .customProperty,
+            lifespan: .session,
+            lifespanId: TestConstants.sessionId.toString
+        )
+        storage.addMetadata(
+            key: "test4",
+            value: "test",
+            type: .customProperty,
+            lifespan: .session,
+            lifespanId: "test"
+        )
+        storage.addMetadata(
+            key: "test5",
+            value: "test",
+            type: .customProperty,
+            lifespan: .permanent
+        )
+        storage.addMetadata(
+            key: "test6",
+            value: "test",
+            type: .resource,
+            lifespan: .process,
+            lifespanId: TestConstants.processId.hex
+        )
+        storage.addMetadata(
+            key: "test7",
+            value: "test",
+            type: .resource,
+            lifespan: .session,
+            lifespanId: TestConstants.sessionId.toString
+        )
+
+        // when fetching all resources by session id and process id
+        let resources = storage.fetchCustomProperties(
+            sessionId: TestConstants.sessionId.toString, processId: TestConstants.processId.hex)
 
         // then the correct records are fetched
         XCTAssertEqual(resources.count, 3)
@@ -592,5 +820,228 @@ class MetadataRecordTests: XCTestCase {
         XCTAssertNotNil(resources.first(where: { $0.key == "test5" }))
         XCTAssertNil(resources.first(where: { $0.key == "test6" }))
         XCTAssertNil(resources.first(where: { $0.key == "test7" }))
+    }
+
+    func test_fetchPersonaTags() throws {
+        // given a session in storage
+        storage.addSession(
+            id: TestConstants.sessionId,
+            processId: TestConstants.processId,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date()
+        )
+
+        // given inserted records
+        storage.addMetadata(
+            key: "test1",
+            value: "test",
+            type: .customProperty,
+            lifespan: .process,
+            lifespanId: TestConstants.processId.hex
+        )
+        storage.addMetadata(
+            key: "test2",
+            value: "test",
+            type: .resource,
+            lifespan: .session,
+            lifespanId: TestConstants.sessionId.toString
+        )
+        storage.addMetadata(
+            key: "test3",
+            value: "test",
+            type: .requiredResource,
+            lifespan: .permanent
+        )
+        storage.addMetadata(
+            key: "test4",
+            value: "test",
+            type: .personaTag,
+            lifespan: .session,
+            lifespanId: "test"
+        )
+        storage.addMetadata(
+            key: "test5",
+            value: "test",
+            type: .personaTag,
+            lifespan: .permanent
+        )
+        storage.addMetadata(
+            key: "test6",
+            value: "test",
+            type: .personaTag,
+            lifespan: .session,
+            lifespanId: TestConstants.sessionId.toString
+        )
+        storage.addMetadata(
+            key: "test7",
+            value: "test",
+            type: .personaTag,
+            lifespan: .process,
+            lifespanId: TestConstants.processId.hex
+        )
+
+        // when fetching all persona tags by session id and process id
+        let resources = storage.fetchPersonaTags(
+            sessionId: TestConstants.sessionId.toString, processId: TestConstants.processId.hex)
+
+        // then the correct records are fetched
+        XCTAssertEqual(resources.count, 3)
+        XCTAssertNil(resources.first(where: { $0.key == "test1" }))
+        XCTAssertNil(resources.first(where: { $0.key == "test2" }))
+        XCTAssertNil(resources.first(where: { $0.key == "test3" }))
+        XCTAssertNil(resources.first(where: { $0.key == "test4" }))
+        XCTAssertNotNil(resources.first(where: { $0.key == "test5" }))
+        XCTAssertNotNil(resources.first(where: { $0.key == "test6" }))
+        XCTAssertNotNil(resources.first(where: { $0.key == "test7" }))
+    }
+
+    func test_fetchPersonaTagsForSessionId() throws {
+        // given a session in storage
+        storage.addSession(
+            id: TestConstants.sessionId,
+            processId: TestConstants.processId,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date()
+        )
+
+        // given inserted records
+        storage.addMetadata(
+            key: "test1",
+            value: "test",
+            type: .customProperty,
+            lifespan: .process,
+            lifespanId: TestConstants.processId.hex
+        )
+        storage.addMetadata(
+            key: "test2",
+            value: "test",
+            type: .resource,
+            lifespan: .session,
+            lifespanId: TestConstants.sessionId.toString
+        )
+        storage.addMetadata(
+            key: "test3",
+            value: "test",
+            type: .requiredResource,
+            lifespan: .permanent
+        )
+        storage.addMetadata(
+            key: "test4",
+            value: "test",
+            type: .personaTag,
+            lifespan: .session,
+            lifespanId: "test"
+        )
+        storage.addMetadata(
+            key: "test5",
+            value: "test",
+            type: .personaTag,
+            lifespan: .permanent
+        )
+        storage.addMetadata(
+            key: "test6",
+            value: "test",
+            type: .personaTag,
+            lifespan: .session,
+            lifespanId: TestConstants.sessionId.toString
+        )
+        storage.addMetadata(
+            key: "test7",
+            value: "test",
+            type: .personaTag,
+            lifespan: .process,
+            lifespanId: TestConstants.processId.hex
+        )
+
+        // when fetching all persona tags by session
+        let resources = storage.fetchPersonaTagsForSessionId(TestConstants.sessionId)
+
+        // then the correct records are fetched
+        XCTAssertEqual(resources.count, 3)
+        XCTAssertNil(resources.first(where: { $0.key == "test1" }))
+        XCTAssertNil(resources.first(where: { $0.key == "test2" }))
+        XCTAssertNil(resources.first(where: { $0.key == "test3" }))
+        XCTAssertNil(resources.first(where: { $0.key == "test4" }))
+        XCTAssertNotNil(resources.first(where: { $0.key == "test5" }))
+        XCTAssertNotNil(resources.first(where: { $0.key == "test6" }))
+        XCTAssertNotNil(resources.first(where: { $0.key == "test7" }))
+    }
+
+    func test_fetchPersonaTagsForProcessId() throws {
+        // given a session in storage
+        storage.addSession(
+            id: TestConstants.sessionId,
+            processId: TestConstants.processId,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date()
+        )
+
+        // given inserted records
+        storage.addMetadata(
+            key: "test1",
+            value: "test",
+            type: .customProperty,
+            lifespan: .process,
+            lifespanId: TestConstants.processId.hex
+        )
+        storage.addMetadata(
+            key: "test2",
+            value: "test",
+            type: .resource,
+            lifespan: .session,
+            lifespanId: TestConstants.sessionId.toString
+        )
+        storage.addMetadata(
+            key: "test3",
+            value: "test",
+            type: .requiredResource,
+            lifespan: .permanent
+        )
+        storage.addMetadata(
+            key: "test4",
+            value: "test",
+            type: .personaTag,
+            lifespan: .session,
+            lifespanId: "test"
+        )
+        storage.addMetadata(
+            key: "test5",
+            value: "test",
+            type: .personaTag,
+            lifespan: .permanent
+        )
+        storage.addMetadata(
+            key: "test6",
+            value: "test",
+            type: .personaTag,
+            lifespan: .session,
+            lifespanId: TestConstants.sessionId.toString
+        )
+        storage.addMetadata(
+            key: "test7",
+            value: "test",
+            type: .personaTag,
+            lifespan: .process,
+            lifespanId: TestConstants.processId.hex
+        )
+
+        // when fetching all persona tags by session
+        let resources = storage.fetchPersonaTagsForProcessId(TestConstants.processId)
+
+        // then the correct records are fetched
+        XCTAssertEqual(resources.count, 2)
+        XCTAssertNil(resources.first(where: { $0.key == "test1" }))
+        XCTAssertNil(resources.first(where: { $0.key == "test2" }))
+        XCTAssertNil(resources.first(where: { $0.key == "test3" }))
+        XCTAssertNil(resources.first(where: { $0.key == "test4" }))
+        XCTAssertNotNil(resources.first(where: { $0.key == "test5" }))
+        XCTAssertNil(resources.first(where: { $0.key == "test6" }))
+        XCTAssertNotNil(resources.first(where: { $0.key == "test7" }))
     }
 }

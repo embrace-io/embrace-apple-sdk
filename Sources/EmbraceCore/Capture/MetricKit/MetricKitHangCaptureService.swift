@@ -3,10 +3,11 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCaptureService
-import EmbraceCommonInternal
-import EmbraceSemantics
+    import EmbraceCaptureService
+    import EmbraceCommonInternal
+    import EmbraceSemantics
 #endif
 
 class MetricKitHangCaptureService: CaptureService, MetricKitHangPayloadListener {
@@ -23,9 +24,10 @@ class MetricKitHangCaptureService: CaptureService, MetricKitHangPayloadListener 
 
     func didReceive(payload: Data, startTime: Date, endTime: Date) {
         guard state == .active,
-              let stateProvider = options.stateProvider,
-              stateProvider.isMetricKitEnabled,
-              stateProvider.isMetricKitHangCaptureEnabled else {
+            let stateProvider = options.stateProvider,
+            stateProvider.isMetricKitEnabled,
+            stateProvider.isMetricKitHangCaptureEnabled
+        else {
             return
         }
 
@@ -41,7 +43,8 @@ class MetricKitHangCaptureService: CaptureService, MetricKitHangPayloadListener 
             initialAttributes: [:]
         )
 
-        let attributes = attributesBuilder
+        let attributes =
+            attributesBuilder
             .addLogType(.hang)
             .addApplicationState(SessionState.unknown.rawValue)
             .addHangReportProperties(

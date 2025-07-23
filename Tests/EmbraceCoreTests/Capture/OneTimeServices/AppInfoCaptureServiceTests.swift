@@ -2,11 +2,12 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-@testable import EmbraceCore
 import EmbraceCommonInternal
 @_implementationOnly import EmbraceObjCUtilsInternal
 import EmbraceStorageInternal
+import XCTest
+
+@testable import EmbraceCore
 
 final class AppInfoCaptureServiceTests: XCTestCase {
 

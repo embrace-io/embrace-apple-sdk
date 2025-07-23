@@ -4,8 +4,9 @@
 
 import Foundation
 import Security
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
+    import EmbraceCommonInternal
 #endif
 
 class KeychainAccess {
@@ -13,7 +14,7 @@ class KeychainAccess {
     static let kEmbraceKeychainService = "io.embrace.keys"
     static let kEmbraceDeviceId = "io.embrace.deviceid_v3"
 
-    private init() { }
+    private init() {}
 
     static var keychain: KeychainInterface = DefaultKeychainInterface()
 
@@ -36,13 +37,14 @@ class KeychainAccess {
         keychain.setValue(
             service: kEmbraceKeychainService as CFString,
             account: kEmbraceDeviceId as CFString,
-            value: newId.uuidString) { status in
-                if status != errSecSuccess {
-                    if let err = SecCopyErrorMessageString(status, nil) {
-                        Embrace.logger.error("Write failed: \(err)")
-                    }
+            value: newId.uuidString
+        ) { status in
+            if status != errSecSuccess {
+                if let err = SecCopyErrorMessageString(status, nil) {
+                    Embrace.logger.error("Write failed: \(err)")
                 }
             }
+        }
 
         return newId
     }

@@ -2,12 +2,12 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceStorageInternal
+import TestSupport
 import XCTest
 
 @testable import EmbraceCore
 @testable import EmbraceOTelInternal
-import EmbraceStorageInternal
-import TestSupport
 
 final class EmbraceSpanProcessor_StorageTests: XCTestCase {
 
@@ -18,7 +18,7 @@ final class EmbraceSpanProcessor_StorageTests: XCTestCase {
         let sessionController = MockSessionController()
 
         defer { storage.coreData.destroy() }
-        
+
         let processor = SingleSpanProcessor(
             spanExporter: StorageSpanExporter(
                 options: .init(storage: storage, sessionController: sessionController),

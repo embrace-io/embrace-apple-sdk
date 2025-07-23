@@ -3,24 +3,25 @@
 //
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
+    import EmbraceCommonInternal
 #endif
 
-public extension SpanEventType {
-    static let lowMemory = SpanEventType(system: "low_memory")
+extension SpanEventType {
+    public static let lowMemory = SpanEventType(system: "low_memory")
 }
 
-public extension SpanEventSemantics {
-    struct LowMemory {
+extension SpanEventSemantics {
+    public struct LowMemory {
         public static let name = "emb-device-low-memory"
     }
 }
 
-public extension SpanType {
+extension SpanType {
     @available(
         *,
-         deprecated,
-         renamed: "SpanEventType.lowMemory",
-         message: "Has been moved to `SpanEventType.lowMemory`")
-    static let lowMemory = SpanType(system: "low_memory")
+        deprecated,
+        renamed: "SpanEventType.lowMemory",
+        message: "Has been moved to `SpanEventType.lowMemory`"
+    )
+    public static let lowMemory = SpanType(system: "low_memory")
 }

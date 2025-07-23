@@ -3,12 +3,13 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
+    import EmbraceCommonInternal
 #endif
 
-public extension RemoteConfig {
-    struct Options {
+extension RemoteConfig {
+    public struct Options {
         let apiBaseUrl: String
         let queue: DispatchQueue
 

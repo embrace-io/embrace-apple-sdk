@@ -3,8 +3,9 @@
 //
 
 import EmbraceCommonInternal
-@testable import EmbraceCore
 import EmbraceConfiguration
+
+@testable import EmbraceCore
 
 class SpyLogBatcherDelegate: LogBatcherDelegate {
     var didCallBatchFinished: Bool = false

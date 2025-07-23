@@ -14,5 +14,5 @@
 //      ```
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-@_exported import EmbraceCore
+    @_exported import EmbraceCore
 #endif
