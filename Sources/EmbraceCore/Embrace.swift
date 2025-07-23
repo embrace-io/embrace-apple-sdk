@@ -96,9 +96,9 @@ import Foundation
         autoreleaseFrequency: .workItem,
         target: .global(qos: .utility)
     )
-    
-    private static let syncLock = ReadWriteLock()
-    
+
+    private static let _syncLock = ReadWriteLock()
+
     /*
     private static let synchronizationQueue = DispatchQueue(
         label: "com.embrace.synchronization",
@@ -107,7 +107,7 @@ import Foundation
         target: .global(qos: .userInitiated)
     )
     */
-    
+
     static let notificationCenter: NotificationCenter = NotificationCenter()
 
     static var logger: DefaultInternalLogger = DefaultInternalLogger(exportFilePath: EmbraceFileSystem.criticalLogsURL)
@@ -129,30 +129,28 @@ import Foundation
         if ProcessInfo.processInfo.isSwiftUIPreview {
             throw EmbraceSetupError.initializationNotAllowed("Embrace cannot be initialized on SwiftUI Previews")
         }
-        
+
         let setupTime = Date()
-        
-        // LOCKED
-        syncLock.lockForWriting()
-        defer { syncLock.unlock() }
-        
-        if let client = client {
-            Embrace.logger.warning("Embrace was already initialized!")
-            return client
-        }
-        
-        EMBStartupTracker.shared().sdkSetupStartTime = setupTime
-        
-        try options.validate()
-        
-        client = try Embrace(options: options)
-        if let client = client {
-            EMBStartupTracker.shared().sdkSetupEndTime = Date()
-            Embrace.logger.startup("Embrace SDK setup finished")
-            
-            return client
-        } else {
-            throw EmbraceSetupError.unableToInitialize("Unable to initialize Embrace.client")
+
+        return try _syncLock.lockedForWriting {
+            if let client = client {
+                Embrace.logger.warning("Embrace was already initialized!")
+                return client
+            }
+
+            EMBStartupTracker.shared().sdkSetupStartTime = setupTime
+
+            try options.validate()
+
+            client = try Embrace(options: options)
+            if let client = client {
+                EMBStartupTracker.shared().sdkSetupEndTime = Date()
+                Embrace.logger.startup("Embrace SDK setup finished")
+
+                return client
+            } else {
+                throw EmbraceSetupError.unableToInitialize("Unable to initialize Embrace.client")
+            }
         }
     }
 
@@ -303,70 +301,67 @@ import Foundation
         // must be called on main thread in order to fetch the app state
         sessionLifecycle.setup()
 
-        
-        ///
-        Embrace.syncLock.lockForWriting()
-        defer { Embrace.syncLock.unlock() }
-        
-        guard state == .initialized else {
-            Embrace.logger.warning("The Embrace SDK can only be started once!")
+        return try Embrace._syncLock.lockedForWriting {
+            guard state == .initialized else {
+                Embrace.logger.warning("The Embrace SDK can only be started once!")
+                return self
+            }
+
+            guard config.isSDKEnabled else {
+                Embrace.logger.warning("Embrace can't start when disabled!")
+                return self
+            }
+
+            let processStartSpan = createProcessStartSpan()
+            defer { processStartSpan.end() }
+
+            recordSpan(
+                name: "emb-sdk-start-process",
+                parent: processStartSpan,
+                type: .performance
+            ) { _ in
+
+                state = .started
+
+                startupInstrumentation.buildMainSpans()
+                sessionLifecycle.startSession()
+                captureServices.install()
+
+                metricKit.install()
+
+                // save latest session in memory before its sent and deleted
+                // this will be used to link metric kit payloads to the session
+                metricKit.lastSession = storage.fetchLatestSession()
+
+                self.captureServices.start()
+
+                self.processingQueue.async { [weak self] in
+                    // fetch crash reports and link them to sessions
+                    // then upload them
+                    UnsentDataHandler.sendUnsentData(
+                        storage: self?.storage,
+                        upload: self?.upload,
+                        otel: self,
+                        logController: self?.logController,
+                        currentSessionId: self?.sessionController.currentSession?.id,
+                        crashReporter: self?.captureServices.crashReporter
+                    )
+                }
+
+                // retry any remaining cached upload data
+                self.upload?.retryCachedData()
+
+                if let appId = options.appId {
+                    Embrace.logger.startup("Embrace SDK started successfully with key: \(appId)")
+                } else {
+                    Embrace.logger.startup("Embrace SDK started successfully!")
+                }
+            }
+
+            EMBStartupTracker.shared().sdkStartEndTime = Date()
+
             return self
         }
-        
-        guard config.isSDKEnabled else {
-            Embrace.logger.warning("Embrace can't start when disabled!")
-            return self
-        }
-        
-        let processStartSpan = createProcessStartSpan()
-        defer { processStartSpan.end() }
-        
-        recordSpan(
-            name: "emb-sdk-start-process",
-            parent: processStartSpan,
-            type: .performance)
-        { _ in
-            
-            state = .started
-            
-            startupInstrumentation.buildMainSpans()
-            sessionLifecycle.startSession()
-            captureServices.install()
-            
-            metricKit.install()
-            
-            // save latest session in memory before its sent and deleted
-            // this will be used to link metric kit payloads to the session
-            metricKit.lastSession = storage.fetchLatestSession()
-            
-            self.captureServices.start()
-            
-            self.processingQueue.async { [weak self] in
-                // fetch crash reports and link them to sessions
-                // then upload them
-                UnsentDataHandler.sendUnsentData(
-                    storage: self?.storage,
-                    upload: self?.upload,
-                    otel: self,
-                    logController: self?.logController,
-                    currentSessionId: self?.sessionController.currentSession?.id,
-                    crashReporter: self?.captureServices.crashReporter
-                )
-            }
-            
-            // retry any remaining cached upload data
-            self.upload?.retryCachedData()
-            
-            if let appId = options.appId {
-                Embrace.logger.startup("Embrace SDK started successfully with key: \(appId)")
-            } else {
-                Embrace.logger.startup("Embrace SDK started successfully!")
-            }
-        }
-
-        EMBStartupTracker.shared().sdkStartEndTime = Date()
-
-        return self
     }
 
     /// Method used to stop the Embrace SDK from capturing and generating data.
@@ -379,30 +374,29 @@ import Foundation
         guard Thread.isMainThread else {
             throw EmbraceSetupError.invalidThread("Embrace must be stopped on the main thread")
         }
-        
-        Embrace.syncLock.lockForWriting()
-        defer { Embrace.syncLock.unlock() }
-        
-        guard state != .stopped else {
-            Embrace.logger.warning("Embrace was already stopped!")
-            return self
-        }
-        
-        guard state == .started else {
-            Embrace.logger.warning("Embrace was not started so it can't be stopped!")
-            return self
-        }
-        
-        state = .stopped
-        
-        sessionLifecycle.stop()
-        sessionController.clear()
-        captureServices.stop()
-        metricKit.uninstall()
-        
-        Embrace.logger.startup("Embrace SDK stopped successfully!")
 
-        return self
+        return try Embrace._syncLock.lockedForWriting {
+            guard state != .stopped else {
+                Embrace.logger.warning("Embrace was already stopped!")
+                return self
+            }
+
+            guard state == .started else {
+                Embrace.logger.warning("Embrace was not started so it can't be stopped!")
+                return self
+            }
+
+            state = .stopped
+
+            sessionLifecycle.stop()
+            sessionController.clear()
+            captureServices.stop()
+            metricKit.uninstall()
+
+            Embrace.logger.startup("Embrace SDK stopped successfully!")
+
+            return self
+        }
     }
 
     /// Returns the current session identifier, if any.

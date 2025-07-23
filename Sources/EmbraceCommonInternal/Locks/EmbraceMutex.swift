@@ -61,7 +61,7 @@ extension EmbraceMutex {
 
 /// A thread-safe, general-purpose read/write lock for protecting access to a value.
 public final class EmbraceReadWriteLock<Value> {
-    
+
     /// Creates a new mutex-protected wrapper around the given value.
     ///
     /// - Parameter value: The initial value to protect with the mutex.
@@ -69,7 +69,7 @@ public final class EmbraceReadWriteLock<Value> {
         self.storage = value
         self.lock = ReadWriteLock()
     }
-    
+
     /// Acquires the lock for reading, executes the given closure with inout access to the protected value, and then releases the lock.
     ///
     /// - Parameter mutate: A closure that receives inout access to the stored value.
@@ -82,7 +82,7 @@ public final class EmbraceReadWriteLock<Value> {
         defer { lock.unlock() }
         return try mutate(storage)
     }
-    
+
     /// Acquires the lock for reading, executes the given closure with inout access to the protected value, and then releases the lock.
     ///
     /// - Parameter mutate: A closure that receives inout access to the stored value.
@@ -95,7 +95,7 @@ public final class EmbraceReadWriteLock<Value> {
         defer { lock.unlock() }
         return try mutate(&storage)
     }
-    
+
     private let lock: ReadWriteLock
     private var storage: Value
 }
