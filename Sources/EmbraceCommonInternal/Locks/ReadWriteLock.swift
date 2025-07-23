@@ -22,14 +22,26 @@ final public class ReadWriteLock {
     }
 
     public func lockForReading() {
-        pthread_rwlock_rdlock(_lock);
+        pthread_rwlock_rdlock(_lock)
     }
-    
+
     public func lockForWriting() {
         pthread_rwlock_wrlock(_lock)
     }
-    
+
     public func unlock() {
         pthread_rwlock_unlock(_lock)
+    }
+
+    public func lockedForReading<ReturnValue>(_ f: () throws -> ReturnValue) rethrows -> ReturnValue {
+        lockForReading()
+        defer { unlock() }
+        return try f()
+    }
+
+    public func lockedForWriting<ReturnValue>(_ f: () throws -> ReturnValue) rethrows -> ReturnValue {
+        lockForWriting()
+        defer { unlock() }
+        return try f()
     }
 }
