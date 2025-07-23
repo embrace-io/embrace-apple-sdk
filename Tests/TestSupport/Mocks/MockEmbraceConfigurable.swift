@@ -100,7 +100,8 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
     }
 
     private var _viewControllerClassNameBlocklist: [String]
-    public let viewControllerClassNameBlocklistExpectation = XCTestExpectation(description: "viewControllerClassNameBlocklist called")
+    public let viewControllerClassNameBlocklistExpectation = XCTestExpectation(
+        description: "viewControllerClassNameBlocklist called")
     public var viewControllerClassNameBlocklist: [String] {
         get {
             viewControllerClassNameBlocklistExpectation.fulfill()
@@ -112,7 +113,8 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
     }
 
     private var _uiInstrumentationCaptureHostingControllers: Bool
-    public let uiInstrumentationCaptureHostingControllersExpectation = XCTestExpectation(description: "uiInstrumentationCaptureHostingControllers called")
+    public let uiInstrumentationCaptureHostingControllersExpectation = XCTestExpectation(
+        description: "uiInstrumentationCaptureHostingControllers called")
     public var uiInstrumentationCaptureHostingControllers: Bool {
         get {
             uiInstrumentationCaptureHostingControllersExpectation.fulfill()
@@ -124,7 +126,8 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
     }
 
     private var _isSwiftUiViewInstrumentationEnabled: Bool
-    public let isSwiftUiViewInstrumentationEnabledExpectation = XCTestExpectation(description: "isSwiftUiViewInstrumentationEnabled called")
+    public let isSwiftUiViewInstrumentationEnabledExpectation = XCTestExpectation(
+        description: "isSwiftUiViewInstrumentationEnabled called")
     public var isSwiftUiViewInstrumentationEnabled: Bool {
         get {
             isSwiftUiViewInstrumentationEnabledExpectation.fulfill()

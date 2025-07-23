@@ -4,23 +4,23 @@
 
 #if canImport(UIKit) && !os(watchOS)
 
-import Foundation
-import UIKit
-@testable import EmbraceCore
-import EmbraceCaptureService
-import EmbraceOTelInternal
-import TestSupport
+    import Foundation
+    import UIKit
+    @testable import EmbraceCore
+    import EmbraceCaptureService
+    import EmbraceOTelInternal
+    import TestSupport
 
-class MockUIViewControllerHandlerDataSource: UIViewControllerHandlerDataSource {
-    var state: CaptureServiceState = .active
-    var otel: EmbraceOpenTelemetry? = MockEmbraceOpenTelemetry()
-    var instrumentVisibility: Bool = true
-    var instrumentFirstRender: Bool = true
+    class MockUIViewControllerHandlerDataSource: UIViewControllerHandlerDataSource {
+        var state: CaptureServiceState = .active
+        var otel: EmbraceOpenTelemetry? = MockEmbraceOpenTelemetry()
+        var instrumentVisibility: Bool = true
+        var instrumentFirstRender: Bool = true
 
-    var blockList: ViewControllerBlockList = ViewControllerBlockList()
-    func isViewControllerBlocked(_ vc: UIViewController) -> Bool {
-        return blockList.isBlocked(viewController: vc)
+        var blockList: ViewControllerBlockList = ViewControllerBlockList()
+        func isViewControllerBlocked(_ vc: UIViewController) -> Bool {
+            return blockList.isBlocked(viewController: vc)
+        }
     }
-}
 
 #endif

@@ -145,10 +145,11 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         }
 
         // hosting controllers capture
-        uiInstrumentationCaptureHostingControllers = try rootContainer.decodeIfPresent(
-            Bool.self,
-            forKey: .uiLoadCaptureHostingControllers
-        ) ?? defaultPayload.uiInstrumentationCaptureHostingControllers
+        uiInstrumentationCaptureHostingControllers =
+            try rootContainer.decodeIfPresent(
+                Bool.self,
+                forKey: .uiLoadCaptureHostingControllers
+            ) ?? defaultPayload.uiInstrumentationCaptureHostingControllers
 
         // SwiftUI View instrumentation
         swiftUiViewInstrumentationEnabled =
