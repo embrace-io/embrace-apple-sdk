@@ -214,6 +214,7 @@ extension EmbraceStorage {
     ) -> [EmbraceSpan] {
 
         let request = SpanRecord.createFetchRequest()
+        request.fetchLimit = jsonSpansLimit
 
         let endTime = (session.endTime ?? session.lastHeartbeatTime) as NSDate
 
@@ -275,107 +276,34 @@ extension EmbraceStorage {
 
         return result
     }
-
-//    public func fetchSpans(
-//        for session: EmbraceSession,
-//        ignoreSessionSpans: Bool = true
-//    ) -> [EmbraceSpan] {
-//
-//        let request = SpanRecord.createFetchRequest()
-//
-//        // Fetch all available span types on the db
-//        var types: Set<String> = []
-//        coreData.fetchAndPerform(withRequest: request) { records in
-//            records.forEach { span in
-//                types.insert(span.typeRaw)
-//            }
-//            types.forEach { print($0) }
-//        }
-//
-//        let endTime = (session.endTime ?? session.lastHeartbeatTime) as NSDate
-//
-//        var predicate: NSPredicate
-//
-//        // special case for cold start sessions
-//        // we grab spans that might have started before the session but within the same process
-//        if session.coldStart {
-//            predicate = NSPredicate(
-//                format: "processIdRaw == %@ AND startTime <= %@",
-//                session.processIdRaw,
-//                endTime
-//            )
-//        }
-//
-//        // otherwise we check if the span is within the boundaries of the session
-//        else {
-//            let startTime = session.startTime as NSDate
-//
-//            // span matches session id
-//            let sessionPredicate = NSPredicate(
-//                format: "sessionIdRaw != nil AND sessionIdRaw == %@",
-//                session.idRaw
-//            )
-//
-//            // span starts within session
-//            let predicate1 = NSPredicate(
-//                format: "startTime >= %@ AND startTime <= %@",
-//                startTime,
-//                endTime
-//            )
-//
-//            // span starts before session and doesn't end before session starts
-//            let predicate2 = NSPredicate(
-//                format: "startTime < %@ AND (endTime = nil OR endTime >= %@)",
-//                startTime,
-//                startTime
-//            )
-//
-//            predicate = NSCompoundPredicate(type: .or, subpredicates: [sessionPredicate, predicate1, predicate2])
-//        }
-//
-//        if ignoreSessionSpans {
-//            types.remove(SpanType.session.rawValue)
-//        }
-//
-//        var result: [EmbraceSpan] = []
-//
-//        types.forEach { type in
-//            let typePredicate = NSPredicate(format: "typeRaw == %@", type)
-//            request.predicate = NSCompoundPredicate(type: .and, subpredicates: [typePredicate, predicate])
-//           // request.fetchLimit = limitByType(type)
-//            // fetch
-//
-//            coreData.fetchAndPerform(withRequest: request) { records in
-//                // convert to immutable struct
-//                let immutables = records.map {
-//                    $0.toImmutable()
-//                }
-//                result.append(contentsOf: immutables)
-//            }
-//        }
-//
-//        return result
-//    }
 }
 
 // MARK: - Database operations
-fileprivate extension EmbraceStorage {
-    func limitByType(_ type: String) -> Int {
-        switch type {
-        case "perf":
-            return 500
-        default:
+extension EmbraceStorage {
+    func limitByType(_ type: SpanType) -> Int {
+        switch type.primary {
+        case .performance,
+                .system,
+                .ux:
             return 1500
         }
+    }
+
+    var jsonSpansLimit: Int {
+        var total = 0
+        PrimaryType.allCases.forEach {
+            total += limitByType(SpanType(primary: $0))
+        }
+        return total
     }
 
     fileprivate func removeOldSpanIfNeeded(forType type: SpanType) {
         // check limit and delete if necessary
         // default to 1500 if limit is not set
-        let limit = options.spanLimits[type, default: limitByType(type.rawValue)]
+        let limit = options.spanLimits[type, default: limitByType(type)]
 
         let request = SpanRecord.createFetchRequest()
-        request.predicate = NSPredicate(format: "typeRaw == %@", type.rawValue)
+        request.predicate = NSPredicate(format: "typeRaw BEGINSWITH %@", type.rawValue)
         let count = coreData.count(withRequest: request)
 
         if count >= limit {
@@ -386,45 +314,3 @@ fileprivate extension EmbraceStorage {
         }
     }
 }
-
-/*
- // Step 1: Fetch all distinct names
- let nameRequest: NSFetchRequest<NSDictionary> = NSFetchRequest(entityName: "User")
- nameRequest.resultType = .dictionaryResultType
- nameRequest.propertiesToFetch = ["name"]
- nameRequest.returnsDistinctResults = true
-
- let names = try context.fetch(nameRequest)
- for nameDict in names {
-     if let name = nameDict["name"] as? String {
-         let userRequest: NSFetchRequest<User> = User.fetchRequest()
-         userRequest.predicate = NSPredicate(format: "name == %@", name)
-         userRequest.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: true)]
-         userRequest.fetchLimit = 10
-
-         let usersForName = try context.fetch(userRequest)
-         // Add usersForName to your final result list
-     }
- }
-
- let fetchRequest: NSFetchRequest<User> = User.fetchRequest()
-  fetchRequest.sortDescriptors = [
-      NSSortDescriptor(key: "name", ascending: true),
-      NSSortDescriptor(key: "createdAt", ascending: true)
- ]
-
- do {
-     let users = try context.fetch(fetchRequest)
-
-     // Group by name and take up to 10 per group
-     let grouped = Dictionary(grouping: users, by: { $0.name ?? "" })
-     let limitedUsers = grouped.flatMap { (name, users) in
-         return Array(users.prefix(10))
-     }
-
-     // `limitedUsers` now contains your result
- } catch {
-     print("Fetch failed: \(error)")
- }
-
- */
