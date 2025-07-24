@@ -58,3 +58,46 @@ extension EmbraceMutex {
         storage
     }
 }
+
+/// A thread-safe, general-purpose read/write lock for protecting access to a value.
+public final class EmbraceReadWriteLock<Value> {
+
+    /// Creates a new mutex-protected wrapper around the given value.
+    ///
+    /// - Parameter value: The initial value to protect with the mutex.
+    public init(_ value: Value) {
+        self.storage = value
+        self.lock = ReadWriteLock()
+    }
+
+    /// Acquires the lock for reading, executes the given closure with inout access to the protected value, and then releases the lock.
+    ///
+    /// - Parameter mutate: A closure that receives inout access to the stored value.
+    /// - Returns: The result of the closure.
+    ///
+    /// - Throws: Rethrows any error thrown by the `mutate` closure.
+    @discardableResult
+    public func withReadLock<T>(_ mutate: (Value) throws -> T) rethrows -> T {
+        lock.lockForReading()
+        defer { lock.unlock() }
+        return try mutate(storage)
+    }
+
+    /// Acquires the lock for reading, executes the given closure with inout access to the protected value, and then releases the lock.
+    ///
+    /// - Parameter mutate: A closure that receives inout access to the stored value.
+    /// - Returns: The result of the closure.
+    ///
+    /// - Throws: Rethrows any error thrown by the `mutate` closure.
+    @discardableResult
+    public func withWriteLock<T>(_ mutate: (inout Value) throws -> T) rethrows -> T {
+        lock.lockForWriting()
+        defer { lock.unlock() }
+        return try mutate(&storage)
+    }
+
+    private let lock: ReadWriteLock
+    private var storage: Value
+}
+
+extension EmbraceReadWriteLock: @unchecked Sendable where Value: Sendable {}

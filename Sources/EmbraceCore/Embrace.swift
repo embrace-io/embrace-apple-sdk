@@ -97,13 +97,7 @@ import Foundation
         target: .global(qos: .utility)
     )
 
-    private static let synchronizationQueue = DispatchQueue(
-        label: "com.embrace.synchronization",
-        qos: .utility,
-        autoreleaseFrequency: .workItem,
-        target: .global(qos: .utility)
-    )
-
+    private static let _syncLock = ReadWriteLock()
     static let notificationCenter: NotificationCenter = NotificationCenter()
 
     static var logger: DefaultInternalLogger = DefaultInternalLogger(exportFilePath: EmbraceFileSystem.criticalLogsURL)
@@ -126,13 +120,15 @@ import Foundation
             throw EmbraceSetupError.initializationNotAllowed("Embrace cannot be initialized on SwiftUI Previews")
         }
 
-        return try Embrace.synchronizationQueue.sync {
+        let setupTime = Date()
+
+        return try _syncLock.lockedForWriting {
             if let client = client {
                 Embrace.logger.warning("Embrace was already initialized!")
                 return client
             }
 
-            EMBStartupTracker.shared().sdkSetupStartTime = Date()
+            EMBStartupTracker.shared().sdkSetupStartTime = setupTime
 
             try options.validate()
 
@@ -295,36 +291,43 @@ import Foundation
         // must be called on main thread in order to fetch the app state
         sessionLifecycle.setup()
 
-        Embrace.synchronizationQueue.sync {
+        return try Embrace._syncLock.lockedForWriting {
             guard state == .initialized else {
                 Embrace.logger.warning("The Embrace SDK can only be started once!")
-                return
+                return self
             }
 
             guard config.isSDKEnabled else {
                 Embrace.logger.warning("Embrace can't start when disabled!")
-                return
+                return self
             }
 
             let processStartSpan = createProcessStartSpan()
             defer { processStartSpan.end() }
 
-            recordSpan(name: "emb-sdk-start-process", parent: processStartSpan, type: .performance) { _ in
+            recordSpan(
+                name: "emb-sdk-start-process",
+                parent: processStartSpan,
+                type: .performance
+            ) { _ in
+
                 state = .started
 
                 startupInstrumentation.buildMainSpans()
                 sessionLifecycle.startSession()
                 captureServices.install()
 
-                metricKit.install()
-
                 // save latest session in memory before its sent and deleted
                 // this will be used to link metric kit payloads to the session
-                metricKit.lastSession = storage.fetchLatestSession()
+                storage.fetchLatestSession { [self] session in
+                    metricKit.lastSession = session
+                    metricKit.install()
+                }
+
+                // WARNING: This is dangerous as it calls out to external code.
+                self.captureServices.start()
 
                 self.processingQueue.async { [weak self] in
-
-                    self?.captureServices.start()
                     // fetch crash reports and link them to sessions
                     // then upload them
                     UnsentDataHandler.sendUnsentData(
@@ -335,10 +338,10 @@ import Foundation
                         currentSessionId: self?.sessionController.currentSession?.id,
                         crashReporter: self?.captureServices.crashReporter
                     )
-
-                    // retry any remaining cached upload data
-                    self?.upload?.retryCachedData()
                 }
+
+                // retry any remaining cached upload data
+                self.upload?.retryCachedData()
 
                 if let appId = options.appId {
                     Embrace.logger.startup("Embrace SDK started successfully with key: \(appId)")
@@ -346,11 +349,11 @@ import Foundation
                     Embrace.logger.startup("Embrace SDK started successfully!")
                 }
             }
+
+            EMBStartupTracker.shared().sdkStartEndTime = Date()
+
+            return self
         }
-
-        EMBStartupTracker.shared().sdkStartEndTime = Date()
-
-        return self
     }
 
     /// Method used to stop the Embrace SDK from capturing and generating data.
@@ -364,15 +367,15 @@ import Foundation
             throw EmbraceSetupError.invalidThread("Embrace must be stopped on the main thread")
         }
 
-        Embrace.synchronizationQueue.sync {
+        return try Embrace._syncLock.lockedForWriting {
             guard state != .stopped else {
                 Embrace.logger.warning("Embrace was already stopped!")
-                return
+                return self
             }
 
             guard state == .started else {
                 Embrace.logger.warning("Embrace was not started so it can't be stopped!")
-                return
+                return self
             }
 
             state = .stopped
@@ -383,9 +386,9 @@ import Foundation
             metricKit.uninstall()
 
             Embrace.logger.startup("Embrace SDK stopped successfully!")
-        }
 
-        return self
+            return self
+        }
     }
 
     /// Returns the current session identifier, if any.
