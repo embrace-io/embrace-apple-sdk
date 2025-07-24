@@ -4,6 +4,12 @@
 
 #import "EMBStartupTracker.h"
 
+#if TARGET_OS_IOS
+#import <UIKit/UIKit.h>
+#elif TARGET_OS_MACOSX
+#import <AppKit/AppKit.h>
+#endif
+
 @implementation EMBStartupTracker
 
 + (instancetype)shared
@@ -29,10 +35,17 @@
 {
     self.appDidFinishLaunchingEndTime = nil;
 
+#if TARGET_OS_IOS
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(onAppDidFinishLaunching:)
-                                                 name:@"UIApplicationDidFinishLaunchingNotification"
+                                                 name:UIApplicationDidFinishLaunchingNotification
                                                object:nil];
+#elif TARGET_OS_MACOSX
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(onAppDidFinishLaunching:)
+                                                 name:NSApplicationDidFinishLaunchingNotification
+                                               object:nil];
+#endif
 }
 
 - (void)onAppDidFinishLaunching:(NSNotification *)notification

@@ -4,7 +4,6 @@
 
 import CoreData
 import Foundation
-import UIKit
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
@@ -48,7 +47,10 @@ public class CoreDataWrapper {
             case let .onDisk(_, baseURL):
                 try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true)
                 let description = NSPersistentStoreDescription()
-                description.setOption(FileProtectionType.none as NSObject, forKey: NSPersistentStoreFileProtectionKey)
+                #if !os(macOS)
+                    description.setOption(
+                        FileProtectionType.none as NSObject, forKey: NSPersistentStoreFileProtectionKey)
+                #endif
                 description.type = NSSQLiteStoreType
                 description.url = options.storageMechanism.fileURL
                 description.setValue("DELETE" as NSString, forPragmaNamed: "journal_mode")

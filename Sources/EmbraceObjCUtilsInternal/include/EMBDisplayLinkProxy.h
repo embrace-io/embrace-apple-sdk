@@ -8,8 +8,13 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface EMBDisplayLinkProxy : NSObject
 
+- (instancetype)init NS_UNAVAILABLE;
++ (instancetype)new NS_UNAVAILABLE;
+
 + (instancetype)shared;
-- (void)onFrameUpdate;
+
+// Call to get called on the next tick of the display link.
+- (void)trackNextTick:(dispatch_block_t)block;
 
 @end
 

@@ -15,7 +15,7 @@ enum EmbraceUploadOperationResult: Equatable {
 
 typealias EmbraceUploadOperationCompletion = (_ result: EmbraceUploadOperationResult, _ attemptCount: Int) -> Void
 
-class EmbraceUploadOperation: AsyncOperation {
+class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
     private let urlSession: URLSession
     private let queue: DispatchQueue
     private let metadataOptions: EmbraceUpload.MetadataOptions

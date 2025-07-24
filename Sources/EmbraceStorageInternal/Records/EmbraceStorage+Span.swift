@@ -192,7 +192,7 @@ extension EmbraceStorage {
             ProcessIdentifier.current.hex
         )
 
-        coreData.fetchAndPerform(withRequest: request) { [weak self] spans in
+        coreData.fetchAndPerform(withRequest: request) { [self] spans in
             for span in spans {
                 span.endTime = endTime
             }

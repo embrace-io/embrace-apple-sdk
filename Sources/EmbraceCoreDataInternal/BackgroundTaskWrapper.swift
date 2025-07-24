@@ -4,11 +4,12 @@
 
 import Foundation
 
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+#endif
+
 #if canImport(UIKit) && !os(watchOS)
     import UIKit
-    #if !EMBRACE_COCOAPOD_BUILDING_SDK
-        import EmbraceCommonInternal
-    #endif
 
     /// This class is a wrapper around `UIApplication.shared.beginBackgroundTask`.
     /// Based off https://developer.apple.com/forums/thread/85066 and https://developer.apple.com/forums/thread/729335
@@ -133,15 +134,17 @@ import Foundation
 
 #else
 
+    typealias UIBackgroundTaskIdentifier = UInt
+
     // TODO: Implement WatchOS Version
     class BackgroundTaskWrapper {
 
         let name: String
         private var taskID: UIBackgroundTaskIdentifier
 
-        init(name: String) {
+        init?(name: String, logger: InternalLogger) {
             self.name = name
-            self.taskID = .invalid
+            self.taskID = 0
         }
 
         deinit {
