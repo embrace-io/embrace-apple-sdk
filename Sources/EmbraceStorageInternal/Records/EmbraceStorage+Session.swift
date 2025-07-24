@@ -57,6 +57,8 @@ extension EmbraceStorage {
                 appTerminated: appTerminated
             ) {
                 coreData.save()
+            } else {
+                logger.critical("Failed to create session!")
             }
         }
 
@@ -211,7 +213,7 @@ extension EmbraceStorage {
             return nil
         }
 
-        coreData.performAsyncOperation { [self] _ in
+        coreData.performAsyncOperation { [self] context in
 
             let request = fetchSessionRequest(id: sessionId)
             let fetchedSession = coreData.fetch(withRequest: request).first
@@ -242,8 +244,14 @@ extension EmbraceStorage {
             if let crashReportId = crashReportId {
                 fetchedSession.crashReportId = crashReportId
             }
-
-            coreData.save()
+            
+            do {
+                if context.hasChanges {
+                    try? context.save()
+                }
+            } catch {
+                logger.critical("Failed to update session, error: \(error)")
+            }
         }
 
         return session.updated(

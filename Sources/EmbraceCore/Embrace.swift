@@ -98,16 +98,6 @@ import Foundation
     )
 
     private static let _syncLock = ReadWriteLock()
-
-    /*
-    private static let synchronizationQueue = DispatchQueue(
-        label: "com.embrace.synchronization",
-        qos: .utility,
-        autoreleaseFrequency: .workItem,
-        target: .global(qos: .userInitiated)
-    )
-    */
-
     static let notificationCenter: NotificationCenter = NotificationCenter()
 
     static var logger: DefaultInternalLogger = DefaultInternalLogger(exportFilePath: EmbraceFileSystem.criticalLogsURL)
@@ -333,9 +323,10 @@ import Foundation
                     metricKit.lastSession = session
                     metricKit.install()
                 }
-
+                
+                // WARNING: This is dangerous as it calls out to external code.
                 self.captureServices.start()
-
+                
                 self.processingQueue.async { [weak self] in
                     // fetch crash reports and link them to sessions
                     // then upload them
