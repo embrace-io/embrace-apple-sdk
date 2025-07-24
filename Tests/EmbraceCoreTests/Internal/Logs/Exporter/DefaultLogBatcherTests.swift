@@ -55,7 +55,7 @@ class DefaultLogBatcherTests: XCTestCase {
         whenInvokingAddLogRecord(withLogRecord: randomLogRecord())
         thenDelegateShouldInvokeBatchFinished()
         self.delegate.didCallBatchFinished = false
-        thenDelegateShouldntInvokeBatchFinishedAfterBatchLifespan(0.2)
+        thenDelegateShouldntInvokeBatchFinishedAfterBatchLifespan(0.5)
     }
 }
 
