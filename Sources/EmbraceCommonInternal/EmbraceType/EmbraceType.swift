@@ -16,7 +16,7 @@ public protocol EmbraceType: Hashable, Codable, CustomStringConvertible, RawRepr
 }
 
 /// Top level category for the EmbraceType
-public enum PrimaryType: String {
+public enum PrimaryType: String, CaseIterable {
     /// Category for observing a logical operation
     case performance = "perf"
 
