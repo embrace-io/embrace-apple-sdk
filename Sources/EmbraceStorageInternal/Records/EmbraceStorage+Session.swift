@@ -42,7 +42,8 @@ extension EmbraceStorage {
         let hbTime = lastHeartbeatTime ?? Date()
 
         coreData.performAsyncOperation { [self] _ in
-            if SessionRecord.create(
+
+            let created = SessionRecord.create(
                 context: coreData.context,
                 id: id,
                 processId: processId,
@@ -55,10 +56,16 @@ extension EmbraceStorage {
                 coldStart: coldStart,
                 cleanExit: cleanExit,
                 appTerminated: appTerminated
-            ) {
-                coreData.save()
-            } else {
-                logger.critical("Failed to create session!")
+            )
+            guard created else {
+                logger.critical("Failed to create new session!")
+                return
+            }
+
+            do {
+                try coreData.context.save()
+            } catch {
+                logger.critical("Failed to save new session!")
             }
         }
 
@@ -244,7 +251,7 @@ extension EmbraceStorage {
             if let crashReportId = crashReportId {
                 fetchedSession.crashReportId = crashReportId
             }
-            
+
             do {
                 if context.hasChanges {
                     try? context.save()

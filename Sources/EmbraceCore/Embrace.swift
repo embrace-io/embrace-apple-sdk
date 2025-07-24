@@ -323,10 +323,10 @@ import Foundation
                     metricKit.lastSession = session
                     metricKit.install()
                 }
-                
+
                 // WARNING: This is dangerous as it calls out to external code.
                 self.captureServices.start()
-                
+
                 self.processingQueue.async { [weak self] in
                     // fetch crash reports and link them to sessions
                     // then upload them

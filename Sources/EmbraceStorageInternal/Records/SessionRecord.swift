@@ -31,6 +31,7 @@ public class SessionRecord: NSManagedObject {
     /// Used to mark the session that is active when the application was explicitly terminated by the user and/or system
     @NSManaged public var appTerminated: Bool
 
+    /// Note that this must be called within a `perform` on the CoreData context.
     class func create(
         context: NSManagedObjectContext,
         id: SessionIdentifier,
@@ -46,31 +47,25 @@ public class SessionRecord: NSManagedObject {
         cleanExit: Bool = false,
         appTerminated: Bool = false
     ) -> Bool {
-        var result: Bool = false
-
-        context.perform {
-            guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
-                return
-            }
-
-            let record = SessionRecord(entity: description, insertInto: context)
-            record.idRaw = id.toString
-            record.processIdRaw = processId.hex
-            record.state = state.rawValue
-            record.traceId = traceId
-            record.spanId = spanId
-            record.startTime = startTime
-            record.endTime = endTime
-            record.lastHeartbeatTime = lastHeartbeatTime ?? startTime
-            record.crashReportId = crashReportId
-            record.coldStart = coldStart
-            record.cleanExit = cleanExit
-            record.appTerminated = appTerminated
-
-            result = true
+        guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
+            return false
         }
 
-        return result
+        let record = SessionRecord(entity: description, insertInto: context)
+        record.idRaw = id.toString
+        record.processIdRaw = processId.hex
+        record.state = state.rawValue
+        record.traceId = traceId
+        record.spanId = spanId
+        record.startTime = startTime
+        record.endTime = endTime
+        record.lastHeartbeatTime = lastHeartbeatTime ?? startTime
+        record.crashReportId = crashReportId
+        record.coldStart = coldStart
+        record.cleanExit = cleanExit
+        record.appTerminated = appTerminated
+
+        return true
     }
 
     static func createFetchRequest() -> NSFetchRequest<SessionRecord> {
