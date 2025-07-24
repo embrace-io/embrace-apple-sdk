@@ -138,6 +138,7 @@ extension EmbraceStorage {
         return result
     }
 
+    /// Completion will be sent on an undefined queue.
     public func fetchLatestSession(
         ignoringCurrentSessionId sessionId: SessionIdentifier? = nil,
         _ completion: @escaping (EmbraceSession?) -> Void
@@ -254,7 +255,7 @@ extension EmbraceStorage {
 
             do {
                 if context.hasChanges {
-                    try? context.save()
+                    try context.save()
                 }
             } catch {
                 logger.critical("Failed to update session, error: \(error)")
