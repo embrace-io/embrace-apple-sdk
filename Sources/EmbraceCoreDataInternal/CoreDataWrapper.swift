@@ -81,12 +81,12 @@ public class CoreDataWrapper {
             logger.critical("Warning: performBlockAndWait on main thread can easily deadlock! Proceeding with caution.")
         }
         #if DEBUG
-        if !isTesting {
-            precondition(!Thread.isMainThread, "performBlockAndWait on main thread can easily deadlock!")
-            dispatchPrecondition(condition: .notOnQueue(.main))
-        }
+            if !isTesting {
+                precondition(!Thread.isMainThread, "performBlockAndWait on main thread can easily deadlock!")
+                dispatchPrecondition(condition: .notOnQueue(.main))
+            }
         #endif
-        
+
         var result: Result!
         let taskAssertion = BackgroundTaskWrapper(name: name, logger: logger)
         context.performAndWait {

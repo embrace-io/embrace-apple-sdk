@@ -13,6 +13,7 @@ import Foundation
 #endif
 
 class UnsentDataHandler {
+
     static func sendUnsentData(
         storage: EmbraceStorage?,
         upload: EmbraceUpload?,
@@ -28,24 +29,31 @@ class UnsentDataHandler {
             return
         }
 
-        // send any logs in storage first before we clean up the resources
-        logController?.uploadAllPersistedLogs()
+        // this queue will live for as long as it has any running blocks
+        let reportQueue: DispatchQueue = DispatchQueue(label: "io.embrace.report.queue", qos: .utility)
 
-        // if we have a crash reporter, we fetch the unsent crash reports first
-        // and save their identifiers to the corresponding sessions
-        if let crashReporter = crashReporter {
-            crashReporter.fetchUnsentCrashReports { reports in
-                sendCrashReports(
-                    storage: storage,
-                    upload: upload,
-                    otel: otel,
-                    currentSessionId: currentSessionId,
-                    crashReporter: crashReporter,
-                    crashReports: reports
-                )
+        reportQueue.async {
+
+            // send any logs in storage first before we clean up the resources
+            logController?.uploadAllPersistedLogs()
+
+            // if we have a crash reporter, we fetch the unsent crash reports first
+            // and save their identifiers to the corresponding sessions
+            if let crashReporter = crashReporter {
+                crashReporter.fetchUnsentCrashReports { reports in
+                    sendCrashReports(
+                        storage: storage,
+                        upload: upload,
+                        otel: otel,
+                        currentSessionId: currentSessionId,
+                        crashReporter: crashReporter,
+                        crashReports: reports
+                    )
+                }
+            } else {
+                sendSessions(storage: storage, upload: upload, currentSessionId: currentSessionId)
             }
-        } else {
-            sendSessions(storage: storage, upload: upload, currentSessionId: currentSessionId)
+
         }
     }
 
@@ -57,44 +65,40 @@ class UnsentDataHandler {
         crashReporter: CrashReporter,
         crashReports: [EmbraceCrashReport]
     ) {
-        storage.coreData.performAsyncOperation { [self] _ in
 
-            // send crash reports
-            for report in crashReports {
+        // send crash reports
+        for report in crashReports {
 
-                // link session with crash report if possible
-                var session: EmbraceSession? = nil
+            var session: EmbraceSession? = nil
 
-                if let sessionId = SessionIdentifier(string: report.sessionId) {
-                    if let fetchedSession = storage.fetchSession(id: sessionId) {
-                        session = storage.updateSession(
-                            session: fetchedSession,
-                            endTime: report.timestamp,
-                            crashReportId: report.id.uuidString
-                        )
-                    }
+            // link session with crash report if possible
+            if let sessionId = SessionIdentifier(string: report.sessionId) {
+                if let fetchedSession = storage.fetchSession(id: sessionId) {
+                    session = storage.updateSession(
+                        session: fetchedSession,
+                        endTime: report.timestamp,
+                        crashReportId: report.id.uuidString
+                    )
                 }
-
-                // send crash log
-                sendCrashLog(
-                    report: report,
-                    reporter: crashReporter,
-                    session: session,
-                    storage: storage,
-                    upload: upload,
-                    otel: otel
-                )
             }
 
-            // send sessions
-            sendSessions(
+            // send crash log
+            sendCrashLog(
+                report: report,
+                reporter: crashReporter,
+                session: session,
                 storage: storage,
                 upload: upload,
-                currentSessionId: currentSessionId
+                otel: otel
             )
-
         }
 
+        // send sessions
+        sendSessions(
+            storage: storage,
+            upload: upload,
+            currentSessionId: currentSessionId
+        )
     }
 
     static public func sendCrashLog(
