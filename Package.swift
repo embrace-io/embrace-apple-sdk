@@ -46,7 +46,7 @@ let package = Package(
         ),
         .package(
             url: "https://github.com/open-telemetry/opentelemetry-swift",
-            exact: "2.0.0"
+            from: "2.0.0"
         ),
         .package(
             url: "https://github.com/swiftlang/swift-syntax.git",
