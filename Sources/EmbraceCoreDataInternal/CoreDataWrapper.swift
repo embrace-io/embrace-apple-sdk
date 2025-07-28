@@ -191,8 +191,8 @@ extension CoreDataWrapper {
         } catch {
             logger.critical(
                 """
-                CoreData save failed '\(context.name ?? "???")', 
-                error: \(error.localizedDescription), 
+                CoreData save failed '\(context.name ?? "???")',
+                error: \(error.localizedDescription),
                 """
             )
         }

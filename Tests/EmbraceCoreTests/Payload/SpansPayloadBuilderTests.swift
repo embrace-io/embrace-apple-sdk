@@ -336,8 +336,8 @@ final class SpansPayloadBuilderTests: XCTestCase {
         let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
 
         // then the spans are retrieved correctly
-        XCTAssertEqual(closed.count, 1501) // 1500 spans + session span
-        XCTAssertEqual(closed[0].name, "emb-session") // session span always first
+        XCTAssertEqual(closed.count, 1501)  // 1500 spans + session span
+        XCTAssertEqual(closed[0].name, "emb-session")  // session span always first
         XCTAssertEqual(open.count, 0)
     }
 
@@ -355,8 +355,8 @@ final class SpansPayloadBuilderTests: XCTestCase {
         let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
 
         // then the spans are retrieved correctly
-        XCTAssertEqual(closed.count, 1501) // 1500 spans + session span
-        XCTAssertEqual(closed[0].name, "emb-session") // session span always first
+        XCTAssertEqual(closed.count, 1501)  // 1500 spans + session span
+        XCTAssertEqual(closed[0].name, "emb-session")  // session span always first
         XCTAssertEqual(open.count, 0)
     }
 
@@ -374,8 +374,8 @@ final class SpansPayloadBuilderTests: XCTestCase {
         let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
 
         // then the spans are retrieved correctly
-        XCTAssertEqual(closed.count, 1501) // 1500 spans + session span
-        XCTAssertEqual(closed[0].name, "emb-session") // session span always first
+        XCTAssertEqual(closed.count, 1501)  // 1500 spans + session span
+        XCTAssertEqual(closed[0].name, "emb-session")  // session span always first
         XCTAssertEqual(open.count, 0)
     }
 
@@ -433,8 +433,8 @@ final class SpansPayloadBuilderTests: XCTestCase {
         let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
 
         // then the spans are retrieved correctly
-        XCTAssertEqual(closed.count, 4501) // 4500 spans + session span
-        XCTAssertEqual(closed[0].name, "emb-session") // session span always first
+        XCTAssertEqual(closed.count, 4501)  // 4500 spans + session span
+        XCTAssertEqual(closed[0].name, "emb-session")  // session span always first
         XCTAssertEqual(open.count, 0)
     }
 

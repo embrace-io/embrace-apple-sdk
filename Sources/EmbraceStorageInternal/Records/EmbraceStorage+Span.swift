@@ -283,8 +283,8 @@ extension EmbraceStorage {
     func limitByType(_ type: SpanType) -> Int {
         switch type.primary {
         case .performance,
-                .system,
-                .ux:
+            .system,
+            .ux:
             return 1500
         }
     }
