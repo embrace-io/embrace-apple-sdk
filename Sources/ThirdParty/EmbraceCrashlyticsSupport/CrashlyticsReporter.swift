@@ -120,4 +120,10 @@ extension CrashlyticsReporter: ExtendableCrashReporter {
     public func appendCrashInfo(key: String, value: String) {
         wrapper.setCustomValue(key: key, value: value)
     }
+    
+    public func mergeCrashInfo(map: [String : String]) {
+        map.forEach { key, value in
+            wrapper.setCustomValue(key: key, value: value)
+        }
+    }
 }

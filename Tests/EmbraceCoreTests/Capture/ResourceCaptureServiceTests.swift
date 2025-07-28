@@ -16,7 +16,7 @@ class ResourceCaptureServiceTests: XCTestCase {
         // given a resource capture service
         let service = ResourceCaptureService()
         let handler = try EmbraceStorage.createInMemoryDb()
-        service.handler = handler
+        service.add(handler)
 
         // when adding a resource
         let map = [
@@ -25,7 +25,8 @@ class ResourceCaptureServiceTests: XCTestCase {
             "key3": "value3"
         ]
         service.addRequiredResources(map)
-
+        wait(delay: .shortTimeout)
+        
         // then the resource is added to the storage
         let metadata: [MetadataRecord] = handler.fetchAll()
         XCTAssertEqual(metadata.count, 3)

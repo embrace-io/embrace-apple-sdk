@@ -15,7 +15,7 @@ final class AppInfoCaptureServiceTests: XCTestCase {
         // given an app info capture service
         let service = AppInfoCaptureService()
         let handler = try EmbraceStorage.createInMemoryDb()
-        service.handler = handler
+        service.add(handler)
 
         // when the service is installed and started
         service.install(otel: nil)
@@ -99,7 +99,7 @@ final class AppInfoCaptureServiceTests: XCTestCase {
         // given an app info capture service
         let service = AppInfoCaptureService()
         let handler = try EmbraceStorage.createInMemoryDb()
-        service.handler = handler
+        service.add(handler)
 
         // when the service is installed but not started
         service.install(otel: nil)

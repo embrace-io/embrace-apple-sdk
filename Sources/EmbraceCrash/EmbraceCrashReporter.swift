@@ -86,11 +86,7 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
         }
 
         var crashInfo = ksCrash.userInfo ?? [:]
-
-        self.extraInfo.forEach {
-            crashInfo[$0.key] = $0.value
-        }
-
+        crashInfo.merge(self.extraInfo) { _, new in new }
         crashInfo[KSCrashKey.sdkVersion] = self.sdkVersion ?? NSNull()
         crashInfo[KSCrashKey.sessionId] = self.currentSessionId ?? NSNull()
 
@@ -277,5 +273,9 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
 extension EmbraceCrashReporter: ExtendableCrashReporter {
     public func appendCrashInfo(key: String, value: String) {
         extraInfo[key] = value
+    }
+    
+    public func mergeCrashInfo(map: [String: String]) {
+        extraInfo.merge(map) { (_, new) in new }
     }
 }
