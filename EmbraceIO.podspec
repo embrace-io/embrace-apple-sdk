@@ -117,6 +117,6 @@ Pod::Spec.new do |spec|
   end
 
   spec.subspec 'OpenTelemetrySdk' do |subs|
-    subs.dependency "OpenTelemetry-Swift-Sdk", "~> 2.0.0"
+    subs.dependency "OpenTelemetry-Swift-Sdk", "2.0.0"
   end
 end
