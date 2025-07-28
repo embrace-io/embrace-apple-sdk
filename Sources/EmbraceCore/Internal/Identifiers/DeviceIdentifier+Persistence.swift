@@ -15,8 +15,7 @@ extension DeviceIdentifier {
         if let fileURL = fileURL,
             FileManager.default.fileExists(atPath: fileURL.path),
             let deviceId = try? String(contentsOf: fileURL),
-            let uuid = UUID(uuidString: deviceId)
-        {
+            let uuid = UUID(uuidString: deviceId) {
             return DeviceIdentifier(value: uuid)
         }
 

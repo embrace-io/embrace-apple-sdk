@@ -76,8 +76,7 @@ class URLSessionTaskCaptureRule {
 
             // check if the status code matches
             if let statusCode = (response as? HTTPURLResponse)?.statusCode,
-                statusCodes.contains(statusCode)
-            {
+                statusCodes.contains(statusCode) {
                 return true
             }
 

@@ -74,8 +74,7 @@ import Foundation
         }
 
         func beginBackgroundTask(withName taskName: String?, expirationHandler handler: @escaping () -> Void)
-            -> UIBackgroundTaskIdentifier
-        {
+            -> UIBackgroundTaskIdentifier {
             // If app is nil, we have a special identifier.
             // For now, this allows our code to continue working,
             // and run things even when UIApplication isn't ready yet.
