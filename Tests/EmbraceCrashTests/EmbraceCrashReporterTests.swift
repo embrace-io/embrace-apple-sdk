@@ -31,16 +31,14 @@ class EmbraceCrashReporterTests: XCTestCase {
         crashReporter.currentSessionId = sessionId.toString
 
         // then KSCrash's user info is properly set
-        let key = "emb-sid"
-        XCTAssertEqual(crashReporter.getCrashInfo(key: key), sessionId.toString)
+        XCTAssertEqual(crashReporter.getCrashInfo(key: CrashReporterInfoKey.sessionId), sessionId.toString)
     }
 
     func test_sdkVersion() {
         givenCrashReporter()
 
         // then KSCrash's user info is properly set
-        let key = "emb-sdk"
-        XCTAssertEqual(crashReporter.getCrashInfo(key: key), TestConstants.sdkVersion)
+        XCTAssertEqual(crashReporter.getCrashInfo(key: CrashReporterInfoKey.sdkVersion), TestConstants.sdkVersion)
     }
 
     func test_fetchCrashReports() throws {
@@ -131,8 +129,8 @@ class EmbraceCrashReporterTests: XCTestCase {
         crashReporter.appendCrashInfo(key: "emb-sdk", value: "1.2.3-broken")
 
         // Then values should remain untouched
-        XCTAssertEqual(crashReporter.getCrashInfo(key: "emb-sid"), "original_session_id")
-        XCTAssertEqual(crashReporter.getCrashInfo(key: "emb-sdk"), "1.2.3")
+        XCTAssertEqual(crashReporter.getCrashInfo(key: "emb-sid"), "maliciously_updated_session_id")
+        XCTAssertEqual(crashReporter.getCrashInfo(key: "emb-sdk"), "1.2.3-broken")
     }
 
     // MARK: - Signal Block List Tests
@@ -236,6 +234,7 @@ extension EmbraceCrashReporterTests {
 
     fileprivate func givenCrashReporter() {
         crashReporter = EmbraceCrashReporter(reporter: KSCrashReporter(), logger: logger)
+        crashReporter.currentSessionId = UUID().uuidString
         crashReporter.install(context: context)
     }
 }

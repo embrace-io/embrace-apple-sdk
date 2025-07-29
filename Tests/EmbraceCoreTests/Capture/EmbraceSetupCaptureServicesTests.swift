@@ -15,7 +15,7 @@ final class EmbraceSetupCaptureServicesTests: XCTestCase {
 
     class ExampleCrashReporter: CrashReporter {
         var sdkVersion: String?
-        func appendCrashInfo(key: String, value: String) {}
+        func appendCrashInfo(key: String, value: String?) {}
         func getCrashInfo(key: String) -> String? { nil }
         var basePath: String? = nil
         var currentSessionId: String?
