@@ -10,7 +10,7 @@ class ExtendableCrashReporterMock: CrashReporter {
     var basePath: String?
 
     var didCallAppendCrashInfo: Bool = false
-    func appendCrashInfo(key: String, value: String) {
+    func appendCrashInfo(key: String, value: String?) {
         didCallAppendCrashInfo = true
     }
 

@@ -8,16 +8,17 @@ import Foundation
 class CrashReporterMock: CrashReporter {
     var sdkVersion: String?
 
-    func appendCrashInfo(key: String, value: String) {
+    var customInfo: [String: String] = [:]
+    func appendCrashInfo(key: String, value: String?) {
+        customInfo[key] = value
     }
 
     func getCrashInfo(key: String) -> String? {
-        nil
+        customInfo[key]
     }
 
     var basePath: String?
 
-    var currentSessionId: String?
     var mockReports: [EmbraceCrashReport]
 
     var onNewReport: ((EmbraceCrashReport) -> Void)?
@@ -29,7 +30,9 @@ class CrashReporterMock: CrashReporter {
         crashSessionId: String? = nil,
         mockReports: [EmbraceCrashReport]? = nil
     ) {
-        self.currentSessionId = currentSessionId
+        customInfo[CrashReporterInfoKey.sessionId] = currentSessionId
+        customInfo[CrashReporterInfoKey.sessionId] = crashSessionId
+
         self.mockReports =
             mockReports ?? [
                 EmbraceCrashReport(

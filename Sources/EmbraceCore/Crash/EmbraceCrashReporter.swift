@@ -6,7 +6,6 @@ import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
-    import EmbraceSemantics
 #endif
 
 /// Default `CrashReporter` used by the Embrace SDK.
@@ -27,20 +26,20 @@ public final class EmbraceCrashReporter: NSObject {
     /// Sets the current session identifier that will be included in a crash report.
     public var currentSessionId: String? {
         set {
-            reporter.currentSessionId = newValue
+            reporter.appendCrashInfo(key: CrashReporterInfoKey.sessionId, value: newValue)
         }
         get {
-            reporter.currentSessionId
+            reporter.getCrashInfo(key: CrashReporterInfoKey.sessionId)
         }
     }
 
     /// Adds the SDK version to the crash reports.
     private(set) var sdkVersion: String? {
         set {
-            reporter.sdkVersion = newValue
+            reporter.appendCrashInfo(key: CrashReporterInfoKey.sdkVersion, value: newValue)
         }
         get {
-            reporter.sdkVersion
+            reporter.getCrashInfo(key: CrashReporterInfoKey.sdkVersion)
         }
     }
 
@@ -118,7 +117,7 @@ public final class EmbraceCrashReporter: NSObject {
         signalsBlockList.contains(where: { $0 == signal })
     }
 
-    public func appendCrashInfo(key: String, value: String) {
+    public func appendCrashInfo(key: String, value: String?) {
         reporter.appendCrashInfo(key: key, value: value)
     }
 

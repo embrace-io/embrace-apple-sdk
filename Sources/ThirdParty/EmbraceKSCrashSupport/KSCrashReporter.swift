@@ -2,7 +2,6 @@ import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
-    import EmbraceSemantics
 #endif
 
 #if canImport(KSCrashRecording)
@@ -14,7 +13,7 @@ import Foundation
 @objc(KSCrashReporter)
 public final class KSCrashReporter: NSObject, CrashReporter {
 
-    struct KSCrashKey {
+    private struct KSCrashKey {
         static let user = "user"
         static let crashReport = "report"
         static let timestamp = "timestamp"
@@ -22,36 +21,18 @@ public final class KSCrashReporter: NSObject, CrashReporter {
         static let error = "error"
         static let signal = "signal"
         static let signalName = "signal"
-        static let sessionId = "emb-sid"
-        static let sdkVersion = "emb-sdk"
     }
 
     private let reporter: KSCrash = KSCrash.shared
-    private var logger: InternalLogger?
+
+    public override init() {
+        reporter.userInfo = [:]
+        super.init()
+    }
 
     // this is the path that contains `/Reports`.
     public var basePath: String? {
         return reporter.value(forKeyPath: "configuration.installPath") as? String
-    }
-
-    /// Sets the current session identifier that will be included in a crash report.
-    public var currentSessionId: String? {
-        set {
-            reporter.userInfo?[KSCrashKey.sessionId] = newValue ?? NSNull()
-        }
-        get {
-            reporter.userInfo?[KSCrashKey.sessionId] as? String
-        }
-    }
-
-    /// Adds the SDK version to the crash reports.
-    public var sdkVersion: String? {
-        set {
-            reporter.userInfo?[KSCrashKey.sdkVersion] = newValue ?? NSNull()
-        }
-        get {
-            reporter.userInfo?[KSCrashKey.sdkVersion] as? String
-        }
     }
 
     /// Use this to prevent MetricKit reports to be used along with this crash reporter
@@ -74,6 +55,7 @@ public final class KSCrashReporter: NSObject, CrashReporter {
             config.enableSwapCxaThrow = false
             config.installPath = context.filePathProvider.directoryURL(for: "embrace_crash_reporter")?.path
             config.reportStoreConfiguration.appName = context.appId ?? "default"
+            try reporter.install(with: config)
         #endif
     }
 
@@ -109,11 +91,8 @@ public final class KSCrashReporter: NSObject, CrashReporter {
                 let data = try JSONSerialization.data(withJSONObject: report)
                 if let json = String(data: data, encoding: String.Encoding.utf8) {
                     payload = json
-                } else {
-                    self.logger?.warning("Error serializing raw crash report \(reportId)!")
                 }
             } catch {
-                self.logger?.warning("Error serializing raw crash report \(reportId)!")
             }
 
             guard let payload = payload else {
@@ -126,7 +105,7 @@ public final class KSCrashReporter: NSObject, CrashReporter {
             let signal: CrashSignal? = getCrashSignal(fromReport: report)
 
             if let userDict = report[KSCrashKey.user] as? [AnyHashable: Any] {
-                if let value = userDict[KSCrashKey.sessionId] as? String {
+                if let value = userDict[CrashReporterInfoKey.sessionId] as? String {
                     sessionId = SessionIdentifier(string: value)
                 }
             }
@@ -139,7 +118,7 @@ public final class KSCrashReporter: NSObject, CrashReporter {
             // add report
             let crashReport = EmbraceCrashReport(
                 payload: payload,
-                provider: LogSemantics.Crash.ksCrashProvider,
+                provider: "kscrash",  // from LogSemantics+Crash.swift
                 internalId: Int(id),
                 sessionId: sessionId?.toString,
                 timestamp: timestamp,
@@ -189,7 +168,7 @@ public final class KSCrashReporter: NSObject, CrashReporter {
         return formatter
     }
 
-    public func appendCrashInfo(key: String, value: String) {
+    public func appendCrashInfo(key: String, value: String?) {
         reporter.userInfo?[key] = value
     }
 
