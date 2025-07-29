@@ -74,14 +74,15 @@ public class CoreDataWrapper {
     /// Note we do not cancel currently any tasks on assertion expiry,
     /// Note don't we care if a task assertion is actually given to us.
     public func performOperation<Result>(
-        _ name: String = #function, save: Bool = false, _ block: (NSManagedObjectContext) -> Result
+        _ name: String = #function, save: Bool = false, allowMainQueue: Bool = false,
+        _ block: (NSManagedObjectContext) -> Result
     ) -> Result {
 
-        if Thread.isMainThread {
+        if !allowMainQueue && Thread.isMainThread {
             logger.critical("Warning: performBlockAndWait on main thread can easily deadlock! Proceeding with caution.")
         }
         #if DEBUG
-            if !isTesting {
+            if !isTesting && !allowMainQueue {
                 precondition(!Thread.isMainThread, "performBlockAndWait on main thread can easily deadlock!")
                 dispatchPrecondition(condition: .notOnQueue(.main))
             }
@@ -117,8 +118,8 @@ public class CoreDataWrapper {
     }
 
     /// Requests all changes to be saved to disk as soon as possible
-    public func save() {
-        performOperation(save: true) { _ in }
+    public func save(allowMainQueue: Bool = false) {
+        performOperation(save: true, allowMainQueue: allowMainQueue) { _ in }
     }
 
     /// Requests all changes to be saved to disk async

@@ -65,7 +65,8 @@ extension EmbraceStorage {
     // Add critical or required resources.
     // WARNING: This MUST be run behind `.performOperation` or `.performAsynOperation`.
     private func _addResources(
-        _ map: [String: String], context: NSManagedObjectContext, processId: ProcessIdentifier = .current
+        _ map: [String: String], allowMainQueue: Bool, context: NSManagedObjectContext,
+        processId: ProcessIdentifier = .current
     ) {
 
         guard let description = NSEntityDescription.entity(forEntityName: MetadataRecord.entityName, in: context)
@@ -108,20 +109,20 @@ extension EmbraceStorage {
                 record?.collectedAt = Date()
             }
         }
-        coreData.save()
+        coreData.save(allowMainQueue: allowMainQueue)
     }
 
     /// Adds or updates all the given critical resources **synchronously**
     public func addCriticalResources(_ map: [String: String], processId: ProcessIdentifier = .current) {
-        coreData.performOperation { context in
-            _addResources(map, context: context, processId: processId)
+        coreData.performOperation(allowMainQueue: true) { context in
+            _addResources(map, allowMainQueue: true, context: context, processId: processId)
         }
     }
 
     /// Adds or updates all the given required resources **asynchronously**
     public func addRequiredResources(_ map: [String: String], processId: ProcessIdentifier = .current) {
         coreData.performAsyncOperation { [self] context in
-            _addResources(map, context: context, processId: processId)
+            _addResources(map, allowMainQueue: true, context: context, processId: processId)
         }
     }
 
