@@ -44,7 +44,7 @@ public class CoreDataWrapper {
                 description.type = NSInMemoryStoreType
                 container.persistentStoreDescriptions = [description]
 
-            case let .onDisk(_, baseURL):
+            case let .onDisk(_, baseURL, journalMode):
                 try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true)
                 let description = NSPersistentStoreDescription()
                 #if !os(macOS)
@@ -53,7 +53,7 @@ public class CoreDataWrapper {
                 #endif
                 description.type = NSSQLiteStoreType
                 description.url = options.storageMechanism.fileURL
-                description.setValue("DELETE" as NSString, forPragmaNamed: "journal_mode")
+                description.setValue(journalMode.rawValue as NSString, forPragmaNamed: "journal_mode")
 
                 container.persistentStoreDescriptions = [description]
             }

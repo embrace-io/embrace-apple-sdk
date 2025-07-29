@@ -52,7 +52,7 @@ public class MetadataHandler: NSObject {
             FileManager.default.fileExists(atPath: url.appendingPathComponent(coreDataStackName + ".sqlite").path) {
 
             let options = CoreDataWrapper.Options(
-                storageMechanism: .onDisk(name: coreDataStackName, baseURL: url),
+                storageMechanism: .onDisk(name: coreDataStackName, baseURL: url, journalMode: .delete),
                 entities: [MetadataRecordTmp.entityDescription]
             )
 

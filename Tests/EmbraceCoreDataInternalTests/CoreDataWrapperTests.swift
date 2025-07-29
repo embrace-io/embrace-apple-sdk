@@ -24,7 +24,7 @@ class CoreDataWrapperTests: XCTestCase {
     func skip_test_destroy() throws {
         // given a wrapper with data on disk
         let url = URL(fileURLWithPath: NSTemporaryDirectory())
-        let storageMechanism: StorageMechanism = .onDisk(name: testName, baseURL: url)
+        let storageMechanism: StorageMechanism = .onDisk(name: testName, baseURL: url, journalMode: .delete)
         let options = CoreDataWrapper.Options(
             storageMechanism: storageMechanism, enableBackgroundTasks: false, entities: [MockRecord.entityDescription])
         try wrapper = CoreDataWrapper(options: options, logger: MockLogger())
