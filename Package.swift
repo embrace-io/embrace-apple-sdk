@@ -280,7 +280,6 @@ let package = Package(
             name: "EmbraceKSCrashSupport",
             dependencies: [
                 "EmbraceCommonInternal",
-                "EmbraceSemantics",
                 .product(name: "Recording", package: "KSCrash")
             ],
             path: "Sources/ThirdParty/EmbraceKSCrashSupport"
