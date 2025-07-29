@@ -124,8 +124,7 @@ struct URLSessionInitWithDelegateSwizzler: URLSessionSwizzler {
                 // Add protection against re-proxying our own proxy
                 guard !(proxiedDelegate is EMBURLSessionDelegateProxy) else {
                     if let newDelegate = proxiedDelegate as? EMBURLSessionDelegateProxy,
-                        let originalDelegate = newDelegate.originalDelegate as? URLSessionDelegate
-                    {
+                        let originalDelegate = newDelegate.originalDelegate as? URLSessionDelegate {
                         return originalImplementation(urlSession, Self.selector, configuration, originalDelegate, queue)
                     }
                     return originalImplementation(urlSession, Self.selector, configuration, delegate, queue)

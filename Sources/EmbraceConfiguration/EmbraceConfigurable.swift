@@ -15,6 +15,12 @@ import Foundation
 
     var isUiLoadInstrumentationEnabled: Bool { get }
 
+    var viewControllerClassNameBlocklist: [String] { get }
+
+    var uiInstrumentationCaptureHostingControllers: Bool { get }
+
+    var isSwiftUiViewInstrumentationEnabled: Bool { get }
+
     var isMetricKitEnabled: Bool { get }
 
     var isMetricKitCrashCaptureEnabled: Bool { get }
@@ -22,8 +28,6 @@ import Foundation
     var metricKitCrashSignals: [String] { get }
 
     var isMetricKitHangCaptureEnabled: Bool { get }
-
-    var isSwiftUiViewInstrumentationEnabled: Bool { get }
 
     var spanEventsLimits: SpanEventsLimits { get }
 

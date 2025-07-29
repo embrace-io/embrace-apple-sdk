@@ -27,13 +27,25 @@
             /// with the `userAbandon` error code.
             @objc public var instrumentFirstRender: Bool
 
-            @objc public init(instrumentVisibility: Bool, instrumentFirstRender: Bool) {
+            /// Any `UIViewController` contained in this block list will be ignored by the capture service.
+            /// Use the `blockHostingControllers` paramenter to determine if `UIHostingControllers` and their child controllers should be captured.
+            @objc public var viewControllerBlockList: ViewControllerBlockList
+
+            @objc public init(
+                instrumentVisibility: Bool,
+                instrumentFirstRender: Bool,
+                viewControllerBlockList: ViewControllerBlockList = ViewControllerBlockList()
+            ) {
                 self.instrumentVisibility = instrumentVisibility
                 self.instrumentFirstRender = instrumentFirstRender
+                self.viewControllerBlockList = viewControllerBlockList
             }
 
             @objc public convenience override init() {
-                self.init(instrumentVisibility: true, instrumentFirstRender: true)
+                self.init(
+                    instrumentVisibility: true,
+                    instrumentFirstRender: true
+                )
             }
         }
     }

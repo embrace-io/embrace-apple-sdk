@@ -76,6 +76,47 @@
             // then the appropiate methods are called on the handler
             XCTAssert(handler.onViewDidDisappearCalled)
         }
+
+        func test_blockList_creation() {
+            // given a capture service with a block list
+            let blockList = ViewControllerBlockList(
+                types: [MockViewController.self], names: ["Test"], blockHostingControllers: true)
+            let options = ViewCaptureService.Options(
+                instrumentVisibility: true, instrumentFirstRender: true, viewControllerBlockList: blockList)
+            service = ViewCaptureService(options: options, handler: handler, lock: NSLock())
+
+            // then it has the correct block list
+            XCTAssert(service.blockList.safeValue.types.contains { $0 == MockViewController.self })
+            XCTAssert(service.blockList.safeValue.names.contains("TEST"))
+            XCTAssert(service.blockList.safeValue.blockHostingControllers)
+        }
+
+        func test_blockList_remoteConfig() {
+            // given a capture service with a block list
+            let blockList = ViewControllerBlockList(
+                types: [MockViewController.self], names: ["Test"], blockHostingControllers: true)
+            let options = ViewCaptureService.Options(
+                instrumentVisibility: true, instrumentFirstRender: true, viewControllerBlockList: blockList)
+            service = ViewCaptureService(options: options, handler: handler, lock: NSLock())
+
+            // then it has the correct block list
+            XCTAssert(service.blockList.safeValue.types.contains { $0 == MockViewController.self })
+            XCTAssert(service.blockList.safeValue.names.contains("TEST"))
+            XCTAssert(service.blockList.safeValue.blockHostingControllers)
+
+            // when the remote config changes
+            let config = EditableConfig()
+            config.viewControllerClassNameBlocklist = ["MyCustomViewController", "MySpecialViewController"]
+            config.uiInstrumentationCaptureHostingControllers = false
+            Embrace.notificationCenter.post(name: .embraceConfigUpdated, object: config)
+
+            // then the blocklist is updated
+            XCTAssert(service.blockList.safeValue.types.isEmpty)
+            XCTAssert(service.blockList.safeValue.names.contains("MYCUSTOMVIEWCONTROLLER"))
+            XCTAssert(service.blockList.safeValue.names.contains("MYSPECIALVIEWCONTROLLER"))
+            XCTAssertEqual(service.blockList.safeValue.names.count, 2)
+            XCTAssertFalse(service.blockList.safeValue.blockHostingControllers)
+        }
     }
 
 #endif

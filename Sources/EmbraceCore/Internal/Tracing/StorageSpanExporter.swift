@@ -46,8 +46,7 @@ class StorageSpanExporter: SpanExporter {
                     // This process is handled by the `SessionController` to prevent
                     // race conditions when a session ends and its payload gets built.
                     if endTime != nil
-                        && spanData.attributes[SpanSemantics.keyEmbraceType]?.description == SpanType.session.rawValue
-                    {
+                        && spanData.attributes[SpanSemantics.keyEmbraceType]?.description == SpanType.session.rawValue {
                         continue
                     }
 

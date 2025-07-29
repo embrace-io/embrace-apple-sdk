@@ -101,7 +101,7 @@ extension EmbraceStorage {
         cleanExit: Bool = false,
         appTerminated: Bool = false
     ) -> EmbraceSession? {
-        coreData.performOperation { context in
+        coreData.performOperation { _ in
 
             // fetch existing session
             let request = fetchSessionRequest(id: id)

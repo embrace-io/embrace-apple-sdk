@@ -8,6 +8,8 @@
         import EmbraceCaptureService
         import EmbraceCommonInternal
         import EmbraceOTelInternal
+        import EmbraceConfigInternal
+        import EmbraceConfiguration
     #endif
     import OpenTelemetryApi
     import Foundation
@@ -28,6 +30,8 @@
         var instrumentFirstRender: Bool {
             return options.instrumentFirstRender && Embrace.client?.config.isUiLoadInstrumentationEnabled == true
         }
+
+        var blockList = EmbraceMutex(ViewControllerBlockList())
 
         @objc public convenience init(options: ViewCaptureService.Options) {
             self.init(options: options, lock: NSLock())
@@ -51,6 +55,39 @@
             self.swizzlerCache = swizzlerCache
             self.bundlePath = bundle.bundlePath
             self.lock = lock
+            self.blockList.safeValue = options.viewControllerBlockList
+
+            super.init()
+
+            Embrace.notificationCenter.addObserver(
+                self,
+                selector: #selector(onConfigUpdated),
+                name: .embraceConfigUpdated, object: nil
+            )
+            updateBlockList(config: Embrace.client?.config.configurable)
+        }
+
+        deinit {
+            Embrace.notificationCenter.removeObserver(self)
+        }
+
+        @objc private func onConfigUpdated(_ notification: Notification) {
+            let config = notification.object as? EmbraceConfigurable
+            updateBlockList(config: config)
+        }
+
+        private func updateBlockList(config: EmbraceConfigurable?) {
+            if let list = config?.viewControllerClassNameBlocklist {
+                let blockHostingControllers = config?.uiInstrumentationCaptureHostingControllers ?? true
+                blockList.safeValue = ViewControllerBlockList(
+                    names: list, blockHostingControllers: blockHostingControllers)
+            } else {
+                blockList.safeValue = options.viewControllerBlockList
+            }
+        }
+
+        func isViewControllerBlocked(_ vc: UIViewController) -> Bool {
+            return blockList.safeValue.isBlocked(viewController: vc)
         }
 
         func onViewBecameInteractive(_ vc: UIViewController) {

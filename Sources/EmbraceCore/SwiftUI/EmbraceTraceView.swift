@@ -167,8 +167,7 @@ public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
                 // If this is the first appearance,
                 // log this as time to first render.
                 if state.appear == 1,
-                    let startTime = state.initializeTime
-                {
+                    let startTime = state.initializeTime {
                     let span = logger.startSpan(
                         name,
                         semantics: SpanSemantics.SwiftUIView.timeToFirstRender,

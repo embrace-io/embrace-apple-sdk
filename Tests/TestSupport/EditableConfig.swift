@@ -13,6 +13,12 @@ public class EditableConfig: EmbraceConfigurable {
 
     public var isUiLoadInstrumentationEnabled: Bool = false
 
+    public var viewControllerClassNameBlocklist: [String] = []
+
+    public var uiInstrumentationCaptureHostingControllers: Bool = false
+
+    public var isSwiftUiViewInstrumentationEnabled: Bool = false
+
     public var isMetricKitEnabled: Bool = true
 
     public var isMetricKitCrashCaptureEnabled: Bool = false
@@ -20,8 +26,6 @@ public class EditableConfig: EmbraceConfigurable {
     public var metricKitCrashSignals: [String] = []
 
     public var isMetricKitHangCaptureEnabled: Bool = false
-
-    public var isSwiftUiViewInstrumentationEnabled: Bool = false
 
     public var spanEventsLimits = SpanEventsLimits()
 

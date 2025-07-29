@@ -192,7 +192,7 @@ extension EmbraceStorage {
             ProcessIdentifier.current.hex
         )
 
-        coreData.fetchAndPerform(withRequest: request) { [weak self] spans in
+        coreData.fetchAndPerform(withRequest: request) { [self] spans in
             for span in spans {
                 span.endTime = endTime
             }
@@ -210,12 +210,11 @@ extension EmbraceStorage {
     /// - Returns: Array containing the immutable copies of the spans.
     public func fetchSpans(
         for session: EmbraceSession,
-        ignoreSessionSpans: Bool = true,
-        limit: Int = 1000
+        ignoreSessionSpans: Bool = true
     ) -> [EmbraceSpan] {
 
         let request = SpanRecord.createFetchRequest()
-        request.fetchLimit = limit
+        request.fetchLimit = jsonSpansLimit
 
         let endTime = (session.endTime ?? session.lastHeartbeatTime) as NSDate
 
@@ -281,13 +280,30 @@ extension EmbraceStorage {
 
 // MARK: - Database operations
 extension EmbraceStorage {
+    func limitByType(_ type: SpanType) -> Int {
+        switch type.primary {
+        case .performance,
+            .system,
+            .ux:
+            return 1500
+        }
+    }
+
+    var jsonSpansLimit: Int {
+        var total = 0
+        PrimaryType.allCases.forEach {
+            total += limitByType(SpanType(primary: $0))
+        }
+        return total
+    }
+
     fileprivate func removeOldSpanIfNeeded(forType type: SpanType) {
         // check limit and delete if necessary
         // default to 1500 if limit is not set
-        let limit = options.spanLimits[type, default: Self.defaultSpanLimitByType]
+        let limit = options.spanLimits[type, default: limitByType(type)]
 
         let request = SpanRecord.createFetchRequest()
-        request.predicate = NSPredicate(format: "typeRaw == %@", type.rawValue)
+        request.predicate = NSPredicate(format: "typeRaw BEGINSWITH %@", type.rawValue)
         let count = coreData.count(withRequest: request)
 
         if count >= limit {

@@ -4,7 +4,7 @@
 
 import Foundation
 
-class EmbraceAttachmentUploadOperation: EmbraceUploadOperation {
+class EmbraceAttachmentUploadOperation: EmbraceUploadOperation, @unchecked Sendable {
 
     override func createRequest(
         endpoint: URL,

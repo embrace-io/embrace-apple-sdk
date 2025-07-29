@@ -18,6 +18,8 @@
 
         var instrumentVisibility: Bool { get }
         var instrumentFirstRender: Bool { get }
+
+        func isViewControllerBlocked(_ vc: UIViewController) -> Bool
     }
 
     class UIViewControllerHandler {
@@ -87,6 +89,7 @@
             guard dataSource?.state == .active,
                 dataSource?.instrumentFirstRender == true,
                 vc.emb_shouldCaptureView,
+                dataSource?.isViewControllerBlocked(vc) == false,
                 let otel = dataSource?.otel
             else {
                 return

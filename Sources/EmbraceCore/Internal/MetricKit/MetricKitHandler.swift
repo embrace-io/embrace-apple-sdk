@@ -27,13 +27,13 @@ import MetricKit
     let sessionLinkGracePeriod: TimeInterval = 5
 
     func install() {
-        #if !os(tvOS)
+        #if !os(tvOS) && !os(macOS) && !os(watchOS)
             MXMetricManager.shared.add(self)
         #endif
     }
 
     func uninstall() {
-        #if !os(tvOS)
+        #if !os(tvOS) && !os(macOS) && !os(watchOS)
             MXMetricManager.shared.remove(self)
         #endif
     }
@@ -89,7 +89,7 @@ import MetricKit
     }
 }
 
-#if !os(tvOS)
+#if !os(tvOS) && !os(macOS) && !os(watchOS)
     extension MetricKitHandler: MXMetricManagerSubscriber {
         func didReceive(_ payloads: [MXMetricPayload]) {
             // noop for now

@@ -61,8 +61,7 @@ extension EmbraceTraceMacro: MemberMacro {
                 if let memberType = $0.type.as(MemberTypeSyntax.self),
                     let baseType = memberType.baseType.as(IdentifierTypeSyntax.self),
                     baseType.name.text == "SwiftUI",
-                    memberType.name.text == "View"
-                {
+                    memberType.name.text == "View" {
                     return true
                 }
                 return false
@@ -133,7 +132,7 @@ extension EmbraceTraceMacro: MemberMacro {
             struct _EmbraceBodyContainer: View {
                 /// Reference to the parent view instance
                 let view: \(raw: structDecl.name.text)
-                
+
                 /// The body of the container, which simply returns the original view implementation
                 var body: some View {
                     view._embraceOriginalBody
