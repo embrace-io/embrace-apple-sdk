@@ -41,15 +41,12 @@ public final class CrashlyticsReporter: NSObject, CrashReporter {
 
     /// Object used to interact with Firebase
     let wrapper: CrashlyticsWrapper = CrashlyticsWrapper()
-    var customValues: [String: String] = [:]
 
     public var basePath: String? {
         nil
     }
 
-    public var basePath: String? {
-        nil
-    }
+    public let basePath: String? = nil
 
     /// We let Crashlytics handle MetricKit
     public let disableMetricKitReports: Bool = true
@@ -111,12 +108,13 @@ public final class CrashlyticsReporter: NSObject, CrashReporter {
     public func deleteCrashReport(_ report: EmbraceCrashReport) {
     }
 
-    public func appendCrashInfo(key: String, value: String) {
-        customValues[key] = value
-        wrapper.setCustomValue(key: key, value: value)
+    public func appendCrashInfo(key: String, value: String?) {
+        if let value {
+            wrapper.setCustomValue(key: key, value: value)
+        }
     }
 
     public func getCrashInfo(key: String) -> String? {
-        customValues[key]
+        wrapper.getCustomValue(key: key)
     }
 }
