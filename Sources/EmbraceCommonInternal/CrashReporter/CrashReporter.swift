@@ -30,7 +30,6 @@ import Foundation
 /// additional customization in error reporting is required.
 public protocol ExtendableCrashReporter: CrashReporter {
     func appendCrashInfo(key: String, value: String)
-    func mergeCrashInfo(map: [String: String])
 }
 
 @objc public class EmbraceCrashReport: NSObject {

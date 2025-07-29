@@ -67,8 +67,7 @@ final class CaptureServices {
         // that generate resources
         for service in services {
             if let resourceService = service as? ResourceCaptureService {
-                resourceService.add(storage)
-                resourceService.add(crashReporter as? ResourceCaptureServiceHandler)
+                resourceService.handler = storage
             }
         }
 
