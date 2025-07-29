@@ -56,8 +56,7 @@ public final class KSCrashReporter: NSObject, CrashReporter {
 
     /// Use this to prevent MetricKit reports to be used along with this crash reporter
     public var disableMetricKitReports: Bool {
-        get { false }
-        set {}
+        false
     }
 
     /// Unused in this KSCrash implementation
