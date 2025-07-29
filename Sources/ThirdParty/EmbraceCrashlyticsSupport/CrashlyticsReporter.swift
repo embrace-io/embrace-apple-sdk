@@ -37,22 +37,39 @@ public final class CrashlyticsReporter: NSObject, CrashReporter {
     }
 
     let options: CrashlyticsReporter.Options
-    var logger: InternalLogger?
     var context: CrashReporterContext?
 
     /// Object used to interact with Firebase
     let wrapper: CrashlyticsWrapper = CrashlyticsWrapper()
+    var customValues: [String: String] = [:]
+
+    public var basePath: String? {
+        nil
+    }
 
     /// Sets the current session identifier that will be included in a crash report.
     public var currentSessionId: String? {
-        didSet {
-            wrapper.currentSessionId = currentSessionId
+        set {
+            wrapper.currentSessionId = newValue
+        }
+        get {
+            wrapper.currentSessionId
+        }
+    }
+
+    public var sdkVersion: String? {
+        set {
+            wrapper.sdkVersion = newValue
+        }
+        get {
+            wrapper.sdkVersion
         }
     }
 
     /// We let Crashlytics handle MetricKit
     public var disableMetricKitReports: Bool {
-        return true
+        set {}
+        get { true }
     }
 
     /// Block called when there's a new report to upload
@@ -63,11 +80,8 @@ public final class CrashlyticsReporter: NSObject, CrashReporter {
         return .unavailable
     }
 
-    public func install(context: CrashReporterContext, logger: InternalLogger) {
+    public func install(context: CrashReporterContext) throws {
         self.context = context
-        self.logger = logger
-        wrapper.sdkVersion = context.sdkVersion
-
         context.notificationCenter.addObserver(
             self,
             selector: #selector(onNetworkRequestCaptured),
@@ -112,10 +126,15 @@ public final class CrashlyticsReporter: NSObject, CrashReporter {
     }
 
     /// Unused
-    public func deleteCrashReport(id: Int) {
+    public func deleteCrashReport(_ report: EmbraceCrashReport) {
     }
 
     public func appendCrashInfo(key: String, value: String) {
+        customValues[key] = value
         wrapper.setCustomValue(key: key, value: value)
+    }
+
+    public func getCrashInfo(key: String) -> String? {
+        customValues[key]
     }
 }

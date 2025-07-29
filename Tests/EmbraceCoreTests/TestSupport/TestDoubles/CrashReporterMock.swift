@@ -6,6 +6,16 @@ import EmbraceCommonInternal
 import Foundation
 
 class CrashReporterMock: CrashReporter {
+    var sdkVersion: String?
+
+    func appendCrashInfo(key: String, value: String) {
+    }
+
+    func getCrashInfo(key: String) -> String? {
+        nil
+    }
+
+    var basePath: String?
 
     var currentSessionId: String?
     var mockReports: [EmbraceCrashReport]
@@ -41,13 +51,13 @@ class CrashReporterMock: CrashReporter {
         completion(mockReports)
     }
 
-    func deleteCrashReport(id: Int) {
-        mockReports.removeAll { report in
-            report.internalId == id
+    func deleteCrashReport(_ report: EmbraceCrashReport) {
+        mockReports.removeAll { r in
+            r.internalId == report.internalId
         }
     }
 
-    func install(context: CrashReporterContext, logger: InternalLogger) {
+    func install(context: CrashReporterContext) throws {
 
     }
 }

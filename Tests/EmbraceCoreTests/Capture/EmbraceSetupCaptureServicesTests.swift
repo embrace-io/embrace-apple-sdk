@@ -14,12 +14,16 @@ final class EmbraceSetupCaptureServicesTests: XCTestCase {
     }
 
     class ExampleCrashReporter: CrashReporter {
+        var sdkVersion: String?
+        func appendCrashInfo(key: String, value: String) {}
+        func getCrashInfo(key: String) -> String? { nil }
+        var basePath: String? = nil
         var currentSessionId: String?
-        func install(context: CrashReporterContext, logger: InternalLogger) {}
+        func install(context: CrashReporterContext) throws {}
         func getLastRunState() -> LastRunState { return .cleanExit }
         func fetchUnsentCrashReports(completion: @escaping ([EmbraceCrashReport]) -> Void) {}
         var onNewReport: ((EmbraceCrashReport) -> Void)?
-        func deleteCrashReport(id: Int) {}
+        func deleteCrashReport(_ report: EmbraceCrashReport) {}
         var disableMetricKitReports: Bool = true
     }
 

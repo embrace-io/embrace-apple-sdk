@@ -14,8 +14,8 @@ import Foundation
 public final class EmbraceCrashReporter: NSObject {
 
     private let reporter: CrashReporter
-    private let logger: InternalLogger
-    private let queue: DispatchQueue = DispatchQueue(
+    private let logger: InternalLogger?
+    internal let queue: DispatchQueue = DispatchQueue(
         label: "com.embrace.crashreporter", qos: .utility, autoreleaseFrequency: .workItem)
     private let signalsBlockList: [CrashSignal]
 
@@ -46,18 +46,13 @@ public final class EmbraceCrashReporter: NSObject {
 
     /// Use this to prevent MetricKit reports to be used along with this crash reporter
     public var disableMetricKitReports: Bool {
-        set {
-            reporter.disableMetricKitReports = newValue
-        }
-        get {
-            reporter.disableMetricKitReports
-        }
+        reporter.disableMetricKitReports
     }
 
     /// Unused in this KSCrash implementation
     public var onNewReport: ((EmbraceCrashReport) -> Void)? {
         set {
-            reporter.onNewReport = onNewReport
+            reporter.onNewReport = newValue
         }
         get {
             reporter.onNewReport
@@ -66,16 +61,13 @@ public final class EmbraceCrashReporter: NSObject {
 
     public init(
         reporter: CrashReporter,
-        logger: InternalLogger,
-        signalsBlockList: [CrashSignal] = [.SIGTERM],
-        disableMetricKitReports: Bool = false
+        logger: InternalLogger? = nil,
+        signalsBlockList: [CrashSignal] = [.SIGTERM]
     ) {
         self.reporter = reporter
         self.logger = logger
         self.signalsBlockList = signalsBlockList
         super.init()
-
-        self.disableMetricKitReports = disableMetricKitReports
     }
 
     /// Used to determine if the last session ended cleanly or in a crash.
@@ -83,16 +75,20 @@ public final class EmbraceCrashReporter: NSObject {
         reporter.getLastRunState()
     }
 
-    public func install(context: CrashReporterContext, logger: InternalLogger) {
+    public func install(context: CrashReporterContext) {
         sdkVersion = context.sdkVersion
-        reporter.install(context: context, logger: logger)
+        do {
+            try reporter.install(context: context)
+        } catch {
+            logger?.error("EmbraceCrashReporter install failed: \(error)")
+        }
     }
 
     /// Fetches all saved `EmbraceCrashReport`.
     /// - Parameter completion: Completion handler to be called with the fetched `CrashReports`
     public func fetchUnsentCrashReports(completion: @escaping ([EmbraceCrashReport]) -> Void) {
         queue.async { [self] in
-            reporter.fetchUnsentCrashReports { reports in
+            reporter.fetchUnsentCrashReports { [self] reports in
 
                 var reportsToSend: [EmbraceCrashReport] = []
 
@@ -124,5 +120,9 @@ public final class EmbraceCrashReporter: NSObject {
 
     public func appendCrashInfo(key: String, value: String) {
         reporter.appendCrashInfo(key: key, value: value)
+    }
+
+    public func getCrashInfo(key: String) -> String? {
+        reporter.getCrashInfo(key: key)
     }
 }

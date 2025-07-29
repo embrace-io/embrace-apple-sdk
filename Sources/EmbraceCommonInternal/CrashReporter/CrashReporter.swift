@@ -12,7 +12,7 @@ import Foundation
     @objc var currentSessionId: String? { get set }
     @objc var sdkVersion: String? { get set }
 
-    @objc func install(context: CrashReporterContext, logger: InternalLogger)
+    @objc func install(context: CrashReporterContext) throws
 
     @objc func getLastRunState() -> LastRunState
 
@@ -21,9 +21,10 @@ import Foundation
 
     @objc var onNewReport: ((EmbraceCrashReport) -> Void)? { get set }
 
-    @objc var disableMetricKitReports: Bool { get set }
+    @objc var disableMetricKitReports: Bool { get }
 
     @objc func appendCrashInfo(key: String, value: String)
+    @objc func getCrashInfo(key: String) -> String?
 
     @objc var basePath: String? { get }
 }

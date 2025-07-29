@@ -6,7 +6,8 @@ import EmbraceCommonInternal
 import TestSupport
 import XCTest
 
-@testable import EmbraceCrash
+@testable import EmbraceCore
+@testable import EmbraceKSCrashSupport
 
 class EmbraceCrashReporterTests: XCTestCase {
 
@@ -31,7 +32,7 @@ class EmbraceCrashReporterTests: XCTestCase {
 
         // then KSCrash's user info is properly set
         let key = "emb-sid"
-        XCTAssertEqual(crashReporter.ksCrash?.userInfo?[key] as? String, sessionId.toString)
+        XCTAssertEqual(crashReporter.getCrashInfo(key: key), sessionId.toString)
     }
 
     func test_sdkVersion() {
@@ -39,7 +40,7 @@ class EmbraceCrashReporterTests: XCTestCase {
 
         // then KSCrash's user info is properly set
         let key = "emb-sdk"
-        XCTAssertEqual(crashReporter.ksCrash?.userInfo?[key] as? String, TestConstants.sdkVersion)
+        XCTAssertEqual(crashReporter.getCrashInfo(key: key), TestConstants.sdkVersion)
     }
 
     func test_fetchCrashReports() throws {
@@ -85,7 +86,7 @@ class EmbraceCrashReporterTests: XCTestCase {
 
         crashReporter.appendCrashInfo(key: "some", value: "value")
 
-        XCTAssertEqual(try XCTUnwrap(crashReporter.ksCrash?.userInfo?["some"]) as? String, "value")
+        XCTAssertEqual(try XCTUnwrap(crashReporter.getCrashInfo(key: "some")), "value")
     }
 
     func test_appendCrashInfo_addsDefaultInfoWhenBeingCalled() throws {
@@ -93,49 +94,45 @@ class EmbraceCrashReporterTests: XCTestCase {
 
         crashReporter.appendCrashInfo(key: "some", value: "value")
 
-        let ksCrash = try XCTUnwrap(crashReporter.ksCrash)
         for expectedKey in ["emb-sdk", "emb-sid"] {
-            XCTAssertTrue(ksCrash.userInfo?.keys.contains(expectedKey) ?? false)
+            XCTAssertNotNil(crashReporter.getCrashInfo(key: expectedKey))
         }
     }
 
     func testInKSCrash_appendCrashInfo_shouldntDeletePreexistingKeys() throws {
         givenCrashReporter()
-        crashReporter.ksCrash?.userInfo = ["initial_key": "one_value"]
-
+        crashReporter.appendCrashInfo(key: "initial_key", value: "one_value")
         crashReporter.appendCrashInfo(key: "some", value: "value")
 
-        let ksCrash = try XCTUnwrap(crashReporter.ksCrash)
         for expectedKey in ["emb-sdk", "emb-sid"] {
-            XCTAssertTrue(ksCrash.userInfo?.keys.contains(expectedKey) ?? false)
+            XCTAssertNotNil(crashReporter.getCrashInfo(key: expectedKey))
         }
-        XCTAssertEqual(ksCrash.userInfo?["initial_key"] as? String, "one_value")
+        XCTAssertEqual(crashReporter.getCrashInfo(key: "initial_key"), "one_value")
     }
 
     func testHavingInternalAddedInfoInKSCrash_appendCrashInfo_shouldntEraseThoseValues() throws {
         // given crash reporter with an already set sdkVersion and sessionId
-        crashReporter = EmbraceCrashReporter(queue: MockQueue())
+        crashReporter = EmbraceCrashReporter(reporter: KSCrashReporter(), logger: logger)
         let context = CrashReporterContext(
             appId: "_-_-_",
             sdkVersion: "1.2.3",
             filePathProvider: TemporaryFilepathProvider(),
             notificationCenter: .default
         )
-        crashReporter.install(context: context, logger: logger)
+        crashReporter.install(context: context)
         crashReporter.currentSessionId = "original_session_id"
-        let ksCrash = try XCTUnwrap(crashReporter.ksCrash)
 
         // [Intermediate Assertion to ensure the `given` state]
-        XCTAssertEqual(ksCrash.userInfo?["emb-sid"] as? String, "original_session_id")
-        XCTAssertEqual(ksCrash.userInfo?["emb-sdk"] as? String, "1.2.3")
+        XCTAssertEqual(crashReporter.getCrashInfo(key: "emb-sid"), "original_session_id")
+        XCTAssertEqual(crashReporter.getCrashInfo(key: "emb-sdk"), "1.2.3")
 
         // When trying to change the internal (necessary) properties from kscrash
         crashReporter.appendCrashInfo(key: "emb-sid", value: "maliciously_updated_session_id")
         crashReporter.appendCrashInfo(key: "emb-sdk", value: "1.2.3-broken")
 
         // Then values should remain untouched
-        XCTAssertEqual(ksCrash.userInfo?["emb-sid"] as? String, "original_session_id")
-        XCTAssertEqual(ksCrash.userInfo?["emb-sdk"] as? String, "1.2.3")
+        XCTAssertEqual(crashReporter.getCrashInfo(key: "emb-sid"), "original_session_id")
+        XCTAssertEqual(crashReporter.getCrashInfo(key: "emb-sdk"), "1.2.3")
     }
 
     // MARK: - Signal Block List Tests
@@ -167,8 +164,8 @@ class EmbraceCrashReporterTests: XCTestCase {
 
     func testOnHavingEmptySignalBlockList_fetchUnsentCrashReports_SIGTERMshouldBeReported() throws {
         // given a crash reporter with no blocklist
-        crashReporter = EmbraceCrashReporter(queue: MockQueue(), signalsBlockList: [])
-        crashReporter.install(context: context, logger: logger)
+        crashReporter = EmbraceCrashReporter(reporter: KSCrashReporter(), signalsBlockList: [])
+        crashReporter.install(context: context)
 
         // given some fake crash reports (SIGABRT + SIGTERM)
         try copyReport(named: "sigabrt_report", toFilePath: "/Reports/appId-report-0000000000000001.json")
@@ -191,8 +188,8 @@ class EmbraceCrashReporterTests: XCTestCase {
 
     func testOnModifyingSignalBlockList_fetchUnsentCrashReports_shouldAvoidReportingBlockedSignals() throws {
         // given a crash reporter preventing SIGABRT from being reported
-        crashReporter = EmbraceCrashReporter(queue: MockQueue(), signalsBlockList: [.SIGABRT])
-        crashReporter.install(context: context, logger: logger)
+        crashReporter = EmbraceCrashReporter(reporter: KSCrashReporter(), signalsBlockList: [.SIGABRT])
+        crashReporter.install(context: context)
 
         // given some fake crash reports (nonBlocked SIGTERM + blocked SIGABRT)
         try copyReport(named: "sigabrt_report", toFilePath: "/Reports/appId-report-0000000000000001.json")
@@ -238,7 +235,7 @@ extension EmbraceCrashReporterTests {
     }
 
     fileprivate func givenCrashReporter() {
-        crashReporter = EmbraceCrashReporter(queue: MockQueue())
-        crashReporter.install(context: context, logger: logger)
+        crashReporter = EmbraceCrashReporter(reporter: KSCrashReporter(), logger: logger)
+        crashReporter.install(context: context)
     }
 }
