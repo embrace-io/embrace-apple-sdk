@@ -114,9 +114,7 @@ public final class CrashlyticsReporter: NSObject, CrashReporter {
     /// Unused
     public func deleteCrashReport(id: Int) {
     }
-}
 
-extension CrashlyticsReporter: ExtendableCrashReporter {
     public func appendCrashInfo(key: String, value: String) {
         wrapper.setCustomValue(key: key, value: value)
     }

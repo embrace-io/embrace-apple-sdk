@@ -34,10 +34,10 @@ let package = Package(
     products: [
         .library(name: "EmbraceIO", targets: ["EmbraceIO"]),
         .library(name: "EmbraceCore", targets: ["EmbraceCore", "EmbraceConfiguration"]),
-        .library(name: "EmbraceCrash", targets: ["EmbraceCrash"]),
-        .library(name: "EmbraceCrashlyticsSupport", targets: ["EmbraceCrashlyticsSupport"]),
         .library(name: "EmbraceSemantics", targets: ["EmbraceSemantics"]),
-        .library(name: "EmbraceMacros", targets: ["EmbraceMacros", "EmbraceCore"])
+        .library(name: "EmbraceMacros", targets: ["EmbraceMacros", "EmbraceCore"]),
+        .library(name: "EmbraceKSCrashSupport", targets: ["EmbraceKSCrashSupport"]),
+        .library(name: "EmbraceCrashlyticsSupport", targets: ["EmbraceCrashlyticsSupport"])
     ],
     dependencies: [
         .package(
@@ -62,8 +62,8 @@ let package = Package(
                 "EmbraceCaptureService",
                 "EmbraceCore",
                 "EmbraceCommonInternal",
-                "EmbraceCrash",
-                "EmbraceSemantics"
+                "EmbraceSemantics",
+                "EmbraceKSCrashSupport"
             ],
             linkerSettings: linkerSettings
         ),
@@ -73,7 +73,6 @@ let package = Package(
             dependencies: [
                 "EmbraceIO",
                 "EmbraceCore",
-                "EmbraceCrash",
                 "TestSupport"
             ]
         ),
@@ -250,23 +249,6 @@ let package = Package(
             ]
         ),
 
-        // crashes -------------------------------------------------------------------
-        .target(
-            name: "EmbraceCrash",
-            dependencies: [
-                "EmbraceCommonInternal",
-                "EmbraceSemantics",
-                .product(name: "Recording", package: "KSCrash")
-            ]
-        ),
-        .testTarget(
-            name: "EmbraceCrashTests",
-            dependencies: ["EmbraceCrash", "TestSupport"],
-            resources: [
-                .copy("Mocks/")
-            ]
-        ),
-
         // macros support -----------------------------------------------------------
         .macro(
             name: "EmbraceMacroPlugin",
@@ -291,6 +273,16 @@ let package = Package(
                 "EmbraceIO",
                 .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax")
             ]
+        ),
+
+        // kscrash support  -------------------------------------------------------
+        .target(
+            name: "EmbraceKSCrashSupport",
+            dependencies: [
+                "EmbraceCommonInternal",
+                .product(name: "Recording", package: "KSCrash")
+            ],
+            path: "Sources/ThirdParty/EmbraceKSCrashSupport"
         ),
 
         // crashlytics support  -------------------------------------------------------

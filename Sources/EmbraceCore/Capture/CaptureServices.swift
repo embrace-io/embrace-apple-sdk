@@ -20,7 +20,7 @@ final class CaptureServices {
     }
 
     var context: CrashReporterContext
-    weak var crashReporter: CrashReporter?
+    var crashReporter: EmbraceCrashReporter?
 
     weak var config: EmbraceConfigurable?
 
@@ -47,10 +47,12 @@ final class CaptureServices {
             ),
             notificationCenter: Embrace.notificationCenter
         )
-        crashReporter = options.crashReporter
+        if let reporter = options.crashReporter {
+            crashReporter = EmbraceCrashReporter(reporter: reporter, logger: Embrace.logger)
+        }
 
         // upload action for crash reports
-        if let crashReporter = options.crashReporter {
+        if let crashReporter {
             crashReporter.onNewReport = { [weak crashReporter, weak storage, weak upload] report in
                 UnsentDataHandler.sendCrashLog(
                     report: report,
