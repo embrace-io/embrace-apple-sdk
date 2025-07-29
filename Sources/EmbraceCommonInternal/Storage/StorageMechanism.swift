@@ -4,11 +4,6 @@
 
 import Foundation
 
-public enum JournalMode: String {
-    case delete = "DELETE"
-    case wal = "WAL"
-}
-
 public enum StorageMechanism {
     case inMemory(name: String)
     case onDisk(name: String, baseURL: URL, journalMode: JournalMode)
