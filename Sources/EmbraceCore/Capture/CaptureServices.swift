@@ -123,7 +123,7 @@ final class CaptureServices {
     }
 
     func install() {
-        crashReporter?.install(context: context, logger: Embrace.logger)
+        crashReporter?.install(context: context)
 
         for service in services {
             service.install(otel: Embrace.client, logger: Embrace.logger)

@@ -6,9 +6,9 @@ import Foundation
 #endif
 
 #if canImport(KSCrashRecording)
-    @_implementationOnly import KSCrashRecording
+    import KSCrashRecording
 #elseif canImport(KSCrash)
-    @_implementationOnly import KSCrash
+    import KSCrash
 #endif
 
 @objc(KSCrashReporter)
@@ -68,25 +68,13 @@ public final class KSCrashReporter: NSObject, CrashReporter {
         return reporter.crashedLastLaunch ? .crash : .cleanExit
     }
 
-    public func install(context: CrashReporterContext, logger: InternalLogger) {
+    public func install(context: CrashReporterContext) throws {
         #if !os(watchOS)
-            self.logger = logger
-            sdkVersion = context.sdkVersion
-
             let config = KSCrashConfiguration()
             config.enableSigTermMonitoring = false
             config.enableSwapCxaThrow = false
             config.installPath = context.filePathProvider.directoryURL(for: "embrace_crash_reporter")?.path
             config.reportStoreConfiguration.appName = context.appId ?? "default"
-
-            do {
-                try reporter.install(with: config)
-            } catch {
-                logger.error("EmbraceCrashReporter install failed: \(error)")
-            }
-
-        #else
-            logger.error("EmbraceCrashReporter is not supported in WatchOS!!!")
         #endif
     }
 
@@ -136,7 +124,7 @@ public final class KSCrashReporter: NSObject, CrashReporter {
             // get custom data from report
             var sessionId: SessionIdentifier?
             var timestamp: Date?
-            var signal: CrashSignal? = getCrashSignal(fromReport: report)
+            let signal: CrashSignal? = getCrashSignal(fromReport: report)
 
             if let userDict = report[KSCrashKey.user] as? [AnyHashable: Any] {
                 if let value = userDict[KSCrashKey.sessionId] as? String {
@@ -204,5 +192,9 @@ public final class KSCrashReporter: NSObject, CrashReporter {
 
     public func appendCrashInfo(key: String, value: String) {
         reporter.userInfo?[key] = value
+    }
+
+    public func getCrashInfo(key: String) -> String? {
+        reporter.userInfo?[key] as? String
     }
 }

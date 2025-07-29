@@ -284,6 +284,10 @@ let package = Package(
             ],
             path: "Sources/ThirdParty/EmbraceKSCrashSupport"
         ),
+        .testTarget(
+            name: "EmbraceCrashTests",
+            dependencies: ["EmbraceCore", "EmbraceKSCrashSupport", "EmbraceCommonInternal", "TestSupport"]
+        ),
 
         // crashlytics support  -------------------------------------------------------
         .target(
