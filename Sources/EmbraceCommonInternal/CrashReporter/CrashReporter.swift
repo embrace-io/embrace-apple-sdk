@@ -40,15 +40,13 @@ public protocol ExtendableCrashReporter: CrashReporter {
     public private(set) var internalId: Int?
     public private(set) var sessionId: String?
     public private(set) var timestamp: Date?
-    public private(set) var userData: [String: String]?
-    
+
     public init(
         payload: String,
         provider: String,
         internalId: Int? = nil,
         sessionId: String? = nil,
-        timestamp: Date? = nil,
-        userData: [String: String]? = nil
+        timestamp: Date? = nil
     ) {
         self.id = UUID()
         self.payload = payload
@@ -56,6 +54,5 @@ public protocol ExtendableCrashReporter: CrashReporter {
         self.internalId = internalId
         self.sessionId = sessionId
         self.timestamp = timestamp
-        self.userData = userData
     }
 }

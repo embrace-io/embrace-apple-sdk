@@ -10,13 +10,13 @@ class ExtendableCrashReporterMock: ExtendableCrashReporter {
     func appendCrashInfo(key: String, value: String) {
         didCallAppendCrashInfo = true
     }
-
-    public func mergeCrashInfo(map: [String: String]) {
+    
+    public func mergeCrashInfo(map: [String : String]) {
         map.forEach { key, value in
             appendCrashInfo(key: key, value: value)
         }
     }
-
+    
     var currentSessionId: String?
     func install(context: EmbraceCommonInternal.CrashReporterContext, logger: EmbraceCommonInternal.InternalLogger) {}
     func getLastRunState() -> EmbraceCommonInternal.LastRunState {

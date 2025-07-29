@@ -191,19 +191,10 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
                 // get custom data from report
                 var sessionId: SessionIdentifier?
                 var timestamp: Date?
-                var embraceUserData: [String: String]?
 
                 if let userDict = report[KSCrashKey.user] as? [AnyHashable: Any] {
                     if let value = userDict[KSCrashKey.sessionId] as? String {
                         sessionId = SessionIdentifier(string: value)
-                    }
-                    embraceUserData = userDict.reduce(into: [String: String]()) { result, element in
-                        if let key = element.key as? String,
-                            key.hasPrefix("emb"),
-                            let value = element.value as? String
-                        {
-                            result[key] = value
-                        }
                     }
                 }
 
@@ -218,8 +209,7 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
                     provider: LogSemantics.Crash.ksCrashProvider,
                     internalId: Int(id),
                     sessionId: sessionId?.toString,
-                    timestamp: timestamp,
-                    userData: embraceUserData
+                    timestamp: timestamp
                 )
 
                 crashReports.append(crashReport)
@@ -284,7 +274,7 @@ extension EmbraceCrashReporter: ExtendableCrashReporter {
     public func appendCrashInfo(key: String, value: String) {
         extraInfo[key] = value
     }
-
+    
     public func mergeCrashInfo(map: [String: String]) {
         extraInfo.merge(map) { (_, new) in new }
     }

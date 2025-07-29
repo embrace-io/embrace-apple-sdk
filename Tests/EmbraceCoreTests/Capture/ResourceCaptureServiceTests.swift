@@ -26,7 +26,7 @@ class ResourceCaptureServiceTests: XCTestCase {
         ]
         service.addRequiredResources(map)
         wait(delay: .shortTimeout)
-
+        
         // then the resource is added to the storage
         let metadata: [MetadataRecord] = handler.fetchAll()
         XCTAssertEqual(metadata.count, 3)

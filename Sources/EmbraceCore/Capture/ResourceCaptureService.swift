@@ -21,7 +21,7 @@ struct ResourceCaptureServiceHandlerBox {
 
 class ResourceCaptureService: CaptureService {
     private var data = EmbraceMutex([ResourceCaptureServiceHandlerBox]())
-
+    
     func add(_ handler: ResourceCaptureServiceHandler?) {
         if let handler {
             data.withLock {
@@ -44,7 +44,7 @@ extension EmbraceStorage: ResourceCaptureServiceHandler {
 }
 
 extension EmbraceCrashReporter: ResourceCaptureServiceHandler {
-    func addRequiredResources(_ map: [String: String]) {
+    func addRequiredResources(_ map: [String : String]) {
         mergeCrashInfo(map: map)
     }
 }
