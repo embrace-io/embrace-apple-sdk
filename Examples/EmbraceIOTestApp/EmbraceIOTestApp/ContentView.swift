@@ -5,7 +5,6 @@
 //
 
 import EmbraceIO
-import OpenTelemetrySdk
 import SwiftUI
 
 struct ContentView: View {
