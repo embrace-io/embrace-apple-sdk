@@ -18,7 +18,7 @@ public protocol EmbraceLog {
 
 extension EmbraceLog {
     public var processId: ProcessIdentifier? {
-        return ProcessIdentifier(hex: processIdRaw)
+        return ProcessIdentifier(string: processIdRaw)
     }
 
     public var severity: LogSeverity {

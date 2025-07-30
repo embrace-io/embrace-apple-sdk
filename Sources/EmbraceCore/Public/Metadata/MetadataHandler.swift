@@ -83,6 +83,10 @@ public class MetadataHandler: NSObject {
         try addMetadata(key: key, value: value, type: .resource, lifespan: lifespan)
     }
 
+    public func addCriticalResource(key: String, value: String) {
+        storage?.addCriticalResources([key: value], processId: .current)
+    }
+
     /// Adds a property with the given key, value and lifespan.
     /// If there are 2 properties with the same key but different lifespans, the one with a shorter lifespan will be used.
     /// - Parameters:
@@ -238,7 +242,7 @@ extension MetadataHandler {
             }
             return sessionId
         } else if lifespan == .process {
-            return ProcessIdentifier.current.hex
+            return ProcessIdentifier.current.value
         } else {
             // permanent
             return MetadataRecord.lifespanIdForPermanent

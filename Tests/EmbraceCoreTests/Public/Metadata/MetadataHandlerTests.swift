@@ -283,7 +283,7 @@ final class MetadataHandlerTests: XCTestCase {
             value: "bar",
             type: .customProperty,
             lifespan: .process,
-            lifespanId: otherProcessId.hex
+            lifespanId: otherProcessId.value
         )
 
         // When removed

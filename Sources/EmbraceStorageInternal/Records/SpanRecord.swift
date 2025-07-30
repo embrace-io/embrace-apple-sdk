@@ -49,7 +49,7 @@ public class SpanRecord: NSManagedObject {
             record.data = data
             record.startTime = startTime
             record.endTime = endTime
-            record.processIdRaw = processId.hex
+            record.processIdRaw = processId.value
             record.sessionIdRaw = sessionId?.toString
 
             result = record.toImmutable()

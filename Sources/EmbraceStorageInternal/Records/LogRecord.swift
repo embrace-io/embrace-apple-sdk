@@ -37,7 +37,7 @@ public class LogRecord: NSManagedObject {
 
             let record = LogRecord(entity: description, insertInto: context)
             record.idRaw = id.toString
-            record.processIdRaw = processId.hex
+            record.processIdRaw = processId.value
             record.severityRaw = severity.rawValue
             record.body = body
             record.timestamp = timestamp

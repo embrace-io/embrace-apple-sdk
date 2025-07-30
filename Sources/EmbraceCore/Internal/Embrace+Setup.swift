@@ -36,7 +36,8 @@ extension Embrace {
         }
     }
 
-    static func createUpload(options: Embrace.Options, deviceId: String, configuration: EmbraceConfigurable) -> EmbraceUpload? {
+    static func createUpload(options: Embrace.Options, deviceId: String, configuration: EmbraceConfigurable)
+        -> EmbraceUpload? {
         guard let appId = options.appId else {
             return nil
         }
