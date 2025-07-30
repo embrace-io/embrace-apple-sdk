@@ -16,9 +16,9 @@ struct SwiftUICaptureTestView: View {
 
     @State var presentTestView: Bool = false
 
-    init(dataModel: any TestScreenDataModel) {
+    init(dataModel: any TestScreenDataModel, captureType: SwiftUICaptureType) {
         self.dataModel = dataModel
-        viewModel = .init(dataModel: dataModel)
+        viewModel = .init(dataModel: dataModel, captureType: captureType)
     }
 
     var body: some View {
@@ -26,18 +26,12 @@ struct SwiftUICaptureTestView: View {
             .onAppear {
                 viewModel.spanExporter = spanExporter
             }
-            .sheet(isPresented: $presentTestView) {
-                SwiftUITestView()
+            .sheet(isPresented: $viewModel.presentDummyViewManual) {
+                SwiftUITestViewManualCapture()
+                    .embraceTrace("TestDummyView")
+            }
+            .sheet(isPresented: $viewModel.presentDummyViewMacro) {
+                SwiftUITestViewMacroCapture()
             }
     }
-}
-
-private struct SwiftUITestView: View {
-    var body: some View {
-        Text("👀 Don't mind me!")
-    }
-}
-
-#Preview {
-    SwiftUITestView()
 }

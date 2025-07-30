@@ -7,25 +7,32 @@
 import SwiftUI
 
 enum SwiftUITestsDataModel: Int, TestScreenDataModel, CaseIterable {
-    case swiftUIView
+    case swiftUIViewManual
+    case swiftUIViewMacro
     var title: String {
         switch self {
-        case .swiftUIView:
-            "SwiftUI View Capture"
+        case .swiftUIViewManual:
+            "SwiftUI View Manual Capture"
+        case .swiftUIViewMacro:
+            "SwiftUI View Macro Capture"
         }
     }
 
     var identifier: String {
         switch self {
-        case .swiftUIView:
-            "swiftUIViewCaptureTestButton"
+        case .swiftUIViewManual:
+            "swiftUIViewManualCaptureTestButton"
+        case .swiftUIViewMacro:
+            "swiftUIViewMacroCaptureTestButton"
         }
     }
 
     @ViewBuilder var uiComponent: some View {
         switch self {
-        case .swiftUIView:
-            SwiftUICaptureTestView(dataModel: self)
+        case .swiftUIViewManual:
+            SwiftUICaptureTestView(dataModel: self, captureType: .manual)
+        case .swiftUIViewMacro:
+            SwiftUICaptureTestView(dataModel: self, captureType: .macro)
         }
     }
 }

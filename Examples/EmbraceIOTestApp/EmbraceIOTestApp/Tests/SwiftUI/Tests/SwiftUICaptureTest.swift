@@ -10,38 +10,44 @@ import SwiftUI
 import EmbraceIO
 
 class SwiftUICaptureTest: PayloadTest {
-    var testRelevantPayloadNames: [String] { ["emb-view-did-load"] }
-    var testType: TestType { .Spans }
-
-    func runTestPreparations() {
-   //     let testView = SwiftUITestView()
-//        let hostController = UIHostingController(rootView: testView)
-//        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
-//        window.rootViewController = hostController
-//        window.makeKeyAndVisible()
-//
-//        hostController.loadViewIfNeeded()
-//        hostController.view.layoutIfNeeded()
-//
-//        window.isHidden = true
-     //   testView.body.onAppear()
+    var testRelevantPayloadNames: [String] {
+        switch captureType {
+        case .manual:
+            return ["emb-swiftui.view.TestDummyView.body",
+                    "emb-swiftui.view.TestDummyView.time-to-first-render",
+                    "emb-swiftui.view.TestDummyView.render-loop",
+                    "emb-swiftui.view.TestDummyView.appear",
+                    "emb-swiftui.view.TestDummyView.disappear"]
+        case .macro:
+            return ["emb-swiftui.view.SwiftUITestViewMacroCapture.body",
+                    "emb-swiftui.view.SwiftUITestViewMacroCapture.time-to-first-render",
+                    "emb-swiftui.view.SwiftUITestViewMacroCapture.render-loop",
+                    "emb-swiftui.view.SwiftUITestViewMacroCapture.appear",
+                    "emb-swiftui.view.SwiftUITestViewMacroCapture.disappear"]
+        }
     }
+    var testType: TestType { .Spans }
+    var captureType: SwiftUICaptureType = .manual
 
     func test(spans: [OpenTelemetrySdk.SpanData]) -> TestReport {
         var testItems = [TestReportItem]()
 
-        let (existenceReport, viewDidLoadSpan) = evaluateSpanExistence(identifiedBy: "TestViewController", underAttributeKey: "view.name", on: spans)
-        testItems.append(existenceReport)
-        guard let viewDidLoadSpan = viewDidLoadSpan else {
-            return .init(items: testItems)
+        testRelevantPayloadNames.forEach { name in
+            let span = spans.first(where: { $0.name == name })
+            testItems.append(
+                .init(
+                    target: "\(name) Span", expected: "exists", recorded: span != nil ? "exists" : "missing")
+            )
+
+            guard let span = span else {
+                return
+            }
+
+            testItems.append(evaluate("emb.type", expecting: "perf.ui_load", on: span.attributes))
+
+            MetadataResourceTest.testMetadataInclussion(on: span.resource, testItems: &testItems)
+            testItems.append(contentsOf: OTelSemanticsValidation.validateAttributeNames(span.attributes))
         }
-
-        testItems.append(evaluate("emb.type", expecting: "perf.ui_load", on: viewDidLoadSpan.attributes))
-        testItems.append(evaluate("view.title", expecting: "TestViewController", on: viewDidLoadSpan.attributes))
-        testItems.append(evaluate("view.name", expecting: "TestViewController", on: viewDidLoadSpan.attributes))
-
-        MetadataResourceTest.testMetadataInclussion(on: viewDidLoadSpan.resource, testItems: &testItems)
-        testItems.append(contentsOf: OTelSemanticsValidation.validateAttributeNames(viewDidLoadSpan.attributes))
 
         return .init(items: testItems)
     }
