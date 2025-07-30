@@ -16,6 +16,22 @@ class AppInfoCaptureService: ResourceCaptureService {
 
         let isPreWarm = ProcessInfo.processInfo.environment["ActivePrewarm"] == "1" ? "true" : "false"
 
+        //
+        // Critical Resources
+        //
+        var criticalResourcesMap: [String: String] = [
+            // sdk version
+            AppResourceKey.sdkVersion.rawValue: EmbraceMeta.sdkVersion
+        ]
+
+        // app version
+        if let appVersion = EMBDevice.appVersion {
+            criticalResourcesMap[AppResourceKey.appVersion.rawValue] = EMBDevice.appVersion
+        }
+
+        //
+        // Required Resources
+        //
         var resourcesMap: [String: String] = [
             // bundle version
             AppResourceKey.bundleVersion.rawValue: EMBDevice.bundleVersion,
@@ -29,20 +45,12 @@ class AppInfoCaptureService: ResourceCaptureService {
             // framework
             AppResourceKey.framework.rawValue: String(Embrace.client?.options.platform.frameworkId ?? -1),
 
-            // sdk version
-            AppResourceKey.sdkVersion.rawValue: EmbraceMeta.sdkVersion,
-
             // process id
             AppResourceKey.processIdentifier.rawValue: ProcessIdentifier.current.hex,
 
             // pre-warm
             AppResourceKey.processPreWarm.rawValue: isPreWarm
         ]
-
-        // app version
-        if let appVersion = EMBDevice.appVersion {
-            resourcesMap[AppResourceKey.appVersion.rawValue] = appVersion
-        }
 
         // build UUID
         if let buildUUID = EMBDevice.buildUUID {
@@ -55,6 +63,7 @@ class AppInfoCaptureService: ResourceCaptureService {
                 processStartTime.nanosecondsSince1970Truncated)
         }
 
+        addCriticalResources(criticalResourcesMap)
         addRequiredResources(resourcesMap)
     }
 }
