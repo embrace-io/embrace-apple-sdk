@@ -168,17 +168,17 @@ import Foundation
         // retrieve device identifier
         self.deviceId = DeviceIdentifier.retrieve(fileURL: EmbraceFileSystem.deviceIdURL)
 
+        // initialize remote configuration
+        self.config = Embrace.createConfig(options: options, deviceId: deviceId)
+
         // initialize upload module
-        self.upload = Embrace.createUpload(options: options, deviceId: deviceId.hex)
+        self.upload = Embrace.createUpload(options: options, deviceId: deviceId.hex, configuration: config.configurable)
 
         // send critical logs from previous session
         UnsentDataHandler.sendCriticalLogs(fileUrl: EmbraceFileSystem.criticalLogsURL, upload: upload)
 
         // initialize storage module
-        self.storage = try embraceStorage ?? Embrace.createStorage(options: options)
-
-        // initialize remote configuration
-        self.config = Embrace.createConfig(options: options, deviceId: deviceId)
+        self.storage = try embraceStorage ?? Embrace.createStorage(options: options, configuration: config.configurable)
 
         // initialize capture services
         self.captureServices = try CaptureServices(

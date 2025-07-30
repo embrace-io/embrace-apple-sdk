@@ -96,6 +96,8 @@ extension RemoteConfig: EmbraceConfigurable {
 
     public var isUiLoadInstrumentationEnabled: Bool { payload.uiLoadInstrumentationEnabled }
 
+    public var isWalModeEnabled: Bool { isEnabled(threshold: payload.walModeThreshold) }
+
     public var viewControllerClassNameBlocklist: [String] { payload.viewControllerClassNameBlocklist }
 
     public var uiInstrumentationCaptureHostingControllers: Bool { payload.uiInstrumentationCaptureHostingControllers }

@@ -8,11 +8,11 @@ import Foundation
 import XCTest
 
 public class MockEmbraceConfigurable: EmbraceConfigurable {
-
     public init(
         isSDKEnabled: Bool = false,
         isBackgroundSessionEnabled: Bool = false,
         isNetworkSpansForwardingEnabled: Bool = false,
+        isWalModeEnabled: Bool = true,
         isUiLoadInstrumentationEnabled: Bool = false,
         viewControllerClassNameBlocklist: [String] = [],
         uiInstrumentationCaptureHostingControllers: Bool = false,
@@ -31,6 +31,7 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         self._isSDKEnabled = isSDKEnabled
         self._isBackgroundSessionEnabled = isBackgroundSessionEnabled
         self._isNetworkSpansForwardingEnabled = isNetworkSpansForwardingEnabled
+        self._isWalModeEnabled = isWalModeEnabled
         self._isUiLoadInstrumentationEnabled = isUiLoadInstrumentationEnabled
         self._viewControllerClassNameBlocklist = viewControllerClassNameBlocklist
         self._uiInstrumentationCaptureHostingControllers = uiInstrumentationCaptureHostingControllers
@@ -70,6 +71,19 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         }
         set {
             _isBackgroundSessionEnabled = newValue
+        }
+    }
+
+    private var _isWalModeEnabled: Bool
+    public let isWalModeEnabledExpectation = XCTestExpectation(
+        description: "isNetworkSpansForwardingEnabled called")
+    public var isWalModeEnabled: Bool {
+        get {
+            isWalModeEnabledExpectation.fulfill()
+            return _isWalModeEnabled
+        }
+        set {
+            _isWalModeEnabled = newValue
         }
     }
 
