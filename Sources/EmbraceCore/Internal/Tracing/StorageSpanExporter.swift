@@ -43,8 +43,7 @@ class StorageSpanExporter: SpanExporter {
                 // Prevent exporting our session spans on end.
                 // This process is handled by the `SessionController` to prevent
                 // race conditions when a session ends and its payload gets built.
-                if endTime != nil && spanData.embType == SpanType.session
-                {
+                if endTime != nil && spanData.embType == SpanType.session {
                     continue
                 }
 
