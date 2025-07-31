@@ -201,7 +201,7 @@ extension EmbraceTraceViewLogger {
 
         return span
     }
-    
+
     /// Marks a span event for a SwiftUI view event.
     ///
     /// - Parameters:
@@ -218,19 +218,19 @@ extension EmbraceTraceViewLogger {
         _ function: StaticString = #function
     ) {
         dispatchPrecondition(condition: .onQueue(.main))
-        
+
         // Verify feature flag is on
         guard let config, config.isSwiftUiViewInstrumentationEnabled else {
             logger?.debug("SwiftUI view tracing is disabled. Skipping EmbraceTraceViewLogger.startSpan.")
             return
         }
-        
+
         // Verify OpenTelemetry client
         guard let client = otel else {
             logger?.debug("OTel client unavailable. Skipping EmbraceTraceViewLogger.startSpan.")
             return
         }
-        
+
         // Build the span event
         client.add(
             event: RecordingSpanEvent(
