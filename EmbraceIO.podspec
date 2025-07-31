@@ -1,6 +1,6 @@
 Pod::Spec.new do |spec|
   spec.name                           = "EmbraceIO"
-  spec.version                        = "6.12.2"
+  spec.version                        = "6.13.0-rc1"
   spec.summary                        = "Visibility into your users that you didn't have before."
   spec.description                    = <<-DESC
                       Embrace is the only performance monitoring platform focused solely on mobile. We are built
@@ -99,6 +99,7 @@ Pod::Spec.new do |spec|
   spec.subspec 'EmbraceCrashlyticsSupport' do |subs|
     subs.source_files = "Sources/ThirdParty/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
     subs.dependency "EmbraceIO/EmbraceCommonInternal"
+    subs.dependency "EmbraceIO/EmbraceSemantics"
   end
 
   spec.subspec 'EmbraceCrash' do |subs|
