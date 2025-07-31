@@ -36,7 +36,8 @@ extension Embrace {
         }
     }
 
-    static func createUpload(options: Embrace.Options, deviceId: String, configuration: EmbraceConfigurable) -> EmbraceUpload? {
+    static func createUpload(options: Embrace.Options, deviceId: String, configuration: EmbraceConfigurable)
+        -> EmbraceUpload? {
         guard let appId = options.appId else {
             return nil
         }
@@ -111,7 +112,7 @@ extension Embrace {
     static let resetUploadCacheKey = "emb.reset-upload-cache"
     static var resetUploadCache: Bool {
         get { UserDefaults.standard.bool(forKey: Embrace.resetUploadCacheKey) }
-        set { UserDefaults.standard.set(newValue, forKey: Embrace.resetUploadCacheKey)}
+        set { UserDefaults.standard.set(newValue, forKey: Embrace.resetUploadCacheKey) }
     }
 }
 

@@ -130,10 +130,11 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         }
 
         // is wal mode enabled config
-        walModeThreshold = try rootContainer.decodeIfPresent(
-            Float.self,
-            forKey: .walModeThreshold
-        ) ?? defaultPayload.walModeThreshold
+        walModeThreshold =
+            try rootContainer.decodeIfPresent(
+                Float.self,
+                forKey: .walModeThreshold
+            ) ?? defaultPayload.walModeThreshold
 
         // ui load instrumentation
         uiLoadInstrumentationEnabled =

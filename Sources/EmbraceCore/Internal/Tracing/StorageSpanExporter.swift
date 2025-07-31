@@ -86,8 +86,9 @@ class StorageSpanExporter: SpanExporter {
 
         // do not truncate specific types
         guard type != .networkRequest,
-              type != .view,
-              type != .viewLoad else {
+            type != .view,
+            type != .viewLoad
+        else {
             return name
         }
 

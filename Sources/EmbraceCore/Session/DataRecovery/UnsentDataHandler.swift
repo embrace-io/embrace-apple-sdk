@@ -69,7 +69,7 @@ class UnsentDataHandler {
         // send crash reports
         for report in crashReports {
 
-            var session: EmbraceSession? = nil
+            var session: EmbraceSession?
 
             // link session with crash report if possible
             if let sessionId = SessionIdentifier(string: report.sessionId) {

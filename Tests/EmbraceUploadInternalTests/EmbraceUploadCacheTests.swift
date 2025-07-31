@@ -7,6 +7,7 @@ import EmbraceCommonInternal
 import EmbraceOTelInternal
 import TestSupport
 import XCTest
+
 @testable import EmbraceUploadInternal
 
 class EmbraceUploadCacheTests: XCTestCase {
@@ -25,13 +26,15 @@ class EmbraceUploadCacheTests: XCTestCase {
 
     func test_resetCache() throws {
         // given an existing db file
-        let storageMechanism: StorageMechanism = .onDisk(name: "test_resetCache", baseURL: fileProvider.tmpDirectory, journalMode: .delete)
+        let storageMechanism: StorageMechanism = .onDisk(
+            name: "test_resetCache", baseURL: fileProvider.tmpDirectory, journalMode: .delete)
         let fileUrl = storageMechanism.fileURL!
         try "test".write(to: fileUrl, atomically: true, encoding: .utf8)
         XCTAssert(FileManager.default.fileExists(atPath: fileUrl.path))
 
         // when creating the cache with the reset flag enabled
-        let options = EmbraceUpload.CacheOptions(storageMechanism: storageMechanism, enableBackgroundTasks: false, resetCache: true)
+        let options = EmbraceUpload.CacheOptions(
+            storageMechanism: storageMechanism, enableBackgroundTasks: false, resetCache: true)
         _ = try EmbraceUploadCache(options: options, logger: logger)
 
         // then the old cache file is deleted
