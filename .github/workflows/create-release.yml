@@ -156,6 +156,8 @@ jobs:
     needs:
       - extractor
       - build_release_candidate
+    permissions:
+      contents: write
     steps:
       - name: Disable GitHub CLI Prompt if Enabled
         run: |
