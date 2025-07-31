@@ -3,13 +3,14 @@
 //
 
 import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceStorageInternal
-import EmbraceCommonInternal
-import EmbraceConfiguration
-#endif
 import OpenTelemetryApi
 import OpenTelemetrySdk
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceStorageInternal
+    import EmbraceCommonInternal
+    import EmbraceConfiguration
+#endif
 
 protocol LogBatcherDelegate: AnyObject {
     func batchFinished(withLogs logs: [EmbraceLog])
@@ -64,7 +65,7 @@ class DefaultLogBatcher: LogBatcher {
     }
 }
 
-internal extension DefaultLogBatcher {
+extension DefaultLogBatcher {
     /// Forces the current batch to end and renews it, optionally waiting for completion.
     ///
     /// This method ensures that any pending logs are flushed by rewewing the batch.

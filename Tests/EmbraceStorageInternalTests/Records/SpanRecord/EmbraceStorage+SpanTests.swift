@@ -2,9 +2,10 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-@testable import EmbraceStorageInternal
 import OpenTelemetryApi
+import XCTest
+
+@testable import EmbraceStorageInternal
 
 final class EmbraceStorage_SpanTests: XCTestCase {
 
@@ -121,7 +122,7 @@ final class EmbraceStorage_SpanTests: XCTestCase {
         request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: true)]
         let allRecords: [SpanRecord] = storage.coreData.fetch(withRequest: request)
 
-        XCTAssertEqual(allRecords.count, EmbraceStorage.defaultSpanLimitByType) // 1500 is default limit
+        XCTAssertEqual(allRecords.count, EmbraceStorage.defaultSpanLimitByType)  // 1500 is default limit
     }
 
 }

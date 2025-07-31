@@ -3,5 +3,5 @@
 //
 
 public protocol EmbraceSDKStateProvider: AnyObject {
-    var isEnabled: Bool { get}
+    var isEnabled: Bool { get }
 }

@@ -2,8 +2,8 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
 import EmbraceCommonInternal
+import Foundation
 
 class ExtendableCrashReporterMock: ExtendableCrashReporter {
     var didCallAppendCrashInfo: Bool = false

@@ -5,9 +5,10 @@
 import Foundation
 import OpenTelemetryApi
 import OpenTelemetrySdk
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceSemantics
-import EmbraceCommonInternal
+    import EmbraceSemantics
+    import EmbraceCommonInternal
 #endif
 
 /// A really simple implementation of the SpanProcessor that converts the ExportableSpan to SpanData
@@ -132,7 +133,7 @@ public class SingleSpanProcessor: SpanProcessor {
         }
 
         if let parentId = parentId,
-           let parentData = autoTerminationSpans[parentId] {
+            let parentData = autoTerminationSpans[parentId] {
             return autoTerminationCode(for: parentData.spanData, parentId: parentData.parentId)
         }
 

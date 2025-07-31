@@ -14,8 +14,10 @@ struct TestScreenButtonView: View {
             Button {
                 viewModel.testButtonPressed()
             } label: {
-                TestComponentViewLabel(text: viewModel.dataModel.title,
-                                       state: viewModel.state)
+                TestComponentViewLabel(
+                    text: viewModel.dataModel.title,
+                    state: viewModel.state
+                )
                 .multilineTextAlignment(.leading)
                 .foregroundStyle(.embraceSilver.opacity(viewModel.readyToTest ? 1.0 : 0.5))
             }
@@ -24,11 +26,14 @@ struct TestScreenButtonView: View {
         }
         .frame(height: 60)
         .background(viewModel.testResult.resultColor)
-        .onChange(of: viewModel.state, { oldValue, newValue in
-            if case .testComplete(_) = newValue {
-                presentReport = true
+        .onChange(
+            of: viewModel.state,
+            { oldValue, newValue in
+                if case .testComplete(_) = newValue {
+                    presentReport = true
+                }
             }
-        })
+        )
         .sheet(isPresented: $presentReport) {
             TestReportCard(report: viewModel.testReport)
         }
@@ -37,7 +42,9 @@ struct TestScreenButtonView: View {
 
 #Preview {
     return VStack {
-        TestScreenButtonView(viewModel: SpanTestUIComponentViewModel(dataModel: ViewControllerTestsDataModel.viewDidAppearMeasurement,
-                                                                     payloadTestObject: ViewControllerViewDidLoadTest()))
+        TestScreenButtonView(
+            viewModel: SpanTestUIComponentViewModel(
+                dataModel: ViewControllerTestsDataModel.viewDidAppearMeasurement,
+                payloadTestObject: ViewControllerViewDidLoadTest()))
     }
 }

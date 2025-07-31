@@ -2,11 +2,11 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
+import EmbraceCommonInternal
 import Foundation
+import XCTest
 
 @testable import EmbraceCore
-import EmbraceCommonInternal
 
 class EmbraceMetaUserAgentTests: XCTestCase {
 

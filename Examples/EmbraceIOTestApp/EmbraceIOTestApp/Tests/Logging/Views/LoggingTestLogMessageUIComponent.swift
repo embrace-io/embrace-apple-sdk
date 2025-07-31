@@ -29,7 +29,7 @@ struct LoggingTestLogMessageUIComponent: View {
             TextField("Enter a message to log", text: $viewModel.message)
                 .font(.embraceFont(size: 18))
                 .foregroundStyle(.embraceSilver)
-                .padding([.leading, .trailing ], 5)
+                .padding([.leading, .trailing], 5)
                 .textFieldStyle(RoundedStyle())
                 .accessibilityIdentifier("LogTests_LogMessage")
             Section("Severity Type") {
@@ -39,7 +39,8 @@ struct LoggingTestLogMessageUIComponent: View {
                 LoggingTestsStackTraceSelectionView(stacktraceBehavior: $viewModel.stacktraceBehavior)
             }
             Section("Custom File Attachment") {
-                LoggingTestsAttachmentView(addAttachment: $viewModel.includeAttachment, attachmentSize: $viewModel.attachmentSize)
+                LoggingTestsAttachmentView(
+                    addAttachment: $viewModel.includeAttachment, attachmentSize: $viewModel.attachmentSize)
             }
             Section("Log Attributes") {
                 LoggingTestsLogAttributesView { key, value in

@@ -9,7 +9,7 @@ import SwiftUI
 //
 struct RightDotShape: Shape {
 
-    static let aspectRatio = 300.0/215.0
+    static let aspectRatio = 300.0 / 215.0
 
     func path(in rect: CGRect) -> Path {
         var path = Path()
@@ -17,29 +17,29 @@ struct RightDotShape: Shape {
         let height = rect.size.height
 
         // Right Dot
-        path.move(to: CGPoint(x: 0.64593*width, y: 0.65154*height))
+        path.move(to: CGPoint(x: 0.64593 * width, y: 0.65154 * height))
         path.addCurve(
-            to: CGPoint(x: 0.75589*width, y: 0.50011*height),
-            control1: CGPoint(x: 0.70665*width, y: 0.65154*height),
-            control2: CGPoint(x: 0.75589*width, y: 0.58374*height)
+            to: CGPoint(x: 0.75589 * width, y: 0.50011 * height),
+            control1: CGPoint(x: 0.70665 * width, y: 0.65154 * height),
+            control2: CGPoint(x: 0.75589 * width, y: 0.58374 * height)
         )
 
         path.addCurve(
-            to: CGPoint(x: 0.64593*width, y: 0.34868*height),
-            control1: CGPoint(x: 0.75589*width, y: 0.41647*height),
-            control2: CGPoint(x: 0.70665*width, y: 0.34868*height)
+            to: CGPoint(x: 0.64593 * width, y: 0.34868 * height),
+            control1: CGPoint(x: 0.75589 * width, y: 0.41647 * height),
+            control2: CGPoint(x: 0.70665 * width, y: 0.34868 * height)
         )
 
         path.addCurve(
-            to: CGPoint(x: 0.53597*width, y: 0.50011*height),
-            control1: CGPoint(x: 0.5852*width, y: 0.34868*height),
-            control2: CGPoint(x: 0.53597*width, y: 0.41647*height)
+            to: CGPoint(x: 0.53597 * width, y: 0.50011 * height),
+            control1: CGPoint(x: 0.5852 * width, y: 0.34868 * height),
+            control2: CGPoint(x: 0.53597 * width, y: 0.41647 * height)
         )
 
         path.addCurve(
-            to: CGPoint(x: 0.64593*width, y: 0.65154*height),
-            control1: CGPoint(x: 0.53597*width, y: 0.58374*height),
-            control2: CGPoint(x: 0.5852*width, y: 0.65154*height)
+            to: CGPoint(x: 0.64593 * width, y: 0.65154 * height),
+            control1: CGPoint(x: 0.53597 * width, y: 0.58374 * height),
+            control2: CGPoint(x: 0.5852 * width, y: 0.65154 * height)
         )
 
         path.closeSubpath()

@@ -1,10 +1,11 @@
+import Foundation
+import TestSupport
 //
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 import XCTest
+
 @testable import EmbraceCore
-import Foundation
-import TestSupport
 
 class StartupInstrumentationTests: XCTestCase {
 
@@ -209,7 +210,7 @@ class StartupInstrumentationTests: XCTestCase {
 
         let startTime = Date(timeIntervalSince1970: 10)
         let endTime = Date(timeIntervalSince1970: 11)
-        
+
         let result = instrumentation.recordCompletedChildSpan(name: "test", startTime: startTime, endTime: endTime)
         XCTAssertTrue(result)
 

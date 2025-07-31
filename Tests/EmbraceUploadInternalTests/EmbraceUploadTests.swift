@@ -2,8 +2,9 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
 import TestSupport
+import XCTest
+
 @testable import EmbraceUploadInternal
 
 class EmbraceUploadTests: XCTestCase {
@@ -25,14 +26,16 @@ class EmbraceUploadTests: XCTestCase {
 
         testOptions = EmbraceUpload.Options(
             endpoints: testEndpointOptions(testName: testName),
-            cache: EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false),
+            cache: EmbraceUpload.CacheOptions(
+                storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false),
             metadata: EmbraceUploadTests.testMetadataOptions,
             redundancy: EmbraceUploadTests.testRedundancyOptions,
             urlSessionConfiguration: urlSessionconfig
         )
 
         self.queue = DispatchQueue(label: "com.test.embrace.queue", attributes: .concurrent)
-        module = try EmbraceUpload(options: testOptions, logger: MockLogger(), queue: queue, semaphore: .init(value: .max))
+        module = try EmbraceUpload(
+            options: testOptions, logger: MockLogger(), queue: queue, semaphore: .init(value: .max))
     }
 
     override func tearDownWithError() throws {
@@ -187,7 +190,6 @@ class EmbraceUploadTests: XCTestCase {
         EmbraceHTTPMock.mock(url: testSpansUrl())
         EmbraceHTTPMock.mock(url: testLogsUrl())
 
-
         // when retrying to upload all cached data
         module.retryCachedData()
 
@@ -250,20 +252,20 @@ class EmbraceUploadTests: XCTestCase {
     }
 }
 
-private extension EmbraceUploadTests {
-    func testSpansUrl(testName: String = #function) -> URL {
+extension EmbraceUploadTests {
+    fileprivate func testSpansUrl(testName: String = #function) -> URL {
         URL(string: "https://embrace.\(testName).com/upload/sessions")!
     }
 
-    func testLogsUrl(testName: String = #function) -> URL {
+    fileprivate func testLogsUrl(testName: String = #function) -> URL {
         URL(string: "https://embrace.\(testName).com/upload/logs")!
     }
 
-    func testAttachmentsUrl(testName: String = #function) -> URL {
+    fileprivate func testAttachmentsUrl(testName: String = #function) -> URL {
         URL(string: "https://embrace.\(testName).com/upload/attachments")!
     }
 
-    func testEndpointOptions(testName: String) -> EmbraceUpload.EndpointOptions {
+    fileprivate func testEndpointOptions(testName: String) -> EmbraceUpload.EndpointOptions {
         .init(
             spansURL: testSpansUrl(testName: testName),
             logsURL: testLogsUrl(testName: testName),

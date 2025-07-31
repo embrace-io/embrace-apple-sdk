@@ -4,8 +4,8 @@
 //
 //
 
-import SwiftUI
 import EmbraceIO
+import SwiftUI
 
 @Observable class UIComponentViewModelBase: NSObject, UIComponentViewModelType {
     var dataCollector: DataCollector?
@@ -42,9 +42,11 @@ import EmbraceIO
         }
     }
 
-    init(dataModel: any TestScreenDataModel,
-         payloadTestObject: any PayloadTest,
-         dataCollector: DataCollector? = nil) {
+    init(
+        dataModel: any TestScreenDataModel,
+        payloadTestObject: any PayloadTest,
+        dataCollector: DataCollector? = nil
+    ) {
         self.dataModel = dataModel
         self.payloadTestObject = payloadTestObject
         self.dataCollector = dataCollector
@@ -71,7 +73,9 @@ import EmbraceIO
             return
         }
 
-        NotificationCenter.default.addObserver(forName: .init("TestSpanExporter.EmbraceStarted"), object: nil, queue: nil) { [weak self] _ in
+        NotificationCenter.default.addObserver(
+            forName: .init("TestSpanExporter.EmbraceStarted"), object: nil, queue: nil
+        ) { [weak self] _ in
             self?.state = .idle(true)
         }
     }

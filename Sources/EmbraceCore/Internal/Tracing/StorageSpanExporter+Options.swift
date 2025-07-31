@@ -3,7 +3,7 @@
 //
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceStorageInternal
+    import EmbraceStorageInternal
 #endif
 
 extension StorageSpanExporter {
@@ -11,16 +11,13 @@ extension StorageSpanExporter {
 
         let storage: EmbraceStorage
         let sessionController: SessionControllable
-        let validators: [SpanDataValidator]
 
         init(
             storage: EmbraceStorage,
-            sessionController: SessionControllable,
-            validators: [SpanDataValidator] = .default
+            sessionController: SessionControllable
         ) {
             self.storage = storage
             self.sessionController = sessionController
-            self.validators = validators
         }
     }
 }

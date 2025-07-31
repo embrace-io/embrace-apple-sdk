@@ -2,11 +2,11 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-import TestSupport
 import EmbraceCommonInternal
 import EmbraceOTelInternal
 import OpenTelemetrySdk
+import TestSupport
+import XCTest
 
 @testable import EmbraceCaptureService
 @testable import EmbraceCore
@@ -122,7 +122,8 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
     func test_onFinishWithError_AllErrorFieldsOnSpanShouldBeFilled() {
         givenTaskHandler()
         givenHandlerCreatedASpan()
-        whenInvokingFinish(error: NSError(domain: "RequestDomain", code: 1234, userInfo: [NSLocalizedDescriptionKey: "Sad Error!"]))
+        whenInvokingFinish(
+            error: NSError(domain: "RequestDomain", code: 1234, userInfo: [NSLocalizedDescriptionKey: "Sad Error!"]))
         thenSpanShouldHaveErrorDomainAttribute(withValue: "RequestDomain")
         thenSpanShouldHaveErrorCodeAttribute(withValue: 1234)
         thenSpanShouldHaveErrorMessageAttribute(withValue: "Sad Error!")
@@ -210,6 +211,14 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
         thenHTTPNetworkSpanShouldBeCreated()
     }
 
+    func testIgnoredTaskTypes() {
+        givenTaskHandler()
+        givenIgnoredTaskTypes()
+        givenAnURLSessionTask(urlString: "https://ThisIsAUrl/with/some/path")
+        whenInvokingCreate(withoutWaiting: true)
+        thenNoSpanShouldBeCreated()
+    }
+
     // MARK: - AddData Tests
 
     func testOnPayloadCaptureDisabled_addData_doesntDoAnything() {
@@ -242,8 +251,8 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
     }
 }
 
-private extension DefaultURLSessionTaskHandlerTests {
-    func givenTaskHandler() {
+extension DefaultURLSessionTaskHandlerTests {
+    fileprivate func givenTaskHandler() {
         dataSource.state = .active
         sut = DefaultURLSessionTaskHandler(
             processingQueue: MockQueue(),
@@ -252,38 +261,44 @@ private extension DefaultURLSessionTaskHandlerTests {
         )
     }
 
-    func givenStateChanged(toState: CaptureServiceState) {
+    fileprivate func givenStateChanged(toState: CaptureServiceState) {
         dataSource.state = toState
     }
 
-    func givenNetworkPayloadCaptureIsDisabled() {
+    fileprivate func givenNetworkPayloadCaptureIsDisabled() {
         networkPayloadCapture.stubbedIsEnabled = false
     }
 
-    func givenNetworkPayloadCaptureIsEnabled() {
+    fileprivate func givenNetworkPayloadCaptureIsEnabled() {
         networkPayloadCapture.stubbedIsEnabled = true
     }
 
-    func givenTracingHeaderEnabled(_ enabled: Bool) {
+    fileprivate func givenTracingHeaderEnabled(_ enabled: Bool) {
         dataSource.injectTracingHeader = enabled
     }
 
-    func givenRequestsDataSourceWithBlock(_ block: @escaping (URLRequest) -> URLRequest) {
+    fileprivate func givenRequestsDataSourceWithBlock(_ block: @escaping (URLRequest) -> URLRequest) {
         let requestsDataSource = MockURLSessionRequestsDataSource()
         requestsDataSource.block = block
         dataSource.requestsDataSource = requestsDataSource
     }
 
-    func givenIgnoredURLs() {
+    fileprivate func givenIgnoredURLs() {
         dataSource.ignoredURLs = ["embrace.io"]
     }
 
-    func givenHandlerCreatedASpan(withResponse response: URLResponse? = nil) {
+    fileprivate func givenIgnoredTaskTypes() {
+        dataSource.ignoredTaskTypes = [URLSessionTask.self]
+    }
+
+    fileprivate func givenHandlerCreatedASpan(withResponse response: URLResponse? = nil) {
         givenAnURLSessionTask(response: response)
         sut.create(task: task)
     }
 
-    func givenAnURLSessionTask(urlString: String = "https://embrace.io", method: String? = nil, body: Data? = nil, response: URLResponse? = nil) {
+    fileprivate func givenAnURLSessionTask(
+        urlString: String = "https://embrace.io", method: String? = nil, body: Data? = nil, response: URLResponse? = nil
+    ) {
         var url = URL(string: urlString.replacingOccurrences(of: "https://", with: "https://\(testName)."))!
         var request = URLRequest(url: url)
         request.httpMethod = method
@@ -295,18 +310,18 @@ private extension DefaultURLSessionTaskHandlerTests {
         task = session.dataTask(with: request)
     }
 
-    func whenInvokingCreate(withoutWaiting: Bool = false) {
+    fileprivate func whenInvokingCreate(withoutWaiting: Bool = false) {
         sut.create(task: task)
         if !withoutWaiting {
             waitForCreationToEnd()
         }
     }
 
-    func whenInvokingAddData(_ data: Data = Data()) {
+    fileprivate func whenInvokingAddData(_ data: Data = Data()) {
         sut.addData(data, dataTask: task)
     }
 
-    func whenInvokingFinish(withData data: Data? = nil, error: Error? = nil, withoutWaiting: Bool = false) {
+    fileprivate func whenInvokingFinish(withData data: Data? = nil, error: Error? = nil, withoutWaiting: Bool = false) {
         task.resume()
         waitForRequestToFinish()
         sut.finish(task: task, data: data, error: error)
@@ -315,20 +330,20 @@ private extension DefaultURLSessionTaskHandlerTests {
         }
     }
 
-    func thenTaskHasNoAssociatedData() {
+    fileprivate func thenTaskHasNoAssociatedData() {
         XCTAssertNil(task.embraceData)
     }
 
-    func thenTaskHasAssociatedData() {
+    fileprivate func thenTaskHasAssociatedData() {
         XCTAssertNotNil(task.embraceData)
     }
 
-    func thenTaskAssociatedDataIs(_ data: Data) {
+    fileprivate func thenTaskAssociatedDataIs(_ data: Data) {
         XCTAssertNotNil(task.embraceData)
         XCTAssertEqual(task.embraceData, data)
     }
 
-    func thenSpanShouldHaveResponseBodySizeAttribute(withValue size: Int) {
+    fileprivate func thenSpanShouldHaveResponseBodySizeAttribute(withValue size: Int) {
         do {
             let span = try XCTUnwrap(otel.spanProcessor.endedSpans.first)
             let methodAttribute = span.attributes["http.response.body.size"]
@@ -339,7 +354,7 @@ private extension DefaultURLSessionTaskHandlerTests {
         }
     }
 
-    func thenHTTPNetworkSpanShouldBeCreated() {
+    fileprivate func thenHTTPNetworkSpanShouldBeCreated() {
         do {
             let span = try XCTUnwrap(otel.spanProcessor.startedSpans.first)
             XCTAssertEqual(span.embType, .networkRequest)
@@ -348,7 +363,7 @@ private extension DefaultURLSessionTaskHandlerTests {
         }
     }
 
-    func thenSpanShouldHaveURLAttribute(withValue url: String) {
+    fileprivate func thenSpanShouldHaveURLAttribute(withValue url: String) {
         do {
             let span = try XCTUnwrap(otel.spanProcessor.startedSpans.first)
             let savedUrl = span.attributes["url.full"]
@@ -360,20 +375,20 @@ private extension DefaultURLSessionTaskHandlerTests {
         }
     }
 
-    func thenTaskHandlerState(is state: CaptureServiceState) {
+    fileprivate func thenTaskHandlerState(is state: CaptureServiceState) {
         XCTAssertEqual(sut.dataSource?.state, state)
     }
 
-    func thenNoSpanShouldBeCreated() {
+    fileprivate func thenNoSpanShouldBeCreated() {
         XCTAssertTrue(otel.spanProcessor.startedSpans.count == 0)
     }
 
-    func thenSpanName(is spanName: String) {
+    fileprivate func thenSpanName(is spanName: String) {
         let span = otel.spanProcessor.startedSpans.first { $0.name == spanName }
         XCTAssertNotNil(span)
     }
 
-    func thenSpanShouldHaveHttpMethodAttribute(withValue method: String) {
+    fileprivate func thenSpanShouldHaveHttpMethodAttribute(withValue method: String) {
         do {
             let span = try XCTUnwrap(otel.spanProcessor.startedSpans.first)
             let methodAttribute = span.attributes["http.request.method"]
@@ -384,7 +399,7 @@ private extension DefaultURLSessionTaskHandlerTests {
         }
     }
 
-    func thenSpanShouldHaveBodySizeAttribute(withValue size: Int) {
+    fileprivate func thenSpanShouldHaveBodySizeAttribute(withValue size: Int) {
         do {
             let span = try XCTUnwrap(otel.spanProcessor.startedSpans.first)
             let bodySizeAttribute = span.attributes["http.request.body.size"]
@@ -395,7 +410,7 @@ private extension DefaultURLSessionTaskHandlerTests {
         }
     }
 
-    func thenSpanShouldHaveStatusCodeAttribute(withValue statusCode: Int) {
+    fileprivate func thenSpanShouldHaveStatusCodeAttribute(withValue statusCode: Int) {
         do {
             let span = try XCTUnwrap(otel.spanProcessor.endedSpans.first)
             let statusCodeAttribute = span.attributes["http.response.status_code"]
@@ -406,7 +421,7 @@ private extension DefaultURLSessionTaskHandlerTests {
         }
     }
 
-    func thenSpanShouldHaveErrorDomainAttribute(withValue domain: String) {
+    fileprivate func thenSpanShouldHaveErrorDomainAttribute(withValue domain: String) {
         do {
             let span = try XCTUnwrap(otel.spanProcessor.endedSpans.first)
             let errroTypeAttribute = span.attributes["error.type"]
@@ -417,7 +432,7 @@ private extension DefaultURLSessionTaskHandlerTests {
         }
     }
 
-    func thenSpanShouldHaveErrorCodeAttribute(withValue code: Int) {
+    fileprivate func thenSpanShouldHaveErrorCodeAttribute(withValue code: Int) {
         do {
             let span = try XCTUnwrap(otel.spanProcessor.endedSpans.first)
             let errorCodeAttribute = span.attributes["error.code"]
@@ -428,7 +443,7 @@ private extension DefaultURLSessionTaskHandlerTests {
         }
     }
 
-    func thenSpanShouldHaveErrorMessageAttribute(withValue message: String) {
+    fileprivate func thenSpanShouldHaveErrorMessageAttribute(withValue message: String) {
         do {
             let span = try XCTUnwrap(otel.spanProcessor.endedSpans.first)
             let errorMessageAttribute = span.attributes["error.message"]
@@ -439,11 +454,11 @@ private extension DefaultURLSessionTaskHandlerTests {
         }
     }
 
-    func thenSpanShouldntEnd() {
+    fileprivate func thenSpanShouldntEnd() {
         XCTAssertTrue(otel.spanProcessor.endedSpans.isEmpty)
     }
 
-    func validateTracingHeaderForSpan(tracingHeader: String, span: SpanData) {
+    fileprivate func validateTracingHeaderForSpan(tracingHeader: String, span: SpanData) {
         let components = tracingHeader.components(separatedBy: "-")
         XCTAssertEqual(components[0], "00")
 
@@ -456,7 +471,7 @@ private extension DefaultURLSessionTaskHandlerTests {
         XCTAssertEqual(components[3], "01")
     }
 
-    func thenOriginalRequestShouldHaveTheTracingHeader() {
+    fileprivate func thenOriginalRequestShouldHaveTheTracingHeader() {
         do {
             let headers = task.originalRequest?.allHTTPHeaderFields
             XCTAssertNotNil(headers)
@@ -477,12 +492,12 @@ private extension DefaultURLSessionTaskHandlerTests {
         }
     }
 
-    func thenOriginalRequestShouldNotHaveTheTracingHeader() {
+    fileprivate func thenOriginalRequestShouldNotHaveTheTracingHeader() {
         let headers = task.originalRequest?.allHTTPHeaderFields
         XCTAssertNil(headers?["traceparent"])
     }
 
-    func thenSpanShouldHaveTheTracingHeaderAttribute() {
+    fileprivate func thenSpanShouldHaveTheTracingHeaderAttribute() {
         do {
             let span = try XCTUnwrap(otel.spanProcessor.endedSpans.first)
 
@@ -494,7 +509,7 @@ private extension DefaultURLSessionTaskHandlerTests {
         }
     }
 
-    func thenSpanShouldNotHaveTheTracingHeaderAttribute() {
+    fileprivate func thenSpanShouldNotHaveTheTracingHeaderAttribute() {
         do {
             let span = try XCTUnwrap(otel.spanProcessor.endedSpans.first)
             XCTAssertNil(span.attributes["emb.w3c_traceparent"])
@@ -504,7 +519,7 @@ private extension DefaultURLSessionTaskHandlerTests {
         }
     }
 
-    func thenSpanHasTheCorrectPath(_ path: String) {
+    fileprivate func thenSpanHasTheCorrectPath(_ path: String) {
         do {
             let span = try XCTUnwrap(otel.spanProcessor.endedSpans.first)
 
@@ -514,7 +529,7 @@ private extension DefaultURLSessionTaskHandlerTests {
         }
     }
 
-    func thenSpanHasTheCorrectMethod(_ method: String) {
+    fileprivate func thenSpanHasTheCorrectMethod(_ method: String) {
         do {
             let span = try XCTUnwrap(otel.spanProcessor.endedSpans.first)
 
@@ -524,7 +539,7 @@ private extension DefaultURLSessionTaskHandlerTests {
         }
     }
 
-    func thenSpanHasTheCorrectBodySize(_ bodySize: Int) {
+    fileprivate func thenSpanHasTheCorrectBodySize(_ bodySize: Int) {
         do {
             let span = try XCTUnwrap(otel.spanProcessor.endedSpans.first)
 
@@ -536,20 +551,20 @@ private extension DefaultURLSessionTaskHandlerTests {
 }
 
 // MARK: - Utility Methods
-private extension DefaultURLSessionTaskHandlerTests {
-    func aValidResponse(withStatusCode statusCode: Int = 200) -> HTTPURLResponse {
+extension DefaultURLSessionTaskHandlerTests {
+    fileprivate func aValidResponse(withStatusCode statusCode: Int = 200) -> HTTPURLResponse {
         .init(url: URL(string: "https://embrace.io")!, statusCode: statusCode, httpVersion: nil, headerFields: nil)!
     }
 
-    func waitForCreationToEnd() {
+    fileprivate func waitForCreationToEnd() {
         wait(timeout: 1.0, until: { self.otel.spanProcessor.startedSpans.count > 0 })
     }
 
-    func waitForFinishMethodToEnd() {
+    fileprivate func waitForFinishMethodToEnd() {
         wait(timeout: 1.0, until: { self.otel.spanProcessor.endedSpans.count > 0 })
     }
 
-    func waitForRequestToFinish() {
+    fileprivate func waitForRequestToFinish() {
         wait(timeout: 1.0, until: { self.task.response != nil })
     }
 }

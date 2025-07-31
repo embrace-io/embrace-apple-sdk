@@ -10,7 +10,7 @@ struct EmbraceLargeButton: View {
     var text: String = ""
     var enabled: Bool = true
     let buttonAction: () -> Void
-    
+
     var body: some View {
         VStack {
             Button {

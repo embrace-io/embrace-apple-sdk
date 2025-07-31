@@ -2,23 +2,26 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
 import EmbraceConfigInternal
 import EmbraceConfiguration
+import Foundation
 import XCTest
 
 public class MockEmbraceConfigurable: EmbraceConfigurable {
-
     public init(
         isSDKEnabled: Bool = false,
         isBackgroundSessionEnabled: Bool = false,
         isNetworkSpansForwardingEnabled: Bool = false,
+        isWalModeEnabled: Bool = true,
         isUiLoadInstrumentationEnabled: Bool = false,
+        viewControllerClassNameBlocklist: [String] = [],
+        uiInstrumentationCaptureHostingControllers: Bool = false,
+        isSwiftUiViewInstrumentationEnabled: Bool = false,
         isMetricKitEnabled: Bool = false,
         isMetricKitCrashCaptureEnabled: Bool = false,
         metricKitCrashSignals: [String] = [],
         isMetricKitHangCaptureEnabled: Bool = false,
-        isSwiftUiViewInstrumentationEnabled: Bool = false,
+        spanEventsLimits: SpanEventsLimits = SpanEventsLimits(),
         logsLimits: LogsLimits = LogsLimits(),
         internalLogLimits: InternalLogLimits = InternalLogLimits(),
         networkPayloadCaptureRules: [NetworkPayloadCaptureRule] = [],
@@ -28,12 +31,16 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         self._isSDKEnabled = isSDKEnabled
         self._isBackgroundSessionEnabled = isBackgroundSessionEnabled
         self._isNetworkSpansForwardingEnabled = isNetworkSpansForwardingEnabled
+        self._isWalModeEnabled = isWalModeEnabled
         self._isUiLoadInstrumentationEnabled = isUiLoadInstrumentationEnabled
+        self._viewControllerClassNameBlocklist = viewControllerClassNameBlocklist
+        self._uiInstrumentationCaptureHostingControllers = uiInstrumentationCaptureHostingControllers
+        self._isSwiftUiViewInstrumentationEnabled = isSwiftUiViewInstrumentationEnabled
         self._isMetricKitEnabled = isMetricKitEnabled
         self._isMetricKitCrashCaptureEnabled = isMetricKitCrashCaptureEnabled
         self._metricKitCrashSignals = metricKitCrashSignals
         self._isMetricKitHangCaptureEnabled = isMetricKitHangCaptureEnabled
-        self._isSwiftUiViewInstrumentationEnabled = isSwiftUiViewInstrumentationEnabled
+        self._spanEventsLimits = spanEventsLimits
         self._logsLimits = logsLimits
         self._internalLogLimits = internalLogLimits
         self._networkPayloadCaptureRules = networkPayloadCaptureRules
@@ -67,9 +74,22 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         }
     }
 
+    private var _isWalModeEnabled: Bool
+    public let isWalModeEnabledExpectation = XCTestExpectation(
+        description: "isNetworkSpansForwardingEnabled called")
+    public var isWalModeEnabled: Bool {
+        get {
+            isWalModeEnabledExpectation.fulfill()
+            return _isWalModeEnabled
+        }
+        set {
+            _isWalModeEnabled = newValue
+        }
+    }
+
     private var _isNetworkSpansForwardingEnabled: Bool
     public let isNetworkSpansForwardingEnabledExpectation = XCTestExpectation(
-        description: "isNetworkSpansForwardingEnabled called" )
+        description: "isNetworkSpansForwardingEnabled called")
     public var isNetworkSpansForwardingEnabled: Bool {
         get {
             isNetworkSpansForwardingEnabledExpectation.fulfill()
@@ -81,7 +101,8 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
     }
 
     private var _isUiLoadInstrumentationEnabled: Bool
-    public let isUiLoadInstrumentationEnabledExpectation = XCTestExpectation(description: "isUiInstrumentationEnabled called")
+    public let isUiLoadInstrumentationEnabledExpectation = XCTestExpectation(
+        description: "isUiInstrumentationEnabled called")
     public var isUiLoadInstrumentationEnabled: Bool {
         get {
             isUiLoadInstrumentationEnabledExpectation.fulfill()
@@ -89,6 +110,45 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         }
         set {
             _isUiLoadInstrumentationEnabled = newValue
+        }
+    }
+
+    private var _viewControllerClassNameBlocklist: [String]
+    public let viewControllerClassNameBlocklistExpectation = XCTestExpectation(
+        description: "viewControllerClassNameBlocklist called")
+    public var viewControllerClassNameBlocklist: [String] {
+        get {
+            viewControllerClassNameBlocklistExpectation.fulfill()
+            return _viewControllerClassNameBlocklist
+        }
+        set {
+            _viewControllerClassNameBlocklist = newValue
+        }
+    }
+
+    private var _uiInstrumentationCaptureHostingControllers: Bool
+    public let uiInstrumentationCaptureHostingControllersExpectation = XCTestExpectation(
+        description: "uiInstrumentationCaptureHostingControllers called")
+    public var uiInstrumentationCaptureHostingControllers: Bool {
+        get {
+            uiInstrumentationCaptureHostingControllersExpectation.fulfill()
+            return _uiInstrumentationCaptureHostingControllers
+        }
+        set {
+            _uiInstrumentationCaptureHostingControllers = newValue
+        }
+    }
+
+    private var _isSwiftUiViewInstrumentationEnabled: Bool
+    public let isSwiftUiViewInstrumentationEnabledExpectation = XCTestExpectation(
+        description: "isSwiftUiViewInstrumentationEnabled called")
+    public var isSwiftUiViewInstrumentationEnabled: Bool {
+        get {
+            isSwiftUiViewInstrumentationEnabledExpectation.fulfill()
+            return _isSwiftUiViewInstrumentationEnabled
+        }
+        set {
+            _isSwiftUiViewInstrumentationEnabled = newValue
         }
     }
 
@@ -105,7 +165,8 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
     }
 
     private var _isMetricKitCrashCaptureEnabled: Bool
-    public let isMetricKitCrashCaptureEnabledExpectation = XCTestExpectation(description: "isMetricKitCrashCaptureEnabled called")
+    public let isMetricKitCrashCaptureEnabledExpectation = XCTestExpectation(
+        description: "isMetricKitCrashCaptureEnabled called")
     public var isMetricKitCrashCaptureEnabled: Bool {
         get {
             isMetricKitCrashCaptureEnabledExpectation.fulfill()
@@ -129,7 +190,8 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
     }
 
     private var _isMetricKitHangCaptureEnabled: Bool
-    public let isMetricKitHangCaptureEnabledExpectation = XCTestExpectation(description: "isMetricKitHangCaptureEnabled called")
+    public let isMetricKitHangCaptureEnabledExpectation = XCTestExpectation(
+        description: "isMetricKitHangCaptureEnabled called")
     public var isMetricKitHangCaptureEnabled: Bool {
         get {
             isMetricKitHangCaptureEnabledExpectation.fulfill()
@@ -140,16 +202,15 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         }
     }
 
-    
-    private var _isSwiftUiViewInstrumentationEnabled: Bool
-    public let isSwiftUiViewInstrumentationEnabledExpectation = XCTestExpectation(description: "isSwiftUiViewInstrumentationEnabled called")
-    public var isSwiftUiViewInstrumentationEnabled: Bool {
+    private var _spanEventsLimits: SpanEventsLimits
+    public let spanEventsLimitsExpectation = XCTestExpectation(description: "spanEventsLimits called")
+    public var spanEventsLimits: SpanEventsLimits {
         get {
-            isSwiftUiViewInstrumentationEnabledExpectation.fulfill()
-            return _isSwiftUiViewInstrumentationEnabled
+            spanEventsLimitsExpectation.fulfill()
+            return _spanEventsLimits
         }
         set {
-            _isSwiftUiViewInstrumentationEnabled = newValue
+            _spanEventsLimits = newValue
         }
     }
 

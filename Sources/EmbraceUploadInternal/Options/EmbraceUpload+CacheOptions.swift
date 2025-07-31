@@ -3,13 +3,14 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
+    import EmbraceCommonInternal
 #endif
 
-public extension EmbraceUpload {
+extension EmbraceUpload {
 
-    class CacheOptions {
+    public class CacheOptions {
         /// Determines where the db is going to be
         let storageMechanism: StorageMechanism
 

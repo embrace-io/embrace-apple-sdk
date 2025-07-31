@@ -3,10 +3,10 @@
 //
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceStorageInternal
-@_implementationOnly import EmbraceObjCUtilsInternal
-import EmbraceCommonInternal
-import EmbraceSemantics
+    import EmbraceStorageInternal
+    @_implementationOnly import EmbraceObjCUtilsInternal
+    import EmbraceCommonInternal
+    import EmbraceSemantics
 #endif
 
 class EmbraceLogAttributesBuilder {
@@ -20,18 +20,22 @@ class EmbraceLogAttributesBuilder {
         session ?? sessionControllable?.currentSession
     }
 
-    init(storage: EmbraceStorageMetadataFetcher?,
-         sessionControllable: SessionControllable,
-         initialAttributes: [String: String]) {
+    init(
+        storage: EmbraceStorageMetadataFetcher?,
+        sessionControllable: SessionControllable,
+        initialAttributes: [String: String]
+    ) {
         self.storage = storage
         self.sessionControllable = sessionControllable
         self.attributes = initialAttributes
     }
 
-    init(session: EmbraceSession?,
-         crashReport: EmbraceCrashReport? = nil,
-         storage: EmbraceStorageMetadataFetcher? = nil,
-         initialAttributes: [String: String]) {
+    init(
+        session: EmbraceSession?,
+        crashReport: EmbraceCrashReport? = nil,
+        storage: EmbraceStorageMetadataFetcher? = nil,
+        initialAttributes: [String: String]
+    ) {
         self.session = session
         self.storage = storage
         self.crashReport = crashReport
@@ -73,7 +77,8 @@ class EmbraceLogAttributesBuilder {
     @discardableResult
     func addApplicationProperties(sessionId: SessionIdentifier?) -> Self {
         guard let sessionId = sessionId,
-              let storage = storage else {
+            let storage = storage
+        else {
             return self
         }
 
@@ -106,7 +111,8 @@ class EmbraceLogAttributesBuilder {
     @discardableResult
     func addApplicationState(_ state: String?) -> Self {
         guard let state = state,
-              attributes[LogSemantics.keyState] == nil else {
+            attributes[LogSemantics.keyState] == nil
+        else {
             return self
         }
         attributes[LogSemantics.keyState] = state
@@ -125,7 +131,8 @@ class EmbraceLogAttributesBuilder {
     @discardableResult
     func addSessionIdentifier(_ sessionId: String?) -> Self {
         guard let sessionId = sessionId,
-              attributes[LogSemantics.keySessionId] == nil else {
+            attributes[LogSemantics.keySessionId] == nil
+        else {
             return self
         }
         attributes[LogSemantics.keySessionId] = sessionId
@@ -144,8 +151,9 @@ class EmbraceLogAttributesBuilder {
     @discardableResult
     func addCrashReportProperties(id: String?, provider: String?, payload: String?) -> Self {
         guard let id = id,
-              let provider = provider,
-              let payload = payload else {
+            let provider = provider,
+            let payload = payload
+        else {
             return self
         }
 
@@ -157,10 +165,12 @@ class EmbraceLogAttributesBuilder {
     }
 
     @discardableResult
-    func addHangReportProperties(id: String?, provider: String?, payload: String?, startTime: Date, endTime: Date) -> Self {
+    func addHangReportProperties(id: String?, provider: String?, payload: String?, startTime: Date, endTime: Date)
+        -> Self {
         guard let id = id,
-              let provider = provider,
-              let payload = payload else {
+            let provider = provider,
+            let payload = payload
+        else {
             return self
         }
 

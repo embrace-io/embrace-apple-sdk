@@ -4,8 +4,8 @@
 //
 //
 
-import SwiftUI
 import EmbraceCommonInternal
+import SwiftUI
 
 @Observable
 class NetworkingTestViewModel: SpanTestUIComponentViewModel {

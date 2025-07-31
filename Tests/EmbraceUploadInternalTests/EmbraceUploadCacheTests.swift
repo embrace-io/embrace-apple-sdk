@@ -2,12 +2,12 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-import TestSupport
-import EmbraceOTelInternal
-import EmbraceCommonInternal
-@testable import EmbraceUploadInternal
 import CoreData
+import EmbraceCommonInternal
+import EmbraceOTelInternal
+import TestSupport
+import XCTest
+@testable import EmbraceUploadInternal
 
 class EmbraceUploadCacheTests: XCTestCase {
     let logger = MockLogger()
@@ -25,7 +25,7 @@ class EmbraceUploadCacheTests: XCTestCase {
 
     func test_resetCache() throws {
         // given an existing db file
-        let storageMechanism: StorageMechanism = .onDisk(name: "test_resetCache", baseURL: fileProvider.tmpDirectory)
+        let storageMechanism: StorageMechanism = .onDisk(name: "test_resetCache", baseURL: fileProvider.tmpDirectory, journalMode: .delete)
         let fileUrl = storageMechanism.fileURL!
         try "test".write(to: fileUrl, atomically: true, encoding: .utf8)
         XCTAssert(FileManager.default.fileExists(atPath: fileUrl.path))
@@ -39,7 +39,8 @@ class EmbraceUploadCacheTests: XCTestCase {
     }
 
     func test_fetchUploadData() throws {
-        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false)
+        let options = EmbraceUpload.CacheOptions(
+            storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false)
         let cache = try EmbraceUploadCache(options: options, logger: logger)
 
         // given inserted upload data
@@ -63,32 +64,33 @@ class EmbraceUploadCacheTests: XCTestCase {
     }
 
     func test_fetchAllUploadData() throws {
-        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false)
+        let options = EmbraceUpload.CacheOptions(
+            storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false)
         let cache = try EmbraceUploadCache(options: options, logger: logger)
 
         // given inserted upload datas
         _ = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id1",
-            type: 0, 
-            data: Data(), 
-            attemptCount: 0, 
+            type: 0,
+            data: Data(),
+            attemptCount: 0,
             date: Date()
         )
         _ = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id2",
-            type: 0, 
-            data: Data(), 
-            attemptCount: 0, 
+            type: 0,
+            data: Data(),
+            attemptCount: 0,
             date: Date()
         )
         _ = UploadDataRecord.create(
             context: cache.coreData.context,
             id: "id3",
-            type: 0, 
-            data: Data(), 
-            attemptCount: 0, 
+            type: 0,
+            data: Data(),
+            attemptCount: 0,
             date: Date()
         )
 
@@ -104,7 +106,8 @@ class EmbraceUploadCacheTests: XCTestCase {
     }
 
     func test_saveUploadData() throws {
-        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false)
+        let options = EmbraceUpload.CacheOptions(
+            storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false)
         let cache = try EmbraceUploadCache(options: options, logger: logger)
 
         // given inserted upload data
@@ -122,7 +125,7 @@ class EmbraceUploadCacheTests: XCTestCase {
                 if result.count > 0 {
                     expectation.fulfill()
                 }
-            } catch { }
+            } catch {}
         }
 
         wait(for: [expectation], timeout: .defaultTimeout)
@@ -130,7 +133,8 @@ class EmbraceUploadCacheTests: XCTestCase {
 
     func test_saveUploadData_limit() throws {
         // given a cache with a limit of 1
-        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false, cacheLimit: 1)
+        let options = EmbraceUpload.CacheOptions(
+            storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false, cacheLimit: 1)
         let cache = try EmbraceUploadCache(options: options, logger: logger)
 
         // given inserted upload datas
@@ -147,17 +151,19 @@ class EmbraceUploadCacheTests: XCTestCase {
             do {
                 let result = try cache.coreData.context.fetch(request)
                 if result.count == 1,
-                   result.first?.id == "id3" {
+                    result.first?.id == "id3"
+                {
                     expectation.fulfill()
                 }
-            } catch { }
+            } catch {}
         }
 
         wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_deleteUploadData() throws {
-        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false)
+        let options = EmbraceUpload.CacheOptions(
+            storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false)
         let cache = try EmbraceUploadCache(options: options, logger: logger)
 
         // given inserted upload data
@@ -186,14 +192,15 @@ class EmbraceUploadCacheTests: XCTestCase {
                 if result.count == 0 {
                     expectation.fulfill()
                 }
-            } catch { }
+            } catch {}
         }
 
         wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_updateAttemptCount() throws {
-        let options = EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false)
+        let options = EmbraceUpload.CacheOptions(
+            storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false)
         let cache = try EmbraceUploadCache(options: options, logger: logger)
 
         // given inserted upload data
@@ -220,11 +227,12 @@ class EmbraceUploadCacheTests: XCTestCase {
             do {
                 let result = try cache.coreData.context.fetch(request)
                 if result.count == 1,
-                   result.first?.id == "id",
-                   result.first?.attemptCount == 10 {
+                    result.first?.id == "id",
+                    result.first?.attemptCount == 10
+                {
                     expectation.fulfill()
                 }
-            } catch { }
+            } catch {}
         }
 
         wait(for: [expectation], timeout: .defaultTimeout)

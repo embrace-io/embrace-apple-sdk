@@ -54,7 +54,8 @@ final class EmbraceIOTestWARMStartupUITests: XCTestCase {
         let initButton = app.buttons["EmbraceInitButton"]
         initButton.tap()
 
-        XCTAssertNotNil(initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
+        XCTAssertNotNil(
+            initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
 
         let sideMenuButton = app.buttons["SideMenuButton"]
         sideMenuButton.tap()
@@ -134,7 +135,8 @@ final class EmbraceIOTestCOLDStartupUITests: XCTestCase {
         let initButton = app.buttons["EmbraceInitButton"]
         initButton.tap()
 
-        XCTAssertNotNil(initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
+        XCTAssertNotNil(
+            initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
 
         let sideMenuButton = app.buttons["SideMenuButton"]
         sideMenuButton.tap()

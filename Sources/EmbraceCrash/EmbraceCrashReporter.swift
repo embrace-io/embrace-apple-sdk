@@ -3,9 +3,10 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceSemantics
+    import EmbraceCommonInternal
+    import EmbraceSemantics
 #endif
 
 #if canImport(KSCrashRecording)
@@ -69,9 +70,10 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
     /// Unused in this KSCrash implementation
     public var onNewReport: ((EmbraceCrashReport) -> Void)?
 
-    public init(queue: DispatchableQueue = .with(label: "com.embrace.crashreporter"),
-                signalsBlockList: [CrashSignal] = [.SIGTERM],
-                disableMetricKitReports: Bool = false
+    public init(
+        queue: DispatchableQueue = .with(label: "com.embrace.crashreporter"),
+        signalsBlockList: [CrashSignal] = [.SIGTERM],
+        disableMetricKitReports: Bool = false
     ) {
         self.queue = queue
         self.signalsBlockList = signalsBlockList
@@ -105,34 +107,34 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
     }
 
     public func install(context: CrashReporterContext, logger: InternalLogger) {
-#if !os(watchOS)
-        guard ksCrash == nil else {
-            logger.debug("EmbraceCrashReporter already installed!")
-            return
-        }
+        #if !os(watchOS)
+            guard ksCrash == nil else {
+                logger.debug("EmbraceCrashReporter already installed!")
+                return
+            }
 
-        self.logger = logger
-        sdkVersion = context.sdkVersion
+            self.logger = logger
+            sdkVersion = context.sdkVersion
 
-        let config = KSCrashConfiguration()
-        config.enableSigTermMonitoring = false
-        config.enableSwapCxaThrow = false
-        config.installPath = context.filePathProvider.directoryURL(for: "embrace_crash_reporter")?.path
-        config.reportStoreConfiguration.appName = context.appId ?? "default"
+            let config = KSCrashConfiguration()
+            config.enableSigTermMonitoring = false
+            config.enableSwapCxaThrow = false
+            config.installPath = context.filePathProvider.directoryURL(for: "embrace_crash_reporter")?.path
+            config.reportStoreConfiguration.appName = context.appId ?? "default"
 
-        ksCrash = KSCrash.shared
+            ksCrash = KSCrash.shared
 
-        updateKSCrashInfo()
+            updateKSCrashInfo()
 
-        do {
-            try ksCrash?.install(with: config)
-        } catch {
-            logger.error("EmbraceCrashReporter install failed: \(error)")
-        }
+            do {
+                try ksCrash?.install(with: config)
+            } catch {
+                logger.error("EmbraceCrashReporter install failed: \(error)")
+            }
 
-#else
-        logger.error("EmbraceCrashReporter is not supported in WatchOS!!!")
-#endif
+        #else
+            logger.error("EmbraceCrashReporter is not supported in WatchOS!!!")
+        #endif
     }
 
     /// Fetches all saved `EmbraceCrashReport`.
@@ -167,7 +169,7 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
 
                 // Check if we drop crashes for a specific signal using the signalsBlockList
                 if let crashSignal = self.getCrashSignal(fromReport: report),
-                   self.shouldDropCrashReport(withSignal: crashSignal) {
+                    self.shouldDropCrashReport(withSignal: crashSignal) {
                     // if we find a report we should drop, then we also delete it from KSCrash
                     self.deleteCrashReport(id: Int(id))
                     continue
@@ -201,7 +203,7 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
                 }
 
                 if let reportDict = report[KSCrashKey.crashReport] as? [AnyHashable: Any],
-                   let rawTimestamp = reportDict[KSCrashKey.timestamp] as? String {
+                    let rawTimestamp = reportDict[KSCrashKey.timestamp] as? String {
                     timestamp = EmbraceCrashReporter.dateFormatter.date(from: rawTimestamp)
                 }
 
@@ -231,19 +233,19 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
     /// - Returns: The `CrashSignal` of the report. Could be `nil` if not found or is an invalid report.
     func getCrashSignal(fromReport report: [String: Any]) -> CrashSignal? {
         guard let crashPayload = report[KSCrashKey.crash] as? [String: Any],
-              let errorPayload = crashPayload[KSCrashKey.error] as? [String: Any],
-              let signalPayload = errorPayload[KSCrashKey.signal] as? [String: Any]
+            let errorPayload = crashPayload[KSCrashKey.error] as? [String: Any],
+            let signalPayload = errorPayload[KSCrashKey.signal] as? [String: Any]
         else {
             return nil
         }
 
         if let signalName = signalPayload[KSCrashKey.signalName] as? String,
-           let crashSignal = CrashSignal.from(string: signalName) {
+            let crashSignal = CrashSignal.from(string: signalName) {
             return crashSignal
         }
 
         if let signalCode = signalPayload[KSCrashKey.signal] as? Int,
-           let crashSignal = CrashSignal(rawValue: signalCode) {
+            let crashSignal = CrashSignal(rawValue: signalCode) {
             return crashSignal
         }
 

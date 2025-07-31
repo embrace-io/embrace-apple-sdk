@@ -2,10 +2,11 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-@testable import EmbraceCaptureService
-import TestSupport
 import EmbraceOTelInternal
+import TestSupport
+import XCTest
+
+@testable import EmbraceCaptureService
 
 class MockCaptureService: CaptureService {
     var installCalled = false

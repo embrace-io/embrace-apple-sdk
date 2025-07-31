@@ -64,17 +64,18 @@ public class EmbraceSwizzler {
         let newImplementationBlock: F = block(originalTypifiedImplementation)
         let newImplementation = imp_implementationWithBlock(newImplementationBlock)
 
-        // Do the actual IMP replacement 
+        // Do the actual IMP replacement
         method_setImplementation(method, newImplementation)
     }
 
     private func saveInCache(originalImplementation: IMP, forMethod method: Method, associatedToClass: AnyClass) {
         #if DEBUG
-        let swizzlerClassName = String(describing: type(of: self))
-        SwizzleCache.shared.addMethodImplementation(originalImplementation,
-                                                    forMethod: method,
-                                                    inClass: associatedToClass,
-                                                    swizzler: swizzlerClassName)
+            let swizzlerClassName = String(describing: type(of: self))
+            SwizzleCache.shared.addMethodImplementation(
+                originalImplementation,
+                forMethod: method,
+                inClass: associatedToClass,
+                swizzler: swizzlerClassName)
         #endif
     }
 }

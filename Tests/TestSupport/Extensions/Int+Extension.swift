@@ -4,8 +4,8 @@
 
 import Foundation
 
-public extension Int {
-    static func random(maxValue: Int = 1000) -> Int {
+extension Int {
+    public static func random(maxValue: Int = 1000) -> Int {
         return Int.random(in: 1...maxValue)
     }
 }

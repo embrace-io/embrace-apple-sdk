@@ -15,6 +15,14 @@ import Foundation
 
     var isUiLoadInstrumentationEnabled: Bool { get }
 
+    var isWalModeEnabled: Bool { get }
+
+    var viewControllerClassNameBlocklist: [String] { get }
+
+    var uiInstrumentationCaptureHostingControllers: Bool { get }
+
+    var isSwiftUiViewInstrumentationEnabled: Bool { get }
+
     var isMetricKitEnabled: Bool { get }
 
     var isMetricKitCrashCaptureEnabled: Bool { get }
@@ -23,7 +31,7 @@ import Foundation
 
     var isMetricKitHangCaptureEnabled: Bool { get }
 
-    var isSwiftUiViewInstrumentationEnabled: Bool { get }
+    var spanEventsLimits: SpanEventsLimits { get }
 
     var logsLimits: LogsLimits { get }
 
@@ -33,7 +41,7 @@ import Foundation
 
     /// Tell the configurable implementation it should update if possible.
     /// - Parameters:
-    ///     - completion: A completion block that takes two parameters (didChange, error). Completion block should pass `true` 
+    ///     - completion: A completion block that takes two parameters (didChange, error). Completion block should pass `true`
     ///     if the configuration now has different values and `false` if not in the case of an error updating, the completion block should
     ///     return `false` and an Error object describing the issue.
     func update(completion: @escaping (Bool, Error?) -> Void)

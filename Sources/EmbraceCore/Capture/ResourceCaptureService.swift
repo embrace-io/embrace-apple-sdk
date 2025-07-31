@@ -2,15 +2,17 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCaptureService
-import EmbraceCommonInternal
-import EmbraceStorageInternal
-#endif
 import OpenTelemetryApi
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCaptureService
+    import EmbraceCommonInternal
+    import EmbraceStorageInternal
+#endif
 
 protocol ResourceCaptureServiceHandler: AnyObject {
     func addRequiredResources(_ map: [String: String])
+    func addCriticalResources(_ map: [String: String])
 }
 
 class ResourceCaptureService: CaptureService {
@@ -19,10 +21,18 @@ class ResourceCaptureService: CaptureService {
     func addRequiredResources(_ map: [String: String]) {
         handler?.addRequiredResources(map)
     }
+
+    func addCriticalResources(_ map: [String: String]) {
+        handler?.addCriticalResources(map)
+    }
 }
 
 extension EmbraceStorage: ResourceCaptureServiceHandler {
     func addRequiredResources(_ map: [String: String]) {
         addRequiredResources(map, processId: .current)
+    }
+
+    func addCriticalResources(_ map: [String: String]) {
+        addCriticalResources(map, processId: .current)
     }
 }

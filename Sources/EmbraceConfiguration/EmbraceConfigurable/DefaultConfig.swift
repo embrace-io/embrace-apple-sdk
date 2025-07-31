@@ -9,7 +9,15 @@ public class DefaultConfig: EmbraceConfigurable {
 
     public let isNetworkSpansForwardingEnabled: Bool = false
 
-    public let isUiLoadInstrumentationEnabled: Bool = false
+    public let isUiLoadInstrumentationEnabled: Bool = true
+
+    public var isWalModeEnabled: Bool = true
+
+    public let viewControllerClassNameBlocklist: [String] = []
+
+    public let uiInstrumentationCaptureHostingControllers: Bool = false
+
+    public let isSwiftUiViewInstrumentationEnabled: Bool = true
 
     public let isMetricKitEnabled: Bool = false
 
@@ -21,7 +29,7 @@ public class DefaultConfig: EmbraceConfigurable {
 
     public var isMetricKitHangCaptureEnabled: Bool = false
 
-    public let isSwiftUiViewInstrumentationEnabled: Bool = false
+    public let spanEventsLimits = SpanEventsLimits()
 
     public let logsLimits = LogsLimits()
 
@@ -33,7 +41,7 @@ public class DefaultConfig: EmbraceConfigurable {
         completion(false, nil)
     }
 
-    public init() { }
+    public init() {}
 }
 
 extension EmbraceConfigurable where Self == DefaultConfig {

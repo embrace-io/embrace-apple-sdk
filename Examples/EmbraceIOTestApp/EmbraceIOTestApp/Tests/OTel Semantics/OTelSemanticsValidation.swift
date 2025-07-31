@@ -16,7 +16,10 @@ struct OTelSemanticsValidation {
             /// Not a FAIL but OTel recommends names to be lowercase only.
             /// https://opentelemetry.io/docs/specs/semconv/general/naming/#general-naming-considerations
             if name.containsUppercase() {
-                testItems.append(.init(target: "Attribute: \(name)", expected: "only lowercase", recorded: "contains uppercase", result: .warning))
+                testItems.append(
+                    .init(
+                        target: "Attribute: \(name)", expected: "only lowercase", recorded: "contains uppercase",
+                        result: .warning))
             }
 
             let components = name.components(separatedBy: ".")
@@ -25,7 +28,10 @@ struct OTelSemanticsValidation {
                 case "otel":
                     /// Attributes using "otel." namespace are reserved by OpenTelemetry and must be approved as part of OTel Specification.
                     /// https://opentelemetry.io/docs/specs/semconv/general/naming/#otel-namespace
-                    testItems.append(.init(target: "Attribute: \(name)", expected: "Not use otel namespace", recorded: "Uses otel namespace", result: .fail))
+                    testItems.append(
+                        .init(
+                            target: "Attribute: \(name)", expected: "Not use otel namespace",
+                            recorded: "Uses otel namespace", result: .fail))
                 default:
                     break
                 }

@@ -3,12 +3,13 @@
 //
 
 import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceOTelInternal
-import EmbraceStorageInternal
-import EmbraceCommonInternal
-#endif
 import OpenTelemetrySdk
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceOTelInternal
+    import EmbraceStorageInternal
+    import EmbraceCommonInternal
+#endif
 
 class DefaultEmbraceLogSharedState: EmbraceLogSharedState {
     let processors: [LogRecordProcessor]

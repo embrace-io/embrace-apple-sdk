@@ -1,9 +1,9 @@
 //
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
-    
-import Foundation
+
 import EmbraceCommonInternal
+import Foundation
 
 // Only add this extension to Test Targets
 extension DispatchQueue: DispatchableQueue {

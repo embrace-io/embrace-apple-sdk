@@ -29,7 +29,7 @@ public struct EmbraceStackTrace: Equatable {
     /// ```
     ///
     /// - Parameter frames: An array of frames strings, following the format of `Thread.callStackSymbols`.
-    /// - Throws: An `EmbraceStackTraceError.invalidFormat` if any of the frames are not in the expected format 
+    /// - Throws: An `EmbraceStackTraceError.invalidFormat` if any of the frames are not in the expected format
     /// - Throws: An `EmbraceStackTraceError.frameIsTooLong` if any of the frames has more than the `maximumFrameLength` (10.000 characters).
     ///
     /// - Important: a stacktrace can't have more than `maximumAmountOfFrames` (200); if that happens, we'll trim the exceeding frames.
@@ -65,7 +65,7 @@ public struct EmbraceStackTrace: Equatable {
     private static func isValidStackFrameFormat(_ frame: String) -> Bool {
         /*
          Regular expression pattern breakdown:
-
+        
          ^\s*                   -> Allows optional leading spaces at the beginning
          (\d+)                  -> Captures the frame index (a sequence of digits)
          \s+                    -> One or more whitespaces

@@ -3,6 +3,7 @@
 //
 
 import XCTest
+
 @testable import EmbraceCommonInternal
 
 final class SessionIdentifierTests: XCTestCase {

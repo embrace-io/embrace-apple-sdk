@@ -2,9 +2,9 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
 import EmbraceCore
 import EmbraceOTelInternal
+import Foundation
 import OpenTelemetryApi
 import OpenTelemetrySdk
 
@@ -35,9 +35,7 @@ class SimonGameModel {
     var roundNumber: Int { pattern.count }
 
     var gameStateIsPlaying: Bool {
-        gameState == .roundPlayback ||
-        gameState == .roundTestUnderway ||
-        gameState == .betweenRounds
+        gameState == .roundPlayback || gameState == .roundTestUnderway || gameState == .betweenRounds
     }
 
     private(set) var playbackIconIndex: Int?
@@ -163,7 +161,8 @@ class SimonGameModel {
             return nil
         }
 
-        return embrace
+        return
+            embrace
             .buildSpan(name: "simon-game", type: .ux)
             .startSpan()
     }
@@ -173,7 +172,8 @@ class SimonGameModel {
             return nil
         }
 
-        let builder = embrace
+        let builder =
+            embrace
             .buildSpan(
                 name: "simon-round",
                 type: .ux,
@@ -190,7 +190,7 @@ class SimonGameModel {
 
 extension Collection {
     /// Returns the element at the specified index if it is within bounds, otherwise nil.
-    subscript (safe index: Index) -> Element? {
+    subscript(safe index: Index) -> Element? {
         return indices.contains(index) ? self[index] : nil
     }
 }

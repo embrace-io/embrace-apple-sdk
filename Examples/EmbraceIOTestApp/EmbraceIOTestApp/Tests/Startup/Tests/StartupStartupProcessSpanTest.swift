@@ -19,7 +19,9 @@ class StartupStartupProcessSpanTest: PayloadTest {
         var testItems = [TestReportItem]()
 
         guard let startSpan = spans.first, startSpan.name == testRelevantSpanName else {
-            return .init(items: [.init(target: "\(testRelevantSpanName) span", expected: "exists", recorded: "missing", result: .fail)])
+            return .init(items: [
+                .init(target: "\(testRelevantSpanName) span", expected: "exists", recorded: "missing", result: .fail)
+            ])
         }
 
         testItems.append(.init(target: "\(testRelevantSpanName) span", expected: "exists", recorded: "exists"))

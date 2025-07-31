@@ -2,15 +2,16 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
 import CoreData
+import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
+    import EmbraceCommonInternal
 #endif
 
-public extension CoreDataWrapper {
+extension CoreDataWrapper {
 
-    class Options {
+    public class Options {
         /// Determines where the db is going to be stored
         public let storageMechanism: StorageMechanism
 

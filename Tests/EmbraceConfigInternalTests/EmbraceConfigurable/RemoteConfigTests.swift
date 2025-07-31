@@ -2,11 +2,12 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
+import EmbraceCommonInternal
 import TestSupport
+import XCTest
+
 @testable import EmbraceConfigInternal
 @testable import EmbraceConfiguration
-import EmbraceCommonInternal
 
 final class RemoteConfigTests: XCTestCase {
 
@@ -16,7 +17,7 @@ final class RemoteConfigTests: XCTestCase {
         apiBaseUrl: "https://localhost:8080/config",
         queue: DispatchQueue(label: "com.test.embrace.queue", attributes: .concurrent),
         appId: TestConstants.appId,
-        deviceId: DeviceIdentifier(string: "00000000000000000000000000800000")!, // %50 threshold
+        deviceId: DeviceIdentifier(string: "00000000000000000000000000800000")!,  // %50 threshold
         osVersion: TestConstants.osVersion,
         sdkVersion: TestConstants.sdkVersion,
         appVersion: TestConstants.appVersion,
@@ -90,6 +91,18 @@ final class RemoteConfigTests: XCTestCase {
 
         config.payload.networkSpansForwardingThreshold = 49
         XCTAssertFalse(config.isNetworkSpansForwardingEnabled)
+    }
+
+    func test_SpanEventsLimits() {
+        // given a config
+        let config = RemoteConfig(options: options, logger: logger)
+
+        config.payload.breadcrumbLimit = 987
+
+        XCTAssertEqual(
+            config.spanEventsLimits,
+            SpanEventsLimits(breadcrumb: 987)
+        )
     }
 
     func test_LogsLimits() {

@@ -2,10 +2,11 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
 import TestSupport
-@testable import EmbraceCore
+import XCTest
+
 @testable import EmbraceCommonInternal
+@testable import EmbraceCore
 
 class DataTaskWithURLRequestAndCompletionSwizzlerTests: XCTestCase {
     private var session: URLSession!
@@ -86,21 +87,21 @@ class DataTaskWithURLRequestAndCompletionSwizzlerTests: XCTestCase {
     }
 }
 
-private extension DataTaskWithURLRequestAndCompletionSwizzlerTests {
-    func givenDataTaskWithURLRequestSwizzler() {
+extension DataTaskWithURLRequestAndCompletionSwizzlerTests {
+    fileprivate func givenDataTaskWithURLRequestSwizzler() {
         handler = MockURLSessionTaskHandler()
         sut = DataTaskWithURLRequestAndCompletionSwizzler(handler: handler)
     }
 
-    func givenSwizzlingWasDone() throws {
+    fileprivate func givenSwizzlingWasDone() throws {
         try sut.install()
     }
 
-    func givenProxiedUrlSession() {
+    fileprivate func givenProxiedUrlSession() {
         session = ProxiedURLSessionProvider.default()
     }
 
-    func givenSuccessfulRequest() {
+    fileprivate func givenSuccessfulRequest() {
         var url = URL(string: "https://embrace.io")!
         request = URLRequest(url: url)
         let mockData = "Mock Data".data(using: .utf8)!
@@ -108,7 +109,7 @@ private extension DataTaskWithURLRequestAndCompletionSwizzlerTests {
         url.mockResponse = .successful(withData: mockData, response: mockResponse)
     }
 
-    func givenFailedRequest() {
+    fileprivate func givenFailedRequest() {
         var url = URL(string: "https://embrace.io")!
         request = URLRequest(url: url)
         let error = NSError(domain: UUID().uuidString, code: 0)
@@ -116,33 +117,33 @@ private extension DataTaskWithURLRequestAndCompletionSwizzlerTests {
         url.mockResponse = .failure(withError: error, response: mockResponse)
     }
 
-    func whenInvokingDataTaskWithUrl(completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void) {
+    fileprivate func whenInvokingDataTaskWithUrl(completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void) {
         dataTask = session.dataTask(with: request) { data, response, error in
             completionHandler(data, response, error)
         }
         dataTask.resume()
     }
 
-    func thenHandlerShouldHaveInvokedCreateWithTask() {
+    fileprivate func thenHandlerShouldHaveInvokedCreateWithTask() {
         XCTAssertTrue(handler.didInvokeCreate)
         XCTAssertEqual(handler.createReceivedTask, dataTask)
     }
 
-    func thenHandlerShouldntHaveInvokedCreate() {
+    fileprivate func thenHandlerShouldntHaveInvokedCreate() {
         XCTAssertFalse(handler.didInvokeCreate)
     }
 
-    func thenHandlerShouldHaveInvokedFinishTask() {
+    fileprivate func thenHandlerShouldHaveInvokedFinishTask() {
         XCTAssertTrue(handler.didInvokeFinishWithData)
         XCTAssertNotNil(handler.finishWithDataReceivedParameters?.1)
     }
 
-    func thenHandlerShouldHaveInvokedFinishTaskWithError() {
+    fileprivate func thenHandlerShouldHaveInvokedFinishTaskWithError() {
         XCTAssertTrue(handler.didInvokeFinishWithData)
         XCTAssertNotNil(handler.finishWithDataReceivedParameters?.2)
     }
 
-    func thenDataTaskShouldHaveEmbraceHeaders() throws {
+    fileprivate func thenDataTaskShouldHaveEmbraceHeaders() throws {
         let headers = try XCTUnwrap(dataTask.originalRequest?.allHTTPHeaderFields)
         XCTAssertNotNil(headers["x-emb-id"])
         XCTAssertNotNil(headers["x-emb-st"])

@@ -3,15 +3,16 @@
 //
 
 import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceOTelInternal
-import EmbraceStorageInternal
-import EmbraceSemantics
-import EmbraceConfiguration
-#endif
 import OpenTelemetryApi
 import OpenTelemetrySdk
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+    import EmbraceOTelInternal
+    import EmbraceStorageInternal
+    import EmbraceSemantics
+    import EmbraceConfiguration
+#endif
 
 class StorageEmbraceLogExporter: LogRecordExporter {
 
@@ -60,16 +61,17 @@ class StorageEmbraceLogExporter: LogRecordExporter {
         for var log in logRecords where validation.execute(log: &log) {
 
             // do not export crash logs (unless they come from metrickit)
-            if log.isEmbType(LogType.crash) && 
-               log.attributes[LogSemantics.Crash.keyProvider] != .string(LogSemantics.Crash.metrickitProvider) {
+            if log.isEmbType(LogType.crash)
+                && log.attributes[LogSemantics.Crash.keyProvider] != .string(LogSemantics.Crash.metrickitProvider) {
                 continue
             }
 
             // apply log limits (ignoring internal logs, crashes and hangs)
             let canExport = counter.withLock {
                 guard !log.isEmbType(LogType.internal),
-                      !log.isEmbType(LogType.crash),
-                      !log.isEmbType(LogType.hang) else {
+                    !log.isEmbType(LogType.crash),
+                    !log.isEmbType(LogType.hang)
+                else {
                     return true
                 }
 

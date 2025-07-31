@@ -29,8 +29,8 @@ public class DefaultDispatchableQueue: DispatchableQueue {
     }
 }
 
-public extension DispatchableQueue where Self == DefaultDispatchableQueue {
-    static func with(
+extension DispatchableQueue where Self == DefaultDispatchableQueue {
+    public static func with(
         label: String,
         qos: DispatchQoS = .unspecified,
         attributes: DispatchQueue.Attributes = []

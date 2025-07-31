@@ -3,7 +3,7 @@
 //
 
 enum IconShape {
-    static let aspectRatio = 300.0/215.0
+    static let aspectRatio = 300.0 / 215.0
 }
 
 enum IconComponent: CaseIterable {

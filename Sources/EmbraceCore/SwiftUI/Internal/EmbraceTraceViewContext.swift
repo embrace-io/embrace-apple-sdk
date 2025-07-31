@@ -37,5 +37,5 @@ extension EnvironmentValues {
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
 final class EmbraceTraceViewContext {
     /// The parent span for the current render cycle. Reset to `nil` once ended.
-    var firstCycleSpan: Span? = nil
+    var firstCycleSpan: Span?
 }

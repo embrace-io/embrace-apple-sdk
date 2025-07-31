@@ -72,5 +72,5 @@ struct ReflexMinigameView: View {
 
 #Preview {
     ReflexMinigameView()
-      .padding()
+        .padding()
 }

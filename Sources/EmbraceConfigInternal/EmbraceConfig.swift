@@ -3,13 +3,14 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceConfiguration
+    import EmbraceCommonInternal
+    import EmbraceConfiguration
 #endif
 
-public extension Notification.Name {
-    static let embraceConfigUpdated = Notification.Name("embraceConfigUpdated")
+extension Notification.Name {
+    public static let embraceConfigUpdated = Notification.Name("embraceConfigUpdated")
 }
 
 public class EmbraceConfig {
@@ -69,7 +70,7 @@ public class EmbraceConfig {
                 if let error = error {
                     self?.logger.error(
                         "Failed update in EmbraceConfig",
-                        attributes: [ "error.message": error.localizedDescription ]
+                        attributes: ["error.message": error.localizedDescription]
                     )
                 }
 
@@ -105,6 +106,18 @@ extension EmbraceConfig /* EmbraceConfigurable delegation */ {
         configurable.isUiLoadInstrumentationEnabled
     }
 
+    public var viewControllerClassNameBlocklist: [String] {
+        configurable.viewControllerClassNameBlocklist
+    }
+
+    public var uiInstrumentationCaptureHostingControllers: Bool {
+        configurable.uiInstrumentationCaptureHostingControllers
+    }
+
+    public var isSwiftUiViewInstrumentationEnabled: Bool {
+        return configurable.isSwiftUiViewInstrumentationEnabled
+    }
+
     public var isMetrickKitEnabled: Bool {
         configurable.isMetricKitEnabled
     }
@@ -123,8 +136,8 @@ extension EmbraceConfig /* EmbraceConfigurable delegation */ {
         configurable.isMetricKitHangCaptureEnabled
     }
 
-    public var isSwiftUiViewInstrumentationEnabled: Bool {
-        return configurable.isSwiftUiViewInstrumentationEnabled
+    public var spanEventsLimits: SpanEventsLimits {
+        configurable.spanEventsLimits
     }
 
     public var logsLimits: LogsLimits {
@@ -132,7 +145,7 @@ extension EmbraceConfig /* EmbraceConfigurable delegation */ {
     }
 
     public var internalLogLimits: InternalLogLimits {
-         configurable.internalLogLimits
+        configurable.internalLogLimits
     }
 
     public var networkPayloadCaptureRules: [NetworkPayloadCaptureRule] {

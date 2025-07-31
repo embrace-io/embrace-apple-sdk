@@ -2,15 +2,15 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceCommonInternal
+import EmbraceConfigInternal
+import EmbraceOTelInternal
+import EmbraceStorageInternal
+import TestSupport
 import XCTest
 
 @testable import EmbraceCore
-import EmbraceStorageInternal
 @testable import EmbraceUploadInternal
-import EmbraceCommonInternal
-import EmbraceOTelInternal
-import EmbraceConfigInternal
-import TestSupport
 
 final class SessionControllerTests: XCTestCase {
 
@@ -39,13 +39,15 @@ final class SessionControllerTests: XCTestCase {
 
         uploadTestOptions = EmbraceUpload.Options(
             endpoints: testEndpointOptions(testName: testName),
-            cache: EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false),
+            cache: EmbraceUpload.CacheOptions(
+                storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false),
             metadata: Self.testMetadataOptions,
             redundancy: Self.testRedundancyOptions,
             urlSessionConfiguration: uploadUrlSessionconfig
         )
 
-        upload = try EmbraceUpload(options: uploadTestOptions, logger: MockLogger(), queue: .main, semaphore: .init(value: .max))
+        upload = try EmbraceUpload(
+            options: uploadTestOptions, logger: MockLogger(), queue: .main, semaphore: .init(value: .max))
         storage = try EmbraceStorage.createInMemoryDb()
 
         sdkStateProvider.isEnabled = true
@@ -88,7 +90,6 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertNil(session)
         XCTAssertNil(controller.currentSessionSpan)
     }
-
 
     func test_startSession_setsForegroundState() throws {
         let a = controller.startSession(state: .foreground)
@@ -440,8 +441,8 @@ final class SessionControllerTests: XCTestCase {
     }
 }
 
-private extension SessionControllerTests {
-    func testEndpointOptions(testName: String) -> EmbraceUpload.EndpointOptions {
+extension SessionControllerTests {
+    fileprivate func testEndpointOptions(testName: String) -> EmbraceUpload.EndpointOptions {
         .init(
             spansURL: testSessionsUrl(testName: testName),
             logsURL: testLogsUrl(testName: testName),
@@ -449,15 +450,15 @@ private extension SessionControllerTests {
         )
     }
 
-    func testSessionsUrl(testName: String = #function) -> URL {
+    fileprivate func testSessionsUrl(testName: String = #function) -> URL {
         URL(string: "https://embrace.\(testName).com/session_controller/sessions")!
     }
 
-    func testLogsUrl(testName: String = #function) -> URL {
+    fileprivate func testLogsUrl(testName: String = #function) -> URL {
         URL(string: "https://embrace.\(testName).com/session_controller/logs")!
     }
 
-    func testAttachmentsUrl(testName: String = #function) -> URL {
+    fileprivate func testAttachmentsUrl(testName: String = #function) -> URL {
         URL(string: "https://embrace.\(testName).com/session_controller/attachments")!
     }
 

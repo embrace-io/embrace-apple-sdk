@@ -4,6 +4,7 @@
 
 import Foundation
 import XCTest
+
 @testable import EmbraceCore
 
 class AlwaysSuccessfulKeychainInterface: KeychainInterface {
@@ -12,7 +13,7 @@ class AlwaysSuccessfulKeychainInterface: KeychainInterface {
     func valueFor(service: CFString, account: CFString) -> (value: String?, status: OSStatus) {
         return (value, errSecSuccess)
     }
-    
+
     func setValue(service: CFString, account: CFString, value: String, completion: (OSStatus) -> Void) {
         self.value = value
         completion(errSecSuccess)

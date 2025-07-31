@@ -2,11 +2,12 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-import TestSupport
-@testable import EmbraceCore
-@testable import EmbraceConfigInternal
 import EmbraceStorageInternal
+import TestSupport
+import XCTest
+
+@testable import EmbraceConfigInternal
+@testable import EmbraceCore
 
 // swiftlint:disable force_cast
 

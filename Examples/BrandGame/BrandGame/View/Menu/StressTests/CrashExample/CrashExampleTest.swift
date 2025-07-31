@@ -2,9 +2,8 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import SwiftUI
-
 import EmbraceCore
+import SwiftUI
 
 struct CrashExampleTest: View {
     @State private var selectedExample: ExampleCrash = .fatalError
@@ -48,11 +47,14 @@ struct CrashExampleTest: View {
             Text("Submitting this form will cause the app to crash")
                 .foregroundStyle(Color.secondary)
                 .listRowBackground(Color.clear)
-        }.sheet(isPresented: $showAddCrashInfo, content: {
-            NavigationStack {
-                AddCrashInfoView()
-            }.presentationDetents([.medium])
-        })
+        }.sheet(
+            isPresented: $showAddCrashInfo,
+            content: {
+                NavigationStack {
+                    AddCrashInfoView()
+                }.presentationDetents([.medium])
+            }
+        )
         .navigationTitle("Crash Examples")
     }
 

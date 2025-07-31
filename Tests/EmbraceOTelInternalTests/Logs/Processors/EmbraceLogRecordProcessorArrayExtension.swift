@@ -3,10 +3,11 @@
 //
 
 import Foundation
-import XCTest
 import OpenTelemetrySdk
-@testable import EmbraceOTelInternal
 import TestSupport
+import XCTest
+
+@testable import EmbraceOTelInternal
 
 class EmbraceLogRecordProcessorArrayExtensionTests: XCTestCase {
 

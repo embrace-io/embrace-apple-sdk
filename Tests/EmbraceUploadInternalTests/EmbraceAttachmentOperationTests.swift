@@ -1,10 +1,10 @@
+import TestSupport
 //
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 import XCTest
-import TestSupport
-@testable import EmbraceUploadInternal
 
+@testable import EmbraceUploadInternal
 
 class EmbraceAttachmentUploadOperationTests: XCTestCase {
 
@@ -25,7 +25,7 @@ class EmbraceAttachmentUploadOperationTests: XCTestCase {
         self.urlSession = URLSession(configuration: urlSessionconfig)
         self.queue = .main
     }
-    
+
     func test_createRequest() {
 
         let data = "12345".data(using: .utf8)!

@@ -2,9 +2,9 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
+import Foundation
 import OpenTelemetryApi
 import OpenTelemetrySdk
-import Foundation
 
 class EmbraceLogRecordBuilder: EventBuilder {
 
@@ -69,14 +69,15 @@ class EmbraceLogRecordBuilder: EventBuilder {
 
         sharedState.processors.forEach {
             let now = Date()
-            let log = ReadableLogRecord(resource: resource,
-                              instrumentationScopeInfo: instrumentationScope,
-                              timestamp: timestamp ?? now,
-                              observedTimestamp: observedTimestamp ?? now,
-                              spanContext: spanContext,
-                              severity: severity,
-                              body: body,
-                              attributes: attributes)
+            let log = ReadableLogRecord(
+                resource: resource,
+                instrumentationScopeInfo: instrumentationScope,
+                timestamp: timestamp ?? now,
+                observedTimestamp: observedTimestamp ?? now,
+                spanContext: spanContext,
+                severity: severity,
+                body: body,
+                attributes: attributes)
             $0.onEmit(logRecord: log)
         }
     }

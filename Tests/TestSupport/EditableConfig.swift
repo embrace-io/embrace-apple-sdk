@@ -11,7 +11,15 @@ public class EditableConfig: EmbraceConfigurable {
 
     public var isNetworkSpansForwardingEnabled: Bool = false
 
+    public var isWalModeEnabled: Bool = true
+
     public var isUiLoadInstrumentationEnabled: Bool = false
+
+    public var viewControllerClassNameBlocklist: [String] = []
+
+    public var uiInstrumentationCaptureHostingControllers: Bool = false
+
+    public var isSwiftUiViewInstrumentationEnabled: Bool = false
 
     public var isMetricKitEnabled: Bool = true
 
@@ -21,7 +29,7 @@ public class EditableConfig: EmbraceConfigurable {
 
     public var isMetricKitHangCaptureEnabled: Bool = false
 
-    public var isSwiftUiViewInstrumentationEnabled: Bool = false
+    public var spanEventsLimits = SpanEventsLimits()
 
     public var logsLimits = LogsLimits()
 

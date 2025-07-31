@@ -3,15 +3,15 @@
 //
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
+    import EmbraceCommonInternal
 #endif
 
-public extension SpanType {
-    static let startup = SpanType(system: "startup")
+extension SpanType {
+    public static let startup = SpanType(system: "startup")
 }
 
-public extension SpanSemantics {
-    struct Startup {
+extension SpanSemantics {
+    public struct Startup {
         public static let parentName = "emb-app-startup"
 
         public static let preMainInitName = "emb-app-pre-main-init"

@@ -12,9 +12,9 @@ struct MenuList: View {
     var body: some View {
         List {
             Section("Metadata") {
-               NavigationLink(destination: LazyView(UserInfo())) {
-                   Text("User Information")
-               }
+                NavigationLink(destination: LazyView(UserInfo())) {
+                    Text("User Information")
+                }
                 NavigationLink(destination: SessionAttributesView()) {
                     Text("Session Attributes")
                 }

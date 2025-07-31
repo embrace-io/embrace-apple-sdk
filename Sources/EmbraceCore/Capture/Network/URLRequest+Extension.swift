@@ -12,10 +12,12 @@ extension URLRequest {
 
     func addEmbraceHeaders() -> URLRequest {
         var mutableRequest = self
-        mutableRequest.setValue(UUID().uuidString,
-                                forHTTPHeaderField: Header.id)
-        mutableRequest.setValue(Date().serializedInterval.description,
-                                forHTTPHeaderField: Header.startTime)
+        mutableRequest.setValue(
+            UUID().uuidString,
+            forHTTPHeaderField: Header.id)
+        mutableRequest.setValue(
+            Date().serializedInterval.description,
+            forHTTPHeaderField: Header.startTime)
         return mutableRequest
     }
 }

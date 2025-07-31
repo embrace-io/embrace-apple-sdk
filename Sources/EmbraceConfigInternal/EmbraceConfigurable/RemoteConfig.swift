@@ -3,9 +3,10 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceConfiguration
+    import EmbraceCommonInternal
+    import EmbraceConfiguration
 #endif
 
 /// Remote config uses the Embrace Config Service to request config values
@@ -30,9 +31,10 @@ public class RemoteConfig {
         payload: RemoteConfigPayload = RemoteConfigPayload(),
         logger: InternalLogger
     ) {
-        self.init(options: options,
-                  fetcher: RemoteConfigFetcher(options: options, logger: logger),
-                  logger: logger)
+        self.init(
+            options: options,
+            fetcher: RemoteConfigFetcher(options: options, logger: logger),
+            logger: logger)
     }
 
     init(
@@ -57,7 +59,8 @@ public class RemoteConfig {
 
     func loadFromCache() {
         guard let url = cacheURL,
-              FileManager.default.fileExists(atPath: url.path) else {
+            FileManager.default.fileExists(atPath: url.path)
+        else {
             return
         }
 
@@ -71,7 +74,8 @@ public class RemoteConfig {
 
     func saveToCache(_ data: Data?) {
         guard let url = cacheURL,
-              let data = data else {
+            let data = data
+        else {
             return
         }
 
@@ -92,6 +96,14 @@ extension RemoteConfig: EmbraceConfigurable {
 
     public var isUiLoadInstrumentationEnabled: Bool { payload.uiLoadInstrumentationEnabled }
 
+    public var isWalModeEnabled: Bool { isEnabled(threshold: payload.walModeThreshold) }
+
+    public var viewControllerClassNameBlocklist: [String] { payload.viewControllerClassNameBlocklist }
+
+    public var uiInstrumentationCaptureHostingControllers: Bool { payload.uiInstrumentationCaptureHostingControllers }
+
+    public var isSwiftUiViewInstrumentationEnabled: Bool { payload.swiftUiViewInstrumentationEnabled }
+
     public var isMetricKitEnabled: Bool { isEnabled(threshold: payload.metricKitEnabledThreshold) }
 
     public var isMetricKitCrashCaptureEnabled: Bool { payload.metricKitCrashCaptureEnabled }
@@ -100,11 +112,13 @@ extension RemoteConfig: EmbraceConfigurable {
 
     public var isMetricKitHangCaptureEnabled: Bool { payload.metricKitHangCaptureEnabled }
 
-    public var isSwiftUiViewInstrumentationEnabled: Bool {
-        payload.swiftUiViewInstrumentationEnabled
-    }
-
     public var networkPayloadCaptureRules: [NetworkPayloadCaptureRule] { payload.networkPayloadCaptureRules }
+
+    public var spanEventsLimits: SpanEventsLimits {
+        SpanEventsLimits(
+            breadcrumb: UInt(max(payload.breadcrumbLimit, 0))
+        )
+    }
 
     public var logsLimits: LogsLimits {
         LogsLimits(

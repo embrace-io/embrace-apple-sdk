@@ -2,13 +2,14 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceStorageInternal
-import EmbraceCoreDataInternal
-#endif
 import CoreData
+import Foundation
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+    import EmbraceStorageInternal
+    import EmbraceCoreDataInternal
+#endif
 
 @objc public enum MetadataLifespan: Int {
     /// The resource will be removed when the session ends.
@@ -48,10 +49,10 @@ public class MetadataHandler: NSObject {
         // that means this should only be executed once
         let coreDataStackName = "EmbraceMetadataTmp"
         if let url = storage?.options.storageMechanism.baseUrl,
-           FileManager.default.fileExists(atPath: url.appendingPathComponent(coreDataStackName + ".sqlite").path) {
+            FileManager.default.fileExists(atPath: url.appendingPathComponent(coreDataStackName + ".sqlite").path) {
 
             let options = CoreDataWrapper.Options(
-                storageMechanism: .onDisk(name: coreDataStackName, baseURL: url),
+                storageMechanism: .onDisk(name: coreDataStackName, baseURL: url, journalMode: .delete),
                 entities: [MetadataRecordTmp.entityDescription]
             )
 
@@ -116,7 +117,8 @@ public class MetadataHandler: NSObject {
             )
 
             if record == nil {
-                let limit = type == .customProperty ? storage.options.customPropertiesLimit : storage.options.resourcesLimit
+                let limit =
+                    type == .customProperty ? storage.options.customPropertiesLimit : storage.options.resourcesLimit
                 Embrace.logger.warning("The limit for this type \(type.rawValue) of metadata was reached! (\(limit))")
             }
         }
@@ -258,7 +260,8 @@ extension MetadataLifespan {
 extension MetadataHandler {
     func cloneDataBase() {
         guard let coreData = coreData,
-              let storage = storage else {
+            let storage = storage
+        else {
             return
         }
 
@@ -267,7 +270,8 @@ extension MetadataHandler {
         coreData.fetchAndPerform(withRequest: request) { oldRecords in
             for record in oldRecords {
                 guard let type = MetadataRecordType(rawValue: record.type),
-                      let lifespan = MetadataRecordLifespan(rawValue: record.lifespan) else {
+                    let lifespan = MetadataRecordLifespan(rawValue: record.lifespan)
+                else {
                     continue
                 }
 
@@ -284,10 +288,10 @@ extension MetadataHandler {
         // remove temporary db file
         switch coreData.options.storageMechanism {
         case .onDisk:
-            if let url =  coreData.options.storageMechanism.fileURL {
+            if let url = coreData.options.storageMechanism.fileURL {
                 do {
                     try FileManager.default.removeItem(at: url)
-                } catch { }
+                } catch {}
             }
 
         default: return

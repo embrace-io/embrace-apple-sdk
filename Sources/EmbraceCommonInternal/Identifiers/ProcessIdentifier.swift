@@ -8,12 +8,12 @@ import Foundation
 public struct ProcessIdentifier: Equatable {
     public let value: UInt32
 
-   public init?(hex: String) {
-       guard let value = UInt32(hex, radix: 16) else {
-           return nil
-       }
+    public init?(hex: String) {
+        guard let value = UInt32(hex, radix: 16) else {
+            return nil
+        }
 
-       self.value = value
+        self.value = value
     }
 
     public init(value: UInt32) {

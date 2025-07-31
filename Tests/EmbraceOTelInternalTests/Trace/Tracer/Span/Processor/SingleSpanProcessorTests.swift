@@ -2,12 +2,13 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-@testable import EmbraceOTelInternal
-import OpenTelemetryApi
-@testable import OpenTelemetrySdk
-import TestSupport
 import EmbraceSemantics
+import OpenTelemetryApi
+import TestSupport
+import XCTest
+
+@testable import EmbraceOTelInternal
+@testable import OpenTelemetrySdk
 
 final class SingleSpanProcessorTests: XCTestCase {
 
@@ -71,7 +72,7 @@ final class SingleSpanProcessorTests: XCTestCase {
             expectation.fulfill()
         }
 
-        _ = createSpanData(processor: processor) // DEV: `startSpan` called in this method
+        _ = createSpanData(processor: processor)  // DEV: `startSpan` called in this method
         wait(for: [expectation], timeout: .defaultTimeout)
 
         XCTAssertEqual(exporter.exportedSpans.count, 0)
@@ -85,7 +86,7 @@ final class SingleSpanProcessorTests: XCTestCase {
             expectation.fulfill()
         }
 
-        let span = createSpanData(processor: processor) // DEV: `startSpan` called in this method
+        let span = createSpanData(processor: processor)  // DEV: `startSpan` called in this method
 
         wait(for: [expectation], timeout: .defaultTimeout)
         XCTAssertNotNil(exporter.exportedSpans[span.context.spanId])
@@ -99,7 +100,7 @@ final class SingleSpanProcessorTests: XCTestCase {
             expectation.fulfill()
         }
 
-        let span = createSpanData(processor: processor) // DEV: `startSpan` called in this method
+        let span = createSpanData(processor: processor)  // DEV: `startSpan` called in this method
 
         wait(for: [expectation], timeout: .defaultTimeout)
         let exportedSpan = try XCTUnwrap(exporter.exportedSpans[span.context.spanId])
@@ -128,7 +129,7 @@ final class SingleSpanProcessorTests: XCTestCase {
     func test_endingSpan_callsExporter() throws {
         let processor = SingleSpanProcessor(spanExporter: exporter, sdkStateProvider: sdkStateProvider)
         let expectation = expectation(description: "didExport onEnd")
-        expectation.expectedFulfillmentCount = 2        // DEV: need 2 to handle start and end
+        expectation.expectedFulfillmentCount = 2  // DEV: need 2 to handle start and end
         exporter.onExportComplete {
             expectation.fulfill()
         }
@@ -148,7 +149,7 @@ final class SingleSpanProcessorTests: XCTestCase {
     func test_endingSpan_setStatus_ifNoErrorCode_setsOk() throws {
         let processor = SingleSpanProcessor(spanExporter: exporter, sdkStateProvider: sdkStateProvider)
         let expectation = expectation(description: "didExport onEnd")
-        expectation.expectedFulfillmentCount = 2        // DEV: need 2 to handle start and end
+        expectation.expectedFulfillmentCount = 2  // DEV: need 2 to handle start and end
         exporter.onExportComplete {
             expectation.fulfill()
         }
@@ -169,7 +170,7 @@ final class SingleSpanProcessorTests: XCTestCase {
     func test_endingSpan_setStatus_ifErrorCode_setsError() throws {
         let processor = SingleSpanProcessor(spanExporter: exporter, sdkStateProvider: sdkStateProvider)
         let expectation = expectation(description: "didExport onEnd")
-        expectation.expectedFulfillmentCount = 2        // DEV: need 2 to handle start and end
+        expectation.expectedFulfillmentCount = 2  // DEV: need 2 to handle start and end
         exporter.onExportComplete {
             expectation.fulfill()
         }
@@ -244,9 +245,8 @@ final class SingleSpanProcessorTests: XCTestCase {
             }
 
             let exportedSpan = try XCTUnwrap(self.exporter.exportedSpans[span.context.spanId])
-            return exportedSpan.hasEnded &&
-                   exportedSpan.status.isError &&
-                   exportedSpan.attributes[SpanSemantics.keyErrorCode] == .string("user_abandon")
+            return exportedSpan.hasEnded && exportedSpan.status.isError
+                && exportedSpan.attributes[SpanSemantics.keyErrorCode] == .string("user_abandon")
         }
     }
 
@@ -270,12 +270,9 @@ final class SingleSpanProcessorTests: XCTestCase {
             let span1 = try XCTUnwrap(self.exporter.exportedSpans[childSpan1.context.spanId])
             let span2 = try XCTUnwrap(self.exporter.exportedSpans[childSpan2.context.spanId])
 
-            return span1.hasEnded &&
-                   span1.status.isError &&
-                   span1.attributes[SpanSemantics.keyErrorCode] == .string("user_abandon") &&
-                   span2.hasEnded &&
-                   span2.status.isError &&
-                   span2.attributes[SpanSemantics.keyErrorCode] == .string("user_abandon")
+            return span1.hasEnded && span1.status.isError
+                && span1.attributes[SpanSemantics.keyErrorCode] == .string("user_abandon") && span2.hasEnded
+                && span2.status.isError && span2.attributes[SpanSemantics.keyErrorCode] == .string("user_abandon")
         }
     }
 }

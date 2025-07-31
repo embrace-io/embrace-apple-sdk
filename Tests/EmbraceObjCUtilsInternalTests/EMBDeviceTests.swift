@@ -2,12 +2,12 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
 @_implementationOnly import EmbraceObjCUtilsInternal
+import XCTest
 
 final class EMBDeviceTests: XCTestCase {
 
-// MARK: - Operating System
+    // MARK: - Operating System
     func test_operatingSystemVersion_returnsCorrectVersion() {
         let version = EMBDevice.operatingSystemVersion
 
@@ -18,7 +18,8 @@ final class EMBDeviceTests: XCTestCase {
             XCTAssertEqual(version, expectedVersion)
         } else {
             // should contain patch version
-            let expectedVersion = "\(processVersion.majorVersion).\(processVersion.minorVersion).\(processVersion.patchVersion)"
+            let expectedVersion =
+                "\(processVersion.majorVersion).\(processVersion.minorVersion).\(processVersion.patchVersion)"
             XCTAssertEqual(version, expectedVersion)
         }
     }

@@ -5,6 +5,7 @@
 
 import OpenTelemetryApi
 import SwiftUI
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceSemantics
 #endif
@@ -66,13 +67,13 @@ public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
         self.attributes = attributes
         self.content = content
         self.contentCompleteValue = contentComplete
-        
+
         // Ensure counters are updated
         if self.state.initialize == 0 {
             self.state.initializeTime = Date()
         }
         self.state.initialize += 1
-        
+
         if !self.state.contentCompleteStoredFirstValue {
             self.state.contentCompleteStoredFirstValue = true
             self.state.contentCompleteValue = contentComplete
@@ -95,10 +96,10 @@ public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
     public var body: some View {
         // If tracing is disabled or we lack a valid OTel client, just render content.
         guard let config = logger.config,
-              config.isSwiftUiViewInstrumentationEnabled
+            config.isSwiftUiViewInstrumentationEnabled
         else {
             return content()
-                .onAppear() // placeholder to satisfy return type
+                .onAppear()  // placeholder to satisfy return type
                 .onDisappear()
         }
 
@@ -166,8 +167,7 @@ public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
                 // If this is the first appearance,
                 // log this as time to first render.
                 if state.appear == 1,
-                   let startTime = state.initializeTime
-                {
+                    let startTime = state.initializeTime {
                     let span = logger.startSpan(
                         name,
                         semantics: SpanSemantics.SwiftUIView.timeToFirstRender,
