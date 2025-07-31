@@ -19,7 +19,9 @@ extension EmbraceStorage {
     public static func createInDiskDb(fileName: String) throws -> EmbraceStorage {
         let url = URL(fileURLWithPath: NSTemporaryDirectory())
         let storage = try EmbraceStorage(
-            options: .init(storageMechanism: .onDisk(name: fileName, baseURL: url, journalMode: .delete), enableBackgroundTasks: false),
+            options: .init(
+                storageMechanism: .onDisk(name: fileName, baseURL: url, journalMode: .delete),
+                enableBackgroundTasks: false),
             logger: MockLogger()
         )
 

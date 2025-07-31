@@ -5,6 +5,7 @@
 import Foundation
 
 public struct EmbraceFileSystem {
+    static let version = 6
     static let rootDirectoryName = "io.embrace.data"
     static let versionDirectoryName = "v6"
     static let storageDirectoryName = "storage"
@@ -135,5 +136,29 @@ public struct EmbraceFileSystem {
     /// ```
     static var criticalLogsURL: URL? {
         rootURL()?.appendingPathComponent(criticalLogsName)
+    }
+
+    /// Returns the possible subdirectories for data from old version that can be safely removed
+    /// ```
+    /// [
+    ///     io.embrace.data/<old_version1>/,
+    ///     io.embrace.data/<old_version2>/,
+    ///     ...
+    /// ]
+    /// ```
+    static func oldVersionsDirectories() -> [URL] {
+        var result: [URL] = []
+
+        guard let baseURL = systemDirectory(appGroupId: nil) else {
+            return result
+        }
+
+        for i in stride(from: version - 1, to: 0, by: -1) {
+            let components = [rootDirectoryName, "v\(i)"]
+            let url = baseURL.appendingPathComponent(components.joined(separator: "/"))
+            result.append(url)
+        }
+
+        return result
     }
 }

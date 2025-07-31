@@ -36,7 +36,8 @@ extension Embrace {
         }
     }
 
-    static func createUpload(options: Embrace.Options, deviceId: String, configuration: EmbraceConfigurable) -> EmbraceUpload? {
+    static func createUpload(options: Embrace.Options, deviceId: String, configuration: EmbraceConfigurable)
+        -> EmbraceUpload? {
         guard let appId = options.appId else {
             return nil
         }
@@ -76,7 +77,9 @@ extension Embrace {
             baseURL: cacheUrl,
             journalMode: configuration.isWalModeEnabled ? .wal : .delete
         )
-        let cache = EmbraceUpload.CacheOptions(storageMechanism: storageMechanism)
+
+        let cache = EmbraceUpload.CacheOptions(storageMechanism: storageMechanism, resetCache: resetUploadCache)
+        resetUploadCache = false
 
         // metadata
         let metadata = EmbraceUpload.MetadataOptions(
@@ -105,6 +108,12 @@ extension Embrace {
             ManualSessionLifecycle(controller: controller)
         }
     #endif
+
+    static let resetUploadCacheKey = "emb.reset-upload-cache"
+    static var resetUploadCache: Bool {
+        get { UserDefaults.standard.bool(forKey: Embrace.resetUploadCacheKey) }
+        set { UserDefaults.standard.set(newValue, forKey: Embrace.resetUploadCacheKey) }
+    }
 }
 
 /// Extension to handle observability of SDK startup
@@ -131,5 +140,20 @@ extension Embrace {
             .startSpan()
             .end()
     }
+}
 
+extension Embrace {
+    func cleanUpOldVersionsData() {
+        let urls = EmbraceFileSystem.oldVersionsDirectories()
+
+        for url in urls {
+            if FileManager.default.fileExists(atPath: url.path) {
+                do {
+                    try FileManager.default.removeItem(at: url)
+                } catch {
+                    Embrace.logger.error("Error removing data from an old version!:\n\(error)")
+                }
+            }
+        }
+    }
 }

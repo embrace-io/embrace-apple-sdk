@@ -14,7 +14,7 @@ extension StorageSpanExporter {
 
         init(
             storage: EmbraceStorage,
-            sessionController: SessionControllable,
+            sessionController: SessionControllable
         ) {
             self.storage = storage
             self.sessionController = sessionController

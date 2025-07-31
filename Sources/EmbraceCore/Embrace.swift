@@ -338,6 +338,9 @@ import Foundation
                         currentSessionId: self?.sessionController.currentSession?.id,
                         crashReporter: self?.captureServices.crashReporter
                     )
+
+                    // remove old versions data
+                    self?.cleanUpOldVersionsData()
                 }
 
                 // retry any remaining cached upload data
@@ -428,6 +431,11 @@ import Foundation
         processingQueue.async {
             self.sessionLifecycle.endSession()
         }
+    }
+
+    /// Call this if you want the Embrace SDK to clear the upload cache data on the next launch.
+    @objc public func resetUploadCache() {
+        Embrace.resetUploadCache = true
     }
 
     /// Called every time the remote config changes

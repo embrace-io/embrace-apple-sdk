@@ -3,6 +3,7 @@
 //
 
 import CoreData
+import EmbraceCommonInternal
 import EmbraceOTelInternal
 import TestSupport
 import XCTest
@@ -12,6 +13,7 @@ import XCTest
 class EmbraceUploadCacheTests: XCTestCase {
     let logger = MockLogger()
     var spanProcessor: MockSpanProcessor!
+    let fileProvider = TemporaryFilepathProvider()
 
     override func setUpWithError() throws {
         spanProcessor = MockSpanProcessor()
@@ -20,6 +22,23 @@ class EmbraceUploadCacheTests: XCTestCase {
 
     override func tearDownWithError() throws {
 
+    }
+
+    func test_resetCache() throws {
+        // given an existing db file
+        let storageMechanism: StorageMechanism = .onDisk(
+            name: "test_resetCache", baseURL: fileProvider.tmpDirectory, journalMode: .delete)
+        let fileUrl = storageMechanism.fileURL!
+        try "test".write(to: fileUrl, atomically: true, encoding: .utf8)
+        XCTAssert(FileManager.default.fileExists(atPath: fileUrl.path))
+
+        // when creating the cache with the reset flag enabled
+        let options = EmbraceUpload.CacheOptions(
+            storageMechanism: storageMechanism, enableBackgroundTasks: false, resetCache: true)
+        _ = try EmbraceUploadCache(options: options, logger: logger)
+
+        // then the old cache file is deleted
+        XCTAssertFalse(FileManager.default.fileExists(atPath: fileUrl.path))
     }
 
     func test_fetchUploadData() throws {
