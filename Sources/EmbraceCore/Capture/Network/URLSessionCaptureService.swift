@@ -89,6 +89,16 @@ public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandl
     var ignoredURLs: [String] {
         return options.ignoredURLs
     }
+
+    static private let avTaskTypes: [AnyClass] = [
+        "__NSCFBackgroundAVAggregateAssetDownloadTask",
+        "__NSCFBackgroundAVAssetDownloadTask",
+        "__NSCFBackgroundAVAggregateAssetDownloadTaskNoChildTask"
+    ].compactMap { NSClassFromString($0) }
+
+    var ignoredTaskTypes: [AnyClass] {
+        return Self.avTaskTypes
+    }
 }
 
 // swiftlint:disable line_length
