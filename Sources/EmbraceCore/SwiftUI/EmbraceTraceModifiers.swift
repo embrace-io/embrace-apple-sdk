@@ -66,9 +66,9 @@ extension View {
 }
 
 @available(iOS 14, tvOS 14, *)
-public extension View {
+extension View {
 
-    func embraceSurface(
+    public func embraceSurface(
         _ viewName: String,
         attributes: [String: String]? = nil
     ) -> some View {
