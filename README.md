@@ -150,47 +150,33 @@ bin/test | xcpretty
 
 ## Linting, Formatting and Guidelines
 
-We use [SwiftLint](https://github.com/realm/SwiftLint) to enforce consistency and every pull request must pass a lint check to be merged.
+To ensure consistent formatting across the codebase, we use both [swift-format](https://github.com/apple/swift-format) and [clang-format](https://clang.llvm.org/docs/ClangFormat.html), as well as [swiftlint](https://github.com/realm/SwiftLint) for linting.
 
-You can install SwiftLint by following the instructions in their [README](https://github.com/realm/SwiftLint/blob/main/README.md).
-We recommend homebrew:
-
-```sh
-brew install swiftlint
-```
-
-
-Once `swiftlint` is in your PATH, you can run the linter:
-```sh
-swiftlint --fix
-```
-
-### Formatting Code
-
-To ensure consistent formatting across the codebase, we use both [swift-format](https://github.com/apple/swift-format) and [clang-format](https://clang.llvm.org/docs/ClangFormat.html).
-
-The easiest way to run both formatters is via:
+The easiest way to run both formatters and linters is via:
 
 ```sh
 make all
 ```
 
-This will automatically apply formatting to all Swift and C/Obj-C files using project-defined configurations (e.g., `.swift-format`, `.clang-format`).
+This will automatically apply formatting and linting to all Swift and C/Obj-C files using project-defined configurations (e.g., `.swift-format`, `.clang-format`, `.swiftlint.yml`).
 
 To install the tools via Homebrew:
 
 ```sh
 brew install swift-format
 brew install clang-format
+brew install swiftlint
 ```
 
-You can also run individual format targets:
+You can also run individual format and lint targets:
 
 ```sh
 make format 
 make check-format 
 make swift-format 
 make check-swift-format
+make lint
+make check-lint
 ```
 
 Make sure your code is formatted before submitting a pull request.
@@ -206,8 +192,8 @@ Note: Xcode must be completely closed before running the above command, close Xc
 Aside from the warnings and errors that will appear directly in Xcode, you can use SwiftLint to automatically correct some issues.
 For this first you'll need to install SwiftLint in your local environment. Follow [SwiftLint's GitHub page](https://github.com/realm/SwiftLint) to see all available options.
 
-* Use `swiftlint lint --strict` to get a report on all the issues.
-* Use `swiftlint --fix` to fix issues automatically when possible.
+* Use `make check-lint` to get a report on all the issues.
+* Use `make lint` to fix issues automatically when possible.
 
 ### Setup pre-commit hook
 

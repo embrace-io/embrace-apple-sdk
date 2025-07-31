@@ -11,6 +11,8 @@ public class EditableConfig: EmbraceConfigurable {
 
     public var isNetworkSpansForwardingEnabled: Bool = false
 
+    public var isWalModeEnabled: Bool = true
+
     public var isUiLoadInstrumentationEnabled: Bool = false
 
     public var viewControllerClassNameBlocklist: [String] = []

@@ -152,8 +152,7 @@ class LogController: LogControllable {
 
         // handle pre-uploaded attachment
         else if let attachmentId = attachmentId,
-            let attachmentUrl = attachmentUrl
-        {
+            let attachmentUrl = attachmentUrl {
 
             finalAttributes[LogSemantics.keyAttachmentId] = attachmentId
             finalAttributes[LogSemantics.keyAttachmentUrl] = attachmentUrl.absoluteString

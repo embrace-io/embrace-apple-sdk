@@ -211,6 +211,14 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
         thenHTTPNetworkSpanShouldBeCreated()
     }
 
+    func testIgnoredTaskTypes() {
+        givenTaskHandler()
+        givenIgnoredTaskTypes()
+        givenAnURLSessionTask(urlString: "https://ThisIsAUrl/with/some/path")
+        whenInvokingCreate(withoutWaiting: true)
+        thenNoSpanShouldBeCreated()
+    }
+
     // MARK: - AddData Tests
 
     func testOnPayloadCaptureDisabled_addData_doesntDoAnything() {
@@ -277,6 +285,10 @@ extension DefaultURLSessionTaskHandlerTests {
 
     fileprivate func givenIgnoredURLs() {
         dataSource.ignoredURLs = ["embrace.io"]
+    }
+
+    fileprivate func givenIgnoredTaskTypes() {
+        dataSource.ignoredTaskTypes = [URLSessionTask.self]
     }
 
     fileprivate func givenHandlerCreatedASpan(withResponse response: URLResponse? = nil) {

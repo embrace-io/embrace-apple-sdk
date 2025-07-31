@@ -24,6 +24,8 @@ protocol URLSessionTaskHandlerDataSource: AnyObject {
     var injectTracingHeader: Bool { get }
     var requestsDataSource: URLSessionRequestsDataSource? { get }
     var ignoredURLs: [String] { get }
+
+    var ignoredTaskTypes: [AnyClass] { get }
 }
 
 final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
@@ -46,8 +48,21 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
             payloadCaptureHandler ?? DefaultNetworkPayloadCaptureHandler(otel: dataSource?.otel)
     }
 
+    func shouldIgnoreTask(_ task: URLSessionTask) -> Bool {
+        if let dataSource {
+            return dataSource.ignoredTaskTypes.contains(where: { task.isKind(of: $0) })
+        }
+
+        return false
+    }
+
     @discardableResult
     func create(task: URLSessionTask) -> Bool {
+
+        // check for ignored task types
+        guard shouldIgnoreTask(task) == false else {
+            return false
+        }
 
         var handled = false
 
@@ -136,7 +151,13 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
         return handled
     }
 
-    func finish(task: URLSessionTask, bodySize: Int, error: (any Error)?) {
+    private func finish(task: URLSessionTask, data: Data?, bodySize: Int, error: (any Error)?) {
+
+        // check for ignored task types
+        guard shouldIgnoreTask(task) == false else {
+            return
+        }
+
         // save a local copy of the task in case it gets released
         guard let taskCopy = task.copy() as? URLSessionTask else {
             return
@@ -146,12 +167,17 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
         let embraceEndTime = Date()
 
         queue.async {
+            var capturedBodySize = data?.count ?? bodySize
+
             // process payload capture
             if self.payloadCaptureHandler.isEnabled() {
-                var data: Data?
-                self.capturedDataQueue.sync {
-                    data = taskCopy.embraceData
+                var capturedData = data
+                if capturedData == nil {
+                    self.capturedDataQueue.sync {
+                        capturedData = taskCopy.embraceData
+                    }
                 }
+                capturedBodySize = capturedData?.count ?? bodySize
 
                 self.payloadCaptureHandler.process(
                     request: taskCopy.currentRequest ?? taskCopy.originalRequest,
@@ -163,37 +189,16 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
                 )
             }
 
-            self.handleTaskFinished(taskCopy, bodySize: bodySize, error: error)
+            self.handleTaskFinished(taskCopy, bodySize: capturedBodySize, error: error)
         }
     }
 
+    func finish(task: URLSessionTask, bodySize: Int, error: (any Error)?) {
+        finish(task: task, data: nil, bodySize: bodySize, error: error)
+    }
+
     func finish(task: URLSessionTask, data: Data?, error: (any Error)?) {
-        // save end time for payload capture
-        let embraceEndTime = Date()
-
-        queue.async {
-            // process payload capture
-            if self.payloadCaptureHandler.isEnabled() {
-                // performing this logic to prevent any issues accessing `task.embraceData`
-                var capturedData = data
-                if capturedData == nil {
-                    self.capturedDataQueue.sync {
-                        capturedData = task.embraceData
-                    }
-                }
-
-                self.payloadCaptureHandler.process(
-                    request: task.currentRequest ?? task.originalRequest,
-                    response: task.response,
-                    data: capturedData,
-                    error: error,
-                    startTime: task.embraceStartTime,
-                    endTime: embraceEndTime
-                )
-            }
-
-            self.handleTaskFinished(task, bodySize: data?.count, error: error)
-        }
+        finish(task: task, data: data, bodySize: 0, error: error)
     }
 
     private func handleTaskFinished(_ task: URLSessionTask, bodySize: Int?, error: (any Error)?) {

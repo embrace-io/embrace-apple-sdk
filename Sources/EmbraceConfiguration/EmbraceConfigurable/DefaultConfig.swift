@@ -11,6 +11,8 @@ public class DefaultConfig: EmbraceConfigurable {
 
     public let isUiLoadInstrumentationEnabled: Bool = true
 
+    public var isWalModeEnabled: Bool = true
+
     public let viewControllerClassNameBlocklist: [String] = []
 
     public let uiInstrumentationCaptureHostingControllers: Bool = false

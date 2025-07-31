@@ -44,7 +44,7 @@ public class CoreDataWrapper {
                 description.type = NSInMemoryStoreType
                 container.persistentStoreDescriptions = [description]
 
-            case let .onDisk(_, baseURL):
+            case let .onDisk(_, baseURL, journalMode):
                 try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true)
                 let description = NSPersistentStoreDescription()
                 #if !os(macOS)
@@ -53,7 +53,7 @@ public class CoreDataWrapper {
                 #endif
                 description.type = NSSQLiteStoreType
                 description.url = options.storageMechanism.fileURL
-                description.setValue("DELETE" as NSString, forPragmaNamed: "journal_mode")
+                description.setValue(journalMode.rawValue as NSString, forPragmaNamed: "journal_mode")
 
                 container.persistentStoreDescriptions = [description]
             }
@@ -74,21 +74,57 @@ public class CoreDataWrapper {
     /// Note we do not cancel currently any tasks on assertion expiry,
     /// Note don't we care if a task assertion is actually given to us.
     public func performOperation<Result>(
-        _ name: String = #function, save _: Bool = false, _ block: (NSManagedObjectContext) -> Result
+        _ name: String = #function, save: Bool = false, allowMainQueue: Bool = false,
+        _ block: (NSManagedObjectContext) -> Result
     ) -> Result {
+
+        if !allowMainQueue && Thread.isMainThread {
+            logger.critical("Warning: performBlockAndWait on main thread can easily deadlock! Proceeding with caution.")
+        }
+        #if DEBUG
+            if !isTesting && !allowMainQueue {
+                precondition(!Thread.isMainThread, "performBlockAndWait on main thread can easily deadlock!")
+                dispatchPrecondition(condition: .notOnQueue(.main))
+            }
+        #endif
+
         var result: Result!
         let taskAssertion = BackgroundTaskWrapper(name: name, logger: logger)
         context.performAndWait {
             result = block(context)
-            saveIfNeeded()
+            if save {
+                saveIfNeeded()
+            }
         }
         taskAssertion?.finish()
         return result
     }
 
+    /// Asynchronously performs the given block on the current context
+    /// behind a background task assertion.
+    /// And automatically save if requested.
+    public func performAsyncOperation(
+        _ name: String = #function, save: Bool = false, _ block: @escaping (NSManagedObjectContext) -> Void
+    ) {
+        let taskAssertion = BackgroundTaskWrapper(name: name, logger: logger)
+        let cntxt: NSManagedObjectContext = context
+        cntxt.perform { [self, cntxt] in
+            block(cntxt)
+            if save {
+                saveIfNeeded()
+            }
+            taskAssertion?.finish()
+        }
+    }
+
     /// Requests all changes to be saved to disk as soon as possible
-    public func save() {
-        performOperation(save: true) { _ in }
+    public func save(allowMainQueue: Bool = false) {
+        performOperation(save: true, allowMainQueue: allowMainQueue) { _ in }
+    }
+
+    /// Requests all changes to be saved to disk async
+    public func saveAsync() {
+        performAsyncOperation(save: true) { _ in }
     }
 }
 
@@ -191,8 +227,8 @@ extension CoreDataWrapper {
         } catch {
             logger.critical(
                 """
-                CoreData save failed '\(context.name ?? "???")', 
-                error: \(error.localizedDescription), 
+                CoreData save failed '\(context.name ?? "???")',
+                error: \(error.localizedDescription),
                 """
             )
         }

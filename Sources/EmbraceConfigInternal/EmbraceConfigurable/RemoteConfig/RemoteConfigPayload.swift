@@ -15,6 +15,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
     var sdkEnabledThreshold: Float
     var backgroundSessionThreshold: Float
     var networkSpansForwardingThreshold: Float
+    var walModeThreshold: Float
 
     var uiLoadInstrumentationEnabled: Bool
     var viewControllerClassNameBlocklist: [String]
@@ -53,6 +54,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             case threshold = "pct_enabled"
         }
 
+        case walModeThreshold = "core_data_wal_mode_pct_enabled"
         case uiLoadInstrumentationEnabled = "ui_load_instrumentation_enabled_v2"
         case uiLoadInstrumentationBlocklist = "ui_load_instrumentation_blocklist"
         case uiLoadCaptureHostingControllers = "ui_load_instrumentation_hosting_controller_capture"
@@ -126,6 +128,12 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         } else {
             networkSpansForwardingThreshold = defaultPayload.networkSpansForwardingThreshold
         }
+
+        // is wal mode enabled config
+        walModeThreshold = try rootContainer.decodeIfPresent(
+            Float.self,
+            forKey: .walModeThreshold
+        ) ?? defaultPayload.walModeThreshold
 
         // ui load instrumentation
         uiLoadInstrumentationEnabled =
@@ -290,6 +298,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         sdkEnabledThreshold = 100.0
         backgroundSessionThreshold = 0.0
         networkSpansForwardingThreshold = 0.0
+        walModeThreshold = 100.0
 
         uiLoadInstrumentationEnabled = true
         viewControllerClassNameBlocklist = []

@@ -6,7 +6,7 @@ import Foundation
 
 public enum StorageMechanism {
     case inMemory(name: String)
-    case onDisk(name: String, baseURL: URL)
+    case onDisk(name: String, baseURL: URL, journalMode: JournalMode)
 }
 
 extension StorageMechanism {
@@ -14,7 +14,7 @@ extension StorageMechanism {
     /// Name identifier
     public var name: String {
         switch self {
-        case .onDisk(let name, _): return name
+        case .onDisk(let name, _, _): return name
         case .inMemory(let name): return name
         }
     }
@@ -22,7 +22,7 @@ extension StorageMechanism {
     /// URL pointing to the folder where the storage will be saved
     public var baseUrl: URL? {
         switch self {
-        case .onDisk(_, let url):
+        case .onDisk(_, let url, _):
             return url
 
         default: return nil
@@ -32,7 +32,7 @@ extension StorageMechanism {
     /// URL pointing to the folder where the storage will be saved
     public var fileName: String? {
         switch self {
-        case .onDisk(let name, _):
+        case .onDisk(let name, _, _):
             return name + ".sqlite"
 
         default: return nil
@@ -42,7 +42,7 @@ extension StorageMechanism {
     /// URL to the storage file
     public var fileURL: URL? {
         switch self {
-        case .onDisk(let name, let url):
+        case .onDisk(let name, let url, _):
             return url.appendingPathComponent(name + ".sqlite")
 
         default: return nil

@@ -50,7 +50,7 @@ public class EmbraceStorage: Storage {
 
     /// Saves all changes to disk
     public func save() {
-        coreData.save()
+        coreData.saveAsync()
     }
 }
 

@@ -62,52 +62,67 @@ extension EmbraceStorage {
         return nil
     }
 
-    /// Adds or updates all the given required resources
+    // Add critical or required resources.
+    // WARNING: This MUST be run behind `.performOperation` or `.performAsynOperation`.
+    private func _addResources(
+        _ map: [String: String], allowMainQueue: Bool, context: NSManagedObjectContext,
+        processId: ProcessIdentifier = .current
+    ) {
+
+        guard let description = NSEntityDescription.entity(forEntityName: MetadataRecord.entityName, in: context)
+        else {
+            logger.error("Error finding entity description for MetadataRecord!")
+            return
+        }
+
+        for (key, value) in map {
+            // find if exists
+            let request = MetadataRecord.createFetchRequest()
+            request.fetchLimit = 1
+            request.predicate = NSPredicate(
+                format: "key == %@ AND typeRaw == %@ AND lifespanRaw == %@ AND lifespanId == %@",
+                key,
+                MetadataRecordType.requiredResource.rawValue,
+                MetadataRecordLifespan.process.rawValue,
+                processId.hex
+            )
+
+            var record: MetadataRecord?
+            do {
+                record = try context.fetch(request).first
+            } catch {
+                logger.error("Error fetching required resource \(key)!")
+            }
+
+            // update
+            if let record = record {
+                record.value = value
+
+                // create
+            } else {
+                record = MetadataRecord(entity: description, insertInto: context)
+                record?.key = key
+                record?.value = value
+                record?.typeRaw = MetadataRecordType.requiredResource.rawValue
+                record?.lifespanRaw = MetadataRecordLifespan.process.rawValue
+                record?.lifespanId = processId.hex
+                record?.collectedAt = Date()
+            }
+        }
+        coreData.save(allowMainQueue: allowMainQueue)
+    }
+
+    /// Adds or updates all the given critical resources **synchronously**
+    public func addCriticalResources(_ map: [String: String], processId: ProcessIdentifier = .current) {
+        coreData.performOperation(allowMainQueue: true) { context in
+            _addResources(map, allowMainQueue: true, context: context, processId: processId)
+        }
+    }
+
+    /// Adds or updates all the given required resources **asynchronously**
     public func addRequiredResources(_ map: [String: String], processId: ProcessIdentifier = .current) {
-
-        coreData.performOperation { context in
-
-            guard let description = NSEntityDescription.entity(forEntityName: MetadataRecord.entityName, in: context)
-            else {
-                logger.error("Error finding entity description for MetadataRecord!")
-                return
-            }
-
-            for (key, value) in map {
-                // find if exists
-                let request = MetadataRecord.createFetchRequest()
-                request.fetchLimit = 1
-                request.predicate = NSPredicate(
-                    format: "key == %@ AND typeRaw == %@ AND lifespanRaw == %@ AND lifespanId == %@",
-                    key,
-                    MetadataRecordType.requiredResource.rawValue,
-                    MetadataRecordLifespan.process.rawValue,
-                    processId.hex
-                )
-
-                var record: MetadataRecord?
-                do {
-                    record = try context.fetch(request).first
-                } catch {
-                    logger.error("Error fetching required resource \(key)!")
-                }
-
-                // update
-                if let record = record {
-                    record.value = value
-
-                    // create
-                } else {
-                    record = MetadataRecord(entity: description, insertInto: context)
-                    record?.key = key
-                    record?.value = value
-                    record?.typeRaw = MetadataRecordType.requiredResource.rawValue
-                    record?.lifespanRaw = MetadataRecordLifespan.process.rawValue
-                    record?.lifespanId = processId.hex
-                    record?.collectedAt = Date()
-                }
-            }
-            coreData.save()
+        coreData.performAsyncOperation { [self] context in
+            _addResources(map, allowMainQueue: true, context: context, processId: processId)
         }
     }
 
