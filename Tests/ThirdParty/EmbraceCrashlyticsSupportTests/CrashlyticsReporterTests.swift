@@ -22,7 +22,7 @@ class CrashlyticsReporterTests: XCTestCase {
             filePathProvider: TemporaryFilepathProvider(),
             notificationCenter: NotificationCenter.default
         )
-        reporter.install(context: context, logger: MockLogger())
+        try reporter.install(context: context)
 
         let expectation = XCTestExpectation()
         reporter.onNewReport = { _ in
@@ -51,7 +51,7 @@ class CrashlyticsReporterTests: XCTestCase {
             filePathProvider: TemporaryFilepathProvider(),
             notificationCenter: NotificationCenter.default
         )
-        reporter.install(context: context, logger: MockLogger())
+        try reporter.install(context: context)
 
         let expectation = XCTestExpectation()
         expectation.isInverted = true

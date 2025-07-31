@@ -2,6 +2,7 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceCommonInternal
 import TestSupport
 import XCTest
 
@@ -46,8 +47,8 @@ class CrashlyticsWrapperTests: XCTestCase {
         wait(delay: .longTimeout)
 
         // when setting the current session id and sdk versions
-        wrapper.currentSessionId = "test"
-        wrapper.sdkVersion = "test"
+        wrapper.setCustomValue(key: CrashReporterInfoKey.sessionId, value: "test")
+        wrapper.setCustomValue(key: CrashReporterInfoKey.sdkVersion, value: "test")
 
         // then setCustomValue:forKey is called on crashlytics
         XCTAssertEqual(mock.setCustomValueCallCount, 2)

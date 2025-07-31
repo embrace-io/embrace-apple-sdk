@@ -8,7 +8,7 @@ import Foundation
     import EmbraceCaptureService
     import EmbraceCore
     import EmbraceCommonInternal
-    import EmbraceCrash
+    import EmbraceKSCrashSupport
     import EmbraceOTelInternal
 #endif
 
@@ -41,7 +41,7 @@ extension Embrace.Options {
             platform: platform,
             endpoints: endpoints,
             captureServices: .automatic,
-            crashReporter: EmbraceCrashReporter(),
+            crashReporter: KSCrashReporter(),
             logLevel: logLevel,
             export: export
         )
@@ -67,7 +67,7 @@ extension Embrace.Options {
             appGroupId: appGroupId,
             platform: platform,
             captureServices: .automatic,
-            crashReporter: EmbraceCrashReporter(),
+            crashReporter: KSCrashReporter(),
             processors: nil
         )
     }
@@ -94,7 +94,7 @@ extension Embrace.Options {
             appGroupId: appGroupId,
             platform: platform,
             captureServices: .automatic,
-            crashReporter: EmbraceCrashReporter(),
+            crashReporter: KSCrashReporter(),
             processors: processors
         )
     }
@@ -114,7 +114,7 @@ extension Embrace.Options {
         self.init(
             export: export,
             captureServices: .automatic,
-            crashReporter: EmbraceCrashReporter(),
+            crashReporter: KSCrashReporter(),
             logLevel: logLevel
         )
     }
