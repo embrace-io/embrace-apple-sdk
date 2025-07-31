@@ -3,34 +3,35 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-import SwiftUI
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceConfiguration
-import EmbraceOTelInternal
-import EmbraceSemantics
-#endif
 import OpenTelemetryApi
+import SwiftUI
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+    import EmbraceConfiguration
+    import EmbraceOTelInternal
+    import EmbraceSemantics
+#endif
 
 @available(iOS 14, tvOS 14, *)
 public struct EmbraceTraceSurfaceView<Content: View>: View {
-    
+
     private let name: String
     private let attributes: [String: String]?
     private let content: () -> Content
-    
+
     @Environment(\.embraceSurfaceParent)
     private var parentUUID: UUID?
-    
+
     @Environment(\.embraceTraceViewLogger)
     internal var logger: EmbraceTraceViewLogger
-    
+
     @Environment(\.embraceSurfaceTracker)
     internal var tracker: EmbraceSurfaceTracker
-    
+
     @StateObject
     internal var state = SurfaceState()
-    
+
     public init(
         _ name: String,
         attributes: [String: String]? = nil,
@@ -92,4 +93,3 @@ public struct EmbraceTraceSurfaceView<Content: View>: View {
             }
     }
 }
-
