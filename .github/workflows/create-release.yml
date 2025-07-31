@@ -40,7 +40,7 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
-          persist-credentials: false
+          persist-credentials: true 
 
       - name: Define Production Readiness
         run: |
