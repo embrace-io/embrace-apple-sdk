@@ -21,6 +21,6 @@ extension EmbraceSpan {
     }
 
     public var processId: ProcessIdentifier? {
-        return ProcessIdentifier(hex: processIdRaw)
+        return ProcessIdentifier(string: processIdRaw)
     }
 }

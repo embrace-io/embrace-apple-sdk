@@ -569,7 +569,7 @@ class UnsentDataHandlerTests: XCTestCase {
             value: "test",
             type: .requiredResource,
             lifespan: .process,
-            lifespanId: ProcessIdentifier.current.hex
+            lifespanId: ProcessIdentifier.current.value
         )
         storage.addMetadata(
             key: "differentSessionId",
@@ -685,7 +685,7 @@ class UnsentDataHandlerTests: XCTestCase {
             value: "test",
             type: .requiredResource,
             lifespan: .process,
-            lifespanId: ProcessIdentifier.current.hex
+            lifespanId: ProcessIdentifier.current.value
         )
         storage.addMetadata(
             key: "differentProcessId",

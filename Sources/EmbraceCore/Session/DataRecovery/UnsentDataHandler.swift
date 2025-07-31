@@ -288,7 +288,7 @@ class UnsentDataHandler {
 
     static private func cleanMetadata(storage: EmbraceStorage, currentSessionId: String? = nil) {
         let sessionId = currentSessionId ?? Embrace.client?.currentSessionId()
-        storage.cleanMetadata(currentSessionId: sessionId, currentProcessId: ProcessIdentifier.current.hex)
+        storage.cleanMetadata(currentSessionId: sessionId, currentProcessId: ProcessIdentifier.current.value)
     }
 
     static func sendCriticalLogs(fileUrl: URL?, upload: EmbraceUpload?) {

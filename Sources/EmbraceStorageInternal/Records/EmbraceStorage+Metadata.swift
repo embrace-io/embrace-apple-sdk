@@ -84,7 +84,7 @@ extension EmbraceStorage {
                 key,
                 MetadataRecordType.requiredResource.rawValue,
                 MetadataRecordLifespan.process.rawValue,
-                processId.hex
+                processId.value
             )
 
             var record: MetadataRecord?
@@ -105,7 +105,7 @@ extension EmbraceStorage {
                 record?.value = value
                 record?.typeRaw = MetadataRecordType.requiredResource.rawValue
                 record?.lifespanRaw = MetadataRecordLifespan.process.rawValue
-                record?.lifespanId = processId.hex
+                record?.lifespanId = processId.value
                 record?.collectedAt = Date()
             }
         }
@@ -375,7 +375,7 @@ extension EmbraceStorage {
             type: .and,
             subpredicates: [
                 resourcePredicate(),
-                lifespanPredicate(processId: processId.hex)
+                lifespanPredicate(processId: processId.value)
             ]
         )
 
@@ -466,7 +466,7 @@ extension EmbraceStorage {
             type: .and,
             subpredicates: [
                 personaTagPredicate(),
-                lifespanPredicate(processId: processId.hex)
+                lifespanPredicate(processId: processId.value)
             ]
         )
 

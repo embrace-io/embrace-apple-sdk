@@ -59,7 +59,7 @@ extension EmbraceStorage {
 
     public func fetchAll(excludingProcessIdentifier processIdentifier: ProcessIdentifier) -> [EmbraceLog] {
         let request = LogRecord.createFetchRequest()
-        request.predicate = NSPredicate(format: "processIdRaw != %@", processIdentifier.hex)
+        request.predicate = NSPredicate(format: "processIdRaw != %@", processIdentifier.value)
 
         // fetch
         var result: [EmbraceLog] = []

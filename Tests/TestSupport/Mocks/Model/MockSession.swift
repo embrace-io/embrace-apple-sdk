@@ -34,7 +34,7 @@ public class MockSession: EmbraceSession {
         appTerminated: Bool = false
     ) {
         self.idRaw = id.toString
-        self.processIdRaw = processId.hex
+        self.processIdRaw = processId.value
         self.state = state.rawValue
         self.traceId = traceId
         self.spanId = spanId

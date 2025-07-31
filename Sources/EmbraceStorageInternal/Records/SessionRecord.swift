@@ -53,7 +53,7 @@ public class SessionRecord: NSManagedObject {
 
         let record = SessionRecord(entity: description, insertInto: context)
         record.idRaw = id.toString
-        record.processIdRaw = processId.hex
+        record.processIdRaw = processId.value
         record.state = state.rawValue
         record.traceId = traceId
         record.spanId = spanId

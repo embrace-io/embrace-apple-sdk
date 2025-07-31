@@ -109,7 +109,7 @@ extension EmbraceStorage {
                 span.data = data
                 span.startTime = startTime
                 span.endTime = endTime
-                span.processIdRaw = processId.hex
+                span.processIdRaw = processId.value
                 span.sessionIdRaw = sessionId?.toString
                 coreData.save()
             }
@@ -168,7 +168,7 @@ extension EmbraceStorage {
         } else {
             request.predicate = NSPredicate(
                 format: "endTime != nil AND processIdRaw != %@",
-                ProcessIdentifier.current.hex)
+                ProcessIdentifier.current.value)
         }
 
         coreData.deleteRecords(withRequest: request)
@@ -182,7 +182,7 @@ extension EmbraceStorage {
         let request = SpanRecord.createFetchRequest()
         request.predicate = NSPredicate(
             format: "endTime = nil AND processIdRaw != %@",
-            ProcessIdentifier.current.hex
+            ProcessIdentifier.current.value
         )
 
         coreData.fetchAndPerform(withRequest: request) { [self] spans in

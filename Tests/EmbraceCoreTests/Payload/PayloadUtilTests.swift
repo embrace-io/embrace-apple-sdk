@@ -19,7 +19,7 @@ final class PayloadUtilTests: XCTestCase {
                 value: "fake_value",
                 type: .requiredResource,
                 lifespan: .process,
-                lifespanId: ProcessIdentifier.current.hex
+                lifespanId: ProcessIdentifier.current.value
             )
         ]
         let fetcher = MockMetadataFetcher(metadata: mockResources)

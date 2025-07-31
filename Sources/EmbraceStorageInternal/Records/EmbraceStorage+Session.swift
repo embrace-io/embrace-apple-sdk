@@ -71,7 +71,7 @@ extension EmbraceStorage {
 
         return ImmutableSessionRecord(
             idRaw: id.toString,
-            processIdRaw: processId.hex,
+            processIdRaw: processId.value,
             state: state.rawValue,
             traceId: traceId,
             spanId: spanId,
