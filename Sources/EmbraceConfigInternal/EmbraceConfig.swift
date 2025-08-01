@@ -77,7 +77,7 @@ public class EmbraceConfig {
                 self?.lastUpdateTime = Date().timeIntervalSince1970
 
                 if didChange {
-                    self?.notificationCenter.post(name: .embraceConfigUpdated, object: self)
+                    self?.notificationCenter.post(name: .embraceConfigUpdated, object: self?.configurable)
                 }
             }
         }

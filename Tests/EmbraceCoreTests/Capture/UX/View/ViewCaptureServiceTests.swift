@@ -94,9 +94,15 @@
         func test_blockList_remoteConfig() {
             // given a capture service with a block list
             let blockList = ViewControllerBlockList(
-                types: [MockViewController.self], names: ["Test"], blockHostingControllers: true)
+                types: [MockViewController.self],
+                names: ["Test"],
+                blockHostingControllers: true
+            )
             let options = ViewCaptureService.Options(
-                instrumentVisibility: true, instrumentFirstRender: true, viewControllerBlockList: blockList)
+                instrumentVisibility: true,
+                instrumentFirstRender: true,
+                viewControllerBlockList: blockList
+            )
             service = ViewCaptureService(options: options, handler: handler, lock: NSLock())
 
             // then it has the correct block list
@@ -107,7 +113,8 @@
             // when the remote config changes
             let config = EditableConfig()
             config.viewControllerClassNameBlocklist = ["MyCustomViewController", "MySpecialViewController"]
-            config.uiInstrumentationCaptureHostingControllers = false
+            // Is config says it should capture, then it capture service shouldn't block
+            config.uiInstrumentationCaptureHostingControllers = true
             Embrace.notificationCenter.post(name: .embraceConfigUpdated, object: config)
 
             // then the blocklist is updated
