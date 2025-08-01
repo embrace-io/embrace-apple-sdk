@@ -33,5 +33,8 @@ struct SwiftUICaptureTestView: View {
             .sheet(isPresented: $viewModel.presentDummyViewMacro) {
                 SwiftUITestViewMacroCapture()
             }
+            .sheet(isPresented: $viewModel.presentDummyViewEmbraceView) {
+                SwiftUITestViewEmbraceViewCapture()
+            }
     }
 }

@@ -11,21 +11,23 @@ import EmbraceIO
 
 class SwiftUICaptureTest: PayloadTest {
     var testRelevantPayloadNames: [String] {
+        return ["emb-swiftui.view.\(viewName).body",
+                "emb-swiftui.view.\(viewName).time-to-first-render",
+                "emb-swiftui.view.\(viewName).render-loop",
+                "emb-swiftui.view.\(viewName).appear",
+                "emb-swiftui.view.\(viewName).disappear"]
+    }
+    private var viewName: String {
         switch captureType {
         case .manual:
-            return ["emb-swiftui.view.TestDummyView.body",
-                    "emb-swiftui.view.TestDummyView.time-to-first-render",
-                    "emb-swiftui.view.TestDummyView.render-loop",
-                    "emb-swiftui.view.TestDummyView.appear",
-                    "emb-swiftui.view.TestDummyView.disappear"]
+            return "TestDummyView"
         case .macro:
-            return ["emb-swiftui.view.SwiftUITestViewMacroCapture.body",
-                    "emb-swiftui.view.SwiftUITestViewMacroCapture.time-to-first-render",
-                    "emb-swiftui.view.SwiftUITestViewMacroCapture.render-loop",
-                    "emb-swiftui.view.SwiftUITestViewMacroCapture.appear",
-                    "emb-swiftui.view.SwiftUITestViewMacroCapture.disappear"]
+            return "SwiftUITestViewMacroCapture"
+        case .embraceView:
+            return "MyEmbraceTraceView"
         }
     }
+
     var testType: TestType { .Spans }
     var captureType: SwiftUICaptureType = .manual
 

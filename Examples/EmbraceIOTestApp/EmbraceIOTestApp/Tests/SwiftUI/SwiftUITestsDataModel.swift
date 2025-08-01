@@ -9,12 +9,15 @@ import SwiftUI
 enum SwiftUITestsDataModel: Int, TestScreenDataModel, CaseIterable {
     case swiftUIViewManual
     case swiftUIViewMacro
+    case swiftUIViewEmbraceTraceView
     var title: String {
         switch self {
         case .swiftUIViewManual:
             "SwiftUI View Manual Capture"
         case .swiftUIViewMacro:
             "SwiftUI View Macro Capture"
+        case .swiftUIViewEmbraceTraceView:
+            "SwiftUI EmbraceTraceView Capture"
         }
     }
 
@@ -24,6 +27,8 @@ enum SwiftUITestsDataModel: Int, TestScreenDataModel, CaseIterable {
             "swiftUIViewManualCaptureTestButton"
         case .swiftUIViewMacro:
             "swiftUIViewMacroCaptureTestButton"
+        case .swiftUIViewEmbraceTraceView:
+            "swiftUIEmbraceTraceViewCaptureTestButton"
         }
     }
 
@@ -33,6 +38,8 @@ enum SwiftUITestsDataModel: Int, TestScreenDataModel, CaseIterable {
             SwiftUICaptureTestView(dataModel: self, captureType: .manual)
         case .swiftUIViewMacro:
             SwiftUICaptureTestView(dataModel: self, captureType: .macro)
+        case .swiftUIViewEmbraceTraceView:
+            SwiftUICaptureTestView(dataModel: self, captureType: .embraceView)
         }
     }
 }

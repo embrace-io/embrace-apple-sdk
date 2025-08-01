@@ -7,4 +7,5 @@
 enum SwiftUICaptureType {
     case manual
     case macro
+    case embraceView
 }

@@ -129,6 +129,7 @@
 		4DF12A372D302CBE00C93E62 /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 4DF12A362D302CBE00C93E62 /* EmbraceCrashlyticsSupport */; };
 		4DF12A392D302CBE00C93E62 /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = 4DF12A382D302CBE00C93E62 /* EmbraceIO */; };
 		4DF12A3B2D302CBE00C93E62 /* EmbraceSemantics in Frameworks */ = {isa = PBXBuildFile; productRef = 4DF12A3A2D302CBE00C93E62 /* EmbraceSemantics */; };
+		4DF440832E3C4C3700708D6A /* SwiftUITestViewEmbraceViewCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DF440822E3C4C2D00708D6A /* SwiftUITestViewEmbraceViewCapture.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -250,6 +251,7 @@
 		4D94F2532D429257008DECEE /* EmbraceIOTestAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EmbraceIOTestAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4DAF52002DEA51870025F669 /* EmbraceIOTestPostedPayloads.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbraceIOTestPostedPayloads.swift; sourceTree = "<group>"; };
 		4DF12A202D302C3200C93E62 /* EmbraceIOTestApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = EmbraceIOTestApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4DF440822E3C4C2D00708D6A /* SwiftUITestViewEmbraceViewCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUITestViewEmbraceViewCapture.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -329,6 +331,7 @@
 		4D54F28C2E3ABC9300E38132 /* Supporting */ = {
 			isa = PBXGroup;
 			children = (
+				4DF440822E3C4C2D00708D6A /* SwiftUITestViewEmbraceViewCapture.swift */,
 				4D54F2912E3ABD8200E38132 /* SwiftUITestViewMacroCapture.swift */,
 				4D54F28F2E3ABD5100E38132 /* SwiftUITestViewManualCapture.swift */,
 				4D54F28D2E3ABC9C00E38132 /* SwiftUICaptureType.swift */,
@@ -1026,6 +1029,7 @@
 				4D7A9E6E2E1C3A0C00C43C81 /* SwiftUICaptureTest.swift in Sources */,
 				4D63382A2DE1157700557BDC /* TestViewModelState.swift in Sources */,
 				4D63382B2DE1157700557BDC /* Data+Extensions.swift in Sources */,
+				4DF440832E3C4C3700708D6A /* SwiftUITestViewEmbraceViewCapture.swift in Sources */,
 				4D63382C2DE1157700557BDC /* Font+Extensions.swift in Sources */,
 				4D63382D2DE1157700557BDC /* String+Extensions.swift in Sources */,
 				4D63382E2DE1157700557BDC /* View+Extensions.swift in Sources */,
