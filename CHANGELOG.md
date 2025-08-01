@@ -3,7 +3,7 @@
 * Features
     * Added support for instrumenting SwiftUI code.
     * Added a new public API to purge the cache of the upload module (`Embrace.resetUploadCache`).
-	* Added the ability to provide a list of `UIViewController` names (remote configurable) to be excluded from `TTFR` and `TTI` capture.
+    * Added the ability to provide a list of `UIViewController` names (remote configurable) to be excluded from `TTFR` and `TTI` capture.
 
 * Fixes
     * Log limits are now correctly enforced.
@@ -19,11 +19,11 @@
     * The `processId` is now a `UUID` instead of a `UInt32`, preventing collisions.
 
 * Improvements
-	* Improved CoreData to only persist to disk when necessary to reduce disk writes.
-	* Moved significant CoreData work off the main queue to prevent deadlocks and improve user experience.
+    * Improved CoreData to only persist to disk when necessary to reduce disk writes.
+    * Moved significant CoreData work off the main queue to prevent deadlocks and improve user experience.
     * Switched journal mode from `DELETE` to `WAL` (remote configurable) to reduce disk writes and CPU usage.
     * Span names are now truncated instead of dropping spans entirely.
-    * Removed automatic capture of `UIHostingController`s (configurable)
+    * Removed automatic capture of `UIHostingController`s (configurable).
     * The SDK now removes unused data from version `5.x`.
 
 ## 6.12.2
