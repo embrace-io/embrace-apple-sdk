@@ -1,3 +1,31 @@
+## 6.13.0
+*Aug 1, 2025*
+* Features
+    * Added support for instrumenting SwiftUI code.
+    * Added a new public API to purge the cache of the upload module (`Embrace.resetUploadCache`).
+	* Added the ability to provide a list of `UIViewController` names (remote configurable) to be excluded from `TTFR` and `TTI` capture.
+
+* Fixes
+    * Log limits are now correctly enforced.
+    * Breadcrumb limits from remote config are now properly applied.
+    * Fixed a crash in CoreData related to non-optional Date values.
+    * Fixed a crash that could occur when caching failed data uploads to the backend.
+    * Fixed a crash when accessing `URLSessionTask` data after the task had been released.
+    * Fixed a potential race condition when ending and restarting a session.
+    * Fixed a crash caused when intercepting `AVFoundation` related requests.
+    * Fixed a bug that prevented certain settings from being updated when receiving remote config.
+    * Fixed a crash that happened when trying to write a critical log file and no space was available.
+    * Added the possibility to use CoreData even while the phone is locked.
+    * The `processId` is now a `UUID` instead of a `UInt32`, preventing collisions.
+
+* Improvements
+	* Improved CoreData to only persist to disk when necessary to reduce disk writes.
+	* Moved significant CoreData work off the main queue to prevent deadlocks and improve user experience.
+    * Switched journal mode from `DELETE` to `WAL` (remote configurable) to reduce disk writes and CPU usage.
+    * Span names are now truncated instead of dropping spans entirely.
+    * Removed automatic capture of `UIHostingController`s (configurable)
+    * The SDK now removes unused data from version `5.x`.
+
 ## 6.12.2
 *July 7, 2025*
 * Fixes
