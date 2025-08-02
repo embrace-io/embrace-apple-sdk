@@ -10,35 +10,34 @@ import SwiftUI
 class SwiftUICaptureTestViewModel: SpanTestUIComponentViewModel {
     private var testObject: SwiftUICaptureTest
     var captureType: SwiftUICaptureType = .manual
-    var presentDummyViewManual: Bool = false
-    var presentDummyViewMacro: Bool = false
-    var presentDummyViewEmbraceView: Bool = false
+    var loadedState: SwiftUITestsLoadedState = .dontInclude {
+        didSet {
+            testObject.loaded = loadedState
+        }
+    }
+    var presentDummyView: Bool = false
+
+    var attributes: [String: String] {
+        testObject.attributes
+    }
+    var loaded: Bool? { loadedState.boolValue }
 
     init(dataModel: any TestScreenDataModel, captureType: SwiftUICaptureType) {
         let testObject = SwiftUICaptureTest()
         testObject.captureType = captureType
-        self.testObject = SwiftUICaptureTest()
+        self.testObject = testObject
         self.captureType = captureType
         super.init(dataModel: dataModel, payloadTestObject: testObject)
     }
 
+    func addAttribute(key: String, value: String) {
+        testObject.attributes[key] = value
+    }
+
     override func testButtonPressed() {
-        switch captureType {
-        case .manual:
-            presentDummyViewManual = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-                self?.presentDummyViewManual = false
-            }
-        case .macro:
-            presentDummyViewMacro = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-                self?.presentDummyViewMacro = false
-            }
-        case .embraceView:
-            presentDummyViewEmbraceView = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-                self?.presentDummyViewEmbraceView = false
-            }
+        presentDummyView = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            self?.presentDummyView = false
         }
 
         super.testButtonPressed()

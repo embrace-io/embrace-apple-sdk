@@ -35,11 +35,11 @@ enum SwiftUITestsDataModel: Int, TestScreenDataModel, CaseIterable {
     @ViewBuilder var uiComponent: some View {
         switch self {
         case .swiftUIViewManual:
-            SwiftUICaptureTestView(dataModel: self, captureType: .manual)
+            SwiftUIManualCaptureTestUIComponent(dataModel: self)
         case .swiftUIViewMacro:
-            SwiftUICaptureTestView(dataModel: self, captureType: .macro)
+            SwiftUIMacroCaptureTestUIComponent(dataModel: self)
         case .swiftUIViewEmbraceTraceView:
-            SwiftUICaptureTestView(dataModel: self, captureType: .embraceView)
+            SwiftUIEmbraceTraceViewCaptureTestUIComponent(dataModel: self)
         }
     }
 }

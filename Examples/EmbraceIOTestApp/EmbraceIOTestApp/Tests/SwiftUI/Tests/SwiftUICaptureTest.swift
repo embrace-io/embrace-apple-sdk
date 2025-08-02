@@ -30,6 +30,8 @@ class SwiftUICaptureTest: PayloadTest {
 
     var testType: TestType { .Spans }
     var captureType: SwiftUICaptureType = .manual
+    var attributes: [String: String] = [:]
+    var loaded: SwiftUITestsLoadedState = .dontInclude
 
     func test(spans: [OpenTelemetrySdk.SpanData]) -> TestReport {
         var testItems = [TestReportItem]()
