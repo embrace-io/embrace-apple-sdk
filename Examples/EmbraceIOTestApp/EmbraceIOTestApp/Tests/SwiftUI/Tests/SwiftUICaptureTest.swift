@@ -55,6 +55,14 @@ class SwiftUICaptureTest: PayloadTest {
 
             testItems.append(evaluate("emb.type", expecting: "perf.ui_load", on: span.attributes))
 
+            attributes.keys.forEach { key in
+                if let value = attributes[key] {
+                    testItems.append(evaluate(key, expecting: value, on: span.attributes))
+                } else {
+                    testItems.append(.init(target: "Attribute \(key)", expected: "Some Value", recorded: "Nil Value"))
+                }
+            }
+
             MetadataResourceTest.testMetadataInclussion(on: span.resource, testItems: &testItems)
             testItems.append(contentsOf: OTelSemanticsValidation.validateAttributeNames(span.attributes))
         }

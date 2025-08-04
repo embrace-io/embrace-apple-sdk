@@ -58,6 +58,9 @@ struct SwiftUIManualCaptureTestUIComponent: View {
                                     onLoaded = true
                                 }
                             }
+                            .onDisappear() {
+                                onLoaded = false
+                            }
                     }
             }
         } header: {
