@@ -20,17 +20,21 @@
 		4D4CE7FC2DFCFA5C00740AC3 /* StartupAppStartupInitSpanTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4CE7FB2DFCFA4D00740AC3 /* StartupAppStartupInitSpanTest.swift */; };
 		4D4CE7FF2E0319F500740AC3 /* EmbraceInitScreenForceStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4CE7FE2E0319E700740AC3 /* EmbraceInitScreenForceStateView.swift */; };
 		4D4CE8022E031A6200740AC3 /* EmbraceInitForceState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4CE8012E031A5400740AC3 /* EmbraceInitForceState.swift */; };
+		4D54F2812E3AB89D00E38132 /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4D54F2802E3AB89D00E38132 /* EmbraceCore */; };
+		4D54F2832E3AB89D00E38132 /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = 4D54F2822E3AB89D00E38132 /* EmbraceCrash */; };
+		4D54F2852E3AB89D00E38132 /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 4D54F2842E3AB89D00E38132 /* EmbraceCrashlyticsSupport */; };
+		4D54F2872E3AB89D00E38132 /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = 4D54F2862E3AB89D00E38132 /* EmbraceIO */; };
+		4D54F2892E3AB89D00E38132 /* EmbraceMacros in Frameworks */ = {isa = PBXBuildFile; productRef = 4D54F2882E3AB89D00E38132 /* EmbraceMacros */; };
+		4D54F28B2E3AB89D00E38132 /* EmbraceSemantics in Frameworks */ = {isa = PBXBuildFile; productRef = 4D54F28A2E3AB89D00E38132 /* EmbraceSemantics */; };
+		4D54F28E2E3ABCA100E38132 /* SwiftUICaptureType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D54F28D2E3ABC9C00E38132 /* SwiftUICaptureType.swift */; };
+		4D54F2902E3ABD5800E38132 /* SwiftUITestViewManualCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D54F28F2E3ABD5100E38132 /* SwiftUITestViewManualCapture.swift */; };
+		4D54F2922E3ABD8B00E38132 /* SwiftUITestViewMacroCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D54F2912E3ABD8200E38132 /* SwiftUITestViewMacroCapture.swift */; };
 		4D5E45FE2E0B07F900FA6E0E /* OTelSemanticsValidation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5E45FD2E0B07ED00FA6E0E /* OTelSemanticsValidation.swift */; };
 		4D61D1B72DE0BA750048B5E2 /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4D61D1B62DE0BA750048B5E2 /* EmbraceCore */; };
 		4D61D1B92DE0BA750048B5E2 /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = 4D61D1B82DE0BA750048B5E2 /* EmbraceCrash */; };
 		4D61D1BB2DE0BA750048B5E2 /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 4D61D1BA2DE0BA750048B5E2 /* EmbraceCrashlyticsSupport */; };
 		4D61D1BD2DE0BA750048B5E2 /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = 4D61D1BC2DE0BA750048B5E2 /* EmbraceIO */; };
 		4D61D1BF2DE0BA750048B5E2 /* EmbraceSemantics in Frameworks */ = {isa = PBXBuildFile; productRef = 4D61D1BE2DE0BA750048B5E2 /* EmbraceSemantics */; };
-		4D61D1C12DE0BAC70048B5E2 /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4D61D1C02DE0BAC70048B5E2 /* EmbraceCore */; };
-		4D61D1C32DE0BAC70048B5E2 /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = 4D61D1C22DE0BAC70048B5E2 /* EmbraceCrash */; };
-		4D61D1C52DE0BAC70048B5E2 /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 4D61D1C42DE0BAC70048B5E2 /* EmbraceCrashlyticsSupport */; };
-		4D61D1C72DE0BAC70048B5E2 /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = 4D61D1C62DE0BAC70048B5E2 /* EmbraceIO */; };
-		4D61D1C92DE0BAC70048B5E2 /* EmbraceSemantics in Frameworks */ = {isa = PBXBuildFile; productRef = 4D61D1C82DE0BAC70048B5E2 /* EmbraceSemantics */; };
 		4D6337A72DE1157200557BDC /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D63379E2DE1157200557BDC /* Extensions.swift */; };
 		4D6337A82DE1157200557BDC /* EmbraceIOTestCrashesUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337A02DE1157200557BDC /* EmbraceIOTestCrashesUITests.swift */; };
 		4D6337A92DE1157200557BDC /* EmbraceIOTestLogsUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337A12DE1157200557BDC /* EmbraceIOTestLogsUITests.swift */; };
@@ -115,12 +119,21 @@
 		4D6338722DE1157700557BDC /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4D6337D62DE1157700557BDC /* Preview Assets.xcassets */; };
 		4D6338732DE1157700557BDC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4D6338232DE1157700557BDC /* Assets.xcassets */; };
 		4D6338752DE1157700557BDC /* URLRequestMethod.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337FF2DE1157700557BDC /* URLRequestMethod.swift */; };
+		4D686FB82E1D74BB00483C72 /* SwiftUITestsDataModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D686FB72E1D74A900483C72 /* SwiftUITestsDataModel.swift */; };
+		4D7A9E6E2E1C3A0C00C43C81 /* SwiftUICaptureTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D7A9E6D2E1C3A0100C43C81 /* SwiftUICaptureTest.swift */; };
+		4D7A9E742E1CA4B100C43C81 /* SwiftUICaptureTestViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D7A9E732E1CA4AF00C43C81 /* SwiftUICaptureTestViewModel.swift */; };
 		4DAF52012DEA51970025F669 /* EmbraceIOTestPostedPayloads.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DAF52002DEA51870025F669 /* EmbraceIOTestPostedPayloads.swift */; };
 		4DF12A332D302CBE00C93E62 /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4DF12A322D302CBE00C93E62 /* EmbraceCore */; };
 		4DF12A352D302CBE00C93E62 /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = 4DF12A342D302CBE00C93E62 /* EmbraceCrash */; };
 		4DF12A372D302CBE00C93E62 /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 4DF12A362D302CBE00C93E62 /* EmbraceCrashlyticsSupport */; };
 		4DF12A392D302CBE00C93E62 /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = 4DF12A382D302CBE00C93E62 /* EmbraceIO */; };
 		4DF12A3B2D302CBE00C93E62 /* EmbraceSemantics in Frameworks */ = {isa = PBXBuildFile; productRef = 4DF12A3A2D302CBE00C93E62 /* EmbraceSemantics */; };
+		4DF440832E3C4C3700708D6A /* SwiftUITestViewEmbraceViewCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DF440822E3C4C2D00708D6A /* SwiftUITestViewEmbraceViewCapture.swift */; };
+		4DF440852E3D4FFB00708D6A /* SwiftUIManualCaptureTestUIComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DF440842E3D4FE500708D6A /* SwiftUIManualCaptureTestUIComponent.swift */; };
+		4DF440872E3D500400708D6A /* SwiftUIMacroCaptureTestUIComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DF440862E3D500300708D6A /* SwiftUIMacroCaptureTestUIComponent.swift */; };
+		4DF440892E3D502A00708D6A /* SwiftUIEmbraceTraceViewCaptureTestUIComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DF440882E3D502100708D6A /* SwiftUIEmbraceTraceViewCaptureTestUIComponent.swift */; };
+		4DF4408B2E3D517F00708D6A /* SwiftUITestsLoadedPropertyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DF4408A2E3D517400708D6A /* SwiftUITestsLoadedPropertyView.swift */; };
+		4DF4408D2E3D518B00708D6A /* SwiftUITestsAttributesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DF4408C2E3D518400708D6A /* SwiftUITestsAttributesView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -147,6 +160,9 @@
 		4D4CE7FB2DFCFA4D00740AC3 /* StartupAppStartupInitSpanTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupAppStartupInitSpanTest.swift; sourceTree = "<group>"; };
 		4D4CE7FE2E0319E700740AC3 /* EmbraceInitScreenForceStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbraceInitScreenForceStateView.swift; sourceTree = "<group>"; };
 		4D4CE8012E031A5400740AC3 /* EmbraceInitForceState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbraceInitForceState.swift; sourceTree = "<group>"; };
+		4D54F28D2E3ABC9C00E38132 /* SwiftUICaptureType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUICaptureType.swift; sourceTree = "<group>"; };
+		4D54F28F2E3ABD5100E38132 /* SwiftUITestViewManualCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUITestViewManualCapture.swift; sourceTree = "<group>"; };
+		4D54F2912E3ABD8200E38132 /* SwiftUITestViewMacroCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUITestViewMacroCapture.swift; sourceTree = "<group>"; };
 		4D5E45FD2E0B07ED00FA6E0E /* OTelSemanticsValidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OTelSemanticsValidation.swift; sourceTree = "<group>"; };
 		4D5EE3E92E0F01CA009C0D93 /* EmbraceIOTestApp.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = EmbraceIOTestApp.xctestplan; sourceTree = "<group>"; };
 		4D63379E2DE1157200557BDC /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
@@ -233,9 +249,18 @@
 		4D6338242DE1157700557BDC /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		4D6338252DE1157700557BDC /* EmbraceIOTestAppApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbraceIOTestAppApp.swift; sourceTree = "<group>"; };
 		4D6338262DE1157700557BDC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		4D686FB72E1D74A900483C72 /* SwiftUITestsDataModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUITestsDataModel.swift; sourceTree = "<group>"; };
+		4D7A9E6D2E1C3A0100C43C81 /* SwiftUICaptureTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUICaptureTest.swift; sourceTree = "<group>"; };
+		4D7A9E732E1CA4AF00C43C81 /* SwiftUICaptureTestViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUICaptureTestViewModel.swift; sourceTree = "<group>"; };
 		4D94F2532D429257008DECEE /* EmbraceIOTestAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EmbraceIOTestAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4DAF52002DEA51870025F669 /* EmbraceIOTestPostedPayloads.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbraceIOTestPostedPayloads.swift; sourceTree = "<group>"; };
 		4DF12A202D302C3200C93E62 /* EmbraceIOTestApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = EmbraceIOTestApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4DF440822E3C4C2D00708D6A /* SwiftUITestViewEmbraceViewCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUITestViewEmbraceViewCapture.swift; sourceTree = "<group>"; };
+		4DF440842E3D4FE500708D6A /* SwiftUIManualCaptureTestUIComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUIManualCaptureTestUIComponent.swift; sourceTree = "<group>"; };
+		4DF440862E3D500300708D6A /* SwiftUIMacroCaptureTestUIComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUIMacroCaptureTestUIComponent.swift; sourceTree = "<group>"; };
+		4DF440882E3D502100708D6A /* SwiftUIEmbraceTraceViewCaptureTestUIComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUIEmbraceTraceViewCaptureTestUIComponent.swift; sourceTree = "<group>"; };
+		4DF4408A2E3D517400708D6A /* SwiftUITestsLoadedPropertyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUITestsLoadedPropertyView.swift; sourceTree = "<group>"; };
+		4DF4408C2E3D518400708D6A /* SwiftUITestsAttributesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUITestsAttributesView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -243,11 +268,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4D61D1C72DE0BAC70048B5E2 /* EmbraceIO in Frameworks */,
-				4D61D1C32DE0BAC70048B5E2 /* EmbraceCrash in Frameworks */,
-				4D61D1C12DE0BAC70048B5E2 /* EmbraceCore in Frameworks */,
-				4D61D1C52DE0BAC70048B5E2 /* EmbraceCrashlyticsSupport in Frameworks */,
-				4D61D1C92DE0BAC70048B5E2 /* EmbraceSemantics in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -255,12 +275,18 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4D54F2812E3AB89D00E38132 /* EmbraceCore in Frameworks */,
 				4DF12A392D302CBE00C93E62 /* EmbraceIO in Frameworks */,
 				4DF12A352D302CBE00C93E62 /* EmbraceCrash in Frameworks */,
 				4DF12A332D302CBE00C93E62 /* EmbraceCore in Frameworks */,
+				4D54F2872E3AB89D00E38132 /* EmbraceIO in Frameworks */,
+				4D54F2832E3AB89D00E38132 /* EmbraceCrash in Frameworks */,
+				4D54F28B2E3AB89D00E38132 /* EmbraceSemantics in Frameworks */,
+				4D54F2892E3AB89D00E38132 /* EmbraceMacros in Frameworks */,
 				4D61D1BD2DE0BA750048B5E2 /* EmbraceIO in Frameworks */,
 				4D61D1BF2DE0BA750048B5E2 /* EmbraceSemantics in Frameworks */,
 				4DF12A372D302CBE00C93E62 /* EmbraceCrashlyticsSupport in Frameworks */,
+				4D54F2852E3AB89D00E38132 /* EmbraceCrashlyticsSupport in Frameworks */,
 				4DF12A3B2D302CBE00C93E62 /* EmbraceSemantics in Frameworks */,
 				4D61D1B72DE0BA750048B5E2 /* EmbraceCore in Frameworks */,
 				4D61D1BB2DE0BA750048B5E2 /* EmbraceCrashlyticsSupport in Frameworks */,
@@ -307,6 +333,17 @@
 			isa = PBXGroup;
 			children = (
 				4D4CE8012E031A5400740AC3 /* EmbraceInitForceState.swift */,
+			);
+			path = Supporting;
+			sourceTree = "<group>";
+		};
+		4D54F28C2E3ABC9300E38132 /* Supporting */ = {
+			isa = PBXGroup;
+			children = (
+				4DF440822E3C4C2D00708D6A /* SwiftUITestViewEmbraceViewCapture.swift */,
+				4D54F2912E3ABD8200E38132 /* SwiftUITestViewMacroCapture.swift */,
+				4D54F28F2E3ABD5100E38132 /* SwiftUITestViewManualCapture.swift */,
+				4D54F28D2E3ABC9C00E38132 /* SwiftUICaptureType.swift */,
 			);
 			path = Supporting;
 			sourceTree = "<group>";
@@ -764,6 +801,7 @@
 		4D6338222DE1157700557BDC /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				4D686FB52E1D747800483C72 /* SwiftUI */,
 				4D5E45FC2E0B07D900FA6E0E /* OTel Semantics */,
 				4D6337E82DE1157700557BDC /* Crashes */,
 				4D6337EC2DE1157700557BDC /* EmbraceInit */,
@@ -792,11 +830,51 @@
 			path = EmbraceIOTestApp;
 			sourceTree = "<group>";
 		};
+		4D686FB52E1D747800483C72 /* SwiftUI */ = {
+			isa = PBXGroup;
+			children = (
+				4D54F28C2E3ABC9300E38132 /* Supporting */,
+				4D7A9E722E1C956F00C43C81 /* ViewModels */,
+				4D7A9E6F2E1C946A00C43C81 /* Views */,
+				4D686FB62E1D749400483C72 /* Tests */,
+				4D686FB72E1D74A900483C72 /* SwiftUITestsDataModel.swift */,
+			);
+			path = SwiftUI;
+			sourceTree = "<group>";
+		};
+		4D686FB62E1D749400483C72 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				4D7A9E6D2E1C3A0100C43C81 /* SwiftUICaptureTest.swift */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
 		4D6CDF322D84BBB000BB957F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		4D7A9E6F2E1C946A00C43C81 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				4DF4408C2E3D518400708D6A /* SwiftUITestsAttributesView.swift */,
+				4DF4408A2E3D517400708D6A /* SwiftUITestsLoadedPropertyView.swift */,
+				4DF440882E3D502100708D6A /* SwiftUIEmbraceTraceViewCaptureTestUIComponent.swift */,
+				4DF440862E3D500300708D6A /* SwiftUIMacroCaptureTestUIComponent.swift */,
+				4DF440842E3D4FE500708D6A /* SwiftUIManualCaptureTestUIComponent.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		4D7A9E722E1C956F00C43C81 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				4D7A9E732E1CA4AF00C43C81 /* SwiftUICaptureTestViewModel.swift */,
+			);
+			path = ViewModels;
 			sourceTree = "<group>";
 		};
 		4DF12A172D302C3200C93E62 = {
@@ -837,11 +915,6 @@
 			);
 			name = EmbraceIOTestAppUITests;
 			packageProductDependencies = (
-				4D61D1C02DE0BAC70048B5E2 /* EmbraceCore */,
-				4D61D1C22DE0BAC70048B5E2 /* EmbraceCrash */,
-				4D61D1C42DE0BAC70048B5E2 /* EmbraceCrashlyticsSupport */,
-				4D61D1C62DE0BAC70048B5E2 /* EmbraceIO */,
-				4D61D1C82DE0BAC70048B5E2 /* EmbraceSemantics */,
 			);
 			productName = EmbraceIOTestAppUITests;
 			productReference = 4D94F2532D429257008DECEE /* EmbraceIOTestAppUITests.xctest */;
@@ -871,6 +944,12 @@
 				4D61D1BA2DE0BA750048B5E2 /* EmbraceCrashlyticsSupport */,
 				4D61D1BC2DE0BA750048B5E2 /* EmbraceIO */,
 				4D61D1BE2DE0BA750048B5E2 /* EmbraceSemantics */,
+				4D54F2802E3AB89D00E38132 /* EmbraceCore */,
+				4D54F2822E3AB89D00E38132 /* EmbraceCrash */,
+				4D54F2842E3AB89D00E38132 /* EmbraceCrashlyticsSupport */,
+				4D54F2862E3AB89D00E38132 /* EmbraceIO */,
+				4D54F2882E3AB89D00E38132 /* EmbraceMacros */,
+				4D54F28A2E3AB89D00E38132 /* EmbraceSemantics */,
 			);
 			productName = EmbraceIOTestApp;
 			productReference = 4DF12A202D302C3200C93E62 /* EmbraceIOTestApp.app */;
@@ -906,7 +985,7 @@
 			mainGroup = 4DF12A172D302C3200C93E62;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				4D61D1B52DE0BA750048B5E2 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */,
+				4D54F27F2E3AB89D00E38132 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */,
 			);
 			productRefGroup = 4DF12A212D302C3200C93E62 /* Products */;
 			projectDirPath = "";
@@ -959,15 +1038,20 @@
 			buildActionMask = 2147483647;
 			files = (
 				4D6338282DE1157700557BDC /* TestResult.swift in Sources */,
+				4D54F2922E3ABD8B00E38132 /* SwiftUITestViewMacroCapture.swift in Sources */,
 				4D6338292DE1157700557BDC /* TestType.swift in Sources */,
+				4D7A9E6E2E1C3A0C00C43C81 /* SwiftUICaptureTest.swift in Sources */,
 				4D63382A2DE1157700557BDC /* TestViewModelState.swift in Sources */,
 				4D63382B2DE1157700557BDC /* Data+Extensions.swift in Sources */,
+				4DF440832E3C4C3700708D6A /* SwiftUITestViewEmbraceViewCapture.swift in Sources */,
 				4D63382C2DE1157700557BDC /* Font+Extensions.swift in Sources */,
 				4D63382D2DE1157700557BDC /* String+Extensions.swift in Sources */,
 				4D63382E2DE1157700557BDC /* View+Extensions.swift in Sources */,
 				4D63382F2DE1157700557BDC /* DataCollector.swift in Sources */,
 				4D6338302DE1157700557BDC /* TestLogRecordExporter.swift in Sources */,
+				4DF4408B2E3D517F00708D6A /* SwiftUITestsLoadedPropertyView.swift in Sources */,
 				4D6338312DE1157700557BDC /* TestSpanExporter.swift in Sources */,
+				4D54F2902E3ABD5800E38132 /* SwiftUITestViewManualCapture.swift in Sources */,
 				4D3334CD2DFCC8B100C699B4 /* StartupStateTestViewModel.swift in Sources */,
 				4D6338322DE1157700557BDC /* PayloadTestProtocol.swift in Sources */,
 				4D3334C42DFB893200C699B4 /* StartupStateSpanTest.swift in Sources */,
@@ -984,6 +1068,7 @@
 				4D63383B2DE1157700557BDC /* SpanTestUIComponentViewModel.swift in Sources */,
 				4D63383C2DE1157700557BDC /* TestReport.swift in Sources */,
 				4D63383D2DE1157700557BDC /* TestReportItem.swift in Sources */,
+				4DF440872E3D500400708D6A /* SwiftUIMacroCaptureTestUIComponent.swift in Sources */,
 				4D63383E2DE1157700557BDC /* UIComponentViewModelBase.swift in Sources */,
 				4D63383F2DE1157700557BDC /* EmbraceLargeButton.swift in Sources */,
 				4D6338402DE1157700557BDC /* TestComponentViewLabel.swift in Sources */,
@@ -998,6 +1083,7 @@
 				4D6338482DE1157700557BDC /* TestReportCard.swift in Sources */,
 				4D03F6E02DF2545600475383 /* UploadedSessionPayloadTestUserInfoView.swift in Sources */,
 				4D6338492DE1157700557BDC /* TestMenuHeaderView.swift in Sources */,
+				4DF4408D2E3D518B00708D6A /* SwiftUITestsAttributesView.swift in Sources */,
 				4D63384A2DE1157700557BDC /* TestSideMenuListItem.swift in Sources */,
 				4D63384B2DE1157700557BDC /* TestMenuOptionDataModel.swift in Sources */,
 				4D63384C2DE1157700557BDC /* TestSideMenuView.swift in Sources */,
@@ -1006,15 +1092,19 @@
 				4D63384F2DE1157700557BDC /* EmbraceInitScreenViewModel.swift in Sources */,
 				4D6338502DE1157700557BDC /* EmbraceInitScreen.swift in Sources */,
 				4D6338512DE1157700557BDC /* LoggingErrorMessageTest.swift in Sources */,
+				4DF440892E3D502A00708D6A /* SwiftUIEmbraceTraceViewCaptureTestUIComponent.swift in Sources */,
 				4D6338522DE1157700557BDC /* LoggingTestMessageViewModel.swift in Sources */,
 				4D4CE7FA2DFCF9A400740AC3 /* StartupProcessLaunchSpanTest.swift in Sources */,
 				4D6338532DE1157700557BDC /* LoggingTestLogMessageUIComponent.swift in Sources */,
 				4D6338542DE1157700557BDC /* LoggingTestsAttachmentView.swift in Sources */,
 				4D6338552DE1157700557BDC /* LoggingTestsLogAttributesView.swift in Sources */,
+				4DF440852E3D4FFB00708D6A /* SwiftUIManualCaptureTestUIComponent.swift in Sources */,
+				4D54F28E2E3ABCA100E38132 /* SwiftUICaptureType.swift in Sources */,
 				4D4CE7F82DFCF2ED00740AC3 /* StartupSDKStartSpanTest.swift in Sources */,
 				4D6338562DE1157700557BDC /* LoggingTestsSeverityTypeView.swift in Sources */,
 				4D6338572DE1157700557BDC /* LoggingTestsStackTraceSelectionView.swift in Sources */,
 				4D6338582DE1157700557BDC /* LoggingTestScreenDataModel.swift in Sources */,
+				4D686FB82E1D74BB00483C72 /* SwiftUITestsDataModel.swift in Sources */,
 				4D372B242DF0B12E00B1D1E1 /* UploadedSessionPayloadTestPersonasView.swift in Sources */,
 				4D6338592DE1157700557BDC /* MetadataResourceTest.swift in Sources */,
 				4D63385A2DE1157700557BDC /* StartupPreMainPayloadTest.swift in Sources */,
@@ -1024,6 +1114,7 @@
 				4D63385D2DE1157700557BDC /* URLRequestMethod.swift in Sources */,
 				4D63385E2DE1157700557BDC /* NetworkingTest.swift in Sources */,
 				4D63385F2DE1157700557BDC /* NetworkingTestClient.swift in Sources */,
+				4D7A9E742E1CA4B100C43C81 /* SwiftUICaptureTestViewModel.swift in Sources */,
 				4D6338602DE1157700557BDC /* NetworkingTestViewModel.swift in Sources */,
 				4D4CE7FF2E0319F500740AC3 /* EmbraceInitScreenForceStateView.swift in Sources */,
 				4D6338612DE1157700557BDC /* NetworkingTestBodyPropertyView.swift in Sources */,
@@ -1312,13 +1403,37 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		4D61D1B52DE0BA750048B5E2 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */ = {
+		4D54F27F2E3AB89D00E38132 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = "../../../embrace-apple-sdk";
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		4D54F2802E3AB89D00E38132 /* EmbraceCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EmbraceCore;
+		};
+		4D54F2822E3AB89D00E38132 /* EmbraceCrash */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EmbraceCrash;
+		};
+		4D54F2842E3AB89D00E38132 /* EmbraceCrashlyticsSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EmbraceCrashlyticsSupport;
+		};
+		4D54F2862E3AB89D00E38132 /* EmbraceIO */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EmbraceIO;
+		};
+		4D54F2882E3AB89D00E38132 /* EmbraceMacros */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EmbraceMacros;
+		};
+		4D54F28A2E3AB89D00E38132 /* EmbraceSemantics */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EmbraceSemantics;
+		};
 		4D61D1B62DE0BA750048B5E2 /* EmbraceCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = EmbraceCore;
@@ -1337,31 +1452,6 @@
 		};
 		4D61D1BE2DE0BA750048B5E2 /* EmbraceSemantics */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = EmbraceSemantics;
-		};
-		4D61D1C02DE0BAC70048B5E2 /* EmbraceCore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 4D61D1B52DE0BA750048B5E2 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
-			productName = EmbraceCore;
-		};
-		4D61D1C22DE0BAC70048B5E2 /* EmbraceCrash */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 4D61D1B52DE0BA750048B5E2 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
-			productName = EmbraceCrash;
-		};
-		4D61D1C42DE0BAC70048B5E2 /* EmbraceCrashlyticsSupport */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 4D61D1B52DE0BA750048B5E2 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
-			productName = EmbraceCrashlyticsSupport;
-		};
-		4D61D1C62DE0BAC70048B5E2 /* EmbraceIO */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 4D61D1B52DE0BA750048B5E2 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
-			productName = EmbraceIO;
-		};
-		4D61D1C82DE0BAC70048B5E2 /* EmbraceSemantics */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 4D61D1B52DE0BA750048B5E2 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
 			productName = EmbraceSemantics;
 		};
 		4DF12A322D302CBE00C93E62 /* EmbraceCore */ = {

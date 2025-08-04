@@ -7,7 +7,6 @@
 import EmbraceCrash
 import EmbraceIO
 import EmbraceObjCUtilsInternal
-import OpenTelemetrySdk
 import SwiftUI
 
 struct EmbraceInitScreen: View {
@@ -96,13 +95,6 @@ extension EmbraceInitScreen {
         do {
             viewModel.showProgressview = true
             let services = CaptureServiceBuilder()
-                .add(
-                    .view(
-                        options: ViewCaptureService.Options(
-                            instrumentVisibility: true,
-                            instrumentFirstRender: true))
-                )
-
                 .addDefaults()
                 .build()
             try Embrace
