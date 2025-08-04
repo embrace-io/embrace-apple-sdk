@@ -3,13 +3,15 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceStorageInternal
-import EmbraceUploadInternal
-import EmbraceCommonInternal
-import EmbraceSemantics
-import EmbraceConfigInternal
-import EmbraceOTelInternal
+    import EmbraceStorageInternal
+    import EmbraceUploadInternal
+    import EmbraceCommonInternal
+    import EmbraceSemantics
+    import EmbraceConfigInternal
+    import EmbraceOTelInternal
+    import EmbraceConfiguration
 #endif
 
 protocol LogControllable: LogBatcherDelegate {
@@ -34,18 +36,30 @@ class LogController: LogControllable {
 
     weak var sdkStateProvider: EmbraceSDKStateProvider?
 
-    var otel: EmbraceOTelBridge = EmbraceOTel() // var so we can inject a mock for testing
+    var otel: EmbraceOTelBridge = EmbraceOTel()  // var so we can inject a mock for testing
 
     /// This will probably be injected eventually.
     /// For consistency, I created a constant
     static let maxLogsPerBatch: Int = 20
 
-    static let attachmentLimit: Int = 5
-    static let attachmentSizeLimit: Int = 1048576 // 1 MiB
+    struct MutableState {
+        var limits: LogsLimits = LogsLimits()
+    }
+    private let state = EmbraceMutex(MutableState())
 
-    init(storage: Storage?,
-         upload: EmbraceLogUploader?,
-         controller: SessionControllable) {
+    var limits: LogsLimits {
+        get { state.withLock { $0.limits } }
+        set { state.withLock { $0.limits = newValue } }
+    }
+
+    static let attachmentLimit: Int = 5
+    static let attachmentSizeLimit: Int = 1_048_576  // 1 MiB
+
+    init(
+        storage: Storage?,
+        upload: EmbraceLogUploader?,
+        controller: SessionControllable
+    ) {
         self.storage = storage
         self.upload = upload
         self.sessionController = controller
@@ -102,7 +116,8 @@ class LogController: LogControllable {
             break
         }
 
-        var finalAttributes = attributesBuilder
+        var finalAttributes =
+            attributesBuilder
             .addLogType(type)
             .addApplicationState()
             .addApplicationProperties()
@@ -122,7 +137,7 @@ class LogController: LogControllable {
             if sessionController.attachmentCount >= Self.attachmentLimit {
                 finalAttributes[LogSemantics.keyAttachmentErrorCode] = LogSemantics.attachmentLimitReached
 
-            // check attachment size limit
+                // check attachment size limit
             } else if size > Self.attachmentSizeLimit {
                 finalAttributes[LogSemantics.keyAttachmentErrorCode] = LogSemantics.attachmentTooLarge
             }
@@ -137,7 +152,7 @@ class LogController: LogControllable {
 
         // handle pre-uploaded attachment
         else if let attachmentId = attachmentId,
-                let attachmentUrl = attachmentUrl {
+            let attachmentUrl = attachmentUrl {
 
             finalAttributes[LogSemantics.keyAttachmentId] = attachmentId
             finalAttributes[LogSemantics.keyAttachmentUrl] = attachmentUrl.absoluteString
@@ -166,8 +181,8 @@ extension LogController {
     }
 }
 
-private extension LogController {
-    func send(batches: [LogsBatch]) {
+extension LogController {
+    fileprivate func send(batches: [LogsBatch]) {
         guard sdkStateProvider?.isEnabled == true else {
             return
         }
@@ -214,7 +229,7 @@ private extension LogController {
         }
     }
 
-    func send(
+    fileprivate func send(
         logs: [EmbraceLog],
         resourcePayload: ResourcePayload,
         metadataPayload: MetadataPayload
@@ -223,9 +238,10 @@ private extension LogController {
             return
         }
         let logPayloads = logs.map { LogPayloadBuilder.build(log: $0) }
-        let envelope = PayloadEnvelope.init(data: logPayloads,
-                                            resource: resourcePayload,
-                                            metadata: metadataPayload)
+        let envelope = PayloadEnvelope.init(
+            data: logPayloads,
+            resource: resourcePayload,
+            metadata: metadataPayload)
         do {
             let envelopeData = try JSONEncoder().encode(envelope).gzipped()
             upload.uploadLog(id: UUID().uuidString, data: envelopeData) { [weak self] result in
@@ -244,7 +260,7 @@ private extension LogController {
         }
     }
 
-    func divideInBatches(_ logs: [EmbraceLog]) -> [LogsBatch] {
+    fileprivate func divideInBatches(_ logs: [EmbraceLog]) -> [LogsBatch] {
         var batches: [LogsBatch] = []
         var batch: LogsBatch = .init(limits: .init(maxBatchAge: .infinity, maxLogsPerBatch: Self.maxLogsPerBatch))
         for log in logs {
@@ -268,8 +284,9 @@ private extension LogController {
         return batches
     }
 
-    func createResourcePayload(sessionId: SessionIdentifier?,
-                               processId: ProcessIdentifier = ProcessIdentifier.current
+    fileprivate func createResourcePayload(
+        sessionId: SessionIdentifier?,
+        processId: ProcessIdentifier = ProcessIdentifier.current
     ) throws -> ResourcePayload {
         guard let storage = storage else {
             throw Error.couldntAccessStorageModule
@@ -286,8 +303,9 @@ private extension LogController {
         return ResourcePayload(from: resources)
     }
 
-    func createMetadataPayload(sessionId: SessionIdentifier?,
-                               processId: ProcessIdentifier = ProcessIdentifier.current
+    fileprivate func createMetadataPayload(
+        sessionId: SessionIdentifier?,
+        processId: ProcessIdentifier = ProcessIdentifier.current
     ) throws -> MetadataPayload {
         guard let storage = storage else {
             throw Error.couldntAccessStorageModule

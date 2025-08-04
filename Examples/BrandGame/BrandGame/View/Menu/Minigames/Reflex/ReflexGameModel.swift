@@ -2,9 +2,9 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
 import EmbraceCore
 import EmbraceOTelInternal
+import Foundation
 import OpenTelemetryApi
 import OpenTelemetrySdk
 
@@ -29,13 +29,13 @@ class ReflexGameModel {
         case testError
     }
 
-    private (set) var gameState: GameState = .notStarted
+    private(set) var gameState: GameState = .notStarted
 
     /// The component the user is touching to start the test
-    private (set) var initialIcon: IconComponent?
+    private(set) var initialIcon: IconComponent?
 
     /// The component the user needs to touch to finish the test
-    private (set) var reflexIcon: IconComponent?
+    private(set) var reflexIcon: IconComponent?
 
     /// The time the reflexIcon appeared
     private var reflexStartAt: Date?
@@ -113,9 +113,11 @@ class ReflexGameModel {
             reflexSpan?.end(errorCode: .failure, time: endAt)
         }
 
-        resetTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false, block: { [weak self] _ in
-            self?.reset()
-        })
+        resetTimer = Timer.scheduledTimer(
+            withTimeInterval: 2.0, repeats: false,
+            block: { [weak self] _ in
+                self?.reset()
+            })
     }
 
     /// reflex icon is randomly picked after removing the initial icon

@@ -2,8 +2,8 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
 import EmbraceCommonInternal
+import Foundation
 import OpenTelemetryApi
 
 public class MockLog: EmbraceLog {
@@ -23,7 +23,7 @@ public class MockLog: EmbraceLog {
         attributes: [String: AttributeValue] = [:]
     ) {
         self.idRaw = id.toString
-        self.processIdRaw = processId.hex
+        self.processIdRaw = processId.value
         self.severityRaw = severity.rawValue
         self.body = body
         self.timestamp = timestamp

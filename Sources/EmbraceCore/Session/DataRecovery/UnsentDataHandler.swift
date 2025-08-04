@@ -3,15 +3,17 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceStorageInternal
-import EmbraceUploadInternal
-import EmbraceOTelInternal
-import EmbraceSemantics
+    import EmbraceCommonInternal
+    import EmbraceStorageInternal
+    import EmbraceUploadInternal
+    import EmbraceOTelInternal
+    import EmbraceSemantics
 #endif
 
 class UnsentDataHandler {
+
     static func sendUnsentData(
         storage: EmbraceStorage?,
         upload: EmbraceUpload?,
@@ -22,28 +24,36 @@ class UnsentDataHandler {
     ) {
 
         guard let storage = storage,
-              let upload = upload else {
+            let upload = upload
+        else {
             return
         }
 
-        // send any logs in storage first before we clean up the resources
-        logController?.uploadAllPersistedLogs()
+        // this queue will live for as long as it has any running blocks
+        let reportQueue: DispatchQueue = DispatchQueue(label: "io.embrace.report.queue", qos: .utility)
 
-        // if we have a crash reporter, we fetch the unsent crash reports first
-        // and save their identifiers to the corresponding sessions
-        if let crashReporter = crashReporter {
-            crashReporter.fetchUnsentCrashReports { reports in
-                sendCrashReports(
-                    storage: storage,
-                    upload: upload,
-                    otel: otel,
-                    currentSessionId: currentSessionId,
-                    crashReporter: crashReporter,
-                    crashReports: reports
-                )
+        reportQueue.async {
+
+            // send any logs in storage first before we clean up the resources
+            logController?.uploadAllPersistedLogs()
+
+            // if we have a crash reporter, we fetch the unsent crash reports first
+            // and save their identifiers to the corresponding sessions
+            if let crashReporter = crashReporter {
+                crashReporter.fetchUnsentCrashReports { reports in
+                    sendCrashReports(
+                        storage: storage,
+                        upload: upload,
+                        otel: otel,
+                        currentSessionId: currentSessionId,
+                        crashReporter: crashReporter,
+                        crashReports: reports
+                    )
+                }
+            } else {
+                sendSessions(storage: storage, upload: upload, currentSessionId: currentSessionId)
             }
-        } else {
-            sendSessions(storage: storage, upload: upload, currentSessionId: currentSessionId)
+
         }
     }
 
@@ -55,21 +65,21 @@ class UnsentDataHandler {
         crashReporter: CrashReporter,
         crashReports: [EmbraceCrashReport]
     ) {
+
         // send crash reports
         for report in crashReports {
 
-            // link session with crash report if possible
             var session: EmbraceSession?
 
-            // set crash reportId on session
+            // link session with crash report if possible
             if let sessionId = SessionIdentifier(string: report.sessionId) {
-                storage.updateSession(
-                    sessionId: sessionId,
-                    endTime: report.timestamp,
-                    crashReportId: report.id.uuidString
-                )
-
-                session = storage.fetchSession(id: sessionId)
+                if let fetchedSession = storage.fetchSession(id: sessionId) {
+                    session = storage.updateSession(
+                        session: fetchedSession,
+                        endTime: report.timestamp,
+                        crashReportId: report.id.uuidString
+                    )
+                }
             }
 
             // send crash log
@@ -137,12 +147,15 @@ class UnsentDataHandler {
                     }
 
                 case .failure(let error):
-                    Embrace.logger.warning("Error trying to upload crash report \(report.id):\n\(error.localizedDescription)")
+                    Embrace.logger.warning(
+                        "Error trying to upload crash report \(report.id):\n\(error.localizedDescription)")
                 }
             }
 
         } catch {
-            Embrace.logger.warning("Error encoding crash report \(report.id) for session \(String(describing: report.sessionId)):\n" + error.localizedDescription)
+            Embrace.logger.warning(
+                "Error encoding crash report \(report.id) for session \(String(describing: report.sessionId)):\n"
+                    + error.localizedDescription)
         }
     }
 
@@ -161,7 +174,8 @@ class UnsentDataHandler {
             initialAttributes: [:]
         )
 
-        let attributes = attributesBuilder
+        let attributes =
+            attributesBuilder
             .addLogType(.crash)
             .addApplicationProperties()
             .addApplicationState()
@@ -197,7 +211,7 @@ class UnsentDataHandler {
         for session in sessions {
             // ignore current session
             if let currentSessionId = currentSessionId,
-               currentSessionId == session.id {
+                currentSessionId == session.id {
                 continue
             }
 
@@ -245,7 +259,8 @@ class UnsentDataHandler {
                 }
 
             case .failure(let error):
-                Embrace.logger.warning("Error trying to upload session \(session.idRaw):\n\(error.localizedDescription)")
+                Embrace.logger.warning(
+                    "Error trying to upload session \(session.idRaw):\n\(error.localizedDescription)")
             }
         }
     }
@@ -273,7 +288,7 @@ class UnsentDataHandler {
 
     static private func cleanMetadata(storage: EmbraceStorage, currentSessionId: String? = nil) {
         let sessionId = currentSessionId ?? Embrace.client?.currentSessionId()
-        storage.cleanMetadata(currentSessionId: sessionId, currentProcessId: ProcessIdentifier.current.hex)
+        storage.cleanMetadata(currentSessionId: sessionId, currentProcessId: ProcessIdentifier.current.value)
     }
 
     static func sendCriticalLogs(fileUrl: URL?, upload: EmbraceUpload?) {
@@ -283,14 +298,15 @@ class UnsentDataHandler {
         }
 
         guard let upload = upload,
-              let fileUrl = fileUrl else {
+            let fileUrl = fileUrl
+        else {
             return
         }
 
         // always remove the logs from previous session
         defer { try? FileManager.default.removeItem(at: fileUrl) }
 
-        guard let logs = try? String(contentsOf: fileUrl) else {
+        guard let logs = try? String(contentsOf: fileUrl), !logs.isEmpty else {
             return
         }
 

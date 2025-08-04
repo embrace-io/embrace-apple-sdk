@@ -2,15 +2,16 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
-@testable import EmbraceOTelInternal
-@testable import EmbraceCore
 import EmbraceCommonInternal
+import EmbraceSemantics
+import Foundation
 import OpenTelemetryApi
 import OpenTelemetrySdk
-import EmbraceSemantics
 
-public class MockEmbraceOpenTelemetry: NSObject, EmbraceOpenTelemetry {   
+@testable import EmbraceCore
+@testable import EmbraceOTelInternal
+
+public class MockEmbraceOpenTelemetry: NSObject, EmbraceOpenTelemetry {
     private(set) public var spanProcessor = MockSpanProcessor()
     private(set) public var events: [SpanEvent] = []
     private(set) public var logs: [ReadableLogRecord] = []
@@ -43,8 +44,8 @@ public class MockEmbraceOpenTelemetry: NSObject, EmbraceOpenTelemetry {
         endTime: Date,
         attributes: [String: String],
         events: [RecordingSpanEvent],
-        errorCode: SpanErrorCode? ) 
-    {
+        errorCode: SpanErrorCode?
+    ) {
         let builder = EmbraceOTel().buildSpan(name: name, type: type, attributes: attributes)
         builder.setStartTime(time: startTime)
 
@@ -116,7 +117,7 @@ public class MockEmbraceOpenTelemetry: NSObject, EmbraceOpenTelemetry {
         type: LogType = .performance,
         timestamp: Date = Date(),
         attachment: Data,
-        attributes: [String : String] = [:],
+        attributes: [String: String] = [:],
         stackTraceBehavior: StackTraceBehavior = .default
     ) {
 
@@ -129,7 +130,7 @@ public class MockEmbraceOpenTelemetry: NSObject, EmbraceOpenTelemetry {
         timestamp: Date = Date(),
         attachmentId: String,
         attachmentUrl: URL,
-        attributes: [String : String] = [:],
+        attributes: [String: String] = [:],
         stackTraceBehavior: StackTraceBehavior = .default
     ) {
 

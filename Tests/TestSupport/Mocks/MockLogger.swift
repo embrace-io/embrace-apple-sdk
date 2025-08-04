@@ -2,11 +2,10 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import EmbraceCore
 import EmbraceCommonInternal
+import EmbraceCore
 
 public class MockLogger: InternalLogger {
-
 
     public var level: LogLevel = .debug
 
@@ -58,14 +57,14 @@ public class MockLogger: InternalLogger {
         return log(level: .error, message: message)
     }
 
-    public func startup(_ message: String, attributes: [String : String]) -> Bool {
+    public func startup(_ message: String, attributes: [String: String]) -> Bool {
         return log(level: .info, message: message, attributes: attributes)
     }
     public func startup(_ message: String) -> Bool {
         return log(level: .info, message: message)
     }
 
-    public func critical(_ message: String, attributes: [String : String]) -> Bool {
+    public func critical(_ message: String, attributes: [String: String]) -> Bool {
         return log(level: .critical, message: message, attributes: attributes)
     }
     public func critical(_ message: String) -> Bool {

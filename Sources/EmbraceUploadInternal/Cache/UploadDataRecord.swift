@@ -2,8 +2,8 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
 import CoreData
+import Foundation
 
 /// Represents a cached upload data in the storage
 @objc(UploadDataRecord)
@@ -20,7 +20,7 @@ public class UploadDataRecord: NSManagedObject {
         type: Int,
         data: Data,
         attemptCount:
-        Int,
+            Int,
         date: Date
     ) -> UploadDataRecord? {
         var record: UploadDataRecord?

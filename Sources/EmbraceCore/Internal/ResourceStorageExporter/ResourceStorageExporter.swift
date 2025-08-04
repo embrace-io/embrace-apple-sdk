@@ -3,13 +3,14 @@
 //
 
 import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-@_implementationOnly import EmbraceObjCUtilsInternal
-import EmbraceStorageInternal
-import EmbraceOTelInternal
-#endif
 import OpenTelemetryApi
 import OpenTelemetrySdk
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    @_implementationOnly import EmbraceObjCUtilsInternal
+    import EmbraceStorageInternal
+    import EmbraceOTelInternal
+#endif
 
 class ConcreteEmbraceResource: EmbraceResource {
     var key: String
@@ -48,7 +49,7 @@ class ResourceStorageExporter: EmbraceResourceProvider {
         }
 
         if attributes[ResourceAttributes.serviceVersion.rawValue] == nil, let appVersion = EMBDevice.appVersion {
-                attributes[ResourceAttributes.serviceVersion.rawValue] = .string(appVersion)
+            attributes[ResourceAttributes.serviceVersion.rawValue] = .string(appVersion)
         }
 
         if attributes[ResourceAttributes.telemetrySdkLanguage.rawValue] == nil {

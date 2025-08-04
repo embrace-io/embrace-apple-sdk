@@ -2,9 +2,10 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-import TestSupport
 import EmbraceCommonInternal
+import TestSupport
+import XCTest
+
 @testable import EmbraceCrash
 
 class EmbraceCrashReporterTests: XCTestCase {
@@ -93,19 +94,19 @@ class EmbraceCrashReporterTests: XCTestCase {
         crashReporter.appendCrashInfo(key: "some", value: "value")
 
         let ksCrash = try XCTUnwrap(crashReporter.ksCrash)
-        for expectedKey in [ "emb-sdk", "emb-sid" ] {
+        for expectedKey in ["emb-sdk", "emb-sid"] {
             XCTAssertTrue(ksCrash.userInfo?.keys.contains(expectedKey) ?? false)
         }
     }
-    
+
     func testInKSCrash_appendCrashInfo_shouldntDeletePreexistingKeys() throws {
         givenCrashReporter()
         crashReporter.ksCrash?.userInfo = ["initial_key": "one_value"]
-        
+
         crashReporter.appendCrashInfo(key: "some", value: "value")
-        
+
         let ksCrash = try XCTUnwrap(crashReporter.ksCrash)
-        for expectedKey in [ "emb-sdk", "emb-sid" ] {
+        for expectedKey in ["emb-sdk", "emb-sid"] {
             XCTAssertTrue(ksCrash.userInfo?.keys.contains(expectedKey) ?? false)
         }
         XCTAssertEqual(ksCrash.userInfo?["initial_key"] as? String, "one_value")
@@ -214,8 +215,8 @@ class EmbraceCrashReporterTests: XCTestCase {
     }
 }
 
-private extension EmbraceCrashReporterTests {
-    func copyReport(named: String, toFilePath: String) throws {
+extension EmbraceCrashReporterTests {
+    fileprivate func copyReport(named: String, toFilePath: String) throws {
         let basePath = try XCTUnwrap(crashReporter.basePath)
         if !FileManager.default.fileExists(atPath: basePath) {
             try FileManager.default.createDirectory(
@@ -227,7 +228,7 @@ private extension EmbraceCrashReporterTests {
         try FileManager.default.copyItem(atPath: report, toPath: basePath + toFilePath)
     }
 
-    func thenShouldntExistReport(withName name: String) {
+    fileprivate func thenShouldntExistReport(withName name: String) {
         do {
             let basePath = try XCTUnwrap(crashReporter.basePath)
             XCTAssertFalse(FileManager.default.fileExists(atPath: basePath + "/Reports/" + name))
@@ -236,7 +237,7 @@ private extension EmbraceCrashReporterTests {
         }
     }
 
-    func givenCrashReporter() {
+    fileprivate func givenCrashReporter() {
         crashReporter = EmbraceCrashReporter(queue: MockQueue())
         crashReporter.install(context: context, logger: logger)
     }

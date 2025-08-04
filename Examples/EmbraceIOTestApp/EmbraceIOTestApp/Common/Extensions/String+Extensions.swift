@@ -12,8 +12,8 @@ extension String {
     }
 
     func containsUppercase() -> Bool {
-        let regex  = ".*[A-Z]+.*"
-        let test = NSPredicate(format:"SELF MATCHES %@", regex)
+        let regex = ".*[A-Z]+.*"
+        var test = NSPredicate(format: "SELF MATCHES %@", regex)
         return test.evaluate(with: self)
     }
 }

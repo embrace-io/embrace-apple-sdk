@@ -2,18 +2,19 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
 import CoreData
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-#endif
+import Foundation
 import OpenTelemetryApi
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+#endif
 
 @objc(LogAttributeRecord)
 public class LogAttributeRecord: NSManagedObject {
     @NSManaged public var key: String
     @NSManaged public var valueRaw: String
-    @NSManaged public var typeRaw: Int // LogAttributeType
+    @NSManaged public var typeRaw: Int  // LogAttributeType
     @NSManaged public var log: LogRecord?
 
     class func create(

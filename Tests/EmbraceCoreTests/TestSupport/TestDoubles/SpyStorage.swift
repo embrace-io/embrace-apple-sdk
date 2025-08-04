@@ -2,9 +2,9 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
-import EmbraceStorageInternal
 import EmbraceCommonInternal
+import EmbraceStorageInternal
+import Foundation
 import OpenTelemetryApi
 import TestSupport
 
@@ -75,7 +75,7 @@ class SpyStorage: Storage {
         severity: LogSeverity,
         body: String,
         timestamp: Date,
-        attributes: [String : AttributeValue]
+        attributes: [String: AttributeValue]
     ) -> EmbraceLog? {
         didCallCreate = true
 

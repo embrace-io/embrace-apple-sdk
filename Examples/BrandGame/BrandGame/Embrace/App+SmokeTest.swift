@@ -2,8 +2,8 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
 import EmbraceIO
+import Foundation
 
 extension BrandGameApp {
     /// This method creates a sample span which we verify in automated integration tests

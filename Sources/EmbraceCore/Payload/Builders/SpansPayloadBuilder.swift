@@ -3,20 +3,20 @@
 //
 
 import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceStorageInternal
-import EmbraceOTelInternal
-#endif
 import OpenTelemetrySdk
 
-class SpansPayloadBuilder {
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+    import EmbraceStorageInternal
+    import EmbraceOTelInternal
+#endif
 
-    static let spanCountLimit = 1000
+class SpansPayloadBuilder {
 
     class func build(
         for session: EmbraceSession,
         storage: EmbraceStorage,
+        customProperties: [EmbraceMetadata] = [],
         sessionNumber: Int = -1
     ) -> (spans: [SpanPayload], spanSnapshots: [SpanPayload]) {
 
@@ -24,7 +24,7 @@ class SpansPayloadBuilder {
 
         // fetch spans that started during the session
         // ignore spans where emb.type == session
-        let records = storage.fetchSpans(for: session, ignoreSessionSpans: true, limit: spanCountLimit)
+        let records = storage.fetchSpans(for: session, ignoreSessionSpans: true)
 
         // decode spans and separate them by closed/open
         var spans: [SpanPayload] = []
@@ -34,6 +34,7 @@ class SpansPayloadBuilder {
         if let sessionSpanPayload = buildSessionSpanPayload(
             for: session,
             storage: storage,
+            customProperties: customProperties,
             sessionNumber: sessionNumber
         ) {
             spans.append(sessionSpanPayload)
@@ -68,6 +69,7 @@ class SpansPayloadBuilder {
     class func buildSessionSpanPayload(
         for session: EmbraceSession,
         storage: EmbraceStorage,
+        customProperties: [EmbraceMetadata] = [],
         sessionNumber: Int
     ) -> SpanPayload? {
         do {
@@ -78,15 +80,10 @@ class SpansPayloadBuilder {
                 spanData = try JSONDecoder().decode(SpanData.self, from: rawData)
             }
 
-            var properties: [EmbraceMetadata] = []
-            if let sessionId = session.id {
-                properties = storage.fetchCustomPropertiesForSessionId(sessionId)
-            }
-
             return SessionSpanUtils.payload(
                 from: session,
                 spanData: spanData,
-                properties: properties,
+                properties: customProperties,
                 sessionNumber: sessionNumber
             )
 

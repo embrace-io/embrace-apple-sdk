@@ -2,12 +2,13 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
+import CommonCrypto
+import CryptoKit
 import Foundation
 import Security
-import CryptoKit
-import CommonCrypto
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
+    import EmbraceCommonInternal
 #endif
 
 struct EncryptedNetworkPayload: Encodable {
@@ -67,8 +68,9 @@ struct EncryptedNetworkPayload: Encodable {
         sessionId: SessionIdentifier?
     ) {
         guard let request = request,
-              let url = request.url,
-              let method = request.httpMethod else {
+            let url = request.url,
+            let method = request.httpMethod
+        else {
             return nil
         }
 
@@ -143,7 +145,8 @@ struct EncryptedNetworkPayload: Encodable {
 
         // encrypt symmetric key
         guard let hexKeyData = aesResult.key.hexString.data(using: .utf8),
-              let rsaResult = EncryptionHelper.rsaEncrypt(publicKey: key, data: hexKeyData) else {
+            let rsaResult = EncryptionHelper.rsaEncrypt(publicKey: key, data: hexKeyData)
+        else {
             Embrace.logger.debug("Error with RSA encryption!")
             return nil
         }

@@ -2,14 +2,15 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-@testable import EmbraceCore
-import TestSupport
-import EmbraceStorageInternal
+import EmbraceCommonInternal
 import EmbraceConfigInternal
 import EmbraceConfiguration
+import EmbraceStorageInternal
 import OpenTelemetryApi
-import EmbraceCommonInternal
+import TestSupport
+import XCTest
+
+@testable import EmbraceCore
 
 class BaseInternalLoggerTests: XCTestCase {
 
@@ -44,7 +45,6 @@ class BaseInternalLoggerTests: XCTestCase {
         XCTAssertFalse(logger.warning("warning"))
         XCTAssertFalse(logger.error("error"))
     }
-
 
     func test_trace() {
         let logger = BaseInternalLogger()

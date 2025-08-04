@@ -3,12 +3,13 @@
 //
 
 import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceOTelInternal
-import EmbraceSemantics
-#endif
 import OpenTelemetryApi
 import OpenTelemetrySdk
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceOTelInternal
+    import EmbraceSemantics
+#endif
 
 struct SpanPayload: Encodable {
     let traceId: String
@@ -84,14 +85,8 @@ struct SpanPayload: Encodable {
 extension SpanPayload: Equatable {
     public static func == (lhs: SpanPayload, rhs: SpanPayload) -> Bool {
         return
-            lhs.traceId == rhs.traceId &&
-            lhs.spanId == rhs.spanId &&
-            lhs.parentSpanId == rhs.parentSpanId &&
-            lhs.name == rhs.name &&
-            lhs.status == rhs.status &&
-            lhs.endTime == rhs.endTime &&
-            lhs.startTime == rhs.startTime &&
-            lhs.events == rhs.events &&
-            lhs.links == rhs.links
+            lhs.traceId == rhs.traceId && lhs.spanId == rhs.spanId && lhs.parentSpanId == rhs.parentSpanId
+            && lhs.name == rhs.name && lhs.status == rhs.status && lhs.endTime == rhs.endTime
+            && lhs.startTime == rhs.startTime && lhs.events == rhs.events && lhs.links == rhs.links
     }
 }

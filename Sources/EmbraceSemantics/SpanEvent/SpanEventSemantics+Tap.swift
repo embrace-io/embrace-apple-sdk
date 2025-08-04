@@ -3,22 +3,22 @@
 //
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
+    import EmbraceCommonInternal
 #endif
 
-public extension SpanEventType {
-    static let tap = SpanEventType(ux: "tap")
+extension SpanEventType {
+    public static let tap = SpanEventType(ux: "tap")
 }
 
-public extension SpanEventSemantics {
-    struct Tap {
+extension SpanEventSemantics {
+    public struct Tap {
         public static let name = "emb-ui-tap"
         public static let keyViewName = "view.name"
         public static let keyCoordinates = "tap.coords"
     }
 }
 
-public extension SpanType {
+extension SpanType {
     @available(*, deprecated, renamed: "SpanEventType.tap", message: "Has been moved to `SpanEventType.tap`")
-    static let tap = SpanType(ux: "tap")
+    public static let tap = SpanType(ux: "tap")
 }

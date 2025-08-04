@@ -2,11 +2,12 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-@testable import EmbraceCore
 import EmbraceCommonInternal
 @_implementationOnly import EmbraceObjCUtilsInternal
 import EmbraceStorageInternal
+import XCTest
+
+@testable import EmbraceCore
 
 final class AppInfoCaptureServiceTests: XCTestCase {
 
@@ -21,7 +22,7 @@ final class AppInfoCaptureServiceTests: XCTestCase {
         service.start()
 
         // then the app info resources are correctly stored
-        let processId = ProcessIdentifier.current.hex
+        let processId = ProcessIdentifier.current.value
 
         // bundle version
         let bundleVersion = handler.fetchMetadata(
@@ -91,7 +92,7 @@ final class AppInfoCaptureServiceTests: XCTestCase {
             lifespanId: processId
         )
         XCTAssertNotNil(processIdentifier)
-        XCTAssertEqual(processIdentifier!.value, ProcessIdentifier.current.hex)
+        XCTAssertEqual(processIdentifier!.value, ProcessIdentifier.current.value)
     }
 
     func test_notStarted() throws {

@@ -10,7 +10,7 @@ public class InMemoryLogRecordExporter: LogRecordExporter {
     private(set) public var finishedLogRecords = [ReadableLogRecord]()
     private var isRunning = true
 
-    public init() { }
+    public init() {}
 
     public func export(logRecords: [ReadableLogRecord], explicitTimeout: TimeInterval?) -> ExportResult {
         guard isRunning else {

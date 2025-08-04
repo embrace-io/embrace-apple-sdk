@@ -2,12 +2,13 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-@testable import EmbraceCore
 import EmbraceCommonInternal
 @_implementationOnly import EmbraceObjCUtilsInternal
 import EmbraceStorageInternal
 import OpenTelemetrySdk
+import XCTest
+
+@testable import EmbraceCore
 
 final class DeviceInfoCaptureServiceTests: XCTestCase {
 
@@ -22,7 +23,7 @@ final class DeviceInfoCaptureServiceTests: XCTestCase {
         service.start()
 
         // then the app info resources are correctly stored
-        let processId = ProcessIdentifier.current.hex
+        let processId = ProcessIdentifier.current.value
 
         let resources = handler.fetchResourcesForProcessId(.current)
         XCTAssertEqual(resources.count, 10)

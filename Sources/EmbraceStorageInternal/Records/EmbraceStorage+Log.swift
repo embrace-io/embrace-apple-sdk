@@ -3,10 +3,11 @@
 //
 
 import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-#endif
 import OpenTelemetryApi
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+#endif
 
 public protocol LogRepository {
     func createLog(
@@ -58,7 +59,7 @@ extension EmbraceStorage {
 
     public func fetchAll(excludingProcessIdentifier processIdentifier: ProcessIdentifier) -> [EmbraceLog] {
         let request = LogRecord.createFetchRequest()
-        request.predicate = NSPredicate(format: "processIdRaw != %@", processIdentifier.hex)
+        request.predicate = NSPredicate(format: "processIdRaw != %@", processIdentifier.value)
 
         // fetch
         var result: [EmbraceLog] = []

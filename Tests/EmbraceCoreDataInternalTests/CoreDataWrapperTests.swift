@@ -2,12 +2,13 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
 import CoreData
-import XCTest
-@testable import EmbraceCoreDataInternal
 import EmbraceCommonInternal
+import Foundation
 import TestSupport
+import XCTest
+
+@testable import EmbraceCoreDataInternal
 
 class CoreDataWrapperTests: XCTestCase {
 
@@ -15,15 +16,17 @@ class CoreDataWrapperTests: XCTestCase {
 
     override func setUpWithError() throws {
         let storageMechanism: StorageMechanism = .inMemory(name: testName)
-        let options = CoreDataWrapper.Options(storageMechanism: storageMechanism, enableBackgroundTasks: false, entities: [MockRecord.entityDescription])
+        let options = CoreDataWrapper.Options(
+            storageMechanism: storageMechanism, enableBackgroundTasks: false, entities: [MockRecord.entityDescription])
         try wrapper = CoreDataWrapper(options: options, logger: MockLogger())
     }
 
     func skip_test_destroy() throws {
         // given a wrapper with data on disk
         let url = URL(fileURLWithPath: NSTemporaryDirectory())
-        let storageMechanism: StorageMechanism = .onDisk(name: testName, baseURL: url)
-        let options = CoreDataWrapper.Options(storageMechanism: storageMechanism, enableBackgroundTasks: false, entities: [MockRecord.entityDescription])
+        let storageMechanism: StorageMechanism = .onDisk(name: testName, baseURL: url, journalMode: .delete)
+        let options = CoreDataWrapper.Options(
+            storageMechanism: storageMechanism, enableBackgroundTasks: false, entities: [MockRecord.entityDescription])
         try wrapper = CoreDataWrapper(options: options, logger: MockLogger())
 
         _ = MockRecord.create(context: wrapper.context, id: "test")
@@ -147,6 +150,51 @@ class CoreDataWrapperTests: XCTestCase {
         // then the record is deleted
         let result = wrapper.fetch(withRequest: request)
         XCTAssertEqual(result.count, 0)
+    }
+
+    func test_performOperation_returnsNil() throws {
+        let expectedReturnValue: Int? = nil
+        let val = wrapper.performOperation { _ in
+            expectedReturnValue
+        }
+        XCTAssertEqual(val, expectedReturnValue)
+    }
+
+    func test_performOperation_returnsOptionalValue() throws {
+        let expectedReturnValue: Int? = 12
+        let val = wrapper.performOperation { _ in
+            expectedReturnValue
+        }
+        XCTAssertEqual(val, expectedReturnValue)
+    }
+
+    func test_performOperation_returnsValue() throws {
+        let expectedReturnValue: Int = 12
+        let val = wrapper.performOperation { _ in
+            expectedReturnValue
+        }
+        XCTAssertEqual(val, expectedReturnValue)
+    }
+
+    /// This test is just here to show one that would not compile
+    /// due to a missing return value.
+    /// ERROR: `Missing return in closure expected to return 'Int'`
+    /**
+    func test_performOperation_returnsValueWontCompile() throws {
+        let expectedReturnValue: Int = 12
+        let val = wrapper.performOperation { _ in
+            guard true else {
+                return expectedReturnValue
+            }
+            //return expectedReturnValue
+        }
+        XCTAssertEqual(val, expectedReturnValue)
+    }
+     */
+
+    func test_performOperation_noValue() throws {
+        // this test just ensure things compile.
+        wrapper.performOperation { _ in }
     }
 }
 

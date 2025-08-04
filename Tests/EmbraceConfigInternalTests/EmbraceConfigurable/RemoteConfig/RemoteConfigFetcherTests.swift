@@ -2,10 +2,11 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-import TestSupport
-@testable import EmbraceConfigInternal
 import EmbraceCommonInternal
+import TestSupport
+import XCTest
+
+@testable import EmbraceConfigInternal
 
 class RemoteConfigFetcherTests: XCTestCase {
     static var urlSessionConfig: URLSessionConfiguration!

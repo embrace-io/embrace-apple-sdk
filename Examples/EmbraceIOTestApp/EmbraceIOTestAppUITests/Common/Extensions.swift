@@ -29,26 +29,28 @@ extension XCUIElement {
     var hasFocus: Bool { value(forKey: "hasKeyboardFocus") as? Bool ?? false }
 
     func wait<U>(
-            attribute keyPath: KeyPath<XCUIElement, U>,
-            is comparisonOperator: NSComparisonPredicate.Operator,
-            value: U,
-            timeout: TimeInterval = 10
-        ) -> XCUIElement? {
+        attribute keyPath: KeyPath<XCUIElement, U>,
+        is comparisonOperator: NSComparisonPredicate.Operator,
+        value: U,
+        timeout: TimeInterval = 10
+    ) -> XCUIElement? {
 
-            let predicate = NSPredicate.keyPath(
-                keyPath,
-                is: comparisonOperator,
-                value: value
-            )
+        let predicate = NSPredicate.keyPath(
+            keyPath,
+            is: comparisonOperator,
+            value: value
+        )
 
-            let expectation = XCTNSPredicateExpectation(predicate: predicate, object: self)
-            let result = XCTWaiter.wait(for: [expectation], timeout: timeout)
-            return result == .completed ? self : nil
-        }
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: self)
+        let result = XCTWaiter.wait(for: [expectation], timeout: timeout)
+        return result == .completed ? self : nil
+    }
 }
 
 extension XCTestCase {
-    func waitUntilElementHasFocus(element: XCUIElement, timeout: TimeInterval = 600, file: StaticString = #file, line: UInt = #line) -> XCUIElement {
+    func waitUntilElementHasFocus(
+        element: XCUIElement, timeout: TimeInterval = 600, file: StaticString = #file, line: UInt = #line
+    ) -> XCUIElement {
         let expectation = expectation(description: "waiting for element \(element) to have focus")
 
         let timer = Timer(timeInterval: 1, repeats: true) { timer in

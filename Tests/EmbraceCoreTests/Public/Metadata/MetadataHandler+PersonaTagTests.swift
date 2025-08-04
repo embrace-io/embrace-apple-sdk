@@ -2,11 +2,12 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-@testable import EmbraceCore
-import XCTest
-import EmbraceStorageInternal
 import EmbraceCommonInternal
+import EmbraceStorageInternal
 import TestSupport
+import XCTest
+
+@testable import EmbraceCore
 
 final class MetadataHandler_PersonaTagTests: XCTestCase {
 
@@ -62,7 +63,9 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
         try handler.add(persona: "test", lifespan: .session)
 
         let metadata: [MetadataRecord] = storage.fetchAll()
-        XCTAssertEqual(metadata.filter({ $0.typeRaw == MetadataRecordType.personaTag.rawValue }).count, storage.options.personaTagsLimit)
+        XCTAssertEqual(
+            metadata.filter({ $0.typeRaw == MetadataRecordType.personaTag.rawValue }).count,
+            storage.options.personaTagsLimit)
     }
 
     // MARK: - Current Personas
@@ -82,7 +85,7 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
             value: PersonaTag.metadataValue,
             type: .personaTag,
             lifespan: .process,
-            lifespanId: ProcessIdentifier.current.hex
+            lifespanId: ProcessIdentifier.current.value
         )
         storage.addMetadata(
             key: "session",
@@ -121,7 +124,7 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
             value: PersonaTag.metadataValue,
             type: .personaTag,
             lifespan: .process,
-            lifespanId: ProcessIdentifier.current.hex
+            lifespanId: ProcessIdentifier.current.value
         )
         storage.addMetadata(
             key: "session",
@@ -162,7 +165,7 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
             value: "process",
             type: .personaTag,
             lifespan: .process,
-            lifespanId: ProcessIdentifier.current.hex
+            lifespanId: ProcessIdentifier.current.value
         )
         storage.addMetadata(
             key: "session",
@@ -200,7 +203,7 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
             value: "process",
             type: .personaTag,
             lifespan: .process,
-            lifespanId: ProcessIdentifier.random.hex
+            lifespanId: ProcessIdentifier.random.value
         )
         storage.addMetadata(
             key: "session",
@@ -238,7 +241,7 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
             value: PersonaTag.metadataValue,
             type: .personaTag,
             lifespan: .process,
-            lifespanId: ProcessIdentifier.current.hex
+            lifespanId: ProcessIdentifier.current.value
         )
         storage.addMetadata(
             key: "session",
@@ -280,7 +283,7 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
             value: PersonaTag.metadataValue,
             type: .personaTag,
             lifespan: .process,
-            lifespanId: ProcessIdentifier.current.hex
+            lifespanId: ProcessIdentifier.current.value
         )
         storage.addMetadata(
             key: "session",
@@ -319,7 +322,7 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
             value: PersonaTag.metadataValue,
             type: .personaTag,
             lifespan: .process,
-            lifespanId: ProcessIdentifier.current.hex
+            lifespanId: ProcessIdentifier.current.value
         )
         storage.addMetadata(
             key: "session",
@@ -359,7 +362,7 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
             value: PersonaTag.metadataValue,
             type: .personaTag,
             lifespan: .process,
-            lifespanId: ProcessIdentifier.current.hex
+            lifespanId: ProcessIdentifier.current.value
         )
         storage.addMetadata(
             key: "session",
@@ -397,7 +400,7 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
             value: PersonaTag.metadataValue,
             type: .personaTag,
             lifespan: .process,
-            lifespanId: ProcessIdentifier.current.hex
+            lifespanId: ProcessIdentifier.current.value
         )
         storage.addMetadata(
             key: "session",

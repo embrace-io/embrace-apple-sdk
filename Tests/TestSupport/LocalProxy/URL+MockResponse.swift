@@ -4,10 +4,10 @@
 
 import Foundation
 
-public extension URL {
+extension URL {
     private static var mockResponseKey: UInt8 = 2
 
-    var mockResponse: URLTestProxiedResponse? {
+    public var mockResponse: URLTestProxiedResponse? {
         get {
             return objc_getAssociatedObject(self, &URL.mockResponseKey) as? URLTestProxiedResponse
         }

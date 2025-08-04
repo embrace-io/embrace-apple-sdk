@@ -4,11 +4,11 @@
 //
 //
 
-import SwiftUI
-import EmbraceIO
 import EmbraceCrash
+import EmbraceIO
 import EmbraceObjCUtilsInternal
 import OpenTelemetrySdk
+import SwiftUI
 
 struct EmbraceInitScreen: View {
     @Environment(DataCollector.self) private var dataCollector
@@ -30,11 +30,13 @@ struct EmbraceInitScreen: View {
                         .textCase(nil)
                         .font(.embraceFont(size: 15))
                 }
-                ForEach($viewModel.formFields, id:\.name) { $section in
+                ForEach($viewModel.formFields, id: \.name) { $section in
                     Section {
-                        ForEach($section.items, id:\.name) { $item in
-                            TextField(item.name,
-                                      text: $item.value)
+                        ForEach($section.items, id: \.name) { $item in
+                            TextField(
+                                item.name,
+                                text: $item.value
+                            )
                             .font(.embraceFont(size: 18))
                             .foregroundStyle(viewModel.formDisabled ? .gray : .embraceSilver)
                             .disabled(viewModel.formDisabled)
@@ -49,9 +51,11 @@ struct EmbraceInitScreen: View {
                 }
             }
             .disabled(viewModel.formDisabled)
-            EmbraceLargeButton(text: viewModel.embraceHasInitialized ? "EmbraceIO has started!" : "Start EmbraceIO",
-                               enabled: !viewModel.formDisabled,
-                               buttonAction: startEmbrace)
+            EmbraceLargeButton(
+                text: viewModel.embraceHasInitialized ? "EmbraceIO has started!" : "Start EmbraceIO",
+                enabled: !viewModel.formDisabled,
+                buttonAction: startEmbrace
+            )
             .disabled(viewModel.formDisabled)
             .padding()
             .padding(.bottom, 60)
@@ -68,8 +72,8 @@ struct EmbraceInitScreen: View {
     }
 }
 
-private extension EmbraceInitScreen {
-    func startEmbrace() {
+extension EmbraceInitScreen {
+    fileprivate func startEmbrace() {
         switch viewModel.forceInitState {
         case .off:
             break
@@ -81,8 +85,8 @@ private extension EmbraceInitScreen {
             let oldBootTime = UserDefaults.standard.double(forKey: "emb.bootTime")
             let newBuildUUID = EMBDevice.buildUUID?.uuidString
             let newBootTime = EMBDevice.bootTime.doubleValue
-            if (oldBuildUUID == nil || oldBootTime == 0) ||
-                (oldBuildUUID != newBuildUUID && oldBootTime != newBootTime) {
+            if (oldBuildUUID == nil || oldBootTime == 0) || (oldBuildUUID != newBuildUUID && oldBootTime != newBootTime)
+            {
                 UserDefaults.standard.setValue(newBuildUUID, forKey: "emb.buildUUID")
                 UserDefaults.standard.setValue(newBootTime, forKey: "emb.bootTime")
             }
@@ -92,24 +96,32 @@ private extension EmbraceInitScreen {
         do {
             viewModel.showProgressview = true
             let services = CaptureServiceBuilder()
-                .add(.view(options: ViewCaptureService.Options(instrumentVisibility: true,
-                                                               instrumentFirstRender: true)))
+                .add(
+                    .view(
+                        options: ViewCaptureService.Options(
+                            instrumentVisibility: true,
+                            instrumentFirstRender: true))
+                )
 
                 .addDefaults()
                 .build()
             try Embrace
-                .setup(options:
-                        .init(appId: viewModel.appId,
-                              endpoints: .init(
+                .setup(
+                    options:
+                        .init(
+                            appId: viewModel.appId,
+                            endpoints: .init(
                                 baseURL: viewModel.baseURL,
                                 configBaseURL: viewModel.configBaseURL),
-                              captureServices: services,
-                              crashReporter: EmbraceCrashReporter(),
-                              export: .init(spanExporter: dataCollector.spanExporter, logExporter: dataCollector.logExporter))
+                            captureServices: services,
+                            crashReporter: EmbraceCrashReporter(),
+                            export: .init(
+                                spanExporter: dataCollector.spanExporter, logExporter: dataCollector.logExporter))
                 ).start()
             viewModel.showProgressview = false
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                NotificationCenter.default.post(name: NSNotification.Name("UIApplicationDidFinishLaunchingNotification"), object: nil)
+                NotificationCenter.default.post(
+                    name: NSNotification.Name("UIApplicationDidFinishLaunchingNotification"), object: nil)
             }
         } catch let e {
             viewModel.showProgressview = false

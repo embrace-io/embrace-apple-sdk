@@ -4,10 +4,9 @@
 //
 //
 
-import SwiftUI
 import EmbraceIO
-
 import OpenTelemetrySdk
+import SwiftUI
 
 struct ContentView: View {
     @Environment(DataCollector.self) private var dataCollector
@@ -20,7 +19,7 @@ struct ContentView: View {
         NavigationStack {
             ZStack {
                 TabView(selection: $selected) {
-                    ForEach(TestMenuOptionDataModel.allCases, id:\.rawValue) {
+                    ForEach(TestMenuOptionDataModel.allCases, id: \.rawValue) {
                         $0.screen
                             .environment(dataCollector)
                             .tag($0.tag)

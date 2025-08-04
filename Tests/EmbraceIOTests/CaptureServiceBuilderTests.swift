@@ -2,9 +2,10 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-@testable import EmbraceIO
 import EmbraceCore
 import XCTest
+
+@testable import EmbraceIO
 
 // swiftlint:disable force_cast
 
@@ -24,15 +25,15 @@ class CaptureServiceBuilderTests: XCTestCase {
 
         XCTAssertNotNil(list.first(where: { $0 is URLSessionCaptureService }))
 
-#if canImport(UIKit) && !os(watchOS)
-        count += 2
-        XCTAssertNotNil(list.first(where: { $0 is TapCaptureService }))
-        XCTAssertNotNil(list.first(where: { $0 is ViewCaptureService }))
-#endif
-#if canImport(WebKit)
-        count += 1
-        XCTAssertNotNil(list.first(where: { $0 is WebViewCaptureService }))
-#endif
+        #if canImport(UIKit) && !os(watchOS)
+            count += 2
+            XCTAssertNotNil(list.first(where: { $0 is TapCaptureService }))
+            XCTAssertNotNil(list.first(where: { $0 is ViewCaptureService }))
+        #endif
+        #if canImport(WebKit)
+            count += 1
+            XCTAssertNotNil(list.first(where: { $0 is WebViewCaptureService }))
+        #endif
 
         XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
         XCTAssertNotNil(list.first(where: { $0 is LowPowerModeCaptureService }))
@@ -46,7 +47,8 @@ class CaptureServiceBuilderTests: XCTestCase {
         let builder = CaptureServiceBuilder()
 
         // when adding a URLSessionCaptureService with custom options
-        let options = URLSessionCaptureService.Options(injectTracingHeader: false, requestsDataSource: nil, ignoredURLs: [])
+        let options = URLSessionCaptureService.Options(
+            injectTracingHeader: false, requestsDataSource: nil, ignoredURLs: [])
         builder.add(.urlSession(options: options))
 
         // when adding the defaults
@@ -57,15 +59,15 @@ class CaptureServiceBuilderTests: XCTestCase {
 
         var count = 3
 
-#if canImport(UIKit) && !os(watchOS)
-        count += 2
-        XCTAssertNotNil(list.first(where: { $0 is TapCaptureService }))
-        XCTAssertNotNil(list.first(where: { $0 is ViewCaptureService }))
-#endif
-#if canImport(WebKit)
-        count += 1
-        XCTAssertNotNil(list.first(where: { $0 is WebViewCaptureService }))
-#endif
+        #if canImport(UIKit) && !os(watchOS)
+            count += 2
+            XCTAssertNotNil(list.first(where: { $0 is TapCaptureService }))
+            XCTAssertNotNil(list.first(where: { $0 is ViewCaptureService }))
+        #endif
+        #if canImport(WebKit)
+            count += 1
+            XCTAssertNotNil(list.first(where: { $0 is WebViewCaptureService }))
+        #endif
 
         XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
         XCTAssertNotNil(list.first(where: { $0 is LowPowerModeCaptureService }))
@@ -89,20 +91,20 @@ class CaptureServiceBuilderTests: XCTestCase {
         // when removing some services
         builder.remove(ofType: URLSessionCaptureService.self)
 
-#if canImport(UIKit) && !os(watchOS)
-        builder.remove(ofType: TapCaptureService.self)
-        builder.remove(ofType: ViewCaptureService.self)
-#endif
+        #if canImport(UIKit) && !os(watchOS)
+            builder.remove(ofType: TapCaptureService.self)
+            builder.remove(ofType: ViewCaptureService.self)
+        #endif
 
         // then the list contains the correct services
         let list = builder.build()
 
         var count = 2
 
-#if canImport(WebKit)
-        count += 1
-        XCTAssertNotNil(list.first(where: { $0 is WebViewCaptureService }))
-#endif
+        #if canImport(WebKit)
+            count += 1
+            XCTAssertNotNil(list.first(where: { $0 is WebViewCaptureService }))
+        #endif
         XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
         XCTAssertNotNil(list.first(where: { $0 is LowPowerModeCaptureService }))
 
@@ -117,7 +119,8 @@ class CaptureServiceBuilderTests: XCTestCase {
         builder.add(.urlSession())
 
         // and then adding it again
-        let options = URLSessionCaptureService.Options(injectTracingHeader: false, requestsDataSource: nil, ignoredURLs: [])
+        let options = URLSessionCaptureService.Options(
+            injectTracingHeader: false, requestsDataSource: nil, ignoredURLs: [])
         builder.add(.urlSession(options: options))
 
         // then the list contains the correct services
@@ -134,7 +137,8 @@ class CaptureServiceBuilderTests: XCTestCase {
         let builder = CaptureServiceBuilder()
 
         // when adding a URLSessionCaptureService
-        let options = URLSessionCaptureService.Options(injectTracingHeader: false, requestsDataSource: nil, ignoredURLs: [])
+        let options = URLSessionCaptureService.Options(
+            injectTracingHeader: false, requestsDataSource: nil, ignoredURLs: [])
         builder.add(.urlSession(options: options))
 
         // then the list contains the capture service
@@ -146,53 +150,53 @@ class CaptureServiceBuilderTests: XCTestCase {
         XCTAssertNil(service.options.requestsDataSource)
     }
 
-#if canImport(UIKit) && !os(watchOS)
-    func test_addTapCaptureService() throws {
-        // given a builder
-        let builder = CaptureServiceBuilder()
+    #if canImport(UIKit) && !os(watchOS)
+        func test_addTapCaptureService() throws {
+            // given a builder
+            let builder = CaptureServiceBuilder()
 
-        // when adding a TapCaptureService
-        builder.add(.tap())
+            // when adding a TapCaptureService
+            builder.add(.tap())
 
-        // then the list contains the capture service
-        let list = builder.build()
+            // then the list contains the capture service
+            let list = builder.build()
 
-        XCTAssertEqual(list.count, 1)
-        XCTAssertNotNil(list.first(where: { $0 is TapCaptureService }))
-    }
+            XCTAssertEqual(list.count, 1)
+            XCTAssertNotNil(list.first(where: { $0 is TapCaptureService }))
+        }
 
-    func test_addViewCaptureService() throws {
-        // given a builder
-        let builder = CaptureServiceBuilder()
+        func test_addViewCaptureService() throws {
+            // given a builder
+            let builder = CaptureServiceBuilder()
 
-        // when adding a ViewCaptureService
-        builder.add(.view())
+            // when adding a ViewCaptureService
+            builder.add(.view())
 
-        // then the list contains the capture service
-        let list = builder.build()
+            // then the list contains the capture service
+            let list = builder.build()
 
-        XCTAssertEqual(list.count, 1)
-        XCTAssertNotNil(list.first(where: { $0 is ViewCaptureService }))
-    }
-#endif
+            XCTAssertEqual(list.count, 1)
+            XCTAssertNotNil(list.first(where: { $0 is ViewCaptureService }))
+        }
+    #endif
 
-#if canImport(WebKit)
-    func test_addWebViewCaptureService() throws {
-        // given a builder
-        let builder = CaptureServiceBuilder()
+    #if canImport(WebKit)
+        func test_addWebViewCaptureService() throws {
+            // given a builder
+            let builder = CaptureServiceBuilder()
 
-        // when adding a WebViewCaptureService
-        let options = WebViewCaptureService.Options(stripQueryParams: true)
-        builder.add(.webView(options: options))
+            // when adding a WebViewCaptureService
+            let options = WebViewCaptureService.Options(stripQueryParams: true)
+            builder.add(.webView(options: options))
 
-        // then the list contains the capture service
-        let list = builder.build()
+            // then the list contains the capture service
+            let list = builder.build()
 
-        XCTAssertEqual(list.count, 1)
-        let service = list[0] as! WebViewCaptureService
-        XCTAssert(service.options.stripQueryParams)
-    }
-#endif
+            XCTAssertEqual(list.count, 1)
+            let service = list[0] as! WebViewCaptureService
+            XCTAssert(service.options.stripQueryParams)
+        }
+    #endif
 
     func test_addLowMemoryWarningCaptureService() throws {
         // given a builder

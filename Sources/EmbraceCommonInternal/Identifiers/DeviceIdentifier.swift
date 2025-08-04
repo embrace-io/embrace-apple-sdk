@@ -14,7 +14,8 @@ public struct DeviceIdentifier: Equatable {
 
     public init?(string: String?) {
         guard let string = string,
-              let uuid = UUID(withoutHyphen: string) else {
+            let uuid = UUID(withoutHyphen: string)
+        else {
             return nil
         }
 
@@ -29,7 +30,7 @@ extension DeviceIdentifier {
     /// - Parameters:
     ///   - digitCount: The number of digits to use for the deviceId calculation
     public func intValue(digitCount: UInt) -> UInt64 {
-        var deviceIdHexValue: UInt64 = UInt64.max // defaults to everything disabled
+        var deviceIdHexValue: UInt64 = UInt64.max  // defaults to everything disabled
 
         let hexValue = hex
         if hexValue.count >= digitCount {

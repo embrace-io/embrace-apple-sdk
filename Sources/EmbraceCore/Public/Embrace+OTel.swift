@@ -3,13 +3,14 @@
 //
 
 import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceOTelInternal
-import EmbraceSemantics
-#endif
 import OpenTelemetryApi
 import OpenTelemetrySdk
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+    import EmbraceOTelInternal
+    import EmbraceSemantics
+#endif
 
 extension Embrace: EmbraceOpenTelemetry {
     private var exporter: SpanExporter {
@@ -69,7 +70,8 @@ extension Embrace: EmbraceOpenTelemetry {
         events: [RecordingSpanEvent],
         errorCode: SpanErrorCode?
     ) {
-        let builder = otel
+        let builder =
+            otel
             .buildSpan(name: name, type: type, attributes: attributes)
             .setStartTime(time: startTime)
 
@@ -87,13 +89,22 @@ extension Embrace: EmbraceOpenTelemetry {
     /// If there is no current session, this event will be dropped.
     /// - Parameter events: An array of `SpanEvent` objects.
     public func add(events: [SpanEvent]) {
+        guard events.count > 0 else {
+            return
+        }
+
         guard let span = sessionController.currentSessionSpan else {
             Embrace.logger.debug("\(#function) failed: No current session span")
             return
         }
 
-        span.add(events: events)
+        let eventsToAdd = spanEventsLimiter.applyLimits(events: events)
+        guard eventsToAdd.count > 0 else {
+            Embrace.logger.info("\(#function) failed: SpanEvents limit reached!")
+            return
+        }
 
+        span.add(events: eventsToAdd)
         flush(span)
     }
 
@@ -248,7 +259,7 @@ extension Embrace: EmbraceOpenTelemetry {
     }
 }
 
-extension Embrace { // MARK: Static methods
+extension Embrace {  // MARK: Static methods
 
     /// Starts a span and executes the block. The span will be ended when the block returns.
     /// - Parameters:
@@ -283,7 +294,7 @@ extension Embrace { // MARK: Static methods
     }
 }
 
-extension Embrace { // MARK: Internal methods
+extension Embrace {  // MARK: Internal methods
 
     /// Starts a span and executes the block. The span will be ended when the block returns
     /// - Parameters:

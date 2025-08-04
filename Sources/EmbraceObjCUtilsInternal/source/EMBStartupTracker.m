@@ -4,9 +4,16 @@
 
 #import "EMBStartupTracker.h"
 
+#if TARGET_OS_IOS
+#import <UIKit/UIKit.h>
+#elif TARGET_OS_MACOSX
+#import <AppKit/AppKit.h>
+#endif
+
 @implementation EMBStartupTracker
 
-+ (instancetype)shared {
++ (instancetype)shared
+{
     static EMBStartupTracker *sharedInstance = nil;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
@@ -15,7 +22,8 @@
     return sharedInstance;
 }
 
-- (void)setFirstFrameTime:(NSDate *)firstFrameTime {
+- (void)setFirstFrameTime:(NSDate *)firstFrameTime
+{
     _firstFrameTime = firstFrameTime;
 
     if (self.onFirstFrameTimeSet) {
@@ -23,16 +31,25 @@
     }
 }
 
-- (void)trackDidFinishLaunching {
+- (void)trackDidFinishLaunching
+{
     self.appDidFinishLaunchingEndTime = nil;
 
+#if TARGET_OS_IOS
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(onAppDidFinishLaunching:)
-                                                 name:@"UIApplicationDidFinishLaunchingNotification"
+                                                 name:UIApplicationDidFinishLaunchingNotification
                                                object:nil];
+#elif TARGET_OS_MACOSX
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(onAppDidFinishLaunching:)
+                                                 name:NSApplicationDidFinishLaunchingNotification
+                                               object:nil];
+#endif
 }
 
-- (void)onAppDidFinishLaunching:(NSNotification *)notification {
+- (void)onAppDidFinishLaunching:(NSNotification *)notification
+{
     NSDate *now = NSDate.date;
     self.appDidFinishLaunchingEndTime = now;
 

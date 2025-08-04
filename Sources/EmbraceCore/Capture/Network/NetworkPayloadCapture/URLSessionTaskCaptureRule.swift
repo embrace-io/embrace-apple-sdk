@@ -3,8 +3,9 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceConfiguration
+    import EmbraceConfiguration
 #endif
 
 class URLSessionTaskCaptureRule {
@@ -29,7 +30,8 @@ class URLSessionTaskCaptureRule {
         do {
             regex = try NSRegularExpression(pattern: rule.urlRegex.removingHttpPrefix(), options: .caseInsensitive)
         } catch {
-            Embrace.logger.error("Error trying to create regex \"\(rule.urlRegex)\" for rule \(rule.id)!\n\(error.localizedDescription)")
+            Embrace.logger.error(
+                "Error trying to create regex \"\(rule.urlRegex)\" for rule \(rule.id)!\n\(error.localizedDescription)")
             regex = nil
         }
 
@@ -39,9 +41,10 @@ class URLSessionTaskCaptureRule {
     func shouldTriggerFor(request: URLRequest?, response: URLResponse?, error: Error?) -> Bool {
 
         guard let request = request,
-              let url = request.url,
-              let method = request.httpMethod,
-              expirationDate > Date() else {
+            let url = request.url,
+            let method = request.httpMethod,
+            expirationDate > Date()
+        else {
             return false
         }
 
@@ -73,7 +76,7 @@ class URLSessionTaskCaptureRule {
 
             // check if the status code matches
             if let statusCode = (response as? HTTPURLResponse)?.statusCode,
-               statusCodes.contains(statusCode) {
+                statusCodes.contains(statusCode) {
                 return true
             }
 
@@ -94,7 +97,8 @@ class URLSessionTaskCaptureRule {
     }
 
     static private func sanitize(_ key: String) -> String {
-        return key
+        return
+            key
             .replacingOccurrences(of: "-----BEGIN PUBLIC KEY-----", with: "")
             .replacingOccurrences(of: "-----END PUBLIC KEY-----", with: "")
             .replacingOccurrences(of: "-----BEGIN RSA PUBLIC KEY-----", with: "")
@@ -108,7 +112,8 @@ class URLSessionTaskCaptureRule {
 
 extension String {
     func removingHttpPrefix() -> String {
-        return self
+        return
+            self
             .replacingOccurrences(of: "https://", with: "")
             .replacingOccurrences(of: "http://", with: "")
     }

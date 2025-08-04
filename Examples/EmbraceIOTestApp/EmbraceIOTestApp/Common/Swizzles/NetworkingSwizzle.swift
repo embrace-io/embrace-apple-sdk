@@ -4,15 +4,15 @@
 //
 //
 
+import EmbraceCommonInternal
+import EmbraceConfigInternal
+import EmbraceCore
+import EmbraceOTelInternal
 import Foundation
 import OpenTelemetryApi
 import OpenTelemetrySdk
-import EmbraceCommonInternal
-import EmbraceCore
-import EmbraceConfigInternal
-import EmbraceOTelInternal
 
-typealias JsonDictionary = Dictionary<String, Any>
+typealias JsonDictionary = [String: Any]
 
 class NetworkingSwizzle: NSObject {
     typealias URLSessionCompletion = (Data?, URLResponse?, Error?) -> Void
@@ -23,13 +23,13 @@ class NetworkingSwizzle: NSObject {
     static private var initialized = false
 
     /// Contains all Jsons posted, separated by Session Id
-    private(set) var postedJsons: Dictionary<String, Array<JsonDictionary>> = [:]
+    private(set) var postedJsons: [String: [JsonDictionary]] = [:]
 
     /// Contains all the session ids posted in order from first posted to last.
     private(set) var postedJsonsSessionIds: [String] = []
 
     /// Contains all exported spans grouped by the Session they were exported on. Including the session span. The Key is the Session Id.
-    private(set) var exportedSpansBySession: Dictionary<String, [SpanData]> = [:]
+    private(set) var exportedSpansBySession: [String: [SpanData]] = [:]
 
     /// Contains all the logs exported, grouped by Session Id.
     private(set) var exportedLogsBySessions: [String: [ReadableLogRecord]] = [:]
@@ -58,22 +58,26 @@ class NetworkingSwizzle: NSObject {
         setupNotifications()
     }
 
-    private func setupDataTaskWithCompletionHandler()  {
-        typealias ImplementationType = @convention(c) (URLSession, Selector, URLRequest, URLSessionCompletion?) -> URLSessionDataTask
-        typealias BlockImplementationType = @convention(block) (URLSession, URLRequest, URLSessionCompletion?) -> URLSessionDataTask
+    private func setupDataTaskWithCompletionHandler() {
+        typealias ImplementationType = @convention(c) (URLSession, Selector, URLRequest, URLSessionCompletion?) ->
+            URLSessionDataTask
+        typealias BlockImplementationType = @convention(block) (URLSession, URLRequest, URLSessionCompletion?) ->
+            URLSessionDataTask
 
         let selector: Selector = #selector(
-            URLSession.dataTask(with:completionHandler:) as (URLSession) -> (URLRequest, @escaping URLSessionCompletion) -> URLSessionDataTask
+            URLSession.dataTask(with:completionHandler:)
+                as (URLSession) -> (URLRequest, @escaping URLSessionCompletion) -> URLSessionDataTask
         )
 
         guard let method = class_getInstanceMethod(URLSession.self, selector) else { return }
         let originalImp = method_getImplementation(method)
 
-        let newImplementationBlock: BlockImplementationType = { urlSession, urlRequest, completion -> URLSessionDataTask in
+        let newImplementationBlock: BlockImplementationType = {
+            urlSession, urlRequest, completion -> URLSessionDataTask in
             let originalMethod = unsafeBitCast(originalImp, to: ImplementationType.self)
             if let data = urlRequest.httpBody {
                 if let uncompressed = try? data.gunzipped() {
-                    if let json = try? JSONSerialization.jsonObject(with: uncompressed) as? Dictionary<String, Any> {
+                    if let json = try? JSONSerialization.jsonObject(with: uncompressed) as? [String: Any] {
                         self.capturedNewJson(json)
                     }
                 }
@@ -81,7 +85,8 @@ class NetworkingSwizzle: NSObject {
 
             if self.simulateEmbraceAPI {
                 if self.isConfigRequest(urlRequest) {
-                    let task = MockDataTask(originalRequest: urlRequest, completionData: MockData.mockConfig, completion: completion)
+                    let task = MockDataTask(
+                        originalRequest: urlRequest, completionData: MockData.mockConfig, completion: completion)
                     self.createdTasks.append(task)
                     return task
                 }
@@ -103,20 +108,22 @@ class NetworkingSwizzle: NSObject {
 
     private func isConfigRequest(_ urlRequest: URLRequest) -> Bool {
         guard urlRequest.httpMethod == "GET" else { return false }
-        guard urlRequest.url?.pathComponents.contains("config") ?? false else { return false}
+        guard urlRequest.url?.pathComponents.contains("config") ?? false else { return false }
 
         return true
     }
 
     private func isEmbraceApiRequest(_ urlRequest: URLRequest) -> Bool {
-        guard urlRequest.url?.pathComponents.contains("api") ?? false else { return false}
-        guard urlRequest.url?.pathComponents.contains("v2") ?? false else { return false}
+        guard urlRequest.url?.pathComponents.contains("api") ?? false else { return false }
+        guard urlRequest.url?.pathComponents.contains("v2") ?? false else { return false }
 
         return true
     }
 
     private func setupNotifications() {
-        NotificationCenter.default.addObserver(forName: .init("TestSpanExporter.SpansUpdated"), object: nil, queue: nil) { [weak self] _ in
+        NotificationCenter.default.addObserver(forName: .init("TestSpanExporter.SpansUpdated"), object: nil, queue: nil)
+        {
+            [weak self] _ in
             guard
                 let self = self,
                 let spanExporter = self.spanExporter
@@ -124,7 +131,9 @@ class NetworkingSwizzle: NSObject {
             self.capturedExportedSpan(spanExporter)
         }
 
-        NotificationCenter.default.addObserver(forName: .init("TestLogRecordExporter.LogsUpdated"), object: nil, queue: nil) { [weak self] _ in
+        NotificationCenter.default.addObserver(
+            forName: .init("TestLogRecordExporter.LogsUpdated"), object: nil, queue: nil
+        ) { [weak self] _ in
             guard
                 let self = self,
                 let logExporter = self.logExporter
@@ -133,11 +142,11 @@ class NetworkingSwizzle: NSObject {
         }
     }
 
-    private func capturedNewJson(_ json: Dictionary<String, Any>) {
-        let data = json["data"] as? Dictionary<String, Any> ?? [:]
-        let spans = data["spans"] as? Array<Dictionary<String, Any>> ?? []
+    private func capturedNewJson(_ json: [String: Any]) {
+        let data = json["data"] as? [String: Any] ?? [:]
+        let spans = data["spans"] as? [[String: Any]] ?? []
         let sessionSpan = spans.first { $0["name"] as? String == "emb-session" }
-        let attributes = sessionSpan?["attributes"] as? Array<Dictionary<String, String>>
+        let attributes = sessionSpan?["attributes"] as? [[String: String]]
         let sessionIdAttribute = attributes?.first { $0["key"] == "session.id" }
         let sessionId = sessionIdAttribute?["value"] as? String
 
@@ -157,7 +166,7 @@ class NetworkingSwizzle: NSObject {
     private func capturedExportedSpan(_ spanExporter: TestSpanExporter) {
         var currentSessionId: String? = nil
 
-        if let sessionSpan = spanExporter.latestExporterSpans.first (where: { span in
+        if let sessionSpan = spanExporter.latestExporterSpans.first(where: { span in
             span.name == "emb-session"
         }) {
             currentSessionId = sessionSpan.attributes["session.id"]?.description
@@ -169,7 +178,7 @@ class NetworkingSwizzle: NSObject {
             return
         }
 
-        exportedSpansBySession[currentSessionId, default:[]].append(contentsOf: spanExporter.latestExporterSpans)
+        exportedSpansBySession[currentSessionId, default: []].append(contentsOf: spanExporter.latestExporterSpans)
     }
 
     private func capturedExportedLog(_ logExporter: TestLogRecordExporter) {
@@ -177,6 +186,6 @@ class NetworkingSwizzle: NSObject {
             return
         }
 
-        exportedLogsBySessions[currentSessionId, default:[]].append(contentsOf: logExporter.latestExportedLogs)
+        exportedLogsBySessions[currentSessionId, default: []].append(contentsOf: logExporter.latestExportedLogs)
     }
 }

@@ -4,8 +4,9 @@
 
 import Foundation
 import MetricKit
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
+    import EmbraceCommonInternal
 #endif
 
 @objc class MetricKitHandler: NSObject, MetricKitPayloadProvider {
@@ -26,15 +27,15 @@ import EmbraceCommonInternal
     let sessionLinkGracePeriod: TimeInterval = 5
 
     func install() {
-#if !os(tvOS)
-        MXMetricManager.shared.add(self)
-#endif
+        #if !os(tvOS) && !os(macOS) && !os(watchOS)
+            MXMetricManager.shared.add(self)
+        #endif
     }
 
     func uninstall() {
-#if !os(tvOS)
-        MXMetricManager.shared.remove(self)
-#endif
+        #if !os(tvOS) && !os(macOS) && !os(watchOS)
+            MXMetricManager.shared.remove(self)
+        #endif
     }
 
     func handlePayload(_ payload: MetricKitDiagnosticPayload) {
@@ -88,19 +89,19 @@ import EmbraceCommonInternal
     }
 }
 
-#if !os(tvOS)
-extension MetricKitHandler: MXMetricManagerSubscriber {
-    func didReceive(_ payloads: [MXMetricPayload]) {
-        // noop for now
-    }
+#if !os(tvOS) && !os(macOS) && !os(watchOS)
+    extension MetricKitHandler: MXMetricManagerSubscriber {
+        func didReceive(_ payloads: [MXMetricPayload]) {
+            // noop for now
+        }
 
-    @available(iOS 14.0, *)
-    func didReceive(_ payloads: [MXDiagnosticPayload]) {
-        for payload in payloads {
-            handlePayload(MetricKitDiagnosticPayload(payload: payload))
+        @available(iOS 14.0, *)
+        func didReceive(_ payloads: [MXDiagnosticPayload]) {
+            for payload in payloads {
+                handlePayload(MetricKitDiagnosticPayload(payload: payload))
+            }
         }
     }
-}
 #endif
 
 // abstraction for injection during tests
@@ -117,17 +118,18 @@ class MetricKitDiagnosticPayload {
         self.hangs = hangs
     }
 
-#if !os(tvOS)
-    @available(iOS 14.0, *)
-    init(payload: MXDiagnosticPayload) {
-        self.startTime = payload.timeStampBegin
-        self.endTime = payload.timeStampEnd
-        self.crashes = payload.crashDiagnostics?.map({
-            MetricKitCrashData(data: $0.jsonRepresentation(), signal: $0.signal?.intValue ?? 0)
-        }) ?? []
-        self.hangs = payload.hangDiagnostics?.map { $0.jsonRepresentation() } ?? []
-    }
-#endif
+    #if !os(tvOS)
+        @available(iOS 14.0, *)
+        init(payload: MXDiagnosticPayload) {
+            self.startTime = payload.timeStampBegin
+            self.endTime = payload.timeStampEnd
+            self.crashes =
+                payload.crashDiagnostics?.map({
+                    MetricKitCrashData(data: $0.jsonRepresentation(), signal: $0.signal?.intValue ?? 0)
+                }) ?? []
+            self.hangs = payload.hangDiagnostics?.map { $0.jsonRepresentation() } ?? []
+        }
+    #endif
 }
 
 struct MetricKitCrashData {

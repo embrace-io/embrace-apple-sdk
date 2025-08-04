@@ -3,11 +3,12 @@
 //
 
 import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceOTelInternal
-#endif
 import OpenTelemetryApi
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+    import EmbraceOTelInternal
+#endif
 
 /// Base class for all capture services (this class should never be used directly)
 /// In order to make your own `CaptureService` you should create a subclass and override

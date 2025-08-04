@@ -4,12 +4,13 @@
 
 import Foundation
 import OpenTelemetryApi
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCaptureService
-import EmbraceCommonInternal
-import EmbraceOTelInternal
-@_implementationOnly import EmbraceObjCUtilsInternal
-import EmbraceSemantics
+    import EmbraceCaptureService
+    import EmbraceCommonInternal
+    import EmbraceOTelInternal
+    @_implementationOnly import EmbraceObjCUtilsInternal
+    import EmbraceSemantics
 #endif
 
 extension Notification.Name {
@@ -23,6 +24,8 @@ protocol URLSessionTaskHandlerDataSource: AnyObject {
     var injectTracingHeader: Bool { get }
     var requestsDataSource: URLSessionRequestsDataSource? { get }
     var ignoredURLs: [String] { get }
+
+    var ignoredTaskTypes: [AnyClass] { get }
 }
 
 final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
@@ -32,18 +35,34 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
     private let payloadCaptureHandler: NetworkPayloadCaptureHandler
     weak var dataSource: URLSessionTaskHandlerDataSource?
 
-    init(processingQueue: DispatchableQueue = DefaultURLSessionTaskHandler.queue(),
-         capturedDataQueue: DispatchableQueue = DefaultURLSessionTaskHandler.capturedDataQueue(),
-         dataSource: URLSessionTaskHandlerDataSource?,
-         payloadCaptureHandler: NetworkPayloadCaptureHandler? = nil) {
+    init(
+        processingQueue: DispatchableQueue = DefaultURLSessionTaskHandler.queue(),
+        capturedDataQueue: DispatchableQueue = DefaultURLSessionTaskHandler.capturedDataQueue(),
+        dataSource: URLSessionTaskHandlerDataSource?,
+        payloadCaptureHandler: NetworkPayloadCaptureHandler? = nil
+    ) {
         self.queue = processingQueue
         self.capturedDataQueue = capturedDataQueue
         self.dataSource = dataSource
-        self.payloadCaptureHandler = payloadCaptureHandler ?? DefaultNetworkPayloadCaptureHandler(otel: dataSource?.otel)
+        self.payloadCaptureHandler =
+            payloadCaptureHandler ?? DefaultNetworkPayloadCaptureHandler(otel: dataSource?.otel)
+    }
+
+    func shouldIgnoreTask(_ task: URLSessionTask) -> Bool {
+        if let dataSource {
+            return dataSource.ignoredTaskTypes.contains(where: { task.isKind(of: $0) })
+        }
+
+        return false
     }
 
     @discardableResult
     func create(task: URLSessionTask) -> Bool {
+
+        // check for ignored task types
+        guard shouldIgnoreTask(task) == false else {
+            return false
+        }
 
         var handled = false
 
@@ -65,7 +84,8 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
             guard
                 var request = task.originalRequest,
                 let url = request.url,
-                let otel = self.dataSource?.otel else {
+                let otel = self.dataSource?.otel
+            else {
                 return
             }
 
@@ -94,12 +114,12 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
              The `{http.route}` corresponds to the template of the path so it's necessary to understand the templating system being employed.
              For instance, a template for a request such as http://embrace.io/users/12345?hello=world
              would be reported as /users/:userId (or /users/:userId? in other templating system).
-
+            
              Until a decision is made regarding the method to convey this information and the heuristics to extract it,
              the `.path` method will be utilized temporarily. This approach may introduce higher cardinality on the backend,
              which is less than optimal.
              It will be important to address this in the near future to enhance performance for the backend.
-
+            
              Additional information can be found at:
              - HTTP Name attribute: https://opentelemetry.io/docs/specs/semconv/http/http-spans/#name
              - HTTP Attributes: https://opentelemetry.io/docs/specs/semconv/attributes-registry/http/
@@ -131,59 +151,54 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
         return handled
     }
 
-    func finish(task: URLSessionTask, bodySize: Int, error: (any Error)?) {
-        // save end time for payload capture
-        let embraceEndTime = Date()
+    private func finish(task: URLSessionTask, data: Data?, bodySize: Int, error: (any Error)?) {
 
-        queue.async {
-            // process payload capture
-            if self.payloadCaptureHandler.isEnabled() {
-                var data: Data?
-                self.capturedDataQueue.sync {
-                    data = task.embraceData
-                }
-
-                self.payloadCaptureHandler.process(
-                    request: task.currentRequest ?? task.originalRequest,
-                    response: task.response,
-                    data: data,
-                    error: error,
-                    startTime: task.embraceStartTime,
-                    endTime: embraceEndTime
-                )
-            }
-
-            self.handleTaskFinished(task, bodySize: bodySize, error: error)
+        // check for ignored task types
+        guard shouldIgnoreTask(task) == false else {
+            return
         }
-    }
 
-    func finish(task: URLSessionTask, data: Data?, error: (any Error)?) {
+        // save a local copy of the task in case it gets released
+        guard let taskCopy = task.copy() as? URLSessionTask else {
+            return
+        }
+
         // save end time for payload capture
         let embraceEndTime = Date()
 
         queue.async {
+            var capturedBodySize = data?.count ?? bodySize
+
             // process payload capture
             if self.payloadCaptureHandler.isEnabled() {
-                // performing this logic to prevent any issues accessing `task.embraceData`
                 var capturedData = data
                 if capturedData == nil {
                     self.capturedDataQueue.sync {
-                        capturedData = task.embraceData
+                        capturedData = taskCopy.embraceData
                     }
                 }
+                capturedBodySize = capturedData?.count ?? bodySize
 
                 self.payloadCaptureHandler.process(
-                    request: task.currentRequest ?? task.originalRequest,
-                    response: task.response,
-                    data: capturedData,
+                    request: taskCopy.currentRequest ?? taskCopy.originalRequest,
+                    response: taskCopy.response,
+                    data: data,
                     error: error,
-                    startTime: task.embraceStartTime,
+                    startTime: taskCopy.embraceStartTime,
                     endTime: embraceEndTime
                 )
             }
 
-            self.handleTaskFinished(task, bodySize: data?.count, error: error)
+            self.handleTaskFinished(taskCopy, bodySize: capturedBodySize, error: error)
         }
+    }
+
+    func finish(task: URLSessionTask, bodySize: Int, error: (any Error)?) {
+        finish(task: task, data: nil, bodySize: bodySize, error: error)
+    }
+
+    func finish(task: URLSessionTask, data: Data?, error: (any Error)?) {
+        finish(task: task, data: data, bodySize: 0, error: error)
     }
 
     private func handleTaskFinished(_ task: URLSessionTask, bodySize: Int?, error: (any Error)?) {
@@ -251,7 +266,8 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
 
     func addTracingHeader(task: URLSessionTask, span: Span) -> String? {
         guard dataSource?.injectTracingHeader == true,
-              task.originalRequest != nil else {
+            task.originalRequest != nil
+        else {
             return nil
         }
 
@@ -289,12 +305,12 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
     }
 }
 
-private extension DefaultURLSessionTaskHandler {
-    static func queue() -> DispatchableQueue {
+extension DefaultURLSessionTaskHandler {
+    fileprivate static func queue() -> DispatchableQueue {
         .with(label: "com.embrace.URLSessionTaskHandler", qos: .utility)
     }
 
-    static func capturedDataQueue() -> DispatchableQueue {
+    fileprivate static func capturedDataQueue() -> DispatchableQueue {
         .with(label: "com.embrace.URLSessionTask.embraceData", qos: .utility)
     }
 }

@@ -6,7 +6,6 @@ import Foundation
 
 /// InternalLogLimits manages limits for the logs the SDK produces about its own operation
 /// This is broken into the major log severities so each can be managed
-/// These logs will only be emitted if the ``Embrace.logLevel``
 @objc public class InternalLogLimits: NSObject {
     public let trace: UInt
     public let debug: UInt
@@ -28,10 +27,7 @@ import Foundation
         }
 
         return
-            trace == other.trace &&
-            debug == other.debug &&
-            info == other.info &&
-            warning == other.warning &&
-            error == other.error
+            trace == other.trace && debug == other.debug && info == other.info && warning == other.warning
+            && error == other.error
     }
 }

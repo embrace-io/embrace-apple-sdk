@@ -4,9 +4,9 @@
 //
 //
 
-import SwiftUI
 import Combine
 import EmbraceIO
+import SwiftUI
 
 struct UploadedSessionPayloadTestPersonasView: View {
     var addPersonaAction: (String, MetadataLifespan) -> Void
@@ -23,7 +23,7 @@ struct UploadedSessionPayloadTestPersonasView: View {
             TextField("Testing", text: $persona)
                 .font(.embraceFont(size: 18))
                 .foregroundStyle(.embraceSilver)
-                .padding([.leading, .trailing,], 5)
+                .padding([.leading, .trailing], 5)
                 .textFieldStyle(RoundedStyle())
                 .accessibilityIdentifier("SessionTests_Persona")
                 .padding(.bottom, 5)

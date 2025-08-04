@@ -2,8 +2,8 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
 import EmbraceUploadInternal
+import Foundation
 
 class SpyEmbraceLogUploader: EmbraceLogUploader {
     var didCallUploadLog = false

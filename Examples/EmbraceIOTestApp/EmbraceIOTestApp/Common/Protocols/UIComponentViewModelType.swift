@@ -17,4 +17,3 @@ protocol UIComponentViewModelType: ObservableObject {
     func testButtonPressed()
     func testFinished(with report: TestReport)
 }
-

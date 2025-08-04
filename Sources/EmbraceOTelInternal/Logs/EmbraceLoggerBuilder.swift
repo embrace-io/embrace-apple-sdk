@@ -2,8 +2,8 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import OpenTelemetryApi
 import Foundation
+import OpenTelemetryApi
 
 class EmbraceLoggerBuilder: LoggerBuilder {
     let sharedState: EmbraceLogSharedState

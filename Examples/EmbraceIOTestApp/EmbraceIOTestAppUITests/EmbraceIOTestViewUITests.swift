@@ -5,6 +5,7 @@
 //
 
 import XCTest
+
 @testable import EmbraceCommonInternal
 
 final class EmbraceIOTestViewUITests: XCTestCase {
@@ -17,7 +18,8 @@ final class EmbraceIOTestViewUITests: XCTestCase {
         XCTAssertTrue(initButton.waitForExistence(timeout: 5))
         initButton.tap()
 
-        XCTAssertNotNil(initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
+        XCTAssertNotNil(
+            initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
 
         let sideMenuButton = app.buttons["SideMenuButton"]
         XCTAssertTrue(sideMenuButton.waitForExistence(timeout: 5))

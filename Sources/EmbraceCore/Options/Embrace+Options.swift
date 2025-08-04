@@ -3,12 +3,13 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCaptureService
-import EmbraceCommonInternal
-import EmbraceOTelInternal
-import EmbraceConfigInternal
-import EmbraceConfiguration
+    import EmbraceCaptureService
+    import EmbraceCommonInternal
+    import EmbraceOTelInternal
+    import EmbraceConfigInternal
+    import EmbraceConfiguration
 #endif
 
 extension Embrace {
@@ -26,7 +27,7 @@ extension Embrace {
         @objc public let export: OpenTelemetryExport?
         @objc public let runtimeConfiguration: EmbraceConfigurable?
         @objc public let processors: [OpenTelemetryProcessor]?
-        
+
         /// Default initializer for `Embrace.Options` that requires an array of `CaptureServices` to be passed.
         ///
         /// If you wish to use the default `CaptureServices`, please refer to the `Embrace.Options`
@@ -98,7 +99,7 @@ extension Embrace {
     }
 }
 
-internal extension Embrace.Options {
+extension Embrace.Options {
     /// Validate Options object to make sure it has not been configured ambiguously
     func validate() throws {
         try validateAppId()

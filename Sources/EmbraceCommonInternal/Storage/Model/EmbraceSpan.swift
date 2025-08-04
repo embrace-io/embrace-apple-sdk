@@ -15,12 +15,12 @@ public protocol EmbraceSpan {
     var processIdRaw: String { get }
 }
 
-public extension EmbraceSpan {
-    var type: SpanType? {
+extension EmbraceSpan {
+    public var type: SpanType? {
         return SpanType(rawValue: typeRaw)
     }
 
-    var processId: ProcessIdentifier? {
-        return ProcessIdentifier(hex: processIdRaw)
+    public var processId: ProcessIdentifier? {
+        return ProcessIdentifier(string: processIdRaw)
     }
 }

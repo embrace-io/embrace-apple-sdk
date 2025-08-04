@@ -41,8 +41,8 @@ import SwiftUI
 ///   - contentComplete: A value that when changed, will flag the View as content complete.
 /// - Returns: A new `View` wrapped with Embrace tracing instrumentation.
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
-public extension View {
-    func embraceTrace(
+extension View {
+    public func embraceTrace(
         _ viewName: String,
         attributes: [String: String]? = nil
     ) -> some View {
@@ -52,7 +52,7 @@ public extension View {
         ) { self }
     }
 
-    func embraceTrace<V: Equatable>(
+    public func embraceTrace<V: Equatable>(
         _ viewName: String,
         attributes: [String: String]? = nil,
         contentComplete: V

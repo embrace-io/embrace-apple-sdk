@@ -2,17 +2,19 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
-import TestSupport
 import EmbraceCommonInternal
-@testable import EmbraceCore
 import EmbraceStorageInternal
+import TestSupport
+import XCTest
+
+@testable import EmbraceCore
 
 class MetricKitCrashCaptureServiceTests: XCTestCase {
 
-    func options(provider: MetricKitPayloadProvider,
-                 fetcher: EmbraceStorageMetadataFetcher? = nil,
-                 stateProvider: EmbraceMetricKitStateProvider? = nil
+    func options(
+        provider: MetricKitPayloadProvider,
+        fetcher: EmbraceStorageMetadataFetcher? = nil,
+        stateProvider: EmbraceMetricKitStateProvider? = nil
     ) -> MetricKitCrashCaptureService.Options {
         return MetricKitCrashCaptureService.Options(
             payloadProvider: provider,
@@ -156,7 +158,7 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
             value: "metadata",
             type: .customProperty,
             lifespan: .process,
-            lifespanId: TestConstants.processId.hex
+            lifespanId: TestConstants.processId.value
         )
 
         // given a capture service

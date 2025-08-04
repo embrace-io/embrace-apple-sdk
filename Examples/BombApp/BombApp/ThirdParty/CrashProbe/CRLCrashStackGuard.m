@@ -28,16 +28,25 @@
 
 @implementation CRLCrashStackGuard
 
-- (NSString *)category { return @"SIGSEGV"; }
-- (NSString *)title { return @"Stack overflow"; }
-- (NSString *)desc { return @""
-  "Execute an infinitely recursive method, which overflows the stack and "
-  "causes a crash by attempting to write to the guard page at the end.";
+- (NSString *)category
+{
+    return @"SIGSEGV";
+}
+- (NSString *)title
+{
+    return @"Stack overflow";
+}
+- (NSString *)desc
+{
+    return @""
+            "Execute an infinitely recursive method, which overflows the stack and "
+            "causes a crash by attempting to write to the guard page at the end.";
 }
 
-- (void)crash {
+- (void)crash
+{
     [self crash];
-    
+
     /* This is unreachable, but prevents clang from applying TCO to the above when
      * optimization is enabled. */
     NSLog(@"I'm here from the tail call prevention department.");

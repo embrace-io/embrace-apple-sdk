@@ -19,12 +19,12 @@ public protocol EmbraceSession {
     var appTerminated: Bool { get }
 }
 
-public extension EmbraceSession {
-    var id: SessionIdentifier? {
+extension EmbraceSession {
+    public var id: SessionIdentifier? {
         return SessionIdentifier(string: idRaw)
     }
 
-    var processId: ProcessIdentifier? {
-        return ProcessIdentifier(hex: processIdRaw)
+    public var processId: ProcessIdentifier? {
+        return ProcessIdentifier(string: processIdRaw)
     }
 }

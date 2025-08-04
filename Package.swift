@@ -1,9 +1,9 @@
 // swift-tools-version: 5.9
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
+import CompilerPluginSupport
 import Foundation
 import PackageDescription
-import CompilerPluginSupport
 
 #if TUIST
     import ProjectDescription
@@ -41,12 +41,12 @@ let package = Package(
     ],
     dependencies: [
         .package(
-             url: "https://github.com/kstenerud/KSCrash",
-             exact: "2.2.0"
+            url: "https://github.com/kstenerud/KSCrash",
+            exact: "2.2.0"
         ),
         .package(
             url: "https://github.com/open-telemetry/opentelemetry-swift",
-            exact: "1.17.1"
+            exact: "2.0.0"
         ),
         .package(
             url: "https://github.com/swiftlang/swift-syntax.git",
@@ -54,7 +54,7 @@ let package = Package(
         )
     ],
     targets: [
-        
+
         // main target ---------------------------------------------------------------
         .target(
             name: "EmbraceIO",
@@ -94,8 +94,8 @@ let package = Package(
             ],
             resources: [
                 .copy("PrivacyInfo.xcprivacy")
-           ],
-           linkerSettings: linkerSettings
+            ],
+            linkerSettings: linkerSettings
         ),
 
         .testTarget(
@@ -255,6 +255,7 @@ let package = Package(
             name: "EmbraceCrash",
             dependencies: [
                 "EmbraceCommonInternal",
+                "EmbraceSemantics",
                 .product(name: "Recording", package: "KSCrash")
             ]
         ),
@@ -265,7 +266,7 @@ let package = Package(
                 .copy("Mocks/")
             ]
         ),
-        
+
         // macros support -----------------------------------------------------------
         .macro(
             name: "EmbraceMacroPlugin",
@@ -288,10 +289,10 @@ let package = Package(
             dependencies: [
                 "EmbraceMacroPlugin",
                 "EmbraceIO",
-                .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
+                .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax")
             ]
         ),
-        
+
         // crashlytics support  -------------------------------------------------------
         .target(
             name: "EmbraceCrashlyticsSupport",
@@ -333,13 +334,13 @@ let package = Package(
 )
 
 if ProcessInfo.processInfo.environment["EMBRACE_ENABLE_SWIFTLINT"] != nil {
-  package.dependencies.append(contentsOf: [
-    .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", from: "0.58.2")
-  ])
+    package.dependencies.append(contentsOf: [
+        .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", from: "0.58.2")
+    ])
 
-  for target in package.targets {
-    target.plugins = [
-      .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
-    ]
-  }
+    for target in package.targets {
+        target.plugins = [
+            .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
+        ]
+    }
 }

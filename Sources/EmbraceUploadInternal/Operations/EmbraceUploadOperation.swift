@@ -3,8 +3,9 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
+    import EmbraceCommonInternal
 #endif
 
 enum EmbraceUploadOperationResult: Equatable {
@@ -14,7 +15,7 @@ enum EmbraceUploadOperationResult: Equatable {
 
 typealias EmbraceUploadOperationCompletion = (_ result: EmbraceUploadOperationResult, _ attemptCount: Int) -> Void
 
-class EmbraceUploadOperation: AsyncOperation {
+class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
     private let urlSession: URLSession
     private let queue: DispatchQueue
     private let metadataOptions: EmbraceUpload.MetadataOptions
@@ -83,43 +84,49 @@ class EmbraceUploadOperation: AsyncOperation {
         // update request's attempt count header
         request = updateRequest(request, attemptCount: attemptCount)
 
-        task = urlSession.dataTask(with: request, completionHandler: { [weak self] _, response, error in
-            guard let strongSelf = self else {
-                return
-            }
-            // retry?
-            if retryCount > 0 && strongSelf.shouldRetry(basedOn: response, error: error) {
-                // calculates the necessary delay before retrying the request
-                let delay = strongSelf.exponentialBackoffBehavior.calculateDelay(
-                    forRetryNumber: (strongSelf.retryCount - (retryCount - 1)),
-                    appending: strongSelf.getSuggestedDelay(fromResponse: response)
-                )
+        task = urlSession.dataTask(
+            with: request,
+            completionHandler: { [weak self] _, response, error in
+                guard let strongSelf = self else {
+                    return
+                }
+                // retry?
+                if retryCount > 0 && strongSelf.shouldRetry(basedOn: response, error: error) {
+                    // calculates the necessary delay before retrying the request
+                    let delay = strongSelf.exponentialBackoffBehavior.calculateDelay(
+                        forRetryNumber: (strongSelf.retryCount - (retryCount - 1)),
+                        appending: strongSelf.getSuggestedDelay(fromResponse: response)
+                    )
 
-                // retry request on the same queue after `delay`
-                strongSelf.queue.asyncAfter(deadline: .now() + .seconds(delay), execute: {
-                    strongSelf.sendRequest(request, retryCount: retryCount - 1)
-                })
-                return
-            }
+                    // retry request on the same queue after `delay`
+                    strongSelf.queue.asyncAfter(
+                        deadline: .now() + .seconds(delay),
+                        execute: {
+                            strongSelf.sendRequest(request, retryCount: retryCount - 1)
+                        })
+                    return
+                }
 
-            // check success
-            if let response = response as? HTTPURLResponse {
-                strongSelf.logger?.debug("Upload operation complete. Status: \(response.statusCode) URL: \(String(describing: response.url))")
-                if response.statusCode >= 200 && response.statusCode < 300 {
-                    strongSelf.completion?(.success, strongSelf.attemptCount)
+                // check success
+                if let response = response as? HTTPURLResponse {
+                    strongSelf.logger?.debug(
+                        "Upload operation complete. Status: \(response.statusCode) URL: \(String(describing: response.url))"
+                    )
+                    if response.statusCode >= 200 && response.statusCode < 300 {
+                        strongSelf.completion?(.success, strongSelf.attemptCount)
+                    } else {
+                        let isRetriable = strongSelf.shouldRetry(basedOn: response, error: error)
+                        strongSelf.completion?(.failure(retriable: isRetriable), strongSelf.attemptCount)
+                    }
+
+                    // no retries left, send completion
                 } else {
                     let isRetriable = strongSelf.shouldRetry(basedOn: response, error: error)
                     strongSelf.completion?(.failure(retriable: isRetriable), strongSelf.attemptCount)
                 }
 
-            // no retries left, send completion
-            } else {
-                let isRetriable = strongSelf.shouldRetry(basedOn: response, error: error)
-                strongSelf.completion?(.failure(retriable: isRetriable), strongSelf.attemptCount)
-            }
-
-            strongSelf.finish()
-        })
+                strongSelf.finish()
+            })
 
         task?.resume()
     }
@@ -132,12 +139,12 @@ class EmbraceUploadOperation: AsyncOperation {
         if let nsError = error as? URLError {
             switch nsError.code {
             case .cancelled,
-                    .unsupportedURL,
-                    .badURL,
-                    .userAuthenticationRequired,
-                    .secureConnectionFailed,
-                    .serverCertificateUntrusted,
-                    .dnsLookupFailed:
+                .unsupportedURL,
+                .badURL,
+                .userAuthenticationRequired,
+                .secureConnectionFailed,
+                .serverCertificateUntrusted,
+                .dnsLookupFailed:
                 return false
             default:
                 return true
@@ -170,8 +177,9 @@ class EmbraceUploadOperation: AsyncOperation {
     /// - Returns:the time in seconds (as `Int`) extracted from the `Retry-After` header.
     private func getSuggestedDelay(fromResponse response: URLResponse?) -> Int {
         guard let httpResponse = response as? HTTPURLResponse,
-              let retryAfterHeaderValue = httpResponse.allHeaderFields["Retry-After"] as? String,
-              let retryAfterDelay = Int(retryAfterHeaderValue) else {
+            let retryAfterHeaderValue = httpResponse.allHeaderFields["Retry-After"] as? String,
+            let retryAfterDelay = Int(retryAfterHeaderValue)
+        else {
             return 0
         }
 

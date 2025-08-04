@@ -2,10 +2,11 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCaptureService
-#endif
 import Foundation
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCaptureService
+#endif
 
 /// Class used to build the list of `CaptureServices` to be used by the `Embrace` instance.
 @objc(EMBCaptureServiceBuilder)
@@ -47,24 +48,24 @@ public class CaptureServiceBuilder: NSObject {
             add(.urlSession())
         }
 
-#if canImport(UIKit) && !os(watchOS)
-        // tap
-        if !services.contains(where: { $0 is TapCaptureService }) {
-            add(.tap())
-        }
+        #if canImport(UIKit) && !os(watchOS)
+            // tap
+            if !services.contains(where: { $0 is TapCaptureService }) {
+                add(.tap())
+            }
 
-        // view
-        if !services.contains(where: { $0 is ViewCaptureService }) {
-            add(.view())
-        }
-#endif
+            // view
+            if !services.contains(where: { $0 is ViewCaptureService }) {
+                add(.view())
+            }
+        #endif
 
-#if canImport(WebKit)
-        // web view
-        if !services.contains(where: { $0 is WebViewCaptureService }) {
-            add(.webView())
-        }
-#endif
+        #if canImport(WebKit)
+            // web view
+            if !services.contains(where: { $0 is WebViewCaptureService }) {
+                add(.webView())
+            }
+        #endif
 
         // low memory
         if !services.contains(where: { $0 is LowMemoryWarningCaptureService }) {

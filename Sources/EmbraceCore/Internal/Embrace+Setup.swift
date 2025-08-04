@@ -3,25 +3,31 @@
 //
 
 import Foundation
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceConfigInternal
-import EmbraceOTelInternal
-import EmbraceStorageInternal
-import EmbraceUploadInternal
-@_implementationOnly import EmbraceObjCUtilsInternal
-#endif
 import OpenTelemetryApi
 
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+    import EmbraceConfigInternal
+    import EmbraceOTelInternal
+    import EmbraceStorageInternal
+    import EmbraceUploadInternal
+    import EmbraceConfiguration
+    @_implementationOnly import EmbraceObjCUtilsInternal
+#endif
+
 extension Embrace {
-    static func createStorage(options: Embrace.Options) throws -> EmbraceStorage {
+    static func createStorage(options: Embrace.Options, configuration: EmbraceConfigurable) throws -> EmbraceStorage {
 
         let partitionId = options.appId ?? EmbraceFileSystem.defaultPartitionId
         if let storageUrl = EmbraceFileSystem.storageDirectoryURL(
             partitionId: partitionId,
             appGroupId: options.appGroupId
         ) {
-            let storageMechanism: StorageMechanism = .onDisk(name: "EmbraceStorage", baseURL: storageUrl)
+            let storageMechanism: StorageMechanism = .onDisk(
+                name: "EmbraceStorage",
+                baseURL: storageUrl,
+                journalMode: configuration.isWalModeEnabled ? .wal : .delete
+            )
             let storageOptions = EmbraceStorage.Options(storageMechanism: storageMechanism)
             let storage = try EmbraceStorage(options: storageOptions, logger: Embrace.logger)
             return storage
@@ -30,7 +36,8 @@ extension Embrace {
         }
     }
 
-    static func createUpload(options: Embrace.Options, deviceId: String) -> EmbraceUpload? {
+    static func createUpload(options: Embrace.Options, deviceId: String, configuration: EmbraceConfigurable)
+        -> EmbraceUpload? {
         guard let appId = options.appId else {
             return nil
         }
@@ -41,8 +48,9 @@ extension Embrace {
         }
 
         guard let spansURL = URL.spansEndpoint(basePath: endpoints.baseURL),
-              let logsURL = URL.logsEndpoint(basePath: endpoints.baseURL),
-              let attachmentsURL = URL.attachmentsEndpoint(basePath: endpoints.baseURL) else {
+            let logsURL = URL.logsEndpoint(basePath: endpoints.baseURL),
+            let attachmentsURL = URL.attachmentsEndpoint(basePath: endpoints.baseURL)
+        else {
             Embrace.logger.critical("Failed to initialize endpoints with baseUrl = \(endpoints.baseURL)")
             return nil
         }
@@ -54,19 +62,24 @@ extension Embrace {
         )
 
         // cache
-        guard let cacheUrl = EmbraceFileSystem.uploadsDirectoryPath(
-            partitionIdentifier: appId,
-            appGroupId: options.appGroupId
-        ) else {
+        guard
+            let cacheUrl = EmbraceFileSystem.uploadsDirectoryPath(
+                partitionIdentifier: appId,
+                appGroupId: options.appGroupId
+            )
+        else {
             Embrace.logger.critical("Failed to initialize upload cache!")
             return nil
         }
 
         let storageMechanism = StorageMechanism.onDisk(
             name: "EmbraceUploadStorage",
-            baseURL: cacheUrl
+            baseURL: cacheUrl,
+            journalMode: configuration.isWalModeEnabled ? .wal : .delete
         )
-        let cache = EmbraceUpload.CacheOptions(storageMechanism: storageMechanism)
+
+        let cache = EmbraceUpload.CacheOptions(storageMechanism: storageMechanism, resetCache: resetUploadCache)
+        resetUploadCache = false
 
         // metadata
         let metadata = EmbraceUpload.MetadataOptions(
@@ -86,15 +99,21 @@ extension Embrace {
 
         return nil
     }
-#if os(iOS)
-    static func createSessionLifecycle(controller: SessionControllable) -> SessionLifecycle {
-        iOSSessionLifecycle(controller: controller)
+    #if os(iOS)
+        static func createSessionLifecycle(controller: SessionControllable) -> SessionLifecycle {
+            iOSSessionLifecycle(controller: controller)
+        }
+    #else
+        static func createSessionLifecycle(controller: SessionControllable) -> SessionLifecycle {
+            ManualSessionLifecycle(controller: controller)
+        }
+    #endif
+
+    static let resetUploadCacheKey = "emb.reset-upload-cache"
+    static var resetUploadCache: Bool {
+        get { UserDefaults.standard.bool(forKey: Embrace.resetUploadCacheKey) }
+        set { UserDefaults.standard.set(newValue, forKey: Embrace.resetUploadCacheKey) }
     }
-#else
-    static func createSessionLifecycle(controller: SessionControllable) -> SessionLifecycle {
-        ManualSessionLifecycle(controller: controller)
-    }
-#endif
 }
 
 /// Extension to handle observability of SDK startup
@@ -121,5 +140,20 @@ extension Embrace {
             .startSpan()
             .end()
     }
+}
 
+extension Embrace {
+    func cleanUpOldVersionsData() {
+        let urls = EmbraceFileSystem.oldVersionsDirectories()
+
+        for url in urls {
+            if FileManager.default.fileExists(atPath: url.path) {
+                do {
+                    try FileManager.default.removeItem(at: url)
+                } catch {
+                    Embrace.logger.error("Error removing data from an old version!:\n\(error)")
+                }
+            }
+        }
+    }
 }

@@ -3,15 +3,15 @@
 //
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
+    import EmbraceCommonInternal
 #endif
 
 extension LogType {
     public static let networkCapture = LogType(system: "network_capture")
 }
 
-public extension LogSemantics {
-    struct NetworkCapture {
+extension LogSemantics {
+    public struct NetworkCapture {
         public static let keyUrl = "url"
         public static let keyEncryptionMechanism = "encryption-mechanism"
         public static let keyEncryptedPayload = "encrypted-payload"

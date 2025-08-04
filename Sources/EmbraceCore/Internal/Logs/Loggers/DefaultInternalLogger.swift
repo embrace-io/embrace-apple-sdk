@@ -4,12 +4,13 @@
 
 import Foundation
 import OSLog
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
-import EmbraceOTelInternal
-import EmbraceStorageInternal
-import EmbraceConfigInternal
-import EmbraceConfiguration
+    import EmbraceCommonInternal
+    import EmbraceOTelInternal
+    import EmbraceStorageInternal
+    import EmbraceConfigInternal
+    import EmbraceConfiguration
 #endif
 
 class DefaultInternalLogger: BaseInternalLogger {
@@ -51,14 +52,14 @@ class DefaultInternalLogger: BaseInternalLogger {
             os_log(level.osLogType, log: defaultLogger, "%{public}@", message)
         }
 
-        if #available(iOS 15.0, tvOS 15.0, *) {
+        if #available(iOS 15.0, tvOS 15.0, macOS 10, *) {
             if level == .critical {
                 export()
             }
         }
     }
 
-    @available(iOS 15.0, tvOS 15.0, *)
+    @available(iOS 15.0, tvOS 15.0, macOS 10, *)
     /// Exports all logs in the `custom-export` category to a file.
     /// Subsequent calls append any new entries created since the last call into the file.
     func export() {
@@ -68,8 +69,9 @@ class DefaultInternalLogger: BaseInternalLogger {
             }
 
             guard let fileURL = self.exportFilePath,
-                  self.exporting == false,
-                  self.exportLimitReached == false else {
+                self.exporting == false,
+                self.exportLimitReached == false
+            else {
                 return
             }
 
@@ -89,7 +91,8 @@ class DefaultInternalLogger: BaseInternalLogger {
                 }
 
                 // fetch log entries
-                let entries: [OSLogEntryLog] = try store
+                let entries: [OSLogEntryLog] =
+                    try store
                     .getEntries(at: position)
                     .compactMap { $0 as? OSLogEntryLog }
                     .filter { $0.subsystem == self.subsystem && $0.category == self.customExportCategory }
@@ -121,7 +124,7 @@ class DefaultInternalLogger: BaseInternalLogger {
                         break
                     }
 
-                    file.write(data)
+                    try file.write(contentsOf: data)
                     self.exportByteCount += data.count
                 }
 

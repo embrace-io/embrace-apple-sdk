@@ -3,8 +3,9 @@
 //
 
 import Foundation
-@testable import EmbraceCore
+
 @testable import EmbraceCommonInternal
+@testable import EmbraceCore
 @testable @_implementationOnly import EmbraceObjCUtilsInternal
 
 class MockURLSessionTaskHandler: NSObject, URLSessionTaskHandler {

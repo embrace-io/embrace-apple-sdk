@@ -5,6 +5,7 @@
 //
 
 import XCTest
+
 @testable import EmbraceIOTestApp
 
 final class EmbraceIOTestNetworkingUITests: XCTestCase {
@@ -17,7 +18,8 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
         XCTAssertTrue(initButton.waitForExistence(timeout: 5))
         initButton.tap()
 
-        XCTAssertNotNil(initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
+        XCTAssertNotNil(
+            initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
 
         let sideMenuButton = app.buttons["SideMenuButton"]
         XCTAssertTrue(sideMenuButton.waitForExistence(timeout: 5))
@@ -45,7 +47,8 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
 
         _ = waitUntilElementHasFocus(element: urlTextField)
 
-        urlTextField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: (urlTextField.value as? String ?? "").count))
+        urlTextField.typeText(
+            String(repeating: XCUIKeyboardKey.delete.rawValue, count: (urlTextField.value as? String ?? "").count))
 
         urlTextField.typeText(url)
         urlTextField.typeText(XCUIKeyboardKey.return.rawValue)
@@ -58,7 +61,8 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
 
         _ = waitUntilElementHasFocus(element: apiTextField)
 
-        apiTextField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: (apiTextField.value as? String ?? "").count))
+        apiTextField.typeText(
+            String(repeating: XCUIKeyboardKey.delete.rawValue, count: (apiTextField.value as? String ?? "").count))
 
         apiTextField.typeText(api)
         apiTextField.typeText(XCUIKeyboardKey.return.rawValue)
@@ -76,7 +80,8 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
 
         _ = waitUntilElementHasFocus(element: bodyKeyTextField)
 
-        bodyKeyTextField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: (bodyKeyTextField.value as? String ?? "").count))
+        bodyKeyTextField.typeText(
+            String(repeating: XCUIKeyboardKey.delete.rawValue, count: (bodyKeyTextField.value as? String ?? "").count))
 
         bodyKeyTextField.typeText(key)
         bodyKeyTextField.typeText(XCUIKeyboardKey.return.rawValue)
@@ -87,7 +92,9 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
 
         _ = waitUntilElementHasFocus(element: bodyValueTextField)
 
-        bodyValueTextField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: (bodyValueTextField.value as? String ?? "").count))
+        bodyValueTextField.typeText(
+            String(repeating: XCUIKeyboardKey.delete.rawValue, count: (bodyValueTextField.value as? String ?? "").count)
+        )
 
         bodyValueTextField.typeText(value)
         bodyValueTextField.typeText(XCUIKeyboardKey.return.rawValue)
