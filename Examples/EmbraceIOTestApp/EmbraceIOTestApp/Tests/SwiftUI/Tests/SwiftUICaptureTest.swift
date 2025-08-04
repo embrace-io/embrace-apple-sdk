@@ -11,11 +11,16 @@ import EmbraceIO
 
 class SwiftUICaptureTest: PayloadTest {
     var testRelevantPayloadNames: [String] {
-        return ["emb-swiftui.view.\(viewName).body",
+        var spans = ["emb-swiftui.view.\(viewName).body",
                 "emb-swiftui.view.\(viewName).time-to-first-render",
                 "emb-swiftui.view.\(viewName).render-loop",
                 "emb-swiftui.view.\(viewName).appear",
                 "emb-swiftui.view.\(viewName).disappear"]
+        if contentComplete {
+            spans.append("emb-swiftui.view.\(viewName).time-to-first-content-complete")
+        }
+
+        return spans
     }
     private var viewName: String {
         switch captureType {
@@ -31,12 +36,13 @@ class SwiftUICaptureTest: PayloadTest {
     var testType: TestType { .Spans }
     var captureType: SwiftUICaptureType = .manual
     var attributes: [String: String] = [:]
-    var loaded: SwiftUITestsLoadedState = .dontInclude
+    var contentComplete: Bool = false
 
     func test(spans: [OpenTelemetrySdk.SpanData]) -> TestReport {
         var testItems = [TestReportItem]()
 
         testRelevantPayloadNames.forEach { name in
+            print("Testing: \(name)")
             let span = spans.first(where: { $0.name == name })
             testItems.append(
                 .init(

@@ -9,14 +9,20 @@ import EmbraceIO
 
 struct SwiftUITestViewEmbraceViewCapture: View {
     var attributes: [String: String] = [:]
-    var loaded: Bool? = nil
+    var contentComplete: Bool = false
+    @State private var onLoaded: Bool = false
     var body: some View {
         EmbraceTraceView(
             "MyEmbraceTraceView",
             attributes: attributes,
-            contentComplete: loaded
+            contentComplete: onLoaded
         ) {
             Text("👀 Don't mind me!")
+        }
+        .onAppear() {
+            if contentComplete {
+                onLoaded = true
+            }
         }
     }
 }

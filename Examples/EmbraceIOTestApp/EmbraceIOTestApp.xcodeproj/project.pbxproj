@@ -134,7 +134,6 @@
 		4DF440892E3D502A00708D6A /* SwiftUIEmbraceTraceViewCaptureTestUIComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DF440882E3D502100708D6A /* SwiftUIEmbraceTraceViewCaptureTestUIComponent.swift */; };
 		4DF4408B2E3D517F00708D6A /* SwiftUITestsLoadedPropertyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DF4408A2E3D517400708D6A /* SwiftUITestsLoadedPropertyView.swift */; };
 		4DF4408D2E3D518B00708D6A /* SwiftUITestsAttributesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DF4408C2E3D518400708D6A /* SwiftUITestsAttributesView.swift */; };
-		4DF4408F2E3D523400708D6A /* SwiftUITestsLoadedState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DF4408E2E3D522B00708D6A /* SwiftUITestsLoadedState.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -261,7 +260,6 @@
 		4DF440882E3D502100708D6A /* SwiftUIEmbraceTraceViewCaptureTestUIComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUIEmbraceTraceViewCaptureTestUIComponent.swift; sourceTree = "<group>"; };
 		4DF4408A2E3D517400708D6A /* SwiftUITestsLoadedPropertyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUITestsLoadedPropertyView.swift; sourceTree = "<group>"; };
 		4DF4408C2E3D518400708D6A /* SwiftUITestsAttributesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUITestsAttributesView.swift; sourceTree = "<group>"; };
-		4DF4408E2E3D522B00708D6A /* SwiftUITestsLoadedState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUITestsLoadedState.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -341,7 +339,6 @@
 		4D54F28C2E3ABC9300E38132 /* Supporting */ = {
 			isa = PBXGroup;
 			children = (
-				4DF4408E2E3D522B00708D6A /* SwiftUITestsLoadedState.swift */,
 				4DF440822E3C4C2D00708D6A /* SwiftUITestViewEmbraceViewCapture.swift */,
 				4D54F2912E3ABD8200E38132 /* SwiftUITestViewMacroCapture.swift */,
 				4D54F28F2E3ABD5100E38132 /* SwiftUITestViewManualCapture.swift */,
@@ -1065,7 +1062,6 @@
 				4D4CE8022E031A6200740AC3 /* EmbraceInitForceState.swift in Sources */,
 				4D6338382DE1157700557BDC /* MockDataTask.swift in Sources */,
 				4D6338392DE1157700557BDC /* NetworkingSwizzle.swift in Sources */,
-				4DF4408F2E3D523400708D6A /* SwiftUITestsLoadedState.swift in Sources */,
 				4D63383A2DE1157700557BDC /* LogTestUIComponentViewModel.swift in Sources */,
 				4D63383B2DE1157700557BDC /* SpanTestUIComponentViewModel.swift in Sources */,
 				4D63383C2DE1157700557BDC /* TestReport.swift in Sources */,

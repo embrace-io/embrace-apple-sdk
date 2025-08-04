@@ -15,7 +15,7 @@ struct SwiftUIManualCaptureTestUIComponent: View {
     @State var viewModel: SwiftUICaptureTestViewModel
 
     @State var presentTestView: Bool = false
-
+    @State private var onLoaded: Bool = false
     init(dataModel: any TestScreenDataModel) {
         self.dataModel = dataModel
         viewModel = .init(dataModel: dataModel, captureType: .manual)
@@ -25,9 +25,9 @@ struct SwiftUIManualCaptureTestUIComponent: View {
         Section {
             VStack(alignment: .leading) {
                 Section {
-                    SwiftUITestsLoadedPropertyView(loadedState: $viewModel.loadedState)
+                    SwiftUITestsLoadedPropertyView(loadedState: $viewModel.contentComplete)
                 } header: {
-                    Text("Loaded property")
+                    Text("Content Complete")
                         .textCase(nil)
                         .font(.embraceFont(size: 15))
                         .foregroundStyle(.embraceSilver)
@@ -51,8 +51,13 @@ struct SwiftUIManualCaptureTestUIComponent: View {
                             .embraceTrace(
                                 "TestDummyView",
                                 attributes: viewModel.attributes,
-                                contentComplete: viewModel.loaded
+                                contentComplete: onLoaded
                             )
+                            .onAppear() {
+                                if viewModel.contentComplete {
+                                    onLoaded = true
+                                }
+                            }
                     }
             }
         } header: {
@@ -60,6 +65,9 @@ struct SwiftUIManualCaptureTestUIComponent: View {
                 .textCase(nil)
                 .font(.embraceFont(size: 18))
                 .foregroundStyle(.embraceSilver)
+        }
+        .onChange(of: viewModel.contentComplete) {
+            onLoaded = false
         }
         .padding(.top, 15)
     }

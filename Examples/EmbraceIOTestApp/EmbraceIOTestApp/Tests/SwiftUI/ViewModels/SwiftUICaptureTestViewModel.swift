@@ -10,9 +10,9 @@ import SwiftUI
 class SwiftUICaptureTestViewModel: SpanTestUIComponentViewModel {
     private var testObject: SwiftUICaptureTest
     var captureType: SwiftUICaptureType = .manual
-    var loadedState: SwiftUITestsLoadedState = .dontInclude {
+    var contentComplete: Bool = false {
         didSet {
-            testObject.loaded = loadedState
+            testObject.contentComplete = contentComplete
         }
     }
     var presentDummyView: Bool = false
@@ -20,7 +20,6 @@ class SwiftUICaptureTestViewModel: SpanTestUIComponentViewModel {
     var attributes: [String: String] {
         testObject.attributes
     }
-    var loaded: Bool? { loadedState.boolValue }
 
     init(dataModel: any TestScreenDataModel, captureType: SwiftUICaptureType) {
         let testObject = SwiftUICaptureTest()

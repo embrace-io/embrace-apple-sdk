@@ -29,9 +29,9 @@ struct SwiftUIEmbraceTraceViewCaptureTestUIComponent: View {
         Section {
             VStack(alignment: .leading) {
                 Section {
-                    SwiftUITestsLoadedPropertyView(loadedState: $viewModel.loadedState)
+                    SwiftUITestsLoadedPropertyView(loadedState: $viewModel.contentComplete)
                 } header: {
-                    Text("Loaded property")
+                    Text("Content Complete")
                         .textCase(nil)
                         .font(.embraceFont(size: 15))
                         .foregroundStyle(.embraceSilver)
