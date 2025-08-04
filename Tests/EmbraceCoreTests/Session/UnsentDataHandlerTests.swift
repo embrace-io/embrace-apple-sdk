@@ -88,6 +88,7 @@ class UnsentDataHandlerTests: XCTestCase {
             startTime: Date(timeIntervalSinceNow: -60),
             endTime: Date()
         )
+        wait(delay: .defaultTimeout)
 
         // when sending unsent sessions
         UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel, crashReporter: nil)
@@ -131,6 +132,7 @@ class UnsentDataHandlerTests: XCTestCase {
             startTime: Date(timeIntervalSinceNow: -60),
             endTime: Date()
         )
+        wait(delay: .defaultTimeout)
 
         // when failing to send unsent sessions
         UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel, crashReporter: nil)
@@ -183,6 +185,7 @@ class UnsentDataHandlerTests: XCTestCase {
             startTime: Date(timeIntervalSinceNow: -60),
             endTime: Date()
         )
+        wait(delay: .defaultTimeout)
 
         // the crash report id is set on the session
         let listener = CoreDataListener()
@@ -271,6 +274,7 @@ class UnsentDataHandlerTests: XCTestCase {
             startTime: Date(timeIntervalSinceNow: -60),
             endTime: Date()
         )
+        wait(delay: .defaultTimeout)
 
         // when failing to send unsent sessions
         UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel, crashReporter: crashReporter)
@@ -337,6 +341,7 @@ class UnsentDataHandlerTests: XCTestCase {
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSinceNow: -60)
         )
+        wait(delay: .defaultTimeout)
 
         // the crash report id and timestamp is set on the session
         let listener = CoreDataListener()
@@ -414,6 +419,7 @@ class UnsentDataHandlerTests: XCTestCase {
             startTime: Date(timeIntervalSinceNow: -60),
             endTime: Date()
         )
+        wait(delay: .defaultTimeout)
 
         // when sending a crash log
         UnsentDataHandler.sendCrashLog(
@@ -473,6 +479,7 @@ class UnsentDataHandlerTests: XCTestCase {
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSinceNow: -60)
         )
+        wait(delay: .defaultTimeout)
 
         // given old closed span in storage
         storage.upsertSpan(
@@ -510,6 +517,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // when sending unsent sessions again
         UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel)
+        wait(delay: .longTimeout)
 
         // then the span that was closed for the last session
         // is not valid anymore, and therefore removed
@@ -540,6 +548,7 @@ class UnsentDataHandlerTests: XCTestCase {
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSinceNow: -60)
         )
+        wait(delay: .defaultTimeout)
 
         // given metadata in storage
         storage.addMetadata(
@@ -560,7 +569,7 @@ class UnsentDataHandlerTests: XCTestCase {
             value: "test",
             type: .requiredResource,
             lifespan: .process,
-            lifespanId: ProcessIdentifier.current.hex
+            lifespanId: ProcessIdentifier.current.value
         )
         storage.addMetadata(
             key: "differentSessionId",
@@ -584,6 +593,7 @@ class UnsentDataHandlerTests: XCTestCase {
             otel: otel,
             currentSessionId: TestConstants.sessionId
         )
+        wait(delay: .longTimeout)
 
         // then all metadata is cleaned up
         let records: [MetadataRecord] = storage.fetchAll()
@@ -615,6 +625,7 @@ class UnsentDataHandlerTests: XCTestCase {
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSinceNow: -60)
         )!
+        wait(delay: .defaultTimeout)
 
         // given old closed span in storage
         storage.upsertSpan(
@@ -660,6 +671,7 @@ class UnsentDataHandlerTests: XCTestCase {
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSinceNow: -60)
         )!
+        wait(delay: .defaultTimeout)
 
         // given metadata in storage
         storage.addMetadata(
@@ -673,7 +685,7 @@ class UnsentDataHandlerTests: XCTestCase {
             value: "test",
             type: .requiredResource,
             lifespan: .process,
-            lifespanId: ProcessIdentifier.current.hex
+            lifespanId: ProcessIdentifier.current.value
         )
         storage.addMetadata(
             key: "differentProcessId",

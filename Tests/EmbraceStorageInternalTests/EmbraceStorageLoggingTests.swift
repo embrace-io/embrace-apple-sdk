@@ -38,7 +38,7 @@ class EmbraceStorageLoggingTests: XCTestCase {
     // MARK: - Fetch All Excluding Process Identifier
 
     func test_fetchAllExcludingProcessIdentifier_shouldFilterLogsProperly() throws {
-        let pid = ProcessIdentifier(value: 12345)
+        let pid = ProcessIdentifier(string: "12345")
         createInfoLog(pid: pid)
         createInfoLog()
         createInfoLog(pid: pid)
@@ -47,7 +47,7 @@ class EmbraceStorageLoggingTests: XCTestCase {
         let result = sut.fetchAll(excludingProcessIdentifier: pid)
 
         XCTAssertEqual(result.count, 2)
-        XCTAssertTrue(!result.contains(where: { $0.processIdRaw == pid.hex }))
+        XCTAssertTrue(!result.contains(where: { $0.processIdRaw == pid.value }))
     }
 
     // MARK: - RemoveAllLogs

@@ -27,7 +27,7 @@ class MockMetadataFetcher: EmbraceStorageMetadataFetcher {
     func fetchResourcesForProcessId(_ processId: ProcessIdentifier) -> [EmbraceMetadata] {
         return metadata.filter { record in
             (record.type == .resource || record.type == .requiredResource) && record.lifespan == .process
-                && record.lifespanId == processId.hex
+                && record.lifespanId == processId.value
         }
     }
 
@@ -45,7 +45,7 @@ class MockMetadataFetcher: EmbraceStorageMetadataFetcher {
 
     func fetchPersonaTagsForProcessId(_ processId: ProcessIdentifier) -> [EmbraceMetadata] {
         return metadata.filter { record in
-            record.type == .personaTag && record.lifespan == .process && record.lifespanId == processId.hex
+            record.type == .personaTag && record.lifespan == .process && record.lifespanId == processId.value
         }
     }
 }

@@ -126,15 +126,14 @@ class SessionController: SessionControllable {
         // -
 
         // we lock after end session to avoid a deadlock
-
-        return lock.locked {
+        let session = lock.locked {
 
             // create session span
             let newId = SessionIdentifier.random
             let span = SessionSpanUtils.span(id: newId, startTime: startTime, state: state, coldStart: isColdStart)
             currentSessionSpan = span
 
-            // create session record
+            // create session record and save it
             let session = storage.addSession(
                 id: newId,
                 processId: ProcessIdentifier.current,
@@ -146,20 +145,19 @@ class SessionController: SessionControllable {
             )
             currentSession = session
 
-            // save session record
-            save()
-
             // start heartbeat
             heartbeat.start()
-
-            // post notification
-            NotificationCenter.default.post(name: .embraceSessionDidStart, object: session)
 
             firstSession = false
             attachmentCount = 0
 
             return session
         }
+
+        // post notification
+        NotificationCenter.default.post(name: .embraceSessionDidStart, object: session)
+
+        return session
     }
 
     /// Ends the session
@@ -217,7 +215,7 @@ class SessionController: SessionControllable {
 
             // update session end time and clean exit
             if let sessionId = session.id {
-                currentSession = storage?.updateSession(sessionId: sessionId, endTime: now, cleanExit: true)
+                currentSession = storage?.updateSession(session: session, endTime: now, cleanExit: true)
             }
 
             // post internal notification
@@ -236,11 +234,11 @@ class SessionController: SessionControllable {
     }
 
     func update(state: SessionState) {
-        guard let currentSessionId = currentSession?.id else {
+        guard let session = currentSession else {
             return
         }
 
-        currentSession = storage?.updateSession(sessionId: currentSessionId, state: state)
+        currentSession = storage?.updateSession(session: session, state: state)
 
         if let span = currentSessionSpan {
             SessionSpanUtils.setState(span: span, state: state)
@@ -249,11 +247,11 @@ class SessionController: SessionControllable {
     }
 
     func update(appTerminated: Bool) {
-        guard let currentSessionId = currentSession?.id else {
+        guard let session = currentSession else {
             return
         }
 
-        currentSession = storage?.updateSession(sessionId: currentSessionId, appTerminated: appTerminated)
+        currentSession = storage?.updateSession(session: session, appTerminated: appTerminated)
 
         if let span = currentSessionSpan {
             SessionSpanUtils.setTerminated(span: span, terminated: appTerminated)
@@ -262,11 +260,11 @@ class SessionController: SessionControllable {
     }
 
     func update(heartbeat: Date) {
-        guard let currentSessionId = currentSession?.id else {
+        guard let session = currentSession else {
             return
         }
 
-        currentSession = storage?.updateSession(sessionId: currentSessionId, lastHeartbeatTime: heartbeat)
+        currentSession = storage?.updateSession(session: session, lastHeartbeatTime: heartbeat)
 
         if let span = currentSessionSpan {
             SessionSpanUtils.setHeartbeat(span: span, heartbeat: heartbeat)

@@ -22,7 +22,7 @@ final class AppInfoCaptureServiceTests: XCTestCase {
         service.start()
 
         // then the app info resources are correctly stored
-        let processId = ProcessIdentifier.current.hex
+        let processId = ProcessIdentifier.current.value
 
         // bundle version
         let bundleVersion = handler.fetchMetadata(
@@ -92,7 +92,7 @@ final class AppInfoCaptureServiceTests: XCTestCase {
             lifespanId: processId
         )
         XCTAssertNotNil(processIdentifier)
-        XCTAssertEqual(processIdentifier!.value, ProcessIdentifier.current.hex)
+        XCTAssertEqual(processIdentifier!.value, ProcessIdentifier.current.value)
     }
 
     func test_notStarted() throws {

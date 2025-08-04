@@ -158,7 +158,7 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
             value: "metadata",
             type: .customProperty,
             lifespan: .process,
-            lifespanId: TestConstants.processId.hex
+            lifespanId: TestConstants.processId.value
         )
 
         // given a capture service

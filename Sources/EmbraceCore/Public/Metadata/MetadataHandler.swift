@@ -52,7 +52,7 @@ public class MetadataHandler: NSObject {
             FileManager.default.fileExists(atPath: url.appendingPathComponent(coreDataStackName + ".sqlite").path) {
 
             let options = CoreDataWrapper.Options(
-                storageMechanism: .onDisk(name: coreDataStackName, baseURL: url),
+                storageMechanism: .onDisk(name: coreDataStackName, baseURL: url, journalMode: .delete),
                 entities: [MetadataRecordTmp.entityDescription]
             )
 
@@ -81,6 +81,10 @@ public class MetadataHandler: NSObject {
     /// - Throws: `MetadataError.invalidSession` if a resource with a `.session` lifespan is added when there's no active session.
     @objc public func addResource(key: String, value: String, lifespan: MetadataLifespan = .session) throws {
         try addMetadata(key: key, value: value, type: .resource, lifespan: lifespan)
+    }
+
+    public func addCriticalResource(key: String, value: String) {
+        storage?.addCriticalResources([key: value], processId: .current)
     }
 
     /// Adds a property with the given key, value and lifespan.
@@ -238,7 +242,7 @@ extension MetadataHandler {
             }
             return sessionId
         } else if lifespan == .process {
-            return ProcessIdentifier.current.hex
+            return ProcessIdentifier.current.value
         } else {
             // permanent
             return MetadataRecord.lifespanIdForPermanent

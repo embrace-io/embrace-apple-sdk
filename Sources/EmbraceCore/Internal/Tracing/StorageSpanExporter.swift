@@ -14,16 +14,15 @@ import OpenTelemetrySdk
 
 class StorageSpanExporter: SpanExporter {
 
+    let nameLengthLimit = 128
+
     private(set) weak var storage: EmbraceStorage?
     private(set) weak var sessionController: SessionControllable?
     private weak var logger: InternalLogger?
 
-    let validation: SpanDataValidation
-
     init(options: Options, logger: InternalLogger) {
         self.storage = options.storage
         self.sessionController = options.sessionController
-        self.validation = SpanDataValidation(validators: options.validators)
         self.logger = logger
     }
 
@@ -33,38 +32,41 @@ class StorageSpanExporter: SpanExporter {
         }
 
         var result = SpanExporterResultCode.success
-        for var spanData in spans {
+        for spanData in spans {
 
-            if validation.execute(spanData: &spanData) {
-                do {
-                    let data = try spanData.toJSON()
+            do {
+                let data = try spanData.toJSON()
 
-                    // spanData endTime is non-optional and will be set during `toSpanData()`
-                    let endTime = spanData.hasEnded ? spanData.endTime : nil
+                // spanData endTime is non-optional and will be set during `toSpanData()`
+                let endTime = spanData.hasEnded ? spanData.endTime : nil
 
-                    // Prevent exporting our session spans on end.
-                    // This process is handled by the `SessionController` to prevent
-                    // race conditions when a session ends and its payload gets built.
-                    if endTime != nil
-                        && spanData.attributes[SpanSemantics.keyEmbraceType]?.description == SpanType.session.rawValue {
-                        continue
-                    }
-
-                    storage.upsertSpan(
-                        id: spanData.spanId.hexString,
-                        name: spanData.name,
-                        traceId: spanData.traceId.hexString,
-                        type: spanData.embType,
-                        data: data,
-                        startTime: spanData.startTime,
-                        endTime: endTime,
-                        sessionId: sessionController?.currentSession?.id
-                    )
-                } catch let exception {
-                    self.logger?.error(exception.localizedDescription)
-                    result = .failure
+                // Prevent exporting our session spans on end.
+                // This process is handled by the `SessionController` to prevent
+                // race conditions when a session ends and its payload gets built.
+                if endTime != nil && spanData.embType == SpanType.session {
+                    continue
                 }
-            } else {
+
+                // sanitize name
+                let spanName = sanitizedName(spanData.name, type: spanData.embType)
+                guard !spanName.isEmpty else {
+                    logger?.warning("Can't export span with empty name!")
+                    result = .failure
+                    continue
+                }
+
+                storage.upsertSpan(
+                    id: spanData.spanId.hexString,
+                    name: spanName,
+                    traceId: spanData.traceId.hexString,
+                    type: spanData.embType,
+                    data: data,
+                    startTime: spanData.startTime,
+                    endTime: endTime,
+                    sessionId: sessionController?.currentSession?.id
+                )
+            } catch let exception {
+                self.logger?.error(exception.localizedDescription)
                 result = .failure
             }
         }
@@ -80,4 +82,28 @@ class StorageSpanExporter: SpanExporter {
         _ = flush()
     }
 
+    func sanitizedName(_ name: String, type: SpanType) -> String {
+
+        // do not truncate specific types
+        guard type != .networkRequest,
+            type != .view,
+            type != .viewLoad
+        else {
+            return name
+        }
+
+        var result = name
+
+        // trim white spaces
+        let trimSet: CharacterSet = .whitespacesAndNewlines.union(.controlCharacters)
+        result = name.trimmingCharacters(in: trimSet)
+
+        // truncate
+        if result.count > nameLengthLimit {
+            result = String(result.prefix(nameLengthLimit))
+            logger?.warning("Span name is too long and has to be truncated!: \(name)")
+        }
+
+        return result
+    }
 }

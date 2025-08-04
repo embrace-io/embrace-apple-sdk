@@ -23,7 +23,7 @@ final class DeviceInfoCaptureServiceTests: XCTestCase {
         service.start()
 
         // then the app info resources are correctly stored
-        let processId = ProcessIdentifier.current.hex
+        let processId = ProcessIdentifier.current.value
 
         let resources = handler.fetchResourcesForProcessId(.current)
         XCTAssertEqual(resources.count, 10)
