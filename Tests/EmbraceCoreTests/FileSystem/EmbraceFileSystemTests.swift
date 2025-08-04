@@ -8,8 +8,15 @@ import XCTest
 
 class EmbraceFileSystemTests: XCTestCase {
     func test_oldVersionsURLs() throws {
+        
+#if os(tvOS)
+        let directory = FileManager.SearchPathDirectory.cachesDirectory
+#else
+        let directory = FileManager.SearchPathDirectory.applicationSupportDirectory
+#endif
+        
         let baseURL = try FileManager.default.url(
-            for: FileManager.SearchPathDirectory.applicationSupportDirectory,
+            for: directory,
             in: .userDomainMask,
             appropriateFor: nil,
             create: true
