@@ -31,7 +31,7 @@ final class SingleSpanProcessorTests: XCTestCase {
         parentContext: SpanContext? = nil
     ) -> ReadableSpan {
 
-        let span = RecordEventsReadableSpan.startSpan(
+        let span = SpanSdk.startSpan(
             context: .create(traceId: traceId, spanId: spanId, traceFlags: .init(), traceState: .init()),
             name: name,
             instrumentationScopeInfo: .init(),

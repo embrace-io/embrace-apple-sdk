@@ -9,7 +9,7 @@ import OpenTelemetryApi
     import EmbraceCommonInternal
     import EmbraceOTelInternal
     import EmbraceSemantics
-    @_implementationOnly import EmbraceObjCUtilsInternal
+    import EmbraceObjCUtilsInternal
 #endif
 
 @objc(EMBStartupInstrumentation)

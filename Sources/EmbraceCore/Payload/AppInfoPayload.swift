@@ -7,7 +7,7 @@ import Foundation
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceStorageInternal
     import EmbraceCommonInternal
-    @_implementationOnly import EmbraceObjCUtilsInternal
+    import EmbraceObjCUtilsInternal
 #endif
 
 struct AppInfoPayload: Codable {

@@ -5,7 +5,7 @@
 import TestSupport
 import XCTest
 
-@testable @_implementationOnly import EmbraceObjCUtilsInternal
+@testable import EmbraceObjCUtilsInternal
 
 final class EMBRURLSessionTaskHeaderInjectorTests: XCTestCase {
     private var task: URLSessionTask!

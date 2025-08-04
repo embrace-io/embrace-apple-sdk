@@ -12,6 +12,8 @@
 #import <UIKit/UIKit.h>
 #endif
 
+API_AVAILABLE(ios(3.1), tvos(9.0), macos(14.0))
+API_UNAVAILABLE(watchos)
 @implementation EMBDisplayLinkProxy {
     CADisplayLink *_link;
     dispatch_block_t _nextRenderBlock;

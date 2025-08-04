@@ -157,7 +157,6 @@ class UnsentDataHandlerTests: XCTestCase {
     }
 
     func test_withCrashReporter() throws {
-        throw XCTSkip("Fix this soon; don't know why it's failing")
         // mock successful requests
         EmbraceHTTPMock.mock(url: testSpansUrl())
         EmbraceHTTPMock.mock(url: testLogsUrl())

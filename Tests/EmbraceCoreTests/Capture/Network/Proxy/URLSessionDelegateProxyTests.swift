@@ -5,7 +5,7 @@
 import XCTest
 
 @testable import EmbraceCore
-@testable @_implementationOnly import EmbraceObjCUtilsInternal
+@testable import EmbraceObjCUtilsInternal
 
 class URLSessionDelegateProxyTests: XCTestCase {
     private var originalDelegate: FullyImplementedURLSessionDelegate!
@@ -126,7 +126,6 @@ extension URLSessionDelegateProxyTests {
     }
 
     func test_onExecutingStreamTaskDidBecome_shouldForwardToOriginalDelegate() throws {
-        throw XCTSkip("Crashes on creatiing read stream??")
         givenProxyWithFullyImplementedOriginalDelegate()
         whenInvokingStreamTaskDidBecome()
         thenOriginalDelegateShouldHaveInvokedStreamTaskDidBecome()
@@ -166,10 +165,15 @@ extension URLSessionDelegateProxyTests {
     }
 
     fileprivate func whenInvokingDidFinishCollectingMetrics() {
+        
+        let kclass: AnyClass = NSClassFromString("NSURLSessionTaskMetrics")!
+        let metrics = kclass.alloc().perform(NSSelectorFromString("init")).takeUnretainedValue() as! URLSessionTaskMetrics
+
         (sut as URLSessionTaskDelegate).urlSession?(
             .shared,
             task: aTask(),
-            didFinishCollecting: .init())
+            didFinishCollecting: metrics
+        )
     }
 
     fileprivate func whenInvokingDidCreateTask() throws {
