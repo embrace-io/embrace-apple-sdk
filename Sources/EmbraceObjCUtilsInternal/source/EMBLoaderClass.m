@@ -37,7 +37,7 @@ __attribute__((constructor(65535))) static void calledRightBeforeMain(void)
 {
     [[EMBStartupTracker shared] setConstructorClosestToMainTime:[NSDate now]];
 
-    if (@available(macOS 14.0, tvos 9.0, iOS 3.0, *)) {
+    if (@available(macOS 14.0, tvOS 9.0, iOS 3.0, *)) {
         [[EMBDisplayLinkProxy shared] trackNextTick:^{
             [EMBStartupTracker shared].firstFrameTime = [NSDate date];
         }];
