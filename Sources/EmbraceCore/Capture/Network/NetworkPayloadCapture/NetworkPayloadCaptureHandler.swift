@@ -88,7 +88,7 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
     }
 
     @objc private func onConfigUpdated(_ notification: Notification) {
-        let config = notification.object as? EmbraceConfig
+        let config = notification.object as? EmbraceConfigurable
         updateRules(config?.networkPayloadCaptureRules)
     }
 

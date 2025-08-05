@@ -77,10 +77,18 @@
         }
 
         private func updateBlockList(config: EmbraceConfigurable?) {
-            if let list = config?.viewControllerClassNameBlocklist {
-                let blockHostingControllers = config?.uiInstrumentationCaptureHostingControllers ?? true
+            if let config {
+                var names = config.viewControllerClassNameBlocklist
+
+                // if no vc names were provided, use the user-provided ones
+                if names.isEmpty {
+                    names = options.viewControllerBlockList.names
+                }
+
                 blockList.safeValue = ViewControllerBlockList(
-                    names: list, blockHostingControllers: blockHostingControllers)
+                    names: names,
+                    blockHostingControllers: !config.uiInstrumentationCaptureHostingControllers
+                )
             } else {
                 blockList.safeValue = options.viewControllerBlockList
             }
