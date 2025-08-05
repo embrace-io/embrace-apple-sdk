@@ -280,7 +280,8 @@ let package = Package(
         .target(
             name: "EmbraceMetricKitSupport",
             dependencies: [
-                "EmbraceCommonInternal"
+                "EmbraceCommonInternal",
+                "EmbraceObjCUtilsInternal"
             ],
             path: "Sources/ThirdParty/EmbraceMetricKitSupport"
         ),

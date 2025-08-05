@@ -18,12 +18,23 @@ extension MXCrashDiagnostic {
         return nil
     }
 
-    func buildEmbraceCrashReport(sessionId: String?, timestamp: Date) -> EmbraceCrashReport? {
+    func buildEmbraceCrashReport(
+        sessionId: String?,
+        timestamp: Date,
+        logger: InternalLogger?
+    ) -> EmbraceCrashReport?
+    {
 
         guard let loadedReport = buildKSCrashReport(sessionId: sessionId, timestamp: timestamp) else {
+            logger?.error("[MKR] Failed to buildKSCrashReport for session \(sessionId)")
             return nil
         }
 
+        // here's we're going to try and find if we have a threadcrumb with the session id in it.
+        // if we find one, we'll insert this new data.
+        var foundSessionId: String?
+        var foundSdk: String?
+        
         // we're looking for a thread with 39 frames.
         // `semaphore_wait_trap`
         // `_dispatch_sema4_wait`
@@ -33,46 +44,46 @@ extension MXCrashDiagnostic {
         // `__impact_threadcrumb_start__`
         // `_pthread_start`
         // `thread_start`
-        guard let sessionIdThread = loadedReport.crash.threads.first(where: { $0.backtrace.contents.count == 39 })
-        else {
-            print("Didn't find the session id thread, cannot report this crash")
-            return nil
-        }
-
-        // here's we're going to try and find if we have a threadcrumb with the session id in it.
-        // if we find one, we'll insert this new data.
-        var foundSessionId: String?
-        var foundSdk: String?
-
-        // get the hash of the thread
-        // we're only interested in the actual guid part
-        var combinedHash: UInt64 = 0
-        for (j, i) in (4...35).enumerated() {
-            let frame = sessionIdThread.backtrace.contents[i]
-            let addr: UInt64 = frame.instructionAddr
-            print("\(j) => frame addr: \(addr)")
-            let shift = UInt64((j % 63) + 1)  // use zero-based index
-            let rotated = (addr << shift) | (addr >> (64 - shift))
-            combinedHash ^= rotated
-        }
-        let filename = String(format: "%016llx.stacksym", combinedHash)
-        if let url = try? FileManager.default.url(
-            for: .applicationSupportDirectory,
-            in: .userDomainMask,
-            appropriateFor: nil,
-            create: false
-        )
-        .appendingPathComponent("impact").appendingPathComponent(filename) {
-            if let contents = try? String(contentsOf: url, encoding: .utf8).components(separatedBy: .newlines) {
-                if contents.count > 0 {
-                    foundSessionId = contents[0].trimmingCharacters(in: .whitespacesAndNewlines)
-                }
-                if contents.count > 1 {
-                    foundSdk = contents[1].trimmingCharacters(in: .whitespacesAndNewlines)
-                }
+        if let sessionIdThread = loadedReport.crash.threads.first(where: { $0.backtrace.contents.count == 39 }) {
+            
+            // get the hash of the thread
+            // we're only interested in the actual guid part
+            var combinedHash: UInt64 = 0
+            for (j, i) in (4...35).enumerated() {
+                let frame = sessionIdThread.backtrace.contents[i]
+                let addr: UInt64 = frame.instructionAddr
+                print("\(j) => frame addr: \(addr)")
+                let shift = UInt64((j % 63) + 1)  // use zero-based index
+                let rotated = (addr << shift) | (addr >> (64 - shift))
+                combinedHash ^= rotated
             }
+            let filename = String(format: "%016llx.stacksym", combinedHash)
+            if let url = try? FileManager.default.url(
+                for: .applicationSupportDirectory,
+                in: .userDomainMask,
+                appropriateFor: nil,
+                create: false
+            )
+                .appendingPathComponent("ThreadcrumbSymbols").appendingPathComponent(filename)
+            {
+                if let contents = try? String(contentsOf: url, encoding: .utf8).components(separatedBy: .newlines) {
+                    if contents.count > 0 {
+                        foundSessionId = contents[0].trimmingCharacters(in: .whitespacesAndNewlines)
+                    }
+                    if contents.count > 1 {
+                        foundSdk = contents[1].trimmingCharacters(in: .whitespacesAndNewlines)
+                    }
+                } else {
+                    logger?.error("[MKR] Cound not load session symbols at \(filename)")
+                }
+            } else {
+                logger?.error("[MKR] Cound not find session symbols at \(filename)")
+            }
+            
+        } else {
+            logger?.error("[MKR] Didn't find the session id threadcrumb, will use last session id \(sessionId)")
         }
-
+        
         let report = KarlCrashReport(
             binaryImages: loadedReport.binaryImages,
             crash: loadedReport.crash,
@@ -93,9 +104,11 @@ extension MXCrashDiagnostic {
         }
         encoder.keyEncodingStrategy = .convertToSnakeCase
         guard let data = try? encoder.encode(report) else {
+            logger?.error("[MKR] Error encoding KarlCrashReport for MetricKit")
             return nil
         }
         guard let payload = String(data: data, encoding: .utf8) else {
+            logger?.error("[MKR] Error stringifying payload")
             return nil
         }
 
