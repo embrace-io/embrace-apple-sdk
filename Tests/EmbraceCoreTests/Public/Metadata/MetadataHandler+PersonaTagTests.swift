@@ -145,7 +145,7 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
 
         wait(for: [expectation], timeout: .defaultTimeout)
     }
-    
+
     @available(*, deprecated)
     func test_getCurrentPersonas_returnsCorrectPersonas() throws {
         // given a metadata handler
@@ -184,7 +184,7 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
         XCTAssertEqual(tags.count, 3)
         XCTAssertEqual(Set(tags), Set(["permanent", "process", "session"]))
     }
-    
+
     @available(*, deprecated)
     func test_getCurrentPersonas_withDifferentProcessIdentifier_returnsCorrectPersonas() throws {
         // given a metadata handler
@@ -223,7 +223,7 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
         XCTAssertEqual(tags.count, 2)
         XCTAssertEqual(Set(tags), Set(["permanent", "session"]))
     }
-    
+
     @available(*, deprecated)
     func test_currentPersonas_afterRemovingOne_returnsCorrectPersonas() throws {
         // given a metadata handler

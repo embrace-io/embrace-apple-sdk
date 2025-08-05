@@ -47,20 +47,20 @@ class DataTaskWithURLRequestAndCompletionSwizzlerTests: XCTestCase {
     }
 
     #if !os(watchOS)
-    func testAfterInstall_onFailedRequest_taskWillBeFinishedInHandler() throws {
-        let expectation = expectation(description: #function)
-        givenDataTaskWithURLRequestSwizzler()
-        try givenSwizzlingWasDone()
-        givenFailedRequest()
-        givenProxiedUrlSession()
-        whenInvokingDataTaskWithUrl(completionHandler: { _, _, _ in
-            self.thenHandlerShouldHaveInvokedFinishTaskWithError()
-            expectation.fulfill()
-        })
-        wait(for: [expectation])
-    }
+        func testAfterInstall_onFailedRequest_taskWillBeFinishedInHandler() throws {
+            let expectation = expectation(description: #function)
+            givenDataTaskWithURLRequestSwizzler()
+            try givenSwizzlingWasDone()
+            givenFailedRequest()
+            givenProxiedUrlSession()
+            whenInvokingDataTaskWithUrl(completionHandler: { _, _, _ in
+                self.thenHandlerShouldHaveInvokedFinishTaskWithError()
+                expectation.fulfill()
+            })
+            wait(for: [expectation])
+        }
     #endif
-    
+
     func test_afterInstall_taskShouldHaveEmbraceHeaders() throws {
         let expectation = expectation(description: #function)
         givenDataTaskWithURLRequestSwizzler()

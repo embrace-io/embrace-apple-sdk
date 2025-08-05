@@ -86,10 +86,11 @@ extension URLSessionDelegateProxyToNonConformantTests {
     }
 
     fileprivate func whenInvokingDidFinishCollectingMetrics() {
-        
+
         let kclass: AnyClass = NSClassFromString("NSURLSessionTaskMetrics")!
-        let metrics = kclass.alloc().perform(NSSelectorFromString("init")).takeUnretainedValue() as! URLSessionTaskMetrics
-        
+        let metrics =
+            kclass.alloc().perform(NSSelectorFromString("init")).takeUnretainedValue() as! URLSessionTaskMetrics
+
         sut.urlSession(
             urlSession,
             task: aDataTask(),

@@ -25,10 +25,10 @@ class EmbraceUploadCacheTests: XCTestCase {
     }
 
     func test_resetCache() throws {
-        
+
         // create the base folder as sometimes it might not exist
         try FileManager.default.createDirectory(at: fileProvider.tmpDirectory, withIntermediateDirectories: true)
-        
+
         // given an existing db file
         let storageMechanism: StorageMechanism = .onDisk(
             name: "test_resetCache", baseURL: fileProvider.tmpDirectory, journalMode: .delete)

@@ -3,8 +3,9 @@
 //
 
 import Foundation
+
 #if canImport(MetricKit)
-import MetricKit
+    import MetricKit
 #endif
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK

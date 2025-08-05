@@ -87,7 +87,7 @@ class EmbraceUploadOperationTests: XCTestCase {
 
     func test_successfulOperation() throws {
         try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
-        
+
         // mock successful response
         EmbraceHTTPMock.mock(url: TestConstants.url)
 
@@ -119,7 +119,7 @@ class EmbraceUploadOperationTests: XCTestCase {
 
     func test_unsuccessfulOperation_redirectStatusCode_shouldntBeRetriable() throws {
         try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
-        
+
         // mock unsuccessful response
         EmbraceHTTPMock.mock(url: TestConstants.url, statusCode: 300)
 
@@ -151,7 +151,7 @@ class EmbraceUploadOperationTests: XCTestCase {
 
     func test_unsuccessfulOperation_nonRetriableError_shouldntBeRetriable() throws {
         try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
-        
+
         // mock unsuccessful response with unretriable URLError
         EmbraceHTTPMock.mock(
             url: TestConstants.url,
@@ -223,7 +223,7 @@ class EmbraceUploadOperationTests: XCTestCase {
 
     func test_onExecuting_whenReceivingNonRetryableError_shouldntRetry() throws {
         try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
-        
+
         // mock error response with error that cannot be fixed with retries
         EmbraceHTTPMock.mock(url: TestConstants.url, response: .withData(Data(), statusCode: 404))
 
@@ -256,7 +256,7 @@ class EmbraceUploadOperationTests: XCTestCase {
 
     func test_onExecuting_whenServerIsDown_shouldReturnARetriableFailure() throws {
         try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
-        
+
         // mock error response
         EmbraceHTTPMock.mock(url: TestConstants.url, errorCode: 500)
 
@@ -288,7 +288,7 @@ class EmbraceUploadOperationTests: XCTestCase {
 
     func test_onReceivingServerIssuesStatusCode_shouldRetryRequestTheAmountOfRetryCounts() throws {
         try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
-        
+
         // mock error response
         let serverSideErrorStatusCode = try XCTUnwrap((500...599).map { $0 }.randomElement())
         EmbraceHTTPMock.mock(
@@ -343,7 +343,7 @@ class EmbraceUploadOperationTests: XCTestCase {
 
     func test_onReceivingTooManyRequestsStatusCode_shouldRetryRequestTheAmountOfRetryCounts() throws {
         try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
-        
+
         // mock error response
         EmbraceHTTPMock.mock(
             url: TestConstants.url,
@@ -397,7 +397,7 @@ class EmbraceUploadOperationTests: XCTestCase {
 
     func test_onErrorWithRetryAfterHeader_shouldAppendToTheActualRetryDelay() throws {
         try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
-        
+
         let retryAfterDelay = 1
         // mock unsuccessful response with retry after header
         EmbraceHTTPMock.mock(
