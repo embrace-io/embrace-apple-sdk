@@ -3,6 +3,7 @@ import MetricKit
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
+    import EmbraceObjCUtilsInternal
 #endif
 
 #if os(iOS) || os(macOS)
@@ -11,21 +12,25 @@ import MetricKit
 @available(iOS 13.0, macOS 12.0, *)
 public class MetricKitReporter: NSObject, CrashReporter {
 
-    private let receivedCrashesSemaphore = DispatchSemaphore(value: 0)
     private var reports = EmbraceMutex([EmbraceCrashReport]())
-    private var lastSession: String?
-
-    // we can either process crashes from the delegate callback (true),
-    // or just process all crashes when they are requested (false).
-    // The latter is preferred.
-    private let processOnSubscription: Bool = false
-
+    private var lastSession: String? = nil
+    private var crashContext: CrashReporterContext?
+    private var threadcrumb: EmbraceThreadcrumb? = nil
+    
+    private var lastSessionURL: URL {
+        try! FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: false).appendingPathComponent("last_session")
+    }
+    
+    private var symbolDirectoryURL: URL! {
+        let url = try! FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: false).appendingPathComponent("ThreadcrumbSymbols")
+        try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        return url
+    }
+    
     public override init() {
-        if #available(iOS 16.0, *) {
-            let url: URL = .applicationSupportDirectory.appending(path: "last_session")
-            self.lastSession = try? String(contentsOf: url, encoding: .utf8)
-        }
         super.init()
+        self.lastSession = try? String(contentsOf: lastSessionURL, encoding: .utf8)
+        self.threadcrumb = EmbraceThreadcrumb()
     }
 
     deinit {
@@ -47,6 +52,7 @@ public class MetricKitReporter: NSObject, CrashReporter {
     }
 
     public func install(context: CrashReporterContext) throws {
+        crashContext = context
         MXMetricManager.shared.add(self)
         let logger = MXMetricManager.makeLogHandle(category: ProcessIdentifier.current.value)
         mxSignpost(.event, log: logger, name: "embrace_uuid")
@@ -55,29 +61,28 @@ public class MetricKitReporter: NSObject, CrashReporter {
     public func fetchUnsentCrashReports(completion: @escaping ([EmbraceCrashReport]) -> Void) {
         DispatchQueue.global(qos: .utility).async { [self] in
 
-            print("[MetricKitReporter] waiting for payloads")
+            crashContext?.logger?.info("[MetricKitReporter] waiting for payloads")
 
-            if processOnSubscription {
-
-                // wait for all crashes to come in, max 20 seconds
-                _ = receivedCrashesSemaphore.wait(wallTimeout: .now() + 20.0)
-
-            } else {
-
-                // simply process the past payloads
-                if #available(iOS 14.0, *) {
-                    MXMetricManager.shared.pastDiagnosticPayloads.forEach { payload in
-                        payload.crashDiagnostics?.forEach { crash in
-                            self.handleCrash(
-                                crash, timeStampBegin: payload.timeStampBegin, timeStampEnd: payload.timeStampEnd)
+            // simply process the past payloads
+            var reports: [EmbraceCrashReport] = []
+            
+            if #available(iOS 14.0, *) {
+                MXMetricManager.shared.pastDiagnosticPayloads.forEach { payload in
+                    payload.crashDiagnostics?.forEach { crash in
+                        if let report =  handleCrash(
+                            crash,
+                            timeStampBegin:
+                                payload.timeStampBegin,
+                            timeStampEnd: payload.timeStampEnd,
+                            logger: crashContext?.logger
+                        ) {
+                            reports.append(report)
                         }
                     }
                 }
-
             }
 
-            let reports = reports.safeValue
-            print("[MetricKitReporter] received \(reports.count) payloads")
+            crashContext?.logger?.info("[MetricKitReporter] received \(reports.count) payloads")
 
             completion(reports)
 
@@ -87,14 +92,41 @@ public class MetricKitReporter: NSObject, CrashReporter {
     public func deleteCrashReport(_ report: EmbraceCrashReport) {
     }
 
+    private func _writeSymbols(_ symbols: [UInt64], sessionId: String) {
+        
+        guard symbols.count == 32 else {
+            return
+        }
+        
+        // we're looking for a thread with 39 frames.
+        // `__impact_threadcrumb_end__`
+        // => ... 32 frames of `__impact__<N>__` for the GUID of the session it was part of (no hyphens).
+        // `__impact_threadcrumb_start__`
+        // `_pthread_start`
+        // `thread_start`
+        var combinedHash: UInt64 = 0
+        for i in (0..<32) {
+            let addr: UInt64 = symbols[i]
+            print("\(i) => frame addr: \(addr)")
+            let shift = UInt64((i % 63) + 1)  // use zero-based index
+            let rotated = (addr << shift) | (addr >> (64 - shift))
+            combinedHash ^= rotated
+        }
+        let filename = String(format: "%016llx.stacksym", combinedHash)
+        let url = symbolDirectoryURL.appendingPathComponent(filename)
+        try? sessionId.write(to: url, atomically: false, encoding: .utf8)
+    }
+    
     public func appendCrashInfo(key: String, value: String?) {
         if key == CrashReporterInfoKey.sessionId {
             if let value {
-                if #available(iOS 16.0, *) {
-                    let url: URL = .applicationSupportDirectory.appending(path: "last_session")
-                    try? value.write(to: url, atomically: false, encoding: .utf8)
-                }
+                
+                // log it
+                crashContext?.logger?.info("[MetricKitReporter] sid: \(value)")
+                let stack = threadcrumb?.log(value).map { UInt64($0) } ?? []
+                _writeSymbols(stack, sessionId: value)
 
+                try? value.write(to: lastSessionURL, atomically: false, encoding: .utf8)
                 let logger = MXMetricManager.makeLogHandle(category: value)
                 mxSignpost(.event, log: logger, name: "emb_sid")
             }
@@ -119,18 +151,7 @@ extension MetricKitReporter: MXMetricManagerSubscriber {
 
     @available(iOS 14.0, *)
     @objc public func didReceive(_ payloads: [MXDiagnosticPayload]) {
-        guard processOnSubscription else {
-            return
-        }
-        DispatchQueue.global(qos: .utility).async { [self] in
-            payloads.forEach { payload in
-                payload.crashDiagnostics?.forEach { crash in
-                    self.handleCrash(crash, timeStampBegin: payload.timeStampBegin, timeStampEnd: payload.timeStampEnd)
-                }
-            }
-            // flag the system that we have all the reports
-            receivedCrashesSemaphore.signal()
-        }
+        // not handling this here
     }
 
     @available(iOS 13.0, *)
@@ -149,7 +170,12 @@ extension MetricKitReporter: MXMetricManagerSubscriber {
 extension MetricKitReporter {
 
     @available(iOS 14.0, *)
-    private func handleCrash(_ crash: MXCrashDiagnostic, timeStampBegin: Date, timeStampEnd: Date) {
+    private func handleCrash(
+        _ crash: MXCrashDiagnostic,
+        timeStampBegin: Date,
+        timeStampEnd: Date,
+        logger: InternalLogger?
+    ) -> EmbraceCrashReport? {
 
         #if DEBUG
             if #available(iOS 16.0, *) {
@@ -160,14 +186,11 @@ extension MetricKitReporter {
             }
         #endif
 
-        if let report = crash.buildEmbraceCrashReport(
+        return crash.buildEmbraceCrashReport(
             sessionId: lastSession,
-            timestamp: timeStampEnd
-        ) {
-            reports.withLock {
-                $0.append(report)
-            }
-        }
+            timestamp: timeStampEnd,
+            logger: logger
+        )
     }
 
     private func _match(on: String, pattern: String) -> String? {
