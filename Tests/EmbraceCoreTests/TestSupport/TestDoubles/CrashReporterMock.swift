@@ -31,7 +31,6 @@ class CrashReporterMock: CrashReporter {
         mockReports: [EmbraceCrashReport]? = nil
     ) {
         customInfo[CrashReporterInfoKey.sessionId] = currentSessionId
-        customInfo[CrashReporterInfoKey.sessionId] = crashSessionId
 
         self.mockReports =
             mockReports ?? [

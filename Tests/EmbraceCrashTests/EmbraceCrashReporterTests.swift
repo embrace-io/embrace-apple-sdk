@@ -129,10 +129,33 @@ class EmbraceCrashReporterTests: XCTestCase {
         crashReporter.appendCrashInfo(key: "emb-sdk", value: "1.2.3-broken")
 
         // Then values should remain untouched
-        XCTAssertEqual(crashReporter.getCrashInfo(key: "emb-sid"), "maliciously_updated_session_id")
-        XCTAssertEqual(crashReporter.getCrashInfo(key: "emb-sdk"), "1.2.3-broken")
+        XCTAssertNotEqual(crashReporter.getCrashInfo(key: "emb-sid"), "maliciously_updated_session_id")
+        XCTAssertNotEqual(crashReporter.getCrashInfo(key: "emb-sdk"), "1.2.3-broken")
     }
 
+    func testHavingInternalAddedInfoFunctions() throws {
+        
+        crashReporter = EmbraceCrashReporter(reporter: KSCrashReporter(), logger: logger)
+        let context = CrashReporterContext(
+            appId: "_-_-_",
+            sdkVersion: "1.2.3",
+            filePathProvider: TemporaryFilepathProvider(),
+            notificationCenter: .default
+        )
+        crashReporter.install(context: context)
+        
+        crashReporter.currentSessionId = "original_session_id"
+        XCTAssertEqual(crashReporter.currentSessionId, "original_session_id")
+        XCTAssertEqual(crashReporter.getCrashInfo(key: CrashReporterInfoKey.sessionId), "original_session_id")
+        
+        crashReporter.appendCrashInfo(key: CrashReporterInfoKey.sessionId, value: "nope")
+        XCTAssertEqual(crashReporter.currentSessionId, "original_session_id")
+        XCTAssertEqual(crashReporter.getCrashInfo(key: CrashReporterInfoKey.sessionId), "original_session_id")
+        
+        crashReporter.appendCrashInfo(key: "key1", value: "value1")
+        XCTAssertEqual(crashReporter.getCrashInfo(key: "key1"), "value1")
+    }
+    
     // MARK: - Signal Block List Tests
 
     func testOnHavingDefaultSignalBlockList_fetchUnsentCrashReports_SIGTERMshouldntBeReported() throws {

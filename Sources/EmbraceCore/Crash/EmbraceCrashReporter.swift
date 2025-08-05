@@ -17,7 +17,13 @@ public final class EmbraceCrashReporter: NSObject {
     internal let queue: DispatchQueue = DispatchQueue(
         label: "com.embrace.crashreporter", qos: .utility, autoreleaseFrequency: .workItem)
     private let signalsBlockList: [CrashSignal]
-
+    
+    struct MutableData {
+        let internalKeys: [String] = [CrashReporterInfoKey.sdkVersion, CrashReporterInfoKey.sessionId]
+        var allowsInternalDataChange: Bool = false
+    }
+    private let data = EmbraceMutex(MutableData())
+    
     // this is the path that contains `/Reports`.
     var basePath: String? {
         return reporter.basePath
@@ -26,20 +32,28 @@ public final class EmbraceCrashReporter: NSObject {
     /// Sets the current session identifier that will be included in a crash report.
     public var currentSessionId: String? {
         set {
-            reporter.appendCrashInfo(key: CrashReporterInfoKey.sessionId, value: newValue)
+            data.withLock { $0.allowsInternalDataChange = true }
+            defer {
+                data.withLock { $0.allowsInternalDataChange = false }
+            }
+            appendCrashInfo(key: CrashReporterInfoKey.sessionId, value: newValue)
         }
         get {
-            reporter.getCrashInfo(key: CrashReporterInfoKey.sessionId)
+            getCrashInfo(key: CrashReporterInfoKey.sessionId)
         }
     }
 
     /// Adds the SDK version to the crash reports.
     private(set) var sdkVersion: String? {
         set {
-            reporter.appendCrashInfo(key: CrashReporterInfoKey.sdkVersion, value: newValue)
+            data.withLock { $0.allowsInternalDataChange = true }
+            defer {
+                data.withLock { $0.allowsInternalDataChange = false }
+            }
+            appendCrashInfo(key: CrashReporterInfoKey.sdkVersion, value: newValue)
         }
         get {
-            reporter.getCrashInfo(key: CrashReporterInfoKey.sdkVersion)
+            getCrashInfo(key: CrashReporterInfoKey.sdkVersion)
         }
     }
 
@@ -118,6 +132,15 @@ public final class EmbraceCrashReporter: NSObject {
     }
 
     public func appendCrashInfo(key: String, value: String?) {
+        let allowed = data.withLock {
+            if $0.internalKeys.contains(key) && !$0.allowsInternalDataChange {
+                return false
+            }
+            return true
+        }
+        guard allowed else {
+            return
+        }
         reporter.appendCrashInfo(key: key, value: value)
     }
 
