@@ -13,7 +13,7 @@ import Foundation
 public final class EmbraceCrashReporter: NSObject {
 
     private let reporter: CrashReporter
-    private let logger: InternalLogger?
+    private let logger: InternalLogger
     internal let queue: DispatchQueue = DispatchQueue(
         label: "com.embrace.crashreporter", qos: .utility, autoreleaseFrequency: .workItem)
     private let signalsBlockList: [CrashSignal]
@@ -74,7 +74,7 @@ public final class EmbraceCrashReporter: NSObject {
 
     public init(
         reporter: CrashReporter,
-        logger: InternalLogger? = nil,
+        logger: InternalLogger,
         signalsBlockList: [CrashSignal] = [.SIGTERM]
     ) {
         self.reporter = reporter
@@ -93,7 +93,7 @@ public final class EmbraceCrashReporter: NSObject {
         do {
             try reporter.install(context: context)
         } catch {
-            logger?.error("EmbraceCrashReporter install failed: \(error)")
+            logger.error("EmbraceCrashReporter install failed: \(error)")
         }
     }
 
