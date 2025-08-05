@@ -323,13 +323,13 @@ struct DataTaskWithURLRequestAndCompletionSwizzler: URLSessionSwizzler {
 
     func install() throws {
         try swizzleInstanceMethod { originalImplementation -> BlockImplementationType in
-            return { [weak handler = self.handler] urlSession, urlRequest, completion -> URLSessionDataTask in
+            return { [handler = self.handler] urlSession, urlRequest, completion -> URLSessionDataTask in
 
                 let request = urlRequest.addEmbraceHeaders()
 
                 guard let completion = completion else {
                     let task = originalImplementation(urlSession, Self.selector, request, completion)
-                    handler?.create(task: task)
+                    handler.create(task: task)
                     return task
                 }
 
@@ -337,13 +337,13 @@ struct DataTaskWithURLRequestAndCompletionSwizzler: URLSessionSwizzler {
 
                 let dataTask = originalImplementation(urlSession, Self.selector, request) { data, response, error in
                     if let task = originalTask {
-                        handler?.finish(task: task, data: data, error: error)
+                        handler.finish(task: task, data: data, error: error)
                     }
                     completion(data, response, error)
                 }
 
                 originalTask = dataTask
-                handler?.create(task: dataTask)
+                handler.create(task: dataTask)
                 return dataTask
             }
         }

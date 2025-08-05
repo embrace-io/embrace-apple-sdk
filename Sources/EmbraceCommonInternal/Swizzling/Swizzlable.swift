@@ -58,7 +58,8 @@ extension Swizzlable {
             to: ImplementationType.self)
         let newImplementationBlock: BlockImplementationType = block(originalTypifiedImplementation)
         let newImplementation = imp_implementationWithBlock(newImplementationBlock)
-        method_setImplementation(method, newImplementation)
+        let original = method_setImplementation(method, newImplementation)
+        assert(originalImplementation == original)
     }
 
     private func saveInCache(originalImplementation: IMP, forMethod method: Method) {

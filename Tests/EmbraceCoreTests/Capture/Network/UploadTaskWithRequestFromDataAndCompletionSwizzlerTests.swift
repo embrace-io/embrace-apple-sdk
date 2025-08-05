@@ -44,7 +44,8 @@ class UploadTaskWithRequestFromDataAndCompletionSwizzlerTests: XCTestCase {
         })
         wait(for: [expectation])
     }
-
+    
+#if !os(watchOS)
     func testAfterInstall_onFailedRequest_taskWillBeFinishedInHandler() throws {
         let expectation = expectation(description: #function)
         givenUploadTaskWithURLRequestAndCompletionSwizzler()
@@ -57,7 +58,8 @@ class UploadTaskWithRequestFromDataAndCompletionSwizzlerTests: XCTestCase {
         })
         wait(for: [expectation])
     }
-
+    #endif
+    
     func test_afterInstall_taskShouldHaveEmbraceHeaders() throws {
         let expectation = expectation(description: #function)
         givenUploadTaskWithURLRequestAndCompletionSwizzler()

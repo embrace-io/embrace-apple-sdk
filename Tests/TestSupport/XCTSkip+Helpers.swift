@@ -13,3 +13,14 @@ extension XCTestCase {
         }
     }
 }
+
+extension XCTestCase {
+    // this makes it easy to guard against watchOS without warnings
+    public static func isWatchOS() -> Bool {
+#if os(watchOS)
+        return true
+#else
+        return false
+#endif
+    }
+}

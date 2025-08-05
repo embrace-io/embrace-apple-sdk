@@ -35,7 +35,8 @@ final class PayloadUtilTests: XCTestCase {
         XCTAssertEqual(fetchedResources[0].lifespan, mockResources[0].lifespan)
         XCTAssertEqual(fetchedResources[0].lifespanId, mockResources[0].lifespanId)
     }
-
+    
+    @available(*, deprecated)
     func test_convertSpanAttributes() throws {
         // given some span attributes
         let attributes: [String: AttributeValue] = [

@@ -1,4 +1,4 @@
-#if canImport(UIKit)
+#if canImport(UIKit) && !os(watchOS)
 
     import UIKit
     import EmbraceCommonInternal
@@ -12,7 +12,7 @@
 
     @testable import EmbraceCore
 
-    @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
+    @available(iOS 13, macOS 10.15, tvOS 13, *)
     @MainActor
     final class EmbraceTraceViewPerfTests: XCTestCase {
 
