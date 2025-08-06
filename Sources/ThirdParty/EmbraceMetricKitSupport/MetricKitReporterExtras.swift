@@ -290,7 +290,7 @@ internal struct CrashDiagnostic: Codable {
                 let offsetIntoBinaryTextSegment: UInt64
                 let sampleCount: Int
                 let subFrames: [Frame]?
-                let binaryName: String
+                let binaryName: String?
                 let address: UInt64
 
                 var frames: [Frame] {
@@ -299,8 +299,11 @@ internal struct CrashDiagnostic: Codable {
                     } ?? [self]
                 }
 
-                var binaryImage: KarlCrashReport.BinaryImage {
-                    KarlCrashReport.BinaryImage(
+                var binaryImage: KarlCrashReport.BinaryImage? {
+                    guard let binaryName else {
+                        return nil
+                    }
+                    return KarlCrashReport.BinaryImage(
                         imageAddr: address - offsetIntoBinaryTextSegment,
                         imageSize: 0,
                         name: binaryName,
@@ -309,20 +312,23 @@ internal struct CrashDiagnostic: Codable {
                 }
 
                 var binaryImages: [KarlCrashReport.BinaryImage] {
-                    return subFrames?.reduce(into: [binaryImage]) { partialResult, frame in
+                    return (subFrames?.reduce(into: [binaryImage]) { partialResult, frame in
                         partialResult.append(contentsOf: frame.binaryImages)
-                    } ?? [binaryImage]
+                    } ?? [binaryImage]).compactMap { $0 }
                 }
             }
             let callStackRootFrames: [Frame]
 
             func flattenedAsThread(index: Int64) -> KarlCrashReport.Crash.Thread? {
 
-                let contents = callStackRootFrames.first?.frames.map {
-                    KarlCrashReport.Crash.Thread.Backtrace.Frame(
+                let contents: [KarlCrashReport.Crash.Thread.Backtrace.Frame]? = callStackRootFrames.first?.frames.compactMap {
+                    guard let bin = $0.binaryName else {
+                        return nil
+                    }
+                    return KarlCrashReport.Crash.Thread.Backtrace.Frame(
                         instructionAddr: $0.address,
                         objectAddr: $0.address - $0.offsetIntoBinaryTextSegment,
-                        objectName: $0.binaryName,
+                        objectName: bin,
                         symbolAddr: $0.offsetIntoBinaryTextSegment,
                         symbolName: nil
                     )
@@ -363,7 +369,9 @@ internal struct CrashDiagnostic: Codable {
                 for rootFrames in callstack.callStackRootFrames {
                     for f in rootFrames.frames {
 
-                        let image = f.binaryImage
+                        guard let image = f.binaryImage else {
+                            continue
+                        }
 
                         // Track lowest address
                         let addr = image.imageAddr
