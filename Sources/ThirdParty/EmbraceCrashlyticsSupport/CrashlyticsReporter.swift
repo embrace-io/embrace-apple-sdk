@@ -42,10 +42,6 @@ public final class CrashlyticsReporter: NSObject, CrashReporter {
     /// Object used to interact with Firebase
     let wrapper: CrashlyticsWrapper = CrashlyticsWrapper()
 
-    public var basePath: String? {
-        nil
-    }
-
     public let basePath: String? = nil
 
     /// We let Crashlytics handle MetricKit
