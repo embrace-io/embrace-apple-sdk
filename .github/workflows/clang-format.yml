@@ -17,6 +17,9 @@ jobs:
       DIRS: 'Sources Tests Examples'
     steps:
     - uses: actions/checkout@v4
+      timeout-minutes: 4
+      with:
+        persist-credentials: false
 
     - name: Install clang-format-18
       run: |
