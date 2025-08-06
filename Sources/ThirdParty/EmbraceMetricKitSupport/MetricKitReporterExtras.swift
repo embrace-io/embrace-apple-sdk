@@ -521,7 +521,7 @@ struct KarlCrashReport: Codable {
 
         enum CodingKeys: String, CodingKey {
             case sid = "emb-sid"
-            case sdk = "emd-sdk"
+            case sdk = "emb-sdk"
         }
     }
     let user: User
