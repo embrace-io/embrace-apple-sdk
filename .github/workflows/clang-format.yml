@@ -9,6 +9,9 @@ on:
       - '.clang-format-ignore'
       - 'Makefile'
 
+permissions:
+  contents: read
+
 jobs:
   formatting-check:
     name: Formatting Check

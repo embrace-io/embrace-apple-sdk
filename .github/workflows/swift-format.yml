@@ -10,6 +10,9 @@ on:
       - 'Makefile'
       - 'Package.swift'
 
+permissions:
+  contents: read
+  
 jobs:
   formatting-check:
     name: Swift Formatting Check
