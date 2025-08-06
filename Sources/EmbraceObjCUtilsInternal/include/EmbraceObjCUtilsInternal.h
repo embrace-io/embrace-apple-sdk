@@ -16,6 +16,6 @@
 #import "EMBURLSessionDelegateProxy.h"
 #import "EMBURLSessionDelegateProxyFunctions.h"
 #import "EMBWKNavigationDelegateProxy.h"
-#import "EMBThreadCrumb.h"
+#import "EMBThreadcrumb.h"
 
 #endif /* EmbraceObjCUtilsInternal_h */

@@ -39,7 +39,8 @@ class UnsentDataHandlerTests: XCTestCase {
             appId: TestConstants.appId,
             sdkVersion: TestConstants.sdkVersion,
             filePathProvider: filePathProvider,
-            notificationCenter: NotificationCenter.default
+            notificationCenter: NotificationCenter.default,
+            logger: MockLogger()
         )
 
         let urlSessionconfig = URLSessionConfiguration.ephemeral
