@@ -173,6 +173,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // given a crash reporter
         let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.toString)
+        let embraceReporter = EmbraceCrashReporter(reporter: crashReporter)
         let report = crashReporter.mockReports[0]
 
         // given a finished session in the storage
@@ -199,7 +200,7 @@ class UnsentDataHandlerTests: XCTestCase {
         }
 
         // when sending unsent sessions
-        UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel, crashReporter: crashReporter)
+        UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel, crashReporter: embraceReporter)
 
         wait(for: [expectation1], timeout: .veryLongTimeout)
 
@@ -251,6 +252,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // given a crash reporter
         let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.toString)
+        let embraceReporter = EmbraceCrashReporter(reporter: crashReporter)
         let report = crashReporter.mockReports[0]
 
         // then the crash report id is set on the session
@@ -277,7 +279,7 @@ class UnsentDataHandlerTests: XCTestCase {
         wait(delay: .defaultTimeout)
 
         // when failing to send unsent sessions
-        UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel, crashReporter: crashReporter)
+        UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel, crashReporter: embraceReporter)
 
         wait(for: [didSendCrashesExpectation], timeout: .veryLongTimeout)
 
@@ -330,6 +332,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // given a crash reporter
         let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.toString)
+        let embraceReporter = EmbraceCrashReporter(reporter: crashReporter)
         let report = crashReporter.mockReports[0]
 
         // given an unfinished session in the storage
@@ -356,7 +359,7 @@ class UnsentDataHandlerTests: XCTestCase {
         }
 
         // when sending unsent sessions
-        UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel, crashReporter: crashReporter)
+        UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel, crashReporter: embraceReporter)
 
         wait(for: [expectation1], timeout: 5000)
 
@@ -407,6 +410,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // given a crash reporter
         let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.toString)
+        let embraceReporter = EmbraceCrashReporter(reporter: crashReporter)
         let report = crashReporter.mockReports[0]
 
         // given a finished session in the storage
@@ -424,7 +428,7 @@ class UnsentDataHandlerTests: XCTestCase {
         // when sending a crash log
         UnsentDataHandler.sendCrashLog(
             report: report,
-            reporter: crashReporter,
+            reporter: embraceReporter,
             session: session,
             storage: storage,
             upload: upload,
