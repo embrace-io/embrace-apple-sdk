@@ -11,8 +11,8 @@ fi
 
 # Define constants for script
 PLATFORM="iphonesimulator"
-DEVICE_PATTERN="iPhone-16.*"
-FALLBACK_SIMULATOR_DEVICE_TYPE="com.apple.CoreSimulator.SimDeviceType.iPhone-16"
+DEVICE_PATTERN="iPhone-16*"
+FALLBACK_SIMULATOR_DEVICE_TYPE="com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro"
 
 # Use xcodebuild to retrieve list of available SDKs in JSON format
 # Use jq for SDK_JSON to find first item in array where platform is 'iphonesimulator'
@@ -29,6 +29,7 @@ fi
 
 SDK_PATH=$(echo $SELECTED_SDK | jq -r '.sdkPath')
 SDK_NAME=$(echo $SELECTED_SDK | jq -r '.canonicalName')
+SDK_VERSION=$(echo $SELECTED_SDK | jq -r '.sdkVersion')
 
 # Output selected SDK to console
 echo '--- SELECTED SDK ---'
@@ -40,37 +41,44 @@ echo $SDK_PATH
 AVAILABLE_DEVICES_JSON=$(xcrun simctl list -j devices available)
 DEVICE_JSON_LIST=$(echo $AVAILABLE_DEVICES_JSON | jq -r ".devices | flatten | map(select(.name | test(\"$DEVICE_PATTERN\")))")
 
-# Select the last device in the list and grab its UDID
-SELECTED_DEVICE=$(echo $DEVICE_JSON_LIST | jq -r "last")
-SELECTED_DEVICE_UDID=$(echo $SELECTED_DEVICE | jq -r ".udid")
-
-# Output selected device to console
-echo "--- Selected Device ---"
-echo "$SELECTED_DEVICE"
-
-# If SELECTED_DEVICE is null, create a new simulator and use its UDID
-if [ "$SELECTED_DEVICE" == "null" ]; then
-    echo "No available devices found matching pattern '$DEVICE_PATTERN'"
-    echo "Creating new simulator..."
-    CREATED_DEVICE_UDID=$(xcrun simctl create "Embrace-iPhone" "$FALLBACK_SIMULATOR_DEVICE_TYPE")
-    echo "Created new simulator with UDID: $CREATED_DEVICE_UDID"
-    SELECTED_DEVICE_UDID=$CREATED_DEVICE_UDID
-fi
+echo "Creating new simulator..."
+CREATED_DEVICE_UDID=$(xcrun simctl create "Embrace-iPhone-UITests" "$FALLBACK_SIMULATOR_DEVICE_TYPE")
+echo "Created new simulator with UDID: $CREATED_DEVICE_UDID"
+SELECTED_DEVICE_UDID=$CREATED_DEVICE_UDID
+echo "Booting simulator..."
+open "/Applications/Xcode.app/Contents/Developer/Applications/Simulator.app/"
+xcrun simctl boot "$CREATED_DEVICE_UDID"
 
 # `IS_XCTEST` envvar is work-around for plugin dependency being included in iOS target when using `xcodebuild test`
 # (See Package.swift `targetPlugins`)
 # https://forums.swift.org/t/xcode-attempts-to-build-plugins-for-ios-is-there-a-workaround/57029
 
 IS_XCTEST=true \
-xcodebuild test \
+xcodebuild clean \
     -project './Examples/EmbraceIOTestApp/EmbraceIOTestApp.xcodeproj' \
     -scheme 'EmbraceIOTestApp' \
-    -sdk iphonesimulator \
+    -testPlan 'EmbraceIOTestAppTests' \
     -configuration "Debug" \
-    -destination "id=$SELECTED_DEVICE_UDID"
+    -destination "id=$CREATED_DEVICE_UDID" \
+    -derivedDataPath $DERIVED_DATA_PATH \
+    -resultBundlePath $XCRESULT_PATH \
+    test
 
 # If we created a new simulator, delete it
 if [ -n "${CREATED_DEVICE_UDID}" ]; then
     echo "Deleting simulator with UDID: $CREATED_DEVICE_UDID"
     xcrun simctl delete $CREATED_DEVICE_UDID
 fi
+
+#IS_XCTEST=true \
+xcodebuild clean \
+    -project './Examples/EmbraceIOTestApp/EmbraceIOTestApp.xcodeproj' \
+    -scheme 'EmbraceIOTestApp' \
+    -testPlan 'EmbraceIOTestAppTests' \
+    -sdk $SDK_PATH \
+    -clonedSourcePackagesDirPath $CLONED_SOURCE_PACKAGES_DIR_PATH \
+    -configuration "Debug" \
+    -destination "id=$SELECTED_DEVICE_UDID" \
+    -derivedDataPath $DERIVED_DATA_PATH \
+    -resultBundlePath $XCRESULT_PATH \
+    test

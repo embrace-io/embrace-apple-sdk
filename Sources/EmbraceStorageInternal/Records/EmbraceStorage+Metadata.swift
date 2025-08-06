@@ -163,7 +163,7 @@ extension EmbraceStorage {
         lifespan: MetadataRecordLifespan,
         lifespanId: String = ""
     ) -> EmbraceMetadata? {
-        coreData.performOperation { context in
+        coreData.performOperation(allowMainQueue: true) { context in
             // fetch existing metadata
             let request = fetchMetadataRequest(key: key, type: type, lifespan: lifespan, lifespanId: lifespanId)
             guard let metadata = fetchMetadata(request: request, context: context) else {
