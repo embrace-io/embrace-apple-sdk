@@ -26,7 +26,7 @@ Pod::Spec.new do |spec|
     subs.dependency "EmbraceIO/EmbraceCaptureService"
     subs.dependency "EmbraceIO/EmbraceCore"
     subs.dependency "EmbraceIO/EmbraceCommonInternal"
-    subs.dependency "EmbraceIO/EmbraceCrash"
+    subs.dependency "EmbraceIO/EmbraceKSCrashSupport"
     subs.dependency "EmbraceIO/EmbraceSemantics"
   end
 
@@ -99,11 +99,10 @@ Pod::Spec.new do |spec|
   spec.subspec 'EmbraceCrashlyticsSupport' do |subs|
     subs.source_files = "Sources/ThirdParty/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
     subs.dependency "EmbraceIO/EmbraceCommonInternal"
-    subs.dependency "EmbraceIO/EmbraceSemantics"
   end
 
-  spec.subspec 'EmbraceCrash' do |subs|
-    subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
+  spec.subspec 'EmbraceKSCrashSupport' do |subs|
+    subs.source_files = "Sources/ThirdParty/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
     subs.dependency "EmbraceIO/EmbraceCommonInternal"
     subs.dependency "EmbraceIO/EmbraceKSCrash"
   end

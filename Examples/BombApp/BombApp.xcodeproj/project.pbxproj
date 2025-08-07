@@ -39,7 +39,6 @@
 		FA2988F52C347F3F0065F0E2 /* BombView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA2988F42C347F3F0065F0E2 /* BombView.swift */; };
 		FA2988FB2C34836A0065F0E2 /* BombAppDelegate+withCrashlytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA2988FA2C34836A0065F0E2 /* BombAppDelegate+withCrashlytics.swift */; };
 		FA2988FE2C3483BF0065F0E2 /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = FA2988FD2C3483BF0065F0E2 /* EmbraceCore */; };
-		FA2989002C3483BF0065F0E2 /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = FA2988FF2C3483BF0065F0E2 /* EmbraceCrash */; };
 		FA2989022C3483BF0065F0E2 /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = FA2989012C3483BF0065F0E2 /* EmbraceCrashlyticsSupport */; };
 		FA2989042C3483BF0065F0E2 /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = FA2989032C3483BF0065F0E2 /* EmbraceIO */; };
 		FA2989062C3484640065F0E2 /* Bomb.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA2989052C3484640065F0E2 /* Bomb.swift */; };
@@ -53,7 +52,6 @@
 		FAFDA3EB2C343F2200AD17CF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FAFDA3EA2C343F2200AD17CF /* Assets.xcassets */; };
 		FAFDA3EE2C343F2200AD17CF /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FAFDA3ED2C343F2200AD17CF /* Preview Assets.xcassets */; };
 		FAFDA3F62C343F8000AD17CF /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = FAFDA3F52C343F8000AD17CF /* EmbraceCore */; };
-		FAFDA3F82C343F8000AD17CF /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = FAFDA3F72C343F8000AD17CF /* EmbraceCrash */; };
 		FAFDA3FA2C343F8000AD17CF /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = FAFDA3F92C343F8000AD17CF /* EmbraceCrashlyticsSupport */; };
 		FAFDA3FC2C343F8000AD17CF /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = FAFDA3FB2C343F8000AD17CF /* EmbraceIO */; };
 		FAFDA4182C34408E00AD17CF /* BombAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFDA4172C34408E00AD17CF /* BombAppDelegate.swift */; };
@@ -158,7 +156,6 @@
 				FA2988E02C346BE60065F0E2 /* FirebaseInstallations in Frameworks */,
 				FA2988D42C346BE60065F0E2 /* FirebaseFirestoreCombine-Community in Frameworks */,
 				FA2988DE2C346BE60065F0E2 /* FirebaseInAppMessagingSwift-Beta in Frameworks */,
-				FAFDA3F82C343F8000AD17CF /* EmbraceCrash in Frameworks */,
 				FA2988E22C346BE60065F0E2 /* FirebaseMLModelDownloader in Frameworks */,
 				FA2988E42C346BE60065F0E2 /* FirebaseMessaging in Frameworks */,
 				FA2988FE2C3483BF0065F0E2 /* EmbraceCore in Frameworks */,
@@ -178,7 +175,6 @@
 				FA2988CA2C346BE60065F0E2 /* FirebaseCrashlytics in Frameworks */,
 				FA2988D02C346BE60065F0E2 /* FirebaseDynamicLinks in Frameworks */,
 				FA2988EC2C346BE60065F0E2 /* FirebaseStorage in Frameworks */,
-				FA2989002C3483BF0065F0E2 /* EmbraceCrash in Frameworks */,
 				FA2988DC2C346BE60065F0E2 /* FirebaseInAppMessaging-Beta in Frameworks */,
 				FA2988EA2C346BE60065F0E2 /* FirebaseRemoteConfigSwift in Frameworks */,
 				FA2988C42C346BE60065F0E2 /* FirebaseAppDistribution-Beta in Frameworks */,
@@ -350,7 +346,6 @@
 			name = BombApp;
 			packageProductDependencies = (
 				FAFDA3F52C343F8000AD17CF /* EmbraceCore */,
-				FAFDA3F72C343F8000AD17CF /* EmbraceCrash */,
 				FAFDA3F92C343F8000AD17CF /* EmbraceCrashlyticsSupport */,
 				FAFDA3FB2C343F8000AD17CF /* EmbraceIO */,
 				FA2988B92C346BE60065F0E2 /* FirebaseAnalytics */,
@@ -382,7 +377,6 @@
 				FA2988ED2C346BE60065F0E2 /* FirebaseStorageCombine-Community */,
 				FA2988EF2C346BE60065F0E2 /* FirebaseVertexAI-Preview */,
 				FA2988FD2C3483BF0065F0E2 /* EmbraceCore */,
-				FA2988FF2C3483BF0065F0E2 /* EmbraceCrash */,
 				FA2989012C3483BF0065F0E2 /* EmbraceCrashlyticsSupport */,
 				FA2989032C3483BF0065F0E2 /* EmbraceIO */,
 			);
@@ -876,10 +870,6 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = EmbraceCore;
 		};
-		FA2988FF2C3483BF0065F0E2 /* EmbraceCrash */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = EmbraceCrash;
-		};
 		FA2989012C3483BF0065F0E2 /* EmbraceCrashlyticsSupport */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = EmbraceCrashlyticsSupport;
@@ -891,10 +881,6 @@
 		FAFDA3F52C343F8000AD17CF /* EmbraceCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = EmbraceCore;
-		};
-		FAFDA3F72C343F8000AD17CF /* EmbraceCrash */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = EmbraceCrash;
 		};
 		FAFDA3F92C343F8000AD17CF /* EmbraceCrashlyticsSupport */ = {
 			isa = XCSwiftPackageProductDependency;

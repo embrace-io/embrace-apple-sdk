@@ -33,11 +33,42 @@ class CrashlyticsWrapper {
         }
     }
 
-    @ThreadSafe private(set) var options: CrashlyticsWrapper.Options
-    @ThreadSafe private(set) var instance: AnyObject?
-    let queue: DispatchQueue = DispatchQueue(label: "com.embrace.crashlytics_wrapper")
+    struct MutableData {
+        var options: CrashlyticsWrapper.Options
+        var instance: AnyObject?
+        var customValues: [String: String] = [:]
+        var retryCount: Int = 0
+    }
+    private var data: EmbraceMutex<MutableData>
+    private var options: CrashlyticsWrapper.Options {
+        data.withLock { $0.options }
+    }
+    public private(set) var instance: AnyObject? {
+        get {
+            data.withLock { $0.instance }
+        }
+        set {
+            data.withLock { $0.instance = newValue }
+        }
+    }
+    private var retryCount: Int {
+        get {
+            data.withLock { $0.retryCount }
+        }
+        set {
+            data.withLock { $0.retryCount = newValue }
+        }
+    }
+    private var customValues: [String: String] {
+        get {
+            data.withLock { $0.customValues }
+        }
+        set {
+            data.withLock { $0.customValues = newValue }
+        }
+    }
 
-    @ThreadSafe private(set) var retryCount: Int = 0
+    let queue: DispatchQueue = DispatchQueue(label: "com.embrace.crashlytics_wrapper")
 
     convenience init(maxRetryCount: Int = 5, retryDelay: Double = 1.0) {
         self.init(
@@ -51,22 +82,10 @@ class CrashlyticsWrapper {
     }
 
     init(options: CrashlyticsWrapper.Options) {
-        self.options = options
+        data = EmbraceMutex(MutableData(options: options))
 
         self.queue.async { [weak self] in
             self?.findInstance()
-        }
-    }
-
-    var currentSessionId: String? {
-        didSet {
-            updateSessionId()
-        }
-    }
-
-    var sdkVersion: String? {
-        didSet {
-            updateSDKVersion()
         }
     }
 
@@ -91,8 +110,9 @@ class CrashlyticsWrapper {
             let value = crashlyticsClass.perform(selector)
             instance = value?.takeUnretainedValue()
 
-            updateSessionId()
-            updateSDKVersion()
+            customValues.forEach { key, value in
+                setCustomValue(key: key, value: value)
+            }
         }
 
         retryCount += 1
@@ -102,7 +122,7 @@ class CrashlyticsWrapper {
         }
     }
 
-    func setCustomValue(key: String, value: String) {
+    private func _customValueOnCrashlytics(key: String, value: String) {
         guard let instance = instance else {
             return
         }
@@ -113,19 +133,12 @@ class CrashlyticsWrapper {
         }
     }
 
-    private func updateSessionId() {
-        guard let currentSessionId = currentSessionId else {
-            return
-        }
-
-        setCustomValue(key: "emb-sid", value: currentSessionId)
+    func setCustomValue(key: String, value: String) {
+        customValues[key] = value
+        _customValueOnCrashlytics(key: key, value: value)
     }
 
-    private func updateSDKVersion() {
-        guard let sdkVersion = sdkVersion else {
-            return
-        }
-
-        setCustomValue(key: "emb-sdk", value: sdkVersion)
+    func getCustomValue(key: String) -> String? {
+        customValues[key]
     }
 }

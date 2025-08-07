@@ -57,12 +57,7 @@ extension Embrace {
         guard let crashReporter = captureServices.crashReporter else {
             throw EmbraceCrashReportError.noCrashReporterAvailable
         }
-
-        guard let extendableCrashReporter = crashReporter as? ExtendableCrashReporter else {
-            throw EmbraceCrashReportError.noCrashReporterAvailable
-        }
-
-        extendableCrashReporter.appendCrashInfo(key: key, value: value)
+        crashReporter.appendCrashInfo(key: key, value: value)
     }
 
     /// Returns the last run end state.
