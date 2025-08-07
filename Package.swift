@@ -307,7 +307,12 @@ let package = Package(
         ),
 
         // Utilities
-        .target(name: "EmbraceObjCUtilsInternal"),
+        .target(
+            name: "EmbraceObjCUtilsInternal",
+            linkerSettings: [
+                .linkedFramework("QuartzCore")
+            ]
+        ),
         .testTarget(
             name: "EmbraceObjCUtilsInternalTests",
             dependencies: ["EmbraceObjCUtilsInternal", "TestSupport"]
