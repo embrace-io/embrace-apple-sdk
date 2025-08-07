@@ -20,14 +20,7 @@
 		4D4CE7FC2DFCFA5C00740AC3 /* StartupAppStartupInitSpanTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4CE7FB2DFCFA4D00740AC3 /* StartupAppStartupInitSpanTest.swift */; };
 		4D4CE7FF2E0319F500740AC3 /* EmbraceInitScreenForceStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4CE7FE2E0319E700740AC3 /* EmbraceInitScreenForceStateView.swift */; };
 		4D4CE8022E031A6200740AC3 /* EmbraceInitForceState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4CE8012E031A5400740AC3 /* EmbraceInitForceState.swift */; };
-		4D4D8E552E415C3800D816AC /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4D4D8E542E415C3800D816AC /* EmbraceCore */; };
-		4D4D8E572E415C3800D816AC /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = 4D4D8E562E415C3800D816AC /* EmbraceCrash */; };
-		4D4D8E592E415C3800D816AC /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 4D4D8E582E415C3800D816AC /* EmbraceCrashlyticsSupport */; };
-		4D4D8E5B2E415C3800D816AC /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = 4D4D8E5A2E415C3800D816AC /* EmbraceIO */; };
-		4D4D8E5D2E415C3800D816AC /* EmbraceMacros in Frameworks */ = {isa = PBXBuildFile; productRef = 4D4D8E5C2E415C3800D816AC /* EmbraceMacros */; };
-		4D4D8E5F2E415C3800D816AC /* EmbraceSemantics in Frameworks */ = {isa = PBXBuildFile; productRef = 4D4D8E5E2E415C3800D816AC /* EmbraceSemantics */; };
 		4D54F2812E3AB89D00E38132 /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4D54F2802E3AB89D00E38132 /* EmbraceCore */; };
-		4D54F2832E3AB89D00E38132 /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = 4D54F2822E3AB89D00E38132 /* EmbraceCrash */; };
 		4D54F2852E3AB89D00E38132 /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 4D54F2842E3AB89D00E38132 /* EmbraceCrashlyticsSupport */; };
 		4D54F2872E3AB89D00E38132 /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = 4D54F2862E3AB89D00E38132 /* EmbraceIO */; };
 		4D54F2892E3AB89D00E38132 /* EmbraceMacros in Frameworks */ = {isa = PBXBuildFile; productRef = 4D54F2882E3AB89D00E38132 /* EmbraceMacros */; };
@@ -136,14 +129,14 @@
 		4DF12A372D302CBE00C93E62 /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 4DF12A362D302CBE00C93E62 /* EmbraceCrashlyticsSupport */; };
 		4DF12A392D302CBE00C93E62 /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = 4DF12A382D302CBE00C93E62 /* EmbraceIO */; };
 		4DF12A3B2D302CBE00C93E62 /* EmbraceSemantics in Frameworks */ = {isa = PBXBuildFile; productRef = 4DF12A3A2D302CBE00C93E62 /* EmbraceSemantics */; };
-		FADD99932E3961590076712E /* EmbraceKSCrashSupport in Frameworks */ = {isa = PBXBuildFile; productRef = FADD99922E3961590076712E /* EmbraceKSCrashSupport */; };
-		FADD99952E3961600076712E /* EmbraceKSCrashSupport in Frameworks */ = {isa = PBXBuildFile; productRef = FADD99942E3961600076712E /* EmbraceKSCrashSupport */; };
 		4DF440832E3C4C3700708D6A /* SwiftUITestViewEmbraceViewCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DF440822E3C4C2D00708D6A /* SwiftUITestViewEmbraceViewCapture.swift */; };
 		4DF440852E3D4FFB00708D6A /* SwiftUIManualCaptureTestUIComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DF440842E3D4FE500708D6A /* SwiftUIManualCaptureTestUIComponent.swift */; };
 		4DF440872E3D500400708D6A /* SwiftUIMacroCaptureTestUIComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DF440862E3D500300708D6A /* SwiftUIMacroCaptureTestUIComponent.swift */; };
 		4DF440892E3D502A00708D6A /* SwiftUIEmbraceTraceViewCaptureTestUIComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DF440882E3D502100708D6A /* SwiftUIEmbraceTraceViewCaptureTestUIComponent.swift */; };
 		4DF4408B2E3D517F00708D6A /* SwiftUITestsLoadedPropertyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DF4408A2E3D517400708D6A /* SwiftUITestsLoadedPropertyView.swift */; };
 		4DF4408D2E3D518B00708D6A /* SwiftUITestsAttributesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DF4408C2E3D518400708D6A /* SwiftUITestsAttributesView.swift */; };
+		FADD99932E3961590076712E /* EmbraceKSCrashSupport in Frameworks */ = {isa = PBXBuildFile; productRef = FADD99922E3961590076712E /* EmbraceKSCrashSupport */; };
+		FADD99952E3961600076712E /* EmbraceKSCrashSupport in Frameworks */ = {isa = PBXBuildFile; productRef = FADD99942E3961600076712E /* EmbraceKSCrashSupport */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -174,7 +167,6 @@
 		4D54F28F2E3ABD5100E38132 /* SwiftUITestViewManualCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUITestViewManualCapture.swift; sourceTree = "<group>"; };
 		4D54F2912E3ABD8200E38132 /* SwiftUITestViewMacroCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUITestViewMacroCapture.swift; sourceTree = "<group>"; };
 		4D5E45FD2E0B07ED00FA6E0E /* OTelSemanticsValidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OTelSemanticsValidation.swift; sourceTree = "<group>"; };
-		4D5EE3E92E0F01CA009C0D93 /* EmbraceIOTestAppTests.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = EmbraceIOTestAppTests.xctestplan; sourceTree = "<group>"; };
 		4D63379E2DE1157200557BDC /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		4D6337A02DE1157200557BDC /* EmbraceIOTestCrashesUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbraceIOTestCrashesUITests.swift; sourceTree = "<group>"; };
 		4D6337A12DE1157200557BDC /* EmbraceIOTestLogsUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbraceIOTestLogsUITests.swift; sourceTree = "<group>"; };
@@ -294,7 +286,6 @@
 				4DF12A392D302CBE00C93E62 /* EmbraceIO in Frameworks */,
 				4DF12A332D302CBE00C93E62 /* EmbraceCore in Frameworks */,
 				4D54F2872E3AB89D00E38132 /* EmbraceIO in Frameworks */,
-				4D54F2832E3AB89D00E38132 /* EmbraceCrash in Frameworks */,
 				4D54F28B2E3AB89D00E38132 /* EmbraceSemantics in Frameworks */,
 				4D54F2892E3AB89D00E38132 /* EmbraceMacros in Frameworks */,
 				4D61D1BD2DE0BA750048B5E2 /* EmbraceIO in Frameworks */,
@@ -894,7 +885,6 @@
 		4DF12A172D302C3200C93E62 = {
 			isa = PBXGroup;
 			children = (
-				4D5EE3E92E0F01CA009C0D93 /* EmbraceIOTestAppTests.xctestplan */,
 				4D6338272DE1157700557BDC /* EmbraceIOTestApp */,
 				4D6337A62DE1157200557BDC /* EmbraceIOTestAppUITests */,
 				4D6CDF322D84BBB000BB957F /* Frameworks */,
@@ -962,12 +952,6 @@
 				4D61D1BC2DE0BA750048B5E2 /* EmbraceIO */,
 				4D61D1BE2DE0BA750048B5E2 /* EmbraceSemantics */,
 				FADD99942E3961600076712E /* EmbraceKSCrashSupport */,
-				4D54F2802E3AB89D00E38132 /* EmbraceCore */,
-				4D54F2822E3AB89D00E38132 /* EmbraceCrash */,
-				4D54F2842E3AB89D00E38132 /* EmbraceCrashlyticsSupport */,
-				4D54F2862E3AB89D00E38132 /* EmbraceIO */,
-				4D54F2882E3AB89D00E38132 /* EmbraceMacros */,
-				4D54F28A2E3AB89D00E38132 /* EmbraceSemantics */,
 			);
 			productName = EmbraceIOTestApp;
 			productReference = 4DF12A202D302C3200C93E62 /* EmbraceIOTestApp.app */;
@@ -1176,7 +1160,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.embrace.EmbraceIOTestAppUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1195,7 +1179,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.embrace.EmbraceIOTestAppUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1259,7 +1243,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -1316,7 +1300,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -1343,7 +1327,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1374,7 +1358,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1398,7 +1382,7 @@
 				4D94F25D2D429257008DECEE /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Debug;
+			defaultConfigurationName = Release;
 		};
 		4DF12A1B2D302C3200C93E62 /* Build configuration list for PBXProject "EmbraceIOTestApp" */ = {
 			isa = XCConfigurationList;
@@ -1407,7 +1391,7 @@
 				4DF12A2D2D302C3300C93E62 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Debug;
+			defaultConfigurationName = Release;
 		};
 		4DF12A2E2D302C3300C93E62 /* Build configuration list for PBXNativeTarget "EmbraceIOTestApp" */ = {
 			isa = XCConfigurationList;
@@ -1416,7 +1400,7 @@
 				4DF12A302D302C3300C93E62 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Debug;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 
@@ -1428,43 +1412,9 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		4D4D8E542E415C3800D816AC /* EmbraceCore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 4D54F27F2E3AB89D00E38132 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
-			productName = EmbraceCore;
-		};
-		4D4D8E562E415C3800D816AC /* EmbraceCrash */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 4D54F27F2E3AB89D00E38132 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
-			productName = EmbraceCrash;
-		};
-		4D4D8E582E415C3800D816AC /* EmbraceCrashlyticsSupport */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 4D54F27F2E3AB89D00E38132 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
-			productName = EmbraceCrashlyticsSupport;
-		};
-		4D4D8E5A2E415C3800D816AC /* EmbraceIO */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 4D54F27F2E3AB89D00E38132 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
-			productName = EmbraceIO;
-		};
-		4D4D8E5C2E415C3800D816AC /* EmbraceMacros */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 4D54F27F2E3AB89D00E38132 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
-			productName = EmbraceMacros;
-		};
-		4D4D8E5E2E415C3800D816AC /* EmbraceSemantics */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 4D54F27F2E3AB89D00E38132 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
-			productName = EmbraceSemantics;
-		};
 		4D54F2802E3AB89D00E38132 /* EmbraceCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = EmbraceCore;
-		};
-		4D54F2822E3AB89D00E38132 /* EmbraceCrash */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = EmbraceCrash;
 		};
 		4D54F2842E3AB89D00E38132 /* EmbraceCrashlyticsSupport */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -1500,22 +1450,18 @@
 		};
 		4D61D1C02DE0BAC70048B5E2 /* EmbraceCore */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 4D61D1B52DE0BA750048B5E2 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
 			productName = EmbraceCore;
 		};
 		4D61D1C42DE0BAC70048B5E2 /* EmbraceCrashlyticsSupport */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 4D61D1B52DE0BA750048B5E2 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
 			productName = EmbraceCrashlyticsSupport;
 		};
 		4D61D1C62DE0BAC70048B5E2 /* EmbraceIO */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 4D61D1B52DE0BA750048B5E2 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
 			productName = EmbraceIO;
 		};
 		4D61D1C82DE0BAC70048B5E2 /* EmbraceSemantics */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 4D61D1B52DE0BA750048B5E2 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
 			productName = EmbraceSemantics;
 		};
 		4DF12A322D302CBE00C93E62 /* EmbraceCore */ = {
@@ -1536,12 +1482,10 @@
 		};
 		FADD99922E3961590076712E /* EmbraceKSCrashSupport */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 4D61D1B52DE0BA750048B5E2 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
 			productName = EmbraceKSCrashSupport;
 		};
 		FADD99942E3961600076712E /* EmbraceKSCrashSupport */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 4D61D1B52DE0BA750048B5E2 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
 			productName = EmbraceKSCrashSupport;
 		};
 /* End XCSwiftPackageProductDependency section */
