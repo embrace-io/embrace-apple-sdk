@@ -5,19 +5,28 @@
 import EmbraceCommonInternal
 import Foundation
 
-class ExtendableCrashReporterMock: ExtendableCrashReporter {
+class ExtendableCrashReporterMock: CrashReporter {
+    var sdkVersion: String?
+    var basePath: String?
+
     var didCallAppendCrashInfo: Bool = false
-    func appendCrashInfo(key: String, value: String) {
+    func appendCrashInfo(key: String, value: String?) {
         didCallAppendCrashInfo = true
     }
 
+    var didCallGetCrashInfo: Bool = false
+    func getCrashInfo(key: String) -> String? {
+        didCallGetCrashInfo = true
+        return nil
+    }
+
     var currentSessionId: String?
-    func install(context: EmbraceCommonInternal.CrashReporterContext, logger: EmbraceCommonInternal.InternalLogger) {}
+    func install(context: EmbraceCommonInternal.CrashReporterContext) throws {}
     func getLastRunState() -> EmbraceCommonInternal.LastRunState {
         .unavailable
     }
     func fetchUnsentCrashReports(completion: @escaping ([EmbraceCrashReport]) -> Void) {}
-    func deleteCrashReport(id: Int) {}
+    func deleteCrashReport(_ report: EmbraceCrashReport) {}
     var onNewReport: ((EmbraceCrashReport) -> Void)?
     var disableMetricKitReports: Bool = false
 }
