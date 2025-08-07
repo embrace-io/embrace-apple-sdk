@@ -7,6 +7,7 @@
 import EmbraceIO
 import EmbraceKSCrashSupport
 import EmbraceObjCUtilsInternal
+import EmbraceCommonInternal
 import SwiftUI
 
 struct EmbraceInitScreen: View {
@@ -106,9 +107,7 @@ extension EmbraceInitScreen {
                                 baseURL: viewModel.baseURL,
                                 configBaseURL: viewModel.configBaseURL),
                             captureServices: services,
-                            crashReporter: EmbraceCrashReporter(
-                                reporter: KSCrashReporter()
-                            ),
+                            crashReporter: KSCrashReporter(),
                             export: .init(
                                 spanExporter: dataCollector.spanExporter, logExporter: dataCollector.logExporter))
                 ).start()
