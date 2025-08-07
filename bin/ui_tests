@@ -45,9 +45,6 @@ echo "Creating new simulator..."
 CREATED_DEVICE_UDID=$(xcrun simctl create "Embrace-iPhone-UITests" "$FALLBACK_SIMULATOR_DEVICE_TYPE")
 echo "Created new simulator with UDID: $CREATED_DEVICE_UDID"
 SELECTED_DEVICE_UDID=$CREATED_DEVICE_UDID
-echo "Booting simulator..."
-open "/Applications/Xcode.app/Contents/Developer/Applications/Simulator.app/"
-xcrun simctl boot "$CREATED_DEVICE_UDID"
 
 # `IS_XCTEST` envvar is work-around for plugin dependency being included in iOS target when using `xcodebuild test`
 # (See Package.swift `targetPlugins`)
