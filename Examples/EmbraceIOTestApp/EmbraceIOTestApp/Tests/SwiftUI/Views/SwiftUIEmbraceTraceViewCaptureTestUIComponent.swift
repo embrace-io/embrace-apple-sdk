@@ -51,8 +51,9 @@ struct SwiftUIEmbraceTraceViewCaptureTestUIComponent: View {
                         viewModel.spanExporter = spanExporter
                     }
                     .sheet(isPresented: $viewModel.presentDummyView) {
-                        SwiftUITestViewEmbraceViewCapture(attributes: viewModel.attributes,
-                                                          contentComplete: viewModel.contentComplete)
+                        SwiftUITestViewEmbraceViewCapture(
+                            attributes: viewModel.attributes,
+                            contentComplete: viewModel.contentComplete)
                     }
             }
         } header: {

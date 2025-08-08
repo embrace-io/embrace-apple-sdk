@@ -184,7 +184,7 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
 
     func isEnabled() -> Bool {
         state.withLock {
-            $0.active && $0.rules.count > 0
+            $0.active && $0.rules.isEmpty == false
         }
     }
 }

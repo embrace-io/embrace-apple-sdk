@@ -207,7 +207,8 @@ class UnsentDataHandler {
         for session in sessions {
             // ignore current session
             if let currentSessionId = currentSessionId,
-                currentSessionId == session.id {
+                currentSessionId == session.id
+            {
                 continue
             }
 

@@ -62,7 +62,8 @@ class StorageEmbraceLogExporter: LogRecordExporter {
 
             // do not export crash logs (unless they come from metrickit)
             if log.isEmbType(LogType.crash)
-                && log.attributes[LogSemantics.Crash.keyProvider] != .string(LogSemantics.Crash.metrickitProvider) {
+                && log.attributes[LogSemantics.Crash.keyProvider] != .string(LogSemantics.Crash.metrickitProvider)
+            {
                 continue
             }
 

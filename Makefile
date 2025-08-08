@@ -26,7 +26,7 @@ ifeq ($(CLANG_FORMAT),)
 	@echo "Error: clang-format or clang-format-18 is not installed. Please install it and try again."
 	@exit 1
 else
-	@echo "Using $(CLANG_FORMAT)"
+	@echo "Running format with clang-format..."
 	find $(SEARCH_DIRS) $(foreach ext,$(FILE_EXTENSIONS),-name '*.$(ext)' -o) -false | \
 	xargs -r $(CLANG_FORMAT) -style=file -i
 endif
@@ -36,13 +36,13 @@ ifeq ($(CLANG_FORMAT),)
 	@echo "Error: clang-format or clang-format-18 is not installed. Please install it and try again."
 	@exit 1
 else
-	@echo "Checking format using $(CLANG_FORMAT)"
+	@echo "Running check-format with clang-format..."
 	@find $(SEARCH_DIRS) $(foreach ext,$(FILE_EXTENSIONS),-name '*.$(ext)' -o) -false | \
 	xargs -r $(CLANG_FORMAT) -style=file -n -Werror
 endif
 
 swift-format:
-	@echo "Formatting Swift files..."
+	@echo "Running swift-format with swift-format..."
 	@{ find $(SWIFT_SEARCH_DIRS) -name '*.swift' -type f -not -path '*/.build/*'; \
 	   [ -f Package.swift ] && echo Package.swift; } | \
 	while read file; do \
@@ -50,7 +50,7 @@ swift-format:
 	done
 
 check-swift-format:
-	@echo "Checking Swift format..."
+	@echo "Running check-swift-format with swift-format..."
 	@{ find $(SWIFT_SEARCH_DIRS) -name '*.swift' -type f -not -path '*/.build/*'; \
 	   [ -f Package.swift ] && echo Package.swift; } | \
 	while read file; do \
@@ -58,9 +58,9 @@ check-swift-format:
 	done
 
 check-lint:
-	@echo "Linting Swift files..."
+	@echo "Running check-lint with swift-lint..."
 	$(SWIFT_LINT_CMD) lint --quiet --strict --config .swiftlint.yml --force-exclude
 
 lint:
-	@echo "Linting Swift files..."
-	$(SWIFT_LINT_CMD) lint --fix --progress --config .swiftlint.yml --force-exclude
+	@echo "Running lint with swift-lint..."
+	$(SWIFT_LINT_CMD) lint --fix --quiet --config .swiftlint.yml --force-exclude

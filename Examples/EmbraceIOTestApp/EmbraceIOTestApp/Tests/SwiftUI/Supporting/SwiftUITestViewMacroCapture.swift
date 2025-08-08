@@ -4,8 +4,8 @@
 //
 //
 
-import SwiftUI
 import EmbraceMacros
+import SwiftUI
 
 @EmbraceTrace
 struct SwiftUITestViewMacroCapture: View {

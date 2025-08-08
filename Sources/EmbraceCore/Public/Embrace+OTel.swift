@@ -89,7 +89,7 @@ extension Embrace: EmbraceOpenTelemetry {
     /// If there is no current session, this event will be dropped.
     /// - Parameter events: An array of `SpanEvent` objects.
     public func add(events: [SpanEvent]) {
-        guard events.count > 0 else {
+        guard events.isEmpty == false else {
             return
         }
 
@@ -99,7 +99,7 @@ extension Embrace: EmbraceOpenTelemetry {
         }
 
         let eventsToAdd = spanEventsLimiter.applyLimits(events: events)
-        guard eventsToAdd.count > 0 else {
+        guard eventsToAdd.isEmpty == false else {
             Embrace.logger.info("\(#function) failed: SpanEvents limit reached!")
             return
         }
