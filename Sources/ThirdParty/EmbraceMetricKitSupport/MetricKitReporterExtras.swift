@@ -8,264 +8,267 @@ import MetricKit
 // MARK: - MetricKit Extensions
 
 #if !os(tvOS)
-@available(iOS 14.0, *)
-extension MXCrashDiagnostic {
+    @available(iOS 14.0, *)
+    extension MXCrashDiagnostic {
 
-    var crashSignal: CrashSignal? {
-        if let sig = signal as? Int {
-            return CrashSignal(rawValue: sig)
-        }
-        return nil
-    }
-
-    func buildEmbraceCrashReport(
-        sessionId: String?,
-        timestamp: Date,
-        logger: MetricKitReporterLogger
-    ) -> EmbraceCrashReport?
-    {
-        logger.info("buildEmbraceCrashReport")
-        
-        guard let loadedReport = buildKSCrashReport(sessionId: sessionId, timestamp: timestamp, logger: logger) else {
-            logger.error("Failed to buildKSCrashReport for session \(String(describing: sessionId))")
+        var crashSignal: CrashSignal? {
+            if let sig = signal as? Int {
+                return CrashSignal(rawValue: sig)
+            }
             return nil
         }
 
-        // here's we're going to try and find if we have a threadcrumb with the session id in it.
-        // if we find one, we'll insert this new data.
-        var foundSessionId: String?
-        var foundSdk: String?
-        
-        // we're looking for a thread with 39 frames.
-        // `semaphore_wait_trap`
-        // `_dispatch_sema4_wait`
-        // `_dispatch_semaphore_wait_slow`
-        // `__impact_threadcrumb_end__`
-        // => ... 32 frames of `__impact__<N>__` for the GUID of the session it was part of (no hyphens).
-        // `__impact_threadcrumb_start__`
-        // `_pthread_start`
-        // `thread_start`
-        if let sessionIdThread = loadedReport.crash.threads.first(where: { $0.backtrace.contents.count == 39 }) {
-            
-            logger.info("found threadcrumb for session")
-            
-            // get the hash of the thread
-            // we're only interested in the actual guid part
-            var combinedHash: UInt64 = 0
-            for (j, i) in (4...35).enumerated() {
-                let frame = sessionIdThread.backtrace.contents[i]
-                let addr: UInt64 = frame.instructionAddr
-                logger.info("\(j) => frame addr: \(addr)")
-                let shift = UInt64((j % 63) + 1)  // use zero-based index
-                let rotated = (addr << shift) | (addr >> (64 - shift))
-                combinedHash ^= rotated
+        func buildEmbraceCrashReport(
+            sessionId: String?,
+            timestamp: Date,
+            logger: MetricKitReporterLogger
+        ) -> EmbraceCrashReport? {
+            logger.info("buildEmbraceCrashReport")
+
+            guard let loadedReport = buildKSCrashReport(sessionId: sessionId, timestamp: timestamp, logger: logger)
+            else {
+                logger.error("Failed to buildKSCrashReport for session \(String(describing: sessionId))")
+                return nil
             }
-            let filename = String(format: "%016llx.stacksym", combinedHash)
-            if let url = try? FileManager.default.url(
-                for: .applicationSupportDirectory,
-                in: .userDomainMask,
-                appropriateFor: nil,
-                create: false
-            )
-                .appendingPathComponent("ThreadcrumbSymbols").appendingPathComponent(filename)
-            {
-                if let contents = try? String(contentsOf: url, encoding: .utf8).components(separatedBy: .newlines) {
-                    if contents.count > 0 {
-                        foundSessionId = contents[0].trimmingCharacters(in: .whitespacesAndNewlines)
-                    }
-                    if contents.count > 1 {
-                        foundSdk = contents[1].trimmingCharacters(in: .whitespacesAndNewlines)
+
+            // here's we're going to try and find if we have a threadcrumb with the session id in it.
+            // if we find one, we'll insert this new data.
+            var foundSessionId: String?
+            var foundSdk: String?
+
+            // we're looking for a thread with 39 frames.
+            // `semaphore_wait_trap`
+            // `_dispatch_sema4_wait`
+            // `_dispatch_semaphore_wait_slow`
+            // `__impact_threadcrumb_end__`
+            // => ... 32 frames of `__impact__<N>__` for the GUID of the session it was part of (no hyphens).
+            // `__impact_threadcrumb_start__`
+            // `_pthread_start`
+            // `thread_start`
+            if let sessionIdThread = loadedReport.crash.threads.first(where: { $0.backtrace.contents.count == 39 }) {
+
+                logger.info("found threadcrumb for session")
+
+                // get the hash of the thread
+                // we're only interested in the actual guid part
+                var combinedHash: UInt64 = 0
+                for (j, i) in (4...35).enumerated() {
+                    let frame = sessionIdThread.backtrace.contents[i]
+                    let addr: UInt64 = frame.instructionAddr
+                    logger.info("\(j) => frame addr: \(addr)")
+                    let shift = UInt64((j % 63) + 1)  // use zero-based index
+                    let rotated = (addr << shift) | (addr >> (64 - shift))
+                    combinedHash ^= rotated
+                }
+                let filename = String(format: "%016llx.stacksym", combinedHash)
+                if let url = try? FileManager.default.url(
+                    for: .applicationSupportDirectory,
+                    in: .userDomainMask,
+                    appropriateFor: nil,
+                    create: false
+                )
+                .appendingPathComponent("ThreadcrumbSymbols").appendingPathComponent(filename) {
+                    if let contents = try? String(contentsOf: url, encoding: .utf8).components(separatedBy: .newlines) {
+                        if !contents.isEmpty {
+                            foundSessionId = contents[0].trimmingCharacters(in: .whitespacesAndNewlines)
+                        }
+                        if contents.count > 1 {
+                            foundSdk = contents[1].trimmingCharacters(in: .whitespacesAndNewlines)
+                        }
+                    } else {
+                        logger.error("Cound not load session symbols at \(filename)")
                     }
                 } else {
-                    logger.error("Cound not load session symbols at \(filename)")
+                    logger.error("Cound not find session symbols at \(filename)")
                 }
+
             } else {
-                logger.error("Cound not find session symbols at \(filename)")
+                logger.error(
+                    "Didn't find the session id threadcrumb, will use last session id \(String(describing: sessionId))")
             }
-            
-        } else {
-            logger.error("Didn't find the session id threadcrumb, will use last session id \(String(describing: sessionId))")
-        }
-        
-        let report = KarlCrashReport(
-            binaryImages: loadedReport.binaryImages,
-            crash: loadedReport.crash,
-            report: loadedReport.report,
-            system: loadedReport.system,
-            user: KarlCrashReport.User(
-                sid: foundSessionId ?? loadedReport.user.sid,
-                sdk: foundSdk ?? loadedReport.user.sdk
+
+            let report = KarlCrashReport(
+                binaryImages: loadedReport.binaryImages,
+                crash: loadedReport.crash,
+                report: loadedReport.report,
+                system: loadedReport.system,
+                user: KarlCrashReport.User(
+                    sid: foundSessionId ?? loadedReport.user.sid,
+                    sdk: foundSdk ?? loadedReport.user.sdk
+                )
             )
-        )
 
-        // encode it as a JSON string
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .custom { date, encoder in
-            var container = encoder.singleValueContainer()
-            let microseconds = Int64(date.timeIntervalSince1970 * 1_000_000)
-            try container.encode(microseconds)
-        }
-        encoder.keyEncodingStrategy = .convertToSnakeCase
-        guard let data = try? encoder.encode(report) else {
-            logger.error("Error encoding KarlCrashReport for MetricKit")
-            return nil
-        }
-        guard let payload = String(data: data, encoding: .utf8) else {
-            logger.error("Error stringifying payload")
-            return nil
-        }
+            // encode it as a JSON string
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .custom { date, encoder in
+                var container = encoder.singleValueContainer()
+                let microseconds = Int64(date.timeIntervalSince1970 * 1_000_000)
+                try container.encode(microseconds)
+            }
+            encoder.keyEncodingStrategy = .convertToSnakeCase
+            guard let data = try? encoder.encode(report) else {
+                logger.error("Error encoding KarlCrashReport for MetricKit")
+                return nil
+            }
+            guard let payload = String(data: data, encoding: .utf8) else {
+                logger.error("Error stringifying payload")
+                return nil
+            }
 
-        return EmbraceCrashReport(
-            payload: payload,
-            provider: "kscrash",
-            internalId: nil,
-            sessionId: sessionId,
-            timestamp: timestamp,
-            signal: crashSignal
-        )
-    }
-
-    func buildKSCrashReport(sessionId: String?, timestamp: Date, logger: MetricKitReporterLogger) -> KarlCrashReport? {
-        
-        let diagnostic: CrashDiagnostic
-        do {
-            try diagnostic = CrashDiagnostic.from(jsonRepresentation())
-        } catch {
-            logger.error("CrashDiagnostic.from error \(error)")
-            return nil
-        }
-        
-        return KarlCrashReport(
-            binaryImages: diagnostic.callStackTree.binaryImages,
-            crash: KarlCrashReport.Crash(
-                diagnosis: CrashDiagnosisFormatter().diagnosis(from: diagnostic),
-                error: KarlCrashReport.Crash.Error(
-                    mach: KarlCrashReport.Crash.Error.Mach(
-                        code: exceptionCode as? Int64,  // KERN_INVALID_ADDRESS
-                        codeName: exceptionCode?.stringValue,
-                        exception: machException?.rawValue,  // EXC_BAD_ACCESS
-                        exceptionName: machException?.name,
-                        subcode: nil
-                    ),
-                    signal: KarlCrashReport.Crash.Error.Signal(
-                        code: nil,
-                        codeName: nil,  // kssignal_signalCodeName
-                        signal: signal as? Int,
-                        name: crashSignal?.stringValue  // kssignal_signalName
-                    ),
-                    nsexception: KarlCrashReport.Crash.Error.NSException(
-                        name: nsExceptionName,
-                        userInfo: nsExceptionMessage
-                    ),
-                    cppException: KarlCrashReport.Crash.Error.CPPException(
-                        name: nil // no cpp in MetricKit
-                    ),
-                    type: karlExceptionType,
-                    reason: nil
-                ),
-                threads: diagnostic.callStackTree.threads
-            ),
-            report: KarlCrashReport.Report(
-                id: UUID().uuidString,
+            return EmbraceCrashReport(
+                payload: payload,
+                provider: "kscrash",
+                internalId: nil,
+                sessionId: sessionId,
                 timestamp: timestamp,
-                type: "standard"
-            ),
-            system: KarlCrashReport.System(
-                CFBundleIdentifier: diagnostic.metaData.bundleIdentifier,
-                CFBundleShortVersionString: diagnostic.metaData.appVersion,
-                CFBundleVersion: diagnostic.metaData.appBuildVersion,
-                appUuid: diagnostic.callStackTree.mainBinaryImageUUID ?? UUID().uuidString,  // UUID of the app binary
-                applicationStats: KarlCrashReport.System.ApplicationStats(
-                    applicationActive: true,
-                    ApplicationInForeground: true
-                ),
-                osVersion: operatingSystemBuild,  // 22F76
-                systemVersion: operatingSystemVersion  // 18.5
-            ),
-            user: KarlCrashReport.User(
-                sid: sessionId,
-                sdk: nil
+                signal: crashSignal
             )
-        )
-    }
-    
-    var machException: MachException? {
-        if let type = exceptionType as? Int64 {
-            return MachException(rawValue: type)
         }
-        return nil
-    }
 
-    var nsExceptionName: String? {
-        if #available(iOS 17.0, macOS 14.0, *) {
-            return exceptionReason?.exceptionName
-        }
-        return nil
-    }
+        func buildKSCrashReport(sessionId: String?, timestamp: Date, logger: MetricKitReporterLogger)
+            -> KarlCrashReport?
+        {
 
-    var nsExceptionMessage: String? {
-        if #available(iOS 17.0, macOS 14.0, *) {
-            return exceptionReason?.composedMessage
-        }
-        return nil
-    }
+            let diagnostic: CrashDiagnostic
+            do {
+                try diagnostic = CrashDiagnostic.from(jsonRepresentation())
+            } catch {
+                logger.error("CrashDiagnostic.from error \(error)")
+                return nil
+            }
 
-    var nsExceptionType: String? {
-        if #available(iOS 17.0, macOS 14.0, *) {
-            return exceptionReason?.exceptionType
+            return KarlCrashReport(
+                binaryImages: diagnostic.callStackTree.binaryImages,
+                crash: KarlCrashReport.Crash(
+                    diagnosis: CrashDiagnosisFormatter().diagnosis(from: diagnostic),
+                    error: KarlCrashReport.Crash.Error(
+                        mach: KarlCrashReport.Crash.Error.Mach(
+                            code: exceptionCode as? Int64,  // KERN_INVALID_ADDRESS
+                            codeName: exceptionCode?.stringValue,
+                            exception: machException?.rawValue,  // EXC_BAD_ACCESS
+                            exceptionName: machException?.name,
+                            subcode: nil
+                        ),
+                        signal: KarlCrashReport.Crash.Error.Signal(
+                            code: nil,
+                            codeName: nil,  // kssignal_signalCodeName
+                            signal: signal as? Int,
+                            name: crashSignal?.stringValue  // kssignal_signalName
+                        ),
+                        nsexception: KarlCrashReport.Crash.Error.NSException(
+                            name: nsExceptionName,
+                            userInfo: nsExceptionMessage
+                        ),
+                        cppException: KarlCrashReport.Crash.Error.CPPException(
+                            name: nil  // no cpp in MetricKit
+                        ),
+                        type: karlExceptionType,
+                        reason: nil
+                    ),
+                    threads: diagnostic.callStackTree.threads
+                ),
+                report: KarlCrashReport.Report(
+                    id: UUID().uuidString,
+                    timestamp: timestamp,
+                    type: "standard"
+                ),
+                system: KarlCrashReport.System(
+                    CFBundleIdentifier: diagnostic.metaData.bundleIdentifier,
+                    CFBundleShortVersionString: diagnostic.metaData.appVersion,
+                    CFBundleVersion: diagnostic.metaData.appBuildVersion,
+                    appUuid: diagnostic.callStackTree.mainBinaryImageUUID ?? UUID().uuidString,  // UUID of the app binary
+                    applicationStats: KarlCrashReport.System.ApplicationStats(
+                        applicationActive: true,
+                        ApplicationInForeground: true
+                    ),
+                    osVersion: operatingSystemBuild,  // 22F76
+                    systemVersion: operatingSystemVersion  // 18.5
+                ),
+                user: KarlCrashReport.User(
+                    sid: sessionId,
+                    sdk: nil
+                )
+            )
         }
-        return nil
-    }
-    
-    var karlExceptionType: String {
-        if nsExceptionName != nil {
-            return "nsexception"
-        }
-        
-        if exceptionType != nil {
-            return "mach"
-        }
-        
-        return "signal"
-    }
-    
-    func _matchOSVersion(from input: String) -> (version: String, build: String?)? {
 
-        let pattern = "(?:iPhone|iPad|iOS) OS (\\d+(?:\\.\\d+)*)(?: \\(([^)]+)\\))?"
-
-        guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
+        var machException: MachException? {
+            if let type = exceptionType as? Int64 {
+                return MachException(rawValue: type)
+            }
             return nil
         }
 
-        let range = NSRange(input.startIndex..<input.endIndex, in: input)
-        guard let match = regex.firstMatch(in: input, options: [], range: range) else {
+        var nsExceptionName: String? {
+            if #available(iOS 17.0, macOS 14.0, *) {
+                return exceptionReason?.exceptionName
+            }
             return nil
         }
 
-        guard let versionRange = Range(match.range(at: 1), in: input) else {
+        var nsExceptionMessage: String? {
+            if #available(iOS 17.0, macOS 14.0, *) {
+                return exceptionReason?.composedMessage
+            }
             return nil
         }
 
-        let version = String(input[versionRange])
-        var build: String?
-
-        if match.numberOfRanges > 2,
-            let buildRange = Range(match.range(at: 2), in: input) {
-            build = String(input[buildRange])
+        var nsExceptionType: String? {
+            if #available(iOS 17.0, macOS 14.0, *) {
+                return exceptionReason?.exceptionType
+            }
+            return nil
         }
 
-        return (version, build)
-    }
+        var karlExceptionType: String {
+            if nsExceptionName != nil {
+                return "nsexception"
+            }
 
-    var operatingSystemVersion: String? {
-        _matchOSVersion(from: metaData.osVersion)?.version
-    }
+            if exceptionType != nil {
+                return "mach"
+            }
 
-    var operatingSystemBuild: String? {
-        _matchOSVersion(from: metaData.osVersion)?.build
-    }
+            return "signal"
+        }
 
-}
+        func _matchOSVersion(from input: String) -> (version: String, build: String?)? {
+
+            let pattern = "(?:iPhone|iPad|iOS) OS (\\d+(?:\\.\\d+)*)(?: \\(([^)]+)\\))?"
+
+            guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
+                return nil
+            }
+
+            let range = NSRange(input.startIndex..<input.endIndex, in: input)
+            guard let match = regex.firstMatch(in: input, options: [], range: range) else {
+                return nil
+            }
+
+            guard let versionRange = Range(match.range(at: 1), in: input) else {
+                return nil
+            }
+
+            let version = String(input[versionRange])
+            var build: String?
+
+            if match.numberOfRanges > 2,
+                let buildRange = Range(match.range(at: 2), in: input)
+            {
+                build = String(input[buildRange])
+            }
+
+            return (version, build)
+        }
+
+        var operatingSystemVersion: String? {
+            _matchOSVersion(from: metaData.osVersion)?.version
+        }
+
+        var operatingSystemBuild: String? {
+            _matchOSVersion(from: metaData.osVersion)?.build
+        }
+
+    }
 #endif
 
 struct CrashDiagnostic: Codable {
@@ -298,11 +301,11 @@ struct CrashDiagnostic: Codable {
         }
         return nil
     }
-    
+
     struct DiagnosticMetaData: Codable {
         let platformArchitecture: String
         let terminationReason: String?
-        
+
         var terminationReasonCode: String? {
             guard let reason = terminationReason else {
                 return nil
@@ -312,7 +315,7 @@ struct CrashDiagnostic: Codable {
             } catch {}
             return nil
         }
-        
+
         struct Signpost: Codable {
             let beginTimeStamp: Date
             let endTimeStamp: Date?
@@ -322,7 +325,7 @@ struct CrashDiagnostic: Codable {
             let subsystem: String
         }
         let signpostData: [Signpost]?
-        
+
         let exceptionType: Int64
         let appBuildVersion: String
         let isTestFlightApp: Bool
@@ -336,14 +339,14 @@ struct CrashDiagnostic: Codable {
         let appVersion: String
         let pid: pid_t
         let lowPowerModeEnabled: Bool
-        
+
         var machException: MachException? {
             if exceptionType > 0 {
                 return MachException(rawValue: exceptionType)
             }
             return nil
         }
-        
+
         var crashSignal: CrashSignal? {
             if signal > 0 {
                 return CrashSignal(rawValue: Int(signal))
@@ -385,27 +388,29 @@ struct CrashDiagnostic: Codable {
                 }
 
                 var binaryImages: [KarlCrashReport.BinaryImage] {
-                    return (subFrames?.reduce(into: [binaryImage]) { partialResult, frame in
-                        partialResult.append(contentsOf: frame.binaryImages)
-                    } ?? [binaryImage]).compactMap { $0 }
+                    return
+                        (subFrames?.reduce(into: [binaryImage]) { partialResult, frame in
+                            partialResult.append(contentsOf: frame.binaryImages)
+                        } ?? [binaryImage]).compactMap { $0 }
                 }
             }
             let callStackRootFrames: [Frame]
 
             func flattenedAsThread(index: Int64) -> KarlCrashReport.Crash.Thread? {
 
-                let contents: [KarlCrashReport.Crash.Thread.Backtrace.Frame]? = callStackRootFrames.first?.frames.compactMap {
-                    guard let bin = $0.binaryName else {
-                        return nil
+                let contents: [KarlCrashReport.Crash.Thread.Backtrace.Frame]? = callStackRootFrames.first?.frames
+                    .compactMap {
+                        guard let bin = $0.binaryName else {
+                            return nil
+                        }
+                        return KarlCrashReport.Crash.Thread.Backtrace.Frame(
+                            instructionAddr: $0.address,
+                            objectAddr: $0.address - $0.offsetIntoBinaryTextSegment,
+                            objectName: bin,
+                            symbolAddr: $0.offsetIntoBinaryTextSegment,
+                            symbolName: nil
+                        )
                     }
-                    return KarlCrashReport.Crash.Thread.Backtrace.Frame(
-                        instructionAddr: $0.address,
-                        objectAddr: $0.address - $0.offsetIntoBinaryTextSegment,
-                        objectName: bin,
-                        symbolAddr: $0.offsetIntoBinaryTextSegment,
-                        symbolName: nil
-                    )
-                }
 
                 // we don't need to show fully empty threads
                 if let contents, contents.isEmpty {
