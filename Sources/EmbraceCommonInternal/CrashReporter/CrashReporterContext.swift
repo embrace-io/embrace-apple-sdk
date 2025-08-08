@@ -12,7 +12,7 @@ import Foundation
     public let filePathProvider: FilePathProvider
     public let notificationCenter: NotificationCenter
     public let logger: InternalLogger
-    
+
     public init(
         appId: String?,
         sdkVersion: String,

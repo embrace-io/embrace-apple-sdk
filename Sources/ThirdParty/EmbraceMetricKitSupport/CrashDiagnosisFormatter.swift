@@ -8,21 +8,21 @@ import MetricKit
 public final class CrashDiagnosisFormatter {
 
     func diagnosis(from d: CrashDiagnostic) -> String {
-        
+
         var parts: [String] = []
-        
+
         if let mach = d.metaData.machException {
             parts.append(mach.name)
         }
-        
+
         if let signal = d.metaData.crashSignal {
             parts.append("(\(signal.stringValue))")
         }
-        
+
         if let code = d.metaData.terminationReasonCode {
             parts.append(code)
         }
-        
+
         return parts.joined(separator: " ")
     }
 }

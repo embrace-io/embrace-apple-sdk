@@ -110,31 +110,31 @@ class MetricKitReporterTests: XCTestCase {
             }
         }
     }
-    
+
     func test_diagnose() throws {
-        
+
         let data = (try? Data(contentsOf: reportNamed("crash_diagnostic_01"), options: []))!
         let report = CrashDiagnostic.with(data)!
         XCTAssertNotNil(report)
-        
+
         let diagnosis = CrashDiagnosisFormatter().diagnosis(from: report)
         XCTAssertNotNil(diagnosis)
         XCTAssertEqual(diagnosis, "EXC_CRASH (SIGABRT)")
     }
-    
+
     func test_diagnoseWithTermReason() throws {
-        
+
         let data = (try? Data(contentsOf: reportNamed("crash_with_term_reason"), options: []))!
         let report = CrashDiagnostic.with(data)!
         XCTAssertNotNil(report)
-        
+
         let diagnosis = CrashDiagnosisFormatter().diagnosis(from: report)
         XCTAssertNotNil(diagnosis)
         XCTAssertEqual(diagnosis, "EXC_CRASH (SIGKILL) 0x8BADF00D")
     }
-    
+
     func test_signposts() throws {
-        
+
         let data = (try? Data(contentsOf: reportNamed("crash_with_signposts"), options: []))!
         let report = CrashDiagnostic.with(data)!
         XCTAssertNotNil(report)
