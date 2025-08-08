@@ -31,6 +31,9 @@ public final class EmbraceCrashReporter: NSObject {
 
     /// Sets the current session identifier that will be included in a crash report.
     public var currentSessionId: String? {
+        get {
+            getCrashInfo(key: CrashReporterInfoKey.sessionId)
+        }
         set {
             data.withLock { $0.allowsInternalDataChange = true }
             defer {
@@ -38,22 +41,19 @@ public final class EmbraceCrashReporter: NSObject {
             }
             appendCrashInfo(key: CrashReporterInfoKey.sessionId, value: newValue)
         }
-        get {
-            getCrashInfo(key: CrashReporterInfoKey.sessionId)
-        }
     }
 
     /// Adds the SDK version to the crash reports.
     private(set) var sdkVersion: String? {
+        get {
+            getCrashInfo(key: CrashReporterInfoKey.sdkVersion)
+        }
         set {
             data.withLock { $0.allowsInternalDataChange = true }
             defer {
                 data.withLock { $0.allowsInternalDataChange = false }
             }
             appendCrashInfo(key: CrashReporterInfoKey.sdkVersion, value: newValue)
-        }
-        get {
-            getCrashInfo(key: CrashReporterInfoKey.sdkVersion)
         }
     }
 
@@ -64,11 +64,11 @@ public final class EmbraceCrashReporter: NSObject {
 
     /// Unused in this KSCrash implementation
     public var onNewReport: ((EmbraceCrashReport) -> Void)? {
-        set {
-            reporter.onNewReport = newValue
-        }
         get {
             reporter.onNewReport
+        }
+        set {
+            reporter.onNewReport = newValue
         }
     }
 

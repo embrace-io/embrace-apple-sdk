@@ -94,7 +94,7 @@ class URLSessionTaskCaptureRule {
 
         let string = url.removingHttpPrefix()
         let matches = regex.matches(in: string, range: NSRange(location: 0, length: string.count))
-        return matches.count > 0
+        return matches.isEmpty == false
     }
 
     static private func sanitize(_ key: String) -> String {

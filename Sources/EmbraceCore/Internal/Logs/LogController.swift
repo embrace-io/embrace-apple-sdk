@@ -71,7 +71,7 @@ class LogController: LogControllable {
         }
 
         let logs: [EmbraceLog] = storage.fetchAll(excludingProcessIdentifier: .current)
-        if logs.count > 0 {
+        if logs.isEmpty == false {
             send(batches: divideInBatches(logs))
         }
     }
@@ -170,7 +170,7 @@ extension LogController {
         }
 
         do {
-            guard let sessionId = sessionController?.currentSession?.id, logs.count > 0 else {
+            guard let sessionId = sessionController?.currentSession?.id, logs.isEmpty == false else {
                 return
             }
             let resourcePayload = try createResourcePayload(sessionId: sessionId)
@@ -188,13 +188,13 @@ extension LogController {
             return
         }
 
-        guard batches.count > 0 else {
+        guard batches.isEmpty == false else {
             return
         }
 
         for batch in batches {
             do {
-                guard batch.logs.count > 0 else {
+                guard batch.logs.isEmpty == false else {
                     continue
                 }
 
