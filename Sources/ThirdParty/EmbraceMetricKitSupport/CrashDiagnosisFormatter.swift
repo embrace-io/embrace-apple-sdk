@@ -1,5 +1,8 @@
+//
+//  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
+//
+
 import Foundation
-import MetricKit
 
 // https://developer.apple.com/documentation/xcode/understanding-the-exception-types-in-a-crash-report
 // https://developer.apple.com/documentation/xcode/examining-the-fields-in-a-crash-report#Exception-information
