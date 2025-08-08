@@ -8,6 +8,57 @@ import MetricKit
 
 #if os(iOS) || os(macOS)
 
+public class MetricKitReporterLogger {
+    var internalLogger: InternalLogger? = nil
+    let osLogger = OSLog(subsystem: "MetricKitReporterLogger", category: "log")
+    
+    func trace(_ message: String) {
+        let msg = "[MRK] \(message)"
+        internalLogger?.trace(msg)
+        //os_log("%{public}s", log: osLogger, msg)
+    }
+    
+    func debug(_ message: String) {
+        let msg = "[MRK] \(message)"
+        internalLogger?.debug(msg)
+        //os_log("%{public}s", log: osLogger, msg)
+    }
+    
+    func info(_ message: String) {
+        let msg = "[MRK] \(message)"
+        internalLogger?.info(msg)
+        //os_log("%{public}s", log: osLogger, msg)
+    }
+    
+    func warning(_ message: String) {
+        let msg = "[MRK] \(message)"
+        internalLogger?.warning(msg)
+        //os_log("%{public}s", log: osLogger, msg)
+    }
+    
+    func error(_ message: String) {
+        let msg = "[MRK] \(message)"
+        internalLogger?.error(msg)
+        //os_log("%{public}s", log: osLogger, msg)
+    }
+    
+    func startup(_ message: String) {
+        let msg = "[MRK] \(message)"
+        internalLogger?.startup(msg)
+        //os_log("%{public}s", log: osLogger, msg)
+    }
+    
+    func critical(_ message: String) {
+        let msg = "[MRK] \(message)"
+        internalLogger?.critical(msg)
+        //os_log("%{public}s", log: osLogger, msg)
+    }
+}
+
+// optionally, we can have a timer that sets the date
+// in a threadcrumb or logger so we know when the
+// crash actually hapenned.
+
 // MARK: - Reporter
 @available(iOS 13.0, macOS 12.0, *)
 public class MetricKitReporter: NSObject, CrashReporter {
@@ -16,6 +67,8 @@ public class MetricKitReporter: NSObject, CrashReporter {
     private var lastSession: String? = nil
     private var crashContext: CrashReporterContext?
     private var threadcrumb: EmbraceThreadcrumb? = nil
+    private var logger: MetricKitReporterLogger = MetricKitReporterLogger()
+    private var payloadSemaphore = DispatchSemaphore(value: 0)
     
     private var lastSessionURL: URL {
         try! FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: false).appendingPathComponent("last_session")
@@ -31,6 +84,7 @@ public class MetricKitReporter: NSObject, CrashReporter {
         super.init()
         self.lastSession = try? String(contentsOf: lastSessionURL, encoding: .utf8)
         self.threadcrumb = EmbraceThreadcrumb()
+        logger.info("init")
     }
 
     deinit {
@@ -53,48 +107,49 @@ public class MetricKitReporter: NSObject, CrashReporter {
 
     public func install(context: CrashReporterContext) throws {
         crashContext = context
+        logger.internalLogger = context.logger
+        logger.info("install")
         MXMetricManager.shared.add(self)
         let logger = MXMetricManager.makeLogHandle(category: ProcessIdentifier.current.value)
         mxSignpost(.event, log: logger, name: "embrace_uuid")
     }
 
     public func fetchUnsentCrashReports(completion: @escaping ([EmbraceCrashReport]) -> Void) {
+        
+        logger.info("pre-dispatch waiting for payloads")
+        
         DispatchQueue.global(qos: .utility).async { [self] in
 
-            crashContext?.logger?.info("[MetricKitReporter] waiting for payloads")
-
-            // simply process the past payloads
-            var reports: [EmbraceCrashReport] = []
-            
-            if #available(iOS 14.0, *) {
-                MXMetricManager.shared.pastDiagnosticPayloads.forEach { payload in
-                    payload.crashDiagnostics?.forEach { crash in
-                        if let report =  handleCrash(
-                            crash,
-                            timeStampBegin:
-                                payload.timeStampBegin,
-                            timeStampEnd: payload.timeStampEnd,
-                            logger: crashContext?.logger
-                        ) {
-                            reports.append(report)
-                        }
-                    }
-                }
+            defer {
+                let results = reports.safeValue
+                logger.info("received \(results.count) payloads")
+                completion(results)
             }
-
-            crashContext?.logger?.info("[MetricKitReporter] received \(reports.count) payloads")
-
-            completion(reports)
-
+            
+            logger.info("waiting for payloads[1]")
+            guard payloadSemaphore.wait(timeout: .now() + 2.0) == .timedOut else {
+                return
+            }
+            logger.info("no payloads received after 2 seconds[1]")
+            
+            logger.info("waiting for payloads[2]")
+            guard payloadSemaphore.wait(timeout: .now() + 5.0) == .timedOut else {
+                return
+            }
+            logger.info("no payloads received after 5 seconds[2]")
         }
     }
 
     public func deleteCrashReport(_ report: EmbraceCrashReport) {
+        logger.info("deleteCrashReport")
     }
 
     private func _writeSymbols(_ symbols: [UInt64], sessionId: String) {
         
+        logger.info("_writeSymbols")
+        
         guard symbols.count == 32 else {
+            logger.error("received \(symbols.count) symbols, expected 32")
             return
         }
         
@@ -107,7 +162,7 @@ public class MetricKitReporter: NSObject, CrashReporter {
         var combinedHash: UInt64 = 0
         for i in (0..<32) {
             let addr: UInt64 = symbols[i]
-            print("\(i) => frame addr: \(addr)")
+            logger.info("\(i) => frame addr: \(addr)")
             let shift = UInt64((i % 63) + 1)  // use zero-based index
             let rotated = (addr << shift) | (addr >> (64 - shift))
             combinedHash ^= rotated
@@ -122,8 +177,8 @@ public class MetricKitReporter: NSObject, CrashReporter {
             if let value {
                 
                 // log it
-                crashContext?.logger?.info("[MetricKitReporter] sid: \(value)")
-                let stack = threadcrumb?.log(value).map { UInt64($0) } ?? []
+                logger.info("sid: \(value)")
+                let stack = threadcrumb?.log(value).map { UInt64(truncating: $0) } ?? []
                 _writeSymbols(stack, sessionId: value)
 
                 try? value.write(to: lastSessionURL, atomically: false, encoding: .utf8)
@@ -151,7 +206,30 @@ extension MetricKitReporter: MXMetricManagerSubscriber {
 
     @available(iOS 14.0, *)
     @objc public func didReceive(_ payloads: [MXDiagnosticPayload]) {
-        // not handling this here
+        
+        logger.info("\(#function) \(payloads.count) payload(s)")
+        
+        DispatchQueue.global(qos: .utility).async { [self] in
+            for payload in payloads {
+                payload.crashDiagnostics?.forEach { crash in
+                    if let report = handleCrash(
+                        crash,
+                        timeStampBegin:
+                            payload.timeStampBegin,
+                        timeStampEnd: payload.timeStampEnd,
+                        logger: logger
+                    ) {
+                        reports.withLock {
+                            $0.append(report)
+                        }
+                    }
+                }
+            }
+            
+            logger.info("signaling that we're done collecting payloads")
+            payloadSemaphore.signal()
+        }
+
     }
 
     @available(iOS 13.0, *)
@@ -174,7 +252,7 @@ extension MetricKitReporter {
         _ crash: MXCrashDiagnostic,
         timeStampBegin: Date,
         timeStampEnd: Date,
-        logger: InternalLogger?
+        logger: MetricKitReporterLogger
     ) -> EmbraceCrashReport? {
 
         #if DEBUG
