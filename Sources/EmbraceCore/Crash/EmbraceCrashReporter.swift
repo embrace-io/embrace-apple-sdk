@@ -17,13 +17,13 @@ public final class EmbraceCrashReporter: NSObject {
     internal let queue: DispatchQueue = DispatchQueue(
         label: "com.embrace.crashreporter", qos: .utility, autoreleaseFrequency: .workItem)
     private let signalsBlockList: [CrashSignal]
-    
+
     struct MutableData {
         let internalKeys: [String] = [CrashReporterInfoKey.sdkVersion, CrashReporterInfoKey.sessionId]
         var allowsInternalDataChange: Bool = false
     }
     private let data = EmbraceMutex(MutableData())
-    
+
     // this is the path that contains `/Reports`.
     var basePath: String? {
         return reporter.basePath

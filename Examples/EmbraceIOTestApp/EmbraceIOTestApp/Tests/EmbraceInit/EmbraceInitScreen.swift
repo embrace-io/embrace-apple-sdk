@@ -4,10 +4,10 @@
 //
 //
 
+import EmbraceCommonInternal
 import EmbraceIO
 import EmbraceKSCrashSupport
 import EmbraceObjCUtilsInternal
-import EmbraceCommonInternal
 import SwiftUI
 
 struct EmbraceInitScreen: View {

@@ -53,12 +53,12 @@ struct SwiftUIManualCaptureTestUIComponent: View {
                                 attributes: viewModel.attributes,
                                 contentComplete: onLoaded
                             )
-                            .onAppear() {
+                            .onAppear {
                                 if viewModel.contentComplete {
                                     onLoaded = true
                                 }
                             }
-                            .onDisappear() {
+                            .onDisappear {
                                 onLoaded = false
                             }
                     }

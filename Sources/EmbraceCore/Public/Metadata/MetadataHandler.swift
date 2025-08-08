@@ -49,7 +49,8 @@ public class MetadataHandler: NSObject {
         // that means this should only be executed once
         let coreDataStackName = "EmbraceMetadataTmp"
         if let url = storage?.options.storageMechanism.baseUrl,
-            FileManager.default.fileExists(atPath: url.appendingPathComponent(coreDataStackName + ".sqlite").path) {
+            FileManager.default.fileExists(atPath: url.appendingPathComponent(coreDataStackName + ".sqlite").path)
+        {
 
             let options = CoreDataWrapper.Options(
                 storageMechanism: .onDisk(name: coreDataStackName, baseURL: url, journalMode: .delete),

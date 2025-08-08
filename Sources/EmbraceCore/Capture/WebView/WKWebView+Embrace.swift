@@ -17,7 +17,8 @@
         var emb_proxy: EMBWKNavigationDelegateProxy? {
             get {
                 if let value = objc_getAssociatedObject(self, &AssociatedKeys.embraceProxy)
-                    as? EMBWKNavigationDelegateProxy {
+                    as? EMBWKNavigationDelegateProxy
+                {
                     return value as EMBWKNavigationDelegateProxy
                 }
 

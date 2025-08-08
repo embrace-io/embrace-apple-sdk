@@ -4,18 +4,20 @@
 //
 //
 
-import OpenTelemetrySdk
-import OpenTelemetryApi
-import SwiftUI
 import EmbraceIO
+import OpenTelemetryApi
+import OpenTelemetrySdk
+import SwiftUI
 
 class SwiftUICaptureTest: PayloadTest {
     var testRelevantPayloadNames: [String] {
-        var spans = ["emb-swiftui.view.\(viewName).body",
-                "emb-swiftui.view.\(viewName).time-to-first-render",
-                "emb-swiftui.view.\(viewName).render-loop",
-                "emb-swiftui.view.\(viewName).appear",
-                "emb-swiftui.view.\(viewName).disappear"]
+        var spans = [
+            "emb-swiftui.view.\(viewName).body",
+            "emb-swiftui.view.\(viewName).time-to-first-render",
+            "emb-swiftui.view.\(viewName).render-loop",
+            "emb-swiftui.view.\(viewName).appear",
+            "emb-swiftui.view.\(viewName).disappear"
+        ]
         if contentComplete {
             spans.append("emb-swiftui.view.\(viewName).time-to-first-content-complete")
         }
@@ -70,4 +72,3 @@ class SwiftUICaptureTest: PayloadTest {
         return .init(items: testItems)
     }
 }
-
