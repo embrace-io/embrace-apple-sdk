@@ -3,7 +3,6 @@
 //
 
 import EmbraceCommonInternal
-import MetricKit
 import TestSupport
 import XCTest
 
@@ -17,7 +16,7 @@ class MetricKitReporterTests: XCTestCase {
 
     func test_load() {
 
-        let data = (try? Data(contentsOf: reportNamed(""), options: []))!
+        let data = (try? Data(contentsOf: reportNamed("crash_diagnostic_01"), options: []))!
         let report = CrashDiagnostic.with(data)
         XCTAssertNotNil(report)
         XCTAssertEqual(report?.version, "1.0.0")
