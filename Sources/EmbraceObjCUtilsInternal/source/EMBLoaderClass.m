@@ -2,7 +2,7 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-#import <QuartzCore/QuartzCore.h>
+#import <Foundation/Foundation.h>
 #import <sys/time.h>
 
 #if TARGET_OS_OSX
@@ -36,9 +36,16 @@ __attribute__((constructor(101))) static void calledAsEarlyAsPossible(void)
 __attribute__((constructor(65535))) static void calledRightBeforeMain(void)
 {
     [[EMBStartupTracker shared] setConstructorClosestToMainTime:[NSDate now]];
-    [[EMBDisplayLinkProxy shared] trackNextTick:^{
-        [EMBStartupTracker shared].firstFrameTime = [NSDate date];
-    }];
+
+    if (@available(macOS 14.0, tvOS 9.0, iOS 3.0, *)) {
+        [[EMBDisplayLinkProxy shared] trackNextTick:^{
+            [EMBStartupTracker shared].firstFrameTime = [NSDate date];
+        }];
+    } else {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [EMBStartupTracker shared].firstFrameTime = [NSDate date];
+        });
+    }
 }
 
 @end

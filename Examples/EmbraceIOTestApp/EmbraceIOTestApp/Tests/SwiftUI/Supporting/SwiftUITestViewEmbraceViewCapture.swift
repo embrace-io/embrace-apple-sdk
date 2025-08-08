@@ -4,8 +4,8 @@
 //
 //
 
-import SwiftUI
 import EmbraceIO
+import SwiftUI
 
 struct SwiftUITestViewEmbraceViewCapture: View {
     var attributes: [String: String] = [:]
@@ -19,7 +19,7 @@ struct SwiftUITestViewEmbraceViewCapture: View {
         ) {
             Text("👀 Don't mind me!")
         }
-        .onAppear() {
+        .onAppear {
             if contentComplete {
                 onLoaded = true
             }

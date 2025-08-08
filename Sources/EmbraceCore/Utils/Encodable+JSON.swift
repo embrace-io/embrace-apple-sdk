@@ -26,7 +26,8 @@ extension KeyedEncodingContainerProtocol where Key == JSONCodingKeys {
 
             // special case for booleans
             if value is Bool,
-                let bval = value as? NSNumber {
+                let bval = value as? NSNumber
+            {
                 if bval === kCFBooleanTrue || bval === kCFBooleanFalse {
                     try encode(bval.boolValue, forKey: key)
                 } else if value is Int {

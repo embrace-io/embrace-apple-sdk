@@ -6,6 +6,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+API_AVAILABLE(macos(14.0))
 @interface EMBDisplayLinkProxy : NSObject
 
 - (instancetype)init NS_UNAVAILABLE;

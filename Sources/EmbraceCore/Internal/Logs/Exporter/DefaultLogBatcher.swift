@@ -100,7 +100,7 @@ extension DefaultLogBatcher {
         self.delegate?.batchFinished(withLogs: batch.logs)
         self.batch = .init(limits: self.logLimits, logs: logs)
 
-        if logs.count > 0 {
+        if logs.isEmpty == false {
             self.renewBatchDeadline(with: self.logLimits)
         }
     }

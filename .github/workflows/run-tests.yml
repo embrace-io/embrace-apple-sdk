@@ -21,6 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        platform_args: ["iOS tvOS macOS watchOS"]
         xcode_version: ["15.4"]
     permissions:
       checks: write
@@ -64,7 +65,7 @@ jobs:
         run: brew install xcbeautify
 
       - name: Run Tests
-        run: bin/test | xcbeautify && exit ${PIPESTATUS[0]}
+        run: bin/test ${{ matrix.platform_args }} | xcbeautify && exit ${PIPESTATUS[0]}
         timeout-minutes: 30
 
       - name: Upload xcresult Bundle Manually

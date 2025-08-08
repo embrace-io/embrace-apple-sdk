@@ -4,9 +4,35 @@ disabled_rules: # rule identifiers turned on by default to exclude from running
   - notification_center_detachment
   - compiler_protocol_init
   - for_where
-
+  # Disable formatting-related rules to avoid conflicts
+  - line_length
+  - indentation_width
+  - trailing_whitespace
+  - vertical_whitespace
+  - opening_brace
+  - closing_brace
+  - statement_position
+  - function_body_length
+  - type_body_length
+  - file_length
+  - closure_parameter_position # disable ??
+  - todo # disable ??
+  - type_name
+  - deployment_target
+  - cyclomatic_complexity
+  - force_unwrapping
+  
 opt_in_rules:
-  - conditional_returns_on_newline
+  # - conditional_returns_on_newline
+  - force_unwrapping
+  - empty_count
+  - fatal_error_message
+  - force_cast
+  - vertical_parameter_alignment_on_call
+
+analyzer_rules:
+  - unused_import
+  - unused_declaration
 
 included: # case-sensitive paths to include during linting. `--path` is ignored if present
   - Sources
@@ -17,33 +43,3 @@ excluded: # case-sensitive paths to ignore during linting. Takes precedence over
   - Tests
 
 reporter: "xcode" # reporter type (xcode, json, csv, checkstyle, codeclimate, junit, html, emoji, sonarqube, markdown, github-actions-logging, summary)
-
-file_length:
-  warning: 800
-  error: 1000
-
-line_length:
-  ignores_comments: true
-  ignores_interpolated_strings: true
-
-type_body_length:
-  warning: 600
-  error: 800
-
-type_name:
-  max_length:
-    warning: 60
-  allowed_symbols: ["_"]
-
-function_body_length:
-  warning: 100
-  error: 300
-
-large_tuple:
-  warning: 4
-  error: 6
-
-cyclomatic_complexity:
-  ignores_case_statements: true
-  warning: 20
-  error: 30

@@ -13,7 +13,7 @@ import XCTest
 
 @testable import EmbraceCore
 
-@available(iOS 15.0, tvOS 15.0, *)
+@available(iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 class DefaultInternalLoggerTests: XCTestCase {
 
     let fileProvider = TemporaryFilepathProvider()

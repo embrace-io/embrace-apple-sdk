@@ -12,7 +12,7 @@ import OpenTelemetryApi
     import EmbraceStorageInternal
     import EmbraceUploadInternal
     import EmbraceConfiguration
-    @_implementationOnly import EmbraceObjCUtilsInternal
+    import EmbraceObjCUtilsInternal
 #endif
 
 extension Embrace {
@@ -37,7 +37,8 @@ extension Embrace {
     }
 
     static func createUpload(options: Embrace.Options, deviceId: String, configuration: EmbraceConfigurable)
-        -> EmbraceUpload? {
+        -> EmbraceUpload?
+    {
         guard let appId = options.appId else {
             return nil
         }

@@ -140,9 +140,7 @@ class UnsentDataHandler {
                 switch result {
                 case .success:
                     // remove crash report
-                    if let internalId = report.internalId {
-                        reporter?.deleteCrashReport(report)
-                    }
+                    reporter?.deleteCrashReport(report)
 
                 case .failure(let error):
                     Embrace.logger.warning(
@@ -209,7 +207,8 @@ class UnsentDataHandler {
         for session in sessions {
             // ignore current session
             if let currentSessionId = currentSessionId,
-                currentSessionId == session.id {
+                currentSessionId == session.id
+            {
                 continue
             }
 

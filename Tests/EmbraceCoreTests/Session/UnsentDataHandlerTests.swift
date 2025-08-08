@@ -66,6 +66,7 @@ class UnsentDataHandlerTests: XCTestCase {
     }
 
     func test_withoutCrashReporter() throws {
+        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
         // mock successful requests
         EmbraceHTTPMock.mock(url: testSpansUrl())
 
@@ -110,6 +111,7 @@ class UnsentDataHandlerTests: XCTestCase {
     }
 
     func test_withoutCrashReporter_error() throws {
+        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
         // mock error requests
         EmbraceHTTPMock.mock(url: testSpansUrl(), errorCode: 500)
 
@@ -157,7 +159,7 @@ class UnsentDataHandlerTests: XCTestCase {
     }
 
     func test_withCrashReporter() throws {
-        throw XCTSkip("Fix this soon; don't know why it's failing")
+        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on watchOS")
         // mock successful requests
         EmbraceHTTPMock.mock(url: testSpansUrl())
         EmbraceHTTPMock.mock(url: testLogsUrl())
@@ -238,6 +240,7 @@ class UnsentDataHandlerTests: XCTestCase {
     }
 
     func test_withCrashReporter_error() throws {
+        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
         EmbraceHTTPMock.mock(url: testSpansUrl(), errorCode: 500)
         EmbraceHTTPMock.mock(url: testLogsUrl(), errorCode: 500)
 
@@ -317,6 +320,7 @@ class UnsentDataHandlerTests: XCTestCase {
     }
 
     func test_withCrashReporter_unfinishedSession() throws {
+        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
         // mock successful requests
         EmbraceHTTPMock.mock(url: testSpansUrl())
         EmbraceHTTPMock.mock(url: testLogsUrl())
@@ -397,6 +401,7 @@ class UnsentDataHandlerTests: XCTestCase {
     }
 
     func test_sendCrashLog() throws {
+        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
         // mock successful requests
         EmbraceHTTPMock.mock(url: testLogsUrl())
 
@@ -711,6 +716,7 @@ class UnsentDataHandlerTests: XCTestCase {
     }
 
     func test_logsUpload() throws {
+        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
         // mock successful requests
         EmbraceHTTPMock.mock(url: testSpansUrl())
         EmbraceHTTPMock.mock(url: testLogsUrl())
@@ -752,6 +758,7 @@ class UnsentDataHandlerTests: XCTestCase {
     }
 
     func test_criticalLogs() throws {
+        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
         // mock successful requests
         EmbraceHTTPMock.mock(url: testLogsUrl())
 

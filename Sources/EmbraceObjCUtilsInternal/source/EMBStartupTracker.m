@@ -4,9 +4,11 @@
 
 #import "EMBStartupTracker.h"
 
+#import <TargetConditionals.h>
+
 #if TARGET_OS_IOS
 #import <UIKit/UIKit.h>
-#elif TARGET_OS_MACOSX
+#elif TARGET_OS_OSX
 #import <AppKit/AppKit.h>
 #endif
 
@@ -40,7 +42,7 @@
                                              selector:@selector(onAppDidFinishLaunching:)
                                                  name:UIApplicationDidFinishLaunchingNotification
                                                object:nil];
-#elif TARGET_OS_MACOSX
+#elif TARGET_OS_OSX
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(onAppDidFinishLaunching:)
                                                  name:NSApplicationDidFinishLaunchingNotification

@@ -3,8 +3,11 @@
 //
 
 #import "EMBDisplayLinkProxy.h"
-#import <QuartzCore/QuartzCore.h>
 #import "EMBStartupTracker.h"
+
+#if !TARGET_OS_WATCH
+#import <QuartzCore/QuartzCore.h>
+#endif
 
 #if TARGET_OS_OSX
 #import <AppKit/AppKit.h>
@@ -12,9 +15,13 @@
 #import <UIKit/UIKit.h>
 #endif
 
+API_AVAILABLE(ios(3.1), tvos(9.0), macos(14.0))
+API_UNAVAILABLE(watchos)
 @implementation EMBDisplayLinkProxy {
+#if !TARGET_OS_WATCH
     CADisplayLink *_link;
     dispatch_block_t _nextRenderBlock;
+#endif
 }
 
 + (instancetype)shared
@@ -31,6 +38,7 @@
 {
     self = [super init];
     if (self) {
+#if !TARGET_OS_WATCH
         _nextRenderBlock = NULL;
 #if TARGET_OS_OSX
         _link = [NSScreen.mainScreen displayLinkWithTarget:self selector:@selector(_tick)];
@@ -39,24 +47,30 @@
 #endif
         [_link addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
         _link.paused = YES;
+#endif
     }
     return self;
 }
 
 - (void)dealloc
 {
+#if !TARGET_OS_WATCH
     [_link invalidate];
+#endif
 }
 
 - (void)trackNextTick:(dispatch_block_t)block
 {
+#if !TARGET_OS_WATCH
     assert(NSThread.isMainThread);
     _nextRenderBlock = [block copy];
     _link.paused = NO;
+#endif
 }
 
 - (void)_tick
 {
+#if !TARGET_OS_WATCH
     assert(NSThread.isMainThread);
     dispatch_block_t block = [_nextRenderBlock copy];
     _nextRenderBlock = NULL;
@@ -64,6 +78,7 @@
         _link.paused = YES;
         block();
     }
+#endif
 }
 
 @end

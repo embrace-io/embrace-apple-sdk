@@ -133,7 +133,8 @@ public class SingleSpanProcessor: SpanProcessor {
         }
 
         if let parentId = parentId,
-            let parentData = autoTerminationSpans[parentId] {
+            let parentData = autoTerminationSpans[parentId]
+        {
             return autoTerminationCode(for: parentData.spanData, parentId: parentData.parentId)
         }
 

@@ -21,7 +21,8 @@ class UNUserNotificationCenterDelegateProxy: NSObject {
         // If this condition is not met, we risk stealing the notification from the app, which is undesirable.
         if super.responds(to: aSelector),
             let originalDelegate = originalDelegate,
-            originalDelegate.responds(to: aSelector) {
+            originalDelegate.responds(to: aSelector)
+        {
             return true
         }
         return false
