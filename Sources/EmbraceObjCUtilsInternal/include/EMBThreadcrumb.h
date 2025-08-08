@@ -7,7 +7,7 @@
 NS_ASSUME_NONNULL_BEGIN
 
 NS_SWIFT_NAME(EmbraceThreadcrumb)
-@interface EMBThreadcrumb: NSObject
+@interface EMBThreadcrumb : NSObject
 
 // Log a message and return the addresses created in the stack.
 - (NSArray<NSNumber *> *)log:(NSString *)message;

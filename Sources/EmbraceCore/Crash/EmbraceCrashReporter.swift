@@ -9,7 +9,8 @@ import Foundation
 #endif
 
 extension Notification.Name {
-    public static let embraceCrashReporterDidReportCrashNotification = Notification.Name("embraceCrashReporterDidReportCrashNotification")
+    public static let embraceCrashReporterDidReportCrashNotification = Notification.Name(
+        "embraceCrashReporterDidReportCrashNotification")
 }
 
 /// Default `CrashReporter` used by the Embrace SDK.
