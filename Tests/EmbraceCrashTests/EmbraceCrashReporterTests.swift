@@ -121,7 +121,8 @@
                 appId: "_-_-_",
                 sdkVersion: "1.2.3",
                 filePathProvider: TemporaryFilepathProvider(),
-                notificationCenter: .default
+                notificationCenter: .default,
+                logger: logger
             )
             crashReporter.install(context: context)
             crashReporter.currentSessionId = "original_session_id"
@@ -146,7 +147,8 @@
                 appId: "_-_-_",
                 sdkVersion: "1.2.3",
                 filePathProvider: TemporaryFilepathProvider(),
-                notificationCenter: .default
+                notificationCenter: .default,
+                logger: logger
             )
             crashReporter.install(context: context)
 
@@ -191,7 +193,11 @@
 
         func testOnHavingEmptySignalBlockList_fetchUnsentCrashReports_SIGTERMshouldBeReported() throws {
             // given a crash reporter with no blocklist
-            crashReporter = EmbraceCrashReporter(reporter: KSCrashReporter(), signalsBlockList: [])
+            crashReporter = EmbraceCrashReporter(
+                reporter: KSCrashReporter(),
+                logger: logger,
+                signalsBlockList: []
+            )
             crashReporter.install(context: context)
 
             // given some fake crash reports (SIGABRT + SIGTERM)
@@ -215,7 +221,11 @@
 
         func testOnModifyingSignalBlockList_fetchUnsentCrashReports_shouldAvoidReportingBlockedSignals() throws {
             // given a crash reporter preventing SIGABRT from being reported
-            crashReporter = EmbraceCrashReporter(reporter: KSCrashReporter(), signalsBlockList: [.SIGABRT])
+            crashReporter = EmbraceCrashReporter(
+                reporter: KSCrashReporter(),
+                logger: logger,
+                signalsBlockList: [.SIGABRT]
+            )
             crashReporter.install(context: context)
 
             // given some fake crash reports (nonBlocked SIGTERM + blocked SIGABRT)
