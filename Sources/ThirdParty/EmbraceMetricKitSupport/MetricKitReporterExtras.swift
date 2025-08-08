@@ -21,12 +21,13 @@ extension MXCrashDiagnostic {
     func buildEmbraceCrashReport(
         sessionId: String?,
         timestamp: Date,
-        logger: InternalLogger?
+        logger: MetricKitReporterLogger
     ) -> EmbraceCrashReport?
     {
-
-        guard let loadedReport = buildKSCrashReport(sessionId: sessionId, timestamp: timestamp) else {
-            logger?.error("[MKR] Failed to buildKSCrashReport for session \(sessionId)")
+        logger.info("buildEmbraceCrashReport")
+        
+        guard let loadedReport = buildKSCrashReport(sessionId: sessionId, timestamp: timestamp, logger: logger) else {
+            logger.error("Failed to buildKSCrashReport for session \(sessionId)")
             return nil
         }
 
@@ -46,13 +47,15 @@ extension MXCrashDiagnostic {
         // `thread_start`
         if let sessionIdThread = loadedReport.crash.threads.first(where: { $0.backtrace.contents.count == 39 }) {
             
+            logger.info("found threadcrumb for session")
+            
             // get the hash of the thread
             // we're only interested in the actual guid part
             var combinedHash: UInt64 = 0
             for (j, i) in (4...35).enumerated() {
                 let frame = sessionIdThread.backtrace.contents[i]
                 let addr: UInt64 = frame.instructionAddr
-                print("\(j) => frame addr: \(addr)")
+                logger.info("\(j) => frame addr: \(addr)")
                 let shift = UInt64((j % 63) + 1)  // use zero-based index
                 let rotated = (addr << shift) | (addr >> (64 - shift))
                 combinedHash ^= rotated
@@ -74,14 +77,14 @@ extension MXCrashDiagnostic {
                         foundSdk = contents[1].trimmingCharacters(in: .whitespacesAndNewlines)
                     }
                 } else {
-                    logger?.error("[MKR] Cound not load session symbols at \(filename)")
+                    logger.error("Cound not load session symbols at \(filename)")
                 }
             } else {
-                logger?.error("[MKR] Cound not find session symbols at \(filename)")
+                logger.error("Cound not find session symbols at \(filename)")
             }
             
         } else {
-            logger?.error("[MKR] Didn't find the session id threadcrumb, will use last session id \(sessionId)")
+            logger.error("Didn't find the session id threadcrumb, will use last session id \(sessionId)")
         }
         
         let report = KarlCrashReport(
@@ -104,11 +107,11 @@ extension MXCrashDiagnostic {
         }
         encoder.keyEncodingStrategy = .convertToSnakeCase
         guard let data = try? encoder.encode(report) else {
-            logger?.error("[MKR] Error encoding KarlCrashReport for MetricKit")
+            logger.error("Error encoding KarlCrashReport for MetricKit")
             return nil
         }
         guard let payload = String(data: data, encoding: .utf8) else {
-            logger?.error("[MKR] Error stringifying payload")
+            logger.error("Error stringifying payload")
             return nil
         }
 
@@ -122,23 +125,27 @@ extension MXCrashDiagnostic {
         )
     }
 
-    func buildKSCrashReport(sessionId: String?, timestamp: Date) -> KarlCrashReport? {
-
-        guard let diagnostic = CrashDiagnostic.from(jsonRepresentation()) else {
+    func buildKSCrashReport(sessionId: String?, timestamp: Date, logger: MetricKitReporterLogger) -> KarlCrashReport? {
+        
+        let diagnostic: CrashDiagnostic
+        do {
+            try diagnostic = CrashDiagnostic.from(jsonRepresentation())
+        } catch {
+            logger.error("CrashDiagnostic.from error \(error)")
             return nil
         }
-
+        
         return KarlCrashReport(
             binaryImages: diagnostic.callStackTree.binaryImages,
             crash: KarlCrashReport.Crash(
-                diagnosis: terminationReason ?? nsExceptionType,
+                diagnosis: CrashDiagnosisFormatter().diagnosis(from: diagnostic),
                 error: KarlCrashReport.Crash.Error(
                     mach: KarlCrashReport.Crash.Error.Mach(
                         code: exceptionCode as? Int64,  // KERN_INVALID_ADDRESS
-                        codeName: nil,
-                        exception: exceptionType as? Int64,  // EXC_BAD_ACCESS
-                        exceptionName: nil,
-                        subcode: 0
+                        codeName: exceptionCode?.stringValue,
+                        exception: machException?.rawValue,  // EXC_BAD_ACCESS
+                        exceptionName: machException?.name,
+                        subcode: nil
                     ),
                     signal: KarlCrashReport.Crash.Error.Signal(
                         code: nil,
@@ -151,10 +158,10 @@ extension MXCrashDiagnostic {
                         userInfo: nsExceptionMessage
                     ),
                     cppException: KarlCrashReport.Crash.Error.CPPException(
-                        name: nil
+                        name: nil // no cpp in MetricKit
                     ),
-                    type: nsExceptionName != nil ? "nsexception" : (exceptionType != nil ? "mach" : "signal"),
-                    reason: terminationReason != nil ? terminationReason : nsExceptionType
+                    type: karlExceptionType,
+                    reason: nil
                 ),
                 threads: diagnostic.callStackTree.threads
             ),
@@ -181,6 +188,13 @@ extension MXCrashDiagnostic {
             )
         )
     }
+    
+    var machException: MachException? {
+        if let type = exceptionType as? Int64 {
+            return MachException(rawValue: type)
+        }
+        return nil
+    }
 
     var nsExceptionName: String? {
         if #available(iOS 17.0, macOS 14.0, *) {
@@ -202,7 +216,19 @@ extension MXCrashDiagnostic {
         }
         return nil
     }
-
+    
+    var karlExceptionType: String {
+        if nsExceptionName != nil {
+            return "nsexception"
+        }
+        
+        if exceptionType != nil {
+            return "mach"
+        }
+        
+        return "signal"
+    }
+    
     func _matchOSVersion(from input: String) -> (version: String, build: String?)? {
 
         let pattern = "(?:iPhone|iPad|iOS) OS (\\d+(?:\\.\\d+)*)(?: \\(([^)]+)\\))?"
@@ -242,7 +268,7 @@ extension MXCrashDiagnostic {
 }
 #endif
 
-internal struct CrashDiagnostic: Codable {
+struct CrashDiagnostic: Codable {
 
     let version: String
     let callStackTree: CallStackTree
@@ -254,17 +280,49 @@ internal struct CrashDiagnostic: Codable {
         case metaData = "diagnosticMetaData"
     }
 
-    static func from(_ data: Data) -> Self? {
+    static func from(_ data: Data) throws -> Self {
+        let decoder = JSONDecoder()
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        formatter.locale = .current
+        formatter.timeZone = .current
+        decoder.dateDecodingStrategy = .formatted(formatter)
+        return try decoder.decode(Self.self, from: data)
+    }
+
+    static func with(_ data: Data) -> Self? {
         do {
-            return try JSONDecoder().decode(Self.self, from: data)
+            return try from(data)
         } catch {
             print("\(error)")
         }
         return nil
     }
-
+    
     struct DiagnosticMetaData: Codable {
         let platformArchitecture: String
+        let terminationReason: String?
+        
+        var terminationReasonCode: String? {
+            guard let reason = terminationReason else {
+                return nil
+            }
+            do {
+                return try TerminationReasonParser.parse(reason).code
+            } catch {}
+            return nil
+        }
+        
+        struct Signpost: Codable {
+            let beginTimeStamp: Date
+            let endTimeStamp: Date?
+            let isInterval: Bool
+            let name: String
+            let category: String
+            let subsystem: String
+        }
+        let signpostData: [Signpost]?
+        
         let exceptionType: Int64
         let appBuildVersion: String
         let isTestFlightApp: Bool
@@ -272,11 +330,26 @@ internal struct CrashDiagnostic: Codable {
         let bundleIdentifier: String
         let deviceType: String
         let exceptionCode: Int64
+        let virtualMemoryRegionInfo: String?
         let signal: Int64
         let regionFormat: String
         let appVersion: String
         let pid: pid_t
         let lowPowerModeEnabled: Bool
+        
+        var machException: MachException? {
+            if exceptionType > 0 {
+                return MachException(rawValue: exceptionType)
+            }
+            return nil
+        }
+        
+        var crashSignal: CrashSignal? {
+            if signal > 0 {
+                return CrashSignal(rawValue: Int(signal))
+            }
+            return nil
+        }
     }
 
     struct CallStackTree: Codable {

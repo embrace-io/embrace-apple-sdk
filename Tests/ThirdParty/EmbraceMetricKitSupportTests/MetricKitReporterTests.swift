@@ -18,7 +18,7 @@ class MetricKitReporterTests: XCTestCase {
     func test_load() {
 
         let data = (try? Data(contentsOf: reportNamed(""), options: []))!
-        let report = CrashDiagnostic.from(data)
+        let report = CrashDiagnostic.with(data)
         XCTAssertNotNil(report)
         XCTAssertEqual(report?.version, "1.0.0")
         XCTAssertEqual(report?.metaData.platformArchitecture, "arm64e")
@@ -39,7 +39,7 @@ class MetricKitReporterTests: XCTestCase {
     func test_binaryImages() {
 
         let data = (try? Data(contentsOf: reportNamed("crash_diagnostic_01"), options: []))!
-        let report = CrashDiagnostic.from(data)!
+        let report = CrashDiagnostic.with(data)!
         XCTAssertNotNil(report)
 
         let binaryImages = report.callStackTree.binaryImages
@@ -49,7 +49,7 @@ class MetricKitReporterTests: XCTestCase {
     func test_threads() {
 
         let data = (try? Data(contentsOf: reportNamed("crash_diagnostic_01"), options: []))!
-        let report = CrashDiagnostic.from(data)!
+        let report = CrashDiagnostic.with(data)!
         XCTAssertNotNil(report)
 
         let threads = report.callStackTree.threads
@@ -81,7 +81,7 @@ class MetricKitReporterTests: XCTestCase {
     func test_fakeSymbolicate() throws {
 
         let data = (try? Data(contentsOf: reportNamed("crash_diagnostic_01"), options: []))!
-        let report = CrashDiagnostic.from(data)!
+        let report = CrashDiagnostic.with(data)!
         XCTAssertNotNil(report)
 
         struct Line {
@@ -110,6 +110,37 @@ class MetricKitReporterTests: XCTestCase {
                 frame.symbolOffset = instructionAddress - l.symbolAddr
             }
         }
+    }
+    
+    func test_diagnose() throws {
+        
+        let data = (try? Data(contentsOf: reportNamed("crash_diagnostic_01"), options: []))!
+        let report = CrashDiagnostic.with(data)!
+        XCTAssertNotNil(report)
+        
+        let diagnosis = CrashDiagnosisFormatter().diagnosis(from: report)
+        XCTAssertNotNil(diagnosis)
+        XCTAssertEqual(diagnosis, "EXC_CRASH (SIGABRT)")
+    }
+    
+    func test_diagnoseWithTermReason() throws {
+        
+        let data = (try? Data(contentsOf: reportNamed("crash_with_term_reason"), options: []))!
+        let report = CrashDiagnostic.with(data)!
+        XCTAssertNotNil(report)
+        
+        let diagnosis = CrashDiagnosisFormatter().diagnosis(from: report)
+        XCTAssertNotNil(diagnosis)
+        XCTAssertEqual(diagnosis, "EXC_CRASH (SIGKILL) 0x8BADF00D")
+    }
+    
+    func test_signposts() throws {
+        
+        let data = (try? Data(contentsOf: reportNamed("crash_with_signposts"), options: []))!
+        let report = CrashDiagnostic.with(data)!
+        XCTAssertNotNil(report)
+        XCTAssertNotNil(report.metaData.signpostData)
+        XCTAssertEqual(report.metaData.signpostData?.count, 3)
     }
 }
 

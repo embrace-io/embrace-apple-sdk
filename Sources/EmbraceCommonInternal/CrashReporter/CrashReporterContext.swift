@@ -11,14 +11,14 @@ import Foundation
     public let sdkVersion: String
     public let filePathProvider: FilePathProvider
     public let notificationCenter: NotificationCenter
-    public let logger: InternalLogger?
+    public let logger: InternalLogger
     
     public init(
         appId: String?,
         sdkVersion: String,
         filePathProvider: FilePathProvider,
         notificationCenter: NotificationCenter,
-        logger: InternalLogger?
+        logger: InternalLogger
     ) {
         self.appId = appId
         self.sdkVersion = sdkVersion
