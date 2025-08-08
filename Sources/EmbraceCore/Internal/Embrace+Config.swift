@@ -5,7 +5,7 @@
 import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-    @_implementationOnly import EmbraceObjCUtilsInternal
+    import EmbraceObjCUtilsInternal
     import EmbraceConfigInternal
     import EmbraceCommonInternal
     import EmbraceConfiguration

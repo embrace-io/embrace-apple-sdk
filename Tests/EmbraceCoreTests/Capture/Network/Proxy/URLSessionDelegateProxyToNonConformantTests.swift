@@ -6,7 +6,7 @@ import TestSupportObjc
 import XCTest
 
 @testable import EmbraceCore
-@testable @_implementationOnly import EmbraceObjCUtilsInternal
+@testable import EmbraceObjCUtilsInternal
 
 /// The purpose of these tests is to verify that the forwarding mechanism in `URLSessionDelegateProxy` works correctly for cases where an object (aka `NSObject`)
 /// implements multiple methods (or responds to multiple selectors) of `NSURLSessionDelegate` but does not conform to the subprotocols (such as `NSURLSessionDataDelegate` or
@@ -86,10 +86,15 @@ extension URLSessionDelegateProxyToNonConformantTests {
     }
 
     fileprivate func whenInvokingDidFinishCollectingMetrics() {
+
+        let kclass: AnyClass = NSClassFromString("NSURLSessionTaskMetrics")!
+        let metrics =
+            kclass.alloc().perform(NSSelectorFromString("init")).takeUnretainedValue() as! URLSessionTaskMetrics
+
         sut.urlSession(
             urlSession,
             task: aDataTask(),
-            didFinishCollecting: URLSessionTaskMetrics()
+            didFinishCollecting: metrics
         )
     }
 

@@ -216,6 +216,7 @@ final class SessionControllerTests: XCTestCase {
     }
 
     func test_endSession_uploadsSession() throws {
+        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
         // mock successful requests
         EmbraceHTTPMock.mock(url: testSessionsUrl())
 
@@ -241,6 +242,7 @@ final class SessionControllerTests: XCTestCase {
     }
 
     func test_endSession_uploadsSession_error() throws {
+        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
         // mock error requests
         EmbraceHTTPMock.mock(url: testSessionsUrl(), errorCode: 500)
 

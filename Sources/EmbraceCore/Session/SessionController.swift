@@ -214,7 +214,7 @@ class SessionController: SessionControllable {
             }
 
             // update session end time and clean exit
-            if let sessionId = session.id {
+            if session.id != nil {
                 currentSession = storage?.updateSession(session: session, endTime: now, cleanExit: true)
             }
 

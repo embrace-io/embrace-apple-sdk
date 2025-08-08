@@ -7,7 +7,7 @@ import OpenTelemetryApi
 import OpenTelemetrySdk
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-    @_implementationOnly import EmbraceObjCUtilsInternal
+    import EmbraceObjCUtilsInternal
     import EmbraceStorageInternal
     import EmbraceOTelInternal
 #endif

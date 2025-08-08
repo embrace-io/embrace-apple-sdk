@@ -7,7 +7,7 @@ import Foundation
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCaptureService
     import EmbraceCommonInternal
-    @_implementationOnly import EmbraceObjCUtilsInternal
+    import EmbraceObjCUtilsInternal
 #endif
 
 typealias URLSessionCompletion = (Data?, URLResponse?, Error?) -> Void
@@ -324,7 +324,7 @@ struct DataTaskWithURLRequestAndCompletionSwizzler: URLSessionSwizzler {
     func install() throws {
         try swizzleInstanceMethod { originalImplementation -> BlockImplementationType in
             return { [weak handler = self.handler] urlSession, urlRequest, completion -> URLSessionDataTask in
-
+                
                 let request = urlRequest.addEmbraceHeaders()
 
                 guard let completion = completion else {

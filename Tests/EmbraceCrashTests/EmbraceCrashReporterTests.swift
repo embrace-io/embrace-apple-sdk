@@ -2,6 +2,10 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
+// on watchOS, KSCrash only supports exception..
+// Due to this, there's no crash support on watchOS.
+#if !os(watchOS)
+
 import EmbraceCommonInternal
 import TestSupport
 import XCTest
@@ -261,3 +265,5 @@ extension EmbraceCrashReporterTests {
         crashReporter.install(context: context)
     }
 }
+
+#endif

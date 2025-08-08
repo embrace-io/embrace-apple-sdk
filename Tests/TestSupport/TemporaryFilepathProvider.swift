@@ -7,7 +7,7 @@ import Foundation
 
 public class TemporaryFilepathProvider: FilePathProvider {
 
-    public let tmpDirectory = URL(fileURLWithPath: NSTemporaryDirectory())
+    public let tmpDirectory = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
 
     public init() {}
 

@@ -140,9 +140,7 @@ class UnsentDataHandler {
                 switch result {
                 case .success:
                     // remove crash report
-                    if let internalId = report.internalId {
-                        reporter?.deleteCrashReport(report)
-                    }
+                    reporter?.deleteCrashReport(report)
 
                 case .failure(let error):
                     Embrace.logger.warning(

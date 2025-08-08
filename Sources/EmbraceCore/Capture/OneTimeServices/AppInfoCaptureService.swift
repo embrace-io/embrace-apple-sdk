@@ -7,7 +7,7 @@ import Foundation
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
     import OpenTelemetryApi
-    @_implementationOnly import EmbraceObjCUtilsInternal
+    import EmbraceObjCUtilsInternal
 #endif
 
 class AppInfoCaptureService: ResourceCaptureService {
@@ -26,7 +26,7 @@ class AppInfoCaptureService: ResourceCaptureService {
 
         // app version
         if let appVersion = EMBDevice.appVersion {
-            criticalResourcesMap[AppResourceKey.appVersion.rawValue] = EMBDevice.appVersion
+            criticalResourcesMap[AppResourceKey.appVersion.rawValue] = appVersion
         }
 
         //

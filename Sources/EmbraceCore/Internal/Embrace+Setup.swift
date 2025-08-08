@@ -12,7 +12,7 @@ import OpenTelemetryApi
     import EmbraceStorageInternal
     import EmbraceUploadInternal
     import EmbraceConfiguration
-    @_implementationOnly import EmbraceObjCUtilsInternal
+    import EmbraceObjCUtilsInternal
 #endif
 
 extension Embrace {
