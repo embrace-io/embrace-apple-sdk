@@ -27,7 +27,7 @@ extension MXCrashDiagnostic {
         logger.info("buildEmbraceCrashReport")
         
         guard let loadedReport = buildKSCrashReport(sessionId: sessionId, timestamp: timestamp, logger: logger) else {
-            logger.error("Failed to buildKSCrashReport for session \(sessionId)")
+            logger.error("Failed to buildKSCrashReport for session \(String(describing: sessionId))")
             return nil
         }
 
@@ -84,7 +84,7 @@ extension MXCrashDiagnostic {
             }
             
         } else {
-            logger.error("Didn't find the session id threadcrumb, will use last session id \(sessionId)")
+            logger.error("Didn't find the session id threadcrumb, will use last session id \(String(describing: sessionId))")
         }
         
         let report = KarlCrashReport(

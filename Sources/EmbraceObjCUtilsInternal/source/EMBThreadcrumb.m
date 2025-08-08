@@ -12,7 +12,7 @@
 @interface EMBThreadcrumb () {
 @public
     NSString *_message;
-    char *_data; // easy access to _message, do not free
+    char *_data; // easy access to _message, do not free, = to _message.UTF8String
     
     NSURL *_symbolDirectory;
     dispatch_semaphore_t _semaphore;
@@ -331,7 +331,7 @@ EMB_KEEP_FUNCTION_IN_STACKTRACE
     
     [self->_lock lock];
     _message = [[message componentsSeparatedByCharactersInSet:sDisallowedCharacters] componentsJoinedByString:@""];
-    _data = _message.UTF8String;
+    _data = (char *)_message.UTF8String;
     _index = 0;
     _stackAddresses = nil;
     [self->_lock unlock];
