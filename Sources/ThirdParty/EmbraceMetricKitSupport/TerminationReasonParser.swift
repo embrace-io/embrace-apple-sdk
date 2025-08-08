@@ -1,3 +1,7 @@
+//
+//  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
+//
+
 import Foundation
 
 struct TerminationReason {
