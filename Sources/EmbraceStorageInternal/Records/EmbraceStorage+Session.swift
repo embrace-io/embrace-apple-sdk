@@ -7,6 +7,7 @@ import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
+    import EmbraceSemantics
 #endif
 
 extension EmbraceStorage {
@@ -25,8 +26,8 @@ extension EmbraceStorage {
     /// - Returns: The newly stored `SessionRecord`
     @discardableResult
     public func addSession(
-        id: SessionIdentifier,
-        processId: ProcessIdentifier,
+        id: EmbraceIdentifier,
+        processId: EmbraceIdentifier,
         state: SessionState,
         traceId: String,
         spanId: String,
@@ -70,9 +71,9 @@ extension EmbraceStorage {
         }
 
         return ImmutableSessionRecord(
-            idRaw: id.toString,
-            processIdRaw: processId.value,
-            state: state.rawValue,
+            id: id,
+            processId: processId,
+            state: state,
             traceId: traceId,
             spanId: spanId,
             startTime: startTime,
@@ -85,10 +86,10 @@ extension EmbraceStorage {
         )
     }
 
-    func fetchSessionRequest(id: SessionIdentifier) -> NSFetchRequest<SessionRecord> {
+    func fetchSessionRequest(id: EmbraceIdentifier) -> NSFetchRequest<SessionRecord> {
         let request = SessionRecord.createFetchRequest()
         request.fetchLimit = 1
-        request.predicate = NSPredicate(format: "idRaw == %@", id.toString)
+        request.predicate = NSPredicate(format: "idRaw == %@", id.stringValue)
         return request
     }
 
@@ -96,7 +97,7 @@ extension EmbraceStorage {
     /// - Parameters:
     ///   - id: Identifier of the session
     /// - Returns: Immutable copy of the stored `SessionRecord`, if any
-    public func fetchSession(id: SessionIdentifier) -> EmbraceSession? {
+    public func fetchSession(id: EmbraceIdentifier) -> EmbraceSession? {
 
         // fetch
         let request = fetchSessionRequest(id: id)
@@ -110,7 +111,7 @@ extension EmbraceStorage {
     }
 
     /// Synchronously deletes the given session from the storage
-    public func deleteSession(id: SessionIdentifier) {
+    public func deleteSession(id: EmbraceIdentifier) {
         let request = fetchSessionRequest(id: id)
         coreData.deleteRecords(withRequest: request)
     }
@@ -118,14 +119,14 @@ extension EmbraceStorage {
     /// Synchronously fetches the newest session in the storage, ignoring the current session if it exists.
     /// - Returns: Immutable copy of the newest stored `SessionRecord`, if any
     public func fetchLatestSession(
-        ignoringCurrentSessionId sessionId: SessionIdentifier? = nil
+        ignoringCurrentSessionId sessionId: EmbraceIdentifier? = nil
     ) -> EmbraceSession? {
         let request = SessionRecord.createFetchRequest()
         request.fetchLimit = 1
         request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: false)]
 
         if let sessionId = sessionId {
-            request.predicate = NSPredicate(format: "idRaw != %@", sessionId.toString)
+            request.predicate = NSPredicate(format: "idRaw != %@", sessionId.stringValue)
         }
 
         // fetch
@@ -140,7 +141,7 @@ extension EmbraceStorage {
 
     /// Completion will be sent on an undefined queue.
     public func fetchLatestSession(
-        ignoringCurrentSessionId sessionId: SessionIdentifier? = nil,
+        ignoringCurrentSessionId sessionId: EmbraceIdentifier? = nil,
         _ completion: @escaping (EmbraceSession?) -> Void
     ) {
         coreData.performAsyncOperation { [self] _ in
@@ -150,7 +151,7 @@ extension EmbraceStorage {
             request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: false)]
 
             if let sessionId = sessionId {
-                request.predicate = NSPredicate(format: "idRaw != %@", sessionId.toString)
+                request.predicate = NSPredicate(format: "idRaw != %@", sessionId.stringValue)
             }
 
             if let session = coreData.fetch(withRequest: request).first {
@@ -168,13 +169,13 @@ extension EmbraceStorage {
 
     /// Synchronously fetches the oldest session in the storage, if any.
     /// - Returns: Immutable copy of the oldest stored `SessionRecord`, if any
-    public func fetchOldestSession(ignoringCurrentSessionId sessionId: SessionIdentifier? = nil) -> EmbraceSession? {
+    public func fetchOldestSession(ignoringCurrentSessionId sessionId: EmbraceIdentifier? = nil) -> EmbraceSession? {
         let request = SessionRecord.createFetchRequest()
         request.fetchLimit = 1
         request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: true)]
 
         if let sessionId = sessionId {
-            request.predicate = NSPredicate(format: "idRaw != %@", sessionId.toString)
+            request.predicate = NSPredicate(format: "idRaw != %@", sessionId.stringValue)
         }
 
         // fetch
@@ -217,13 +218,9 @@ extension EmbraceStorage {
         crashReportId: String? = nil
     ) -> EmbraceSession? {
 
-        guard let sessionId = session.id else {
-            return nil
-        }
-
         coreData.performAsyncOperation { [self] context in
 
-            let request = fetchSessionRequest(id: sessionId)
+            let request = fetchSessionRequest(id: session.id)
             let fetchedSession = coreData.fetch(withRequest: request).first
             guard let fetchedSession else {
                 return
@@ -284,16 +281,16 @@ extension EmbraceSession {
     ) -> EmbraceSession {
 
         return ImmutableSessionRecord(
-            idRaw: self.idRaw,
-            processIdRaw: self.processIdRaw,
-            state: state?.rawValue ?? self.state,
-            traceId: self.traceId,
-            spanId: self.spanId,
-            startTime: self.startTime,
+            id: id,
+            processId: processId,
+            state: state ?? self.state,
+            traceId: traceId,
+            spanId: spanId,
+            startTime: startTime,
             endTime: endTime ?? self.endTime,
             lastHeartbeatTime: lastHeartbeatTime ?? self.lastHeartbeatTime,
             crashReportId: crashReportId ?? self.crashReportId,
-            coldStart: self.coldStart,
+            coldStart: coldStart,
             cleanExit: cleanExit ?? self.cleanExit,
             appTerminated: appTerminated ?? self.appTerminated
         )

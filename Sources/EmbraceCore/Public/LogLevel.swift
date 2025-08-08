@@ -5,7 +5,7 @@
 import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceCommonInternal
+    import EmbraceSemantics
 #endif
 
 /// Levels ordered by severity
@@ -24,14 +24,14 @@ import Foundation
         public static let `default`: LogLevel = .error
     #endif
 
-    var severity: LogSeverity {
+    var severity: EmbraceLogSeverity {
         switch self {
-        case .trace: return LogSeverity.trace
-        case .debug: return LogSeverity.debug
-        case .info: return LogSeverity.info
-        case .warning: return LogSeverity.warn
-        case .error: return LogSeverity.error
-        default: return LogSeverity.critical
+        case .trace: return EmbraceLogSeverity.trace
+        case .debug: return EmbraceLogSeverity.debug
+        case .info: return EmbraceLogSeverity.info
+        case .warning: return EmbraceLogSeverity.warn
+        case .error: return EmbraceLogSeverity.error
+        default: return EmbraceLogSeverity.critical
         }
     }
 }

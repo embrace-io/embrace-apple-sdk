@@ -5,6 +5,7 @@
 import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceSemantics
     import EmbraceCommonInternal
     import OpenTelemetryApi
     @_implementationOnly import EmbraceObjCUtilsInternal
@@ -46,7 +47,7 @@ class AppInfoCaptureService: ResourceCaptureService {
             AppResourceKey.framework.rawValue: String(Embrace.client?.options.platform.frameworkId ?? -1),
 
             // process id
-            AppResourceKey.processIdentifier.rawValue: ProcessIdentifier.current.value,
+            AppResourceKey.processIdentifier.rawValue: ProcessIdentifier.current.stringValue,
 
             // pre-warm
             AppResourceKey.processPreWarm.rawValue: isPreWarm

@@ -3,7 +3,7 @@
 //
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceOTelInternal
+    import EmbraceSemantics
 #endif
 
 struct SpanLinkPayload: Encodable {
@@ -17,10 +17,13 @@ struct SpanLinkPayload: Encodable {
         case attributes
     }
 
-    init(from link: SpanLink) {
-        self.traceId = link.context.traceId.hexString
-        self.spanId = link.context.spanId.hexString
-        self.attributes = PayloadUtils.convertSpanAttributes(link.attributes)
+    init(from link: EmbraceSpanLink) {
+        self.traceId = link.traceId
+        self.spanId = link.spanId
+
+        self.attributes = link.attributes.map { entry in
+            Attribute(key: entry.key, value: entry.value)
+        }
     }
 
     func encode(to encoder: Encoder) throws {

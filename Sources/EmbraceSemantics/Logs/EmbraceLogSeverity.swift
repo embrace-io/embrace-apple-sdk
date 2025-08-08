@@ -1,10 +1,8 @@
 //
-//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
+//  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
-
-@objc public enum LogSeverity: Int, Codable {
+public enum EmbraceLogSeverity: Int, Codable {
     case trace = 1
     case debug = 5
     case info = 9
@@ -33,7 +31,7 @@ import Foundation
     }
 }
 
-extension LogSeverity: CustomStringConvertible {
+extension EmbraceLogSeverity: CustomStringConvertible {
     public var description: String {
         text
     }

@@ -4,29 +4,30 @@
 
 import CoreData
 import Foundation
-import OpenTelemetryApi
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceCommonInternal
+    import EmbraceSemantics
 #endif
 
 @objc(LogRecord)
 public class LogRecord: NSManagedObject {
-    @NSManaged public var idRaw: String  // LogIdentifier
-    @NSManaged public var processIdRaw: String  // ProcessIdentifier
-    @NSManaged public var severityRaw: Int  // LogSeverity
+    @NSManaged public var idRaw: String
+    @NSManaged public var sessionIdRaw: String?
+    @NSManaged public var processIdRaw: String
+    @NSManaged public var severityRaw: Int
     @NSManaged public var body: String
     @NSManaged public var timestamp: Date
     @NSManaged public var attributes: Set<LogAttributeRecord>
 
     class func create(
         context: NSManagedObjectContext,
-        id: LogIdentifier,
-        processId: ProcessIdentifier,
-        severity: LogSeverity,
+        id: EmbraceIdentifier,
+        sessionId: EmbraceIdentifier?,
+        processId: EmbraceIdentifier,
+        severity: EmbraceLogSeverity,
         body: String,
         timestamp: Date = Date(),
-        attributes: [String: AttributeValue]
+        attributes: [String: String]
     ) -> EmbraceLog? {
         var result: EmbraceLog?
 
@@ -36,8 +37,9 @@ public class LogRecord: NSManagedObject {
             }
 
             let record = LogRecord(entity: description, insertInto: context)
-            record.idRaw = id.toString
-            record.processIdRaw = processId.value
+            record.idRaw = id.stringValue
+            record.sessionIdRaw = sessionId?.stringValue
+            record.processIdRaw = processId.stringValue
             record.severityRaw = severity.rawValue
             record.body = body
             record.timestamp = timestamp
@@ -65,17 +67,24 @@ public class LogRecord: NSManagedObject {
     }
 
     func toImmutable() -> EmbraceLog {
-        let attributes = attributes.map {
-            $0.toImmutable()
+
+        var sessionId: EmbraceIdentifier?
+        if let sessionIdRaw {
+            sessionId = EmbraceIdentifier(stringValue: sessionIdRaw)
+        }
+
+        let finalAttributes = attributes.reduce(into: [String: String]()) {
+            $0[$1.key] = $1.value
         }
 
         return ImmutableLogRecord(
-            idRaw: idRaw,
-            processIdRaw: processIdRaw,
-            severityRaw: severityRaw,
-            body: body,
+            id: EmbraceIdentifier(stringValue: idRaw),
+            sessionId: sessionId,
+            processId: EmbraceIdentifier(stringValue: processIdRaw),
+            severity: EmbraceLogSeverity(rawValue: severityRaw) ?? .debug,
             timestamp: timestamp,
-            attributes: attributes
+            body: body,
+            attributes: finalAttributes
         )
     }
 }
@@ -96,6 +105,11 @@ extension LogRecord: EmbraceStorageRecord {
         let idAttribute = NSAttributeDescription()
         idAttribute.name = "idRaw"
         idAttribute.attributeType = .stringAttributeType
+
+        let sessionIdAttribute = NSAttributeDescription()
+        sessionIdAttribute.name = "sessionIdRaw"
+        sessionIdAttribute.attributeType = .stringAttributeType
+        sessionIdAttribute.isOptional = true
 
         let processIdAttribute = NSAttributeDescription()
         processIdAttribute.name = "processIdRaw"
@@ -120,12 +134,8 @@ extension LogRecord: EmbraceStorageRecord {
         keyAttribute.attributeType = .stringAttributeType
 
         let valueAttribute = NSAttributeDescription()
-        valueAttribute.name = "valueRaw"
+        valueAttribute.name = "value"
         valueAttribute.attributeType = .stringAttributeType
-
-        let typeAttribute = NSAttributeDescription()
-        typeAttribute.name = "typeRaw"
-        typeAttribute.attributeType = .integer64AttributeType
 
         // relationships
         let parentRelationship = NSRelationshipDescription()
@@ -145,6 +155,7 @@ extension LogRecord: EmbraceStorageRecord {
         // set properties
         entity.properties = [
             idAttribute,
+            sessionIdAttribute,
             processIdAttribute,
             severityAttribute,
             bodyAttribute,
@@ -155,7 +166,6 @@ extension LogRecord: EmbraceStorageRecord {
         child.properties = [
             keyAttribute,
             valueAttribute,
-            typeAttribute,
             childRelationship
         ]
 
@@ -164,18 +174,15 @@ extension LogRecord: EmbraceStorageRecord {
 }
 
 struct ImmutableLogRecord: EmbraceLog {
-    let idRaw: String
-    let processIdRaw: String
-    let severityRaw: Int
-    let body: String
+    var id: EmbraceIdentifier
+    var sessionId: EmbraceIdentifier?
+    var processId: EmbraceIdentifier
+    var severity: EmbraceLogSeverity
     let timestamp: Date
-    let attributes: [EmbraceLogAttribute]
+    let body: String
+    let attributes: [String: String]
 
-    func allAttributes() -> [any EmbraceLogAttribute] {
-        return attributes
-    }
-
-    func attribute(forKey key: String) -> (any EmbraceLogAttribute)? {
-        return attributes.first(where: { $0.key == key })
+    func setAttribute(key: String, value: String?) {
+        // no op
     }
 }

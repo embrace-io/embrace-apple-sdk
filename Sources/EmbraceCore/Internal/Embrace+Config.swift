@@ -5,6 +5,7 @@
 import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceSemantics
     @_implementationOnly import EmbraceObjCUtilsInternal
     import EmbraceConfigInternal
     import EmbraceCommonInternal
@@ -16,7 +17,7 @@ extension Embrace {
     /// Creates `EmbraceConfig` object
     static func createConfig(
         options: Embrace.Options,
-        deviceId: DeviceIdentifier
+        deviceId: EmbraceIdentifier
     ) -> EmbraceConfig {
         return EmbraceConfig(
             configurable: runtimeConfiguration(from: options, deviceId: deviceId),
@@ -28,7 +29,7 @@ extension Embrace {
 
     private static func runtimeConfiguration(
         from options: Embrace.Options,
-        deviceId: DeviceIdentifier
+        deviceId: EmbraceIdentifier
     ) -> EmbraceConfigurable {
         if let configImpl = options.runtimeConfiguration {
             return configImpl

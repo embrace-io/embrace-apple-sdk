@@ -21,7 +21,7 @@ extension StartupInstrumentation {
     /// - Returns: An OpenTelemetry `SpanBuilder` or nil if the root span was not found.
     public func buildChildSpan(
         name: String,
-        type: SpanType = .startup,
+        type: EmbraceType = .startup,
         startTime: Date = Date(),
         attributes: [String: String] = [:]
     ) -> SpanBuilder? {
@@ -58,7 +58,7 @@ extension StartupInstrumentation {
     @discardableResult
     public func recordCompletedChildSpan(
         name: String,
-        type: SpanType = .viewLoad,
+        type: EmbraceType = .viewLoad,
         startTime: Date,
         endTime: Date,
         attributes: [String: String] = [:]

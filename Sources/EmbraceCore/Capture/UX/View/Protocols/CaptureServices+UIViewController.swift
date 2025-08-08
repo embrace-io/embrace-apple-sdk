@@ -55,7 +55,7 @@
         func buildChildSpan(
             for vc: UIViewController,
             name: String,
-            type: SpanType = .viewLoad,
+            type: EmbraceType = .viewLoad,
             startTime: Date = Date(),
             attributes: [String: String] = [:]
         ) throws -> SpanBuilder? {
@@ -86,7 +86,7 @@
         func recordCompletedChildSpan(
             for vc: UIViewController,
             name: String,
-            type: SpanType = .viewLoad,
+            type: EmbraceType = .viewLoad,
             startTime: Date,
             endTime: Date,
             attributes: [String: String] = [:]

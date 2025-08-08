@@ -43,7 +43,7 @@ class StorageSpanExporter: SpanExporter {
                 // Prevent exporting our session spans on end.
                 // This process is handled by the `SessionController` to prevent
                 // race conditions when a session ends and its payload gets built.
-                if endTime != nil && spanData.embType == SpanType.session {
+                if endTime != nil && spanData.embType == EmbraceType.session {
                     continue
                 }
 
@@ -57,13 +57,18 @@ class StorageSpanExporter: SpanExporter {
 
                 storage.upsertSpan(
                     id: spanData.spanId.hexString,
-                    name: spanName,
                     traceId: spanData.traceId.hexString,
+                    parentSpanId: spanData.parentSpanId?.hexString,
+                    name: spanName,
                     type: spanData.embType,
-                    data: data,
+                    status: spanData.embStatus,
                     startTime: spanData.startTime,
                     endTime: endTime,
-                    sessionId: sessionController?.currentSession?.id
+                    sessionId: sessionController?.currentSession?.id,
+                    processId: ProcessIdentifier.current,
+                    events: spanData.embEvents,
+                    links: spanData.embLinks,
+                    attributes: spanData.embAttributes
                 )
             } catch let exception {
                 self.logger?.error(exception.localizedDescription)
@@ -82,7 +87,7 @@ class StorageSpanExporter: SpanExporter {
         _ = flush()
     }
 
-    func sanitizedName(_ name: String, type: SpanType) -> String {
+    func sanitizedName(_ name: String, type: EmbraceType) -> String {
 
         // do not truncate specific types
         guard type != .networkRequest,

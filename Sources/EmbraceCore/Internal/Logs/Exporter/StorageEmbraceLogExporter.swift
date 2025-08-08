@@ -61,16 +61,16 @@ class StorageEmbraceLogExporter: LogRecordExporter {
         for var log in logRecords where validation.execute(log: &log) {
 
             // do not export crash logs (unless they come from metrickit)
-            if log.isEmbType(LogType.crash)
+            if log.isEmbType(EmbraceType.crash)
                 && log.attributes[LogSemantics.Crash.keyProvider] != .string(LogSemantics.Crash.metrickitProvider) {
                 continue
             }
 
             // apply log limits (ignoring internal logs, crashes and hangs)
             let canExport = counter.withLock {
-                guard !log.isEmbType(LogType.internal),
-                    !log.isEmbType(LogType.crash),
-                    !log.isEmbType(LogType.hang)
+                guard !log.isEmbType(EmbraceType.internal),
+                    !log.isEmbType(EmbraceType.crash),
+                    !log.isEmbType(EmbraceType.hang)
                 else {
                     return true
                 }
@@ -104,16 +104,16 @@ class StorageEmbraceLogExporter: LogRecordExporter {
         .success
     }
 
-    func limitLevel(for severity: LogSeverity?) -> LogLevel {
+    func limitLevel(for severity: EmbraceLogSeverity?) -> LogLevel {
         guard let severity = severity else {
             return .info
         }
 
-        if severity.rawValue < LogSeverity.warn.rawValue {
+        if severity.rawValue < EmbraceLogSeverity.warn.rawValue {
             return .info
         }
 
-        if severity.rawValue >= LogSeverity.error.rawValue {
+        if severity.rawValue >= EmbraceLogSeverity.error.rawValue {
             return .error
         }
 

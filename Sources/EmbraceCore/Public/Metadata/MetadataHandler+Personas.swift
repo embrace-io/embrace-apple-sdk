@@ -5,6 +5,7 @@
 import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceSemantics
     import EmbraceStorageInternal
     import EmbraceCommonInternal
 #endif

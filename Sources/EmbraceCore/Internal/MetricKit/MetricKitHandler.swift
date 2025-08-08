@@ -6,6 +6,7 @@ import Foundation
 import MetricKit
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceSemantics
     import EmbraceCommonInternal
 #endif
 
@@ -40,7 +41,7 @@ import MetricKit
 
     func handlePayload(_ payload: MetricKitDiagnosticPayload) {
         // check if the payload should be linked to the latest session
-        var sessionId: SessionIdentifier?
+        var sessionId: EmbraceIdentifier?
 
         if let session = lastSession {
             let payloadStart = payload.startTime.timeIntervalSince1970
@@ -76,7 +77,7 @@ import MetricKit
         }
     }
 
-    func sendCrash(payload: Data, signal: Int, sessionId: SessionIdentifier?) {
+    func sendCrash(payload: Data, signal: Int, sessionId: EmbraceIdentifier?) {
         for listener in crashListeners {
             listener.didReceive(payload: payload, signal: signal, sessionId: sessionId)
         }

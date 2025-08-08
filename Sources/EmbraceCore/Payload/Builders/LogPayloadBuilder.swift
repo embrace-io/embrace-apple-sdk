@@ -12,11 +12,11 @@ import Foundation
 
 struct LogPayloadBuilder {
     static func build(log: EmbraceLog) -> LogPayload {
-        var finalAttributes: [Attribute] = log.allAttributes().map { entry in
-            Attribute(key: entry.key, value: entry.valueRaw)
+        var finalAttributes: [Attribute] = log.attributes.map { entry in
+            Attribute(key: entry.key, value: entry.value)
         }
 
-        finalAttributes.append(.init(key: LogSemantics.keyId, value: log.idRaw))
+        finalAttributes.append(.init(key: LogSemantics.keyId, value: log.id.stringValue))
 
         return .init(
             timeUnixNano: String(Int(log.timestamp.nanosecondsSince1970)),
@@ -28,11 +28,11 @@ struct LogPayloadBuilder {
 
     static func build(
         timestamp: Date,
-        severity: LogSeverity,
+        severity: EmbraceLogSeverity,
         body: String,
         attributes: [String: String],
         storage: EmbraceStorage?,
-        sessionId: SessionIdentifier?
+        sessionId: EmbraceIdentifier?
     ) -> PayloadEnvelope<[LogPayload]> {
 
         // build resources and metadata payloads

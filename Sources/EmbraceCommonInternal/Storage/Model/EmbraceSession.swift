@@ -4,10 +4,14 @@
 
 import Foundation
 
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceSemantics
+#endif
+
 public protocol EmbraceSession {
-    var idRaw: String { get }
-    var processIdRaw: String { get }
-    var state: String { get }
+    var id: EmbraceIdentifier { get }
+    var processId: EmbraceIdentifier { get }
+    var state: SessionState { get }
     var traceId: String { get }
     var spanId: String { get }
     var startTime: Date { get }
@@ -17,14 +21,4 @@ public protocol EmbraceSession {
     var coldStart: Bool { get }
     var cleanExit: Bool { get }
     var appTerminated: Bool { get }
-}
-
-extension EmbraceSession {
-    public var id: SessionIdentifier? {
-        return SessionIdentifier(string: idRaw)
-    }
-
-    public var processId: ProcessIdentifier? {
-        return ProcessIdentifier(string: processIdRaw)
-    }
 }

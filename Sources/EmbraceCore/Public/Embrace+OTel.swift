@@ -38,7 +38,7 @@ extension Embrace: EmbraceOpenTelemetry {
     /// - Returns: An OpenTelemetry `SpanBuilder`.
     public func buildSpan(
         name: String,
-        type: SpanType = .performance,
+        type: EmbraceType = .performance,
         attributes: [String: String] = [:],
         autoTerminationCode: SpanErrorCode? = nil
     ) -> SpanBuilder {
@@ -62,7 +62,7 @@ extension Embrace: EmbraceOpenTelemetry {
     ///    - errorCode: The error code of the span. Defaults to `noError`.
     public func recordCompletedSpan(
         name: String,
-        type: SpanType,
+        type: EmbraceType,
         parent: Span?,
         startTime: Date,
         endTime: Date,
@@ -138,8 +138,8 @@ extension Embrace: EmbraceOpenTelemetry {
     /// - Important: Only `warn` and `error` logs will have stacktraces.
     public func log(
         _ message: String,
-        severity: LogSeverity,
-        type: LogType = .message,
+        severity: EmbraceLogSeverity,
+        type: EmbraceType = .message,
         attributes: [String: String] = [:],
         stackTraceBehavior: StackTraceBehavior = .default
     ) {
@@ -164,8 +164,8 @@ extension Embrace: EmbraceOpenTelemetry {
     /// - Important: Only `warn` and `error` logs will have stacktraces.
     public func log(
         _ message: String,
-        severity: LogSeverity,
-        type: LogType = .message,
+        severity: EmbraceLogSeverity,
+        type: EmbraceType = .message,
         timestamp: Date,
         attributes: [String: String] = [:],
         stackTraceBehavior: StackTraceBehavior = .default
@@ -198,8 +198,8 @@ extension Embrace: EmbraceOpenTelemetry {
     /// - Important: Only `warn` and `error` logs will have stacktraces.
     public func log(
         _ message: String,
-        severity: LogSeverity,
-        type: LogType = .message,
+        severity: EmbraceLogSeverity,
+        type: EmbraceType = .message,
         timestamp: Date = Date(),
         attachment: Data,
         attributes: [String: String] = [:],
@@ -235,8 +235,8 @@ extension Embrace: EmbraceOpenTelemetry {
     /// - Important: Only `warn` and `error` logs will have stacktraces.
     public func log(
         _ message: String,
-        severity: LogSeverity,
-        type: LogType = .message,
+        severity: EmbraceLogSeverity,
+        type: EmbraceType = .message,
         timestamp: Date = Date(),
         attachmentId: String,
         attachmentUrl: URL,
@@ -275,7 +275,7 @@ extension Embrace {  // MARK: Static methods
     public static func recordSpan<T>(
         name: String,
         parent: Span? = nil,
-        type: SpanType = .performance,
+        type: EmbraceType = .performance,
         attributes: [String: String] = [:],
         block: (Span?) throws -> T
     ) rethrows -> T {
@@ -316,7 +316,7 @@ extension Embrace {  // MARK: Internal methods
     func recordSpan<T>(
         name: String,
         parent: Span? = nil,
-        type: SpanType,
+        type: EmbraceType,
         attributes: [String: String] = [:],
         block: (Span) throws -> T
     ) rethrows -> T {

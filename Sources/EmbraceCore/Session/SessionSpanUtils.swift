@@ -15,10 +15,10 @@ import OpenTelemetrySdk
 
 struct SessionSpanUtils {
 
-    static func span(id: SessionIdentifier, startTime: Date, state: SessionState, coldStart: Bool) -> Span {
+    static func span(id: EmbraceIdentifier, startTime: Date, state: SessionState, coldStart: Bool) -> Span {
         EmbraceOTel().buildSpan(name: SpanSemantics.Session.name, type: .session)
             .setStartTime(time: startTime)
-            .setAttribute(key: SpanSemantics.Session.keyId, value: id.toString)
+            .setAttribute(key: SpanSemantics.Session.keyId, value: id.stringValue)
             .setAttribute(key: SpanSemantics.Session.keyState, value: state.rawValue)
             .setAttribute(key: SpanSemantics.Session.keyColdStart, value: coldStart)
             .startSpan()
@@ -38,18 +38,18 @@ struct SessionSpanUtils {
 
     static func payload(
         from session: EmbraceSession,
-        spanData: SpanData? = nil,
+        span: EmbraceSpan? = nil,
         properties: [EmbraceMetadata] = [],
         sessionNumber: Int
     ) -> SpanPayload {
-        return SpanPayload(from: session, spanData: spanData, properties: properties, sessionNumber: sessionNumber)
+        return SpanPayload(from: session, span: span, properties: properties, sessionNumber: sessionNumber)
     }
 }
 
 extension SpanPayload {
     fileprivate init(
         from session: EmbraceSession,
-        spanData: SpanData? = nil,
+        span: EmbraceSpan? = nil,
         properties: [EmbraceMetadata],
         sessionNumber: Int
     ) {
@@ -65,15 +65,15 @@ extension SpanPayload {
         var attributeArray: [Attribute] = [
             Attribute(
                 key: SpanSemantics.keyEmbraceType,
-                value: SpanType.session.rawValue
+                value: EmbraceType.session.rawValue
             ),
             Attribute(
                 key: SpanSemantics.Session.keyId,
-                value: session.idRaw
+                value: session.id.stringValue
             ),
             Attribute(
                 key: SpanSemantics.Session.keyState,
-                value: session.state
+                value: session.state.rawValue
             ),
             Attribute(
                 key: SpanSemantics.Session.keyColdStart,
@@ -117,15 +117,9 @@ extension SpanPayload {
             }
         )
 
+        self.events = span?.events.map { SpanEventPayload(from: $0) } ?? []
+        self.links = span?.links.map { SpanLinkPayload(from: $0) } ?? []
         self.attributes = attributeArray
-
-        if let spanData = spanData {
-            self.events = spanData.events.map { SpanEventPayload(from: $0) }
-            self.links = spanData.links.map { SpanLinkPayload(from: $0) }
-        } else {
-            self.events = []
-            self.links = []
-        }
     }
 }
 

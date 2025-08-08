@@ -5,9 +5,9 @@
 import Foundation
 
 public struct EmbraceFileSystem {
-    static let version = 6
+    static let version = 7
     static let rootDirectoryName = "io.embrace.data"
-    static let versionDirectoryName = "v6"
+    static let versionDirectoryName = "v7"
     static let storageDirectoryName = "storage"
     static let uploadsDirectoryName = "uploads"
     static let crashesDirectoryName = "crashes"

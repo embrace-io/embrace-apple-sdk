@@ -102,7 +102,7 @@
             let urlString = getUrlString(url: url)
 
             var attributes: [String: AttributeValue] = [
-                SpanEventSemantics.keyEmbraceType: .string(SpanEventType.webView.rawValue),
+                SpanEventSemantics.keyEmbraceType: .string(EmbraceType.webView.rawValue),
                 SpanEventSemantics.WebView.keyUrl: .string(urlString)
             ]
 

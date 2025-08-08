@@ -5,11 +5,11 @@
 import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceCommonInternal
+    import EmbraceSemantics
 #endif
 
 protocol MetricKitCrashPayloadListener: AnyObject {
-    func didReceive(payload: Data, signal: Int, sessionId: SessionIdentifier?)
+    func didReceive(payload: Data, signal: Int, sessionId: EmbraceIdentifier?)
 }
 
 protocol MetricKitHangPayloadListener: AnyObject {

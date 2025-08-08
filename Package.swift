@@ -113,6 +113,7 @@ let package = Package(
         .target(
             name: "EmbraceCommonInternal",
             dependencies: [
+                "EmbraceSemantics",
                 .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
             ]
         ),
@@ -126,11 +127,7 @@ let package = Package(
 
         // semantics -----------------------------------------------------------------
         .target(
-            name: "EmbraceSemantics",
-            dependencies: [
-                "EmbraceCommonInternal",
-                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
-            ]
+            name: "EmbraceSemantics"
         ),
 
         // capture service -----------------------------------------------------------

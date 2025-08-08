@@ -5,23 +5,23 @@
 import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceCommonInternal
+    import EmbraceSemantics
 #endif
 
-extension DeviceIdentifier {
-    static func retrieve(fileURL: URL?) -> DeviceIdentifier {
+class DeviceIdentifierHelper {
+    static func retrieve(fileURL: URL?) -> EmbraceIdentifier {
 
         // retrieve from file
         if let fileURL = fileURL,
             FileManager.default.fileExists(atPath: fileURL.path),
             let deviceId = try? String(contentsOf: fileURL),
             let uuid = UUID(uuidString: deviceId) {
-            return DeviceIdentifier(value: uuid)
+            return EmbraceIdentifier(value: uuid)
         }
 
         // fallback to retrieve from Keychain
         let uuid = KeychainAccess.deviceId
-        let deviceId = DeviceIdentifier(value: uuid)
+        let deviceId = EmbraceIdentifier(value: uuid)
 
         // store in file
         if let fileURL = fileURL {

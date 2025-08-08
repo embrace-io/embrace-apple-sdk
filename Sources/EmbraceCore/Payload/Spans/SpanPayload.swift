@@ -36,10 +36,10 @@ struct SpanPayload: Encodable {
         case links
     }
 
-    init(from span: SpanData, endTime: Date? = nil, failed: Bool = false) {
-        self.traceId = span.traceId.hexString
-        self.spanId = span.spanId.hexString
-        self.parentSpanId = span.parentSpanId?.hexString
+    init(from span: EmbraceSpan, endTime: Date? = nil, failed: Bool = false) {
+        self.traceId = span.traceId
+        self.spanId = span.id
+        self.parentSpanId = span.parentSpanId
         self.name = span.name
         self.startTime = span.startTime.nanosecondsSince1970Truncated
         self.events = span.events.map { SpanEventPayload(from: $0) }
@@ -53,17 +53,16 @@ struct SpanPayload: Encodable {
 
         if let endTime = endTime {
             self.endTime = endTime.nanosecondsSince1970Truncated
-        } else if span.hasEnded {
-            self.endTime = span.endTime.nanosecondsSince1970Truncated
         } else {
             self.endTime = nil
         }
 
-        var attributeArray = PayloadUtils.convertSpanAttributes(span.attributes)
+        var attributeArray: [Attribute] = span.attributes.map { entry in
+            Attribute(key: entry.key, value: entry.value)
+        }
         if failed {
             attributeArray.append(Attribute(key: SpanSemantics.keyErrorCode, value: "failure"))
         }
-
         self.attributes = attributeArray
     }
 

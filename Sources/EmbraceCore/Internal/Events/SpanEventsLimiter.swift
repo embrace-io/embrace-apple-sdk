@@ -65,7 +65,7 @@ class SpanEventsLimiter {
     }
 
     private func limitForEventType(_ type: String?, limits: SpanEventsLimits) -> UInt? {
-        if type == SpanEventType.breadcrumb.rawValue {
+        if type == EmbraceType.breadcrumb.rawValue {
             return limits.breadcrumb
         }
 

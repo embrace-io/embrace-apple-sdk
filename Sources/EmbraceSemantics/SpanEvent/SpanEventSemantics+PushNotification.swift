@@ -2,12 +2,8 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceCommonInternal
-#endif
-
-extension SpanEventType {
-    public static let pushNotification = SpanEventType(system: "push_notification")
+extension EmbraceType {
+    public static let pushNotification = EmbraceType(system: "push_notification")
 }
 
 extension SpanEventSemantics {
@@ -24,14 +20,4 @@ extension SpanEventSemantics {
         public static let notificationType = "notif"
         public static let silentType = "silent"
     }
-}
-
-extension SpanType {
-    @available(
-        *,
-        deprecated,
-        renamed: "SpanEventType.pushNotification",
-        message: "Has been moved to `SpanEventType.pushNotification`"
-    )
-    public static let pushNotification = SpanEventType(system: "push_notification")
 }

@@ -18,8 +18,8 @@ protocol LogControllable: LogBatcherDelegate {
     func uploadAllPersistedLogs()
     func createLog(
         _ message: String,
-        severity: LogSeverity,
-        type: LogType,
+        severity: EmbraceLogSeverity,
+        type: EmbraceType,
         timestamp: Date,
         attachment: Data?,
         attachmentId: String?,
@@ -52,6 +52,10 @@ class LogController: LogControllable {
         set { state.withLock { $0.limits = newValue } }
     }
 
+    var currentSessionId: EmbraceIdentifier? {
+        sessionController?.currentSession?.id
+    }
+
     static let attachmentLimit: Int = 5
     static let attachmentSizeLimit: Int = 1_048_576  // 1 MiB
 
@@ -70,7 +74,7 @@ class LogController: LogControllable {
             return
         }
 
-        let logs: [EmbraceLog] = storage.fetchAll(excludingProcessIdentifier: .current)
+        let logs: [EmbraceLog] = storage.fetchAll(excludingProcessIdentifier: ProcessIdentifier.current)
         if logs.count > 0 {
             send(batches: divideInBatches(logs))
         }
@@ -78,8 +82,8 @@ class LogController: LogControllable {
 
     public func createLog(
         _ message: String,
-        severity: LogSeverity,
-        type: LogType = .message,
+        severity: EmbraceLogSeverity,
+        type: EmbraceType = .message,
         timestamp: Date = Date(),
         attachment: Data? = nil,
         attachmentId: String? = nil,
@@ -197,10 +201,6 @@ extension LogController {
                     continue
                 }
 
-                guard let processId = batch.logs[0].processId else {
-                    return
-                }
-
                 // Since we always end batches when a session ends
                 // all the logs still in storage when the app starts should come
                 // from the last session before the app closes.
@@ -210,11 +210,14 @@ extension LogController {
                 //
                 // If we can't find a sessionId, we use the processId instead
 
-                var sessionId: SessionIdentifier?
-                if let log = batch.logs.first(where: { $0.attribute(forKey: LogSemantics.keySessionId) != nil }) {
-                    sessionId = SessionIdentifier(string: log.attribute(forKey: LogSemantics.keySessionId)?.valueRaw)
+                var sessionId: EmbraceIdentifier?
+                if let log = batch.logs.first(where: { $0.attributes[LogSemantics.keySessionId] != nil }) {
+                    if let value = log.attributes[LogSemantics.keySessionId] {
+                        sessionId = EmbraceIdentifier(stringValue: value)
+                    }
                 }
 
+                let processId = batch.logs[0].processId
                 let resourcePayload = try createResourcePayload(sessionId: sessionId, processId: processId)
                 let metadataPayload = try createMetadataPayload(sessionId: sessionId, processId: processId)
 
@@ -285,8 +288,8 @@ extension LogController {
     }
 
     fileprivate func createResourcePayload(
-        sessionId: SessionIdentifier?,
-        processId: ProcessIdentifier = ProcessIdentifier.current
+        sessionId: EmbraceIdentifier?,
+        processId: EmbraceIdentifier = ProcessIdentifier.current
     ) throws -> ResourcePayload {
         guard let storage = storage else {
             throw Error.couldntAccessStorageModule
@@ -304,8 +307,8 @@ extension LogController {
     }
 
     fileprivate func createMetadataPayload(
-        sessionId: SessionIdentifier?,
-        processId: ProcessIdentifier = ProcessIdentifier.current
+        sessionId: EmbraceIdentifier?,
+        processId: EmbraceIdentifier = ProcessIdentifier.current
     ) throws -> MetadataPayload {
         guard let storage = storage else {
             throw Error.couldntAccessStorageModule

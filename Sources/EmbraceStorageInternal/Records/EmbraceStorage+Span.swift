@@ -29,23 +29,28 @@ extension EmbraceStorage {
     @discardableResult
     public func upsertSpan(
         id: String,
-        name: String,
         traceId: String,
-        type: SpanType,
-        data: Data,
+        parentSpanId: String?,
+        name: String,
+        type: EmbraceType,
+        status: EmbraceSpanStatus,
         startTime: Date,
         endTime: Date? = nil,
-        processId: ProcessIdentifier = .current,
-        sessionId: SessionIdentifier? = nil
+        sessionId: EmbraceIdentifier? = nil,
+        processId: EmbraceIdentifier = ProcessIdentifier.current,
+        events: [EmbraceSpanEvent] = [],
+        links: [EmbraceSpanLink] = [],
+        attributes: [String: String] = [:]
     ) -> EmbraceSpan? {
 
         // update existing?
         if let span = updateExistingSpan(
             id: id,
-            name: name,
             traceId: traceId,
+            parentSpanId: parentSpanId,
+            name: name,
             type: type,
-            data: data,
+            status: status,
             startTime: startTime,
             endTime: endTime,
             processId: processId,
@@ -61,14 +66,18 @@ extension EmbraceStorage {
         if let span = SpanRecord.create(
             context: coreData.context,
             id: id,
-            name: name,
             traceId: traceId,
+            parentSpanId: parentSpanId,
+            name: name,
             type: type,
-            data: data,
+            status: status,
             startTime: startTime,
             endTime: endTime,
+            sessionId: sessionId,
             processId: processId,
-            sessionId: sessionId
+            events: events,
+            links: links,
+            attributes: attributes
         ) {
             coreData.save()
             return span
@@ -87,14 +96,15 @@ extension EmbraceStorage {
 
     func updateExistingSpan(
         id: String,
-        name: String,
         traceId: String,
-        type: SpanType,
-        data: Data,
+        parentSpanId: String? = nil,
+        name: String,
+        type: EmbraceType,
+        status: EmbraceSpanStatus,
         startTime: Date,
         endTime: Date? = nil,
-        processId: ProcessIdentifier = .current,
-        sessionId: SessionIdentifier? = nil
+        processId: EmbraceIdentifier = ProcessIdentifier.current,
+        sessionId: EmbraceIdentifier? = nil
     ) -> EmbraceSpan? {
         var result: EmbraceSpan?
 
@@ -105,12 +115,20 @@ extension EmbraceStorage {
             // prevent modifications on closed spans!
             if span.endTime == nil {
                 span.name = name
+                span.parentSpanId = parentSpanId
                 span.typeRaw = type.rawValue
-                span.data = data
+                span.statusRaw = status.rawValue
                 span.startTime = startTime
                 span.endTime = endTime
-                span.processIdRaw = processId.value
-                span.sessionIdRaw = sessionId?.toString
+                span.processIdRaw = processId.stringValue
+                span.sessionIdRaw = sessionId?.stringValue
+
+                // TODO: Update events
+
+                // TODO: Update links
+
+                // TODO: Update attributes
+
                 coreData.save()
             }
 
@@ -168,7 +186,7 @@ extension EmbraceStorage {
         } else {
             request.predicate = NSPredicate(
                 format: "endTime != nil AND processIdRaw != %@",
-                ProcessIdentifier.current.value)
+                ProcessIdentifier.current.stringValue)
         }
 
         coreData.deleteRecords(withRequest: request)
@@ -182,7 +200,7 @@ extension EmbraceStorage {
         let request = SpanRecord.createFetchRequest()
         request.predicate = NSPredicate(
             format: "endTime = nil AND processIdRaw != %@",
-            ProcessIdentifier.current.value
+            ProcessIdentifier.current.stringValue
         )
 
         coreData.fetchAndPerform(withRequest: request) { [self] spans in
@@ -218,7 +236,7 @@ extension EmbraceStorage {
         if session.coldStart {
             predicate = NSPredicate(
                 format: "processIdRaw == %@ AND startTime <= %@",
-                session.processIdRaw,
+                session.processId.stringValue,
                 endTime
             )
         }
@@ -230,7 +248,7 @@ extension EmbraceStorage {
             // span matches session id
             let sessionPredicate = NSPredicate(
                 format: "sessionIdRaw != nil AND sessionIdRaw == %@",
-                session.idRaw
+                session.id.stringValue
             )
 
             // span starts within session
@@ -252,7 +270,7 @@ extension EmbraceStorage {
 
         // ignore session spans?
         if ignoreSessionSpans {
-            let sessionTypePredicate = NSPredicate(format: "typeRaw != %@", SpanType.session.rawValue)
+            let sessionTypePredicate = NSPredicate(format: "typeRaw != %@", EmbraceType.session.rawValue)
             request.predicate = NSCompoundPredicate(type: .and, subpredicates: [sessionTypePredicate, predicate])
         } else {
             request.predicate = predicate
@@ -273,7 +291,7 @@ extension EmbraceStorage {
 
 // MARK: - Database operations
 extension EmbraceStorage {
-    func limitByType(_ type: SpanType) -> Int {
+    func limitByType(_ type: EmbraceType) -> Int {
         switch type.primary {
         case .performance,
             .system,
@@ -285,12 +303,12 @@ extension EmbraceStorage {
     var jsonSpansLimit: Int {
         var total = 0
         PrimaryType.allCases.forEach {
-            total += limitByType(SpanType(primary: $0))
+            total += limitByType(EmbraceType(primary: $0))
         }
         return total
     }
 
-    fileprivate func removeOldSpanIfNeeded(forType type: SpanType) {
+    fileprivate func removeOldSpanIfNeeded(forType type: EmbraceType) {
         // check limit and delete if necessary
         // default to 1500 if limit is not set
         let limit = options.spanLimits[type, default: limitByType(type)]

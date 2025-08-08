@@ -10,16 +10,16 @@ import OpenTelemetrySdk
 #endif
 
 extension ReadableLogRecord {
-    public var embType: LogType? {
+    public var embType: EmbraceType? {
         switch attributes[LogSemantics.keyEmbraceType] {
         case let .string(value):
-            return LogType(rawValue: value)
+            return EmbraceType(rawValue: value)
         default:
             return nil
         }
     }
 
-    public func isEmbType(_ type: LogType) -> Bool {
+    public func isEmbType(_ type: EmbraceType) -> Bool {
         return embType == type
     }
 }

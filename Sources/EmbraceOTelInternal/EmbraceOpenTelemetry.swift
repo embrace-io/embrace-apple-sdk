@@ -13,14 +13,14 @@ import OpenTelemetryApi
 public protocol EmbraceOpenTelemetry: AnyObject {
     func buildSpan(
         name: String,
-        type: SpanType,
+        type: EmbraceType,
         attributes: [String: String],
         autoTerminationCode: SpanErrorCode?
     ) -> SpanBuilder
 
     func recordCompletedSpan(
         name: String,
-        type: SpanType,
+        type: EmbraceType,
         parent: Span?,
         startTime: Date,
         endTime: Date,
@@ -35,16 +35,16 @@ public protocol EmbraceOpenTelemetry: AnyObject {
 
     func log(
         _ message: String,
-        severity: LogSeverity,
-        type: LogType,
+        severity: EmbraceLogSeverity,
+        type: EmbraceType,
         attributes: [String: String],
         stackTraceBehavior: StackTraceBehavior
     )
 
     func log(
         _ message: String,
-        severity: LogSeverity,
-        type: LogType,
+        severity: EmbraceLogSeverity,
+        type: EmbraceType,
         timestamp: Date,
         attributes: [String: String],
         stackTraceBehavior: StackTraceBehavior
@@ -52,8 +52,8 @@ public protocol EmbraceOpenTelemetry: AnyObject {
 
     func log(
         _ message: String,
-        severity: LogSeverity,
-        type: LogType,
+        severity: EmbraceLogSeverity,
+        type: EmbraceType,
         timestamp: Date,
         attachment: Data,
         attributes: [String: String],
@@ -62,8 +62,8 @@ public protocol EmbraceOpenTelemetry: AnyObject {
 
     func log(
         _ message: String,
-        severity: LogSeverity,
-        type: LogType,
+        severity: EmbraceLogSeverity,
+        type: EmbraceType,
         timestamp: Date,
         attachmentId: String,
         attachmentUrl: URL,

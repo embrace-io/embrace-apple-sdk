@@ -2,6 +2,7 @@ import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
+    import EmbraceSemantics
 #endif
 
 #if canImport(KSCrashRecording)
@@ -100,13 +101,13 @@ public final class KSCrashReporter: NSObject, CrashReporter {
             }
 
             // get custom data from report
-            var sessionId: SessionIdentifier?
+            var sessionId: EmbraceIdentifier?
             var timestamp: Date?
             let signal: CrashSignal? = getCrashSignal(fromReport: report)
 
             if let userDict = report[KSCrashKey.user] as? [AnyHashable: Any] {
                 if let value = userDict[CrashReporterInfoKey.sessionId] as? String {
-                    sessionId = SessionIdentifier(string: value)
+                    sessionId = EmbraceIdentifier(stringValue: value)
                 }
             }
 
@@ -120,7 +121,7 @@ public final class KSCrashReporter: NSObject, CrashReporter {
                 payload: payload,
                 provider: "kscrash",  // from LogSemantics+Crash.swift
                 internalId: Int(id),
-                sessionId: sessionId?.toString,
+                sessionId: sessionId?.stringValue,
                 timestamp: timestamp,
                 signal: signal
             )

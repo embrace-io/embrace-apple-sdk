@@ -5,7 +5,7 @@
 import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceCommonInternal
+    import EmbraceSemantics
 #endif
 
 extension RemoteConfig {
@@ -14,7 +14,7 @@ extension RemoteConfig {
         let queue: DispatchQueue
 
         let appId: String
-        let deviceId: DeviceIdentifier
+        let deviceId: EmbraceIdentifier
         let osVersion: String
         let sdkVersion: String
         let appVersion: String
@@ -28,7 +28,7 @@ extension RemoteConfig {
             apiBaseUrl: String,
             queue: DispatchQueue,
             appId: String,
-            deviceId: DeviceIdentifier,
+            deviceId: EmbraceIdentifier,
             osVersion: String,
             sdkVersion: String,
             appVersion: String,

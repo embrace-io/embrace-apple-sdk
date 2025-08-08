@@ -31,7 +31,7 @@
         ///           This could mean the `UIViewController` was already rendered / deemed interactive, or the `UIViewController` has already disappeared.
         public func buildChildSpan(
             name: String,
-            type: SpanType = .viewLoad,
+            type: EmbraceType = .viewLoad,
             startTime: Date = Date(),
             attributes: [String: String] = [:]
         ) throws -> SpanBuilder? {
@@ -57,7 +57,7 @@
         ///           This could mean the `UIViewController` was already rendered / deemed interactive, or the `UIViewController` has already disappeared.
         public func recordCompletedChildSpan(
             name: String,
-            type: SpanType = .viewLoad,
+            type: EmbraceType = .viewLoad,
             startTime: Date,
             endTime: Date,
             attributes: [String: String] = [:]

@@ -70,7 +70,7 @@ extension EmbraceOTel: EmbraceOTelBridge {
 
     public func buildSpan(
         name: String,
-        type: SpanType,
+        type: EmbraceType,
         attributes: [String: String] = [:]
     ) -> SpanBuilder {
 
@@ -89,7 +89,7 @@ extension EmbraceOTel: EmbraceOTelBridge {
 
     public func log(
         _ message: String,
-        severity: LogSeverity,
+        severity: EmbraceLogSeverity,
         timestamp: Date,
         attributes: [String: String]
     ) {
@@ -109,13 +109,13 @@ extension EmbraceOTel: EmbraceOTelBridge {
 public protocol EmbraceOTelBridge: AnyObject {
     func buildSpan(
         name: String,
-        type: SpanType,
+        type: EmbraceType,
         attributes: [String: String]
     ) -> SpanBuilder
 
     func log(
         _ message: String,
-        severity: LogSeverity,
+        severity: EmbraceLogSeverity,
         timestamp: Date,
         attributes: [String: String]
     )

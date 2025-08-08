@@ -31,7 +31,7 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
         var active: Bool = false
         var rules: [URLSessionTaskCaptureRule] = []
         var rulesTriggeredMap: [String: Bool] = [:]
-        var currentSessionId: SessionIdentifier?
+        var currentSessionId: EmbraceIdentifier?
     }
     internal var state: EmbraceMutex<MutableState>
 
@@ -66,7 +66,7 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
         if let sessionId = Embrace.client?.currentSessionId() {
             state.withLock {
                 $0.active = true
-                $0.currentSessionId = SessionIdentifier(string: sessionId)
+                $0.currentSessionId = EmbraceIdentifier(stringValue: sessionId)
             }
         }
     }

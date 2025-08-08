@@ -6,6 +6,7 @@ import Foundation
 import OpenTelemetryApi
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceSemantics
     import EmbraceCommonInternal
     import EmbraceConfigInternal
     import EmbraceStorageInternal
@@ -129,7 +130,7 @@ class SessionController: SessionControllable {
         let session = lock.locked {
 
             // create session span
-            let newId = SessionIdentifier.random
+            let newId = EmbraceIdentifier.random
             let span = SessionSpanUtils.span(id: newId, startTime: startTime, state: state, coldStart: isColdStart)
             currentSessionSpan = span
 
@@ -182,8 +183,9 @@ class SessionController: SessionControllable {
             // If the session is a background session and background sessions
             // are disabled in the config, we drop the session!
             // +
-            if session.coldStart == true && session.state == SessionState.background.rawValue
+            if session.coldStart == true && session.state == SessionState.background
                 && backgroundSessionsEnabled == false {
+
                 delete()
                 return now
             }
@@ -214,12 +216,10 @@ class SessionController: SessionControllable {
             }
 
             // update session end time and clean exit
-            if let sessionId = session.id {
-                currentSession = storage?.updateSession(session: session, endTime: now, cleanExit: true)
-            }
+            currentSession = storage?.updateSession(session: session, endTime: now, cleanExit: true)
 
             // post internal notification
-            if session.state == SessionState.foreground.rawValue {
+            if session.state == SessionState.foreground {
                 Embrace.notificationCenter.post(name: .embraceForegroundSessionDidEnd, object: now)
             }
 
@@ -300,9 +300,7 @@ extension SessionController {
             return
         }
 
-        if let sessionId = session.id {
-            storage?.deleteSession(id: sessionId)
-        }
+        storage?.deleteSession(id: session.id)
 
         currentSession = nil
         currentSessionSpan = nil

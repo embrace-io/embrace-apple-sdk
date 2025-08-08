@@ -6,13 +6,15 @@
 /// - This struct will be serialized into an `emb.type` attribute.
 /// - This struct is encoded as a String with the format `<primary>.<secondary>`.
 /// - The primary category is required, but the secondary category is optional.
-public protocol EmbraceType: Hashable, Codable, CustomStringConvertible, RawRepresentable where RawValue == String {
+public struct EmbraceType: Hashable, Codable, CustomStringConvertible, RawRepresentable {
 
-    var primary: PrimaryType { get }
+    public let primary: PrimaryType
+    public let secondary: String?
 
-    var secondary: String? { get }
-
-    init(primary: PrimaryType, secondary: String?)
+    public init(primary: PrimaryType, secondary: String? = nil) {
+        self.primary = primary
+        self.secondary = secondary
+    }
 }
 
 /// Top level category for the EmbraceType
@@ -30,10 +32,6 @@ public enum PrimaryType: String, CaseIterable {
 // MARK: - EmbraceType Extensions -
 
 extension EmbraceType {
-    public init(primary: PrimaryType, secondary: String? = nil) {
-        self.init(primary: primary, secondary: secondary)
-    }
-
     public init(performance secondary: String) {
         self.init(primary: .performance, secondary: secondary)
     }
@@ -48,11 +46,8 @@ extension EmbraceType {
 }
 
 extension EmbraceType {
-
     public static var performance: Self { .init(primary: .performance, secondary: nil) }
-
     public static var ux: Self { .init(primary: .ux, secondary: nil) }
-
     public static var system: Self { .init(primary: .system, secondary: nil) }
 }
 

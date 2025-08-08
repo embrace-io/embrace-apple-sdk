@@ -7,6 +7,7 @@ import OpenTelemetryApi
 import OpenTelemetrySdk
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceSemantics
     import EmbraceStorageInternal
     import EmbraceCommonInternal
     import EmbraceConfiguration
@@ -15,6 +16,7 @@ import OpenTelemetrySdk
 protocol LogBatcherDelegate: AnyObject {
     func batchFinished(withLogs logs: [EmbraceLog])
     var limits: LogsLimits { get set }
+    var currentSessionId: EmbraceIdentifier? { get }
 }
 
 protocol LogBatcher: AnyObject {
@@ -52,12 +54,13 @@ class DefaultLogBatcher: LogBatcher {
     func addLogRecord(logRecord: ReadableLogRecord) {
         processorQueue.async {
             if let record = self.repository.createLog(
-                id: LogIdentifier(),
+                id: EmbraceIdentifier.random,
+                sessionId: self.delegate?.currentSessionId,
                 processId: ProcessIdentifier.current,
                 severity: logRecord.severity?.toLogSeverity() ?? .info,
                 body: logRecord.body?.description ?? "",
                 timestamp: logRecord.timestamp,
-                attributes: logRecord.attributes
+                attributes: logRecord.attributes.toStringValues()
             ) {
                 self.addLogToBatch(record)
             }

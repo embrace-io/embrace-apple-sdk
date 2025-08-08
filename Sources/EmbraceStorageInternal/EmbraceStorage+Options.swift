@@ -5,6 +5,7 @@
 import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceSemantics
     import EmbraceCommonInternal
 #endif
 
@@ -19,7 +20,7 @@ extension EmbraceStorage {
         public let enableBackgroundTasks: Bool
 
         /// Dictionary containing the storage limits per span type
-        public var spanLimits: [SpanType: Int] = [:]
+        public var spanLimits: [EmbraceType: Int] = [:]
 
         /// Determines how many `MetadataRecords` of the `.resource` type can be present at any given time.
         public var resourcesLimit: Int = 100

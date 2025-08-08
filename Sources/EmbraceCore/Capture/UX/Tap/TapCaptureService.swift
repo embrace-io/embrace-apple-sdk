@@ -94,7 +94,7 @@
 
             var attributes: [String: AttributeValue] = [
                 SpanEventSemantics.Tap.keyViewName: .string(viewName),
-                SpanEventSemantics.keyEmbraceType: .string(SpanEventType.tap.rawValue)
+                SpanEventSemantics.keyEmbraceType: .string(EmbraceType.tap.rawValue)
             ]
 
             // get coordinates

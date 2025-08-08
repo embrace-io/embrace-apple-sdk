@@ -5,6 +5,7 @@
 import OpenTelemetryApi
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceSemantics
     import EmbraceCommonInternal
     import EmbraceStorageInternal
 #endif
@@ -12,7 +13,7 @@ import OpenTelemetryApi
 class PayloadUtils {
     static func fetchResources(
         from fetcher: EmbraceStorageMetadataFetcher,
-        sessionId: SessionIdentifier?
+        sessionId: EmbraceIdentifier?
     ) -> [EmbraceMetadata] {
 
         guard let sessionId = sessionId else {
@@ -24,7 +25,7 @@ class PayloadUtils {
 
     static func fetchCustomProperties(
         from fetcher: EmbraceStorageMetadataFetcher,
-        sessionId: SessionIdentifier?
+        sessionId: EmbraceIdentifier?
     ) -> [EmbraceMetadata] {
 
         guard let sessionId = sessionId else {

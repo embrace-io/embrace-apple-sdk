@@ -5,6 +5,7 @@
 import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceSemantics
     import EmbraceCommonInternal
     import EmbraceConfigInternal
     import EmbraceOTelInternal
@@ -50,7 +51,7 @@ import Foundation
     }
 
     /// Returns the `DeviceIdentifier` used by Embrace for the current device.
-    public private(set) var deviceId: DeviceIdentifier
+    public private(set) var deviceId: EmbraceIdentifier
 
     /// Used to control the verbosity level of the Embrace SDK console logs.
     @objc public var logLevel: LogLevel = .error {
@@ -162,13 +163,13 @@ import Foundation
         self.logLevel = options.logLevel
 
         // retrieve device identifier
-        self.deviceId = DeviceIdentifier.retrieve(fileURL: EmbraceFileSystem.deviceIdURL)
+        self.deviceId = DeviceIdentifierHelper.retrieve(fileURL: EmbraceFileSystem.deviceIdURL)
 
         // initialize remote configuration
         self.config = Embrace.createConfig(options: options, deviceId: deviceId)
 
         // initialize upload module
-        self.upload = Embrace.createUpload(options: options, deviceId: deviceId.hex, configuration: config.configurable)
+        self.upload = Embrace.createUpload(options: options, deviceId: deviceId.stringValue, configuration: config.configurable)
 
         // send critical logs from previous session
         UnsentDataHandler.sendCriticalLogs(fileUrl: EmbraceFileSystem.criticalLogsURL, upload: upload)
@@ -400,12 +401,12 @@ import Foundation
             return nil
         }
 
-        return sessionController.currentSession?.idRaw
+        return sessionController.currentSession?.id.stringValue
     }
 
     /// Returns the current device identifier.
     @objc public func currentDeviceId() -> String? {
-        return deviceId.hex
+        return deviceId.stringValue
     }
 
     /// Forces the Embrace SDK to start a new session.

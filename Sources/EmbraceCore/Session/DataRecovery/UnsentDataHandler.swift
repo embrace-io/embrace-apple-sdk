@@ -19,7 +19,7 @@ class UnsentDataHandler {
         upload: EmbraceUpload?,
         otel: EmbraceOpenTelemetry?,
         logController: LogControllable? = nil,
-        currentSessionId: SessionIdentifier? = nil,
+        currentSessionId: EmbraceIdentifier? = nil,
         crashReporter: EmbraceCrashReporter? = nil
     ) {
 
@@ -61,7 +61,7 @@ class UnsentDataHandler {
         storage: EmbraceStorage,
         upload: EmbraceUpload,
         otel: EmbraceOpenTelemetry?,
-        currentSessionId: SessionIdentifier?,
+        currentSessionId: EmbraceIdentifier?,
         crashReporter: EmbraceCrashReporter,
         crashReports: [EmbraceCrashReport]
     ) {
@@ -72,7 +72,8 @@ class UnsentDataHandler {
             var session: EmbraceSession?
 
             // link session with crash report if possible
-            if let sessionId = SessionIdentifier(string: report.sessionId) {
+            if let rawId = report.sessionId {
+                let sessionId = EmbraceIdentifier(stringValue: rawId)
                 if let fetchedSession = storage.fetchSession(id: sessionId) {
                     session = storage.updateSession(
                         session: fetchedSession,
@@ -128,7 +129,7 @@ class UnsentDataHandler {
         do {
             let payload = LogPayloadBuilder.build(
                 timestamp: timestamp,
-                severity: LogSeverity.fatal,
+                severity: EmbraceLogSeverity.fatal,
                 body: "",
                 attributes: attributes,
                 storage: storage,
@@ -196,7 +197,7 @@ class UnsentDataHandler {
     static private func sendSessions(
         storage: EmbraceStorage,
         upload: EmbraceUpload,
-        currentSessionId: SessionIdentifier?
+        currentSessionId: EmbraceIdentifier?
     ) {
 
         // clean up old spans + close open spans
@@ -217,7 +218,7 @@ class UnsentDataHandler {
         }
 
         // remove old metadata
-        cleanMetadata(storage: storage, currentSessionId: currentSessionId?.toString)
+        cleanMetadata(storage: storage, currentSessionId: currentSessionId?.stringValue)
     }
 
     static public func sendSession(
@@ -233,7 +234,7 @@ class UnsentDataHandler {
         do {
             payloadData = try JSONEncoder().encode(payload).gzipped()
         } catch {
-            Embrace.logger.warning("Error encoding session \(session.idRaw):\n" + error.localizedDescription)
+            Embrace.logger.warning("Error encoding session \(session.id.stringValue):\n" + error.localizedDescription)
             return
         }
 
@@ -247,23 +248,21 @@ class UnsentDataHandler {
         }
 
         // upload session spans
-        upload.uploadSpans(id: session.idRaw, data: payloadData) { result in
+        upload.uploadSpans(id: session.id.stringValue, data: payloadData) { result in
             switch result {
             case .success:
                 // remove session from storage
                 // we can remove this immediately because the upload module will cache it until the upload succeeds
-                if let sessionId = session.id {
-                    storage.deleteSession(id: sessionId)
-                }
+                storage.deleteSession(id: session.id)
 
             case .failure(let error):
                 Embrace.logger.warning(
-                    "Error trying to upload session \(session.idRaw):\n\(error.localizedDescription)")
+                    "Error trying to upload session \(session.id.stringValue):\n\(error.localizedDescription)")
             }
         }
     }
 
-    static private func cleanOldSpans(storage: EmbraceStorage, currentSessionId: SessionIdentifier? = nil) {
+    static private func cleanOldSpans(storage: EmbraceStorage, currentSessionId: EmbraceIdentifier? = nil) {
         // first we delete any span record that is closed and its older
         // than the oldest session we have on storage
         // since spans are only sent when included in a session
@@ -274,7 +273,7 @@ class UnsentDataHandler {
         storage.cleanUpSpans(date: oldestSession?.startTime)
     }
 
-    static private func closeOpenSpans(storage: EmbraceStorage, currentSessionId: SessionIdentifier? = nil) {
+    static private func closeOpenSpans(storage: EmbraceStorage, currentSessionId: EmbraceIdentifier? = nil) {
         // then we need to close any remaining open spans
         // we use the latest session on storage to determine the `endTime`
         // since we need to have a valid `endTime` for these spans, we default
@@ -286,7 +285,7 @@ class UnsentDataHandler {
 
     static private func cleanMetadata(storage: EmbraceStorage, currentSessionId: String? = nil) {
         let sessionId = currentSessionId ?? Embrace.client?.currentSessionId()
-        storage.cleanMetadata(currentSessionId: sessionId, currentProcessId: ProcessIdentifier.current.value)
+        storage.cleanMetadata(currentSessionId: sessionId, currentProcessId: ProcessIdentifier.current.stringValue)
     }
 
     static func sendCriticalLogs(fileUrl: URL?, upload: EmbraceUpload?) {
@@ -309,10 +308,10 @@ class UnsentDataHandler {
         }
 
         // manually construct log payload
-        let id = LogIdentifier().toString
+        let id = EmbraceIdentifier.random.stringValue
         let attributes: [String: String] = [
             LogSemantics.keyId: id,
-            LogSemantics.keyEmbraceType: LogType.internal.rawValue
+            LogSemantics.keyEmbraceType: EmbraceType.internal.rawValue
         ]
 
         let payload = LogPayloadBuilder.build(

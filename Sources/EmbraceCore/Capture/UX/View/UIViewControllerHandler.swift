@@ -430,7 +430,7 @@
             viewName: String,
             className: String,
             name: String,
-            type: SpanType = .viewLoad,
+            type: EmbraceType = .viewLoad,
             startTime: Date,
             parent: Span? = nil
         ) -> Span {

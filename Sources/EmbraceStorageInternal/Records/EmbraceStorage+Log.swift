@@ -3,22 +3,22 @@
 //
 
 import Foundation
-import OpenTelemetryApi
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceCommonInternal
+    import EmbraceSemantics
 #endif
 
 public protocol LogRepository {
     func createLog(
-        id: LogIdentifier,
-        processId: ProcessIdentifier,
-        severity: LogSeverity,
+        id: EmbraceIdentifier,
+        sessionId: EmbraceIdentifier?,
+        processId: EmbraceIdentifier,
+        severity: EmbraceLogSeverity,
         body: String,
         timestamp: Date,
-        attributes: [String: AttributeValue]
+        attributes: [String: String]
     ) -> EmbraceLog?
-    func fetchAll(excludingProcessIdentifier processIdentifier: ProcessIdentifier) -> [EmbraceLog]
+    func fetchAll(excludingProcessIdentifier processIdentifier: EmbraceIdentifier) -> [EmbraceLog]
     func remove(logs: [EmbraceLog])
     func removeAllLogs()
 }
@@ -27,16 +27,18 @@ extension EmbraceStorage {
 
     @discardableResult
     public func createLog(
-        id: LogIdentifier,
-        processId: ProcessIdentifier,
-        severity: LogSeverity,
+        id: EmbraceIdentifier,
+        sessionId: EmbraceIdentifier?,
+        processId: EmbraceIdentifier,
+        severity: EmbraceLogSeverity,
         body: String,
         timestamp: Date = Date(),
-        attributes: [String: OpenTelemetryApi.AttributeValue]
+        attributes: [String: String]
     ) -> EmbraceLog? {
         if let log = LogRecord.create(
             context: coreData.context,
             id: id,
+            sessionId: sessionId,
             processId: processId,
             severity: severity,
             body: body,
@@ -50,16 +52,17 @@ extension EmbraceStorage {
         return nil
     }
 
-    func fetchLogRecord(id: String, processId: String) -> LogRecord? {
+    func fetchLogRecord(id: EmbraceIdentifier, processId: EmbraceIdentifier) -> LogRecord? {
         let request = LogRecord.createFetchRequest()
-        request.predicate = NSPredicate(format: "idRaw == %@ AND processIdRaw == %@", id, processId)
+        request.predicate = NSPredicate(
+            format: "idRaw == %@ AND processIdRaw == %@", id.stringValue, processId.stringValue)
 
         return coreData.fetch(withRequest: request).first
     }
 
-    public func fetchAll(excludingProcessIdentifier processIdentifier: ProcessIdentifier) -> [EmbraceLog] {
+    public func fetchAll(excludingProcessIdentifier processIdentifier: EmbraceIdentifier) -> [EmbraceLog] {
         let request = LogRecord.createFetchRequest()
-        request.predicate = NSPredicate(format: "processIdRaw != %@", processIdentifier.value)
+        request.predicate = NSPredicate(format: "processIdRaw != %@", processIdentifier.stringValue)
 
         // fetch
         var result: [EmbraceLog] = []
@@ -83,7 +86,7 @@ extension EmbraceStorage {
         var records: [LogRecord] = []
 
         for log in logs {
-            if let record = fetchLogRecord(id: log.idRaw, processId: log.processIdRaw) {
+            if let record = fetchLogRecord(id: log.id, processId: log.processId) {
                 records.append(record)
             }
         }

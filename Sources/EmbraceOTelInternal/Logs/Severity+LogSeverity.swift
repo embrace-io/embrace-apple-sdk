@@ -5,7 +5,7 @@
 import OpenTelemetryApi
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceCommonInternal
+    import EmbraceSemantics
 #endif
 
 /// This extension transforms an `OpenTelemetryApi.Severity` into the severities we deem appropriate
@@ -13,11 +13,11 @@ import OpenTelemetryApi
 extension Severity {
     /// Transforms `OpenTelemetryApi.Severity` to `EmbraceCommon.LogSeverity`
     /// - Returns: a `EmbraceCommon.LogSeverity`. The transformation could fail, that's why it's an `Optional`
-    public func toLogSeverity() -> LogSeverity? {
-        LogSeverity(rawValue: self.rawValue)
+    public func toLogSeverity() -> EmbraceLogSeverity? {
+        EmbraceLogSeverity(rawValue: self.rawValue)
     }
 
-    static public func fromLogSeverity(_ logSeverity: LogSeverity) -> Severity? {
+    static public func fromLogSeverity(_ logSeverity: EmbraceLogSeverity) -> Severity? {
         Severity(rawValue: logSeverity.number)
     }
 }

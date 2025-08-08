@@ -2,12 +2,8 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceCommonInternal
-#endif
-
-extension SpanType {
-    public static let session = SpanType(ux: "session")
+extension EmbraceType {
+    public static let session = EmbraceType(ux: "session")
 }
 
 extension SpanSemantics {

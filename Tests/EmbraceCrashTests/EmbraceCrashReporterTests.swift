@@ -134,7 +134,7 @@ class EmbraceCrashReporterTests: XCTestCase {
     }
 
     func testHavingInternalAddedInfoFunctions() throws {
-        
+
         crashReporter = EmbraceCrashReporter(reporter: KSCrashReporter(), logger: logger)
         let context = CrashReporterContext(
             appId: "_-_-_",
@@ -143,19 +143,19 @@ class EmbraceCrashReporterTests: XCTestCase {
             notificationCenter: .default
         )
         crashReporter.install(context: context)
-        
+
         crashReporter.currentSessionId = "original_session_id"
         XCTAssertEqual(crashReporter.currentSessionId, "original_session_id")
         XCTAssertEqual(crashReporter.getCrashInfo(key: CrashReporterInfoKey.sessionId), "original_session_id")
-        
+
         crashReporter.appendCrashInfo(key: CrashReporterInfoKey.sessionId, value: "nope")
         XCTAssertEqual(crashReporter.currentSessionId, "original_session_id")
         XCTAssertEqual(crashReporter.getCrashInfo(key: CrashReporterInfoKey.sessionId), "original_session_id")
-        
+
         crashReporter.appendCrashInfo(key: "key1", value: "value1")
         XCTAssertEqual(crashReporter.getCrashInfo(key: "key1"), "value1")
     }
-    
+
     // MARK: - Signal Block List Tests
 
     func testOnHavingDefaultSignalBlockList_fetchUnsentCrashReports_SIGTERMshouldntBeReported() throws {

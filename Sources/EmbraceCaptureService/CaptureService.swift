@@ -8,6 +8,7 @@ import OpenTelemetryApi
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
     import EmbraceOTelInternal
+    import EmbraceSemantics
 #endif
 
 /// Base class for all capture services (this class should never be used directly)
@@ -94,7 +95,7 @@ extension CaptureService {
     ///   - type: Type of the span.
     ///   - attributes: Attributes of the span.
     /// - Returns: The newly created `SpanBuilder` instance, or `nil` if the capture service is not active.
-    public func buildSpan(name: String, type: SpanType, attributes: [String: String]) -> SpanBuilder? {
+    public func buildSpan(name: String, type: EmbraceType, attributes: [String: String]) -> SpanBuilder? {
         guard state == .active else {
             return nil
         }

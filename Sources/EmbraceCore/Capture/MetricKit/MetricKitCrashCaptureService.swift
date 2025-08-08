@@ -22,7 +22,7 @@ class MetricKitCrashCaptureService: CaptureService, MetricKitCrashPayloadListene
         options.payloadProvider?.add(listener: self)
     }
 
-    func didReceive(payload: Data, signal: Int, sessionId: SessionIdentifier?) {
+    func didReceive(payload: Data, signal: Int, sessionId: EmbraceIdentifier?) {
         guard state == .active,
             let stateProvider = options.stateProvider,
             stateProvider.isMetricKitEnabled,
@@ -46,10 +46,10 @@ class MetricKitCrashCaptureService: CaptureService, MetricKitCrashPayloadListene
 
         let attributes =
             attributesBuilder
-            .addLogType(.crash)
+            .addLogType(EmbraceType.crash)
             .addApplicationProperties(sessionId: sessionId)
-            .addApplicationState(SessionState.unknown.rawValue)
-            .addSessionIdentifier(sessionId?.toString)
+            .addApplicationState(SessionState.unknown)
+            .addSessionIdentifier(sessionId)
             .addCrashReportProperties(
                 id: UUID().withoutHyphen, provider: LogSemantics.Crash.metrickitProvider, payload: payloadString
             )

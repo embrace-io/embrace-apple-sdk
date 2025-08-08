@@ -45,8 +45,8 @@ class MetricKitHangCaptureService: CaptureService, MetricKitHangPayloadListener 
 
         let attributes =
             attributesBuilder
-            .addLogType(.hang)
-            .addApplicationState(SessionState.unknown.rawValue)
+            .addLogType(EmbraceType.hang)
+            .addApplicationState(SessionState.unknown)
             .addHangReportProperties(
                 id: UUID().withoutHyphen,
                 provider: LogSemantics.Hang.metrickitProvider,
