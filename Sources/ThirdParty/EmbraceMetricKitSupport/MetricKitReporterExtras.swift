@@ -1,5 +1,12 @@
+//
+//  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
+//
+
 import Foundation
-import MetricKit
+
+#if canImport(MetricKit)
+    import MetricKit
+#endif
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
@@ -7,7 +14,8 @@ import MetricKit
 
 // MARK: - MetricKit Extensions
 
-#if !os(tvOS)
+#if os(iOS)
+
     @available(iOS 14.0, *)
     extension MXCrashDiagnostic {
 

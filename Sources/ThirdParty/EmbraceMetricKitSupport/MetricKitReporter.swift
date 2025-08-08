@@ -1,12 +1,19 @@
+//
+//  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
+//
+
 import Foundation
-import MetricKit
+
+#if canImport(MetricKit)
+    import MetricKit
+#endif
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
     import EmbraceObjCUtilsInternal
 #endif
 
-#if os(iOS) || os(macOS)
+#if os(iOS)
 
     public class MetricKitReporterLogger {
         var internalLogger: InternalLogger?
@@ -60,7 +67,7 @@ import MetricKit
     // crash actually hapenned.
 
     // MARK: - Reporter
-    @available(iOS 13.0, macOS 12.0, *)
+    @available(iOS 13.0, *)
     public class MetricKitReporter: NSObject, CrashReporter {
 
         private var reports = EmbraceMutex([EmbraceCrashReport]())
@@ -205,7 +212,7 @@ import MetricKit
 
     // MARK: - MetricKit Subscriber
 
-    @available(iOS 13.0, macOS 12.0, *)
+    @available(iOS 13.0, *)
     extension MetricKitReporter: MXMetricManagerSubscriber {
 
         @available(iOS 14.0, *)
@@ -248,7 +255,7 @@ import MetricKit
 
     // MARK: - Crashes
 
-    @available(iOS 13.0, macOS 12.0, *)
+    @available(iOS 13.0, *)
     extension MetricKitReporter {
 
         @available(iOS 14.0, *)
@@ -292,7 +299,7 @@ import MetricKit
 
     // MARK: - Metrics
 
-    @available(iOS 13.0, macOS 12.0, *)
+    @available(iOS 13.0, *)
     extension MetricKitReporter {
 
         private func handleMetric(_ metric: MXMetricPayload) {
@@ -364,7 +371,6 @@ import MetricKit
 
 #else
 
-    @available(iOS 13.0, macOS 12.0, *)
     public class MetricKitReporter: NSObject, CrashReporter {
         public func install(context: EmbraceCommonInternal.CrashReporterContext) throws {
         }
