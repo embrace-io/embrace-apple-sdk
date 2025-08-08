@@ -2,7 +2,7 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-#import <QuartzCore/QuartzCore.h>
+#import <Foundation/Foundation.h>
 #import <sys/time.h>
 
 #if TARGET_OS_OSX
