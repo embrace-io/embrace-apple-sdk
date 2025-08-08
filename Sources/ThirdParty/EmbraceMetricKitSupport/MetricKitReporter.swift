@@ -300,7 +300,8 @@ extension MetricKitReporter {
                 try? metric.jsonRepresentation().write(to: url)
             }
         #endif
-
+        
+        /*
         let attsNoHistogramOptional = [String: String?](
             uniqueKeysWithValues: _flatten(
                 metric.dictionaryRepresentation()
@@ -313,7 +314,7 @@ extension MetricKitReporter {
             })
         let attsNoHistogram = attsNoHistogramOptional.compactMapValues { $0 }
 
-        /*
+        
          try? JSONSerialization
          .data(withJSONObject: attsNoHistogram, options: [.prettyPrinted, .sortedKeys])
          .write(to: .documentsDirectory.appending(component: "metric_no_hist.json"))
