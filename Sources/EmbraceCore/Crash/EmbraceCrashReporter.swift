@@ -8,6 +8,10 @@ import Foundation
     import EmbraceCommonInternal
 #endif
 
+extension Notification.Name {
+    public static let embraceCrashReporterDidReportCrashNotification = Notification.Name("embraceCrashReporterDidReportCrashNotification")
+}
+
 /// Default `CrashReporter` used by the Embrace SDK.
 /// Internally uses KSCrash to capture data from crashes.
 public final class EmbraceCrashReporter: NSObject {
