@@ -18,6 +18,8 @@ jobs:
       fail-fast: false
       matrix:
         xcode_version: ["15.4"]
+        device:
+          - "iPhone 15 Pro"
     permissions:
       checks: write
 
@@ -31,6 +33,9 @@ jobs:
         timeout-minutes: 5
         with:
           persist-credentials: false
+      - name: Boot Simulator
+        run: |
+          xcrun simctl boot "${{ matrix.device }}"
 
       - name: Cache SPM Dependencies
         uses: actions/cache@v4
