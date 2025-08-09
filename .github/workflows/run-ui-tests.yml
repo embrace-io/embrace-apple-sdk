@@ -73,7 +73,7 @@ jobs:
           -scheme EmbraceIOTestApp" \
           -testPlan 'EmbraceIOTestAppTests' \ 
           -derivedDataPath "build/DerivedData" \
-          -destination "platform=iOS Simulator,name=${{ matrix.device }}" | xcpretty) || exit 0
+          -destination "platform=iOS Simulator,name=${{ matrix.device }}" | xcpretty)
 
       - name: Upload xcresult Bundle Manually
         if: always()
