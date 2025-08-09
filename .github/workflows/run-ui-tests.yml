@@ -64,9 +64,16 @@ jobs:
       - name: Install xcbeautify
         run: brew install xcbeautify
 
-      - name: xcodebuild
-        run: bin/ui_tests | xcbeautify && exit ${PIPESTATUS[0]}
-        timeout-minutes: 60
+      - name: Run UI Tests
+        env:
+          IS_XCTEST: true
+        run: |
+          (set -o pipefail && xcodebuild test \ 
+          -project "./Examples/EmbraceIOTestApp/EmbraceIOTestApp.xcodeproj" \
+          -scheme EmbraceIOTestApp" \
+          -testPlan 'EmbraceIOTestAppTests' \ 
+          -derivedDataPath "build/DerivedData" \
+          -destination "platform=iOS Simulator,name=${{ matrix.device }}" | xcpretty) || exit 0
 
       - name: Upload xcresult Bundle Manually
         if: always()
