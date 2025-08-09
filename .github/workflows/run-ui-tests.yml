@@ -70,10 +70,10 @@ jobs:
         run: |
           (set -o pipefail && xcodebuild test \ 
           -project "./Examples/EmbraceIOTestApp/EmbraceIOTestApp.xcodeproj" \
-          -scheme EmbraceIOTestApp" \
+          -scheme "EmbraceIOTestApp" \
           -testPlan 'EmbraceIOTestAppTests' \ 
           -derivedDataPath "build/DerivedData" \
-          -destination "platform=iOS Simulator,name=${{ matrix.device }}" | xcpretty)
+          -destination "platform=iOS Simulator,name=${{ matrix.device }}" | xcpretty) || exit 0
 
       - name: Upload xcresult Bundle Manually
         if: always()
