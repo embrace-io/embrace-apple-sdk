@@ -14,7 +14,7 @@ import Foundation
     /// This class is a wrapper around `UIApplication.shared.beginBackgroundTask`.
     /// Based off https://developer.apple.com/forums/thread/85066 and https://developer.apple.com/forums/thread/729335
 
-    class BackgroundTaskWrapper {
+    class BackgroundTaskAssertion {
 
         let name: String
         private var taskID: UIBackgroundTaskIdentifier = .invalid
@@ -55,6 +55,8 @@ import Foundation
             }
 
             Self.taskProvider.endBackgroundTask(self.taskID)
+            print("[BG:END:\(taskID.rawValue)] \(name)")
+
             taskID = .invalid
         }
     }
@@ -73,7 +75,7 @@ import Foundation
             UIApplication.shared as UIApplication?
         }
 
-        func beginBackgroundTask(withName taskName: String?, expirationHandler handler: @escaping () -> Void)
+        func beginBackgroundTask(withName taskName: String, expirationHandler handler: @escaping () -> Void)
             -> UIBackgroundTaskIdentifier
         {
             // If app is nil, we have a special identifier.
@@ -87,10 +89,12 @@ import Foundation
                 return .timeout
             }
 
-            return app.beginBackgroundTask(
-                withName: taskName,
+            let id: UIBackgroundTaskIdentifier = app.beginBackgroundTask(
+                withName: "\(taskName)",
                 expirationHandler: handler
             )
+            print("[BG:START:\(id.rawValue)] \(taskName)")
+            return id
         }
 
         func endBackgroundTask(_ identifier: UIBackgroundTaskIdentifier) {
@@ -137,7 +141,7 @@ import Foundation
     typealias UIBackgroundTaskIdentifier = UInt
 
     // TODO: Implement WatchOS Version
-    class BackgroundTaskWrapper {
+    class BackgroundTaskAssertion {
 
         let name: String
         private var taskID: UIBackgroundTaskIdentifier
