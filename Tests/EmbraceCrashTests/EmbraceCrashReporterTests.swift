@@ -181,7 +181,7 @@
                 // Then only one report should be present
                 XCTAssertEqual(reports.count, 1)
                 // and report shouldn't be the one with the SIGTERM signal
-                XCTAssertEqual(reports[0].internalId, 1)
+                XCTAssertEqual(reports[0].internalId, "1")
                 // and dropped report should have been deleted
                 self.thenShouldntExistReport(withName: "appId-report-0000000000000002.json")
 
@@ -210,8 +210,8 @@
             crashReporter.fetchUnsentCrashReports { reports in
                 // Then both reports should be present
                 XCTAssertEqual(reports.count, 2)
-                XCTAssertEqual(reports[0].internalId, 1)
-                XCTAssertEqual(reports[1].internalId, 2)
+                XCTAssertEqual(reports[0].internalId, "1")
+                XCTAssertEqual(reports[1].internalId, "2")
 
                 expectation.fulfill()
             }
@@ -239,7 +239,7 @@
                 // Then only one report should be
                 XCTAssertEqual(reports.count, 1)
                 // and report shouldn't be the one with the SIGABRT signal
-                XCTAssertEqual(reports[0].internalId, 2)
+                XCTAssertEqual(reports[0].internalId, "2")
                 // and dropped report should have been deleted
                 self.thenShouldntExistReport(withName: "appId-report-0000000000000001.json")
                 expectation.fulfill()
