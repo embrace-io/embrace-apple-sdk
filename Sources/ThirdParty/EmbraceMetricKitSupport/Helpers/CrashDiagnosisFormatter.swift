@@ -10,7 +10,7 @@ import Foundation
 // https://developer.apple.com/documentation/xcode/investigating-memory-access-crashes
 public final class CrashDiagnosisFormatter {
 
-    func diagnosis(from d: CrashDiagnostic) -> String {
+    func diagnosis(from d: MetricKitDiagnosticReport) -> String {
 
         var parts: [String] = []
 
