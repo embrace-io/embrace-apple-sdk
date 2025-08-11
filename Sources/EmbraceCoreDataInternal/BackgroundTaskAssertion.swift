@@ -55,7 +55,7 @@ import Foundation
             }
 
             Self.taskProvider.endBackgroundTask(self.taskID)
-            print("[BG:END:\(taskID.rawValue)] \(name)")
+            logger.debug("[BG:END:\(taskID.rawValue)] \(name)")
 
             taskID = .invalid
         }
