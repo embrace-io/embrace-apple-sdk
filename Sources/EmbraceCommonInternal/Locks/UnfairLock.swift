@@ -29,7 +29,7 @@ final public class UnfairLock {
 }
 
 extension UnfairLock {
-    
+
     public func lock() {
         os_unfair_lock_lock(_lock)
     }

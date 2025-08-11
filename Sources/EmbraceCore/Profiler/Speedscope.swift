@@ -1,32 +1,32 @@
 import Foundation
 
 public struct Speedscope: Codable {
-    
+
     struct Frame: Codable, Identifiable, Hashable {
         let name: String
-        var file: String? = nil
-        var line: Int? = nil
-        var col: Int? = nil
-        
+        var file: String?
+        var line: Int?
+        var col: Int?
+
         var id: String { "\(name)-\(file ?? "")" }
     }
-    
+
     struct Shared: Codable {
         let frames: [Frame]
     }
-    
+
     enum ProfileType: String, Codable {
         case evented
         case sampled
     }
-    
+
     enum UnitType: String, Codable {
         case nanoseconds
         case milliseconds
     }
-    
+
     typealias SampledStack = [Int]
-    
+
     struct Profile: Codable {
         let type: ProfileType
         let name: String
@@ -36,14 +36,14 @@ public struct Speedscope: Codable {
         let samples: [SampledStack]
         let weights: [UInt64]
     }
-    
+
     let shared: Shared
     let profiles: [Profile]
     let name: String
     let activeProfileIndex: Int
     let exporter: String
     let schema: String = "https://www.speedscope.app/file-format-schema.json"
-    
+
     enum CodingKeys: String, CodingKey {
         case schema = "$schema"
         case exporter
@@ -76,9 +76,10 @@ extension EmbraceBacktraceFrame {
 }
 
 extension Speedscope {
-    
-    public static func with(_ profile: EmbraceProfile, filter: (_ frame: EmbraceBacktraceFrame) -> Bool ) -> Speedscope? {
-        
+
+    public static func with(_ profile: EmbraceProfile, filter: (_ frame: EmbraceBacktraceFrame) -> Bool) -> Speedscope?
+    {
+
         // build the frames
         var frameset = Set<Frame>()
         profile.backtraces.forEach { backtrace in
@@ -90,13 +91,13 @@ extension Speedscope {
                 }
             }
         }
-        
+
         let frames = Array(frameset)
-        
+
         var samples: [[Int]] = []
         var weight: [UInt64] = []
         var lastTime = profile.startTime
-        
+
         profile.backtraces.forEach { backtrace in
             if let thread = backtrace.threads.first {
                 var stack: [Int] = []
@@ -110,7 +111,7 @@ extension Speedscope {
                 lastTime = backtrace.timestamp
             }
         }
-        
+
         return Speedscope(
             shared: Shared(frames: frames),
             profiles: [
@@ -129,5 +130,5 @@ extension Speedscope {
             exporter: "Embrace"
         )
     }
-    
+
 }

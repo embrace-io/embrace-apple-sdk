@@ -1,7 +1,7 @@
 import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceCommonInternal
+    import EmbraceCommonInternal
 #endif
 
 /// Protocol for objects that observe hang detection events.
@@ -21,27 +21,27 @@ public protocol HangObserver: AnyObject {
 /// the monitored RunLoop is blocked beyond acceptable durations.
 /// Initialize as early as possible during app launch to start monitoring.
 final public class HangWatchdog {
-    
+
     /// Default hang threshold defined by Apple (0.25 seconds).
     public static let defaultAppleHangThreshold: TimeInterval = 0.249
-    
+
     /// The interval, in seconds, that the monitored RunLoop must be blocked
     /// before it is considered a hang.
     /// Default is 0.25 seconds (250 milliseconds).
     public let threshold: TimeInterval
-    
+
     /// The HangObserver instance that receives callbacks for hang start,
     /// hang update, and hang end events.
     public weak var hangObserver: HangObserver? {
         set { hangData.withLock { $0.hangObserver = newValue } }
         get { hangData.withLock { $0.hangObserver } }
     }
-    
+
     /// Returns true if we're currently in a hang.
     public var inHang: Bool {
         hangData.withLock { $0.hanging }
     }
-    
+
     /// The time in nanoseconds since the start of the hang.
     /// 0 if not in a hang.
     public var timeSinceHangStart: UInt64 {
@@ -52,20 +52,22 @@ final public class HangWatchdog {
             return suspendingTimeInNanoseconds() - $0.enterTime
         }
     }
-    
+
     /// Initializes a new HangWatchdog instance.
     /// - Parameters:
     ///   - threshold: The hang threshold in seconds.
     ///   - runLoop: The RunLoop to monitor for hangs.
-    public init(threshold: TimeInterval = HangWatchdog.defaultAppleHangThreshold,
-                runLoop: RunLoop = .main) {
+    public init(
+        threshold: TimeInterval = HangWatchdog.defaultAppleHangThreshold,
+        runLoop: RunLoop = .main
+    ) {
         self.threshold = threshold
         self.runLoop = runLoop
         self.hangObserver = nil
         self.scheduleThread()
         self.scheduleObserver()
     }
-    
+
     deinit {
         if let observer {
             CFRunLoopRemoveObserver(runLoop.getCFRunLoop(), observer, .commonModes)
@@ -85,7 +87,7 @@ final public class HangWatchdog {
             // this here for if we ever decide to
             // do anything special.
             watchdogThread.cancel()
-            
+
             // Here we should really join the watchdogThread.
             // There's no way to do that from a `Thread`.
             // We could use a semaphore and wait to be signaled
@@ -93,35 +95,35 @@ final public class HangWatchdog {
             // unlikely to be useful.
         }
     }
-    
+
     /// Private.
-    
+
     // The RunLoop observer that receives activities
     // and flag the timings between events.
-    private var observer: CFRunLoopObserver? = nil
-    
+    private var observer: CFRunLoopObserver?
+
     // The hi-priority thread used to ping the watchdog
     // _runLoop_.
-    private var watchdogThread: Thread? = nil
-    
+    private var watchdogThread: Thread?
+
     // The RunLoop created on the watchdog thread that
     // allows us to use a timer to ping the watched _runLoop_.
-    private var watchdogRunLoop: RunLoop? = nil
-    
+    private var watchdogRunLoop: RunLoop?
+
     // A timer that pings the watchdog thread while
     // we're waiting for the watched _runLoop_ to resolve
     // running all events.
-    private var watchdogTimer: CFRunLoopTimer? = nil
-    
+    private var watchdogTimer: CFRunLoopTimer?
+
     // the RunLoop we are watching for hangs.
     private let runLoop: RunLoop
-    
+
     /// Internal structure for tracking whether a hang is active and recording
     /// the timestamp when the RunLoop was entered.
     private struct HangData {
         var hanging: Bool = false
         var enterTime: UInt64 = 0
-        weak var hangObserver: HangObserver? = nil
+        weak var hangObserver: HangObserver?
     }
     private var hangData = EmbraceMutex(HangData())
 }
@@ -129,15 +131,15 @@ final public class HangWatchdog {
 // MARK: - Private Watchdog
 
 extension HangWatchdog {
-    
+
     /// Sets up a dedicated high-priority thread with its own RunLoop
     /// to perform hang detection pings without blocking the monitored RunLoop.
     private func scheduleThread() {
-        
+
         runLoopPrecondition(runloop: runLoop)
-        
+
         let semaphore = DispatchSemaphore(value: 0)
-        
+
         watchdogThread = Thread { [weak self] in
             let rl = RunLoop.current
             rl.add(NSMachPort(), forMode: .common)
@@ -146,21 +148,21 @@ extension HangWatchdog {
             rl.run()
         }
         watchdogThread?.name = "com.embrace.watchdog"
-        watchdogThread?.threadPriority = 1.0; // 1 is the max priority.
+        watchdogThread?.threadPriority = 1.0  // 1 is the max priority.
         watchdogThread?.start()
-        
+
         // We need to get the watchdog thread runloop,
         // so we simply wait here until it's set on
         // that thread.
         semaphore.wait()
     }
-    
+
     /// Adds a CFRunLoopObserver to the monitored RunLoop that listens for
     /// .beforeWaiting and .afterWaiting activities to detect hang start and end events.
     private func scheduleObserver() {
-        
+
         runLoopPrecondition(runloop: runLoop)
-        
+
         // A hang starts when it takes more than 250ms between
         // two .beforeWaiting run loop events.
         // ref: https://developer.apple.com/documentation/xcode/understanding-hangs-in-your-app#Understand-hangs
@@ -168,66 +170,66 @@ extension HangWatchdog {
             kCFAllocatorDefault,
             CFRunLoopActivity(arrayLiteral: [.beforeWaiting, .afterWaiting]).rawValue,
             true,
-            0)
-        { [weak self] _, activity in
+            0
+        ) { [weak self] _, activity in
             guard let self else { return }
-            
+
             // kill the timer
             if let timer = self.watchdogTimer {
                 CFRunLoopTimerInvalidate(timer)
                 self.watchdogTimer = nil
             }
-            
+
             // before the wait period, we want to check if the previous
             // cycle took more time than it should have and flag it.
             if activity == .beforeWaiting {
-                
+
                 // check for a hang that needs to end
                 let (observer, now, hangTime): (HangObserver?, UInt64, UInt64) = hangData.withLock {
                     guard $0.hanging else {
                         return (nil, UInt64(0), UInt64(0))
                     }
                     $0.hanging = false
-                    
+
                     // update the time value
                     let now = suspendingTimeInNanoseconds()
                     let hangTime = now - $0.enterTime
-                    
+
                     return ($0.hangObserver, now, hangTime)
                 }
-                
+
                 // log it if needed
                 if let observer {
                     observer.hangEnded(at: now, duration: hangTime)
                 }
             }
-            
+
             // After waiting, we start processing events.
             // This means we need to watch for hangs in
             // this period.
             else if activity == .afterWaiting {
                 self.schedulePings()
             }
-            
+
         }
         if let obs = observer {
             CFRunLoopAddObserver(runLoop.getCFRunLoop(), obs, .commonModes)
         }
     }
-    
+
     /// Schedules a CFRunLoopTimer on the watchdog thread to measure how long
     /// the monitored RunLoop remains blocked. Triggers hangObserver callbacks:
     /// hangStarted, hangUpdated, and hangEnded.
     private func schedulePings() {
-        
+
         runLoopPrecondition(runloop: runLoop)
-        
+
         // store the time
         let startTime = suspendingTimeInNanoseconds()
         hangData.withLock { $0.enterTime = startTime }
-        
+
         let threasholdInNs = UInt64(threshold * 1_000_000_000)
-        
+
         // Run the timer on the watchdog run loop to ping it
         // until this callback is entered again and resolves any hang.
         watchdogTimer = CFRunLoopTimerCreateWithHandler(
@@ -236,22 +238,22 @@ extension HangWatchdog {
             threshold,
             0,
             0
-        ) { [weak self] timer in
-            
+        ) { [weak self] _ in
+
             guard let self else { return }
             precondition(Thread.current == self.watchdogThread)
-            
+
             let now = suspendingTimeInNanoseconds()
             let (observer, startHang, enterTime, hangTime) = hangData.withLock {
-                
+
                 let enterTime = $0.enterTime
                 let (hangTime, overflow) = now.subtractingReportingOverflow(enterTime)
                 if overflow {
                     print("overflow")
-                    //return (nil, false, enterTime, hangTime)
+                    // return (nil, false, enterTime, hangTime)
                 }
                 let isHang = hangTime >= threasholdInNs
-                
+
                 let startHang = isHang && $0.hanging == false
                 if startHang { $0.hanging = true }
 
@@ -259,16 +261,16 @@ extension HangWatchdog {
             }
 
             if let observer {
-                
+
                 // Hang Start
                 if startHang {
                     observer.hangStarted(at: enterTime, duration: hangTime)
                 }
-                
+
                 // Always send a hang update. If the hang just started, then we simply
                 // sent a delayed start, so now send the update so the receiver
                 // can do whatever they also do on update, such as take a backtrace.
-                
+
                 // Hang Update
                 observer.hangUpdated(at: now, duration: hangTime)
             }
@@ -284,9 +286,10 @@ extension HangWatchdog {
 /// Ensures that the provided RunLoop matches the current thread’s RunLoop.
 /// - Parameter runloop: The RunLoop expected to be current.
 public func runLoopPrecondition(runloop: @autoclosure () -> RunLoop) {
-    precondition({
-        runloop() == RunLoop.current
-    }())
+    precondition(
+        {
+            runloop() == RunLoop.current
+        }())
 }
 
 /// Returns the current uptime in nanoseconds, including system sleep time,

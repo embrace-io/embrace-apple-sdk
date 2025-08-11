@@ -61,7 +61,7 @@ import Foundation
     ) -> PushNotificationCaptureService {
         return PushNotificationCaptureService(options: options)
     }
-    
+
     static func hangWatchdog() -> HangCaptureService {
         return HangCaptureService()
     }

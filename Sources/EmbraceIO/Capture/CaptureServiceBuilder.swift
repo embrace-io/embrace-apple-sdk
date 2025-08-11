@@ -81,7 +81,7 @@ public class CaptureServiceBuilder: NSObject {
         if !services.contains(where: { $0 is HangCaptureService }) {
             add(.hangWatchdog())
         }
-        
+
         return self
     }
 }

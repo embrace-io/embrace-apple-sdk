@@ -37,9 +37,9 @@ class CaptureServiceBuilderTests: XCTestCase {
 
         XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
         XCTAssertNotNil(list.first(where: { $0 is LowPowerModeCaptureService }))
-        
+
         XCTAssertNotNil(list.first(where: { $0 is HangCaptureService }))
-        
+
         XCTAssertEqual(list.count, count)
 
     }
@@ -111,7 +111,7 @@ class CaptureServiceBuilderTests: XCTestCase {
         XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
         XCTAssertNotNil(list.first(where: { $0 is LowPowerModeCaptureService }))
         XCTAssertNotNil(list.first(where: { $0 is HangCaptureService }))
-        
+
         XCTAssertEqual(list.count, count)
     }
 
@@ -215,21 +215,21 @@ class CaptureServiceBuilderTests: XCTestCase {
         XCTAssertEqual(list.count, 1)
         XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
     }
-    
+
     func test_addHangCaptureService() throws {
         // given a builder
         let builder = CaptureServiceBuilder()
-        
+
         // when adding a LowPowerModeCaptureService
         builder.add(.hangWatchdog())
-        
+
         // then the list contains the capture service
         let list = builder.build()
-        
+
         XCTAssertEqual(list.count, 1)
         XCTAssertNotNil(list.first(where: { $0 is HangCaptureService }))
     }
-    
+
     func test_addLowPowerModeCaptureService() throws {
         // given a builder
         let builder = CaptureServiceBuilder()

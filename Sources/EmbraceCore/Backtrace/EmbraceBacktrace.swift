@@ -6,13 +6,13 @@ import Foundation
 
 public struct EmbraceBacktraceFrame: Codable {
     public let address: UInt64
-    
+
     public struct Symbol: Codable {
         public let address: UInt
         public let name: String
     }
     public let symbol: Symbol?
-    
+
     public struct Image: Codable {
         public let uuid: String
         public let name: String
@@ -30,7 +30,7 @@ public struct EmbraceBacktraceThread: Codable {
     public var frames: [EmbraceBacktraceFrame] {
         callstack.frames(symbolicated: true)
     }
-    
+
     internal struct Callstack: Codable {
         let addresses: [UInt]
         let count: Int
