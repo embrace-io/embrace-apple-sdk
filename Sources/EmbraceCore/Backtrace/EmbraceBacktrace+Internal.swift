@@ -34,7 +34,6 @@ private class EmbraceThreadList {
             self.threads = nil
             self.threadCount = 0
         }
-
     }
 
     deinit {
@@ -59,22 +58,26 @@ private class EmbraceThreadList {
 
     /// Suspends all threads except the current one
     func suspend() {
-        withThreads {
-            let err = thread_suspend($0)
-            if err != KERN_SUCCESS {
-                print("[THREAD.SUSPEND] err: \(err), \(String(cString: mach_error_string(err)))")
+        #if !os(watchOS)
+            withThreads {
+                let err = thread_suspend($0)
+                if err != KERN_SUCCESS {
+                    print("[THREAD.SUSPEND] err: \(err), \(String(cString: mach_error_string(err)))")
+                }
             }
-        }
+        #endif
     }
 
     /// Resumes all threads except the current one
     func resume() {
-        withThreads {
-            let err = thread_resume($0)
-            if err != KERN_SUCCESS {
-                print("[THREAD.RESUME] err: \(err), \(String(cString: mach_error_string(err)))")
+        #if !os(watchOS)
+            withThreads {
+                let err = thread_resume($0)
+                if err != KERN_SUCCESS {
+                    print("[THREAD.RESUME] err: \(err), \(String(cString: mach_error_string(err)))")
+                }
             }
-        }
+        #endif
     }
 
     func indexOf(thread: pthread_t) -> Int {
