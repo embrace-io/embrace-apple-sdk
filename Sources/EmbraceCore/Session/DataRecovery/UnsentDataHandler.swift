@@ -93,6 +93,13 @@ class UnsentDataHandler {
             )
         }
 
+        // Send the crash reports notification
+        if !crashReports.isEmpty {
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: .embraceDidSendCrashReports, object: [crashReports])
+            }
+        }
+
         // send sessions
         sendSessions(
             storage: storage,
