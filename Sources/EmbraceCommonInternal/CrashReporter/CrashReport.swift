@@ -22,7 +22,7 @@ import Foundation
     /// If available, the session id that was ended by this crash.
     public private(set) var sessionId: String?
 
-    /// The date when the crash occured if available.
+    /// The date when the crash occurred if available.
     public private(set) var timestamp: Date?
 
     /// If this crash is signal based, the signal that caused the crash.
