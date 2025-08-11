@@ -53,6 +53,7 @@ import Foundation
             // `__impact_threadcrumb_start__`
             // `_pthread_start`
             // `thread_start`
+            var internalId: String?
             if let sessionIdThread = loadedReport.crash.threads.first(where: { $0.backtrace.contents.count == 39 }) {
 
                 logger.info("found threadcrumb for session")
@@ -68,7 +69,9 @@ import Foundation
                     let rotated = (addr << shift) | (addr >> (64 - shift))
                     combinedHash ^= rotated
                 }
-                let filename = String(format: "%016llx.stacksym", combinedHash)
+                let iid = String(format: "%016llx", combinedHash)
+                let filename = iid.appending(".stacksym")
+                internalId = iid
                 if let url = try? FileManager.default.url(
                     for: .applicationSupportDirectory,
                     in: .userDomainMask,
@@ -107,14 +110,7 @@ import Foundation
             )
 
             // encode it as a JSON string
-            let encoder = JSONEncoder()
-            encoder.dateEncodingStrategy = .custom { date, encoder in
-                var container = encoder.singleValueContainer()
-                let microseconds = Int64(date.timeIntervalSince1970 * 1_000_000)
-                try container.encode(microseconds)
-            }
-            encoder.keyEncodingStrategy = .convertToSnakeCase
-            guard let data = try? encoder.encode(report) else {
+            guard let data = try? KarlCrashReport.encoder.encode(report) else {
                 logger.error("Error encoding KarlCrashReport for MetricKit")
                 return nil
             }
@@ -126,7 +122,7 @@ import Foundation
             return EmbraceCrashReport(
                 payload: payload,
                 provider: "kscrash",
-                internalId: nil,
+                internalId: internalId,
                 sessionId: sessionId,
                 timestamp: timestamp,
                 signal: crashSignal
@@ -137,9 +133,9 @@ import Foundation
             -> KarlCrashReport?
         {
 
-            let diagnostic: CrashDiagnostic
+            let diagnostic: MetricKitDiagnosticReport
             do {
-                try diagnostic = CrashDiagnostic.from(jsonRepresentation())
+                try diagnostic = MetricKitDiagnosticReport.from(jsonRepresentation())
             } catch {
                 logger.error("CrashDiagnostic.from error \(error)")
                 return nil
@@ -278,345 +274,3 @@ import Foundation
 
     }
 #endif
-
-struct CrashDiagnostic: Codable {
-
-    let version: String
-    let callStackTree: CallStackTree
-    let metaData: DiagnosticMetaData
-
-    enum CodingKeys: String, CodingKey {
-        case version
-        case callStackTree
-        case metaData = "diagnosticMetaData"
-    }
-
-    static func from(_ data: Data) throws -> Self {
-        let decoder = JSONDecoder()
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        formatter.locale = .current
-        formatter.timeZone = .current
-        decoder.dateDecodingStrategy = .formatted(formatter)
-        return try decoder.decode(Self.self, from: data)
-    }
-
-    static func with(_ data: Data) -> Self? {
-        do {
-            return try from(data)
-        } catch {
-            print("\(error)")
-        }
-        return nil
-    }
-
-    struct DiagnosticMetaData: Codable {
-        let platformArchitecture: String
-        let terminationReason: String?
-
-        var terminationReasonCode: String? {
-            guard let reason = terminationReason else {
-                return nil
-            }
-            do {
-                return try TerminationReasonParser.parse(reason).code
-            } catch {}
-            return nil
-        }
-
-        struct Signpost: Codable {
-            let beginTimeStamp: Date
-            let endTimeStamp: Date?
-            let isInterval: Bool
-            let name: String
-            let category: String
-            let subsystem: String
-        }
-        let signpostData: [Signpost]?
-
-        let exceptionType: Int64
-        let appBuildVersion: String
-        let isTestFlightApp: Bool
-        let osVersion: String
-        let bundleIdentifier: String
-        let deviceType: String
-        let exceptionCode: Int64
-        let virtualMemoryRegionInfo: String?
-        let signal: Int64
-        let regionFormat: String
-        let appVersion: String
-        let pid: pid_t
-        let lowPowerModeEnabled: Bool
-
-        var machException: MachException? {
-            if exceptionType > 0 {
-                return MachException(rawValue: exceptionType)
-            }
-            return nil
-        }
-
-        var crashSignal: CrashSignal? {
-            if signal > 0 {
-                return CrashSignal(rawValue: Int(signal))
-            }
-            return nil
-        }
-    }
-
-    struct CallStackTree: Codable {
-        let callStackPerThread: Bool
-
-        struct CallStack: Codable {
-            let threadAttributed: Bool
-
-            struct Frame: Codable {
-                let binaryUUID: String
-                let offsetIntoBinaryTextSegment: UInt64
-                let sampleCount: Int
-                let subFrames: [Frame]?
-                let binaryName: String?
-                let address: UInt64
-
-                var frames: [Frame] {
-                    subFrames?.reduce(into: [self]) { partialResult, frame in
-                        partialResult.append(contentsOf: frame.frames)
-                    } ?? [self]
-                }
-
-                var binaryImage: KarlCrashReport.BinaryImage? {
-                    guard let binaryName else {
-                        return nil
-                    }
-                    return KarlCrashReport.BinaryImage(
-                        imageAddr: address - offsetIntoBinaryTextSegment,
-                        imageSize: 0,
-                        name: binaryName,
-                        uuid: binaryUUID
-                    )
-                }
-
-                var binaryImages: [KarlCrashReport.BinaryImage] {
-                    return
-                        (subFrames?.reduce(into: [binaryImage]) { partialResult, frame in
-                            partialResult.append(contentsOf: frame.binaryImages)
-                        } ?? [binaryImage]).compactMap { $0 }
-                }
-            }
-            let callStackRootFrames: [Frame]
-
-            func flattenedAsThread(index: Int64) -> KarlCrashReport.Crash.Thread? {
-
-                let contents: [KarlCrashReport.Crash.Thread.Backtrace.Frame]? = callStackRootFrames.first?.frames
-                    .compactMap {
-                        guard let bin = $0.binaryName else {
-                            return nil
-                        }
-                        return KarlCrashReport.Crash.Thread.Backtrace.Frame(
-                            instructionAddr: $0.address,
-                            objectAddr: $0.address - $0.offsetIntoBinaryTextSegment,
-                            objectName: bin,
-                            symbolAddr: $0.offsetIntoBinaryTextSegment,
-                            symbolName: nil
-                        )
-                    }
-
-                // we don't need to show fully empty threads
-                if let contents, contents.isEmpty {
-                    return nil
-                }
-
-                return KarlCrashReport.Crash.Thread(
-                    id: index,
-                    name: nil,
-                    backtrace: KarlCrashReport.Crash.Thread.Backtrace(
-                        contents: contents ?? []
-                    ),
-                    crashed: threadAttributed
-                )
-            }
-        }
-        let callStacks: [CallStack]
-
-        static func from(_ data: Data) -> Self? {
-            do {
-                return try JSONDecoder().decode(Self.self, from: data)
-            } catch {
-                print("\(error)")
-            }
-            return nil
-        }
-
-        var binaryImages: [KarlCrashReport.BinaryImage] {
-            var lowestAddrByUUID: [String: UInt64] = [:]
-            var highestAddrByUUID: [String: UInt64] = [:]
-            var imageMap: [String: KarlCrashReport.BinaryImage] = [:]
-
-            for callstack in callStacks {
-                for rootFrames in callstack.callStackRootFrames {
-                    for f in rootFrames.frames {
-
-                        guard let image = f.binaryImage else {
-                            continue
-                        }
-
-                        // Track lowest address
-                        let addr = image.imageAddr
-                        if let existing = lowestAddrByUUID[image.uuid] {
-                            lowestAddrByUUID[image.uuid] = min(existing, addr)
-                        } else {
-                            lowestAddrByUUID[image.uuid] = addr
-                        }
-
-                        // Track highest address
-                        let maxAddress = f.address
-                        if let existing = highestAddrByUUID[image.uuid] {
-                            highestAddrByUUID[image.uuid] = max(existing, maxAddress)
-                        } else {
-                            highestAddrByUUID[image.uuid] = maxAddress
-                        }
-
-                        imageMap[image.uuid] = image
-                    }
-                }
-            }
-
-            return imageMap.values.compactMap {
-                guard let low = lowestAddrByUUID[$0.uuid], let high = highestAddrByUUID[$0.uuid] else {
-                    return nil
-                }
-                return KarlCrashReport.BinaryImage(
-                    imageAddr: low,
-                    imageSize: high - low + 1,
-                    name: $0.name,
-                    uuid: $0.uuid
-                )
-            }
-            .sorted { $0.imageAddr < $1.imageAddr }
-        }
-
-        var threads: [KarlCrashReport.Crash.Thread] {
-
-            assert(callStackPerThread)
-
-            var threads: [KarlCrashReport.Crash.Thread] = []
-            var index: Int64 = 0
-            for stack in callStacks {
-                if let thread = stack.flattenedAsThread(index: index) {
-                    threads.append(thread)
-                }
-                index += 1
-            }
-
-            return threads
-        }
-
-        var mainBinaryImageUUID: String? {
-            nil
-        }
-    }
-}
-
-struct KarlCrashReport: Codable {
-
-    struct BinaryImage: Codable, Hashable {
-        let imageAddr: UInt64
-        let imageSize: UInt64
-        let name: String
-        let uuid: String
-    }
-    let binaryImages: [BinaryImage]
-
-    struct Crash: Codable {
-        let diagnosis: String?
-
-        struct Error: Codable {
-
-            struct Mach: Codable {
-                let code: Int64?
-                let codeName: String?
-                let exception: Int64?
-                let exceptionName: String?
-                let subcode: UInt64?
-            }
-            let mach: Mach
-
-            struct Signal: Codable {
-                let code: Int?
-                let codeName: String?
-                let signal: Int?
-                let name: String?
-            }
-            let signal: Signal
-
-            struct NSException: Codable {
-                let name: String?
-                let userInfo: String?
-            }
-            let nsexception: NSException
-
-            struct CPPException: Codable {
-                let name: String?
-            }
-            let cppException: CPPException
-
-            let type: String
-            let reason: String?
-        }
-        let error: Error
-
-        struct Thread: Codable {
-            let id: Int64
-            let name: String?
-
-            struct Backtrace: Codable {
-                struct Frame: Codable {
-                    let instructionAddr: UInt64
-                    let objectAddr: UInt64
-                    let objectName: String
-                    let symbolAddr: UInt64
-                    let symbolName: String?
-                }
-                let contents: [Frame]
-            }
-            let backtrace: Backtrace
-            let crashed: Bool
-
-        }
-        let threads: [Thread]
-    }
-    let crash: Crash
-
-    struct Report: Codable {
-        let id: String
-        let timestamp: Date  // microseconds since unix epoch
-        let type: String
-    }
-    let report: Report
-
-    struct System: Codable {
-        let CFBundleIdentifier: String?
-        let CFBundleShortVersionString: String?
-        let CFBundleVersion: String?
-        let appUuid: String?
-
-        struct ApplicationStats: Codable {
-            let applicationActive: Bool
-            let ApplicationInForeground: Bool
-        }
-        let applicationStats: ApplicationStats
-        let osVersion: String?
-        let systemVersion: String?
-    }
-    let system: System
-
-    struct User: Codable {
-        let sid: String?
-        let sdk: String?
-
-        enum CodingKeys: String, CodingKey {
-            case sid = "emb-sid"
-            case sdk = "emb-sdk"
-        }
-    }
-    let user: User
-}
