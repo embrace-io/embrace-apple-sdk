@@ -10,7 +10,7 @@ import Foundation
 
 extension Notification.Name {
 
-    /// Notification sent when the crash reporter has completing sending crash reports.
+    /// Notification sent when the crash reporter has completed sending crash reports.
     /// The `object` of the notification is an array of `EmbraceCrashReport`, ie: `[EmbraceCrashReport]`.
     public static let embraceDidSendCrashReports = Notification.Name("embrace.did.send.crash.reports")
 }
