@@ -93,7 +93,7 @@ import Foundation
                 withName: "\(taskName)",
                 expirationHandler: handler
             )
-            print("[BG:START:\(id.rawValue)] \(taskName)")
+            logger.debug("[BG:START:\(id.rawValue)] \(taskName)")
             return id
         }
 
