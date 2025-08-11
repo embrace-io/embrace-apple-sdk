@@ -55,8 +55,6 @@ import Foundation
             }
 
             Self.taskProvider.endBackgroundTask(self.taskID)
-            logger.debug("[BG:END:\(taskID.rawValue)] \(name)")
-
             taskID = .invalid
         }
     }
@@ -93,7 +91,6 @@ import Foundation
                 withName: "\(taskName)",
                 expirationHandler: handler
             )
-            logger.debug("[BG:START:\(id.rawValue)] \(taskName)")
             return id
         }
 
