@@ -118,7 +118,7 @@ public final class KSCrashReporter: NSObject, CrashReporter {
             let crashReport = EmbraceCrashReport(
                 payload: payload,
                 provider: "kscrash",  // from LogSemantics+Crash.swift
-                internalId: Int(id),
+                internalId: "\(id)",
                 sessionId: sessionId?.toString,
                 timestamp: timestamp,
                 signal: signal
@@ -153,8 +153,8 @@ public final class KSCrashReporter: NSObject, CrashReporter {
     /// Permanently deletes a crash report for the given identifier.
     /// - Parameter id: Identifier of the report to delete
     public func deleteCrashReport(_ report: EmbraceCrashReport) {
-        if let id = report.internalId {
-            reporter.reportStore?.deleteReport(with: Int64(id))
+        if let sid = report.internalId, let id = Int64(sid) {
+            reporter.reportStore?.deleteReport(with: id)
         }
     }
 
