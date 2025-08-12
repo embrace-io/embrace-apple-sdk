@@ -121,7 +121,7 @@ import Foundation
 
             return EmbraceCrashReport(
                 payload: payload,
-                provider: "kscrash",
+                provider: "metrickit_kscrash",
                 internalId: internalId,
                 sessionId: sessionId,
                 timestamp: timestamp,
