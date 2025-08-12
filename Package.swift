@@ -42,8 +42,9 @@ let package = Package(
     ],
     dependencies: [
         .package(
-            url: "https://github.com/kstenerud/KSCrash",
-            exact: "2.3.0"
+            //url: "https://github.com/kstenerud/KSCrash",
+            //exact: "2.3.0"
+            path: "../KSCrash"
         ),
         .package(
             url: "https://github.com/open-telemetry/opentelemetry-swift",
@@ -281,9 +282,20 @@ let package = Package(
             name: "EmbraceMetricKitSupport",
             dependencies: [
                 "EmbraceCommonInternal",
-                "EmbraceObjCUtilsInternal"
+                "EmbraceObjCUtilsInternal",
+                "EmbraceMetricKitSupportObjC",
+                .product(name: "Recording", package: "KSCrash")
             ],
             path: "Sources/ThirdParty/EmbraceMetricKitSupport"
+        ),
+        .target(
+            name: "EmbraceMetricKitSupportObjC",
+            dependencies: [
+                "EmbraceCommonInternal",
+                "EmbraceObjCUtilsInternal",
+                .product(name: "Recording", package: "KSCrash")
+            ],
+            path: "Sources/ThirdParty/EmbraceMetricKitSupportObjC"
         ),
         .testTarget(
             name: "EmbraceMetricKitSupportTests",
