@@ -8,8 +8,14 @@ import Foundation
     import EmbraceCommonInternal
 #endif
 
-/// Default `CrashReporter` used by the Embrace SDK.
-/// Internally uses KSCrash to capture data from crashes.
+extension Notification.Name {
+
+    /// Notification sent when the crash reporter has completed sending crash reports.
+    /// The `object` of the notification is an array of `EmbraceCrashReport`, ie: `[EmbraceCrashReport]`.
+    public static let embraceDidSendCrashReports = Notification.Name("embrace.did.send.crash.reports")
+}
+
+/// Main Embrace system used to report crashes.
 public final class EmbraceCrashReporter: NSObject {
 
     private let reporter: CrashReporter
