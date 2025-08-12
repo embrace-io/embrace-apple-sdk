@@ -11,6 +11,13 @@ import Foundation
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
     import EmbraceObjCUtilsInternal
+    import EmbraceMetricKitSupportObjC
+#endif
+
+#if canImport(KSCrashRecording)
+    import KSCrashRecording
+#elseif canImport(KSCrash)
+    import KSCrash
 #endif
 
 #if os(iOS)
@@ -120,6 +127,21 @@ import Foundation
             crashContext = context
             logger.internalLogger = context.logger
             logger.info("install")
+
+            // install KSCrash
+            let config = KSCrashConfiguration()
+            config.enableSigTermMonitoring = true
+            config.enableSwapCxaThrow = false
+            config.enableQueueNameSearch = false
+            config.installPath = context.filePathProvider.directoryURL(for: "mk_crash_reporter")?.path
+            config.reportStoreConfiguration.appName = context.appId ?? "default"
+            config.shouldWriteReportCallback = EMBTerminationStorageShouldWriteReport
+            do {
+                try KSCrash.shared.install(with: config)
+            } catch {
+                logger.error("KSCrash install failed \(error)")
+            }
+
             MXMetricManager.shared.add(self)
             let logger = MXMetricManager.makeLogHandle(category: ProcessIdentifier.current.value)
             mxSignpost(.event, log: logger, name: "embrace_uuid")

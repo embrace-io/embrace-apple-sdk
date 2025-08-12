@@ -150,16 +150,6 @@ class UnsentDataHandler {
                     // remove crash report
                     reporter?.deleteCrashReport(report)
 
-                    DispatchQueue.main.async {
-                        NotificationCenter.default.post(
-                            name: .embraceCrashReporterDidReportCrashNotification,
-                            object: nil,
-                            userInfo: [
-                                "report": report
-                            ]
-                        )
-                    }
-
                 case .failure(let error):
                     Embrace.logger.warning(
                         "Error trying to upload crash report \(report.id):\n\(error.localizedDescription)")
