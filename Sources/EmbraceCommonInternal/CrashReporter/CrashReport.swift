@@ -17,7 +17,7 @@ import Foundation
     public private(set) var provider: String
 
     /// An internal identifier used by the provider.
-    public private(set) var internalId: Int?
+    public private(set) var internalId: String?
 
     /// If available, the session id that was ended by this crash.
     public private(set) var sessionId: String?
@@ -31,7 +31,7 @@ import Foundation
     public init(
         payload: String,
         provider: String,
-        internalId: Int? = nil,
+        internalId: String? = nil,
         sessionId: String? = nil,
         timestamp: Date? = nil,
         signal: CrashSignal? = nil
