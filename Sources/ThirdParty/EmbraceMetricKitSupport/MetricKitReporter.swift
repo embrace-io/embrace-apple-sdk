@@ -129,6 +129,7 @@ import Foundation
             logger.info("install")
 
             // install KSCrash
+            // TODO: Connect to memory monitor to store memory info
             let config = KSCrashConfiguration()
             config.enableSigTermMonitoring = true
             config.enableSwapCxaThrow = false
