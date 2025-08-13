@@ -54,6 +54,7 @@ import Foundation
         return LowPowerModeCaptureService()
     }
 
+#if os(iOS)
     /// Adds a `PushNotificationCaptureService` with the given `PushNotificationCaptureService.Options`.
     /// - Parameter options: `PushNotificationCaptureService.Options` used to configure the service.
     public static func pushNotification(
@@ -61,4 +62,5 @@ import Foundation
     ) -> PushNotificationCaptureService {
         return PushNotificationCaptureService(options: options)
     }
+#endif
 }
