@@ -4,6 +4,7 @@
 
 /// Represents an OTel span link
 public protocol EmbraceSpanLink: EmbraceSignal {
+    
     /// Identifier of linked span
     var spanId: String { get }
 

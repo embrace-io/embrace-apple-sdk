@@ -4,7 +4,7 @@
 
 import EmbraceCommonInternal
 import XCTest
-
+import EmbraceSemantics
 @testable import EmbraceStorageInternal
 
 class EmbraceStorageLoggingTests: XCTestCase {
@@ -21,9 +21,10 @@ class EmbraceStorageLoggingTests: XCTestCase {
     // MARK: - CreateLog
 
     func test_createLog_shouldCreateItInDataBase() throws {
-        let id = LogIdentifier.random
+        let id = EmbraceIdentifier.random
         sut.createLog(
             id: id,
+            sessionId: .random,
             processId: .random,
             severity: .info,
             body: "log message",
@@ -32,13 +33,13 @@ class EmbraceStorageLoggingTests: XCTestCase {
 
         let logs: [LogRecord] = sut.fetchAll()
         XCTAssertEqual(logs.count, 1)
-        XCTAssertNotNil(logs.first(where: { $0.idRaw == id.toString }))
+        XCTAssertNotNil(logs.first(where: { $0.id == id.stringValue }))
     }
 
     // MARK: - Fetch All Excluding Process Identifier
 
     func test_fetchAllExcludingProcessIdentifier_shouldFilterLogsProperly() throws {
-        let pid = ProcessIdentifier(string: "12345")
+        let pid = EmbraceIdentifier(stringValue: "12345")
         createInfoLog(pid: pid)
         createInfoLog()
         createInfoLog(pid: pid)
@@ -47,7 +48,7 @@ class EmbraceStorageLoggingTests: XCTestCase {
         let result = sut.fetchAll(excludingProcessIdentifier: pid)
 
         XCTAssertEqual(result.count, 2)
-        XCTAssertTrue(!result.contains(where: { $0.processIdRaw == pid.value }))
+        XCTAssertTrue(!result.contains(where: { $0.processId == pid }))
     }
 
     // MARK: - RemoveAllLogs
@@ -82,17 +83,18 @@ class EmbraceStorageLoggingTests: XCTestCase {
 
         let logs: [LogRecord] = sut.fetchAll()
         XCTAssertEqual(logs.count, 1)
-        XCTAssertNil(logs.first(where: { $0.idRaw == uuid1.withoutHyphen }))
-        XCTAssertNil(logs.first(where: { $0.idRaw == uuid2.withoutHyphen }))
-        XCTAssertNotNil(logs.first(where: { $0.idRaw == uuid3.withoutHyphen }))
+        XCTAssertNil(logs.first(where: { $0.id == uuid1.withoutHyphen }))
+        XCTAssertNil(logs.first(where: { $0.id == uuid2.withoutHyphen }))
+        XCTAssertNotNil(logs.first(where: { $0.id == uuid3.withoutHyphen }))
     }
 }
 
 extension EmbraceStorageLoggingTests {
     @discardableResult
-    fileprivate func createInfoLog(withId id: UUID = UUID(), pid: ProcessIdentifier = .random) -> EmbraceLog {
+    fileprivate func createInfoLog(withId id: UUID = UUID(), pid: EmbraceIdentifier = .random) -> EmbraceLog {
         return sut.createLog(
-            id: LogIdentifier.init(value: id),
+            id: EmbraceIdentifier(value: id),
+            sessionId: .random,
             processId: pid,
             severity: .info,
             body: "a log message",

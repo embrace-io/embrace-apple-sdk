@@ -6,7 +6,7 @@ import EmbraceCommonInternal
 import EmbraceConfiguration
 import EmbraceStorageInternal
 import Foundation
-
+import EmbraceSemantics
 @testable import EmbraceCore
 
 public class DummyLogControllable: LogControllable {
@@ -17,8 +17,8 @@ public class DummyLogControllable: LogControllable {
 
     public func createLog(
         _ message: String,
-        severity: LogSeverity,
-        type: LogType,
+        severity: EmbraceLogSeverity,
+        type: EmbraceType,
         timestamp: Date,
         attachment: Data?,
         attachmentId: String?,
@@ -30,4 +30,6 @@ public class DummyLogControllable: LogControllable {
     public func batchFinished(withLogs logs: [EmbraceLog]) {}
 
     public var limits = LogsLimits()
+
+    public var currentSessionId: EmbraceIdentifier?
 }

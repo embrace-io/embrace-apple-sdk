@@ -7,10 +7,10 @@ import EmbraceStorageInternal
 import Foundation
 import TestSupport
 import XCTest
-
+import EmbraceSemantics
 @testable import EmbraceCore
 
-class DeviceIdentifier_PersistenceTests: XCTestCase {
+class DeviceIdentifierHelperTests: XCTestCase {
 
     let fileProvider = TemporaryFilepathProvider()
     var fileURL: URL!
@@ -30,7 +30,7 @@ class DeviceIdentifier_PersistenceTests: XCTestCase {
     }
 
     func test_retrieve_withNoFile_shouldCreateNewFile() throws {
-        let result = DeviceIdentifier.retrieve(fileURL: fileURL)
+        let result = DeviceIdentifierHelper.retrieve(fileURL: fileURL)
 
         XCTAssert(FileManager.default.fileExists(atPath: fileURL.path))
 
@@ -39,7 +39,7 @@ class DeviceIdentifier_PersistenceTests: XCTestCase {
 
         let storedDeviceId = UUID(uuidString: value)
         XCTAssertNotNil(storedDeviceId)
-        XCTAssertEqual(result, DeviceIdentifier(value: storedDeviceId!))
+        XCTAssertEqual(result, EmbraceIdentifier(value: storedDeviceId!))
     }
 
     func test_retrieve_withNoFile_shouldRequestFromKeychain() throws {
@@ -48,18 +48,18 @@ class DeviceIdentifier_PersistenceTests: XCTestCase {
         #endif
         let keychainDeviceId = KeychainAccess.deviceId
 
-        let result = DeviceIdentifier.retrieve(fileURL: fileURL)
-        XCTAssertEqual(result, DeviceIdentifier(value: keychainDeviceId))
+        let result = DeviceIdentifierHelper.retrieve(fileURL: fileURL)
+        XCTAssertEqual(result, EmbraceIdentifier(value: keychainDeviceId))
     }
 
     func test_retrieve_withFile_shouldReturnFileValue() throws {
 
         let uuid = UUID()
-        let deviceId = DeviceIdentifier(value: uuid)
+        let deviceId = EmbraceIdentifier(value: uuid)
 
         try uuid.uuidString.write(to: fileURL, atomically: true, encoding: .utf8)
 
-        let result = DeviceIdentifier.retrieve(fileURL: fileURL)
+        let result = DeviceIdentifierHelper.retrieve(fileURL: fileURL)
         XCTAssertEqual(result, deviceId)
     }
 }

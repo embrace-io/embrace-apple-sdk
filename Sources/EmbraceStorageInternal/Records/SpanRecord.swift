@@ -171,8 +171,8 @@ extension SpanRecord: EmbraceStorageRecord {
         links.managedObjectClassName = NSStringFromClass(SpanLinkRecord.self)
 
         let linkAttributes = NSEntityDescription()
-        links.name = SpanLinkAttributeRecord.entityName
-        links.managedObjectClassName = NSStringFromClass(SpanLinkAttributeRecord.self)
+        linkAttributes.name = SpanLinkAttributeRecord.entityName
+        linkAttributes.managedObjectClassName = NSStringFromClass(SpanLinkAttributeRecord.self)
 
         // span
         let idAttribute = NSAttributeDescription()
@@ -207,7 +207,7 @@ extension SpanRecord: EmbraceStorageRecord {
 
         let statusAttribute = NSAttributeDescription()
         statusAttribute.name = "statusRaw"
-        statusAttribute.attributeType = .integer32AttributeType
+        statusAttribute.attributeType = .integer64AttributeType
 
         let startTimeAttribute = NSAttributeDescription()
         startTimeAttribute.name = "startTime"
@@ -229,18 +229,18 @@ extension SpanRecord: EmbraceStorageRecord {
         spanAttributeValueAttribute.attributeType = .stringAttributeType
 
         let spanAttributesParentRelationship = NSRelationshipDescription()
-        let spantAttributesChildRelationship = NSRelationshipDescription()
+        let spanAttributesChildRelationship = NSRelationshipDescription()
 
         spanAttributesParentRelationship.name = "attributes"
         spanAttributesParentRelationship.deleteRule = .cascadeDeleteRule
         spanAttributesParentRelationship.destinationEntity = attributes
-        spanAttributesParentRelationship.inverseRelationship = spantAttributesChildRelationship
+        spanAttributesParentRelationship.inverseRelationship = spanAttributesChildRelationship
 
-        spantAttributesChildRelationship.name = "span"
-        spantAttributesChildRelationship.minCount = 1
-        spantAttributesChildRelationship.maxCount = 1
-        spantAttributesChildRelationship.destinationEntity = entity
-        spantAttributesChildRelationship.inverseRelationship = spanAttributesParentRelationship
+        spanAttributesChildRelationship.name = "span"
+        spanAttributesChildRelationship.minCount = 1
+        spanAttributesChildRelationship.maxCount = 1
+        spanAttributesChildRelationship.destinationEntity = entity
+        spanAttributesChildRelationship.inverseRelationship = spanAttributesParentRelationship
 
         // event
         let eventNameAttribute = NSAttributeDescription()
@@ -304,13 +304,13 @@ extension SpanRecord: EmbraceStorageRecord {
         linkParentRelationship.name = "links"
         linkParentRelationship.deleteRule = .cascadeDeleteRule
         linkParentRelationship.destinationEntity = links
-        linkParentRelationship.inverseRelationship = eventChildRelationship
+        linkParentRelationship.inverseRelationship = linkChildRelationship
 
         linkChildRelationship.name = "span"
         linkChildRelationship.minCount = 1
         linkChildRelationship.maxCount = 1
         linkChildRelationship.destinationEntity = entity
-        linkChildRelationship.inverseRelationship = eventParentRelationship
+        linkChildRelationship.inverseRelationship = linkParentRelationship
 
         // link attributes
         let linkAttributeKeyAttribute = NSAttributeDescription()
@@ -326,7 +326,7 @@ extension SpanRecord: EmbraceStorageRecord {
 
         linkAttributesParentRelationship.name = "attributes"
         linkAttributesParentRelationship.deleteRule = .cascadeDeleteRule
-        linkAttributesParentRelationship.destinationEntity = eventAttributes
+        linkAttributesParentRelationship.destinationEntity = linkAttributes
         linkAttributesParentRelationship.inverseRelationship = linkAttributesParentRelationship
 
         linkAttributesChildRelationship.name = "link"
@@ -355,7 +355,7 @@ extension SpanRecord: EmbraceStorageRecord {
         attributes.properties = [
             spanAttributeKeyAttribute,
             spanAttributeValueAttribute,
-            spantAttributesChildRelationship
+            spanAttributesChildRelationship
         ]
 
         events.properties = [

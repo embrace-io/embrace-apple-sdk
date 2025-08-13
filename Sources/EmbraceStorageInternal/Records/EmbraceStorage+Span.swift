@@ -30,10 +30,10 @@ extension EmbraceStorage {
     public func upsertSpan(
         id: String,
         traceId: String,
-        parentSpanId: String?,
+        parentSpanId: String? = nil,
         name: String,
         type: EmbraceType,
-        status: EmbraceSpanStatus,
+        status: EmbraceSpanStatus = .unset,
         startTime: Date,
         endTime: Date? = nil,
         sessionId: EmbraceIdentifier? = nil,

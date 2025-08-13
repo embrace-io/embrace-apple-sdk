@@ -6,8 +6,9 @@ import Foundation
 
 /// Represents an OTel log signal.
 public protocol EmbraceLog: EmbraceSignal {
+    
     /// Identifier for the log
-    var id: EmbraceIdentifier { get }
+    var id: String { get }
 
     /// Severity of the log
     var severity: EmbraceLogSeverity { get }

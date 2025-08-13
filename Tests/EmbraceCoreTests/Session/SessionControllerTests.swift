@@ -93,7 +93,7 @@ final class SessionControllerTests: XCTestCase {
 
     func test_startSession_setsForegroundState() throws {
         let a = controller.startSession(state: .foreground)
-        XCTAssertEqual(a!.state, "foreground")
+        XCTAssertEqual(a!.state, .foreground)
     }
 
     // MARK: startSession
@@ -118,7 +118,7 @@ final class SessionControllerTests: XCTestCase {
 
         let sessions: [SessionRecord] = storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
-        XCTAssertEqual(sessions.first?.idRaw, session!.idRaw)
+        XCTAssertEqual(sessions.first?.idRaw, session!.id.stringValue)
         XCTAssertEqual(sessions.first?.state, "foreground")
     }
 
@@ -179,7 +179,7 @@ final class SessionControllerTests: XCTestCase {
 
         let sessions: [SessionRecord] = storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
-        XCTAssertEqual(sessions.first!.idRaw, session!.idRaw)
+        XCTAssertEqual(sessions.first!.idRaw, session!.id.stringValue)
         XCTAssertEqual(sessions.first!.state, "foreground")
         XCTAssertEqual(sessions.first!.endTime!.timeIntervalSince1970, endTime.timeIntervalSince1970, accuracy: 0.001)
         XCTAssertEqual(sessions.first!.cleanExit, true)
@@ -290,10 +290,10 @@ final class SessionControllerTests: XCTestCase {
 
     func test_update_assignsState_toBackground_whenPresent() throws {
         controller.startSession(state: .foreground)
-        XCTAssertEqual(controller.currentSession?.state, "foreground")
+        XCTAssertEqual(controller.currentSession?.state, .foreground)
 
         controller.update(state: .background)
-        XCTAssertEqual(controller.currentSession?.state, "background")
+        XCTAssertEqual(controller.currentSession?.state, .background)
     }
 
     func test_update_assignsAppTerminated_toFalse_whenPresent() throws {
@@ -317,7 +317,7 @@ final class SessionControllerTests: XCTestCase {
 
         let sessions: [SessionRecord] = storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
-        XCTAssertEqual(sessions.first?.idRaw, session!.idRaw)
+        XCTAssertEqual(sessions.first?.idRaw, session!.id.stringValue)
         XCTAssertEqual(sessions.first?.state, "foreground")
         XCTAssertEqual(sessions.first?.appTerminated, true)
     }
@@ -329,7 +329,7 @@ final class SessionControllerTests: XCTestCase {
 
         let sessions: [SessionRecord] = storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
-        XCTAssertEqual(sessions.first?.idRaw, session!.idRaw)
+        XCTAssertEqual(sessions.first?.idRaw, session!.id.stringValue)
         XCTAssertEqual(sessions.first?.state, "background")
         XCTAssertEqual(sessions.first?.appTerminated, false)
     }
@@ -370,7 +370,7 @@ final class SessionControllerTests: XCTestCase {
         // then the session is stored
         let sessions: [SessionRecord] = storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
-        XCTAssertEqual(sessions.first?.idRaw, session!.idRaw)
+        XCTAssertEqual(sessions.first?.idRaw, session!.id.stringValue)
         XCTAssertEqual(sessions.first?.state, "background")
     }
 

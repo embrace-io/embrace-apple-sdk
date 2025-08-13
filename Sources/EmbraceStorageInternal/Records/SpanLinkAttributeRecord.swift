@@ -35,5 +35,5 @@ public class SpanLinkAttributeRecord: NSManagedObject {
 }
 
 extension SpanLinkAttributeRecord: EmbraceStorageRecord {
-    public static var entityName = "SpanEventAttributeRecord"
+    public static var entityName = "SpanLinkAttributeRecord"
 }

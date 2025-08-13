@@ -21,6 +21,10 @@ public struct EmbraceIdentifier: Equatable {
         self.value = UUID(withoutHyphen: stringValue)
         self.stringValue = stringValue
     }
+
+    static public func == (lhs: EmbraceIdentifier, rhs: EmbraceIdentifier) -> Bool {
+        lhs.stringValue == rhs.stringValue
+    }
 }
 
 // MARK: Random

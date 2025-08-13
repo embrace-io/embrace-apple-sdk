@@ -7,39 +7,31 @@ import EmbraceStorageInternal
 import OpenTelemetryApi
 import TestSupport
 import XCTest
-
+import EmbraceSemantics
 @testable import EmbraceCore
 
 class LogPayloadBuilderTests: XCTestCase {
     func test_build_addsLogIdAttribute() throws {
-        let logId = LogIdentifier(value: try XCTUnwrap(UUID(uuidString: "53B55EDD-889A-4876-86BA-6798288B609C")))
+        let logId = EmbraceIdentifier.random
         let record = MockLog(
-            id: logId,
-            processId: .random,
-            severity: .info,
-            body: "Hello World",
-            attributes: .empty()
+            id: logId.stringValue
         )
 
         let payload = LogPayloadBuilder.build(log: record)
 
         let attribute = payload.attributes.first(where: { $0.key == "log.record.uid" })
         XCTAssertNotNil(attribute)
-        XCTAssertEqual(attribute?.value, logId.toString)
+        XCTAssertEqual(attribute?.value, logId.stringValue)
     }
 
     func test_buildLogRecordWithAttributes_mapsKeyValuesAsAttributeStruct() {
-        let originalAttributes: [String: AttributeValue] = [
-            "string_attribute": .string("string"),
-            "integer_attribute": .int(1),
-            "boolean_attribute": .bool(false),
-            "double_attribute": .double(5.0)
+        let originalAttributes: [String: String] = [
+            "string_attribute": "string",
+            "integer_attribute": "1",
+            "boolean_attribute": "false",
+            "double_attribute": "5.0"
         ]
         let record = MockLog(
-            id: .random,
-            processId: .random,
-            severity: .info,
-            body: .random(),
             attributes: originalAttributes
         )
 
@@ -78,7 +70,7 @@ class LogPayloadBuilderTests: XCTestCase {
             value: "test",
             type: .customProperty,
             lifespan: .session,
-            lifespanId: TestConstants.sessionId.toString
+            lifespanId: TestConstants.sessionId.stringValue
         )
         storage.addMetadata(
             key: "tag1",
@@ -91,7 +83,7 @@ class LogPayloadBuilderTests: XCTestCase {
             value: "tag2",
             type: .personaTag,
             lifespan: .session,
-            lifespanId: TestConstants.sessionId.toString
+            lifespanId: TestConstants.sessionId.stringValue
         )
 
         // when manually building a log payload
@@ -117,8 +109,8 @@ class LogPayloadBuilderTests: XCTestCase {
         XCTAssertEqual(logs.count, 1)
         XCTAssertEqual(logs[0].body, "test")
         XCTAssertEqual(logs[0].timeUnixNano, String(timestamp.nanosecondsSince1970Truncated))
-        XCTAssertEqual(logs[0].severityNumber, LogSeverity.fatal.number)
-        XCTAssertEqual(logs[0].severityText, LogSeverity.fatal.text)
+        XCTAssertEqual(logs[0].severityNumber, EmbraceLogSeverity.fatal.number)
+        XCTAssertEqual(logs[0].severityText, EmbraceLogSeverity.fatal.text)
 
         let attribute1 = logs[0].attributes.first { $0.key == "key1" }
         XCTAssertEqual(attribute1!.value, "value1")

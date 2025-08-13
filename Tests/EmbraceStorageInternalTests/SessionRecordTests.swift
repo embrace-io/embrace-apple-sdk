@@ -5,7 +5,7 @@
 import EmbraceCommonInternal
 import TestSupport
 import XCTest
-
+import EmbraceSemantics
 @testable import EmbraceStorageInternal
 
 class SessionRecordTests: XCTestCase {
@@ -33,12 +33,12 @@ class SessionRecordTests: XCTestCase {
         // then session should exist in storage
         let sessions: [SessionRecord] = storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
-        XCTAssertEqual(sessions[0].idRaw, TestConstants.sessionId.toString)
+        XCTAssertEqual(sessions[0].idRaw, TestConstants.sessionId.stringValue)
     }
 
     func test_fetchSession() throws {
         // given inserted session
-        let sessionId = SessionIdentifier.random
+        let sessionId = EmbraceIdentifier.random
         let original = storage.addSession(
             id: sessionId,
             processId: ProcessIdentifier.current,
@@ -56,7 +56,7 @@ class SessionRecordTests: XCTestCase {
         XCTAssertEqual(original!.id, session!.id)
         XCTAssertEqual(original!.traceId, session!.traceId)
         XCTAssertEqual(original!.spanId, session!.spanId)
-        XCTAssertEqual(original!.processIdRaw, session!.processIdRaw)
+        XCTAssertEqual(original!.processId, session!.processId)
         XCTAssertEqual(original!.state, session!.state)
     }
 
@@ -94,7 +94,7 @@ class SessionRecordTests: XCTestCase {
         XCTAssertEqual(session!.id, session3!.id)
         XCTAssertEqual(session!.traceId, session3!.traceId)
         XCTAssertEqual(session!.spanId, session3!.spanId)
-        XCTAssertEqual(session!.processIdRaw, session3!.processIdRaw)
+        XCTAssertEqual(session!.processId, session3!.processId)
         XCTAssertEqual(session!.state, session3!.state)
     }
 
@@ -132,7 +132,7 @@ class SessionRecordTests: XCTestCase {
         XCTAssertEqual(session!.id, session1!.id)
         XCTAssertEqual(session!.traceId, session1!.traceId)
         XCTAssertEqual(session!.spanId, session1!.spanId)
-        XCTAssertEqual(session!.processIdRaw, session1!.processIdRaw)
+        XCTAssertEqual(session!.processId, session1!.processId)
         XCTAssertEqual(session!.state, session1!.state)
     }
 }

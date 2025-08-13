@@ -6,7 +6,7 @@ import EmbraceCommonInternal
 import EmbraceStorageInternal
 import TestSupport
 import XCTest
-
+import EmbraceSemantics
 @testable import EmbraceCore
 
 final class SessionPayloadBuilderTests: XCTestCase {

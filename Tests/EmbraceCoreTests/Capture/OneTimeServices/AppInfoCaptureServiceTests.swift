@@ -6,7 +6,7 @@ import EmbraceCommonInternal
 @_implementationOnly import EmbraceObjCUtilsInternal
 import EmbraceStorageInternal
 import XCTest
-
+import EmbraceSemantics
 @testable import EmbraceCore
 
 final class AppInfoCaptureServiceTests: XCTestCase {
@@ -22,7 +22,7 @@ final class AppInfoCaptureServiceTests: XCTestCase {
         service.start()
 
         // then the app info resources are correctly stored
-        let processId = ProcessIdentifier.current.value
+        let processId = ProcessIdentifier.current.stringValue
 
         // bundle version
         let bundleVersion = handler.fetchMetadata(
@@ -92,7 +92,7 @@ final class AppInfoCaptureServiceTests: XCTestCase {
             lifespanId: processId
         )
         XCTAssertNotNil(processIdentifier)
-        XCTAssertEqual(processIdentifier!.value, ProcessIdentifier.current.value)
+        XCTAssertEqual(processIdentifier!.value, ProcessIdentifier.current.stringValue)
     }
 
     func test_notStarted() throws {

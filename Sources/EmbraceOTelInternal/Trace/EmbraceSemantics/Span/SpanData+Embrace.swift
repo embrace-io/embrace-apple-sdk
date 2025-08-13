@@ -73,7 +73,7 @@ struct DefaultEmbraceSpanEvent: EmbraceSpanEvent {
     let timestamp: Date
     let attributes: [String: String]
 
-    func setAttribute(key: String, value: String?) {
+    mutating func setAttribute(key: String, value: String?) {
         // no op
     }
 }
@@ -83,7 +83,7 @@ struct DefaultEmbraceSpanLink: EmbraceSpanLink {
     let traceId: String
     let attributes: [String: String]
 
-    func setAttribute(key: String, value: String?) {
+    mutating func setAttribute(key: String, value: String?) {
         // no op
     }
 }

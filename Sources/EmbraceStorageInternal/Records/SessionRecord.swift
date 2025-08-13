@@ -13,8 +13,8 @@ import Foundation
 /// Represents a session in the storage
 @objc(SessionRecord)
 public class SessionRecord: NSManagedObject {
-    @NSManaged public var idRaw: String  // SessionIdentifier
-    @NSManaged public var processIdRaw: String  // ProcessIdentifier
+    @NSManaged public var idRaw: String
+    @NSManaged public var processIdRaw: String
     @NSManaged public var state: String
     @NSManaged public var traceId: String
     @NSManaged public var spanId: String

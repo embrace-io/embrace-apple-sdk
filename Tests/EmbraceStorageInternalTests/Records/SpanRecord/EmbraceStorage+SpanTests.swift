@@ -27,20 +27,18 @@ final class EmbraceStorage_SpanTests: XCTestCase {
             // given inserted record
             storage.upsertSpan(
                 id: SpanId.random().hexString,
-                name: "example \(i)",
                 traceId: TraceId.random().hexString,
+                name: "example \(i)",
                 type: .performance,
-                data: Data(),
                 startTime: Date()
             )
         }
 
         storage.upsertSpan(
             id: SpanId.random().hexString,
-            name: "newest",
             traceId: TraceId.random().hexString,
+            name: "newest",
             type: .performance,
-            data: Data(),
             startTime: Date()
         )
 
@@ -60,10 +58,9 @@ final class EmbraceStorage_SpanTests: XCTestCase {
         for i in 0..<3 {
             storage.upsertSpan(
                 id: SpanId.random().hexString,
-                name: "performance \(i)",
                 traceId: TraceId.random().hexString,
+                name: "performance \(i)",
                 type: .performance,
-                data: Data(),
                 startTime: Date()
             )
         }
@@ -72,10 +69,9 @@ final class EmbraceStorage_SpanTests: XCTestCase {
         for i in 0..<3 {
             storage.upsertSpan(
                 id: SpanId.random().hexString,
-                name: "network \(i)",
                 traceId: TraceId.random().hexString,
+                name: "network \(i)",
                 type: .networkRequest,
-                data: Data(),
                 startTime: Date()
             )
         }
@@ -101,20 +97,18 @@ final class EmbraceStorage_SpanTests: XCTestCase {
             // given inserted record
             storage.upsertSpan(
                 id: SpanId.random().hexString,
-                name: "example \(i)",
                 traceId: TraceId.random().hexString,
+                name: "example \(i)",
                 type: .performance,
-                data: Data(),
                 startTime: Date()
             )
         }
 
         storage.upsertSpan(
             id: SpanId.random().hexString,
-            name: "newest",
             traceId: TraceId.random().hexString,
+            name: "newest",
             type: .performance,
-            data: Data(),
             startTime: Date()
         )
 

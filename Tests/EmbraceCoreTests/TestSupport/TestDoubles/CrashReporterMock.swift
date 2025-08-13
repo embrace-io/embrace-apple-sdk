@@ -4,6 +4,7 @@
 
 import EmbraceCommonInternal
 import Foundation
+import EmbraceSemantics
 
 class CrashReporterMock: CrashReporter {
     var sdkVersion: String?
@@ -38,7 +39,7 @@ class CrashReporterMock: CrashReporter {
                     payload: "test",
                     provider: "mock",
                     internalId: 123,
-                    sessionId: crashSessionId ?? SessionIdentifier.random.toString,
+                    sessionId: crashSessionId ?? EmbraceIdentifier.random.stringValue,
                     timestamp: Date()
                 )
             ]

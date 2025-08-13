@@ -9,7 +9,7 @@ import EmbraceUploadInternal
 import OpenTelemetryApi
 import TestSupport
 import XCTest
-
+import EmbraceSemantics
 @testable import EmbraceCore
 
 class LogControllerTests: XCTestCase {
@@ -49,7 +49,7 @@ class LogControllerTests: XCTestCase {
     }
 
     func testHavingLogs_onSetup_fetchesResourcesFromStorage() throws {
-        let sessionId = SessionIdentifier.random
+        let sessionId = EmbraceIdentifier.random
         let log = randomLogRecord(sessionId: sessionId)
 
         givenStorage(withLogs: [log])
@@ -59,7 +59,7 @@ class LogControllerTests: XCTestCase {
     }
 
     func testHavingLogs_onSetup_fetchesMetadataFromStorage() throws {
-        let sessionId = SessionIdentifier.random
+        let sessionId = EmbraceIdentifier.random
         let log = randomLogRecord(sessionId: sessionId)
 
         givenStorage(withLogs: [log])
@@ -73,7 +73,7 @@ class LogControllerTests: XCTestCase {
         givenStorage(withLogs: [log])
         givenLogController()
         whenInvokingSetup()
-        try thenFetchesResourcesFromStorage(processId: log.processId!)
+        try thenFetchesResourcesFromStorage(processId: log.processId)
     }
 
     func testHavingLogsWithNoSessionId_onSetup_fetchesMetadataFromStorage() throws {
@@ -81,7 +81,7 @@ class LogControllerTests: XCTestCase {
         givenStorage(withLogs: [log])
         givenLogController()
         whenInvokingSetup()
-        try thenFetchesMetadataFromStorage(processId: log.processId!)
+        try thenFetchesMetadataFromStorage(processId: log.processId)
     }
 
     func testHavingLogsForLessThanABatch_onSetup_logUploaderShouldSendASingleBatch() {
@@ -284,7 +284,7 @@ class LogControllerTests: XCTestCase {
 }
 
 extension LogControllerTests {
-    fileprivate func randomSeverity(from severities: [LogSeverity]) -> LogSeverity {
+    fileprivate func randomSeverity(from severities: [EmbraceLogSeverity]) -> EmbraceLogSeverity {
         severities.randomElement()!
     }
 
@@ -368,7 +368,7 @@ extension LogControllerTests {
     }
 
     fileprivate func whenCreatingLog(
-        severity: LogSeverity = .info,
+        severity: EmbraceLogSeverity = .info,
         stackTraceBehavior: StackTraceBehavior = .default
     ) {
         sut.createLog("test", severity: severity, stackTraceBehavior: stackTraceBehavior)
@@ -395,7 +395,7 @@ extension LogControllerTests {
         XCTAssertFalse(upload.didCallUploadLog)
     }
 
-    fileprivate func thenFetchesAllLogsExcluding(pid: ProcessIdentifier) throws {
+    fileprivate func thenFetchesAllLogsExcluding(pid: EmbraceIdentifier) throws {
         let unwrappedStorage = try XCTUnwrap(storage)
         XCTAssertTrue(unwrappedStorage.didCallFetchAllExcludingProcessIdentifier)
         XCTAssertEqual(unwrappedStorage.fetchAllExcludingProcessIdentifierReceivedParameter, pid)
@@ -417,8 +417,8 @@ extension LogControllerTests {
     fileprivate func thenStorageShouldCallRemove(withLogs logs: [EmbraceLog]) throws {
         let unwrappedStorage = try XCTUnwrap(storage)
         wait(timeout: 1.0) {
-            let expectedIds = logs.map { $0.idRaw }
-            let ids = unwrappedStorage.removeLogsReceivedParameter.map { $0.idRaw }
+            let expectedIds = logs.map { $0.id }
+            let ids = unwrappedStorage.removeLogsReceivedParameter.map { $0.id }
 
             return unwrappedStorage.didCallRemoveLogs && expectedIds == ids
         }
@@ -429,13 +429,13 @@ extension LogControllerTests {
         XCTAssertFalse(unwrappedStorage.didCallRemoveLogs)
     }
 
-    fileprivate func thenFetchesResourcesFromStorage(sessionId: SessionIdentifier?) throws {
+    fileprivate func thenFetchesResourcesFromStorage(sessionId: EmbraceIdentifier?) throws {
         let unwrappedStorage = try XCTUnwrap(storage)
         XCTAssertTrue(unwrappedStorage.didCallFetchResourcesForSessionId)
         XCTAssertEqual(unwrappedStorage.fetchResourcesForSessionIdReceivedParameter, sessionId)
     }
 
-    fileprivate func thenFetchesMetadataFromStorage(sessionId: SessionIdentifier?) throws {
+    fileprivate func thenFetchesMetadataFromStorage(sessionId: EmbraceIdentifier?) throws {
         let unwrappedStorage = try XCTUnwrap(storage)
         XCTAssertTrue(unwrappedStorage.didCallFetchCustomPropertiesForSessionId)
         XCTAssertEqual(unwrappedStorage.fetchCustomPropertiesForSessionIdReceivedParameter, sessionId)
@@ -443,13 +443,13 @@ extension LogControllerTests {
         XCTAssertEqual(unwrappedStorage.fetchPersonaTagsForSessionIdReceivedParameter, sessionId)
     }
 
-    fileprivate func thenFetchesResourcesFromStorage(processId: ProcessIdentifier) throws {
+    fileprivate func thenFetchesResourcesFromStorage(processId: EmbraceIdentifier) throws {
         let unwrappedStorage = try XCTUnwrap(storage)
         XCTAssertTrue(unwrappedStorage.didCallFetchResourcesForProcessId)
         XCTAssertEqual(unwrappedStorage.fetchResourcesForProcessIdReceivedParameter, processId)
     }
 
-    fileprivate func thenFetchesMetadataFromStorage(processId: ProcessIdentifier) throws {
+    fileprivate func thenFetchesMetadataFromStorage(processId: EmbraceIdentifier) throws {
         let unwrappedStorage = try XCTUnwrap(storage)
         XCTAssertTrue(unwrappedStorage.didCallFetchPersonaTagsForProcessId)
         XCTAssertEqual(unwrappedStorage.fetchPersonaTagsForProcessIdReceivedParameter, processId)
@@ -514,20 +514,14 @@ extension LogControllerTests {
         }
     }
 
-    fileprivate func randomLogRecord(sessionId: SessionIdentifier? = nil) -> EmbraceLog {
+    fileprivate func randomLogRecord(sessionId: EmbraceIdentifier? = nil) -> EmbraceLog {
 
-        var attributes: [String: AttributeValue] = [:]
+        var attributes: [String: String] = [:]
         if let sessionId = sessionId {
-            attributes["session.id"] = AttributeValue(sessionId.toString)
+            attributes["session.id"] = sessionId.stringValue
         }
 
-        return MockLog(
-            id: .random,
-            processId: .random,
-            severity: .info,
-            body: UUID().uuidString,
-            attributes: attributes
-        )
+        return MockLog(sessionId: sessionId, attributes: attributes)
     }
 
     fileprivate func logsForMoreThanASingleBatch() -> [EmbraceLog] {

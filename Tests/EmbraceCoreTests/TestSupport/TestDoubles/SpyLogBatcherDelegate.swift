@@ -4,7 +4,7 @@
 
 import EmbraceCommonInternal
 import EmbraceConfiguration
-
+import EmbraceSemantics
 @testable import EmbraceCore
 
 class SpyLogBatcherDelegate: LogBatcherDelegate {
@@ -14,4 +14,6 @@ class SpyLogBatcherDelegate: LogBatcherDelegate {
     }
 
     var limits = LogsLimits()
+
+    var currentSessionId: EmbraceIdentifier?
 }

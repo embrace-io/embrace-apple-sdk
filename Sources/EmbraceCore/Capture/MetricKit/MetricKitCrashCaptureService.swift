@@ -46,7 +46,7 @@ class MetricKitCrashCaptureService: CaptureService, MetricKitCrashPayloadListene
 
         let attributes =
             attributesBuilder
-            .addLogType(EmbraceType.crash)
+            .addLogType(.crash)
             .addApplicationProperties(sessionId: sessionId)
             .addApplicationState(SessionState.unknown)
             .addSessionIdentifier(sessionId)

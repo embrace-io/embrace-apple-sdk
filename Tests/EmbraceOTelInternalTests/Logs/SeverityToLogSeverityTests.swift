@@ -5,12 +5,12 @@
 import EmbraceCommonInternal
 import OpenTelemetryApi
 import XCTest
-
+import EmbraceSemantics
 @testable import EmbraceOTelInternal
 
 class SeverityToLogSeverityTests: XCTestCase {
     func testSeverityInfo_toLogSeverity_shouldBeLogSeverityInfo() {
-        XCTAssertEqual(LogSeverity.info, Severity.info.toLogSeverity())
+        XCTAssertEqual(EmbraceLogSeverity.info, Severity.info.toLogSeverity())
     }
 
     func testSeverityInfo2to4_toLogSeverity_shouldBeNil() {
@@ -20,7 +20,7 @@ class SeverityToLogSeverityTests: XCTestCase {
     }
 
     func testSeverityWarn_toLogSeverity_shouldBeLogSeverityWarn() {
-        XCTAssertEqual(LogSeverity.warn, Severity.warn.toLogSeverity())
+        XCTAssertEqual(EmbraceLogSeverity.warn, Severity.warn.toLogSeverity())
     }
 
     func testSeverityWarn2to4_toLogSeverity_shouldBeNil() {
@@ -30,7 +30,7 @@ class SeverityToLogSeverityTests: XCTestCase {
     }
 
     func testSeverityError_toLogSeverity_shouldBeLogSeverityError() {
-        XCTAssertEqual(LogSeverity.error, Severity.error.toLogSeverity())
+        XCTAssertEqual(EmbraceLogSeverity.error, Severity.error.toLogSeverity())
     }
 
     func testSeverityError2to4_toLogSeverity_shouldBeNil() {

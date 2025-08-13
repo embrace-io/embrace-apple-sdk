@@ -6,7 +6,7 @@ import EmbraceCommonInternal
 import EmbraceStorageInternal
 import TestSupport
 import XCTest
-
+import EmbraceSemantics
 @testable import EmbraceCore
 
 class EmbraceLogAttributesBuilderTests: XCTestCase {
@@ -28,7 +28,7 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
     // MARK: - addSessionIdentifier Tests
 
     func testOnHavingSession_addSessionIdentifier_addsTheIdentifierToAttributes() {
-        let identifier = SessionIdentifier.random
+        let identifier = EmbraceIdentifier.random
         givenSessionController(sessionWithId: identifier)
         givenMetadataFetcher()
         givenEmbraceLogAttributesBuilder()
@@ -36,7 +36,7 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
         whenInvokingAddSessionIdentifier()
         whenInvokingBuild()
 
-        thenResultingAttributes(is: ["session.id": identifier.toString])
+        thenResultingAttributes(is: ["session.id": identifier.stringValue])
     }
 
     func testOnNotHavingSession_addSessionIdentifier_addsNothingToAttributes() {
@@ -53,7 +53,7 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
     // MARK: - addApplicationProperties Tests
 
     func testOnHavingMetadataCustomProperties_addApplicationProperties_addsCustomPropertiesToAttributes() {
-        let sessionId = SessionIdentifier.random
+        let sessionId = EmbraceIdentifier.random
         givenSessionController(sessionWithId: sessionId)
         givenMetadataFetcher(with: [
             MockMetadata.createSessionPropertyRecord(key: "custom_prop_int", value: .int(1), sessionId: sessionId),
@@ -161,25 +161,25 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
         whenInvokingAddLogType(.message)
         whenInvokingBuild()
 
-        thenResultingAttributes(is: ["emb.type": LogType.message.rawValue])
+        thenResultingAttributes(is: ["emb.type": EmbraceType.message.rawValue])
     }
 
     func test_onAddLogType_whenAlreadySet_doesNotChangeValue() {
         givenSessionController()
         givenMetadataFetcher()
-        givenEmbraceLogAttributesBuilder(withInitialAttributes: ["emb.type": LogType.crash.rawValue])
+        givenEmbraceLogAttributesBuilder(withInitialAttributes: ["emb.type": EmbraceType.crash.rawValue])
 
         whenInvokingAddLogType(.message)
         whenInvokingBuild()
 
-        thenResultingAttributes(is: ["emb.type": LogType.crash.rawValue])
+        thenResultingAttributes(is: ["emb.type": EmbraceType.crash.rawValue])
     }
 
 }
 
 extension EmbraceLogAttributesBuilderTests {
     fileprivate func givenSessionController(
-        sessionWithId sessionId: SessionIdentifier = .random,
+        sessionWithId sessionId: EmbraceIdentifier = .random,
         sessionState: SessionState = .foreground
     ) {
         controller = MockSessionController()
@@ -222,7 +222,7 @@ extension EmbraceLogAttributesBuilderTests {
         sut.addApplicationState()
     }
 
-    fileprivate func whenInvokingAddLogType(_ logType: LogType) {
+    fileprivate func whenInvokingAddLogType(_ logType: EmbraceType) {
         sut.addLogType(logType)
     }
 

@@ -5,7 +5,7 @@
 import EmbraceCommonInternal
 import TestSupport
 import XCTest
-
+import EmbraceSemantics
 @testable import EmbraceConfigInternal
 
 class RemoteConfigFetcherTests: XCTestCase {
@@ -24,7 +24,7 @@ class RemoteConfigFetcherTests: XCTestCase {
     }
 
     func fetcherOptions(
-        deviceId: DeviceIdentifier = TestConstants.deviceId,
+        deviceId: EmbraceIdentifier = TestConstants.deviceId,
         queue: DispatchQueue = DispatchQueue(label: "com.test.embrace.queue", attributes: .concurrent),
         appId: String = TestConstants.appId,
         osVersion: String = TestConstants.osVersion,
@@ -77,7 +77,7 @@ class RemoteConfigFetcherTests: XCTestCase {
                 .init(name: "appId", value: TestConstants.appId),
                 .init(name: "osVersion", value: TestConstants.osVersion),
                 .init(name: "appVersion", value: TestConstants.appVersion),
-                .init(name: "deviceId", value: TestConstants.deviceId.hex),
+                .init(name: "deviceId", value: TestConstants.deviceId.stringValue),
                 .init(name: "sdkVersion", value: TestConstants.sdkVersion)
             ])
         } else {

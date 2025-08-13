@@ -7,6 +7,7 @@ import EmbraceStorageInternal
 import Foundation
 import OpenTelemetryApi
 import TestSupport
+import EmbraceSemantics
 
 class RandomError: Error, CustomNSError {
     static var errorDomain: String = "Embrace"
@@ -15,7 +16,6 @@ class RandomError: Error, CustomNSError {
 }
 
 class SpyStorage: Storage {
-
     var didCallFetchAllResources = false
     var stubbedFetchAllResources: [EmbraceMetadata] = []
     func fetchAllResources() -> [EmbraceMetadata] {
@@ -24,45 +24,45 @@ class SpyStorage: Storage {
     }
 
     var didCallFetchResourcesForSessionId = false
-    var fetchResourcesForSessionIdReceivedParameter: SessionIdentifier!
+    var fetchResourcesForSessionIdReceivedParameter: EmbraceIdentifier!
     var stubbedFetchResourcesForSessionId: [EmbraceMetadata] = []
-    func fetchResourcesForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata] {
+    func fetchResourcesForSessionId(_ sessionId: EmbraceIdentifier) -> [EmbraceMetadata] {
         didCallFetchResourcesForSessionId = true
         fetchResourcesForSessionIdReceivedParameter = sessionId
         return stubbedFetchResourcesForSessionId
     }
 
     var didCallFetchResourcesForProcessId = false
-    var fetchResourcesForProcessIdReceivedParameter: ProcessIdentifier!
+    var fetchResourcesForProcessIdReceivedParameter: EmbraceIdentifier!
     var stubbedFetchResourcesForProcessId: [EmbraceMetadata] = []
-    func fetchResourcesForProcessId(_ processId: ProcessIdentifier) -> [EmbraceMetadata] {
+    func fetchResourcesForProcessId(_ processId: EmbraceIdentifier) -> [EmbraceMetadata] {
         didCallFetchResourcesForProcessId = true
         fetchResourcesForProcessIdReceivedParameter = processId
         return stubbedFetchResourcesForProcessId
     }
 
     var didCallFetchCustomPropertiesForSessionId = false
-    var fetchCustomPropertiesForSessionIdReceivedParameter: SessionIdentifier!
+    var fetchCustomPropertiesForSessionIdReceivedParameter: EmbraceIdentifier!
     var stubbedFetchCustomPropertiesForSessionId: [EmbraceMetadata] = []
-    func fetchCustomPropertiesForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata] {
+    func fetchCustomPropertiesForSessionId(_ sessionId: EmbraceIdentifier) -> [EmbraceMetadata] {
         didCallFetchCustomPropertiesForSessionId = true
         fetchCustomPropertiesForSessionIdReceivedParameter = sessionId
         return stubbedFetchCustomPropertiesForSessionId
     }
 
     var didCallFetchPersonaTagsForSessionId = false
-    var fetchPersonaTagsForSessionIdReceivedParameter: SessionIdentifier!
+    var fetchPersonaTagsForSessionIdReceivedParameter: EmbraceIdentifier!
     var stubbedFetchPersonaTagsForSessionId: [EmbraceMetadata] = []
-    func fetchPersonaTagsForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata] {
+    func fetchPersonaTagsForSessionId(_ sessionId: EmbraceIdentifier) -> [EmbraceMetadata] {
         didCallFetchPersonaTagsForSessionId = true
         fetchPersonaTagsForSessionIdReceivedParameter = sessionId
         return stubbedFetchPersonaTagsForSessionId
     }
 
     var didCallFetchPersonaTagsForProcessId = false
-    var fetchPersonaTagsForProcessIdReceivedParameter: ProcessIdentifier!
+    var fetchPersonaTagsForProcessIdReceivedParameter: EmbraceIdentifier!
     var stubbedFetchPersonaTagsForProcessId: [EmbraceMetadata] = []
-    func fetchPersonaTagsForProcessId(_ processId: ProcessIdentifier) -> [EmbraceMetadata] {
+    func fetchPersonaTagsForProcessId(_ processId: EmbraceIdentifier) -> [EmbraceMetadata] {
         didCallFetchPersonaTagsForProcessId = true
         fetchPersonaTagsForProcessIdReceivedParameter = processId
         return stubbedFetchPersonaTagsForProcessId
@@ -70,21 +70,23 @@ class SpyStorage: Storage {
 
     var didCallCreate = false
     func createLog(
-        id: LogIdentifier,
-        processId: ProcessIdentifier,
-        severity: LogSeverity,
+        id: EmbraceIdentifier,
+        sessionId: EmbraceIdentifier?,
+        processId: EmbraceIdentifier,
+        severity: EmbraceLogSeverity,
         body: String,
         timestamp: Date,
-        attributes: [String: AttributeValue]
+        attributes: [String: String]
     ) -> EmbraceLog? {
         didCallCreate = true
 
         return MockLog(
-            id: id,
-            processId: processId,
+            id: id.stringValue,
             severity: severity,
-            body: body,
             timestamp: timestamp,
+            body: body,
+            sessionId: sessionId,
+            processId: processId,
             attributes: attributes
         )
     }

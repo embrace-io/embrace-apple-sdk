@@ -6,7 +6,7 @@ import EmbraceCommonInternal
 import OpenTelemetryApi
 import TestSupport
 import XCTest
-
+import EmbraceSemantics
 @testable import EmbraceStorageInternal
 
 extension Date {
@@ -29,23 +29,24 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
     }
 
     func addSpanRecord(
-        type: SpanType = .performance,
+        type: EmbraceType = .performance,
         name: String = "example",
-        processIdentifier: ProcessIdentifier = .current,
+        processIdentifier: EmbraceIdentifier = ProcessIdentifier.current,
         startTime: Date,
         endTime: Date? = nil,
-        sessionIdentifier: SessionIdentifier? = nil
+        sessionIdentifier: EmbraceIdentifier? = nil
     ) -> EmbraceSpan {
         return storage.upsertSpan(
             id: SpanId.random().hexString,
-            name: name,
             traceId: TraceId.random().hexString,
+            parentSpanId: nil,
+            name: name,
             type: type,
-            data: Data(),
+            status: .unset,
             startTime: startTime,
             endTime: endTime,
-            processId: processIdentifier,
-            sessionId: sessionIdentifier
+            sessionId: sessionIdentifier,
+            processId: processIdentifier
         )!
     }
 
@@ -54,7 +55,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         endTime: Date? = nil,
         lastHeartBeat: Date? = nil,
         coldStart: Bool = false,
-        processIdentifier: ProcessIdentifier = .current,
+        processIdentifier: EmbraceIdentifier = ProcessIdentifier.current,
         traceId: TraceId = .random(),
         spanId: SpanId = .random()
     ) -> EmbraceSession {
@@ -405,12 +406,23 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         )
 
         let spanA = addSpanRecord(
-            name: "span-a", startTime: .relative(-28), endTime: .relative(-22), sessionIdentifier: session.id)
+            name: "span-a",
+            startTime: .relative(-28),
+            endTime: .relative(-22),
+            sessionIdentifier: session.id
+        )
         let spanB = addSpanRecord(
-            name: "span-b", startTime: .relative(-16), endTime: .relative(-12),
-            sessionIdentifier: SessionIdentifier.random)
+            name: "span-b",
+            startTime: .relative(-16),
+            endTime: .relative(-12),
+            sessionIdentifier: .random
+        )
         let spanC = addSpanRecord(
-            name: "span-c", startTime: .relative(-6), endTime: .relative(-2), sessionIdentifier: session.id)
+            name: "span-c",
+            startTime: .relative(-6),
+            endTime: .relative(-2),
+            sessionIdentifier: session.id
+        )
         let results = storage.fetchSpans(for: session)
 
         XCTAssertNotNil(results.first(where: { $0.id == spanA.id && $0.name == "span-a" }))

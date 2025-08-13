@@ -22,10 +22,9 @@ class EmbraceStorageTests: XCTestCase {
         // given inserted record
         storage.upsertSpan(
             id: "id",
-            name: "a name",
             traceId: "traceId",
+            name: "a name",
             type: .performance,
-            data: Data(),
             startTime: Date()
         )
 
@@ -47,18 +46,16 @@ class EmbraceStorageTests: XCTestCase {
         // given inserted records
         storage.upsertSpan(
             id: "id1",
-            name: "a name 1",
             traceId: "traceId",
+            name: "a name 1",
             type: .performance,
-            data: Data(),
             startTime: Date()
         )
         storage.upsertSpan(
             id: "id2",
-            name: "a name 2",
             traceId: "traceId",
+            name: "a name 2",
             type: .performance,
-            data: Data(),
             startTime: Date()
         )
 

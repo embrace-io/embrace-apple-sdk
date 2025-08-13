@@ -6,7 +6,7 @@ import EmbraceCommonInternal
 import EmbraceStorageInternal
 import TestSupport
 import XCTest
-
+import EmbraceSemantics
 @testable import EmbraceCore
 
 final class MetadataHandler_PersonaTagTests: XCTestCase {
@@ -85,14 +85,14 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
             value: PersonaTag.metadataValue,
             type: .personaTag,
             lifespan: .process,
-            lifespanId: ProcessIdentifier.current.value
+            lifespanId: ProcessIdentifier.current.stringValue
         )
         storage.addMetadata(
             key: "session",
             value: PersonaTag.metadataValue,
             type: .personaTag,
             lifespan: .session,
-            lifespanId: sessionController.currentSession!.idRaw
+            lifespanId: sessionController.currentSession!.id.stringValue
         )
 
         // when fetching the current persona tags
@@ -124,14 +124,14 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
             value: PersonaTag.metadataValue,
             type: .personaTag,
             lifespan: .process,
-            lifespanId: ProcessIdentifier.current.value
+            lifespanId: ProcessIdentifier.current.stringValue
         )
         storage.addMetadata(
             key: "session",
             value: PersonaTag.metadataValue,
             type: .personaTag,
             lifespan: .session,
-            lifespanId: sessionController.currentSession!.idRaw
+            lifespanId: sessionController.currentSession!.id.stringValue
         )
 
         // when fetching the current persona tags
@@ -165,14 +165,14 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
             value: "process",
             type: .personaTag,
             lifespan: .process,
-            lifespanId: ProcessIdentifier.current.value
+            lifespanId: ProcessIdentifier.current.stringValue
         )
         storage.addMetadata(
             key: "session",
             value: "session",
             type: .personaTag,
             lifespan: .session,
-            lifespanId: sessionController.currentSession!.idRaw
+            lifespanId: sessionController.currentSession!.id.stringValue
         )
 
         // when fetching the current persona tags
@@ -203,14 +203,14 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
             value: "process",
             type: .personaTag,
             lifespan: .process,
-            lifespanId: ProcessIdentifier.random.value
+            lifespanId: EmbraceIdentifier.random.stringValue
         )
         storage.addMetadata(
             key: "session",
             value: "session",
             type: .personaTag,
             lifespan: .session,
-            lifespanId: sessionController.currentSession!.idRaw
+            lifespanId: sessionController.currentSession!.id.stringValue
         )
 
         // when fetching the current persona tags
@@ -241,14 +241,14 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
             value: PersonaTag.metadataValue,
             type: .personaTag,
             lifespan: .process,
-            lifespanId: ProcessIdentifier.current.value
+            lifespanId: ProcessIdentifier.current.stringValue
         )
         storage.addMetadata(
             key: "session",
             value: PersonaTag.metadataValue,
             type: .personaTag,
             lifespan: .session,
-            lifespanId: sessionController.currentSession!.idRaw
+            lifespanId: sessionController.currentSession!.id.stringValue
         )
 
         storage.removeMetadata(key: "permanent", type: .personaTag, lifespan: .permanent, lifespanId: "")
@@ -283,21 +283,21 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
             value: PersonaTag.metadataValue,
             type: .personaTag,
             lifespan: .process,
-            lifespanId: ProcessIdentifier.current.value
+            lifespanId: ProcessIdentifier.current.stringValue
         )
         storage.addMetadata(
             key: "session",
             value: PersonaTag.metadataValue,
             type: .personaTag,
             lifespan: .session,
-            lifespanId: sessionController.currentSession!.idRaw
+            lifespanId: sessionController.currentSession!.id.stringValue
         )
 
         // when removing a persona tag
         try handler.remove(persona: "session", lifespan: .session)
 
         // then the persona tag is removed
-        let tags = storage.fetchPersonaTagsForSessionId(sessionController.currentSession!.id!)
+        let tags = storage.fetchPersonaTagsForSessionId(sessionController.currentSession!.id)
         XCTAssertEqual(tags.count, 2)
         XCTAssertEqual(Set(tags.map(\.key)), Set(["permanent", "process"]))
     }
@@ -322,21 +322,21 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
             value: PersonaTag.metadataValue,
             type: .personaTag,
             lifespan: .process,
-            lifespanId: ProcessIdentifier.current.value
+            lifespanId: ProcessIdentifier.current.stringValue
         )
         storage.addMetadata(
             key: "session",
             value: PersonaTag.metadataValue,
             type: .personaTag,
             lifespan: .session,
-            lifespanId: sessionController.currentSession!.idRaw
+            lifespanId: sessionController.currentSession!.id.stringValue
         )
 
         // when removing a persona tag
         try handler.remove(persona: "permanent", lifespan: .session)
 
         // then the persona tag is removed
-        let tags = storage.fetchPersonaTagsForSessionId(sessionController.currentSession!.id!)
+        let tags = storage.fetchPersonaTagsForSessionId(sessionController.currentSession!.id)
         XCTAssertEqual(tags.count, 3)
         XCTAssertEqual(Set(tags.map(\.key)), Set(["permanent", "process", "session"]))
     }
@@ -362,21 +362,21 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
             value: PersonaTag.metadataValue,
             type: .personaTag,
             lifespan: .process,
-            lifespanId: ProcessIdentifier.current.value
+            lifespanId: ProcessIdentifier.current.stringValue
         )
         storage.addMetadata(
             key: "session",
             value: PersonaTag.metadataValue,
             type: .personaTag,
             lifespan: .session,
-            lifespanId: sessionController.currentSession!.idRaw
+            lifespanId: sessionController.currentSession!.id.stringValue
         )
 
         // when removing all persona tags
         handler.removeAllPersonas()
 
         // then the persona tags are removed
-        let tags = storage.fetchPersonaTagsForSessionId(sessionController.currentSession!.id!)
+        let tags = storage.fetchPersonaTagsForSessionId(sessionController.currentSession!.id)
         XCTAssertEqual(tags.count, 0)
     }
 
@@ -400,21 +400,21 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
             value: PersonaTag.metadataValue,
             type: .personaTag,
             lifespan: .process,
-            lifespanId: ProcessIdentifier.current.value
+            lifespanId: ProcessIdentifier.current.stringValue
         )
         storage.addMetadata(
             key: "session",
             value: PersonaTag.metadataValue,
             type: .personaTag,
             lifespan: .session,
-            lifespanId: sessionController.currentSession!.idRaw
+            lifespanId: sessionController.currentSession!.id.stringValue
         )
 
         // when removing all persona tags
         handler.removeAllPersonas(lifespans: [.permanent])
 
         // then the persona tags are removed
-        let tags = storage.fetchPersonaTagsForSessionId(sessionController.currentSession!.id!)
+        let tags = storage.fetchPersonaTagsForSessionId(sessionController.currentSession!.id)
         XCTAssertEqual(tags.count, 2)
         XCTAssertEqual(Set(tags.map(\.key)), Set(["process", "session"]))
     }

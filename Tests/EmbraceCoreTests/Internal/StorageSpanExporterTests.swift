@@ -63,10 +63,10 @@ final class StorageSpanExporterTests: XCTestCase {
         XCTAssertEqual(exportedSpan.endTime!.timeIntervalSince1970, endTime.timeIntervalSince1970, accuracy: 0.01)
 
         XCTAssertNotNil(exportedSpan.sessionIdRaw)
-        XCTAssertEqual(exportedSpan.sessionIdRaw, sessionController.currentSession?.id?.toString)
+        XCTAssertEqual(exportedSpan.sessionIdRaw, sessionController.currentSession?.id.stringValue)
     }
 
-    func test_DB_allowsOpenSpan_toUpdateAttributes() throws {
+    func test_DB_allowsOpenSpan_toUpdate() throws {
         // Given
         let storage = try EmbraceStorage.createInMemoryDb()
         let sessionController = MockSessionController()
@@ -116,10 +116,11 @@ final class StorageSpanExporterTests: XCTestCase {
         XCTAssertEqual(exportedSpan?.id, spanId.hexString)
 
         XCTAssertNotNil(exportedSpan!.sessionIdRaw)
-        XCTAssertEqual(exportedSpan!.sessionIdRaw, sessionController.currentSession?.id?.toString)
+        XCTAssertEqual(exportedSpan!.sessionIdRaw, sessionController.currentSession?.id.stringValue)
 
-        let spanData = try JSONDecoder().decode(SpanData.self, from: exportedSpan!.data)
-        XCTAssertEqual(spanData.attributes, ["foo": .string("baz")])
+        XCTAssertEqual(exportedSpan!.attributes.count, 1)
+        XCTAssertEqual(exportedSpan!.attributes.first!.key, "foo")
+        XCTAssertEqual(exportedSpan!.attributes.first!.value, "baz")
     }
 
     func test_noExport_onSessionEnd() throws {

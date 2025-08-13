@@ -1,9 +1,10 @@
-import EmbraceCommonInternal
 //
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
-import XCTest
 
+import XCTest
+import EmbraceCommonInternal
+import EmbraceSemantics
 @testable import EmbraceCore
 @testable import EmbraceStorageInternal
 
@@ -18,34 +19,34 @@ class MockMetadataFetcher: EmbraceStorageMetadataFetcher {
         return metadata
     }
 
-    func fetchResourcesForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata] {
+    func fetchResourcesForSessionId(_ sessionId: EmbraceIdentifier) -> [EmbraceMetadata] {
         return metadata.filter { record in
             (record.type == .resource || record.type == .requiredResource)
         }
     }
 
-    func fetchResourcesForProcessId(_ processId: ProcessIdentifier) -> [EmbraceMetadata] {
+    func fetchResourcesForProcessId(_ processId: EmbraceIdentifier) -> [EmbraceMetadata] {
         return metadata.filter { record in
             (record.type == .resource || record.type == .requiredResource) && record.lifespan == .process
-                && record.lifespanId == processId.value
+                && record.lifespanId == processId.stringValue
         }
     }
 
-    func fetchCustomPropertiesForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata] {
+    func fetchCustomPropertiesForSessionId(_ sessionId: EmbraceIdentifier) -> [EmbraceMetadata] {
         return metadata.filter { record in
-            record.type == .customProperty && record.lifespan == .session && record.lifespanId == sessionId.toString
+            record.type == .customProperty && record.lifespan == .session && record.lifespanId == sessionId.stringValue
         }
     }
 
-    func fetchPersonaTagsForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata] {
+    func fetchPersonaTagsForSessionId(_ sessionId: EmbraceIdentifier) -> [EmbraceMetadata] {
         return metadata.filter { record in
-            record.type == .personaTag && record.lifespan == .session && record.lifespanId == sessionId.toString
+            record.type == .personaTag && record.lifespan == .session && record.lifespanId == sessionId.stringValue
         }
     }
 
-    func fetchPersonaTagsForProcessId(_ processId: ProcessIdentifier) -> [EmbraceMetadata] {
+    func fetchPersonaTagsForProcessId(_ processId: EmbraceIdentifier) -> [EmbraceMetadata] {
         return metadata.filter { record in
-            record.type == .personaTag && record.lifespan == .process && record.lifespanId == processId.value
+            record.type == .personaTag && record.lifespan == .process && record.lifespanId == processId.stringValue
         }
     }
 }

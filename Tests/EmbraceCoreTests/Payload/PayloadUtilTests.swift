@@ -5,7 +5,7 @@
 import OpenTelemetryApi
 import TestSupport
 import XCTest
-
+import EmbraceSemantics
 @testable import EmbraceCommonInternal
 @testable import EmbraceCore
 @testable import EmbraceStorageInternal
@@ -19,7 +19,7 @@ final class PayloadUtilTests: XCTestCase {
                 value: "fake_value",
                 type: .requiredResource,
                 lifespan: .process,
-                lifespanId: ProcessIdentifier.current.value
+                lifespanId: ProcessIdentifier.current.stringValue
             )
         ]
         let fetcher = MockMetadataFetcher(metadata: mockResources)
@@ -71,14 +71,14 @@ final class PayloadUtilTests: XCTestCase {
 
     func test_fetchCustomProperties() throws {
         // given
-        let sessionId = SessionIdentifier.random
+        let sessionId = EmbraceIdentifier.random
         let mockResources: [EmbraceMetadata] = [
             MockMetadata(
                 key: "fake_res",
                 value: "fake_value",
                 type: .customProperty,
                 lifespan: .session,
-                lifespanId: sessionId.toString
+                lifespanId: sessionId.stringValue
             )
         ]
         let fetcher = MockMetadataFetcher(metadata: mockResources)

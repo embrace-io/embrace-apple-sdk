@@ -6,13 +6,13 @@ import EmbraceCommonInternal
 import EmbraceStorageInternal
 import Foundation
 import TestSupport
-
+import EmbraceSemantics
 @testable import EmbraceCore
 
 class MockSessionController: SessionControllable {
 
     // Properties for mocking
-    var nextSessionId: SessionIdentifier?
+    var nextSessionId: EmbraceIdentifier?
     var nextSessionColdStart: Bool = false
     var nextSessionAppTerminated: Bool = false
 

@@ -16,7 +16,7 @@ struct LogPayloadBuilder {
             Attribute(key: entry.key, value: entry.value)
         }
 
-        finalAttributes.append(.init(key: LogSemantics.keyId, value: log.id.stringValue))
+        finalAttributes.append(.init(key: LogSemantics.keyId, value: log.id))
 
         return .init(
             timeUnixNano: String(Int(log.timestamp.nanosecondsSince1970)),

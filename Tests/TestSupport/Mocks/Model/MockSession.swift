@@ -2,13 +2,14 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceSemantics
 import EmbraceCommonInternal
 import Foundation
 
 public class MockSession: EmbraceSession {
-    public var idRaw: String
-    public var processIdRaw: String
-    public var state: String
+    public var id: EmbraceIdentifier
+    public var processId: EmbraceIdentifier
+    public var state: SessionState
     public var traceId: String
     public var spanId: String
     public var startTime: Date
@@ -20,8 +21,8 @@ public class MockSession: EmbraceSession {
     public var appTerminated: Bool
 
     public init(
-        id: SessionIdentifier,
-        processId: ProcessIdentifier,
+        id: EmbraceIdentifier,
+        processId: EmbraceIdentifier,
         state: SessionState,
         traceId: String,
         spanId: String,
@@ -33,9 +34,9 @@ public class MockSession: EmbraceSession {
         cleanExit: Bool = false,
         appTerminated: Bool = false
     ) {
-        self.idRaw = id.toString
-        self.processIdRaw = processId.value
-        self.state = state.rawValue
+        self.id = id
+        self.processId = processId
+        self.state = state
         self.traceId = traceId
         self.spanId = spanId
         self.startTime = startTime
@@ -49,7 +50,7 @@ public class MockSession: EmbraceSession {
 }
 
 extension MockSession {
-    public static func with(id: SessionIdentifier, state: SessionState) -> MockSession {
+    public static func with(id: EmbraceIdentifier, state: SessionState) -> MockSession {
         MockSession(
             id: id,
             processId: .random,

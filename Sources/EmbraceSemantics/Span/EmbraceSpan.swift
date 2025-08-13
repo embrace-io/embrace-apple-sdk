@@ -44,17 +44,17 @@ public protocol EmbraceSpan: EmbraceSignal {
     var processId: EmbraceIdentifier { get }
 
     /// Updates the status of the span
-    func setStatus(_ status: EmbraceSpanStatus)
+    mutating func setStatus(_ status: EmbraceSpanStatus)
 
     /// Adds an event to the span
-    func addEvent(_ event: EmbraceSpanEvent)
+    mutating func addEvent(_ event: EmbraceSpanEvent)
 
     /// Adds a link to the span
-    func addLink(_ link: EmbraceSpanLink)
+    mutating func addLink(_ link: EmbraceSpanLink)
 
     /// Ends the span with the given `endTime`
-    func end(endTime: Date)
+    mutating func end(endTime: Date)
 
     /// Ends the span with `endTime = Date()`
-    func end()
+    mutating func end()
 }

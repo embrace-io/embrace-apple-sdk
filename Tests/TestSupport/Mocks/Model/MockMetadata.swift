@@ -2,6 +2,7 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceSemantics
 import EmbraceCommonInternal
 import Foundation
 import OpenTelemetryApi
@@ -35,14 +36,14 @@ extension MockMetadata {
     public static func createSessionPropertyRecord(
         key: String,
         value: AttributeValue,
-        sessionId: SessionIdentifier = .random
+        sessionId: EmbraceIdentifier = .random
     ) -> EmbraceMetadata {
         MockMetadata(
             key: key,
             value: value.description,
             type: .customProperty,
             lifespan: .session,
-            lifespanId: sessionId.toString
+            lifespanId: sessionId.stringValue
         )
     }
 
@@ -52,7 +53,7 @@ extension MockMetadata {
             value: value,
             type: .customProperty,
             lifespan: .session,
-            lifespanId: SessionIdentifier.random.toString
+            lifespanId: EmbraceIdentifier.random.stringValue
         )
     }
 
@@ -62,7 +63,7 @@ extension MockMetadata {
             value: value,
             type: .resource,
             lifespan: .session,
-            lifespanId: SessionIdentifier.random.toString
+            lifespanId: EmbraceIdentifier.random.stringValue
         )
     }
 
@@ -72,7 +73,7 @@ extension MockMetadata {
             value: value,
             type: .personaTag,
             lifespan: .session,
-            lifespanId: SessionIdentifier.random.toString
+            lifespanId: EmbraceIdentifier.random.stringValue
         )
     }
 }

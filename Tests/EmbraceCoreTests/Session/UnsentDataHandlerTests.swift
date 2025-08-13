@@ -6,7 +6,7 @@ import EmbraceCommonInternal
 import Foundation
 import TestSupport
 import XCTest
-
+import EmbraceSemantics
 @testable import EmbraceCore
 @testable import EmbraceStorageInternal
 @testable import EmbraceUploadInternal
@@ -172,7 +172,7 @@ class UnsentDataHandlerTests: XCTestCase {
         let otel = MockEmbraceOpenTelemetry()
 
         // given a crash reporter
-        let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.toString)
+        let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.stringValue)
         let embraceReporter = EmbraceCrashReporter(reporter: crashReporter)
         let report = crashReporter.mockReports[0]
 
@@ -233,7 +233,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // then the raw crash log was sent
         XCTAssertEqual(otel.logs.count, 1)
-        XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string(LogType.crash.rawValue))
+        XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string(EmbraceType.crash.rawValue))
         XCTAssertEqual(otel.logs[0].timestamp, report.timestamp)
     }
 
@@ -251,7 +251,7 @@ class UnsentDataHandlerTests: XCTestCase {
         let otel = MockEmbraceOpenTelemetry()
 
         // given a crash reporter
-        let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.toString)
+        let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.stringValue)
         let embraceReporter = EmbraceCrashReporter(reporter: crashReporter)
         let report = crashReporter.mockReports[0]
 
@@ -312,7 +312,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // then the raw crash log was sent
         XCTAssertEqual(otel.logs.count, 1)
-        XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string(LogType.crash.rawValue))
+        XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string(EmbraceType.crash.rawValue))
         XCTAssertEqual(otel.logs[0].timestamp, report.timestamp)
     }
 
@@ -331,7 +331,7 @@ class UnsentDataHandlerTests: XCTestCase {
         let otel = MockEmbraceOpenTelemetry()
 
         // given a crash reporter
-        let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.toString)
+        let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.stringValue)
         let embraceReporter = EmbraceCrashReporter(reporter: crashReporter)
         let report = crashReporter.mockReports[0]
 
@@ -392,7 +392,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // then the raw crash log was sent
         XCTAssertEqual(otel.logs.count, 1)
-        XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string(LogType.crash.rawValue))
+        XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string(EmbraceType.crash.rawValue))
         XCTAssertEqual(otel.logs[0].timestamp, report.timestamp)
     }
 
@@ -409,7 +409,7 @@ class UnsentDataHandlerTests: XCTestCase {
         let otel = MockEmbraceOpenTelemetry()
 
         // given a crash reporter
-        let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.toString)
+        let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.stringValue)
         let embraceReporter = EmbraceCrashReporter(reporter: crashReporter)
         let report = crashReporter.mockReports[0]
 
@@ -449,11 +449,11 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // then the raw crash log was constructed correctly
         XCTAssertEqual(otel.logs.count, 1)
-        XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string(LogType.crash.rawValue))
+        XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string(EmbraceType.crash.rawValue))
         XCTAssertEqual(otel.logs[0].timestamp, report.timestamp)
         XCTAssertEqual(otel.logs[0].body?.description, "")
         XCTAssertEqual(otel.logs[0].severity, .fatal)
-        XCTAssertEqual(otel.logs[0].attributes["session.id"], .string(TestConstants.sessionId.toString))
+        XCTAssertEqual(otel.logs[0].attributes["session.id"], .string(TestConstants.sessionId.stringValue))
         XCTAssertEqual(otel.logs[0].attributes["emb.state"], .string(SessionState.foreground.rawValue))
         XCTAssertEqual(otel.logs[0].attributes["log.record.uid"], .string(report.id.withoutHyphen))
         XCTAssertEqual(otel.logs[0].attributes["emb.provider"], .string(report.provider))
@@ -488,10 +488,9 @@ class UnsentDataHandlerTests: XCTestCase {
         // given old closed span in storage
         storage.upsertSpan(
             id: "oldSpan",
-            name: "test",
             traceId: "traceId",
+            name: "test",
             type: .performance,
-            data: Data(),
             startTime: Date(timeIntervalSinceNow: -100),
             endTime: Date(timeIntervalSinceNow: -80)
         )
@@ -499,10 +498,9 @@ class UnsentDataHandlerTests: XCTestCase {
         // given open span in storage
         storage.upsertSpan(
             id: TestConstants.spanId,
-            name: "test",
             traceId: TestConstants.traceId,
+            name: "test",
             type: .performance,
-            data: Data(),
             startTime: Date(timeIntervalSinceNow: -50),
             processId: TestConstants.processId
         )
@@ -566,14 +564,14 @@ class UnsentDataHandlerTests: XCTestCase {
             value: "test",
             type: .requiredResource,
             lifespan: .session,
-            lifespanId: TestConstants.sessionId.toString
+            lifespanId: TestConstants.sessionId.stringValue
         )
         storage.addMetadata(
             key: "sameProcessId",
             value: "test",
             type: .requiredResource,
             lifespan: .process,
-            lifespanId: ProcessIdentifier.current.value
+            lifespanId: ProcessIdentifier.current.stringValue
         )
         storage.addMetadata(
             key: "differentSessionId",
@@ -634,10 +632,9 @@ class UnsentDataHandlerTests: XCTestCase {
         // given old closed span in storage
         storage.upsertSpan(
             id: "oldSpan",
-            name: "test",
             traceId: "traceId",
+            name: "test",
             type: .performance,
-            data: Data(),
             startTime: Date(timeIntervalSinceNow: -100),
             endTime: Date(timeIntervalSinceNow: -80)
         )
@@ -689,7 +686,7 @@ class UnsentDataHandlerTests: XCTestCase {
             value: "test",
             type: .requiredResource,
             lifespan: .process,
-            lifespanId: ProcessIdentifier.current.value
+            lifespanId: ProcessIdentifier.current.stringValue
         )
         storage.addMetadata(
             key: "differentProcessId",
@@ -732,7 +729,8 @@ class UnsentDataHandlerTests: XCTestCase {
         // given logs in storage
         for _ in 0...5 {
             storage.createLog(
-                id: LogIdentifier.random,
+                id: EmbraceIdentifier.random,
+                sessionId: nil,
                 processId: TestConstants.processId,
                 severity: .debug,
                 body: "test",

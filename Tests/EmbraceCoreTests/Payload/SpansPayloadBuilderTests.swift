@@ -7,7 +7,7 @@ import EmbraceStorageInternal
 import OpenTelemetryApi
 import TestSupport
 import XCTest
-
+import EmbraceSemantics
 @testable import EmbraceCore
 @testable import EmbraceOTelInternal
 @testable import OpenTelemetrySdk
@@ -56,22 +56,19 @@ final class SpansPayloadBuilderTests: XCTestCase {
         id: String? = nil,
         traceId: String? = nil,
         name: String? = nil,
-        type: SpanType = .performance
-    ) throws -> SpanData {
+        type: EmbraceType = .performance
+    ) throws -> EmbraceSpan {
         let spanData = testSpan(startTime: startTime, endTime: endTime, name: name)
-        let data = try spanData.toJSON()
 
-        storage.upsertSpan(
+        return storage.upsertSpan(
             id: id ?? spanData.spanId.hexString,
-            name: spanData.name,
             traceId: traceId ?? spanData.traceId.hexString,
+            name: spanData.name,
             type: type,
-            data: data,
+            status: spanData.embStatus,
             startTime: spanData.startTime,
             endTime: spanData.hasEnded ? spanData.endTime : nil
-        )
-
-        return spanData
+        )!
     }
 
     func test_noSessionSpan() throws {
@@ -105,7 +102,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
             id: TestConstants.spanId,
             traceId: TestConstants.traceId,
             name: "emb-session",
-            type: SpanType.session
+            type: EmbraceType.session
         )
 
         // when building the spans payload
@@ -446,14 +443,14 @@ final class SpansPayloadBuilderTests: XCTestCase {
             id: TestConstants.spanId,
             traceId: TestConstants.traceId,
             name: "emb-session",
-            type: SpanType.session
+            type: EmbraceType.session
         )
 
         _ = try addSpan(
             startTime: Date(timeIntervalSince1970: 5),
             endTime: Date(timeIntervalSince1970: 55),
             name: "emb-session",
-            type: SpanType.session
+            type: EmbraceType.session
         )
 
         // when building the spans payload

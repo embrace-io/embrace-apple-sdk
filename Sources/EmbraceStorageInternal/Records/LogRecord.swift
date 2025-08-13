@@ -11,7 +11,7 @@ import Foundation
 
 @objc(LogRecord)
 public class LogRecord: NSManagedObject {
-    @NSManaged public var idRaw: String
+    @NSManaged public var id: String
     @NSManaged public var sessionIdRaw: String?
     @NSManaged public var processIdRaw: String
     @NSManaged public var severityRaw: Int
@@ -21,7 +21,7 @@ public class LogRecord: NSManagedObject {
 
     class func create(
         context: NSManagedObjectContext,
-        id: EmbraceIdentifier,
+        id: String,
         sessionId: EmbraceIdentifier?,
         processId: EmbraceIdentifier,
         severity: EmbraceLogSeverity,
@@ -37,7 +37,7 @@ public class LogRecord: NSManagedObject {
             }
 
             let record = LogRecord(entity: description, insertInto: context)
-            record.idRaw = id.stringValue
+            record.id = id
             record.sessionIdRaw = sessionId?.stringValue
             record.processIdRaw = processId.stringValue
             record.severityRaw = severity.rawValue
@@ -78,7 +78,7 @@ public class LogRecord: NSManagedObject {
         }
 
         return ImmutableLogRecord(
-            id: EmbraceIdentifier(stringValue: idRaw),
+            id: id,
             sessionId: sessionId,
             processId: EmbraceIdentifier(stringValue: processIdRaw),
             severity: EmbraceLogSeverity(rawValue: severityRaw) ?? .debug,
@@ -103,7 +103,7 @@ extension LogRecord: EmbraceStorageRecord {
 
         // parent
         let idAttribute = NSAttributeDescription()
-        idAttribute.name = "idRaw"
+        idAttribute.name = "id"
         idAttribute.attributeType = .stringAttributeType
 
         let sessionIdAttribute = NSAttributeDescription()
@@ -174,7 +174,7 @@ extension LogRecord: EmbraceStorageRecord {
 }
 
 struct ImmutableLogRecord: EmbraceLog {
-    var id: EmbraceIdentifier
+    var id: String
     var sessionId: EmbraceIdentifier?
     var processId: EmbraceIdentifier
     var severity: EmbraceLogSeverity

@@ -6,6 +6,7 @@ import Foundation
 
 /// Represents an OTel span event
 public protocol EmbraceSpanEvent: EmbraceSignal {
+    
     /// Name of the event
     var name: String { get }
 

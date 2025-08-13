@@ -23,10 +23,9 @@ class SpanRecordTests: XCTestCase {
         // given inserted span
         storage.upsertSpan(
             id: "id",
-            name: "a name",
             traceId: "traceId",
+            name: "a name",
             type: .performance,
-            data: Data(),
             startTime: Date()
         )
 
@@ -40,10 +39,9 @@ class SpanRecordTests: XCTestCase {
         // given inserted span
         storage.upsertSpan(
             id: "id",
-            name: "a name",
             traceId: "traceId",
+            name: "a name",
             type: .performance,
-            data: Data(),
             startTime: Date()
         )
 
@@ -62,10 +60,9 @@ class SpanRecordTests: XCTestCase {
         let originalDate = Date(timeIntervalSince1970: 1)
         storage.upsertSpan(
             id: "id",
-            name: "a name",
             traceId: "traceId",
+            name: "a name",
             type: .performance,
-            data: Data(),
             startTime: Date(),
             endTime: originalDate
         )
@@ -85,10 +82,9 @@ class SpanRecordTests: XCTestCase {
         // given inserted span
         storage.upsertSpan(
             id: "id",
-            name: "a name",
             traceId: TestConstants.traceId,
+            name: "a name",
             type: .performance,
-            data: Data(),
             startTime: Date(),
             endTime: nil
         )
@@ -109,28 +105,25 @@ class SpanRecordTests: XCTestCase {
         // given inserted spans
         storage.upsertSpan(
             id: "id1",
-            name: "a name 1",
             traceId: TestConstants.traceId,
+            name: "a name 1",
             type: .performance,
-            data: Data(),
             startTime: Date(timeIntervalSince1970: 0),
             endTime: Date(timeIntervalSince1970: 10)
         )
         storage.upsertSpan(
             id: "id2",
-            name: "a name 2",
             traceId: TestConstants.traceId,
+            name: "a name 2",
             type: .performance,
-            data: Data(),
             startTime: Date(timeIntervalSince1970: 0),
             endTime: Date(timeIntervalSince1970: 20)
         )
         storage.upsertSpan(
             id: "id3",
-            name: "a name 3",
             traceId: TestConstants.traceId,
+            name: "a name 3",
             type: .performance,
-            data: Data(),
             startTime: Date(timeIntervalSince1970: 0)
         )
 
@@ -153,30 +146,27 @@ class SpanRecordTests: XCTestCase {
         // given insterted spans
         storage.upsertSpan(
             id: "id1",
-            name: "a name 1",
             traceId: TestConstants.traceId,
+            name: "a name 1",
             type: .performance,
-            data: Data(),
             startTime: Date(timeIntervalSince1970: 0),
             endTime: Date(timeIntervalSince1970: 10),
             processId: TestConstants.processId
         )
         storage.upsertSpan(
             id: "id2",
-            name: "a name 2",
             traceId: TestConstants.traceId,
+            name: "a name 2",
             type: .performance,
-            data: Data(),
             startTime: Date(timeIntervalSince1970: 0),
             endTime: Date(timeIntervalSince1970: 20),
             processId: TestConstants.processId
         )
         storage.upsertSpan(
             id: "id3",
-            name: "a name 3",
             traceId: TestConstants.traceId,
+            name: "a name 3",
             type: .performance,
-            data: Data(),
             startTime: Date(timeIntervalSince1970: 0)
         )
 
@@ -195,27 +185,25 @@ class SpanRecordTests: XCTestCase {
         // given insterted spans
         storage.upsertSpan(
             id: "id1",
-            name: "a name 1",
             traceId: TestConstants.traceId,
-            type: .performance, data: Data(),
+            name: "a name 1",
+            type: .performance,
             startTime: Date(timeIntervalSince1970: 0),
             endTime: Date(timeIntervalSince1970: 10)
         )
         storage.upsertSpan(
             id: "id2",
-            name: "a name 2",
             traceId: TestConstants.traceId,
+            name: "a name 2",
             type: .performance,
-            data: Data(),
             startTime: Date(timeIntervalSince1970: 1),
             processId: TestConstants.processId
         )
         storage.upsertSpan(
             id: "id3",
-            name: "a name 3",
             traceId: TestConstants.traceId,
+            name: "a name 3",
             type: .performance,
-            data: Data(),
             startTime: Date(timeIntervalSince1970: 2)
         )
 

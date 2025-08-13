@@ -37,7 +37,7 @@ extension EmbraceStorage {
     ) -> EmbraceLog? {
         if let log = LogRecord.create(
             context: coreData.context,
-            id: id,
+            id: id.stringValue,
             sessionId: sessionId,
             processId: processId,
             severity: severity,
@@ -52,10 +52,10 @@ extension EmbraceStorage {
         return nil
     }
 
-    func fetchLogRecord(id: EmbraceIdentifier, processId: EmbraceIdentifier) -> LogRecord? {
+    func fetchLogRecord(id: String, processId: EmbraceIdentifier) -> LogRecord? {
         let request = LogRecord.createFetchRequest()
         request.predicate = NSPredicate(
-            format: "idRaw == %@ AND processIdRaw == %@", id.stringValue, processId.stringValue)
+            format: "id == %@ AND processIdRaw == %@", id, processId.stringValue)
 
         return coreData.fetch(withRequest: request).first
     }

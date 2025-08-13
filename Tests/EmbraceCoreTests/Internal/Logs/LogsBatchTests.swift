@@ -7,7 +7,7 @@ import EmbraceStorageInternal
 import Foundation
 import TestSupport
 import XCTest
-
+import EmbraceSemantics
 @testable import EmbraceCore
 
 class LogsBatchTests: XCTestCase {
@@ -107,14 +107,7 @@ extension LogsBatchTests {
     }
 
     fileprivate func randomLog(date: Date = Date()) -> EmbraceLog {
-        return MockLog(
-            id: .init(),
-            processId: .random,
-            severity: .info,
-            body: UUID().uuidString,
-            timestamp: date,
-            attributes: [:]
-        )
+        return MockLog(timestamp: date)
     }
 }
 

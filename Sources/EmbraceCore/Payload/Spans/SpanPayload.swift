@@ -51,8 +51,9 @@ struct SpanPayload: Encodable {
             self.status = Status.sessionCrashedError().name
         }
 
-        if let endTime = endTime {
-            self.endTime = endTime.nanosecondsSince1970Truncated
+        var end = endTime ?? span.endTime
+        if let end {
+            self.endTime = end.nanosecondsSince1970Truncated
         } else {
             self.endTime = nil
         }

@@ -4,5 +4,6 @@
 
 public protocol EmbraceSignal {
     var attributes: [String: String] { get }
-    func setAttribute(key: String, value: String?)
+
+    mutating func setAttribute(key: String, value: String?)
 }

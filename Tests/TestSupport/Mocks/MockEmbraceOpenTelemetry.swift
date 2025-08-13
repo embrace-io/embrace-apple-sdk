@@ -28,7 +28,7 @@ public class MockEmbraceOpenTelemetry: NSObject, EmbraceOpenTelemetry {
 
     public func buildSpan(
         name: String,
-        type: SpanType,
+        type: EmbraceType,
         attributes: [String: String] = [:],
         autoTerminationCode: SpanErrorCode? = nil
     ) -> SpanBuilder {
@@ -38,7 +38,7 @@ public class MockEmbraceOpenTelemetry: NSObject, EmbraceOpenTelemetry {
 
     public func recordCompletedSpan(
         name: String,
-        type: SpanType,
+        type: EmbraceType,
         parent: Span?,
         startTime: Date,
         endTime: Date,
@@ -67,8 +67,8 @@ public class MockEmbraceOpenTelemetry: NSObject, EmbraceOpenTelemetry {
 
     public func log(
         _ message: String,
-        severity: LogSeverity,
-        type: LogType = .message,
+        severity: EmbraceLogSeverity,
+        type: EmbraceType = .message,
         attributes: [String: String],
         stackTraceBehavior: StackTraceBehavior = .default
     ) {
@@ -84,8 +84,8 @@ public class MockEmbraceOpenTelemetry: NSObject, EmbraceOpenTelemetry {
 
     public func log(
         _ message: String,
-        severity: LogSeverity,
-        type: LogType = .message,
+        severity: EmbraceLogSeverity,
+        type: EmbraceType = .message,
         timestamp: Date,
         attributes: [String: String],
         stackTraceBehavior: StackTraceBehavior = .default
@@ -113,8 +113,8 @@ public class MockEmbraceOpenTelemetry: NSObject, EmbraceOpenTelemetry {
 
     public func log(
         _ message: String,
-        severity: LogSeverity,
-        type: LogType = .performance,
+        severity: EmbraceLogSeverity,
+        type: EmbraceType = .performance,
         timestamp: Date = Date(),
         attachment: Data,
         attributes: [String: String] = [:],
@@ -125,8 +125,8 @@ public class MockEmbraceOpenTelemetry: NSObject, EmbraceOpenTelemetry {
 
     public func log(
         _ message: String,
-        severity: LogSeverity,
-        type: LogType = .performance,
+        severity: EmbraceLogSeverity,
+        type: EmbraceType = .performance,
         timestamp: Date = Date(),
         attachmentId: String,
         attachmentUrl: URL,

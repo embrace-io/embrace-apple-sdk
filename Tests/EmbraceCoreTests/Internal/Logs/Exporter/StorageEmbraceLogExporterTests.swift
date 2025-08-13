@@ -9,7 +9,7 @@ import EmbraceStorageInternal
 import OpenTelemetryApi
 import OpenTelemetrySdk
 import XCTest
-
+import EmbraceSemantics
 @testable import EmbraceCore
 
 class StorageEmbraceLogExporterTests: XCTestCase {
@@ -117,7 +117,7 @@ class StorageEmbraceLogExporterTests: XCTestCase {
     func test_rawCrashLogs_dontGetExported() {
         let logData = randomLogData(
             body: "example",
-            attributes: ["emb.type": .string(LogType.crash.rawValue)]
+            attributes: ["emb.type": .string(EmbraceType.crash.rawValue)]
         )
 
         givenStorageEmbraceLogExporter(initialState: .active)
@@ -130,7 +130,7 @@ class StorageEmbraceLogExporterTests: XCTestCase {
         let logData = randomLogData(
             body: "example",
             attributes: [
-                "emb.type": .string(LogType.crash.rawValue),
+                "emb.type": .string(EmbraceType.crash.rawValue),
                 "emb.provider": .string("metrickit")
             ]
         )
@@ -145,13 +145,13 @@ class StorageEmbraceLogExporterTests: XCTestCase {
     func test_limits_ignored() {
         let internalLog = randomLogData(
             body: "example",
-            attributes: ["emb.type": .string(LogType.internal.rawValue)]
+            attributes: ["emb.type": .string(EmbraceType.internal.rawValue)]
         )
 
         let metricKitCrash = randomLogData(
             body: "example",
             attributes: [
-                "emb.type": .string(LogType.crash.rawValue),
+                "emb.type": .string(EmbraceType.crash.rawValue),
                 "emb.provider": .string("metrickit")
             ]
         )
@@ -159,7 +159,7 @@ class StorageEmbraceLogExporterTests: XCTestCase {
         let metricKitHang = randomLogData(
             body: "example",
             attributes: [
-                "emb.type": .string(LogType.hang.rawValue),
+                "emb.type": .string(EmbraceType.hang.rawValue),
                 "emb.provider": .string("metrickit")
             ]
         )
@@ -175,19 +175,19 @@ class StorageEmbraceLogExporterTests: XCTestCase {
         let info = randomLogData(
             body: "example",
             severity: Severity.info,
-            attributes: ["emb.type": .string(LogType.breadcrumb.rawValue)]
+            attributes: ["emb.type": .string(EmbraceType.breadcrumb.rawValue)]
         )
 
         let warning = randomLogData(
             body: "example",
             severity: Severity.warn,
-            attributes: ["emb.type": .string(LogType.breadcrumb.rawValue)]
+            attributes: ["emb.type": .string(EmbraceType.breadcrumb.rawValue)]
         )
 
         let error = randomLogData(
             body: "example",
             severity: Severity.error,
-            attributes: ["emb.type": .string(LogType.breadcrumb.rawValue)]
+            attributes: ["emb.type": .string(EmbraceType.breadcrumb.rawValue)]
         )
 
         givenStorageEmbraceLogExporter(initialState: .active)
@@ -201,19 +201,19 @@ class StorageEmbraceLogExporterTests: XCTestCase {
         let info = randomLogData(
             body: "example",
             severity: Severity.info,
-            attributes: ["emb.type": .string(LogType.breadcrumb.rawValue)]
+            attributes: ["emb.type": .string(EmbraceType.breadcrumb.rawValue)]
         )
 
         let warning = randomLogData(
             body: "example",
             severity: Severity.warn,
-            attributes: ["emb.type": .string(LogType.breadcrumb.rawValue)]
+            attributes: ["emb.type": .string(EmbraceType.breadcrumb.rawValue)]
         )
 
         let error = randomLogData(
             body: "example",
             severity: Severity.error,
-            attributes: ["emb.type": .string(LogType.breadcrumb.rawValue)]
+            attributes: ["emb.type": .string(EmbraceType.breadcrumb.rawValue)]
         )
 
         givenStorageEmbraceLogExporter(initialState: .active)
@@ -227,19 +227,19 @@ class StorageEmbraceLogExporterTests: XCTestCase {
         let info = randomLogData(
             body: "example",
             severity: Severity.info,
-            attributes: ["emb.type": .string(LogType.breadcrumb.rawValue)]
+            attributes: ["emb.type": .string(EmbraceType.breadcrumb.rawValue)]
         )
 
         let warning = randomLogData(
             body: "example",
             severity: Severity.warn,
-            attributes: ["emb.type": .string(LogType.breadcrumb.rawValue)]
+            attributes: ["emb.type": .string(EmbraceType.breadcrumb.rawValue)]
         )
 
         let error = randomLogData(
             body: "example",
             severity: Severity.error,
-            attributes: ["emb.type": .string(LogType.breadcrumb.rawValue)]
+            attributes: ["emb.type": .string(EmbraceType.breadcrumb.rawValue)]
         )
 
         givenStorageEmbraceLogExporter(initialState: .active)
@@ -253,19 +253,19 @@ class StorageEmbraceLogExporterTests: XCTestCase {
         let info = randomLogData(
             body: "example",
             severity: Severity.info,
-            attributes: ["emb.type": .string(LogType.breadcrumb.rawValue)]
+            attributes: ["emb.type": .string(EmbraceType.breadcrumb.rawValue)]
         )
 
         let warning = randomLogData(
             body: "example",
             severity: Severity.warn,
-            attributes: ["emb.type": .string(LogType.breadcrumb.rawValue)]
+            attributes: ["emb.type": .string(EmbraceType.breadcrumb.rawValue)]
         )
 
         let error = randomLogData(
             body: "example",
             severity: Severity.error,
-            attributes: ["emb.type": .string(LogType.breadcrumb.rawValue)]
+            attributes: ["emb.type": .string(EmbraceType.breadcrumb.rawValue)]
         )
 
         givenStorageEmbraceLogExporter(initialState: .active)
@@ -279,13 +279,13 @@ class StorageEmbraceLogExporterTests: XCTestCase {
         let info1 = randomLogData(
             body: "example1",
             severity: Severity.info,
-            attributes: ["emb.type": .string(LogType.breadcrumb.rawValue)]
+            attributes: ["emb.type": .string(EmbraceType.breadcrumb.rawValue)]
         )
 
         let info2 = randomLogData(
             body: "example2",
             severity: Severity.info,
-            attributes: ["emb.type": .string(LogType.breadcrumb.rawValue)]
+            attributes: ["emb.type": .string(EmbraceType.breadcrumb.rawValue)]
         )
 
         givenStorageEmbraceLogExporter(initialState: .active)
@@ -303,13 +303,13 @@ class StorageEmbraceLogExporterTests: XCTestCase {
         let info1 = randomLogData(
             body: "example1",
             severity: Severity.info,
-            attributes: ["emb.type": .string(LogType.breadcrumb.rawValue)]
+            attributes: ["emb.type": .string(EmbraceType.breadcrumb.rawValue)]
         )
 
         let info2 = randomLogData(
             body: "example2",
             severity: Severity.info,
-            attributes: ["emb.type": .string(LogType.breadcrumb.rawValue)]
+            attributes: ["emb.type": .string(EmbraceType.breadcrumb.rawValue)]
         )
 
         givenStorageEmbraceLogExporter(initialState: .active)
