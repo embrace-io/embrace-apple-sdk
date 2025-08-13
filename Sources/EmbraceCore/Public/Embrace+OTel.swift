@@ -324,7 +324,11 @@ extension Embrace {  // MARK: Internal methods
         if let parent = parent { builder.setParent(parent) }
         let span = builder.startSpan()
 
+        let start = Date()
+
         let result = try block(span)
+
+        print("[SETUP:\(name)] \(Date().timeIntervalSince(start)) s")
 
         span.end()
         return result
