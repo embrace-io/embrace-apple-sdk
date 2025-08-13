@@ -31,30 +31,3 @@ import Foundation
 
     @objc var basePath: String? { get }
 }
-
-@objc public class EmbraceCrashReport: NSObject {
-    public private(set) var id: UUID
-    public private(set) var payload: String
-    public private(set) var provider: String
-    public private(set) var internalId: Int?
-    public private(set) var sessionId: String?
-    public private(set) var timestamp: Date?
-    public private(set) var signal: CrashSignal?
-
-    public init(
-        payload: String,
-        provider: String,
-        internalId: Int? = nil,
-        sessionId: String? = nil,
-        timestamp: Date? = nil,
-        signal: CrashSignal? = nil
-    ) {
-        self.id = UUID()
-        self.payload = payload
-        self.provider = provider
-        self.internalId = internalId
-        self.sessionId = sessionId
-        self.timestamp = timestamp
-        self.signal = signal
-    }
-}
