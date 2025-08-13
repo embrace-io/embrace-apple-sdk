@@ -50,16 +50,16 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-spm-build-cache-test
 
-      - name: Display Available SDKs
-        run: xcodebuild -showsdks -json
-        timeout-minutes: 1
-        continue-on-error: true
+#      - name: Display Available SDKs
+#        run: xcodebuild -showsdks -json
+#        timeout-minutes: 1
+#        continue-on-error: true
 
-      - name: Display Available Simulators
-        run: |
-          xcrun simctl list -j devices available
-        timeout-minutes: 2
-        continue-on-error: true
+#      - name: Display Available Simulators
+#        run: |
+#          xcrun simctl list -j devices available
+#        timeout-minutes: 2
+#        continue-on-error: true
 
       - name: Install xcbeautify
         run: brew install xcbeautify
