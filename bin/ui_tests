@@ -66,16 +66,3 @@ if [ -n "${CREATED_DEVICE_UDID}" ]; then
     echo "Deleting simulator with UDID: $CREATED_DEVICE_UDID"
     xcrun simctl delete $CREATED_DEVICE_UDID
 fi
-
-#IS_XCTEST=true \
-xcodebuild clean \
-    -project './Examples/EmbraceIOTestApp/EmbraceIOTestApp.xcodeproj' \
-    -scheme 'EmbraceIOTestApp' \
-    -testPlan 'EmbraceIOTestAppTests' \
-    -sdk $SDK_PATH \
-    -clonedSourcePackagesDirPath $CLONED_SOURCE_PACKAGES_DIR_PATH \
-    -configuration "Debug" \
-    -destination "id=$SELECTED_DEVICE_UDID" \
-    -derivedDataPath $DERIVED_DATA_PATH \
-    -resultBundlePath $XCRESULT_PATH \
-    test
