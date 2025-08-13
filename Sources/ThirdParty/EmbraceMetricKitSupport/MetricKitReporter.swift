@@ -181,7 +181,7 @@ import Foundation
             logger.info("deleteCrashReport")
         }
 
-        private func _writeSymbols(_ symbols: [UInt64], sessionId: String) {
+        private func _writeSymbols(_ symbols: [UInt64], sessionId: String, processId: String, sdk: String?) {
 
             logger.info("_writeSymbols")
 
@@ -206,7 +206,8 @@ import Foundation
             }
             let filename = String(format: "%016llx.stacksym", combinedHash)
             let url = symbolDirectoryURL.appendingPathComponent(filename)
-            try? sessionId.write(to: url, atomically: false, encoding: .utf8)
+            let output = [sessionId, processId, sdk].compactMap { $0 }.joined(separator: "\n")
+            try? output.write(to: url, atomically: false, encoding: .utf8)
         }
 
         public func appendCrashInfo(key: String, value: String?) {
@@ -216,7 +217,9 @@ import Foundation
                     // log it
                     logger.info("sid: \(value)")
                     let stack = threadcrumb?.log(value).map { UInt64(truncating: $0) } ?? []
-                    _writeSymbols(stack, sessionId: value)
+                    _writeSymbols(
+                        stack, sessionId: value, processId: ProcessIdentifier.current.value,
+                        sdk: crashContext?.sdkVersion)
 
                     try? value.write(to: lastSessionURL, atomically: false, encoding: .utf8)
                     let logger = MXMetricManager.makeLogHandle(category: value)
