@@ -12,24 +12,8 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
     var app = XCUIApplication()
 
     override func setUpWithError() throws {
-        app.launch()
-
-        let initButton = app.buttons["EmbraceInitButton"]
-        XCTAssertTrue(initButton.waitForExistence(timeout: 5))
-        initButton.tap()
-
-        XCTAssertNotNil(
-            initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
-
-        let sideMenuButton = app.buttons["SideMenuButton"]
-        XCTAssertTrue(sideMenuButton.waitForExistence(timeout: 5))
-        sideMenuButton.tap()
-
-        let testScreenButton = app.staticTexts["networking"]
-        XCTAssertTrue(testScreenButton.waitForExistence(timeout: 5))
-        testScreenButton.tap()
-
         continueAfterFailure = true
+        app.launchAndOpenTestTab("networking")
     }
 
     override func tearDownWithError() throws {

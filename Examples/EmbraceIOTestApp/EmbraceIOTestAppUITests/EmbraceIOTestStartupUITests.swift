@@ -46,28 +46,8 @@ final class EmbraceIOTestWARMStartupUITests: XCTestCase {
 
     var app = XCUIApplication()
     override func setUpWithError() throws {
-        app.launch()
-
-        let warmButton = app.buttons["EmbraceInitForceState_Warm"]
-        XCTAssertTrue(warmButton.waitForExistence(timeout: 5))
-        warmButton.tap()
-
-        let initButton = app.buttons["EmbraceInitButton"]
-        XCTAssertTrue(initButton.waitForExistence(timeout: 5))
-        initButton.tap()
-
-        XCTAssertNotNil(
-            initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
-
-        let sideMenuButton = app.buttons["SideMenuButton"]
-        XCTAssertTrue(sideMenuButton.waitForExistence(timeout: 5))
-        sideMenuButton.tap()
-
-        let testScreenButton = app.staticTexts["startup"]
-        XCTAssertTrue(testScreenButton.waitForExistence(timeout: 5))
-        testScreenButton.tap()
-
         continueAfterFailure = true
+        app.launchAndOpenTestTab("startup")
     }
 
     private func selectMetadataTest(_ test: Test) {

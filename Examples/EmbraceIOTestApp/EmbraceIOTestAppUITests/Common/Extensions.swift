@@ -90,3 +90,23 @@ extension XCTestCase {
         XCTAssertFalse(app.staticTexts["FAIL"].exists)
     }
 }
+
+extension XCUIApplication {
+    func launchAndOpenTestTab(_ testTabName: String) {
+        self.launch()
+        let initButton = self.buttons["EmbraceInitButton"]
+        XCTAssertTrue(initButton.waitForExistence(timeout: 5))
+        initButton.tap()
+
+        XCTAssertNotNil(
+            initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
+
+        let sideMenuButton = self.buttons["SideMenuButton"]
+        XCTAssertTrue(sideMenuButton.waitForExistence(timeout: 5))
+        sideMenuButton.tap()
+
+        let testScreenButton = self.staticTexts[testTabName]
+        XCTAssertTrue(testScreenButton.waitForExistence(timeout: 5))
+        testScreenButton.tap()
+    }
+}

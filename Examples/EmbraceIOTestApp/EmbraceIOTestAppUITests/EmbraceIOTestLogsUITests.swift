@@ -12,24 +12,8 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
     var app = XCUIApplication()
 
     override func setUpWithError() throws {
-        app.launch()
-
-        let initButton = app.buttons["EmbraceInitButton"]
-        XCTAssertTrue(initButton.waitForExistence(timeout: 5))
-        initButton.tap()
-
-        XCTAssertNotNil(
-            initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
-
-        let sideMenuButton = app.buttons["SideMenuButton"]
-        XCTAssertTrue(sideMenuButton.waitForExistence(timeout: 5))
-        sideMenuButton.tap()
-
-        let testScreen = app.staticTexts["logging"]
-        XCTAssertTrue(testScreen.waitForExistence(timeout: 5))
-        testScreen.tap()
-
         continueAfterFailure = true
+        app.launchAndOpenTestTab("logging")
     }
 
     override func tearDownWithError() throws {

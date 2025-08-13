@@ -12,23 +12,8 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
     var app = XCUIApplication()
 
     override func setUpWithError() throws {
-        continueAfterFailure = false
-        app.launch()
-
-        let initButton = app.buttons["EmbraceInitButton"]
-        XCTAssertTrue(initButton.waitForExistence(timeout: 5))
-        initButton.tap()
-
-        XCTAssertNotNil(
-            initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
-
-        let sideMenuButton = app.buttons["SideMenuButton"]
-        XCTAssertTrue(sideMenuButton.waitForExistence(timeout: 5))
-        sideMenuButton.tap()
-
-        let testScreen = app.staticTexts["uploadedPayloads"]
-        XCTAssertTrue(testScreen.waitForExistence(timeout: 5))
-        testScreen.tap()
+        continueAfterFailure = true
+        app.launchAndOpenTestTab("uploadedPayloads")
     }
 
     private func backgroundAndReopenApp() {
@@ -38,7 +23,6 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
     }
 
     private func runSessionSpanTest() -> Bool {
-        let enabled = NSPredicate(format: "enabled == true")
         let testButton = app.buttons["sessionPayloadTestButton"]
 
         _ = waitUntilElementIsEnabled(element: testButton, timeout: 20)
