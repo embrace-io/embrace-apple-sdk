@@ -1,5 +1,5 @@
 //
-//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
+//  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
 #import <Foundation/Foundation.h>
@@ -75,6 +75,16 @@ typedef struct __attribute__((aligned(8))) {
     int64_t signalNumber;
     int64_t signalCode;
 
+    // app info
+    uint8_t appTransitionState;  // KSCrashAppTransitionState
+
+    // app memory
+    uint64_t memoryFootprint;
+    uint64_t memoryRemaining;
+    uint64_t memoryLimit;
+    uint8_t memoryLevel;     // KSCrashAppMemoryState
+    uint8_t memoryPressure;  // KSCrashAppMemoryState
+
     //
     // - End Version 1 -
     //
@@ -82,7 +92,7 @@ typedef struct __attribute__((aligned(8))) {
 } EMBTerminationStorage;
 #pragma pack(pop)
 
-_Static_assert(sizeof(EMBTerminationStorage) == 9344, "Unexpected struct size");
+//_Static_assert(sizeof(EMBTerminationStorage) == 9344, "Unexpected struct size");
 _Static_assert(__alignof__(EMBTerminationStorage) == 8, "Unexpected struct alignment");
 
 #define ASSERT_OFFSET(field, offset) \

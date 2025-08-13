@@ -128,8 +128,10 @@ import Foundation
             logger.internalLogger = context.logger
             logger.info("install")
 
-            // install KSCrash
-            // TODO: Connect to memory monitor to store memory info
+            // install KSCrash as a shell only.
+            // It won't write any reports, but will notify
+            // us so we can store the info we need to
+            // complement MetricKit. Wahahaha!
             let config = KSCrashConfiguration()
             config.enableSigTermMonitoring = true
             config.enableSwapCxaThrow = false
@@ -137,6 +139,7 @@ import Foundation
             config.installPath = context.filePathProvider.directoryURL(for: "mk_crash_reporter")?.path
             config.reportStoreConfiguration.appName = context.appId ?? "default"
             config.shouldWriteReportCallback = EMBTerminationStorageShouldWriteReport
+            config.monitors = [.cppException, .machException, .nsException, .signal]
             do {
                 try KSCrash.shared.install(with: config)
             } catch {
@@ -144,8 +147,8 @@ import Foundation
             }
 
             MXMetricManager.shared.add(self)
-            let logger = MXMetricManager.makeLogHandle(category: ProcessIdentifier.current.value)
-            mxSignpost(.event, log: logger, name: "embrace_uuid")
+            let mxLogger = MXMetricManager.makeLogHandle(category: ProcessIdentifier.current.value)
+            mxSignpost(.event, log: mxLogger, name: "embrace_uuid")
         }
 
         public func fetchUnsentCrashReports(completion: @escaping ([EmbraceCrashReport]) -> Void) {
