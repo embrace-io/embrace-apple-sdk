@@ -13,13 +13,13 @@ permissions:
 jobs:
   run-ui-tests-app:
     timeout-minutes: 60
-    runs-on: [macos-14]
+    runs-on: [macos-15]
     strategy:
       fail-fast: false
       matrix:
-        xcode_version: ["15.4"]
+        xcode_version: ["16.4"]
         device:
-          - "iPhone 15 Pro"
+          - "iPhone 16 Pro"
     permissions:
       checks: write
 
@@ -77,11 +77,11 @@ jobs:
           name: output_xcresult
           path: .build/test/output.xcresult
 
-      - uses: kishikawakatsumi/xcresulttool@2b37f116695328d5e503ac8dadca0f1545a51da4
-        if: always()
-        with:
-          path: .build/test/output.xcresult
-          title: "UI Test Results"
-          show-passed-tests: true
-          show-code-coverage: false
-          upload-bundles: "never" # Uploading the `xcresult` using the xcresultool action seems to fail
+#      - uses: kishikawakatsumi/xcresulttool@2b37f116695328d5e503ac8dadca0f1545a51da4
+#        if: always()
+#        with:
+#          path: .build/test/output.xcresult
+#          title: "UI Test Results"
+#          show-passed-tests: true
+#          show-code-coverage: false
+#          upload-bundles: "never" # Uploading the `xcresult` using the xcresultool action seems to fail
