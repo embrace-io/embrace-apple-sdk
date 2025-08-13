@@ -6,19 +6,15 @@ import Foundation
 
 /// Wrapper around UUID used for all Embrace signals.
 public struct EmbraceIdentifier: Equatable {
-    let value: UUID?
     public let stringValue: String
 
     /// Creates an `EmbraceIdentifier` for the given `UUID`.
     public init(value: UUID) {
-        self.value = value
         self.stringValue = value.withoutHyphen
     }
 
-    /// Creates an `EmbraceIdentifier` for the given UUID string without hyphens.
-    /// If the string format is not correct, `value` will be nil.
+    /// Creates an `EmbraceIdentifier` for the given string.
     public init(stringValue: String) {
-        self.value = UUID(withoutHyphen: stringValue)
         self.stringValue = stringValue
     }
 
@@ -58,7 +54,7 @@ extension EmbraceIdentifier {
 
 // MARK: CustomStringConvertible
 extension EmbraceIdentifier: CustomStringConvertible {
-    public var description: String { value?.uuidString ?? stringValue }
+    public var description: String { stringValue }
 }
 
 // MARK: UUID

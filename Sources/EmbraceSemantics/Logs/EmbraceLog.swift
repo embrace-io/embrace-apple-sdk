@@ -5,7 +5,7 @@
 import Foundation
 
 /// Represents an OTel log signal.
-public protocol EmbraceLog: EmbraceSignal {
+public protocol EmbraceLog {
     
     /// Identifier for the log
     var id: String { get }
@@ -18,6 +18,9 @@ public protocol EmbraceLog: EmbraceSignal {
 
     /// Contents of the log
     var body: String { get }
+
+    /// Attributes of the log
+    var attributes: [String: String] { get }
 
     /// Identifier of the active Embrace Session when the log was emitted, if any.
     var sessionId: EmbraceIdentifier? { get }

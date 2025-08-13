@@ -5,11 +5,14 @@
 import Foundation
 
 /// Represents an OTel span event
-public protocol EmbraceSpanEvent: EmbraceSignal {
+public protocol EmbraceSpanEvent {
     
     /// Name of the event
     var name: String { get }
 
     /// Date when the event occured
     var timestamp: Date { get }
+
+    /// Attributes of the event
+    var attributes: [String: String] { get }
 }

@@ -40,5 +40,5 @@ public protocol EmbraceOTelSignalBridge {
     func endSpan(_ span: EmbraceSpan, endTime: Date)
 
     /// Called when a log is created
-    func createLog(body: String, timestamp: Date) -> EmbraceLog
+    func createLog(_ log: EmbraceLog)
 }

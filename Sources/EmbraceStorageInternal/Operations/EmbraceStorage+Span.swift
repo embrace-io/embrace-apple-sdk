@@ -169,7 +169,7 @@ extension EmbraceStorage {
 
         // add new records if needed
         for j in i ..< events.count {
-            let event = events[i]
+            let event = events[j]
 
             if let record = SpanEventRecord.create(
                 context: context,
@@ -188,7 +188,7 @@ extension EmbraceStorage {
     private func updateLinks(span: SpanRecord, links: [EmbraceSpanLink], context: NSManagedObjectContext) {
 
         // links can only be added so we don't need to do anything
-        // if the passed events count is not bigger than the current count
+        // if the passed links count is not bigger than the current count
         guard links.count > span.links.count else {
             return
         }
@@ -210,7 +210,7 @@ extension EmbraceStorage {
 
         // add new records if needed
         for j in i ..< links.count {
-            let link = links[i]
+            let link = links[j]
 
             if let record = SpanLinkRecord.create(
                 context: context,

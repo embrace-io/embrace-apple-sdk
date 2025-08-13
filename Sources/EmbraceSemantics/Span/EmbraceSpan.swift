@@ -5,7 +5,7 @@
 import Foundation
 
 /// Represents an OTel span signal.
-public protocol EmbraceSpan: EmbraceSignal {
+public protocol EmbraceSpan {
 
     /// Identifier for the span
     var id: String { get }
@@ -37,6 +37,9 @@ public protocol EmbraceSpan: EmbraceSignal {
     /// Array of links in the span
     var links: [EmbraceSpanLink] { get }
 
+    /// Attributes of the span
+    var attributes: [String: String] { get }
+
     /// Identifier of the active Embrace Session when the log was emitted, if any.
     var sessionId: EmbraceIdentifier? { get }
 
@@ -51,6 +54,9 @@ public protocol EmbraceSpan: EmbraceSignal {
 
     /// Adds a link to the span
     mutating func addLink(_ link: EmbraceSpanLink)
+
+    /// Sets an attribute to the span
+    mutating func setAttribute(key: String, value: String?)
 
     /// Ends the span with the given `endTime`
     mutating func end(endTime: Date)
