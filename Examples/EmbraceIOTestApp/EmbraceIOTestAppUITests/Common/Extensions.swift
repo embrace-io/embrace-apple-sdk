@@ -92,8 +92,15 @@ extension XCTestCase {
 }
 
 extension XCUIApplication {
-    func launchAndOpenTestTab(_ testTabName: String) {
+    func launchAndOpenTestTab(_ testTabName: String, coldStart: Bool = false) {
         self.launch()
+
+        if coldStart {
+            let coldButton = self.buttons["EmbraceInitForceState_Cold"]
+            XCTAssertTrue(coldButton.waitForExistence(timeout: 5))
+            coldButton.tap()
+        }
+
         let initButton = self.buttons["EmbraceInitButton"]
         XCTAssertTrue(initButton.waitForExistence(timeout: 5))
         initButton.tap()
