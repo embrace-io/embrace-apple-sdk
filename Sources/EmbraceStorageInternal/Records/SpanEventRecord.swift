@@ -13,7 +13,7 @@ import Foundation
 public class SpanEventRecord: NSManagedObject {
     @NSManaged public var name: String
     @NSManaged public var timestamp: Date
-    @NSManaged public var attributes: Set<SpanEventAttributeRecord>
+    @NSManaged public var attributes: String
     @NSManaged public var span: SpanRecord?
 
     class func create(
@@ -31,21 +31,8 @@ public class SpanEventRecord: NSManagedObject {
             }
 
             let record = SpanEventRecord(entity: description, insertInto: context)
-            record.name = name
-            record.timestamp = timestamp
+            record.update(name: name, timestamp: timestamp, attributes: attributes)
             record.span = span
-            record.attributes = Set()
-
-            for (key, value) in attributes {
-                if let attribute = SpanEventAttributeRecord.create(
-                    context: context,
-                    key: key,
-                    value: value,
-                    event: record
-                ) {
-                    record.attributes.insert(attribute)
-                }
-            }
 
             result = record
         }
@@ -53,16 +40,17 @@ public class SpanEventRecord: NSManagedObject {
         return result
     }
 
+    func update(name: String, timestamp: Date, attributes: [String: String]) {
+        self.name = name
+        self.timestamp = timestamp
+        self.attributes = attributes.keyValueEncoded()
+    }
+
     func toImmutable() -> EmbraceSpanEvent {
-
-        let finalAttributes = attributes.reduce(into: [String: String]()) {
-            $0[$1.key] = $1.value
-        }
-
         return ImmutableSpanEventRecord(
             name: name,
             timestamp: timestamp,
-            attributes: finalAttributes
+            attributes: .keyValueDecode(attributes)
         )
     }
 }

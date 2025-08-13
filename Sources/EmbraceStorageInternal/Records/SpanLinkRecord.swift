@@ -13,7 +13,7 @@ import Foundation
 public class SpanLinkRecord: NSManagedObject {
     @NSManaged public var spanId: String
     @NSManaged public var traceId: String
-    @NSManaged public var attributes: Set<SpanLinkAttributeRecord>
+    @NSManaged public var attributes: String
     @NSManaged public var span: SpanRecord?
 
     class func create(
@@ -31,21 +31,8 @@ public class SpanLinkRecord: NSManagedObject {
             }
 
             let record = SpanLinkRecord(entity: description, insertInto: context)
-            record.spanId = spanId
-            record.traceId = traceId
+            record.update(spanId: spanId, traceId: traceId, attributes: attributes)
             record.span = span
-            record.attributes = Set()
-
-            for (key, value) in attributes {
-                if let attribute = SpanLinkAttributeRecord.create(
-                    context: context,
-                    key: key,
-                    value: value,
-                    link: record
-                ) {
-                    record.attributes.insert(attribute)
-                }
-            }
 
             result = record
         }
@@ -53,16 +40,17 @@ public class SpanLinkRecord: NSManagedObject {
         return result
     }
 
+    func update(spanId: String, traceId: String, attributes: [String: String]) {
+        self.spanId = spanId
+        self.traceId = traceId
+        self.attributes = attributes.keyValueEncoded()
+    }
+
     func toImmutable() -> EmbraceSpanLink {
-
-        let finalAttributes = attributes.reduce(into: [String: String]()) {
-            $0[$1.key] = $1.value
-        }
-
         return ImmutableSpanLinkRecord(
             spanId: spanId,
             traceId: traceId,
-            attributes: finalAttributes
+            attributes: .keyValueDecode(attributes)
         )
     }
 }

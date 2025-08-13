@@ -22,9 +22,9 @@ public class SpanRecord: NSManagedObject {
     @NSManaged public var endTime: Date?
     @NSManaged public var sessionIdRaw: String?
     @NSManaged public var processIdRaw: String
+    @NSManaged public var attributes: String
     @NSManaged public var events: Set<SpanEventRecord>
     @NSManaged public var links: Set<SpanLinkRecord>
-    @NSManaged public var attributes: Set<SpanAttributeRecord>
 
     class func create(
         context: NSManagedObjectContext,
@@ -60,6 +60,7 @@ public class SpanRecord: NSManagedObject {
             record.endTime = endTime
             record.sessionIdRaw = sessionId?.stringValue
             record.processIdRaw = processId.stringValue
+            record.attributes = attributes.keyValueEncoded()
 
             // events
             for event in events {
@@ -87,19 +88,7 @@ public class SpanRecord: NSManagedObject {
                 }
             }
 
-            // attributes
-            for (key, value) in attributes {
-                if let attribute = SpanAttributeRecord.create(
-                    context: context,
-                    key: key,
-                    value: value,
-                    span: record
-                ) {
-                    record.attributes.insert(attribute)
-                }
-            }
-
-            result = record.toImmutable()
+            result = record.toImmutable(attributes: attributes)
         }
 
         return result
@@ -109,7 +98,7 @@ public class SpanRecord: NSManagedObject {
         return NSFetchRequest<SpanRecord>(entityName: entityName)
     }
 
-    func toImmutable() -> EmbraceSpan {
+    func toImmutable(attributes: [String: String]? = nil) -> EmbraceSpan {
 
         var sessionId: EmbraceIdentifier?
         if let sessionIdRaw {
@@ -122,10 +111,6 @@ public class SpanRecord: NSManagedObject {
 
         let finalLinks = links.map {
             $0.toImmutable()
-        }
-
-        let finalAttributes = attributes.reduce(into: [String: String]()) {
-            $0[$1.key] = $1.value
         }
 
         return ImmutableSpanRecord(
@@ -141,7 +126,7 @@ public class SpanRecord: NSManagedObject {
             processId: EmbraceIdentifier(stringValue: processIdRaw),
             events: finalEvents,
             links: finalLinks,
-            attributes: finalAttributes
+            attributes: attributes ?? .keyValueDecode(self.attributes)
         )
     }
 }
@@ -154,25 +139,13 @@ extension SpanRecord: EmbraceStorageRecord {
         entity.name = entityName
         entity.managedObjectClassName = NSStringFromClass(SpanRecord.self)
 
-        let attributes = NSEntityDescription()
-        attributes.name = SpanAttributeRecord.entityName
-        attributes.managedObjectClassName = NSStringFromClass(SpanAttributeRecord.self)
-
         let events = NSEntityDescription()
         events.name = SpanEventRecord.entityName
         events.managedObjectClassName = NSStringFromClass(SpanEventRecord.self)
 
-        let eventAttributes = NSEntityDescription()
-        eventAttributes.name = SpanEventAttributeRecord.entityName
-        eventAttributes.managedObjectClassName = NSStringFromClass(SpanEventAttributeRecord.self)
-
         let links = NSEntityDescription()
         links.name = SpanLinkRecord.entityName
         links.managedObjectClassName = NSStringFromClass(SpanLinkRecord.self)
-
-        let linkAttributes = NSEntityDescription()
-        linkAttributes.name = SpanLinkAttributeRecord.entityName
-        linkAttributes.managedObjectClassName = NSStringFromClass(SpanLinkAttributeRecord.self)
 
         // span
         let idAttribute = NSAttributeDescription()
@@ -219,28 +192,9 @@ extension SpanRecord: EmbraceStorageRecord {
         endTimeAttribute.attributeType = .dateAttributeType
         endTimeAttribute.isOptional = true
 
-        // span attributes
-        let spanAttributeKeyAttribute = NSAttributeDescription()
-        spanAttributeKeyAttribute.name = "key"
-        spanAttributeKeyAttribute.attributeType = .stringAttributeType
-
-        let spanAttributeValueAttribute = NSAttributeDescription()
-        spanAttributeValueAttribute.name = "value"
-        spanAttributeValueAttribute.attributeType = .stringAttributeType
-
-        let spanAttributesParentRelationship = NSRelationshipDescription()
-        let spanAttributesChildRelationship = NSRelationshipDescription()
-
-        spanAttributesParentRelationship.name = "attributes"
-        spanAttributesParentRelationship.deleteRule = .cascadeDeleteRule
-        spanAttributesParentRelationship.destinationEntity = attributes
-        spanAttributesParentRelationship.inverseRelationship = spanAttributesChildRelationship
-
-        spanAttributesChildRelationship.name = "span"
-        spanAttributesChildRelationship.minCount = 1
-        spanAttributesChildRelationship.maxCount = 1
-        spanAttributesChildRelationship.destinationEntity = entity
-        spanAttributesChildRelationship.inverseRelationship = spanAttributesParentRelationship
+        let attributesAttribute = NSAttributeDescription()
+        attributesAttribute.name = "attributes"
+        attributesAttribute.attributeType = .stringAttributeType
 
         // event
         let eventNameAttribute = NSAttributeDescription()
@@ -251,6 +205,10 @@ extension SpanRecord: EmbraceStorageRecord {
         eventTimestampAttribute.name = "timestamp"
         eventTimestampAttribute.attributeType = .dateAttributeType
         eventTimestampAttribute.defaultValue = Date()
+
+        let eventAttributesAttribute = NSAttributeDescription()
+        eventAttributesAttribute.name = "attributes"
+        eventAttributesAttribute.attributeType = .stringAttributeType
 
         let eventParentRelationship = NSRelationshipDescription()
         let eventChildRelationship = NSRelationshipDescription()
@@ -266,29 +224,6 @@ extension SpanRecord: EmbraceStorageRecord {
         eventChildRelationship.destinationEntity = entity
         eventChildRelationship.inverseRelationship = eventParentRelationship
 
-        // event attributes
-        let eventAttributeKeyAttribute = NSAttributeDescription()
-        eventAttributeKeyAttribute.name = "key"
-        eventAttributeKeyAttribute.attributeType = .stringAttributeType
-
-        let eventAttributeValueAttribute = NSAttributeDescription()
-        eventAttributeValueAttribute.name = "value"
-        eventAttributeValueAttribute.attributeType = .stringAttributeType
-
-        let eventAttributesParentRelationship = NSRelationshipDescription()
-        let eventAttributesChildRelationship = NSRelationshipDescription()
-
-        eventAttributesParentRelationship.name = "attributes"
-        eventAttributesParentRelationship.deleteRule = .cascadeDeleteRule
-        eventAttributesParentRelationship.destinationEntity = eventAttributes
-        eventAttributesParentRelationship.inverseRelationship = eventAttributesChildRelationship
-
-        eventAttributesChildRelationship.name = "event"
-        eventAttributesChildRelationship.minCount = 1
-        eventAttributesChildRelationship.maxCount = 1
-        eventAttributesChildRelationship.destinationEntity = events
-        eventAttributesChildRelationship.inverseRelationship = eventAttributesParentRelationship
-
         // link
         let linkSpanIdAttribute = NSAttributeDescription()
         linkSpanIdAttribute.name = "spanId"
@@ -297,6 +232,10 @@ extension SpanRecord: EmbraceStorageRecord {
         let linkTraceIdAttribute = NSAttributeDescription()
         linkTraceIdAttribute.name = "traceId"
         linkTraceIdAttribute.attributeType = .stringAttributeType
+
+        let linkAttributesAttribute = NSAttributeDescription()
+        linkAttributesAttribute.name = "attributes"
+        linkAttributesAttribute.attributeType = .stringAttributeType
 
         let linkParentRelationship = NSRelationshipDescription()
         let linkChildRelationship = NSRelationshipDescription()
@@ -312,29 +251,6 @@ extension SpanRecord: EmbraceStorageRecord {
         linkChildRelationship.destinationEntity = entity
         linkChildRelationship.inverseRelationship = linkParentRelationship
 
-        // link attributes
-        let linkAttributeKeyAttribute = NSAttributeDescription()
-        linkAttributeKeyAttribute.name = "key"
-        linkAttributeKeyAttribute.attributeType = .stringAttributeType
-
-        let linkAttributeValueAttribute = NSAttributeDescription()
-        linkAttributeValueAttribute.name = "value"
-        linkAttributeValueAttribute.attributeType = .stringAttributeType
-
-        let linkAttributesParentRelationship = NSRelationshipDescription()
-        let linkAttributesChildRelationship = NSRelationshipDescription()
-
-        linkAttributesParentRelationship.name = "attributes"
-        linkAttributesParentRelationship.deleteRule = .cascadeDeleteRule
-        linkAttributesParentRelationship.destinationEntity = linkAttributes
-        linkAttributesParentRelationship.inverseRelationship = linkAttributesParentRelationship
-
-        linkAttributesChildRelationship.name = "link"
-        linkAttributesChildRelationship.minCount = 1
-        linkAttributesChildRelationship.maxCount = 1
-        linkAttributesChildRelationship.destinationEntity = links
-        linkAttributesChildRelationship.inverseRelationship = linkAttributesChildRelationship
-
         // result
         entity.properties = [
             idAttribute,
@@ -347,50 +263,29 @@ extension SpanRecord: EmbraceStorageRecord {
             endTimeAttribute,
             sessionIdAttribute,
             processIdAttribute,
+            attributesAttribute,
             eventParentRelationship,
-            linkParentRelationship,
-            spanAttributesParentRelationship
-        ]
-
-        attributes.properties = [
-            spanAttributeKeyAttribute,
-            spanAttributeValueAttribute,
-            spanAttributesChildRelationship
+            linkParentRelationship
         ]
 
         events.properties = [
             eventNameAttribute,
             eventTimestampAttribute,
-            eventAttributesParentRelationship,
+            eventAttributesAttribute,
             eventChildRelationship
-        ]
-
-        eventAttributes.properties = [
-            eventAttributeKeyAttribute,
-            eventAttributeValueAttribute,
-            eventAttributesChildRelationship
         ]
 
         links.properties = [
             linkSpanIdAttribute,
             linkTraceIdAttribute,
-            linkAttributesParentRelationship,
+            linkAttributesAttribute,
             linkChildRelationship
-        ]
-
-        linkAttributes.properties = [
-            linkAttributeKeyAttribute,
-            linkAttributeValueAttribute,
-            linkAttributesChildRelationship
         ]
 
         return [
             entity,
-            attributes,
             events,
-            eventAttributes,
-            links,
-            linkAttributes
+            links
         ]
     }
 }

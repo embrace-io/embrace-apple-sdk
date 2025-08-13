@@ -325,7 +325,7 @@ extension EmbraceStorage {
 
         // fetch
         var result: [EmbraceMetadata] = []
-        coreData.fetchAndPerform(withRequest: request) { records in
+        coreData.fetchAndPerform(withRequest: request) { records, _ in
 
             // convert to immutable structs
             result = records.map {
@@ -350,7 +350,7 @@ extension EmbraceStorage {
 
         // fetch
         var result: [EmbraceMetadata] = []
-        coreData.fetchAndPerform(withRequest: request) { records in
+        coreData.fetchAndPerform(withRequest: request) { records, _ in
 
             // convert to immutable structs
             result = records.map {
@@ -384,7 +384,7 @@ extension EmbraceStorage {
 
         // fetch
         var result: [EmbraceMetadata] = []
-        coreData.fetchAndPerform(withRequest: request) { records in
+        coreData.fetchAndPerform(withRequest: request) { records, _ in
 
             // convert to immutable structs
             result = records.map {
@@ -408,7 +408,7 @@ extension EmbraceStorage {
 
         // fetch
         var result: [EmbraceMetadata] = []
-        coreData.fetchAndPerform(withRequest: request) { records in
+        coreData.fetchAndPerform(withRequest: request) { records, _ in
 
             // convert to immutable structs
             result = records.map {
@@ -441,7 +441,7 @@ extension EmbraceStorage {
 
         // fetch
         var result: [EmbraceMetadata] = []
-        coreData.fetchAndPerform(withRequest: request) { records in
+        coreData.fetchAndPerform(withRequest: request) { records, _ in
 
             // convert to immutable structs
             result = records.map {
@@ -475,7 +475,7 @@ extension EmbraceStorage {
 
         // fetch
         var result: [EmbraceMetadata] = []
-        coreData.fetchAndPerform(withRequest: request) { records in
+        coreData.fetchAndPerform(withRequest: request) { records, _ in
 
             // convert to immutable structs
             result = records.map {

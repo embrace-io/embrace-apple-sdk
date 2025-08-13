@@ -54,7 +54,10 @@ extension EmbraceStorage {
             startTime: startTime,
             endTime: endTime,
             processId: processId,
-            sessionId: sessionId
+            sessionId: sessionId,
+            events: events,
+            links: links,
+            attributes: attributes
         ) {
             return span
         }
@@ -104,12 +107,15 @@ extension EmbraceStorage {
         startTime: Date,
         endTime: Date? = nil,
         processId: EmbraceIdentifier = ProcessIdentifier.current,
-        sessionId: EmbraceIdentifier? = nil
+        sessionId: EmbraceIdentifier? = nil,
+        events: [EmbraceSpanEvent] = [],
+        links: [EmbraceSpanLink] = [],
+        attributes: [String: String] = [:]
     ) -> EmbraceSpan? {
         var result: EmbraceSpan?
 
         let request = fetchSpanRequest(id: id, traceId: traceId)
-        coreData.fetchFirstAndPerform(withRequest: request) { span in
+        coreData.fetchFirstAndPerform(withRequest: request) { span, context in
             guard let span else { return }
 
             // prevent modifications on closed spans!
@@ -122,20 +128,164 @@ extension EmbraceStorage {
                 span.endTime = endTime
                 span.processIdRaw = processId.stringValue
                 span.sessionIdRaw = sessionId?.stringValue
+                span.attributes = attributes.keyValueEncoded()
 
-                // TODO: Update events
-
-                // TODO: Update links
-
-                // TODO: Update attributes
+                self.updateEvents(span: span, events: events, context: context)
+                self.updateLinks(span: span, links: links, context: context)
 
                 coreData.save()
             }
 
-            result = span.toImmutable()
+            result = span.toImmutable(attributes: attributes)
         }
 
         return result
+    }
+
+    /// Updates the events for a given span.
+    /// Adds new SpanEventRecords as needed.
+    private func updateEvents(span: SpanRecord, events: [EmbraceSpanEvent], context: NSManagedObjectContext) {
+
+        // events can only be added so we don't need to do anything
+        // if the passed events count is not bigger than the current count
+        guard events.count > span.events.count else {
+            return
+        }
+
+        var i = 0
+
+        // update already created records without caring about order
+        for storedEvent in span.events {
+            let event = events[i]
+
+            storedEvent.update(
+                name: event.name,
+                timestamp: event.timestamp,
+                attributes: event.attributes
+            )
+
+            i += 1
+        }
+
+        // add new records if needed
+        for j in i ..< events.count {
+            let event = events[i]
+
+            if let record = SpanEventRecord.create(
+                context: context,
+                name: event.name,
+                timestamp: event.timestamp,
+                attributes: event.attributes,
+                span: span
+            ) {
+                span.events.insert(record)
+            }
+        }
+    }
+
+    /// Updates the links for a given span.
+    /// Adds new SpanEventLinks as needed.
+    private func updateLinks(span: SpanRecord, links: [EmbraceSpanLink], context: NSManagedObjectContext) {
+
+        // links can only be added so we don't need to do anything
+        // if the passed events count is not bigger than the current count
+        guard links.count > span.links.count else {
+            return
+        }
+
+        var i = 0
+
+        // update already created records without caring about order
+        for storedLink in span.links {
+            let link = links[i]
+
+            storedLink.update(
+                spanId: link.spanId,
+                traceId: link.traceId,
+                attributes: link.attributes
+            )
+
+            i += 1
+        }
+
+        // add new records if needed
+        for j in i ..< links.count {
+            let link = links[i]
+
+            if let record = SpanLinkRecord.create(
+                context: context,
+                spanId: link.spanId,
+                traceId: link.traceId,
+                attributes: link.attributes,
+                span: span
+            ) {
+                span.links.insert(record)
+            }
+        }
+    }
+
+    /// Asynchronously updates the attributes of the stored span for the given identifiers
+    /// - Parameters:
+    ///   - id: Identifier of the span
+    ///   - traceId: Trace identifier of the span
+    ///   - attributes: New span attributes
+    public func setSpanAttributes(id: String, traceId: String, attributes: [String: String]) {
+        coreData.performAsyncOperation(save: true) { context in
+            do {
+                let request = self.fetchSpanRequest(id: id, traceId: traceId)
+                if let span = try context.fetch(request).first {
+                    span.attributes = attributes.keyValueEncoded()
+                }
+            } catch { }
+        }
+    }
+
+    /// Asynchrnously adds a new event o the stored span for the given identifiers
+    /// - Parameters:
+    ///   - id: Identifier of the span
+    ///   - traceId: Trace identifier of the span
+    ///   - event: Span event to add
+    public func addSpanEvent(id: String, traceId: String, event: EmbraceSpanEvent) {
+        coreData.performAsyncOperation(save: true) { context in
+            do {
+                let request = self.fetchSpanRequest(id: id, traceId: traceId)
+                if let span = try context.fetch(request).first {
+                    if let record = SpanEventRecord.create(
+                        context: context,
+                        name: event.name,
+                        timestamp: event.timestamp,
+                        attributes: event.attributes,
+                        span: span
+                    ) {
+                        span.events.insert(record)
+                    }
+                }
+            } catch { }
+        }
+    }
+
+    /// Asynchrnously adds a new link o the stored span for the given identifiers
+    /// - Parameters:
+    ///   - id: Identifier of the span
+    ///   - traceId: Trace identifier of the span
+    ///   - link: Span link to add
+    public func addSpanLink(id: String, traceId: String, link: EmbraceSpanLink) {
+        coreData.performAsyncOperation(save: true) { context in
+            do {
+                let request = self.fetchSpanRequest(id: id, traceId: traceId)
+                if let span = try context.fetch(request).first {
+                    if let record = SpanLinkRecord.create(
+                        context: context,
+                        spanId: link.spanId,
+                        traceId: link.traceId,
+                        attributes: link.attributes,
+                        span: span
+                    ) {
+                        span.links.insert(record)
+                    }
+                }
+            } catch { }
+        }
     }
 
     /// Ends the stored `SpanRecord` asynchronously with the given identifiers and end time.
@@ -167,7 +317,7 @@ extension EmbraceStorage {
         let request = fetchSpanRequest(id: id, traceId: traceId)
         var result: EmbraceSpan?
 
-        coreData.fetchFirstAndPerform(withRequest: request) { record in
+        coreData.fetchFirstAndPerform(withRequest: request) { record, _ in
             // convert to immutable struct
             result = record?.toImmutable()
         }
@@ -203,7 +353,7 @@ extension EmbraceStorage {
             ProcessIdentifier.current.stringValue
         )
 
-        coreData.fetchAndPerform(withRequest: request) { [self] spans in
+        coreData.fetchAndPerform(withRequest: request) { [self] spans, _ in
             for span in spans {
                 span.endTime = endTime
             }
@@ -278,7 +428,7 @@ extension EmbraceStorage {
 
         // fetch
         var result: [EmbraceSpan] = []
-        coreData.fetchAndPerform(withRequest: request) { records in
+        coreData.fetchAndPerform(withRequest: request) { records, _ in
             // convert to immutable struct
             result = records.map {
                 $0.toImmutable()

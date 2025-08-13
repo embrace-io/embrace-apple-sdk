@@ -66,7 +66,7 @@ extension EmbraceStorage {
 
         // fetch
         var result: [EmbraceLog] = []
-        coreData.fetchAndPerform(withRequest: request) { records in
+        coreData.fetchAndPerform(withRequest: request) { records, _ in
 
             // convert to immutable structs
             result = records.map {

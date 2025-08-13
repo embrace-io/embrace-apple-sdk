@@ -2,11 +2,10 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import EmbraceStorageInternal
+@testable import EmbraceStorageInternal
 import OpenTelemetryApi
 import TestSupport
 import XCTest
-
 @testable import EmbraceCore
 @testable import EmbraceOTelInternal
 @testable import OpenTelemetrySdk
@@ -118,9 +117,10 @@ final class StorageSpanExporterTests: XCTestCase {
         XCTAssertNotNil(exportedSpan!.sessionIdRaw)
         XCTAssertEqual(exportedSpan!.sessionIdRaw, sessionController.currentSession?.id.stringValue)
 
-        XCTAssertEqual(exportedSpan!.attributes.count, 1)
-        XCTAssertEqual(exportedSpan!.attributes.first!.key, "foo")
-        XCTAssertEqual(exportedSpan!.attributes.first!.value, "baz")
+        let attributes = Dictionary.keyValueDecode(exportedSpan!.attributes)
+        XCTAssertEqual(attributes.count, 1)
+        XCTAssertEqual(attributes.first!.key, "foo")
+        XCTAssertEqual(attributes.first!.value, "baz")
     }
 
     func test_noExport_onSessionEnd() throws {

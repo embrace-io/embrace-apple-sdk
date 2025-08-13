@@ -272,7 +272,7 @@ extension MetadataHandler {
 
         let request = NSFetchRequest<MetadataRecordTmp>(entityName: MetadataRecordTmp.entityName)
 
-        coreData.fetchAndPerform(withRequest: request) { oldRecords in
+        coreData.fetchAndPerform(withRequest: request) { oldRecords, _ in
             for record in oldRecords {
                 guard let type = MetadataRecordType(rawValue: record.type),
                     let lifespan = MetadataRecordLifespan(rawValue: record.lifespan)

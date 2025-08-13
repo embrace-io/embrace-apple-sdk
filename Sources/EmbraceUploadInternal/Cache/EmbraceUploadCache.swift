@@ -67,7 +67,7 @@ class EmbraceUploadCache {
 
         // fetch
         var result: [ImmutableUploadDataRecord] = []
-        coreData.fetchAndPerform(withRequest: request) { records in
+        coreData.fetchAndPerform(withRequest: request) { records, _ in
             // convert to immutable struct
             result = records.map {
                 $0.toImmutable()
@@ -202,7 +202,7 @@ class EmbraceUploadCache {
     ) {
 
         let request = fetchUploadDataRequest(id: id, type: type)
-        coreData.fetchFirstAndPerform(withRequest: request) { [weak self] record in
+        coreData.fetchFirstAndPerform(withRequest: request) { [weak self] record, _ in
 
             guard let uploadData = record else {
                 return

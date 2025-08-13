@@ -225,4 +225,302 @@ class SpanRecordTests: XCTestCase {
         let span3 = spans.first(where: { $0.id == "id3" })
         XCTAssertNil(span3!.endTime)
     }
+
+    // MARK: Attributes
+    func test_createAttributes() {
+        // given inserted span
+        storage.upsertSpan(
+            id: "id",
+            traceId: "traceId",
+            name: "a name",
+            type: .performance,
+            startTime: Date(),
+            attributes: ["key": "value"]
+        )
+
+        // then span should exist in storage with the correct values
+        let spans: [SpanRecord] = storage.fetchAll()
+        XCTAssertEqual(spans.count, 1)
+        XCTAssertEqual(spans[0].id, "id")
+        XCTAssertEqual(spans[0].attributes, "key,value")
+    }
+
+    func test_updateAttributes() {
+        // given inserted span
+        storage.upsertSpan(
+            id: "id",
+            traceId: "traceId",
+            name: "a name",
+            type: .performance,
+            startTime: Date()
+        )
+
+        // when updating it
+        storage.upsertSpan(
+            id: "id",
+            traceId: "traceId",
+            name: "a name",
+            type: .performance,
+            startTime: Date(),
+            attributes: ["key": "value"]
+        )
+
+        // then span should exist in storage with the correct values
+        let spans: [SpanRecord] = storage.fetchAll()
+        XCTAssertEqual(spans.count, 1)
+        XCTAssertEqual(spans[0].id, "id")
+        XCTAssertEqual(spans[0].attributes, "key,value")
+    }
+
+    func test_setSpanAttributes() {
+        // given inserted span
+        storage.upsertSpan(
+            id: "id",
+            traceId: "traceId",
+            name: "a name",
+            type: .performance,
+            startTime: Date(),
+            attributes: ["key": "value"]
+        )
+
+        // when updating the attributes
+        storage.setSpanAttributes(id: "id", traceId: "traceId", attributes: ["newKey": "newValue"])
+
+        // then span should exist in storage with the correct values
+        let spans: [SpanRecord] = storage.fetchAll()
+        XCTAssertEqual(spans.count, 1)
+        XCTAssertEqual(spans[0].id, "id")
+        XCTAssertEqual(spans[0].attributes, "newKey,newValue")
+    }
+
+    func test_setSpanAttributes_remove() {
+        // given inserted span
+        storage.upsertSpan(
+            id: "id",
+            traceId: "traceId",
+            name: "a name",
+            type: .performance,
+            startTime: Date(),
+            attributes: ["key": "value"]
+        )
+
+        // when updating the attributes
+        storage.setSpanAttributes(id: "id", traceId: "traceId", attributes: [:])
+
+        // then span should exist in storage with the correct values
+        let spans: [SpanRecord] = storage.fetchAll()
+        XCTAssertEqual(spans.count, 1)
+        XCTAssertEqual(spans[0].id, "id")
+        XCTAssertEqual(spans[0].attributes, "")
+    }
+
+    // MARK: Events
+    func test_createSpanEvents() {
+        let event = MockSpanEvent(
+            name: "test",
+            timestamp: Date(),
+            attributes: ["key": "value"]
+        )
+
+        // given inserted span
+        storage.upsertSpan(
+            id: "id",
+            traceId: "traceId",
+            name: "a name",
+            type: .performance,
+            startTime: Date(),
+            events: [event]
+        )
+
+        // then span should exist in storage with the correct values
+        let spans: [SpanRecord] = storage.fetchAll()
+        XCTAssertEqual(spans.count, 1)
+        XCTAssertEqual(spans[0].id, "id")
+
+        XCTAssertEqual(spans[0].events.count, 1)
+        XCTAssertEqual(spans[0].events.first!.name, "test")
+        XCTAssertEqual(spans[0].events.first!.attributes, "key,value")
+    }
+
+    func test_updateSpanEvents() {
+        let event1 = MockSpanEvent(
+            name: "test1",
+            timestamp: Date(),
+            attributes: ["key1": "value1"]
+        )
+        let event2 = MockSpanEvent(
+            name: "test2",
+            timestamp: Date(),
+            attributes: ["key2": "value2"]
+        )
+
+        // given inserted span
+        storage.upsertSpan(
+            id: "id",
+            traceId: "traceId",
+            name: "a name",
+            type: .performance,
+            startTime: Date(),
+            events: [event1]
+        )
+
+        // when updating it
+        storage.upsertSpan(
+            id: "id",
+            traceId: "traceId",
+            name: "a name",
+            type: .performance,
+            startTime: Date(),
+            events: [event1, event2]
+        )
+
+        // then span should exist in storage with the correct values
+        let spans: [SpanRecord] = storage.fetchAll()
+        XCTAssertEqual(spans.count, 1)
+        XCTAssertEqual(spans[0].id, "id")
+
+        XCTAssertEqual(spans[0].events.count, 2)
+
+        let storedEvent1 = spans[0].events.first(where: { $0.name == "test1" })
+        XCTAssertEqual(storedEvent1!.attributes, "key1,value1")
+
+        let storedEvent2 = spans[0].events.first(where: { $0.name == "test2" })
+        XCTAssertEqual(storedEvent2!.attributes, "key2,value2")
+    }
+
+    func test_addSpanEvent() {
+        let event = MockSpanEvent(
+            name: "test",
+            timestamp: Date(),
+            attributes: ["key": "value"]
+        )
+
+        // given inserted span
+        storage.upsertSpan(
+            id: "id",
+            traceId: "traceId",
+            name: "a name",
+            type: .performance,
+            startTime: Date()
+        )
+
+        // when adding an event
+        storage.addSpanEvent(id: "id", traceId: "traceId", event: event)
+
+        // then span should exist in storage with the correct values
+        let spans: [SpanRecord] = storage.fetchAll()
+        XCTAssertEqual(spans.count, 1)
+        XCTAssertEqual(spans[0].id, "id")
+
+        XCTAssertEqual(spans[0].events.count, 1)
+        XCTAssertEqual(spans[0].events.first!.name, "test")
+        XCTAssertEqual(spans[0].events.first!.attributes, "key,value")
+    }
+
+    // MARK: Links
+    func test_createSpanLinks() {
+        let link = MockSpanLink(
+            spanId: "spanId",
+            traceId: "traceId",
+            attributes: ["key": "value"]
+        )
+
+        // given inserted span
+        storage.upsertSpan(
+            id: "id",
+            traceId: "traceId",
+            name: "a name",
+            type: .performance,
+            startTime: Date(),
+            links: [link]
+        )
+
+        // then span should exist in storage with the correct values
+        let spans: [SpanRecord] = storage.fetchAll()
+        XCTAssertEqual(spans.count, 1)
+        XCTAssertEqual(spans[0].id, "id")
+
+        XCTAssertEqual(spans[0].links.count, 1)
+        XCTAssertEqual(spans[0].links.first!.spanId, "spanId")
+        XCTAssertEqual(spans[0].links.first!.traceId, "traceId")
+        XCTAssertEqual(spans[0].links.first!.attributes, "key,value")
+    }
+
+    func test_updateSpanLinks() {
+        let link1 = MockSpanLink(
+            spanId: "spanId1",
+            traceId: "traceId1",
+            attributes: ["key1": "value1"]
+        )
+        let link2 = MockSpanLink(
+            spanId: "spanId2",
+            traceId: "traceId2",
+            attributes: ["key2": "value2"]
+        )
+
+        // given inserted span
+        storage.upsertSpan(
+            id: "id",
+            traceId: "traceId",
+            name: "a name",
+            type: .performance,
+            startTime: Date(),
+            links: [link1]
+        )
+
+        // when updating it
+        storage.upsertSpan(
+            id: "id",
+            traceId: "traceId",
+            name: "a name",
+            type: .performance,
+            startTime: Date(),
+            links: [link1, link2]
+        )
+
+        // then span should exist in storage with the correct values
+        let spans: [SpanRecord] = storage.fetchAll()
+        XCTAssertEqual(spans.count, 1)
+        XCTAssertEqual(spans[0].id, "id")
+
+        XCTAssertEqual(spans[0].links.count, 2)
+
+        let storedLink1 = spans[0].links.first(where: { $0.spanId == "spanId1" })
+        XCTAssertEqual(storedLink1!.traceId, "traceId1")
+        XCTAssertEqual(storedLink1!.attributes, "key1,value1")
+
+        let storedLink2 = spans[0].links.first(where: { $0.spanId == "spanId2" })
+        XCTAssertEqual(storedLink2!.traceId, "traceId2")
+        XCTAssertEqual(storedLink2!.attributes, "key2,value2")
+    }
+
+    func test_addSpanLink() {
+        let link = MockSpanLink(
+            spanId: "spanId",
+            traceId: "traceId",
+            attributes: ["key": "value"]
+        )
+
+        // given inserted span
+        storage.upsertSpan(
+            id: "id",
+            traceId: "traceId",
+            name: "a name",
+            type: .performance,
+            startTime: Date()
+        )
+
+        // when adding an event
+        storage.addSpanLink(id: "id", traceId: "traceId", link: link)
+
+        // then span should exist in storage with the correct values
+        let spans: [SpanRecord] = storage.fetchAll()
+        XCTAssertEqual(spans.count, 1)
+        XCTAssertEqual(spans[0].id, "id")
+
+        XCTAssertEqual(spans[0].links.count, 1)
+        XCTAssertEqual(spans[0].links.first!.spanId, "spanId")
+        XCTAssertEqual(spans[0].links.first!.traceId, "traceId")
+        XCTAssertEqual(spans[0].links.first!.attributes, "key,value")
+    }
 }

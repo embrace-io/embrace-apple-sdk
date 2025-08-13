@@ -17,7 +17,7 @@ public class LogRecord: NSManagedObject {
     @NSManaged public var severityRaw: Int
     @NSManaged public var body: String
     @NSManaged public var timestamp: Date
-    @NSManaged public var attributes: Set<LogAttributeRecord>
+    @NSManaged public var attributes: String
 
     class func create(
         context: NSManagedObjectContext,
@@ -43,20 +43,9 @@ public class LogRecord: NSManagedObject {
             record.severityRaw = severity.rawValue
             record.body = body
             record.timestamp = timestamp
-            record.attributes = Set()
+            record.attributes = attributes.keyValueEncoded()
 
-            for (key, value) in attributes {
-                if let attribute = LogAttributeRecord.create(
-                    context: context,
-                    key: key,
-                    value: value,
-                    log: record
-                ) {
-                    record.attributes.insert(attribute)
-                }
-            }
-
-            result = record.toImmutable()
+            result = record.toImmutable(attributes: attributes)
         }
 
         return result
@@ -66,15 +55,11 @@ public class LogRecord: NSManagedObject {
         return NSFetchRequest<LogRecord>(entityName: entityName)
     }
 
-    func toImmutable() -> EmbraceLog {
+    func toImmutable(attributes: [String: String]? = nil) -> EmbraceLog {
 
         var sessionId: EmbraceIdentifier?
         if let sessionIdRaw {
             sessionId = EmbraceIdentifier(stringValue: sessionIdRaw)
-        }
-
-        let finalAttributes = attributes.reduce(into: [String: String]()) {
-            $0[$1.key] = $1.value
         }
 
         return ImmutableLogRecord(
@@ -84,7 +69,7 @@ public class LogRecord: NSManagedObject {
             severity: EmbraceLogSeverity(rawValue: severityRaw) ?? .debug,
             timestamp: timestamp,
             body: body,
-            attributes: finalAttributes
+            attributes: attributes ?? .keyValueDecode(self.attributes)
         )
     }
 }
@@ -92,14 +77,10 @@ public class LogRecord: NSManagedObject {
 extension LogRecord: EmbraceStorageRecord {
     public static var entityName = "LogRecord"
 
-    static public var entityDescriptions: [NSEntityDescription] {
+    static public var entityDescription: NSEntityDescription {
         let entity = NSEntityDescription()
         entity.name = entityName
         entity.managedObjectClassName = NSStringFromClass(LogRecord.self)
-
-        let child = NSEntityDescription()
-        child.name = LogAttributeRecord.entityName
-        child.managedObjectClassName = NSStringFromClass(LogAttributeRecord.self)
 
         // parent
         let idAttribute = NSAttributeDescription()
@@ -128,29 +109,9 @@ extension LogRecord: EmbraceStorageRecord {
         timestampAttribute.attributeType = .dateAttributeType
         timestampAttribute.defaultValue = Date()
 
-        // child
-        let keyAttribute = NSAttributeDescription()
-        keyAttribute.name = "key"
-        keyAttribute.attributeType = .stringAttributeType
-
-        let valueAttribute = NSAttributeDescription()
-        valueAttribute.name = "value"
-        valueAttribute.attributeType = .stringAttributeType
-
-        // relationships
-        let parentRelationship = NSRelationshipDescription()
-        let childRelationship = NSRelationshipDescription()
-
-        parentRelationship.name = "attributes"
-        parentRelationship.deleteRule = .cascadeDeleteRule
-        parentRelationship.destinationEntity = child
-        parentRelationship.inverseRelationship = childRelationship
-
-        childRelationship.name = "log"
-        childRelationship.minCount = 1
-        childRelationship.maxCount = 1
-        childRelationship.destinationEntity = entity
-        childRelationship.inverseRelationship = parentRelationship
+        let attributesAttribute = NSAttributeDescription()
+        attributesAttribute.name = "attributes"
+        attributesAttribute.attributeType = .stringAttributeType
 
         // set properties
         entity.properties = [
@@ -160,16 +121,10 @@ extension LogRecord: EmbraceStorageRecord {
             severityAttribute,
             bodyAttribute,
             timestampAttribute,
-            parentRelationship
+            attributesAttribute
         ]
 
-        child.properties = [
-            keyAttribute,
-            valueAttribute,
-            childRelationship
-        ]
-
-        return [entity, child]
+        return entity
     }
 }
 
