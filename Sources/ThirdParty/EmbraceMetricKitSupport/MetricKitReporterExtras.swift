@@ -43,6 +43,7 @@ import Foundation
             // if we find one, we'll insert this new data.
             var foundSessionId: String?
             var foundSdk: String?
+            var foundProcessId: String?
 
             // we're looking for a thread with 39 frames.
             // `semaphore_wait_trap`
@@ -84,7 +85,10 @@ import Foundation
                             foundSessionId = contents[0].trimmingCharacters(in: .whitespacesAndNewlines)
                         }
                         if contents.count > 1 {
-                            foundSdk = contents[1].trimmingCharacters(in: .whitespacesAndNewlines)
+                            foundProcessId = contents[1].trimmingCharacters(in: .whitespacesAndNewlines)
+                        }
+                        if contents.count > 2 {
+                            foundSdk = contents[2].trimmingCharacters(in: .whitespacesAndNewlines)
                         }
                     } else {
                         logger.error("Cound not load session symbols at \(filename)")
@@ -123,7 +127,8 @@ import Foundation
                 payload: payload,
                 provider: "metrickit_kscrash",
                 internalId: internalId,
-                sessionId: sessionId,
+                sessionId: foundSessionId ?? report.user.sid,
+                processId: foundProcessId,
                 timestamp: timestamp,
                 signal: crashSignal
             )
