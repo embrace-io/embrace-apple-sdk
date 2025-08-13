@@ -1,26 +1,13 @@
 //
-//  EMBTerminationStorage.m
-//  EmbraceIO
+//  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
-//  Created by Alexander Cohen on 8/12/25.
-//
-#import "EMBTerminationStorage.h"
-#import "EMBTerminationStorageStruct.h"
 
-#import <dirent.h>
-#import <dispatch/dispatch.h>
-#import <errno.h>
-#import <fcntl.h>
+#import "EMBTerminationStorage.h"
+
 #import <os/lock.h>
-#import <pthread.h>
-#import <stdio.h>
-#import <stdlib.h>
-#import <string.h>
-#import <sys/mman.h>
-#import <sys/stat.h>
-#import <unistd.h>
 
 @import EmbraceCommonInternal;
+@import KSCrashRecording;
 
 // MARK: - Constants
 
@@ -68,7 +55,7 @@ static inline uint64_t milliseconds(clockid_t clock) { return clock_gettime_nsec
 
 static inline uint64_t walltime() { return milliseconds(CLOCK_REALTIME); }
 
-static inline uint64_t monotonic() { return milliseconds(CLOCK_MONOTONIC); }
+static inline uint64_t monotonic() { return milliseconds(CLOCK_MONOTONIC_RAW); }
 
 static NSURL *rootURL()
 {
@@ -123,6 +110,8 @@ static bool EMBTerminationStorageLoad(NSURL *url, EMBTerminationStorage *storage
         printf("Wrong version\n");
         return false;
     }
+
+    // we should really validate more things here.
 
     return true;
 }
@@ -211,6 +200,17 @@ static void EMBTerminationStorageLog(const EMBTerminationStorage *storage)
     printf("  signalSet:                     %u\n", storage->signalSet);
     printf("  signalNumber:                  %" PRId64 "\n", storage->signalNumber);
     printf("  signalCode:                    %" PRId64 "\n", storage->signalCode);
+    printf("\n");
+
+    printf("  appTransitionState:            %s\n", ksapp_transitionStateToString(storage->appTransitionState));
+    printf("\n");
+
+    printf("  memoryFootprint:               %" PRId64 "\n", storage->memoryFootprint);
+    printf("  memoryRemaining:               %" PRId64 "\n", storage->memoryRemaining);
+    printf("  memoryLimit:                   %" PRId64 "\n", storage->memoryLimit);
+    printf("  memoryLevel:                   %s\n", KSCrashAppMemoryStateToString(storage->memoryLevel));
+    printf("  memoryPressure:                %s\n", KSCrashAppMemoryStateToString(storage->memoryPressure));
+    printf("\n");
 
     printf("}\n");
 }
@@ -282,6 +282,7 @@ static BOOL EMBTerminationStorageInitialize()
     sStorage->creationTimestampEpochMillis = walltime();
     sStorage->updateTimestampMonotonicMillis = sStorage->creationTimestampMonotonicMillis;
     sStorage->pid = getpid();
+    sStorage->appTransitionState = KSCrashAppStateTracker.sharedInstance.transitionState;
 
     assert(identifier.UTF8String);
     uuid_parse(identifier.UTF8String, sStorage->uuid);
@@ -295,6 +296,37 @@ static BOOL EMBTerminationStorageInitialize()
     CFNotificationCenterAddObserver(CFNotificationCenterGetLocalCenter(), NULL, _willTerminateNotification,
                                     CFSTR("UIApplicationWillTerminateNotification"), NULL,
                                     CFNotificationSuspensionBehaviorDeliverImmediately);
+
+    // Track state
+    [KSCrashAppStateTracker.sharedInstance addObserverWithBlock:^(KSCrashAppTransitionState transitionState) {
+        EMBTerminationStorageUpdate(YES, ^(EMBTerminationStorage *_Nonnull storage) {
+            storage->appTransitionState = transitionState;
+        });
+    }];
+
+    // Track memory
+    [KSCrashAppMemoryTracker.sharedInstance
+        addObserverWithBlock:^(KSCrashAppMemory *_Nonnull memory, KSCrashAppMemoryTrackerChangeType changes) {
+            EMBTerminationStorageUpdate(YES, ^(EMBTerminationStorage *_Nonnull storage) {
+                if (changes & KSCrashAppMemoryTrackerChangeTypeFootprint) {
+#define TEN_MB 10, 000, 000
+#define ABS_DIFF(x, y) x > y ? x - y : y - x
+                    if (ABS_DIFF(storage->memoryFootprint, memory.footprint) >= TEN_MB) {
+                        storage->memoryFootprint = memory.footprint;
+                        storage->memoryRemaining = memory.remaining;
+                    }
+                    if (storage->memoryLimit != memory.limit) {
+                        storage->memoryLimit = memory.limit;
+                    }
+                }
+                if (changes & KSCrashAppMemoryTrackerChangeTypePressure) {
+                    storage->memoryPressure = memory.pressure;
+                }
+                if (changes & KSCrashAppMemoryTrackerChangeTypeLevel) {
+                    storage->memoryLevel = memory.level;
+                }
+            });
+        }];
 
     return YES;
 }
@@ -310,15 +342,19 @@ BOOL EMBTerminationStorageShouldWriteReport(const struct KSCrash_MonitorContext 
             }
 
             // mach
-            storage->machExceptionSet = 1;
-            storage->machExceptionCode = context->mach.type;
-            storage->machExceptionNumber = context->mach.code;
-            storage->machExceptionSubcode = context->mach.subcode;
+            if (context->mach.type != 0) {
+                storage->machExceptionSet = 1;
+                storage->machExceptionCode = context->mach.type;
+                storage->machExceptionNumber = context->mach.code;
+                storage->machExceptionSubcode = context->mach.subcode;
+            }
 
             // signal
-            storage->signalSet = 1;
-            storage->signalCode = context->signal.sigcode;
-            storage->signalNumber = context->signal.signum;
+            if (context->signal.signum != 0) {
+                storage->signalSet = 1;
+                storage->signalCode = context->signal.sigcode;
+                storage->signalNumber = context->signal.signum;
+            }
 
 #define IS_TYPE(type) (strncmp(type, context->monitorId, strlen(type)) == 0)
 
@@ -326,7 +362,9 @@ BOOL EMBTerminationStorageShouldWriteReport(const struct KSCrash_MonitorContext 
                 storage->exceptionSet = 1;
                 storage->exceptionType = 0;
                 strncpy(storage->exceptionName, context->NSException.name, EMB_SMALL_BUFFER_SIZE - 1);
-                strncpy(storage->exceptionUserInfo, context->NSException.userInfo, EMB_LARGE_BUFFER_SIZE - 1);
+                if (context->NSException.userInfo) {
+                    strncpy(storage->exceptionUserInfo, context->NSException.userInfo, EMB_LARGE_BUFFER_SIZE - 1);
+                }
 
             } else if IS_TYPE ("CPPException") {
                 storage->exceptionSet = 1;
