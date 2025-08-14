@@ -25,7 +25,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        xcode-version: "16.4"
         include:
           - platform: iOS
             macos-version: "15"
@@ -64,7 +63,7 @@ jobs:
       - name: Select Xcode
         # See https://github.com/actions/runner-images/blob/main/images/macos/macos-15-Readme.md
         run: |
-          sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app
+          sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version || '16.4' }}.app
           xcodebuild -version
 
       - name: Ensure the Platform is Downloaded
