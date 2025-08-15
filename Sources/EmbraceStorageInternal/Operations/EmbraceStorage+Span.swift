@@ -173,9 +173,7 @@ extension EmbraceStorage {
 
             if let record = SpanEventRecord.create(
                 context: context,
-                name: event.name,
-                timestamp: event.timestamp,
-                attributes: event.attributes,
+                event: event,
                 span: span
             ) {
                 span.events.insert(record)
@@ -214,13 +212,27 @@ extension EmbraceStorage {
 
             if let record = SpanLinkRecord.create(
                 context: context,
-                spanId: link.context.spanId,
-                traceId: link.context.traceId,
-                attributes: link.attributes,
+                link: link,
                 span: span
             ) {
                 span.links.insert(record)
             }
+        }
+    }
+
+    /// Asynchronously updates the status of the stored span for the given identifiers
+    /// - Parameters:
+    ///   - id: Identifier of the span
+    ///   - traceId: Trace identifier of the span
+    ///   - status: New span status
+    public func setSpanStatus(id: String, traceId: String, status: EmbraceSpanStatus) {
+        coreData.performAsyncOperation(save: true) { context in
+            do {
+                let request = self.fetchSpanRequest(id: id, traceId: traceId)
+                if let span = try context.fetch(request).first {
+                    span.statusRaw = status.rawValue
+                }
+            } catch { }
         }
     }
 
@@ -252,9 +264,7 @@ extension EmbraceStorage {
                 if let span = try context.fetch(request).first {
                     if let record = SpanEventRecord.create(
                         context: context,
-                        name: event.name,
-                        timestamp: event.timestamp,
-                        attributes: event.attributes,
+                        event: event,
                         span: span
                     ) {
                         span.events.insert(record)
@@ -276,9 +286,7 @@ extension EmbraceStorage {
                 if let span = try context.fetch(request).first {
                     if let record = SpanLinkRecord.create(
                         context: context,
-                        spanId: link.context.spanId,
-                        traceId: link.context.traceId,
-                        attributes: link.attributes,
+                        link: link,
                         span: span
                     ) {
                         span.links.insert(record)

@@ -63,12 +63,10 @@ public class SpanRecord: NSManagedObject {
             record.attributes = attributes.keyValueEncoded()
 
             // events
-            for event in events {
+            for event in span.events {
                 if let event = SpanEventRecord.create(
                     context: context,
-                    name: event.name,
-                    timestamp: event.timestamp,
-                    attributes: event.attributes,
+                    event: event,
                     span: record
                 ) {
                     record.events.insert(event)
@@ -76,22 +74,16 @@ public class SpanRecord: NSManagedObject {
             }
 
             // links
-            for link in links {
+            for link in span.links {
                 if let link = SpanLinkRecord.create(
                     context: context,
-                    spanId: link.context.spanId,
-                    traceId: link.context.traceId,
-                    attributes: link.attributes,
+                    link: link,
                     span: record
                 ) {
                     record.links.insert(link)
                 }
             }
-
-            result = record.toImmutable(attributes: attributes)
         }
-
-        return result
     }
 
     static func createFetchRequest() -> NSFetchRequest<SpanRecord> {
@@ -200,6 +192,10 @@ extension SpanRecord: EmbraceStorageRecord {
         eventNameAttribute.name = "name"
         eventNameAttribute.attributeType = .stringAttributeType
 
+        let eventTypeAttribute = NSAttributeDescription()
+        eventTypeAttribute.name = "type"
+        eventTypeAttribute.attributeType = .stringAttributeType
+
         let eventTimestampAttribute = NSAttributeDescription()
         eventTimestampAttribute.name = "timestamp"
         eventTimestampAttribute.attributeType = .dateAttributeType
@@ -269,6 +265,7 @@ extension SpanRecord: EmbraceStorageRecord {
 
         events.properties = [
             eventNameAttribute,
+            eventTypeAttribute,
             eventTimestampAttribute,
             eventAttributesAttribute,
             eventChildRelationship

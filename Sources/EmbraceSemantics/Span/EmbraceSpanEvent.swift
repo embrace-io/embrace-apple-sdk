@@ -11,6 +11,9 @@ public class EmbraceSpanEvent: NSObject {
     /// Name of the event
     @objc public let name: String
 
+    /// Embrace specific type of the event
+    @objc public let type: EmbraceType
+
     /// Date when the event occured
     @objc public let timestamp: Date
 
@@ -20,10 +23,17 @@ public class EmbraceSpanEvent: NSObject {
     /// Creates a new `EmbraceSpanEvent`
     /// - Parameters:
     ///   - name: Name of the event
+    ///   - type: Type of the event
     ///   - timestamp: Timestamp of the event
     ///   - attributes: Attributes of the event
-    @objc public init(name: String, timestamp: Date = Date(), attributes: [String : String] = [:]) {
+    @objc public init(
+        name: String,
+        type: EmbraceType = .performance,
+        timestamp: Date = Date(),
+        attributes: [String : String] = [:]
+    ) {
         self.name = name
+        self.type = type
         self.timestamp = timestamp
         self.attributes = attributes
     }

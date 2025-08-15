@@ -2,99 +2,91 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
+import Foundation
+
 /// An EmbraceType is an Embrace specific concept to allow for better categorization of Telemetry Primitives.
 /// - This struct will be serialized into an `emb.type` attribute.
 /// - This struct is encoded as a String with the format `<primary>.<secondary>`.
 /// - The primary category is required, but the secondary category is optional.
-public struct EmbraceType: Hashable, Codable, CustomStringConvertible, RawRepresentable {
+@objc
+public class EmbraceType: NSObject, RawRepresentable {
 
     public let primary: PrimaryType
     public let secondary: String?
 
-    public init(primary: PrimaryType, secondary: String? = nil) {
+    @objc public init(primary: PrimaryType, secondary: String? = nil) {
         self.primary = primary
         self.secondary = secondary
     }
-}
 
-/// Top level category for the EmbraceType
-public enum PrimaryType: String, CaseIterable {
-    /// Category for observing a logical operation
-    case performance = "perf"
-
-    /// Category for observing the user's interaction or behavior
-    case ux = "ux"
-
-    /// Category for observing the system's operation or status
-    case system = "sys"
-}
-
-// MARK: - EmbraceType Extensions -
-
-extension EmbraceType {
-    public init(performance secondary: String) {
+    // MARK: Convenience initializers
+    @objc public convenience init(performance secondary: String) {
         self.init(primary: .performance, secondary: secondary)
     }
 
-    public init(ux secondary: String) {
+    @objc public convenience init(ux secondary: String) {
         self.init(primary: .ux, secondary: secondary)
     }
 
-    public init(system secondary: String) {
+    @objc public convenience init(system secondary: String) {
         self.init(primary: .system, secondary: secondary)
     }
-}
 
-extension EmbraceType {
-    public static var performance: Self { .init(primary: .performance, secondary: nil) }
-    public static var ux: Self { .init(primary: .ux, secondary: nil) }
-    public static var system: Self { .init(primary: .system, secondary: nil) }
-}
+    @objc public static var performance: EmbraceType {
+        .init(primary: .performance, secondary: nil)
+    }
+    @objc public static var ux: EmbraceType {
+        .init(primary: .ux, secondary: nil)
+    }
+    @objc public static var system: EmbraceType {
+        .init(primary: .system, secondary: nil)
+    }
 
-// MARK: RawRepresentable
-extension EmbraceType {
-    public var rawValue: String {
-        [primary.rawValue, secondary]
+    // MARK: RawRepresentable
+    @objc public var rawValue: String {
+        [primary.name, secondary]
             .compactMap { $0 }
             .joined(separator: ".")
     }
 
-    public init?(rawValue: String) {
+    @objc required public convenience init?(rawValue: String) {
         let components = rawValue.components(separatedBy: ".")
-        guard let first = components.first,
-            let primary = PrimaryType(rawValue: first)
-        else {
+        guard let first = components.first else {
             return nil
         }
 
         let secondary = components.count > 1 ? components.dropFirst().joined(separator: ".") : nil
 
-        self.init(primary: primary, secondary: secondary)
+        self.init(primary: PrimaryType(name: first), secondary: secondary)
     }
 }
 
-// MARK: Codable
-extension EmbraceType {
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        let rawValue = try container.decode(String.self)
 
-        guard let embType = Self(rawValue: rawValue) else {
-            throw DecodingError.dataCorruptedError(
-                in: container,
-                debugDescription: "Invalid EmbraceType: '\(rawValue.prefix(20))'")
+/// Top level category for the EmbraceType
+@objc
+public enum PrimaryType: Int, CaseIterable {
+    /// Category for observing a logical operation
+    case performance = 1
+
+    /// Category for observing the user's interaction or behavior
+    case ux = 2
+
+    /// Category for observing the system's operation or status
+    case system = 3
+
+    var name: String {
+        switch self {
+        case .performance: "perf"
+        case .ux: "ux"
+        case .system: "sys"
         }
-
-        self = embType
     }
 
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.singleValueContainer()
-        try container.encode(rawValue)
+    public init(name: String) {
+        switch name {
+        case "ux": self = .ux
+        case "sys": self = .system
+        default: self = .performance
+        }
     }
-}
-
-// MARK: CustomStringConvertible
-extension EmbraceType {
-    public var description: String { rawValue }
 }

@@ -18,9 +18,7 @@ public class SpanLinkRecord: NSManagedObject {
 
     class func create(
         context: NSManagedObjectContext,
-        spanId: String,
-        traceId: String,
-        attributes: [String: String],
+        link: EmbraceSpanLink,
         span: SpanRecord?
     ) -> SpanLinkRecord? {
         var result: SpanLinkRecord?
@@ -31,8 +29,12 @@ public class SpanLinkRecord: NSManagedObject {
             }
 
             let record = SpanLinkRecord(entity: description, insertInto: context)
-            record.update(spanId: spanId, traceId: traceId, attributes: attributes)
             record.span = span
+            record.update(
+                spanId: link.context.spanId,
+                traceId: link.context.traceId,
+                attributes: link.attributes
+            )
 
             result = record
         }

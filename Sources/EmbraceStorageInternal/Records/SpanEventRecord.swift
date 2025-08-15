@@ -12,15 +12,14 @@ import Foundation
 @objc(SpanEventRecord)
 public class SpanEventRecord: NSManagedObject {
     @NSManaged public var name: String
+    @NSManaged public var typeRaw: String
     @NSManaged public var timestamp: Date
     @NSManaged public var attributes: String
     @NSManaged public var span: SpanRecord?
 
     class func create(
         context: NSManagedObjectContext,
-        name: String,
-        timestamp: Date,
-        attributes: [String: String],
+        event: EmbraceSpanEvent,
         span: SpanRecord?
     ) -> SpanEventRecord? {
         var result: SpanEventRecord?
@@ -31,8 +30,13 @@ public class SpanEventRecord: NSManagedObject {
             }
 
             let record = SpanEventRecord(entity: description, insertInto: context)
-            record.update(name: name, timestamp: timestamp, attributes: attributes)
             record.span = span
+            record.typeRaw = event.type.rawValue
+            record.update(
+                name: event.name,
+                timestamp: event.timestamp,
+                attributes: event.attributes
+            )
 
             result = record
         }
@@ -49,6 +53,7 @@ public class SpanEventRecord: NSManagedObject {
     func toImmutable() -> EmbraceSpanEvent {
         return EmbraceSpanEvent(
             name: name,
+            type: EmbraceType(rawValue: typeRaw) ?? .performance,
             timestamp: timestamp,
             attributes: .keyValueDecode(attributes)
         )
