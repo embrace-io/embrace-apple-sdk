@@ -23,11 +23,11 @@ extension SpanData {
         return .performance
     }
 
-    var errorCode: SpanErrorCode? {
+    var errorCode: EmbraceSpanErrorCode? {
         guard let value = attributes[SpanSemantics.keyErrorCode] else {
             return nil
         }
-        return SpanErrorCode(rawValue: value.description)
+        return EmbraceSpanErrorCode(rawValue: value.description)
     }
 
     public var embStatus: EmbraceSpanStatus {

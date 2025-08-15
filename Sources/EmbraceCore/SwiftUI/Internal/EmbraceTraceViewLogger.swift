@@ -146,7 +146,7 @@ extension EmbraceTraceViewLogger {
     func endSpan(
         _ span: Span?,
         time: Date? = nil,
-        errorCode: SpanErrorCode? = nil,
+        errorCode: EmbraceSpanErrorCode? = nil,
         _ function: StaticString = #function
     ) {
         dispatchPrecondition(condition: .onQueue(.main))

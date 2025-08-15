@@ -7,6 +7,9 @@ import Foundation
 /// Represents an OTel span signal.
 public protocol EmbraceSpan {
 
+    /// Name of the span
+    var name: String { get }
+
     /// Identifier for the span
     var id: String { get }
 
@@ -15,9 +18,6 @@ public protocol EmbraceSpan {
 
     /// Identifier for the span's parent
     var parentSpanId: String? { get }
-
-    /// Name of the span
-    var name: String { get }
 
     /// Embrace specific type of the span
     var type: EmbraceType { get }

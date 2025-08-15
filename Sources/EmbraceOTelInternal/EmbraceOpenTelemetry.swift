@@ -15,7 +15,7 @@ public protocol EmbraceOpenTelemetry: AnyObject {
         name: String,
         type: EmbraceType,
         attributes: [String: String],
-        autoTerminationCode: SpanErrorCode?
+        autoTerminationCode: EmbraceSpanErrorCode?
     ) -> SpanBuilder
 
     func recordCompletedSpan(
@@ -26,7 +26,7 @@ public protocol EmbraceOpenTelemetry: AnyObject {
         endTime: Date,
         attributes: [String: String],
         events: [RecordingSpanEvent],
-        errorCode: SpanErrorCode?
+        errorCode: EmbraceSpanErrorCode?
     )
 
     func add(events: [SpanEvent])

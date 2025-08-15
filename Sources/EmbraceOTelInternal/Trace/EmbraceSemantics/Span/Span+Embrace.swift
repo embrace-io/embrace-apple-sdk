@@ -24,11 +24,11 @@ extension Span {
         setAttribute(key: SpanSemantics.keyIsPrivateSpan, value: "true")
     }
 
-    public func end(errorCode: SpanErrorCode? = nil, time: Date = Date()) {
+    public func end(errorCode: EmbraceSpanErrorCode? = nil, time: Date = Date()) {
         end(error: nil, errorCode: errorCode, time: time)
     }
 
-    public func end(error: Error?, errorCode: SpanErrorCode? = nil, time: Date = Date()) {
+    public func end(error: Error?, errorCode: EmbraceSpanErrorCode? = nil, time: Date = Date()) {
         var errorCode = errorCode
 
         // get attributes from error

@@ -10,12 +10,10 @@ import Foundation
 /// Protocol used to bridge telemetry signals created through our SDK into 3rd party OTel implementations
 public protocol EmbraceOTelSignalBridge {
 
-    /// Called when a span is created and started
-    func startSpan(
-        id: String,
-        traceId: String,
-        parentSpanId: String?,
+    /// Called when a span is created
+    func createSpan(
         name: String,
+        parentSpan: EmbraceSpan?,
         status: EmbraceSpanStatus,
         startTime: Date,
         endTime: Date?,
