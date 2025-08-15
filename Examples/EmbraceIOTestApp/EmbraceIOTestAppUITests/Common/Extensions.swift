@@ -67,9 +67,53 @@ extension XCTestCase {
         return element
     }
 
+    func waitUntilElementIsEnabled(element: XCUIElement, timeout: TimeInterval = 600, file: StaticString = #file, line: UInt = #line) -> XCUIElement {
+        let expectation = expectation(description: "waiting for element \(element) to be enabled")
+
+        let timer = Timer(timeInterval: 1, repeats: true) { timer in
+            guard element.isEnabled else { return }
+
+            expectation.fulfill()
+            timer.invalidate()
+        }
+
+        RunLoop.current.add(timer, forMode: .common)
+
+        wait(for: [expectation], timeout: timeout)
+
+        return element
+    }
+
     func evaluateTestResults(_ app: XCUIApplication) {
         XCTAssertTrue(app.staticTexts["TEST RESULT:"].waitForExistence(timeout: 60))
         XCTAssertTrue(app.staticTexts["PASS"].exists)
         XCTAssertFalse(app.staticTexts["FAIL"].exists)
+    }
+}
+
+extension XCUIApplication {
+    func launchAndOpenTestTab(_ testTabName: String, coldStart: Bool = false) {
+        self.launch()
+
+        if coldStart {
+            let coldButton = self.buttons["EmbraceInitForceState_Cold"]
+            XCTAssertTrue(coldButton.waitForExistence(timeout: 5))
+            coldButton.tap()
+        }
+
+        let initButton = self.buttons["EmbraceInitButton"]
+        XCTAssertTrue(initButton.waitForExistence(timeout: 5))
+        initButton.tap()
+
+        XCTAssertNotNil(
+            initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
+
+        let sideMenuButton = self.buttons["SideMenuButton"]
+        XCTAssertTrue(sideMenuButton.waitForExistence(timeout: 5))
+        sideMenuButton.tap()
+
+        let testScreenButton = self.staticTexts[testTabName]
+        XCTAssertTrue(testScreenButton.waitForExistence(timeout: 5))
+        testScreenButton.tap()
     }
 }

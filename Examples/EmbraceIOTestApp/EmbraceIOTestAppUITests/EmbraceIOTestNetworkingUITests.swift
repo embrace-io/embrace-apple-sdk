@@ -12,20 +12,8 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
     var app = XCUIApplication()
 
     override func setUpWithError() throws {
-        app.launch()
-
-        let initButton = app.buttons["EmbraceInitButton"]
-        initButton.tap()
-
-        XCTAssertNotNil(
-            initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
-
-        let sideMenuButton = app.buttons["SideMenuButton"]
-        sideMenuButton.tap()
-
-        app.staticTexts["networking"].tap()
-
         continueAfterFailure = true
+        app.launchAndOpenTestTab("networking")
     }
 
     override func tearDownWithError() throws {
@@ -38,6 +26,7 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
 
     private func enterURL(_ url: String) {
         let urlTextField = app.textFields["networkingTests_URLTextField"]
+        XCTAssertTrue(urlTextField.waitForExistence(timeout: 5))
         urlTextField.tap()
 
         _ = waitUntilElementHasFocus(element: urlTextField)
@@ -51,6 +40,7 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
 
     private func enterAPI(_ api: String) {
         let apiTextField = app.textFields["networkingTests_APITextField"]
+        XCTAssertTrue(apiTextField.waitForExistence(timeout: 5))
         apiTextField.tap()
 
         _ = waitUntilElementHasFocus(element: apiTextField)
@@ -69,6 +59,7 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
 
     private func enterCustomBodyProperty(key: String, value: String) {
         let bodyKeyTextField = app.textFields["NetworkingTestBody_Key"]
+        XCTAssertTrue(bodyKeyTextField.waitForExistence(timeout: 5))
         bodyKeyTextField.tap()
 
         _ = waitUntilElementHasFocus(element: bodyKeyTextField)
@@ -80,6 +71,7 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
         bodyKeyTextField.typeText(XCUIKeyboardKey.return.rawValue)
 
         let bodyValueTextField = app.textFields["NetworkingTestBody_Value"]
+        XCTAssertTrue(bodyValueTextField.waitForExistence(timeout: 5))
         bodyValueTextField.tap()
 
         _ = waitUntilElementHasFocus(element: bodyValueTextField)
@@ -91,16 +83,17 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
         bodyValueTextField.typeText(value)
         bodyValueTextField.typeText(XCUIKeyboardKey.return.rawValue)
 
-        app.buttons["NetworkingTestBody_Insert_Button"].tap()
+        let button = app.buttons["NetworkingTestBody_Insert_Button"]
+        XCTAssertTrue(button.waitForExistence(timeout: 5))
+        button.tap()
     }
 
     private func runNetworkTest() {
-        app.buttons["networkCallTestButton"].tap()
+        let button = app.buttons["networkCallTestButton"]
+        XCTAssertTrue(button.waitForExistence(timeout: 5))
+        button.tap()
 
-        sleep(5)
-
-        XCTAssertTrue(app.staticTexts["PASS"].exists)
-        XCTAssertFalse(app.staticTexts["FAIL"].exists)
+        evaluateTestResults(app)
     }
 
     func testGetRequest() {
