@@ -52,6 +52,13 @@ class UnsentDataHandler {
             // if we have a crash reporter, we fetch the unsent crash reports first
             // and save their identifiers to the corresponding sessions
             if let crashReporter = crashReporter {
+                
+                group.enter()
+                Task {
+                    await sendTerminatedProcessesInfo(crashReporter: crashReporter, storage: storage, otel: otel)
+                    group.leave()
+                }
+                
                 group.enter()
                 crashReporter.fetchUnsentCrashReports { reports in
                     sendCrashReports(
@@ -84,6 +91,58 @@ class UnsentDataHandler {
         group.notify(queue: reportQueue) {
             completion?()
         }
+    }
+
+    static private func sendTerminatedProcessesInfo(
+        crashReporter: EmbraceCrashReporter,
+        storage: EmbraceStorage?,
+        otel: EmbraceOpenTelemetry?
+    ) async {
+
+        let terminations = await crashReporter.fetchUnsentTerminationAttributes()
+        for term in terminations {
+            sendTerminationLog(
+                data: term,
+                reporter: crashReporter,
+                storage: storage,
+                otel: otel
+            )
+        }
+    }
+
+    static public func sendTerminationLog(
+        data: TerminationMetadata,
+        reporter: EmbraceCrashReporter,
+        storage: EmbraceStorage?,
+        otel: EmbraceOpenTelemetry?
+    ) {
+
+        let timestamp = data.timestamp
+
+        let attributesBuilder = EmbraceLogAttributesBuilder(
+            session: nil,
+            crashReport: nil,
+            storage: storage,
+            // make keys "emb.termination.$0"
+            initialAttributes: data.metadata.compactMapValues { "\($0)" }
+        )
+
+        let attributes =
+            attributesBuilder
+            .addLogType(.termination)
+            .addApplicationProperties()
+            .addApplicationState()
+            .addSessionIdentifier()
+            .build()
+
+        otel?.log(
+            "termination_\(data.processId)",
+            severity: .fatal,
+            type: .termination,
+            timestamp: timestamp,
+            attributes: attributes,
+            stackTraceBehavior: .notIncluded
+        )
     }
 
     static private func sendCrashReports(

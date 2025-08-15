@@ -126,6 +126,13 @@ public final class EmbraceCrashReporter: NSObject {
         }
     }
 
+    func fetchUnsentTerminationAttributes() async -> [TerminationMetadata] {
+        guard let reporter = reporter as? TerminationReporter else {
+            return []
+        }
+        return await reporter.fetchUnsentTerminationAttributes()
+    }
+
     /// Permanently deletes a crash report for the given identifier.
     /// - Parameter id: Identifier of the report to delete
     public func deleteCrashReport(_ report: EmbraceCrashReport) {
