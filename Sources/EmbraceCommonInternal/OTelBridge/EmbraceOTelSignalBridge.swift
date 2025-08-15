@@ -10,8 +10,8 @@ import Foundation
 /// Protocol used to bridge telemetry signals created through our SDK into 3rd party OTel implementations
 public protocol EmbraceOTelSignalBridge {
 
-    /// Called when a span is created
-    func createSpan(
+    /// Called when a span is created and started
+    func startSpan(
         name: String,
         parentSpan: EmbraceSpan?,
         status: EmbraceSpanStatus,
@@ -20,7 +20,7 @@ public protocol EmbraceOTelSignalBridge {
         events: [EmbraceSpanEvent],
         links: [EmbraceSpanLink],
         attributes: [String: String]
-    ) -> EmbraceSpan
+    ) -> EmbraceSpanContext
 
     /// Called when the span status is updated
     func updateSpanStatus(_ span: EmbraceSpan, status: EmbraceSpanStatus)
