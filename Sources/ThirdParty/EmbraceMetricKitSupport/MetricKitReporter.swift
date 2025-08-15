@@ -75,7 +75,7 @@ import Foundation
 
     // MARK: - Reporter
     @available(iOS 13.0, *)
-    public class MetricKitReporter: NSObject, CrashReporter {
+    public class MetricKitReporter: NSObject, CrashReporter, TerminationReporter {
 
         private var reports = EmbraceMutex([EmbraceCrashReport]())
         private var lastSession: String?
@@ -149,6 +149,24 @@ import Foundation
             MXMetricManager.shared.add(self)
             let mxLogger = MXMetricManager.makeLogHandle(category: ProcessIdentifier.current.value)
             mxSignpost(.event, log: mxLogger, name: "embrace_uuid")
+        }
+
+        public func fetchUnsentTerminationAttributes() async -> [TerminationMetadata] {
+            let identifiers: [String] = EMBTerminationStorageGetIdentifiers()
+            return identifiers.compactMap { id in
+                var storage = EMBTerminationStorage()
+                let ok = withUnsafeMutablePointer(to: &storage) { ptr in
+                    EMBTerminationStorageForIdentifier(id, ptr)
+                }
+                if ok {
+                    return TerminationMetadata(
+                        processId: storage.processIdentifier,
+                        timestamp: storage.lastKnownDate,
+                        metadata: storage.toDictionary()
+                    )
+                }
+                return nil
+            }
         }
 
         public func fetchUnsentCrashReports(completion: @escaping ([EmbraceCrashReport]) -> Void) {

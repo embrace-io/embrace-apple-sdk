@@ -16,6 +16,9 @@ void EMBTerminationStorageUpdate(BOOL canLock, EMBTerminationStorageUpdateBlock 
 FOUNDATION_EXTERN
 BOOL EMBTerminationStorageForIdentifier(NSString *_Nonnull identifier, EMBTerminationStorage *_Nonnull outStorage);
 
+FOUNDATION_EXTERN
+NSArray<NSString *> *_Nonnull EMBTerminationStorageGetIdentifiers(void);
+
 /** Private callback to write data on exceptions */
 FOUNDATION_EXTERN
 BOOL EMBTerminationStorageShouldWriteReport(const struct KSCrash_MonitorContext *_Nullable context);

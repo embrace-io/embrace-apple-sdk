@@ -215,7 +215,25 @@ static void EMBTerminationStorageLog(const EMBTerminationStorage *storage)
     printf("}\n");
 }
 
-static NSURL *_Nullable mostRecentFileWithExtensionInURL(NSURL *_Nonnull directoryURL, NSString *extension)
+static NSArray<NSString *> *_Nonnull fileWithExtensionInURL(NSURL *_Nonnull directoryURL, NSString *_Nonnull extension,
+                                                            BOOL keepExtension)
+{
+    NSArray<NSString *> *allFiles = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:directoryURL.path
+                                                                                        error:nil];
+    if (!allFiles) {
+        return @[];
+    }
+
+    NSMutableArray<NSString *> *output = [NSMutableArray array];
+    for (NSString *name in allFiles) {
+        if ([name.pathExtension isEqualToString:extension]) {
+            [output addObject:keepExtension ? name : [name stringByDeletingPathExtension]];
+        }
+    }
+    return output;
+}
+
+static NSURL *_Nullable mostRecentFileWithExtensionInURL(NSURL *_Nonnull directoryURL, NSString *_Nonnull extension)
 {
     NSFileManager *fm = [NSFileManager defaultManager];
     NSArray<NSString *> *urls = [fm contentsOfDirectoryAtURL:directoryURL
@@ -389,6 +407,11 @@ void EMBTerminationStorageUpdate(BOOL canLock, EMBTerminationStorageUpdateBlock 
     if (canLock) {
         os_unfair_lock_unlock(&sStorageLock);
     }
+}
+
+NSArray<NSString *> *_Nonnull EMBTerminationStorageGetIdentifiers(void)
+{
+    return fileWithExtensionInURL(rootURL(), kEMBTerminationStorageExtension, NO);
 }
 
 BOOL EMBTerminationStorageForIdentifier(NSString *_Nonnull identifier, EMBTerminationStorage *_Nonnull outStorage)
