@@ -200,8 +200,8 @@ extension EmbraceStorage {
             let link = links[i]
 
             storedLink.update(
-                spanId: link.spanId,
-                traceId: link.traceId,
+                spanId: link.context.spanId,
+                traceId: link.context.traceId,
                 attributes: link.attributes
             )
 
@@ -214,8 +214,8 @@ extension EmbraceStorage {
 
             if let record = SpanLinkRecord.create(
                 context: context,
-                spanId: link.spanId,
-                traceId: link.traceId,
+                spanId: link.context.spanId,
+                traceId: link.context.traceId,
                 attributes: link.attributes,
                 span: span
             ) {
@@ -276,8 +276,8 @@ extension EmbraceStorage {
                 if let span = try context.fetch(request).first {
                     if let record = SpanLinkRecord.create(
                         context: context,
-                        spanId: link.spanId,
-                        traceId: link.traceId,
+                        spanId: link.context.spanId,
+                        traceId: link.context.traceId,
                         attributes: link.attributes,
                         span: span
                     ) {

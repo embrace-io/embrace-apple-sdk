@@ -9,13 +9,13 @@ import Foundation
 public class EmbraceSpanEvent: NSObject {
 
     /// Name of the event
-    @objc let name: String
+    @objc public let name: String
 
     /// Date when the event occured
-    @objc let timestamp: Date
+    @objc public let timestamp: Date
 
     /// Attributes of the event
-    @objc let attributes: [String: String]
+    @objc public let attributes: [String: String]
 
     /// Creates a new `EmbraceSpanEvent`
     /// - Parameters:

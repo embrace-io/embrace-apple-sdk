@@ -79,8 +79,8 @@ public class SpanRecord: NSManagedObject {
             for link in links {
                 if let link = SpanLinkRecord.create(
                     context: context,
-                    spanId: link.spanId,
-                    traceId: link.traceId,
+                    spanId: link.context.spanId,
+                    traceId: link.context.traceId,
                     attributes: link.attributes,
                     span: record
                 ) {
@@ -114,8 +114,7 @@ public class SpanRecord: NSManagedObject {
         }
 
         return ImmutableSpanRecord(
-            id: id,
-            traceId: traceId,
+            context: EmbraceSpanContext(spanId: id, traceId: traceId),
             parentSpanId: parentSpanId,
             name: name,
             type: EmbraceType(rawValue: typeRaw) ?? .performance,
@@ -291,8 +290,7 @@ extension SpanRecord: EmbraceStorageRecord {
 }
 
 struct ImmutableSpanRecord: EmbraceSpan {
-    let id: String
-    let traceId: String
+    var context: EmbraceSpanContext
     let parentSpanId: String?
     let name: String
     let type: EmbraceType
@@ -309,11 +307,11 @@ struct ImmutableSpanRecord: EmbraceSpan {
         // no op
     }
 
-    func addEvent(_ event: any EmbraceSemantics.EmbraceSpanEvent) {
+    func addEvent(_ event: EmbraceSpanEvent) {
         // no op
     }
 
-    func addLink(_ link: any EmbraceSemantics.EmbraceSpanLink) {
+    func addLink(_ link: EmbraceSpanLink) {
         // no op
     }
 

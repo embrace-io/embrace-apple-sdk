@@ -37,8 +37,8 @@ struct SpanPayload: Encodable {
     }
 
     init(from span: EmbraceSpan, endTime: Date? = nil, failed: Bool = false) {
-        self.traceId = span.traceId
-        self.spanId = span.id
+        self.traceId = span.context.traceId
+        self.spanId = span.context.spanId
         self.parentSpanId = span.parentSpanId
         self.name = span.name
         self.startTime = span.startTime.nanosecondsSince1970Truncated
@@ -51,7 +51,7 @@ struct SpanPayload: Encodable {
             self.status = Status.sessionCrashedError().name
         }
 
-        var end = endTime ?? span.endTime
+        let end = endTime ?? span.endTime
         if let end {
             self.endTime = end.nanosecondsSince1970Truncated
         } else {

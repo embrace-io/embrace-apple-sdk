@@ -8,23 +8,30 @@ import Foundation
 @objc
 public class EmbraceSpanLink: NSObject {
 
-    /// Identifier of linked span
-    @objc public let spanId: String
-
-    /// Trace identifier of the linked span
-    @objc public let traceId: String
+    /// Context of the linked span
+    @objc public let context: EmbraceSpanContext
 
     /// Attributes of the link
     @objc public let attributes: [String: String]
 
     /// Creates a new `EmbraceSpanLink`
     /// - Parameters:
+    ///   - context: Span context of the link
+    ///   - attributes: Attributes of the link
+    @objc public init(context: EmbraceSpanContext, attributes: [String : String] = [:]) {
+        self.context = context
+        self.attributes = attributes
+    }
+
+    /// Creates a new `EmbraceSpanLink`
+    /// - Parameters:
     ///   - spanId: Span identifier of the link
     ///   - traceId: Trace identifier of the link
     ///   - attributes: Attributes of the link
-    @objc public init(spanId: String, traceId: String, attributes: [String : String] = [:]) {
-        self.spanId = spanId
-        self.traceId = traceId
-        self.attributes = attributes
+    @objc public convenience init(spanId: String, traceId: String, attributes: [String : String] = [:]) {
+        self.init(
+            context: EmbraceSpanContext(spanId: spanId, traceId: traceId),
+            attributes: attributes
+        )
     }
 }

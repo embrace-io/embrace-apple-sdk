@@ -47,7 +47,7 @@ public class SpanLinkRecord: NSManagedObject {
     }
 
     func toImmutable() -> EmbraceSpanLink {
-        return ImmutableSpanLinkRecord(
+        return EmbraceSpanLink(
             spanId: spanId,
             traceId: traceId,
             attributes: .keyValueDecode(attributes)
@@ -59,12 +59,3 @@ extension SpanLinkRecord: EmbraceStorageRecord {
     public static var entityName = "SpanLinkRecord"
 }
 
-struct ImmutableSpanLinkRecord: EmbraceSpanLink {
-    let spanId: String
-    let traceId: String
-    let attributes: [String: String]
-
-    func setAttribute(key: String, value: String?) {
-        // no op
-    }
-}

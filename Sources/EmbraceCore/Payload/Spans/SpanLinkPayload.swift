@@ -18,8 +18,8 @@ struct SpanLinkPayload: Encodable {
     }
 
     init(from link: EmbraceSpanLink) {
-        self.traceId = link.traceId
-        self.spanId = link.spanId
+        self.traceId = link.context.traceId
+        self.spanId = link.context.spanId
 
         self.attributes = link.attributes.map { entry in
             Attribute(key: entry.key, value: entry.value)

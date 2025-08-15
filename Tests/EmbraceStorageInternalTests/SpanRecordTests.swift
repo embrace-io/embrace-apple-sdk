@@ -5,7 +5,7 @@
 import EmbraceCommonInternal
 import TestSupport
 import XCTest
-
+import EmbraceSemantics
 @testable import EmbraceStorageInternal
 
 class SpanRecordTests: XCTestCase {
@@ -94,8 +94,8 @@ class SpanRecordTests: XCTestCase {
 
         // then the span should be valid
         XCTAssertNotNil(span)
-        XCTAssertEqual(span!.id, "id")
-        XCTAssertEqual(span!.traceId, TestConstants.traceId)
+        XCTAssertEqual(span!.context.spanId, "id")
+        XCTAssertEqual(span!.context.traceId, TestConstants.traceId)
         XCTAssertEqual(span!.name, "a name")
         XCTAssertEqual(span!.type, .performance)
         XCTAssertNil(span!.endTime)
@@ -316,7 +316,7 @@ class SpanRecordTests: XCTestCase {
 
     // MARK: Events
     func test_createSpanEvents() {
-        let event = MockSpanEvent(
+        let event = EmbraceSpanEvent(
             name: "test",
             timestamp: Date(),
             attributes: ["key": "value"]
@@ -343,12 +343,12 @@ class SpanRecordTests: XCTestCase {
     }
 
     func test_updateSpanEvents() {
-        let event1 = MockSpanEvent(
+        let event1 = EmbraceSpanEvent(
             name: "test1",
             timestamp: Date(),
             attributes: ["key1": "value1"]
         )
-        let event2 = MockSpanEvent(
+        let event2 = EmbraceSpanEvent(
             name: "test2",
             timestamp: Date(),
             attributes: ["key2": "value2"]
@@ -389,7 +389,7 @@ class SpanRecordTests: XCTestCase {
     }
 
     func test_addSpanEvent() {
-        let event = MockSpanEvent(
+        let event = EmbraceSpanEvent(
             name: "test",
             timestamp: Date(),
             attributes: ["key": "value"]
@@ -419,7 +419,7 @@ class SpanRecordTests: XCTestCase {
 
     // MARK: Links
     func test_createSpanLinks() {
-        let link = MockSpanLink(
+        let link = EmbraceSpanLink(
             spanId: "spanId",
             traceId: "traceId",
             attributes: ["key": "value"]
@@ -447,12 +447,12 @@ class SpanRecordTests: XCTestCase {
     }
 
     func test_updateSpanLinks() {
-        let link1 = MockSpanLink(
+        let link1 = EmbraceSpanLink(
             spanId: "spanId1",
             traceId: "traceId1",
             attributes: ["key1": "value1"]
         )
-        let link2 = MockSpanLink(
+        let link2 = EmbraceSpanLink(
             spanId: "spanId2",
             traceId: "traceId2",
             attributes: ["key2": "value2"]
@@ -495,7 +495,7 @@ class SpanRecordTests: XCTestCase {
     }
 
     func test_addSpanLink() {
-        let link = MockSpanLink(
+        let link = EmbraceSpanLink(
             spanId: "spanId",
             traceId: "traceId",
             attributes: ["key": "value"]

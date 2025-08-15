@@ -40,7 +40,7 @@ extension SpanData {
 
     public var embEvents: [EmbraceSpanEvent] {
         return events.map {
-            DefaultEmbraceSpanEvent(
+            EmbraceSpanEvent(
                 name: $0.name,
                 timestamp: $0.timestamp,
                 attributes: $0.attributes.toStringValues()
@@ -50,7 +50,7 @@ extension SpanData {
 
     public var embLinks: [EmbraceSpanLink] {
         return links.map {
-            DefaultEmbraceSpanLink(
+            EmbraceSpanLink(
                 spanId: $0.context.spanId.hexString,
                 traceId: $0.context.traceId.hexString,
                 attributes: $0.attributes.toStringValues()
@@ -65,25 +65,5 @@ extension SpanData {
     public func toJSON() throws -> Data {
         let encoder = JSONEncoder()
         return try encoder.encode(self)
-    }
-}
-
-struct DefaultEmbraceSpanEvent: EmbraceSpanEvent {
-    let name: String
-    let timestamp: Date
-    let attributes: [String: String]
-
-    mutating func setAttribute(key: String, value: String?) {
-        // no op
-    }
-}
-
-struct DefaultEmbraceSpanLink: EmbraceSpanLink {
-    let spanId: String
-    let traceId: String
-    let attributes: [String: String]
-
-    mutating func setAttribute(key: String, value: String?) {
-        // no op
     }
 }

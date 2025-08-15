@@ -35,14 +35,14 @@ class SpanPayloadTests: XCTestCase {
             startTime: Date(timeIntervalSince1970: 0),
             endTime: Date(timeIntervalSince1970: 60),
             events: [
-                MockSpanEvent(
+                EmbraceSpanEvent(
                     name: "test-span-event",
                     timestamp: Date(timeIntervalSince1970: 20),
                     attributes: testAttributes
                 )
             ],
             links: [
-                MockSpanLink(
+                EmbraceSpanLink(
                     spanId: SpanId.random().hexString,
                     traceId: TraceId.random().hexString,
                     attributes: testAttributes)
@@ -99,8 +99,8 @@ class SpanPayloadTests: XCTestCase {
         let payload = SpanPayload(from: span)
 
         // then the properties are correctly set
-        XCTAssertEqual(payload.traceId, span.traceId)
-        XCTAssertEqual(payload.spanId, span.id)
+        XCTAssertEqual(payload.traceId, span.context.traceId)
+        XCTAssertEqual(payload.spanId, span.context.spanId)
         XCTAssertEqual(payload.parentSpanId, span.parentSpanId)
         XCTAssertEqual(payload.name, span.name)
         XCTAssertEqual(payload.status, span.status.name)
@@ -118,8 +118,8 @@ class SpanPayloadTests: XCTestCase {
 
         // links
         XCTAssertEqual(payload.links.count, 1)
-        XCTAssertEqual(payload.links[0].traceId, span.links[0].traceId)
-        XCTAssertEqual(payload.links[0].spanId, span.links[0].spanId)
+        XCTAssertEqual(payload.links[0].traceId, span.links[0].context.traceId)
+        XCTAssertEqual(payload.links[0].spanId, span.links[0].context.spanId)
         testAttributes(payload.links[0].attributes)
     }
 

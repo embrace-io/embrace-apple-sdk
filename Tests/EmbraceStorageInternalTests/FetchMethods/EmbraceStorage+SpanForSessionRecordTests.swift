@@ -112,7 +112,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         let results = storage.fetchSpans(for: session)
 
         XCTAssertEqual(results.count, 1)
-        XCTAssertEqual(results[0].id, span.id)
+        XCTAssertEqual(results[0].context.spanId, span.context.spanId)
     }
 
     func test_withSpanAfterSession_returnsEmptyArray() throws {
@@ -141,7 +141,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         let results = storage.fetchSpans(for: session)
 
         XCTAssertEqual(results.count, 1)
-        XCTAssertEqual(results[0].id, span.id)
+        XCTAssertEqual(results[0].context.spanId, span.context.spanId)
     }
 
     func test_withSpanOverlapsSessionEnd_returnsSpanInArray() throws {
@@ -156,7 +156,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         let results = storage.fetchSpans(for: session)
 
         XCTAssertEqual(results.count, 1)
-        XCTAssertEqual(results[0].id, span.id)
+        XCTAssertEqual(results[0].context.spanId, span.context.spanId)
     }
 
     func test_withSpanOverlapsSessionEntirely_returnsSpanInArray() throws {
@@ -171,7 +171,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         let results = storage.fetchSpans(for: session)
 
         XCTAssertEqual(results.count, 1)
-        XCTAssertEqual(results[0].id, span.id)
+        XCTAssertEqual(results[0].context.spanId, span.context.spanId)
     }
 
     // MARK: - Test Open Spans
@@ -187,7 +187,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         let results = storage.fetchSpans(for: session)
 
         XCTAssertEqual(results.count, 1)
-        XCTAssertEqual(results[0].id, span.id)
+        XCTAssertEqual(results[0].context.spanId, span.context.spanId)
     }
 
     func test_withOpenSpan_startedAfterSession_returnsSpanInArray() throws {
@@ -202,7 +202,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         let results = storage.fetchSpans(for: session)
 
         XCTAssertEqual(results.count, 1)
-        XCTAssertEqual(results[0].id, span.id)
+        XCTAssertEqual(results[0].context.spanId, span.context.spanId)
     }
 
     func test_withOpenSpan_startedBeforeColdStartSession_returnsSpanInArray() throws {
@@ -218,7 +218,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         let results = storage.fetchSpans(for: session)
 
         XCTAssertEqual(results.count, 1)
-        XCTAssertEqual(results[0].id, span.id)
+        XCTAssertEqual(results[0].context.spanId, span.context.spanId)
     }
 
     func test_withOpenSpan_startedAfterColdStartSession_returnsSpanInArray() throws {
@@ -234,7 +234,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         let results = storage.fetchSpans(for: session)
 
         XCTAssertEqual(results.count, 1)
-        XCTAssertEqual(results[0].id, span.id)
+        XCTAssertEqual(results[0].context.spanId, span.context.spanId)
     }
 
     func test_withOpenSpan_startedAfterColdStartSessionEnds_returnsEmptyArray() throws {
@@ -267,9 +267,9 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         let spanC = addSpanRecord(name: "span-c", startTime: .relative(-6), endTime: .relative(-2))
         let results = storage.fetchSpans(for: session)
 
-        XCTAssertNotNil(results.first(where: { $0.id == spanA.id && $0.name == "span-a" }))
-        XCTAssertNotNil(results.first(where: { $0.id == spanB.id && $0.name == "span-b" }))
-        XCTAssertNil(results.first(where: { $0.id == spanC.id && $0.name == "span-c" }))
+        XCTAssertNotNil(results.first(where: { $0.context.spanId == spanA.context.spanId && $0.name == "span-a" }))
+        XCTAssertNotNil(results.first(where: { $0.context.spanId == spanB.context.spanId && $0.name == "span-b" }))
+        XCTAssertNil(results.first(where: { $0.context.spanId == spanC.context.spanId && $0.name == "span-c" }))
     }
 
     func test_withMultipleSpans_oneBeforeColdStartSessionBegins_returnsRelevantSpansOnly() throws {
@@ -286,9 +286,9 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         let spanC = addSpanRecord(name: "span-c", startTime: .relative(-6), endTime: .relative(-2))
         let results = storage.fetchSpans(for: session)
 
-        XCTAssertNotNil(results.first(where: { $0.id == spanA.id && $0.name == "span-a" }))
-        XCTAssertNotNil(results.first(where: { $0.id == spanB.id && $0.name == "span-b" }))
-        XCTAssertNil(results.first(where: { $0.id == spanC.id && $0.name == "span-c" }))
+        XCTAssertNotNil(results.first(where: { $0.context.spanId == spanA.context.spanId && $0.name == "span-a" }))
+        XCTAssertNotNil(results.first(where: { $0.context.spanId == spanB.context.spanId && $0.name == "span-b" }))
+        XCTAssertNil(results.first(where: { $0.context.spanId == spanC.context.spanId && $0.name == "span-c" }))
     }
 
     func test_withMultipleSpans_oneBeforeWarmStartSessionBegins_returnsRelevantSpansOnly() throws {
@@ -305,9 +305,9 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         let spanC = addSpanRecord(name: "span-c", startTime: .relative(-6), endTime: .relative(-2))
         let results = storage.fetchSpans(for: session)
 
-        XCTAssertNil(results.first(where: { $0.id == spanA.id && $0.name == "span-a" }))
-        XCTAssertNotNil(results.first(where: { $0.id == spanB.id && $0.name == "span-b" }))
-        XCTAssertNil(results.first(where: { $0.id == spanC.id && $0.name == "span-c" }))
+        XCTAssertNil(results.first(where: { $0.context.spanId == spanA.context.spanId && $0.name == "span-a" }))
+        XCTAssertNotNil(results.first(where: { $0.context.spanId == spanB.context.spanId && $0.name == "span-b" }))
+        XCTAssertNil(results.first(where: { $0.context.spanId == spanC.context.spanId && $0.name == "span-c" }))
     }
 
     // MARK: Tests when spans match session boundary
@@ -324,7 +324,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         let span = addSpanRecord(startTime: .relative(-30), endTime: boundary)
         let results = storage.fetchSpans(for: session)
 
-        XCTAssertEqual(results[0].id, span.id)
+        XCTAssertEqual(results[0].context.spanId, span.context.spanId)
     }
 
     func test_withSpanEndAtIsEqualToSessionStart_whenColdStart_returnsSpan() throws {
@@ -341,7 +341,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         let span = addSpanRecord(startTime: .relative(-30), endTime: boundary)
         let results = storage.fetchSpans(for: session)
 
-        XCTAssertEqual(results[0].id, span.id)
+        XCTAssertEqual(results[0].context.spanId, span.context.spanId)
     }
 
     func test_withSpanStartAtIsEqualToSessionEnd_returnsEmptyArray() throws {
@@ -357,7 +357,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         let span = addSpanRecord(startTime: boundary, endTime: .relative(0))
         let results = storage.fetchSpans(for: session)
 
-        XCTAssertEqual(results[0].id, span.id)
+        XCTAssertEqual(results[0].context.spanId, span.context.spanId)
     }
 
     func test_ignoreSessionSpanFlag_whenTrue_doesNotReturnSessionSpan() throws {
@@ -393,7 +393,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         )
 
         let results = storage.fetchSpans(for: session, ignoreSessionSpans: false)
-        XCTAssertEqual(results[0].id, span.id)
+        XCTAssertEqual(results[0].context.spanId, span.context.spanId)
     }
 
     func test_spansWithSessionId() throws {
@@ -425,8 +425,8 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         )
         let results = storage.fetchSpans(for: session)
 
-        XCTAssertNotNil(results.first(where: { $0.id == spanA.id && $0.name == "span-a" }))
-        XCTAssertNotNil(results.first(where: { $0.id == spanB.id && $0.name == "span-b" }))
-        XCTAssertNotNil(results.first(where: { $0.id == spanC.id && $0.name == "span-c" }))
+        XCTAssertNotNil(results.first(where: { $0.context.spanId == spanA.context.spanId && $0.name == "span-a" }))
+        XCTAssertNotNil(results.first(where: { $0.context.spanId == spanB.context.spanId && $0.name == "span-b" }))
+        XCTAssertNotNil(results.first(where: { $0.context.spanId == spanC.context.spanId && $0.name == "span-c" }))
     }
 }

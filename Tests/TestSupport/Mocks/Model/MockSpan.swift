@@ -6,18 +6,17 @@ import EmbraceSemantics
 import Foundation
 
 public class MockSpan: EmbraceSpan {
-    public var id: String
-    public var traceId: String
+    public var context: EmbraceSpanContext
     public var parentSpanId: String?
     public var name: String
-    public var type: EmbraceSemantics.EmbraceType
-    public var status: EmbraceSemantics.EmbraceSpanStatus
+    public var type: EmbraceType
+    public var status: EmbraceSpanStatus
     public var startTime: Date
     public var endTime: Date?
-    public var events: [any EmbraceSemantics.EmbraceSpanEvent]
-    public var links: [any EmbraceSemantics.EmbraceSpanLink]
-    public var sessionId: EmbraceSemantics.EmbraceIdentifier?
-    public var processId: EmbraceSemantics.EmbraceIdentifier
+    public var events: [EmbraceSpanEvent]
+    public var links: [EmbraceSpanLink]
+    public var sessionId: EmbraceIdentifier?
+    public var processId: EmbraceIdentifier
     public var attributes: [String : String]
 
     public init(
@@ -35,8 +34,7 @@ public class MockSpan: EmbraceSpan {
         processId: EmbraceIdentifier,
         attributes: [String : String]
     ) {
-        self.id = id
-        self.traceId = traceId
+        self.context = EmbraceSpanContext(spanId: id, traceId: traceId)
         self.parentSpanId = parentSpanId
         self.name = name
         self.type = type
@@ -50,15 +48,15 @@ public class MockSpan: EmbraceSpan {
         self.attributes = attributes
     }
 
-    public func setStatus(_ status: EmbraceSemantics.EmbraceSpanStatus) {
+    public func setStatus(_ status: EmbraceSpanStatus) {
         self.status = status
     }
 
-    public func addEvent(_ event: any EmbraceSemantics.EmbraceSpanEvent) {
+    public func addEvent(_ event: EmbraceSpanEvent) {
         events.append(event)
     }
 
-    public func addLink(_ link: any EmbraceSemantics.EmbraceSpanLink) {
+    public func addLink(_ link: EmbraceSpanLink) {
         links.append(link)
     }
 

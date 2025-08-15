@@ -47,7 +47,7 @@ public class SpanEventRecord: NSManagedObject {
     }
 
     func toImmutable() -> EmbraceSpanEvent {
-        return ImmutableSpanEventRecord(
+        return EmbraceSpanEvent(
             name: name,
             timestamp: timestamp,
             attributes: .keyValueDecode(attributes)
@@ -57,14 +57,4 @@ public class SpanEventRecord: NSManagedObject {
 
 extension SpanEventRecord: EmbraceStorageRecord {
     public static var entityName = "SpanEventRecord"
-}
-
-struct ImmutableSpanEventRecord: EmbraceSpanEvent {
-    let name: String
-    let timestamp: Date
-    let attributes: [String: String]
-
-    func setAttribute(key: String, value: String?) {
-        // no op
-    }
 }

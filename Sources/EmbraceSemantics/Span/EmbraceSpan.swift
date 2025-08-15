@@ -11,10 +11,7 @@ public protocol EmbraceSpan {
     var name: String { get }
 
     /// Identifier for the span
-    var id: String { get }
-
-    /// Trace identifier for the span
-    var traceId: String { get }
+    var context: EmbraceSpanContext { get }
 
     /// Identifier for the span's parent
     var parentSpanId: String? { get }
