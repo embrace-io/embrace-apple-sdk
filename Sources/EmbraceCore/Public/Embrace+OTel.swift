@@ -104,6 +104,15 @@ extension Embrace: EmbraceOpenTelemetry {
             return
         }
 
+        // console logs for breadcrumbs
+        if Embrace.logger.level != .none && Embrace.logger.level.rawValue <= LogLevel.debug.rawValue {
+            for event in eventsToAdd where event.isBreadcrumb {
+                if let message = event.attributes[SpanEventSemantics.Breadcrumb.keyMessage]?.description {
+                    Embrace.logger.debug("[Embrace Breadcrumb] \(message)")
+                }
+            }
+        }
+
         span.add(events: eventsToAdd)
         flush(span)
     }

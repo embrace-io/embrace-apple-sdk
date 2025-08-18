@@ -44,3 +44,9 @@ extension SpanEvent where Self == Breadcrumb {
         return Breadcrumb(message: message, attributes: otelAttributes)
     }
 }
+
+extension SpanEvent {
+    var isBreadcrumb: Bool {
+        attributes[SpanEventSemantics.keyEmbraceType] == .string(SpanEventType.breadcrumb.rawValue)
+    }
+}
