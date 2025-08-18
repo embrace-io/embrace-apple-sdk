@@ -15,7 +15,7 @@ const uint64_t kEMBTerminationStorageVersion_1 = 1;
 const uint64_t kEMBTerminationStorageCurrentVersion = kEMBTerminationStorageVersion_1;
 const uint64_t kEMBTerminationStorageMagic = 0x45435241424D5245ULL;
 
-const NSString *const kEMBTerminationStorageExtension = @"term";
+NSString *const kEMBTerminationStorageExtension = @"term";
 
 // MARK: - Statics
 
@@ -236,7 +236,7 @@ static NSArray<NSString *> *_Nonnull fileWithExtensionInURL(NSURL *_Nonnull dire
 static NSURL *_Nullable mostRecentFileWithExtensionInURL(NSURL *_Nonnull directoryURL, NSString *_Nonnull extension)
 {
     NSFileManager *fm = [NSFileManager defaultManager];
-    NSArray<NSString *> *urls = [fm contentsOfDirectoryAtURL:directoryURL
+    NSArray<NSURL *> *urls = [fm contentsOfDirectoryAtURL:directoryURL
                                   includingPropertiesForKeys:nil
                                                      options:0
                                                        error:nil];
@@ -268,7 +268,7 @@ static NSURL *_Nullable mostRecentFileWithExtensionInURL(NSURL *_Nonnull directo
 
 static BOOL EMBTerminationStorageInitialize()
 {
-    printf("size of storage: %d\n", sizeof(EMBTerminationStorage));
+    printf("size of storage: %lu\n", sizeof(EMBTerminationStorage));
 
     // Load up previous storage
     NSURL *previousStorageURL = mostRecentFileWithExtensionInURL(rootURL(), kEMBTerminationStorageExtension);
@@ -327,8 +327,8 @@ static BOOL EMBTerminationStorageInitialize()
         addObserverWithBlock:^(KSCrashAppMemory *_Nonnull memory, KSCrashAppMemoryTrackerChangeType changes) {
             EMBTerminationStorageUpdate(YES, ^(EMBTerminationStorage *_Nonnull storage) {
                 if (changes & KSCrashAppMemoryTrackerChangeTypeFootprint) {
-#define TEN_MB 10, 000, 000
-#define ABS_DIFF(x, y) x > y ? x - y : y - x
+#define TEN_MB ((1000 * 1000) * 10)
+#define ABS_DIFF(x, y) (x > y ? x - y : y - x)
                     if (ABS_DIFF(storage->memoryFootprint, memory.footprint) >= TEN_MB) {
                         storage->memoryFootprint = memory.footprint;
                         storage->memoryRemaining = memory.remaining;
@@ -349,8 +349,21 @@ static BOOL EMBTerminationStorageInitialize()
     return YES;
 }
 
-BOOL EMBTerminationStorageShouldWriteReport(const struct KSCrash_MonitorContext *context)
+void EMBTerminationStorageOnCrashEvent(struct KSCrash_MonitorContext *_Nonnull context)
 {
+    if (!context) {
+        return;
+    }
+
+    // Only store fatals
+    if (context->currentPolicy.isFatal == 0) {
+        return;
+    }
+
+    // Ensure the reporter doesn't write this crash out.
+    context->currentPolicy.shouldWriteReport = 0;
+
+    // Update everything, we can lock if we're not in an async safe callback.
     EMBTerminationStorageUpdate(
         context->currentPolicy.requiresAsyncSafety == 0, ^(EMBTerminationStorage *_Nonnull storage) {
             storage->stackOverflow = context->isStackOverflow;
@@ -390,7 +403,6 @@ BOOL EMBTerminationStorageShouldWriteReport(const struct KSCrash_MonitorContext 
                 strncpy(storage->exceptionName, context->CPPException.name, EMB_SMALL_BUFFER_SIZE - 1);
             }
         });
-    return NO;
 }
 
 void EMBTerminationStorageUpdate(BOOL canLock, EMBTerminationStorageUpdateBlock _Nullable block)
