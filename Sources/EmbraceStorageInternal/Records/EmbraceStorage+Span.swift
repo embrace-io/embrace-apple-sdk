@@ -278,7 +278,7 @@ extension EmbraceStorage {
         case .performance,
             .system,
             .ux:
-            return 1500
+            return options.spanLimitDefault
         }
     }
 
