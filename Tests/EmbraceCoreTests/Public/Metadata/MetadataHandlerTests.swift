@@ -29,6 +29,7 @@ final class MetadataHandlerTests: XCTestCase {
         sessionController = nil
     }
 
+    @available(*, deprecated)
     func test_key_validation() throws {
         // given a metadata handler
         let handler = MetadataHandler(storage: storage, sessionController: sessionController)
@@ -67,6 +68,7 @@ final class MetadataHandlerTests: XCTestCase {
         wait(for: [expectation1, expectation2], timeout: .defaultTimeout)
     }
 
+    @available(*, deprecated)
     func test_value_validation() throws {
         // given a metadata handler
         let handler = MetadataHandler(
@@ -91,6 +93,7 @@ final class MetadataHandlerTests: XCTestCase {
         XCTAssertEqual(metadata[1].value.count, MetadataHandler.maxValueLength)
     }
 
+    @available(*, deprecated)
     func test_currentSession_validation() throws {
         // given a metadata handler
         let handler = MetadataHandler(storage: storage, sessionController: sessionController)
@@ -127,6 +130,7 @@ final class MetadataHandlerTests: XCTestCase {
         wait(for: [expectation1, expectation2], timeout: .defaultTimeout)
     }
 
+    @available(*, deprecated)
     func test_limit_validation() throws {
         // given a metadata handler
         let handler = MetadataHandler(
