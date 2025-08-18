@@ -237,9 +237,9 @@ static NSURL *_Nullable mostRecentFileWithExtensionInURL(NSURL *_Nonnull directo
 {
     NSFileManager *fm = [NSFileManager defaultManager];
     NSArray<NSURL *> *urls = [fm contentsOfDirectoryAtURL:directoryURL
-                                  includingPropertiesForKeys:nil
-                                                     options:0
-                                                       error:nil];
+                               includingPropertiesForKeys:nil
+                                                  options:0
+                                                    error:nil];
     if (!urls) return nil;
 
     NSURL *latestURL = nil;
