@@ -5,6 +5,7 @@
 #import "EMBTerminationStorage.h"
 
 #import <os/lock.h>
+#import <stdlib.h>
 
 @import EmbraceCommonInternal;
 @import KSCrashRecording;
