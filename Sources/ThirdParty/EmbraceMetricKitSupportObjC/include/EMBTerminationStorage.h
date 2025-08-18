@@ -21,6 +21,6 @@ NSArray<NSString *> *_Nonnull EMBTerminationStorageGetIdentifiers(void);
 
 /** Private callback to write data on exceptions */
 FOUNDATION_EXTERN
-BOOL EMBTerminationStorageShouldWriteReport(const struct KSCrash_MonitorContext *_Nullable context);
+void EMBTerminationStorageOnCrashEvent(struct KSCrash_MonitorContext *_Nonnull context);
 
 NS_ASSUME_NONNULL_END

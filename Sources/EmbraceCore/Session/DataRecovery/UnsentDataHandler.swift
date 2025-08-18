@@ -135,10 +135,12 @@ class UnsentDataHandler {
             .addSessionIdentifier()
             .build()
 
+        // Update this to a better choice for severity and type in the future.
+        print("[TERM] uploading log for \(data.processId)")
         otel?.log(
             "termination_\(data.processId)",
-            severity: .fatal,
-            type: .termination,
+            severity: .info,
+            type: .message,
             timestamp: timestamp,
             attributes: attributes,
             stackTraceBehavior: .notIncluded

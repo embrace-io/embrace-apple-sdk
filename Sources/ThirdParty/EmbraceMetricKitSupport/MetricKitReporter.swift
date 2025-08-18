@@ -138,7 +138,7 @@ import Foundation
             config.enableQueueNameSearch = false
             config.installPath = context.filePathProvider.directoryURL(for: "mk_crash_reporter")?.path
             config.reportStoreConfiguration.appName = context.appId ?? "default"
-            config.shouldWriteReportCallback = EMBTerminationStorageShouldWriteReport
+            config.eventNotifyCallback = EMBTerminationStorageOnCrashEvent
             config.monitors = [.cppException, .machException, .nsException, .signal]
             do {
                 try KSCrash.shared.install(with: config)
