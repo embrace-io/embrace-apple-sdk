@@ -48,6 +48,10 @@ public final class HangCaptureService: CaptureService {
         self.limitData.withLock { $0.limits = config.hangLimits }
     }
 
+    public override func onInstall() {
+        watchdog.logger = logger
+    }
+
     private var mainThread: pthread_t
     private var watchdog: HangWatchdog?
     private let queue = DispatchQueue(label: "io.embrace.hang.service")
