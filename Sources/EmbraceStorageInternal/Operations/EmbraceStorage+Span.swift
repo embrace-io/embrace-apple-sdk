@@ -41,7 +41,7 @@ extension EmbraceStorage {
         events: [EmbraceSpanEvent] = [],
         links: [EmbraceSpanLink] = [],
         attributes: [String: String] = [:]
-    ) -> EmbraceSpan? {
+    ) {
 
         // update existing?
         if let span = updateExistingSpan(
@@ -59,14 +59,14 @@ extension EmbraceStorage {
             links: links,
             attributes: attributes
         ) {
-            return span
+            return
         }
 
         // make space if needed
         removeOldSpanIfNeeded(forType: type)
 
         // add new
-        if let span = SpanRecord.create(
+        SpanRecord.create(
             context: coreData.context,
             id: id,
             traceId: traceId,
@@ -81,12 +81,8 @@ extension EmbraceStorage {
             events: events,
             links: links,
             attributes: attributes
-        ) {
-            coreData.save()
-            return span
-        }
-
-        return nil
+        )
+        coreData.save()
     }
 
     func fetchSpanRequest(id: String, traceId: String) -> NSFetchRequest<SpanRecord> {
@@ -454,7 +450,7 @@ extension EmbraceStorage {
         case .performance,
             .system,
             .ux:
-            return 1500
+            return options.spanLimitDefault
         }
     }
 

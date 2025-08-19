@@ -135,7 +135,7 @@
 
             // if current session is already background, do nothing
             if let currentSession = controller.currentSession,
-                currentSession.state == SessionState.background {
+               currentSession.state == .background {
                 return
             }
 

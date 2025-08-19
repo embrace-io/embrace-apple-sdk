@@ -3,7 +3,7 @@
 //
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-    @_implementationOnly import EmbraceObjCUtilsInternal
+    import EmbraceObjCUtilsInternal
 #endif
 
 class DefaultStartupDataProvider: StartupDataProvider {

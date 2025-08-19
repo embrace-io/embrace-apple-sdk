@@ -12,7 +12,7 @@ extension ProcessInfo {
         }
 
         // detect if the process is running ui tests
-        guard CommandLine.arguments.count > 0 else {
+        guard CommandLine.arguments.isEmpty == false else {
             return false
         }
 

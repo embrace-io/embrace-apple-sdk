@@ -61,7 +61,8 @@ extension EmbraceTraceMacro: MemberMacro {
                 if let memberType = $0.type.as(MemberTypeSyntax.self),
                     let baseType = memberType.baseType.as(IdentifierTypeSyntax.self),
                     baseType.name.text == "SwiftUI",
-                    memberType.name.text == "View" {
+                    memberType.name.text == "View"
+                {
                     return true
                 }
                 return false

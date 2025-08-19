@@ -9,7 +9,7 @@ import OpenTelemetryApi
     import EmbraceCommonInternal
     import EmbraceOTelInternal
     import EmbraceSemantics
-    @_implementationOnly import EmbraceObjCUtilsInternal
+    import EmbraceObjCUtilsInternal
 #endif
 
 @objc(EMBStartupInstrumentation)
@@ -133,7 +133,8 @@ public class StartupInstrumentation: NSObject {
 
             // sdk setup
             if let sdkSetupStartTime = provider.sdkSetupStartTime,
-                let sdkSetupEndTime = provider.sdkSetupEndTime {
+                let sdkSetupEndTime = provider.sdkSetupEndTime
+            {
                 otel.recordCompletedSpan(
                     name: SpanSemantics.Startup.sdkSetup,
                     type: .startup,
@@ -148,7 +149,8 @@ public class StartupInstrumentation: NSObject {
 
             // sdk startup
             if let sdkStartStarTime = provider.sdkStartStartTime,
-                let sdkStartEndTime = provider.sdkStartEndTime {
+                let sdkStartEndTime = provider.sdkStartEndTime
+            {
                 otel.recordCompletedSpan(
                     name: SpanSemantics.Startup.sdkStart,
                     type: .startup,

@@ -5,6 +5,10 @@
 import CoreData
 import Foundation
 
+#if canImport(UIKit)
+    import UIKit
+#endif
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
 #endif
@@ -16,11 +20,18 @@ public class CoreDataWrapper {
     public private(set) var context: NSManagedObjectContext!
     let logger: InternalLogger
 
+    private let workTracker: WorkTracker
+
+    private var name: String {
+        options.storageMechanism.name
+    }
+
     private let isTesting: Bool
 
     public init(options: CoreDataWrapper.Options, logger: InternalLogger) throws {
         self.options = options
         self.logger = logger
+        self.workTracker = WorkTracker(name: self.options.storageMechanism.name, logger: self.logger)
         isTesting = ProcessInfo.processInfo.isTesting
 
         // create model
@@ -82,15 +93,17 @@ public class CoreDataWrapper {
             logger.critical("Warning: performBlockAndWait on main thread can easily deadlock! Proceeding with caution.")
         }
 
+        let id = workTracker.increment(name)
+
         var result: Result!
-        let taskAssertion = BackgroundTaskWrapper(name: name, logger: logger)
         context.performAndWait {
             result = block(context)
             if save {
                 saveIfNeeded()
             }
+            workTracker.decrement(name, id: id, afterDebounce: true)
         }
-        taskAssertion?.finish()
+
         return result
     }
 
@@ -100,14 +113,15 @@ public class CoreDataWrapper {
     public func performAsyncOperation(
         _ name: String = #function, save: Bool = false, _ block: @escaping (NSManagedObjectContext) -> Void
     ) {
-        let taskAssertion = BackgroundTaskWrapper(name: name, logger: logger)
+        let id = workTracker.increment(name)
+
         let cntxt: NSManagedObjectContext = context
         cntxt.perform { [self, cntxt] in
             block(cntxt)
             if save {
                 saveIfNeeded()
             }
-            taskAssertion?.finish()
+            workTracker.decrement(name, id: id, afterDebounce: true)
         }
     }
 

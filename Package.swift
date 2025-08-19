@@ -304,7 +304,9 @@ let package = Package(
         ),
 
         // Utilities
-        .target(name: "EmbraceObjCUtilsInternal"),
+        .target(
+            name: "EmbraceObjCUtilsInternal"
+        ),
         .testTarget(
             name: "EmbraceObjCUtilsInternalTests",
             dependencies: ["EmbraceObjCUtilsInternal", "TestSupport"]

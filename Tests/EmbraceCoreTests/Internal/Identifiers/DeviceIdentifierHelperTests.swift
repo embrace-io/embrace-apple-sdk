@@ -44,7 +44,7 @@ class DeviceIdentifierHelperTests: XCTestCase {
 
     func test_retrieve_withNoFile_shouldRequestFromKeychain() throws {
         #if os(macOS)
-            throw XCTSkip("Failed on macOS for some reason")
+            try XCTSkipIf(true, "Failed on macOS for some reason")
         #endif
         let keychainDeviceId = KeychainAccess.deviceId
 

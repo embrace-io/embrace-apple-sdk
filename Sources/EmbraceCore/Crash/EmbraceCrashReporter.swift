@@ -8,8 +8,14 @@ import Foundation
     import EmbraceCommonInternal
 #endif
 
-/// Default `CrashReporter` used by the Embrace SDK.
-/// Internally uses KSCrash to capture data from crashes.
+extension Notification.Name {
+
+    /// Notification sent when the crash reporter has completed sending crash reports.
+    /// The `object` of the notification is an array of `EmbraceCrashReport`, ie: `[EmbraceCrashReport]`.
+    public static let embraceDidSendCrashReports = Notification.Name("embrace.did.send.crash.reports")
+}
+
+/// Main Embrace system used to report crashes.
 public final class EmbraceCrashReporter: NSObject {
 
     private let reporter: CrashReporter
@@ -31,6 +37,9 @@ public final class EmbraceCrashReporter: NSObject {
 
     /// Sets the current session identifier that will be included in a crash report.
     public var currentSessionId: String? {
+        get {
+            getCrashInfo(key: CrashReporterInfoKey.sessionId)
+        }
         set {
             data.withLock { $0.allowsInternalDataChange = true }
             defer {
@@ -38,22 +47,19 @@ public final class EmbraceCrashReporter: NSObject {
             }
             appendCrashInfo(key: CrashReporterInfoKey.sessionId, value: newValue)
         }
-        get {
-            getCrashInfo(key: CrashReporterInfoKey.sessionId)
-        }
     }
 
     /// Adds the SDK version to the crash reports.
     private(set) var sdkVersion: String? {
+        get {
+            getCrashInfo(key: CrashReporterInfoKey.sdkVersion)
+        }
         set {
             data.withLock { $0.allowsInternalDataChange = true }
             defer {
                 data.withLock { $0.allowsInternalDataChange = false }
             }
             appendCrashInfo(key: CrashReporterInfoKey.sdkVersion, value: newValue)
-        }
-        get {
-            getCrashInfo(key: CrashReporterInfoKey.sdkVersion)
         }
     }
 
@@ -64,11 +70,11 @@ public final class EmbraceCrashReporter: NSObject {
 
     /// Unused in this KSCrash implementation
     public var onNewReport: ((EmbraceCrashReport) -> Void)? {
-        set {
-            reporter.onNewReport = newValue
-        }
         get {
             reporter.onNewReport
+        }
+        set {
+            reporter.onNewReport = newValue
         }
     }
 

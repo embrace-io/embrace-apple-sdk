@@ -29,7 +29,8 @@ class EmbraceUploadCache {
 
         // remove active cache if needed
         if options.resetCache,
-            let cacheUrl = options.storageMechanism.fileURL {
+            let cacheUrl = options.storageMechanism.fileURL
+        {
             try? FileManager.default.removeItem(at: cacheUrl)
         }
 

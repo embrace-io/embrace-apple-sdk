@@ -76,7 +76,8 @@ class URLSessionTaskCaptureRule {
 
             // check if the status code matches
             if let statusCode = (response as? HTTPURLResponse)?.statusCode,
-                statusCodes.contains(statusCode) {
+                statusCodes.contains(statusCode)
+            {
                 return true
             }
 
@@ -93,7 +94,7 @@ class URLSessionTaskCaptureRule {
 
         let string = url.removingHttpPrefix()
         let matches = regex.matches(in: string, range: NSRange(location: 0, length: string.count))
-        return matches.count > 0
+        return matches.isEmpty == false
     }
 
     static private func sanitize(_ key: String) -> String {

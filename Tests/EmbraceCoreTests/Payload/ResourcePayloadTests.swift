@@ -2,7 +2,7 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-@_implementationOnly import EmbraceObjCUtilsInternal
+import EmbraceObjCUtilsInternal
 import EmbraceStorageInternal
 import OpenTelemetrySdk
 import TestSupport

@@ -36,6 +36,7 @@ final class PayloadUtilTests: XCTestCase {
         XCTAssertEqual(fetchedResources[0].lifespanId, mockResources[0].lifespanId)
     }
 
+    @available(*, deprecated)
     func test_convertSpanAttributes() throws {
         // given some span attributes
         let attributes: [String: AttributeValue] = [
@@ -47,6 +48,16 @@ final class PayloadUtilTests: XCTestCase {
             "intArray": .intArray([123456, 987654]),
             "string": .string("test"),
             "stringArray": .stringArray(["test1", "test2"])
+            /*
+             "bool": .bool(true),
+             "boolArray": .array(AttributeArray(values: [.bool(true), .bool(true)])),
+             "double": .double(123.456),
+             "doubleArray": .array(AttributeArray(values: [.double(123.456), .double(987.654)])),
+             "int": .int(123456),
+             "intArray": .array(AttributeArray(values: [.int(123456), .int(987654)])),
+             "string": .string("test"),
+             "stringArray": .array(AttributeArray(values: [.string("test1"), .string("test2")]))
+             */
         ]
 
         // when converting them

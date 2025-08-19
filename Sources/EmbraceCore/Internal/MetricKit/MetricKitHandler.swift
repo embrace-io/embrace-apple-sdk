@@ -3,7 +3,10 @@
 //
 
 import Foundation
-import MetricKit
+
+#if canImport(MetricKit)
+    import MetricKit
+#endif
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceSemantics
@@ -90,7 +93,7 @@ import MetricKit
     }
 }
 
-#if !os(tvOS) && !os(macOS) && !os(watchOS)
+#if canImport(MetricKit) && !os(macOS) && !os(tvOS)
     extension MetricKitHandler: MXMetricManagerSubscriber {
         func didReceive(_ payloads: [MXMetricPayload]) {
             // noop for now
@@ -119,7 +122,7 @@ class MetricKitDiagnosticPayload {
         self.hangs = hangs
     }
 
-    #if !os(tvOS)
+    #if canImport(MetricKit) && !os(tvOS)
         @available(iOS 14.0, *)
         init(payload: MXDiagnosticPayload) {
             self.startTime = payload.timeStampBegin

@@ -5,7 +5,7 @@
 import XCTest
 
 @testable import EmbraceCore
-@testable @_implementationOnly import EmbraceObjCUtilsInternal
+@testable import EmbraceObjCUtilsInternal
 
 /// The purpose of these tests is to prevent any crashes/errors related to the proxy's forwarding mechanism.
 /// Some of these tests might not have an assertion. This is intentional.

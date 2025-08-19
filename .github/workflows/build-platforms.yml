@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform_args: ["iOS tvOS"] # using a single string will run platforms in parallel
+        platform_args: ["iOS tvOS macOS watchOS"] # using a single string will run platforms in parallel
         xcode_version: ["15.4"]
     steps:
     - name: Select Xcode

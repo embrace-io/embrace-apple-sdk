@@ -183,9 +183,9 @@ class SessionController: SessionControllable {
             // If the session is a background session and background sessions
             // are disabled in the config, we drop the session!
             // +
-            if session.coldStart == true && session.state == SessionState.background
-                && backgroundSessionsEnabled == false {
-
+            if session.coldStart == true &&
+               session.state == SessionState.background &&
+               backgroundSessionsEnabled == false {
                 delete()
                 return now
             }
@@ -216,7 +216,9 @@ class SessionController: SessionControllable {
             }
 
             // update session end time and clean exit
-            currentSession = storage?.updateSession(session: session, endTime: now, cleanExit: true)
+            if session.id != nil {
+                currentSession = storage?.updateSession(session: session, endTime: now, cleanExit: true)
+            }
 
             // post internal notification
             if session.state == SessionState.foreground {

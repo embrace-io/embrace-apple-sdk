@@ -3,7 +3,7 @@
 //
 
 import EmbraceCommonInternal
-@_implementationOnly import EmbraceObjCUtilsInternal
+import EmbraceObjCUtilsInternal
 import EmbraceStorageInternal
 import OpenTelemetrySdk
 import XCTest

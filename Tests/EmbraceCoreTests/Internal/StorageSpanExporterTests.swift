@@ -117,10 +117,8 @@ final class StorageSpanExporterTests: XCTestCase {
         XCTAssertNotNil(exportedSpan!.sessionIdRaw)
         XCTAssertEqual(exportedSpan!.sessionIdRaw, sessionController.currentSession?.id.stringValue)
 
-        let attributes = Dictionary.keyValueDecode(exportedSpan!.attributes)
-        XCTAssertEqual(attributes.count, 1)
-        XCTAssertEqual(attributes.first!.key, "foo")
-        XCTAssertEqual(attributes.first!.value, "baz")
+        let spanData = try JSONDecoder().decode(SpanData.self, from: exportedSpan!.data)
+        XCTAssertEqual(spanData.attributes["foo"], .string("baz"))
     }
 
     func test_noExport_onSessionEnd() throws {
@@ -298,5 +296,44 @@ final class StorageSpanExporterTests: XCTestCase {
         XCTAssertEqual(exportedSpans[0].traceId, traceId.hexString)
         XCTAssertEqual(exportedSpans[0].id, spanId.hexString)
         XCTAssertEqual(exportedSpans[0].name.count, 200)
+    }
+
+    func test_addsSessionIdAttribute() throws {
+        // given an exporter
+        let storage = try EmbraceStorage.createInMemoryDb()
+        let sessionController = MockSessionController()
+        sessionController.startSession(state: .foreground)
+        let exporter = StorageSpanExporter(
+            options: .init(storage: storage, sessionController: sessionController), logger: MockLogger())
+
+        let traceId = TraceId.random()
+        let spanId = SpanId.random()
+        let name = "target_span"
+
+        let startTime = Date()
+        let endTime = startTime.addingTimeInterval(2000)
+
+        let span = SpanData(
+            traceId: traceId,
+            spanId: spanId,
+            parentSpanId: nil,
+            name: name,
+            kind: .internal,
+            startTime: startTime,
+            attributes: ["emb.type": .string("perf")],
+            endTime: endTime,
+            hasEnded: false
+        )
+        // when an open session span is exported
+        _ = exporter.export(spans: [span])
+
+        // then the session id is added to the exported data
+        let exportedSpans: [SpanRecord] = storage.fetchAll()
+        XCTAssertTrue(exportedSpans.count == 1)
+        XCTAssertEqual(exportedSpans[0].traceId, traceId.hexString)
+        XCTAssertEqual(exportedSpans[0].id, spanId.hexString)
+
+        let spanData = try JSONDecoder().decode(SpanData.self, from: exportedSpans[0].data)
+        XCTAssertEqual(spanData.attributes["session.id"], .string(sessionController.currentSession!.idRaw))
     }
 }

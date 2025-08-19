@@ -41,9 +41,7 @@ public class SpanRecord: NSManagedObject {
         events: [EmbraceSpanEvent] = [],
         links: [EmbraceSpanLink] = [],
         attributes: [String: String]
-    ) -> EmbraceSpan? {
-        var result: EmbraceSpan?
-
+    ) {
         context.performAndWait {
             guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
                 return
@@ -63,7 +61,7 @@ public class SpanRecord: NSManagedObject {
             record.attributes = attributes.keyValueEncoded()
 
             // events
-            for event in span.events {
+            for event in events {
                 if let event = SpanEventRecord.create(
                     context: context,
                     event: event,
@@ -74,7 +72,7 @@ public class SpanRecord: NSManagedObject {
             }
 
             // links
-            for link in span.links {
+            for link in links {
                 if let link = SpanLinkRecord.create(
                     context: context,
                     link: link,

@@ -112,7 +112,8 @@ public final class KSCrashReporter: NSObject, CrashReporter {
             }
 
             if let reportDict = report[KSCrashKey.crashReport] as? [AnyHashable: Any],
-                let rawTimestamp = reportDict[KSCrashKey.timestamp] as? String {
+                let rawTimestamp = reportDict[KSCrashKey.timestamp] as? String
+            {
                 timestamp = Self.dateFormatter.date(from: rawTimestamp)
             }
 
