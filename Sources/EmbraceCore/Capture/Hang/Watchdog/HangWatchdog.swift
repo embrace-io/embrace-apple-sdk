@@ -118,6 +118,9 @@ final public class HangWatchdog {
     // the RunLoop we are watching for hangs.
     private let runLoop: RunLoop
 
+    // Logger
+    internal var logger: InternalLogger?
+
     /// Internal structure for tracking whether a hang is active and recording
     /// the timestamp when the RunLoop was entered.
     private struct HangData {
@@ -138,6 +141,8 @@ extension HangWatchdog {
 
         runLoopPrecondition(runloop: runLoop)
 
+        logger?.info("[Watchdog] schedule thread")
+
         let semaphore = DispatchSemaphore(value: 0)
 
         watchdogThread = Thread { [weak self] in
@@ -155,6 +160,13 @@ extension HangWatchdog {
         // so we simply wait here until it's set on
         // that thread.
         semaphore.wait()
+
+        logger?.info("[Watchdog] thread is a-go")
+
+        // Start out by scheduling pings to make sure we catch
+        // anything that happens before any run loops are running (startup).
+        logger?.info("[Watchdog] schedule first ping")
+        schedulePings()
     }
 
     /// Adds a CFRunLoopObserver to the monitored RunLoop that listens for
@@ -162,6 +174,8 @@ extension HangWatchdog {
     private func scheduleObserver() {
 
         runLoopPrecondition(runloop: runLoop)
+
+        logger?.info("[Watchdog] schedule observers")
 
         // A hang starts when it takes more than 250ms between
         // two .beforeWaiting run loop events.
@@ -214,6 +228,7 @@ extension HangWatchdog {
         }
         if let obs = observer {
             CFRunLoopAddObserver(runLoop.getCFRunLoop(), obs, .commonModes)
+            logger?.info("[Watchdog] observers are a-go")
         }
     }
 
@@ -249,7 +264,7 @@ extension HangWatchdog {
                 let enterTime = $0.enterTime
                 let (hangTime, overflow) = now.subtractingReportingOverflow(enterTime)
                 if overflow {
-                    print("overflow")
+                    self.logger?.error("[Watchdog] overflow \(now) - \(enterTime)")
                     // return (nil, false, enterTime, hangTime)
                 }
                 let isHang = hangTime >= threasholdInNs
