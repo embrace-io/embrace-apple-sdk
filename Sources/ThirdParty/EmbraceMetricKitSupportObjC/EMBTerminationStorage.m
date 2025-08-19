@@ -25,14 +25,6 @@ static EMBTerminationStorage *sStorage = NULL;
 
 // MARK: - Exit
 
-static void _atQuickExit(void)
-{
-    EMBTerminationStorageUpdate(YES, ^(EMBTerminationStorage *_Nonnull storage) {
-        storage->cleanExitSet = 1;
-        storage->quickExitCalled = 1;
-    });
-}
-
 static void _atExit(void)
 {
     EMBTerminationStorageUpdate(YES, ^(EMBTerminationStorage *_Nonnull storage) {
@@ -309,7 +301,6 @@ static BOOL EMBTerminationStorageInitialize()
     printf("[Impact] process uuid: %s\n", identifier.UTF8String);
 
     // Ensure we get normal exits out of the way
-    at_quick_exit(_atQuickExit);
     atexit(_atExit);
 
     CFNotificationCenterAddObserver(CFNotificationCenterGetLocalCenter(), NULL, _willTerminateNotification,
