@@ -24,9 +24,14 @@ public final class HangCaptureService: CaptureService {
         self.watchdog.hangObserver = self
     }
 
+    public override func onInstall() {
+        watchdog.logger = logger
+    }
+
     private var mainThread: pthread_t
     private var watchdog: HangWatchdog
-    private var span: OpenTelemetryApi.Span?
+    private var anrSpan: OpenTelemetryApi.Span?
+    private var hangSpan: OpenTelemetryApi.Span?
 }
 
 extension HangCaptureService: HangObserver {
@@ -36,37 +41,57 @@ extension HangCaptureService: HangObserver {
 
     public func hangStarted(at time: UInt64, duration: UInt64) {
 
-        logger?.debug("[AC:Watchdog] Hang started, at \(nanosecondsToMilliseconds(duration)) ms")
+        logger?.debug("[Watchdog] Hang started, at \(nanosecondsToMilliseconds(duration)) ms")
+        let startTime = Date(timeIntervalSinceNow: -nanosecondsToSeconds(duration))
 
+        // ANR span (ewww!)
         guard
             let builder = buildSpan(
                 name: "emb-thread-blockage",
-                // type: SpanType(primary: .performance, secondary: "thread_blockage"),
-                type: .performance,  // I want to see what i'm working on
+                type: SpanType(primary: .performance, secondary: "thread_blockage"),
                 attributes: [:]
             )
         else {
-            logger?.warning("[AC:Watchdog] failed to create hang span.")
+            logger?.warning("[Watchdog] failed to create anr span.")
             return
         }
 
         builder
-            // move the start time backwards to when the hang actually started
-            .setStartTime(time: Date(timeIntervalSinceNow: -nanosecondsToSeconds(duration)))
-            .setAttribute(key: "last_known_time_unix_nano", value: .int(Int(time)))
+            .setStartTime(time: startTime)
+            .setAttribute(key: "last_known_time_unix_nano", value: .int(Int(time)))  // this is not unix time, it's uptime raw
             .setAttribute(key: "interval_code", value: .int(0))
 
-        span = builder.startSpan()
+        anrSpan = builder.startSpan()
+
+        // Hang span :)
+        guard
+            let builder = buildSpan(
+                name: "hang",
+                type: .performance,
+                attributes: [:]
+            )
+        else {
+            logger?.warning("[Watchdog] failed to create hang span.")
+            return
+        }
+
+        builder
+            .setStartTime(time: startTime)
+
+        hangSpan = builder.startSpan()
     }
 
     public func hangUpdated(at time: UInt64, duration: UInt64) {
-        logger?.debug("[AC:Watchdog] Hang for \(nanosecondsToMilliseconds(duration)) ms")
+        logger?.debug("[Watchdog] Hang for \(nanosecondsToMilliseconds(duration)) ms")
 
+        /**
+         * This is basically what we'll do when profiling.
+        
         let pre = clock_gettime_nsec_np(CLOCK_UPTIME_RAW)
         let frames = EmbraceBacktrace.backtrace(of: self.mainThread).threads.first?.frames ?? []
         let stackString = String(data: (try? JSONEncoder().encode(frames)) ?? Data(), encoding: .utf8) ?? ""
         let post = clock_gettime_nsec_np(CLOCK_UPTIME_RAW)
-
+        
         span?.addEvent(
             name: "perf.thread_blockage_sample",
             attributes: [
@@ -80,12 +105,19 @@ extension HangCaptureService: HangObserver {
                 LogSemantics.keyStackTrace: .string("")
             ]
         )
+         */
     }
 
     public func hangEnded(at time: UInt64, duration: UInt64) {
-        logger?.debug("[AC:Watchdog] Hang ended at \(nanosecondsToMilliseconds(duration)) ms")
-        span?.end()
-        span = nil
+        logger?.debug("[Watchdog] Hang ended at \(nanosecondsToMilliseconds(duration)) ms")
+
+        let now = Date()
+
+        anrSpan?.end(time: now)
+        anrSpan = nil
+
+        hangSpan?.end(time: now)
+        hangSpan = nil
     }
 }
 
