@@ -129,7 +129,7 @@ class UnsentDataHandler {
 
         let attributes =
             attributesBuilder
-            .addLogType(.termination)
+            .addLogType(.message)
             .addApplicationProperties()
             .addApplicationState()
             .addSessionIdentifier()
