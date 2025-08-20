@@ -93,6 +93,7 @@ extension XCTestCase {
 
 extension XCUIApplication {
     func launchAndOpenTestTab(_ testTabName: String, coldStart: Bool = false) {
+        self.activate()
         self.launch()
 
         if coldStart {
