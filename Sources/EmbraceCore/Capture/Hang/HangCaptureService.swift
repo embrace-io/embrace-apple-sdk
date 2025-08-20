@@ -66,7 +66,7 @@ extension HangCaptureService: HangObserver {
         // Hang span :)
         guard
             let builder = buildSpan(
-                name: "hang",
+                name: "emb.hang",
                 type: .performance,
                 attributes: [:]
             )
