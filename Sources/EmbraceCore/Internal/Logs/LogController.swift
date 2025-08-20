@@ -97,7 +97,7 @@ class LogController: LogControllable {
         guard let sessionController = sessionController else {
             return
         }
-
+        
         // generate attributes
         let attributesBuilder = EmbraceLogAttributesBuilder(
             storage: storage,
