@@ -65,7 +65,7 @@ public class EmbraceProfiler {
         mutableData.timer = DispatchSource.makeTimerSource(queue: queue)
         mutableData.timer?.setEventHandler { [weak self] in
             guard let self else { return }
-            let backtrace = EmbraceBacktrace.backtrace(of: self.mainThead)
+            let backtrace = EmbraceBacktrace.backtrace(of: self.mainThead, suspendingThreads: false)
             self.data.withLock {
                 $0.backtraces.append(backtrace)
             }
