@@ -102,13 +102,10 @@ class LogController: LogControllable {
         
         // These all need to be at the callsite in order to
         // have correct information about the users intention.
-        var finalAttributes =
         attributesBuilder
             .addLogType(type)
             .addApplicationState()
-            .addApplicationProperties()
             .addSessionIdentifier()
-            .build()
         
         /*
          If we want to keep this method cleaner, we could move this log to `EmbraceLogAttributesBuilder`
@@ -144,7 +141,13 @@ class LogController: LogControllable {
             // Add the backtrace if we have one, this is also where the
             // heavy lifting of symbolication will happen (including image lookup).
             addBacktraceBlock?(attributesBuilder)
-
+            
+            // now we can add our app attributes which requires a call to CoreData,
+            // and finally build.
+            var finalAttributes = attributesBuilder
+                .addApplicationProperties()
+                .build()
+            
             // handle attachment data
             if let attachment = attachment {
                 
