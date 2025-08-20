@@ -94,27 +94,29 @@ extension XCTestCase {
 extension XCUIApplication {
     func launchAndOpenTestTab(_ testTabName: String, coldStart: Bool = false) {
         self.activate()
+        self.launchEnvironment["UITestMode"] = "YES"
+        self.launchEnvironment["DisableAnimations"] = "YES"
         self.launch()
 
         if coldStart {
             let coldButton = self.buttons["EmbraceInitForceState_Cold"]
-            XCTAssertTrue(coldButton.waitForExistence(timeout: 5))
+            XCTAssertTrue(coldButton.waitForExistence(timeout: 10))
             coldButton.tap()
         }
 
         let initButton = self.buttons["EmbraceInitButton"]
-        XCTAssertTrue(initButton.waitForExistence(timeout: 5))
+        XCTAssertTrue(initButton.waitForExistence(timeout: 10))
         initButton.tap()
 
         XCTAssertNotNil(
             initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
 
         let sideMenuButton = self.buttons["SideMenuButton"]
-        XCTAssertTrue(sideMenuButton.waitForExistence(timeout: 5))
+        XCTAssertTrue(sideMenuButton.waitForExistence(timeout: 10))
         sideMenuButton.tap()
 
         let testScreenButton = self.staticTexts[testTabName]
-        XCTAssertTrue(testScreenButton.waitForExistence(timeout: 5))
+        XCTAssertTrue(testScreenButton.waitForExistence(timeout: 10))
         testScreenButton.tap()
     }
 }

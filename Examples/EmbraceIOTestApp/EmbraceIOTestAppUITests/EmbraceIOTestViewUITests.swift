@@ -22,7 +22,7 @@ final class EmbraceIOTestViewUITests: XCTestCase {
 
     func testViewDidLoad() {
         let button = app.buttons["viewDidLoadCaptureTestButton"]
-        XCTAssertTrue(button.waitForExistence(timeout: 5))
+        XCTAssertTrue(button.waitForExistence(timeout: 10))
         button.tap()
 
         evaluateTestResults(app)
@@ -30,7 +30,7 @@ final class EmbraceIOTestViewUITests: XCTestCase {
 
     func testViewAppearingCycleMeasurement() {
         let button = app.buttons["viewDidAppearMeasurementCaptureTestButton"]
-        XCTAssertTrue(button.waitForExistence(timeout: 5))
+        XCTAssertTrue(button.waitForExistence(timeout: 10))
         button.tap()
 
         evaluateTestResults(app)

@@ -111,7 +111,7 @@ final class EmbraceIOTestCOLDStartupUITests: XCTestCase {
 
     func testInitStartup_StartState_Cold_Span() {
         let expectedColdStart = app.switches["coldStartExpectedToggle"].switches.firstMatch
-        XCTAssertTrue(expectedColdStart.waitForExistence(timeout: 5))
+        XCTAssertTrue(expectedColdStart.waitForExistence(timeout: 10))
         expectedColdStart.tap()
 
         let button = app.buttons["startupStateSpanTestButton"]

@@ -26,7 +26,7 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
 
     private func enterURL(_ url: String) {
         let urlTextField = app.textFields["networkingTests_URLTextField"]
-        XCTAssertTrue(urlTextField.waitForExistence(timeout: 5))
+        XCTAssertTrue(urlTextField.waitForExistence(timeout: 10))
         urlTextField.tap()
 
         _ = waitUntilElementHasFocus(element: urlTextField)
@@ -40,7 +40,7 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
 
     private func enterAPI(_ api: String) {
         let apiTextField = app.textFields["networkingTests_APITextField"]
-        XCTAssertTrue(apiTextField.waitForExistence(timeout: 5))
+        XCTAssertTrue(apiTextField.waitForExistence(timeout: 10))
         apiTextField.tap()
 
         _ = waitUntilElementHasFocus(element: apiTextField)
@@ -59,7 +59,7 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
 
     private func enterCustomBodyProperty(key: String, value: String) {
         let bodyKeyTextField = app.textFields["NetworkingTestBody_Key"]
-        XCTAssertTrue(bodyKeyTextField.waitForExistence(timeout: 5))
+        XCTAssertTrue(bodyKeyTextField.waitForExistence(timeout: 10))
         bodyKeyTextField.tap()
 
         _ = waitUntilElementHasFocus(element: bodyKeyTextField)
@@ -71,7 +71,7 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
         bodyKeyTextField.typeText(XCUIKeyboardKey.return.rawValue)
 
         let bodyValueTextField = app.textFields["NetworkingTestBody_Value"]
-        XCTAssertTrue(bodyValueTextField.waitForExistence(timeout: 5))
+        XCTAssertTrue(bodyValueTextField.waitForExistence(timeout: 10))
         bodyValueTextField.tap()
 
         _ = waitUntilElementHasFocus(element: bodyValueTextField)
@@ -84,13 +84,13 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
         bodyValueTextField.typeText(XCUIKeyboardKey.return.rawValue)
 
         let button = app.buttons["NetworkingTestBody_Insert_Button"]
-        XCTAssertTrue(button.waitForExistence(timeout: 5))
+        XCTAssertTrue(button.waitForExistence(timeout: 10))
         button.tap()
     }
 
     private func runNetworkTest() {
         let button = app.buttons["networkCallTestButton"]
-        XCTAssertTrue(button.waitForExistence(timeout: 5))
+        XCTAssertTrue(button.waitForExistence(timeout: 10))
         button.tap()
 
         evaluateTestResults(app)

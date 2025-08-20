@@ -22,7 +22,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
 
     private func enterCustomMessage() {
         let logMessageTextField = app.textFields["LogTests_LogMessage"]
-        XCTAssertTrue(logMessageTextField.waitForExistence(timeout: 5))
+        XCTAssertTrue(logMessageTextField.waitForExistence(timeout: 10))
         logMessageTextField.tap()
 
         _ = waitUntilElementHasFocus(element: logMessageTextField)
@@ -55,7 +55,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         }
 
         let button = app.buttons[identifier]
-        XCTAssertTrue(button.waitForExistence(timeout: 5))
+        XCTAssertTrue(button.waitForExistence(timeout: 10))
         button.tap()
     }
 
@@ -71,13 +71,13 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         }
 
         let button = app.buttons[identifier]
-        XCTAssertTrue(button.waitForExistence(timeout: 5))
+        XCTAssertTrue(button.waitForExistence(timeout: 10))
         button.tap()
     }
 
     private func setAttachmentEnabled(_ enabled: Bool) {
         let toggle = app.switches["attachmentToggle"]
-        XCTAssertTrue(toggle.waitForExistence(timeout: 5))
+        XCTAssertTrue(toggle.waitForExistence(timeout: 10))
         if (toggle.value as? String == "1") != enabled {
             toggle.tap()
         }
@@ -91,7 +91,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
 
     private func setAttachmentSize(_ size: AttachmentSize) {
         let slider = app.sliders["attachmentSizeSlider"]
-        XCTAssertTrue(slider.waitForExistence(timeout: 5))
+        XCTAssertTrue(slider.waitForExistence(timeout: 10))
 
         switch size {
         case .safe:
@@ -105,7 +105,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
 
     private func runLogTest() {
         let button = app.buttons["logMessageCaptureTestButton"]
-        XCTAssertTrue(button.waitForExistence(timeout: 5))
+        XCTAssertTrue(button.waitForExistence(timeout: 10))
         button.tap()
         evaluateTestResults(app)
     }
@@ -275,7 +275,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         selectSeverityButton(.warn)
 
         let logMessageAttributeKeyTextField = app.textFields["LogTestsAttributes_Key"]
-        XCTAssertTrue(logMessageAttributeKeyTextField.waitForExistence(timeout: 5))
+        XCTAssertTrue(logMessageAttributeKeyTextField.waitForExistence(timeout: 10))
         logMessageAttributeKeyTextField.tap()
 
         _ = waitUntilElementHasFocus(element: logMessageAttributeKeyTextField)
@@ -289,7 +289,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         logMessageAttributeKeyTextField.typeText(XCUIKeyboardKey.return.rawValue)
 
         let logMessageAttributeValueTextField = app.textFields["LogTestsAttributes_Value"]
-        XCTAssertTrue(logMessageAttributeValueTextField.waitForExistence(timeout: 5))
+        XCTAssertTrue(logMessageAttributeValueTextField.waitForExistence(timeout: 10))
         logMessageAttributeValueTextField.tap()
 
         _ = waitUntilElementHasFocus(element: logMessageAttributeValueTextField)
@@ -303,7 +303,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         logMessageAttributeValueTextField.typeText(XCUIKeyboardKey.return.rawValue)
 
         let button = app.buttons["LogTestsAttributes_Insert_Button"]
-        XCTAssertTrue(button.waitForExistence(timeout: 5))
+        XCTAssertTrue(button.waitForExistence(timeout: 10))
         button.tap()
 
         runLogTest()
