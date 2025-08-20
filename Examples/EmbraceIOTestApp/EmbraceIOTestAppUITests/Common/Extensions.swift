@@ -93,7 +93,6 @@ extension XCTestCase {
 
 extension XCUIApplication {
     func launchAndOpenTestTab(_ testTabName: String, coldStart: Bool = false) {
-        self.activate()
         self.launchEnvironment["UITestMode"] = "YES"
         self.launchEnvironment["DisableAnimations"] = "YES"
         self.launch()
@@ -118,5 +117,20 @@ extension XCUIApplication {
         let testScreenButton = self.staticTexts[testTabName]
         XCTAssertTrue(testScreenButton.waitForExistence(timeout: 10))
         testScreenButton.tap()
+    }
+
+    func scrollUntilHittableElementVisible(_ element: XCUIElement) -> Bool {
+        guard element.exists else { return false }
+
+        var scrollCount = 0
+        while !element.isHittable {
+            self.swipeUp()
+            scrollCount += 1
+            if (scrollCount >= 10) {
+                return false
+            }
+        }
+
+        return true
     }
 }

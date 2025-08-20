@@ -12,7 +12,7 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
     var app = XCUIApplication()
 
     override func setUpWithError() throws {
-        continueAfterFailure = true
+        continueAfterFailure = false
         app.launchAndOpenTestTab("uploadedPayloads")
     }
 
@@ -24,6 +24,8 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
 
     private func runSessionSpanTest() -> Bool {
         let testButton = app.buttons["sessionPayloadTestButton"]
+        XCTAssertTrue(testButton.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.scrollUntilHittableElementVisible(testButton))
 
         _ = waitUntilElementIsEnabled(element: testButton, timeout: 20)
 
@@ -39,21 +41,25 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
     private func addPersona() {
         let lifespanButton = app.buttons["MetadataLifespan_session"]
         XCTAssertTrue(lifespanButton.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.scrollUntilHittableElementVisible(lifespanButton))
         lifespanButton.tap()
 
         let personasButton = app.buttons["SessionTests_Personas_AddButton"]
         XCTAssertTrue(personasButton.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.scrollUntilHittableElementVisible(personasButton))
         personasButton.tap()
     }
 
     private func addUserInfo() {
         let removeAllButton = app.buttons["SessionTests_UserInfo_RemoveAllButton"]
         XCTAssertTrue(removeAllButton.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.scrollUntilHittableElementVisible(removeAllButton))
         removeAllButton.tap()
 
         // Enter Username
         let usernameTextField = app.textFields["SessionTests_UserInfo_Username"]
         XCTAssertTrue(usernameTextField.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.scrollUntilHittableElementVisible(usernameTextField))
         usernameTextField.tap()
 
         _ = waitUntilElementHasFocus(element: usernameTextField)
@@ -64,6 +70,7 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
         // Enter Email
         let emailTextField = app.textFields["SessionTests_UserInfo_Email"]
         XCTAssertTrue(emailTextField.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.scrollUntilHittableElementVisible(emailTextField))
         emailTextField.tap()
 
         _ = waitUntilElementHasFocus(element: emailTextField)
@@ -74,6 +81,7 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
         // Enter User ID
         let identifierTextField = app.textFields["SessionTests_UserInfo_Identifier"]
         XCTAssertTrue(identifierTextField.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.scrollUntilHittableElementVisible(identifierTextField))
         identifierTextField.tap()
 
         _ = waitUntilElementHasFocus(element: identifierTextField)

@@ -25,6 +25,7 @@ final class EmbraceIOTestSessionSpanUITests: XCTestCase {
     private func runSessionSpanTest() {
         let button = app.buttons["finishedSessionPayloadTestButton"]
         XCTAssertTrue(button.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.scrollUntilHittableElementVisible(button))
         button.tap()
     }
 

@@ -52,8 +52,8 @@ final class EmbraceIOTestWARMStartupUITests: XCTestCase {
 
     private func selectMetadataTest(_ test: Test) {
         let button = app.buttons[test.identifier]
-        XCTAssertNotNil(button.wait(attribute: \.isEnabled, is: .equalTo, value: true, timeout: 5.0))
-
+        XCTAssertNotNil(button.wait(attribute: \.isEnabled, is: .equalTo, value: true, timeout: 10.0))
+        XCTAssertTrue(app.scrollUntilHittableElementVisible(button))
         button.tap()
     }
 
@@ -112,10 +112,12 @@ final class EmbraceIOTestCOLDStartupUITests: XCTestCase {
     func testInitStartup_StartState_Cold_Span() {
         let expectedColdStart = app.switches["coldStartExpectedToggle"].switches.firstMatch
         XCTAssertTrue(expectedColdStart.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.scrollUntilHittableElementVisible(expectedColdStart))
         expectedColdStart.tap()
 
         let button = app.buttons["startupStateSpanTestButton"]
-        XCTAssertNotNil(button.wait(attribute: \.isEnabled, is: .equalTo, value: true, timeout: 5.0))
+        XCTAssertNotNil(button.wait(attribute: \.isEnabled, is: .equalTo, value: true, timeout: 10.0))
+        XCTAssertTrue(app.scrollUntilHittableElementVisible(button))
 
         button.tap()
         evaluateTestResults(app)
