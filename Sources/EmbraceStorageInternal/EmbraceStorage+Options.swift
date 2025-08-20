@@ -21,6 +21,9 @@ extension EmbraceStorage {
         /// Dictionary containing the storage limits per span type
         public var spanLimits: [SpanType: Int] = [:]
 
+        /// Default storage limit for unspecified span type
+        public var spanLimitDefault: Int = 1500
+
         /// Determines how many `MetadataRecords` of the `.resource` type can be present at any given time.
         public var resourcesLimit: Int = 100
 
