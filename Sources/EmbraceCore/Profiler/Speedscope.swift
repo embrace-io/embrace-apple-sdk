@@ -84,7 +84,7 @@ extension Speedscope {
         var frameset = Set<Frame>()
         profile.backtraces.forEach { backtrace in
             backtrace.threads.forEach { thread in
-                thread.frames.forEach { frame in
+                thread.frames(symbolicated: true).forEach { frame in
                     if let speedFrame = frame.asSpeedscopeFrame(), filter(frame) {
                         frameset.insert(speedFrame)
                     }
@@ -101,7 +101,7 @@ extension Speedscope {
         profile.backtraces.forEach { backtrace in
             if let thread = backtrace.threads.first {
                 var stack: [Int] = []
-                thread.frames.forEach { frame in
+                thread.frames(symbolicated: true).forEach { frame in
                     if let speedFrame = frame.asSpeedscopeFrame(), let index = frames.firstIndex(of: speedFrame) {
                         stack.append(index)
                     }

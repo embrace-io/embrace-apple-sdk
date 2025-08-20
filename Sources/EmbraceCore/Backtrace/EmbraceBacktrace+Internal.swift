@@ -97,17 +97,11 @@ var _symbolCache: EmbraceMutex<[UInt64: EmbraceBacktraceFrame]> = EmbraceMutex([
 extension EmbraceBacktraceThread.Callstack {
     func frames(symbolicated: Bool) -> [EmbraceBacktraceFrame] {
 
-        // expensive, don't call on the main queue
-        if symbolicated {
-            dispatchPrecondition(condition: .notOnQueue(.main))
-        }
-
         var frames: [EmbraceBacktraceFrame] = []
         for index: Int in (0..<count) {
             let embFrame = EmbraceBacktraceFrame(withFramePointer: UInt64(addresses[index]))
-            frames.insert(
-                symbolicated ? embFrame.symbolicated() : embFrame,
-                at: 0
+            frames.append(
+                symbolicated ? embFrame.symbolicated() : embFrame
             )
         }
         return frames
@@ -170,29 +164,42 @@ extension EmbraceBacktrace {
     // 2- gets the index of the thread we want a backtrace of.
     // 3- sets up deferal of resuming all threads and releasing task thread memory.
     // 4- takes a backtrace and symbolicates it (or simply gets the images if not available).
-    static func takeSnapshot(of thread: pthread_t) -> [EmbraceBacktraceThread] {
+    static func takeSnapshot(of thread: pthread_t, suspendingThreads: Bool) -> [EmbraceBacktraceThread] {
         let pre = clock_gettime_nsec_np(CLOCK_UPTIME_RAW)
-        let snap = _takeSnapshot(of: thread)
+        let snap = _takeSnapshot(of: thread, suspendingThreads: suspendingThreads)
         let post = clock_gettime_nsec_np(CLOCK_UPTIME_RAW)
         let cost = Double(post - pre) / 1_000_000.0
         print("[COST] \(cost) ms, frames: \(snap.first?.callstack.count ?? 0)")
         return snap
     }
 
-    static func _takeSnapshot(of thread: pthread_t) -> [EmbraceBacktraceThread] {
+    static func _takeSnapshot(of thread: pthread_t, suspendingThreads: Bool) -> [EmbraceBacktraceThread] {
 
-        let threadList = EmbraceThreadList()
-
-        threadList.suspend()
-        defer { threadList.resume() }
-
+        let threadList = suspendingThreads ? EmbraceThreadList() : nil
+        
+        if suspendingThreads {
+            threadList?.suspend()
+            defer { threadList?.resume() }
+        }
+        
+        // In KSCrash there, a bug that causes a backtrace on the pthread_self
+        // to not work. So for now we'll simply use `backtrace`
+        
         let entries = 512
         var addresses: [UInt] = Array(repeating: 0, count: 512)
-        let frameCount = captureBacktrace(thread: thread, addresses: &addresses, count: Int32(entries))
+        let frameCount: Int32
+        
+        if thread == pthread_self() {
+            // drop first 3 frames up to where we are.
+            addresses = Thread.callStackReturnAddresses.dropFirst(3).prefix(entries).compactMap { $0 as? UInt  }
+            frameCount = Int32(addresses.count)
+        } else {
+            frameCount = captureBacktrace(thread: thread, addresses: &addresses, count: Int32(entries))
+        }
 
         return [
             EmbraceBacktraceThread(
-                index: threadList.indexOf(thread: thread),
+                index: threadList?.indexOf(thread: thread) ?? 0,
                 callstack: EmbraceBacktraceThread.Callstack(
                     addresses: addresses,
                     count: Int(frameCount)

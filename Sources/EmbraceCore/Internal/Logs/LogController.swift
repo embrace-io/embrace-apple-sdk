@@ -25,7 +25,8 @@ protocol LogControllable: LogBatcherDelegate {
         attachmentId: String?,
         attachmentUrl: URL?,
         attributes: [String: String],
-        stackTraceBehavior: StackTraceBehavior
+        stackTraceBehavior: StackTraceBehavior,
+        queue: DispatchQueue
     )
 }
 
@@ -85,81 +86,102 @@ class LogController: LogControllable {
         attachmentId: String? = nil,
         attachmentUrl: URL? = nil,
         attributes: [String: String] = [:],
-        stackTraceBehavior: StackTraceBehavior = .default
+        stackTraceBehavior: StackTraceBehavior = .default,
+        queue: DispatchQueue
     ) {
         guard let sessionController = sessionController else {
             return
         }
-
+        
         // generate attributes
         let attributesBuilder = EmbraceLogAttributesBuilder(
             storage: storage,
             sessionControllable: sessionController,
             initialAttributes: attributes
         )
-
-        /*
-         If we want to keep this method cleaner, we could move this log to `EmbraceLogAttributesBuilder`
-         However that would cause to always add a frame to the stacktrace.
-         */
-        switch stackTraceBehavior {
-        case .default:
-            if severity == .warn || severity == .error {
-                let stackTrace: [String] = Thread.callStackSymbols
-                attributesBuilder.addStackTrace(stackTrace)
-            }
-        case .custom(let customStackTrace):
-            if severity == .warn || severity == .error {
-                attributesBuilder.addStackTrace(customStackTrace.frames)
-            }
-        case .notIncluded:
-            break
-        }
-
+        
+        // These all need to be at the callsite in order to
+        // have correct information about the users intention.
         var finalAttributes =
-            attributesBuilder
+        attributesBuilder
             .addLogType(type)
             .addApplicationState()
             .addApplicationProperties()
             .addSessionIdentifier()
             .build()
-
-        // handle attachment data
-        if let attachment = attachment {
-
-            let id = UUID().withoutHyphen
-            finalAttributes[LogSemantics.keyAttachmentId] = id
-
-            let size = attachment.count
-            finalAttributes[LogSemantics.keyAttachmentSize] = String(size)
-
-            // check attachment count limit
-            if sessionController.attachmentCount >= Self.attachmentLimit {
-                finalAttributes[LogSemantics.keyAttachmentErrorCode] = LogSemantics.attachmentLimitReached
-
-                // check attachment size limit
-            } else if size > Self.attachmentSizeLimit {
-                finalAttributes[LogSemantics.keyAttachmentErrorCode] = LogSemantics.attachmentTooLarge
+        
+        /*
+         If we want to keep this method cleaner, we could move this log to `EmbraceLogAttributesBuilder`
+         However that would cause to always add a frame to the stacktrace.
+         */
+        
+        // Very important to keep this at the callsite as well.
+        // The backtrace needs to represent the callstack of the thread
+        // where the log occured.
+        let addBacktraceBlock: ((EmbraceLogAttributesBuilder) -> Void)?
+        switch stackTraceBehavior {
+        case .default where severity == .warn || severity == .error:
+            // this needs to be on the same queue as the caller intendes the backtrace to be on,
+            // so we cannot dispatch it, but we can dispatch afterwards.
+            let backtrace = EmbraceBacktrace.backtrace(of: pthread_self(), suspendingThreads: true)
+            //let stack = Thread.callStackSymbols
+            addBacktraceBlock = { builder in
+                builder.addBacktrace(backtrace)
+                //builder.addStackTrace(stack)
             }
-
-            // upload attachment
-            else {
-                upload?.uploadAttachment(id: id, data: attachment, completion: nil)
+            
+        case .custom(let customStackTrace) where severity == .warn || severity == .error:
+            addBacktraceBlock = { builder in
+                builder.addStackTrace(customStackTrace.frames)
             }
-
-            sessionController.increaseAttachmentCount()
+        default:
+            addBacktraceBlock = nil
         }
+        
+        // now that any backtrace has been taken, we can jump to the next queue
+        queue.async { [self] in
 
-        // handle pre-uploaded attachment
-        else if let attachmentId = attachmentId,
-            let attachmentUrl = attachmentUrl
-        {
+            // Add the backtrace if we have one, this is also where the
+            // heavy lifting of symbolication will happen (including image lookup).
+            addBacktraceBlock?(attributesBuilder)
 
-            finalAttributes[LogSemantics.keyAttachmentId] = attachmentId
-            finalAttributes[LogSemantics.keyAttachmentUrl] = attachmentUrl.absoluteString
+            // handle attachment data
+            if let attachment = attachment {
+                
+                let id = UUID().withoutHyphen
+                finalAttributes[LogSemantics.keyAttachmentId] = id
+                
+                let size = attachment.count
+                finalAttributes[LogSemantics.keyAttachmentSize] = String(size)
+                
+                // check attachment count limit
+                if sessionController.attachmentCount >= Self.attachmentLimit {
+                    finalAttributes[LogSemantics.keyAttachmentErrorCode] = LogSemantics.attachmentLimitReached
+                    
+                    // check attachment size limit
+                } else if size > Self.attachmentSizeLimit {
+                    finalAttributes[LogSemantics.keyAttachmentErrorCode] = LogSemantics.attachmentTooLarge
+                }
+                
+                // upload attachment
+                else {
+                    upload?.uploadAttachment(id: id, data: attachment, completion: nil)
+                }
+                
+                sessionController.increaseAttachmentCount()
+            }
+            
+            // handle pre-uploaded attachment
+            else if let attachmentId = attachmentId,
+                    let attachmentUrl = attachmentUrl
+            {
+                
+                finalAttributes[LogSemantics.keyAttachmentId] = attachmentId
+                finalAttributes[LogSemantics.keyAttachmentUrl] = attachmentUrl.absoluteString
+            }
+            
+            otel.log(message, severity: severity, timestamp: timestamp, attributes: finalAttributes)
         }
-
-        otel.log(message, severity: severity, timestamp: timestamp, attributes: finalAttributes)
     }
 }
 
