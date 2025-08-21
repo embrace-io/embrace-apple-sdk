@@ -13,11 +13,11 @@ permissions:
 jobs:
   run-ui-tests-app:
     timeout-minutes: 60
-    runs-on: [macos-14]
+    runs-on: [macos-15]
     strategy:
       fail-fast: false
       matrix:
-        xcode_version: ["15.4"]
+        xcode_version: ["16.4"]
         device:
           - "iPhone 15 Pro"
     permissions:
@@ -77,7 +77,7 @@ jobs:
           name: output_xcresult
           path: .build/test/output.xcresult
 
-      - uses: kishikawakatsumi/xcresulttool@2b37f116695328d5e503ac8dadca0f1545a51da4
+      - uses: conradev/xcresulttool@025dba02b4af8bb6618db636b7447227ee20f62b
         if: always()
         with:
           path: .build/test/output.xcresult
