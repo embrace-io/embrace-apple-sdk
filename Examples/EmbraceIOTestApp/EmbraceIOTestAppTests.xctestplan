@@ -17,6 +17,7 @@
   },
   "testTargets" : [
     {
+      "parallelizable" : true,
       "target" : {
         "containerPath" : "container:EmbraceIOTestApp.xcodeproj",
         "identifier" : "4D94F2522D429257008DECEE",

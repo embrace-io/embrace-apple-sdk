@@ -33,9 +33,9 @@ jobs:
         timeout-minutes: 5
         with:
           persist-credentials: false
-      - name: Boot Simulator
-        run: |
-          xcrun simctl boot "${{ matrix.device }}"
+#      - name: Boot Simulator
+#        run: |
+#          xcrun simctl boot "${{ matrix.device }}"
 
       - name: Cache SPM Dependencies
         uses: actions/cache@v4
