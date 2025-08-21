@@ -34,11 +34,14 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Clean all simulators
-        run: |
-            xcrun simctl shutdown all
-        run: |
-            xcrun simctl erase all
+      - name: Clean Simulators
+        steps:
+            -name: Shutdown Simulators
+            run: |
+                xcrun simctl shutdown all
+            -name: Erase Simulators:
+            run: |
+                xcrun simctl erase all
 #      - name: Boot Simulator
 #        run: |
 #          xcrun simctl boot "${{ matrix.device }}"
