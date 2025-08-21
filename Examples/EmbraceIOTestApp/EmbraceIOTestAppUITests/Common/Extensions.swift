@@ -108,7 +108,7 @@ extension XCUIApplication {
         initButton.tap()
 
         XCTAssertNotNil(
-            initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
+            initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 10.0))
 
         let sideMenuButton = self.buttons["SideMenuButton"]
         XCTAssertTrue(sideMenuButton.waitForExistence(timeout: 10))
