@@ -33,6 +33,11 @@ jobs:
         timeout-minutes: 5
         with:
           persist-credentials: false
+
+      - name: Clean all simulators
+        run: |
+            xcrun simctl shutdown all
+            xcrun simctl erase all
 #      - name: Boot Simulator
 #        run: |
 #          xcrun simctl boot "${{ matrix.device }}"
@@ -57,7 +62,7 @@ jobs:
         env:
           IS_XCTEST: true
         run: |
-          (set -o pipefail && xcodebuild clean -project "./Examples/EmbraceIOTestApp/EmbraceIOTestApp.xcodeproj" -scheme "EmbraceIOTestApp" -derivedDataPath "build/DerivedData" -resultBundlePath ".build/test/output" -destination "platform=iOS Simulator,name=${{ matrix.device }}" -parallel-testing-worker-count 2 test | xcpretty) || exit 0
+          (set -o pipefail && xcodebuild clean -project "./Examples/EmbraceIOTestApp/EmbraceIOTestApp.xcodeproj" -scheme "EmbraceIOTestApp" -derivedDataPath "build/DerivedData" -resultBundlePath ".build/test/output" -destination "platform=iOS Simulator,name=${{ matrix.device }}" -parallel-testing-enabled NO test | xcpretty) || exit 0
 
       - name: Upload xcresult Bundle Manually
         if: always()
