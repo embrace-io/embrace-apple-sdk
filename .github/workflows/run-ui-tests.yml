@@ -50,17 +50,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-spm-build-cache-test
 
-#      - name: Display Available SDKs
-#        run: xcodebuild -showsdks -json
-#        timeout-minutes: 1
-#        continue-on-error: true
-#
-#      - name: Display Available Simulators
-#        run: |
-#          xcrun simctl list -j devices available
-#        timeout-minutes: 2
-#        continue-on-error: true
-
       - name: Install xcbeautify
         run: brew install xcbeautify
 
@@ -77,11 +66,11 @@ jobs:
           name: output_xcresult
           path: .build/test/output.xcresult
 
-      - uses: kishikawakatsumi/xcresulttool@f1e0a7e6315385f32a94ef9e6105a6b567ae59e1
-        if: always()
-        with:
-          path: .build/test/output.xcresult
-          title: "UI Test Results"
-          show-passed-tests: true
-          show-code-coverage: false
-          upload-bundles: "never" # Uploading the `xcresult` using the xcresultool action seems to fail
+#      - uses: kishikawakatsumi/xcresulttool@2b37f116695328d5e503ac8dadca0f1545a51da4
+#        if: always()
+#        with:
+#          path: .build/test/output.xcresult
+#          title: "UI Test Results"
+#          show-passed-tests: true
+#          show-code-coverage: false
+#          upload-bundles: "never" # Uploading the `xcresult` using the xcresultool action seems to fail
