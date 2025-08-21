@@ -1,0 +1,51 @@
+name: Formatter and Linter Checks
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  formatters-linters:
+    runs-on: macos-latest
+    env:
+      XARGS_JOBS: 4
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          brew install swiftlint swift-format clang-format
+
+      - name: Find Swift files
+        id: swift_files
+        run: |
+          git ls-files -- '*.swift' > swift_files.txt
+          if [ -s swift_files.txt ]; then echo "found=true" >> $GITHUB_OUTPUT; fi
+
+      - name: Find C/C++/ObjC files
+        id: c_files
+        run: |
+          git ls-files -- '*.c' '*.cpp' '*.hpp' '*.h' '*.m' '*.mm' > c_files.txt
+          if [ -s c_files.txt ]; then echo "found=true" >> $GITHUB_OUTPUT; fi
+
+      - name: SwiftFormat
+        if: steps.swift_files.outputs.found == 'true'
+        run: |
+          xargs -a swift_files.txt swift-format lint --configuration .swift-format
+
+      - name: SwiftLint
+        if: steps.swift_files.outputs.found == 'true'
+        run: |
+          xargs -a swift_files.txt swiftlint lint --quiet --strict --force-exclude --config .swiftlint.yml
+
+      - name: Clang Format
+        if: steps.c_files.outputs.found == 'true'
+        run: |
+          xargs -a c_files.txt clang-format --dry-run -Werror
