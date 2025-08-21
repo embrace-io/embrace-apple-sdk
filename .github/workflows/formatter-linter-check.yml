@@ -18,6 +18,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Install tools
         run: |
@@ -38,14 +40,14 @@ jobs:
       - name: SwiftFormat
         if: steps.swift_files.outputs.found == 'true'
         run: |
-          xargs -a swift_files.txt swift-format lint --configuration .swift-format
+          xargs swift-format lint --configuration .swift-format < swift_files.txt
 
       - name: SwiftLint
         if: steps.swift_files.outputs.found == 'true'
         run: |
-          xargs -a swift_files.txt swiftlint lint --quiet --strict --force-exclude --config .swiftlint.yml
+          xargs swiftlint lint --quiet --strict --force-exclude --config .swiftlint.yml < swift_files.txt
 
       - name: Clang Format
         if: steps.c_files.outputs.found == 'true'
         run: |
-          xargs -a c_files.txt clang-format --dry-run -Werror
+          xargs clang-format --dry-run -Werror < c_files.txt
