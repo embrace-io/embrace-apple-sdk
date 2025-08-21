@@ -373,7 +373,10 @@ extension LogControllerTests {
         loggingQueue.async {
             sem.signal()
         }
-        sem.wait()
+        let timeout: DispatchTime = .now() + 1.0
+        if sem.wait(timeout: timeout) != .success {
+            XCTFail("waitForLoggingQueue timed out waiting for loggingQueue to complete.")
+        }
     }
 
     fileprivate func whenCreatingLog(
