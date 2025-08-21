@@ -64,7 +64,7 @@ jobs:
         env:
           IS_XCTEST: true
         run: |
-          (set -o pipefail && xcodebuild clean -project "./Examples/EmbraceIOTestApp/EmbraceIOTestApp.xcodeproj" -scheme "EmbraceIOTestApp" -derivedDataPath "build/DerivedData" -resultBundlePath ".build/test/output" -destination "platform=iOS Simulator,name=${{ matrix.device }}" -parallel-testing-enabled YES parallel-testing-worker-count 2 test | xcpretty) || exit 0
+          (set -o pipefail && xcodebuild clean -project "./Examples/EmbraceIOTestApp/EmbraceIOTestApp.xcodeproj" -scheme "EmbraceIOTestApp" -derivedDataPath "build/DerivedData" -resultBundlePath ".build/test/output" -destination "platform=iOS Simulator,name=${{ matrix.device }}" -parallel-testing-enabled YES -parallel-testing-worker-count 2 test | xcpretty) || exit 0
 
       - name: Upload xcresult Bundle Manually
         if: always()
