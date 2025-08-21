@@ -77,7 +77,7 @@ jobs:
           name: output_xcresult
           path: .build/test/output.xcresult
 
-      - uses: conradev/xcresulttool@025dba02b4af8bb6618db636b7447227ee20f62b
+      - uses: kishikawakatsumi/xcresulttool@f1e0a7e6315385f32a94ef9e6105a6b567ae59e1
         if: always()
         with:
           path: .build/test/output.xcresult
