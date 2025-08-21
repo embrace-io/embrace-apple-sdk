@@ -19,6 +19,7 @@ class LogControllerTests: XCTestCase {
     private var upload: SpyEmbraceLogUploader!
     private let sdkStateProvider = MockEmbraceSDKStateProvider()
     private var otelBridge: MockEmbraceOTelBridge!
+    private let loggingQueue = DispatchQueue(label: "loggingQueue")
 
     override func setUp() {
         givenOTelBridge()
@@ -367,15 +368,25 @@ extension LogControllerTests {
         sut.sessionController?.increaseAttachmentCount()
     }
 
+    fileprivate func waitForLoggingQueue() {
+        let sem = DispatchSemaphore(value: 0)
+        loggingQueue.async {
+            sem.signal()
+        }
+        sem.wait()
+    }
+
     fileprivate func whenCreatingLog(
         severity: LogSeverity = .info,
         stackTraceBehavior: StackTraceBehavior = .default
     ) {
-        sut.createLog("test", severity: severity, stackTraceBehavior: stackTraceBehavior)
+        sut.createLog("test", severity: severity, stackTraceBehavior: stackTraceBehavior, queue: loggingQueue)
+        waitForLoggingQueue()
     }
 
     fileprivate func whenCreatingLogWithAttachment() {
-        sut.createLog("test", severity: .info, attachment: TestConstants.data)
+        sut.createLog("test", severity: .info, attachment: TestConstants.data, queue: loggingQueue)
+        waitForLoggingQueue()
     }
 
     fileprivate func whenCreatingLogWithBigAttachment() {
@@ -383,12 +394,15 @@ extension LogControllerTests {
         for _ in 1...1_048_600 {
             str += "."
         }
-        sut.createLog("test", severity: .info, attachment: str.data(using: .utf8)!)
+        sut.createLog("test", severity: .info, attachment: str.data(using: .utf8)!, queue: loggingQueue)
+        waitForLoggingQueue()
     }
 
     fileprivate func whenCreatingLogWithPreUploadedAttachment() {
         let url = URL(string: "http//embrace.test.com/attachment/123", testName: testName)!
-        sut.createLog("test", severity: .info, attachmentId: UUID().withoutHyphen, attachmentUrl: url)
+        sut.createLog(
+            "test", severity: .info, attachmentId: UUID().withoutHyphen, attachmentUrl: url, queue: loggingQueue)
+        waitForLoggingQueue()
     }
 
     fileprivate func thenDoesntTryToUploadAnything() {
