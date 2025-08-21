@@ -28,13 +28,15 @@ jobs:
       - name: Find Swift files
         id: swift_files
         run: |
-          git ls-files -- '*.swift' > swift_files.txt
+          git fetch origin main
+          git diff --name-only origin/main...HEAD -- '*.swift' > swift_files.txt
           if [ -s swift_files.txt ]; then echo "found=true" >> $GITHUB_OUTPUT; fi
 
       - name: Find C/C++/ObjC files
         id: c_files
         run: |
-          git ls-files -- '*.c' '*.cpp' '*.hpp' '*.h' '*.m' '*.mm' > c_files.txt
+          git fetch origin main
+          git diff --name-only origin/main...HEAD -- '*.c' '*.cpp' '*.hpp' '*.h' '*.m' '*.mm' > c_files.txt
           if [ -s c_files.txt ]; then echo "found=true" >> $GITHUB_OUTPUT; fi
 
       - name: SwiftFormat
