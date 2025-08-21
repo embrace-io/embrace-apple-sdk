@@ -19,7 +19,7 @@ jobs:
       matrix:
         xcode_version: ["16.4"]
         device:
-          - "iPhone 15 Pro"
+          - "iPhone 16 Pro"
     permissions:
       checks: write
 
