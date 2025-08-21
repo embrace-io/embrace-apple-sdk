@@ -37,7 +37,7 @@ jobs:
       - name: Shutdown Simulators
         run: |
             xcrun simctl shutdown all
-      - name: Erase Simulators:
+      - name: Erase Simulators
         run: |
             xcrun simctl erase all
 #      - name: Boot Simulator
