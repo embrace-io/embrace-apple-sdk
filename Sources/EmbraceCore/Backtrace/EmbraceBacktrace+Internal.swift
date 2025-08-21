@@ -184,6 +184,7 @@ extension EmbraceBacktrace {
         
         // In KSCrash there, a bug that causes a backtrace on the pthread_self
         // to not work. So for now we'll simply use `backtrace`
+        // fix: https://github.com/kstenerud/KSCrash/pull/690
         
         let entries = 512
         var addresses: [UInt] = Array(repeating: 0, count: 512)
