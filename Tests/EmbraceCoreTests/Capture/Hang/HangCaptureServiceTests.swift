@@ -177,6 +177,7 @@ final class HangWatchdogTests: XCTestCase {
 // MARK: - Test Helpers
 
 class MockHangObserver: HangObserver {
+
     // Callback handlers
     var onHangStarted: ((UInt64, UInt64) -> Void)?
     var onHangUpdated: ((UInt64, UInt64) -> Void)?
@@ -196,28 +197,28 @@ class MockHangObserver: HangObserver {
     var lastEndTime: UInt64 = 0
     var lastHangDuration: UInt64 = 0
 
-    func hangStarted(at nanoseconds: UInt64, duration: UInt64) {
+    func hangStarted(at: NanosecondClock, duration: NanosecondClock) {
         hangStartedCalled = true
         hangStartedCallCount += 1
-        lastStartTime = nanoseconds
-        lastHangDuration = duration
-        onHangStarted?(nanoseconds, duration)
+        lastStartTime = at.monotonic
+        lastHangDuration = duration.monotonic
+        onHangStarted?(at.monotonic, duration.monotonic)
     }
 
-    func hangUpdated(at nanoseconds: UInt64, duration: UInt64) {
+    func hangUpdated(at: NanosecondClock, duration: NanosecondClock) {
         hangUpdatedCalled = true
         hangUpdatedCallCount += 1
-        lastUpdateTime = nanoseconds
-        lastHangDuration = duration
-        onHangUpdated?(nanoseconds, duration)
+        lastUpdateTime = at.monotonic
+        lastHangDuration = duration.monotonic
+        onHangUpdated?(at.monotonic, duration.monotonic)
     }
 
-    func hangEnded(at nanoseconds: UInt64, duration: UInt64) {
+    func hangEnded(at: EmbraceCore.NanosecondClock, duration: EmbraceCore.NanosecondClock) {
         hangEndedCalled = true
         hangEndedCallCount += 1
-        lastEndTime = nanoseconds
-        lastHangDuration = duration
-        onHangEnded?(nanoseconds, duration)
+        lastEndTime = at.monotonic
+        lastHangDuration = duration.monotonic
+        onHangEnded?(at.monotonic, duration.monotonic)
     }
 }
 

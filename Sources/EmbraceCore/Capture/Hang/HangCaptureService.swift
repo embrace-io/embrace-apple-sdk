@@ -91,7 +91,7 @@ extension HangCaptureService: HangObserver {
         guard
             let builder = buildSpan(
                 name: "emb-thread-blockage",
-                type: .ux, // perf.thread_blockage
+                type: .ux,  // perf.thread_blockage
                 attributes: [:]
             )
         else {
