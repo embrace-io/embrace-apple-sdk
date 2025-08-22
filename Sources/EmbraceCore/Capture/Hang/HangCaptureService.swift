@@ -52,6 +52,14 @@ public final class HangCaptureService: CaptureService {
         watchdog.logger = logger
     }
 
+    public override func onSessionStart(_ session: any EmbraceSession) {
+        hangsInSessionCount = 0
+    }
+
+    public override func onSessionWillEnd(_ session: any EmbraceSession) {
+        try? Embrace.client?.metadata.updateProperty(key: "emb-thread-blockage", value: "\(hangsInSessionCount)")
+    }
+
     private var mainThread: pthread_t
     private var watchdog: HangWatchdog?
     private let queue = DispatchQueue(label: "io.embrace.hang.service")
