@@ -28,29 +28,22 @@ public final class HangCaptureService: CaptureService {
         self.limitSamplesPerHang = samplesPerHangLimit
         super.init()
         self.watchdog.hangObserver = self
-
-        // reset the limit counter each session
-        self.sessionObserver = NotificationCenter.default.addObserver(
-            forName: .embraceSessionDidStart, object: nil, queue: nil
-        ) { [weak self] _ in
-            self?.hangsInSessionCount = 0
-        }
-
-        // set a default
-        try? Embrace.client?.metadata.addProperty(key: "emb-thread-blockage", value: "\(hangsInSessionCount)")
-    }
-
-    deinit {
-        self.sessionObserver.map { NotificationCenter.default.removeObserver($0) }
     }
 
     public override func onInstall() {
         watchdog.logger = logger
     }
 
+    public override func onSessionStart(_ session: any EmbraceSession) {
+        hangsInSessionCount = 0
+    }
+
+    public override func onSessionWillEnd(_ session: any EmbraceSession) {
+        try? Embrace.client?.metadata.updateProperty(key: "emb-thread-blockage", value: "\(hangsInSessionCount)")
+    }
+
     private var mainThread: pthread_t
     private var watchdog: HangWatchdog
-    private var sessionObserver: NSObjectProtocol?
     private let queue = DispatchQueue(label: "io.embrace.hang.service")
 
     private var span: OpenTelemetryApi.Span?
@@ -74,13 +67,6 @@ extension HangCaptureService: HangObserver {
         // Keep tabs on how many hang spans we've created
         samplesInHangCount = 0
         hangsInSessionCount += 1
-        queue.async { [self] in
-            // This isn't the right way to do it.
-            // The session span is on the SessionController
-            // but we don't have easy access from here.
-            try? Embrace.client?.metadata.updateProperty(key: "emb-thread-blockage", value: "\(hangsInSessionCount)")
-        }
-
         guard hangsInSessionCount <= limitHangPerSession else {
             logger?.warning(
                 "[Watchdog] Dropping hang due to surpassing limit, \(hangsInSessionCount) of \(limitHangPerSession)")

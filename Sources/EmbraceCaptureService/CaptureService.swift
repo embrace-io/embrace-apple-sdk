@@ -83,6 +83,18 @@ open class CaptureService: NSObject {
     @objc open func onStop() {
 
     }
+
+    /// This method is called by the Embrace SDK when a new session starts.
+    /// You should override this method if your `CaptureService` needs to do something on a new session.
+    open func onSessionStart(_ session: EmbraceSession) {
+
+    }
+
+    /// This method is called by the Embrace SDK when a session will end.
+    /// You should override this method if your `CaptureService` needs to do something before a session ends.
+    open func onSessionWillEnd(_ session: EmbraceSession) {
+
+    }
 }
 
 extension CaptureService {

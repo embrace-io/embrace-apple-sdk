@@ -81,6 +81,13 @@ final class CaptureServices {
             name: Notification.Name.embraceSessionDidStart,
             object: nil
         )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(onSessionWillEnd),
+            name: Notification.Name.embraceSessionWillEnd,
+            object: nil
+        )
     }
 
     // for testing
@@ -145,6 +152,13 @@ final class CaptureServices {
     @objc func onSessionStart(notification: Notification) {
         if let session = notification.object as? EmbraceSession {
             crashReporter?.currentSessionId = session.idRaw
+            for service in services { service.onSessionStart(session) }
+        }
+    }
+
+    @objc func onSessionWillEnd(notification: Notification) {
+        if let session = notification.object as? EmbraceSession {
+            for service in services { service.onSessionWillEnd(session) }
         }
     }
 }
