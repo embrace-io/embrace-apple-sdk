@@ -20,14 +20,14 @@ import Foundation
     #if canImport(UIKit) && !os(watchOS)
         /// Returns a `TapCaptureService` with the given `TapCaptureService.Options`.
         /// - Parameter options: `TapCaptureService.Options` used to configure the service.
-        static func tap(
+        public static func tap(
             options: TapCaptureService.Options = TapCaptureService.Options()
         ) -> TapCaptureService {
             return TapCaptureService(options: options)
         }
 
         /// Returns a `ViewCaptureService`.
-        static func view(
+        public static func view(
             options: ViewCaptureService.Options = ViewCaptureService.Options()
         ) -> ViewCaptureService {
             return ViewCaptureService(options: options)
@@ -37,7 +37,7 @@ import Foundation
     #if canImport(WebKit)
         /// Returns a `WebViewCaptureService` with the given `WebViewCaptureService.Options`.
         /// - Parameter options: `WebViewCaptureService.Options` used to configure the service.
-        static func webView(
+        public static func webView(
             options: WebViewCaptureService.Options = WebViewCaptureService.Options()
         ) -> WebViewCaptureService {
             return WebViewCaptureService(options: options)
