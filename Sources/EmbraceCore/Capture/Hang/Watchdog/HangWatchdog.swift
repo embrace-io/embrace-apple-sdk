@@ -1,3 +1,7 @@
+//
+//  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
+//
+
 import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
@@ -11,9 +15,9 @@ import Foundation
 /// - hangUpdated: Called periodically while a hang persists on a background queue.
 /// - hangEnded: Called when the hang ends on the hung thread.
 public protocol HangObserver: AnyObject {
-    func hangStarted(at nanoseconds: UInt64, duration nanoseconds: UInt64)
-    func hangUpdated(at nanoseconds: UInt64, duration nanoseconds: UInt64)
-    func hangEnded(at nanoseconds: UInt64, duration nanoseconds: UInt64)
+    func hangStarted(at: NanosecondClock, duration: NanosecondClock)
+    func hangUpdated(at: NanosecondClock, duration: NanosecondClock)
+    func hangEnded(at: NanosecondClock, duration: NanosecondClock)
 }
 
 /// A watchdog that detects and reports RunLoop hangs exceeding a specified threshold.
@@ -44,12 +48,12 @@ final public class HangWatchdog {
 
     /// The time in nanoseconds since the start of the hang.
     /// 0 if not in a hang.
-    public var timeSinceHangStart: UInt64 {
+    public var timeSinceHangStart: NanosecondClock? {
         hangData.withLock {
             guard $0.hanging else {
-                return 0
+                return nil
             }
-            return suspendingTimeInNanoseconds() - $0.enterTime
+            return .current - $0.enterTime
         }
     }
 
@@ -125,7 +129,7 @@ final public class HangWatchdog {
     /// the timestamp when the RunLoop was entered.
     private struct HangData {
         var hanging: Bool = false
-        var enterTime: UInt64 = 0
+        var enterTime: NanosecondClock = .current
         weak var hangObserver: HangObserver?
     }
     private var hangData = EmbraceMutex(HangData())
@@ -135,13 +139,21 @@ final public class HangWatchdog {
 
 extension HangWatchdog {
 
+    private func _logInfo(_ msg: String) {
+        if let logger {
+            logger.info(msg)
+        } else {
+            print(msg)
+        }
+    }
+
     /// Sets up a dedicated high-priority thread with its own RunLoop
     /// to perform hang detection pings without blocking the monitored RunLoop.
     private func scheduleThread() {
 
         runLoopPrecondition(runloop: runLoop)
 
-        logger?.info("[Watchdog] schedule thread")
+        _logInfo("[Watchdog] schedule thread")
 
         let semaphore = DispatchSemaphore(value: 0)
 
@@ -161,11 +173,11 @@ extension HangWatchdog {
         // that thread.
         semaphore.wait()
 
-        logger?.info("[Watchdog] thread is a-go")
+        _logInfo("[Watchdog] thread is a-go")
 
         // Start out by scheduling pings to make sure we catch
         // anything that happens before any run loops are running (startup).
-        logger?.info("[Watchdog] schedule first ping")
+        _logInfo("[Watchdog] schedule first ping")
         schedulePings()
     }
 
@@ -175,7 +187,7 @@ extension HangWatchdog {
 
         runLoopPrecondition(runloop: runLoop)
 
-        logger?.info("[Watchdog] schedule observers")
+        _logInfo("[Watchdog] schedule observers")
 
         // A hang starts when it takes more than 250ms between
         // two .beforeWaiting run loop events.
@@ -199,21 +211,21 @@ extension HangWatchdog {
             if activity == .beforeWaiting {
 
                 // check for a hang that needs to end
-                let (observer, now, hangTime): (HangObserver?, UInt64, UInt64) = hangData.withLock {
+                let (observer, now, hangTime): (HangObserver?, NanosecondClock?, NanosecondClock?) = hangData.withLock {
                     guard $0.hanging else {
-                        return (nil, UInt64(0), UInt64(0))
+                        return (nil, nil, nil)
                     }
                     $0.hanging = false
 
                     // update the time value
-                    let now = suspendingTimeInNanoseconds()
+                    let now: NanosecondClock = .current
                     let hangTime = now - $0.enterTime
 
                     return ($0.hangObserver, now, hangTime)
                 }
 
                 // log it if needed
-                if let observer {
+                if let observer, let now, let hangTime {
                     observer.hangEnded(at: now, duration: hangTime)
                 }
             }
@@ -228,7 +240,7 @@ extension HangWatchdog {
         }
         if let obs = observer {
             CFRunLoopAddObserver(runLoop.getCFRunLoop(), obs, .commonModes)
-            logger?.info("[Watchdog] observers are a-go")
+            _logInfo("[Watchdog] observers are a-go")
         }
     }
 
@@ -240,7 +252,7 @@ extension HangWatchdog {
         runLoopPrecondition(runloop: runLoop)
 
         // store the time
-        let startTime = suspendingTimeInNanoseconds()
+        let startTime: NanosecondClock = .current
         hangData.withLock { $0.enterTime = startTime }
 
         let threasholdInNs = UInt64(threshold * 1_000_000_000)
@@ -258,16 +270,13 @@ extension HangWatchdog {
             guard let self else { return }
             precondition(Thread.current == self.watchdogThread)
 
-            let now = suspendingTimeInNanoseconds()
+            let now: NanosecondClock = .current
             let (observer, startHang, enterTime, hangTime) = hangData.withLock {
-
                 let enterTime = $0.enterTime
-                let (hangTime, overflow) = now.subtractingReportingOverflow(enterTime)
-                if overflow {
-                    self.logger?.error("[Watchdog] overflow \(now) - \(enterTime)")
-                    // return (nil, false, enterTime, hangTime)
-                }
-                let isHang = hangTime >= threasholdInNs
+                let hangTime = now - enterTime
+
+                // Hangtime is based on uptime, we don't count the time the app is suspended.
+                let isHang = hangTime.uptime >= threasholdInNs
 
                 let startHang = isHang && $0.hanging == false
                 if startHang { $0.hanging = true }
@@ -305,11 +314,4 @@ public func runLoopPrecondition(runloop: @autoclosure () -> RunLoop) {
         {
             runloop() == RunLoop.current
         }())
-}
-
-/// Returns the current uptime in nanoseconds, including system sleep time,
-/// using CLOCK_UPTIME_RAW.
-/// - Returns: The timestamp in nanoseconds.
-private func suspendingTimeInNanoseconds() -> UInt64 {
-    clock_gettime_nsec_np(CLOCK_UPTIME_RAW)
 }
