@@ -101,21 +101,22 @@
 
             let urlString = getUrlString(url: url)
 
-            var attributes: [String: AttributeValue] = [
-                SpanEventSemantics.keyEmbraceType: .string(EmbraceType.webView.rawValue),
-                SpanEventSemantics.WebView.keyUrl: .string(urlString)
+            var attributes: [String: String] = [
+                SpanEventSemantics.WebView.keyUrl: urlString
             ]
 
             if let errorCode = statusCode, errorCode != 200 {
-                attributes[SpanEventSemantics.WebView.keyErrorCode] = .int(errorCode)
+                attributes[SpanEventSemantics.WebView.keyErrorCode] = String(errorCode)
             }
 
-            let event = RecordingSpanEvent(
+            let event = EmbraceSpanEvent(
                 name: SpanEventSemantics.WebView.name,
+                type: .webView,
                 timestamp: Date(),
                 attributes: attributes
             )
-            otel?.add(event: event)
+            
+            try? otel?.addEvent(event)
         }
 
         private func getUrlString(url: URL) -> String {

@@ -5,6 +5,7 @@
 import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceSemantics
     import EmbraceCommonInternal
     import EmbraceOTelInternal
     import EmbraceStorageInternal
@@ -20,7 +21,7 @@ class BaseInternalLogger: InternalLogger {
         var level: LogLevel = .error
     #endif
 
-    var otel: EmbraceOpenTelemetry?
+    var otel: OTelSignalsHandler?
 
     struct MutableState {
         var limits: InternalLogLimits = InternalLogLimits()
@@ -181,10 +182,8 @@ class BaseInternalLogger: InternalLogger {
             message,
             severity: level.severity,
             type: .internal,
-            attributes: attributes,
-            stackTraceBehavior: .default
+            attributes: attributes
         )
-
     }
 }
 

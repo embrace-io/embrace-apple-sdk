@@ -21,12 +21,11 @@ protocol LogControllable: LogBatcherDelegate {
         severity: EmbraceLogSeverity,
         type: EmbraceType,
         timestamp: Date,
-        attachment: Data?,
-        attachmentId: String?,
-        attachmentUrl: URL?,
+        attachment: EmbraceLogAttachment?,
         attributes: [String: String],
-        stackTraceBehavior: StackTraceBehavior
-    )
+        stackTraceBehavior: EmbraceStackTraceBehavior,
+        send: Bool
+    ) -> EmbraceLog?
 }
 
 class LogController: LogControllable {
@@ -85,14 +84,13 @@ class LogController: LogControllable {
         severity: EmbraceLogSeverity,
         type: EmbraceType = .message,
         timestamp: Date = Date(),
-        attachment: Data? = nil,
-        attachmentId: String? = nil,
-        attachmentUrl: URL? = nil,
+        attachment: EmbraceLogAttachment? = nil,
         attributes: [String: String] = [:],
-        stackTraceBehavior: StackTraceBehavior = .default
-    ) {
+        stackTraceBehavior: EmbraceStackTraceBehavior = .defaultStackTrace(),
+        send: Bool = true
+    ) -> EmbraceLog? {
         guard let sessionController = sessionController else {
-            return
+            return nil
         }
 
         // generate attributes
@@ -102,24 +100,13 @@ class LogController: LogControllable {
             initialAttributes: attributes
         )
 
-        /*
-         If we want to keep this method cleaner, we could move this log to `EmbraceLogAttributesBuilder`
-         However that would cause to always add a frame to the stacktrace.
-         */
-        switch stackTraceBehavior {
-        case .default:
-            if severity == .warn || severity == .error {
-                let stackTrace: [String] = Thread.callStackSymbols
-                attributesBuilder.addStackTrace(stackTrace)
-            }
-        case .custom(let customStackTrace):
-            if severity == .warn || severity == .error {
-                attributesBuilder.addStackTrace(customStackTrace.frames)
-            }
-        case .notIncluded:
-            break
+        // stack trace
+        if severity == .warn || severity == .error,
+           let frames = stackTraceBehavior.stackTraceFames {
+            attributesBuilder.addStackTrace(frames)
         }
 
+        // embrace specific attributes
         var finalAttributes =
             attributesBuilder
             .addLogType(type)
@@ -129,41 +116,57 @@ class LogController: LogControllable {
             .build()
 
         // handle attachment data
-        if let attachment = attachment {
+        if let attachment {
 
-            let id = UUID().withoutHyphen
-            finalAttributes[LogSemantics.keyAttachmentId] = id
+            // embrace hosted data
+            if let data = attachment.data {
+                finalAttributes[LogSemantics.keyAttachmentId] = attachment.id
 
-            let size = attachment.count
-            finalAttributes[LogSemantics.keyAttachmentSize] = String(size)
+                let size = data.count
+                finalAttributes[LogSemantics.keyAttachmentSize] = String(size)
 
-            // check attachment count limit
-            if sessionController.attachmentCount >= Self.attachmentLimit {
-                finalAttributes[LogSemantics.keyAttachmentErrorCode] = LogSemantics.attachmentLimitReached
+                // check attachment count limit
+                if sessionController.attachmentCount >= Self.attachmentLimit {
+                    finalAttributes[LogSemantics.keyAttachmentErrorCode] = LogSemantics.attachmentLimitReached
 
-                // check attachment size limit
-            } else if size > Self.attachmentSizeLimit {
-                finalAttributes[LogSemantics.keyAttachmentErrorCode] = LogSemantics.attachmentTooLarge
+                    // check attachment size limit
+                } else if size > Self.attachmentSizeLimit {
+                    finalAttributes[LogSemantics.keyAttachmentErrorCode] = LogSemantics.attachmentTooLarge
+                }
+
+                // upload attachment
+                else {
+                    upload?.uploadAttachment(id: attachment.id, data: data, completion: nil)
+                }
+
+                sessionController.increaseAttachmentCount()
             }
 
-            // upload attachment
-            else {
-                upload?.uploadAttachment(id: id, data: attachment, completion: nil)
+            // pre-hosted attachment
+            else if let url = attachment.url {
+                finalAttributes[LogSemantics.keyAttachmentId] = attachment.id
+                finalAttributes[LogSemantics.keyAttachmentUrl] = url.absoluteString
             }
-
-            sessionController.increaseAttachmentCount()
         }
 
-        // handle pre-uploaded attachment
-        else if let attachmentId = attachmentId,
-            let attachmentUrl = attachmentUrl
-        {
+        // create log
+        let log = DefaultEmbraceLog(
+            id: EmbraceIdentifier.random.stringValue,
+            severity: severity,
+            timestamp: timestamp,
+            body: message,
+            attributes: finalAttributes,
+            sessionId: sessionController.currentSession?.id
+        )
 
-            finalAttributes[LogSemantics.keyAttachmentId] = attachmentId
-            finalAttributes[LogSemantics.keyAttachmentUrl] = attachmentUrl.absoluteString
+        if send {
+            // TODO: add to batch
+
+            // save log
+            storage?.saveLog(log)
         }
 
-        otel.log(message, severity: severity, timestamp: timestamp, attributes: finalAttributes)
+        return log
     }
 }
 

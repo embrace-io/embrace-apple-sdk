@@ -17,7 +17,7 @@ class UnsentDataHandler {
     static func sendUnsentData(
         storage: EmbraceStorage?,
         upload: EmbraceUpload?,
-        otel: EmbraceOpenTelemetry?,
+        otel: EmbraceOTelSignalsHandler?,
         logController: LogControllable? = nil,
         currentSessionId: EmbraceIdentifier? = nil,
         crashReporter: EmbraceCrashReporter? = nil
@@ -60,7 +60,7 @@ class UnsentDataHandler {
     static private func sendCrashReports(
         storage: EmbraceStorage,
         upload: EmbraceUpload,
-        otel: EmbraceOpenTelemetry?,
+        otel: EmbraceOTelSignalsHandler?,
         currentSessionId: EmbraceIdentifier?,
         crashReporter: EmbraceCrashReporter,
         crashReports: [EmbraceCrashReport]
@@ -116,7 +116,7 @@ class UnsentDataHandler {
         session: EmbraceSession?,
         storage: EmbraceStorage?,
         upload: EmbraceUpload?,
-        otel: EmbraceOpenTelemetry?
+        otel: EmbraceOTelSignalsHandler?
     ) {
         let timestamp = (report.timestamp ?? session?.lastHeartbeatTime) ?? Date()
 
@@ -165,7 +165,7 @@ class UnsentDataHandler {
     }
 
     static private func createLogCrashAttributes(
-        otel: EmbraceOpenTelemetry?,
+        otel: EmbraceOTelSignalsHandler?,
         storage: EmbraceStorage?,
         report: EmbraceCrashReport,
         session: EmbraceSession?,
@@ -188,13 +188,12 @@ class UnsentDataHandler {
             .addCrashReportProperties()
             .build()
 
-        otel?.log(
+        otel?.exportLog(
             "",
             severity: .fatal,
             type: .crash,
             timestamp: timestamp,
-            attributes: attributes,
-            stackTraceBehavior: .default
+            attributes: attributes
         )
 
         return attributes

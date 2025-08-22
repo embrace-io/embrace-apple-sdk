@@ -16,8 +16,9 @@ import SwiftUI
 /// The environment key for injecting `EmbraceTraceViewLogger` into SwiftUI's `EnvironmentValues`.
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
 private struct EmbraceTraceViewLoggerEnvironmentKey: EnvironmentKey {
+    // TODO: pass otel handler
     static let defaultValue: EmbraceTraceViewLogger = EmbraceTraceViewLogger(
-        otel: Embrace.client,
+        otel: nil,
         logger: Embrace.logger,
         config: Embrace.client?.config.configurable
     )
@@ -46,8 +47,8 @@ extension EnvironmentValues {
 final class EmbraceTraceViewLogger {
     // MARK: – Properties
 
-    /// The OpenTelemetry client instance, used to build and start spans.
-    let otel: EmbraceOpenTelemetry?
+    /// The OTel signals handler, used to build and start spans.
+    let otel: OTelSignalsHandler?
 
     /// Internal logger for debug/error reporting related to span creation.
     let logger: InternalLogger?
@@ -60,13 +61,13 @@ final class EmbraceTraceViewLogger {
     /// Initializes a new `EmbraceTraceViewLogger`. Must be invoked on the main queue.
     ///
     /// - Parameters:
-    ///   - otel: The `EmbraceOpenTelemetry` client, or `nil` if not available.
+    ///   - otel: The `OTelSignalsHandler` client, or `nil` if not available.
     ///   - logger: The internal diagnostic logger, or `nil`.
     ///   - config: The configuration object controlling feature flags.
     ///
     /// If `otel` or `config` is `nil`, tracing calls become no-ops.
     init(
-        otel: EmbraceOpenTelemetry?,
+        otel: OTelSignalsHandler?,
         logger: InternalLogger?,
         config: EmbraceConfigurable?
     ) {
@@ -84,7 +85,7 @@ final class EmbraceTraceViewLogger {
 // MARK: – Span Management
 
 extension EmbraceTraceViewLogger {
-    /// Starts a new OpenTelemetry span for a SwiftUI view event.
+    /// Starts a new `EmbraceSpan` for a SwiftUI view event.
     ///
     /// - Parameters:
     ///   - name: The logical name of the view (same as passed to `EmbraceTraceView`).
@@ -94,15 +95,15 @@ extension EmbraceTraceViewLogger {
     ///   - attributes: Optional key/value metadata for enriching the span.
     ///   - function: Automatically captures the calling function name (for debug logs).
     ///
-    /// - Returns: The started `Span`, or `nil` if tracing is disabled or the OTel client is missing.
+    /// - Returns: The started `EmbraceSpan`, or `nil` if tracing is disabled or the OTel client is missing.
     func startSpan(
         _ name: String,
         semantics: String,
         time: Date? = nil,
-        parent: Span? = nil,
+        parent: EmbraceSpan? = nil,
         attributes: [String: String]? = nil,
         _ function: StaticString = #function
-    ) -> Span? {
+    ) -> EmbraceSpan? {
         dispatchPrecondition(condition: .onQueue(.main))
 
         // Verify feature flag is on
@@ -112,28 +113,18 @@ extension EmbraceTraceViewLogger {
         }
 
         // Verify OpenTelemetry client
-        guard let client = otel else {
+        guard let otel else {
             logger?.debug("OTel client unavailable. Skipping EmbraceTraceViewLogger.startSpan.")
             return nil
         }
 
         // Build the span with full name: "swiftui.view.<viewName>.<semantics>"
-        let builder = client.buildSpan(
+        return try? otel.createSpan(
             name: "emb-swiftui.view.\(name).\(semantics)",
+            parentSpan: parent,
             type: .viewLoad,
-            attributes: attributes ?? [:],
-            autoTerminationCode: nil
+            attributes: attributes ?? [:]
         )
-
-        if let customTime = time {
-            builder.setStartTime(time: customTime)
-        }
-
-        if let parentSpan = parent {
-            builder.setParent(parentSpan)
-        }
-
-        return builder.startSpan()
     }
 
     /// Ends the given span, optionally recording an error code.
@@ -144,14 +135,14 @@ extension EmbraceTraceViewLogger {
     ///   - errorCode: Optional error code to attach to the span.
     ///   - function: Automatically captures the calling function name (for debug logs).
     func endSpan(
-        _ span: Span?,
+        _ span: EmbraceSpan?,
         time: Date? = nil,
         errorCode: EmbraceSpanErrorCode? = nil,
         _ function: StaticString = #function
     ) {
         dispatchPrecondition(condition: .onQueue(.main))
-        guard let span = span else { return }
-        span.end(errorCode: errorCode, time: time ?? Date())
+        guard var span = span else { return }
+        span.end(errorCode: errorCode, endTime: time ?? Date())
     }
 
     /// Creates a span that automatically ends on the next main run loop tick.
@@ -168,17 +159,17 @@ extension EmbraceTraceViewLogger {
     ///   - function: Automatically captures the calling function name (for debug logs).
     ///   - completed: Closure that runs after span termination on next run loop tick.
     ///
-    /// - Returns: The started `Span`, or `nil` if tracing is disabled or no OTel client.
+    /// - Returns: The started `EmbraceSpan`, or `nil` if tracing is disabled or no OTel client.
     @discardableResult
     func cycledSpan(
         _ name: String,
         semantics: String,
         time: Date? = nil,
-        parent: Span? = nil,
+        parent: EmbraceSpan? = nil,
         attributes: [String: String]? = nil,
         _ function: StaticString = #function,
         _ completed: @escaping () -> Void
-    ) -> Span? {
+    ) -> EmbraceSpan? {
         guard
             let span = startSpan(
                 name,

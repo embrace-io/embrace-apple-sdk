@@ -34,6 +34,10 @@ import UserNotifications
         self.options = options
         self.lock = lock
         self.proxy = UNUserNotificationCenterDelegateProxy(captureData: options.captureData)
+
+        super.init()
+        
+        proxy.otel = otel
     }
 
     public override func onInstall() {

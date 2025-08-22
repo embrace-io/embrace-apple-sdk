@@ -7,7 +7,6 @@ import OpenTelemetryApi
 import UserNotifications
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceOTelInternal
     import EmbraceCommonInternal
     import EmbraceSemantics
 #endif
@@ -16,20 +15,19 @@ import UserNotifications
 /// Usage example:
 /// `Embrace.client?.add(.push(userInfo: apsDictionary))`
 @objc(EMBPushNotificationEvent)
-public class PushNotificationEvent: NSObject, SpanEvent {
-    public let name: String
-    public let timestamp: Date
-    public private(set) var attributes: [String: AttributeValue]
+public class PushNotificationEvent: EmbraceSpanEvent {
 
     /// Returns a span event on using the data from the given `UNNotification`
     /// - Parameters:
     ///   - notification: The `UNNotification` received by the app
+    ///   - timestamp: Timestamp when the event occured
+    ///   - attributes: Attributes for the event
     ///   - captureData: Whether or not Embrace should parse the data inside the push notification
     /// - Throws: `PushNotificationError.invalidPayload` if the `aps` object is not present in the `userInfo` of the `UNNotification`.
     convenience init(
         notification: UNNotification,
         timestamp: Date = Date(),
-        attributes: [String: AttributeValue] = [:],
+        attributes: [String: String] = [:],
         captureData: Bool = true
     ) throws {
         var userInfo: [AnyHashable: Any] = [:]
@@ -41,13 +39,15 @@ public class PushNotificationEvent: NSObject, SpanEvent {
 
     /// Returns a span event on using the `userInfo` dictionary from a push notification
     /// - Parameters:
-    ///   - userInfo: The `userInfo` dictionary from a push notification		o	or
+    ///   - userInfo: The `userInfo` dictionary from a push notification
+    ///   - timestamp: Timestamp when the event occured
+    ///   - attributes: Attributes for the event
     ///   - captureData: Whether or not Embrace should parse the data inside the push notification
     /// - Throws: `PushNotificationError.invalidPayload` if the `aps` object is not present in the `userInfo` of the `UNNotification`.
     init(
         userInfo: [AnyHashable: Any],
         timestamp: Date = Date(),
-        attributes: [String: AttributeValue] = [:],
+        attributes: [String: String] = [:],
         captureData: Bool = true
     ) throws {
 
@@ -56,23 +56,26 @@ public class PushNotificationEvent: NSObject, SpanEvent {
             throw PushNotificationError.invalidPayload("Couldn't find aps object!")
         }
 
-        self.name = SpanEventSemantics.PushNotification.name
-        self.timestamp = timestamp
-
         let dict = Self.parse(apsDict: apsDict, captureData: captureData)
-        self.attributes = attributes.merging(dict) { (current, _) in current }
+        let finalAttributes = attributes.merging(dict) { (current, _) in current }
+
+        super.init(
+            name: SpanEventSemantics.PushNotification.name,
+            timestamp: timestamp,
+            attributes: finalAttributes
+        )
     }
 
-    static func parse(apsDict: [AnyHashable: Any], captureData: Bool) -> [String: AttributeValue] {
+    static func parse(apsDict: [AnyHashable: Any], captureData: Bool) -> [String: String] {
 
-        var dict: [String: AttributeValue] = [:]
+        var dict: [String: String] = [:]
 
         // set types
-        dict[SpanEventSemantics.keyEmbraceType] = .string(EmbraceType.pushNotification.rawValue)
+        dict[SpanEventSemantics.keyEmbraceType] = EmbraceType.pushNotification.rawValue
         dict[SpanEventSemantics.PushNotification.keyType] =
             isSilent(userInfo: apsDict)
-            ? .string(SpanEventSemantics.PushNotification.silentType)
-            : .string(SpanEventSemantics.PushNotification.notificationType)
+            ? SpanEventSemantics.PushNotification.silentType
+            : SpanEventSemantics.PushNotification.notificationType
 
         // capture data if enabled
         if captureData {
@@ -98,23 +101,23 @@ public class PushNotificationEvent: NSObject, SpanEvent {
             let badge = apsDict[Constants.apsBadge] as? Int
 
             if let title = title {
-                dict[SpanEventSemantics.PushNotification.keyTitle] = .string(title)
+                dict[SpanEventSemantics.PushNotification.keyTitle] = title
             }
 
             if let subtitle = subtitle {
-                dict[SpanEventSemantics.PushNotification.keySubtitle] = .string(subtitle)
+                dict[SpanEventSemantics.PushNotification.keySubtitle] = subtitle
             }
 
             if let body = body {
-                dict[SpanEventSemantics.PushNotification.keyBody] = .string(body)
+                dict[SpanEventSemantics.PushNotification.keyBody] = body
             }
 
             if let category = category {
-                dict[SpanEventSemantics.PushNotification.keyCategory] = .string(category)
+                dict[SpanEventSemantics.PushNotification.keyCategory] = category
             }
 
             if let badge = badge {
-                dict[SpanEventSemantics.PushNotification.keyBadge] = .int(badge)
+                dict[SpanEventSemantics.PushNotification.keyBadge] = String(badge)
             }
         }
 
@@ -145,18 +148,12 @@ public class PushNotificationEvent: NSObject, SpanEvent {
     }
 }
 
-extension SpanEvent where Self == PushNotificationEvent {
-    public static func push(notification: UNNotification, properties: [String: String] = [:]) throws -> SpanEvent {
-        let otelAttributes = properties.reduce(into: [String: AttributeValue]()) {
-            $0[$1.key] = AttributeValue.string($1.value)
-        }
-        return try PushNotificationEvent(notification: notification, attributes: otelAttributes)
+extension EmbraceSpanEvent {
+    public static func push(notification: UNNotification, attributes: [String: String] = [:]) throws -> EmbraceSpanEvent {
+        return try PushNotificationEvent(notification: notification, attributes: attributes)
     }
 
-    public static func push(userInfo: [AnyHashable: Any], properties: [String: String] = [:]) throws -> SpanEvent {
-        let otelAttributes = properties.reduce(into: [String: AttributeValue]()) {
-            $0[$1.key] = AttributeValue.string($1.value)
-        }
-        return try PushNotificationEvent(userInfo: userInfo, attributes: otelAttributes)
+    public static func push(userInfo: [AnyHashable: Any], attributes: [String: String] = [:]) throws -> EmbraceSpanEvent {
+        return try PushNotificationEvent(userInfo: userInfo, attributes: attributes)
     }
 }

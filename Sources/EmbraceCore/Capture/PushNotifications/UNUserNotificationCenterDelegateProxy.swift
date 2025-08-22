@@ -5,12 +5,13 @@
 import UserNotifications
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceOTelInternal
+    import EmbraceSemantics
 #endif
 
 class UNUserNotificationCenterDelegateProxy: NSObject {
     weak var originalDelegate: UNUserNotificationCenterDelegate?
     let captureData: Bool
+    var otel: OTelSignalsHandler?
 
     init(captureData: Bool) {
         self.captureData = captureData
@@ -48,7 +49,7 @@ extension UNUserNotificationCenterDelegateProxy: UNUserNotificationCenterDelegat
 
         // generate span event
         if let event = try? PushNotificationEvent(notification: notification, captureData: captureData) {
-            Embrace.client?.add(event: event)
+            try? otel?.addEvent(event)
         }
 
         // call original
@@ -77,7 +78,7 @@ extension UNUserNotificationCenterDelegateProxy: UNUserNotificationCenterDelegat
 
             // generate span event
             if let event = try? PushNotificationEvent(notification: response.notification, captureData: captureData) {
-                Embrace.client?.add(event: event)
+                try? otel?.addEvent(event)
             }
 
             // call original

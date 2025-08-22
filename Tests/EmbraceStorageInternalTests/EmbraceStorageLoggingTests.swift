@@ -51,19 +51,6 @@ class EmbraceStorageLoggingTests: XCTestCase {
         XCTAssertTrue(!result.contains(where: { $0.processId == pid }))
     }
 
-    // MARK: - RemoveAllLogs
-
-    func testFilledDb_removeAllLogs_shouldCleanDb() throws {
-        createInfoLog()
-        createInfoLog()
-        createInfoLog()
-
-        sut.removeAllLogs()
-
-        let logs: [LogRecord] = sut.fetchAll()
-        XCTAssertEqual(logs.count, 0)
-    }
-
     // MARK: - Remove Specific Logs
 
     func testFilledDb_removeSpecificLog_shouldDeleteJustTheSpecificLog() throws {

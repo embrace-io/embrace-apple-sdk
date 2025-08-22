@@ -61,3 +61,22 @@ public protocol EmbraceSpan {
     /// Ends the span with `endTime = Date()`
     mutating func end()
 }
+
+public extension EmbraceSpan {
+    /// Ends the span with the given `EmbraceSpanErrorCode`.
+    /// This adds an Embrace specific attribute with the code, and sets the status to `.error`.
+    /// If no erro code is passed, the status will be set to `.ok`.
+    /// - Parameters:
+    ///   - errorCode: Error code for the span
+    ///   - endTime: Time when the span ended
+    mutating func end(errorCode: EmbraceSpanErrorCode? = nil, endTime: Date = Date()) {
+        if let errorCode {
+            setAttribute(key: SpanSemantics.keyErrorCode, value: errorCode.rawValue)
+            setStatus(.error)
+        } else {
+            setStatus(.ok)
+        }
+
+        end(endTime: endTime)
+    }
+}

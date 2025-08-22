@@ -18,13 +18,14 @@ extension StartupInstrumentation {
     ///    - type: The type of the span. Will be set as the `emb.type` attribute.
     ///    - startTime: The start time of the span.
     ///    - attributes: A dictionary of attributes to set on the span.
-    /// - Returns: An OpenTelemetry `SpanBuilder` or nil if the root span was not found.
-    public func buildChildSpan(
+    /// - Returns: An `EmbraceSpan` or nil if the root span was not found.
+    public func createChildSpan(
         name: String,
         type: EmbraceType = .startup,
         startTime: Date = Date(),
+        endTime: Date? = nil,
         attributes: [String: String] = [:]
-    ) -> SpanBuilder? {
+    ) -> EmbraceSpan? {
         guard let otel = otel else {
             return nil
         }
@@ -34,57 +35,14 @@ extension StartupInstrumentation {
                 return nil
             }
 
-            let builder = otel.buildSpan(
+            return try? otel.createSpan(
                 name: name,
+                parentSpan: rootSpan,
                 type: type,
-                attributes: attributes,
-                autoTerminationCode: nil
+                startTime: startTime,
+                endTime: endTime,
+                attributes: attributes
             )
-            builder.setStartTime(time: startTime)
-            builder.setParent(rootSpan)
-
-            return builder
-        }
-    }
-
-    /// Method used to record a completed span to be included as a child span to the startup instrumenstation root span.
-    /// - Parameters:
-    ///    - name: The name of the span.
-    ///    - type: The type of the span. Will be set as the `emb.type` attribute.
-    ///    - startTime: The start time of the span.
-    ///    - endTime: The end time of the span.
-    ///    - attributes: A dictionary of attributes to set on the span.
-    /// - Returns: A boolean indicating if the operation was succesful.
-    @discardableResult
-    public func recordCompletedChildSpan(
-        name: String,
-        type: EmbraceType = .viewLoad,
-        startTime: Date,
-        endTime: Date,
-        attributes: [String: String] = [:]
-    ) -> Bool {
-        guard let otel = otel else {
-            return false
-        }
-
-        return state.withLock {
-            guard let rootSpan = $0.rootSpan else {
-                return false
-            }
-
-            let builder = otel.buildSpan(
-                name: name,
-                type: type,
-                attributes: attributes,
-                autoTerminationCode: nil
-            )
-            builder.setStartTime(time: startTime)
-            builder.setParent(rootSpan)
-
-            let span = builder.startSpan()
-            span.end(time: endTime)
-
-            return true
         }
     }
 
@@ -96,16 +54,13 @@ extension StartupInstrumentation {
     public func addAttributesToTrace(_ attributes: [String: String]) -> Bool {
 
         return state.withLock {
-            guard let rootSpan = $0.rootSpan else {
+            guard var rootSpan = $0.rootSpan else {
                 return false
             }
 
             attributes.forEach {
-                rootSpan.setAttribute(key: $0.key, value: .string($0.value))
+                rootSpan.setAttribute(key: $0.key, value: $0.value)
             }
-
-            // TODO: Clean up reference to client! There's currently no other way to trigger a flush!
-            Embrace.client?.flush(rootSpan)
 
             return true
         }

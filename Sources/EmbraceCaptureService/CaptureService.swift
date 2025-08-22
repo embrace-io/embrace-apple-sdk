@@ -25,8 +25,8 @@ import OpenTelemetryApi
 @objc(EMBCaptureService)
 open class CaptureService: NSObject {
 
-    /// Getter for the OTel handler used by the capture service.
-    private(set) public weak var otel: EmbraceOpenTelemetry?
+    /// Getter for the OTel signals handler used by the capture service.
+    private(set) public weak var otel: OTelSignalsHandler?
 
     /// `EmbraceConsoleLogger` instance used to generate internal logs.
     private(set) public weak var logger: InternalLogger?
@@ -35,7 +35,7 @@ open class CaptureService: NSObject {
     @ThreadSafe
     private(set) public var state: CaptureServiceState = .uninstalled
 
-    public func install(otel: EmbraceOpenTelemetry?, logger: InternalLogger? = nil) {
+    public func install(otel: OTelSignalsHandler?, logger: InternalLogger? = nil) {
         guard state == .uninstalled else {
             return
         }
@@ -83,53 +83,5 @@ open class CaptureService: NSObject {
     /// You should override this method if your `CaptureService` needs to do something when stopped.
     @objc open func onStop() {
 
-    }
-}
-
-extension CaptureService {
-
-    /// Creates a `SpanBuilder` with the given parameters.
-    /// Use this method to generate spans with the capture service.
-    /// - Parameters:
-    ///   - name: Name of the span.
-    ///   - type: Type of the span.
-    ///   - attributes: Attributes of the span.
-    /// - Returns: The newly created `SpanBuilder` instance, or `nil` if the capture service is not active.
-    public func buildSpan(name: String, type: EmbraceType, attributes: [String: String]) -> SpanBuilder? {
-        guard state == .active else {
-            return nil
-        }
-
-        return otel?.buildSpan(name: name, type: type, attributes: attributes, autoTerminationCode: nil)
-    }
-
-    /// Adds the given event to the session.
-    /// Use this method to generate events with the capture service.
-    /// - Parameters:
-    ///   - event: `RecordingSpanEvent` instance to add.
-    /// - Returns: Boolean indicating if the event was successfully added. If the capture service is not active, this method always returns false.
-    @discardableResult
-    public func add(event: RecordingSpanEvent) -> Bool {
-        guard state == .active else {
-            return false
-        }
-
-        otel?.add(event: event)
-        return true
-    }
-
-    /// Adds the given events to the session.
-    /// Use this method to generate events with the capture service.
-    /// - Parameters:
-    ///   - events: Array of `RecordingSpanEvents` to add.
-    /// - Returns: Boolean indicating if the events were successfully added. If the capture service is not active, this method always returns false.
-    @discardableResult
-    public func add(events: [RecordingSpanEvent]) -> Bool {
-        guard state == .active else {
-            return false
-        }
-
-        otel?.add(events: events)
-        return true
     }
 }

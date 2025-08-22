@@ -19,7 +19,7 @@ extension Notification.Name {
 
 protocol URLSessionTaskHandlerDataSource: AnyObject {
     var state: CaptureServiceState { get }
-    var otel: EmbraceOpenTelemetry? { get }
+    var otel: OTelSignalsHandler? { get }
 
     var injectTracingHeader: Bool { get }
     var requestsDataSource: URLSessionRequestsDataSource? { get }
@@ -29,7 +29,7 @@ protocol URLSessionTaskHandlerDataSource: AnyObject {
 }
 
 final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
-    private var spans: [URLSessionTask: Span] = [:]
+    private var spans: [URLSessionTask: EmbraceSpan] = [:]
     private let queue: DispatchableQueue
     private let capturedDataQueue: DispatchableQueue
     private let payloadCaptureHandler: NetworkPayloadCaptureHandler
@@ -109,6 +109,11 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
                 attributes[SpanSemantics.NetworkRequest.keyMethod] = httpMethod
             }
 
+            // This should be modified if we start doing this for streaming tasks.
+            if let bodySize = request.httpBody {
+                attributes[SpanSemantics.NetworkRequest.keyBodySize] = String(bodySize.count)
+            }
+
             /*
              Note: According to the OpenTelemetry specification, the attribute name should be ' {method} {http.route}.
              The `{http.route}` corresponds to the template of the path so it's necessary to understand the templating system being employed.
@@ -125,24 +130,19 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
              - HTTP Attributes: https://opentelemetry.io/docs/specs/semconv/attributes-registry/http/
              */
             let name = httpMethod.isEmpty ? url.path : "\(httpMethod) \(url.path)"
-            let networkSpan = otel.buildSpan(
+            let span = try? otel.createSpan(
                 name: name,
                 type: .networkRequest,
-                attributes: attributes,
-                autoTerminationCode: nil
+                attributes: attributes
             )
 
-            // This should be modified if we start doing this for streaming tasks.
-            if let bodySize = request.httpBody {
-                networkSpan.setAttribute(key: SpanSemantics.NetworkRequest.keyBodySize, value: bodySize.count)
-            }
+            if var span {
+                // tracing header
+                if let tracingHader = self.addTracingHeader(task: task, span: span) {
+                    span.setAttribute(key: SpanSemantics.NetworkRequest.keyTracingHeader, value: tracingHader)
+                }
 
-            let span = networkSpan.startSpan()
-            self.spans[task] = span
-
-            // tracing header
-            if let tracingHader = self.addTracingHeader(task: task, span: span) {
-                span.setAttribute(key: SpanSemantics.NetworkRequest.keyTracingHeader, value: .string(tracingHader))
+                self.spans[task] = span
             }
 
             handled = true
@@ -208,7 +208,7 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
         }
 
         // stop if there was no span for this task
-        guard let span = self.spans.removeValue(forKey: task) else {
+        guard var span = self.spans.removeValue(forKey: task) else {
             return
         }
 
@@ -216,14 +216,14 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
         if let response = task.response as? HTTPURLResponse {
             span.setAttribute(
                 key: SpanSemantics.NetworkRequest.keyStatusCode,
-                value: response.statusCode
+                value: String(response.statusCode)
             )
         }
 
         if let bodySize {
             span.setAttribute(
                 key: SpanSemantics.NetworkRequest.keyResponseSize,
-                value: bodySize
+                value: String(bodySize)
             )
         }
 
@@ -236,7 +236,7 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
             )
             span.setAttribute(
                 key: SpanSemantics.NetworkRequest.keyErrorCode,
-                value: nsError.code
+                value: String(nsError.code)
             )
             span.setAttribute(
                 key: SpanSemantics.NetworkRequest.keyErrorMessage,
@@ -264,7 +264,7 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
         }
     }
 
-    func addTracingHeader(task: URLSessionTask, span: Span) -> String? {
+    func addTracingHeader(task: URLSessionTask, span: EmbraceSpan) -> String? {
         guard dataSource?.injectTracingHeader == true,
             task.originalRequest != nil
         else {

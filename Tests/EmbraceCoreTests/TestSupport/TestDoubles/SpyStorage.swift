@@ -106,9 +106,4 @@ class SpyStorage: Storage {
         didCallRemoveLogs = true
         removeLogsReceivedParameter = logs
     }
-
-    var didCallRemoveAllLogs = false
-    func removeAllLogs() {
-        didCallRemoveAllLogs = true
-    }
 }

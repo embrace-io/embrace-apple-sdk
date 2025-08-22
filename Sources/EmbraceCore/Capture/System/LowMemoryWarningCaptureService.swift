@@ -16,8 +16,6 @@ import OpenTelemetryApi
 @objc(EMBLowMemoryWarningCaptureService)
 public class LowMemoryWarningCaptureService: CaptureService {
 
-    public var onWarningCaptured: (() -> Void)?
-
     @ThreadSafe var started = false
 
     deinit {
@@ -39,16 +37,11 @@ public class LowMemoryWarningCaptureService: CaptureService {
             return
         }
 
-        let event = RecordingSpanEvent(
+        let event = EmbraceSpanEvent(
             name: SpanEventSemantics.LowMemory.name,
-            timestamp: Date(),
-            attributes: [
-                SpanEventSemantics.keyEmbraceType: .string(EmbraceType.lowMemory.rawValue)
-            ]
+            type: .lowMemory
         )
 
-        if add(event: event) {
-            onWarningCaptured?()
-        }
+        try? otel?.addEvent(event)
     }
 }

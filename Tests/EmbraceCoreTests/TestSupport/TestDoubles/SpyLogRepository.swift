@@ -23,11 +23,6 @@ class SpyLogRepository: LogRepository {
         didCallRemoveLogs = true
     }
 
-    var didCallRemoveAllLogs = false
-    func removeAllLogs() {
-        didCallRemoveAllLogs = true
-    }
-
     var didCallCreate = false
     func createLog(
         id: EmbraceIdentifier,

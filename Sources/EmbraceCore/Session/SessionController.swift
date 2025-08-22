@@ -216,9 +216,7 @@ class SessionController: SessionControllable {
             }
 
             // update session end time and clean exit
-            if session.id != nil {
-                currentSession = storage?.updateSession(session: session, endTime: now, cleanExit: true)
-            }
+            currentSession = storage?.updateSession(session: session, endTime: now, cleanExit: true)
 
             // post internal notification
             if session.state == SessionState.foreground {
@@ -244,7 +242,6 @@ class SessionController: SessionControllable {
 
         if let span = currentSessionSpan {
             SessionSpanUtils.setState(span: span, state: state)
-            Embrace.client?.flush(span)
         }
     }
 
@@ -257,7 +254,6 @@ class SessionController: SessionControllable {
 
         if let span = currentSessionSpan {
             SessionSpanUtils.setTerminated(span: span, terminated: appTerminated)
-            Embrace.client?.flush(span)
         }
     }
 
@@ -270,7 +266,6 @@ class SessionController: SessionControllable {
 
         if let span = currentSessionSpan {
             SessionSpanUtils.setHeartbeat(span: span, heartbeat: heartbeat)
-            Embrace.client?.flush(span)
         }
     }
 

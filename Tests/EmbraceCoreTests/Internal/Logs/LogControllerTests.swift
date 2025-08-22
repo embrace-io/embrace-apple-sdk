@@ -401,11 +401,6 @@ extension LogControllerTests {
         XCTAssertEqual(unwrappedStorage.fetchAllExcludingProcessIdentifierReceivedParameter, pid)
     }
 
-    fileprivate func thenStorageShouldHaveRemoveAllLogs() throws {
-        let unwrappedStorage = try XCTUnwrap(storage)
-        XCTAssertTrue(unwrappedStorage.didCallRemoveAllLogs)
-    }
-
     fileprivate func thenLogUploadShouldUpload(times: Int) {
         XCTAssertEqual(upload.didCallUploadLogCount, times)
     }

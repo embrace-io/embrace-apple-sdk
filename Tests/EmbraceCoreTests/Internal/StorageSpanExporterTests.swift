@@ -116,9 +116,7 @@ final class StorageSpanExporterTests: XCTestCase {
 
         XCTAssertNotNil(exportedSpan!.sessionIdRaw)
         XCTAssertEqual(exportedSpan!.sessionIdRaw, sessionController.currentSession?.id.stringValue)
-
-        let spanData = try JSONDecoder().decode(SpanData.self, from: exportedSpan!.data)
-        XCTAssertEqual(spanData.attributes["foo"], .string("baz"))
+        XCTAssertTrue(exportedSpan!.attributes.contains("foo,baz"))
     }
 
     func test_noExport_onSessionEnd() throws {
@@ -332,8 +330,6 @@ final class StorageSpanExporterTests: XCTestCase {
         XCTAssertTrue(exportedSpans.count == 1)
         XCTAssertEqual(exportedSpans[0].traceId, traceId.hexString)
         XCTAssertEqual(exportedSpans[0].id, spanId.hexString)
-
-        let spanData = try JSONDecoder().decode(SpanData.self, from: exportedSpans[0].data)
-        XCTAssertEqual(spanData.attributes["session.id"], .string(sessionController.currentSession!.idRaw))
+        XCTAssertTrue(exportedSpans[0].attributes.contains("session.id,\(sessionController.currentSession!.id.stringValue)"))
     }
 }

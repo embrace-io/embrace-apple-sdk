@@ -61,7 +61,7 @@ class MetricKitCrashCaptureService: CaptureService, MetricKitCrashPayloadListene
             type: .crash,
             timestamp: Date(),
             attributes: attributes,
-            stackTraceBehavior: .notIncluded
+            stackTraceBehavior: .notIncluded()
         )
     }
 }

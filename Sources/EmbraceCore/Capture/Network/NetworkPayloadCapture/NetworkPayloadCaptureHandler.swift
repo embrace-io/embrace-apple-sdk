@@ -35,9 +35,9 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
     }
     internal var state: EmbraceMutex<MutableState>
 
-    private var otel: EmbraceOpenTelemetry?
+    private var otel: OTelSignalsHandler?
 
-    init(otel: EmbraceOpenTelemetry?) {
+    init(otel: OTelSignalsHandler?) {
         self.otel = otel
         self.state = EmbraceMutex(MutableState())
 
@@ -168,8 +168,7 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
                     LogSemantics.NetworkCapture.keyEncryptedKey: result.key,
                     LogSemantics.NetworkCapture.keyKeyAlgorithm: result.keyAlgorithm,
                     LogSemantics.NetworkCapture.keyAesIv: result.iv
-                ],
-                stackTraceBehavior: .default
+                ]
             )
 
             // flag rule as triggered

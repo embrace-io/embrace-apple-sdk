@@ -4,7 +4,9 @@
 
 import Foundation
 
-public struct EmbraceStackTrace: Equatable {
+/// Class used to add custom stack traces to `EmbraceLogs`.
+@objc
+public class EmbraceStackTrace: NSObject {
     /// The maximum amount of characters a stack trace frame can have.
     private static let maximumFrameLength = 10000
 
@@ -32,8 +34,8 @@ public struct EmbraceStackTrace: Equatable {
     /// - Throws: An `EmbraceStackTraceError.invalidFormat` if any of the frames are not in the expected format
     /// - Throws: An `EmbraceStackTraceError.frameIsTooLong` if any of the frames has more than the `maximumFrameLength` (10.000 characters).
     ///
-    /// - Important: a stacktrace can't have more than `maximumAmountOfFrames` (200); if that happens, we'll trim the exceeding frames.
-    public init(frames: [String]) throws {
+    /// - Important: A stacktrace can't have more than `maximumAmountOfFrames` (200); if that happens, we'll trim the exceeding frames.
+    @objc public init(frames: [String]) throws {
         let trimmedStackTrace = EmbraceStackTrace.trimStackTrace(frames)
         try EmbraceStackTrace.validateStackFrames(trimmedStackTrace)
         self.frames = trimmedStackTrace

@@ -87,7 +87,7 @@ class StorageEmbraceLogExporter: LogRecordExporter {
             }
 
             if canExport {
-                self.logBatcher.addLogRecord(logRecord: log)
+//                self.logBatcher.addLogRecord(logRecord: log)
             }
         }
 

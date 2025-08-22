@@ -27,63 +27,61 @@ class StorageSpanExporter: SpanExporter {
     }
 
     @discardableResult public func export(spans: [SpanData], explicitTimeout: TimeInterval?) -> SpanExporterResultCode {
-        guard let storage = storage else {
-            return .failure
-        }
+//        guard let storage = storage else {
+//            return .failure
+//        }
 
-        var result = SpanExporterResultCode.success
-        for var spanData in spans {
+//        var result = SpanExporterResultCode.success
+//        for var spanData in spans {
+//
+//            // spanData endTime is non-optional and will be set during `toSpanData()`
+//            let endTime = spanData.hasEnded ? spanData.endTime : nil
+//
+//            // Prevent exporting our session spans on end.
+//            // This process is handled by the `SessionController` to prevent
+//            // race conditions when a session ends and its payload gets built.
+//            if endTime != nil && spanData.embType == .session {
+//                continue
+//            }
+//
+//            // sanitize name
+//            let spanName = sanitizedName(spanData.name, type: spanData.embType)
+//            guard !spanName.isEmpty else {
+//                logger?.warning("Can't export span with empty name!")
+//                result = .failure
+//                continue
+//            }
+//
+//            do {
+//                // add session id attribute
+//                if let sessionId = sessionController?.currentSession?.id {
+//                    var attributes = spanData.attributes
+//                    attributes[SpanSemantics.keySessionId] = .string(sessionId.stringValue)
+//                    spanData = spanData.settingAttributes(attributes)
+//                }
+//
+//                storage.upsertSpan(
+//                    id: spanData.spanId.hexString,
+//                    traceId: spanData.traceId.hexString,
+//                    parentSpanId: spanData.parentSpanId?.hexString,
+//                    name: spanName,
+//                    type: spanData.embType,
+//                    status: spanData.embStatus,
+//                    startTime: spanData.startTime,
+//                    endTime: endTime,
+//                    sessionId: sessionController?.currentSession?.id,
+//                    processId: ProcessIdentifier.current,
+//                    events: spanData.embEvents,
+//                    links: spanData.embLinks,
+//                    attributes: spanData.embAttributes
+//                )
+//            } catch let exception {
+//                self.logger?.error(exception.localizedDescription)
+//                result = .failure
+//            }
+//        }
 
-            // spanData endTime is non-optional and will be set during `toSpanData()`
-            let endTime = spanData.hasEnded ? spanData.endTime : nil
-
-            // Prevent exporting our session spans on end.
-            // This process is handled by the `SessionController` to prevent
-            // race conditions when a session ends and its payload gets built.
-            if endTime != nil && spanData.embType == .session {
-                continue
-            }
-
-            // sanitize name
-            let spanName = sanitizedName(spanData.name, type: spanData.embType)
-            guard !spanName.isEmpty else {
-                logger?.warning("Can't export span with empty name!")
-                result = .failure
-                continue
-            }
-
-            do {
-                // add session id attribute
-                if let sessionId = sessionController?.currentSession?.id {
-                    var attributes = spanData.attributes
-                    attributes[SpanSemantics.keySessionId] = .string(sessionId.stringValue)
-                    spanData = spanData.settingAttributes(attributes)
-                }
-                
-                let data = try spanData.toJSON()
-
-                storage.upsertSpan(
-                    id: spanData.spanId.hexString,
-                    traceId: spanData.traceId.hexString,
-                    parentSpanId: spanData.parentSpanId?.hexString,
-                    name: spanName,
-                    type: spanData.embType,
-                    status: spanData.embStatus,
-                    startTime: spanData.startTime,
-                    endTime: endTime,
-                    sessionId: sessionController?.currentSession?.id,
-                    processId: ProcessIdentifier.current,
-                    events: spanData.embEvents,
-                    links: spanData.embLinks,
-                    attributes: spanData.embAttributes
-                )
-            } catch let exception {
-                self.logger?.error(exception.localizedDescription)
-                result = .failure
-            }
-        }
-
-        return result
+        return .success
     }
 
     public func flush(explicitTimeout: TimeInterval?) -> SpanExporterResultCode {

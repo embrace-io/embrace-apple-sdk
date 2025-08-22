@@ -8,7 +8,7 @@ import OpenTelemetryApi
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
     import EmbraceConfigInternal
-    import EmbraceOTelInternal
+    import EmbraceSemantics
     import EmbraceStorageInternal
     import EmbraceUploadInternal
     import EmbraceConfiguration
@@ -120,26 +120,38 @@ extension Embrace {
 /// Extension to handle observability of SDK startup
 extension Embrace {
 
-    func createProcessStartSpan() -> Span {
-        let builder = buildSpan(name: "emb-process-launch", type: .performance)
-            .markAsPrivate()
+    func createProcessStartSpans() -> [EmbraceSpan] {
+        var result: [EmbraceSpan] = []
 
-        if let startTime = ProcessMetadata.startTime {
-            builder.setStartTime(time: startTime)
+        // emb-process-launch
+        var startTime = Date()
+        var status = EmbraceSpanStatus.ok
+
+        if let time = ProcessMetadata.startTime {
+            startTime = time
         } else {
-            // start time will default to "now" but span will be marked with error
-            builder.error(errorCode: .unknown)
+            status = .error
         }
 
-        return builder.startSpan()
-    }
+        let parent = try? otel.createSpan(
+            name: "emb-process-launch",
+            status: status,
+            startTime: startTime
+        )
+        if let parent {
+            result.append(parent)
+        }
 
-    func recordSetupSpan(startTime: Date) {
-        buildSpan(name: "emb-setup", type: .performance)
-            .markAsPrivate()
-            .setStartTime(time: startTime)
-            .startSpan()
-            .end()
+        // emb-sdk-start-process
+        let span = try? otel.createSpan(
+            name: "emb-sdk-start-process",
+            parentSpan: parent
+        )
+        if let span {
+            result.append(span)
+        }
+
+        return result
     }
 }
 

@@ -1,7 +1,7 @@
 //
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
-
+/*
 import Foundation
 import OpenTelemetryApi
 import OpenTelemetrySdk
@@ -339,3 +339,4 @@ extension Embrace {  // MARK: Internal methods
         return result
     }
 }
+*/

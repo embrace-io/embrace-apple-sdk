@@ -10,6 +10,7 @@ import Foundation
     import EmbraceStorageInternal
     import EmbraceUploadInternal
     import EmbraceConfiguration
+    import EmbraceSemantics
 #endif
 
 final class CaptureServices {
@@ -23,14 +24,17 @@ final class CaptureServices {
     var crashReporter: EmbraceCrashReporter?
 
     weak var config: EmbraceConfigurable?
+    weak var otel: EmbraceOTelSignalsHandler?
 
     init(
         options: Embrace.Options,
         config: EmbraceConfigurable?,
         storage: EmbraceStorage?,
-        upload: EmbraceUpload?
+        upload: EmbraceUpload?,
+        otel: EmbraceOTelSignalsHandler?
     ) throws {
         self.config = config
+        self.otel = otel
 
         // add required capture services
         // and remove duplicates
@@ -60,7 +64,7 @@ final class CaptureServices {
                     session: nil,
                     storage: storage,
                     upload: upload,
-                    otel: Embrace.client
+                    otel: otel
                 )
             }
         }
@@ -126,7 +130,7 @@ final class CaptureServices {
         crashReporter?.install(context: context)
 
         for service in services {
-            service.install(otel: Embrace.client, logger: Embrace.logger)
+            service.install(otel: otel, logger: Embrace.logger)
         }
     }
 

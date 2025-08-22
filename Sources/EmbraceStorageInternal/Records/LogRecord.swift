@@ -19,36 +19,21 @@ public class LogRecord: NSManagedObject {
     @NSManaged public var timestamp: Date
     @NSManaged public var attributes: String
 
-    class func create(
-        context: NSManagedObjectContext,
-        id: String,
-        sessionId: EmbraceIdentifier?,
-        processId: EmbraceIdentifier,
-        severity: EmbraceLogSeverity,
-        body: String,
-        timestamp: Date = Date(),
-        attributes: [String: String]
-    ) -> EmbraceLog? {
-        var result: EmbraceLog?
-
+    class func create(context: NSManagedObjectContext, log: EmbraceLog) {
         context.performAndWait {
             guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
                 return
             }
 
             let record = LogRecord(entity: description, insertInto: context)
-            record.id = id
-            record.sessionIdRaw = sessionId?.stringValue
-            record.processIdRaw = processId.stringValue
-            record.severityRaw = severity.rawValue
-            record.body = body
-            record.timestamp = timestamp
-            record.attributes = attributes.keyValueEncoded()
-
-            result = record.toImmutable(attributes: attributes)
+            record.id = log.id
+            record.sessionIdRaw = log.sessionId?.stringValue
+            record.processIdRaw = log.processId.stringValue
+            record.severityRaw = log.severity.rawValue
+            record.body = log.body
+            record.timestamp = log.timestamp
+            record.attributes = log.attributes.keyValueEncoded()
         }
-
-        return result
     }
 
     static func createFetchRequest() -> NSFetchRequest<LogRecord> {
@@ -136,8 +121,4 @@ struct ImmutableLogRecord: EmbraceLog {
     let timestamp: Date
     let body: String
     let attributes: [String: String]
-
-    func setAttribute(key: String, value: String?) {
-        // no op
-    }
 }

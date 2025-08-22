@@ -93,8 +93,7 @@
             let viewName = accessibilityIdentifier ?? String(describing: targetClass)
 
             var attributes: [String: AttributeValue] = [
-                SpanEventSemantics.Tap.keyViewName: .string(viewName),
-                SpanEventSemantics.keyEmbraceType: .string(EmbraceType.tap.rawValue)
+                SpanEventSemantics.Tap.keyViewName: .string(viewName)
             ]
 
             // get coordinates
@@ -107,12 +106,11 @@
             }
 
             // create span event
-            let event = RecordingSpanEvent(
+            let event = EmbraceSpanEvent(
                 name: SpanEventSemantics.Tap.name,
-                timestamp: Date(),
-                attributes: attributes
+                type: .tap
             )
-            add(event: event)
+            try? otel?.addEvent(event)
         }
 
         func shouldRecordCoordinates(from target: UIView) -> Bool {

@@ -20,7 +20,7 @@ protocol LogBatcherDelegate: AnyObject {
 }
 
 protocol LogBatcher: AnyObject {
-    func addLogRecord(logRecord: ReadableLogRecord)
+    func addLog(_ log: EmbraceLog)
     func renewBatch(withLogs logRecords: [EmbraceLog])
     func forceEndCurrentBatch(waitUntilFinished: Bool)
     var limits: LogsLimits { get }
@@ -49,22 +49,6 @@ class DefaultLogBatcher: LogBatcher {
         self.logLimits = logLimits
         self.processorQueue = processorQueue
         self.delegate = delegate
-    }
-
-    func addLogRecord(logRecord: ReadableLogRecord) {
-        processorQueue.async {
-            if let record = self.repository.createLog(
-                id: EmbraceIdentifier.random,
-                sessionId: self.delegate?.currentSessionId,
-                processId: ProcessIdentifier.current,
-                severity: logRecord.severity?.toLogSeverity() ?? .info,
-                body: logRecord.body?.description ?? "",
-                timestamp: logRecord.timestamp,
-                attributes: logRecord.attributes.toStringValues()
-            ) {
-                self.addLogToBatch(record)
-            }
-        }
     }
 }
 
@@ -108,7 +92,7 @@ extension DefaultLogBatcher {
         }
     }
 
-    func addLogToBatch(_ log: EmbraceLog) {
+    func addLog(_ log: EmbraceLog) {
         processorQueue.async {
             if let batch = self.batch {
                 let result = batch.add(log: log)

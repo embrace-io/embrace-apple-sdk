@@ -5,7 +5,7 @@
 import OpenTelemetryApi
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceOTelInternal
+    import EmbraceSemantics
 #endif
 
 extension W3C {
@@ -14,18 +14,17 @@ extension W3C {
     /// Creates a W3C [traceparent](https://www.w3.org/TR/trace-context/#traceparent-header) header value.
     /// - Parameters:
     ///     - span: The span to create the traceparent header from
-    public static func traceparent(from span: Span) -> String {
+    public static func traceparent(from span: EmbraceSpan) -> String {
         return traceparent(from: span.context)
     }
 
     /// Creates a W3C [traceparent](https://www.w3.org/TR/trace-context/#traceparent-header) header value.
     /// - Parameters:
     ///    - context:   The span context to create the traceparent header from
-    public static func traceparent(from context: SpanContext) -> String {
+    public static func traceparent(from context: EmbraceSpanContext) -> String {
         return traceparent(
-            traceId: context.traceId.hexString,
-            spanId: context.spanId.hexString,
-            sampled: context.traceFlags.sampled
+            traceId: context.traceId,
+            spanId: context.spanId
         )
     }
 

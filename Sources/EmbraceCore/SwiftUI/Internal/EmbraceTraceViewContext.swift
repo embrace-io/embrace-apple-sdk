@@ -6,6 +6,10 @@
 import OpenTelemetryApi
 import SwiftUI
 
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceSemantics
+#endif
+
 /// The environment key used to store a single `EmbraceTraceViewContext` instance
 /// throughout the SwiftUI view hierarchy.
 ///
@@ -37,5 +41,5 @@ extension EnvironmentValues {
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
 final class EmbraceTraceViewContext {
     /// The parent span for the current render cycle. Reset to `nil` once ended.
-    var firstCycleSpan: Span?
+    var firstCycleSpan: EmbraceSpan?
 }

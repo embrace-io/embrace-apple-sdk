@@ -5,9 +5,9 @@
     import UIKit
     import SwiftUI
     #if !EMBRACE_COCOAPOD_BUILDING_SDK
+        import EmbraceSemantics
         import EmbraceCaptureService
         import EmbraceCommonInternal
-        import EmbraceOTelInternal
         import EmbraceConfigInternal
         import EmbraceConfiguration
     #endif
@@ -102,7 +102,7 @@
             handler.onViewBecameInteractive(vc)
         }
 
-        func parentSpan(for vc: UIViewController) -> Span? {
+        func parentSpan(for vc: UIViewController) -> EmbraceSpan? {
             return handler.parentSpan(for: vc)
         }
 
