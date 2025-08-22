@@ -177,6 +177,7 @@ final class HangWatchdogTests: XCTestCase {
 // MARK: - Test Helpers
 
 class MockHangObserver: HangObserver {
+
     // Callback handlers
     var onHangStarted: ((UInt64, UInt64) -> Void)?
     var onHangUpdated: ((UInt64, UInt64) -> Void)?
