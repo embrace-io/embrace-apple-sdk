@@ -26,21 +26,45 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # iOS
           - platform_args: "iOS"
+
+          - platform_args: "iOS"
+            xcode_version: "26.0"
+
           - platform_args: "iOS"
             xcode_version: "15.4"
+            macos-version: "14"
+
+            # tvOS
+          - platform_args: "tvOS"
 
           - platform_args: "tvOS"
+            xcode_version: "26.0"
+
           - platform_args: "tvOS"
             xcode_version: "15.4"
+            macos-version: "14"
+
+            # macOS
+          - platform_args: "macOS"
 
           - platform_args: "macOS"
+            xcode_version: "26.0"
+
           - platform_args: "macOS"
             xcode_version: "15.4"
+            macos-version: "14"
+
+            # watchOS
+          - platform_args: "watchOS"
 
           - platform_args: "watchOS"
+            xcode_version: "26.0"
+
           - platform_args: "watchOS"
             xcode_version: "15.4"
+            macos-version: "14"
 
     permissions:
       checks: write
