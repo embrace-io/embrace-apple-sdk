@@ -1,3 +1,11 @@
+## 6.13.1
+*Aug 26, 2025*
+* Fixes
+    * Made some helpers public to allow building `CaptureServices`.
+* Improvements
+    * Bumped OpenTelemetry to 2.0.1, which includes minor changes.
+    * Updated documentation to mark `addResource` as internal-use only.
+
 ## 6.13.0
 *Aug 1, 2025*
 * Features
