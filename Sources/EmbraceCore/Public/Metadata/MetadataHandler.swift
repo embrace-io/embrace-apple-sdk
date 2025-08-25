@@ -79,6 +79,7 @@ public class MetadataHandler: NSObject {
     ///   - lifespan: The lifespan of the resource to add.
     /// - Throws: `MetadataError.invalidKey` if the key is longer than 128 characters.
     /// - Throws: `MetadataError.invalidSession` if a resource with a `.session` lifespan is added when there's no active session.
+    @available(*, deprecated, message: "For internal purposes only, will be removed eventually.")
     @objc public func addResource(key: String, value: String, lifespan: MetadataLifespan = .session) throws {
         try addMetadata(key: key, value: value, type: .resource, lifespan: lifespan)
     }
