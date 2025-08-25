@@ -28,9 +28,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        macos-version: ["14"]
-        xcode_version: ["15.4"]
         platform: ["iOS"]
+        xcode_version: ["15.4"]
+        macos-version: ["14"]
         include:
           # iOS
           - platform: "iOS"
