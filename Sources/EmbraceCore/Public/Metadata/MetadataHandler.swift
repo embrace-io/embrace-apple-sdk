@@ -83,7 +83,7 @@ public class MetadataHandler: NSObject {
         try addMetadata(key: key, value: value, type: .resource, lifespan: lifespan)
     }
 
-    public func addCriticalResource(key: String, value: String) {
+    func addCriticalResource(key: String, value: String) {
         storage?.addCriticalResources([key: value], processId: .current)
     }
 
