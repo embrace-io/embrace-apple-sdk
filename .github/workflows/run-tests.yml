@@ -48,7 +48,7 @@ jobs:
           #  macos-version: "14"
 
             # tvOS
-          - platform: "tvOS"
+          #- platform: "tvOS"
 
           #- platform: "tvOS"
           #  xcode_version: "26.0"
@@ -58,7 +58,7 @@ jobs:
           #  macos-version: "14"
 
             # macOS
-          - platform: "macOS"
+          #- platform: "macOS"
 
           #- platform: "macOS"
           #  xcode_version: "26.0"
@@ -68,7 +68,7 @@ jobs:
           #  macos-version: "14"
 
             # watchOS
-          - platform: "watchOS"
+          #- platform: "watchOS"
 
           #- platform: "watchOS"
           #  xcode_version: "26.0"
