@@ -79,17 +79,6 @@ jobs:
           xcodebuild -version
         continue-on-error: false
 
-      - name: Display Available SDKs
-        run: xcodebuild -showsdks -json
-        timeout-minutes: 1
-        continue-on-error: true
-
-      - name: Display Available Simulators
-        run: |
-          xcrun simctl list -j devices available
-        timeout-minutes: 2
-        continue-on-error: true
-
       - uses: actions/checkout@v4
         timeout-minutes: 2
         with:
@@ -108,8 +97,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-spm-build-cache-test
 
-      
-
       - name: Install xcbeautify
         run: brew install xcbeautify
 
@@ -117,11 +104,17 @@ jobs:
         run: bin/test ${{ matrix.platform_args }} | xcbeautify && exit ${PIPESTATUS[0]}
         timeout-minutes: 30
 
+      - name: List files in .build/test/
+        run: ls -l .build/test/ | grep output
+
+      - name: List files in .build/test/output
+        run: ls -l .build/test/output | grep output
+
       - name: Upload xcresult Bundle Manually
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: output_xcresult
+          name: output_xcresult_${{ matrix.platform_args }}
           path: .build/test/output.xcresult
 
       - uses: kishikawakatsumi/xcresulttool@2b37f116695328d5e503ac8dadca0f1545a51da4 # v1.7.1
@@ -137,7 +130,10 @@ jobs:
         run: |
           brew install a7ex/homebrew-formulae/xcresultparser
           xcresultparser --output-format cobertura .build/test/output.xcresult > .build/test/output.xcresult.xml
-
+      
+      - name: List files in .build/test/output
+        run: ls -l .build/test/output | grep output
+        
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5.4.3
         env:
