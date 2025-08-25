@@ -1,5 +1,8 @@
 name: Run Swift Tests
 
+env:
+  default-macos: 14
+
 on:
   workflow_call:
     secrets:
@@ -21,53 +24,56 @@ concurrency:
 jobs:
   run-tests:
     timeout-minutes: 30
-    runs-on: macos-${{ matrix.macos-version || '14' }}
+    runs-on: macos-${{ matrix.macos-version }}
     strategy:
       fail-fast: false
       matrix:
+        macos-version: ["14"]
+        xcode_version: ["15.4"]
+        platform: ["iOS"]
         include:
           # iOS
-          - platform_args: "iOS"
+          - platform: "iOS"
 
-          - platform_args: "iOS"
+          - platform: "iOS"
             xcode_version: "16.4"
             macos-version: "15"
 
-          #- platform_args: "iOS"
+          #- platform: "iOS"
           #  xcode_version: "26.0"
           #  macos-version: "15"
 
-          #- platform_args: "iOS"
+          #- platform: "iOS"
           #  xcode_version: "15.4"
           #  macos-version: "14"
 
             # tvOS
-          - platform_args: "tvOS"
+          - platform: "tvOS"
 
-          #- platform_args: "tvOS"
+          #- platform: "tvOS"
           #  xcode_version: "26.0"
 
-          #- platform_args: "tvOS"
+          #- platform: "tvOS"
           #  xcode_version: "15.4"
           #  macos-version: "14"
 
             # macOS
-          - platform_args: "macOS"
+          - platform: "macOS"
 
-          #- platform_args: "macOS"
+          #- platform: "macOS"
           #  xcode_version: "26.0"
 
-          #- platform_args: "macOS"
+          #- platform: "macOS"
           # xcode_version: "15.4"
           #  macos-version: "14"
 
             # watchOS
-          - platform_args: "watchOS"
+          - platform: "watchOS"
 
-          #- platform_args: "watchOS"
+          #- platform: "watchOS"
           #  xcode_version: "26.0"
 
-          #- platform_args: "watchOS"
+          #- platform: "watchOS"
           #  xcode_version: "15.4"
           #  macos-version: "14"
 
@@ -83,7 +89,7 @@ jobs:
         # See https://github.com/actions/runner-images/blob/main/images/macos/macos-15-Readme.md
       - name: Select Xcode
         run: |
-          sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version || '15.4' }}.app
+          sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app
           xcodebuild -version
         continue-on-error: false
 
@@ -109,14 +115,14 @@ jobs:
         run: brew install xcbeautify
 
       - name: Run Tests
-        run: bin/test ${{ matrix.platform_args }} | xcbeautify && exit ${PIPESTATUS[0]}
+        run: bin/test ${{ matrix.platform }} | xcbeautify && exit ${PIPESTATUS[0]}
         timeout-minutes: 30
 
       - name: Upload xcresult Bundle Manually
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: output_xcresult_${{ matrix.platform_args }}_xcode_${{ matrix.xcode_version || '15.4' }}_macos_${{ matrix.macos-version || '14' }}
+          name: output_xcresult_${{ matrix.platform }}_xcode_${{ matrix.xcode_version }}_macos_${{ matrix.macos-version }}
           path: .build/test/output.xcresult
 
       - uses: kishikawakatsumi/xcresulttool@2b37f116695328d5e503ac8dadca0f1545a51da4 # v1.7.1
