@@ -30,8 +30,12 @@ jobs:
           - platform_args: "iOS"
 
           - platform_args: "iOS"
-            xcode_version: "26.0"
+            xcode_version: "16.4"
             macos-version: "15"
+
+          #- platform_args: "iOS"
+          #  xcode_version: "26.0"
+          #  macos-version: "15"
 
           #- platform_args: "iOS"
           #  xcode_version: "15.4"
