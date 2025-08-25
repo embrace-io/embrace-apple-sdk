@@ -74,6 +74,10 @@ jobs:
     permissions:
       checks: write
     steps:
+
+      - name: Show all env
+        run: env
+
       - name: List available Xcode versions
         run: ls /Applications | grep Xcode
   
