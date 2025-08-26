@@ -181,6 +181,28 @@ class NetworkingSwizzle: NSObject {
             }
         }
 
+        attemptToMatchSpansByStartTime()
+
+        NotificationCenter.default.post(name: NSNotification.Name("NetworkingSwizzle.CapturedNewPayload"), object: nil)
+    }
+
+    private func capturedExportedSpan(_ spanExporter: TestSpanExporter) {
+        for span in spanExporter.latestExportedSpans {
+            if span.name == "emb-session" {
+                if let currentSessionId = span.attributes["session.id"]?.description {
+                    exportedSpansBySession[currentSessionId, default: []].append(span)
+                } else {
+                    exportedOrphanedSpans.append(span)
+                }
+            } else {
+                exportedOrphanedSpans.append(span)
+            }
+        }
+
+        attemptToMatchSpansByStartTime()
+    }
+
+    private func attemptToMatchSpansByStartTime() {
         // Attempt to match orphaned spans by start time.
         postedJsonsSessionIds.forEach { sessionId in
             postedJsons[sessionId]?.forEach { json in
@@ -209,22 +231,6 @@ class NetworkingSwizzle: NSObject {
 
                 }
                 exportedOrphanedSpans.removeAll { exportedSpansBySession[sessionId]?.firstIndex(of: $0) != nil }
-            }
-        }
-
-        NotificationCenter.default.post(name: NSNotification.Name("NetworkingSwizzle.CapturedNewPayload"), object: nil)
-    }
-
-    private func capturedExportedSpan(_ spanExporter: TestSpanExporter) {
-        for span in spanExporter.latestExportedSpans {
-            if span.name == "emb-session" {
-                if let currentSessionId = span.attributes["session.id"]?.description {
-                    exportedSpansBySession[currentSessionId, default: []].append(span)
-                } else {
-                    exportedOrphanedSpans.append(span)
-                }
-            } else {
-                exportedOrphanedSpans.append(span)
             }
         }
     }
