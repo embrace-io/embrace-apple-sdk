@@ -13,6 +13,7 @@
     @testable import EmbraceCore
 
     extension RunLoop {
+        @MainActor
         func waitForNextTick() async {
             await withUnsafeContinuation { continuation in
                 perform(inModes: [.common]) {
