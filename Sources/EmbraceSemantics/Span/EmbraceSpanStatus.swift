@@ -3,6 +3,7 @@
 //
 
 /// Defines all possible statuses for spans.
+@objc
 public enum EmbraceSpanStatus: Int {
     case ok
     case unset

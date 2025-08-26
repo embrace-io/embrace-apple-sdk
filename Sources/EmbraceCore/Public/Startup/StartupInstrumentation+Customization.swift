@@ -51,15 +51,15 @@ extension StartupInstrumentation {
     ///   - attributes: A dictionary of attributes to add to the trace. Each key-value pair represents an attribute.
     /// - Returns: A boolean indicating if the operation was succesful.
     @discardableResult
-    public func addAttributesToTrace(_ attributes: [String: String]) -> Bool {
+    public func addAttributesToTrace(_ attributes: [String: String]) throws -> Bool {
 
-        return state.withLock {
+        return try state.withLock {
             guard var rootSpan = $0.rootSpan else {
                 return false
             }
 
-            attributes.forEach {
-                rootSpan.setAttribute(key: $0.key, value: $0.value)
+            try attributes.forEach {
+                try rootSpan.setAttribute(key: $0.key, value: $0.value)
             }
 
             return true

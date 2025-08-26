@@ -44,7 +44,7 @@ class DefaultEmbraceSpan: EmbraceSpan {
         set { state.safeValue.links = newValue }
     }
 
-    private(set) var attributes: [String : String] {
+    var attributes: [String : String] {
         get { state.safeValue.attributes }
         set { state.safeValue.attributes = newValue }
     }
@@ -96,17 +96,19 @@ class DefaultEmbraceSpan: EmbraceSpan {
         delegate?.onSpanStatusUpdated(self, status: status)
     }
     
-    func addEvent(_ event: EmbraceSpanEvent) {
+    func addEvent(name: String, type: EmbraceType, timestamp: Date, attributes: [String : String]) throws {
+        let event = EmbraceSpanEvent(name: name, type: type, timestamp: timestamp, attributes: attributes)
         events.append(event)
         delegate?.onSpanEventAdded(self, event: event)
     }
-    
-    func addLink(_ link: EmbraceSpanLink) {
+
+    func addLink(spanId: String, traceId: String, attributes: [String : String]) throws {
+        let link = EmbraceSpanLink(spanId: spanId, traceId: traceId, attributes: attributes)
         links.append(link)
         delegate?.onSpanLinkAdded(self, link: link)
     }
-    
-    func setAttribute(key: String, value: String?) {
+
+    func setAttribute(key: String, value: String?) throws {
         attributes[key] = value
         delegate?.onSpanAttributeUpdated(self, attributes: attributes)
     }
@@ -118,5 +120,18 @@ class DefaultEmbraceSpan: EmbraceSpan {
     
     func end() {
         end(endTime: Date())
+    }
+}
+
+extension EmbraceSpan {
+    mutating func setInternalAttribute(key: String, value: String?) {
+        // dont apply limits on internal attributes for our spans
+        guard let internalSpan = self as? DefaultEmbraceSpan else {
+            try? setAttribute(key: key, value: value)
+            return
+        }
+
+        internalSpan.attributes[key] = value
+        internalSpan.delegate?.onSpanAttributeUpdated(self, attributes: attributes)
     }
 }

@@ -13,7 +13,6 @@
     @testable import EmbraceCore
 
     @available(iOS 13, macOS 10.15, tvOS 13, *)
-    @MainActor
     final class EmbraceTraceViewPerfTests: XCTestCase {
 
         var spanProcessor: MockSpanProcessor!
@@ -48,6 +47,7 @@
             traceViewContext = nil
         }
 
+        @MainActor
         func runLayout() {
             let traceView = EmbraceTraceView("BenchmarkScreen") {
                 Text("Performance Test")
@@ -66,6 +66,7 @@
             window.isHidden = true
         }
 
+        @MainActor
         func testEmbraceTraceViewEnabledPerformance() async {
             mockConfig.isSwiftUiViewInstrumentationEnabled = true
             measure {
@@ -73,6 +74,7 @@
             }
         }
 
+        @MainActor
         func testEmbraceTraceViewDisabledPerformance() async {
             mockConfig.isSwiftUiViewInstrumentationEnabled = false
             measure {

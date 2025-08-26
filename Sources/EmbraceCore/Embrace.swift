@@ -192,7 +192,8 @@ import Foundation
             let controller = LogController(
                 storage: storage,
                 upload: upload,
-                controller: sessionController
+                controller: sessionController,
+                queue: processingQueue
             )
             logController = controller
             self.logController = controller

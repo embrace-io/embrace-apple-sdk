@@ -20,11 +20,11 @@ public class DummyLogControllable: LogControllable {
         severity: EmbraceLogSeverity,
         type: EmbraceType,
         timestamp: Date,
-        attachment: Data?,
-        attachmentId: String?,
-        attachmentUrl: URL?,
+        attachment: EmbraceLogAttachment?,
         attributes: [String: String],
-        stackTraceBehavior: StackTraceBehavior
+        stackTraceBehavior: EmbraceStackTraceBehavior,
+        send: Bool,
+        completion: ((EmbraceLog?) -> Void)?
     ) {}
 
     public func batchFinished(withLogs logs: [EmbraceLog]) {}

@@ -59,6 +59,21 @@ public class EmbraceType: NSObject, RawRepresentable {
 
         self.init(primary: PrimaryType(name: first), secondary: secondary)
     }
+
+    @objc override public func isEqual(_ object: Any?) -> Bool {
+        guard let other = object as? Self else {
+            return false
+        }
+
+        return primary == other.primary && secondary == other.secondary
+    }
+
+    @objc override public var hash: Int {
+        var hasher = Hasher()
+        hasher.combine(primary)
+        hasher.combine(secondary ?? "")
+        return hasher.finalize()
+    }
 }
 
 

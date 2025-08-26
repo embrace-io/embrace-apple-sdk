@@ -89,8 +89,8 @@
                 throw parentSpanNotFoundError
             }
 
-            attributes.forEach {
-                parentSpan.setAttribute(key: $0.key, value: $0.value)
+            try attributes.forEach {
+                try parentSpan.setAttribute(key: $0.key, value: $0.value)
             }
         }
     }

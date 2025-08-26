@@ -47,36 +47,29 @@ public protocol EmbraceSpan {
     mutating func setStatus(_ status: EmbraceSpanStatus)
 
     /// Adds an event to the span
-    mutating func addEvent(_ event: EmbraceSpanEvent)
+    /// Can fail if the event limit is reached.
+    mutating func addEvent(
+        name: String,
+        type: EmbraceType,
+        timestamp: Date,
+        attributes: [String: String]
+    ) throws
 
     /// Adds a link to the span
-    mutating func addLink(_ link: EmbraceSpanLink)
+    /// Can fail if the link limit is reached.
+    mutating func addLink(
+        spanId: String,
+        traceId: String,
+        attributes: [String: String]
+    ) throws
 
     /// Sets an attribute to the span
-    mutating func setAttribute(key: String, value: String?)
+    /// Can fail if the attribute limit is reached.
+    mutating func setAttribute(key: String, value: String?) throws
 
     /// Ends the span with the given `endTime`
     mutating func end(endTime: Date)
 
     /// Ends the span with `endTime = Date()`
     mutating func end()
-}
-
-public extension EmbraceSpan {
-    /// Ends the span with the given `EmbraceSpanErrorCode`.
-    /// This adds an Embrace specific attribute with the code, and sets the status to `.error`.
-    /// If no erro code is passed, the status will be set to `.ok`.
-    /// - Parameters:
-    ///   - errorCode: Error code for the span
-    ///   - endTime: Time when the span ended
-    mutating func end(errorCode: EmbraceSpanErrorCode? = nil, endTime: Date = Date()) {
-        if let errorCode {
-            setAttribute(key: SpanSemantics.keyErrorCode, value: errorCode.rawValue)
-            setStatus(.error)
-        } else {
-            setStatus(.ok)
-        }
-
-        end(endTime: endTime)
-    }
 }

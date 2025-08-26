@@ -18,7 +18,7 @@ public class EmbraceSpanContext: NSObject {
     /// - Parameters:
     ///   - spanId: Span identifier of the context
     ///   - traceId: Trace identifier of the context
-    @objc public init(spanId: String, traceId: String) {
+    @objc package init(spanId: String, traceId: String) {
         self.spanId = spanId
         self.traceId = traceId
     }

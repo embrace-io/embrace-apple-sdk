@@ -18,7 +18,7 @@ public class EmbraceSpanLink: NSObject {
     /// - Parameters:
     ///   - context: Span context of the link
     ///   - attributes: Attributes of the link
-    @objc public init(context: EmbraceSpanContext, attributes: [String : String] = [:]) {
+    @objc package init(context: EmbraceSpanContext, attributes: [String : String] = [:]) {
         self.context = context
         self.attributes = attributes
     }
@@ -28,7 +28,7 @@ public class EmbraceSpanLink: NSObject {
     ///   - spanId: Span identifier of the link
     ///   - traceId: Trace identifier of the link
     ///   - attributes: Attributes of the link
-    @objc public convenience init(spanId: String, traceId: String, attributes: [String : String] = [:]) {
+    @objc package convenience init(spanId: String, traceId: String, attributes: [String : String] = [:]) {
         self.init(
             context: EmbraceSpanContext(spanId: spanId, traceId: traceId),
             attributes: attributes

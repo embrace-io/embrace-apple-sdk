@@ -139,7 +139,7 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
             if var span {
                 // tracing header
                 if let tracingHader = self.addTracingHeader(task: task, span: span) {
-                    span.setAttribute(key: SpanSemantics.NetworkRequest.keyTracingHeader, value: tracingHader)
+                    span.setInternalAttribute(key: SpanSemantics.NetworkRequest.keyTracingHeader, value: tracingHader)
                 }
 
                 self.spans[task] = span
@@ -214,14 +214,14 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
 
         // generate attributes from response
         if let response = task.response as? HTTPURLResponse {
-            span.setAttribute(
+            span.setInternalAttribute(
                 key: SpanSemantics.NetworkRequest.keyStatusCode,
                 value: String(response.statusCode)
             )
         }
 
         if let bodySize {
-            span.setAttribute(
+            span.setInternalAttribute(
                 key: SpanSemantics.NetworkRequest.keyResponseSize,
                 value: String(bodySize)
             )
@@ -230,15 +230,15 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
         if let error = error ?? task.error {
             // Should this be something else?
             let nsError = error as NSError
-            span.setAttribute(
+            span.setInternalAttribute(
                 key: SpanSemantics.NetworkRequest.keyErrorType,
                 value: nsError.domain
             )
-            span.setAttribute(
+            span.setInternalAttribute(
                 key: SpanSemantics.NetworkRequest.keyErrorCode,
                 value: String(nsError.code)
             )
-            span.setAttribute(
+            span.setInternalAttribute(
                 key: SpanSemantics.NetworkRequest.keyErrorMessage,
                 value: error.localizedDescription
             )

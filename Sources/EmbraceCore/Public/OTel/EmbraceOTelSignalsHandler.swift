@@ -167,7 +167,7 @@ public class EmbraceOTelSignalsHandler: NSObject, OTelSignalsHandler {
         attributes: [String: String] = [:],
         stackTraceBehavior: EmbraceStackTraceBehavior = .defaultStackTrace()
     ) {
-        if let log = logController?.createLog(
+        logController?.createLog(
             message,
             severity: severity,
             type: type,
@@ -175,8 +175,10 @@ public class EmbraceOTelSignalsHandler: NSObject, OTelSignalsHandler {
             attachment: attachment,
             attributes: attributes,
             stackTraceBehavior: stackTraceBehavior
-        ) {
-            bridge.createLog(log)
+        ) { [weak self] log in
+            if let log {
+                self?.bridge.createLog(log)
+            }
         }
     }
 }
@@ -191,15 +193,17 @@ extension EmbraceOTelSignalsHandler {
         timestamp: Date = Date(),
         attributes: [String: String] = [:]
     ) {
-        if let log = logController?.createLog(
+        logController?.createLog(
             message,
             severity: severity,
             type: type,
             timestamp: timestamp,
             attributes: attributes,
             send: false
-        ) {
-            bridge.createLog(log)
+        ) { [weak self] log in
+            if let log {
+                self?.bridge.createLog(log)
+            }
         }
     }
 }
