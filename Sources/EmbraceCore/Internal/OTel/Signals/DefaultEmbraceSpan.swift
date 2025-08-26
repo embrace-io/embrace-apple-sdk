@@ -96,13 +96,22 @@ class DefaultEmbraceSpan: EmbraceSpan {
         delegate?.onSpanStatusUpdated(self, status: status)
     }
     
-    func addEvent(name: String, type: EmbraceType, timestamp: Date, attributes: [String : String]) throws {
+    func addEvent(
+        name: String,
+        type: EmbraceType? = .performance,
+        timestamp: Date = Date(),
+        attributes: [String : String] = [:]
+    ) throws {
         let event = EmbraceSpanEvent(name: name, type: type, timestamp: timestamp, attributes: attributes)
         events.append(event)
         delegate?.onSpanEventAdded(self, event: event)
     }
 
-    func addLink(spanId: String, traceId: String, attributes: [String : String]) throws {
+    func addLink(
+        spanId: String,
+        traceId: String,
+        attributes: [String : String] = [:]
+    ) throws {
         let link = EmbraceSpanLink(spanId: spanId, traceId: traceId, attributes: attributes)
         links.append(link)
         delegate?.onSpanLinkAdded(self, link: link)

@@ -11,8 +11,8 @@ open class EmbraceSpanEvent: NSObject {
     /// Name of the event
     @objc public let name: String
 
-    /// Embrace specific type of the event
-    @objc public let type: EmbraceType
+    /// Embrace specific type of the event, if any
+    @objc public let type: EmbraceType?
 
     /// Date when the event occured
     @objc public let timestamp: Date
@@ -28,7 +28,7 @@ open class EmbraceSpanEvent: NSObject {
     ///   - attributes: Attributes of the event
     @objc package init(
         name: String,
-        type: EmbraceType = .performance,
+        type: EmbraceType? = .performance,
         timestamp: Date = Date(),
         attributes: [String : String] = [:]
     ) {
@@ -36,8 +36,12 @@ open class EmbraceSpanEvent: NSObject {
         self.type = type
         self.timestamp = timestamp
 
-        var finalAttributes = attributes
-        finalAttributes[SpanSemantics.keyEmbraceType] = type.rawValue
-        self.attributes = attributes
+        if let type {
+            var finalAttributes = attributes
+            finalAttributes[SpanEventSemantics.keyEmbraceType] = type.rawValue
+            self.attributes = finalAttributes
+        } else {
+            self.attributes = attributes
+        }
     }
 }

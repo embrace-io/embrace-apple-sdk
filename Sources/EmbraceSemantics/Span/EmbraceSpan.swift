@@ -50,7 +50,7 @@ public protocol EmbraceSpan {
     /// Can fail if the event limit is reached.
     mutating func addEvent(
         name: String,
-        type: EmbraceType,
+        type: EmbraceType?,
         timestamp: Date,
         attributes: [String: String]
     ) throws
@@ -72,4 +72,17 @@ public protocol EmbraceSpan {
 
     /// Ends the span with `endTime = Date()`
     mutating func end()
+}
+
+public extension EmbraceSpan {
+
+    /// Convenience method to add a span event at the current time.
+    /// Can fail if the event limit is reached.
+    mutating func addEvent(
+        name: String,
+        type: EmbraceType? = .performance,
+        attributes: [String: String]
+    ) throws {
+        try addEvent(name: name, type: type, timestamp: Date(), attributes: attributes)
+    }
 }
