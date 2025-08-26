@@ -59,7 +59,7 @@ class StorageSpanExporter: SpanExporter {
                     attributes[SpanSemantics.keySessionId] = .string(sessionId.stringValue)
                     spanData = spanData.settingAttributes(attributes)
                 }
-                
+
                 let data = try spanData.toJSON()
 
                 storage.upsertSpan(

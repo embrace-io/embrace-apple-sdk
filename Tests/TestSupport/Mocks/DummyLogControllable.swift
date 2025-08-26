@@ -24,7 +24,8 @@ public class DummyLogControllable: LogControllable {
         attachmentId: String?,
         attachmentUrl: URL?,
         attributes: [String: String],
-        stackTraceBehavior: StackTraceBehavior
+        stackTraceBehavior: StackTraceBehavior,
+        queue: DispatchQueue
     ) {}
 
     public func batchFinished(withLogs logs: [EmbraceLog]) {}
