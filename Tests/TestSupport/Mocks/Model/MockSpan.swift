@@ -52,12 +52,12 @@ public class MockSpan: EmbraceSpan {
         self.status = status
     }
 
-    public func addEvent(_ event: EmbraceSpanEvent) {
-        events.append(event)
+    public func addEvent(name: String, type: EmbraceType, timestamp: Date, attributes: [String : String]) throws {
+        events.append(EmbraceSpanEvent(name: name, type: type, timestamp: timestamp, attributes: attributes))
     }
 
-    public func addLink(_ link: EmbraceSpanLink) {
-        links.append(link)
+    public func addLink(spanId: String, traceId: String, attributes: [String : String]) throws {
+        links.append(EmbraceSpanLink(spanId: spanId, traceId: traceId, attributes: attributes))
     }
 
     public func end(endTime: Date) {
@@ -68,7 +68,7 @@ public class MockSpan: EmbraceSpan {
         end(endTime: Date())
     }
 
-    public func setAttribute(key: String, value: String?) {
+    public func setAttribute(key: String, value: String?) throws {
         attributes[key] = value
     }
 

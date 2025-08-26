@@ -57,7 +57,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
         traceId: String? = nil,
         name: String? = nil,
         type: EmbraceType = .performance
-    ) throws -> EmbraceSpan {
+    ) throws {
         let spanData = testSpan(startTime: startTime, endTime: endTime, name: name)
 
         return storage.upsertSpan(
@@ -68,7 +68,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
             status: spanData.embStatus,
             startTime: spanData.startTime,
             endTime: spanData.hasEnded ? spanData.endTime : nil
-        )!
+        )
     }
 
     func test_noSessionSpan() throws {
@@ -96,7 +96,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
 
     func test_sessionSpan_withNoEndTime() throws {
         // given a session span with no end time
-        _ = try addSpan(
+        try addSpan(
             startTime: Date(timeIntervalSince1970: 5),
             endTime: nil,
             id: TestConstants.spanId,
@@ -117,11 +117,10 @@ final class SpansPayloadBuilderTests: XCTestCase {
 
     func test_closedSpan() throws {
         // given a closed span within a session time frame
-        let span = try addSpan(
+        try addSpan(
             startTime: Date(timeIntervalSince1970: 55),
             endTime: Date(timeIntervalSince1970: 60)
         )
-        let payload = SpanPayload(from: span)
 
         // when building the spans payload
         let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
@@ -129,17 +128,16 @@ final class SpansPayloadBuilderTests: XCTestCase {
         // then the spans are retrieved correctly
         XCTAssertEqual(closed.count, 2)
         XCTAssertEqual(closed[0].name, "emb-session")  // session span always first
-        XCTAssertEqual(closed[1], payload)
+        XCTAssertEqual(closed[1].name, "test-span")
         XCTAssertEqual(open.count, 0)
     }
 
     func test_openSpan_withinSession() throws {
         // given a open span that started after the session
-        let span = try addSpan(
+        try addSpan(
             startTime: Date(timeIntervalSince1970: 55),
             endTime: nil
         )
-        let payload = SpanPayload(from: span)
 
         // when building the spans payload
         let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
@@ -148,16 +146,15 @@ final class SpansPayloadBuilderTests: XCTestCase {
         XCTAssertEqual(closed.count, 1)
         XCTAssertEqual(closed[0].name, "emb-session")  // session span always first
         XCTAssertEqual(open.count, 1)
-        XCTAssertEqual(open[0], payload)
+        XCTAssertEqual(open[0].name, "test-span")
     }
 
     func test_closedSpan_beforeSession() throws {
         // given a closed span that started before the session, and ended in the session
-        let span = try addSpan(
+        try addSpan(
             startTime: Date(timeIntervalSince1970: 0),
             endTime: Date(timeIntervalSince1970: 55)
         )
-        let payload = SpanPayload(from: span)
 
         // when building the spans payload
         let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
@@ -165,17 +162,16 @@ final class SpansPayloadBuilderTests: XCTestCase {
         // then the spans are retrieved correctly
         XCTAssertEqual(closed.count, 2)
         XCTAssertEqual(closed[0].name, "emb-session")  // session span always first
-        XCTAssertEqual(closed[1], payload)
+        XCTAssertEqual(closed[1].name, "test-span")
         XCTAssertEqual(open.count, 0)
     }
 
     func test_openSpan_beforeSession() throws {
         // given a open span that started before the session
-        let span = try addSpan(
+        try addSpan(
             startTime: Date(timeIntervalSince1970: 0),
             endTime: nil
         )
-        let payload = SpanPayload(from: span)
 
         // when building the spans payload
         let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
@@ -184,12 +180,12 @@ final class SpansPayloadBuilderTests: XCTestCase {
         XCTAssertEqual(closed.count, 1)
         XCTAssertEqual(closed[0].name, "emb-session")  // session span always first
         XCTAssertEqual(open.count, 1)
-        XCTAssertEqual(open[0], payload)
+        XCTAssertEqual(open[0].name, "test-span")
     }
 
     func test_closedSpan_outsideSession() throws {
         // given a closed span that started and ended before the session
-        _ = try addSpan(
+        try addSpan(
             startTime: Date(timeIntervalSince1970: 0),
             endTime: Date(timeIntervalSince1970: 10)
         )
@@ -208,11 +204,10 @@ final class SpansPayloadBuilderTests: XCTestCase {
         sessionRecord.crashReportId = "test"
 
         // given a open span that started after the crashed session
-        let span = try addSpan(
+        try addSpan(
             startTime: Date(timeIntervalSince1970: 55),
             endTime: nil
         )
-        let payload = SpanPayload(from: span, endTime: sessionRecord.endTime, failed: true)
 
         // when building the spans payload
         let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
@@ -221,7 +216,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
         XCTAssertEqual(closed.count, 2)
         XCTAssertEqual(closed[0].name, "emb-session")  // session span always first
         XCTAssertEqual(closed[0].status, "error")
-        XCTAssertEqual(closed[1], payload)
+        XCTAssertEqual(closed[1].name, "test-span")
         XCTAssertEqual(closed[1].status, "error")
         XCTAssertEqual(open.count, 0)
 
@@ -235,11 +230,10 @@ final class SpansPayloadBuilderTests: XCTestCase {
         sessionRecord.crashReportId = "test"
 
         // given a open span that started before the crashed session
-        let span = try addSpan(
+        try addSpan(
             startTime: Date(timeIntervalSince1970: 0),
             endTime: nil
         )
-        let payload = SpanPayload(from: span, endTime: sessionRecord.endTime, failed: true)
 
         // when building the spans payload
         let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
@@ -248,7 +242,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
         XCTAssertEqual(closed.count, 2)
         XCTAssertEqual(closed[0].name, "emb-session")  // session span always first
         XCTAssertEqual(closed[0].status, "error")
-        XCTAssertEqual(closed[1], payload)
+        XCTAssertEqual(closed[1].name, "test-span")
         XCTAssertEqual(closed[1].status, "error")
         XCTAssertEqual(open.count, 0)
 
@@ -262,11 +256,10 @@ final class SpansPayloadBuilderTests: XCTestCase {
         sessionRecord.crashReportId = "test"
 
         // given a open span that started after the crashed session
-        let span = try addSpan(
+        try addSpan(
             startTime: Date(timeIntervalSince1970: 55),
             endTime: Date(timeIntervalSince1970: 60)
         )
-        let payload = SpanPayload(from: span, endTime: Date(timeIntervalSince1970: 60), failed: false)
 
         // when building the spans payload
         let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
@@ -275,7 +268,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
         XCTAssertEqual(closed.count, 2)
         XCTAssertEqual(closed[0].name, "emb-session")  // session span always first
         XCTAssertEqual(closed[0].status, "error")
-        XCTAssertEqual(closed[1], payload)
+        XCTAssertEqual(closed[1].name, "test-span")
         XCTAssertEqual(closed[1].status, "ok")
         XCTAssertEqual(open.count, 0)
 

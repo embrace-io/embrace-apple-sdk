@@ -26,7 +26,6 @@ extension EmbraceStorage {
     ///   - processId: Identifier of the process in which this span was created
     ///   - sessionId: Identifier of the session containing this span (optional)
     /// - Returns: The newly stored `SpanRecord`
-    @discardableResult
     public func upsertSpan(
         id: String,
         traceId: String,
@@ -44,7 +43,7 @@ extension EmbraceStorage {
     ) {
 
         // update existing?
-        if let span = updateExistingSpan(
+        if updateExistingSpan(
             id: id,
             traceId: traceId,
             parentSpanId: parentSpanId,
@@ -107,8 +106,8 @@ extension EmbraceStorage {
         events: [EmbraceSpanEvent] = [],
         links: [EmbraceSpanLink] = [],
         attributes: [String: String] = [:]
-    ) -> EmbraceSpan? {
-        var result: EmbraceSpan?
+    ) -> Bool {
+        var result = false
 
         let request = fetchSpanRequest(id: id, traceId: traceId)
         coreData.fetchFirstAndPerform(withRequest: request) { span, context in
@@ -132,7 +131,7 @@ extension EmbraceStorage {
                 coreData.save()
             }
 
-            result = span.toImmutable(attributes: attributes)
+            result = true
         }
 
         return result

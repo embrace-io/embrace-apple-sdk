@@ -26,7 +26,7 @@ public class EmbraceSpanEvent: NSObject {
     ///   - type: Type of the event
     ///   - timestamp: Timestamp of the event
     ///   - attributes: Attributes of the event
-    @objc public init(
+    @objc package init(
         name: String,
         type: EmbraceType = .performance,
         timestamp: Date = Date(),

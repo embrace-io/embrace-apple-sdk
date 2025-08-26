@@ -216,9 +216,7 @@ class SessionController: SessionControllable {
             }
 
             // update session end time and clean exit
-            if session.id != nil {
-                currentSession = storage?.updateSession(session: session, endTime: now, cleanExit: true)
-            }
+            currentSession = storage?.updateSession(session: session, endTime: now, cleanExit: true)
 
             // post internal notification
             if session.state == SessionState.foreground {

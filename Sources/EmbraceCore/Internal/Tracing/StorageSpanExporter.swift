@@ -52,35 +52,28 @@ class StorageSpanExporter: SpanExporter {
                 continue
             }
 
-            do {
-                // add session id attribute
-                if let sessionId = sessionController?.currentSession?.id {
-                    var attributes = spanData.attributes
-                    attributes[SpanSemantics.keySessionId] = .string(sessionId.stringValue)
-                    spanData = spanData.settingAttributes(attributes)
-                }
-
-                let data = try spanData.toJSON()
-
-                storage.upsertSpan(
-                    id: spanData.spanId.hexString,
-                    traceId: spanData.traceId.hexString,
-                    parentSpanId: spanData.parentSpanId?.hexString,
-                    name: spanName,
-                    type: spanData.embType,
-                    status: spanData.embStatus,
-                    startTime: spanData.startTime,
-                    endTime: endTime,
-                    sessionId: sessionController?.currentSession?.id,
-                    processId: ProcessIdentifier.current,
-                    events: spanData.embEvents,
-                    links: spanData.embLinks,
-                    attributes: spanData.embAttributes
-                )
-            } catch let exception {
-                self.logger?.error(exception.localizedDescription)
-                result = .failure
+            // add session id attribute
+            if let sessionId = sessionController?.currentSession?.id {
+                var attributes = spanData.attributes
+                attributes[SpanSemantics.keySessionId] = .string(sessionId.stringValue)
+                spanData = spanData.settingAttributes(attributes)
             }
+
+            storage.upsertSpan(
+                id: spanData.spanId.hexString,
+                traceId: spanData.traceId.hexString,
+                parentSpanId: spanData.parentSpanId?.hexString,
+                name: spanName,
+                type: spanData.embType,
+                status: spanData.embStatus,
+                startTime: spanData.startTime,
+                endTime: endTime,
+                sessionId: sessionController?.currentSession?.id,
+                processId: ProcessIdentifier.current,
+                events: spanData.embEvents,
+                links: spanData.embLinks,
+                attributes: spanData.embAttributes
+            )
         }
 
         return result

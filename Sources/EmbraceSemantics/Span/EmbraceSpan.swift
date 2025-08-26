@@ -47,13 +47,25 @@ public protocol EmbraceSpan {
     mutating func setStatus(_ status: EmbraceSpanStatus)
 
     /// Adds an event to the span
-    mutating func addEvent(_ event: EmbraceSpanEvent)
+    /// Can fail if the event limit is reached.
+    mutating func addEvent(
+        name: String,
+        type: EmbraceType,
+        timestamp: Date,
+        attributes: [String: String]
+    ) throws
 
     /// Adds a link to the span
-    mutating func addLink(_ link: EmbraceSpanLink)
+    /// Can fail if the link limit is reached.
+    mutating func addLink(
+        spanId: String,
+        traceId: String,
+        attributes: [String: String]
+    ) throws
 
     /// Sets an attribute to the span
-    mutating func setAttribute(key: String, value: String?)
+    /// Can fail if the attribute limit is reached.
+    mutating func setAttribute(key: String, value: String?) throws
 
     /// Ends the span with the given `endTime`
     mutating func end(endTime: Date)

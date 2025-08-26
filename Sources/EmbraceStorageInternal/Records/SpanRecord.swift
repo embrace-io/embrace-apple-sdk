@@ -191,7 +191,7 @@ extension SpanRecord: EmbraceStorageRecord {
         eventNameAttribute.attributeType = .stringAttributeType
 
         let eventTypeAttribute = NSAttributeDescription()
-        eventTypeAttribute.name = "type"
+        eventTypeAttribute.name = "typeRaw"
         eventTypeAttribute.attributeType = .stringAttributeType
 
         let eventTimestampAttribute = NSAttributeDescription()
@@ -302,11 +302,11 @@ struct ImmutableSpanRecord: EmbraceSpan {
         // no op
     }
 
-    func addEvent(_ event: EmbraceSpanEvent) {
+    func addEvent(name: String, type: EmbraceType, timestamp: Date, attributes: [String : String]) throws {
         // no op
     }
 
-    func addLink(_ link: EmbraceSpanLink) {
+    func addLink(spanId: String, traceId: String, attributes: [String : String]) throws {
         // no op
     }
 
@@ -318,7 +318,7 @@ struct ImmutableSpanRecord: EmbraceSpan {
         // no op
     }
 
-    func setAttribute(key: String, value: String?) {
+    func setAttribute(key: String, value: String?) throws {
         // no op
     }
 }
