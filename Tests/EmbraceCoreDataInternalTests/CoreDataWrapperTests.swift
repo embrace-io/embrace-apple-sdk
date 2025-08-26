@@ -198,7 +198,7 @@ class CoreDataWrapperTests: XCTestCase {
     }
 }
 
-class MockRecord: NSManagedObject {
+private class MockRecord: NSManagedObject {
     @NSManaged var id: String
 
     class func create(context: NSManagedObjectContext, id: String) -> MockRecord {
@@ -217,6 +217,7 @@ class MockRecord: NSManagedObject {
         let idAttribute = NSAttributeDescription()
         idAttribute.name = "id"
         idAttribute.attributeType = .stringAttributeType
+        idAttribute.isOptional = false
 
         entity.properties = [idAttribute]
         return entity

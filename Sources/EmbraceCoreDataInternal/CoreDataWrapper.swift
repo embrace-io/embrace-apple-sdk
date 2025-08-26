@@ -28,6 +28,8 @@ public class CoreDataWrapper {
 
     private let isTesting: Bool
 
+    static let modelCache: EmbraceMutex<[String: NSManagedObjectModel]> = EmbraceMutex([:])
+
     public init(options: CoreDataWrapper.Options, logger: InternalLogger) throws {
         self.options = options
         self.logger = logger
@@ -35,8 +37,19 @@ public class CoreDataWrapper {
         isTesting = ProcessInfo.processInfo.isTesting
 
         // create model
-        let model = NSManagedObjectModel()
-        model.entities = options.entities
+        let entitiesCacheKey = options.entities
+            .map { $0.managedObjectClassName }
+            .sorted()
+            .joined(separator: "-")
+        let model = Self.modelCache.withLock {
+            if let model = $0[entitiesCacheKey] {
+                return model
+            }
+            let model = NSManagedObjectModel()
+            model.entities = options.entities
+            $0[entitiesCacheKey] = model
+            return model
+        }
 
         // create container
         let name = options.storageMechanism.name

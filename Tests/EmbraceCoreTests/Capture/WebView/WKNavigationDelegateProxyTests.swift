@@ -14,6 +14,7 @@
         // had to retain these because the test crashes when deallocating instances of these classes
         let navigation = WKNavigation()
         let download = WKDownload()
+        let response = WKNavigationResponse()
 
         func test_forwarding() {
             // given a proxy with an original delegate
@@ -29,14 +30,9 @@
             let block3: (URLSession.AuthChallengeDisposition, URLCredential?) -> Void = { _, _ in }
             let block4: (Bool) -> Void = { _ in }
 
-            let expectedCallbackCount: Int
+            let expectedCallbackCount: Int = 14
 
-            #if !os(macOS)
-                expectedCallbackCount = 14
-                proxy.webView(webView, decidePolicyFor: WKNavigationResponse(), decisionHandler: block)
-            #else
-                expectedCallbackCount = 12
-            #endif
+            proxy.webView(webView, decidePolicyFor: response, decisionHandler: block)
             proxy.webView(webView, didFailProvisionalNavigation: navigation, withError: error)
             proxy.webView(webView, didFail: navigation, withError: error)
 
@@ -58,9 +54,7 @@
             delegate.webView?(
                 webView, authenticationChallenge: URLAuthenticationChallenge(), shouldAllowDeprecatedTLS: block4)
             delegate.webView?(webView, navigationAction: WKNavigationAction(), didBecome: download)
-            #if !os(macOS)
-                delegate.webView?(webView, navigationResponse: WKNavigationResponse(), didBecome: download)
-            #endif
+            delegate.webView?(webView, navigationResponse: response, didBecome: download)
 
             // then the delegate calls are forwarded
             XCTAssertEqual(originalDelegate.callCount, expectedCallbackCount)
@@ -80,15 +74,8 @@
             let block: (WKNavigationResponsePolicy) -> Void = { _ in }
             let error = NSError(domain: "com.embrace.test", code: 0)
 
-            let expectedCount: Int
-            #if !os(macOS)
-                // WKNavigationResponse dealloc crashes in a weird way on macOS.
-                proxy.webView(webView, decidePolicyFor: WKNavigationResponse(), decisionHandler: block)
-                expectedCount = 3
-            #else
-                expectedCount = 2
-            #endif
-
+            let expectedCount: Int = 3
+            proxy.webView(webView, decidePolicyFor: response, decisionHandler: block)
             proxy.webView(webView, didFailProvisionalNavigation: navigation, withError: error)
             proxy.webView(webView, didFail: navigation, withError: error)
 
