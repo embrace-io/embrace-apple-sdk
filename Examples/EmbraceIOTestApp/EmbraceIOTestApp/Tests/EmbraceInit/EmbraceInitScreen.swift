@@ -85,7 +85,8 @@ extension EmbraceInitScreen {
             let oldBootTime = UserDefaults.standard.double(forKey: "emb.bootTime")
             let newBuildUUID = EMBDevice.buildUUID?.uuidString
             let newBootTime = EMBDevice.bootTime.doubleValue
-            if (oldBuildUUID == nil || oldBootTime == 0) || (oldBuildUUID != newBuildUUID && oldBootTime != newBootTime) {
+            if (oldBuildUUID == nil || oldBootTime == 0) || (oldBuildUUID != newBuildUUID && oldBootTime != newBootTime)
+            {
                 UserDefaults.standard.setValue(newBuildUUID, forKey: "emb.buildUUID")
                 UserDefaults.standard.setValue(newBootTime, forKey: "emb.bootTime")
             }
