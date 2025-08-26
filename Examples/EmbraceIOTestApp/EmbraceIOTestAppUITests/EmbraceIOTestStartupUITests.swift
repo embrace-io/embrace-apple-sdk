@@ -57,47 +57,67 @@ final class EmbraceIOTestWARMStartupUITests: XCTestCase {
         button.tap()
     }
 
-    func testInitStartup_PreMain_Span() {
+    func testAllWarmStartupCases() {
+        caseTestInitStartup_PreMain_Span()
+        app.swipeDown()
+        caseTestInitStartup_SDKSetup_Span()
+        app.swipeDown()
+        caseTestInitStartup_SDKSetart_Span()
+        app.swipeDown()
+        caseTestInitStartup_StartProcess_Span()
+        app.swipeDown()
+        caseTestInitStartup_StartState_Warm_Span()
+        app.swipeDown()
+        caseTestInitStartup_ProcessLaunch_Span()
+        app.swipeDown()
+        caseTestInitStartup_AppStartup_Span()
+        app.swipeDown()
+        caseTestInitStartup_FirstFrameCapture_Span()
+        app.swipeDown()
+        caseTestInitStartup_MetadataItems()
+    }
+
+    func caseTestInitStartup_PreMain_Span() {
         selectMetadataTest(.startProcess)
         evaluateTestResults(app)
     }
 
-    func testInitStartup_SDKSetup_Span() {
+    func caseTestInitStartup_SDKSetup_Span() {
         selectMetadataTest(.sdkSetup)
         evaluateTestResults(app)
     }
 
-    func testInitStartup_SDKSetart_Span() {
+    func caseTestInitStartup_SDKSetart_Span() {
         selectMetadataTest(.sdkStart)
         evaluateTestResults(app)
     }
 
-    func testInitStartup_StartProcess_Span() {
+    func caseTestInitStartup_StartProcess_Span() {
         selectMetadataTest(.startProcess)
         evaluateTestResults(app)
     }
 
-    func testInitStartup_StartState_Warm_Span() {
+    func caseTestInitStartup_StartState_Warm_Span() {
         selectMetadataTest(.startState)
         evaluateTestResults(app)
     }
 
-    func testInitStartup_ProcessLaunch_Span() {
+    func caseTestInitStartup_ProcessLaunch_Span() {
         selectMetadataTest(.processLaunch)
         evaluateTestResults(app)
     }
 
-    func testInitStartup_AppStartup_Span() {
+    func caseTestInitStartup_AppStartup_Span() {
         selectMetadataTest(.appStartup)
         evaluateTestResults(app)
     }
 
-    func testInitStartup_FirstFrameCapture_Span() {
+    func caseTestInitStartup_FirstFrameCapture_Span() {
         selectMetadataTest(.firstFrameCapture)
         evaluateTestResults(app)
     }
 
-    func testInitStartup_MetadataItems() {
+    func caseTestInitStartup_MetadataItems() {
         selectMetadataTest(.resourceMetadata)
         evaluateTestResults(app)
     }
@@ -121,5 +141,6 @@ final class EmbraceIOTestCOLDStartupUITests: XCTestCase {
 
         button.tap()
         evaluateTestResults(app)
+        app.swipeDown()
     }
 }
