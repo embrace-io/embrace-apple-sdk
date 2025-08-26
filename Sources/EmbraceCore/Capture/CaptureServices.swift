@@ -73,6 +73,13 @@ final class CaptureServices {
             }
         }
 
+        // Ensure the hang service has the right config
+        if let limits = config?.hangLimits {
+            services
+                .compactMap { $0 as? HangCaptureService }
+                .map { $0.limits = limits }
+        }
+
         // subscribe to session start notification
         // to update the crash reporter with the new session id
         NotificationCenter.default.addObserver(

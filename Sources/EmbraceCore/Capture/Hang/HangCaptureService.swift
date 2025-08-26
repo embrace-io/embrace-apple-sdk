@@ -10,6 +10,7 @@ import OpenTelemetryApi
     import EmbraceCommonInternal
     import EmbraceOTelInternal
     import EmbraceSemantics
+    import EmbraceConfiguration
 #endif
 
 /// Service that generates OpenTelemetry span events for hangs.
@@ -18,15 +19,13 @@ public final class HangCaptureService: CaptureService {
 
     public init(
         watchdog: HangWatchdog = HangWatchdog(),
-        hangPerSessionLimit: UInt = 200,
-        samplesPerHangLimit: UInt = 200
+        limits: HangLimits = HangLimits()
     ) {
         dispatchPrecondition(condition: .onQueue(.main))
         self.watchdog = watchdog
         self.mainThread = pthread_self()
-        self.limitHangPerSession = hangPerSessionLimit
-        self.limitSamplesPerHang = samplesPerHangLimit
         super.init()
+        self.limits = limits
         self.watchdog.hangObserver = self
     }
 
@@ -48,11 +47,39 @@ public final class HangCaptureService: CaptureService {
 
     private var span: OpenTelemetryApi.Span?
 
-    private var hangsInSessionCount: UInt = 0
-    private var limitHangPerSession: UInt
+    struct LimitData {
+        var limits: HangLimits = HangLimits()
+        var hangsInSessionCount: UInt = 0
+        var samplesInHangCount: UInt = 0
+    }
+    var limitData = EmbraceMutex(LimitData())
 
-    private var samplesInHangCount: UInt = 0
-    private var limitSamplesPerHang: UInt
+    public var limits: HangLimits {
+        set {
+            limitData.withLock { $0.limits = newValue }
+        }
+        get {
+            limitData.withLock { $0.limits }
+        }
+    }
+
+    public var hangsInSessionCount: UInt {
+        set {
+            limitData.withLock { $0.hangsInSessionCount = newValue }
+        }
+        get {
+            limitData.withLock { $0.hangsInSessionCount }
+        }
+    }
+
+    public var samplesInHangCount: UInt {
+        set {
+            limitData.withLock { $0.samplesInHangCount = newValue }
+        }
+        get {
+            limitData.withLock { $0.samplesInHangCount }
+        }
+    }
 }
 
 extension HangCaptureService: HangObserver {
@@ -67,9 +94,9 @@ extension HangCaptureService: HangObserver {
         // Keep tabs on how many hang spans we've created
         samplesInHangCount = 0
         hangsInSessionCount += 1
-        guard hangsInSessionCount <= limitHangPerSession else {
+        guard hangsInSessionCount <= limits.hangPerSession else {
             logger?.warning(
-                "[Watchdog] Dropping hang due to surpassing limit, \(hangsInSessionCount) of \(limitHangPerSession)")
+                "[Watchdog] Dropping hang due to surpassing limit, \(hangsInSessionCount) of \(limits.hangPerSession)")
             return
         }
 
@@ -100,7 +127,7 @@ extension HangCaptureService: HangObserver {
         logger?.debug("[Watchdog] Hang for \(duration.uptime.milliseconds) ms")
 
         samplesInHangCount += 1
-        guard samplesInHangCount <= limitSamplesPerHang else {
+        guard samplesInHangCount <= limits.samplesPerHang else {
             return
         }
 
