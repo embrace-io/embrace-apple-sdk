@@ -193,6 +193,7 @@ extension SpanRecord: EmbraceStorageRecord {
         let eventTypeAttribute = NSAttributeDescription()
         eventTypeAttribute.name = "typeRaw"
         eventTypeAttribute.attributeType = .stringAttributeType
+        eventTypeAttribute.isOptional = true
 
         let eventTimestampAttribute = NSAttributeDescription()
         eventTimestampAttribute.name = "timestamp"
@@ -302,7 +303,7 @@ struct ImmutableSpanRecord: EmbraceSpan {
         // no op
     }
 
-    func addEvent(name: String, type: EmbraceType, timestamp: Date, attributes: [String : String]) throws {
+    func addEvent(name: String, type: EmbraceType?, timestamp: Date, attributes: [String : String]) throws {
         // no op
     }
 
