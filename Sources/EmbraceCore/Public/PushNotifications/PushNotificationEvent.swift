@@ -3,9 +3,7 @@
 //
 
 import Foundation
-import OpenTelemetryApi
 import UserNotifications
-
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
     import EmbraceSemantics

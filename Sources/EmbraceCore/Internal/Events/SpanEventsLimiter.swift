@@ -8,13 +8,15 @@ import Foundation
     import EmbraceCommonInternal
     import EmbraceConfigInternal
     import EmbraceConfiguration
-    import EmbraceOTelInternal
     import EmbraceSemantics
 #endif
 
 /// Note: Currently we only have 1 type of custom SpanEvent (breadcrumbs)
 /// However this class was built in a way that should be easy to add limits for any type of event in the future
 class SpanEventsLimiter {
+
+    static let emptyType = "__emb.empty__"
+
     struct MutableState {
         var counter: [String: UInt] = [:]
         var limits: SpanEventsLimits = SpanEventsLimits()
@@ -64,7 +66,7 @@ class SpanEventsLimiter {
         }
     }
 
-    private func limitForEventType(_ type: String?, limits: SpanEventsLimits) -> UInt? {
+    private func limitForEventType(_ type: String, limits: SpanEventsLimits) -> UInt? {
         if type == EmbraceType.breadcrumb.rawValue {
             return limits.breadcrumb
         }
@@ -72,27 +74,24 @@ class SpanEventsLimiter {
         return nil
     }
 
-    public func applyLimits(events: [SpanEvent]) -> [SpanEvent] {
+    public func shouldAddEvent(event: EmbraceSpanEvent) -> Bool {
         return state.withLock {
-            var result: [SpanEvent] = []
+            // check limit for event type
+            let type = event.type?.rawValue ?? Self.emptyType
 
-            for event in events {
-                // check limit for event type
-                guard let eventType = event.attributes[SpanEventSemantics.keyEmbraceType]?.description,
-                    let limit = limitForEventType(eventType, limits: $0.limits)
-                else {
-                    result.append(event)
-                    continue
-                }
-
-                // apply limit
-                var count = $0.counter[eventType] ?? 0
-                if count < limit {
-                    result.append(event)
-                    count += 1
-                }
-                $0.counter[eventType] = count
+            guard let limit = limitForEventType(type, limits: $0.limits) else {
+                return true
             }
+
+            // apply limit
+            var result = false
+
+            var count = $0.counter[type] ?? 0
+            if count < limit {
+                count += 1
+                result = true
+            }
+            $0.counter[type] = count
 
             return result
         }

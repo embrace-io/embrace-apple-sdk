@@ -3,13 +3,11 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-import OpenTelemetryApi
 import SwiftUI
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
     import EmbraceConfiguration
-    import EmbraceOTelInternal
     import EmbraceSemantics
 #endif
 

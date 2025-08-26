@@ -7,7 +7,6 @@ import UserNotifications
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
-    import EmbraceOTelInternal
     import EmbraceCaptureService
 #endif
 
@@ -36,7 +35,7 @@ import UserNotifications
         self.proxy = UNUserNotificationCenterDelegateProxy(captureData: options.captureData)
 
         super.init()
-        
+
         proxy.otel = otel
     }
 

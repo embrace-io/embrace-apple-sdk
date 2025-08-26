@@ -3,14 +3,12 @@
 //
 
 import Foundation
-import OpenTelemetrySdk
-
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceOTelInternal
+    import EmbraceSemantics
 #endif
 
 protocol LogDataValidator {
 
-    func validate(data: inout ReadableLogRecord) -> Bool
+    func validate(data: inout EmbraceLog) -> Bool
 
 }

@@ -3,8 +3,6 @@
 //
 
 import Foundation
-import OpenTelemetrySdk
-
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceStorageInternal
     import EmbraceObjCUtilsInternal
@@ -160,15 +158,8 @@ struct ResourcePayload: Codable {
                     self.osBuild = resource.value
                 case .osVariant:
                     self.osAlternateType = resource.value
-                default:
-                    break
-                }
-            } else if let key = ResourceAttributes(rawValue: resource.key) {
-                switch key {
                 case .deviceModelIdentifier:
                     self.deviceModel = resource.value
-                case .deviceManufacturer:
-                    self.deviceManufacturer = resource.value
                 case .osVersion:
                     self.osVersion = resource.value
                 case .osType:

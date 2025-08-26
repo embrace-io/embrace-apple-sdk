@@ -3,12 +3,10 @@
 //
 
 import Foundation
-import OpenTelemetrySdk
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
     import EmbraceStorageInternal
-    import EmbraceOTelInternal
 #endif
 
 class SpansPayloadBuilder {

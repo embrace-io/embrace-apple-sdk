@@ -7,7 +7,6 @@ import OSLog
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
-    import EmbraceOTelInternal
     import EmbraceStorageInternal
     import EmbraceConfigInternal
     import EmbraceConfiguration

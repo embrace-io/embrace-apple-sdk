@@ -3,10 +3,8 @@
 //
 
 import Foundation
-import OpenTelemetrySdk
-
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceOTelInternal
+    import EmbraceSemantics
 #endif
 
 /// Validates the length of ``ReadableLogRecord.body``.
@@ -20,10 +18,7 @@ class LengthOfBodyValidator: LogDataValidator {
         self.allowedCharacterCount = allowedCharacterCount
     }
 
-    func validate(data: inout ReadableLogRecord) -> Bool {
-        guard let body = data.body else {
-            return false
-        }
-        return allowedCharacterCount.contains(body.description.count)
+    func validate(data: inout EmbraceLog) -> Bool {
+        return allowedCharacterCount.contains(data.body.description.count)
     }
 }

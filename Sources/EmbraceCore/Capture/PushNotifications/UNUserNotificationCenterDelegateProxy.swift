@@ -49,7 +49,7 @@ extension UNUserNotificationCenterDelegateProxy: UNUserNotificationCenterDelegat
 
         // generate span event
         if let event = try? PushNotificationEvent(notification: notification, captureData: captureData) {
-            try? otel?.addEvent(event)
+            try? otel?.addSessionEvent(event)
         }
 
         // call original
@@ -78,7 +78,7 @@ extension UNUserNotificationCenterDelegateProxy: UNUserNotificationCenterDelegat
 
             // generate span event
             if let event = try? PushNotificationEvent(notification: response.notification, captureData: captureData) {
-                try? otel?.addEvent(event)
+                try? otel?.addSessionEvent(event)
             }
 
             // call original

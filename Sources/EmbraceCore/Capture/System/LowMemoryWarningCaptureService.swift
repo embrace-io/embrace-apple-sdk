@@ -3,12 +3,10 @@
 //
 
 import Foundation
-import OpenTelemetryApi
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCaptureService
     import EmbraceCommonInternal
-    import EmbraceOTelInternal
     import EmbraceSemantics
 #endif
 
@@ -42,6 +40,6 @@ public class LowMemoryWarningCaptureService: CaptureService {
             type: .lowMemory
         )
 
-        try? otel?.addEvent(event)
+        try? otel?.addSessionEvent(event)
     }
 }

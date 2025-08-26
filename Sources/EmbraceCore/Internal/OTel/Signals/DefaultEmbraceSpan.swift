@@ -24,22 +24,22 @@ class DefaultEmbraceSpan: EmbraceSpan {
 
     weak var delegate: EmbraceSpanDelegate?
 
-    private(set) var status: EmbraceSpanStatus {
+    var status: EmbraceSpanStatus {
         get { state.safeValue.status }
         set { state.safeValue.status = newValue }
     }
 
-    private(set) var endTime: Date? {
+    var endTime: Date? {
         get { state.safeValue.endTime }
         set { state.safeValue.endTime = newValue }
     }
 
-    private(set) var events: [EmbraceSpanEvent] {
+    var events: [EmbraceSpanEvent] {
         get { state.safeValue.events }
         set { state.safeValue.events = newValue }
     }
 
-    private(set) var links: [EmbraceSpanLink] {
+    var links: [EmbraceSpanLink] {
         get { state.safeValue.links }
         set { state.safeValue.links = newValue }
     }
@@ -133,6 +133,16 @@ class DefaultEmbraceSpan: EmbraceSpan {
 }
 
 extension EmbraceSpan {
+    mutating func addEvent(_ event: EmbraceSpanEvent) {
+        // dont apply limits on internal attributes for our spans
+        guard let internalSpan = self as? DefaultEmbraceSpan else {
+            return
+        }
+
+        internalSpan.events.append(event)
+        internalSpan.delegate?.onSpanEventAdded(self, event: event)
+    }
+
     mutating func setInternalAttribute(key: String, value: String?) {
         // dont apply limits on internal attributes for our spans
         guard let internalSpan = self as? DefaultEmbraceSpan else {

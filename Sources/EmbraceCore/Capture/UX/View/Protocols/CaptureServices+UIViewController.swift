@@ -5,7 +5,6 @@
 #if canImport(UIKit) && !os(watchOS)
     import Foundation
     import UIKit
-    import OpenTelemetryApi
     #if !EMBRACE_COCOAPOD_BUILDING_SDK
         import EmbraceCommonInternal
         import EmbraceSemantics

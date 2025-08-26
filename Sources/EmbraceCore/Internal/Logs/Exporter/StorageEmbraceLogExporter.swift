@@ -8,7 +8,6 @@ import OpenTelemetrySdk
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
-    import EmbraceOTelInternal
     import EmbraceStorageInternal
     import EmbraceSemantics
     import EmbraceConfiguration
@@ -52,46 +51,48 @@ class StorageEmbraceLogExporter: LogRecordExporter {
     }
 
     func export(logRecords: [ReadableLogRecord], explicitTimeout: TimeInterval?) -> ExportResult {
-        guard state == .active else {
-            return .failure
-        }
-
-        let limits = logBatcher.limits
-
-        for var log in logRecords where validation.execute(log: &log) {
-
-            // do not export crash logs (unless they come from metrickit)
-            if log.isEmbType(.crash)
-                && log.attributes[LogSemantics.Crash.keyProvider] != .string(LogSemantics.Crash.metrickitProvider) {
-                continue
-            }
-
-            // apply log limits (ignoring internal logs, crashes and hangs)
-            let canExport = counter.withLock {
-                guard !log.isEmbType(.internal),
-                    !log.isEmbType(.crash),
-                    !log.isEmbType(.hang)
-                else {
-                    return true
-                }
-
-                let level = limitLevel(for: log.severity?.toLogSeverity())
-                let currentCount = $0[level] ?? 0
-
-                if currentCount >= limits.limitForLevel(level) {
-                    return false
-                }
-
-                $0[level] = currentCount + 1
-                return true
-            }
-
-            if canExport {
-//                self.logBatcher.addLogRecord(logRecord: log)
-            }
-        }
-
         return .success
+
+//        guard state == .active else {
+//            return .failure
+//        }
+//
+//        let limits = logBatcher.limits
+//
+//        for var log in logRecords where validation.execute(log: &log) {
+//
+//            // do not export crash logs (unless they come from metrickit)
+//            if log.isEmbType(.crash)
+//                && log.attributes[LogSemantics.Crash.keyProvider] != .string(LogSemantics.Crash.metrickitProvider) {
+//                continue
+//            }
+//
+//            // apply log limits (ignoring internal logs, crashes and hangs)
+//            let canExport = counter.withLock {
+//                guard !log.isEmbType(.internal),
+//                    !log.isEmbType(.crash),
+//                    !log.isEmbType(.hang)
+//                else {
+//                    return true
+//                }
+//
+//                let level = limitLevel(for: log.severity?.toLogSeverity())
+//                let currentCount = $0[level] ?? 0
+//
+//                if currentCount >= limits.limitForLevel(level) {
+//                    return false
+//                }
+//
+//                $0[level] = currentCount + 1
+//                return true
+//            }
+//
+//            if canExport {
+//                self.logBatcher.addLogRecord(logRecord: log)
+//            }
+//        }
+//
+//        return .success
     }
 
     func shutdown(explicitTimeout: TimeInterval?) {

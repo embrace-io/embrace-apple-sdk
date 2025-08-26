@@ -39,7 +39,7 @@ public protocol OTelSignalsHandler: AnyObject {
     /// - Parameter event: The event to add.
     /// - Throws: A `EmbraceOTelError.invalidSession` if there is not active Embrace session.
     /// - Throws: A `EmbraceOTelError.spanEventLimitReached` if the limit hass ben reached for the given span even type.
-    func addEvent(_ event: EmbraceSpanEvent) throws
+    func addSessionEvent(_ event: EmbraceSpanEvent) throws
 
     /// Emits a new log.
     /// - Parameters:

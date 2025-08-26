@@ -18,6 +18,7 @@ public class EmbraceOTelSignalsHandler: NSObject, OTelSignalsHandler {
     private let storage: EmbraceStorage?
     private let sessionController: SessionController?
     private let logController: LogController?
+    private let spanEventsLimiter: SpanEventsLimiter
     private let bridge: EmbraceOTelSignalBridge
 
     struct Cache {
@@ -35,11 +36,14 @@ public class EmbraceOTelSignalsHandler: NSObject, OTelSignalsHandler {
         storage: EmbraceStorage?,
         sessionController: SessionController?,
         logController: LogController?,
+
+        spanEventsLimiter: SpanEventsLimiter,
         bridge: EmbraceOTelSignalBridge = DefaultOTelSignalBridge()
     ) {
         self.storage = storage
         self.sessionController = sessionController
         self.logController = logController
+        self.spanEventsLimiter = spanEventsLimiter
         self.bridge = bridge
     }
 
@@ -125,28 +129,22 @@ public class EmbraceOTelSignalsHandler: NSObject, OTelSignalsHandler {
 
         return span
     }
-    
+
     /// Adds the given `EmbraceSpanEvent` to the current Embrace session.
     /// - Parameter event: The event to add.
     /// - Throws: A `EmbraceOTelError.invalidSession` if there is not active Embrace session.
     /// - Throws: A `EmbraceOTelError.spanEventLimitReached` if the limit hass ben reached for the given span even type.
-    public func addEvent(_ event: EmbraceSpanEvent) throws {
+    public func addSessionEvent(_ event: EmbraceSpanEvent) throws {
 
-        guard let span = sessionController?.currentSessionSpan else {
+        guard var span = sessionController?.currentSessionSpan else {
             throw EmbraceOTelError.invalidSession("No active Embrace session!")
         }
 
-        // TODO: Clean up
-//        let eventsToAdd: [EmbraceSpanEvent] = Embrace.client?.spanEventsLimiter.applyLimits(events: [event]) ?? [event]
-//        guard eventsToAdd.count > 0 else {
-//            throw EmbraceOTelError.spanEventLimitReached("Limit reached for the span even type \"\(event.type.rawValue)\"!")
-//        }
-//
-//        for event in eventsToAdd {
-//            span.add(events: eventsToAdd)
-//        }
+        guard spanEventsLimiter.shouldAddEvent(event: event) else {
+            throw EmbraceOTelError.spanEventLimitReached("Limit reached for the span event type!")
+        }
 
-//        span.add(events: [event])
+        span.addEvent(event)
     }
     
     /// Emits a new log.
@@ -186,6 +184,26 @@ public class EmbraceOTelSignalsHandler: NSObject, OTelSignalsHandler {
 // MARK: Internal
 
 extension EmbraceOTelSignalsHandler {
+
+    // ends all the cached auto-termination spans
+    public func autoTerminateSpans() {
+        cache.withLock {
+            let now = Date()
+
+            for var span in $0.autoTerminationSpans.values {
+                let code = span.autoTerminationCode ?? .unknown
+                span.setInternalAttribute(key: SpanSemantics.keyErrorCode, value: code.rawValue)
+                span.setStatus(.error)
+                span.end(endTime: now)
+            }
+
+            $0.autoTerminationSpans.removeAll()
+        }
+    }
+
+    // creates a log that is not saved nor added to the batch
+    // only used for logs that are handled in a special manner
+    // but still need to be exported externally (i.e crash logs)
     func exportLog(
         _ message: String,
         severity: EmbraceLogSeverity,

@@ -10,7 +10,6 @@
         import EmbraceCommonInternal
         import EmbraceSemantics
     #endif
-    import OpenTelemetryApi
 
     public protocol InstrumentableViewController: UIViewController {
 

@@ -3,10 +3,8 @@
 //
 
 import Foundation
-import OpenTelemetrySdk
-
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceOTelInternal
+    import EmbraceSemantics
 #endif
 
 class LogDataValidation {
@@ -20,7 +18,7 @@ class LogDataValidation {
     /// Validators have the opportunity to modify the ReadableLogRecord if any validation is deemed recoverable
     /// - Parameter log The data to validate. An inout parameter as this item can be mutated by any validator
     /// - Returns false if any validator fails
-    func execute(log: inout ReadableLogRecord) -> Bool {
+    func execute(log: inout EmbraceLog) -> Bool {
         var result = true
 
         for validator in validators {

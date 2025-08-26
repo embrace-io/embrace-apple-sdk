@@ -8,7 +8,6 @@ import Foundation
     import EmbraceCommonInternal
     import EmbraceStorageInternal
     import EmbraceUploadInternal
-    import EmbraceOTelInternal
     import EmbraceSemantics
 #endif
 

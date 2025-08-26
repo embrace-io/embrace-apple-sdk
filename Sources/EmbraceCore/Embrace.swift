@@ -92,8 +92,6 @@ import Foundation
     let sessionController: SessionController
     let sessionLifecycle: SessionLifecycle
 
-    let spanEventsLimiter: SpanEventsLimiter
-
     let processingQueue = DispatchQueue(
         label: "com.embrace.processing",
         qos: .utility,
@@ -203,7 +201,11 @@ import Foundation
         self.otel = EmbraceOTelSignalsHandler(
             storage: storage,
             sessionController: sessionController,
-            logController: logController
+            logController: logController,
+            spanEventsLimiter: SpanEventsLimiter(
+                spanEventsLimits: config.spanEventsLimits,
+                configNotificationCenter: Embrace.notificationCenter
+            )
         )
 
         // initialize capture services
@@ -213,12 +215,6 @@ import Foundation
             storage: storage,
             upload: upload,
             otel: self.otel
-        )
-
-        // initialize span events limiter
-        self.spanEventsLimiter = SpanEventsLimiter(
-            spanEventsLimits: config.spanEventsLimits,
-            configNotificationCenter: Embrace.notificationCenter
         )
 
         // initialize metadata handler
@@ -237,6 +233,7 @@ import Foundation
         )
 
         sessionController.sdkStateProvider = self
+        sessionController.otel = self.otel
         logController?.sdkStateProvider = self
 
         // setup otel

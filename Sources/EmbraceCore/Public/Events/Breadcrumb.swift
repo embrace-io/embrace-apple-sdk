@@ -3,50 +3,44 @@
 //
 
 import Foundation
-import OpenTelemetryApi
-
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceOTelInternal
     import EmbraceCommonInternal
     import EmbraceSemantics
 #endif
 
-/// Class used to represent a Breadcrumb as a SpanEvent.
+/// Class used to represent a Breadcrumb as a `EmbraceSpanEvent`.
 /// Usage example:
-/// `Embrace.client?.add(.breadcrumb("This is a breadcrumb"))`
+/// `Embrace.client?.otel.addSessionEvent(.breadcrumb("This is a breadcrumb"))`
 @objc(EMBBreadcrumb)
-public class Breadcrumb: NSObject, SpanEvent {
-    public let name: String
-    public let timestamp: Date
-    public private(set) var attributes: [String: AttributeValue]
-
+public class Breadcrumb: EmbraceSpanEvent {
     init(
         message: String,
         timestamp: Date = Date(),
-        attributes: [String: AttributeValue]
+        attributes: [String: String] = [:]
     ) {
-        self.name = SpanEventSemantics.Breadcrumb.name
-        self.timestamp = timestamp
-        self.attributes = attributes
-        self.attributes[SpanEventSemantics.Breadcrumb.keyMessage] = .string(message)
-        self.attributes[SpanEventSemantics.keyEmbraceType] = .string(EmbraceType.breadcrumb.rawValue)
+        var finalAttributes = attributes
+        finalAttributes[SpanEventSemantics.Breadcrumb.keyMessage] = message
+
+        super.init(
+            name: SpanEventSemantics.Breadcrumb.name,
+            type: .breadcrumb,
+            timestamp: timestamp,
+            attributes: finalAttributes
+        )
     }
 }
 
-extension SpanEvent where Self == Breadcrumb {
+extension EmbraceSpanEvent {
     public static func breadcrumb(
         _ message: String,
-        properties: [String: String] = [:]
-    ) -> SpanEvent {
-        let otelAttributes = properties.reduce(into: [String: AttributeValue]()) {
-            $0[$1.key] = AttributeValue.string($1.value)
-        }
-        return Breadcrumb(message: message, attributes: otelAttributes)
+        attributes: [String: String] = [:]
+    ) -> EmbraceSpanEvent {
+        return Breadcrumb(message: message, attributes: attributes)
     }
 }
 
-extension SpanEvent {
+extension EmbraceSpanEvent {
     var isBreadcrumb: Bool {
-        attributes[SpanEventSemantics.keyEmbraceType] == .string(EmbraceType.breadcrumb.rawValue)
+        return type == .breadcrumb
     }
 }

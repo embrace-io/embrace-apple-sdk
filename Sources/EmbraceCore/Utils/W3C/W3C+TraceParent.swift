@@ -2,8 +2,6 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import OpenTelemetryApi
-
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceSemantics
 #endif

@@ -6,7 +6,6 @@ import CoreData
 import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceOTelInternal
     import EmbraceCommonInternal
     import EmbraceCoreDataInternal
 #endif
@@ -90,18 +89,7 @@ class EmbraceUploadCache {
         let deleteCount = recordsToDelete.count
 
         if deleteCount > 0 {
-            let span = EmbraceOTel().buildSpan(
-                name: "emb-upload-cache-vacuum",
-                type: .performance,
-                attributes: ["removed": "\(deleteCount)"]
-            )
-            .markAsPrivate()
-            span.setStartTime(time: Date())
-
-            let startedSpan = span.startSpan()
             coreData.deleteRecords(recordsToDelete)
-            startedSpan.end()
-
             return UInt(deleteCount)
         }
 
