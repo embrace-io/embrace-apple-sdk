@@ -31,6 +31,9 @@ class NetworkingSwizzle: NSObject {
     /// Contains all exported spans grouped by the Session they were exported on. Including the session span. The Key is the Session Id.
     private(set) var exportedSpansBySession: [String: [SpanData]] = [:]
 
+    /// Contains all exported spans that were produced before a new session was created
+    private(set) var exportedOrphanedSpans: [SpanData] = []
+
     /// Contains all the logs exported, grouped by Session Id.
     private(set) var exportedLogsBySessions: [String: [ReadableLogRecord]] = [:]
 
@@ -60,13 +63,13 @@ class NetworkingSwizzle: NSObject {
 
     private func setupDataTaskWithCompletionHandler() {
         typealias ImplementationType = @convention(c) (URLSession, Selector, URLRequest, URLSessionCompletion?) ->
-            URLSessionDataTask
+        URLSessionDataTask
         typealias BlockImplementationType = @convention(block) (URLSession, URLRequest, URLSessionCompletion?) ->
-            URLSessionDataTask
+        URLSessionDataTask
 
         let selector: Selector = #selector(
             URLSession.dataTask(with:completionHandler:)
-                as (URLSession) -> (URLRequest, @escaping URLSessionCompletion) -> URLSessionDataTask
+            as (URLSession) -> (URLRequest, @escaping URLSessionCompletion) -> URLSessionDataTask
         )
 
         guard let method = class_getInstanceMethod(URLSession.self, selector) else { return }
@@ -145,12 +148,14 @@ class NetworkingSwizzle: NSObject {
     private func capturedNewJson(_ json: [String: Any]) {
         let data = json["data"] as? [String: Any] ?? [:]
         let spans = data["spans"] as? [[String: Any]] ?? []
+        let spans_snapshots = data["span_snapshots"] as? [[String: Any]] ?? []
         let sessionSpan = spans.first { $0["name"] as? String == "emb-session" }
         let attributes = sessionSpan?["attributes"] as? [[String: String]]
         let sessionIdAttribute = attributes?.first { $0["key"] == "session.id" }
         let sessionId = sessionIdAttribute?["value"] as? String
 
-        guard let sessionId = sessionId else {
+        guard
+            let sessionId = sessionId else {
             return
         }
 
@@ -160,25 +165,69 @@ class NetworkingSwizzle: NSObject {
             postedJsonsSessionIds.append(sessionId)
         }
 
+        ///assign orphaned exported spans into correct session
+        (spans + spans_snapshots).forEach { span in
+            guard (span["name"] as? String) != "emb-session" else { return }
+            if let attributes = span["attributes"] as? [[String: String]],
+               let sessionIdAttribute = attributes.first (where:{ $0["key"] == "session.id" }),
+               let sessionIdFromSpan = sessionIdAttribute["value"] {
+                if let orphanedSpan = exportedOrphanedSpans.first (where: { $0.spanId.hexString == span["span_id"] as? String }) {
+                    exportedSpansBySession[sessionIdFromSpan, default: []].append(orphanedSpan)
+
+                    if let idx = exportedOrphanedSpans.firstIndex(of: orphanedSpan) {
+                        exportedOrphanedSpans.remove(at: idx)
+                    }
+                }
+            }
+        }
+
+        // Attempt to match orphaned spans by start time.
+        postedJsonsSessionIds.forEach { sessionId in
+            postedJsons[sessionId]?.forEach { json in
+                let data = json["data"] as? [String: Any] ?? [:]
+                let spans = data["spans"] as? [[String: Any]] ?? []
+                let sessionSpan = spans.first { $0["name"] as? String == "emb-session" }
+                let attributes = sessionSpan?["attributes"] as? [[String: String]]
+                let sessionIdAttribute = attributes?.first { $0["key"] == "session.id" }
+                let sessionId = sessionIdAttribute?["value"] as? String
+                guard
+                    let sessionSpan = sessionSpan,
+                    let sessionId = sessionId else {
+                    return
+                }
+
+                let sessionStartTime = Date(timeIntervalSince1970: (sessionSpan["start_time_unix_nano"] as? Double ?? 0) / 1000000000)
+                let sessionEndTime = Date(timeIntervalSince1970: (sessionSpan["end_time_unix_nano"] as? Double ?? 0) / 1000000000)
+                for orphanedSpan in exportedOrphanedSpans {
+                    if orphanedSpan.startTime >= sessionStartTime && orphanedSpan.startTime <= sessionEndTime {
+                        exportedSpansBySession[sessionId, default: []].append(orphanedSpan)
+                    } else if orphanedSpan.startTime < sessionStartTime &&
+                                (!orphanedSpan.hasEnded ||
+                                 orphanedSpan.endTime >= sessionStartTime) {
+                        exportedSpansBySession[sessionId, default: []].append(orphanedSpan)
+                    }
+
+                }
+                exportedOrphanedSpans.removeAll { exportedSpansBySession[sessionId]?.firstIndex(of: $0) != nil }
+            }
+        }
+
         NotificationCenter.default.post(name: NSNotification.Name("NetworkingSwizzle.CapturedNewPayload"), object: nil)
     }
 
     private func capturedExportedSpan(_ spanExporter: TestSpanExporter) {
-        var currentSessionId: String? = nil
-
-        if let sessionSpan = spanExporter.latestExporterSpans.first(where: { span in
-            span.name == "emb-session"
-        }) {
-            currentSessionId = sessionSpan.attributes["session.id"]?.description
-        } else {
-            currentSessionId = Embrace.client?.currentSessionId()
+        for span in spanExporter.latestExportedSpans {
+            if span.name == "emb-session" {
+                if let currentSessionId = span.attributes["session.id"]?.description {
+                    exportedSpansBySession[currentSessionId, default: []].append(span)
+                } else {
+                    exportedOrphanedSpans.append(span)
+                }
+            } else {
+                exportedOrphanedSpans.append(span)
+            }
         }
-
-        guard let currentSessionId = currentSessionId else {
-            return
-        }
-
-        exportedSpansBySession[currentSessionId, default: []].append(contentsOf: spanExporter.latestExporterSpans)
+        spanExporter.clearLatestExportedSpans()
     }
 
     private func capturedExportedLog(_ logExporter: TestLogRecordExporter) {
