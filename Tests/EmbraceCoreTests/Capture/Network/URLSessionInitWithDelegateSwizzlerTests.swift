@@ -67,7 +67,8 @@ extension URLSessionInitWithDelegateSwizzlerTests {
         try sut.install()
     }
 
-    fileprivate func whenInitializingURLSessionWithDelegate(_ delegate: URLSessionDelegate = DummyURLSessionDelegate()) {
+    fileprivate func whenInitializingURLSessionWithDelegate(_ delegate: URLSessionDelegate = DummyURLSessionDelegate())
+    {
         session = URLSession(
             configuration: .default,
             delegate: delegate,
