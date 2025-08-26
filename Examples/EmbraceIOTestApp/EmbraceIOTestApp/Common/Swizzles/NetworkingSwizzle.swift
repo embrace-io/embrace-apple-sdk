@@ -227,7 +227,6 @@ class NetworkingSwizzle: NSObject {
                 exportedOrphanedSpans.append(span)
             }
         }
-        spanExporter.clearLatestExportedSpans()
     }
 
     private func capturedExportedLog(_ logExporter: TestLogRecordExporter) {
