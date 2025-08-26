@@ -186,13 +186,8 @@ public class EmbraceUpload: EmbraceLogUploader {
                 return
             }
 
-            if strongSelf.cache.saveUploadData(id: id, type: type, data: data) {
-                completion?(.success(()))
-            } else {
+            if !strongSelf.cache.saveUploadData(id: id, type: type, data: data) {
                 strongSelf.logger.debug("Error caching upload data!")
-
-                let error = NSError(domain: "com.embrace.upload", code: 5000)
-                completion?(.failure(error))
             }
         }
 
@@ -216,6 +211,8 @@ public class EmbraceUpload: EmbraceLogUploader {
                 )
 
                 self?.clearCacheFromStaleData()
+
+                completion?(.success(()))
             }
         }
 

@@ -120,7 +120,7 @@ public class MockEmbraceOpenTelemetry: NSObject, EmbraceOpenTelemetry {
         attributes: [String: String] = [:],
         stackTraceBehavior: StackTraceBehavior = .default
     ) {
-
+        print("")
     }
 
     public func log(
@@ -133,6 +133,6 @@ public class MockEmbraceOpenTelemetry: NSObject, EmbraceOpenTelemetry {
         attributes: [String: String] = [:],
         stackTraceBehavior: StackTraceBehavior = .default
     ) {
-
+        print("")
     }
 }

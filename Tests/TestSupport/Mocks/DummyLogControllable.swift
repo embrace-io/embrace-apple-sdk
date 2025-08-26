@@ -13,7 +13,9 @@ public class DummyLogControllable: LogControllable {
 
     public init() {}
 
-    public func uploadAllPersistedLogs() {}
+    public func uploadAllPersistedLogs(_ completion: (() -> Void)?) {
+        completion?()
+    }
 
     public func createLog(
         _ message: String,
