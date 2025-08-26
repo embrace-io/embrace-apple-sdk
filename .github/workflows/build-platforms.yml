@@ -91,4 +91,4 @@ jobs:
 
     - name: Run build script
       run: |
-        bin/build ${{ matrix.platform_args }} | xcpretty && exit ${PIPESTATUS[0]}
+        bin/build ${{ matrix.platform }} | xcpretty && exit ${PIPESTATUS[0]}
