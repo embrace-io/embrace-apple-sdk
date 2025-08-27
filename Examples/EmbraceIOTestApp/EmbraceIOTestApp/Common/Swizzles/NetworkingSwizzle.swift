@@ -121,8 +121,7 @@ class NetworkingSwizzle: NSObject {
     }
 
     private func setupNotifications() {
-        NotificationCenter.default.addObserver(forName: .init("TestSpanExporter.SpansUpdated"), object: nil, queue: nil)
-        {
+        NotificationCenter.default.addObserver(forName: .init("TestSpanExporter.SpansUpdated"), object: nil, queue: nil) {
             [weak self] _ in
             guard
                 let self = self,

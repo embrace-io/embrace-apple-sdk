@@ -13,6 +13,7 @@
     @testable import EmbraceCore
 
     extension RunLoop {
+        @MainActor
         func waitForNextTick() async {
             await withUnsafeContinuation { continuation in
                 perform(inModes: [.common]) {
@@ -23,7 +24,6 @@
     }
 
     @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
-    @MainActor
     final class EmbraceTraceViewTests: XCTestCase {
 
         var spanProcessor: MockSpanProcessor!
@@ -58,6 +58,7 @@
             traceViewContext = nil
         }
 
+        @MainActor
         func testEmbraceTraceViewCreatesSpanWhenTracingEnabled() async {
             // Given: tracing is enabled
             mockConfig.isSwiftUiViewInstrumentationEnabled = true
@@ -97,6 +98,7 @@
             window.isHidden = true
         }
 
+        @MainActor
         func testEmbraceTraceViewWithTracingDisabled() async {
             // Given: tracing is disabled
             mockConfig.isSwiftUiViewInstrumentationEnabled = false
@@ -128,6 +130,7 @@
             window.isHidden = true
         }
 
+        @MainActor
         func testEmbraceTraceViewWithCustomAttributes() async {
             // Given: tracing is enabled with custom attributes
             mockConfig.isSwiftUiViewInstrumentationEnabled = true
@@ -166,6 +169,7 @@
             window.isHidden = true
         }
 
+        @MainActor
         func testEmbraceTraceViewSpanNaming() async {
             // Given: tracing is enabled
             mockConfig.isSwiftUiViewInstrumentationEnabled = true
@@ -199,6 +203,7 @@
             window.isHidden = true
         }
 
+        @MainActor
         func testMultipleEmbraceTraceViews() async {
             // Given: tracing is enabled
             mockConfig.isSwiftUiViewInstrumentationEnabled = true

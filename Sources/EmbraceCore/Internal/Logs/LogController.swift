@@ -15,7 +15,7 @@ import Foundation
 #endif
 
 protocol LogControllable: LogBatcherDelegate {
-    func uploadAllPersistedLogs()
+    func uploadAllPersistedLogs(_ completion: (() -> Void)?)
     func createLog(
         _ message: String,
         severity: LogSeverity,
@@ -25,7 +25,8 @@ protocol LogControllable: LogBatcherDelegate {
         attachmentId: String?,
         attachmentUrl: URL?,
         attributes: [String: String],
-        stackTraceBehavior: StackTraceBehavior
+        stackTraceBehavior: StackTraceBehavior,
+        queue: DispatchQueue
     )
 }
 
@@ -65,14 +66,19 @@ class LogController: LogControllable {
         self.sessionController = controller
     }
 
-    func uploadAllPersistedLogs() {
+    func uploadAllPersistedLogs(_ completion: (() -> Void)? = nil) {
         guard let storage = storage else {
+            completion?()
             return
         }
 
         let logs: [EmbraceLog] = storage.fetchAll(excludingProcessIdentifier: .current)
         if logs.isEmpty == false {
-            send(batches: divideInBatches(logs))
+            send(batches: divideInBatches(logs)) {
+                completion?()
+            }
+        } else {
+            completion?()
         }
     }
 
@@ -85,7 +91,8 @@ class LogController: LogControllable {
         attachmentId: String? = nil,
         attachmentUrl: URL? = nil,
         attributes: [String: String] = [:],
-        stackTraceBehavior: StackTraceBehavior = .default
+        stackTraceBehavior: StackTraceBehavior = .default,
+        queue: DispatchQueue
     ) {
         guard let sessionController = sessionController else {
             return
@@ -98,68 +105,75 @@ class LogController: LogControllable {
             initialAttributes: attributes
         )
 
-        /*
-         If we want to keep this method cleaner, we could move this log to `EmbraceLogAttributesBuilder`
-         However that would cause to always add a frame to the stacktrace.
-         */
-        switch stackTraceBehavior {
-        case .default:
-            if severity == .warn || severity == .error {
-                let stackTrace: [String] = Thread.callStackSymbols
-                attributesBuilder.addStackTrace(stackTrace)
-            }
-        case .custom(let customStackTrace):
-            if severity == .warn || severity == .error {
-                attributesBuilder.addStackTrace(customStackTrace.frames)
-            }
-        case .notIncluded:
-            break
-        }
-
-        var finalAttributes =
-            attributesBuilder
+        // things that require the state from this thread
+        attributesBuilder
             .addLogType(type)
             .addApplicationState()
-            .addApplicationProperties()
             .addSessionIdentifier()
-            .build()
 
-        // handle attachment data
-        if let attachment = attachment {
-
-            let id = UUID().withoutHyphen
-            finalAttributes[LogSemantics.keyAttachmentId] = id
-
-            let size = attachment.count
-            finalAttributes[LogSemantics.keyAttachmentSize] = String(size)
-
-            // check attachment count limit
-            if sessionController.attachmentCount >= Self.attachmentLimit {
-                finalAttributes[LogSemantics.keyAttachmentErrorCode] = LogSemantics.attachmentLimitReached
-
-                // check attachment size limit
-            } else if size > Self.attachmentSizeLimit {
-                finalAttributes[LogSemantics.keyAttachmentErrorCode] = LogSemantics.attachmentTooLarge
-            }
-
-            // upload attachment
-            else {
-                upload?.uploadAttachment(id: id, data: attachment, completion: nil)
-            }
-
-            sessionController.increaseAttachmentCount()
+        // We want to ensure the backtrace is taken this thread,
+        // but added from the queue as to not use up possibly main thread resources.
+        let addStacktraceBlock: ((_ builder: EmbraceLogAttributesBuilder) -> Void)?
+        switch stackTraceBehavior {
+        case .default where severity == .warn || severity == .error:
+            let stackTrace = Thread.callStackSymbols
+            addStacktraceBlock = { $0.addStackTrace(stackTrace) }
+        case .custom(let customStackTrace) where severity == .warn || severity == .error:
+            let stackTrace = customStackTrace.frames
+            addStacktraceBlock = { $0.addStackTrace(stackTrace) }
+        default:
+            addStacktraceBlock = nil
         }
 
-        // handle pre-uploaded attachment
-        else if let attachmentId = attachmentId,
-            let attachmentUrl = attachmentUrl
-        {
+        // Now we can jump to the queue and process everything.
+        queue.async { [self] in
 
-            finalAttributes[LogSemantics.keyAttachmentId] = attachmentId
-            finalAttributes[LogSemantics.keyAttachmentUrl] = attachmentUrl.absoluteString
+            // Process the stack trace
+            addStacktraceBlock?(attributesBuilder)
+
+            var finalAttributes =
+                attributesBuilder
+                // app properties make requests to the db so can be time consuming.
+                .addApplicationProperties()
+                .build()
+
+            // handle attachment data
+            if let attachment = attachment {
+
+                let id = UUID().withoutHyphen
+                finalAttributes[LogSemantics.keyAttachmentId] = id
+
+                let size = attachment.count
+                finalAttributes[LogSemantics.keyAttachmentSize] = String(size)
+
+                // check attachment count limit
+                if sessionController.attachmentCount >= Self.attachmentLimit {
+                    finalAttributes[LogSemantics.keyAttachmentErrorCode] = LogSemantics.attachmentLimitReached
+
+                    // check attachment size limit
+                } else if size > Self.attachmentSizeLimit {
+                    finalAttributes[LogSemantics.keyAttachmentErrorCode] = LogSemantics.attachmentTooLarge
+                }
+
+                // upload attachment
+                else {
+                    upload?.uploadAttachment(id: id, data: attachment, completion: nil)
+                }
+
+                sessionController.increaseAttachmentCount()
+            }
+
+            // handle pre-uploaded attachment
+            else if let attachmentId = attachmentId,
+                let attachmentUrl = attachmentUrl
+            {
+
+                finalAttributes[LogSemantics.keyAttachmentId] = attachmentId
+                finalAttributes[LogSemantics.keyAttachmentUrl] = attachmentUrl.absoluteString
+            }
+
+            otel.log(message, severity: severity, timestamp: timestamp, attributes: finalAttributes)
         }
-
-        otel.log(message, severity: severity, timestamp: timestamp, attributes: finalAttributes)
     }
 }
 
@@ -175,7 +189,7 @@ extension LogController {
             }
             let resourcePayload = try createResourcePayload(sessionId: sessionId)
             let metadataPayload = try createMetadataPayload(sessionId: sessionId)
-            send(logs: logs, resourcePayload: resourcePayload, metadataPayload: metadataPayload)
+            send(logs: logs, resourcePayload: resourcePayload, metadataPayload: metadataPayload, completion: {})
         } catch let exception {
             Error.couldntCreatePayload(reason: exception.localizedDescription).log()
         }
@@ -183,14 +197,19 @@ extension LogController {
 }
 
 extension LogController {
-    fileprivate func send(batches: [LogsBatch]) {
+    fileprivate func send(batches: [LogsBatch], completion: (() -> Void)? = nil) {
         guard sdkStateProvider?.isEnabled == true else {
+            completion?()
             return
         }
 
         guard batches.isEmpty == false else {
+            completion?()
             return
         }
+
+        let group = DispatchGroup()
+        group.enter()
 
         for batch in batches {
             do {
@@ -219,23 +238,35 @@ extension LogController {
                 let resourcePayload = try createResourcePayload(sessionId: sessionId, processId: processId)
                 let metadataPayload = try createMetadataPayload(sessionId: sessionId, processId: processId)
 
+                group.enter()
+
                 send(
                     logs: batch.logs,
                     resourcePayload: resourcePayload,
-                    metadataPayload: metadataPayload
+                    metadataPayload: metadataPayload,
+                    completion: {
+                        group.leave()
+                    }
                 )
             } catch let exception {
                 Error.couldntCreatePayload(reason: exception.localizedDescription).log()
             }
+        }
+
+        group.leave()
+        group.notify(queue: .global(qos: .default)) {
+            completion?()
         }
     }
 
     fileprivate func send(
         logs: [EmbraceLog],
         resourcePayload: ResourcePayload,
-        metadataPayload: MetadataPayload
+        metadataPayload: MetadataPayload,
+        completion: (() -> Void)?
     ) {
         guard let upload = upload else {
+            completion?()
             return
         }
         let logPayloads = logs.map { LogPayloadBuilder.build(log: $0) }
@@ -246,6 +277,7 @@ extension LogController {
         do {
             let envelopeData = try JSONEncoder().encode(envelope).gzipped()
             upload.uploadLog(id: UUID().uuidString, data: envelopeData) { [weak self] result in
+                defer { completion?() }
                 guard let self = self else {
                     return
                 }
@@ -258,6 +290,7 @@ extension LogController {
             }
         } catch let exception {
             Error.couldntCreatePayload(reason: exception.localizedDescription).log()
+            completion?()
         }
     }
 
