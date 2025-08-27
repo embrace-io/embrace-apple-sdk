@@ -64,14 +64,14 @@ jobs:
         env:
           IS_XCTEST: true
         run: |
-          (set -o pipefail && xcodebuild clean -project "./Examples/EmbraceIOTestApp/EmbraceIOTestApp.xcodeproj" -scheme "EmbraceIOTestApp" -derivedDataPath "build/DerivedData" -resultBundlePath ".build/test/output" -destination "platform=iOS Simulator,name=${{ matrix.device }}" -parallel-testing-enabled NO test | xcpretty) || exit 0
+          set -e && xcodebuild clean -project "./Examples/EmbraceIOTestApp/EmbraceIOTestApp.xcodeproj" -scheme "EmbraceIOTestApp" -derivedDataPath "build/DerivedData" -resultBundlePath ".build/test/output" -destination "platform=iOS Simulator,name=${{ matrix.device }}" -parallel-testing-enabled NO test | xcbeautify && exit ${PIPESTATUS[0]}
 
-#      - name: Upload xcresult Bundle Manually
-#        if: always()
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: output_xcresult
-#          path: .build/test/output.xcresult
+      - name: Upload xcresult Bundle Manually
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: output_xcresult
+          path: .build/test/output.xcresult
 
 #      - uses: kishikawakatsumi/xcresulttool@2b37f116695328d5e503ac8dadca0f1545a51da4
 #        if: always()
