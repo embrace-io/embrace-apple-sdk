@@ -73,11 +73,3 @@ jobs:
           name: output_xcresult
           path: .build/test/output.xcresult
 
-#      - uses: kishikawakatsumi/xcresulttool@2b37f116695328d5e503ac8dadca0f1545a51da4
-#        if: always()
-#        with:
-#          path: .build/test/output.xcresult
-#          title: "UI Test Results"
-#          show-passed-tests: true
-#          show-code-coverage: false
-#          upload-bundles: "never" # Uploading the `xcresult` using the xcresultool action seems to fail
