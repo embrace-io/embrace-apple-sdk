@@ -25,13 +25,13 @@ jobs:
       fail-fast: false
       matrix:
         platform: ["iOS"]
-        xcode_version: ["15.4"]
+        xcode_version: ["16.2"]
         macos-version: ["14"]
         include:
 
           # iOS
           - platform: "iOS"
-            xcode_version: "15.4"
+            xcode_version: "16.2"
             macos-version: "14"
 
           - platform: "iOS"
@@ -44,27 +44,15 @@ jobs:
 
           # tvOS
           - platform: "tvOS"
-            xcode_version: "15.4"
-            macos-version: "14"
-
-          - platform: "tvOS"
             xcode_version: "16.4"
             macos-version: "15"
 
           # macOS
           - platform: "macOS"
-            xcode_version: "15.4"
-            macos-version: "14"
-
-          - platform: "macOS"
             xcode_version: "16.4"
             macos-version: "15"
 
           # watchOS
-          - platform: "watchOS"
-            xcode_version: "15.4"
-            macos-version: "14"
-
           - platform: "watchOS"
             xcode_version: "16.4"
             macos-version: "15"
