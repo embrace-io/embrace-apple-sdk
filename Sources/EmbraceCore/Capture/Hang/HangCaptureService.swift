@@ -138,7 +138,8 @@ extension HangCaptureService: HangObserver {
 
         // Capture the stack now
         let pre = NanosecondClock.current
-        let frames: [String] = []  // EmbraceBacktrace.backtrace(of: self.mainThread).threads.first?.frames ?? []
+        // TODO: Implement stacktrace collection here. Currently, frames is empty and stacktraces are not captured.
+        let frames: [String] = []
         let post = NanosecondClock.current
 
         // process it later
