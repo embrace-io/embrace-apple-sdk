@@ -4,7 +4,6 @@
 
 import CoreData
 import EmbraceCommonInternal
-import EmbraceOTelInternal
 import TestSupport
 import XCTest
 

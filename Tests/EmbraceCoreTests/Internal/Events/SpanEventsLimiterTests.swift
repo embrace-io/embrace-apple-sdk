@@ -4,7 +4,6 @@
 
 import EmbraceConfigInternal
 import EmbraceConfiguration
-import EmbraceOTelInternal
 import TestSupport
 import XCTest
 

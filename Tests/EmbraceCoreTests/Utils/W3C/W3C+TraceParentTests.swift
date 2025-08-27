@@ -3,8 +3,6 @@
 //
 
 import EmbraceCore
-import EmbraceOTelInternal
-import OpenTelemetryApi
 import XCTest
 
 final class W3C_TraceParentTests: XCTestCase {

@@ -10,7 +10,6 @@ import Foundation
     import EmbraceCommonInternal
     import EmbraceSemantics
     import EmbraceConfigInternal
-    import EmbraceOTelInternal
     import EmbraceConfiguration
 #endif
 
@@ -30,18 +29,13 @@ protocol LogControllable: LogBatcherDelegate {
 }
 
 class LogController: LogControllable {
-    private(set) weak var sessionController: SessionControllable?
-    private weak var storage: Storage?
+    private weak var storage: EmbraceStorage?
     private weak var upload: EmbraceLogUploader?
+    private weak var sessionController: SessionControllable?
+    private let batcher: LogBatcher
     private let queue: DispatchQueue
 
     weak var sdkStateProvider: EmbraceSDKStateProvider?
-
-    var otel: EmbraceOTelBridge = EmbraceOTel()  // var so we can inject a mock for testing
-
-    /// This will probably be injected eventually.
-    /// For consistency, I created a constant
-    static let maxLogsPerBatch: Int = 20
 
     struct MutableState {
         var limits: LogsLimits = LogsLimits()
@@ -57,19 +51,39 @@ class LogController: LogControllable {
         sessionController?.currentSession?.id
     }
 
-    static let attachmentLimit: Int = 5
-    static let attachmentSizeLimit: Int = 1_048_576  // 1 MiB
+    struct Constants {
+        static let attachmentLimit: Int = 5
+        static let attachmentSizeLimit: Int = 1_048_576  // 1 MiB
+    }
 
     init(
-        storage: Storage?,
+        storage: EmbraceStorage?,
         upload: EmbraceLogUploader?,
-        controller: SessionControllable,
+        sessionController: SessionControllable,
         queue: DispatchQueue
     ) {
         self.storage = storage
         self.upload = upload
-        self.sessionController = controller
+        self.sessionController = sessionController
+        self.batcher = DefaultLogBatcher()
         self.queue = queue
+
+        self.batcher.delegate = self
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(onSessionEnd),
+            name: Notification.Name.embraceSessionWillEnd,
+            object: nil
+        )
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    @objc func onSessionEnd() {
+        batcher.forceEndCurrentBatch(waitUntilFinished: true)
     }
 
     func uploadAllPersistedLogs() {
@@ -77,7 +91,7 @@ class LogController: LogControllable {
             return
         }
 
-        let logs: [EmbraceLog] = storage.fetchAll(excludingProcessIdentifier: ProcessIdentifier.current)
+        let logs = storage.fetchAllLogs(excludingProcessIdentifier: ProcessIdentifier.current)
         if logs.count > 0 {
             send(batches: divideInBatches(logs))
         }
@@ -143,11 +157,11 @@ class LogController: LogControllable {
                     finalAttributes[LogSemantics.keyAttachmentSize] = String(size)
 
                     // check attachment count limit
-                    if sessionController.attachmentCount >= Self.attachmentLimit {
+                    if sessionController.attachmentCount >= Constants.attachmentLimit {
                         finalAttributes[LogSemantics.keyAttachmentErrorCode] = LogSemantics.attachmentLimitReached
 
                         // check attachment size limit
-                    } else if size > Self.attachmentSizeLimit {
+                    } else if size > Constants.attachmentSizeLimit {
                         finalAttributes[LogSemantics.keyAttachmentErrorCode] = LogSemantics.attachmentTooLarge
                     }
 
@@ -177,10 +191,11 @@ class LogController: LogControllable {
             )
 
             if send {
-                // TODO: add to batch
-
                 // save log
                 storage?.saveLog(log)
+
+                // add to batch
+                batcher.addLog(log)
             }
 
             completion?(log)
@@ -190,16 +205,16 @@ class LogController: LogControllable {
 
 extension LogController {
     func batchFinished(withLogs logs: [EmbraceLog]) {
-        guard sdkStateProvider?.isEnabled == true else {
+        guard sdkStateProvider?.isEnabled == true,
+              logs.isEmpty == false,
+              let sessionId = sessionController?.currentSession?.id else {
             return
         }
 
         do {
-            guard let sessionId = sessionController?.currentSession?.id, logs.isEmpty == false else {
-                return
-            }
             let resourcePayload = try createResourcePayload(sessionId: sessionId)
             let metadataPayload = try createMetadataPayload(sessionId: sessionId)
+
             send(logs: logs, resourcePayload: resourcePayload, metadataPayload: metadataPayload)
         } catch let exception {
             Error.couldntCreatePayload(reason: exception.localizedDescription).log()
@@ -287,14 +302,15 @@ extension LogController {
 
     fileprivate func divideInBatches(_ logs: [EmbraceLog]) -> [LogsBatch] {
         var batches: [LogsBatch] = []
-        var batch: LogsBatch = .init(limits: .init(maxBatchAge: .infinity, maxLogsPerBatch: Self.maxLogsPerBatch))
+        var batch: LogsBatch = .init(limits: batcher.logBatchLimits)
+
         for log in logs {
             let result = batch.add(log: log)
             switch result {
             case .success(let batchState):
                 if batchState == .closed {
                     batches.append(batch)
-                    batch = LogsBatch(limits: .init(maxLogsPerBatch: Self.maxLogsPerBatch))
+                    batch = LogsBatch(limits: batcher.logBatchLimits)
                 }
             case .failure:
                 // This shouldn't happen.
@@ -303,9 +319,11 @@ extension LogController {
                 batch = LogsBatch(limits: .init(), logs: [log])
             }
         }
+
         if batch.batchState != .closed && !batch.logs.isEmpty {
             batches.append(batch)
         }
+        
         return batches
     }
 

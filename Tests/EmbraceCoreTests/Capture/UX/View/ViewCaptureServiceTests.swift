@@ -7,7 +7,6 @@
     import XCTest
     @testable import EmbraceCore
     import OpenTelemetryApi
-    import EmbraceOTelInternal
     import TestSupport
 
     class ViewCaptureServiceTests: XCTestCase {

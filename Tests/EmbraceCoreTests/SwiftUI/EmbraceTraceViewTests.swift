@@ -1,10 +1,7 @@
 #if canImport(UIKit) && !os(watchOS)
 
     import EmbraceCommonInternal
-    import EmbraceOTelInternal
     import EmbraceStorageInternal
-    import OpenTelemetryApi
-    import OpenTelemetrySdk
     import SwiftUI
     import TestSupport
     import XCTest

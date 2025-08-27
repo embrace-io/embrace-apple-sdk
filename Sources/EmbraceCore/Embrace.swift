@@ -8,7 +8,6 @@ import Foundation
     import EmbraceSemantics
     import EmbraceCommonInternal
     import EmbraceConfigInternal
-    import EmbraceOTelInternal
     import EmbraceStorageInternal
     import EmbraceUploadInternal
     import EmbraceObjCUtilsInternal
@@ -87,7 +86,7 @@ import Foundation
     let upload: EmbraceUpload?
     let captureServices: CaptureServices
 
-    let logController: LogControllable
+    let logController: LogController
 
     let sessionController: SessionController
     let sessionLifecycle: SessionLifecycle
@@ -156,7 +155,6 @@ import Foundation
 
     init(
         options: Embrace.Options,
-        logControllable: LogControllable? = nil,
         embraceStorage: EmbraceStorage? = nil
     ) throws {
 
@@ -183,25 +181,18 @@ import Foundation
         self.sessionLifecycle = Embrace.createSessionLifecycle(controller: sessionController)
 
         // initialize log controller
-        var logController: LogController?
-        if let logControllable = logControllable {
-            self.logController = logControllable
-        } else {
-            let controller = LogController(
-                storage: storage,
-                upload: upload,
-                controller: sessionController,
-                queue: processingQueue
-            )
-            logController = controller
-            self.logController = controller
-        }
+        self.logController = LogController(
+            storage: storage,
+            upload: upload,
+            sessionController: sessionController,
+            queue: processingQueue
+        )
 
         // initialize otel handler
         self.otel = EmbraceOTelSignalsHandler(
             storage: storage,
             sessionController: sessionController,
-            logController: logController,
+            logController: self.logController,
             spanEventsLimiter: SpanEventsLimiter(
                 spanEventsLimits: config.spanEventsLimits,
                 configNotificationCenter: Embrace.notificationCenter
@@ -226,47 +217,21 @@ import Foundation
 
         super.init()
 
+        // metrick kit
         captureServices.addMetricKitServices(
             payloadProvider: metricKit,
             metadataFetcher: storage,
             stateProvider: self
         )
 
+        // set providers
         sessionController.sdkStateProvider = self
         sessionController.otel = self.otel
-        logController?.sdkStateProvider = self
-
-        // setup otel
-        var processors = Array.processors(
-            for: storage,
-            sessionController: sessionController,
-            export: options.export,
-            sdkStateProvider: self
-        )
-        if let extraProcessors = options.processors?.map({ $0.processor }) {
-            processors.append(contentsOf: extraProcessors)
-        }
-
-        EmbraceOTel.setup(spanProcessors: processors)
-
-        let logBatcher = DefaultLogBatcher(
-            repository: storage,
-            logLimits: .init(),
-            delegate: self.logController
-        )
-
-        sessionController.setLogBatcher(logBatcher)
-
-        let logSharedState = DefaultEmbraceLogSharedState.create(
-            storage: self.storage,
-            batcher: logBatcher,
-            exporter: options.export?.logExporter,
-            sdkStateProvider: self
-        )
-
-        EmbraceOTel.setup(logSharedState: logSharedState)
-        sessionLifecycle.setup()
+        logController.sdkStateProvider = self
         Embrace.logger.otel = self.otel
+
+        // fetch app state
+        sessionLifecycle.setup()
 
         // startup tracking
         startupInstrumentation.otel = self.otel

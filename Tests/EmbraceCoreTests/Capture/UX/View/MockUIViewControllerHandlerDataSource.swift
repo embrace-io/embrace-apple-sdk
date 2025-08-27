@@ -8,7 +8,6 @@
     import UIKit
     @testable import EmbraceCore
     import EmbraceCaptureService
-    import EmbraceOTelInternal
     import TestSupport
 
     class MockUIViewControllerHandlerDataSource: UIViewControllerHandlerDataSource {

@@ -5,7 +5,12 @@
 import EmbraceSemantics
 import Foundation
 
+public protocol MockSpanDelegate: AnyObject {
+    func onSpanEnded(_ span: EmbraceSpan)
+}
+
 public class MockSpan: EmbraceSpan {
+
     public var context: EmbraceSpanContext
     public var parentSpanId: String?
     public var name: String
@@ -18,6 +23,8 @@ public class MockSpan: EmbraceSpan {
     public var sessionId: EmbraceIdentifier?
     public var processId: EmbraceIdentifier
     public var attributes: [String : String]
+
+    weak var delegate: MockSpanDelegate?
 
     public init(
         id: String,
@@ -32,7 +39,8 @@ public class MockSpan: EmbraceSpan {
         links: [EmbraceSpanLink],
         sessionId: EmbraceIdentifier? = nil,
         processId: EmbraceIdentifier,
-        attributes: [String : String]
+        attributes: [String : String],
+        delegate: MockSpanDelegate? = nil
     ) {
         self.context = EmbraceSpanContext(spanId: id, traceId: traceId)
         self.parentSpanId = parentSpanId
@@ -46,13 +54,14 @@ public class MockSpan: EmbraceSpan {
         self.sessionId = sessionId
         self.processId = processId
         self.attributes = attributes
+        self.delegate = delegate
     }
 
     public func setStatus(_ status: EmbraceSpanStatus) {
         self.status = status
     }
 
-    public func addEvent(name: String, type: EmbraceType, timestamp: Date, attributes: [String : String]) throws {
+    public func addEvent(name: String, type: EmbraceType?, timestamp: Date, attributes: [String : String]) throws {
         events.append(EmbraceSpanEvent(name: name, type: type, timestamp: timestamp, attributes: attributes))
     }
 
@@ -62,6 +71,8 @@ public class MockSpan: EmbraceSpan {
 
     public func end(endTime: Date) {
         self.endTime = endTime
+
+        delegate?.onSpanEnded(self)
     }
 
     public func end() {

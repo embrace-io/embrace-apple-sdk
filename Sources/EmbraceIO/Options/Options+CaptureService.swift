@@ -9,7 +9,6 @@ import Foundation
     import EmbraceCore
     import EmbraceCommonInternal
     import EmbraceKSCrashSupport
-    import EmbraceOTelInternal
 #endif
 
 extension Embrace.Options {
@@ -26,93 +25,18 @@ extension Embrace.Options {
     ///   - platform: `Platform` in which the app will run. Defaults to `.iOS`.
     ///   - endpoints: `Embrace.Endpoints` instance.
     ///   - logLevel: `LogLevel` for Embrace console logs
-    ///   - export: `OpenTelemetryExport` object to export telemetry outside of the Embrace backend.
     @objc public convenience init(
         appId: String,
         appGroupId: String? = nil,
         platform: Platform = .default,
         endpoints: Embrace.Endpoints? = nil,
-        logLevel: LogLevel = .default,
-        export: OpenTelemetryExport? = nil
+        logLevel: LogLevel = .default
     ) {
         self.init(
             appId: appId,
             appGroupId: appGroupId,
             platform: platform,
             endpoints: endpoints,
-            captureServices: .automatic,
-            crashReporter: KSCrashReporter(),
-            logLevel: logLevel,
-            export: export
-        )
-    }
-
-    /// Convenience initializer for `Embrace.Options` that automatically includes the default `CaptureServices` and `CrashReporter`,
-    /// You can see list of platform service defaults in ``CaptureServiceBuilder.addDefaults``.
-    ///
-    /// If you wish to customize which `CaptureServices` and `CrashReporter` are installed, please refer to the `Embrace.Options`
-    /// initializer found in the `EmbraceCore` target.
-    ///
-    /// - Parameters:
-    ///   - appId: The `appId` of the project.
-    ///   - appGroupId: The app group identifier used by the app, if any.
-    ///   - platform: `Platform` in which the app will run. Defaults to `.iOS`.
-    @objc public convenience init(
-        appId: String,
-        appGroupId: String? = nil,
-        platform: Platform = .default
-    ) {
-        self.init(
-            appId: appId,
-            appGroupId: appGroupId,
-            platform: platform,
-            captureServices: .automatic,
-            crashReporter: KSCrashReporter(),
-            processors: nil
-        )
-    }
-
-    /// Convenience initializer for `Embrace.Options` that automatically includes the default `CaptureServices`, `CrashReporter` and `OpenTelemetryProcessor`'s.
-    /// You can see list of platform service defaults in ``CaptureServiceBuilder.addDefaults``.
-    ///
-    /// If you wish to customize which `CaptureServices` and `CrashReporter` are installed, please refer to the `Embrace.Options`
-    /// initializer found in the `EmbraceCore` target.
-    ///
-    /// - Parameters:
-    ///   - appId: The `appId` of the project.
-    ///   - appGroupId: The app group identifier used by the app, if any.
-    ///   - platform: `Platform` in which the app will run. Defaults to `.iOS`.
-    ///   - processors: Extra `OpenTelemetryProcessor`s to include.
-    @objc public convenience init(
-        appId: String,
-        appGroupId: String? = nil,
-        platform: Platform = .default,
-        processors: [OpenTelemetryProcessor]? = nil
-    ) {
-        self.init(
-            appId: appId,
-            appGroupId: appGroupId,
-            platform: platform,
-            captureServices: .automatic,
-            crashReporter: KSCrashReporter(),
-            processors: processors
-        )
-    }
-
-    /// Initializer for `Embrace.Options` that does not require an appId.
-
-    /// Use this initializer if you don't want the SDK to send data to Embrace's servers.
-    /// You must provide your own `OpenTelemetryExport`
-    ///
-    /// If you wish to customize which `CaptureServices` and `CrashReporter` are installed, please refer to the `Embrace.Options`
-    /// initializer found in the `EmbraceCore` target.
-    ///
-    /// - Parameters:
-    ///   - export: `OpenTelemetryExport` object to export telemetry using OpenTelemetry protocols
-    ///   - logLevel: The `LogLevel` to use for console logs.
-    @objc public convenience init(export: OpenTelemetryExport, logLevel: LogLevel = .default) {
-        self.init(
-            export: export,
             captureServices: .automatic,
             crashReporter: KSCrashReporter(),
             logLevel: logLevel

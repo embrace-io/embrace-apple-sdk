@@ -11,7 +11,6 @@ import XCTest
 
 class DefaultLogBatcherTests: XCTestCase {
     private var sut: DefaultLogBatcher!
-    private var repository: SpyLogRepository!
     private var delegate: SpyLogBatcherDelegate!
 
     func test_addLog_alwaysTriesToCreateLogInRepository() {
@@ -61,9 +60,8 @@ class DefaultLogBatcherTests: XCTestCase {
 
 extension DefaultLogBatcherTests {
     fileprivate func givenDefaultLogBatcher(limits: LogBatchLimits = .init()) {
-        repository = .init()
         delegate = .init()
-        sut = .init(repository: repository, logLimits: limits, delegate: delegate, processorQueue: .main)
+        sut = .init(logLimits: limits, delegate: delegate, processorQueue: .main)
     }
 
     fileprivate func randomLogRecord() -> ReadableLogRecord {

@@ -12,40 +12,32 @@ import Foundation
 
 protocol LogBatcherDelegate: AnyObject {
     func batchFinished(withLogs logs: [EmbraceLog])
-    var limits: LogsLimits { get set }
-    var currentSessionId: EmbraceIdentifier? { get }
 }
 
 protocol LogBatcher: AnyObject {
     func addLog(_ log: EmbraceLog)
     func renewBatch(withLogs logRecords: [EmbraceLog])
     func forceEndCurrentBatch(waitUntilFinished: Bool)
-    var limits: LogsLimits { get }
+    var logBatchLimits: LogBatchLimits { get }
+
+    var delegate: LogBatcherDelegate? { get set }
 }
 
 class DefaultLogBatcher: LogBatcher {
-    private let repository: LogRepository
+    private(set) var logBatchLimits: LogBatchLimits
     private let processorQueue: DispatchQueue
-    private let logLimits: LogBatchLimits
 
-    private weak var delegate: LogBatcherDelegate?
+    weak var delegate: LogBatcherDelegate?
+
     private var batchDeadlineWorkItem: DispatchWorkItem?
     private var batch: LogsBatch?
 
-    var limits: LogsLimits {
-        delegate?.limits ?? .init()
-    }
-
     init(
-        repository: LogRepository,
-        logLimits: LogBatchLimits,
-        delegate: LogBatcherDelegate,
+        logBatchLimits: LogBatchLimits = LogBatchLimits(),
         processorQueue: DispatchQueue = .init(label: "io.embrace.logBatcher")
     ) {
-        self.repository = repository
-        self.logLimits = logLimits
+        self.logBatchLimits = logBatchLimits
         self.processorQueue = processorQueue
-        self.delegate = delegate
     }
 }
 
@@ -80,12 +72,14 @@ extension DefaultLogBatcher {
         guard let batch = self.batch else {
             return
         }
-        self.cancelBatchDeadline()
-        self.delegate?.batchFinished(withLogs: batch.logs)
-        self.batch = .init(limits: self.logLimits, logs: logs)
+
+        cancelBatchDeadline()
+        delegate?.batchFinished(withLogs: batch.logs)
+
+        self.batch = .init(limits: logBatchLimits, logs: logs)
 
         if logs.isEmpty == false {
-            self.renewBatchDeadline(with: self.logLimits)
+            renewBatchDeadline(with: logBatchLimits)
         }
     }
 
@@ -98,14 +92,14 @@ extension DefaultLogBatcher {
                     if state == .closed {
                         self.renewBatch()
                     } else if self.batchDeadlineWorkItem == nil {
-                        self.renewBatchDeadline(with: self.logLimits)
+                        self.renewBatchDeadline(with: self.logBatchLimits)
                     }
                 case .failure:
                     self.renewBatch(withLogs: [log])
                 }
             } else {
-                self.batch = .init(limits: self.logLimits, logs: [log])
-                self.renewBatchDeadline(with: self.logLimits)
+                self.batch = .init(limits: self.logBatchLimits, logs: [log])
+                self.renewBatchDeadline(with: self.logBatchLimits)
             }
         }
     }
@@ -117,7 +111,7 @@ extension DefaultLogBatcher {
             self?.renewBatch()
         }
 
-        let lifespan = Int(self.logLimits.maxBatchAge * 1000)
+        let lifespan = Int(logBatchLimits.maxBatchAge * 1000)
         let lifeInSeconds = DispatchTimeInterval.milliseconds(lifespan)
         processorQueue.asyncAfter(deadline: .now() + lifeInSeconds, execute: item)
 

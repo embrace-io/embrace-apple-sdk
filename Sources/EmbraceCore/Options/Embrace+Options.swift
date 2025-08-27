@@ -23,9 +23,7 @@ extension Embrace {
         @objc public let services: [CaptureService]
         @objc public let crashReporter: CrashReporter?
         @objc public let logLevel: LogLevel
-        @objc public let export: OpenTelemetryExport?
         @objc public let runtimeConfiguration: EmbraceConfigurable?
-        @objc public let processors: [OpenTelemetryProcessor]?
 
         /// Default initializer for `Embrace.Options` that requires an array of `CaptureServices` to be passed.
         ///
@@ -49,9 +47,7 @@ extension Embrace {
             endpoints: Embrace.Endpoints? = nil,
             captureServices: [CaptureService],
             crashReporter: CrashReporter?,
-            logLevel: LogLevel = .default,
-            export: OpenTelemetryExport? = nil,
-            processors: [OpenTelemetryProcessor]? = nil
+            logLevel: LogLevel = .default
         ) {
             self.appId = appId
             self.appGroupId = appGroupId
@@ -60,9 +56,7 @@ extension Embrace {
             self.services = captureServices
             self.crashReporter = crashReporter
             self.logLevel = logLevel
-            self.export = export
             self.runtimeConfiguration = nil
-            self.processors = processors
         }
 
         /// Initializer for `Embrace.Options` that does not require an appId.
@@ -77,7 +71,6 @@ extension Embrace {
         ///   - logLevel: The `LogLevel` to use for console logs.
         ///   - runtimeConfiguration: An object to control runtime behavior of the SDK itself.
         @objc public init(
-            export: OpenTelemetryExport,
             platform: Platform = .default,
             captureServices: [CaptureService],
             crashReporter: CrashReporter?,
@@ -91,9 +84,7 @@ extension Embrace {
             self.services = captureServices
             self.crashReporter = crashReporter
             self.logLevel = logLevel
-            self.export = export
             self.runtimeConfiguration = runtimeConfiguration
-            self.processors = nil
         }
     }
 }
@@ -103,7 +94,6 @@ extension Embrace.Options {
     func validate() throws {
         try validateAppId()
         try validateGroupId()
-        try validateOTelExport()
     }
 
     func validateAppId() throws {
@@ -123,12 +113,6 @@ extension Embrace.Options {
 
         if groupId.isEmpty {
             throw EmbraceSetupError.invalidAppGroupId("`appGroupId` must not be empty if provided")
-        }
-    }
-
-    func validateOTelExport() throws {
-        if appId == nil, export == nil {
-            throw EmbraceSetupError.invalidOptions("`OpenTelemetryExport` must be provided when not using an `appId`")
         }
     }
 }

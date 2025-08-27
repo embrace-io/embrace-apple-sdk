@@ -8,8 +8,6 @@ import XCTest
 import TestSupport
 import EmbraceSemantics
 @testable import EmbraceCore
-@testable import EmbraceOTelInternal
-@testable import OpenTelemetrySdk
 
 // swiftlint:disable force_cast
 

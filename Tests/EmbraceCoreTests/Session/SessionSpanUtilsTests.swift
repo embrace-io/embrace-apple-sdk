@@ -3,10 +3,7 @@
 //
 
 import EmbraceCommonInternal
-import EmbraceOTelInternal
 import EmbraceStorageInternal
-import OpenTelemetryApi
-import OpenTelemetrySdk
 import TestSupport
 import XCTest
 

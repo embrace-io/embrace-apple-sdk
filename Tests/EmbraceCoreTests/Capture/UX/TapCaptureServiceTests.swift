@@ -6,7 +6,6 @@
     import XCTest
     import UIKit
     @testable import EmbraceCore
-    import EmbraceOTelInternal
     import TestSupport
 
     // swiftlint:disable force_cast

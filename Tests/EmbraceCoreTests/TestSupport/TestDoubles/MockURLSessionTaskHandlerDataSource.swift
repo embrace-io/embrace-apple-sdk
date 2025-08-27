@@ -3,7 +3,6 @@
 //
 
 import EmbraceCaptureService
-import EmbraceOTelInternal
 import Foundation
 
 @testable import EmbraceCore
