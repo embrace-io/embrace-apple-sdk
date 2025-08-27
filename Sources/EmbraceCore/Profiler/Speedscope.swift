@@ -77,8 +77,7 @@ extension EmbraceBacktraceFrame {
 
 extension Speedscope {
 
-    public static func with(_ profile: EmbraceProfile, filter: (_ frame: EmbraceBacktraceFrame) -> Bool) -> Speedscope?
-    {
+    public static func with(_ profile: EmbraceProfile, filter: (_ frame: EmbraceBacktraceFrame) -> Bool) -> Speedscope? {
 
         // build the frames
         var frameset = Set<Frame>()
@@ -103,7 +102,8 @@ extension Speedscope {
                 var stack: [Int] = []
                 thread.frames(symbolicated: true).forEach { frame in
                     if let speedFrame = frame.asSpeedscopeFrame(), let index = frames.firstIndex(of: speedFrame) {
-                        stack.append(index)
+                        // stack.append(index)
+                        stack.insert(index, at: 0)
                     }
                 }
                 samples.append(stack)

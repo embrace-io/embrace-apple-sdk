@@ -8,13 +8,6 @@ import Foundation
     import EmbraceCommonInternal
 #endif
 
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import KSCrashDemangleFilter
-    import KSCrashRecordingCore
-#else
-    import KSCrash
-#endif
-
 private class EmbraceThreadList {
     let task: mach_port_t
     let threads: thread_act_array_t?
@@ -125,27 +118,20 @@ extension EmbraceBacktraceFrame {
             return cached
         }
 
-        var result = SymbolInformation()
-        guard symbolicate(address: UInt(address), result: &result) else {
+        guard let result = Embrace.client?.options.symbolicator?.symbolicate(address: UInt(address)) else {
             return self
         }
-
-        let symbolName = backtraceDemangle(
-            result.symbolName != nil ? String(cString: result.symbolName!) : nil
-        )
-        let imageName =
-            result.imageName != nil ? NSString(utf8String: result.imageName!)?.lastPathComponent ?? nil : nil
 
         let symbolicatedFrame = EmbraceBacktraceFrame(
             address: UInt64(address),
             symbol: Symbol(
                 address: result.symbolAddress,
-                name: symbolName
+                name: result.symbolName ?? ""
             ),
-            image: imageName != nil
+            image: result.imageName != nil
                 ? Image(
                     uuid: NSUUID(uuidBytes: result.imageUUID).uuidString,
-                    name: imageName!,
+                    name: result.imageName!,
                     address: result.imageAddress,
                     size: result.imageSize
                 ) : nil
@@ -176,92 +162,59 @@ extension EmbraceBacktrace {
     static func _takeSnapshot(of thread: pthread_t, suspendingThreads: Bool) -> [EmbraceBacktraceThread] {
 
         let threadList = suspendingThreads ? EmbraceThreadList() : nil
-        
+
         if suspendingThreads {
             threadList?.suspend()
             defer { threadList?.resume() }
         }
-        
-        // In KSCrash there, a bug that causes a backtrace on the pthread_self
-        // to not work. So for now we'll simply use `backtrace`
-        // fix: https://github.com/kstenerud/KSCrash/pull/690
-        
+
+        // Get the actual snapshot,
+        // remove the entries that are part of the SDK,
+        // get only the first N entries to not overload the system,
+        // clean 'em up.
         let entries = 512
-        var addresses: [UInt] = Array(repeating: 0, count: 512)
-        let frameCount: Int32
-        
-        if thread == pthread_self() {
-            // drop first 3 frames up to where we are.
-            addresses = Thread.callStackReturnAddresses.dropFirst(3).prefix(entries).compactMap { $0 as? UInt  }
-            frameCount = Int32(addresses.count)
-        } else {
-            frameCount = captureBacktrace(thread: thread, addresses: &addresses, count: Int32(entries))
-        }
+        let addresses =
+            Embrace.client?.options.backtracer?
+            .backtrace(of: thread)
+            .dropFirst(3)
+            .prefix(entries)
+            .compactMap { $0 as? UInt } ?? []
 
         return [
             EmbraceBacktraceThread(
                 index: threadList?.indexOf(thread: thread) ?? 0,
                 callstack: EmbraceBacktraceThread.Callstack(
                     addresses: addresses,
-                    count: Int(frameCount)
+                    count: addresses.count
                 )
             )
         ]
     }
 }
 
-func backtraceDemangle(_ symbol: String?) -> String {
+extension EmbraceBacktraceFrame {
 
-    guard let symbol else { return "<unknown>" }
+    static let moduleNameKey = "m"
+    static let modulePathKey = "p"
+    static let moduleOffsetKey = "o"
+    static let moduleUUIDKey = "u"
+    static let instructionAddressKey = "a"
+    static let symbolNameKey = "s"
+    static let symbolOffsetKey = "so"
 
-    // try simplified for the UI
-    if let a2 = CrashReportFilterDemangle.demangledSwiftSymbol(symbol)?.trimmingCharacters(in: .whitespacesAndNewlines),
-        !a2.isEmpty
-    {
-        return a2
-    }
-
-    // full non-simplified demangle
-    if let a3 = _swift_demangleImpl(symbol)?.trimmingCharacters(in: .whitespacesAndNewlines) {
-        return a3
-    }
-
-    // cpp demangle
-    if let a4 = CrashReportFilterDemangle.demangledCppSymbol(symbol)?.trimmingCharacters(in: .whitespacesAndNewlines),
-        !a4.isEmpty
-    {
-        return a4
-    }
-
-    // return the original, likely ObjC or something
-    return symbol
-}
-
-@_silgen_name("swift_demangle")
-public func _stdlib_demangleImpl(
-    mangledName: UnsafePointer<CChar>?,
-    mangledNameLength: UInt,
-    outputBuffer: UnsafeMutablePointer<CChar>?,
-    outputBufferSize: UnsafeMutablePointer<UInt>?,
-    flags: UInt32
-) -> UnsafeMutablePointer<CChar>?
-
-private func _swift_demangleImpl(_ symbol: String) -> String? {
-
-    return symbol.utf8CString.withUnsafeBufferPointer { (mangledNameUTF8CStr) in
-        let demangledNamePtr = _stdlib_demangleImpl(
-            mangledName: mangledNameUTF8CStr.baseAddress,
-            mangledNameLength: UInt(mangledNameUTF8CStr.count - 1),
-            outputBuffer: nil,
-            outputBufferSize: nil,
-            flags: 0)
-
-        guard let demangledNamePtr else {
+    /// Build up a dictionary of a frame as required by the Embrace SDK
+    func asProcessedFrame() -> [String: Any]? {
+        guard let image, let symbol else {
             return nil
         }
-
-        let demangledName = String(cString: demangledNamePtr)
-        free(demangledNamePtr)
-        return demangledName
+        return [
+            Self.instructionAddressKey: String(format: "0x%016llx", address),
+            Self.moduleNameKey: image.name,
+            Self.moduleOffsetKey: image.address,
+            Self.modulePathKey: "/\(image.name ?? "")",
+            Self.symbolNameKey: symbol.name,
+            Self.symbolOffsetKey: symbol.address - image.address,
+            Self.moduleUUIDKey: image.uuid
+        ]
     }
 }
