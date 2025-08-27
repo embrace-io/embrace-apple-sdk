@@ -47,7 +47,7 @@ public class EmbraceProfiler {
     private init() {
         self.queue = DispatchQueue(label: "com.embrace.profiler")
         self.completionQueue = DispatchQueue(label: "com.embrace.profiler.completion")
-        self.interval = 5 * NSEC_PER_MSEC
+        self.interval = 1 * NSEC_PER_MSEC
         self.mainThead =
             if Thread.isMainThread {
                 pthread_self()

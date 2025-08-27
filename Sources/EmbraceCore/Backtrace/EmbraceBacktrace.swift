@@ -61,29 +61,3 @@ public struct EmbraceBacktrace: Codable {
     }
 }
 extension EmbraceBacktrace: Sendable {}
-
-extension EmbraceBacktraceFrame {
-    
-    static let moduleNameKey = "m";
-    static let modulePathKey = "p";
-    static let moduleOffsetKey = "o";
-    static let moduleUUIDKey = "u";
-    static let instructionAddressKey = "a";
-    static let symbolNameKey = "s";
-    static let symbolOffsetKey = "so";
-    
-    func asProcessedFrame() -> [String: Any]? {
-        guard let image, let symbol else {
-            return nil
-        }
-        return [
-            Self.instructionAddressKey: String(format: "0x%016llx", address),
-            Self.moduleNameKey: image.name,
-            Self.moduleOffsetKey: image.address,
-            Self.modulePathKey: "/\(image.name ?? "")",
-            Self.symbolNameKey: symbol.name,
-            Self.symbolOffsetKey: symbol.address - image.address, //
-            Self.moduleUUIDKey: image.uuid
-        ]
-    }
-}

@@ -90,9 +90,7 @@ let package = Package(
                 "EmbraceStorageInternal",
                 "EmbraceUploadInternal",
                 "EmbraceObjCUtilsInternal",
-                "EmbraceSemantics",
-                .product(name: "DemangleFilter", package: "KSCrash"),
-                .product(name: "Recording", package: "KSCrash")
+                "EmbraceSemantics"
             ],
             resources: [
                 .copy("PrivacyInfo.xcprivacy")
@@ -283,6 +281,7 @@ let package = Package(
             name: "EmbraceKSCrashSupport",
             dependencies: [
                 "EmbraceCommonInternal",
+                .product(name: "DemangleFilter", package: "KSCrash"),
                 .product(name: "Recording", package: "KSCrash")
             ],
             path: "Sources/ThirdParty/EmbraceKSCrashSupport"
