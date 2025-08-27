@@ -1,5 +1,5 @@
 //
-//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
+//  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
 import Foundation
