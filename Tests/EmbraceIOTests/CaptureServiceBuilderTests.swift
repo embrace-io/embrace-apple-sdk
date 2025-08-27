@@ -220,7 +220,7 @@ class CaptureServiceBuilderTests: XCTestCase {
         // given a builder
         let builder = CaptureServiceBuilder()
 
-        // when adding a LowPowerModeCaptureService
+        // when adding a HangCaptureService
         builder.add(.hangWatchdog())
 
         // then the list contains the capture service
