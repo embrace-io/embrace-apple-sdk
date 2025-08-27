@@ -77,7 +77,7 @@ final class CaptureServices {
         if let limits = config?.hangLimits {
             services
                 .compactMap { $0 as? HangCaptureService }
-                .map { $0.limits = limits }
+                .forEach { $0.limits = limits }
         }
 
         // subscribe to session start notification
