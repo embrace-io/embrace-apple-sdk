@@ -12,38 +12,10 @@ final class EmbraceIOTestCrashesUITests: XCTestCase {
     /// Will need to figure out a different solution.
     var app = XCUIApplication()
 
-//    override func setUpWithError() throws {
-//        continueAfterFailure = true
-//
-//        app.launch()
-//        let initButton = app.buttons["EmbraceInitButton"]
-//        initButton.tap()
-//
-//        XCTAssertNotNil(
-//            initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
-//
-//        let sideMenuButton = app.buttons["SideMenuButton"]
-//        sideMenuButton.tap()
-//
-//        app.staticTexts["crashes"].tap()
-//        let crashButton = app.buttons["nullReferenceCrashCaptureTestButton"]
-//        XCTAssertNotNil(crashButton.wait(attribute: \.isEnabled, is: .equalTo, value: true, timeout: 5.0))
-//
-//        crashButton.tap()
-//
-//        sleep(5)
-//
-//        app.launch()
-//        initButton.tap()
-//        XCTAssertNotNil(
-//            initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
-//
-//        sideMenuButton.tap()
-//
-//        app.staticTexts["crashes"].tap()
-//
-//        XCTAssertNotNil(crashButton.wait(attribute: \.isEnabled, is: .equalTo, value: true, timeout: 5.0))
-//    }
+    override func setUpWithError() throws {
+        continueAfterFailure = true
+        app.launchAndOpenTestTab("crashes")
+    }
 
     func disabled_testCrashPayload() {
         sleep(3)

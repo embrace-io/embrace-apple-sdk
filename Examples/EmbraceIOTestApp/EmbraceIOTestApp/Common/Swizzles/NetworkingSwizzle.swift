@@ -62,14 +62,11 @@ class NetworkingSwizzle: NSObject {
     }
 
     private func setupDataTaskWithCompletionHandler() {
-        typealias ImplementationType = @convention(c) (URLSession, Selector, URLRequest, URLSessionCompletion?) ->
-        URLSessionDataTask
-        typealias BlockImplementationType = @convention(block) (URLSession, URLRequest, URLSessionCompletion?) ->
-        URLSessionDataTask
+        typealias ImplementationType = @convention(c) (URLSession, Selector, URLRequest, URLSessionCompletion?) -> URLSessionDataTask
+        typealias BlockImplementationType = @convention(block) (URLSession, URLRequest, URLSessionCompletion?) -> URLSessionDataTask
 
         let selector: Selector = #selector(
-            URLSession.dataTask(with:completionHandler:)
-            as (URLSession) -> (URLRequest, @escaping URLSessionCompletion) -> URLSessionDataTask
+            URLSession.dataTask(with:completionHandler:) as (URLSession) -> (URLRequest, @escaping URLSessionCompletion) -> URLSessionDataTask
         )
 
         guard let method = class_getInstanceMethod(URLSession.self, selector) else { return }
@@ -155,7 +152,8 @@ class NetworkingSwizzle: NSObject {
         let sessionId = sessionIdAttribute?["value"] as? String
 
         guard
-            let sessionId = sessionId else {
+            let sessionId = sessionId
+        else {
             return
         }
 
@@ -167,7 +165,7 @@ class NetworkingSwizzle: NSObject {
 
         ///assign orphaned exported spans into correct session
         (spans + spans_snapshots).forEach { span in
-            guard (span["name"] as? String) != "emb-session" else { return }
+            guard span["name"] as? String != "emb-session" else { return }
             if let attributes = span["attributes"] as? [[String: String]],
                let sessionIdAttribute = attributes.first (where:{ $0["key"] == "session.id" }),
                let sessionIdFromSpan = sessionIdAttribute["value"] {
@@ -218,8 +216,8 @@ class NetworkingSwizzle: NSObject {
                     return
                 }
 
-                let sessionStartTime = Date(timeIntervalSince1970: (sessionSpan["start_time_unix_nano"] as? Double ?? 0) / 1000000000)
-                let sessionEndTime = Date(timeIntervalSince1970: (sessionSpan["end_time_unix_nano"] as? Double ?? 0) / 1000000000)
+                let sessionStartTime = Date(timeIntervalSince1970: (sessionSpan["start_time_unix_nano"] as? Double ?? 0) / 1_000_000_000)
+                let sessionEndTime = Date(timeIntervalSince1970: (sessionSpan["end_time_unix_nano"] as? Double ?? 0) / 1_000_000_000)
                 for orphanedSpan in exportedOrphanedSpans {
                     if orphanedSpan.startTime >= sessionStartTime && orphanedSpan.startTime <= sessionEndTime {
                         exportedSpansBySession[sessionId, default: []].append(orphanedSpan)

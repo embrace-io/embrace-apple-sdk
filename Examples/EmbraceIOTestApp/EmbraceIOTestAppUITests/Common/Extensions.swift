@@ -126,7 +126,7 @@ extension XCUIApplication {
         while !element.isHittable {
             self.swipeUp()
             scrollCount += 1
-            if (scrollCount >= 10) {
+            if scrollCount >= 10 {
                 return false
             }
         }
