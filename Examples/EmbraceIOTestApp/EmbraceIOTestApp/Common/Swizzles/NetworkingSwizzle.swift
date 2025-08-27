@@ -166,9 +166,10 @@ class NetworkingSwizzle: NSObject {
         (spans + spans_snapshots).forEach { span in
             guard span["name"] as? String != "emb-session" else { return }
             if let attributes = span["attributes"] as? [[String: String]],
-               let sessionIdAttribute = attributes.first (where:{ $0["key"] == "session.id" }),
-               let sessionIdFromSpan = sessionIdAttribute["value"] {
-                if let orphanedSpan = exportedOrphanedSpans.first (where: { $0.spanId.hexString == span["span_id"] as? String }) {
+               let sessionIdAttribute = attributes.first(where: { $0["key"] == "session.id" }),
+               let sessionIdFromSpan = sessionIdAttribute["value"]
+            {
+                if let orphanedSpan = exportedOrphanedSpans.first(where: { $0.spanId.hexString == span["span_id"] as? String }) {
                     exportedSpansBySession[sessionIdFromSpan, default: []].append(orphanedSpan)
 
                     if let idx = exportedOrphanedSpans.firstIndex(of: orphanedSpan) {
@@ -211,7 +212,8 @@ class NetworkingSwizzle: NSObject {
                 let sessionId = sessionIdAttribute?["value"] as? String
                 guard
                     let sessionSpan = sessionSpan,
-                    let sessionId = sessionId else {
+                    let sessionId = sessionId
+                else {
                     return
                 }
 
@@ -220,9 +222,7 @@ class NetworkingSwizzle: NSObject {
                 for orphanedSpan in exportedOrphanedSpans {
                     if orphanedSpan.startTime >= sessionStartTime && orphanedSpan.startTime <= sessionEndTime {
                         exportedSpansBySession[sessionId, default: []].append(orphanedSpan)
-                    } else if orphanedSpan.startTime < sessionStartTime &&
-                                (!orphanedSpan.hasEnded ||
-                                 orphanedSpan.endTime >= sessionStartTime) {
+                    } else if orphanedSpan.startTime < sessionStartTime && (!orphanedSpan.hasEnded || orphanedSpan.endTime >= sessionStartTime) {
                         exportedSpansBySession[sessionId, default: []].append(orphanedSpan)
                     }
 
