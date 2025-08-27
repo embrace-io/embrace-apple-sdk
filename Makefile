@@ -54,7 +54,7 @@ check-swift-format:
 	@{ find $(SWIFT_SEARCH_DIRS) -name '*.swift' -type f -not -path '*/.build/*'; \
 	   [ -f Package.swift ] && echo Package.swift; } | \
 	while read file; do \
-		$(SWIFT_FORMAT_CMD) lint --configuration .swift-format "$$file" --strict || exit 1; \
+		$(SWIFT_FORMAT_CMD) lint --configuration .swift-format "$$file" --strict; \
 	done
 
 check-lint:

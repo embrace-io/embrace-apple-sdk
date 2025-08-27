@@ -369,8 +369,7 @@ class UnsentDataHandler {
         storage.cleanMetadata(currentSessionId: sessionId, currentProcessId: ProcessIdentifier.current.value)
     }
 
-    static func sendCriticalLogs(fileUrl: URL?, upload: EmbraceUpload?, completion: UnsentDataHandlerCompletion? = nil)
-    {
+    static func sendCriticalLogs(fileUrl: URL?, upload: EmbraceUpload?, completion: UnsentDataHandlerCompletion? = nil) {
         // feature is only available on iOS 15+
         if #unavailable(iOS 15.0, tvOS 15.0) {
             completion?()
