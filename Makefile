@@ -16,6 +16,9 @@ CLANG_FORMAT := $(shell command -v clang-format-18 2> /dev/null || command -v cl
 SWIFT_FORMAT_CMD = swift format
 SWIFT_LINT_CMD=swiftlint
 
+HOOKS_DIR := $(shell git rev-parse --show-toplevel)/.githooks
+GIT_HOOKS_DIR := $(shell git rev-parse --git-path hooks)
+
 # Define the default target
 .PHONY: format check-format swift-format check-swift-format lint check-lint
 
@@ -64,3 +67,16 @@ check-lint:
 lint:
 	@echo "Running lint with swift-lint..."
 	$(SWIFT_LINT_CMD) lint --fix --quiet --config .swiftlint.yml --force-exclude
+
+.PHONY: install-hooks
+install-hooks:
+	@echo "Installing Git hooks..."
+	@for hook in $(HOOKS_DIR)/*; do \
+		hook_name=$$(basename $$hook); \
+		target="$(GIT_HOOKS_DIR)/$$hook_name"; \
+		rm -f $$target; \
+		ln -s $$hook $$target; \
+		chmod +x $$hook; \
+		echo " → Installed $$hook_name"; \
+	done
+	@echo "Done!"

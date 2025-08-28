@@ -1,73 +1,107 @@
-#!/bin/bash
-export PATH=/usr/local/bin:$PATH
+#!/usr/bin/env bash
 
-# SETTINGS  ########################################################################################
+set -o pipefail
 
-# depending on your local environment and tools you're using
-# you might need to specify the path where swiftlint is installed
-SWIFT_LINT=swiftlint
+# Prefer Homebrew paths (Apple Silicon + Intel)
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 
-# homebrew path example
-# SWIFT_LINT=/opt/homebrew/bin/swiftlint
+# ---- config toggles ---------------------------------------------------------
+# Set EMBRACE_PRECOMMIT_AUTOFIX=1 to enable auto-fixing (formatters + autocorrect)
+: "${EMBRACE_PRECOMMIT_AUTOFIX:=0}"
 
-# attempt to fix files when possible
-AUTO_CORRECT=1
+# ---- repo root --------------------------------------------------------------
+REPO_ROOT="$(git rev-parse --show-toplevel)" || exit 1
+cd "$REPO_ROOT" || exit 1
 
-# stage fixed files automatically
-AUTO_STAGE=0
+# ---- tool checks ------------------------------------------------------------
+need_tool() {
+  if ! command -v "$1" >/dev/null 2>&1; then
+    echo "pre-commit: missing required tool: $1"
+    echo "Hint: brew install $1"
+    exit 1
+  fi
+}
 
-####################################################################################################
+SWIFT_FORMAT="${SWIFT_FORMAT:-swift-format}"
+CLANG_FORMAT="${CLANG_FORMAT:-clang-format}"
 
-# non-staged changes
-FILE_COUNT=0
-for file_path in $(git diff --diff-filter=d --name-only | grep ".swift$"); do
-    export SCRIPT_INPUT_FILE_$FILE_COUNT=$file_path
-    FILE_COUNT=$((FILE_COUNT + 1))
-done
+need_tool "$SWIFT_FORMAT"
+need_tool "$CLANG_FORMAT"
 
-# staged changes
-for file_path in $(git diff --diff-filter=d --name-only --cached | grep ".swift$"); do
-    export SCRIPT_INPUT_FILE_$FILE_COUNT=$file_path
-    FILE_COUNT=$((FILE_COUNT + 1))
-done
+# ---- temp files for NUL-safe lists ------------------------------------------
+SWIFT_LIST="$(mktemp -t precommit_swift.XXXXXX)"
+C_LIST="$(mktemp -t precommit_c.XXXXXX)"
+cleanup() { rm -f "$SWIFT_LIST" "$C_LIST"; }
+trap cleanup EXIT INT TERM HUP
 
-# newly added untracked files
-for file_path in $(git ls-files --others --exclude-standard | grep ".swift$"); do
-    export SCRIPT_INPUT_FILE_$FILE_COUNT=$file_path
-    FILE_COUNT=$((FILE_COUNT + 1))
-done
+# ---- collect changed files (NUL-separated; pathspecs) ------------------------
+git diff --name-only --cached --diff-filter=ACMR -z -- '*.swift' \
+  | while IFS= read -r -d '' f; do printf '%s\0' "$f" >>"$SWIFT_LIST"; done
 
+git diff --name-only --cached --diff-filter=ACMR -z -- '*.c' '*.cpp' '*.hpp' '*.h' '*.m' '*.mm' \
+  | while IFS= read -r -d '' f; do printf '%s\0' "$f" >>"$C_LIST"; done
 
-if [ "$FILE_COUNT" -eq 0 ]; then
-    echo "No files to lint!"
-    exit 0
+swift_empty=1; c_empty=1
+[ -s "$SWIFT_LIST" ] && swift_empty=0
+[ -s "$C_LIST" ] && c_empty=0
+
+if [ "$swift_empty" -eq 1 ] && [ "$c_empty" -eq 1 ]; then
+  echo "No relevant changes to lint."
+  exit 0   # allow commit; skip rest of hook
 fi
 
-export SCRIPT_INPUT_FILE_COUNT=$FILE_COUNT
+EXIT_CODE=0
+blocked() { printf "\nCommit blocked: %s\n\n" "$1"; }
 
-# autocorrect modified files
-if [ "$AUTO_CORRECT" -eq 1 ]; then
-    FIX_RESULT=$($SWIFT_LINT lint --fix --strict --use-script-input-files --force-exclude)
-
-    if [ "$FIX_RESULT" != "" ]; then
-        # stage corrected files
-        if [ "$AUTO_STAGE" -eq 1 ]; then
-            for ((i=0;i<FILE_COUNT;i++)); do
-                var=SCRIPT_INPUT_FILE_$i
-                git stage ${!var}
-            done
-        fi
+# ---- AUTOFIX: format & autocorrect, then re-add -----------------------------
+if [ "$EMBRACE_PRECOMMIT_AUTOFIX" -eq 1 ]; then
+  # swift-format (in-place)
+  if [ "$swift_empty" -eq 0 ]; then
+    if ! xargs -0 -n 64 -- "$SWIFT_FORMAT" --in-place --configuration .swift-format <"$SWIFT_LIST"; then
+      echo "pre-commit: swift-format auto-fix encountered errors."
+      EXIT_CODE=1
     fi
+  fi
+
+  # clang-format (in-place)
+  if [ "$c_empty" -eq 0 ]; then
+    if ! xargs -0 -n 64 -- "$CLANG_FORMAT" -i <"$C_LIST"; then
+      echo "pre-commit: clang-format auto-fix encountered errors."
+      EXIT_CODE=1
+    fi
+  fi
+
+  # Re-add updated files to the index so the commit includes the fixes
+  if [ "$swift_empty" -eq 0 ]; then
+    xargs -0 -n 128 git add -- <"$SWIFT_LIST"
+  fi
+  if [ "$c_empty" -eq 0 ]; then
+    xargs -0 -n 128 git add -- <"$C_LIST"
+  fi
 fi
 
-# lint modified files
-LINT_RESULT=$($SWIFT_LINT lint --strict --use-script-input-files --force-exclude)
-
-echo $LINT_RESULT
-
-if [ "$LINT_RESULT" == "" ]; then
-    exit 0
+# ---- LINT / VERIFY (block on any remaining issues) --------------------------
+# swift-format in "lint" mode: fail on remaining diffs
+if [ "$swift_empty" -eq 0 ]; then
+  if ! xargs -0 -n 64 -- "$SWIFT_FORMAT" lint --strict --configuration .swift-format <"$SWIFT_LIST" >/dev/null 2>&1; then
+    blocked "swift-format issues detected."
+    EXIT_CODE=1
+  fi
 fi
 
-exit 1
+# clang-format dry run (error on diff)
+if [ "$c_empty" -eq 0 ]; then
+  if ! xargs -0 -n 64 -- "$CLANG_FORMAT" --dry-run -Werror <"$C_LIST" >/dev/null 2>&1; then
+    blocked "clang-format issues detected."
+    EXIT_CODE=1
+  fi
+fi
 
+if [ "$EXIT_CODE" -ne 0 ]; then
+  echo 'Some issues remain. Run `make all` to auto-fix where possible.'
+  if [ "$EMBRACE_PRECOMMIT_AUTOFIX" -ne 1 ]; then
+    echo 'Tip: set EMBRACE_PRECOMMIT_AUTOFIX=1 to enable auto-fixing'
+  fi
+fi
+
+exit "$EXIT_CODE"
