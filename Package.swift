@@ -327,7 +327,7 @@ let package = Package(
             path: "Tests/TestSupport",
             exclude: ["Objc"]
         ),
-        .testTarget(
+        .target(
             name: "TestSupportObjc",
             path: "Tests/TestSupport/Objc"
         )
