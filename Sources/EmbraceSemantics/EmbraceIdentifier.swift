@@ -5,21 +5,29 @@
 import Foundation
 
 /// Wrapper around UUID used for all Embrace signals.
-public struct EmbraceIdentifier: Equatable {
-    public let stringValue: String
+@objc public class EmbraceIdentifier: NSObject {
+    @objc public let stringValue: String
 
     /// Creates an `EmbraceIdentifier` for the given `UUID`.
-    public init(value: UUID) {
+    @objc public init(value: UUID) {
         self.stringValue = value.withoutHyphen
     }
 
     /// Creates an `EmbraceIdentifier` for the given string.
-    public init(stringValue: String) {
+    @objc public init(stringValue: String) {
         self.stringValue = stringValue
     }
 
     static public func == (lhs: EmbraceIdentifier, rhs: EmbraceIdentifier) -> Bool {
         lhs.stringValue == rhs.stringValue
+    }
+
+    @objc override public func isEqual(_ object: Any?) -> Bool {
+        guard let other = object as? Self else {
+            return false
+        }
+
+        return stringValue == other.stringValue
     }
 }
 
@@ -50,11 +58,6 @@ extension EmbraceIdentifier {
 
         return deviceIdHexValue
     }
-}
-
-// MARK: CustomStringConvertible
-extension EmbraceIdentifier: CustomStringConvertible {
-    public var description: String { stringValue }
 }
 
 // MARK: UUID

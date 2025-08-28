@@ -139,7 +139,7 @@ extension LogRecord: EmbraceStorageRecord {
     }
 }
 
-struct ImmutableLogRecord: EmbraceLog {
+class ImmutableLogRecord: EmbraceLog {
     let id: String
     let severity: EmbraceLogSeverity
     let type: EmbraceType
@@ -148,4 +148,24 @@ struct ImmutableLogRecord: EmbraceLog {
     let attributes: [String: String]
     let sessionId: EmbraceIdentifier?
     let processId: EmbraceIdentifier
+
+    init(
+        id: String,
+        severity: EmbraceLogSeverity,
+        type: EmbraceType,
+        timestamp: Date,
+        body: String,
+        attributes: [String : String],
+        sessionId: EmbraceIdentifier? = nil,
+        processId: EmbraceIdentifier
+    ) {
+        self.id = id
+        self.severity = severity
+        self.type = type
+        self.timestamp = timestamp
+        self.body = body
+        self.attributes = attributes
+        self.sessionId = sessionId
+        self.processId = processId
+    }
 }

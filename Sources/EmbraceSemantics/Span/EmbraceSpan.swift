@@ -5,7 +5,7 @@
 import Foundation
 
 /// Represents an OTel span signal.
-public protocol EmbraceSpan {
+@objc public protocol EmbraceSpan {
 
     /// Name of the span
     var name: String { get }
@@ -44,11 +44,11 @@ public protocol EmbraceSpan {
     var processId: EmbraceIdentifier { get }
 
     /// Updates the status of the span
-    mutating func setStatus(_ status: EmbraceSpanStatus)
+    func setStatus(_ status: EmbraceSpanStatus)
 
     /// Adds an event to the span
     /// Can fail if the event limit is reached.
-    mutating func addEvent(
+    func addEvent(
         name: String,
         type: EmbraceType?,
         timestamp: Date,
@@ -57,7 +57,7 @@ public protocol EmbraceSpan {
 
     /// Adds a link to the span
     /// Can fail if the link limit is reached.
-    mutating func addLink(
+    func addLink(
         spanId: String,
         traceId: String,
         attributes: [String: String]
@@ -65,20 +65,20 @@ public protocol EmbraceSpan {
 
     /// Sets an attribute to the span
     /// Can fail if the attribute limit is reached.
-    mutating func setAttribute(key: String, value: String?) throws
+    func setAttribute(key: String, value: String?) throws
 
     /// Ends the span with the given `endTime`
-    mutating func end(endTime: Date)
+    func end(endTime: Date)
 
     /// Ends the span with `endTime = Date()`
-    mutating func end()
+    func end()
 }
 
 public extension EmbraceSpan {
 
     /// Convenience method to add a span event at the current time.
     /// Can fail if the event limit is reached.
-    mutating func addEvent(
+    func addEvent(
         name: String,
         type: EmbraceType? = .performance,
         attributes: [String: String]

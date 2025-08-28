@@ -44,7 +44,7 @@ extension Embrace: EmbraceOpenTelemetry {
     ) -> SpanBuilder {
         if let autoTerminationCode = autoTerminationCode {
             var attributes = attributes
-            attributes[SpanSemantics.keyAutoTerminationCode] = autoTerminationCode.rawValue
+            attributes[SpanSemantics.keyAutoTerminationCode] = autoTerminationCode.name
         }
 
         return otel.buildSpan(name: name, type: type, attributes: attributes)

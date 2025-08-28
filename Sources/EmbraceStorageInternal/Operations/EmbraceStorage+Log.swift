@@ -32,7 +32,7 @@ extension EmbraceStorage {
         sessionId: EmbraceIdentifier?,
         processId: EmbraceIdentifier,
         severity: EmbraceLogSeverity,
-        type: EmbraceType,
+        type: EmbraceType = .message,
         body: String,
         timestamp: Date = Date(),
         attributes: [String: String]

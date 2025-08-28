@@ -5,8 +5,7 @@
 import Foundation
 
 /// Represents an OTel span link
-@objc
-public class EmbraceSpanLink: NSObject {
+@objc public class EmbraceSpanLink: NSObject {
 
     /// Context of the linked span
     @objc public let context: EmbraceSpanContext

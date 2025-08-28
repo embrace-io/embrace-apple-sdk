@@ -27,7 +27,7 @@ extension SpanData {
         guard let value = attributes[SpanSemantics.keyErrorCode] else {
             return nil
         }
-        return EmbraceSpanErrorCode(rawValue: value.description)
+        return EmbraceSpanErrorCode(name: value.description)
     }
 
     public var embStatus: EmbraceSpanStatus {

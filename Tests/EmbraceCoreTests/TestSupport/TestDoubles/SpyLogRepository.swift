@@ -34,6 +34,7 @@ class SpyLogRepository: LogRepository {
         sessionId: EmbraceIdentifier?,
         processId: EmbraceIdentifier,
         severity: EmbraceLogSeverity,
+        type: EmbraceType,
         body: String,
         timestamp: Date,
         attributes: [String: String]
@@ -43,6 +44,7 @@ class SpyLogRepository: LogRepository {
         return MockLog(
             id: id.stringValue,
             severity: severity,
+            type: type,
             timestamp: timestamp,
             body: body,
             sessionId: sessionId,

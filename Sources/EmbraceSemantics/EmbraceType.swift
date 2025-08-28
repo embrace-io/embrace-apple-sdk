@@ -8,8 +8,7 @@ import Foundation
 /// - This struct will be serialized into an `emb.type` attribute.
 /// - This struct is encoded as a String with the format `<primary>.<secondary>`.
 /// - The primary category is required, but the secondary category is optional.
-@objc
-public class EmbraceType: NSObject, RawRepresentable {
+@objc public class EmbraceType: NSObject, RawRepresentable {
 
     public let primary: PrimaryType
     public let secondary: String?
@@ -78,8 +77,7 @@ public class EmbraceType: NSObject, RawRepresentable {
 
 
 /// Top level category for the EmbraceType
-@objc
-public enum PrimaryType: Int, CaseIterable {
+@objc public enum PrimaryType: Int, CaseIterable {
     /// Category for observing a logical operation
     case performance = 1
 

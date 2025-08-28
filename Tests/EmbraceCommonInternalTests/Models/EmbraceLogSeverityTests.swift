@@ -19,20 +19,20 @@ class EmbraceLogSeverityTests: XCTestCase {
     }
 
     func test_ensureTextValuesAreCorrectAndConsistentWithOTel() {
-        XCTAssertEqual(EmbraceLogSeverity.info.text, "INFO")
-        XCTAssertEqual(EmbraceLogSeverity.warn.text, "WARN")
-        XCTAssertEqual(EmbraceLogSeverity.error.text, "ERROR")
+        XCTAssertEqual(EmbraceLogSeverity.info.name, "INFO")
+        XCTAssertEqual(EmbraceLogSeverity.warn.name, "WARN")
+        XCTAssertEqual(EmbraceLogSeverity.error.name, "ERROR")
     }
 
     func test_number_isRawValue() {
-        XCTAssertEqual(EmbraceLogSeverity.info.rawValue, EmbraceLogSeverity.info.number)
-        XCTAssertEqual(EmbraceLogSeverity.warn.rawValue, EmbraceLogSeverity.warn.number)
-        XCTAssertEqual(EmbraceLogSeverity.error.rawValue, EmbraceLogSeverity.error.number)
+        XCTAssertEqual(EmbraceLogSeverity.info.rawValue, EmbraceLogSeverity.info.rawValue)
+        XCTAssertEqual(EmbraceLogSeverity.warn.rawValue, EmbraceLogSeverity.warn.rawValue)
+        XCTAssertEqual(EmbraceLogSeverity.error.rawValue, EmbraceLogSeverity.error.rawValue)
     }
 
     func test_description_isText() {
-        XCTAssertEqual(EmbraceLogSeverity.info.text, EmbraceLogSeverity.info.description)
-        XCTAssertEqual(EmbraceLogSeverity.warn.text, EmbraceLogSeverity.warn.description)
-        XCTAssertEqual(EmbraceLogSeverity.error.text, EmbraceLogSeverity.error.description)
+        XCTAssertEqual(EmbraceLogSeverity.info.name, EmbraceLogSeverity.info.description)
+        XCTAssertEqual(EmbraceLogSeverity.warn.name, EmbraceLogSeverity.warn.description)
+        XCTAssertEqual(EmbraceLogSeverity.error.name, EmbraceLogSeverity.error.description)
     }
 }

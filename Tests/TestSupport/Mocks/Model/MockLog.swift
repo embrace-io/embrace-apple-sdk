@@ -7,22 +7,24 @@ import EmbraceCommonInternal
 import Foundation
 import OpenTelemetryApi
 
-public struct MockLog: EmbraceLog {
+public class MockLog: EmbraceLog {
     public var id: String
     public var severity: EmbraceLogSeverity
+    public var type: EmbraceType
     public var timestamp: Date
     public var body: String
     public var sessionId: EmbraceIdentifier?
     public var processId: EmbraceIdentifier
     public var attributes: [String: String]
 
-    public mutating func setAttribute(key: String, value: String?) {
+    public func setAttribute(key: String, value: String?) {
         attributes[key] = value
     }
 
     public init(
         id: String = EmbraceIdentifier.random.stringValue,
         severity: EmbraceLogSeverity = .info,
+        type: EmbraceType = .message,
         timestamp: Date = Date(),
         body: String = "Mock",
         sessionId: EmbraceIdentifier? = nil,
@@ -31,11 +33,11 @@ public struct MockLog: EmbraceLog {
     ) {
         self.id = id
         self.severity = severity
+        self.type = type
         self.timestamp = timestamp
         self.body = body
         self.sessionId = sessionId
         self.processId = processId
         self.attributes = attributes
     }
-
 }

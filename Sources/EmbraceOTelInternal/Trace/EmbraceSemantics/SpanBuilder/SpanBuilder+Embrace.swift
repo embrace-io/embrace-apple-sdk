@@ -26,7 +26,7 @@ extension SpanBuilder {
     }
 
     @discardableResult public func error(errorCode: EmbraceSpanErrorCode) -> Self {
-        setAttribute(key: SpanSemantics.keyErrorCode, value: errorCode.rawValue)
+        setAttribute(key: SpanSemantics.keyErrorCode, value: errorCode.name)
     }
 
 }

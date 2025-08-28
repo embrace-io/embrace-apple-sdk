@@ -5,8 +5,7 @@
 import Foundation
 
 /// Represents the context for a `EmbraceSpan`.
-@objc
-public class EmbraceSpanContext: NSObject {
+@objc public class EmbraceSpanContext: NSObject {
 
     /// Span idenfifier
     @objc public let spanId: String
