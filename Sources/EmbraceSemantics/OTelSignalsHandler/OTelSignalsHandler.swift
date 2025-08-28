@@ -102,8 +102,8 @@ public extension OTelSignalsHandler {
             type: type,
             timestamp: timestamp,
             attachment: nil,
-            attributes: [:],
-            stackTraceBehavior: .defaultStackTrace()
+            attributes: attributes,
+            stackTraceBehavior: stackTraceBehavior
         )
     }
 }

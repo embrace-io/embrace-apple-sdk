@@ -59,6 +59,7 @@ public class PushNotificationEvent: EmbraceSpanEvent {
 
         super.init(
             name: SpanEventSemantics.PushNotification.name,
+            type: .pushNotification,
             timestamp: timestamp,
             attributes: finalAttributes
         )

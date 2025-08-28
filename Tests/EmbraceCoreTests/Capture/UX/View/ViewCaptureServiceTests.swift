@@ -6,7 +6,6 @@
     import Foundation
     import XCTest
     @testable import EmbraceCore
-    import OpenTelemetryApi
     import TestSupport
 
     class ViewCaptureServiceTests: XCTestCase {

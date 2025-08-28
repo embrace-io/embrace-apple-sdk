@@ -56,13 +56,13 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
         let sessionId = EmbraceIdentifier.random
         givenSessionController(sessionWithId: sessionId)
         givenMetadataFetcher(with: [
-            MockMetadata.createSessionPropertyRecord(key: "custom_prop_int", value: .int(1), sessionId: sessionId),
+            MockMetadata.createSessionPropertyRecord(key: "custom_prop_int", value: "1", sessionId: sessionId),
             MockMetadata.createSessionPropertyRecord(
-                key: "custom_prop_bool", value: .bool(false), sessionId: sessionId),
+                key: "custom_prop_bool", value: "false", sessionId: sessionId),
             MockMetadata.createSessionPropertyRecord(
-                key: "custom_prop_double", value: .double(3.0), sessionId: sessionId),
+                key: "custom_prop_double", value: "3.0", sessionId: sessionId),
             MockMetadata.createSessionPropertyRecord(
-                key: "custom_prop_string", value: .string("hello"), sessionId: sessionId)
+                key: "custom_prop_string", value: "hello", sessionId: sessionId)
         ]
         )
         givenEmbraceLogAttributesBuilder()
@@ -93,7 +93,7 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
         givenSessionControllerWithNoSession()
         // Shouldnt happen to have custom session properties with no session, but just in case :)
         givenMetadataFetcher(with: [
-            MockMetadata.createSessionPropertyRecord(key: "custom_prop_string", value: .string("hello"))
+            MockMetadata.createSessionPropertyRecord(key: "custom_prop_string", value: "hello")
         ])
         givenEmbraceLogAttributesBuilder()
 

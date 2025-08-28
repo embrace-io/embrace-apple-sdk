@@ -20,11 +20,11 @@ final class W3C_TraceParentTests: XCTestCase {
     func test_w3c_traceparent_fromSpan_returnsCorrectValue() {
         let span = MockSpan(name: "example")
         let traceparent = W3C.traceparent(from: span)
-        XCTAssertEqual(traceparent, "00-\(span.context.traceId)-\(span.context.spanId)-00")
+        XCTAssertEqual(traceparent, "00-\(span.context.traceId)-\(span.context.spanId)-01")
     }
 
     func test_w3c_traceparent_fromSpanContext_returnsCorrectValue() {
         let context = EmbraceSpanContext(spanId: "spanId", traceId: "traceId")
-        XCTAssertEqual(W3C.traceparent(from: context), "00-traceId-spanId-00")
+        XCTAssertEqual(W3C.traceparent(from: context), "00-traceId-spanId-01")
     }
 }

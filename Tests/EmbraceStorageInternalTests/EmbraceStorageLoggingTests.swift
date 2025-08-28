@@ -26,11 +26,9 @@ class EmbraceStorageLoggingTests: XCTestCase {
         sut.saveLog(
             MockLog(
                 id: id.stringValue,
-                severity: .info,
                 body: "log message",
                 sessionId: .random,
-                processId: .random,
-                attributes: .empty()
+                processId: .random
             )
         )
 
@@ -85,11 +83,9 @@ extension EmbraceStorageLoggingTests {
 
         let log = MockLog(
             id: id.withoutHyphen,
-            severity: .info,
             body: "a log message",
             sessionId: .random,
             processId: pid,
-            attributes: .empty()
         )
 
         sut.saveLog(log)

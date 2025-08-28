@@ -6,7 +6,6 @@ import EmbraceCommonInternal
 import EmbraceConfigInternal
 import EmbraceConfiguration
 import EmbraceStorageInternal
-import OpenTelemetryApi
 import TestSupport
 import XCTest
 
@@ -103,7 +102,7 @@ class BaseInternalLoggerTests: XCTestCase {
 
     func test_internal_trace() {
         // given "cha logger with limtis
-        let otel = MockEmbraceOpenTelemetry()
+        let otel = MockOTelSignalsHandler()
         let logger = BaseInternalLogger()
         logger.otel = otel
         logger.limits = InternalLogLimits(trace: 1, debug: 0, info: 0, warning: 0, error: 0)
@@ -121,16 +120,13 @@ class BaseInternalLoggerTests: XCTestCase {
 
         // only the appropiate amount are exported
         XCTAssertEqual(otel.logs.count, 1)
-        XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string("sys.internal"))
-        XCTAssertEqual(otel.logs[0].attributes["emb.state"], .string("foreground"))
-        XCTAssertEqual(otel.logs[0].attributes["session.id"], .string(TestConstants.sessionId.stringValue))
-        XCTAssertEqual(otel.logs[0].body?.description, "trace1")
+        XCTAssertEqual(otel.logs[0].body, "trace1")
         XCTAssertEqual(otel.logs[0].severity, .trace)
     }
 
     func test_internal_debug() {
         // given "cha logger with limtis
-        let otel = MockEmbraceOpenTelemetry()
+        let otel = MockOTelSignalsHandler()
         let logger = BaseInternalLogger()
         logger.otel = otel
         logger.limits = InternalLogLimits(trace: 0, debug: 1, info: 0, warning: 0, error: 0)
@@ -148,16 +144,13 @@ class BaseInternalLoggerTests: XCTestCase {
 
         // only the appropiate amount are exported
         XCTAssertEqual(otel.logs.count, 1)
-        XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string("sys.internal"))
-        XCTAssertEqual(otel.logs[0].attributes["emb.state"], .string("foreground"))
-        XCTAssertEqual(otel.logs[0].attributes["session.id"], .string(TestConstants.sessionId.stringValue))
-        XCTAssertEqual(otel.logs[0].body?.description, "debug1")
+        XCTAssertEqual(otel.logs[0].body, "debug1")
         XCTAssertEqual(otel.logs[0].severity, .debug)
     }
 
     func test_internal_info() {
         // given "cha logger with limtis
-        let otel = MockEmbraceOpenTelemetry()
+        let otel = MockOTelSignalsHandler()
         let logger = BaseInternalLogger()
         logger.otel = otel
         logger.limits = InternalLogLimits(trace: 0, debug: 0, info: 1, warning: 0, error: 0)
@@ -175,16 +168,13 @@ class BaseInternalLoggerTests: XCTestCase {
 
         // only the appropiate amount are exported
         XCTAssertEqual(otel.logs.count, 1)
-        XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string("sys.internal"))
-        XCTAssertEqual(otel.logs[0].attributes["emb.state"], .string("foreground"))
-        XCTAssertEqual(otel.logs[0].attributes["session.id"], .string(TestConstants.sessionId.stringValue))
-        XCTAssertEqual(otel.logs[0].body?.description, "info1")
+        XCTAssertEqual(otel.logs[0].body, "info1")
         XCTAssertEqual(otel.logs[0].severity, .info)
     }
 
     func test_internal_warning() {
         // given "cha logger with limtis
-        let otel = MockEmbraceOpenTelemetry()
+        let otel = MockOTelSignalsHandler()
         let logger = BaseInternalLogger()
         logger.otel = otel
         logger.limits = InternalLogLimits(trace: 0, debug: 0, info: 0, warning: 1, error: 0)
@@ -202,16 +192,13 @@ class BaseInternalLoggerTests: XCTestCase {
 
         // only the appropiate amount are exported
         XCTAssertEqual(otel.logs.count, 1)
-        XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string("sys.internal"))
-        XCTAssertEqual(otel.logs[0].attributes["emb.state"], .string("foreground"))
-        XCTAssertEqual(otel.logs[0].attributes["session.id"], .string(TestConstants.sessionId.stringValue))
-        XCTAssertEqual(otel.logs[0].body?.description, "warning1")
+        XCTAssertEqual(otel.logs[0].body, "warning1")
         XCTAssertEqual(otel.logs[0].severity, .warn)
     }
 
     func test_internal_error() {
         // given "cha logger with limtis
-        let otel = MockEmbraceOpenTelemetry()
+        let otel = MockOTelSignalsHandler()
         let logger = BaseInternalLogger()
         logger.otel = otel
         logger.limits = InternalLogLimits(trace: 0, debug: 0, info: 0, warning: 0, error: 1)
@@ -229,16 +216,13 @@ class BaseInternalLoggerTests: XCTestCase {
 
         // only the appropiate amount are exported
         XCTAssertEqual(otel.logs.count, 1)
-        XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string("sys.internal"))
-        XCTAssertEqual(otel.logs[0].attributes["emb.state"], .string("foreground"))
-        XCTAssertEqual(otel.logs[0].attributes["session.id"], .string(TestConstants.sessionId.stringValue))
-        XCTAssertEqual(otel.logs[0].body?.description, "error1")
+        XCTAssertEqual(otel.logs[0].body, "error1")
         XCTAssertEqual(otel.logs[0].severity, .error)
     }
 
     func test_internal_mixed() {
         // given "cha logger with limtis
-        let otel = MockEmbraceOpenTelemetry()
+        let otel = MockOTelSignalsHandler()
         let logger = BaseInternalLogger()
         logger.otel = otel
         logger.limits = InternalLogLimits(trace: 2, debug: 3, info: 1, warning: 0, error: 4)

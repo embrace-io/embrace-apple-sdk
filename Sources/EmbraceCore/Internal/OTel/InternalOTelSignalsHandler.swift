@@ -7,8 +7,18 @@ import Foundation
     import EmbraceSemantics
 #endif
 
-typealias InternalOTelSignalsHandler = OTelSignalsHandler & AutoTerminationSpanHandler
+typealias InternalOTelSignalsHandler = OTelSignalsHandler & AutoTerminationSpansHandler & OnlyExportableLogsHandler
 
-protocol AutoTerminationSpanHandler {
+protocol AutoTerminationSpansHandler {
     func autoTerminateSpans()
+}
+
+protocol OnlyExportableLogsHandler {
+    func exportLog(
+        _ message: String,
+        severity: EmbraceLogSeverity,
+        type: EmbraceType,
+        timestamp: Date,
+        attributes: [String: String]
+    )
 }

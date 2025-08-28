@@ -4,7 +4,6 @@
 
 import EmbraceObjCUtilsInternal
 import EmbraceStorageInternal
-import OpenTelemetrySdk
 import TestSupport
 import XCTest
 

@@ -3,8 +3,8 @@
 //
 
 import XCTest
+import EmbraceSemantics
 
-@testable import EmbraceCommonInternal
 
 class EmbraceStackTraceTests: XCTestCase {
     // MARK:  - Overall behaviour

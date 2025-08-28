@@ -31,7 +31,7 @@ public class MockSpan: EmbraceSpan {
     weak var delegate: MockSpanDelegate?
 
     public init(
-        id: String = UUID().withoutHyphen,
+        id: String = .randomSpanId(),
         traceId: String = TestConstants.traceId,
         parentSpanId: String? = nil,
         name: String,

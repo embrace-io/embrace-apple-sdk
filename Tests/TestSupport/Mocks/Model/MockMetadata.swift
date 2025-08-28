@@ -5,7 +5,6 @@
 import EmbraceSemantics
 import EmbraceCommonInternal
 import Foundation
-import OpenTelemetryApi
 
 public class MockMetadata: EmbraceMetadata {
     public var key: String
@@ -35,12 +34,12 @@ public class MockMetadata: EmbraceMetadata {
 extension MockMetadata {
     public static func createSessionPropertyRecord(
         key: String,
-        value: AttributeValue,
+        value: String,
         sessionId: EmbraceIdentifier = .random
     ) -> EmbraceMetadata {
         MockMetadata(
             key: key,
-            value: value.description,
+            value: value,
             type: .customProperty,
             lifespan: .session,
             lifespanId: sessionId.stringValue

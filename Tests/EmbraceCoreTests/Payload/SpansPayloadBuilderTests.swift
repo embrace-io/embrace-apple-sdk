@@ -4,7 +4,6 @@
 
 import EmbraceCommonInternal
 import EmbraceStorageInternal
-import OpenTelemetryApi
 import TestSupport
 import XCTest
 import EmbraceSemantics
@@ -37,10 +36,11 @@ final class SpansPayloadBuilderTests: XCTestCase {
     func addSpan(
         startTime: Date,
         endTime: Date? = nil,
-        id: String = UUID().withoutHyphen,
-        traceId: String = UUID().withoutHyphen,
+        id: String = .randomSpanId(),
+        traceId: String = .randomTraceId(),
         name: String = "test-span",
-        type: EmbraceType = .performance
+        type: EmbraceType = .performance,
+        sessionId: EmbraceIdentifier? = TestConstants.sessionId
     ) throws {
         let span = MockSpan(
             id: id,
@@ -53,7 +53,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
             endTime: endTime,
             events: [],
             links: [],
-            sessionId: TestConstants.sessionId,
+            sessionId: sessionId,
             processId: TestConstants.processId,
             attributes: [:]
         )
@@ -177,7 +177,8 @@ final class SpansPayloadBuilderTests: XCTestCase {
         // given a closed span that started and ended before the session
         try addSpan(
             startTime: Date(timeIntervalSince1970: 0),
-            endTime: Date(timeIntervalSince1970: 10)
+            endTime: Date(timeIntervalSince1970: 10),
+            sessionId: nil
         )
 
         // when building the spans payload

@@ -126,18 +126,15 @@ final class SessionControllerTests: XCTestCase {
     }
 
     func test_startSession_startsSessionSpan() throws {
-        let spanProcessor = MockSpanProcessor()
-        EmbraceOTel.setup(spanProcessors: [spanProcessor])
-
         let session = controller.startSession(state: .foreground)
 
-        if let spanData = spanProcessor.startedSpans.first {
+        if let span = otel.startedSpans.first {
             XCTAssertEqual(
-                spanData.startTime.timeIntervalSince1970,
+                span.startTime.timeIntervalSince1970,
                 session!.startTime.timeIntervalSince1970,
                 accuracy: 0.001
             )
-            XCTAssertFalse(spanData.hasEnded)
+            XCTAssertNil(span.endTime)
         } else {
             XCTFail("No items in `startedSpans`")
         }
@@ -190,9 +187,11 @@ final class SessionControllerTests: XCTestCase {
 
     func test_endSession_updatesLocalSessionBeforeUploading() throws {
         // given a started session
+        let otel = MockOTelSignalsHandler()
         let uploader = MockSessionUploader()
         let controller = SessionController(storage: storage, upload: upload, uploader: uploader, config: nil)
         controller.sdkStateProvider = sdkStateProvider
+        controller.otel = otel
         controller.startSession(state: .foreground)
 
         // when ending the session
@@ -207,14 +206,11 @@ final class SessionControllerTests: XCTestCase {
     }
 
     func test_endSession_saves_endsSessionSpan() throws {
-        let spanProcessor = MockSpanProcessor()
-        EmbraceOTel.setup(spanProcessors: [spanProcessor])
-
         controller.startSession(state: .foreground)
         let endTime = controller.endSession()
 
-        if let spanData = spanProcessor.endedSpans.first {
-            XCTAssertEqual(spanData.endTime.timeIntervalSince1970, endTime.timeIntervalSince1970, accuracy: 0.001)
+        if let span = otel.endedSpans.first {
+            XCTAssertEqual(span.endTime!.timeIntervalSince1970, endTime.timeIntervalSince1970, accuracy: 0.001)
         }
     }
 
@@ -226,6 +222,7 @@ final class SessionControllerTests: XCTestCase {
         // given a started session
         let controller = SessionController(storage: storage, upload: upload, config: nil)
         controller.sdkStateProvider = sdkStateProvider
+        controller.otel = otel
         controller.startSession(state: .foreground)
 
         // when ending the session
@@ -252,6 +249,7 @@ final class SessionControllerTests: XCTestCase {
         // given a started session
         let controller = SessionController(storage: storage, upload: upload, config: nil)
         controller.sdkStateProvider = sdkStateProvider
+        controller.otel = otel
         controller.startSession(state: .foreground)
 
         // when ending the session and the upload fails
@@ -271,24 +269,6 @@ final class SessionControllerTests: XCTestCase {
         // then the session upload data cached
         let uploadData = upload.cache.fetchAllUploadData()
         XCTAssertEqual(uploadData.count, 1)
-    }
-
-    func testOnHavingBatcher_endSession_forcesEndBatchAndWaits() throws {
-        // given sesion controller has a batcher
-        let batcher = SpyLogBatcher()
-        controller.setLogBatcher(batcher)
-
-        // given a session was started
-        controller.startSession(state: .foreground)
-
-        // when ending the session
-        controller.endSession()
-
-        // then should force end current batch
-        XCTAssertTrue(batcher.didCallForceEndCurrentBatch)
-
-        // then should wait for log batch to be closed
-        XCTAssertTrue(try XCTUnwrap(batcher.forceEndCurrentBatchParameters))
     }
 
     // MARK: update
@@ -362,6 +342,7 @@ final class SessionControllerTests: XCTestCase {
             config: config
         )
         controller.sdkStateProvider = sdkStateProvider
+        controller.otel = otel
 
         // when starting a cold start session in the background
         let session = controller.startSession(state: .background)
@@ -411,6 +392,7 @@ final class SessionControllerTests: XCTestCase {
             config: nil
         )
         controller.sdkStateProvider = sdkStateProvider
+        controller.otel = otel
 
         // when starting a cold start session in the background
         let session = controller.startSession(state: .background)
@@ -432,6 +414,7 @@ final class SessionControllerTests: XCTestCase {
         // given a session controller with a 1 second heartbeat invertal
         let controller = SessionController(storage: storage, upload: nil, config: nil, heartbeatInterval: 1)
         controller.sdkStateProvider = sdkStateProvider
+        controller.otel = otel
 
         // when starting a session
         let session = controller.startSession(state: .foreground)

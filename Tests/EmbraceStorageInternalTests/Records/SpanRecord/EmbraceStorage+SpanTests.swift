@@ -2,7 +2,6 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import OpenTelemetryApi
 import XCTest
 import TestSupport
 @testable import EmbraceStorageInternal

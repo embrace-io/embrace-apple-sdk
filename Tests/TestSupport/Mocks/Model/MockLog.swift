@@ -5,7 +5,6 @@
 import EmbraceSemantics
 import EmbraceCommonInternal
 import Foundation
-import OpenTelemetryApi
 
 public class MockLog: EmbraceLog {
     public var id: String
@@ -13,9 +12,9 @@ public class MockLog: EmbraceLog {
     public var type: EmbraceType
     public var timestamp: Date
     public var body: String
+    public var attributes: [String: String]
     public var sessionId: EmbraceIdentifier?
     public var processId: EmbraceIdentifier
-    public var attributes: [String: String]
 
     public func setAttribute(key: String, value: String?) {
         attributes[key] = value
@@ -27,9 +26,9 @@ public class MockLog: EmbraceLog {
         type: EmbraceType = .message,
         timestamp: Date = Date(),
         body: String = "Mock",
+        attributes: [String : String] = [:],
         sessionId: EmbraceIdentifier? = nil,
-        processId: EmbraceIdentifier = .random,
-        attributes: [String : String] = [:]
+        processId: EmbraceIdentifier = .random
     ) {
         self.id = id
         self.severity = severity

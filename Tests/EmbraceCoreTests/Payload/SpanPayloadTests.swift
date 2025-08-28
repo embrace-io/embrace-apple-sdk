@@ -3,7 +3,6 @@
 //
 
 import Foundation
-import OpenTelemetryApi
 import XCTest
 import TestSupport
 import EmbraceSemantics
@@ -24,9 +23,9 @@ class SpanPayloadTests: XCTestCase {
 
     var testSpan: EmbraceSpan {
         return MockSpan(
-            id: SpanId.random().hexString,
-            traceId: TraceId.random().hexString,
-            parentSpanId: SpanId.random().hexString,
+            id: .randomSpanId(),
+            traceId: .randomTraceId(),
+            parentSpanId: .randomSpanId(),
             name: "test-span",
             type: .performance,
             status: .ok,
@@ -41,8 +40,8 @@ class SpanPayloadTests: XCTestCase {
             ],
             links: [
                 EmbraceSpanLink(
-                    spanId: SpanId.random().hexString,
-                    traceId: TraceId.random().hexString,
+                    spanId: .randomSpanId(),
+                    traceId: .randomTraceId(),
                     attributes: testAttributes)
             ],
             sessionId: TestConstants.sessionId,

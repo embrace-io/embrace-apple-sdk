@@ -57,12 +57,10 @@ final class SpanEventsLimiterTests: XCTestCase {
 
         // when applying limits on the first breadcrumb
         let event = Breadcrumb.breadcrumb("test")
-        let events = limiter.applyLimits(events: [event])
+        let added = limiter.shouldAddEvent(event: event)
 
         // then the breadcrumb event is not discarded
-        XCTAssertEqual(events.count, 1)
-        XCTAssertEqual(events[0].name, event.name)
-        XCTAssertEqual(events[0].timestamp, event.timestamp)
+        XCTAssertTrue(added)
 
         // then the counter is correctly updated
         XCTAssertEqual(limiter.state.safeValue.counter["sys.breadcrumb"], 1)
@@ -73,15 +71,19 @@ final class SpanEventsLimiterTests: XCTestCase {
         let limits = SpanEventsLimits(breadcrumb: 1)
         let limiter = SpanEventsLimiter(spanEventsLimits: limits, configNotificationCenter: NotificationCenter.default)
 
-        // when applying limits on the breadcrumbs
+        // when applying limits on the first breadcrumb
         let event1 = Breadcrumb.breadcrumb("test1")
+        var added = limiter.shouldAddEvent(event: event1)
+
+        // then the breadcrumb event is not discarded
+        XCTAssertTrue(added)
+
+        // when applying limits on the second breadcrumb
         let event2 = Breadcrumb.breadcrumb("test2")
-        let events = limiter.applyLimits(events: [event1, event2])
+        added = limiter.shouldAddEvent(event: event2)
 
         // then the second breadcrumb event is discarded
-        XCTAssertEqual(events.count, 1)
-        XCTAssertEqual(events[0].name, event1.name)
-        XCTAssertEqual(events[0].timestamp, event1.timestamp)
+        XCTAssertFalse(added)
 
         // then the counter is correctly updated
         XCTAssertEqual(limiter.state.safeValue.counter["sys.breadcrumb"], 1)
@@ -93,17 +95,12 @@ final class SpanEventsLimiterTests: XCTestCase {
         let limiter = SpanEventsLimiter(spanEventsLimits: limits, configNotificationCenter: NotificationCenter.default)
 
         // when applying limits various events
-        let event1 = Breadcrumb.breadcrumb("test")
-        let event2 = Breadcrumb.breadcrumb("test")
-        let event3 = randomPushNotificationEvent()
-        let event4 = Breadcrumb.breadcrumb("test")
-        let event5 = Breadcrumb.breadcrumb("test")
-        let events = limiter.applyLimits(events: [event1, event2, event3, event4, event5])
-
-        // then the breadcrumb events are dropped
-        XCTAssertEqual(events.count, 1)
-        XCTAssertEqual(events[0].name, event3.name)
-        XCTAssertEqual(events[0].timestamp, event3.timestamp)
+        // then only the breadcrumb events are dropped
+        XCTAssertFalse(limiter.shouldAddEvent(event: Breadcrumb.breadcrumb("test")))
+        XCTAssertFalse(limiter.shouldAddEvent(event: Breadcrumb.breadcrumb("test")))
+        XCTAssertTrue(limiter.shouldAddEvent(event: randomPushNotificationEvent()))
+        XCTAssertFalse(limiter.shouldAddEvent(event: Breadcrumb.breadcrumb("test")))
+        XCTAssertFalse(limiter.shouldAddEvent(event: Breadcrumb.breadcrumb("test")))
     }
 
     func randomPushNotificationEvent() -> PushNotificationEvent {

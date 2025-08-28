@@ -7,7 +7,6 @@ import EmbraceConfigInternal
 import EmbraceConfiguration
 import EmbraceStorageInternal
 import OSLog
-import OpenTelemetryApi
 import TestSupport
 import XCTest
 

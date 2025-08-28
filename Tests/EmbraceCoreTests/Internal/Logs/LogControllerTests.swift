@@ -6,7 +6,6 @@ import EmbraceCommonInternal
 import EmbraceConfigInternal
 import EmbraceStorageInternal
 import EmbraceUploadInternal
-import OpenTelemetryApi
 import TestSupport
 import XCTest
 import EmbraceSemantics
@@ -557,7 +556,7 @@ extension LogControllerTests {
     }
 
     fileprivate func thenLogIsCreatedCorrectly(_ log: EmbraceLog) {
-        XCTAssertEqual(log.body.description, "test")
+        XCTAssertEqual(log.body, "test")
         XCTAssertEqual(log.severity, .info)
         XCTAssertEqual(log.attributes["emb.type"]!.description, "sys.log")
     }
@@ -592,17 +591,16 @@ extension LogControllerTests {
     }
 
     fileprivate func randomLogRecord(sessionId: EmbraceIdentifier? = nil) -> EmbraceLog {
-
         var attributes: [String: String] = [:]
         if let sessionId = sessionId {
             attributes["session.id"] = sessionId.stringValue
         }
 
-        return MockLog(sessionId: sessionId, attributes: attributes)
+        return MockLog(attributes: attributes, sessionId: sessionId)
     }
 
     fileprivate func logsForMoreThanASingleBatch() -> [EmbraceLog] {
-        return (1...sut.batcher.logBatchLimits.maxLogsPerBatch + 1).map { _ in
+        return (1...20 + 1).map { _ in
             randomLogRecord()
         }
     }

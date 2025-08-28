@@ -31,10 +31,10 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
         autoTerminationCode: EmbraceSpanErrorCode?
     ) throws -> EmbraceSpan {
 
-        let traceId = parentSpan?.context.traceId ?? UUID().withoutHyphen
+        let traceId = parentSpan?.context.traceId ?? .randomTraceId()
 
         let span = MockSpan(
-            id: UUID().withoutHyphen,
+            id: .randomSpanId(),
             traceId: traceId,
             parentSpanId: parentSpan?.context.spanId,
             name: name,
@@ -51,6 +51,10 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
         )
 
         startedSpans.append(span)
+
+        if endTime != nil {
+            endedSpans.append(span)
+        }
 
         return span
     }
@@ -71,11 +75,12 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
         let log = MockLog(
             id: UUID().withoutHyphen,
             severity: severity,
+            type: type,
             timestamp: timestamp,
             body: message,
+            attributes: attributes,
             sessionId: currentSessionId,
-            processId: currentProcessId,
-            attributes: attributes
+            processId: currentProcessId
         )
 
         logs.append(log)
@@ -87,5 +92,23 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
 
     public func autoTerminateSpans() {
 
+    }
+
+    public func exportLog(
+        _ message: String,
+        severity: EmbraceLogSeverity,
+        type: EmbraceType,
+        timestamp: Date,
+        attributes: [String : String]
+    ) {
+        log(
+            message,
+            severity: severity,
+            type: type,
+            timestamp: timestamp,
+            attachment: nil,
+            attributes: attributes,
+            stackTraceBehavior: .notIncluded()
+        )
     }
 }

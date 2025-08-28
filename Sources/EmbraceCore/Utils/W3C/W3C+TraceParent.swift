@@ -32,7 +32,7 @@ extension W3C {
     ///     - traceId: The Span's traceId
     ///     - spanId: The Span's spanId
     ///     - sampled: Whether the trace is sampled
-    public static func traceparent(traceId: String, spanId: String, sampled: Bool = false) -> String {
+    public static func traceparent(traceId: String, spanId: String, sampled: Bool = true) -> String {
         return [
             "00",
             traceId,
