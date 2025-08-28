@@ -4,8 +4,9 @@
 
 import Foundation
 import EmbraceSemantics
+@testable import EmbraceCore
 
-public class MockOTelSignalsHandler: OTelSignalsHandler, MockSpanDelegate {
+public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegate {
 
     private(set) public var startedSpans: [EmbraceSpan] = []
     private(set) public var endedSpans: [EmbraceSpan] = []
@@ -82,5 +83,9 @@ public class MockOTelSignalsHandler: OTelSignalsHandler, MockSpanDelegate {
 
     public func onSpanEnded(_ span: EmbraceSpan) {
         endedSpans.append(span)
+    }
+
+    public func autoTerminateSpans() {
+
     }
 }

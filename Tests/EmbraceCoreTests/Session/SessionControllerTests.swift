@@ -18,6 +18,7 @@ final class SessionControllerTests: XCTestCase {
     var config: EmbraceConfig!
     var upload: EmbraceUpload!
     let sdkStateProvider = MockEmbraceSDKStateProvider()
+    var otel: MockOTelSignalsHandler!
 
     static let testMetadataOptions = EmbraceUpload.MetadataOptions(
         apiKey: "apiKey",
@@ -51,9 +52,12 @@ final class SessionControllerTests: XCTestCase {
 
         sdkStateProvider.isEnabled = true
 
+        otel = MockOTelSignalsHandler()
+
         // we pass nil so we only use the upload/config module in the relevant tests
         controller = SessionController(storage: storage, upload: nil, config: nil)
         controller.sdkStateProvider = sdkStateProvider
+        controller.otel = otel
     }
 
     override func tearDownWithError() throws {

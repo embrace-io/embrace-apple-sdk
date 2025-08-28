@@ -13,7 +13,7 @@ import Foundation
 /// These signals will also be exported on the Embrace Tracer if the SDK is initialized with
 /// a custom OTel `SpanProcessor` or `SpanExporter`.
 @objc
-public class EmbraceOTelSignalsHandler: NSObject, OTelSignalsHandler {
+public class EmbraceOTelSignalsHandler: NSObject, InternalOTelSignalsHandler {
 
     private let storage: EmbraceStorage?
     private let sessionController: SessionController?

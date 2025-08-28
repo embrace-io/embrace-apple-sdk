@@ -43,7 +43,7 @@ class SessionController: SessionControllable {
     private let uploader: SessionUploader
     weak var config: EmbraceConfig?
     weak var sdkStateProvider: EmbraceSDKStateProvider?
-    weak var otel: EmbraceOTelSignalsHandler?
+    weak var otel: InternalOTelSignalsHandler?
 
     private var backgroundSessionsEnabled: Bool {
         return config?.isBackgroundSessionEnabled == true

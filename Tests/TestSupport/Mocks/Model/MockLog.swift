@@ -10,6 +10,7 @@ import OpenTelemetryApi
 public struct MockLog: EmbraceLog {
     public var id: String
     public var severity: EmbraceLogSeverity
+    public var type: EmbraceType
     public var timestamp: Date
     public var body: String
     public var sessionId: EmbraceIdentifier?
@@ -23,6 +24,7 @@ public struct MockLog: EmbraceLog {
     public init(
         id: String = EmbraceIdentifier.random.stringValue,
         severity: EmbraceLogSeverity = .info,
+        type: EmbraceType = .message,
         timestamp: Date = Date(),
         body: String = "Mock",
         sessionId: EmbraceIdentifier? = nil,
@@ -31,6 +33,7 @@ public struct MockLog: EmbraceLog {
     ) {
         self.id = id
         self.severity = severity
+        self.type = type
         self.timestamp = timestamp
         self.body = body
         self.sessionId = sessionId
