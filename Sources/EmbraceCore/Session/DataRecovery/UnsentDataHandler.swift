@@ -52,13 +52,13 @@ class UnsentDataHandler {
             // if we have a crash reporter, we fetch the unsent crash reports first
             // and save their identifiers to the corresponding sessions
             if let crashReporter = crashReporter {
-                
+
                 group.enter()
                 Task {
                     await sendTerminatedProcessesInfo(crashReporter: crashReporter, storage: storage, otel: otel)
                     group.leave()
                 }
-                
+
                 group.enter()
                 crashReporter.fetchUnsentCrashReports { reports in
                     sendCrashReports(

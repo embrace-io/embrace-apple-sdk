@@ -6,6 +6,7 @@
 
 #import <os/lock.h>
 #import <stdlib.h>
+#import <sys/mman.h>
 
 @import EmbraceCommonInternal;
 @import KSCrashRecording;
@@ -341,60 +342,61 @@ static BOOL EMBTerminationStorageInitialize()
     return YES;
 }
 
-void EMBTerminationStorageOnCrashEvent(struct KSCrash_MonitorContext *_Nonnull context)
+void EMBTerminationStorageWillWriteCrashEvent(KSCrash_ExceptionHandlingPlan *_Nonnull const plan,
+                                              const struct KSCrash_MonitorContext *_Nonnull context)
 {
-    if (!context) {
+    if (!plan || !context) {
         return;
     }
 
     // Only store fatals
-    if (context->currentPolicy.isFatal == 0) {
+    if (!plan->isFatal) {
         return;
     }
 
     // Ensure the reporter doesn't write this crash out.
-    context->currentPolicy.shouldWriteReport = 0;
+    plan->shouldWriteReport = false;
+    plan->shouldRecordAllThreads = false;
 
     // Update everything, we can lock if we're not in an async safe callback.
-    EMBTerminationStorageUpdate(
-        context->currentPolicy.requiresAsyncSafety == 0, ^(EMBTerminationStorage *_Nonnull storage) {
-            storage->stackOverflow = context->isStackOverflow;
-            storage->address = context->faultAddress;
-            if (context->crashReason) {
-                strncpy(storage->exceptionReason, context->crashReason, EMB_LARGE_BUFFER_SIZE - 1);
-            }
+    EMBTerminationStorageUpdate(plan->requiresAsyncSafety, ^(EMBTerminationStorage *_Nonnull storage) {
+        storage->stackOverflow = context->isStackOverflow;
+        storage->address = context->faultAddress;
+        if (context->crashReason) {
+            strncpy(storage->exceptionReason, context->crashReason, EMB_LARGE_BUFFER_SIZE - 1);
+        }
 
-            // mach
-            if (context->mach.type != 0) {
-                storage->machExceptionSet = 1;
-                storage->machExceptionCode = context->mach.type;
-                storage->machExceptionNumber = context->mach.code;
-                storage->machExceptionSubcode = context->mach.subcode;
-            }
+        // mach
+        if (context->mach.type != 0) {
+            storage->machExceptionSet = 1;
+            storage->machExceptionCode = context->mach.type;
+            storage->machExceptionNumber = context->mach.code;
+            storage->machExceptionSubcode = context->mach.subcode;
+        }
 
-            // signal
-            if (context->signal.signum != 0) {
-                storage->signalSet = 1;
-                storage->signalCode = context->signal.sigcode;
-                storage->signalNumber = context->signal.signum;
-            }
+        // signal
+        if (context->signal.signum != 0) {
+            storage->signalSet = 1;
+            storage->signalCode = context->signal.sigcode;
+            storage->signalNumber = context->signal.signum;
+        }
 
 #define IS_TYPE(type) (strncmp(type, context->monitorId, strlen(type)) == 0)
 
-            if IS_TYPE ("NSException") {
-                storage->exceptionSet = 1;
-                storage->exceptionType = 0;
-                strncpy(storage->exceptionName, context->NSException.name, EMB_SMALL_BUFFER_SIZE - 1);
-                if (context->NSException.userInfo) {
-                    strncpy(storage->exceptionUserInfo, context->NSException.userInfo, EMB_LARGE_BUFFER_SIZE - 1);
-                }
-
-            } else if IS_TYPE ("CPPException") {
-                storage->exceptionSet = 1;
-                storage->exceptionType = 1;
-                strncpy(storage->exceptionName, context->CPPException.name, EMB_SMALL_BUFFER_SIZE - 1);
+        if IS_TYPE ("NSException") {
+            storage->exceptionSet = 1;
+            storage->exceptionType = 0;
+            strncpy(storage->exceptionName, context->NSException.name, EMB_SMALL_BUFFER_SIZE - 1);
+            if (context->NSException.userInfo) {
+                strncpy(storage->exceptionUserInfo, context->NSException.userInfo, EMB_LARGE_BUFFER_SIZE - 1);
             }
-        });
+
+        } else if IS_TYPE ("CPPException") {
+            storage->exceptionSet = 1;
+            storage->exceptionType = 1;
+            strncpy(storage->exceptionName, context->CPPException.name, EMB_SMALL_BUFFER_SIZE - 1);
+        }
+    });
 }
 
 void EMBTerminationStorageUpdate(BOOL canLock, EMBTerminationStorageUpdateBlock _Nullable block)

@@ -138,7 +138,7 @@ import Foundation
             config.enableQueueNameSearch = false
             config.installPath = context.filePathProvider.directoryURL(for: "mk_crash_reporter")?.path
             config.reportStoreConfiguration.appName = context.appId ?? "default"
-            config.eventNotifyCallback = EMBTerminationStorageOnCrashEvent
+            config.willWriteReportCallback = EMBTerminationStorageWillWriteCrashEvent
             config.monitors = [.cppException, .machException, .nsException, .signal]
             do {
                 try KSCrash.shared.install(with: config)
@@ -422,8 +422,7 @@ import Foundation
         public func install(context: EmbraceCommonInternal.CrashReporterContext) throws {
         }
 
-        public func fetchUnsentCrashReports(completion: @escaping ([EmbraceCommonInternal.EmbraceCrashReport]) -> Void)
-        {
+        public func fetchUnsentCrashReports(completion: @escaping ([EmbraceCommonInternal.EmbraceCrashReport]) -> Void) {
         }
 
         public var onNewReport: ((EmbraceCommonInternal.EmbraceCrashReport) -> Void)?
