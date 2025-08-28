@@ -11,6 +11,7 @@ import Foundation
 struct DefaultEmbraceLog: EmbraceLog {
     let id: String
     let severity: EmbraceLogSeverity
+    let type: EmbraceType
     let timestamp: Date
     let body: String
     let attributes: [String : String]
@@ -20,6 +21,7 @@ struct DefaultEmbraceLog: EmbraceLog {
     init(
         id: String,
         severity: EmbraceLogSeverity,
+        type: EmbraceType = .message,
         timestamp: Date,
         body: String,
         attributes: [String : String] = [:],
@@ -28,6 +30,7 @@ struct DefaultEmbraceLog: EmbraceLog {
     ) {
         self.id = id
         self.severity = severity
+        self.type = type
         self.timestamp = timestamp
         self.body = body
         self.attributes = attributes

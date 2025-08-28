@@ -12,12 +12,14 @@ import Foundation
 @objc(LogRecord)
 public class LogRecord: NSManagedObject {
     @NSManaged public var id: String
-    @NSManaged public var sessionIdRaw: String?
-    @NSManaged public var processIdRaw: String
     @NSManaged public var severityRaw: Int
+    @NSManaged public var typeRaw: String
     @NSManaged public var body: String
     @NSManaged public var timestamp: Date
     @NSManaged public var attributes: String
+    @NSManaged public var sessionIdRaw: String?
+    @NSManaged public var processIdRaw: String
+
 
     class func create(context: NSManagedObjectContext, log: EmbraceLog) {
         context.performAndWait {
@@ -27,12 +29,13 @@ public class LogRecord: NSManagedObject {
 
             let record = LogRecord(entity: description, insertInto: context)
             record.id = log.id
-            record.sessionIdRaw = log.sessionId?.stringValue
-            record.processIdRaw = log.processId.stringValue
             record.severityRaw = log.severity.rawValue
+            record.typeRaw = log.type.rawValue
             record.body = log.body
             record.timestamp = log.timestamp
             record.attributes = log.attributes.keyValueEncoded()
+            record.sessionIdRaw = log.sessionId?.stringValue
+            record.processIdRaw = log.processId.stringValue
         }
     }
 
@@ -49,12 +52,14 @@ public class LogRecord: NSManagedObject {
 
         return ImmutableLogRecord(
             id: id,
-            sessionId: sessionId,
-            processId: EmbraceIdentifier(stringValue: processIdRaw),
             severity: EmbraceLogSeverity(rawValue: severityRaw) ?? .debug,
+            type: EmbraceType(rawValue: typeRaw) ?? .message,
             timestamp: timestamp,
             body: body,
-            attributes: attributes ?? .keyValueDecode(self.attributes)
+            attributes: attributes ?? .keyValueDecode(self.attributes),
+            sessionId: sessionId,
+            processId: EmbraceIdentifier(stringValue: processIdRaw),
+
         )
     }
 }
@@ -85,6 +90,10 @@ extension LogRecord: EmbraceStorageRecord {
         severityAttribute.name = "severityRaw"
         severityAttribute.attributeType = .integer64AttributeType
 
+        let typeAttribute = NSAttributeDescription()
+        typeAttribute.name = "typeRaw"
+        typeAttribute.attributeType = .stringAttributeType
+
         let bodyAttribute = NSAttributeDescription()
         bodyAttribute.name = "body"
         bodyAttribute.attributeType = .stringAttributeType
@@ -104,6 +113,7 @@ extension LogRecord: EmbraceStorageRecord {
             sessionIdAttribute,
             processIdAttribute,
             severityAttribute,
+            typeAttribute,
             bodyAttribute,
             timestampAttribute,
             attributesAttribute
@@ -114,11 +124,12 @@ extension LogRecord: EmbraceStorageRecord {
 }
 
 struct ImmutableLogRecord: EmbraceLog {
-    var id: String
-    var sessionId: EmbraceIdentifier?
-    var processId: EmbraceIdentifier
-    var severity: EmbraceLogSeverity
+    let id: String
+    let severity: EmbraceLogSeverity
+    let type: EmbraceType
     let timestamp: Date
     let body: String
     let attributes: [String: String]
+    let sessionId: EmbraceIdentifier?
+    let processId: EmbraceIdentifier
 }

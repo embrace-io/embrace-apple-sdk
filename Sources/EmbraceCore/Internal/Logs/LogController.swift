@@ -184,6 +184,7 @@ class LogController: LogControllable {
             let log = DefaultEmbraceLog(
                 id: EmbraceIdentifier.random.stringValue,
                 severity: severity,
+                type: type,
                 timestamp: timestamp,
                 body: message,
                 attributes: finalAttributes,
