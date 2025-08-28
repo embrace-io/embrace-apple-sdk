@@ -14,6 +14,7 @@ public protocol LogRepository {
         sessionId: EmbraceIdentifier?,
         processId: EmbraceIdentifier,
         severity: EmbraceLogSeverity,
+        type: EmbraceType,
         body: String,
         timestamp: Date,
         attributes: [String: String]
@@ -31,6 +32,7 @@ extension EmbraceStorage {
         sessionId: EmbraceIdentifier?,
         processId: EmbraceIdentifier,
         severity: EmbraceLogSeverity,
+        type: EmbraceType,
         body: String,
         timestamp: Date = Date(),
         attributes: [String: String]
@@ -41,6 +43,7 @@ extension EmbraceStorage {
             sessionId: sessionId,
             processId: processId,
             severity: severity,
+            type: type,
             body: body,
             timestamp: timestamp,
             attributes: attributes

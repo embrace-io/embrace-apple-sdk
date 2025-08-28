@@ -13,6 +13,9 @@ public protocol EmbraceLog {
     /// Severity of the log
     var severity: EmbraceLogSeverity { get }
 
+    /// Embrace specific type of the log
+    var type: EmbraceType { get }
+
     /// Date when the log was emitted
     var timestamp: Date { get }
 

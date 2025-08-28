@@ -58,6 +58,7 @@ class DefaultLogBatcher: LogBatcher {
                 sessionId: self.delegate?.currentSessionId,
                 processId: ProcessIdentifier.current,
                 severity: logRecord.severity?.toLogSeverity() ?? .info,
+                type: .message,
                 body: logRecord.body?.description ?? "",
                 timestamp: logRecord.timestamp,
                 attributes: logRecord.attributes.toStringValues()
