@@ -166,8 +166,8 @@ class NetworkingSwizzle: NSObject {
         (spans + spans_snapshots).forEach { span in
             guard span["name"] as? String != "emb-session" else { return }
             if let attributes = span["attributes"] as? [[String: String]],
-               let sessionIdAttribute = attributes.first(where: { $0["key"] == "session.id" }),
-               let sessionIdFromSpan = sessionIdAttribute["value"]
+                let sessionIdAttribute = attributes.first(where: { $0["key"] == "session.id" }),
+                let sessionIdFromSpan = sessionIdAttribute["value"]
             {
                 if let orphanedSpan = exportedOrphanedSpans.first(where: { $0.spanId.hexString == span["span_id"] as? String }) {
                     exportedSpansBySession[sessionIdFromSpan, default: []].append(orphanedSpan)
