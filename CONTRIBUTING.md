@@ -28,10 +28,10 @@ We welcome all code contributions to the library. If you have a patch adding val
 
 If you would like to contribute code you can do so through GitHub by forking the repository and sending a pull request. 
 
-Please also run and fix `swiftlint` by using:
+Please also format and lint by using:
 
 ```
-$ swift run swiftlint --fix
+$ make all
 ```
 
 At a minimum, to be accepted and merged, Pull Requests must:
