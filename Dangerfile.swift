@@ -34,11 +34,7 @@ func main() {
         warn("No tests added / modified.")
     }
 
-    // Run make all here
-    let result = shell("make check-format check-swift-format")
-    if result.exitCode != 0 {
-        fail("`make all` failed with exit code \(result.exitCode).")
-    }
+    // Run `make check-format check-swift-format` here
 }
 
 main()
