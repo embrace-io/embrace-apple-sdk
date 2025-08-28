@@ -83,7 +83,7 @@ fi
 # ---- LINT / VERIFY (block on any remaining issues) --------------------------
 # swift-format in "lint" mode: fail on remaining diffs
 if [ "$swift_empty" -eq 0 ]; then
-  if ! xargs -0 -n 64 -- "$SWIFT_FORMAT" lint --strict --configuration .swift-format <"$SWIFT_LIST" >/dev/null 2>&1; then
+  if ! xargs -0 -n 64 -- "$SWIFT_FORMAT" lint --strict --configuration .swift-format <"$SWIFT_LIST"; then
     blocked "swift-format issues detected."
     EXIT_CODE=1
   fi
@@ -91,7 +91,7 @@ fi
 
 # clang-format dry run (error on diff)
 if [ "$c_empty" -eq 0 ]; then
-  if ! xargs -0 -n 64 -- "$CLANG_FORMAT" --dry-run -Werror <"$C_LIST" >/dev/null 2>&1; then
+  if ! xargs -0 -n 64 -- "$CLANG_FORMAT" --dry-run -Werror <"$C_LIST"; then
     blocked "clang-format issues detected."
     EXIT_CODE=1
   fi
