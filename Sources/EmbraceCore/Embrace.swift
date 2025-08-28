@@ -280,7 +280,7 @@ import Foundation
             // embrace process start spans
             let spans = createProcessStartSpans()
             defer {
-                for var span in spans {
+                for span in spans {
                     span.end()
                 }
             }

@@ -7,7 +7,7 @@ import EmbraceCommonInternal
 import Foundation
 import OpenTelemetryApi
 
-public struct MockLog: EmbraceLog {
+public class MockLog: EmbraceLog {
     public var id: String
     public var severity: EmbraceLogSeverity
     public var type: EmbraceType
@@ -17,7 +17,7 @@ public struct MockLog: EmbraceLog {
     public var processId: EmbraceIdentifier
     public var attributes: [String: String]
 
-    public mutating func setAttribute(key: String, value: String?) {
+    public func setAttribute(key: String, value: String?) {
         attributes[key] = value
     }
 
@@ -40,5 +40,4 @@ public struct MockLog: EmbraceLog {
         self.processId = processId
         self.attributes = attributes
     }
-
 }

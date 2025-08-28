@@ -34,17 +34,14 @@ struct SessionSpanUtils {
     }
 
     static func setState(span: EmbraceSpan?, state: SessionState) {
-        var span = span
         span?.setInternalAttribute(key: SpanSemantics.Session.keyState, value: state.rawValue)
     }
 
     static func setHeartbeat(span: EmbraceSpan?, heartbeat: Date) {
-        var span = span
         span?.setInternalAttribute(key: SpanSemantics.Session.keyHeartbeat, value: String(heartbeat.nanosecondsSince1970Truncated))
     }
 
     static func setTerminated(span: EmbraceSpan?, terminated: Bool) {
-        var span = span
         span?.setInternalAttribute(key: SpanSemantics.Session.keyTerminated, value: String(terminated))
     }
 

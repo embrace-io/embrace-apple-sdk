@@ -15,7 +15,7 @@ public class MockSpan: EmbraceSpan {
     public var parentSpanId: String?
     public var name: String
     public var type: EmbraceType
-    public var status: EmbraceSpanStatus
+    public var _status: EmbraceSpanStatus
     public var startTime: Date
     public var endTime: Date?
     public var events: [EmbraceSpanEvent]
@@ -23,6 +23,10 @@ public class MockSpan: EmbraceSpan {
     public var sessionId: EmbraceIdentifier?
     public var processId: EmbraceIdentifier
     public var attributes: [String : String]
+
+    public var status: EmbraceSpanStatus {
+        _status
+    }
 
     weak var delegate: MockSpanDelegate?
 
@@ -46,7 +50,7 @@ public class MockSpan: EmbraceSpan {
         self.parentSpanId = parentSpanId
         self.name = name
         self.type = type
-        self.status = status
+        self._status = status
         self.startTime = startTime
         self.endTime = endTime
         self.events = events
@@ -58,7 +62,7 @@ public class MockSpan: EmbraceSpan {
     }
 
     public func setStatus(_ status: EmbraceSpanStatus) {
-        self.status = status
+        self._status = status
     }
 
     public func addEvent(name: String, type: EmbraceType?, timestamp: Date, attributes: [String : String]) throws {

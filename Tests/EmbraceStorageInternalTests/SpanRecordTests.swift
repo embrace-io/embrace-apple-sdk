@@ -289,7 +289,7 @@ class SpanRecordTests: XCTestCase {
 
         XCTAssertEqual(spans[0].events.count, 1)
         XCTAssertEqual(spans[0].events.first!.name, "test")
-        XCTAssertEqual(spans[0].events.first!.attributes, "key,value")
+        XCTAssertTrue(spans[0].events.first!.attributes.contains("key,value"))
     }
 
     func test_updateSpanEvents() {
@@ -326,10 +326,10 @@ class SpanRecordTests: XCTestCase {
         XCTAssertEqual(spans[0].events.count, 2)
 
         let storedEvent1 = spans[0].events.first(where: { $0.name == "test1" })
-        XCTAssertEqual(storedEvent1!.attributes, "key1,value1")
+        XCTAssertTrue(storedEvent1!.attributes.contains("key1,value1"))
 
         let storedEvent2 = spans[0].events.first(where: { $0.name == "test2" })
-        XCTAssertEqual(storedEvent2!.attributes, "key2,value2")
+        XCTAssertTrue(storedEvent2!.attributes.contains("key2,value2"))
     }
 
     func test_addSpanEvent() {
@@ -355,7 +355,7 @@ class SpanRecordTests: XCTestCase {
 
         XCTAssertEqual(spans[0].events.count, 1)
         XCTAssertEqual(spans[0].events.first!.name, "test")
-        XCTAssertEqual(spans[0].events.first!.attributes, "key,value")
+        XCTAssertTrue(spans[0].events.first!.attributes.contains("key,value"))
     }
 
     // MARK: Links

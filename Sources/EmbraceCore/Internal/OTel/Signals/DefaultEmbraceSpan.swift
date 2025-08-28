@@ -26,7 +26,6 @@ class DefaultEmbraceSpan: EmbraceSpan {
 
     var status: EmbraceSpanStatus {
         get { state.safeValue.status }
-        set { state.safeValue.status = newValue }
     }
 
     var endTime: Date? {
@@ -84,7 +83,7 @@ class DefaultEmbraceSpan: EmbraceSpan {
         self.autoTerminationCode = autoTerminationCode
         self.delegate = delegate
 
-        self.status = status
+        state.safeValue.status = status
         self.endTime = endTime
         self.events = events
         self.links = links
@@ -92,7 +91,7 @@ class DefaultEmbraceSpan: EmbraceSpan {
     }
 
     func setStatus(_ status: EmbraceSpanStatus) {
-        self.status = status
+        state.safeValue.status = status
         delegate?.onSpanStatusUpdated(self, status: status)
     }
     
@@ -133,7 +132,7 @@ class DefaultEmbraceSpan: EmbraceSpan {
 }
 
 extension EmbraceSpan {
-    mutating func addEvent(_ event: EmbraceSpanEvent) {
+    func addEvent(_ event: EmbraceSpanEvent) {
         // dont apply limits on internal attributes for our spans
         guard let internalSpan = self as? DefaultEmbraceSpan else {
             return
@@ -143,7 +142,7 @@ extension EmbraceSpan {
         internalSpan.delegate?.onSpanEventAdded(self, event: event)
     }
 
-    mutating func setInternalAttribute(key: String, value: String?) {
+    func setInternalAttribute(key: String, value: String?) {
         // dont apply limits on internal attributes for our spans
         guard let internalSpan = self as? DefaultEmbraceSpan else {
             try? setAttribute(key: key, value: value)

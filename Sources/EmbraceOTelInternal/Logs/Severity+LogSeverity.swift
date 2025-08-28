@@ -18,6 +18,6 @@ extension Severity {
     }
 
     static public func fromLogSeverity(_ logSeverity: EmbraceLogSeverity) -> Severity? {
-        Severity(rawValue: logSeverity.number)
+        Severity(rawValue: logSeverity.rawValue)
     }
 }

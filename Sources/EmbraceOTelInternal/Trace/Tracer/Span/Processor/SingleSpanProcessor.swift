@@ -78,7 +78,7 @@ public class SingleSpanProcessor: SpanProcessor {
         var data = span.toSpanData()
         if data.hasEnded && data.status == .unset {
             if let errorCode = data.errorCode {
-                data.settingStatus(.error(description: errorCode.rawValue))
+                data.settingStatus(.error(description: errorCode.name))
             } else {
                 data.settingStatus(.ok)
             }

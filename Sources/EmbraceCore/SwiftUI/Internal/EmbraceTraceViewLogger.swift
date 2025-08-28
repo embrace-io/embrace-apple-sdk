@@ -139,7 +139,7 @@ extension EmbraceTraceViewLogger {
         _ function: StaticString = #function
     ) {
         dispatchPrecondition(condition: .onQueue(.main))
-        guard var span = span else { return }
+        guard let span = span else { return }
         span.end(errorCode: errorCode, endTime: time ?? Date())
     }
 

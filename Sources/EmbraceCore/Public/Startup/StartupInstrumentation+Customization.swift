@@ -52,7 +52,7 @@ extension StartupInstrumentation {
     public func addAttributesToTrace(_ attributes: [String: String]) throws -> Bool {
 
         return try state.withLock {
-            guard var rootSpan = $0.rootSpan else {
+            guard let rootSpan = $0.rootSpan else {
                 return false
             }
 

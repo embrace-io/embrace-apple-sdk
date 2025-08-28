@@ -14,9 +14,9 @@ public extension EmbraceSpan {
     /// - Parameters:
     ///   - errorCode: Error code for the span
     ///   - endTime: Time when the span ended
-    mutating func end(errorCode: EmbraceSpanErrorCode? = nil, endTime: Date = Date()) {
+    func end(errorCode: EmbraceSpanErrorCode? = nil, endTime: Date = Date()) {
         if let errorCode {
-            setInternalAttribute(key: SpanSemantics.keyErrorCode, value: errorCode.rawValue)
+            setInternalAttribute(key: SpanSemantics.keyErrorCode, value: errorCode.name)
             setStatus(.error)
         } else {
             setStatus(.ok)

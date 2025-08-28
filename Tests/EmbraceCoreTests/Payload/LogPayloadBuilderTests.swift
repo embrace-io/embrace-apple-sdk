@@ -109,8 +109,8 @@ class LogPayloadBuilderTests: XCTestCase {
         XCTAssertEqual(logs.count, 1)
         XCTAssertEqual(logs[0].body, "test")
         XCTAssertEqual(logs[0].timeUnixNano, String(timestamp.nanosecondsSince1970Truncated))
-        XCTAssertEqual(logs[0].severityNumber, EmbraceLogSeverity.fatal.number)
-        XCTAssertEqual(logs[0].severityText, EmbraceLogSeverity.fatal.text)
+        XCTAssertEqual(logs[0].severityNumber, EmbraceLogSeverity.fatal.rawValue)
+        XCTAssertEqual(logs[0].severityText, EmbraceLogSeverity.fatal.name)
 
         let attribute1 = logs[0].attributes.first { $0.key == "key1" }
         XCTAssertEqual(attribute1!.value, "value1")

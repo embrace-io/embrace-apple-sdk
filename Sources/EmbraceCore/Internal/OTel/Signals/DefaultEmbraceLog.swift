@@ -8,7 +8,7 @@ import Foundation
     import EmbraceCommonInternal
 #endif
 
-struct DefaultEmbraceLog: EmbraceLog {
+class DefaultEmbraceLog: EmbraceLog {
     let id: String
     let severity: EmbraceLogSeverity
     let type: EmbraceType

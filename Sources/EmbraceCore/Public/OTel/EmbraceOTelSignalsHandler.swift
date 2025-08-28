@@ -136,7 +136,7 @@ public class EmbraceOTelSignalsHandler: NSObject, InternalOTelSignalsHandler {
     /// - Throws: A `EmbraceOTelError.spanEventLimitReached` if the limit hass ben reached for the given span even type.
     public func addSessionEvent(_ event: EmbraceSpanEvent) throws {
 
-        guard var span = sessionController?.currentSessionSpan else {
+        guard let span = sessionController?.currentSessionSpan else {
             throw EmbraceOTelError.invalidSession("No active Embrace session!")
         }
 
@@ -190,9 +190,9 @@ extension EmbraceOTelSignalsHandler {
         cache.withLock {
             let now = Date()
 
-            for var span in $0.autoTerminationSpans.values {
+            for span in $0.autoTerminationSpans.values {
                 let code = span.autoTerminationCode ?? .unknown
-                span.setInternalAttribute(key: SpanSemantics.keyErrorCode, value: code.rawValue)
+                span.setInternalAttribute(key: SpanSemantics.keyErrorCode, value: code.name)
                 span.setStatus(.error)
                 span.end(endTime: now)
             }

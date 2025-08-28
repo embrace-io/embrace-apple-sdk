@@ -63,7 +63,7 @@
             // end all parent spans and visibility spans if the app enters the background
             // also clear all the cached spans
             queue.async {
-                for var span in self.visibilitySpans.values {
+                for span in self.visibilitySpans.values {
                     span.end(endTime: now)
                 }
 
@@ -143,7 +143,7 @@
                 return
             }
             queue.async {
-                guard var span = self.viewDidLoadSpans.removeValue(forKey: id) else {
+                guard let span = self.viewDidLoadSpans.removeValue(forKey: id) else {
                     return
                 }
 
@@ -187,7 +187,7 @@
                 return
             }
             queue.async {
-                guard var span = self.viewWillAppearSpans.removeValue(forKey: id) else {
+                guard let span = self.viewWillAppearSpans.removeValue(forKey: id) else {
                     return
                 }
 
@@ -229,7 +229,7 @@
         func onViewIsAppearingEnd(_ vc: UIViewController, now: Date = Date()) {
             queue.async {
                 guard let id = vc.emb_instrumentation_state?.identifier,
-                    var span = self.viewIsAppearingSpans.removeValue(forKey: id)
+                    let span = self.viewIsAppearingSpans.removeValue(forKey: id)
                 else {
                     return
                 }
@@ -306,11 +306,11 @@
                     self.visibilitySpans[id] = visibilitySpan
                 }
 
-                if var viewDidAppearSpan = self.viewDidAppearSpans.removeValue(forKey: id) {
+                if let viewDidAppearSpan = self.viewDidAppearSpans.removeValue(forKey: id) {
                     viewDidAppearSpan.end(endTime: now)
                 }
 
-                guard var parentSpan = self.parentSpans[id] else {
+                guard let parentSpan = self.parentSpans[id] else {
                     return
                 }
 
@@ -321,7 +321,7 @@
 
                     // generate ui ready span
                 } else {
-                    var span = self.createSpan(
+                    let span = self.createSpan(
                         with: otel,
                         viewName: viewName,
                         className: className,
@@ -355,7 +355,7 @@
                 let now = Date()
 
                 // end visibility span
-                if var span = self.visibilitySpans[id] {
+                if let span = self.visibilitySpans[id] {
                     span.end(endTime: now)
                     self.visibilitySpans[id] = nil
                 }
@@ -371,7 +371,7 @@
             }
 
             queue.async {
-                guard var parentSpan = self.parentSpans[id],
+                guard let parentSpan = self.parentSpans[id],
                     parentSpan.isTimeToInteractive
                 else {
                     return
@@ -379,7 +379,7 @@
 
                 // if we have a ui ready span it means that viewDidAppear already happened
                 // in this case we close the spans
-                if var span = self.uiReadySpans[id] {
+                if let span = self.uiReadySpans[id] {
                     let now = Date()
                     span.end(endTime: now)
                     parentSpan.end(endTime: now)
@@ -396,27 +396,27 @@
 
         private func forcefullyEndSpans(id: String, time: Date) {
 
-            if var viewDidLoadSpan = self.viewDidLoadSpans[id] {
+            if let viewDidLoadSpan = self.viewDidLoadSpans[id] {
                 viewDidLoadSpan.end(errorCode: .userAbandon, endTime: time)
             }
 
-            if var viewWillAppearSpan = self.viewWillAppearSpans[id] {
+            if let viewWillAppearSpan = self.viewWillAppearSpans[id] {
                 viewWillAppearSpan.end(errorCode: .userAbandon, endTime: time)
             }
 
-            if var viewIsAppearingSpan = self.viewIsAppearingSpans[id] {
+            if let viewIsAppearingSpan = self.viewIsAppearingSpans[id] {
                 viewIsAppearingSpan.end(errorCode: .userAbandon, endTime: time)
             }
 
-            if var viewDidAppearSpan = self.viewDidAppearSpans[id] {
+            if let viewDidAppearSpan = self.viewDidAppearSpans[id] {
                 viewDidAppearSpan.end(errorCode: .userAbandon, endTime: time)
             }
 
-            if var uiReadySpan = self.uiReadySpans[id] {
+            if let uiReadySpan = self.uiReadySpans[id] {
                 uiReadySpan.end(errorCode: .userAbandon, endTime: time)
             }
 
-            if var parentSpan = self.parentSpans[id] {
+            if let parentSpan = self.parentSpans[id] {
                 parentSpan.end(errorCode: .userAbandon, endTime: time)
             }
 

@@ -99,11 +99,11 @@ public class SpanRecord: NSManagedObject {
             status: EmbraceSpanStatus(rawValue: statusRaw) ?? .unset,
             startTime: startTime,
             endTime: endTime,
-            sessionId: sessionId,
-            processId: EmbraceIdentifier(stringValue: processIdRaw),
             events: finalEvents,
             links: finalLinks,
-            attributes: attributes ?? .keyValueDecode(self.attributes)
+            attributes: attributes ?? .keyValueDecode(self.attributes),
+            sessionId: sessionId,
+            processId: EmbraceIdentifier(stringValue: processIdRaw)
         )
     }
 }
@@ -273,19 +273,47 @@ extension SpanRecord: EmbraceStorageRecord {
     }
 }
 
-struct ImmutableSpanRecord: EmbraceSpan {
-    var context: EmbraceSpanContext
+class ImmutableSpanRecord: EmbraceSpan {
+    let context: EmbraceSpanContext
     let parentSpanId: String?
     let name: String
     let type: EmbraceType
     let status: EmbraceSpanStatus
     let startTime: Date
     let endTime: Date?
-    let sessionId: EmbraceIdentifier?
-    let processId: EmbraceIdentifier
     let events: [EmbraceSpanEvent]
     let links: [EmbraceSpanLink]
     let attributes: [String: String]
+    let sessionId: EmbraceIdentifier?
+    let processId: EmbraceIdentifier
+
+    init(
+        context: EmbraceSpanContext,
+        parentSpanId: String? = nil,
+        name: String,
+        type: EmbraceType,
+        status: EmbraceSpanStatus,
+        startTime: Date,
+        endTime: Date? = nil,
+        events: [EmbraceSpanEvent],
+        links: [EmbraceSpanLink],
+        attributes: [String : String],
+        sessionId: EmbraceIdentifier? = nil,
+        processId: EmbraceIdentifier
+    ) {
+        self.context = context
+        self.parentSpanId = parentSpanId
+        self.name = name
+        self.type = type
+        self.status = status
+        self.startTime = startTime
+        self.endTime = endTime
+        self.events = events
+        self.links = links
+        self.attributes = attributes
+        self.sessionId = sessionId
+        self.processId = processId
+    }
 
     func setStatus(_ status: EmbraceSpanStatus) {
         // no op

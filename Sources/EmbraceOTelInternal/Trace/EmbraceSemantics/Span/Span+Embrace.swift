@@ -41,8 +41,8 @@ extension Span {
 
         // set error code
         if let errorCode = errorCode {
-            setAttribute(key: SpanSemantics.keyErrorCode, value: errorCode.rawValue)
-            status = .error(description: errorCode.rawValue)
+            setAttribute(key: SpanSemantics.keyErrorCode, value: errorCode.name)
+            status = .error(description: errorCode.name)
         } else {
             // no error or error code means the span ended successfully
             status = .ok

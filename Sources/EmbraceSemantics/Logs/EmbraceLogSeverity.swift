@@ -2,7 +2,7 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-public enum EmbraceLogSeverity: Int, Codable {
+@objc public enum EmbraceLogSeverity: Int, Codable {
     case trace = 1
     case debug = 5
     case info = 9
@@ -13,7 +13,7 @@ public enum EmbraceLogSeverity: Int, Codable {
 
     /// The value provided is compliant with what SeverityText is for OTel
     /// More info: https://opentelemetry.io/docs/specs/otel/logs/data-model/
-    public var text: String {
+    public var name: String {
         switch self {
         case .trace: "TRACE"
         case .debug: "DEBUG"
@@ -23,16 +23,10 @@ public enum EmbraceLogSeverity: Int, Codable {
         default: "FATAL"
         }
     }
-
-    /// The value provided is compliant with what SeverityNumber is for OTel
-    /// More info: https://opentelemetry.io/docs/specs/otel/logs/data-model/
-    public var number: Int {
-        return self.rawValue
-    }
 }
 
 extension EmbraceLogSeverity: CustomStringConvertible {
     public var description: String {
-        text
+        name
     }
 }

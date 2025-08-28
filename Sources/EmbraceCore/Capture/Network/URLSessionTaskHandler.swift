@@ -134,7 +134,7 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
                 attributes: attributes
             )
 
-            if var span {
+            if let span {
                 // tracing header
                 if let tracingHader = self.addTracingHeader(task: task, span: span) {
                     span.setInternalAttribute(key: SpanSemantics.NetworkRequest.keyTracingHeader, value: tracingHader)
@@ -206,7 +206,7 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
         }
 
         // stop if there was no span for this task
-        guard var span = self.spans.removeValue(forKey: task) else {
+        guard let span = self.spans.removeValue(forKey: task) else {
             return
         }
 

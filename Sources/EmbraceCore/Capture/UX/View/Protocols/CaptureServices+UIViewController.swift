@@ -84,7 +84,7 @@
                 return
             }
 
-            guard var parentSpan = viewCaptureService.parentSpan(for: viewController) else {
+            guard let parentSpan = viewCaptureService.parentSpan(for: viewController) else {
                 throw parentSpanNotFoundError
             }
 

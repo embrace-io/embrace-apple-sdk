@@ -11,8 +11,8 @@ class LogPayloadTests: XCTestCase {
     func test_encodeToJSONProperly() throws {
         let payloadStruct = LogPayload(
             timeUnixNano: "123456789",
-            severityNumber: EmbraceLogSeverity.info.number,
-            severityText: EmbraceLogSeverity.info.text,
+            severityNumber: EmbraceLogSeverity.info.rawValue,
+            severityText: EmbraceLogSeverity.info.name,
             body: "Hello World",
             attributes: [
                 .init(key: "hello", value: "world")

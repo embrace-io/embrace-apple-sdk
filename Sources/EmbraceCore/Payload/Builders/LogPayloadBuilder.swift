@@ -20,8 +20,8 @@ struct LogPayloadBuilder {
 
         return .init(
             timeUnixNano: String(Int(log.timestamp.nanosecondsSince1970)),
-            severityNumber: log.severity.number,
-            severityText: log.severity.text,
+            severityNumber: log.severity.rawValue,
+            severityText: log.severity.name,
             body: log.body,
             attributes: finalAttributes)
     }
@@ -60,7 +60,7 @@ struct LogPayloadBuilder {
         let logPayload = LogPayload(
             timeUnixNano: String(timestamp.nanosecondsSince1970Truncated),
             severityNumber: severity.rawValue,
-            severityText: severity.text,
+            severityText: severity.name,
             body: body,
             attributes: finalAttributes
         )

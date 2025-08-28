@@ -57,7 +57,7 @@ final class SingleSpanProcessorTests: XCTestCase {
 
     func createAutoTerminatedSpan(processor: SpanProcessor) -> ReadableSpan {
         var dict = AttributesDictionary(capacity: 10)
-        dict.attributes[SpanSemantics.keyAutoTerminationCode] = .string(EmbraceSpanErrorCode.userAbandon.rawValue)
+        dict.attributes[SpanSemantics.keyAutoTerminationCode] = .string(EmbraceSpanErrorCode.userAbandon.name)
 
         return createSpanData(processor: processor, attributes: dict)
     }
@@ -177,7 +177,7 @@ final class SingleSpanProcessorTests: XCTestCase {
 
         let span = createSpanData(processor: processor)
 
-        span.setAttribute(key: "emb.error_code", value: EmbraceSpanErrorCode.unknown.rawValue)
+        span.setAttribute(key: "emb.error_code", value: EmbraceSpanErrorCode.unknown.name)
         let endTime = Date().addingTimeInterval(2)
         span.end(time: endTime)
 
