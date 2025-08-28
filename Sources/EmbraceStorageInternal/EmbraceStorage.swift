@@ -10,9 +10,11 @@ import Foundation
     import EmbraceCoreDataInternal
 #endif
 
+public typealias Storage = EmbraceStorageMetadataFetcher & LogRepository
+
 /// Class in charge of storing all the data captured by the Embrace SDK.
 /// It provides an abstraction layer over a CoreData database.
-public class EmbraceStorage {
+public class EmbraceStorage: Storage {
     public private(set) var options: Options
     public private(set) var logger: InternalLogger
     public private(set) var coreData: CoreDataWrapper

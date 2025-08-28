@@ -130,7 +130,11 @@ let package = Package(
 
         // capture service -----------------------------------------------------------
         .target(
-            name: "EmbraceCaptureService"
+            name: "EmbraceCaptureService",
+            dependencies : [
+                "EmbraceSemantics",
+                "EmbraceCommonInternal"
+            ]
         ),
         .testTarget(
             name: "EmbraceCaptureServiceTests",

@@ -4,7 +4,7 @@
 
 import OpenTelemetryApi
 import XCTest
-
+import TestSupport
 @testable import EmbraceStorageInternal
 
 final class EmbraceStorage_SpanTests: XCTestCase {
@@ -25,22 +25,14 @@ final class EmbraceStorage_SpanTests: XCTestCase {
 
         for i in 0..<3 {
             // given inserted record
-            storage.upsertSpan(
-                id: SpanId.random().hexString,
-                traceId: TraceId.random().hexString,
+            storage.upsertSpan(MockSpan(
                 name: "example \(i)",
-                type: .performance,
-                startTime: Date()
-            )
+            ))
         }
 
-        storage.upsertSpan(
-            id: SpanId.random().hexString,
-            traceId: TraceId.random().hexString,
+        storage.upsertSpan(MockSpan(
             name: "newest",
-            type: .performance,
-            startTime: Date()
-        )
+        ))
 
         let request = SpanRecord.createFetchRequest()
         request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: true)]
@@ -56,24 +48,17 @@ final class EmbraceStorage_SpanTests: XCTestCase {
 
         // insert 3 .performance spans
         for i in 0..<3 {
-            storage.upsertSpan(
-                id: SpanId.random().hexString,
-                traceId: TraceId.random().hexString,
+            storage.upsertSpan(MockSpan(
                 name: "performance \(i)",
-                type: .performance,
-                startTime: Date()
-            )
+            ))
         }
 
         // insert 3 .networkHTTP spans
         for i in 0..<3 {
-            storage.upsertSpan(
-                id: SpanId.random().hexString,
-                traceId: TraceId.random().hexString,
+            storage.upsertSpan(MockSpan(
                 name: "network \(i)",
                 type: .networkRequest,
-                startTime: Date()
-            )
+            ))
         }
 
         let request = SpanRecord.createFetchRequest()
@@ -95,22 +80,14 @@ final class EmbraceStorage_SpanTests: XCTestCase {
     func test_upsertSpan_appliesDefaultLimit() throws {
         for i in 0..<(EmbraceStorage.defaultSpanLimitByType + 10) {
             // given inserted record
-            storage.upsertSpan(
-                id: SpanId.random().hexString,
-                traceId: TraceId.random().hexString,
+            storage.upsertSpan(MockSpan(
                 name: "example \(i)",
-                type: .performance,
-                startTime: Date()
-            )
+            ))
         }
 
-        storage.upsertSpan(
-            id: SpanId.random().hexString,
-            traceId: TraceId.random().hexString,
+        storage.upsertSpan(MockSpan(
             name: "newest",
-            type: .performance,
-            startTime: Date()
-        )
+        ))
 
         let request = SpanRecord.createFetchRequest()
         request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: true)]
@@ -118,5 +95,4 @@ final class EmbraceStorage_SpanTests: XCTestCase {
 
         XCTAssertEqual(allRecords.count, EmbraceStorage.defaultSpanLimitByType)  // 1500 is default limit
     }
-
 }

@@ -20,3 +20,4 @@ extension EmbraceLoggerConfig {
             && lhs.logAmountLimit == rhs.logAmountLimit
     }
 }
+

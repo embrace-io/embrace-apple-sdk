@@ -23,11 +23,11 @@ class MockPowerModeProvider: PowerModeProvider {
 class LowPowerModeCollectorTests: XCTestCase {
 
     let provider = MockPowerModeProvider()
-    private var otel: MockEmbraceOpenTelemetry!
+    private var otel: MockOTelSignalsHandler!
 
     override func setUpWithError() throws {
         provider.isLowPowerModeEnabled = false
-        otel = MockEmbraceOpenTelemetry()
+        otel = MockOTelSignalsHandler()
     }
 
     override func tearDownWithError() throws {

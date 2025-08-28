@@ -27,19 +27,19 @@ public class MockSpan: EmbraceSpan {
     weak var delegate: MockSpanDelegate?
 
     public init(
-        id: String,
-        traceId: String,
+        id: String = UUID().withoutHyphen,
+        traceId: String = TestConstants.traceId,
         parentSpanId: String? = nil,
         name: String,
-        type: EmbraceType,
-        status: EmbraceSpanStatus,
-        startTime: Date,
+        type: EmbraceType = .performance,
+        status: EmbraceSpanStatus = .unset,
+        startTime: Date = Date(),
         endTime: Date? = nil,
-        events: [EmbraceSpanEvent],
-        links: [EmbraceSpanLink],
+        events: [EmbraceSpanEvent] = [],
+        links: [EmbraceSpanLink] = [],
         sessionId: EmbraceIdentifier? = nil,
-        processId: EmbraceIdentifier,
-        attributes: [String : String],
+        processId: EmbraceIdentifier = TestConstants.processId,
+        attributes: [String : String] = [:],
         delegate: MockSpanDelegate? = nil
     ) {
         self.context = EmbraceSpanContext(spanId: id, traceId: traceId)

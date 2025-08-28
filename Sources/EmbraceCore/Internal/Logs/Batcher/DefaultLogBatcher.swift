@@ -18,8 +18,8 @@ protocol LogBatcher: AnyObject {
     func addLog(_ log: EmbraceLog)
     func renewBatch(withLogs logRecords: [EmbraceLog])
     func forceEndCurrentBatch(waitUntilFinished: Bool)
+    
     var logBatchLimits: LogBatchLimits { get }
-
     var delegate: LogBatcherDelegate? { get set }
 }
 

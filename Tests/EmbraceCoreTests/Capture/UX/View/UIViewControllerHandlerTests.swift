@@ -7,15 +7,15 @@
     import Foundation
     import XCTest
     @testable import EmbraceCore
-    import OpenTelemetryApi
     import TestSupport
     import EmbraceCommonInternal
+    import EmbraceSemantics
 
     class UIViewControllerHandlerTests: XCTestCase {
 
         var dataSource: MockUIViewControllerHandlerDataSource!
-        var otel: MockEmbraceOpenTelemetry {
-            dataSource.otel as! MockEmbraceOpenTelemetry
+        var otel: MockOTelSignalsHandler {
+            dataSource.otel as! MockOTelSignalsHandler
         }
         var handler: UIViewControllerHandler!
 
@@ -105,7 +105,7 @@
 
             // then all spans are ended
             wait {
-                return self.otel.spanProcessor.endedSpans.count == 7
+                return self.otel.endedSpans.count == 7
             }
         }
 
@@ -119,7 +119,7 @@
 
             // then no spans are created
             wait {
-                return self.otel.spanProcessor.startedSpans.count == 0
+                return self.otel.startedSpans.count == 0
             }
         }
 
@@ -133,7 +133,7 @@
 
             // then no spans are created
             wait {
-                return self.otel.spanProcessor.startedSpans.count == 0
+                return self.otel.startedSpans.count == 0
             }
         }
 
@@ -146,7 +146,7 @@
 
             // then no spans are created
             wait {
-                return self.otel.spanProcessor.startedSpans.count == 0
+                return self.otel.startedSpans.count == 0
             }
         }
 
@@ -160,7 +160,7 @@
 
             // then no spans are created
             wait {
-                return self.otel.spanProcessor.startedSpans.count == 0
+                return self.otel.startedSpans.count == 0
             }
         }
 
@@ -174,7 +174,7 @@
 
             // then no spans are created
             wait {
-                return self.otel.spanProcessor.startedSpans.count == 0
+                return self.otel.startedSpans.count == 0
             }
         }
 
@@ -188,7 +188,7 @@
 
             // then no spans are created
             wait {
-                return self.otel.spanProcessor.startedSpans.count == 0
+                return self.otel.startedSpans.count == 0
             }
         }
 
@@ -204,7 +204,7 @@
 
             // then no spans are created
             wait {
-                return self.otel.spanProcessor.startedSpans.count == 0
+                return self.otel.startedSpans.count == 0
             }
         }
 
@@ -218,7 +218,7 @@
 
             // then no spans are created
             wait {
-                return self.otel.spanProcessor.startedSpans.count == 0
+                return self.otel.startedSpans.count == 0
             }
         }
 
@@ -235,7 +235,7 @@
 
             // then all the spans are created and ended at the right times
             wait(timeout: .longTimeout) {
-                let parent = self.otel.spanProcessor.endedSpans.first(where: { $0.name.contains(parentName) })
+                let parent = self.otel.endedSpans.first(where: { $0.name.contains(parentName) })
                 return parent != nil && self.cacheIsEmpty()
             }
         }
@@ -253,8 +253,8 @@
             handler.onViewDidDisappear(vc)
 
             wait(timeout: .longTimeout) {
-                let parent = self.otel.spanProcessor.endedSpans.first(where: { $0.name.contains(parentName) })
-                return parent != nil && parent!.status.isError == true && self.cacheIsEmpty()
+                let parent = self.otel.endedSpans.first(where: { $0.name.contains(parentName) })
+                return parent != nil && parent!.status == .error && self.cacheIsEmpty()
             }
         }
 
@@ -271,8 +271,8 @@
             handler.foregroundSessionDidEnd()
 
             wait(timeout: .longTimeout) {
-                let parent = self.otel.spanProcessor.endedSpans.first(where: { $0.name.contains(parentName) })
-                return parent != nil && parent!.status.isError == true && self.cacheIsEmpty()
+                let parent = self.otel.endedSpans.first(where: { $0.name.contains(parentName) })
+                return parent != nil && parent!.status == .error && self.cacheIsEmpty()
             }
         }
 
@@ -291,10 +291,10 @@
             // when view did appear ends
             // then the ui ready span should start
             wait {
-                let parent = self.otel.spanProcessor.startedSpans.first(where: { $0.name.contains(parentName) })
-                let child = self.otel.spanProcessor.startedSpans.first(where: { $0.name == "ui-ready" })
+                let parent = self.otel.startedSpans.first(where: { $0.name.contains(parentName) })
+                let child = self.otel.startedSpans.first(where: { $0.name == "ui-ready" })
 
-                return child != nil && child!.parentSpanId == parent!.spanId
+                return child != nil && child!.parentSpanId == parent!.context.spanId
             }
 
             // when the view controller becomes interactable
@@ -302,8 +302,8 @@
 
             // then the spans are ended
             wait(timeout: .longTimeout) {
-                let parent = self.otel.spanProcessor.endedSpans.first(where: { $0.name.contains(parentName) })
-                let uiReady = self.otel.spanProcessor.endedSpans.first(where: { $0.name == "ui-ready" })
+                let parent = self.otel.endedSpans.first(where: { $0.name.contains(parentName) })
+                let uiReady = self.otel.endedSpans.first(where: { $0.name == "ui-ready" })
 
                 return parent != nil && uiReady != nil && parent!.endTime == uiReady!.endTime && self.cacheIsEmpty()
             }
@@ -325,8 +325,8 @@
 
             // then the spans are ended
             wait(timeout: .longTimeout) {
-                let parent = self.otel.spanProcessor.endedSpans.first(where: { $0.name.contains(parentName) })
-                let uiReady = self.otel.spanProcessor.endedSpans.first(where: { $0.name == "ui-ready" })
+                let parent = self.otel.endedSpans.first(where: { $0.name.contains(parentName) })
+                let uiReady = self.otel.endedSpans.first(where: { $0.name == "ui-ready" })
 
                 return parent != nil && uiReady != nil && parent!.endTime == uiReady!.endTime && self.cacheIsEmpty()
             }
@@ -345,8 +345,8 @@
 
             // then the spans are ended
             wait(timeout: .longTimeout) {
-                let parent = self.otel.spanProcessor.endedSpans.first(where: { $0.name.contains(parentName) })
-                return parent != nil && parent!.status.isError == true && self.cacheIsEmpty()
+                let parent = self.otel.endedSpans.first(where: { $0.name.contains(parentName) })
+                return parent != nil && parent!.status == .error && self.cacheIsEmpty()
             }
         }
 
@@ -364,8 +364,8 @@
 
             // then the spans are ended
             wait(timeout: .longTimeout) {
-                let parent = self.otel.spanProcessor.endedSpans.first(where: { $0.name.contains(parentName) })
-                return parent != nil && parent!.status.isError == true && self.cacheIsEmpty()
+                let parent = self.otel.endedSpans.first(where: { $0.name.contains(parentName) })
+                return parent != nil && parent!.status == .error && self.cacheIsEmpty()
             }
         }
 
@@ -375,10 +375,10 @@
 
             // then spans are created
             wait(timeout: .longTimeout) {
-                let parent = self.otel.spanProcessor.startedSpans.first(where: { $0.name.contains(parentName) })
-                let child = self.otel.spanProcessor.startedSpans.first(where: { $0.name == "emb-view-did-load" })
+                let parent = self.otel.startedSpans.first(where: { $0.name.contains(parentName) })
+                let child = self.otel.startedSpans.first(where: { $0.name == "emb-view-did-load" })
 
-                return parent != nil && child!.parentSpanId == parent!.spanId && child!.embType == .viewLoad
+                return parent != nil && child!.parentSpanId == parent!.context.spanId && child!.type == .viewLoad
             }
 
             // when view did load ends
@@ -386,7 +386,7 @@
 
             // then the view did load span is ended
             wait(timeout: .longTimeout) {
-                let span = self.otel.spanProcessor.startedSpans.first(where: { $0.name == "emb-view-did-load" })
+                let span = self.otel.startedSpans.first(where: { $0.name == "emb-view-did-load" })
                 return span != nil && self.handler.viewDidLoadSpans.isEmpty
             }
         }
@@ -397,10 +397,10 @@
 
             // then a child span is created
             wait(timeout: .longTimeout) {
-                let parent = self.otel.spanProcessor.startedSpans.first(where: { $0.name.contains(parentName) })
-                let child = self.otel.spanProcessor.startedSpans.first(where: { $0.name == "emb-view-will-appear" })
+                let parent = self.otel.startedSpans.first(where: { $0.name.contains(parentName) })
+                let child = self.otel.startedSpans.first(where: { $0.name == "emb-view-will-appear" })
 
-                return parent != nil && child!.parentSpanId == parent!.spanId && child!.embType == .viewLoad
+                return parent != nil && child!.parentSpanId == parent!.context.spanId && child!.type == .viewLoad
             }
 
             // when view will appear ends
@@ -408,7 +408,7 @@
 
             // then the view will appear span is ended
             wait(timeout: .longTimeout) {
-                let span = self.otel.spanProcessor.endedSpans.first(where: { $0.name == "emb-view-will-appear" })
+                let span = self.otel.endedSpans.first(where: { $0.name == "emb-view-will-appear" })
                 return span != nil && self.handler.viewWillAppearSpans.isEmpty
             }
         }
@@ -419,10 +419,10 @@
 
             // then a child span is created
             wait(timeout: .longTimeout) {
-                let parent = self.otel.spanProcessor.startedSpans.first(where: { $0.name.contains(parentName) })
-                let child = self.otel.spanProcessor.startedSpans.first(where: { $0.name == "emb-view-is-appearing" })
+                let parent = self.otel.startedSpans.first(where: { $0.name.contains(parentName) })
+                let child = self.otel.startedSpans.first(where: { $0.name == "emb-view-is-appearing" })
 
-                return parent != nil && child!.parentSpanId == parent!.spanId && child!.embType == .viewLoad
+                return parent != nil && child!.parentSpanId == parent!.context.spanId && child!.type == .viewLoad
             }
 
             // when view is appearing ends
@@ -430,7 +430,7 @@
 
             // then the view will appear span is ended
             wait(timeout: .longTimeout) {
-                let span = self.otel.spanProcessor.endedSpans.first(where: { $0.name == "emb-view-is-appearing" })
+                let span = self.otel.endedSpans.first(where: { $0.name == "emb-view-is-appearing" })
                 return span != nil && self.handler.viewIsAppearingSpans.isEmpty
             }
         }
@@ -441,10 +441,10 @@
 
             // then a child span is created
             wait(timeout: .longTimeout) {
-                let parent = self.otel.spanProcessor.startedSpans.first(where: { $0.name.contains(parentName) })
-                let child = self.otel.spanProcessor.startedSpans.first(where: { $0.name == "emb-view-did-appear" })
+                let parent = self.otel.startedSpans.first(where: { $0.name.contains(parentName) })
+                let child = self.otel.startedSpans.first(where: { $0.name == "emb-view-did-appear" })
 
-                return parent != nil && child!.parentSpanId == parent!.spanId && child!.embType == .viewLoad
+                return parent != nil && child!.parentSpanId == parent!.context.spanId && child!.type == .viewLoad
             }
 
             // when view did appear ends
@@ -452,10 +452,10 @@
 
             // then the view did appear span is ended
             wait(timeout: .longTimeout) {
-                let span1 = self.otel.spanProcessor.endedSpans.first(where: { $0.name == "emb-view-did-appear" })
-                let span2 = self.otel.spanProcessor.startedSpans.first(where: { $0.name == "emb-screen-view" })
+                let span1 = self.otel.endedSpans.first(where: { $0.name == "emb-view-did-appear" })
+                let span2 = self.otel.startedSpans.first(where: { $0.name == "emb-screen-view" })
 
-                return span1 != nil && span1!.embType == .viewLoad && span2 != nil && span2!.embType == .view
+                return span1 != nil && span1!.type == .viewLoad && span2 != nil && span2!.type == .view
                     && self.handler.viewDidAppearSpans.isEmpty
             }
         }
@@ -470,45 +470,43 @@
     }
 
     extension UIViewControllerHandlerTests {
-        func createSpan(name: String? = nil, parent: Span? = nil) -> Span {
-            let builder = otel.buildSpan(name: name ?? "test-span", type: .viewLoad, attributes: [:])
-
-            if let parent = parent {
-                builder.setParent(parent)
-            }
-
-            return builder.startSpan()
+        func createSpan(name: String? = nil, parent: EmbraceSpan? = nil) -> EmbraceSpan {
+            return try! otel.createSpan(
+                name: name ?? "test-span",
+                parentSpan: parent,
+                type: .viewLoad
+            )
         }
 
-        func createTTFRSpan() -> Span {
+        func createTTFRSpan() -> EmbraceSpan {
             return createSpan(name: "time-to-first-render")
         }
 
-        func createTTISpan() -> Span {
+        func createTTISpan() -> EmbraceSpan {
             return createSpan(name: "time-to-interactive")
         }
 
-        func createViewDidLoadSpan() -> Span {
+        func createViewDidLoadSpan() -> EmbraceSpan {
             return createSpan(name: "view-did-load")
         }
 
-        func createViewWillAppearSpan() -> Span {
+        func createViewWillAppearSpan() -> EmbraceSpan {
             return createSpan(name: "view-will-appear")
         }
 
-        func createViewIsAppearingSpan() -> Span {
+        func createViewIsAppearingSpan() -> EmbraceSpan {
             return createSpan(name: "view-is-appearing")
         }
 
-        func createViewDidAppearSpan() -> Span {
+        func createViewDidAppearSpan() -> EmbraceSpan {
             return createSpan(name: "view-did-appear")
         }
 
-        func createVisibilitySpan() -> Span {
+        func createVisibilitySpan() -> EmbraceSpan {
             return createSpan(name: "emb-screen-view")
         }
 
-        func createUiReadySpan() -> Span {
+        func createUiReadySpan() -> EmbraceSpan {
             return createSpan(name: "ui-ready")
         }
     }

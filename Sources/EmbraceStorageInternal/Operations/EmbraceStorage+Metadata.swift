@@ -19,7 +19,7 @@ public protocol EmbraceStorageMetadataFetcher: AnyObject {
     func fetchPersonaTagsForProcessId(_ processId: EmbraceIdentifier) -> [EmbraceMetadata]
 }
 
-extension EmbraceStorage: EmbraceStorageMetadataFetcher {
+extension EmbraceStorage {
 
     /// Adds a new `MetadataRecord` with the given values.
     /// Fails and returns nil if the metadata limit was reached.

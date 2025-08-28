@@ -20,13 +20,10 @@ class EmbraceStorageTests: XCTestCase {
 
     func test_delete() throws {
         // given inserted record
-        storage.upsertSpan(
+        storage.upsertSpan(MockSpan(
             id: "id",
-            traceId: "traceId",
             name: "a name",
-            type: .performance,
-            startTime: Date()
-        )
+        ))
 
         // then record should exist in storage
         var spans: [SpanRecord] = storage.fetchAll()
@@ -44,20 +41,14 @@ class EmbraceStorageTests: XCTestCase {
 
     func test_fetchAll() throws {
         // given inserted records
-        storage.upsertSpan(
+        storage.upsertSpan(MockSpan(
             id: "id1",
-            traceId: "traceId",
             name: "a name 1",
-            type: .performance,
-            startTime: Date()
-        )
-        storage.upsertSpan(
+        ))
+        storage.upsertSpan(MockSpan(
             id: "id2",
-            traceId: "traceId",
             name: "a name 2",
-            type: .performance,
-            startTime: Date()
-        )
+        ))
 
         // when fetching all records
         let records: [SpanRecord] = storage.fetchAll()

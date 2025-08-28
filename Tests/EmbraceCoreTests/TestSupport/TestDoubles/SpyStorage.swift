@@ -69,32 +69,14 @@ class SpyStorage: Storage {
     }
 
     var didCallCreate = false
-    func createLog(
-        id: EmbraceIdentifier,
-        sessionId: EmbraceIdentifier?,
-        processId: EmbraceIdentifier,
-        severity: EmbraceLogSeverity,
-        body: String,
-        timestamp: Date,
-        attributes: [String: String]
-    ) -> EmbraceLog? {
+    func saveLog(_ log: EmbraceLog) {
         didCallCreate = true
-
-        return MockLog(
-            id: id.stringValue,
-            severity: severity,
-            timestamp: timestamp,
-            body: body,
-            sessionId: sessionId,
-            processId: processId,
-            attributes: attributes
-        )
     }
 
     var didCallFetchAllExcludingProcessIdentifier = false
     var stubbedFetchAllExcludingProcessIdentifier: [EmbraceLog] = []
     var fetchAllExcludingProcessIdentifierReceivedParameter: EmbraceIdentifier!
-    func fetchAll(excludingProcessIdentifier processIdentifier: EmbraceIdentifier) -> [EmbraceLog] {
+    func fetchAllLogs(excludingProcessIdentifier processIdentifier: EmbraceIdentifier) -> [EmbraceLog] {
         didCallFetchAllExcludingProcessIdentifier = true
         fetchAllExcludingProcessIdentifierReceivedParameter = processIdentifier
         return stubbedFetchAllExcludingProcessIdentifier

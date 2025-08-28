@@ -39,7 +39,7 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
 
     func test_valid_signal() throws {
         // given a capture service
-        let otel = MockEmbraceOpenTelemetry()
+        let otel = MockOTelSignalsHandler()
         let provider = MockMetricKitPayloadProvider()
         let stateProvider = MockMetricKitStateProvider()
         stateProvider.metricKitCrashSignals = [3, 5]
@@ -54,7 +54,7 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
         // then it creates the corresponding otel log
         let log = otel.logs[0]
         XCTAssertEqual(log.severity, .fatal)
-        XCTAssertEqual(log.embType, .crash)
+        XCTAssertEqual(log.type, .crash)
         XCTAssertEqual(log.attributes["emb.state"], .string("unknown"))
         XCTAssertNotNil(log.attributes["log.record.uid"])
         XCTAssertEqual(log.attributes["emb.provider"], .string("metrickit"))

@@ -3,7 +3,6 @@
 //
 
 import EmbraceCommonInternal
-import OpenTelemetryApi
 import TestSupport
 import XCTest
 import EmbraceSemantics
@@ -37,9 +36,9 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         endTime: Date? = nil,
         sessionIdentifier: EmbraceIdentifier? = nil
     ) {
-        storage.upsertSpan(
+        storage.upsertSpan(MockSpan(
             id: id,
-            traceId: TraceId.random().hexString,
+            traceId: TestConstants.traceId,
             parentSpanId: nil,
             name: name,
             type: type,
@@ -48,7 +47,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
             endTime: endTime,
             sessionId: sessionIdentifier,
             processId: processIdentifier
-        )
+        ))
     }
 
     func sessionRecord(
@@ -57,15 +56,15 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         lastHeartBeat: Date? = nil,
         coldStart: Bool = false,
         processIdentifier: EmbraceIdentifier = ProcessIdentifier.current,
-        traceId: TraceId = .random(),
-        spanId: SpanId = .random()
+        traceId: String = UUID().withoutHyphen,
+        spanId: String = UUID().withoutHyphen
     ) -> EmbraceSession {
         return storage.addSession(
             id: .random,
             processId: processIdentifier,
             state: .foreground,
-            traceId: traceId.hexString,
-            spanId: spanId.hexString,
+            traceId: traceId,
+            spanId: spanId,
             startTime: startTime,
             endTime: endTime,
             lastHeartbeatTime: lastHeartBeat ?? startTime,

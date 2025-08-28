@@ -9,10 +9,11 @@
     @testable import EmbraceCore
     import EmbraceCaptureService
     import TestSupport
+    import EmbraceSemantics
 
     class MockUIViewControllerHandlerDataSource: UIViewControllerHandlerDataSource {
         var state: CaptureServiceState = .active
-        var otel: EmbraceOpenTelemetry? = MockEmbraceOpenTelemetry()
+        var otel: OTelSignalsHandler? = MockOTelSignalsHandler()
         var instrumentVisibility: Bool = true
         var instrumentFirstRender: Bool = true
 

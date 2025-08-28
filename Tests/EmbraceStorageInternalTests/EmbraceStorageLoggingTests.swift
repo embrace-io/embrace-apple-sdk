@@ -6,6 +6,7 @@ import EmbraceCommonInternal
 import XCTest
 import EmbraceSemantics
 @testable import EmbraceStorageInternal
+import TestSupport
 
 class EmbraceStorageLoggingTests: XCTestCase {
     var sut: EmbraceStorage!
@@ -22,13 +23,15 @@ class EmbraceStorageLoggingTests: XCTestCase {
 
     func test_createLog_shouldCreateItInDataBase() throws {
         let id = EmbraceIdentifier.random
-        sut.createLog(
-            id: id,
-            sessionId: .random,
-            processId: .random,
-            severity: .info,
-            body: "log message",
-            attributes: .empty()
+        sut.saveLog(
+            MockLog(
+                id: id.stringValue,
+                severity: .info,
+                body: "log message",
+                sessionId: .random,
+                processId: .random,
+                attributes: .empty()
+            )
         )
 
         let logs: [LogRecord] = sut.fetchAll()
@@ -45,7 +48,7 @@ class EmbraceStorageLoggingTests: XCTestCase {
         createInfoLog(pid: pid)
         createInfoLog()
 
-        let result = sut.fetchAll(excludingProcessIdentifier: pid)
+        let result = sut.fetchAllLogs(excludingProcessIdentifier: pid)
 
         XCTAssertEqual(result.count, 2)
         XCTAssertTrue(!result.contains(where: { $0.processId == pid }))
@@ -79,13 +82,18 @@ class EmbraceStorageLoggingTests: XCTestCase {
 extension EmbraceStorageLoggingTests {
     @discardableResult
     fileprivate func createInfoLog(withId id: UUID = UUID(), pid: EmbraceIdentifier = .random) -> EmbraceLog {
-        return sut.createLog(
-            id: EmbraceIdentifier(value: id),
-            sessionId: .random,
-            processId: pid,
+
+        let log = MockLog(
+            id: id.withoutHyphen,
             severity: .info,
             body: "a log message",
+            sessionId: .random,
+            processId: pid,
             attributes: .empty()
-        )!
+        )
+
+        sut.saveLog(log)
+
+        return log
     }
 }

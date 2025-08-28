@@ -29,11 +29,11 @@ protocol LogControllable: LogBatcherDelegate {
 }
 
 class LogController: LogControllable {
-    private weak var storage: EmbraceStorage?
-    private weak var upload: EmbraceLogUploader?
-    private weak var sessionController: SessionControllable?
-    private let batcher: LogBatcher
-    private let queue: DispatchQueue
+    weak var storage: Storage?
+    weak var upload: EmbraceLogUploader?
+    weak var sessionController: SessionControllable?
+    let batcher: LogBatcher
+    let queue: DispatchQueue
 
     weak var sdkStateProvider: EmbraceSDKStateProvider?
 
@@ -57,7 +57,7 @@ class LogController: LogControllable {
     }
 
     init(
-        storage: EmbraceStorage?,
+        storage: Storage?,
         upload: EmbraceLogUploader?,
         sessionController: SessionControllable,
         queue: DispatchQueue

@@ -14,11 +14,11 @@ class BreadcrumbTests: XCTestCase {
 
     func test_onInitWithMessage_messageIsSavedAsAttributes() {
         let breadcrumb = Breadcrumb(message: "hello world", attributes: .empty())
-        XCTAssertEqual(breadcrumb.attributes["message"], .string("hello world"))
+        XCTAssertEqual(breadcrumb.attributes["message"], "hello world")
     }
 
     func test_onInit_embTypeIsSysBreadcrumb() {
         let breadcrumb = Breadcrumb(message: "", attributes: .empty())
-        XCTAssertEqual(breadcrumb.attributes["emb.type"], .string("sys.breadcrumb"))
+        XCTAssertEqual(breadcrumb.attributes["emb.type"], "sys.breadcrumb")
     }
 }

@@ -145,7 +145,7 @@
             _ = try captureServices.buildChildSpan(for: vc, name: "child")!.startSpan()
 
             // then the span is created under the right parent
-            let spanData = otel.spanProcessor.startedSpans.first(where: { $0.name == "child" })
+            let spanData = otel.startedSpans.first(where: { $0.name == "child" })
             XCTAssertNotNil(spanData)
             XCTAssertEqual(spanData!.parentSpanId, parent.context.spanId)
         }
@@ -212,7 +212,7 @@
             try captureServices.recordCompletedChildSpan(for: vc, name: "child", startTime: Date(), endTime: Date())
 
             // then the span is created under the right parent
-            let spanData = otel.spanProcessor.endedSpans.first(where: { $0.name == "child" })
+            let spanData = otel.endedSpans.first(where: { $0.name == "child" })
             XCTAssertNotNil(spanData)
             XCTAssertEqual(spanData!.parentSpanId, parent.context.spanId)
         }

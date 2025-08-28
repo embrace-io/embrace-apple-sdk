@@ -22,16 +22,14 @@
     @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
     final class EmbraceTraceViewTests: XCTestCase {
 
-        var spanProcessor: MockSpanProcessor!
-        var mockOTel: MockEmbraceOpenTelemetry!
+        var mockOTel: MockOTelSignalsHandler!
         var mockConfig: MockEmbraceConfigurable!
         var mockLogger: MockLogger!
         var traceViewLogger: EmbraceTraceViewLogger!
         var traceViewContext: EmbraceTraceViewContext!
 
         override func setUpWithError() throws {
-            mockOTel = MockEmbraceOpenTelemetry()
-            spanProcessor = mockOTel.spanProcessor
+            mockOTel = MockOTelSignalsHandler()
             mockConfig = MockEmbraceConfigurable(isSwiftUiViewInstrumentationEnabled: true)
             mockLogger = MockLogger()
 
@@ -45,8 +43,6 @@
         }
 
         override func tearDownWithError() throws {
-            spanProcessor = nil
-            EmbraceOTel.setup(spanProcessors: [])
             mockOTel = nil
             mockConfig = nil
             mockLogger = nil
@@ -79,7 +75,7 @@
             await RunLoop.main.waitForNextTick()
 
             // Then: verify spans were created
-            let allSpans = spanProcessor.startedSpans + spanProcessor.endedSpans
+            let allSpans = mockOTel.startedSpans + mockOTel.endedSpans
             let testScreenSpans = allSpans.filter { $0.name.contains("TestScreen") }
 
             print("Total spans created: \(allSpans.count)")
@@ -117,7 +113,7 @@
             await RunLoop.main.waitForNextTick()
 
             // Then: no spans should be created
-            let allSpans = spanProcessor.startedSpans + spanProcessor.endedSpans
+            let allSpans = mockOTel.startedSpans + mockOTel.endedSpans
             XCTAssertEqual(allSpans.count, 0, "No spans should be created when tracing is disabled")
 
             // But the view should still render successfully
@@ -150,7 +146,7 @@
             await RunLoop.main.waitForNextTick()
 
             // Then: spans should include custom attributes
-            let allSpans = spanProcessor.startedSpans + spanProcessor.endedSpans
+            let allSpans = mockOTel.startedSpans + mockOTel.endedSpans
             let homeScreenSpans = allSpans.filter { $0.name.contains("HomeScreen") }
 
             XCTAssertGreaterThan(homeScreenSpans.count, 0, "Should create spans for HomeScreen")
@@ -188,7 +184,7 @@
             await RunLoop.main.waitForNextTick()
 
             // Then: verify specific span names follow expected format
-            let allSpans = spanProcessor.startedSpans + spanProcessor.endedSpans
+            let allSpans = mockOTel.startedSpans + mockOTel.endedSpans
             let spanNames = allSpans.map { $0.name }
 
             XCTAssertTrue(spanNames.contains("emb-swiftui.view.ProfileScreen.render-loop"))
@@ -230,7 +226,7 @@
             await RunLoop.main.waitForNextTick()
 
             // Then: each view should create its own spans
-            let allSpans = spanProcessor.startedSpans + spanProcessor.endedSpans
+            let allSpans = mockOTel.startedSpans + mockOTel.endedSpans
 
             let headerSpans = allSpans.filter { $0.name.contains("HeaderView") }
             let contentSpans = allSpans.filter { $0.name.contains("ContentView") }

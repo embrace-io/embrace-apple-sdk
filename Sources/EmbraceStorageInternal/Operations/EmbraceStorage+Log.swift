@@ -8,6 +8,12 @@ import Foundation
     import EmbraceSemantics
 #endif
 
+public protocol LogRepository {
+    func saveLog(_ log: EmbraceLog)
+    func fetchAllLogs(excludingProcessIdentifier processIdentifier: EmbraceIdentifier) -> [EmbraceLog]
+    func remove(logs: [EmbraceLog])
+}
+
 extension EmbraceStorage {
 
     public func saveLog(_ log: EmbraceLog) {

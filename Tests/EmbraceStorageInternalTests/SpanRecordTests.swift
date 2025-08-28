@@ -21,13 +21,10 @@ class SpanRecordTests: XCTestCase {
 
     func test_upsertSpan() throws {
         // given inserted span
-        storage.upsertSpan(
+        storage.upsertSpan(MockSpan(
             id: "id",
-            traceId: "traceId",
             name: "a name",
-            type: .performance,
-            startTime: Date()
-        )
+        ))
 
         // then span should exist in storage
         let spans: [SpanRecord] = storage.fetchAll()
@@ -37,16 +34,13 @@ class SpanRecordTests: XCTestCase {
 
     func test_endSpan() throws {
         // given inserted span
-        storage.upsertSpan(
+        storage.upsertSpan(MockSpan(
             id: "id",
-            traceId: "traceId",
             name: "a name",
-            type: .performance,
-            startTime: Date()
-        )
+        ))
 
         // when ending the span
-        storage.endSpan(id: "id", traceId: "traceId", endTime: Date())
+        storage.endSpan(id: "id", traceId: TestConstants.traceId, endTime: Date())
 
         // then span should be updated correctly
         let spans: [SpanRecord] = storage.fetchAll()
@@ -58,18 +52,15 @@ class SpanRecordTests: XCTestCase {
     func test_endSpan_alreadyEnded() throws {
         // given inserted span with an end time
         let originalDate = Date(timeIntervalSince1970: 1)
-        storage.upsertSpan(
+        storage.upsertSpan(MockSpan(
             id: "id",
-            traceId: "traceId",
             name: "a name",
-            type: .performance,
-            startTime: Date(),
             endTime: originalDate
-        )
+        ))
 
         // when attempting to end the span again
         let date = Date(timeIntervalSince1970: 123)
-        storage.endSpan(id: "id", traceId: "traceId", endTime: date)
+        storage.endSpan(id: "id", traceId: TestConstants.traceId, endTime: date)
 
         // then span should not be updated
         let spans: [SpanRecord] = storage.fetchAll()
@@ -80,14 +71,10 @@ class SpanRecordTests: XCTestCase {
 
     func test_fetchSpan() throws {
         // given inserted span
-        storage.upsertSpan(
+        storage.upsertSpan(MockSpan(
             id: "id",
-            traceId: TestConstants.traceId,
             name: "a name",
-            type: .performance,
-            startTime: Date(),
-            endTime: nil
-        )
+        ))
 
         // when fetching the span
         let span = storage.fetchSpan(id: "id", traceId: TestConstants.traceId)
@@ -103,29 +90,23 @@ class SpanRecordTests: XCTestCase {
 
     func test_cleanUpSpans() throws {
         // given inserted spans
-        storage.upsertSpan(
+        storage.upsertSpan(MockSpan(
             id: "id1",
-            traceId: TestConstants.traceId,
             name: "a name 1",
-            type: .performance,
             startTime: Date(timeIntervalSince1970: 0),
             endTime: Date(timeIntervalSince1970: 10)
-        )
-        storage.upsertSpan(
+        ))
+        storage.upsertSpan(MockSpan(
             id: "id2",
-            traceId: TestConstants.traceId,
             name: "a name 2",
-            type: .performance,
             startTime: Date(timeIntervalSince1970: 0),
             endTime: Date(timeIntervalSince1970: 20)
-        )
-        storage.upsertSpan(
+        ))
+        storage.upsertSpan(MockSpan(
             id: "id3",
-            traceId: TestConstants.traceId,
             name: "a name 3",
-            type: .performance,
             startTime: Date(timeIntervalSince1970: 0)
-        )
+        ))
 
         // when cleaning up spans with a date
         storage.cleanUpSpans(date: Date(timeIntervalSince1970: 15))
@@ -144,31 +125,24 @@ class SpanRecordTests: XCTestCase {
 
     func test_cleanUpSpans_noDate() throws {
         // given insterted spans
-        storage.upsertSpan(
+        storage.upsertSpan(MockSpan(
             id: "id1",
-            traceId: TestConstants.traceId,
             name: "a name 1",
-            type: .performance,
             startTime: Date(timeIntervalSince1970: 0),
             endTime: Date(timeIntervalSince1970: 10),
-            processId: TestConstants.processId
-        )
-        storage.upsertSpan(
+        ))
+        storage.upsertSpan(MockSpan(
             id: "id2",
-            traceId: TestConstants.traceId,
             name: "a name 2",
-            type: .performance,
             startTime: Date(timeIntervalSince1970: 0),
             endTime: Date(timeIntervalSince1970: 20),
-            processId: TestConstants.processId
-        )
-        storage.upsertSpan(
+        ))
+        storage.upsertSpan(MockSpan(
             id: "id3",
-            traceId: TestConstants.traceId,
             name: "a name 3",
-            type: .performance,
-            startTime: Date(timeIntervalSince1970: 0)
-        )
+            startTime: Date(timeIntervalSince1970: 0),
+            processId: ProcessIdentifier.current
+        ))
 
         // when cleaning up spans without a date
         storage.cleanUpSpans(date: nil)
@@ -183,29 +157,23 @@ class SpanRecordTests: XCTestCase {
 
     func test_closeOpenSpans() throws {
         // given insterted spans
-        storage.upsertSpan(
+        storage.upsertSpan(MockSpan(
             id: "id1",
-            traceId: TestConstants.traceId,
             name: "a name 1",
-            type: .performance,
             startTime: Date(timeIntervalSince1970: 0),
             endTime: Date(timeIntervalSince1970: 10)
-        )
-        storage.upsertSpan(
+        ))
+        storage.upsertSpan(MockSpan(
             id: "id2",
-            traceId: TestConstants.traceId,
             name: "a name 2",
-            type: .performance,
             startTime: Date(timeIntervalSince1970: 1),
-            processId: TestConstants.processId
-        )
-        storage.upsertSpan(
+        ))
+        storage.upsertSpan(MockSpan(
             id: "id3",
-            traceId: TestConstants.traceId,
             name: "a name 3",
-            type: .performance,
-            startTime: Date(timeIntervalSince1970: 2)
-        )
+            startTime: Date(timeIntervalSince1970: 2),
+            processId: ProcessIdentifier.current
+        ))
 
         // when closing the spans
         let now = Date()
@@ -229,14 +197,11 @@ class SpanRecordTests: XCTestCase {
     // MARK: Attributes
     func test_createAttributes() {
         // given inserted span
-        storage.upsertSpan(
+        storage.upsertSpan(MockSpan(
             id: "id",
-            traceId: "traceId",
             name: "a name",
-            type: .performance,
-            startTime: Date(),
             attributes: ["key": "value"]
-        )
+        ))
 
         // then span should exist in storage with the correct values
         let spans: [SpanRecord] = storage.fetchAll()
@@ -247,23 +212,17 @@ class SpanRecordTests: XCTestCase {
 
     func test_updateAttributes() {
         // given inserted span
-        storage.upsertSpan(
+        storage.upsertSpan(MockSpan(
             id: "id",
-            traceId: "traceId",
             name: "a name",
-            type: .performance,
-            startTime: Date()
-        )
+        ))
 
         // when updating it
-        storage.upsertSpan(
+        storage.upsertSpan(MockSpan(
             id: "id",
-            traceId: "traceId",
             name: "a name",
-            type: .performance,
-            startTime: Date(),
             attributes: ["key": "value"]
-        )
+        ))
 
         // then span should exist in storage with the correct values
         let spans: [SpanRecord] = storage.fetchAll()
@@ -274,17 +233,14 @@ class SpanRecordTests: XCTestCase {
 
     func test_setSpanAttributes() {
         // given inserted span
-        storage.upsertSpan(
+        storage.upsertSpan(MockSpan(
             id: "id",
-            traceId: "traceId",
             name: "a name",
-            type: .performance,
-            startTime: Date(),
             attributes: ["key": "value"]
-        )
+        ))
 
         // when updating the attributes
-        storage.setSpanAttributes(id: "id", traceId: "traceId", attributes: ["newKey": "newValue"])
+        storage.setSpanAttributes(id: "id", traceId: TestConstants.traceId, attributes: ["newKey": "newValue"])
 
         // then span should exist in storage with the correct values
         let spans: [SpanRecord] = storage.fetchAll()
@@ -295,17 +251,14 @@ class SpanRecordTests: XCTestCase {
 
     func test_setSpanAttributes_remove() {
         // given inserted span
-        storage.upsertSpan(
+        storage.upsertSpan(MockSpan(
             id: "id",
-            traceId: "traceId",
             name: "a name",
-            type: .performance,
-            startTime: Date(),
             attributes: ["key": "value"]
-        )
+        ))
 
         // when updating the attributes
-        storage.setSpanAttributes(id: "id", traceId: "traceId", attributes: [:])
+        storage.setSpanAttributes(id: "id", traceId: TestConstants.traceId, attributes: [:])
 
         // then span should exist in storage with the correct values
         let spans: [SpanRecord] = storage.fetchAll()
@@ -323,14 +276,11 @@ class SpanRecordTests: XCTestCase {
         )
 
         // given inserted span
-        storage.upsertSpan(
+        storage.upsertSpan(MockSpan(
             id: "id",
-            traceId: "traceId",
             name: "a name",
-            type: .performance,
-            startTime: Date(),
             events: [event]
-        )
+        ))
 
         // then span should exist in storage with the correct values
         let spans: [SpanRecord] = storage.fetchAll()
@@ -355,24 +305,18 @@ class SpanRecordTests: XCTestCase {
         )
 
         // given inserted span
-        storage.upsertSpan(
+        storage.upsertSpan(MockSpan(
             id: "id",
-            traceId: "traceId",
             name: "a name",
-            type: .performance,
-            startTime: Date(),
             events: [event1]
-        )
+        ))
 
         // when updating it
-        storage.upsertSpan(
+        storage.upsertSpan(MockSpan(
             id: "id",
-            traceId: "traceId",
             name: "a name",
-            type: .performance,
-            startTime: Date(),
             events: [event1, event2]
-        )
+        ))
 
         // then span should exist in storage with the correct values
         let spans: [SpanRecord] = storage.fetchAll()
@@ -396,16 +340,13 @@ class SpanRecordTests: XCTestCase {
         )
 
         // given inserted span
-        storage.upsertSpan(
+        storage.upsertSpan(MockSpan(
             id: "id",
-            traceId: "traceId",
             name: "a name",
-            type: .performance,
-            startTime: Date()
-        )
+        ))
 
         // when adding an event
-        storage.addSpanEvent(id: "id", traceId: "traceId", event: event)
+        storage.addSpanEvent(id: "id", traceId: TestConstants.traceId, event: event)
 
         // then span should exist in storage with the correct values
         let spans: [SpanRecord] = storage.fetchAll()
@@ -426,14 +367,11 @@ class SpanRecordTests: XCTestCase {
         )
 
         // given inserted span
-        storage.upsertSpan(
+        storage.upsertSpan(MockSpan(
             id: "id",
-            traceId: "traceId",
             name: "a name",
-            type: .performance,
-            startTime: Date(),
             links: [link]
-        )
+        ))
 
         // then span should exist in storage with the correct values
         let spans: [SpanRecord] = storage.fetchAll()
@@ -459,24 +397,18 @@ class SpanRecordTests: XCTestCase {
         )
 
         // given inserted span
-        storage.upsertSpan(
+        storage.upsertSpan(MockSpan(
             id: "id",
-            traceId: "traceId",
             name: "a name",
-            type: .performance,
-            startTime: Date(),
             links: [link1]
-        )
+        ))
 
         // when updating it
-        storage.upsertSpan(
+        storage.upsertSpan(MockSpan(
             id: "id",
-            traceId: "traceId",
             name: "a name",
-            type: .performance,
-            startTime: Date(),
             links: [link1, link2]
-        )
+        ))
 
         // then span should exist in storage with the correct values
         let spans: [SpanRecord] = storage.fetchAll()
@@ -502,16 +434,13 @@ class SpanRecordTests: XCTestCase {
         )
 
         // given inserted span
-        storage.upsertSpan(
+        storage.upsertSpan(MockSpan(
             id: "id",
-            traceId: "traceId",
             name: "a name",
-            type: .performance,
-            startTime: Date()
-        )
+        ))
 
         // when adding an event
-        storage.addSpanLink(id: "id", traceId: "traceId", link: link)
+        storage.addSpanLink(id: "id", traceId: TestConstants.traceId, link: link)
 
         // then span should exist in storage with the correct values
         let spans: [SpanRecord] = storage.fetchAll()

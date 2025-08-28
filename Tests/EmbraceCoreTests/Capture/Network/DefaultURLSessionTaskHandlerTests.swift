@@ -3,10 +3,9 @@
 //
 
 import EmbraceCommonInternal
-import OpenTelemetrySdk
 import TestSupport
 import XCTest
-
+import EmbraceSemantics
 @testable import EmbraceCaptureService
 @testable import EmbraceCore
 
@@ -18,12 +17,12 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
     private var session: URLSession!
     private var dataSource: MockURLSessionTaskHandlerDataSource!
     private var networkPayloadCapture: SpyNetworkPayloadCaptureHandler!
-    private var otel: MockEmbraceOpenTelemetry!
+    private var otel: MockOTelSignalsHandler!
 
     override func setUpWithError() throws {
         session = ProxiedURLSessionProvider.default()
 
-        otel = MockEmbraceOpenTelemetry()
+        otel = MockOTelSignalsHandler()
 
         dataSource = MockURLSessionTaskHandlerDataSource()
         dataSource.otel = otel
@@ -198,7 +197,7 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
         whenInvokingCreate(withoutWaiting: true)
 
         wait {
-            return self.otel.spanProcessor.startedSpans.count == 0
+            return self.otel.startedSpans.count == 0
         }
     }
 
@@ -344,7 +343,7 @@ extension DefaultURLSessionTaskHandlerTests {
 
     fileprivate func thenSpanShouldHaveResponseBodySizeAttribute(withValue size: Int) {
         do {
-            let span = try XCTUnwrap(otel.spanProcessor.endedSpans.first)
+            let span = try XCTUnwrap(otel.endedSpans.first)
             let methodAttribute = span.attributes["http.response.body.size"]
             XCTAssertNotNil(methodAttribute)
             XCTAssertEqual(methodAttribute?.description, String(size))
@@ -355,8 +354,8 @@ extension DefaultURLSessionTaskHandlerTests {
 
     fileprivate func thenHTTPNetworkSpanShouldBeCreated() {
         do {
-            let span = try XCTUnwrap(otel.spanProcessor.startedSpans.first)
-            XCTAssertEqual(span.embType, .networkRequest)
+            let span = try XCTUnwrap(otel.startedSpans.first)
+            XCTAssertEqual(span.type, .networkRequest)
         } catch let exception {
             XCTFail("Couldn't get span: \(exception.localizedDescription)")
         }
@@ -364,7 +363,7 @@ extension DefaultURLSessionTaskHandlerTests {
 
     fileprivate func thenSpanShouldHaveURLAttribute(withValue url: String) {
         do {
-            let span = try XCTUnwrap(otel.spanProcessor.startedSpans.first)
+            let span = try XCTUnwrap(otel.startedSpans.first)
             let savedUrl = span.attributes["url.full"]
             XCTAssertNotNil(savedUrl)
             XCTAssertEqual(savedUrl?.description, url)
@@ -379,17 +378,17 @@ extension DefaultURLSessionTaskHandlerTests {
     }
 
     fileprivate func thenNoSpanShouldBeCreated() {
-        XCTAssertTrue(otel.spanProcessor.startedSpans.count == 0)
+        XCTAssertTrue(otel.startedSpans.count == 0)
     }
 
     fileprivate func thenSpanName(is spanName: String) {
-        let span = otel.spanProcessor.startedSpans.first { $0.name == spanName }
+        let span = otel.startedSpans.first { $0.name == spanName }
         XCTAssertNotNil(span)
     }
 
     fileprivate func thenSpanShouldHaveHttpMethodAttribute(withValue method: String) {
         do {
-            let span = try XCTUnwrap(otel.spanProcessor.startedSpans.first)
+            let span = try XCTUnwrap(otel.startedSpans.first)
             let methodAttribute = span.attributes["http.request.method"]
             XCTAssertNotNil(methodAttribute)
             XCTAssertEqual(methodAttribute?.description, method)
@@ -400,7 +399,7 @@ extension DefaultURLSessionTaskHandlerTests {
 
     fileprivate func thenSpanShouldHaveBodySizeAttribute(withValue size: Int) {
         do {
-            let span = try XCTUnwrap(otel.spanProcessor.startedSpans.first)
+            let span = try XCTUnwrap(otel.startedSpans.first)
             let bodySizeAttribute = span.attributes["http.request.body.size"]
             XCTAssertNotNil(bodySizeAttribute)
             XCTAssertEqual(bodySizeAttribute?.description, String(size))
@@ -411,7 +410,7 @@ extension DefaultURLSessionTaskHandlerTests {
 
     fileprivate func thenSpanShouldHaveStatusCodeAttribute(withValue statusCode: Int) {
         do {
-            let span = try XCTUnwrap(otel.spanProcessor.endedSpans.first)
+            let span = try XCTUnwrap(otel.endedSpans.first)
             let statusCodeAttribute = span.attributes["http.response.status_code"]
             XCTAssertNotNil(statusCodeAttribute)
             XCTAssertEqual(statusCodeAttribute?.description, String(statusCode))
@@ -422,7 +421,7 @@ extension DefaultURLSessionTaskHandlerTests {
 
     fileprivate func thenSpanShouldHaveErrorDomainAttribute(withValue domain: String) {
         do {
-            let span = try XCTUnwrap(otel.spanProcessor.endedSpans.first)
+            let span = try XCTUnwrap(otel.endedSpans.first)
             let errroTypeAttribute = span.attributes["error.type"]
             XCTAssertNotNil(errroTypeAttribute)
             XCTAssertEqual(errroTypeAttribute?.description, domain)
@@ -433,7 +432,7 @@ extension DefaultURLSessionTaskHandlerTests {
 
     fileprivate func thenSpanShouldHaveErrorCodeAttribute(withValue code: Int) {
         do {
-            let span = try XCTUnwrap(otel.spanProcessor.endedSpans.first)
+            let span = try XCTUnwrap(otel.endedSpans.first)
             let errorCodeAttribute = span.attributes["error.code"]
             XCTAssertNotNil(errorCodeAttribute)
             XCTAssertEqual(errorCodeAttribute?.description, String(code))
@@ -444,7 +443,7 @@ extension DefaultURLSessionTaskHandlerTests {
 
     fileprivate func thenSpanShouldHaveErrorMessageAttribute(withValue message: String) {
         do {
-            let span = try XCTUnwrap(otel.spanProcessor.endedSpans.first)
+            let span = try XCTUnwrap(otel.endedSpans.first)
             let errorMessageAttribute = span.attributes["error.message"]
             XCTAssertNotNil(errorMessageAttribute)
             XCTAssertEqual(errorMessageAttribute?.description, message)
@@ -454,18 +453,18 @@ extension DefaultURLSessionTaskHandlerTests {
     }
 
     fileprivate func thenSpanShouldntEnd() {
-        XCTAssertTrue(otel.spanProcessor.endedSpans.isEmpty)
+        XCTAssertTrue(otel.endedSpans.isEmpty)
     }
 
-    fileprivate func validateTracingHeaderForSpan(tracingHeader: String, span: SpanData) {
+    fileprivate func validateTracingHeaderForSpan(tracingHeader: String, span: EmbraceSpan) {
         let components = tracingHeader.components(separatedBy: "-")
         XCTAssertEqual(components[0], "00")
 
         XCTAssertEqual(components[1].count, 32)
-        XCTAssertEqual(components[1], span.traceId.hexString)
+        XCTAssertEqual(components[1], span.context.traceId)
 
         XCTAssertEqual(components[2].count, 16)
-        XCTAssertEqual(components[2], span.spanId.hexString)
+        XCTAssertEqual(components[2], span.context.spanId)
 
         XCTAssertEqual(components[3], "01")
     }
@@ -484,7 +483,7 @@ extension DefaultURLSessionTaskHandlerTests {
             let currentTracingHeader = currentHeaders!["traceparent"]
             XCTAssertNotNil(currentTracingHeader)
 
-            let span = try XCTUnwrap(otel.spanProcessor.startedSpans.first)
+            let span = try XCTUnwrap(otel.startedSpans.first)
             validateTracingHeaderForSpan(tracingHeader: tracingHeader!, span: span)
         } catch let exception {
             XCTFail("Couldn't get span: \(exception.localizedDescription)")
@@ -498,7 +497,7 @@ extension DefaultURLSessionTaskHandlerTests {
 
     fileprivate func thenSpanShouldHaveTheTracingHeaderAttribute() {
         do {
-            let span = try XCTUnwrap(otel.spanProcessor.endedSpans.first)
+            let span = try XCTUnwrap(otel.endedSpans.first)
 
             let tracingHeader = span.attributes["emb.w3c_traceparent"]!.description
             validateTracingHeaderForSpan(tracingHeader: tracingHeader, span: span)
@@ -510,7 +509,7 @@ extension DefaultURLSessionTaskHandlerTests {
 
     fileprivate func thenSpanShouldNotHaveTheTracingHeaderAttribute() {
         do {
-            let span = try XCTUnwrap(otel.spanProcessor.endedSpans.first)
+            let span = try XCTUnwrap(otel.endedSpans.first)
             XCTAssertNil(span.attributes["emb.w3c_traceparent"])
 
         } catch let exception {
@@ -520,9 +519,9 @@ extension DefaultURLSessionTaskHandlerTests {
 
     fileprivate func thenSpanHasTheCorrectPath(_ path: String) {
         do {
-            let span = try XCTUnwrap(otel.spanProcessor.endedSpans.first)
+            let span = try XCTUnwrap(otel.endedSpans.first)
 
-            XCTAssertEqual(span.attributes["url.full"], .string(path))
+            XCTAssertEqual(span.attributes["url.full"], path)
         } catch let exception {
             XCTFail("Couldn't get span: \(exception.localizedDescription)")
         }
@@ -530,9 +529,9 @@ extension DefaultURLSessionTaskHandlerTests {
 
     fileprivate func thenSpanHasTheCorrectMethod(_ method: String) {
         do {
-            let span = try XCTUnwrap(otel.spanProcessor.endedSpans.first)
+            let span = try XCTUnwrap(otel.endedSpans.first)
 
-            XCTAssertEqual(span.attributes["http.request.method"], .string(method))
+            XCTAssertEqual(span.attributes["http.request.method"], method)
         } catch let exception {
             XCTFail("Couldn't get span: \(exception.localizedDescription)")
         }
@@ -540,9 +539,9 @@ extension DefaultURLSessionTaskHandlerTests {
 
     fileprivate func thenSpanHasTheCorrectBodySize(_ bodySize: Int) {
         do {
-            let span = try XCTUnwrap(otel.spanProcessor.endedSpans.first)
+            let span = try XCTUnwrap(otel.endedSpans.first)
 
-            XCTAssertEqual(span.attributes["http.request.body.size"], .int(bodySize))
+            XCTAssertEqual(span.attributes["http.request.body.size"], String(bodySize))
         } catch let exception {
             XCTFail("Couldn't get span: \(exception.localizedDescription)")
         }
@@ -556,11 +555,11 @@ extension DefaultURLSessionTaskHandlerTests {
     }
 
     fileprivate func waitForCreationToEnd() {
-        wait(timeout: 1.0, until: { self.otel.spanProcessor.startedSpans.count > 0 })
+        wait(timeout: 1.0, until: { self.otel.startedSpans.count > 0 })
     }
 
     fileprivate func waitForFinishMethodToEnd() {
-        wait(timeout: 1.0, until: { self.otel.spanProcessor.endedSpans.count > 0 })
+        wait(timeout: 1.0, until: { self.otel.endedSpans.count > 0 })
     }
 
     fileprivate func waitForRequestToFinish() {

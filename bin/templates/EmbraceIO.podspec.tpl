@@ -54,6 +54,8 @@ Pod::Spec.new do |spec|
 
   spec.subspec 'EmbraceCaptureService' do |subs|
     subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
+    subs.dependency "EmbraceIO/EmbraceSemantics"
+    subs.dependency "EmbraceIO/EmbraceCommonInternal"
   end
 
   spec.subspec 'EmbraceConfigInternal' do |subs|

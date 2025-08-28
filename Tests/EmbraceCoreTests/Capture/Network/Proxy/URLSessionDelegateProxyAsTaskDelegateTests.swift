@@ -10,7 +10,7 @@ import XCTest
 final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
     private var otherSwizzler: DummyURLSessionInitWithDelegateSwizzler?
     private var urlSessionCaptureService: URLSessionCaptureService!
-    private var openTelemetry: MockEmbraceOpenTelemetry!
+    private var openTelemetry: MockOTelSignalsHandler!
 
     private var urlSession: URLSession!
     private var sessionDelegate: URLSessionDelegate!
@@ -21,7 +21,7 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
     // MARK: - Setup
     func givenCaptureServiceInstalled() {
         urlSessionCaptureService = URLSessionCaptureService(options: .init())
-        openTelemetry = MockEmbraceOpenTelemetry()
+        openTelemetry = MockOTelSignalsHandler()
 
         urlSessionCaptureService.install(otel: openTelemetry)
         urlSessionCaptureService.start()

@@ -18,11 +18,9 @@ class LogControllerTests: XCTestCase {
     private var sessionController: MockSessionController!
     private var upload: SpyEmbraceLogUploader!
     private let sdkStateProvider = MockEmbraceSDKStateProvider()
-    private var otelBridge: MockEmbraceOTelBridge!
     private let loggingQueue = DispatchQueue(label: "loggingQueue")
 
     override func setUp() {
-        givenOTelBridge()
         givenEmbraceLogUploader()
         givenSDKEnabled()
         givenSessionControllerWithSession()
@@ -169,7 +167,7 @@ class LogControllerTests: XCTestCase {
 
     func test_onBatchFinishedReceivingLogsAmountLargerThanBatch_logUploaderShouldSendASingleBatch() {
         givenLogController()
-        let logs = (0...(LogController.maxLogsPerBatch + 5)).map { _ in randomLogRecord() }
+        let logs = (0...(sut.batcher.logBatchLimits.maxLogsPerBatch + 5)).map { _ in randomLogRecord() }
         whenInvokingBatchFinished(withLogs: logs)
         thenLogUploadShouldUpload(times: 1)
     }
@@ -194,93 +192,167 @@ class LogControllerTests: XCTestCase {
     // MARK: - createLog
     func test_createLog() throws {
         givenLogController()
-        whenCreatingLog()
-        thenLogIsCreatedCorrectly()
+
+        let expectation = XCTestExpectation()
+        whenCreatingLog { log in
+            self.thenLogIsCreatedCorrectly(log!)
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_createLogWithAttachment_success() throws {
         givenEmbraceLogUploader()
         givenLogController()
-        whenCreatingLogWithAttachment()
-        thenLogWithSuccessfulAttachmentIsCreatedCorrectly()
+
+        let expectation = XCTestExpectation()
+        whenCreatingLogWithAttachment { log in
+            self.thenLogWithSuccessfulAttachmentIsCreatedCorrectly(log!)
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_createLogWithAttachment_tooLarge() throws {
         givenEmbraceLogUploader()
         givenLogController()
-        whenCreatingLogWithBigAttachment()
-        thenLogWithUnsuccessfulAttachmentIsCreatedCorrectly(errorCode: "ATTACHMENT_TOO_LARGE")
+
+        let expectation = XCTestExpectation()
+        whenCreatingLogWithBigAttachment { log in
+            self.thenLogWithUnsuccessfulAttachmentIsCreatedCorrectly(log!, errorCode: "ATTACHMENT_TOO_LARGE")
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_createLogWithAttachment_limitReached() throws {
         givenEmbraceLogUploader()
         givenLogController()
         whenAttachmentLimitIsReached()
-        whenCreatingLogWithAttachment()
-        thenLogWithUnsuccessfulAttachmentIsCreatedCorrectly(errorCode: "OVER_MAX_ATTACHMENTS")
+
+        let expectation = XCTestExpectation()
+        whenCreatingLogWithAttachment { log in
+            self.thenLogWithUnsuccessfulAttachmentIsCreatedCorrectly(log!, errorCode: "OVER_MAX_ATTACHMENTS")
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_createLogWithAttachment_serverError() throws {
         givenFailingLogUploader()
         givenLogController()
-        whenCreatingLogWithAttachment()
-        thenLogWithUnsuccessfulAttachmentIsCreatedCorrectly(errorCode: nil)
+
+        let expectation = XCTestExpectation()
+        whenCreatingLogWithAttachment { log in
+            self.thenLogWithUnsuccessfulAttachmentIsCreatedCorrectly(log!, errorCode: nil)
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_createLogWithPreuploadedAttachment() throws {
         givenLogController()
-        whenCreatingLogWithPreUploadedAttachment()
-        thenLogWithPreuploadedAttachmentIsCreatedCorrectly()
+
+        let expectation = XCTestExpectation()
+        whenCreatingLogWithPreUploadedAttachment { log in
+            self.thenLogWithPreuploadedAttachmentIsCreatedCorrectly(log!)
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func testInfoLog_createLogByDefault_doesntAddStackTraceToAttributes() throws {
         givenLogController()
-        whenCreatingLog(severity: .info)
-        thenLogHasntGotAnEmbbededStackTraceInTheAttributes()
+
+        let expectation = XCTestExpectation()
+        whenCreatingLog(severity: .info) { log in
+            self.thenLogHasntGotAnEmbbededStackTraceInTheAttributes(log!)
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func testWarningLog_createLogByDefault_addsStackTraceToAttributes() throws {
         givenLogController()
-        whenCreatingLog(severity: .warn)
-        thenLogHasAnEmbbededStackTraceInTheAttributes()
+
+        let expectation = XCTestExpectation()
+        whenCreatingLog(severity: .warn) { log in
+            self.thenLogHasAnEmbbededStackTraceInTheAttributes(log!)
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func testErrorLog_createLogByDefault_addsStackTraceToAttributes() throws {
         givenLogController()
-        whenCreatingLog(severity: .error)
-        thenLogHasAnEmbbededStackTraceInTheAttributes()
+
+        let expectation = XCTestExpectation()
+        whenCreatingLog(severity: .error) { log in
+            self.thenLogHasAnEmbbededStackTraceInTheAttributes(log!)
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func testWarningLog_createLogByWithNotIncludedStacktrace_doesntAddStackTraceToAttributes() throws {
         givenLogController()
-        whenCreatingLog(severity: .warn, stackTraceBehavior: .notIncluded)
-        thenLogHasntGotAnEmbbededStackTraceInTheAttributes()
+
+        let expectation = XCTestExpectation()
+        whenCreatingLog(severity: .warn, stackTraceBehavior: .notIncluded()) { log in
+            self.thenLogHasntGotAnEmbbededStackTraceInTheAttributes(log!)
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func testErrorLog_createLogByWithNotIncludedStacktrace_doesntAddStackTraceToAttributes() throws {
         givenLogController()
-        whenCreatingLog(severity: .error, stackTraceBehavior: .notIncluded)
-        thenLogHasntGotAnEmbbededStackTraceInTheAttributes()
+
+        let expectation = XCTestExpectation()
+        whenCreatingLog(severity: .error, stackTraceBehavior: .notIncluded()) { log in
+            self.thenLogHasntGotAnEmbbededStackTraceInTheAttributes(log!)
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func testWarnAndErrorLogs_createLogByWithCustomStacktrace_alwaysAddStackTraceToAttributes() throws {
         givenLogController()
+
         let customStackTrace = try EmbraceStackTrace(frames: Thread.callStackSymbols)
-        whenCreatingLog(
-            severity: [.warn, .error].randomElement()!,
-            stackTraceBehavior: .custom(customStackTrace)
-        )
-        thenLogHasAnEmbbededStackTraceInTheAttributes()
+
+        let expectation = XCTestExpectation()
+        whenCreatingLog(severity: .error, stackTraceBehavior: .customStackTrace(customStackTrace)) { log in
+            self.thenLogHasAnEmbbededStackTraceInTheAttributes(log!)
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func testInfoLogs_createLogByWithCustomStacktrace_wontAddStackTraceToAttributes() throws {
         givenLogController()
+
         let customStackTrace = try EmbraceStackTrace(frames: Thread.callStackSymbols)
-        whenCreatingLog(
-            severity: .info,
-            stackTraceBehavior: .custom(customStackTrace)
-        )
-        thenLogHasntGotAnEmbbededStackTraceInTheAttributes()
+
+        let expectation = XCTestExpectation()
+        whenCreatingLog(severity: .info, stackTraceBehavior: .customStackTrace(customStackTrace)) { log in
+            self.thenLogHasntGotAnEmbbededStackTraceInTheAttributes(log!)
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 }
 
@@ -293,22 +365,22 @@ extension LogControllerTests {
         sut = .init(
             storage: nil,
             upload: upload,
-            controller: sessionController
+            sessionController: sessionController,
+            queue: loggingQueue
         )
 
         sut.sdkStateProvider = sdkStateProvider
-        sut.otel = otelBridge
     }
 
     fileprivate func givenLogController() {
         sut = .init(
             storage: storage,
             upload: upload,
-            controller: sessionController
+            sessionController: sessionController,
+            queue: loggingQueue
         )
 
         sut.sdkStateProvider = sdkStateProvider
-        sut.otel = otelBridge
     }
 
     fileprivate func givenEmbraceLogUploader() {
@@ -325,10 +397,6 @@ extension LogControllerTests {
 
     fileprivate func givenSDKEnabled(_ sdkEnabled: Bool = true) {
         sdkStateProvider.isEnabled = sdkEnabled
-    }
-
-    fileprivate func givenOTelBridge() {
-        otelBridge = MockEmbraceOTelBridge()
     }
 
     fileprivate func givenSessionControllerWithoutSession() {
@@ -381,30 +449,51 @@ extension LogControllerTests {
 
     fileprivate func whenCreatingLog(
         severity: EmbraceLogSeverity = .info,
-        stackTraceBehavior: StackTraceBehavior = .default
+        stackTraceBehavior: EmbraceStackTraceBehavior = .defaultStackTrace(),
+        completion: ((EmbraceLog?) -> Void)? = nil
     ) {
-        sut.createLog("test", severity: severity, stackTraceBehavior: stackTraceBehavior, queue: loggingQueue)
+        sut.createLog(
+            "test",
+            severity: severity,
+            stackTraceBehavior: stackTraceBehavior,
+            completion: completion
+        )
         waitForLoggingQueue()
     }
 
-    fileprivate func whenCreatingLogWithAttachment() {
-        sut.createLog("test", severity: .info, attachment: TestConstants.data, queue: loggingQueue)
+    fileprivate func whenCreatingLogWithAttachment(completion: ((EmbraceLog?) -> Void)? = nil) {
+        sut.createLog(
+            "test",
+            severity: .info,
+            attachment: EmbraceLogAttachment(data: TestConstants.data),
+            completion: completion
+        )
         waitForLoggingQueue()
     }
 
-    fileprivate func whenCreatingLogWithBigAttachment() {
+    fileprivate func whenCreatingLogWithBigAttachment(completion: ((EmbraceLog?) -> Void)? = nil) {
         var str = ""
         for _ in 1...1_048_600 {
             str += "."
         }
-        sut.createLog("test", severity: .info, attachment: str.data(using: .utf8)!, queue: loggingQueue)
+
+        sut.createLog(
+            "test",
+            severity: .info,
+            attachment: EmbraceLogAttachment(data: str.data(using: .utf8)!),
+            completion: completion
+        )
         waitForLoggingQueue()
     }
 
-    fileprivate func whenCreatingLogWithPreUploadedAttachment() {
+    fileprivate func whenCreatingLogWithPreUploadedAttachment(completion: ((EmbraceLog?) -> Void)? = nil) {
         let url = URL(string: "http//embrace.test.com/attachment/123", testName: testName)!
         sut.createLog(
-            "test", severity: .info, attachmentId: UUID().withoutHyphen, attachmentUrl: url, queue: loggingQueue)
+            "test",
+            severity: .info,
+            attachment: EmbraceLogAttachment(id: UUID().withoutHyphen, url: url),
+            completion: completion
+        )
         waitForLoggingQueue()
     }
 
@@ -467,63 +556,39 @@ extension LogControllerTests {
         XCTAssertEqual(unwrappedStorage.fetchPersonaTagsForProcessIdReceivedParameter, processId)
     }
 
-    fileprivate func thenLogIsCreatedCorrectly() {
-        let log = otelBridge.otel.logs.first
-        XCTAssertNotNil(log)
-        XCTAssertEqual(log!.body!.description, "test")
-        XCTAssertEqual(log!.severity, .info)
-        XCTAssertEqual(log!.attributes["emb.type"]!.description, "sys.log")
+    fileprivate func thenLogIsCreatedCorrectly(_ log: EmbraceLog) {
+        XCTAssertEqual(log.body.description, "test")
+        XCTAssertEqual(log.severity, .info)
+        XCTAssertEqual(log.attributes["emb.type"]!.description, "sys.log")
     }
 
-    fileprivate func thenLogHasAnEmbbededStackTraceInTheAttributes() {
-        wait {
-            let log = self.otelBridge.otel.logs.first
+    fileprivate func thenLogHasAnEmbbededStackTraceInTheAttributes(_ log: EmbraceLog) {
+        XCTAssertNotNil(log.attributes["emb.stacktrace.ios"])
+    }
 
-            return log!.attributes["emb.stacktrace.ios"] != nil
+    fileprivate func thenLogHasntGotAnEmbbededStackTraceInTheAttributes(_ log: EmbraceLog) {
+        XCTAssertNil(log.attributes["emb.stacktrace.ios"])
+    }
+
+    fileprivate func thenLogWithSuccessfulAttachmentIsCreatedCorrectly(_ log: EmbraceLog) {
+        XCTAssertNotNil(log.attributes["emb.attachment_id"])
+        XCTAssertNotNil(log.attributes["emb.attachment_size"])
+    }
+
+    fileprivate func thenLogWithUnsuccessfulAttachmentIsCreatedCorrectly(_ log: EmbraceLog, errorCode: String?) {
+        XCTAssertNotNil(log.attributes["emb.attachment_id"])
+        XCTAssertNotNil(log.attributes["emb.attachment_size"])
+
+        if let errorCode {
+            XCTAssertEqual(log.attributes["emb.attachment_error_code"], errorCode)
+        } else {
+            XCTAssertNil(log.attributes["emb.attachment_error_code"])
         }
     }
 
-    fileprivate func thenLogHasntGotAnEmbbededStackTraceInTheAttributes() {
-        wait {
-            let log = self.otelBridge.otel.logs.first
-
-            return log!.attributes["emb.stacktrace.ios"] == nil
-        }
-    }
-
-    fileprivate func thenLogWithSuccessfulAttachmentIsCreatedCorrectly() {
-        wait {
-            let log = self.otelBridge.otel.logs.first
-
-            let attachmentIdFound = log!.attributes["emb.attachment_id"] != nil
-            let attachmentSizeFound = log!.attributes["emb.attachment_size"] != nil
-
-            return attachmentIdFound && attachmentSizeFound
-        }
-    }
-
-    fileprivate func thenLogWithUnsuccessfulAttachmentIsCreatedCorrectly(errorCode: String?) {
-        wait {
-            let log = self.otelBridge.otel.logs.first
-
-            let attachmentIdFound = log!.attributes["emb.attachment_id"] != nil
-            let attachmentSizeFound = log!.attributes["emb.attachment_size"] != nil
-            let attachmentErrorFound =
-                errorCode == nil || log!.attributes["emb.attachment_error_code"]!.description == errorCode
-
-            return attachmentIdFound && attachmentSizeFound && attachmentErrorFound
-        }
-    }
-
-    fileprivate func thenLogWithPreuploadedAttachmentIsCreatedCorrectly() {
-        wait {
-            let log = self.otelBridge.otel.logs.first
-
-            let attachmentIdFound = log!.attributes["emb.attachment_id"] != nil
-            let attachmentUrlFound = log!.attributes["emb.attachment_url"] != nil
-
-            return attachmentIdFound && attachmentUrlFound
-        }
+    fileprivate func thenLogWithPreuploadedAttachmentIsCreatedCorrectly(_ log: EmbraceLog) {
+        XCTAssertNotNil(log.attributes["emb.attachment_id"])
+        XCTAssertNotNil(log.attributes["emb.attachment_url"])
     }
 
     fileprivate func randomLogRecord(sessionId: EmbraceIdentifier? = nil) -> EmbraceLog {
@@ -537,7 +602,7 @@ extension LogControllerTests {
     }
 
     fileprivate func logsForMoreThanASingleBatch() -> [EmbraceLog] {
-        return (1...LogController.maxLogsPerBatch + 1).map { _ in
+        return (1...sut.batcher.logBatchLimits.maxLogsPerBatch + 1).map { _ in
             randomLogRecord()
         }
     }

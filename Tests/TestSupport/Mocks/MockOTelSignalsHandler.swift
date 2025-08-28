@@ -15,6 +15,8 @@ public class MockOTelSignalsHandler: OTelSignalsHandler, MockSpanDelegate {
     public var currentSessionId: EmbraceIdentifier? = .random
     public var currentProcessId: EmbraceIdentifier = .random
 
+    public init() { }
+
     public func createSpan(
         name: String,
         parentSpan: EmbraceSpan?,

@@ -11,12 +11,9 @@ import XCTest
 
 class EmbraceUploadCacheTests: XCTestCase {
     let logger = MockLogger()
-    var spanProcessor: MockSpanProcessor!
     let fileProvider = TemporaryFilepathProvider()
 
     override func setUpWithError() throws {
-        spanProcessor = MockSpanProcessor()
-        EmbraceOTel.setup(spanProcessors: [spanProcessor])
     }
 
     override func tearDownWithError() throws {
