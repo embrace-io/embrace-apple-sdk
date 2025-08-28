@@ -79,8 +79,7 @@ class TerminationReasonParser {
         // Parse header information
         let headerPattern =
             "<RBSTerminateContext\\|\\s*domain:(\\d+)\\s+code:(0x[A-F0-9]+)\\s+explanation:(.+?)(?=\\nProcessVisibility:|\\n[A-Z])"
-        if let headerMatch = try matchRegex(pattern: headerPattern, in: logEntry, options: [.dotMatchesLineSeparators])
-        {
+        if let headerMatch = try matchRegex(pattern: headerPattern, in: logEntry, options: [.dotMatchesLineSeparators]) {
             domain = Int(headerMatch[1])
             code = headerMatch[2]
             explanation = headerMatch[3].trimmingCharacters(in: .whitespacesAndNewlines)
