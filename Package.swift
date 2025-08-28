@@ -316,7 +316,7 @@ let package = Package(
         ),
 
         // test support --------------------------------------------------------------
-        .target(
+        .testTarget(
             name: "TestSupport",
             dependencies: [
                 "EmbraceCore",
@@ -327,7 +327,7 @@ let package = Package(
             path: "Tests/TestSupport",
             exclude: ["Objc"]
         ),
-        .target(
+        .testTarget(
             name: "TestSupportObjc",
             path: "Tests/TestSupport/Objc"
         )
