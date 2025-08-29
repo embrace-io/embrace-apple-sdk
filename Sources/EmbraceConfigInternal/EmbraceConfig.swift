@@ -30,7 +30,7 @@ public class EmbraceConfig {
         options: Options,
         notificationCenter: NotificationCenter,
         logger: InternalLogger,
-        queue: DispatchableQueue = .with(label: "com.embrace.config", attributes: .concurrent)
+        queue: DispatchableQueue = .with(label: "com.embrace.config")
     ) {
         self.options = options
         self.notificationCenter = notificationCenter
@@ -77,7 +77,9 @@ public class EmbraceConfig {
                 self?.lastUpdateTime = Date().timeIntervalSince1970
 
                 if didChange {
-                    self?.notificationCenter.post(name: .embraceConfigUpdated, object: self?.configurable)
+                    DispatchQueue.global(qos: .default).async {
+                        self?.notificationCenter.post(name: .embraceConfigUpdated, object: self?.configurable)
+                    }
                 }
             }
         }
