@@ -18,10 +18,14 @@ public class CoreDataWrapper {
 
     private let isTesting: Bool
 
-    public init(options: CoreDataWrapper.Options, logger: InternalLogger) throws {
+    public init(
+        options: CoreDataWrapper.Options,
+        logger: InternalLogger,
+        isTesting: Bool = ProcessInfo.processInfo.isTesting
+    ) throws {
         self.options = options
         self.logger = logger
-        isTesting = ProcessInfo.processInfo.isTesting
+        self.isTesting = isTesting
 
         // create model
         let model = NSManagedObjectModel()
@@ -32,7 +36,7 @@ public class CoreDataWrapper {
         container = NSPersistentContainer(name: name, managedObjectModel: model)
 
         // force db on memory during tests
-        if isTesting {
+        if self.isTesting {
             let description = NSPersistentStoreDescription()
             description.type = NSInMemoryStoreType
             container.persistentStoreDescriptions = [description]
@@ -54,16 +58,23 @@ public class CoreDataWrapper {
                 description.type = NSSQLiteStoreType
                 description.url = options.storageMechanism.fileURL
                 description.setValue(journalMode.rawValue as NSString, forPragmaNamed: "journal_mode")
-
+                // This is the default value; however, we enforce it here so that the `CoreDataWrapper`
+                // is created synchronously in `Embrace.init`, allowing us to throw as needed and fail early.
+                description.shouldAddStoreAsynchronously = false
                 container.persistentStoreDescriptions = [description]
             }
         }
 
+        var loadPersistentStoreError: Error?
         container.loadPersistentStores { _, error in
-            if let error {
-                logger.critical("Error initializing CoreData \"\(name)\": \(error.localizedDescription)")
-            }
+            loadPersistentStoreError = error
         }
+
+        if let loadPersistentStoreError {
+            logger.critical("Error initializing CoreData \"\(name)\": \(loadPersistentStoreError.localizedDescription)")
+            throw loadPersistentStoreError
+        }
+
 
         context = container.newBackgroundContext()
     }
