@@ -4,8 +4,12 @@
 
 import Foundation
 
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+#endif
+
 class AsyncOperation: Operation, @unchecked Sendable {
-    private let lockQueue = DispatchQueue(label: "com.embrace.asyncoperation", attributes: .concurrent)
+    private let lock = ReadWriteLock()
 
     override var isAsynchronous: Bool {
         return true
@@ -14,15 +18,11 @@ class AsyncOperation: Operation, @unchecked Sendable {
     private var _isExecuting: Bool = false
     override private(set) var isExecuting: Bool {
         get {
-            return lockQueue.sync { () -> Bool in
-                return _isExecuting
-            }
+            lock.lockedForReading { _isExecuting }
         }
         set {
             willChangeValue(forKey: "isExecuting")
-            lockQueue.sync(flags: [.barrier]) {
-                _isExecuting = newValue
-            }
+            lock.lockedForWriting { _isExecuting = newValue }
             didChangeValue(forKey: "isExecuting")
         }
     }
@@ -30,15 +30,11 @@ class AsyncOperation: Operation, @unchecked Sendable {
     private var _isFinished: Bool = false
     override private(set) var isFinished: Bool {
         get {
-            return lockQueue.sync { () -> Bool in
-                return _isFinished
-            }
+            lock.lockedForReading { _isFinished }
         }
         set {
             willChangeValue(forKey: "isFinished")
-            lockQueue.sync(flags: [.barrier]) {
-                _isFinished = newValue
-            }
+            lock.lockedForWriting { _isFinished = newValue }
             didChangeValue(forKey: "isFinished")
         }
     }

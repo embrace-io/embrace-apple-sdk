@@ -35,6 +35,8 @@ extension DispatchableQueue where Self == DefaultDispatchableQueue {
         qos: DispatchQoS = .unspecified,
         attributes: DispatchQueue.Attributes = []
     ) -> DispatchableQueue {
-        DefaultDispatchableQueue(queue: .init(label: label, qos: qos, attributes: attributes))
+        DefaultDispatchableQueue(
+            queue: DispatchQueue(label: label, qos: qos, attributes: attributes, autoreleaseFrequency: .workItem)
+        )
     }
 }
