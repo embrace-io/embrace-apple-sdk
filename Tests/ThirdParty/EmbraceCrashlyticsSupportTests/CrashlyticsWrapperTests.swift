@@ -10,14 +10,6 @@ import XCTest
 
 class CrashlyticsWrapperTests: XCTestCase {
 
-    let options = CrashlyticsWrapper.Options(
-        className: "MockCrashlytics",
-        singletonSelector: NSSelectorFromString("sharedInstance"),
-        setValueSelector: NSSelectorFromString("setCustomValue:forKey:"),
-        maxRetryCount: 5,
-        retryDelay: 1.0
-    )
-
     override func tearDownWithError() throws {
         MockCrashlytics.instance = nil
     }
@@ -27,11 +19,23 @@ class CrashlyticsWrapperTests: XCTestCase {
         let mock = MockCrashlytics()
         MockCrashlytics.instance = mock
 
+        let expectation: XCTestExpectation = self.expectation(description: "instance found")
+        let options = CrashlyticsWrapper.Options(
+            className: "MockCrashlytics",
+            singletonSelector: NSSelectorFromString("sharedInstance"),
+            setValueSelector: NSSelectorFromString("setCustomValue:forKey:"),
+            maxRetryCount: 5,
+            retryDelay: 1.0,
+            instanceFoundBlock: {
+                expectation.fulfill()
+            }
+        )
+
         // when initializing a crashlytics wrapper
         let wrapper = CrashlyticsWrapper(options: options)
 
         // then the crashlytics instance is found correctly
-        wait(delay: .longTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
 
         XCTAssertNotNil(wrapper.instance)
         XCTAssertNotNil(wrapper.instance as? MockCrashlytics)
@@ -42,9 +46,23 @@ class CrashlyticsWrapperTests: XCTestCase {
         let mock = MockCrashlytics()
         MockCrashlytics.instance = mock
 
+        let expectation: XCTestExpectation = self.expectation(description: "instance found")
+        let options = CrashlyticsWrapper.Options(
+            className: "MockCrashlytics",
+            singletonSelector: NSSelectorFromString("sharedInstance"),
+            setValueSelector: NSSelectorFromString("setCustomValue:forKey:"),
+            maxRetryCount: 5,
+            retryDelay: 1.0,
+            instanceFoundBlock: {
+                expectation.fulfill()
+            }
+        )
+
         // when initializing a crashlytics wrapper
         let wrapper = CrashlyticsWrapper(options: options)
-        wait(delay: .longTimeout)
+
+        // then the crashlytics instance is found correctly
+        wait(for: [expectation], timeout: .defaultTimeout)
 
         // when setting the current session id and sdk versions
         wrapper.setCustomValue(key: CrashReporterInfoKey.sessionId, value: "test")

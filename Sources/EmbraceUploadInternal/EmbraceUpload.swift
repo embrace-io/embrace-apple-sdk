@@ -26,7 +26,6 @@ public class EmbraceUpload: EmbraceLogUploader {
     private let urlSession: URLSession
     let cache: EmbraceUploadCache
     let operationQueue: OperationQueue
-    let semaphore: DispatchSemaphore
     private var reachabilityMonitor: EmbraceReachabilityMonitor?
 
     /// Returns an `EmbraceUpload` instance
@@ -37,14 +36,12 @@ public class EmbraceUpload: EmbraceLogUploader {
     public init(
         options: Options,
         logger: InternalLogger,
-        queue: DispatchQueue,
-        semaphore: DispatchSemaphore = .init(value: 2)
+        queue: DispatchQueue
     ) throws {
 
         self.options = options
         self.logger = logger
         self.queue = queue
-        self.semaphore = semaphore
 
         cache = try EmbraceUploadCache(options: options.cache, logger: logger)
 
@@ -66,7 +63,11 @@ public class EmbraceUpload: EmbraceLogUploader {
     }
 
     /// Attempts to upload all the available cached data.
-    public func retryCachedData() {
+    public func retryCachedData(_ completion: (() -> Void)? = nil) {
+
+        let group = DispatchGroup()
+        group.enter()
+
         queue.async { [weak self] in
             guard let strongSelf = self else {
                 return
@@ -82,6 +83,7 @@ public class EmbraceUpload: EmbraceLogUploader {
             defer {
                 // on finishing everything, allow to retry cache (i.e. reconnection)
                 strongSelf.isRetryingCache = false
+                group.leave()
             }
 
             // clear data from cache that shouldn't be retried as it's stale
@@ -93,11 +95,15 @@ public class EmbraceUpload: EmbraceLogUploader {
             // create a sempahore to allow only to send two request at a time so we don't
             // get throttled by the backend on cases where cache has many failed requests.
 
+            let sem = DispatchSemaphore(value: 2)
+
             for uploadData in cachedObjects {
                 guard let type = EmbraceUploadType(rawValue: uploadData.type) else {
                     continue
                 }
-                strongSelf.semaphore.wait()
+
+                group.enter()
+                sem.wait()
 
                 strongSelf.reUploadData(
                     id: uploadData.id,
@@ -105,9 +111,14 @@ public class EmbraceUpload: EmbraceLogUploader {
                     type: type,
                     attemptCount: uploadData.attemptCount
                 ) {
-                    strongSelf.semaphore.signal()
+                    sem.signal()
+                    group.leave()
                 }
             }
+        }
+
+        group.notify(queue: queue) {
+            completion?()
         }
     }
 
@@ -336,6 +347,16 @@ public class EmbraceUpload: EmbraceLogUploader {
         case .spans: return options.endpoints.spansURL
         case .log: return options.endpoints.logsURL
         case .attachment: return options.endpoints.attachmentsURL
+        }
+    }
+}
+
+extension EmbraceUpload {
+    public func retryCachedData() async {
+        await withCheckedContinuation { continuation in
+            retryCachedData {
+                continuation.resume()
+            }
         }
     }
 }

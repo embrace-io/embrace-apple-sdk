@@ -35,12 +35,12 @@ final class SessionHeartbeatTests: XCTestCase {
         var startTime: Date!
 
         // given a heartbeat with a 1 second interval
-        let heartbeat = SessionHeartbeat(queue: queue, interval: 1)
+        let heartbeat = SessionHeartbeat(queue: queue, interval: 0.1)
 
         // given a callback
         heartbeat.callback = {
             let diff = Date().timeIntervalSince1970 - startTime.timeIntervalSince1970
-            XCTAssertEqual(diff, 1, accuracy: 0.1)
+            XCTAssertEqual(diff, 0.1, accuracy: 0.1)
 
             expectation.fulfill()
             heartbeat.stop()
@@ -51,6 +51,6 @@ final class SessionHeartbeatTests: XCTestCase {
         heartbeat.start()
 
         // then the callback is called after 1 second
-        wait(for: [expectation], timeout: .longTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 }

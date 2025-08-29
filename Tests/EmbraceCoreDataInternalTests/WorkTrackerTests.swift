@@ -45,7 +45,7 @@ class WorkTrackerTests: XCTestCase {
         let expectation = XCTestExpectation()
 
         let id = tracker.increment()
-        tracker.decrement(id: id, afterDebounce: true)
+        tracker.decrement(id: id, afterDebounce: true, debounceInterval: 0.1)
         tracker.onIdle {
             expectation.fulfill()
         }
@@ -64,7 +64,7 @@ class WorkTrackerTests: XCTestCase {
         DispatchQueue.concurrentPerform(iterations: 100) { _ in
             let id = tracker.increment()
             DispatchQueue.global(qos: .default).async {
-                tracker.decrement(id: id, afterDebounce: true)
+                tracker.decrement(id: id, afterDebounce: true, debounceInterval: 0.1)
             }
         }
 
