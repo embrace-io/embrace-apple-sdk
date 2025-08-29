@@ -55,7 +55,7 @@ class UnsentDataHandlerTests: XCTestCase {
             urlSessionConfiguration: urlSessionconfig
         )
 
-        self.queue = DispatchQueue(label: "com.test.embrace.queue", attributes: .concurrent)
+        self.queue = DispatchQueue(label: "com.test.embrace.queue")
     }
 
     override func tearDownWithError() throws {
@@ -75,7 +75,7 @@ class UnsentDataHandlerTests: XCTestCase {
         defer { storage.coreData.destroy() }
 
         let upload = try EmbraceUpload(
-            options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
+            options: uploadOptions, logger: logger, queue: queue)
 
         let otel = MockEmbraceOpenTelemetry()
 
@@ -118,7 +118,7 @@ class UnsentDataHandlerTests: XCTestCase {
         defer { storage.coreData.destroy() }
 
         let upload = try EmbraceUpload(
-            options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
+            options: uploadOptions, logger: logger, queue: queue)
 
         let otel = MockEmbraceOpenTelemetry()
 
@@ -165,7 +165,7 @@ class UnsentDataHandlerTests: XCTestCase {
         defer { storage.coreData.destroy() }
 
         let upload = try EmbraceUpload(
-            options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
+            options: uploadOptions, logger: logger, queue: queue)
 
         let otel = MockEmbraceOpenTelemetry()
 
@@ -236,7 +236,7 @@ class UnsentDataHandlerTests: XCTestCase {
         defer { storage.coreData.destroy() }
 
         let upload = try EmbraceUpload(
-            options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
+            options: uploadOptions, logger: logger, queue: queue)
 
         let otel = MockEmbraceOpenTelemetry()
 
@@ -310,7 +310,7 @@ class UnsentDataHandlerTests: XCTestCase {
         defer { storage.coreData.destroy() }
 
         let upload = try EmbraceUpload(
-            options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
+            options: uploadOptions, logger: logger, queue: queue)
 
         let otel = MockEmbraceOpenTelemetry()
 
@@ -379,7 +379,7 @@ class UnsentDataHandlerTests: XCTestCase {
         defer { storage.coreData.destroy() }
 
         let upload = try EmbraceUpload(
-            options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
+            options: uploadOptions, logger: logger, queue: queue)
         let otel = MockEmbraceOpenTelemetry()
 
         // given a crash reporter
@@ -441,7 +441,7 @@ class UnsentDataHandlerTests: XCTestCase {
         defer { storage.coreData.destroy() }
 
         let upload = try EmbraceUpload(
-            options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
+            options: uploadOptions, logger: logger, queue: queue)
 
         let otel = MockEmbraceOpenTelemetry()
 
@@ -507,7 +507,7 @@ class UnsentDataHandlerTests: XCTestCase {
         defer { storage.coreData.destroy() }
 
         let upload = try EmbraceUpload(
-            options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
+            options: uploadOptions, logger: logger, queue: queue)
 
         let otel = MockEmbraceOpenTelemetry()
 
@@ -584,7 +584,7 @@ class UnsentDataHandlerTests: XCTestCase {
         defer { storage.coreData.destroy() }
 
         let upload = try EmbraceUpload(
-            options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
+            options: uploadOptions, logger: logger, queue: queue)
 
         // given an unfinished session in the storage
         let session = await storage.addSession(
@@ -628,7 +628,7 @@ class UnsentDataHandlerTests: XCTestCase {
         defer { storage.coreData.destroy() }
 
         let upload = try EmbraceUpload(
-            options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
+            options: uploadOptions, logger: logger, queue: queue)
 
         // given an unfinished session in the storage
         let session = await storage.addSession(
@@ -683,7 +683,7 @@ class UnsentDataHandlerTests: XCTestCase {
         defer { storage.coreData.destroy() }
 
         let upload = try EmbraceUpload(
-            options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
+            options: uploadOptions, logger: logger, queue: queue)
         let logController = LogController(
             storage: storage,
             upload: upload,
@@ -721,7 +721,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // given upload module
         let upload = try EmbraceUpload(
-            options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
+            options: uploadOptions, logger: logger, queue: queue)
 
         // given critical logs file present
         try "TEST".write(to: criticalLogsFilePath, atomically: true, encoding: .utf8)
@@ -739,7 +739,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // given upload module
         let upload = try EmbraceUpload(
-            options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
+            options: uploadOptions, logger: logger, queue: queue)
 
         // when sending critical logs without a file present
         await UnsentDataHandler.sendCriticalLogs(fileUrl: criticalLogsFilePath, upload: upload)
