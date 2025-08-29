@@ -18,18 +18,22 @@ class CrashlyticsWrapper {
         let maxRetryCount: Int
         let retryDelay: Double
 
+        let instanceFoundBlock: (() -> Void)?
+
         init(
             className: String,
             singletonSelector: Selector,
             setValueSelector: Selector,
             maxRetryCount: Int,
-            retryDelay: Double
+            retryDelay: Double,
+            instanceFoundBlock: (() -> Void)? = nil
         ) {
             self.className = className
             self.singletonSelector = singletonSelector
             self.setValueSelector = setValueSelector
             self.maxRetryCount = maxRetryCount
             self.retryDelay = retryDelay
+            self.instanceFoundBlock = instanceFoundBlock
         }
     }
 
@@ -85,12 +89,12 @@ class CrashlyticsWrapper {
         data = EmbraceMutex(MutableData(options: options))
 
         self.queue.async { [weak self] in
-            self?.findInstance()
+            self?.findInstance(after: 0)
         }
     }
 
-    private func findInstance() {
-        self.queue.asyncAfter(deadline: .now() + options.retryDelay) { [weak self] in
+    private func findInstance(after delay: Double) {
+        self.queue.asyncAfter(deadline: .now() + delay) { [weak self] in
             self?.findCrashlyticsInstance()
         }
     }
@@ -110,6 +114,8 @@ class CrashlyticsWrapper {
             let value = crashlyticsClass.perform(selector)
             instance = value?.takeUnretainedValue()
 
+            options.instanceFoundBlock?()
+
             customValues.forEach { key, value in
                 setCustomValue(key: key, value: value)
             }
@@ -118,7 +124,7 @@ class CrashlyticsWrapper {
         retryCount += 1
 
         if instance == nil {
-            self.findInstance()
+            self.findInstance(after: options.retryDelay)
         }
     }
 

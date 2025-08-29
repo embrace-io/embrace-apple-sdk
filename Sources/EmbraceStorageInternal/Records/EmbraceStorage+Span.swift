@@ -12,8 +12,6 @@ import Foundation
 
 extension EmbraceStorage {
 
-    static let defaultSpanLimitByType = 1500
-
     /// Adds or updates a span to the storage synchronously.
     /// - Parameters:
     ///   - id: Identifier of the span

@@ -66,6 +66,6 @@ class CrashlyticsReporterTests: XCTestCase {
         NotificationCenter.default.post(name: Notification.Name("networkRequestCaptured"), object: task)
 
         // then a report is not generated
-        wait(for: [expectation], timeout: .veryLongTimeout)
+        wait(for: [expectation], timeout: 0.05)
     }
 }
