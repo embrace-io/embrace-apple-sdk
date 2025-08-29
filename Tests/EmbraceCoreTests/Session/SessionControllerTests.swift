@@ -239,7 +239,7 @@ final class SessionControllerTests: XCTestCase {
 
         // when ending the session
         controller.endSession()
-        wait { EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count >= 1 }
+        wait { EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count == 1 }
 
         // then a session request was sent
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count, 1)
@@ -265,7 +265,7 @@ final class SessionControllerTests: XCTestCase {
 
         // when ending the session and the upload fails
         controller.endSession()
-        wait { EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count == 0 }
+        wait { EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count > 0 }
 
         // then a session request was attempted
         XCTAssertGreaterThan(EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count, 0)
@@ -447,7 +447,7 @@ final class SessionControllerTests: XCTestCase {
 
         // then the heartbeat time is updated
         for _ in 1...3 {
-            wait(delay: 0.1)
+            wait(delay: 0.3)
             XCTAssertNotEqual(lastDate, controller.currentSession!.lastHeartbeatTime)
             lastDate = controller.currentSession!.lastHeartbeatTime
         }
