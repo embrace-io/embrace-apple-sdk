@@ -62,7 +62,6 @@ jobs:
     permissions:
       checks: write
     steps:
-        # See https://github.com/actions/runner-images/blob/main/images/macos/macos-15-Readme.md
       - name: Select Xcode
         run: |
           sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app
@@ -74,46 +73,17 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Cache SPM Dependencies
-        uses: actions/cache@v4
+      - uses: mxcl/xcodebuild@96d9ef9fd2ab35ddad713d320955eb31ca8d6d21 # 3.5.1
         with:
-          path: |
-            .build/checkouts
-            .build/artifacts
-            .build/*-apple-*/debug/Swift*
-            .build/*-apple-*/debug/SourceKit*
-            .build/*-apple-*/debug/ArgumentParser*
-          key: ${{ runner.os }}-spm-build-cache-test-${{ hashFiles('Package.resolved') }}
-          restore-keys: |
-            ${{ runner.os }}-spm-build-cache-test
-
-      - name: Install xcbeautify
-        run: brew install xcbeautify
-
-      - name: Run Tests
-        run: bin/test ${{ matrix.platform }} | xcbeautify && exit ${PIPESTATUS[0]}
-        timeout-minutes: 30
-
-      - name: Upload xcresult Bundle on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: output_xcresult_${{ matrix.platform }}_xcode_${{ matrix.xcode_version }}_macos_${{ matrix.macos-version }}
-          path: .build/test/output.xcresult
+          platform: ${{ matrix.platform }}
+          action: test
+          code-coverage: true
+          configuration: Debug
+          scheme: EmbraceIO-Package
+          upload-logs: on-failure
+          trust-plugins: false
       
-      - name: List result files
-        run: ls -R .build/test | grep xcresult
-
-      - name: Convert results for Codecov
-        run: |
-          brew install a7ex/homebrew-formulae/xcresultparser
-          xcresultparser --output-format cobertura .build/test/output.xcresult > .build/test/output.xcresult.xml
-
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5.4.3
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        with:
-          plugins: xcode
-          files: .build/test/output.xcresult.xml
-          fail_ci_if_error: true
