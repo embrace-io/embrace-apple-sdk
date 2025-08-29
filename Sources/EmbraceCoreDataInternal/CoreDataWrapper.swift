@@ -65,6 +65,14 @@ public class CoreDataWrapper {
             }
         }
 
+        // Even though this happens inside a block, by default it runs synchronously on the same thread
+        // (because `shouldAddStoreAsynchronously` defaults to `false`). We set it explicitly anyway to
+        // make it crystal clear and to guard against potential changes in future OS versions.
+        //
+        // If the store cant be created or opened, we want to know immediately and fail fast.
+        // Otherwise, the container would appear as "initialized", but any later attempt to hit Core Data
+        // (fetch, save, etc.) would crash. Thats why we capture the error from `loadPersistentStores`
+        // and rethrow it here: better to throw during `Embrace.init` than to crash much later.
         var loadPersistentStoreError: Error?
         container.loadPersistentStores { _, error in
             loadPersistentStoreError = error
