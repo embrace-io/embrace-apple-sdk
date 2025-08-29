@@ -26,19 +26,19 @@ struct TestReportCard: View {
 }
 
 #Preview {
-    @State var passReport: TestReport =
+    @Previewable @State var passReport: TestReport =
         .init(items: [
             .init(target: "viewDidLoad", expected: "viewDidLoad", recorded: "found", result: .success),
             .init(target: "customViewName", expected: "A custom Name", recorded: "View Controller", result: .success)
         ])
-    @State var failReport: TestReport =
+    @Previewable @State var failReport: TestReport =
         .init(items: [
             .init(target: "viewDidLoad", expected: "viewDidLoad", recorded: "found", result: .success),
             .init(target: "customViewName", expected: "A custom Name", recorded: "View Controller", result: .fail)
         ])
 
-    @State var passedPresented: Bool = false
-    @State var failPresented: Bool = false
+    @Previewable @State var passedPresented: Bool = false
+    @Previewable @State var failPresented: Bool = false
 
     return VStack {
         Button {

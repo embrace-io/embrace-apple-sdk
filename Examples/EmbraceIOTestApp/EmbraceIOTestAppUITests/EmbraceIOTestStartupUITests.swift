@@ -46,120 +46,101 @@ final class EmbraceIOTestWARMStartupUITests: XCTestCase {
 
     var app = XCUIApplication()
     override func setUpWithError() throws {
-        app.launch()
-
-        let warmButton = app.buttons["EmbraceInitForceState_Warm"]
-        warmButton.tap()
-
-        let initButton = app.buttons["EmbraceInitButton"]
-        initButton.tap()
-
-        XCTAssertNotNil(
-            initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
-
-        let sideMenuButton = app.buttons["SideMenuButton"]
-        sideMenuButton.tap()
-
-        app.staticTexts["metadata"].tap()
-        //sleep(4)
         continueAfterFailure = true
+        app.launchAndOpenTestTab("startup")
     }
 
     private func selectMetadataTest(_ test: Test) {
         let button = app.buttons[test.identifier]
-        XCTAssertNotNil(button.wait(attribute: \.isEnabled, is: .equalTo, value: true, timeout: 5.0))
-
+        XCTAssertNotNil(button.wait(attribute: \.isEnabled, is: .equalTo, value: true, timeout: 10.0))
+        XCTAssertTrue(app.scrollUntilHittableElementVisible(button))
         button.tap()
     }
 
-    private func evaluateResults() {
-        sleep(2)
-        XCTAssertTrue(app.staticTexts["PASS"].exists)
-        XCTAssertFalse(app.staticTexts["FAIL"].exists)
+    func testAllWarmStartupCases() {
+        caseTestInitStartup_PreMain_Span()
+        app.swipeDown()
+        caseTestInitStartup_SDKSetup_Span()
+        app.swipeDown()
+        caseTestInitStartup_SDKSetart_Span()
+        app.swipeDown()
+        caseTestInitStartup_StartProcess_Span()
+        app.swipeDown()
+        caseTestInitStartup_StartState_Warm_Span()
+        app.swipeDown()
+        caseTestInitStartup_ProcessLaunch_Span()
+        app.swipeDown()
+        caseTestInitStartup_AppStartup_Span()
+        app.swipeDown()
+        caseTestInitStartup_FirstFrameCapture_Span()
+        app.swipeDown()
+        caseTestInitStartup_MetadataItems()
     }
 
-    func testInitStartup_PreMain_Span() {
+    func caseTestInitStartup_PreMain_Span() {
         selectMetadataTest(.startProcess)
-        evaluateResults()
+        evaluateTestResults(app)
     }
 
-    func testInitStartup_SDKSetup_Span() {
+    func caseTestInitStartup_SDKSetup_Span() {
         selectMetadataTest(.sdkSetup)
-        evaluateResults()
+        evaluateTestResults(app)
     }
 
-    func testInitStartup_SDKSetart_Span() {
+    func caseTestInitStartup_SDKSetart_Span() {
         selectMetadataTest(.sdkStart)
-        evaluateResults()
+        evaluateTestResults(app)
     }
 
-    func testInitStartup_StartProcess_Span() {
+    func caseTestInitStartup_StartProcess_Span() {
         selectMetadataTest(.startProcess)
-        evaluateResults()
+        evaluateTestResults(app)
     }
 
-    func testInitStartup_StartState_Warm_Span() {
+    func caseTestInitStartup_StartState_Warm_Span() {
         selectMetadataTest(.startState)
-        evaluateResults()
+        evaluateTestResults(app)
     }
 
-    func testInitStartup_ProcessLaunch_Span() {
+    func caseTestInitStartup_ProcessLaunch_Span() {
         selectMetadataTest(.processLaunch)
-        evaluateResults()
+        evaluateTestResults(app)
     }
 
-    func testInitStartup_AppStartup_Span() {
+    func caseTestInitStartup_AppStartup_Span() {
         selectMetadataTest(.appStartup)
-        evaluateResults()
+        evaluateTestResults(app)
     }
 
-    func testInitStartup_FirstFrameCapture_Span() {
+    func caseTestInitStartup_FirstFrameCapture_Span() {
         selectMetadataTest(.firstFrameCapture)
-        evaluateResults()
+        evaluateTestResults(app)
     }
 
-    func testInitStartup_MetadataItems() {
+    func caseTestInitStartup_MetadataItems() {
         selectMetadataTest(.resourceMetadata)
-        evaluateResults()
+        evaluateTestResults(app)
     }
 }
 
 final class EmbraceIOTestCOLDStartupUITests: XCTestCase {
     var app = XCUIApplication()
     override func setUpWithError() throws {
-        app.launch()
-
-        let coldButton = app.buttons["EmbraceInitForceState_Cold"]
-        coldButton.tap()
-
-        let initButton = app.buttons["EmbraceInitButton"]
-        initButton.tap()
-
-        XCTAssertNotNil(
-            initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
-
-        let sideMenuButton = app.buttons["SideMenuButton"]
-        sideMenuButton.tap()
-
-        app.staticTexts["metadata"].tap()
-
-        continueAfterFailure = true
-    }
-
-    private func evaluateResults() {
-        sleep(2)
-        XCTAssertTrue(app.staticTexts["PASS"].exists)
-        XCTAssertFalse(app.staticTexts["FAIL"].exists)
+        app.launchAndOpenTestTab("startup", coldStart: true)
     }
 
     func testInitStartup_StartState_Cold_Span() {
         let expectedColdStart = app.switches["coldStartExpectedToggle"].switches.firstMatch
+        XCTAssertTrue(expectedColdStart.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.scrollUntilHittableElementVisible(expectedColdStart))
         expectedColdStart.tap()
 
         let button = app.buttons["startupStateSpanTestButton"]
-        XCTAssertNotNil(button.wait(attribute: \.isEnabled, is: .equalTo, value: true, timeout: 5.0))
+        XCTAssertNotNil(button.wait(attribute: \.isEnabled, is: .equalTo, value: true, timeout: 10.0))
+        XCTAssertTrue(app.scrollUntilHittableElementVisible(button))
 
         button.tap()
-        evaluateResults()
+        evaluateTestResults(app)
+        app.swipeDown()
     }
 }

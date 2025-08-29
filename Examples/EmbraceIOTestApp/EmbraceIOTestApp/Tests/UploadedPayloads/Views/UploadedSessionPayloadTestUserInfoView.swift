@@ -65,9 +65,9 @@ struct UploadedSessionPayloadTestUserInfoView: View {
 }
 
 #Preview {
-    @State var username: String = ""
-    @State var email: String = ""
-    @State var identifier: String = ""
+    @Previewable @State var username: String = ""
+    @Previewable @State var email: String = ""
+    @Previewable @State var identifier: String = ""
 
     return UploadedSessionPayloadTestUserInfoView(
         username: $username,

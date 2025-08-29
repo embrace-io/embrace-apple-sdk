@@ -64,13 +64,13 @@ class LoggingTestMessageViewModel: LogTestUIComponentViewModel {
     }
 }
 
-extension LogSeverity: CaseIterable {
+extension LogSeverity: @retroactive CaseIterable {
     public static var allCases: [LogSeverity] {
         [.trace, .debug, .info, .warn, .error, .fatal, .critical]
     }
 }
 
-extension StackTraceBehavior: CaseIterable {
+extension StackTraceBehavior: @retroactive CaseIterable {
     public static var allCases: [StackTraceBehavior] {
         [.default, .notIncluded, .custom(customStackTrace)]
     }
@@ -99,7 +99,7 @@ extension StackTraceBehavior: CaseIterable {
     }
 }
 
-extension StackTraceBehavior: Hashable {
+extension StackTraceBehavior: @retroactive Hashable {
     public func hash(into hasher: inout Hasher) {
         switch self {
         case .custom(let st):

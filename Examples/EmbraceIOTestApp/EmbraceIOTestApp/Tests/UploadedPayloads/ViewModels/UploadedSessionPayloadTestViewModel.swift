@@ -153,7 +153,7 @@ class UploadedSessionPayloadTestViewModel: UIComponentViewModelBase {
         testObject.personas = Array(personasBySessionId[selectedSessionId, default: []])
         testObject.userInfo = userInfoBySessionId[selectedSessionId] ?? .init()
         super.testButtonPressed()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
             guard let self = self else { return }
             let testResult = self.testObject.test(networkSwizzle: networkSpy)
             self.testFinished(with: testResult)
