@@ -39,6 +39,9 @@ public struct RemoteConfigPayload: Decodable, Equatable {
     var internalLogsWarningLimit: Int
     var internalLogsErrorLimit: Int
 
+    var hangLimitsHangPerSession: UInt
+    var hangLimitsSamplesPerHang: UInt
+
     var networkPayloadCaptureRules: [NetworkPayloadCaptureRule]
 
     enum CodingKeys: String, CodingKey {
@@ -83,6 +86,12 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             case info
             case warning
             case error
+        }
+
+        case hangLimits = "hang_limits"
+        enum HangLimitsCodingKeys: String, CodingKey {
+            case hangPerSession = "hang_per_session"
+            case samplesPerHang = "samples_per_hang"
         }
 
         case networkPayLoadCapture = "network_capture"
@@ -214,6 +223,29 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             logsErrorLimit = defaultPayload.logsErrorLimit
         }
 
+        // hang limits
+        if rootContainer.contains(.hangLimits) {
+            let hangLimitsContainer = try rootContainer.nestedContainer(
+                keyedBy: CodingKeys.HangLimitsCodingKeys.self,
+                forKey: .hangLimits
+            )
+
+            hangLimitsHangPerSession =
+                try hangLimitsContainer.decodeIfPresent(
+                    UInt.self,
+                    forKey: CodingKeys.HangLimitsCodingKeys.hangPerSession
+                ) ?? defaultPayload.hangLimitsHangPerSession
+
+            hangLimitsSamplesPerHang =
+                try hangLimitsContainer.decodeIfPresent(
+                    UInt.self,
+                    forKey: CodingKeys.HangLimitsCodingKeys.samplesPerHang
+                ) ?? defaultPayload.hangLimitsSamplesPerHang
+        } else {
+            hangLimitsHangPerSession = defaultPayload.hangLimitsHangPerSession
+            hangLimitsSamplesPerHang = defaultPayload.hangLimitsSamplesPerHang
+        }
+
         // internal logs limit
         if rootContainer.contains(.internalLogLimits) {
             let internalLogsLimitsContainer = try rootContainer.nestedContainer(
@@ -322,6 +354,9 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         internalLogsInfoLimit = 0
         internalLogsWarningLimit = 0
         internalLogsErrorLimit = 3
+
+        hangLimitsHangPerSession = 200
+        hangLimitsSamplesPerHang = 0
 
         networkPayloadCaptureRules = []
     }

@@ -73,12 +73,26 @@ final class CaptureServices {
             }
         }
 
+        // Ensure the hang service has the right config
+        if let limits = config?.hangLimits {
+            services
+                .compactMap { $0 as? HangCaptureService }
+                .forEach { $0.limits = limits }
+        }
+
         // subscribe to session start notification
         // to update the crash reporter with the new session id
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(onSessionStart),
             name: Notification.Name.embraceSessionDidStart,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(onSessionWillEnd),
+            name: Notification.Name.embraceSessionWillEnd,
             object: nil
         )
     }
@@ -145,6 +159,13 @@ final class CaptureServices {
     @objc func onSessionStart(notification: Notification) {
         if let session = notification.object as? EmbraceSession {
             crashReporter?.currentSessionId = session.idRaw
+            for service in services { service.onSessionStart(session) }
+        }
+    }
+
+    @objc func onSessionWillEnd(notification: Notification) {
+        if let session = notification.object as? EmbraceSession {
+            for service in services { service.onSessionWillEnd(session) }
         }
     }
 }
