@@ -8,6 +8,7 @@ import Foundation
 import XCTest
 
 public class MockEmbraceConfigurable: EmbraceConfigurable {
+
     public init(
         isSDKEnabled: Bool = false,
         isBackgroundSessionEnabled: Bool = false,
@@ -26,7 +27,8 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         internalLogLimits: InternalLogLimits = InternalLogLimits(),
         networkPayloadCaptureRules: [NetworkPayloadCaptureRule] = [],
         updateCompletionParamDidUpdate: Bool = false,
-        updateCompletionParamError: Error? = nil
+        updateCompletionParamError: Error? = nil,
+        hangLimits: HangLimits = HangLimits()
     ) {
         self._isSDKEnabled = isSDKEnabled
         self._isBackgroundSessionEnabled = isBackgroundSessionEnabled
@@ -43,6 +45,7 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         self._spanEventsLimits = spanEventsLimits
         self._logsLimits = logsLimits
         self._internalLogLimits = internalLogLimits
+        self._hangLimits = hangLimits
         self._networkPayloadCaptureRules = networkPayloadCaptureRules
         self.updateCompletionParamDidUpdate = updateCompletionParamDidUpdate
         self.updateCompletionParamError = updateCompletionParamError
@@ -235,6 +238,18 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         }
         set {
             _internalLogLimits = newValue
+        }
+    }
+
+    private var _hangLimits: HangLimits
+    public let hangLimitsExpectation = XCTestExpectation(description: "hangLimits called")
+    public var hangLimits: HangLimits {
+        get {
+            hangLimitsExpectation.fulfill()
+            return _hangLimits
+        }
+        set {
+            _hangLimits = newValue
         }
     }
 
