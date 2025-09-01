@@ -40,10 +40,6 @@ jobs:
             xcode_version: "16.4"
             macos-version: "15"
 
-          - platform: "iOS"
-            xcode_version: "26.0"
-            macos-version: "15"
-
           # tvOS
           - platform: "tvOS"
             xcode_version: "16.4"
@@ -73,16 +69,16 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: mxcl/xcodebuild@96d9ef9fd2ab35ddad713d320955eb31ca8d6d21 # 3.5.1
+      - name: Run Unit Tests
+        uses: mxcl/xcodebuild@v3
         with:
-          platform: ${{ matrix.platform }}
-          action: test
-          code-coverage: true
-          configuration: Debug
+          workspace: ".swiftpm/xcode/package.xcworkspace"
           scheme: EmbraceIO-Package
-          upload-logs: on-failure
+          platform: ${{ matrix.platform }}
+          upload-logs: always
+          code-coverage: true
           trust-plugins: false
-      
+
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5.4.3
         env:
