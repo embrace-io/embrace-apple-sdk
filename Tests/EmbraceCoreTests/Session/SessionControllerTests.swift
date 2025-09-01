@@ -192,11 +192,11 @@ final class SessionControllerTests: XCTestCase {
         // when ending the session
         controller.endSession()
 
-        let expection = expectation(description: "waiting for session to end")
+        let expectation = expectation(description: "waiting for session to end")
         controller.queue.async {
-            expection.fulfill()
+            expectation.fulfill()
         }
-        wait(for: [expection], timeout: .defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
 
         // then a session was sent with the corrent values
         XCTAssert(uploader.didCallUploadSession)
