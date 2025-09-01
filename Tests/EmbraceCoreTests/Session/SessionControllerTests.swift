@@ -217,13 +217,11 @@ final class SessionControllerTests: XCTestCase {
         }
     }
 
-    func wait(_ until: () -> Bool) {
+    func wait(_ until: @escaping () -> Bool) {
         // Here, we end up having to wait for the DefaultSession uploader which
         // isn't set up to give us a completion, so we'll fake it 'till we make it.
-        let maxTimes = 200  // 2 seconds basically
-        for _ in 0..<maxTimes {
-            wait(delay: 0.01)
-            if until() { return }
+        wait(timeout: 2, interval: 0.01) {
+            until()
         }
     }
 
@@ -239,7 +237,7 @@ final class SessionControllerTests: XCTestCase {
 
         // when ending the session
         controller.endSession()
-        wait { EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count == 1 }
+        wait { EmbraceHTTPMock.requestsForUrl(self.testSessionsUrl()).count == 1 }
 
         // then a session request was sent
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count, 1)
@@ -265,7 +263,7 @@ final class SessionControllerTests: XCTestCase {
 
         // when ending the session and the upload fails
         controller.endSession()
-        wait { EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count > 0 }
+        wait { EmbraceHTTPMock.requestsForUrl(self.testSessionsUrl()).count > 0 }
 
         // then a session request was attempted
         XCTAssertGreaterThan(EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count, 0)
