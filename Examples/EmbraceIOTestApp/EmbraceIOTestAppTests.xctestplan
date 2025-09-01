@@ -1,0 +1,28 @@
+{
+  "configurations" : [
+    {
+      "id" : "EC4EE155-DD6E-4B72-A3F2-3B275D00B2B5",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:EmbraceIOTestApp.xcodeproj",
+      "identifier" : "4DF12A1F2D302C3200C93E62",
+      "name" : "EmbraceIOTestApp"
+    }
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:EmbraceIOTestApp.xcodeproj",
+        "identifier" : "4D94F2522D429257008DECEE",
+        "name" : "EmbraceIOTestAppUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

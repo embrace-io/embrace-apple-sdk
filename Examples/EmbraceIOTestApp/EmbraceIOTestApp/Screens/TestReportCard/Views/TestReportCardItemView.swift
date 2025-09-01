@@ -44,11 +44,11 @@ struct TestReportCardItemView: View {
 }
 
 #Preview {
-    var passedItem: TestReportItem = .init(
+    @Previewable let passedItem: TestReportItem = .init(
         target: "viewDidLoad", expected: "viewDidLoad", recorded: "found", result: .success)
-    var failItem: TestReportItem = .init(
+    @Previewable let failItem: TestReportItem = .init(
         target: "viewDidLoad", expected: "viewDidLoad", recorded: "not found", result: .fail)
-    var warningItem: TestReportItem = .init(
+    @Previewable let warningItem: TestReportItem = .init(
         target: "viewDidLoad", expected: "viewDidLoad", recorded: "not found", result: .warning)
     return VStack {
         TestReportCardItemView(item: passedItem)
