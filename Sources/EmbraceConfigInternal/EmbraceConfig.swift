@@ -77,9 +77,7 @@ public class EmbraceConfig {
                 self?.lastUpdateTime = Date().timeIntervalSince1970
 
                 if didChange {
-                    DispatchQueue.global(qos: .default).async {
-                        self?.notificationCenter.post(name: .embraceConfigUpdated, object: self?.configurable)
-                    }
+                    self?.notificationCenter.post(name: .embraceConfigUpdated, object: self?.configurable)
                 }
             }
         }
