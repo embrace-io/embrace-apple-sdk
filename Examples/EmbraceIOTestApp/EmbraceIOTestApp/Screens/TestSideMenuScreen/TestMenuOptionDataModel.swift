@@ -10,6 +10,7 @@ enum TestMenuOptionDataModel: Int, CaseIterable {
     case embraceInit = 1000
     case startup
     case viewController
+    case swiftui
     case networking
     case logging
     case crashes
@@ -24,6 +25,8 @@ enum TestMenuOptionDataModel: Int, CaseIterable {
             "Startup Tests"
         case .viewController:
             "ViewController Tests"
+        case .swiftui:
+            "SwiftUI Tests"
         case .networking:
             "Networking Tests"
         case .logging:
@@ -42,9 +45,11 @@ enum TestMenuOptionDataModel: Int, CaseIterable {
         case .embraceInit:
             "embraceInit"
         case .startup:
-            "metadata"
+            "startup"
         case .viewController:
             "viewController"
+        case .swiftui:
+            "swiftui"
         case .networking:
             "networking"
         case .logging:
@@ -66,6 +71,8 @@ enum TestMenuOptionDataModel: Int, CaseIterable {
             TestScreen<StartupTestsDataModel>()
         case .viewController:
             TestScreen<ViewControllerTestsDataModel>()
+        case .swiftui:
+            TestScreen<SwiftUITestsDataModel>()
         case .networking:
             TestScreen<NetworkingTestsDataModel>()
         case .logging:

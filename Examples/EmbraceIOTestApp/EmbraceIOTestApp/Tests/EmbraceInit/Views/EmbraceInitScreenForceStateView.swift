@@ -21,6 +21,6 @@ struct EmbraceInitScreenForceStateView: View {
 }
 
 #Preview {
-    @State var forceState: EmbraceInitForceState = .off
+    @Previewable @State var forceState: EmbraceInitForceState = .off
     return EmbraceInitScreenForceStateView(forceInitState: $forceState)
 }

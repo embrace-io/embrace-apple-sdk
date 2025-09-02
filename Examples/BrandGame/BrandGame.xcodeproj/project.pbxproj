@@ -44,14 +44,12 @@
 		7BCB662A2AC4767B00ABD33A /* MainMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BCB66292AC4767B00ABD33A /* MainMenu.swift */; };
 		7BCB662E2AC476BC00ABD33A /* NetworkStressTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BCB662D2AC476BC00ABD33A /* NetworkStressTest.swift */; };
 		FA3B0A112C3C2A5600315578 /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = FA3B0A102C3C2A5600315578 /* EmbraceCore */; };
-		FA3B0A132C3C2A5600315578 /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = FA3B0A122C3C2A5600315578 /* EmbraceCrash */; };
 		FA3B0A152C3C2A5600315578 /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = FA3B0A142C3C2A5600315578 /* EmbraceCrashlyticsSupport */; };
 		FA3B0A172C3C2A5600315578 /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = FA3B0A162C3C2A5600315578 /* EmbraceIO */; };
 		FA4C5F332C486E13005C0371 /* CreateSpanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA4C5F322C486E13005C0371 /* CreateSpanView.swift */; };
 		FA4C5F352C487B45005C0371 /* AttributesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA4C5F342C487B45005C0371 /* AttributesView.swift */; };
 		FA4FA4FA2C62DBB600E66300 /* NoSpacesTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA4FA4F92C62DBB600E66300 /* NoSpacesTextField.swift */; };
 		FA716C7E2C45B94A00AD0161 /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = FA716C7D2C45B94A00AD0161 /* EmbraceCore */; };
-		FA716C802C45B94A00AD0161 /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = FA716C7F2C45B94A00AD0161 /* EmbraceCrash */; };
 		FA716C822C45B94A00AD0161 /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = FA716C812C45B94A00AD0161 /* EmbraceCrashlyticsSupport */; };
 		FA716C842C45B94A00AD0161 /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = FA716C832C45B94A00AD0161 /* EmbraceIO */; };
 		FA7C3FCD2C821A3400EA7344 /* AddCrashInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA7C3FCC2C821A3400EA7344 /* AddCrashInfoView.swift */; };
@@ -63,12 +61,10 @@
 		FADB905E2C333B8B00079005 /* WebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADB905D2C333B8B00079005 /* WebView.swift */; };
 		FADB90602C333BBA00079005 /* BrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADB905F2C333BBA00079005 /* BrowserView.swift */; };
 		FAEF5A112C6BA46F00484474 /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = FAEF5A102C6BA46F00484474 /* EmbraceCore */; };
-		FAEF5A132C6BA46F00484474 /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = FAEF5A122C6BA46F00484474 /* EmbraceCrash */; };
 		FAEF5A152C6BA46F00484474 /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = FAEF5A142C6BA46F00484474 /* EmbraceCrashlyticsSupport */; };
 		FAEF5A172C6BA46F00484474 /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = FAEF5A162C6BA46F00484474 /* EmbraceIO */; };
 		FAEF5A192C6BA46F00484474 /* EmbraceSemantics in Frameworks */ = {isa = PBXBuildFile; productRef = FAEF5A182C6BA46F00484474 /* EmbraceSemantics */; };
 		FAF85DF52C45B1C6002306FF /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = FAF85DF42C45B1C6002306FF /* EmbraceCore */; };
-		FAF85DF72C45B1C6002306FF /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = FAF85DF62C45B1C6002306FF /* EmbraceCrash */; };
 		FAF85DF92C45B1C6002306FF /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = FAF85DF82C45B1C6002306FF /* EmbraceCrashlyticsSupport */; };
 		FAF85DFB2C45B1C6002306FF /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = FAF85DFA2C45B1C6002306FF /* EmbraceIO */; };
 		FAFDA3D22C333FC900AD17CF /* NetworkRequestBuilderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFDA3CF2C333FC900AD17CF /* NetworkRequestBuilderView.swift */; };
@@ -158,12 +154,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				7B3BD2192BBC5A1600938444 /* StdoutExporter in Frameworks */,
-				FAEF5A132C6BA46F00484474 /* EmbraceCrash in Frameworks */,
-				FA3B0A132C3C2A5600315578 /* EmbraceCrash in Frameworks */,
 				FA716C822C45B94A00AD0161 /* EmbraceCrashlyticsSupport in Frameworks */,
 				FA3B0A152C3C2A5600315578 /* EmbraceCrashlyticsSupport in Frameworks */,
 				FA716C7E2C45B94A00AD0161 /* EmbraceCore in Frameworks */,
-				FA716C802C45B94A00AD0161 /* EmbraceCrash in Frameworks */,
 				FA716C842C45B94A00AD0161 /* EmbraceIO in Frameworks */,
 				FAEF5A172C6BA46F00484474 /* EmbraceIO in Frameworks */,
 				FAF85DFB2C45B1C6002306FF /* EmbraceIO in Frameworks */,
@@ -171,7 +164,6 @@
 				FA3B0A112C3C2A5600315578 /* EmbraceCore in Frameworks */,
 				FAF85DF52C45B1C6002306FF /* EmbraceCore in Frameworks */,
 				FAF85DF92C45B1C6002306FF /* EmbraceCrashlyticsSupport in Frameworks */,
-				FAF85DF72C45B1C6002306FF /* EmbraceCrash in Frameworks */,
 				FAEF5A152C6BA46F00484474 /* EmbraceCrashlyticsSupport in Frameworks */,
 				FAEF5A192C6BA46F00484474 /* EmbraceSemantics in Frameworks */,
 				FAEF5A112C6BA46F00484474 /* EmbraceCore in Frameworks */,
@@ -532,19 +524,15 @@
 			packageProductDependencies = (
 				7B3BD2182BBC5A1600938444 /* StdoutExporter */,
 				FA3B0A102C3C2A5600315578 /* EmbraceCore */,
-				FA3B0A122C3C2A5600315578 /* EmbraceCrash */,
 				FA3B0A142C3C2A5600315578 /* EmbraceCrashlyticsSupport */,
 				FA3B0A162C3C2A5600315578 /* EmbraceIO */,
 				FAF85DF42C45B1C6002306FF /* EmbraceCore */,
-				FAF85DF62C45B1C6002306FF /* EmbraceCrash */,
 				FAF85DF82C45B1C6002306FF /* EmbraceCrashlyticsSupport */,
 				FAF85DFA2C45B1C6002306FF /* EmbraceIO */,
 				FA716C7D2C45B94A00AD0161 /* EmbraceCore */,
-				FA716C7F2C45B94A00AD0161 /* EmbraceCrash */,
 				FA716C812C45B94A00AD0161 /* EmbraceCrashlyticsSupport */,
 				FA716C832C45B94A00AD0161 /* EmbraceIO */,
 				FAEF5A102C6BA46F00484474 /* EmbraceCore */,
-				FAEF5A122C6BA46F00484474 /* EmbraceCrash */,
 				FAEF5A142C6BA46F00484474 /* EmbraceCrashlyticsSupport */,
 				FAEF5A162C6BA46F00484474 /* EmbraceIO */,
 				FAEF5A182C6BA46F00484474 /* EmbraceSemantics */,
@@ -935,10 +923,6 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = EmbraceCore;
 		};
-		FA3B0A122C3C2A5600315578 /* EmbraceCrash */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = EmbraceCrash;
-		};
 		FA3B0A142C3C2A5600315578 /* EmbraceCrashlyticsSupport */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = EmbraceCrashlyticsSupport;
@@ -951,10 +935,6 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = EmbraceCore;
 		};
-		FA716C7F2C45B94A00AD0161 /* EmbraceCrash */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = EmbraceCrash;
-		};
 		FA716C812C45B94A00AD0161 /* EmbraceCrashlyticsSupport */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = EmbraceCrashlyticsSupport;
@@ -966,10 +946,6 @@
 		FAEF5A102C6BA46F00484474 /* EmbraceCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = EmbraceCore;
-		};
-		FAEF5A122C6BA46F00484474 /* EmbraceCrash */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = EmbraceCrash;
 		};
 		FAEF5A142C6BA46F00484474 /* EmbraceCrashlyticsSupport */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -986,10 +962,6 @@
 		FAF85DF42C45B1C6002306FF /* EmbraceCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = EmbraceCore;
-		};
-		FAF85DF62C45B1C6002306FF /* EmbraceCrash */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = EmbraceCrash;
 		};
 		FAF85DF82C45B1C6002306FF /* EmbraceCrashlyticsSupport */ = {
 			isa = XCSwiftPackageProductDependency;

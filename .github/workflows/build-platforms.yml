@@ -1,9 +1,9 @@
 name: Build Platforms
 
 on:
-  workflow_call: {}
-  workflow_dispatch: {}
-  pull_request: {}
+  workflow_call:
+  workflow_dispatch:
+  pull_request:
   push:
     branches:
       - main
@@ -11,22 +11,59 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
-    name: Build ${{ matrix.platform_args }} - Xcode ${{ matrix.xcode_version }}
+    name: Build ${{ matrix.platform }}, on macOS ${{ matrix.macos-version }}, with Xcode ${{ matrix.xcode_version }}
     timeout-minutes: 30
-    runs-on: macos-14
+    runs-on: macos-${{ matrix.macos-version }}
+    
     strategy:
       fail-fast: false
       matrix:
-        platform_args: ["iOS tvOS"] # using a single string will run platforms in parallel
-        xcode_version: ["15.4"]
+        platform: ["iOS"]
+        xcode_version: ["16.2"]
+        macos-version: ["14"]
+        include:
+
+          # iOS
+          - platform: "iOS"
+            xcode_version: "16.2"
+            macos-version: "14"
+
+          - platform: "iOS"
+            xcode_version: "16.4"
+            macos-version: "15"
+
+          - platform: "iOS"
+            xcode_version: "26.0"
+            macos-version: "15"
+
+          # tvOS
+          - platform: "tvOS"
+            xcode_version: "16.4"
+            macos-version: "15"
+
+          # macOS
+          - platform: "macOS"
+            xcode_version: "16.4"
+            macos-version: "15"
+
+          # watchOS
+          - platform: "watchOS"
+            xcode_version: "16.4"
+            macos-version: "15"
+
     steps:
     - name: Select Xcode
       # See https://github.com/actions/runner-images/blob/main/images/macos/macos-15-Readme.md
       run: |
         sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app
         xcodebuild -version
+        
     - uses: actions/checkout@v4
       timeout-minutes: 4
       with:
@@ -42,4 +79,4 @@ jobs:
 
     - name: Run build script
       run: |
-        bin/build ${{ matrix.platform_args }} | xcpretty && exit ${PIPESTATUS[0]}
+        bin/build ${{ matrix.platform }} | xcpretty && exit ${PIPESTATUS[0]}

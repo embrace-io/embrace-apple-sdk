@@ -5,7 +5,7 @@
 import XCTest
 
 @testable import EmbraceCore
-@testable @_implementationOnly import EmbraceObjCUtilsInternal
+@testable import EmbraceObjCUtilsInternal
 
 class DummyURLSessionDelegate: NSObject, URLSessionDelegate {}
 
@@ -67,8 +67,7 @@ extension URLSessionInitWithDelegateSwizzlerTests {
         try sut.install()
     }
 
-    fileprivate func whenInitializingURLSessionWithDelegate(_ delegate: URLSessionDelegate = DummyURLSessionDelegate())
-    {
+    fileprivate func whenInitializingURLSessionWithDelegate(_ delegate: URLSessionDelegate = DummyURLSessionDelegate()) {
         session = URLSession(
             configuration: .default,
             delegate: delegate,

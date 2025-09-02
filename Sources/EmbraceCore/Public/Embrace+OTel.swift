@@ -89,7 +89,7 @@ extension Embrace: EmbraceOpenTelemetry {
     /// If there is no current session, this event will be dropped.
     /// - Parameter events: An array of `SpanEvent` objects.
     public func add(events: [SpanEvent]) {
-        guard events.count > 0 else {
+        guard events.isEmpty == false else {
             return
         }
 
@@ -99,9 +99,18 @@ extension Embrace: EmbraceOpenTelemetry {
         }
 
         let eventsToAdd = spanEventsLimiter.applyLimits(events: events)
-        guard eventsToAdd.count > 0 else {
+        guard eventsToAdd.isEmpty == false else {
             Embrace.logger.info("\(#function) failed: SpanEvents limit reached!")
             return
+        }
+
+        // console logs for breadcrumbs
+        if Embrace.logger.level != .none && Embrace.logger.level.rawValue <= LogLevel.debug.rawValue {
+            for event in eventsToAdd where event.isBreadcrumb {
+                if let message = event.attributes[SpanEventSemantics.Breadcrumb.keyMessage]?.description {
+                    Embrace.logger.debug("[Embrace Breadcrumb] \(message)")
+                }
+            }
         }
 
         span.add(events: eventsToAdd)
@@ -170,19 +179,18 @@ extension Embrace: EmbraceOpenTelemetry {
         attributes: [String: String] = [:],
         stackTraceBehavior: StackTraceBehavior = .default
     ) {
-        processingQueue.async {
-            self.logController.createLog(
-                message,
-                severity: severity,
-                type: type,
-                timestamp: timestamp,
-                attachment: nil,
-                attachmentId: nil,
-                attachmentUrl: nil,
-                attributes: attributes,
-                stackTraceBehavior: stackTraceBehavior
-            )
-        }
+        self.logController.createLog(
+            message,
+            severity: severity,
+            type: type,
+            timestamp: timestamp,
+            attachment: nil,
+            attachmentId: nil,
+            attachmentUrl: nil,
+            attributes: attributes,
+            stackTraceBehavior: stackTraceBehavior,
+            queue: processingQueue
+        )
     }
 
     /// Creates and adds a log with the given data as an attachment for the current session span.
@@ -205,20 +213,18 @@ extension Embrace: EmbraceOpenTelemetry {
         attributes: [String: String] = [:],
         stackTraceBehavior: StackTraceBehavior = .default
     ) {
-        processingQueue.async {
-            self.logController.createLog(
-                message,
-                severity: severity,
-                type: type,
-                timestamp: timestamp,
-                attachment: attachment,
-                attachmentId: nil,
-                attachmentUrl: nil,
-                attributes: attributes,
-                stackTraceBehavior: stackTraceBehavior
-            )
-
-        }
+        self.logController.createLog(
+            message,
+            severity: severity,
+            type: type,
+            timestamp: timestamp,
+            attachment: attachment,
+            attachmentId: nil,
+            attachmentUrl: nil,
+            attributes: attributes,
+            stackTraceBehavior: stackTraceBehavior,
+            queue: processingQueue
+        )
     }
 
     /// Creates and adds a log with the given attachment info for the current session span.
@@ -243,19 +249,18 @@ extension Embrace: EmbraceOpenTelemetry {
         attributes: [String: String],
         stackTraceBehavior: StackTraceBehavior = .default
     ) {
-        processingQueue.async {
-            self.logController.createLog(
-                message,
-                severity: severity,
-                type: type,
-                timestamp: timestamp,
-                attachment: nil,
-                attachmentId: attachmentId,
-                attachmentUrl: attachmentUrl,
-                attributes: attributes,
-                stackTraceBehavior: stackTraceBehavior
-            )
-        }
+        self.logController.createLog(
+            message,
+            severity: severity,
+            type: type,
+            timestamp: timestamp,
+            attachment: nil,
+            attachmentId: attachmentId,
+            attachmentUrl: attachmentUrl,
+            attributes: attributes,
+            stackTraceBehavior: stackTraceBehavior,
+            queue: processingQueue
+        )
     }
 }
 

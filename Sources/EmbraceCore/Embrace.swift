@@ -10,7 +10,7 @@ import Foundation
     import EmbraceOTelInternal
     import EmbraceStorageInternal
     import EmbraceUploadInternal
-    @_implementationOnly import EmbraceObjCUtilsInternal
+    import EmbraceObjCUtilsInternal
 #endif
 
 /// Main class used to interact with the Embrace SDK.
@@ -291,7 +291,7 @@ import Foundation
         // must be called on main thread in order to fetch the app state
         sessionLifecycle.setup()
 
-        return try Embrace._syncLock.lockedForWriting {
+        return Embrace._syncLock.lockedForWriting {
             guard state == .initialized else {
                 Embrace.logger.warning("The Embrace SDK can only be started once!")
                 return self
@@ -370,7 +370,7 @@ import Foundation
             throw EmbraceSetupError.invalidThread("Embrace must be stopped on the main thread")
         }
 
-        return try Embrace._syncLock.lockedForWriting {
+        return Embrace._syncLock.lockedForWriting {
             guard state != .stopped else {
                 Embrace.logger.warning("Embrace was already stopped!")
                 return self

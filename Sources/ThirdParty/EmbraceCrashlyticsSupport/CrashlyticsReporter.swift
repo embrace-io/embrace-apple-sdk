@@ -37,22 +37,18 @@ public final class CrashlyticsReporter: NSObject, CrashReporter {
     }
 
     let options: CrashlyticsReporter.Options
-    var logger: InternalLogger?
     var context: CrashReporterContext?
 
     /// Object used to interact with Firebase
     let wrapper: CrashlyticsWrapper = CrashlyticsWrapper()
 
-    /// Sets the current session identifier that will be included in a crash report.
-    public var currentSessionId: String? {
-        didSet {
-            wrapper.currentSessionId = currentSessionId
-        }
+    public var basePath: String? {
+        nil
     }
 
     /// We let Crashlytics handle MetricKit
     public var disableMetricKitReports: Bool {
-        return true
+        true
     }
 
     /// Block called when there's a new report to upload
@@ -63,11 +59,8 @@ public final class CrashlyticsReporter: NSObject, CrashReporter {
         return .unavailable
     }
 
-    public func install(context: CrashReporterContext, logger: InternalLogger) {
+    public func install(context: CrashReporterContext) throws {
         self.context = context
-        self.logger = logger
-        wrapper.sdkVersion = context.sdkVersion
-
         context.notificationCenter.addObserver(
             self,
             selector: #selector(onNetworkRequestCaptured),
@@ -112,12 +105,16 @@ public final class CrashlyticsReporter: NSObject, CrashReporter {
     }
 
     /// Unused
-    public func deleteCrashReport(id: Int) {
+    public func deleteCrashReport(_ report: EmbraceCrashReport) {
     }
-}
 
-extension CrashlyticsReporter: ExtendableCrashReporter {
-    public func appendCrashInfo(key: String, value: String) {
-        wrapper.setCustomValue(key: key, value: value)
+    public func appendCrashInfo(key: String, value: String?) {
+        if let value {
+            wrapper.setCustomValue(key: key, value: value)
+        }
+    }
+
+    public func getCrashInfo(key: String) -> String? {
+        wrapper.getCustomValue(key: key)
     }
 }

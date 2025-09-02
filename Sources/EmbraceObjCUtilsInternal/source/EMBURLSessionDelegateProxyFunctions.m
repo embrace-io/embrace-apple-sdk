@@ -47,7 +47,7 @@ void proxy_URLSession_didCreateTask(id self, SEL _cmd, NSURLSession *session, NS
 {
     id target = [((EMBURLSessionDelegateProxy *)self) getTargetForSelector:_cmd session:session];
     if (target) {
-        if (@available(iOS 16.0, tvOS 16.0, *)) {
+        if (@available(iOS 16.0, tvOS 16.0, watchOS 9.0, *)) {
             [target URLSession:session didCreateTask:task];
         }
     }
@@ -102,7 +102,7 @@ void proxy_URLSession_task_needNewBodyStreamFromOffset(id self, SEL _cmd, NSURLS
 {
     id target = [((EMBURLSessionDelegateProxy *)self) getTargetForSelector:_cmd session:session];
     if (target) {
-        if (@available(iOS 17.0, tvOS 17.0, *)) {
+        if (@available(iOS 17.0, tvOS 17.0, macOS 14.0, watchOS 10.0, *)) {
             [target URLSession:session
                                        task:task
                 needNewBodyStreamFromOffset:offset
@@ -131,7 +131,7 @@ void proxy_URLSession_task_didReceiveInformationalResponse(id self, SEL _cmd, NS
 {
     id target = [((EMBURLSessionDelegateProxy *)self) getTargetForSelector:_cmd session:session];
     if (target) {
-        if (@available(iOS 17.0, tvOS 17.0, *)) {
+        if (@available(iOS 17.0, tvOS 17.0, macOS 14.0, watchOS 10.0, *)) {
             [target URLSession:session task:task didReceiveInformationalResponse:response];
         }
     }

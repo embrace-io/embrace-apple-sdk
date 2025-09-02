@@ -29,7 +29,7 @@ class DefaultInternalLogger: BaseInternalLogger {
     private var exportLimitReached: Bool = false
     private var lastExportDate: Date?
 
-    private let queue: DispatchableQueue
+    internal let queue: DispatchableQueue
 
     init(exportFilePath: URL?, exportByCountLimit: Int = 1000, exportCategory: String = "custom-export") {
         self.exportFilePath = exportFilePath
@@ -52,14 +52,14 @@ class DefaultInternalLogger: BaseInternalLogger {
             os_log(level.osLogType, log: defaultLogger, "%{public}@", message)
         }
 
-        if #available(iOS 15.0, tvOS 15.0, macOS 10, *) {
+        if #available(iOS 15.0, tvOS 15.0, macOS 10, watchOS 8.0, *) {
             if level == .critical {
                 export()
             }
         }
     }
 
-    @available(iOS 15.0, tvOS 15.0, macOS 10, *)
+    @available(iOS 15.0, tvOS 15.0, macOS 10, watchOS 8.0, *)
     /// Exports all logs in the `custom-export` category to a file.
     /// Subsequent calls append any new entries created since the last call into the file.
     func export() {
@@ -158,7 +158,7 @@ extension LogLevel {
     }
 }
 
-@available(iOS 15.0, tvOS 15.0, *)
+@available(iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 extension OSLogEntryLog {
     var formattedMessage: String {
         "[\(date.formatted(date: .numeric, time: .complete))] \(composedMessage)"

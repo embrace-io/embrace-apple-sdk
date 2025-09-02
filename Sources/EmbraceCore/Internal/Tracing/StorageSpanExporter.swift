@@ -32,28 +32,35 @@ class StorageSpanExporter: SpanExporter {
         }
 
         var result = SpanExporterResultCode.success
-        for spanData in spans {
+        for var spanData in spans {
+
+            // spanData endTime is non-optional and will be set during `toSpanData()`
+            let endTime = spanData.hasEnded ? spanData.endTime : nil
+
+            // Prevent exporting our session spans on end.
+            // This process is handled by the `SessionController` to prevent
+            // race conditions when a session ends and its payload gets built.
+            if endTime != nil && spanData.embType == SpanType.session {
+                continue
+            }
+
+            // sanitize name
+            let spanName = sanitizedName(spanData.name, type: spanData.embType)
+            guard !spanName.isEmpty else {
+                logger?.warning("Can't export span with empty name!")
+                result = .failure
+                continue
+            }
 
             do {
+                // add session id attribute
+                if let sessionId = sessionController?.currentSession?.idRaw {
+                    var attributes = spanData.attributes
+                    attributes[SpanSemantics.keySessionId] = .string(sessionId)
+                    spanData = spanData.settingAttributes(attributes)
+                }
+
                 let data = try spanData.toJSON()
-
-                // spanData endTime is non-optional and will be set during `toSpanData()`
-                let endTime = spanData.hasEnded ? spanData.endTime : nil
-
-                // Prevent exporting our session spans on end.
-                // This process is handled by the `SessionController` to prevent
-                // race conditions when a session ends and its payload gets built.
-                if endTime != nil && spanData.embType == SpanType.session {
-                    continue
-                }
-
-                // sanitize name
-                let spanName = sanitizedName(spanData.name, type: spanData.embType)
-                guard !spanName.isEmpty else {
-                    logger?.warning("Can't export span with empty name!")
-                    result = .failure
-                    continue
-                }
 
                 storage.upsertSpan(
                     id: spanData.spanId.hexString,

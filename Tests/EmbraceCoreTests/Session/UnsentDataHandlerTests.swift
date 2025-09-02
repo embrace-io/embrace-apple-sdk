@@ -65,7 +65,8 @@ class UnsentDataHandlerTests: XCTestCase {
         EmbraceHTTPMock.clearRequests()
     }
 
-    func test_withoutCrashReporter() throws {
+    func test_withoutCrashReporter() async throws {
+        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
         // mock successful requests
         EmbraceHTTPMock.mock(url: testSpansUrl())
 
@@ -79,7 +80,7 @@ class UnsentDataHandlerTests: XCTestCase {
         let otel = MockEmbraceOpenTelemetry()
 
         // given a finished session in the storage
-        storage.addSession(
+        await storage.addSession(
             id: TestConstants.sessionId,
             processId: ProcessIdentifier.current,
             state: .foreground,
@@ -88,11 +89,9 @@ class UnsentDataHandlerTests: XCTestCase {
             startTime: Date(timeIntervalSinceNow: -60),
             endTime: Date()
         )
-        wait(delay: .defaultTimeout)
 
         // when sending unsent sessions
-        UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel, crashReporter: nil)
-        wait(delay: .longTimeout)
+        await UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel, crashReporter: nil)
 
         // then a session request was sent
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 1)
@@ -109,7 +108,8 @@ class UnsentDataHandlerTests: XCTestCase {
         XCTAssertEqual(otel.logs.count, 0)
     }
 
-    func test_withoutCrashReporter_error() throws {
+    func test_withoutCrashReporter_error() async throws {
+        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
         // mock error requests
         EmbraceHTTPMock.mock(url: testSpansUrl(), errorCode: 500)
 
@@ -123,7 +123,7 @@ class UnsentDataHandlerTests: XCTestCase {
         let otel = MockEmbraceOpenTelemetry()
 
         // given a finished session in the storage
-        storage.addSession(
+        await storage.addSession(
             id: TestConstants.sessionId,
             processId: ProcessIdentifier.current,
             state: .foreground,
@@ -132,11 +132,9 @@ class UnsentDataHandlerTests: XCTestCase {
             startTime: Date(timeIntervalSinceNow: -60),
             endTime: Date()
         )
-        wait(delay: .defaultTimeout)
 
         // when failing to send unsent sessions
-        UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel, crashReporter: nil)
-        wait(delay: .longTimeout)
+        await UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel, crashReporter: nil)
 
         // then a session request was attempted
         XCTAssertGreaterThan(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 0)
@@ -156,8 +154,8 @@ class UnsentDataHandlerTests: XCTestCase {
         XCTAssertEqual(otel.logs.count, 0)
     }
 
-    func test_withCrashReporter() throws {
-        throw XCTSkip("Fix this soon; don't know why it's failing")
+    func test_withCrashReporter() async throws {
+        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on watchOS")
         // mock successful requests
         EmbraceHTTPMock.mock(url: testSpansUrl())
         EmbraceHTTPMock.mock(url: testLogsUrl())
@@ -173,10 +171,11 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // given a crash reporter
         let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.toString)
+        let embraceReporter = EmbraceCrashReporter(reporter: crashReporter)
         let report = crashReporter.mockReports[0]
 
         // given a finished session in the storage
-        storage.addSession(
+        await storage.addSession(
             id: TestConstants.sessionId,
             processId: ProcessIdentifier.current,
             state: .foreground,
@@ -185,7 +184,6 @@ class UnsentDataHandlerTests: XCTestCase {
             startTime: Date(timeIntervalSinceNow: -60),
             endTime: Date()
         )
-        wait(delay: .defaultTimeout)
 
         // the crash report id is set on the session
         let listener = CoreDataListener()
@@ -199,16 +197,13 @@ class UnsentDataHandlerTests: XCTestCase {
         }
 
         // when sending unsent sessions
-        UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel, crashReporter: crashReporter)
-
-        wait(for: [expectation1], timeout: .veryLongTimeout)
+        await UnsentDataHandler.sendUnsentData(
+            storage: storage, upload: upload, otel: otel, crashReporter: embraceReporter)
 
         // then a crash report was sent
         // then a session request was sent
-        wait(timeout: .veryLongTimeout) {
-            EmbraceHTTPMock.requestsForUrl(self.testLogsUrl()).count == 1
-                && EmbraceHTTPMock.requestsForUrl(self.testSpansUrl()).count == 1
-        }
+        XCTAssert(EmbraceHTTPMock.requestsForUrl(self.testLogsUrl()).count == 1)
+        XCTAssert(EmbraceHTTPMock.requestsForUrl(self.testSpansUrl()).count == 1)
 
         // then the total amount of requests is correct
         XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 2)
@@ -222,13 +217,8 @@ class UnsentDataHandlerTests: XCTestCase {
         XCTAssertEqual(uploadData.count, 0)
 
         // then the crash is not longer stored
-        let expectation = XCTestExpectation()
-        crashReporter.fetchUnsentCrashReports { reports in
-            XCTAssertEqual(reports.count, 0)
-            expectation.fulfill()
-        }
-
-        wait(for: [expectation], timeout: .defaultTimeout)
+        let reports = await crashReporter.fetchUnsentCrashReports()
+        XCTAssertEqual(reports.count, 0)
 
         // then the raw crash log was sent
         XCTAssertEqual(otel.logs.count, 1)
@@ -236,7 +226,8 @@ class UnsentDataHandlerTests: XCTestCase {
         XCTAssertEqual(otel.logs[0].timestamp, report.timestamp)
     }
 
-    func test_withCrashReporter_error() throws {
+    func test_withCrashReporter_error() async throws {
+        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
         EmbraceHTTPMock.mock(url: testSpansUrl(), errorCode: 500)
         EmbraceHTTPMock.mock(url: testLogsUrl(), errorCode: 500)
 
@@ -251,6 +242,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // given a crash reporter
         let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.toString)
+        let embraceReporter = EmbraceCrashReporter(reporter: crashReporter)
         let report = crashReporter.mockReports[0]
 
         // then the crash report id is set on the session
@@ -265,7 +257,7 @@ class UnsentDataHandlerTests: XCTestCase {
         }
 
         // given a finished session in the storage
-        storage.addSession(
+        await storage.addSession(
             id: TestConstants.sessionId,
             processId: ProcessIdentifier.current,
             state: .foreground,
@@ -274,19 +266,17 @@ class UnsentDataHandlerTests: XCTestCase {
             startTime: Date(timeIntervalSinceNow: -60),
             endTime: Date()
         )
-        wait(delay: .defaultTimeout)
 
         // when failing to send unsent sessions
-        UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel, crashReporter: crashReporter)
+        await UnsentDataHandler.sendUnsentData(
+            storage: storage, upload: upload, otel: otel, crashReporter: embraceReporter)
 
-        wait(for: [didSendCrashesExpectation], timeout: .veryLongTimeout)
+        await fulfillment(of: [didSendCrashesExpectation], timeout: .defaultTimeout)
 
         // then a crash report request was attempted
         // then a session request was attempted
-        wait(timeout: .veryLongTimeout) {
-            EmbraceHTTPMock.requestsForUrl(self.testLogsUrl()).count > 0
-                && EmbraceHTTPMock.requestsForUrl(self.testSpansUrl()).count > 0
-        }
+        XCTAssert(EmbraceHTTPMock.requestsForUrl(self.testLogsUrl()).count > 0)
+        XCTAssert(EmbraceHTTPMock.requestsForUrl(self.testSpansUrl()).count > 0)
 
         // then the total amount of requests is correct
         XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 2)
@@ -300,13 +290,8 @@ class UnsentDataHandlerTests: XCTestCase {
         XCTAssertEqual(uploadData.count, 2)
 
         // then the crash is not longer stored
-        let expectation = XCTestExpectation()
-        crashReporter.fetchUnsentCrashReports { reports in
-            XCTAssertEqual(reports.count, 0)
-            expectation.fulfill()
-        }
-
-        wait(for: [expectation], timeout: .defaultTimeout)
+        let reports = await crashReporter.fetchUnsentCrashReports()
+        XCTAssertEqual(reports.count, 0)
 
         // then the raw crash log was sent
         XCTAssertEqual(otel.logs.count, 1)
@@ -314,7 +299,8 @@ class UnsentDataHandlerTests: XCTestCase {
         XCTAssertEqual(otel.logs[0].timestamp, report.timestamp)
     }
 
-    func test_withCrashReporter_unfinishedSession() throws {
+    func test_withCrashReporter_unfinishedSession() async throws {
+        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
         // mock successful requests
         EmbraceHTTPMock.mock(url: testSpansUrl())
         EmbraceHTTPMock.mock(url: testLogsUrl())
@@ -330,10 +316,11 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // given a crash reporter
         let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.toString)
+        let embraceReporter = EmbraceCrashReporter(reporter: crashReporter)
         let report = crashReporter.mockReports[0]
 
         // given an unfinished session in the storage
-        storage.addSession(
+        await storage.addSession(
             id: TestConstants.sessionId,
             processId: ProcessIdentifier.current,
             state: .foreground,
@@ -341,7 +328,6 @@ class UnsentDataHandlerTests: XCTestCase {
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSinceNow: -60)
         )
-        wait(delay: .defaultTimeout)
 
         // the crash report id and timestamp is set on the session
         let listener = CoreDataListener()
@@ -356,16 +342,13 @@ class UnsentDataHandlerTests: XCTestCase {
         }
 
         // when sending unsent sessions
-        UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel, crashReporter: crashReporter)
-
-        wait(for: [expectation1], timeout: 5000)
+        await UnsentDataHandler.sendUnsentData(
+            storage: storage, upload: upload, otel: otel, crashReporter: embraceReporter)
 
         // then a crash report was sent
         // then a session request was sent
-        wait(timeout: .veryLongTimeout) {
-            EmbraceHTTPMock.requestsForUrl(self.testLogsUrl()).count == 1
-                && EmbraceHTTPMock.requestsForUrl(self.testSpansUrl()).count == 1
-        }
+        XCTAssert(EmbraceHTTPMock.requestsForUrl(self.testLogsUrl()).count == 1)
+        XCTAssert(EmbraceHTTPMock.requestsForUrl(self.testSpansUrl()).count == 1)
 
         // then the total amount of requests is correct
         XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 2)
@@ -375,17 +358,10 @@ class UnsentDataHandlerTests: XCTestCase {
         XCTAssertNil(session)
 
         // then the session and crash report upload data is no longer cached
-        wait(timeout: .veryLongTimeout) {
-            upload.cache.fetchAllUploadData().count == 0
-        }
+        XCTAssert(upload.cache.fetchAllUploadData().count == 0)
 
-        let expectation = XCTestExpectation()
-        crashReporter.fetchUnsentCrashReports { reports in
-            XCTAssertEqual(reports.count, 0)
-            expectation.fulfill()
-        }
-
-        wait(for: [expectation], timeout: .defaultTimeout)
+        let reports = await crashReporter.fetchUnsentCrashReports()
+        XCTAssertEqual(reports.count, 0)
 
         // then the raw crash log was sent
         XCTAssertEqual(otel.logs.count, 1)
@@ -393,7 +369,8 @@ class UnsentDataHandlerTests: XCTestCase {
         XCTAssertEqual(otel.logs[0].timestamp, report.timestamp)
     }
 
-    func test_sendCrashLog() throws {
+    func test_sendCrashLog() async throws {
+        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
         // mock successful requests
         EmbraceHTTPMock.mock(url: testLogsUrl())
 
@@ -407,10 +384,11 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // given a crash reporter
         let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.toString)
+        let embraceReporter = EmbraceCrashReporter(reporter: crashReporter)
         let report = crashReporter.mockReports[0]
 
         // given a finished session in the storage
-        let session = storage.addSession(
+        let session = await storage.addSession(
             id: TestConstants.sessionId,
             processId: ProcessIdentifier.current,
             state: .foreground,
@@ -419,12 +397,11 @@ class UnsentDataHandlerTests: XCTestCase {
             startTime: Date(timeIntervalSinceNow: -60),
             endTime: Date()
         )
-        wait(delay: .defaultTimeout)
 
         // when sending a crash log
-        UnsentDataHandler.sendCrashLog(
+        await UnsentDataHandler.sendCrashLog(
             report: report,
-            reporter: crashReporter,
+            reporter: embraceReporter,
             session: session,
             storage: storage,
             upload: upload,
@@ -432,9 +409,7 @@ class UnsentDataHandlerTests: XCTestCase {
         )
 
         // then a crash log was sent
-        wait(timeout: .veryLongTimeout) {
-            EmbraceHTTPMock.requestsForUrl(self.testLogsUrl()).count > 0
-        }
+        XCTAssert(EmbraceHTTPMock.requestsForUrl(self.testLogsUrl()).count > 0)
 
         // then the total amount of requests is correct
         XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 1)
@@ -456,7 +431,7 @@ class UnsentDataHandlerTests: XCTestCase {
         XCTAssertEqual(otel.logs[0].attributes["emb.payload"], .string(report.payload))
     }
 
-    func test_spanCleanUp_sendUnsentData() throws {
+    func test_spanCleanUp_sendUnsentData() async throws {
         // mock successful requests
         EmbraceHTTPMock.mock(url: testSpansUrl())
         EmbraceHTTPMock.mock(url: testLogsUrl())
@@ -471,7 +446,7 @@ class UnsentDataHandlerTests: XCTestCase {
         let otel = MockEmbraceOpenTelemetry()
 
         // given an unfinished session in the storage
-        storage.addSession(
+        await storage.addSession(
             id: TestConstants.sessionId,
             processId: ProcessIdentifier.current,
             state: .foreground,
@@ -479,7 +454,6 @@ class UnsentDataHandlerTests: XCTestCase {
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSinceNow: -60)
         )
-        wait(delay: .defaultTimeout)
 
         // given old closed span in storage
         storage.upsertSpan(
@@ -504,8 +478,7 @@ class UnsentDataHandlerTests: XCTestCase {
         )
 
         // when sending unsent sessions
-        UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel)
-        wait(delay: .longTimeout)
+        await UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel)
 
         // then the old closed span was removed
         // and the open span was closed
@@ -516,8 +489,7 @@ class UnsentDataHandlerTests: XCTestCase {
         XCTAssertNotNil(spans[0].endTime)
 
         // when sending unsent sessions again
-        UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel)
-        wait(delay: .longTimeout)
+        await UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel)
 
         // then the span that was closed for the last session
         // is not valid anymore, and therefore removed
@@ -525,7 +497,7 @@ class UnsentDataHandlerTests: XCTestCase {
         XCTAssertEqual(spans.count, 0)
     }
 
-    func test_metadataCleanUp_sendUnsendData() throws {
+    func test_metadataCleanUp_sendUnsendData() async throws {
         // mock successful requests
         EmbraceHTTPMock.mock(url: testSpansUrl())
         EmbraceHTTPMock.mock(url: testLogsUrl())
@@ -540,7 +512,7 @@ class UnsentDataHandlerTests: XCTestCase {
         let otel = MockEmbraceOpenTelemetry()
 
         // given an unfinished session in the storage
-        storage.addSession(
+        await storage.addSession(
             id: TestConstants.sessionId,
             processId: ProcessIdentifier.current,
             state: .foreground,
@@ -548,7 +520,6 @@ class UnsentDataHandlerTests: XCTestCase {
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSinceNow: -60)
         )
-        wait(delay: .defaultTimeout)
 
         // given metadata in storage
         storage.addMetadata(
@@ -587,13 +558,12 @@ class UnsentDataHandlerTests: XCTestCase {
         )
 
         // when sending unsent sessions
-        UnsentDataHandler.sendUnsentData(
+        await UnsentDataHandler.sendUnsentData(
             storage: storage,
             upload: upload,
             otel: otel,
             currentSessionId: TestConstants.sessionId
         )
-        wait(delay: .longTimeout)
 
         // then all metadata is cleaned up
         let records: [MetadataRecord] = storage.fetchAll()
@@ -604,7 +574,7 @@ class UnsentDataHandlerTests: XCTestCase {
         XCTAssertNil(records.first(where: { $0.key == "differentProcessId" }))
     }
 
-    func test_spanCleanUp_uploadSession() throws {
+    func test_spanCleanUp_uploadSession() async throws {
         // mock successful requests
         EmbraceHTTPMock.mock(url: testSpansUrl())
         EmbraceHTTPMock.mock(url: testLogsUrl())
@@ -617,7 +587,7 @@ class UnsentDataHandlerTests: XCTestCase {
             options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
 
         // given an unfinished session in the storage
-        let session = storage.addSession(
+        let session = await storage.addSession(
             id: TestConstants.sessionId,
             processId: ProcessIdentifier.current,
             state: .foreground,
@@ -625,7 +595,6 @@ class UnsentDataHandlerTests: XCTestCase {
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSinceNow: -60)
         )!
-        wait(delay: .defaultTimeout)
 
         // given old closed span in storage
         storage.upsertSpan(
@@ -639,8 +608,7 @@ class UnsentDataHandlerTests: XCTestCase {
         )
 
         // when uploading the session
-        UnsentDataHandler.sendSession(session, storage: storage, upload: upload)
-        wait(delay: .longTimeout)
+        await UnsentDataHandler.sendSession(session, storage: storage, upload: upload)
 
         // then the old closed span was removed
         // and the session was removed
@@ -650,7 +618,7 @@ class UnsentDataHandlerTests: XCTestCase {
         XCTAssertEqual(sessions.count, 0)
     }
 
-    func test_metadataCleanUp_uploadSession() throws {
+    func test_metadataCleanUp_uploadSession() async throws {
         // mock successful requests
         EmbraceHTTPMock.mock(url: testSpansUrl())
         EmbraceHTTPMock.mock(url: testLogsUrl())
@@ -663,7 +631,7 @@ class UnsentDataHandlerTests: XCTestCase {
             options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
 
         // given an unfinished session in the storage
-        let session = storage.addSession(
+        let session = await storage.addSession(
             id: TestConstants.sessionId,
             processId: ProcessIdentifier.current,
             state: .foreground,
@@ -671,7 +639,6 @@ class UnsentDataHandlerTests: XCTestCase {
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSinceNow: -60)
         )!
-        wait(delay: .defaultTimeout)
 
         // given metadata in storage
         storage.addMetadata(
@@ -696,8 +663,7 @@ class UnsentDataHandlerTests: XCTestCase {
         )
 
         // when uploading the session
-        UnsentDataHandler.sendSession(session, storage: storage, upload: upload)
-        wait(delay: .longTimeout)
+        await UnsentDataHandler.sendSession(session, storage: storage, upload: upload)
 
         // then metadata is correctly cleaned up
         let records: [MetadataRecord] = storage.fetchAll()
@@ -706,7 +672,8 @@ class UnsentDataHandlerTests: XCTestCase {
         XCTAssertNil(records.first(where: { $0.key == "differentProcessId" }))
     }
 
-    func test_logsUpload() throws {
+    func test_logsUpload() async throws {
+        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
         // mock successful requests
         EmbraceHTTPMock.mock(url: testSpansUrl())
         EmbraceHTTPMock.mock(url: testLogsUrl())
@@ -737,8 +704,8 @@ class UnsentDataHandlerTests: XCTestCase {
         }
 
         // when sending unsent data
-        UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel, logController: logController)
-        wait(delay: .longTimeout)
+        await UnsentDataHandler.sendUnsentData(
+            storage: storage, upload: upload, otel: otel, logController: logController)
 
         // then no sessions were sent
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 0)
@@ -747,7 +714,8 @@ class UnsentDataHandlerTests: XCTestCase {
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 1)
     }
 
-    func test_criticalLogs() throws {
+    func test_criticalLogs() async throws {
+        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
         // mock successful requests
         EmbraceHTTPMock.mock(url: testLogsUrl())
 
@@ -759,14 +727,13 @@ class UnsentDataHandlerTests: XCTestCase {
         try "TEST".write(to: criticalLogsFilePath, atomically: true, encoding: .utf8)
 
         // when sending critical logs
-        UnsentDataHandler.sendCriticalLogs(fileUrl: criticalLogsFilePath, upload: upload)
-        wait(delay: .longTimeout)
+        await UnsentDataHandler.sendCriticalLogs(fileUrl: criticalLogsFilePath, upload: upload)
 
         // then a log is sent
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 1)
     }
 
-    func test_criticalLogs_noFile() throws {
+    func test_criticalLogs_noFile() async throws {
         // mock successful requests
         EmbraceHTTPMock.mock(url: testLogsUrl())
 
@@ -775,8 +742,7 @@ class UnsentDataHandlerTests: XCTestCase {
             options: uploadOptions, logger: logger, queue: queue, semaphore: .init(value: .max))
 
         // when sending critical logs without a file present
-        UnsentDataHandler.sendCriticalLogs(fileUrl: criticalLogsFilePath, upload: upload)
-        wait(delay: .longTimeout)
+        await UnsentDataHandler.sendCriticalLogs(fileUrl: criticalLogsFilePath, upload: upload)
 
         // then no log is sent
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 0)
@@ -809,4 +775,33 @@ extension UnsentDataHandlerTests {
         url.testName = testName
         return url
     }
+}
+
+extension EmbraceStorage {
+
+    @discardableResult
+    public func addSession(
+        id: SessionIdentifier,
+        processId: ProcessIdentifier,
+        state: SessionState,
+        traceId: String,
+        spanId: String,
+        startTime: Date,
+        endTime: Date? = nil,
+        lastHeartbeatTime: Date? = nil,
+        crashReportId: String? = nil,
+        coldStart: Bool = false,
+        cleanExit: Bool = false,
+        appTerminated: Bool = false
+    ) async -> EmbraceSession? {
+        await withCheckedContinuation { continuation in
+            var session: EmbraceSession? = nil
+            session = addSession(
+                id: id, processId: processId, state: state, traceId: traceId, spanId: spanId, startTime: startTime
+            ) {
+                continuation.resume(returning: session)
+            }
+        }
+    }
+
 }

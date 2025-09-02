@@ -96,7 +96,7 @@ final class EmbraceOTelTests: XCTestCase {
         let builder = otel.buildSpan(name: "example", type: .performance)
 
         let span = builder.startSpan()
-        XCTAssertTrue(span is RecordEventsReadableSpan)
+        XCTAssertTrue(span is SpanSdk)
     }
 
     func test_buildSpan_withAttributes_appendsAttributes() throws {

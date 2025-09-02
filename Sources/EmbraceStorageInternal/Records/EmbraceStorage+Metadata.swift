@@ -236,7 +236,7 @@ extension EmbraceStorage {
     /// - Note: This method is inteded to be indirectly used by implementers of the SDK
     ///         For this reason records of the `.requiredResource` type are not removed.
     public func removeAllMetadata(type: MetadataRecordType, lifespans: [MetadataRecordLifespan]) {
-        guard type != .requiredResource && lifespans.count > 0 else {
+        guard type != .requiredResource && lifespans.isEmpty == false else {
             return
         }
 
@@ -259,7 +259,7 @@ extension EmbraceStorage {
     /// - Note: This method is inteded to be indirectly used by implementers of the SDK
     ///         For this reason records of the `.requiredResource` type are not removed.
     public func removeAllMetadata(keys: [String], lifespan: MetadataRecordLifespan) {
-        guard keys.count > 0 else {
+        guard keys.isEmpty == false else {
             return
         }
 

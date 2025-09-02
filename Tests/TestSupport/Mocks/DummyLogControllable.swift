@@ -13,7 +13,9 @@ public class DummyLogControllable: LogControllable {
 
     public init() {}
 
-    public func uploadAllPersistedLogs() {}
+    public func uploadAllPersistedLogs(_ completion: (() -> Void)?) {
+        completion?()
+    }
 
     public func createLog(
         _ message: String,
@@ -24,7 +26,8 @@ public class DummyLogControllable: LogControllable {
         attachmentId: String?,
         attachmentUrl: URL?,
         attributes: [String: String],
-        stackTraceBehavior: StackTraceBehavior
+        stackTraceBehavior: StackTraceBehavior,
+        queue: DispatchQueue
     ) {}
 
     public func batchFinished(withLogs logs: [EmbraceLog]) {}

@@ -4,10 +4,10 @@
 //
 //
 
-import EmbraceCrash
+import EmbraceCommonInternal
 import EmbraceIO
+import EmbraceKSCrashSupport
 import EmbraceObjCUtilsInternal
-import OpenTelemetrySdk
 import SwiftUI
 
 struct EmbraceInitScreen: View {
@@ -85,8 +85,7 @@ extension EmbraceInitScreen {
             let oldBootTime = UserDefaults.standard.double(forKey: "emb.bootTime")
             let newBuildUUID = EMBDevice.buildUUID?.uuidString
             let newBootTime = EMBDevice.bootTime.doubleValue
-            if (oldBuildUUID == nil || oldBootTime == 0) || (oldBuildUUID != newBuildUUID && oldBootTime != newBootTime)
-            {
+            if (oldBuildUUID == nil || oldBootTime == 0) || (oldBuildUUID != newBuildUUID && oldBootTime != newBootTime) {
                 UserDefaults.standard.setValue(newBuildUUID, forKey: "emb.buildUUID")
                 UserDefaults.standard.setValue(newBootTime, forKey: "emb.bootTime")
             }
@@ -96,13 +95,6 @@ extension EmbraceInitScreen {
         do {
             viewModel.showProgressview = true
             let services = CaptureServiceBuilder()
-                .add(
-                    .view(
-                        options: ViewCaptureService.Options(
-                            instrumentVisibility: true,
-                            instrumentFirstRender: true))
-                )
-
                 .addDefaults()
                 .build()
             try Embrace
@@ -114,7 +106,7 @@ extension EmbraceInitScreen {
                                 baseURL: viewModel.baseURL,
                                 configBaseURL: viewModel.configBaseURL),
                             captureServices: services,
-                            crashReporter: EmbraceCrashReporter(),
+                            crashReporter: KSCrashReporter(),
                             export: .init(
                                 spanExporter: dataCollector.spanExporter, logExporter: dataCollector.logExporter))
                 ).start()

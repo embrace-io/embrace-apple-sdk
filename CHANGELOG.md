@@ -4,7 +4,7 @@
     * Made some helpers public to allow building `CaptureServices`.
     * Prevent crashes related to not being able to load the persistence layer (e.g. when disk is full)
 * Improvements
-    * Bumped OpenTelemetry to 2.0.1, which includes minor changes.
+    * Bumped OpenTelemetry to 2.0.2, which includes minor changes.
     * Updated documentation to mark `addResource` as internal-use only.
 
 ## 6.13.0

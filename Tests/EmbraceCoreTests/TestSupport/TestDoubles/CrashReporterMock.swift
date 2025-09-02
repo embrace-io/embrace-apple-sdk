@@ -6,8 +6,19 @@ import EmbraceCommonInternal
 import Foundation
 
 class CrashReporterMock: CrashReporter {
+    var sdkVersion: String?
 
-    var currentSessionId: String?
+    var customInfo: [String: String] = [:]
+    func appendCrashInfo(key: String, value: String?) {
+        customInfo[key] = value
+    }
+
+    func getCrashInfo(key: String) -> String? {
+        customInfo[key]
+    }
+
+    var basePath: String?
+
     var mockReports: [EmbraceCrashReport]
 
     var onNewReport: ((EmbraceCrashReport) -> Void)?
@@ -19,7 +30,8 @@ class CrashReporterMock: CrashReporter {
         crashSessionId: String? = nil,
         mockReports: [EmbraceCrashReport]? = nil
     ) {
-        self.currentSessionId = currentSessionId
+        customInfo[CrashReporterInfoKey.sessionId] = currentSessionId
+
         self.mockReports =
             mockReports ?? [
                 EmbraceCrashReport(
@@ -41,13 +53,21 @@ class CrashReporterMock: CrashReporter {
         completion(mockReports)
     }
 
-    func deleteCrashReport(id: Int) {
-        mockReports.removeAll { report in
-            report.internalId == id
+    func fetchUnsentCrashReports() async -> [EmbraceCrashReport] {
+        await withCheckedContinuation { continuation in
+            fetchUnsentCrashReports { reports in
+                continuation.resume(returning: reports)
+            }
         }
     }
 
-    func install(context: CrashReporterContext, logger: InternalLogger) {
+    func deleteCrashReport(_ report: EmbraceCrashReport) {
+        mockReports.removeAll { r in
+            r.internalId == report.internalId
+        }
+    }
+
+    func install(context: CrashReporterContext) throws {
 
     }
 }

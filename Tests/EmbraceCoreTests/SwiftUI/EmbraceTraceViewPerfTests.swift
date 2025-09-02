@@ -1,4 +1,4 @@
-#if canImport(UIKit)
+#if canImport(UIKit) && !os(watchOS)
 
     import UIKit
     import EmbraceCommonInternal
@@ -12,8 +12,7 @@
 
     @testable import EmbraceCore
 
-    @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
-    @MainActor
+    @available(iOS 13, macOS 10.15, tvOS 13, *)
     final class EmbraceTraceViewPerfTests: XCTestCase {
 
         var spanProcessor: MockSpanProcessor!
@@ -48,6 +47,7 @@
             traceViewContext = nil
         }
 
+        @MainActor
         func runLayout() {
             let traceView = EmbraceTraceView("BenchmarkScreen") {
                 Text("Performance Test")
@@ -66,6 +66,7 @@
             window.isHidden = true
         }
 
+        @MainActor
         func testEmbraceTraceViewEnabledPerformance() async {
             mockConfig.isSwiftUiViewInstrumentationEnabled = true
             measure {
@@ -73,6 +74,7 @@
             }
         }
 
+        @MainActor
         func testEmbraceTraceViewDisabledPerformance() async {
             mockConfig.isSwiftUiViewInstrumentationEnabled = false
             measure {

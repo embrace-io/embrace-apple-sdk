@@ -101,7 +101,8 @@
             }
 
             if let currentSession = controller.currentSession,
-                let currentState = SessionState(rawValue: currentSession.state) {
+                let currentState = SessionState(rawValue: currentSession.state)
+            {
 
                 if currentState == .foreground {
                     // if current session is already foreground, do nothing
@@ -136,7 +137,8 @@
 
             // if current session is already background, do nothing
             if let currentSession = controller.currentSession,
-                SessionState(rawValue: currentSession.state) == SessionState.background {
+                SessionState(rawValue: currentSession.state) == SessionState.background
+            {
                 return
             }
 

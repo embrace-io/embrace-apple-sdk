@@ -7,7 +7,7 @@ import Foundation
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCaptureService
     import EmbraceCommonInternal
-    @_implementationOnly import EmbraceObjCUtilsInternal
+    import EmbraceObjCUtilsInternal
 #endif
 
 typealias URLSessionCompletion = (Data?, URLResponse?, Error?) -> Void
@@ -134,7 +134,8 @@ struct URLSessionInitWithDelegateSwizzler: URLSessionSwizzler {
                 // Add protection against re-proxying our own proxy
                 guard !(proxiedDelegate is EMBURLSessionDelegateProxy) else {
                     if let newDelegate = proxiedDelegate as? EMBURLSessionDelegateProxy,
-                        let originalDelegate = newDelegate.originalDelegate as? URLSessionDelegate {
+                        let originalDelegate = newDelegate.originalDelegate as? URLSessionDelegate
+                    {
                         return originalImplementation(urlSession, Self.selector, configuration, originalDelegate, queue)
                     }
                     return originalImplementation(urlSession, Self.selector, configuration, delegate, queue)
