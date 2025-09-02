@@ -27,14 +27,17 @@ public class CoreDataWrapper {
     }
 
     private let isTesting: Bool
-
     static let modelCache: EmbraceMutex<[String: NSManagedObjectModel]> = EmbraceMutex([:])
 
-    public init(options: CoreDataWrapper.Options, logger: InternalLogger) throws {
+    public init(
+        options: CoreDataWrapper.Options,
+        logger: InternalLogger,
+        isTesting: Bool = ProcessInfo.processInfo.isTesting
+    ) throws {
         self.options = options
         self.logger = logger
+        self.isTesting = isTesting
         self.workTracker = WorkTracker(name: self.options.storageMechanism.name, logger: self.logger)
-        isTesting = ProcessInfo.processInfo.isTesting
 
         // create model
         let entitiesCacheKey = options.entities
@@ -56,7 +59,7 @@ public class CoreDataWrapper {
         container = NSPersistentContainer(name: name, managedObjectModel: model)
 
         // force db on memory during tests
-        if isTesting {
+        if self.isTesting {
             let description = NSPersistentStoreDescription()
             description.type = NSInMemoryStoreType
             container.persistentStoreDescriptions = [description]
@@ -78,16 +81,31 @@ public class CoreDataWrapper {
                 description.type = NSSQLiteStoreType
                 description.url = options.storageMechanism.fileURL
                 description.setValue(journalMode.rawValue as NSString, forPragmaNamed: "journal_mode")
-
+                // This is the default value; however, we enforce it here so that the `CoreDataWrapper`
+                // is created synchronously in `Embrace.init`, allowing us to throw as needed and fail early.
+                description.shouldAddStoreAsynchronously = false
                 container.persistentStoreDescriptions = [description]
             }
         }
 
+        // Even though this happens inside a block, by default it runs synchronously on the same thread
+        // (because `shouldAddStoreAsynchronously` defaults to `false`). We set it explicitly anyway to
+        // make it crystal clear and to guard against potential changes in future OS versions.
+        //
+        // If the store cant be created or opened, we want to know immediately and fail fast.
+        // Otherwise, the container would appear as "initialized", but any later attempt to hit Core Data
+        // (fetch, save, etc.) would crash. Thats why we capture the error from `loadPersistentStores`
+        // and rethrow it here: better to throw during `Embrace.init` than to crash much later.
+        var loadPersistentStoreError: Error?
         container.loadPersistentStores { _, error in
-            if let error {
-                logger.critical("Error initializing CoreData \"\(name)\": \(error.localizedDescription)")
-            }
+            loadPersistentStoreError = error
         }
+
+        if let loadPersistentStoreError {
+            logger.critical("Error initializing CoreData \"\(name)\": \(loadPersistentStoreError.localizedDescription)")
+            throw loadPersistentStoreError
+        }
+
 
         context = container.newBackgroundContext()
     }
