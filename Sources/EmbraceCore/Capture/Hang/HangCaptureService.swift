@@ -53,11 +53,12 @@ public final class HangCaptureService: CaptureService {
     }
 
     public override func onSessionStart(_ session: any EmbraceSession) {
-        hangsInSessionCount = 0
+        limitData.withLock { $0.hangsInSessionCount = 0 }
     }
 
     public override func onSessionWillEnd(_ session: any EmbraceSession) {
-        try? Embrace.client?.metadata.updateProperty(key: "emb-thread-blockage", value: "\(hangsInSessionCount)")
+        let value = limitData.withLock { $0.hangsInSessionCount }
+        try? Embrace.client?.metadata.updateProperty(key: "emb-thread-blockage", value: "\(value)")
     }
 
     private var mainThread: pthread_t
