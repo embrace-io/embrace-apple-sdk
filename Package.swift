@@ -65,7 +65,8 @@ let package = Package(
                 "EmbraceCore",
                 "EmbraceCommonInternal",
                 "EmbraceSemantics",
-                "EmbraceKSCrashSupport"
+                "EmbraceKSCrashSupport",
+                "EmbraceKSCrashBacktraceSupport"
             ],
             linkerSettings: linkerSettings
         ),

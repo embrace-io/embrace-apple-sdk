@@ -8,7 +8,7 @@ import Foundation
     import KSCrash
 #else
     import KSCrashRecording
-    import KSCrashDemangleFilter
+    @_exported import KSCrashDemangleFilter
 #endif
 
 public class KSCrashBacktracing: Backtracer, Symbolicator {
@@ -29,11 +29,8 @@ public class KSCrashBacktracing: Backtracer, Symbolicator {
             addresses = Thread.callStackReturnAddresses.dropFirst(3).prefix(entries).compactMap { $0 as? UInt }
         } else {
             let count = captureBacktrace(thread: thread, addresses: &addresses, count: Int32(entries))
-            if count < entries {
-                addresses = Array(addresses[0..<Int(count)])
-            }
+            addresses = Array(addresses[3..<Int(count)])
         }
-
         return addresses
     }
 
