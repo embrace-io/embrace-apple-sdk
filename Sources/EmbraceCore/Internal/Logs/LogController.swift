@@ -97,14 +97,14 @@ class LogController: LogControllable {
         guard let sessionController = sessionController else {
             return
         }
-        
+
         // generate attributes
         let attributesBuilder = EmbraceLogAttributesBuilder(
             storage: storage,
             sessionControllable: sessionController,
             initialAttributes: attributes
         )
-        
+
         // These all need to be at the callsite in order to
         // have correct information about the users intention.
         attributesBuilder
