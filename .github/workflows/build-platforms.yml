@@ -38,10 +38,6 @@ jobs:
             xcode_version: "16.4"
             macos-version: "15"
 
-          - platform: "iOS"
-            xcode_version: "26.0"
-            macos-version: "15"
-
           # tvOS
           - platform: "tvOS"
             xcode_version: "16.4"
