@@ -29,9 +29,6 @@ final class SessionControllerTests: XCTestCase {
 
     var uploadTestOptions: EmbraceUpload.Options!
 
-    var queue: DispatchQueue!
-    var module: EmbraceUpload!
-
     override func setUpWithError() throws {
         let uploadUrlSessionconfig = URLSessionConfiguration.ephemeral
         uploadUrlSessionconfig.httpMaximumConnectionsPerHost = .max
@@ -47,7 +44,7 @@ final class SessionControllerTests: XCTestCase {
         )
 
         upload = try EmbraceUpload(
-            options: uploadTestOptions, logger: MockLogger(), queue: .main, semaphore: .init(value: .max))
+            options: uploadTestOptions, logger: MockLogger(), queue: .main)
         storage = try EmbraceStorage.createInMemoryDb()
 
         sdkStateProvider.isEnabled = true
@@ -194,7 +191,12 @@ final class SessionControllerTests: XCTestCase {
 
         // when ending the session
         controller.endSession()
-        wait(delay: .longTimeout)
+
+        let expectation = expectation(description: "waiting for session to end")
+        controller.queue.async {
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: .defaultTimeout)
 
         // then a session was sent with the corrent values
         XCTAssert(uploader.didCallUploadSession)
@@ -215,6 +217,14 @@ final class SessionControllerTests: XCTestCase {
         }
     }
 
+    func wait(_ until: @escaping () -> Bool) {
+        // Here, we end up having to wait for the DefaultSession uploader which
+        // isn't set up to give us a completion, so we'll fake it 'till we make it.
+        wait(timeout: 2, interval: 0.01) {
+            until()
+        }
+    }
+
     func test_endSession_uploadsSession() throws {
         try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
         // mock successful requests
@@ -227,7 +237,7 @@ final class SessionControllerTests: XCTestCase {
 
         // when ending the session
         controller.endSession()
-        wait(delay: .longTimeout)
+        wait { EmbraceHTTPMock.requestsForUrl(self.testSessionsUrl()).count == 1 }
 
         // then a session request was sent
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count, 1)
@@ -253,7 +263,7 @@ final class SessionControllerTests: XCTestCase {
 
         // when ending the session and the upload fails
         controller.endSession()
-        wait(delay: .longTimeout)
+        wait { EmbraceHTTPMock.requestsForUrl(self.testSessionsUrl()).count > 0 }
 
         // then a session request was attempted
         XCTAssertGreaterThan(EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count, 0)
@@ -351,7 +361,6 @@ final class SessionControllerTests: XCTestCase {
             options: .init(),
             notificationCenter: NotificationCenter.default, logger: MockLogger()
         )
-        wait(delay: .defaultTimeout)
 
         let controller = SessionController(
             storage: storage,
@@ -426,17 +435,17 @@ final class SessionControllerTests: XCTestCase {
     // MARK: heartbeat
 
     func test_heartbeat() throws {
-        // given a session controller with a 1 second heartbeat invertal
-        let controller = SessionController(storage: storage, upload: nil, config: nil, heartbeatInterval: 1)
+        // given a session controller
+        let controller = SessionController(storage: storage, upload: nil, config: nil, heartbeatInterval: 0.1)
         controller.sdkStateProvider = sdkStateProvider
 
         // when starting a session
         let session = controller.startSession(state: .foreground)
         var lastDate = session!.lastHeartbeatTime
 
-        // then the heartbeat time is updated every second
+        // then the heartbeat time is updated
         for _ in 1...3 {
-            wait(delay: 1.1)
+            wait(delay: 0.3)
             XCTAssertNotEqual(lastDate, controller.currentSession!.lastHeartbeatTime)
             lastDate = controller.currentSession!.lastHeartbeatTime
         }

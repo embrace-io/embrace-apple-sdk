@@ -5,6 +5,10 @@
 import Foundation
 
 extension TimeInterval {
+    public static var veryShortTimeout: TimeInterval {
+        return 0.05
+    }
+
     public static var shortTimeout: TimeInterval {
         return 0.1
     }
