@@ -26,10 +26,10 @@ public class KSCrashBacktracing: Backtracer, Symbolicator {
 
         if thread == pthread_self() {
             // drop first 3 frames up to where we are.
-            addresses = Thread.callStackReturnAddresses.dropFirst(3).prefix(entries).compactMap { $0 as? UInt }
+            addresses = Thread.callStackReturnAddresses.compactMap { $0 as? UInt }
         } else {
             let count = captureBacktrace(thread: thread, addresses: &addresses, count: Int32(entries))
-            addresses = Array(addresses[3..<Int(count)])
+            addresses = Array(addresses[0..<Int(count)])
         }
         return addresses
     }

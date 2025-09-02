@@ -162,10 +162,11 @@ extension EmbraceBacktrace {
     static func _takeSnapshot(of thread: pthread_t, suspendingThreads: Bool) -> [EmbraceBacktraceThread] {
 
         let threadList = suspendingThreads ? EmbraceThreadList() : nil
-
-        if suspendingThreads {
-            threadList?.suspend()
-            defer { threadList?.resume() }
+        threadList?.suspend()
+        defer {
+            if suspendingThreads {
+                threadList?.resume()
+            }
         }
 
         // Get the actual snapshot,
@@ -178,7 +179,7 @@ extension EmbraceBacktrace {
             .backtrace(of: thread)
             .dropFirst(3)
             .prefix(entries)
-            .compactMap { $0 as? UInt } ?? []
+            .compactMap { $0 as UInt } ?? []
 
         return [
             EmbraceBacktraceThread(
@@ -211,7 +212,7 @@ extension EmbraceBacktraceFrame {
             Self.instructionAddressKey: String(format: "0x%016llx", address),
             Self.moduleNameKey: image.name,
             Self.moduleOffsetKey: image.address,
-            Self.modulePathKey: "/\(image.name ?? "")",
+            Self.modulePathKey: image.name,
             Self.symbolNameKey: symbol.name,
             Self.symbolOffsetKey: symbol.address - image.address,
             Self.moduleUUIDKey: image.uuid
