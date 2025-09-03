@@ -16,6 +16,7 @@ enum TestMenuOptionDataModel: Int, CaseIterable {
     case crashes
     case session
     case uploadedPayloads
+    case performance
 
     var title: String {
         switch self {
@@ -37,6 +38,8 @@ enum TestMenuOptionDataModel: Int, CaseIterable {
             "Session Payload Tests"
         case .uploadedPayloads:
             "Uploaded Payload Tests"
+        case .performance:
+            "Performance Tests"
         }
     }
 
@@ -60,6 +63,8 @@ enum TestMenuOptionDataModel: Int, CaseIterable {
             "session"
         case .uploadedPayloads:
             "uploadedPayloads"
+        case .performance:
+            "performance"
         }
     }
 
@@ -83,6 +88,8 @@ enum TestMenuOptionDataModel: Int, CaseIterable {
             TestScreen<SessionTestsDataModel>()
         case .uploadedPayloads:
             TestScreen<UploadedPayloadsTestsDataModel>()
+        case .performance:
+            TestScreen<PerformanceTestScreenDataModel>()
         }
     }
 
