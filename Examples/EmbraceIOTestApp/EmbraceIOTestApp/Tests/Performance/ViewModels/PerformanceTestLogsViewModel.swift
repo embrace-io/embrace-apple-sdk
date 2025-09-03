@@ -43,8 +43,6 @@ class PerformanceTestLogsViewModel: SpanTestUIComponentViewModel {
         testObject.numberOfLoops = Int(min(max(1, numberOfConcurrentLoops), maxConcurrentLoops))
         testObject.calculationsPerLoop = Int(min(max(1, numberOfCalculationsPerLoop), maxCalculationsPerLoop))
         testObject.maxNumberOfLogs = Int(min(max(1, limitNumberOfLogsPerLoop), maxNumberOfLogsPerLoop))
-
-        print("\(numberOfConcurrentLoops) - \(numberOfCalculationsPerLoop) - \(limitNumberOfLogsPerLoop)")
     }
     override func testButtonPressed() {
         updateTestObject()
