@@ -106,7 +106,6 @@ public class CoreDataWrapper {
             throw loadPersistentStoreError
         }
 
-
         context = container.newBackgroundContext()
     }
 
