@@ -2,6 +2,7 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
+#if os(iOS)
 import Foundation
 import UserNotifications
 
@@ -11,6 +12,7 @@ import UserNotifications
     import EmbraceCaptureService
 #endif
 
+import UIKit
 /// Service that generates OpenTelemetry span events when notifications are received through the `UNUserNotificationCenter`.
 @objc public final class PushNotificationCaptureService: CaptureService {
 
@@ -62,6 +64,7 @@ import UserNotifications
 
     private func initializeSwizzlers() {
         swizzlers.append(UNUserNotificationCenterSetDelegateSwizzler(proxy: proxy))
+        swizzlers.append(AppDelegateDidReceiveRemoteNotificationSwizzler(captureData: options.captureData))
     }
 }
 
@@ -89,4 +92,38 @@ struct UNUserNotificationCenterSetDelegateSwizzler: Swizzlable {
         }
     }
 }
+
+struct AppDelegateDidReceiveRemoteNotificationSwizzler: Swizzlable {
+    typealias ImplementationType = @convention(c) (AnyObject, Selector, UIApplication, [AnyHashable: Any], (UIBackgroundFetchResult) -> Void) -> Void
+    typealias BlockImplementationType = @convention(block) (AnyObject, UIApplication, [AnyHashable: Any], (UIBackgroundFetchResult) -> Void) -> Void
+
+    static var selector: Selector {
+        return #selector(UIApplicationDelegate.application(_:didReceiveRemoteNotification:fetchCompletionHandler:))
+    }
+
+    var baseClass: AnyClass {
+        guard let delegate = UIApplication.shared.delegate else {
+            return UIApplication.self
+        }
+        return type(of: delegate)
+    }
+
+    private let captureData: Bool
+
+    init(captureData: Bool) {
+        self.captureData = captureData
+    }
+
+    func install() throws {
+        try swizzleInstanceMethod { originalImplementation -> BlockImplementationType in
+            return { uiApplicationDelegate, application, userInfo, completionHandler in
+                if let event = try? PushNotificationEvent(userInfo: userInfo, captureData: self.captureData) {
+                    Embrace.client?.add(event: event)
+                }
+                originalImplementation(uiApplicationDelegate, Self.selector, application, userInfo, completionHandler)
+            }
+        }
+    }
+}
 // swiftlint:enable line_length
+#endif
