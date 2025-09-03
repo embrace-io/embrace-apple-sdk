@@ -2,8 +2,9 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-@testable import EmbraceCore
 import XCTest
+
+@testable import EmbraceCore
 
 class EmbraceSetupTests: XCTestCase {
     func test_setupOnNonMainThread_shouldThrowInvalidThreadError() {
@@ -32,4 +33,3 @@ class EmbraceSetupTests: XCTestCase {
         wait(for: [expectation])
     }
 }
-
