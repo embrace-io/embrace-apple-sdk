@@ -15,11 +15,12 @@ import Foundation
 @objc
 public class EmbraceOTelSignalsHandler: NSObject, InternalOTelSignalsHandler {
 
-    private let storage: EmbraceStorage?
-    private let sessionController: SessionController?
-    private let logController: LogController?
-    private let spanEventsLimiter: SpanEventsLimiter
-    private let bridge: EmbraceOTelSignalBridge
+    let storage: EmbraceStorage?
+    let sessionController: SessionController?
+    let logController: LogController?
+    let limiter: OTelSignalsLimiter
+    let sanitizer: OTelSignalsSanitizer
+    let bridge: EmbraceOTelSignalBridge
 
     struct Cache {
         var externalSpanCount: Int = 0
@@ -36,14 +37,15 @@ public class EmbraceOTelSignalsHandler: NSObject, InternalOTelSignalsHandler {
         storage: EmbraceStorage?,
         sessionController: SessionController?,
         logController: LogController?,
-
-        spanEventsLimiter: SpanEventsLimiter,
+        limiter: OTelSignalsLimiter,
+        sanitizer: OTelSignalsSanitizer = DefaultOtelSignalsSanitizer(),
         bridge: EmbraceOTelSignalBridge = DefaultOTelSignalBridge()
     ) {
         self.storage = storage
         self.sessionController = sessionController
         self.logController = logController
-        self.spanEventsLimiter = spanEventsLimiter
+        self.limiter = limiter
+        self.sanitizer = sanitizer
         self.bridge = bridge
     }
 
@@ -60,7 +62,7 @@ public class EmbraceOTelSignalsHandler: NSObject, InternalOTelSignalsHandler {
     ///   - attributes: Attributes of the span.
     ///   - autoTerminationCode: If a code is passed, the span will be automatically ended when the current Embrace session ends and will have a special attribute with the given code.
     /// - Returns: The newly created `EmbraceSpan`.
-    /// - Throws: A `EmbraceOTelError.spanLimitReached` if the limit has been reached for the given span type.
+    /// - Throws: `EmbraceOTelError.spanLimitReached` if the span limit has been reached for the current Embrace session.
     @discardableResult
     public func createSpan(
         name: String,
@@ -75,21 +77,31 @@ public class EmbraceOTelSignalsHandler: NSObject, InternalOTelSignalsHandler {
         autoTerminationCode: EmbraceSpanErrorCode? = nil,
     ) throws -> EmbraceSpan {
 
+        guard limiter.shouldCreateCustomSpan() else {
+            throw EmbraceOTelError.spanLimitReached
+        }
+
+        // sanitize name
+        let finalName = sanitizer.sanitizeSpanName(name)
+
         // add embrace specific attributes
-        var attributes = attributes
-        attributes.setEmbraceType(type)
-        attributes.setEmbraceSessionId(sessionController?.currentSession?.id)
+        let sanitizedAttributes = sanitizer.sanitizeSpanAttributes(attributes)
+        var internalAttributes = [String: String]()
+        internalAttributes.setEmbraceType(type)
+        internalAttributes.setEmbraceSessionId(sessionController?.currentSession?.id)
+
+        let finalAttributes = internalAttributes.merging(sanitizedAttributes) { (current, _) in current }
 
         // create span context
         let context = bridge.startSpan(
-            name: name,
+            name: finalName,
             parentSpan: parentSpan,
             status: status,
             startTime: startTime,
             endTime: endTime,
             events: events,
             links: links,
-            attributes: attributes
+            attributes: finalAttributes
         )
 
         // get auto termination code from parent if needed
@@ -103,18 +115,19 @@ public class EmbraceOTelSignalsHandler: NSObject, InternalOTelSignalsHandler {
         let span = DefaultEmbraceSpan(
             context: context,
             parentSpanId: parentSpan?.context.spanId,
-            name: name,
+            name: finalName,
             type: type,
             status: status,
             startTime: startTime,
             endTime: endTime,
             events: events,
             links: links,
-            attributes: attributes,
+            attributes: finalAttributes,
+            internalAttributeCount: internalAttributes.count,
             sessionId: sessionController?.currentSession?.id,
             processId: ProcessIdentifier.current,
             autoTerminationCode: code,
-            delegate: self
+            handler: self
         )
 
         // cache auto termination spans
@@ -131,20 +144,35 @@ public class EmbraceOTelSignalsHandler: NSObject, InternalOTelSignalsHandler {
     }
 
     /// Adds the given `EmbraceSpanEvent` to the current Embrace session.
-    /// - Parameter event: The event to add.
-    /// - Throws: A `EmbraceOTelError.invalidSession` if there is not active Embrace session.
-    /// - Throws: A `EmbraceOTelError.spanEventLimitReached` if the limit hass ben reached for the given span even type.
-    public func addSessionEvent(_ event: EmbraceSpanEvent) throws {
+    /// - Parameter name: Name of the event.
+    /// - Parameter type: Embrace specific type of the event, if any.
+    /// - Parameter timestamp: Timestamp of the event.
+    /// - Parameter attributes: Attributes of the event.
+    /// - Throws: `EmbraceOTelError.invalidSession` if there is not active Embrace session.
+    /// - Throws: `EmbraceOTelError.spanEventLimitReached` if the limit hass ben reached for the given span even type.
+    public func addSessionEvent(
+        name: String,
+        type: EmbraceType?,
+        timestamp: Date,
+        attributes: [String: String]
+    ) throws {
 
         guard let span = sessionController?.currentSessionSpan else {
-            throw EmbraceOTelError.invalidSession("No active Embrace session!")
+            throw EmbraceOTelError.invalidSession
         }
 
-        guard spanEventsLimiter.shouldAddEvent(event: event) else {
+        guard limiter.shouldAddSessionEvent(ofType: type) else {
             throw EmbraceOTelError.spanEventLimitReached("Limit reached for the span event type!")
         }
 
-        span.addEvent(event)
+        let event = EmbraceSpanEvent(
+            name: sanitizer.sanitizeSpanEventName(name),
+            type: type,
+            timestamp: timestamp,
+            attributes: sanitizer.sanitizeSpanEventAttributes(attributes)
+        )
+
+        span.addSessionEvent(event, isInternal: false)
     }
     
     /// Emits a new log.
@@ -156,6 +184,7 @@ public class EmbraceOTelSignalsHandler: NSObject, InternalOTelSignalsHandler {
     ///   - attachment: Attachment data for the log
     ///   - attributes: Attributes of the log
     ///   - stackTraceBehavior: Behavior that detemines if a stack trace has to be generated for the log.
+    /// - Throws: `EmbraceOTelError.logLimitReached` if the log limit has been reached for the current Embrace session.
     public func log(
         _ message: String,
         severity: EmbraceLogSeverity,
@@ -164,8 +193,8 @@ public class EmbraceOTelSignalsHandler: NSObject, InternalOTelSignalsHandler {
         attachment: EmbraceLogAttachment? = nil,
         attributes: [String: String] = [:],
         stackTraceBehavior: EmbraceStackTraceBehavior = .defaultStackTrace()
-    ) {
-        logController?.createLog(
+    ) throws {
+        try _log(
             message,
             severity: severity,
             type: type,
@@ -173,11 +202,7 @@ public class EmbraceOTelSignalsHandler: NSObject, InternalOTelSignalsHandler {
             attachment: attachment,
             attributes: attributes,
             stackTraceBehavior: stackTraceBehavior
-        ) { [weak self] log in
-            if let log {
-                self?.bridge.createLog(log)
-            }
-        }
+        )
     }
 }
 
@@ -211,13 +236,40 @@ extension EmbraceOTelSignalsHandler {
         timestamp: Date = Date(),
         attributes: [String: String] = [:]
     ) {
-        logController?.createLog(
+        try? _log(
             message,
             severity: severity,
             type: type,
             timestamp: timestamp,
             attributes: attributes,
             send: false
+        )
+    }
+
+    public func _log(
+        _ message: String,
+        severity: EmbraceLogSeverity,
+        type: EmbraceType = .message,
+        timestamp: Date = Date(),
+        attachment: EmbraceLogAttachment? = nil,
+        attributes: [String: String] = [:],
+        stackTraceBehavior: EmbraceStackTraceBehavior = .defaultStackTrace(),
+        send: Bool = true
+    ) throws {
+
+        guard limiter.shouldCreateLog(type: type, severity: severity) else {
+            throw EmbraceOTelError.logLimitReached
+        }
+
+        logController?.createLog(
+            message,
+            severity: severity,
+            type: type,
+            timestamp: timestamp,
+            attachment: attachment,
+            attributes: sanitizer.sanitizeLogAttributes(attributes),
+            stackTraceBehavior: stackTraceBehavior,
+            send: send
         ) { [weak self] log in
             if let log {
                 self?.bridge.createLog(log)
@@ -226,6 +278,7 @@ extension EmbraceOTelSignalsHandler {
     }
 }
 
+// MARK: EmbraceSpanDelegate
 extension EmbraceOTelSignalsHandler: EmbraceSpanDelegate {
     func onSpanStatusUpdated(_ span: EmbraceSpan, status: EmbraceSpanStatus) {
         storage?.setSpanStatus(id: span.context.spanId, traceId: span.context.traceId, status: status)
@@ -239,11 +292,96 @@ extension EmbraceOTelSignalsHandler: EmbraceSpanDelegate {
         storage?.addSpanLink(id: span.context.spanId, traceId: span.context.traceId, link: link)
     }
     
-    func onSpanAttributeUpdated(_ span: EmbraceSpan, attributes: [String: String]) {
+    func onSpanAttributesUpdated(_ span: EmbraceSpan, attributes: [String: String]) {
         storage?.setSpanAttributes(id: span.context.spanId, traceId: span.context.traceId, attributes: attributes)
     }
     
     func onSpanEnded(_ span: any EmbraceSpan, endTime: Date) {
         storage?.endSpan(id: span.context.spanId, traceId: span.context.traceId, endTime: endTime)
+    }
+}
+
+// MARK: EmbraceSpanDataSource
+extension EmbraceOTelSignalsHandler: EmbraceSpanDataSource {
+    func createEvent(
+        for span: EmbraceSpan,
+        name: String,
+        type: EmbraceType?,
+        timestamp: Date,
+        attributes: [String : String],
+        internalCount: Int,
+        isInternal: Bool
+    ) throws -> EmbraceSpanEvent {
+
+        // no limits for internal events
+        guard !isInternal else {
+            return EmbraceSpanEvent(
+                name: name,
+                type: type,
+                timestamp: timestamp,
+                attributes: attributes
+            )
+        }
+
+        // check limit
+        guard limiter.shouldAddSpanEvent(currentCount: span.events.count - internalCount) else {
+            throw EmbraceOTelError.spanEventLimitReached("Events limit reached for span \(span.name)")
+        }
+
+        return EmbraceSpanEvent(
+            name: sanitizer.sanitizeSpanEventName(name),
+            type: type,
+            timestamp: timestamp,
+            attributes: sanitizer.sanitizeSpanEventAttributes(attributes)
+        )
+    }
+
+    func createLink(
+        for span: EmbraceSpan,
+        spanId: String,
+        traceId: String,
+        attributes: [String : String],
+        internalCount: Int,
+        isInternal: Bool
+    ) throws -> EmbraceSpanLink {
+
+        // no limits for internal links
+        guard !isInternal else {
+            return EmbraceSpanLink(
+                spanId: spanId,
+                traceId: traceId,
+                attributes: attributes
+            )
+        }
+
+        // check limit
+        guard limiter.shouldAddSpanLink(currentCount: span.links.count - internalCount) else {
+            throw EmbraceOTelError.spanLinkLimitReached("Links limit reached for span \(span.name)")
+        }
+
+        return EmbraceSpanLink(
+            spanId: spanId,
+            traceId: traceId,
+            attributes: sanitizer.sanitizeSpanEventAttributes(attributes)
+        )
+    }
+
+    func validateAttribute(
+        for span: EmbraceSpan,
+        key: String,
+        value: String?,
+        internalCount: Int,
+        isInternal: Bool
+    ) throws -> (String, String?) {
+
+        // no limits when removing a key or if the attribute is internal
+        guard let value, !isInternal else {
+            return (key, value)
+        }
+
+        let finalKey = sanitizer.sanitizeAttributeKey(key)
+        let finalValue = sanitizer.sanitizeAttributeValue(value)
+
+        return (finalKey, finalValue)
     }
 }

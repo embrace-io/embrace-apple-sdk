@@ -155,7 +155,7 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
             }
 
             // generate otel log
-            otel?.log(
+            try? otel?.log(
                 "",
                 severity: .info,
                 type: .networkCapture,

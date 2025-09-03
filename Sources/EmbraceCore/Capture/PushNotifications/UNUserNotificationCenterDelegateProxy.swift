@@ -48,9 +48,7 @@ extension UNUserNotificationCenterDelegateProxy: UNUserNotificationCenterDelegat
     ) {
 
         // generate span event
-        if let event = try? PushNotificationEvent(notification: notification, captureData: captureData) {
-            try? otel?.addSessionEvent(event)
-        }
+        try? otel?.addPushNotificationEvent(notification: notification, captureData: captureData)
 
         // call original
         if #available(iOS 14.0, tvOS 14.0, watchOS 7.0, *) {
@@ -77,9 +75,7 @@ extension UNUserNotificationCenterDelegateProxy: UNUserNotificationCenterDelegat
         ) {
 
             // generate span event
-            if let event = try? PushNotificationEvent(notification: response.notification, captureData: captureData) {
-                try? otel?.addSessionEvent(event)
-            }
+            try? otel?.addPushNotificationEvent(notification: response.notification, captureData: captureData)
 
             // call original
             originalDelegate?.userNotificationCenter?(

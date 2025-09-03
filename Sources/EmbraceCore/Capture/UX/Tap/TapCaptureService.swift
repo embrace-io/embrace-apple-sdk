@@ -109,7 +109,7 @@
                 type: .tap,
                 attributes: attributes
             )
-            try? otel?.addSessionEvent(event)
+            try? otel?.addInternalSessionEvent(event)
         }
 
         func shouldRecordCoordinates(from target: UIView) -> Bool {

@@ -56,7 +56,7 @@ class MetricKitHangCaptureService: CaptureService, MetricKitHangPayloadListener 
             )
             .build()
 
-        otel?.log(
+        try? otel?.log(
             "",
             severity: .warn,
             type: .hang,

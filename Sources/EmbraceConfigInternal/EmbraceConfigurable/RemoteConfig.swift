@@ -114,14 +114,14 @@ extension RemoteConfig: EmbraceConfigurable {
 
     public var networkPayloadCaptureRules: [NetworkPayloadCaptureRule] { payload.networkPayloadCaptureRules }
 
-    public var spanEventsLimits: SpanEventsLimits {
-        SpanEventsLimits(
+    public var spanEventTypeLimits: SpanEventTypeLimits {
+        SpanEventTypeLimits(
             breadcrumb: UInt(max(payload.breadcrumbLimit, 0))
         )
     }
 
-    public var logsLimits: LogsLimits {
-        LogsLimits(
+    public var logSeverityLimits: LogSeverityLimits {
+        LogSeverityLimits(
             info: UInt(max(payload.logsInfoLimit, 0)),
             warning: UInt(max(payload.logsWarningLimit, 0)),
             error: UInt(max(payload.logsErrorLimit, 0))

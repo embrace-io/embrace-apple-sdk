@@ -193,8 +193,9 @@ import Foundation
             storage: storage,
             sessionController: sessionController,
             logController: self.logController,
-            spanEventsLimiter: SpanEventsLimiter(
-                spanEventsLimits: config.spanEventsLimits,
+            limiter: DefaultOtelSignalsLimiter(
+                spanEventTypeLimits: config.spanEventTypeLimits,
+                logSeverityLimits: config.logSeverityLimits,
                 configNotificationCenter: Embrace.notificationCenter
             )
         )
@@ -416,7 +417,6 @@ import Foundation
     /// Called every time the remote config changes
     @objc private func onConfigUpdated() {
         Embrace.logger.limits = config.internalLogLimits
-        Embrace.client?.logController.limits = config.logsLimits
 
         if !config.isSDKEnabled {
             Embrace.logger.debug("SDK was disabled")

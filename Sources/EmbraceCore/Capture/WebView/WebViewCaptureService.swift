@@ -113,7 +113,7 @@
                 attributes: attributes
             )
             
-            try? otel?.addSessionEvent(event)
+            try? otel?.addInternalSessionEvent(event)
         }
 
         private func getUrlString(url: URL) -> String {

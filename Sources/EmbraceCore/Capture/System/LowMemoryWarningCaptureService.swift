@@ -40,6 +40,6 @@ public class LowMemoryWarningCaptureService: CaptureService {
             type: .lowMemory
         )
 
-        try? otel?.addSessionEvent(event)
+        try? otel?.addInternalSessionEvent(event)
     }
 }

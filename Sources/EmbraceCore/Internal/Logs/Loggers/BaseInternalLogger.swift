@@ -177,7 +177,7 @@ class BaseInternalLogger: InternalLogger {
             .build()
 
         // send log
-        otel?.log(
+        try? otel?.log(
             message,
             severity: level.severity,
             type: .internal,

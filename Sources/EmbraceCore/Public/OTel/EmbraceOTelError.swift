@@ -5,9 +5,12 @@
 import Foundation
 
 public enum EmbraceOTelError: Error, Equatable {
-    case invalidSession(_ description: String)
-    case spanLimitReached(_ description: String)
+    case invalidSession
+    case spanLimitReached
     case spanEventLimitReached(_ description: String)
+    case spanLinkLimitReached(_ description: String)
+    case spanAttributeLimitReached(_ description: String)
+    case logLimitReached
 }
 
 extension EmbraceOTelError: LocalizedError, CustomNSError {
@@ -18,23 +21,23 @@ extension EmbraceOTelError: LocalizedError, CustomNSError {
 
     public var errorCode: Int {
         switch self {
-        case .invalidSession:
-            return -1
-        case .spanLimitReached:
-            return -2
-        case .spanEventLimitReached:
-            return -3
+        case .invalidSession: -1
+        case .spanLimitReached: -2
+        case .spanEventLimitReached: -3
+        case .spanLinkLimitReached: -4
+        case .spanAttributeLimitReached: -5
+        case .logLimitReached: -6
         }
     }
 
     public var errorDescription: String? {
         switch self {
-        case .invalidSession(let description):
-            return description
-        case .spanLimitReached(let description):
-            return description
-        case .spanEventLimitReached(let description):
-            return description
+        case .invalidSession: "No active Embrace session!"
+        case .spanLimitReached: "Span limit reached for the current Embrace session!"
+        case .spanEventLimitReached(let description): description
+        case .spanLinkLimitReached(let description): description
+        case .spanAttributeLimitReached(let description): description
+        case .logLimitReached: "Log limit reached for the current Embrace session!"
         }
     }
 

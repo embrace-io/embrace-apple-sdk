@@ -20,7 +20,7 @@ public protocol OTelSignalsHandler: AnyObject {
     ///   - attributes: Attributes of the span.
     ///   - autoTerminationCode: If a code is passed, the span will be automatically ended when the current Embrace session ends and will have a special attribute with the given code.
     /// - Returns: The newly created `EmbraceSpan`.
-    /// - Throws: A `EmbraceOTelError.spanLimitReached` if the limit has been reached for the given span type.
+    /// - Throws: `EmbraceOTelError.spanLimitReached` if the span limit has been reached for the current Embrace session.
     @discardableResult
     func createSpan(
         name: String,
@@ -36,20 +36,29 @@ public protocol OTelSignalsHandler: AnyObject {
     ) throws -> EmbraceSpan
 
     /// Adds the given `EmbraceSpanEvent` to the current Embrace session.
-    /// - Parameter event: The event to add.
+    /// - Parameter name: Name of the event.
+    /// - Parameter type: Embrace specific type of the event, if any.
+    /// - Parameter timestamp: Timestamp of the event.
+    /// - Parameter attributes: Attributes of the event.
     /// - Throws: A `EmbraceOTelError.invalidSession` if there is not active Embrace session.
     /// - Throws: A `EmbraceOTelError.spanEventLimitReached` if the limit hass ben reached for the given span even type.
-    func addSessionEvent(_ event: EmbraceSpanEvent) throws
+    func addSessionEvent(
+        name: String,
+        type: EmbraceType?,
+        timestamp: Date,
+        attributes: [String: String]
+    ) throws
 
     /// Emits a new log.
     /// - Parameters:
-    ///   - message: Message of the log
-    ///   - severity: Severity of the log
-    ///   - type: Type of the log
-    ///   - timestamp: Timestamp of the log
-    ///   - attachment: Attachment data for the log
-    ///   - attributes: Attributes of the log
+    ///   - message: Message of the log.
+    ///   - severity: Severity of the log.
+    ///   - type: Type of the log.
+    ///   - timestamp: Timestamp of the log.
+    ///   - attachment: Attachment data for the log.
+    ///   - attributes: Attributes of the log.
     ///   - stackTraceBehavior: Behavior that detemines if a stack trace has to be generated for the log.
+    /// - Throws: `EmbraceOTelError.logLimitReached` if the log limit has been reached for the current Embrace session.
     func log(
         _ message: String,
         severity: EmbraceLogSeverity,
@@ -58,7 +67,7 @@ public protocol OTelSignalsHandler: AnyObject {
         attachment: EmbraceLogAttachment?,
         attributes: [String: String],
         stackTraceBehavior: EmbraceStackTraceBehavior
-    )
+    ) throws
 }
 
 // MARK: Convenience
@@ -95,8 +104,8 @@ public extension OTelSignalsHandler {
         timestamp: Date = Date(),
         attributes: [String: String] = [:],
         stackTraceBehavior: EmbraceStackTraceBehavior = .defaultStackTrace()
-    ) {
-        log(
+    ) throws {
+        try log(
             message,
             severity: severity,
             type: type,

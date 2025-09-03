@@ -9,20 +9,18 @@ import UserNotifications
     import EmbraceSemantics
 #endif
 
-/// Class used to represent a Push Notification as a SpanEvent.
-/// Usage example:
-/// `Embrace.client?.add(.push(userInfo: apsDictionary))`
-@objc(EMBPushNotificationEvent)
-public class PushNotificationEvent: EmbraceSpanEvent {
+@objc public extension EmbraceOTelSignalsHandler {
 
-    /// Returns a span event on using the data from the given `UNNotification`
+    /// Adds a PushNotification span event to the current Embrace session using the data from the given `UNNotification`.
     /// - Parameters:
-    ///   - notification: The `UNNotification` received by the app
-    ///   - timestamp: Timestamp when the event occured
-    ///   - attributes: Attributes for the event
-    ///   - captureData: Whether or not Embrace should parse the data inside the push notification
+    ///   - notification: The `UNNotification` received by the app.
+    ///   - timestamp: Timestamp of the event.
+    ///   - attributes: Attributes of the event.
+    ///   - captureData: Whether or not Embrace should parse the data inside the push notification.
+    /// - Throws: `EmbraceOTelError.invalidSession` if there is not active Embrace session.
+    /// - Throws: `EmbraceOTelError.spanEventLimitReached` if the limit hass ben reached for the given span even type.
     /// - Throws: `PushNotificationError.invalidPayload` if the `aps` object is not present in the `userInfo` of the `UNNotification`.
-    convenience init(
+    @objc func addPushNotificationEvent(
         notification: UNNotification,
         timestamp: Date = Date(),
         attributes: [String: String] = [:],
@@ -32,22 +30,38 @@ public class PushNotificationEvent: EmbraceSpanEvent {
         #if !os(tvOS)
             userInfo = notification.request.content.userInfo
         #endif
-        try self.init(userInfo: userInfo, attributes: attributes, captureData: captureData)
+
+        try addPushNotificationEvent(
+            userInfo: userInfo,
+            timestamp: timestamp,
+            attributes: attributes,
+            captureData: captureData
+        )
     }
 
-    /// Returns a span event on using the `userInfo` dictionary from a push notification
+    /// Adds a PushNotification span event to the current Embrace session using the `userInfo` dictionary from a push notification.
     /// - Parameters:
-    ///   - userInfo: The `userInfo` dictionary from a push notification
-    ///   - timestamp: Timestamp when the event occured
-    ///   - attributes: Attributes for the event
-    ///   - captureData: Whether or not Embrace should parse the data inside the push notification
+    ///   - userInfo: The `userInfo` dictionary from a push notification.
+    ///   - timestamp: Timestamp of the event.
+    ///   - attributes: Attributes of the event.
+    ///   - captureData: Whether or not Embrace should parse the data inside the push notification.
+    /// - Throws: `EmbraceOTelError.invalidSession` if there is not active Embrace session.
+    /// - Throws: `EmbraceOTelError.spanEventLimitReached` if the limit hass ben reached for the given span even type.
     /// - Throws: `PushNotificationError.invalidPayload` if the `aps` object is not present in the `userInfo` of the `UNNotification`.
-    init(
+    @objc func addPushNotificationEvent(
         userInfo: [AnyHashable: Any],
         timestamp: Date = Date(),
         attributes: [String: String] = [:],
         captureData: Bool = true
     ) throws {
+
+        guard let span = sessionController?.currentSessionSpan else {
+            throw EmbraceOTelError.invalidSession
+        }
+
+        guard limiter.shouldAddSessionEvent(ofType: .pushNotification) else {
+            throw EmbraceOTelError.spanEventLimitReached("PushNotification event limit reached!")
+        }
 
         // find aps key
         guard let apsDict = userInfo[Constants.apsRootKey] as? [AnyHashable: Any] else {
@@ -55,16 +69,20 @@ public class PushNotificationEvent: EmbraceSpanEvent {
         }
 
         let dict = Self.parse(apsDict: apsDict, captureData: captureData)
-        let finalAttributes = attributes.merging(dict) { (current, _) in current }
+        let sanitized = sanitizer.sanitizeSpanEventAttributes(attributes)
+        let finalAttributes = sanitized.merging(dict) { (current, _) in current }
 
-        super.init(
+        let event = EmbraceSpanEvent(
             name: SpanEventSemantics.PushNotification.name,
             type: .pushNotification,
             timestamp: timestamp,
             attributes: finalAttributes
         )
+
+        span.addSessionEvent(event)
     }
 
+    // MARK: Internal
     static func parse(apsDict: [AnyHashable: Any], captureData: Bool) -> [String: String] {
 
         var dict: [String: String] = [:]
@@ -123,7 +141,6 @@ public class PushNotificationEvent: EmbraceSpanEvent {
         return dict
     }
 
-    // MARK: - Private
     private static func isSilent(userInfo: [AnyHashable: Any]) -> Bool {
         guard let contentAvailable = userInfo[Constants.apsContentAvailable] as? Int else {
             return false
@@ -147,12 +164,22 @@ public class PushNotificationEvent: EmbraceSpanEvent {
     }
 }
 
-extension EmbraceSpanEvent {
-    public static func push(notification: UNNotification, attributes: [String: String] = [:]) throws -> EmbraceSpanEvent {
-        return try PushNotificationEvent(notification: notification, attributes: attributes)
-    }
+extension OTelSignalsHandler {
+    func addPushNotificationEvent(
+        notification: UNNotification,
+        timestamp: Date = Date(),
+        attributes: [String: String] = [:],
+        captureData: Bool = true
+    ) throws {
+        guard let internalHandler = self as? EmbraceOTelSignalsHandler else {
+            return
+        }
 
-    public static func push(userInfo: [AnyHashable: Any], attributes: [String: String] = [:]) throws -> EmbraceSpanEvent {
-        return try PushNotificationEvent(userInfo: userInfo, attributes: attributes)
+        try internalHandler.addPushNotificationEvent(
+            notification: notification,
+            timestamp: timestamp,
+            attributes: attributes,
+            captureData: captureData
+        )
     }
 }

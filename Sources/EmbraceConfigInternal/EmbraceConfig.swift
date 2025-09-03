@@ -136,12 +136,12 @@ extension EmbraceConfig /* EmbraceConfigurable delegation */ {
         configurable.isMetricKitHangCaptureEnabled
     }
 
-    public var spanEventsLimits: SpanEventsLimits {
-        configurable.spanEventsLimits
+    public var spanEventTypeLimits: SpanEventTypeLimits {
+        configurable.spanEventTypeLimits
     }
 
-    public var logsLimits: LogsLimits {
-        configurable.logsLimits
+    public var logSeverityLimits: LogSeverityLimits {
+        configurable.logSeverityLimits
     }
 
     public var internalLogLimits: InternalLogLimits {

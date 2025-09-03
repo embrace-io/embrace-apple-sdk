@@ -37,16 +37,6 @@ class LogController: LogControllable {
 
     weak var sdkStateProvider: EmbraceSDKStateProvider?
 
-    struct MutableState {
-        var limits: LogsLimits = LogsLimits()
-    }
-    private let state = EmbraceMutex(MutableState())
-
-    var limits: LogsLimits {
-        get { state.withLock { $0.limits } }
-        set { state.withLock { $0.limits = newValue } }
-    }
-
     var currentSessionId: EmbraceIdentifier? {
         sessionController?.currentSession?.id
     }

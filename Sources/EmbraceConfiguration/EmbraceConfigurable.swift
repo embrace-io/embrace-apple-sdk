@@ -31,9 +31,9 @@ import Foundation
 
     var isMetricKitHangCaptureEnabled: Bool { get }
 
-    var spanEventsLimits: SpanEventsLimits { get }
+    var spanEventTypeLimits: SpanEventTypeLimits { get }
 
-    var logsLimits: LogsLimits { get }
+    var logSeverityLimits: LogSeverityLimits { get }
 
     var internalLogLimits: InternalLogLimits { get }
 

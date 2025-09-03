@@ -7,10 +7,41 @@ import Foundation
     import EmbraceSemantics
 #endif
 
+typealias EmbraceSpanHandler = EmbraceSpanDelegate & EmbraceSpanDataSource
+
 protocol EmbraceSpanDelegate: AnyObject {
     func onSpanStatusUpdated(_ span: EmbraceSpan, status: EmbraceSpanStatus)
     func onSpanEventAdded(_ span: EmbraceSpan, event: EmbraceSpanEvent)
     func onSpanLinkAdded(_ span: EmbraceSpan, link: EmbraceSpanLink)
-    func onSpanAttributeUpdated(_ span: EmbraceSpan, attributes: [String: String])
+    func onSpanAttributesUpdated(_ span: EmbraceSpan, attributes: [String: String])
     func onSpanEnded(_ span: EmbraceSpan, endTime: Date)
+}
+
+protocol EmbraceSpanDataSource: AnyObject {
+    func createEvent(
+        for span: EmbraceSpan,
+        name: String,
+        type: EmbraceType?,
+        timestamp: Date,
+        attributes: [String: String],
+        internalCount: Int,
+        isInternal: Bool
+    ) throws -> EmbraceSpanEvent
+
+    func createLink(
+        for span: EmbraceSpan,
+        spanId: String,
+        traceId: String,
+        attributes: [String: String],
+        internalCount: Int,
+        isInternal: Bool
+    ) throws -> EmbraceSpanLink
+
+    func validateAttribute(
+        for span: EmbraceSpan,
+        key: String,
+        value: String?,
+        internalCount: Int,
+        isInternal: Bool
+    ) throws -> (String, String?)
 }
