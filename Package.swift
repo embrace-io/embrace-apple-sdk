@@ -42,9 +42,8 @@ let package = Package(
     ],
     dependencies: [
         .package(
-            // url: "https://github.com/kstenerud/KSCrash",
-            // exact: "2.3.0"
-            path: "../KSCrash"
+            url: "https://github.com/kstenerud/KSCrash",
+            exact: "2.3.0"
         ),
         .package(
             url: "https://github.com/open-telemetry/opentelemetry-swift",

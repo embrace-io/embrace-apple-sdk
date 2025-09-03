@@ -48,19 +48,6 @@ public final class HangCaptureService: CaptureService {
         self.limitData.withLock { $0.limits = config.hangLimits }
     }
 
-    public override func onInstall() {
-        watchdog.logger = logger
-    }
-
-    public override func onSessionStart(_ session: any EmbraceSession) {
-        limitData.withLock { $0.hangsInSessionCount = 0 }
-    }
-
-    public override func onSessionWillEnd(_ session: any EmbraceSession) {
-        let value = limitData.withLock { $0.hangsInSessionCount }
-        try? Embrace.client?.metadata.updateProperty(key: "emb-thread-blockage", value: "\(value)")
-    }
-
     private var mainThread: pthread_t
     private var watchdog: HangWatchdog?
     private let queue = DispatchQueue(label: "io.embrace.hang.service")
