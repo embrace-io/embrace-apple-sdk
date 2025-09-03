@@ -121,7 +121,8 @@
                 appId: "_-_-_",
                 sdkVersion: "1.2.3",
                 filePathProvider: TemporaryFilepathProvider(),
-                notificationCenter: .default
+                notificationCenter: .default,
+                logger: logger
             )
             crashReporter.install(context: context)
             crashReporter.currentSessionId = "original_session_id"
@@ -146,7 +147,8 @@
                 appId: "_-_-_",
                 sdkVersion: "1.2.3",
                 filePathProvider: TemporaryFilepathProvider(),
-                notificationCenter: .default
+                notificationCenter: .default,
+                logger: logger
             )
             crashReporter.install(context: context)
 
@@ -179,7 +181,7 @@
                 // Then only one report should be present
                 XCTAssertEqual(reports.count, 1)
                 // and report shouldn't be the one with the SIGTERM signal
-                XCTAssertEqual(reports[0].internalId, 1)
+                XCTAssertEqual(reports[0].internalId, "1")
                 // and dropped report should have been deleted
                 self.thenShouldntExistReport(withName: "appId-report-0000000000000002.json")
 
@@ -191,7 +193,11 @@
 
         func testOnHavingEmptySignalBlockList_fetchUnsentCrashReports_SIGTERMshouldBeReported() throws {
             // given a crash reporter with no blocklist
-            crashReporter = EmbraceCrashReporter(reporter: KSCrashReporter(), signalsBlockList: [])
+            crashReporter = EmbraceCrashReporter(
+                reporter: KSCrashReporter(),
+                logger: logger,
+                signalsBlockList: []
+            )
             crashReporter.install(context: context)
 
             // given some fake crash reports (SIGABRT + SIGTERM)
@@ -204,8 +210,8 @@
             crashReporter.fetchUnsentCrashReports { reports in
                 // Then both reports should be present
                 XCTAssertEqual(reports.count, 2)
-                XCTAssertEqual(reports[0].internalId, 1)
-                XCTAssertEqual(reports[1].internalId, 2)
+                XCTAssertEqual(reports[0].internalId, "1")
+                XCTAssertEqual(reports[1].internalId, "2")
 
                 expectation.fulfill()
             }
@@ -215,7 +221,11 @@
 
         func testOnModifyingSignalBlockList_fetchUnsentCrashReports_shouldAvoidReportingBlockedSignals() throws {
             // given a crash reporter preventing SIGABRT from being reported
-            crashReporter = EmbraceCrashReporter(reporter: KSCrashReporter(), signalsBlockList: [.SIGABRT])
+            crashReporter = EmbraceCrashReporter(
+                reporter: KSCrashReporter(),
+                logger: logger,
+                signalsBlockList: [.SIGABRT]
+            )
             crashReporter.install(context: context)
 
             // given some fake crash reports (nonBlocked SIGTERM + blocked SIGABRT)
@@ -229,7 +239,7 @@
                 // Then only one report should be
                 XCTAssertEqual(reports.count, 1)
                 // and report shouldn't be the one with the SIGABRT signal
-                XCTAssertEqual(reports[0].internalId, 2)
+                XCTAssertEqual(reports[0].internalId, "2")
                 // and dropped report should have been deleted
                 self.thenShouldntExistReport(withName: "appId-report-0000000000000001.json")
                 expectation.fulfill()

@@ -36,13 +36,14 @@ let package = Package(
         .library(name: "EmbraceCore", targets: ["EmbraceCore", "EmbraceConfiguration"]),
         .library(name: "EmbraceSemantics", targets: ["EmbraceSemantics"]),
         .library(name: "EmbraceMacros", targets: ["EmbraceMacros", "EmbraceCore"]),
+        .library(name: "EmbraceMetricKitSupport", targets: ["EmbraceMetricKitSupport"]),
         .library(name: "EmbraceKSCrashSupport", targets: ["EmbraceKSCrashSupport"]),
         .library(name: "EmbraceCrashlyticsSupport", targets: ["EmbraceCrashlyticsSupport"])
     ],
     dependencies: [
         .package(
             url: "https://github.com/kstenerud/KSCrash",
-            exact: "2.3.0"
+            branch: "master"
         ),
         .package(
             url: "https://github.com/open-telemetry/opentelemetry-swift",
@@ -272,6 +273,35 @@ let package = Package(
                 "EmbraceMacroPlugin",
                 "EmbraceIO",
                 .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax")
+            ]
+        ),
+
+        // metric kit support
+        .target(
+            name: "EmbraceMetricKitSupport",
+            dependencies: [
+                "EmbraceCommonInternal",
+                "EmbraceObjCUtilsInternal",
+                "EmbraceMetricKitSupportObjC",
+                .product(name: "Recording", package: "KSCrash")
+            ],
+            path: "Sources/ThirdParty/EmbraceMetricKitSupport"
+        ),
+        .target(
+            name: "EmbraceMetricKitSupportObjC",
+            dependencies: [
+                "EmbraceCommonInternal",
+                "EmbraceObjCUtilsInternal",
+                .product(name: "Recording", package: "KSCrash")
+            ],
+            path: "Sources/ThirdParty/EmbraceMetricKitSupportObjC"
+        ),
+        .testTarget(
+            name: "EmbraceMetricKitSupportTests",
+            dependencies: ["EmbraceMetricKitSupport", "EmbraceCommonInternal", "TestSupport"],
+            path: "Tests/ThirdParty/EmbraceMetricKitSupportTests",
+            resources: [
+                .copy("MetricKitReports/")
             ]
         ),
 

@@ -12,6 +12,7 @@
 #import "EMBRURLSessionTaskHeaderInjector.h"
 #import "EMBStackTraceProccessor.h"
 #import "EMBStartupTracker.h"
+#import "EMBThreadcrumb.h"
 #import "EMBURLSessionDelegateForwarder.h"
 #import "EMBURLSessionDelegateProxy.h"
 #import "EMBURLSessionDelegateProxyFunctions.h"
