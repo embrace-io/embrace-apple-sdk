@@ -123,27 +123,42 @@ extension HangCaptureService: HangObserver {
         guard
             limitData.withLock({
                 $0.samplesInHangCount += 1
-                return $0.samplesInHangCount <= $0.limits.samplesPerHang
+                return $0.hangsInSessionCount <= $0.limits.hangPerSession || $0.samplesInHangCount <= $0.limits.samplesPerHang
             })
         else {
             return
         }
 
-        // Are we over the limit or don't have a span for some reason?
-        guard let span else {
-            return
-        }
-
         // Capture the stack now
         let pre = NanosecondClock.current
-        // TODO: Implement stacktrace collection here. Currently, frames is empty and stacktraces are not captured.
+        let backtrace = EmbraceBacktrace.backtrace(of: mainThread, suspendingThreads: true)
         let frames: [String] = []
         let post = NanosecondClock.current
 
         // process it later
-        queue.async {
+        queue.async { [self] in
 
-            let stackString = frames.joined()
+            guard let span else {
+                return
+            }
+
+            let frames: [[String: Any]]
+            if let thread = backtrace.threads.first {
+                frames = thread.frames(symbolicated: true).compactMap { $0.asProcessedFrame() }
+            } else {
+                frames = []
+            }
+
+            let stackString: String
+            do {
+                let jsonData = try JSONSerialization.data(withJSONObject: frames, options: [.prettyPrinted, .sortedKeys])
+                try? jsonData.write(to: URL(fileURLWithPath: "/Users/alexcohen/Desktop/stack.json"))
+
+                stackString = jsonData.base64EncodedString()
+            } catch let exception {
+                stackString = ""
+                Embrace.logger.error("Couldn't convert stack trace to json string: \(exception.localizedDescription)")
+            }
 
             span.addEvent(
                 name: "perf.thread_blockage_sample",
