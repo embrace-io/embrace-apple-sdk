@@ -19,10 +19,17 @@ struct PerformanceTestSliderView: View {
             Slider(value: $value, in: 1...maxValue, step: 1) { }
             minimumValueLabel: {
                 Text("1")
+                    .textCase(nil)
+                    .font(.embraceFont(size: 12))
+                    .foregroundStyle(.embraceSilver)
             } maximumValueLabel: {
                 Text("\(UInt32(maxValue))")
+                    .textCase(nil)
+                    .font(.embraceFont(size: 12))
+                    .foregroundStyle(.embraceSilver)
             }
             .tint(.embracePurple)
         }
+        .padding([.leading, .trailing], 20)
     }
 }
