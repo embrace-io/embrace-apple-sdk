@@ -16,8 +16,8 @@ struct PerformanceTestSliderView: View {
                 .textCase(nil)
                 .font(.embraceFont(size: 15))
                 .foregroundStyle(.embraceSilver)
-            Slider(value: $value, in: 1...maxValue, step: 1) { }
-            minimumValueLabel: {
+            Slider(value: $value, in: 1...maxValue, step: 1) {
+            } minimumValueLabel: {
                 Text("1")
                     .textCase(nil)
                     .font(.embraceFont(size: 12))

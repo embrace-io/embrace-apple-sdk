@@ -4,9 +4,9 @@
 //
 //
 
-import SwiftUI
 import EmbraceCore
 import OpenTelemetryApi
+import SwiftUI
 
 @Observable
 class PerformanceTestSpansViewModel: SpanTestUIComponentViewModel {
@@ -28,7 +28,7 @@ class PerformanceTestSpansViewModel: SpanTestUIComponentViewModel {
             updateTestObject()
         }
     }
-    
+
     let maxConcurrentLoops: Double = 30
     let maxCalculationsPerLoop: Double = 10000
     let maxNumberOfSpansPerLoop: Double = 3000

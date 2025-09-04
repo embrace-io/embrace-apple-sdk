@@ -85,8 +85,8 @@ class PerformanceSpanTest: PayloadTest {
         }
         spansGroup.wait()
 
-        let nonSpansTime = String(format: "%.4f Seconds",nonSpansTotalTime / Double(numberOfLoops))
-        let spansTime = String(format: "%.4f Seconds",withSpansTotalTime / Double(numberOfLoops))
+        let nonSpansTime = String(format: "%.4f Seconds", nonSpansTotalTime / Double(numberOfLoops))
+        let spansTime = String(format: "%.4f Seconds", withSpansTotalTime / Double(numberOfLoops))
         testItems.append(.init(target: "Control", expected: "", recorded: nonSpansTime, result: .unknown))
         testItems.append(.init(target: "Exporting Spans", expected: "", recorded: spansTime, result: .unknown))
         testGroup.leave()
