@@ -32,11 +32,11 @@ class PerformanceTests: XCTestCase {
             let didBecomeActiveNotif: Notification.Name
             let didFinishLaunchingNotif: Notification.Name
             #if os(macOS)
-            didBecomeActiveNotif = NSApplication.didBecomeActiveNotification
-            didFinishLaunchingNotif = NSApplication.didFinishLaunchingNotification
+                didBecomeActiveNotif = NSApplication.didBecomeActiveNotification
+                didFinishLaunchingNotif = NSApplication.didFinishLaunchingNotification
             #else
-            didBecomeActiveNotif = UIApplication.didBecomeActiveNotification
-            didFinishLaunchingNotif = UIApplication.didFinishLaunchingNotification
+                didBecomeActiveNotif = UIApplication.didBecomeActiveNotification
+                didFinishLaunchingNotif = UIApplication.didFinishLaunchingNotification
             #endif
             NotificationCenter.default.addObserver(forName: didBecomeActiveNotif, object: nil, queue: .main) { _ in
                 RunLoop.main.perform(inModes: [.common]) {
