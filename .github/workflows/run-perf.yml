@@ -8,6 +8,14 @@ permissions:
   pull-requests: write
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash -euo pipefail
+
 env:
   TESTS: |
     EmbraceIOTests/PerformanceTests
@@ -25,9 +33,9 @@ jobs:
           persist-credentials: false
       
       - name: Copy perf test binary
-        run: 
+        run: |
           cp bin/perf /tmp/perf || true
-          chmod +x tmp/perf || true
+          chmod +x /tmp/perf || true
 
       - name: Run PR perf tests
         id: perfpr
