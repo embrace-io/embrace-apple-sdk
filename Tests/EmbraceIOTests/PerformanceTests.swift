@@ -19,38 +19,40 @@ class PerformanceTests: XCTestCase {
     @MainActor
     func runStartup(_ options: Embrace.Options) {
 
-        defer {
-            Embrace.client = nil
-        }
-
-        do {
-
-            let expect = XCTestExpectation()
-
-            try Embrace.setup(options: options).start()
-
-            let didBecomeActiveNotif: Notification.Name
-            let didFinishLaunchingNotif: Notification.Name
-            #if os(macOS)
-                didBecomeActiveNotif = NSApplication.didBecomeActiveNotification
-                didFinishLaunchingNotif = NSApplication.didFinishLaunchingNotification
-            #else
-                didBecomeActiveNotif = UIApplication.didBecomeActiveNotification
-                didFinishLaunchingNotif = UIApplication.didFinishLaunchingNotification
-            #endif
-            NotificationCenter.default.addObserver(forName: didBecomeActiveNotif, object: nil, queue: .main) { _ in
-                RunLoop.main.perform(inModes: [.common]) {
-                    expect.fulfill()
-                }
+        #if !os(watchOS)
+            defer {
+                Embrace.client = nil
             }
 
-            NotificationCenter.default.post(name: didFinishLaunchingNotif, object: nil)
-            NotificationCenter.default.post(name: didBecomeActiveNotif, object: nil)
+            do {
 
-            wait(for: [expect])
+                let expect = XCTestExpectation()
 
-        } catch {
-        }
+                try Embrace.setup(options: options).start()
+
+                let didBecomeActiveNotif: Notification.Name
+                let didFinishLaunchingNotif: Notification.Name
+                #if os(macOS)
+                    didBecomeActiveNotif = NSApplication.didBecomeActiveNotification
+                    didFinishLaunchingNotif = NSApplication.didFinishLaunchingNotification
+                #elseif os(iOS) || os(tvOS)
+                    didBecomeActiveNotif = UIApplication.didBecomeActiveNotification
+                    didFinishLaunchingNotif = UIApplication.didFinishLaunchingNotification
+                #endif
+                NotificationCenter.default.addObserver(forName: didBecomeActiveNotif, object: nil, queue: .main) { _ in
+                    RunLoop.main.perform(inModes: [.common]) {
+                        expect.fulfill()
+                    }
+                }
+
+                NotificationCenter.default.post(name: didFinishLaunchingNotif, object: nil)
+                NotificationCenter.default.post(name: didBecomeActiveNotif, object: nil)
+
+                wait(for: [expect])
+
+            } catch {
+            }
+        #endif
 
     }
 
