@@ -225,7 +225,13 @@ final class SessionControllerTests: XCTestCase {
         }
     }
 
+    // This test is crazy on the waiting,
+    // but  I want to wait as little time as possible without
+    // a full refactor that actually allows us to get
+    // completion on sessions.
+    @MainActor
     func test_endSession_uploadsSession() throws {
+        try XCTSkipIfRunMoreThanOnce()
         try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
         // mock successful requests
         EmbraceHTTPMock.mock(url: testSessionsUrl())
@@ -237,6 +243,24 @@ final class SessionControllerTests: XCTestCase {
 
         // when ending the session
         controller.endSession()
+
+        let expectation = expectation(description: "waiting for session to end")
+        // we need to wait for the controller to async send it data,
+        // as well as storgage (CoreData) to update the session info.
+        // we don't have a better async way than to tack onto their queue's,
+        // and just run a block at the end.
+        storage.coreData.performAsyncOperation { _ in
+            controller.queue.async { [self] in
+                storage.coreData.performAsyncOperation { _ in
+                    controller.queue.async { [self] in
+                        upload.queue.async {
+                            expectation.fulfill()
+                        }
+                    }
+                }
+            }
+        }
+        wait(for: [expectation], timeout: .longTimeout)
         wait { EmbraceHTTPMock.requestsForUrl(self.testSessionsUrl()).count == 1 }
 
         // then a session request was sent
@@ -247,6 +271,10 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertNil(session)
 
         // then the session upload data is no longer cached
+        wait { [self] in
+            let uploadData = upload.cache.fetchAllUploadData()
+            return uploadData.isEmpty
+        }
         let uploadData = upload.cache.fetchAllUploadData()
         XCTAssertEqual(uploadData.count, 0)
     }
