@@ -4,10 +4,11 @@
 
 import EmbraceCommonInternal
 import EmbraceObjCUtilsInternal
+import EmbraceSemantics
 import EmbraceStorageInternal
 import OpenTelemetrySdk
 import XCTest
-import EmbraceSemantics
+
 @testable import EmbraceCore
 
 final class DeviceInfoCaptureServiceTests: XCTestCase {

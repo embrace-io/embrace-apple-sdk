@@ -4,12 +4,13 @@
 
 import EmbraceCommonInternal
 import EmbraceConfigInternal
+import EmbraceSemantics
 import EmbraceStorageInternal
 import EmbraceUploadInternal
 import OpenTelemetryApi
 import TestSupport
 import XCTest
-import EmbraceSemantics
+
 @testable import EmbraceCore
 
 class LogControllerTests: XCTestCase {

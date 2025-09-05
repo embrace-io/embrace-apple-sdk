@@ -3,6 +3,7 @@
 //
 
 import XCTest
+
 @testable import EmbraceSemantics
 
 /// Many tests in this class might seem trivial, and indeed, they are.

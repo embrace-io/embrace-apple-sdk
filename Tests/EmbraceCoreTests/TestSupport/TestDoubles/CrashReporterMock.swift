@@ -3,8 +3,8 @@
 //
 
 import EmbraceCommonInternal
-import Foundation
 import EmbraceSemantics
+import Foundation
 
 class CrashReporterMock: CrashReporter {
     var sdkVersion: String?

@@ -3,9 +3,10 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceSemantics
 import OpenTelemetryApi
 import XCTest
-import EmbraceSemantics
+
 @testable import EmbraceOTelInternal
 
 class SeverityToLogSeverityTests: XCTestCase {

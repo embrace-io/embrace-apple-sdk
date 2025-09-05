@@ -74,11 +74,11 @@ import Foundation
     func end()
 }
 
-public extension EmbraceSpan {
+extension EmbraceSpan {
 
     /// Convenience method to add a span event at the current time.
     /// Can fail if the event limit is reached.
-    func addEvent(
+    public func addEvent(
         name: String,
         type: EmbraceType? = .performance,
         attributes: [String: String]

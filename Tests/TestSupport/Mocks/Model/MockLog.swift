@@ -2,8 +2,8 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-import EmbraceSemantics
 import EmbraceCommonInternal
+import EmbraceSemantics
 import Foundation
 import OpenTelemetryApi
 
@@ -29,7 +29,7 @@ public class MockLog: EmbraceLog {
         body: String = "Mock",
         sessionId: EmbraceIdentifier? = nil,
         processId: EmbraceIdentifier = .random,
-        attributes: [String : String] = [:]
+        attributes: [String: String] = [:]
     ) {
         self.id = id
         self.severity = severity

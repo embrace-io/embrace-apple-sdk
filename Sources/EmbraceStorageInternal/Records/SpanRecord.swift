@@ -309,7 +309,7 @@ class ImmutableSpanRecord: EmbraceSpan {
         endTime: Date? = nil,
         events: [EmbraceSpanEvent],
         links: [EmbraceSpanLink],
-        attributes: [String : String],
+        attributes: [String: String],
         sessionId: EmbraceIdentifier? = nil,
         processId: EmbraceIdentifier
     ) {
@@ -331,11 +331,11 @@ class ImmutableSpanRecord: EmbraceSpan {
         // no op
     }
 
-    func addEvent(name: String, type: EmbraceType?, timestamp: Date, attributes: [String : String]) throws {
+    func addEvent(name: String, type: EmbraceType?, timestamp: Date, attributes: [String: String]) throws {
         // no op
     }
 
-    func addLink(spanId: String, traceId: String, attributes: [String : String]) throws {
+    func addLink(spanId: String, traceId: String, attributes: [String: String]) throws {
         // no op
     }
 

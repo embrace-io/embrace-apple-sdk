@@ -5,6 +5,7 @@
 import EmbraceCommonInternal
 import EmbraceConfiguration
 import EmbraceSemantics
+
 @testable import EmbraceCore
 
 class SpyLogBatcherDelegate: LogBatcherDelegate {

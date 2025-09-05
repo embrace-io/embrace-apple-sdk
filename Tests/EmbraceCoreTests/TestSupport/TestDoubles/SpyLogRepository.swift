@@ -3,11 +3,11 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceSemantics
 import EmbraceStorageInternal
 import Foundation
 import OpenTelemetryApi
 import TestSupport
-import EmbraceSemantics
 
 class SpyLogRepository: LogRepository {
 

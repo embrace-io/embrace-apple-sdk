@@ -20,7 +20,6 @@ public class LogRecord: NSManagedObject {
     @NSManaged public var sessionIdRaw: String?
     @NSManaged public var processIdRaw: String
 
-
     class func create(
         context: NSManagedObjectContext,
         id: String,
@@ -155,7 +154,7 @@ class ImmutableLogRecord: EmbraceLog {
         type: EmbraceType,
         timestamp: Date,
         body: String,
-        attributes: [String : String],
+        attributes: [String: String],
         sessionId: EmbraceIdentifier? = nil,
         processId: EmbraceIdentifier
     ) {

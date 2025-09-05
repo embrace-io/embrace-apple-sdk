@@ -2,11 +2,12 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceSemantics
 import Foundation
 import OpenTelemetryApi
-import XCTest
 import TestSupport
-import EmbraceSemantics
+import XCTest
+
 @testable import EmbraceCore
 @testable import EmbraceOTelInternal
 @testable import OpenTelemetrySdk
@@ -177,4 +178,3 @@ class SpanPayloadTests: XCTestCase {
 }
 
 // swiftlint:enable force_cast
-

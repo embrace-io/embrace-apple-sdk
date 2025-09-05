@@ -3,10 +3,11 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceSemantics
 import EmbraceStorageInternal
 import Foundation
 import TestSupport
-import EmbraceSemantics
+
 @testable import EmbraceCore
 
 class MockSessionController: SessionControllable {

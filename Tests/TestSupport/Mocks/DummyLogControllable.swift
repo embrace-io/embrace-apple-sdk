@@ -4,9 +4,10 @@
 
 import EmbraceCommonInternal
 import EmbraceConfiguration
+import EmbraceSemantics
 import EmbraceStorageInternal
 import Foundation
-import EmbraceSemantics
+
 @testable import EmbraceCore
 
 public class DummyLogControllable: LogControllable {

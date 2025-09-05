@@ -3,10 +3,11 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceSemantics
 import Foundation
 import OpenTelemetryApi
 import OpenTelemetrySdk
-import EmbraceSemantics
+
 @testable import EmbraceOTelInternal
 
 public class MockEmbraceOTelBridge: EmbraceOTelBridge {

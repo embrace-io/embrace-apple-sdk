@@ -3,10 +3,11 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceSemantics
 import EmbraceStorageInternal
 import TestSupport
 import XCTest
-import EmbraceSemantics
+
 @testable import EmbraceCore
 
 final class MetadataHandler_PersonaTagTests: XCTestCase {

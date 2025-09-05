@@ -5,11 +5,12 @@
 import EmbraceCommonInternal
 import EmbraceConfiguration
 import EmbraceOTelInternal
+import EmbraceSemantics
 import EmbraceStorageInternal
 import OpenTelemetryApi
 import OpenTelemetrySdk
 import XCTest
-import EmbraceSemantics
+
 @testable import EmbraceCore
 
 class StorageEmbraceLogExporterTests: XCTestCase {

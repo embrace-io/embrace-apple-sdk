@@ -12,7 +12,7 @@ import Foundation
 
     /// Trace identifier
     @objc public let traceId: String
-    
+
     /// Creates a new `EmbraceSpanContext`.
     /// - Parameters:
     ///   - spanId: Span identifier of the context

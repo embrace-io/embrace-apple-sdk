@@ -2,12 +2,13 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-@testable import EmbraceStorageInternal
 import OpenTelemetryApi
 import TestSupport
 import XCTest
+
 @testable import EmbraceCore
 @testable import EmbraceOTelInternal
+@testable import EmbraceStorageInternal
 @testable import OpenTelemetrySdk
 
 final class StorageSpanExporterTests: XCTestCase {

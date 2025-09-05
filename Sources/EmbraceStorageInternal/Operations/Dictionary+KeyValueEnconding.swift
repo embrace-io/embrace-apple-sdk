@@ -41,13 +41,15 @@ extension Dictionary where Key == String, Value == String {
 
 extension String {
     func keyValueEncoded() -> String {
-        return self
+        return
+            self
             .replacingOccurrences(of: "%", with: "%25")
             .replacingOccurrences(of: ",", with: "%2C")
     }
 
     func keyValueDecoded() -> String {
-        return self
+        return
+            self
             .replacingOccurrences(of: "%2C", with: ",")
             .replacingOccurrences(of: "%25", with: "%")
     }

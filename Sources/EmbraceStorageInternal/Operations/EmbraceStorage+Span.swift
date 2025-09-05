@@ -161,7 +161,7 @@ extension EmbraceStorage {
         }
 
         // add new records if needed
-        for j in i ..< events.count {
+        for j in i..<events.count {
             let event = events[j]
 
             if let record = SpanEventRecord.create(
@@ -200,7 +200,7 @@ extension EmbraceStorage {
         }
 
         // add new records if needed
-        for j in i ..< links.count {
+        for j in i..<links.count {
             let link = links[j]
 
             if let record = SpanLinkRecord.create(
@@ -225,7 +225,7 @@ extension EmbraceStorage {
                 if let span = try context.fetch(request).first {
                     span.statusRaw = status.rawValue
                 }
-            } catch { }
+            } catch {}
         }
     }
 
@@ -241,7 +241,7 @@ extension EmbraceStorage {
                 if let span = try context.fetch(request).first {
                     span.attributes = attributes.keyValueEncoded()
                 }
-            } catch { }
+            } catch {}
         }
     }
 
@@ -263,7 +263,7 @@ extension EmbraceStorage {
                         span.events.insert(record)
                     }
                 }
-            } catch { }
+            } catch {}
         }
     }
 
@@ -285,7 +285,7 @@ extension EmbraceStorage {
                         span.links.insert(record)
                     }
                 }
-            } catch { }
+            } catch {}
         }
     }
 

@@ -29,7 +29,7 @@ import Foundation
         name: String,
         type: EmbraceType? = .performance,
         timestamp: Date = Date(),
-        attributes: [String : String] = [:]
+        attributes: [String: String] = [:]
     ) {
         self.name = name
         self.type = type

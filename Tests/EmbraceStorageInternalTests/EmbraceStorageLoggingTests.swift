@@ -3,8 +3,9 @@
 //
 
 import EmbraceCommonInternal
-import XCTest
 import EmbraceSemantics
+import XCTest
+
 @testable import EmbraceStorageInternal
 
 class EmbraceStorageLoggingTests: XCTestCase {

@@ -3,10 +3,11 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceSemantics
 import Foundation
 import TestSupport
 import XCTest
-import EmbraceSemantics
+
 @testable import EmbraceCore
 @testable import EmbraceStorageInternal
 @testable import EmbraceUploadInternal
