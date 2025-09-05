@@ -14,12 +14,14 @@ CLANG_FORMAT := $(shell command -v clang-format-18 2> /dev/null || command -v cl
 # Swift format command (using toolchain)
 # brew install swift-format
 SWIFT_FORMAT_CMD = swift format
-SWIFT_LINT_CMD=swiftlint
+
+HOOKS_DIR := $(shell git rev-parse --show-toplevel)/.githooks
+GIT_HOOKS_DIR := $(shell git rev-parse --git-path hooks)
 
 # Define the default target
-.PHONY: format check-format swift-format check-swift-format lint check-lint
+.PHONY: format check-format swift-format check-swift-format
 
-all: format swift-format lint
+all: format swift-format
 
 format:
 ifeq ($(CLANG_FORMAT),)
@@ -44,7 +46,8 @@ endif
 swift-format:
 	@echo "Running swift-format with swift-format..."
 	@{ find $(SWIFT_SEARCH_DIRS) -name '*.swift' -type f -not -path '*/.build/*'; \
-	   [ -f Package.swift ] && echo Package.swift; } | \
+	   [ -f Package.swift ] && echo Package.swift; \
+	   [ -f Dangerfile.swift ] && echo Dangerfile.swift; } | \
 	while read file; do \
 		$(SWIFT_FORMAT_CMD) format --in-place --configuration .swift-format "$$file"; \
 	done
@@ -52,15 +55,21 @@ swift-format:
 check-swift-format:
 	@echo "Running check-swift-format with swift-format..."
 	@{ find $(SWIFT_SEARCH_DIRS) -name '*.swift' -type f -not -path '*/.build/*'; \
-	   [ -f Package.swift ] && echo Package.swift; } | \
+	   [ -f Package.swift ] && echo Package.swift; \
+	   [ -f Dangerfile.swift ] && echo Dangerfile.swift; } | \
 	while read file; do \
 		$(SWIFT_FORMAT_CMD) lint --configuration .swift-format "$$file" --strict; \
 	done
 
-check-lint:
-	@echo "Running check-lint with swift-lint..."
-	$(SWIFT_LINT_CMD) lint --quiet --strict --config .swiftlint.yml --force-exclude
-
-lint:
-	@echo "Running lint with swift-lint..."
-	$(SWIFT_LINT_CMD) lint --fix --quiet --config .swiftlint.yml --force-exclude
+.PHONY: install-hooks
+install-hooks:
+	@echo "Installing Git hooks..."
+	@for hook in $(HOOKS_DIR)/*; do \
+		hook_name=$$(basename $$hook); \
+		target="$(GIT_HOOKS_DIR)/$$hook_name"; \
+		rm -f $$target; \
+		ln -s $$hook $$target; \
+		chmod +x $$hook; \
+		echo " → Installed $$hook_name"; \
+	done
+	@echo "Done!"
