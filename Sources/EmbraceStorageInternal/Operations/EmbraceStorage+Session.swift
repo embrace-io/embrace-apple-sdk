@@ -23,6 +23,7 @@ extension EmbraceStorage {
     ///   - endTime: `Date` of when the session ended (optional)
     ///   - lastHeartbeatTime: `Date` of the last heartbeat for the session (optional).
     ///   - crashReportId: Identifier of the crash report linked with this session
+    ///   - completion: A block called when the sesson has been added to storage
     /// - Returns: The newly stored `SessionRecord`
     @discardableResult
     public func addSession(
@@ -37,12 +38,21 @@ extension EmbraceStorage {
         crashReportId: String? = nil,
         coldStart: Bool = false,
         cleanExit: Bool = false,
-        appTerminated: Bool = false
+        appTerminated: Bool = false,
+        completion: (() -> Void)? = nil
     ) -> EmbraceSession? {
 
         let hbTime = lastHeartbeatTime ?? Date()
 
         coreData.performAsyncOperation { [self] _ in
+
+            defer {
+                if let completion {
+                    DispatchQueue.global(qos: .default).async {
+                        completion()
+                    }
+                }
+            }
 
             let created = SessionRecord.create(
                 context: coreData.context,

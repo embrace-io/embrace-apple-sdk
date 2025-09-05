@@ -68,7 +68,7 @@ class DefaultInternalLoggerTests: XCTestCase {
         XCTAssert(customExportEntries.contains("critical"))
     }
 
-    func test_export_withCriticalLogs() throws {
+    func test_export_withCriticalLogs() async throws {
         // given a logger
         fileUrl = fileProvider.fileURL(for: "DefaultInternalLoggerTests", name: testName)!
         let logger = DefaultInternalLogger(
@@ -85,18 +85,18 @@ class DefaultInternalLoggerTests: XCTestCase {
         logger.startup("startup5")
         logger.critical("critical")
 
-        wait(timeout: 10) {
-            // then the exported file has the correct values
-            guard let log = try? String(contentsOf: self.fileUrl) else {
-                return false
-            }
+        await logger.waitForQueue()
 
-            return log.contains("startup1") && log.contains("startup2") && log.contains("startup3")
-                && log.contains("startup4") && log.contains("startup5") && log.contains("critical")
-        }
+        let log = try! String(contentsOf: self.fileUrl)
+        XCTAssert(log.contains("startup1"))
+        XCTAssert(log.contains("startup2"))
+        XCTAssert(log.contains("startup3"))
+        XCTAssert(log.contains("startup4"))
+        XCTAssert(log.contains("startup5"))
+        XCTAssert(log.contains("critical"))
     }
 
-    func test_export_withoutCriticalLog() {
+    func test_export_withoutCriticalLog() async {
         // given a logger
         fileUrl = fileProvider.fileURL(for: "DefaultInternalLoggerTests", name: testName)!
         let logger = DefaultInternalLogger(
@@ -112,13 +112,13 @@ class DefaultInternalLoggerTests: XCTestCase {
         logger.startup("startup4")
         logger.startup("startup5")
 
-        wait(delay: 10)
+        await logger.waitForQueue()
 
         // then no custom export file is created
         XCTAssertFalse(FileManager.default.fileExists(atPath: fileUrl.path))
     }
 
-    func test_multiple_exports() {
+    func test_multiple_exports() async {
         // given a logger
         fileUrl = fileProvider.fileURL(for: "DefaultInternalLoggerTests", name: testName)!
         let logger = DefaultInternalLogger(
@@ -130,37 +130,39 @@ class DefaultInternalLoggerTests: XCTestCase {
         // when creating a critical log
         logger.critical("critical1")
 
-        wait(timeout: 10) {
-            // then the exported file has the correct values
-            guard let log = try? String(contentsOf: self.fileUrl) else {
-                return false
-            }
+        await logger.waitForQueue()
 
-            return log.contains("critical1")
-        }
+        var log = try! String(contentsOf: self.fileUrl)
+        XCTAssert(log.contains("critical1"))
 
         // when doing another critical log
         logger.critical("critical2")
 
-        wait(timeout: 10) {
-            // then the exported file has the correct values
-            guard let log = try? String(contentsOf: self.fileUrl) else {
-                return false
-            }
+        await logger.waitForQueue()
 
-            return log.contains("critical1") && log.contains("critical2")
-        }
+        log = try! String(contentsOf: self.fileUrl)
+        XCTAssert(log.contains("critical1"))
+        XCTAssert(log.contains("critical2"))
 
         // when doing another critical log
         logger.critical("critical3")
 
-        wait(timeout: 10) {
-            // then the exported file has the correct values
-            guard let log = try? String(contentsOf: self.fileUrl) else {
-                return false
-            }
+        await logger.waitForQueue()
 
-            return log.contains("critical1") && log.contains("critical2") && log.contains("critical3")
+        log = try! String(contentsOf: self.fileUrl)
+        XCTAssert(log.contains("critical1"))
+        XCTAssert(log.contains("critical2"))
+        XCTAssert(log.contains("critical3"))
+
+    }
+}
+
+extension DefaultInternalLogger {
+    func waitForQueue() async {
+        await withCheckedContinuation { continuation in
+            queue.async {
+                continuation.resume()
+            }
         }
     }
 }

@@ -68,7 +68,6 @@ import UserNotifications
     }
 }
 
-// swiftlint:disable line_length
 struct UNUserNotificationCenterSetDelegateSwizzler: Swizzlable {
     typealias ImplementationType = @convention(c) (UNUserNotificationCenter, Selector, UNUserNotificationCenterDelegate)
         -> Void
@@ -92,4 +91,3 @@ struct UNUserNotificationCenterSetDelegateSwizzler: Swizzlable {
         }
     }
 }
-// swiftlint:enable line_length

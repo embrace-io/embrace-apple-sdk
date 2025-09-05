@@ -1,8 +1,9 @@
 //
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
-    
+
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceSemantics
     import EmbraceCommonInternal
@@ -25,7 +26,7 @@ class DefaultEmbraceSpan: EmbraceSpan {
     weak var handler: EmbraceSpanHandler?
 
     var status: EmbraceSpanStatus {
-        get { state.safeValue.status }
+        state.safeValue.status
     }
 
     var endTime: Date? {
@@ -43,7 +44,7 @@ class DefaultEmbraceSpan: EmbraceSpan {
         set { state.safeValue.links = newValue }
     }
 
-    var attributes: [String : String] {
+    var attributes: [String: String] {
         get { state.safeValue.attributes }
         set { state.safeValue.attributes = newValue }
     }
@@ -53,7 +54,7 @@ class DefaultEmbraceSpan: EmbraceSpan {
         var endTime: Date? = nil
         var events: [EmbraceSpanEvent] = []
         var links: [EmbraceSpanLink] = []
-        var attributes: [String : String] = [:]
+        var attributes: [String: String] = [:]
 
         var internalEventCount: Int = 0
         var internalLinkCount: Int = 0
@@ -102,12 +103,12 @@ class DefaultEmbraceSpan: EmbraceSpan {
         state.safeValue.status = status
         handler?.onSpanStatusUpdated(self, status: status)
     }
-    
+
     func addEvent(
         name: String,
         type: EmbraceType? = .performance,
         timestamp: Date = Date(),
-        attributes: [String : String] = [:]
+        attributes: [String: String] = [:]
     ) throws {
         guard let handler else {
             return
@@ -130,7 +131,7 @@ class DefaultEmbraceSpan: EmbraceSpan {
     func addLink(
         spanId: String,
         traceId: String,
-        attributes: [String : String] = [:]
+        attributes: [String: String] = [:]
     ) throws {
         guard let handler else {
             return
@@ -190,7 +191,7 @@ class DefaultEmbraceSpan: EmbraceSpan {
         self.endTime = endTime
         handler?.onSpanEnded(self, endTime: endTime)
     }
-    
+
     func end() {
         end(endTime: Date())
     }

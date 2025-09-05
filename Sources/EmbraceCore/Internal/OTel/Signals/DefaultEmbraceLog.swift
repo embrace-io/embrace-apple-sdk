@@ -1,8 +1,9 @@
 //
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
-    
+
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceSemantics
     import EmbraceCommonInternal
@@ -14,7 +15,7 @@ class DefaultEmbraceLog: EmbraceLog {
     let type: EmbraceType
     let timestamp: Date
     let body: String
-    let attributes: [String : String]
+    let attributes: [String: String]
     let sessionId: EmbraceIdentifier?
     let processId: EmbraceIdentifier
 
@@ -24,7 +25,7 @@ class DefaultEmbraceLog: EmbraceLog {
         type: EmbraceType = .message,
         timestamp: Date,
         body: String,
-        attributes: [String : String] = [:],
+        attributes: [String: String] = [:],
         sessionId: EmbraceIdentifier? = nil,
         processId: EmbraceIdentifier = ProcessIdentifier.current
     ) {

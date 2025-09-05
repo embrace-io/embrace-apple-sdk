@@ -3,6 +3,7 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceSemantics
 #endif
@@ -53,7 +54,7 @@ class DefaultOtelSignalsSanitizer: OTelSignalsSanitizer {
         guard let value else {
             return nil
         }
-        
+
         // truncate
         if value.count > attributeLimits.valueLength {
             Embrace.logger.warning("Attribute value is too long and has to be truncated!: \(value)")
@@ -64,7 +65,7 @@ class DefaultOtelSignalsSanitizer: OTelSignalsSanitizer {
     }
 
     func sanitizeAttributes(_ attributes: [String: String], limit: Int) -> [String: String] {
-        var finalAttributes: [String : String] = [:]
+        var finalAttributes: [String: String] = [:]
         let sortedKeys = attributes.keys.sorted()
         var count = 0
 
@@ -86,19 +87,19 @@ class DefaultOtelSignalsSanitizer: OTelSignalsSanitizer {
         return finalAttributes
     }
 
-    func sanitizeSpanAttributes(_ attributes: [String : String]) -> [String : String] {
+    func sanitizeSpanAttributes(_ attributes: [String: String]) -> [String: String] {
         return sanitizeAttributes(attributes, limit: sessionLimits.customSpans.attributeCount)
     }
 
-    func sanitizeSpanEventAttributes(_ attributes: [String : String]) -> [String : String] {
+    func sanitizeSpanEventAttributes(_ attributes: [String: String]) -> [String: String] {
         return sanitizeAttributes(attributes, limit: sessionLimits.events.attributeCount)
     }
 
-    func sanitizeSpanLinkAttributes(_ attributes: [String : String]) -> [String : String] {
+    func sanitizeSpanLinkAttributes(_ attributes: [String: String]) -> [String: String] {
         return sanitizeAttributes(attributes, limit: sessionLimits.links.attributeCount)
     }
 
-    func sanitizeLogAttributes(_ attributes: [String : String]) -> [String : String] {
+    func sanitizeLogAttributes(_ attributes: [String: String]) -> [String: String] {
         return sanitizeAttributes(attributes, limit: sessionLimits.logs.attributeCount)
     }
 }

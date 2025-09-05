@@ -295,14 +295,15 @@
 
                 // check if we need to create a visibility span
                 if self.dataSource?.instrumentVisibility == true,
-                   let visibilitySpan = self.createSpan(
+                    let visibilitySpan = self.createSpan(
                         with: otel,
                         viewName: viewName,
                         className: className,
                         name: SpanSemantics.View.screenName,
                         type: .view,
                         startTime: now
-                   ) {
+                    )
+                {
                     self.visibilitySpans[id] = visibilitySpan
                 }
 

@@ -101,12 +101,10 @@ final class EmbraceConfigTests: XCTestCase {
         let mockConfig = MockEmbraceConfigurable()
 
         config = buildConfig(configurable: mockConfig)
-        wait(delay: 1)
 
         NotificationCenter.default.post(
             name: NSNotification.Name("UIApplicationDidBecomeActiveNotification"),
             object: nil)
-        wait(delay: 1)
 
         XCTAssertEqual(mockConfig.updateCallCount, 1)
     }

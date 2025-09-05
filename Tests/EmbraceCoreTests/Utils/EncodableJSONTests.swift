@@ -7,8 +7,6 @@ import XCTest
 
 @testable import EmbraceCore
 
-// swiftlint:disable force_try force_cast nesting
-
 class EncodableJSONTests: XCTestCase {
 
     struct TestableEncodable: Encodable {
@@ -79,5 +77,3 @@ class EncodableJSONTests: XCTestCase {
         XCTAssertEqual(result["null"] as! NSNull, NSNull())
     }
 }
-
-// swiftlint:enable force_try force_cast nesting

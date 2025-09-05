@@ -28,7 +28,7 @@ class DefaultInternalLogger: BaseInternalLogger {
     private var exportLimitReached: Bool = false
     private var lastExportDate: Date?
 
-    private let queue: DispatchableQueue
+    internal let queue: DispatchableQueue
 
     init(exportFilePath: URL?, exportByCountLimit: Int = 1000, exportCategory: String = "custom-export") {
         self.exportFilePath = exportFilePath

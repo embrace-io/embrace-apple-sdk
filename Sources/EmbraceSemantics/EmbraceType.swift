@@ -79,7 +79,6 @@ import Foundation
     }
 }
 
-
 /// Top level category for the EmbraceType
 @objc public enum PrimaryType: Int, CaseIterable {
     /// Category for observing a logical operation

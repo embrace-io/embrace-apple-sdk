@@ -13,47 +13,53 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
 
     override func setUpWithError() throws {
         continueAfterFailure = false
-        app.launch()
-
-        let initButton = app.buttons["EmbraceInitButton"]
-        initButton.tap()
-
-        XCTAssertNotNil(
-            initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
-
-        let sideMenuButton = app.buttons["SideMenuButton"]
-        sideMenuButton.tap()
-
-        app.staticTexts["uploadedPayloads"].tap()
+        app.launchAndOpenTestTab("uploadedPayloads")
     }
 
     private func backgroundAndReopenApp() {
         XCUIDevice.shared.press(XCUIDevice.Button.home)
-        sleep(2)
+        sleep(5)
         app.activate()
     }
 
     private func runSessionSpanTest() -> Bool {
-        let enabled = NSPredicate(format: "enabled == true")
         let testButton = app.buttons["sessionPayloadTestButton"]
-        let buttonEnabled = expectation(for: enabled, evaluatedWith: testButton, handler: nil)
-        wait(for: [buttonEnabled], timeout: 5.0)
+        XCTAssertTrue(testButton.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.scrollUntilHittableElementVisible(testButton))
+
+        _ = waitUntilElementIsEnabled(element: testButton, timeout: 20)
+
         let isEnabled = testButton.isEnabled
-        app.buttons["sessionPayloadTestButton"].tap()
+
+        if isEnabled {
+            testButton.tap()
+        }
 
         return isEnabled
     }
 
     private func addPersona() {
-        app.buttons["MetadataLifespan_session"].tap()
-        app.buttons["SessionTests_Personas_AddButton"].tap()
+        let lifespanButton = app.buttons["MetadataLifespan_session"]
+        XCTAssertTrue(lifespanButton.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.scrollUntilHittableElementVisible(lifespanButton))
+        lifespanButton.tap()
+
+        let personasButton = app.buttons["SessionTests_Personas_AddButton"]
+        XCTAssertTrue(personasButton.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.scrollUntilHittableElementVisible(personasButton))
+        personasButton.tap()
     }
 
     private func addUserInfo() {
-        app.buttons["SessionTests_UserInfo_RemoveAllButton"].tap()
+        let removeAllButton = app.buttons["SessionTests_UserInfo_RemoveAllButton"]
+        XCTAssertTrue(removeAllButton.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.scrollUntilHittableElementVisible(removeAllButton))
+        removeAllButton.tap()
 
         // Enter Username
         let usernameTextField = app.textFields["SessionTests_UserInfo_Username"]
+        XCTAssertTrue(usernameTextField.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.scrollUntilHittableElementVisible(usernameTextField))
         usernameTextField.tap()
 
         _ = waitUntilElementHasFocus(element: usernameTextField)
@@ -63,6 +69,8 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
 
         // Enter Email
         let emailTextField = app.textFields["SessionTests_UserInfo_Email"]
+        XCTAssertTrue(emailTextField.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.scrollUntilHittableElementVisible(emailTextField))
         emailTextField.tap()
 
         _ = waitUntilElementHasFocus(element: emailTextField)
@@ -72,6 +80,8 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
 
         // Enter User ID
         let identifierTextField = app.textFields["SessionTests_UserInfo_Identifier"]
+        XCTAssertTrue(identifierTextField.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.scrollUntilHittableElementVisible(identifierTextField))
         identifierTextField.tap()
 
         _ = waitUntilElementHasFocus(element: identifierTextField)

@@ -30,7 +30,7 @@ public class EmbraceConfig {
         options: Options,
         notificationCenter: NotificationCenter,
         logger: InternalLogger,
-        queue: DispatchableQueue = .with(label: "com.embrace.config", attributes: .concurrent)
+        queue: DispatchableQueue = .with(label: "com.embrace.config")
     ) {
         self.options = options
         self.notificationCenter = notificationCenter

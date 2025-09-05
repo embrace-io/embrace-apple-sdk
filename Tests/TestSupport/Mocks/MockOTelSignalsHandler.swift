@@ -2,8 +2,9 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
 import EmbraceSemantics
+import Foundation
+
 @testable import EmbraceCore
 
 public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegate {
@@ -16,7 +17,7 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
     public var currentSessionId: EmbraceIdentifier? = .random
     public var currentProcessId: EmbraceIdentifier = .random
 
-    public init() { }
+    public init() {}
 
     public func createSpan(
         name: String,
@@ -27,7 +28,7 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
         endTime: Date?,
         events: [EmbraceSpanEvent],
         links: [EmbraceSpanLink],
-        attributes: [String : String],
+        attributes: [String: String],
         autoTerminationCode: EmbraceSpanErrorCode?
     ) throws -> EmbraceSpan {
 
@@ -58,8 +59,19 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
 
         return span
     }
-    
-    public func addSessionEvent(_ event: EmbraceSpanEvent) throws {
+
+    public func addSessionEvent(
+        name: String,
+        type: EmbraceType?,
+        timestamp: Date,
+        attributes: [String: String]
+    ) throws {
+        let event = EmbraceSpanEvent(
+            name: name,
+            type: type,
+            timestamp: timestamp,
+            attributes: attributes
+        )
         events.append(event)
     }
 
@@ -99,7 +111,7 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
         severity: EmbraceLogSeverity,
         type: EmbraceType,
         timestamp: Date,
-        attributes: [String : String]
+        attributes: [String: String]
     ) {
         log(
             message,

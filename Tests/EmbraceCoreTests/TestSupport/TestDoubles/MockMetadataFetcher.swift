@@ -2,9 +2,10 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
 import EmbraceCommonInternal
 import EmbraceSemantics
+import XCTest
+
 @testable import EmbraceCore
 @testable import EmbraceStorageInternal
 

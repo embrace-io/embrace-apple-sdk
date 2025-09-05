@@ -3,10 +3,10 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceSemantics
 import EmbraceStorageInternal
 import Foundation
 import TestSupport
-import EmbraceSemantics
 
 class SpyLogRepository: LogRepository {
 

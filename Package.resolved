@@ -5,8 +5,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/mw99/DataCompression",
       "state" : {
-        "revision" : "5ab15951321b08b74511601cbd0497667649d70b",
-        "version" : "3.8.0"
+        "revision" : "16f858982a077451ce3bdbd9144d3073ec85b6e4",
+        "version" : "3.9.0"
       }
     },
     {
@@ -32,8 +32,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/open-telemetry/opentelemetry-swift",
       "state" : {
-        "revision" : "ed2b110d2bb4516e9c73df86c56a7836f5068666",
-        "version" : "2.0.0"
+        "revision" : "6cd16704ef24a8a41e301be939ab2af526963a75",
+        "version" : "2.0.2"
       }
     },
     {

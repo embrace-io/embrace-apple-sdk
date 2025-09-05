@@ -4,12 +4,13 @@
 
 import Foundation
 import UserNotifications
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
     import EmbraceSemantics
 #endif
 
-@objc public extension EmbraceOTelSignalsHandler {
+@objc extension EmbraceOTelSignalsHandler {
 
     /// Adds a PushNotification span event to the current Embrace session using the data from the given `UNNotification`.
     /// - Parameters:
@@ -20,7 +21,7 @@ import UserNotifications
     /// - Throws: `EmbraceOTelError.invalidSession` if there is not active Embrace session.
     /// - Throws: `EmbraceOTelError.spanEventLimitReached` if the limit hass ben reached for the given span even type.
     /// - Throws: `PushNotificationError.invalidPayload` if the `aps` object is not present in the `userInfo` of the `UNNotification`.
-    @objc func addPushNotificationEvent(
+    @objc public func addPushNotificationEvent(
         notification: UNNotification,
         timestamp: Date = Date(),
         attributes: [String: String] = [:],
@@ -48,7 +49,7 @@ import UserNotifications
     /// - Throws: `EmbraceOTelError.invalidSession` if there is not active Embrace session.
     /// - Throws: `EmbraceOTelError.spanEventLimitReached` if the limit hass ben reached for the given span even type.
     /// - Throws: `PushNotificationError.invalidPayload` if the `aps` object is not present in the `userInfo` of the `UNNotification`.
-    @objc func addPushNotificationEvent(
+    @objc public func addPushNotificationEvent(
         userInfo: [AnyHashable: Any],
         timestamp: Date = Date(),
         attributes: [String: String] = [:],
@@ -83,7 +84,7 @@ import UserNotifications
     }
 
     // MARK: Internal
-    static func parse(apsDict: [AnyHashable: Any], captureData: Bool) -> [String: String] {
+    public static func parse(apsDict: [AnyHashable: Any], captureData: Bool) -> [String: String] {
 
         var dict: [String: String] = [:]
 
@@ -149,7 +150,7 @@ import UserNotifications
         return contentAvailable == 1
     }
 
-    struct Constants {
+    public struct Constants {
         static let apsRootKey = "aps"
         static let apsAlert = "alert"
         static let apsTitle = "title"

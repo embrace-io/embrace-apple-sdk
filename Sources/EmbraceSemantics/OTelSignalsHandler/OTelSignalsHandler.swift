@@ -71,10 +71,10 @@ public protocol OTelSignalsHandler: AnyObject {
 }
 
 // MARK: Convenience
-public extension OTelSignalsHandler {
+extension OTelSignalsHandler {
 
     @discardableResult
-    func createSpan(
+    public func createSpan(
         name: String,
         parentSpan: EmbraceSpan? = nil,
         type: EmbraceType = .performance,
@@ -97,7 +97,7 @@ public extension OTelSignalsHandler {
         )
     }
 
-    func log(
+    public func log(
         _ message: String,
         severity: EmbraceLogSeverity = .info,
         type: EmbraceType = .message,

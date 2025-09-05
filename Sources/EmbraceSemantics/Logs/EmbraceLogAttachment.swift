@@ -20,7 +20,7 @@ public class EmbraceLogAttachment: NSObject {
         self.data = data
         self.url = nil
     }
-    
+
     /// Creates a new `EmbraceLogAttachment` with the given `URL`.
     /// Use this method for attachment data that is hosted outisde of Embrace.
     /// - Parameters:

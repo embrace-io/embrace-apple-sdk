@@ -3,6 +3,7 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
     import EmbraceConfigInternal
@@ -34,9 +35,11 @@ extension Embrace {
         }
     }
 
-    static func createUpload(options: Embrace.Options, deviceId: String, configuration: EmbraceConfigurable)
-        -> EmbraceUpload?
-    {
+    static func createUpload(
+        options: Embrace.Options,
+        deviceId: String,
+        configuration: EmbraceConfigurable
+    ) throws -> EmbraceUpload? {
         guard let appId = options.appId else {
             return nil
         }
@@ -89,14 +92,13 @@ extension Embrace {
 
         do {
             let options = EmbraceUpload.Options(endpoints: uploadEndpoints, cache: cache, metadata: metadata)
-            let queue = DispatchQueue(label: "com.embrace.upload", qos: .background, attributes: .concurrent)
+            let queue = DispatchQueue(label: "com.embrace.upload", qos: .utility)
 
             return try EmbraceUpload(options: options, logger: Embrace.logger, queue: queue)
         } catch {
             Embrace.logger.critical("Error initializing Embrace Upload: " + error.localizedDescription)
+            throw EmbraceSetupError.failedUploadModuleCreation(error.localizedDescription)
         }
-
-        return nil
     }
     #if os(iOS)
         static func createSessionLifecycle(controller: SessionControllable) -> SessionLifecycle {

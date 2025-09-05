@@ -3,10 +3,11 @@
 //
 
 import EmbraceCommonInternal
-import XCTest
 import EmbraceSemantics
-@testable import EmbraceStorageInternal
 import TestSupport
+import XCTest
+
+@testable import EmbraceStorageInternal
 
 class EmbraceStorageLoggingTests: XCTestCase {
     var sut: EmbraceStorage!

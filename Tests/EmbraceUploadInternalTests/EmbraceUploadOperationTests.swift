@@ -398,7 +398,7 @@ class EmbraceUploadOperationTests: XCTestCase {
     func test_onErrorWithRetryAfterHeader_shouldAppendToTheActualRetryDelay() throws {
         try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
 
-        let retryAfterDelay = 1
+        let retryAfterDelay = 0.01
         // mock unsuccessful response with retry after header
         EmbraceHTTPMock.mock(
             url: TestConstants.url,
@@ -432,7 +432,7 @@ class EmbraceUploadOperationTests: XCTestCase {
 
         operation.start()
 
-        wait(for: [expectation], timeout: .defaultTimeout + Double(retryAfterDelay))
+        wait(for: [expectation], timeout: .shortTimeout + Double(retryAfterDelay))
 
         // then the request should have the correct headers
         guard let request = EmbraceHTTPMock.requestsForUrl(TestConstants.url).last else {

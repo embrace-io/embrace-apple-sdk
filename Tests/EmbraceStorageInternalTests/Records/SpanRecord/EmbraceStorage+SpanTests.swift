@@ -2,8 +2,9 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
 import TestSupport
+import XCTest
+
 @testable import EmbraceStorageInternal
 
 final class EmbraceStorage_SpanTests: XCTestCase {
@@ -24,14 +25,16 @@ final class EmbraceStorage_SpanTests: XCTestCase {
 
         for i in 0..<3 {
             // given inserted record
-            storage.upsertSpan(MockSpan(
-                name: "example \(i)",
-            ))
+            storage.upsertSpan(
+                MockSpan(
+                    name: "example \(i)",
+                ))
         }
 
-        storage.upsertSpan(MockSpan(
-            name: "newest",
-        ))
+        storage.upsertSpan(
+            MockSpan(
+                name: "newest",
+            ))
 
         let request = SpanRecord.createFetchRequest()
         request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: true)]
@@ -47,17 +50,19 @@ final class EmbraceStorage_SpanTests: XCTestCase {
 
         // insert 3 .performance spans
         for i in 0..<3 {
-            storage.upsertSpan(MockSpan(
-                name: "performance \(i)",
-            ))
+            storage.upsertSpan(
+                MockSpan(
+                    name: "performance \(i)",
+                ))
         }
 
         // insert 3 .networkHTTP spans
         for i in 0..<3 {
-            storage.upsertSpan(MockSpan(
-                name: "network \(i)",
-                type: .networkRequest,
-            ))
+            storage.upsertSpan(
+                MockSpan(
+                    name: "network \(i)",
+                    type: .networkRequest,
+                ))
         }
 
         let request = SpanRecord.createFetchRequest()
@@ -77,21 +82,30 @@ final class EmbraceStorage_SpanTests: XCTestCase {
     }
 
     func test_upsertSpan_appliesDefaultLimit() throws {
-        for i in 0..<(EmbraceStorage.defaultSpanLimitByType + 10) {
-            // given inserted record
-            storage.upsertSpan(MockSpan(
-                name: "example \(i)",
-            ))
+
+        let oldLimitDefault = storage.options.spanLimitDefault
+        storage.options.spanLimitDefault = 3
+        defer {
+            storage.options.spanLimitDefault = oldLimitDefault
         }
 
-        storage.upsertSpan(MockSpan(
-            name: "newest",
-        ))
+        for i in 0..<(storage.options.spanLimitDefault + 1) {
+            // given inserted record
+            storage.upsertSpan(
+                MockSpan(
+                    name: "example \(i)",
+                ))
+        }
+
+        storage.upsertSpan(
+            MockSpan(
+                name: "newest",
+            ))
 
         let request = SpanRecord.createFetchRequest()
         request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: true)]
         let allRecords: [SpanRecord] = storage.coreData.fetch(withRequest: request)
 
-        XCTAssertEqual(allRecords.count, EmbraceStorage.defaultSpanLimitByType)  // 1500 is default limit
+        XCTAssertEqual(allRecords.count, storage.options.spanLimitDefault)
     }
 }

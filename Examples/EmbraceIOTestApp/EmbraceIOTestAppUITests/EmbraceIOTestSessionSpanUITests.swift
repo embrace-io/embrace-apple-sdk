@@ -12,35 +12,26 @@ final class EmbraceIOTestSessionSpanUITests: XCTestCase {
     var app = XCUIApplication()
 
     override func setUpWithError() throws {
-        app.launch()
-
-        let initButton = app.buttons["EmbraceInitButton"]
-        initButton.tap()
-
-        XCTAssertNotNil(
-            initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 5.0))
-
-        let sideMenuButton = app.buttons["SideMenuButton"]
-        sideMenuButton.tap()
-
-        app.staticTexts["session"].tap()
-
         continueAfterFailure = true
+        app.launchAndOpenTestTab("session")
     }
 
     private func backgroundAndReopenApp() {
         XCUIDevice.shared.press(XCUIDevice.Button.home)
-        sleep(1)
+        sleep(5)
         app.activate()
     }
 
     private func runSessionSpanTest() {
-        app.buttons["finishedSessionPayloadTestButton"].tap()
+        let button = app.buttons["finishedSessionPayloadTestButton"]
+        XCTAssertTrue(button.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.scrollUntilHittableElementVisible(button))
+        button.tap()
     }
 
     func testSendFinishedSessionSpan() {
         runSessionSpanTest()
-        sleep(2)
+        sleep(5)
         backgroundAndReopenApp()
         evaluateTestResults(app)
     }

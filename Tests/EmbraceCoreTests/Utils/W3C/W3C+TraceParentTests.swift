@@ -3,9 +3,9 @@
 //
 
 import EmbraceCore
-import XCTest
-import TestSupport
 import EmbraceSemantics
+import TestSupport
+import XCTest
 
 final class W3C_TraceParentTests: XCTestCase {
 

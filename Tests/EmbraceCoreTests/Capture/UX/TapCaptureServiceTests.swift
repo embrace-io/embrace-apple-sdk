@@ -8,8 +8,6 @@
     @testable import EmbraceCore
     import TestSupport
 
-    // swiftlint:disable force_cast
-
     final class TapCaptureServiceTests: XCTestCase {
 
         private var otel: MockOTelSignalsHandler!
@@ -199,7 +197,5 @@
             return shouldCaptureNextCoordinates
         }
     }
-
-// swiftlint:enable force_cast
 
 #endif

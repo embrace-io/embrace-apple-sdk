@@ -3,6 +3,7 @@
 //
 
 import XCTest
+
 @testable import EmbraceStorageInternal
 
 class AttributesEncodingTests: XCTestCase {
@@ -27,10 +28,12 @@ class AttributesEncodingTests: XCTestCase {
         let string = "key,value,key%2C,value%2C,key%252C,value%252C"
         let result = Dictionary.keyValueDecode(string)
 
-        XCTAssertEqual(result, [
-            "key": "value",
-            "key,": "value,",
-            "key%2C": "value%2C"
-        ])
+        XCTAssertEqual(
+            result,
+            [
+                "key": "value",
+                "key,": "value,",
+                "key%2C": "value%2C"
+            ])
     }
 }

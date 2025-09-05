@@ -7,8 +7,6 @@ import XCTest
 
 @testable import EmbraceIO
 
-// swiftlint:disable force_cast
-
 class CaptureServiceBuilderTests: XCTestCase {
 
     func test_defaults() throws {
@@ -21,7 +19,7 @@ class CaptureServiceBuilderTests: XCTestCase {
         // then the list contains all the default services
         let list = builder.build()
 
-        var count = 3
+        var count = 4
 
         XCTAssertNotNil(list.first(where: { $0 is URLSessionCaptureService }))
 
@@ -37,6 +35,8 @@ class CaptureServiceBuilderTests: XCTestCase {
 
         XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
         XCTAssertNotNil(list.first(where: { $0 is LowPowerModeCaptureService }))
+
+        XCTAssertNotNil(list.first(where: { $0 is HangCaptureService }))
 
         XCTAssertEqual(list.count, count)
 
@@ -57,7 +57,7 @@ class CaptureServiceBuilderTests: XCTestCase {
         // then the list contains the correct services
         let list = builder.build()
 
-        var count = 3
+        var count = 4
 
         #if canImport(UIKit) && !os(watchOS)
             count += 2
@@ -73,6 +73,7 @@ class CaptureServiceBuilderTests: XCTestCase {
         XCTAssertNotNil(list.first(where: { $0 is LowPowerModeCaptureService }))
         XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
         XCTAssertNotNil(list.first(where: { $0 is LowPowerModeCaptureService }))
+        XCTAssertNotNil(list.first(where: { $0 is HangCaptureService }))
 
         let service = list.first(where: { $0 is URLSessionCaptureService }) as! URLSessionCaptureService
         XCTAssertFalse(service.options.injectTracingHeader)
@@ -99,7 +100,7 @@ class CaptureServiceBuilderTests: XCTestCase {
         // then the list contains the correct services
         let list = builder.build()
 
-        var count = 2
+        var count = 3
 
         #if canImport(WebKit)
             count += 1
@@ -107,6 +108,7 @@ class CaptureServiceBuilderTests: XCTestCase {
         #endif
         XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
         XCTAssertNotNil(list.first(where: { $0 is LowPowerModeCaptureService }))
+        XCTAssertNotNil(list.first(where: { $0 is HangCaptureService }))
 
         XCTAssertEqual(list.count, count)
     }
@@ -212,6 +214,20 @@ class CaptureServiceBuilderTests: XCTestCase {
         XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
     }
 
+    func test_addHangCaptureService() throws {
+        // given a builder
+        let builder = CaptureServiceBuilder()
+
+        // when adding a HangCaptureService
+        builder.add(.hangWatchdog())
+
+        // then the list contains the capture service
+        let list = builder.build()
+
+        XCTAssertEqual(list.count, 1)
+        XCTAssertNotNil(list.first(where: { $0 is HangCaptureService }))
+    }
+
     func test_addLowPowerModeCaptureService() throws {
         // given a builder
         let builder = CaptureServiceBuilder()
@@ -275,5 +291,3 @@ class CaptureServiceBuilderTests: XCTestCase {
         XCTAssert(builder == builder2)
     }
 }
-
-// swiftlint:enable force_cast

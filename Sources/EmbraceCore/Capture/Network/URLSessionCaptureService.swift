@@ -101,8 +101,6 @@ public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandl
     }
 }
 
-// swiftlint:disable line_length
-
 struct URLSessionInitWithDelegateSwizzler: URLSessionSwizzler {
     typealias ImplementationType = @convention(c) (
         URLSession, Selector, URLSessionConfiguration, URLSessionDelegate?, OperationQueue?
@@ -605,5 +603,3 @@ struct UploadTaskWithStreamedRequestSwizzler: URLSessionSwizzler {
         }
     }
 }
-
-// swiftlint:enable line_length

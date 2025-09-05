@@ -1,14 +1,15 @@
 //
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
-    
+
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceSemantics
 #endif
 
-@objc public extension EmbraceOTelSignalsHandler {
-    
+@objc extension EmbraceOTelSignalsHandler {
+
     /// Adds a Breadcrumb span event to the current Embrace session.
     /// - Parameters:
     ///   - message: Message of the breadcrumb.
@@ -16,7 +17,7 @@ import Foundation
     ///   - attributes: Attributes of the breadcrumb.
     /// - Throws: `EmbraceOTelError.invalidSession` if there is not active Embrace session.
     /// - Throws: `EmbraceOTelError.spanEventLimitReached` if the limit hass ben reached for the given span even type.
-    @objc func addBreadcrumb(
+    @objc public func addBreadcrumb(
         _ message: String,
         timestamp: Date = Date(),
         attributes: [String: String] = [:]

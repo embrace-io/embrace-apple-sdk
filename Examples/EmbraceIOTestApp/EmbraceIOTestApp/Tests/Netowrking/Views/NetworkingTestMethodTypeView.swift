@@ -23,6 +23,6 @@ struct NetworkingTestMethodTypeView: View {
 }
 
 #Preview {
-    @State var method: URLRequestMethod = .get
+    @Previewable @State var method: URLRequestMethod = .get
     return NetworkingTestMethodTypeView(requestMethod: $method)
 }

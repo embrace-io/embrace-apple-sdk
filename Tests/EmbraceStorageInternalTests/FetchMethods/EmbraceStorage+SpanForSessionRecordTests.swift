@@ -3,9 +3,10 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceSemantics
 import TestSupport
 import XCTest
-import EmbraceSemantics
+
 @testable import EmbraceStorageInternal
 
 extension Date {
@@ -36,18 +37,19 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         endTime: Date? = nil,
         sessionIdentifier: EmbraceIdentifier? = nil
     ) {
-        storage.upsertSpan(MockSpan(
-            id: id,
-            traceId: TestConstants.traceId,
-            parentSpanId: nil,
-            name: name,
-            type: type,
-            status: .unset,
-            startTime: startTime,
-            endTime: endTime,
-            sessionId: sessionIdentifier,
-            processId: processIdentifier
-        ))
+        storage.upsertSpan(
+            MockSpan(
+                id: id,
+                traceId: TestConstants.traceId,
+                parentSpanId: nil,
+                name: name,
+                type: type,
+                status: .unset,
+                startTime: startTime,
+                endTime: endTime,
+                sessionId: sessionIdentifier,
+                processId: processIdentifier
+            ))
     }
 
     func sessionRecord(

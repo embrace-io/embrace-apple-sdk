@@ -41,6 +41,25 @@ class CoreDataWrapperTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: storageMechanism.fileURL!.path))
     }
 
+    func test_init_throwsOnFailingCreation() {
+        let url = URL(fileURLWithPath: "/var/root")
+        let storageMechanism: StorageMechanism = .onDisk(name: testName, baseURL: url, journalMode: .delete)
+        let options = CoreDataWrapper.Options(
+            storageMechanism: storageMechanism,
+            enableBackgroundTasks: false,
+            entities: [MockRecord.entityDescription]
+        )
+
+        // `isTesting: false` may look counterintuitive, but it forces `CoreDataWrapper`
+        // to use the production-like implementation rather than the in-memory version we normally use in tests
+        XCTAssertThrowsError(
+            try CoreDataWrapper(
+                options: options,
+                logger: MockLogger(),
+                isTesting: false)
+        )
+    }
+
     func test_fetch() throws {
         // given a wrapper with data
         _ = MockRecord.create(context: wrapper.context, id: "test")
@@ -198,7 +217,7 @@ class CoreDataWrapperTests: XCTestCase {
     }
 }
 
-class MockRecord: NSManagedObject {
+private class MockRecord: NSManagedObject {
     @NSManaged var id: String
 
     class func create(context: NSManagedObjectContext, id: String) -> MockRecord {
@@ -217,6 +236,7 @@ class MockRecord: NSManagedObject {
         let idAttribute = NSAttributeDescription()
         idAttribute.name = "id"
         idAttribute.attributeType = .stringAttributeType
+        idAttribute.isOptional = false
 
         entity.properties = [idAttribute]
         return entity

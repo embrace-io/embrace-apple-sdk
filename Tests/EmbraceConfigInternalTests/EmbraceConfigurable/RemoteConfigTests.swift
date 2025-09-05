@@ -3,9 +3,10 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceSemantics
 import TestSupport
 import XCTest
-import EmbraceSemantics
+
 @testable import EmbraceConfigInternal
 @testable import EmbraceConfiguration
 
@@ -15,7 +16,7 @@ final class RemoteConfigTests: XCTestCase {
 
     let options = RemoteConfig.Options(
         apiBaseUrl: "https://localhost:8080/config",
-        queue: DispatchQueue(label: "com.test.embrace.queue", attributes: .concurrent),
+        queue: DispatchQueue(label: "com.test.embrace.queue"),
         appId: TestConstants.appId,
         deviceId: EmbraceIdentifier(stringValue: "00000000000000000000000000800000"),  // %50 threshold
         osVersion: TestConstants.osVersion,
@@ -100,8 +101,8 @@ final class RemoteConfigTests: XCTestCase {
         config.payload.breadcrumbLimit = 987
 
         XCTAssertEqual(
-            config.spanEventsLimits,
-            SpanEventsLimits(breadcrumb: 987)
+            config.spanEventTypeLimits,
+            SpanEventTypeLimits(breadcrumb: 987)
         )
     }
 
@@ -114,8 +115,8 @@ final class RemoteConfigTests: XCTestCase {
         config.payload.logsErrorLimit = 30
 
         XCTAssertEqual(
-            config.logsLimits,
-            LogsLimits(info: 10, warning: 20, error: 30)
+            config.logSeverityLimits,
+            LogSeverityLimits(info: 10, warning: 20, error: 30)
         )
     }
 

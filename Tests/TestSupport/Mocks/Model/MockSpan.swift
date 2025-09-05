@@ -1,7 +1,7 @@
 //
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
-    
+
 import EmbraceSemantics
 import Foundation
 
@@ -22,7 +22,7 @@ public class MockSpan: EmbraceSpan {
     public var links: [EmbraceSpanLink]
     public var sessionId: EmbraceIdentifier?
     public var processId: EmbraceIdentifier
-    public var attributes: [String : String]
+    public var attributes: [String: String]
 
     public var status: EmbraceSpanStatus {
         _status
@@ -43,7 +43,7 @@ public class MockSpan: EmbraceSpan {
         links: [EmbraceSpanLink] = [],
         sessionId: EmbraceIdentifier? = nil,
         processId: EmbraceIdentifier = TestConstants.processId,
-        attributes: [String : String] = [:],
+        attributes: [String: String] = [:],
         delegate: MockSpanDelegate? = nil
     ) {
         self.context = EmbraceSpanContext(spanId: id, traceId: traceId)
@@ -65,11 +65,11 @@ public class MockSpan: EmbraceSpan {
         self._status = status
     }
 
-    public func addEvent(name: String, type: EmbraceType?, timestamp: Date, attributes: [String : String]) throws {
+    public func addEvent(name: String, type: EmbraceType?, timestamp: Date, attributes: [String: String]) throws {
         events.append(EmbraceSpanEvent(name: name, type: type, timestamp: timestamp, attributes: attributes))
     }
 
-    public func addLink(spanId: String, traceId: String, attributes: [String : String]) throws {
+    public func addLink(spanId: String, traceId: String, attributes: [String: String]) throws {
         links.append(EmbraceSpanLink(spanId: spanId, traceId: traceId, attributes: attributes))
     }
 

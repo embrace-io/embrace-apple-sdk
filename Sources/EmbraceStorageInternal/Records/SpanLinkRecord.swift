@@ -60,4 +60,3 @@ public class SpanLinkRecord: NSManagedObject {
 extension SpanLinkRecord: EmbraceStorageRecord {
     public static var entityName = "SpanLinkRecord"
 }
-

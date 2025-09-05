@@ -2,8 +2,8 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-import EmbraceSemantics
 import EmbraceCommonInternal
+import EmbraceSemantics
 import Foundation
 
 public class MockLog: EmbraceLog {
@@ -26,7 +26,7 @@ public class MockLog: EmbraceLog {
         type: EmbraceType = .message,
         timestamp: Date = Date(),
         body: String = "Mock",
-        attributes: [String : String] = [:],
+        attributes: [String: String] = [:],
         sessionId: EmbraceIdentifier? = nil,
         processId: EmbraceIdentifier = .random
     ) {

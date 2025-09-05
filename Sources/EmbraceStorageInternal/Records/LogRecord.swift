@@ -20,7 +20,6 @@ public class LogRecord: NSManagedObject {
     @NSManaged public var sessionIdRaw: String?
     @NSManaged public var processIdRaw: String
 
-
     class func create(context: NSManagedObjectContext, log: EmbraceLog) {
         context.performAndWait {
             guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
@@ -139,7 +138,7 @@ class ImmutableLogRecord: EmbraceLog {
         type: EmbraceType,
         timestamp: Date,
         body: String,
-        attributes: [String : String],
+        attributes: [String: String],
         sessionId: EmbraceIdentifier? = nil,
         processId: EmbraceIdentifier
     ) {

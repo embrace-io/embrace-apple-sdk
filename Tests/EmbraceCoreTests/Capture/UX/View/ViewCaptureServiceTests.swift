@@ -113,7 +113,7 @@
             config.viewControllerClassNameBlocklist = ["MyCustomViewController", "MySpecialViewController"]
             // Is config says it should capture, then it capture service shouldn't block
             config.uiInstrumentationCaptureHostingControllers = true
-            Embrace.notificationCenter.post(name: .embraceConfigUpdated, object: config)
+            service.onConfigUpdated(config)
 
             // then the blocklist is updated
             XCTAssert(service.blockList.safeValue.types.isEmpty)

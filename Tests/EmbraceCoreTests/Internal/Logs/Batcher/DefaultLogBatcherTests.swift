@@ -2,10 +2,11 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceSemantics
 import EmbraceStorageInternal
 import TestSupport
 import XCTest
-import EmbraceSemantics
+
 @testable import EmbraceCore
 
 class DefaultLogBatcherTests: XCTestCase {

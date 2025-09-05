@@ -9,8 +9,6 @@ import Foundation
     import EmbraceCommonInternal
 #endif
 
-// swiftlint:disable nesting
-
 public struct RemoteConfigPayload: Decodable, Equatable {
     var sdkEnabledThreshold: Float
     var backgroundSessionThreshold: Float
@@ -38,6 +36,9 @@ public struct RemoteConfigPayload: Decodable, Equatable {
     var internalLogsInfoLimit: Int
     var internalLogsWarningLimit: Int
     var internalLogsErrorLimit: Int
+
+    var hangLimitsHangPerSession: UInt
+    var hangLimitsSamplesPerHang: UInt
 
     var networkPayloadCaptureRules: [NetworkPayloadCaptureRule]
 
@@ -83,6 +84,12 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             case info
             case warning
             case error
+        }
+
+        case hangLimits = "hang_limits"
+        enum HangLimitsCodingKeys: String, CodingKey {
+            case hangPerSession = "hang_per_session"
+            case samplesPerHang = "samples_per_hang"
         }
 
         case networkPayLoadCapture = "network_capture"
@@ -214,6 +221,29 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             logsErrorLimit = defaultPayload.logsErrorLimit
         }
 
+        // hang limits
+        if rootContainer.contains(.hangLimits) {
+            let hangLimitsContainer = try rootContainer.nestedContainer(
+                keyedBy: CodingKeys.HangLimitsCodingKeys.self,
+                forKey: .hangLimits
+            )
+
+            hangLimitsHangPerSession =
+                try hangLimitsContainer.decodeIfPresent(
+                    UInt.self,
+                    forKey: CodingKeys.HangLimitsCodingKeys.hangPerSession
+                ) ?? defaultPayload.hangLimitsHangPerSession
+
+            hangLimitsSamplesPerHang =
+                try hangLimitsContainer.decodeIfPresent(
+                    UInt.self,
+                    forKey: CodingKeys.HangLimitsCodingKeys.samplesPerHang
+                ) ?? defaultPayload.hangLimitsSamplesPerHang
+        } else {
+            hangLimitsHangPerSession = defaultPayload.hangLimitsHangPerSession
+            hangLimitsSamplesPerHang = defaultPayload.hangLimitsSamplesPerHang
+        }
+
         // internal logs limit
         if rootContainer.contains(.internalLogLimits) {
             let internalLogsLimitsContainer = try rootContainer.nestedContainer(
@@ -323,8 +353,9 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         internalLogsWarningLimit = 0
         internalLogsErrorLimit = 3
 
+        hangLimitsHangPerSession = 200
+        hangLimitsSamplesPerHang = 0
+
         networkPayloadCaptureRules = []
     }
 }
-
-// swiftlint:enable nesting

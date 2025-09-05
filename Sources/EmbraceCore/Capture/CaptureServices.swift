@@ -77,12 +77,37 @@ final class CaptureServices {
             }
         }
 
+        // Ensure the hang service has the right config
+        if let limits = config?.hangLimits {
+            services
+                .compactMap { $0 as? HangCaptureService }
+                .forEach { $0.limits = limits }
+        }
+
+        if let config {
+            services.forEach { $0.onConfigUpdated(config) }
+        }
+
         // subscribe to session start notification
         // to update the crash reporter with the new session id
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(onSessionStart),
             name: Notification.Name.embraceSessionDidStart,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(onSessionWillEnd),
+            name: Notification.Name.embraceSessionWillEnd,
+            object: nil
+        )
+
+        Embrace.notificationCenter.addObserver(
+            self,
+            selector: #selector(onConfigUpdated),
+            name: Notification.Name.embraceConfigUpdated,
             object: nil
         )
     }
@@ -96,6 +121,7 @@ final class CaptureServices {
 
     deinit {
         NotificationCenter.default.removeObserver(self)
+        Embrace.notificationCenter.removeObserver(self)
     }
 
     func addMetricKitServices(
@@ -149,7 +175,21 @@ final class CaptureServices {
     @objc func onSessionStart(notification: Notification) {
         if let session = notification.object as? EmbraceSession {
             crashReporter?.currentSessionId = session.id.stringValue
+            for service in services { service.onSessionStart(session) }
         }
+    }
+
+    @objc func onSessionWillEnd(notification: Notification) {
+        if let session = notification.object as? EmbraceSession {
+            for service in services { service.onSessionWillEnd(session) }
+        }
+    }
+
+    @objc func onConfigUpdated(notification: Notification) {
+        guard let config = notification.object as? EmbraceConfigurable else {
+            return
+        }
+        for service in services { service.onConfigUpdated(config) }
     }
 }
 

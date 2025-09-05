@@ -112,7 +112,7 @@
                 type: .webView,
                 attributes: attributes
             )
-            
+
             try? otel?.addInternalSessionEvent(event)
         }
 

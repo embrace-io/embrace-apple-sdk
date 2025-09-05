@@ -10,7 +10,7 @@ import SwiftUI
 
 @Observable class TestSpanExporter: SpanExporter {
     private(set) var cachedExportedSpans: [String: [SpanData]] = [:]
-    private(set) var latestExporterSpans: [SpanData] = []
+    private(set) var latestExportedSpans: [SpanData] = []
 
     private var embraceStarted = false
 
@@ -33,8 +33,8 @@ import SwiftUI
     }
 
     func export(spans: [SpanData], explicitTimeout: TimeInterval?) -> SpanExporterResultCode {
-        latestExporterSpans.removeAll()
-        latestExporterSpans.append(contentsOf: spans)
+        latestExportedSpans = []
+        latestExportedSpans.append(contentsOf: spans)
 
         spans.forEach {
             cachedExportedSpans[$0.name, default: []].append($0)

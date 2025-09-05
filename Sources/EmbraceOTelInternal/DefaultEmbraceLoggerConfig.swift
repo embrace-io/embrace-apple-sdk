@@ -1,7 +1,7 @@
 //
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
-    
+
 struct DefaultEmbraceLoggerConfig: EmbraceLoggerConfig {
     let batchLifetimeInSeconds: Int = 60
     let maximumTimeBetweenLogsInSeconds: Int = 20

@@ -3,8 +3,8 @@
 //
 
 import EmbraceCommonInternal
-import Foundation
 import EmbraceSemantics
+import Foundation
 
 class CrashReporterMock: CrashReporter {
     var sdkVersion: String?
@@ -52,6 +52,14 @@ class CrashReporterMock: CrashReporter {
 
     func fetchUnsentCrashReports(completion: @escaping ([EmbraceCrashReport]) -> Void) {
         completion(mockReports)
+    }
+
+    func fetchUnsentCrashReports() async -> [EmbraceCrashReport] {
+        await withCheckedContinuation { continuation in
+            fetchUnsentCrashReports { reports in
+                continuation.resume(returning: reports)
+            }
+        }
     }
 
     func deleteCrashReport(_ report: EmbraceCrashReport) {

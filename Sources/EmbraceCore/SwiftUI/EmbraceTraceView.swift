@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceSemantics
 #endif

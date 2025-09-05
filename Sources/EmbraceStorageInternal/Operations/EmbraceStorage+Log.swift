@@ -43,16 +43,17 @@ extension EmbraceStorage {
         var predicates: [NSPredicate] = []
 
         for log in logs {
-            predicates.append(NSPredicate(
-                format: "id == %@ AND processIdRaw == %@",
-                log.id,
-                log.processId.stringValue
-            ))
+            predicates.append(
+                NSPredicate(
+                    format: "id == %@ AND processIdRaw == %@",
+                    log.id,
+                    log.processId.stringValue
+                ))
         }
 
         let request = LogRecord.createFetchRequest()
         request.predicate = NSCompoundPredicate(orPredicateWithSubpredicates: predicates)
-        
+
         coreData.deleteRecords(withRequest: request)
     }
 }

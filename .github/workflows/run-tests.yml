@@ -5,8 +5,8 @@ on:
     secrets:
       CODECOV_TOKEN:
         required: true
-  workflow_dispatch: {}
-  pull_request: {}
+  workflow_dispatch:
+  pull_request:
   push:
     branches:
       - main
@@ -14,86 +14,72 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   run-tests:
+    name: Test ${{ matrix.platform }}, on macOS ${{ matrix.macos-version }}, with Xcode ${{ matrix.xcode_version }}
     timeout-minutes: 30
-    runs-on: macos-14
+    runs-on: macos-${{ matrix.macos-version }}
     strategy:
       fail-fast: false
       matrix:
-        platform_args: ["iOS tvOS macOS watchOS"]
-        xcode_version: ["15.4"]
+        platform: ["iOS"]
+        xcode_version: ["16.2"]
+        macos-version: ["14"]
+        include:
+
+          # iOS
+          - platform: "iOS"
+            xcode_version: "16.2"
+            macos-version: "14"
+
+          - platform: "iOS"
+            xcode_version: "16.4"
+            macos-version: "15"
+
+          # tvOS
+          - platform: "tvOS"
+            xcode_version: "16.4"
+            macos-version: "15"
+
+          # macOS
+          - platform: "macOS"
+            xcode_version: "16.4"
+            macos-version: "15"
+
+          # watchOS
+          - platform: "watchOS"
+            xcode_version: "16.4"
+            macos-version: "15"
+
     permissions:
       checks: write
     steps:
       - name: Select Xcode
-        # See https://github.com/actions/runner-images/blob/main/images/macos/macos-15-Readme.md
         run: |
           sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app
           xcodebuild -version
+        continue-on-error: false
 
       - uses: actions/checkout@v4
         timeout-minutes: 2
         with:
           persist-credentials: false
 
-      - name: Cache SPM Dependencies
-        uses: actions/cache@v4
+      - name: Run Unit Tests
+        uses: mxcl/xcodebuild@96d9ef9fd2ab35ddad713d320955eb31ca8d6d21 # 3.5.1
         with:
-          path: |
-            .build/checkouts
-            .build/artifacts
-            .build/*-apple-*/debug/Swift*
-            .build/*-apple-*/debug/SourceKit*
-            .build/*-apple-*/debug/ArgumentParser*
-          key: ${{ runner.os }}-spm-build-cache-test-${{ hashFiles('Package.resolved') }}
-          restore-keys: |
-            ${{ runner.os }}-spm-build-cache-test
-
-      - name: Display Available SDKs
-        run: xcodebuild -showsdks -json
-        timeout-minutes: 1
-        continue-on-error: true
-
-      - name: Display Available Simulators
-        run: |
-          xcrun simctl list -j devices available
-        timeout-minutes: 2
-        continue-on-error: true
-
-      - name: Install xcbeautify
-        run: brew install xcbeautify
-
-      - name: Run Tests
-        run: bin/test ${{ matrix.platform_args }} | xcbeautify && exit ${PIPESTATUS[0]}
-        timeout-minutes: 30
-
-      - name: Upload xcresult Bundle Manually
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: output_xcresult
-          path: .build/test/output.xcresult
-
-      - uses: kishikawakatsumi/xcresulttool@2b37f116695328d5e503ac8dadca0f1545a51da4 # v1.7.1
-        if: always()
-        with:
-          path: .build/test/output
-          title: "Test Results"
-          show-passed-tests: true
-          show-code-coverage: true
-          upload-bundles: "never" # Uploading the `xcresult` using the xcresultool action seems to fail; 
-
-      - name: Convert results for Codecov
-        run: |
-          brew install a7ex/homebrew-formulae/xcresultparser
-          xcresultparser --output-format cobertura .build/test/output.xcresult > .build/test/output.xcresult.xml
+          workspace: ".swiftpm/xcode/package.xcworkspace"
+          scheme: EmbraceIO-Package
+          platform: ${{ matrix.platform }}
+          upload-logs: always
+          code-coverage: true
+          trust-plugins: false
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5.4.3
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        with:
-          plugins: xcode
-          files: .build/test/output.xcresult.xml
-          fail_ci_if_error: true

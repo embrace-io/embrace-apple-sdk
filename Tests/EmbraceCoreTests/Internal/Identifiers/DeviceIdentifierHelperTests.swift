@@ -3,11 +3,12 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceSemantics
 import EmbraceStorageInternal
 import Foundation
 import TestSupport
 import XCTest
-import EmbraceSemantics
+
 @testable import EmbraceCore
 
 class DeviceIdentifierHelperTests: XCTestCase {

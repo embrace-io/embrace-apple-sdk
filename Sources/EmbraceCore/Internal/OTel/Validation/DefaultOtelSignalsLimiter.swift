@@ -1,8 +1,9 @@
 //
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
-    
+
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceSemantics
     import EmbraceConfiguration
@@ -80,7 +81,7 @@ class DefaultOtelSignalsLimiter: OTelSignalsLimiter {
             return false
         }
     }
-    
+
     func shouldAddSessionEvent(ofType type: EmbraceType?) -> Bool {
         return state.withLock {
             // check total limit
@@ -92,7 +93,8 @@ class DefaultOtelSignalsLimiter: OTelSignalsLimiter {
             let type = type?.rawValue ?? Self.emptyType
 
             guard let typeLimits = $0.limits.events.typeLimits,
-                  let limit = limitForEventType(type, limits: typeLimits) else {
+                let limit = limitForEventType(type, limits: typeLimits)
+            else {
                 return true
             }
 
@@ -109,12 +111,10 @@ class DefaultOtelSignalsLimiter: OTelSignalsLimiter {
             return result
         }
     }
-    
+
     func shouldCreateLog(type: EmbraceType, severity: EmbraceLogSeverity) -> Bool {
         // no limits for internal, crash or hang logs
-        guard type != .internal &&
-              type != .crash &&
-              type != .hang else {
+        guard type != .internal && type != .crash && type != .hang else {
             return true
         }
 
@@ -136,19 +136,19 @@ class DefaultOtelSignalsLimiter: OTelSignalsLimiter {
             return result
         }
     }
-    
+
     func shouldAddSpanEvent(currentCount count: Int) -> Bool {
         return state.withLock {
             count < $0.limits.customSpans.events.count
         }
     }
-    
+
     func shouldAddSpanLink(currentCount count: Int) -> Bool {
         return state.withLock {
             count < $0.limits.customSpans.links.count
         }
     }
-    
+
     func shouldAddSpanAttribute(currentCount count: Int) -> Bool {
         return state.withLock {
             count < $0.limits.customSpans.attributeCount

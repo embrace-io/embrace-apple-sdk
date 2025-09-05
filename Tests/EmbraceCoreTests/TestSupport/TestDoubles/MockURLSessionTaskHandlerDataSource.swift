@@ -3,8 +3,9 @@
 //
 
 import EmbraceCaptureService
-import Foundation
 import EmbraceSemantics
+import Foundation
+
 @testable import EmbraceCore
 
 class MockURLSessionTaskHandlerDataSource: URLSessionTaskHandlerDataSource {

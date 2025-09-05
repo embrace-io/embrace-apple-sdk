@@ -1,8 +1,9 @@
 //
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
-    
+
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceSemantics
     import EmbraceCommonInternal
@@ -74,7 +75,7 @@ public class EmbraceOTelSignalsHandler: NSObject, InternalOTelSignalsHandler {
         events: [EmbraceSpanEvent] = [],
         links: [EmbraceSpanLink] = [],
         attributes: [String: String] = [:],
-        autoTerminationCode: EmbraceSpanErrorCode? = nil,
+        autoTerminationCode: EmbraceSpanErrorCode? = nil
     ) throws -> EmbraceSpan {
 
         guard limiter.shouldCreateCustomSpan() else {
@@ -107,7 +108,8 @@ public class EmbraceOTelSignalsHandler: NSObject, InternalOTelSignalsHandler {
         // get auto termination code from parent if needed
         var code = autoTerminationCode
         if let parentSpan,
-           code == nil {
+            code == nil
+        {
             code = cache.safeValue.autoTerminationSpans[parentSpan.context.spanId]?.autoTerminationCode
         }
 
@@ -174,7 +176,7 @@ public class EmbraceOTelSignalsHandler: NSObject, InternalOTelSignalsHandler {
 
         span.addSessionEvent(event, isInternal: false)
     }
-    
+
     /// Emits a new log.
     /// - Parameters:
     ///   - message: Message of the log
@@ -283,19 +285,19 @@ extension EmbraceOTelSignalsHandler: EmbraceSpanDelegate {
     func onSpanStatusUpdated(_ span: EmbraceSpan, status: EmbraceSpanStatus) {
         storage?.setSpanStatus(id: span.context.spanId, traceId: span.context.traceId, status: status)
     }
-    
+
     func onSpanEventAdded(_ span: EmbraceSpan, event: EmbraceSpanEvent) {
         storage?.addSpanEvent(id: span.context.spanId, traceId: span.context.traceId, event: event)
     }
-    
+
     func onSpanLinkAdded(_ span: EmbraceSpan, link: EmbraceSpanLink) {
         storage?.addSpanLink(id: span.context.spanId, traceId: span.context.traceId, link: link)
     }
-    
+
     func onSpanAttributesUpdated(_ span: EmbraceSpan, attributes: [String: String]) {
         storage?.setSpanAttributes(id: span.context.spanId, traceId: span.context.traceId, attributes: attributes)
     }
-    
+
     func onSpanEnded(_ span: any EmbraceSpan, endTime: Date) {
         storage?.endSpan(id: span.context.spanId, traceId: span.context.traceId, endTime: endTime)
     }
@@ -308,7 +310,7 @@ extension EmbraceOTelSignalsHandler: EmbraceSpanDataSource {
         name: String,
         type: EmbraceType?,
         timestamp: Date,
-        attributes: [String : String],
+        attributes: [String: String],
         internalCount: Int,
         isInternal: Bool
     ) throws -> EmbraceSpanEvent {
@@ -340,7 +342,7 @@ extension EmbraceOTelSignalsHandler: EmbraceSpanDataSource {
         for span: EmbraceSpan,
         spanId: String,
         traceId: String,
-        attributes: [String : String],
+        attributes: [String: String],
         internalCount: Int,
         isInternal: Bool
     ) throws -> EmbraceSpanLink {

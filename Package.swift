@@ -46,7 +46,7 @@ let package = Package(
         ),
         .package(
             url: "https://github.com/open-telemetry/opentelemetry-swift",
-            exact: "2.0.0"
+            exact: "2.0.2"
         ),
         .package(
             url: "https://github.com/swiftlang/swift-syntax.git",
@@ -131,7 +131,7 @@ let package = Package(
         // capture service -----------------------------------------------------------
         .target(
             name: "EmbraceCaptureService",
-            dependencies : [
+            dependencies: [
                 "EmbraceSemantics",
                 "EmbraceCommonInternal"
             ]
@@ -326,15 +326,3 @@ let package = Package(
         )
     ]
 )
-
-if ProcessInfo.processInfo.environment["EMBRACE_ENABLE_SWIFTLINT"] != nil {
-    package.dependencies.append(contentsOf: [
-        .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", from: "0.58.2")
-    ])
-
-    for target in package.targets {
-        target.plugins = [
-            .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
-        ]
-    }
-}

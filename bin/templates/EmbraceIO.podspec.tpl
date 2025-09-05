@@ -101,6 +101,7 @@ Pod::Spec.new do |spec|
   spec.subspec 'EmbraceKSCrashSupport' do |subs|
     subs.source_files = "Sources/ThirdParty/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
     subs.dependency "EmbraceIO/EmbraceCommonInternal"
+    subs.dependency "EmbraceIO/EmbraceSemantics"
     subs.dependency "EmbraceIO/EmbraceKSCrash"
   end
 

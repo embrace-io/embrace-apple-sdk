@@ -2,9 +2,8 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-import XCTest
 import EmbraceSemantics
-
+import XCTest
 
 class EmbraceStackTraceTests: XCTestCase {
     // MARK:  - Overall behaviour

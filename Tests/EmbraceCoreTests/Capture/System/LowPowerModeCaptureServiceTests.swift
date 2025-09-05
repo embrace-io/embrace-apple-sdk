@@ -5,9 +5,8 @@
 import EmbraceCommonInternal
 import TestSupport
 import XCTest
-@testable import EmbraceCore
 
-// swiftlint:disable force_cast
+@testable import EmbraceCore
 
 class MockPowerModeProvider: PowerModeProvider {
     var isLowPowerModeEnabled = false {
@@ -200,5 +199,3 @@ class LowPowerModeCollectorTests: XCTestCase {
         XCTAssertNil(service.currentSpan)
     }
 }
-
-// swiftlint:enable force_cast

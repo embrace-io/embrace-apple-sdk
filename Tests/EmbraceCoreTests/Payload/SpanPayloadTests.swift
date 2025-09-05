@@ -2,13 +2,12 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
-import XCTest
-import TestSupport
 import EmbraceSemantics
-@testable import EmbraceCore
+import Foundation
+import TestSupport
+import XCTest
 
-// swiftlint:disable force_cast
+@testable import EmbraceCore
 
 class SpanPayloadTests: XCTestCase {
 
@@ -172,6 +171,3 @@ class SpanPayloadTests: XCTestCase {
         XCTAssertEqual(payload.endTime, now.nanosecondsSince1970Truncated)
     }
 }
-
-// swiftlint:enable force_cast
-

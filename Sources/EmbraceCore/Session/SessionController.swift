@@ -3,6 +3,7 @@
 //
 
 import Foundation
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceSemantics
     import EmbraceCommonInternal
@@ -104,7 +105,8 @@ class SessionController: SessionControllable {
         }
 
         guard let storage = storage,
-              let otel = otel else {
+            let otel = otel
+        else {
             return nil
         }
 
@@ -132,13 +134,15 @@ class SessionController: SessionControllable {
 
             // create session span
             let newId = EmbraceIdentifier.random
-            guard let span = SessionSpanUtils.span(
-                otel: otel,
-                id: newId,
-                startTime: startTime,
-                state: state,
-                coldStart: isColdStart
-            ) else {
+            guard
+                let span = SessionSpanUtils.span(
+                    otel: otel,
+                    id: newId,
+                    startTime: startTime,
+                    state: state,
+                    coldStart: isColdStart
+                )
+            else {
                 return result
             }
 
@@ -193,9 +197,7 @@ class SessionController: SessionControllable {
             // If the session is a background session and background sessions
             // are disabled in the config, we drop the session!
             // +
-            if session.coldStart == true &&
-               session.state == SessionState.background &&
-               backgroundSessionsEnabled == false {
+            if session.coldStart == true && session.state == SessionState.background && backgroundSessionsEnabled == false {
                 delete()
                 return now
             }
@@ -215,11 +217,11 @@ class SessionController: SessionControllable {
 
             // TODO: Check if needed
             // Manually updating the span record synchronously.
-//            storage?.endSpan(
-//                id: currentSessionSpan.context.spanId.hexString,
-//                traceId: currentSessionSpan.context.traceId.hexString,
-//                endTime: now
-//            )
+            //            storage?.endSpan(
+            //                id: currentSessionSpan.context.spanId.hexString,
+            //                traceId: currentSessionSpan.context.traceId.hexString,
+            //                endTime: now
+            //            )
 
             // update session end time and clean exit
             currentSession = storage?.updateSession(session: session, endTime: now, cleanExit: true)

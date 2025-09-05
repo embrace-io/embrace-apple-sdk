@@ -1,7 +1,7 @@
 //
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
-    
+
 import Foundation
 
 /// Class used to add attachments when creating `EmbraceLogs`.

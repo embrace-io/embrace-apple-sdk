@@ -88,6 +88,13 @@ public class RemoteConfig {
 }
 
 extension RemoteConfig: EmbraceConfigurable {
+    public var hangLimits: EmbraceConfiguration.HangLimits {
+        HangLimits(
+            hangPerSession: payload.hangLimitsHangPerSession,
+            samplesPerHang: payload.hangLimitsSamplesPerHang
+        )
+    }
+
     public var isSDKEnabled: Bool { isEnabled(threshold: payload.sdkEnabledThreshold) }
 
     public var isBackgroundSessionEnabled: Bool { isEnabled(threshold: payload.backgroundSessionThreshold) }

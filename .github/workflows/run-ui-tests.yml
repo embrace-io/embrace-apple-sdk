@@ -2,10 +2,10 @@ name: UI Tests App
 
 on:
   workflow_dispatch: {}
-  # pull_request: {}
-  # push:
-    # branches:
-     # - main
+  pull_request: {}
+  push:
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -13,13 +13,16 @@ permissions:
 jobs:
   run-ui-tests-app:
     timeout-minutes: 60
-    runs-on: macos-14
+    runs-on: [macos-15]
     strategy:
       fail-fast: false
       matrix:
-        xcode_version: ["15.4"]
+        xcode_version: ["16.4"]
+        device:
+          - "iPhone 16 Pro"
     permissions:
       checks: write
+
     steps:
       - name: Select Xcode
         # See https://github.com/actions/runner-images/blob/main/images/macos/macos-15-Readme.md
@@ -30,6 +33,16 @@ jobs:
         timeout-minutes: 5
         with:
           persist-credentials: false
+
+      - name: Shutdown Simulators
+        run: |
+            xcrun simctl shutdown all
+      - name: Erase Simulators
+        run: |
+            xcrun simctl erase all
+      - name: Boot Simulator
+        run: |
+          xcrun simctl boot "${{ matrix.device }}"
 
       - name: Cache SPM Dependencies
         uses: actions/cache@v4
@@ -44,36 +57,18 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-spm-build-cache-test
 
-      - name: Display Available SDKs
-        run: xcodebuild -showsdks -json
-        timeout-minutes: 1
-        continue-on-error: true
-
-      - name: Display Available Simulators
-        run: |
-          xcrun simctl list -j devices available
-        timeout-minutes: 2
-        continue-on-error: true
-
       - name: Install xcbeautify
         run: brew install xcbeautify
 
-      - name: xcodebuild
-        run: bin/ui_tests | xcbeautify && exit ${PIPESTATUS[0]}
-        timeout-minutes: 60
+      - name: Run UI Tests
+        env:
+          IS_XCTEST: true
+        run: |
+          set -e && xcodebuild -project "./Examples/EmbraceIOTestApp/EmbraceIOTestApp.xcodeproj" -scheme "EmbraceIOTestApp" -derivedDataPath "build/DerivedData" -resultBundlePath ".build/test/output" -destination "platform=iOS Simulator,name=${{ matrix.device }}" -parallel-testing-enabled NO test | xcbeautify && exit ${PIPESTATUS[0]}
 
       - name: Upload xcresult Bundle Manually
-        if: always()
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: output_xcresult
           path: .build/test/output.xcresult
-
-      - uses: kishikawakatsumi/xcresulttool@2b37f116695328d5e503ac8dadca0f1545a51da4 # v1.7.1
-        if: always()
-        with:
-          path: .build/test/output.xcresult
-          title: "UI Test Results"
-          show-passed-tests: true
-          show-code-coverage: false
-          upload-bundles: "never" # Uploading the `xcresult` using the xcresultool action seems to fail

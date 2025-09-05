@@ -12,7 +12,7 @@ extension String {
     public static func randomSpanId() -> String {
         var id: UInt64 = 0
         repeat {
-          id = UInt64.random(in: .min ... .max)
+            id = UInt64.random(in: .min ... .max)
         } while id == 0
 
         return String(format: "%016llx", id)
@@ -22,8 +22,8 @@ extension String {
         var idHi: UInt64
         var idLo: UInt64
         repeat {
-          idHi = UInt64.random(in: .min ... .max)
-          idLo = UInt64.random(in: .min ... .max)
+            idHi = UInt64.random(in: .min ... .max)
+            idLo = UInt64.random(in: .min ... .max)
         } while idHi == 0 && idLo == 0
 
         return String(format: "%016llx%016llx", idHi, idLo)

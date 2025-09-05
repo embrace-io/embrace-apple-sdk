@@ -1,9 +1,10 @@
+import Foundation
+import TestSupport
 //
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 import XCTest
-import Foundation
-import TestSupport
+
 @testable import EmbraceCore
 
 class StartupInstrumentationTests: XCTestCase {

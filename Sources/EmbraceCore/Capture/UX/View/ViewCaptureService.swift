@@ -58,20 +58,10 @@
 
             super.init()
 
-            Embrace.notificationCenter.addObserver(
-                self,
-                selector: #selector(onConfigUpdated),
-                name: .embraceConfigUpdated, object: nil
-            )
             updateBlockList(config: Embrace.client?.config.configurable)
         }
 
-        deinit {
-            Embrace.notificationCenter.removeObserver(self)
-        }
-
-        @objc private func onConfigUpdated(_ notification: Notification) {
-            let config = notification.object as? EmbraceConfigurable
+        @objc public override func onConfigUpdated(_ config: EmbraceConfigurable) {
             updateBlockList(config: config)
         }
 
