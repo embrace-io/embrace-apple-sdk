@@ -30,8 +30,8 @@ jobs:
       
       - name: Copy perf test binary
         run: |
-          cp bin/perf /tmp/perf || true
-          chmod +x /tmp/perf || true
+          cp bin/perf /tmp/perf
+          chmod +x /tmp/perf
 
       - name: Run PR perf tests
         id: perfpr

@@ -42,6 +42,27 @@ ITERATIONS=$((ITERATIONS + 1))
 TMPDIR_ROOT="$(mktemp -d -t perf-run-XXXXXX)"
 RESULT_FILE="${TMPDIR_ROOT}/TestResults.xcresult"
 
+run_quiet() {
+    local out status
+    out=$(mktemp) || { echo "mktemp failed" >&2; return 2; }
+
+    # Run the command/pipeline in a subshell with pipefail
+    ( set -o pipefail; "$@" ) >"$out" 2>&1
+    status=$?
+
+    if [ $status -ne 0 ]; then
+        # On failure: dump everything to stderr
+        cat "$out" >&2
+        rm -f "$out"
+        return $status
+    fi
+
+    # On success: replay stdout (caller can redirect if they want silence)
+    cat "$out"
+    rm -f "$out"
+    return 0
+}
+
 cleanup() {
   # remove temp artifacts; keep final bundle if it exists
   rm -rf "${TMPDIR_ROOT}"
@@ -55,15 +76,15 @@ log "Starting performance tests, ${TESTS[*]}"
 rm -rf "${TMPDIR_ROOT}" >/dev/null 2>&1 || true
 
 log "${PRE_ACTIONS} test bundle for '${DESTINATION}'…"
-xcodebuild ${PRE_ACTIONS} \
+run_quiet xcodebuild ${PRE_ACTIONS} \
   -workspace "${WORKSPACE}" \
   -scheme "${SCHEME}" \
   -destination "${DESTINATION}" \
-  >/dev/null 2>&1
+  >/dev/null
 
 
   log "Testing with $((ITERATIONS - 1)) iteration(s)..."
-  xcodebuild test-without-building \
+  run_quiet xcodebuild test-without-building \
     -workspace "${WORKSPACE}" \
     -scheme "${SCHEME}" \
     "${TEST_ARGS[@]}" \
@@ -74,7 +95,7 @@ xcodebuild ${PRE_ACTIONS} \
     -skipPackagePluginValidation \
     -skipMacroValidation \
     -disableAutomaticPackageResolution \
-    >/dev/null 2>&1
+    >/dev/null
 
 # we could use `xcrun xcresulttool get test-results metrics`,
 # or `xcresultparser`, but both complicate things. 
@@ -84,10 +105,9 @@ xcodebuild ${PRE_ACTIONS} \
 # Also, we're skipping the first iteration as a warm-up.
 
 log "Crunching results..."
-xcrun xcresulttool get test-results tests \
+run_quiet xcrun xcresulttool get test-results tests \
        --path "${RESULT_FILE}" \
        --format json \
-       2>/dev/null \
         | jq '
   [ .. | objects | select(.nodeType? == "Test Case")
     | . as $tc
