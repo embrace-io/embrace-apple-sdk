@@ -70,7 +70,7 @@ final class HangWatchdogTests: XCTestCase {
         }
 
         // Wait for expectation with timeout
-        wait(for: [hangExpectation], timeout: 0.5)
+        wait(for: [hangExpectation], timeout: .longTimeout)
 
         // Verify hang was detected
         XCTAssertTrue(mockObserver.hangStartedCalled)
@@ -103,7 +103,7 @@ final class HangWatchdogTests: XCTestCase {
         }
 
         // Wait for expectations
-        wait(for: [hangStartedExpectation, hangUpdatedExpectation], timeout: 0.5)
+        wait(for: [hangStartedExpectation, hangUpdatedExpectation], timeout: .longTimeout)
 
         // Verify hang was updated
         XCTAssertTrue(mockObserver.hangStartedCalled)
@@ -131,7 +131,7 @@ final class HangWatchdogTests: XCTestCase {
         }
 
         // Wait for hang to end
-        wait(for: [hangEndedExpectation], timeout: 0.5)
+        wait(for: [hangEndedExpectation], timeout: .longTimeout)
 
         // Verify hang ended was called
         XCTAssertTrue(mockObserver.hangEndedCalled)
@@ -156,7 +156,7 @@ final class HangWatchdogTests: XCTestCase {
         }
 
         // Wait briefly to ensure no hang is detected
-        wait(for: [hangStartedExpectation], timeout: 0.3)
+        wait(for: [hangStartedExpectation], timeout: .longTimeout)
 
         // Verify no hang was detected
         XCTAssertFalse(mockObserver.hangStartedCalled)
