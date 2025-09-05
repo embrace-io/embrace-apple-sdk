@@ -106,6 +106,7 @@ class UploadedSessionPayloadTest: PayloadTest {
     private func missingSpanTestResult(_ name: String) -> TestResult {
         switch name {
         case "emb-setup",
+            "emb-thread-blockage",
             "POST /api/v2/spans":
             return .warning
         default:

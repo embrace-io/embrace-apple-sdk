@@ -19,6 +19,6 @@ struct SwiftUITestsLoadedPropertyView: View {
 }
 
 #Preview {
-    @State var loadedState: Bool = false
+    @Previewable @State var loadedState: Bool = false
     return SwiftUITestsLoadedPropertyView(loadedState: $loadedState)
 }

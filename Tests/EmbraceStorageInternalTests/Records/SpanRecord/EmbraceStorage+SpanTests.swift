@@ -93,7 +93,14 @@ final class EmbraceStorage_SpanTests: XCTestCase {
     }
 
     func test_upsertSpan_appliesDefaultLimit() throws {
-        for i in 0..<(EmbraceStorage.defaultSpanLimitByType + 10) {
+
+        let oldLimitDefault = storage.options.spanLimitDefault
+        storage.options.spanLimitDefault = 3
+        defer {
+            storage.options.spanLimitDefault = oldLimitDefault
+        }
+
+        for i in 0..<(storage.options.spanLimitDefault + 1) {
             // given inserted record
             storage.upsertSpan(
                 id: SpanId.random().hexString,
@@ -116,7 +123,7 @@ final class EmbraceStorage_SpanTests: XCTestCase {
         request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: true)]
         let allRecords: [SpanRecord] = storage.coreData.fetch(withRequest: request)
 
-        XCTAssertEqual(allRecords.count, EmbraceStorage.defaultSpanLimitByType)  // 1500 is default limit
+        XCTAssertEqual(allRecords.count, storage.options.spanLimitDefault)
     }
 
 }

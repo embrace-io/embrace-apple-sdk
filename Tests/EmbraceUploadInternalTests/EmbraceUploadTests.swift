@@ -33,9 +33,9 @@ class EmbraceUploadTests: XCTestCase {
             urlSessionConfiguration: urlSessionconfig
         )
 
-        self.queue = DispatchQueue(label: "com.test.embrace.queue", attributes: .concurrent)
+        self.queue = DispatchQueue(label: "com.test.embrace.queue")
         module = try EmbraceUpload(
-            options: testOptions, logger: MockLogger(), queue: queue, semaphore: .init(value: .max))
+            options: testOptions, logger: MockLogger(), queue: queue)
     }
 
     override func tearDownWithError() throws {
@@ -186,7 +186,7 @@ class EmbraceUploadTests: XCTestCase {
         XCTAssertNotNil(record)
     }
 
-    func test_retryCachedData() throws {
+    func test_retryCachedData() async throws {
         try XCTSkipIf(XCTestCase.isWatchOS())
 
         // given cached data
@@ -197,9 +197,7 @@ class EmbraceUploadTests: XCTestCase {
         EmbraceHTTPMock.mock(url: testLogsUrl())
 
         // when retrying to upload all cached data
-        module.retryCachedData()
-
-        _ = XCTWaiter.wait(for: [XCTestExpectation()], timeout: .defaultTimeout)
+        await module.retryCachedData()
 
         // then requests are made
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 1)
@@ -207,13 +205,11 @@ class EmbraceUploadTests: XCTestCase {
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testAttachmentsUrl()).count, 0)
     }
 
-    func test_retryCachedData_emptyCache() throws {
+    func test_retryCachedData_emptyCache() async throws {
         // given an empty cache
 
         // when retrying to upload all cached data
-        module.retryCachedData()
-
-        _ = XCTWaiter.wait(for: [XCTestExpectation()], timeout: .defaultTimeout)
+        await module.retryCachedData()
 
         // then no requests are made
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 0)
@@ -225,9 +221,11 @@ class EmbraceUploadTests: XCTestCase {
         try XCTSkipIf(XCTestCase.isWatchOS())
 
         // when uploading session data
-        module.uploadSpans(id: "id", data: TestConstants.data, completion: nil)
-
-        wait(delay: .defaultTimeout)
+        let expectation = XCTestExpectation()
+        module.uploadSpans(id: "id", data: TestConstants.data) { _ in
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: .defaultTimeout)
 
         // then a request to the right endpoint is made
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 1)
@@ -239,9 +237,11 @@ class EmbraceUploadTests: XCTestCase {
         try XCTSkipIf(XCTestCase.isWatchOS())
 
         // when uploading log data
-        module.uploadLog(id: "id", data: TestConstants.data, completion: nil)
-
-        wait(delay: .defaultTimeout)
+        let expectation = XCTestExpectation()
+        module.uploadLog(id: "id", data: TestConstants.data) { _ in
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: .defaultTimeout)
 
         // then a request to the right endpoint is made
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 0)
@@ -253,9 +253,12 @@ class EmbraceUploadTests: XCTestCase {
         try XCTSkipIf(XCTestCase.isWatchOS())
 
         // when uploading attachment data
-        module.uploadAttachment(id: "id", data: TestConstants.data, completion: nil)
+        let expectation = XCTestExpectation()
+        module.uploadAttachment(id: "id", data: TestConstants.data) { _ in
+            expectation.fulfill()
+        }
 
-        wait(delay: .defaultTimeout)
+        wait(for: [expectation], timeout: .defaultTimeout)
 
         // then a request to the right endpoint is made
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 0)

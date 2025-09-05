@@ -169,7 +169,7 @@ import Foundation
         self.config = Embrace.createConfig(options: options, deviceId: deviceId)
 
         // initialize upload module
-        self.upload = Embrace.createUpload(options: options, deviceId: deviceId.stringValue, configuration: config.configurable)
+        self.upload = try Embrace.createUpload(options: options, deviceId: deviceId.stringValue, configuration: config.configurable)
 
         // send critical logs from previous session
         UnsentDataHandler.sendCriticalLogs(fileUrl: EmbraceFileSystem.criticalLogsURL, upload: upload)

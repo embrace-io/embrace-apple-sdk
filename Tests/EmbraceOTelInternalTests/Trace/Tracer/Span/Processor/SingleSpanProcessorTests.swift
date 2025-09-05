@@ -73,7 +73,7 @@ final class SingleSpanProcessorTests: XCTestCase {
         }
 
         _ = createSpanData(processor: processor)  // DEV: `startSpan` called in this method
-        wait(for: [expectation], timeout: .defaultTimeout)
+        wait(for: [expectation], timeout: .shortTimeout)
 
         XCTAssertEqual(exporter.exportedSpans.count, 0)
     }
@@ -121,7 +121,7 @@ final class SingleSpanProcessorTests: XCTestCase {
         let endTime = Date().addingTimeInterval(2)
         span.end(time: endTime)
 
-        wait(for: [expectation], timeout: .defaultTimeout)
+        wait(for: [expectation], timeout: .shortTimeout)
 
         XCTAssertEqual(exporter.exportedSpans.count, 0)
     }

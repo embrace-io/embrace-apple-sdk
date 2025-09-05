@@ -55,15 +55,12 @@ import XCTest
             XCTAssertEqual(mockController.currentSession?.state, .foreground)
         }
 
-        func test_startSession_fromBackgroundQueue_callsControllerStartSession_andSetsSessionState() {
-            let expectation = self.expectation(description: "startSession")
-            DispatchQueue.global().async {
+        @MainActor
+        func test_startSession_fromBackgroundQueue_callsControllerStartSession_andSetsSessionState() async {
+
+            await Task.detached {
                 self.lifecycle.startSession()
-                expectation.fulfill()
-            }
-
-            waitForExpectations(timeout: 0.1, handler: nil)
-
+            }.value
             XCTAssertTrue(mockController.didCallStartSession)
             XCTAssertEqual(mockController.currentSession?.state, .foreground)
         }

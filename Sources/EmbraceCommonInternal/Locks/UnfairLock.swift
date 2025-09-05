@@ -26,6 +26,9 @@ final public class UnfairLock {
         defer { os_unfair_lock_unlock(_lock) }
         return try f()
     }
+}
+
+extension UnfairLock {
 
     public func lock() {
         os_unfair_lock_lock(_lock)

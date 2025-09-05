@@ -1,4 +1,4 @@
-name: Clang Format Check
+name: Clang Format
 on:
   pull_request:
     paths:
@@ -14,8 +14,8 @@ permissions:
 
 jobs:
   formatting-check:
-    name: Formatting Check
-    runs-on: ubuntu-latest
+    name: Clang Formatting Check
+    runs-on: macos-latest
     env:
       DIRS: 'Sources Tests Examples'
     steps:
@@ -24,12 +24,9 @@ jobs:
       with:
         persist-credentials: false
 
-    - name: Install clang-format-18
+    - name: Install clang-format
       run: |
-        wget https://apt.llvm.org/llvm.sh
-        chmod +x llvm.sh
-        sudo ./llvm.sh 18
-        sudo apt-get install -y clang-format-18
+        brew install clang-format
 
     - name: Check formatting
       id: check_format

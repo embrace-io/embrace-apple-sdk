@@ -54,6 +54,14 @@ class CrashReporterMock: CrashReporter {
         completion(mockReports)
     }
 
+    func fetchUnsentCrashReports() async -> [EmbraceCrashReport] {
+        await withCheckedContinuation { continuation in
+            fetchUnsentCrashReports { reports in
+                continuation.resume(returning: reports)
+            }
+        }
+    }
+
     func deleteCrashReport(_ report: EmbraceCrashReport) {
         mockReports.removeAll { r in
             r.internalId == report.internalId

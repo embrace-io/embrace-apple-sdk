@@ -12,6 +12,8 @@ import Foundation
     import EmbraceSemantics
 #endif
 
+typealias UnsentDataHandlerCompletion = () -> Void
+
 class UnsentDataHandler {
 
     static func sendUnsentData(
@@ -20,26 +22,37 @@ class UnsentDataHandler {
         otel: EmbraceOpenTelemetry?,
         logController: LogControllable? = nil,
         currentSessionId: EmbraceIdentifier? = nil,
-        crashReporter: EmbraceCrashReporter? = nil
+        crashReporter: EmbraceCrashReporter? = nil,
+        completion: UnsentDataHandlerCompletion? = nil
     ) {
 
         guard let storage = storage,
             let upload = upload
         else {
+            completion?()
             return
         }
 
         // this queue will live for as long as it has any running blocks
         let reportQueue: DispatchQueue = DispatchQueue(label: "io.embrace.report.queue", qos: .utility)
 
+        let group = DispatchGroup()
+        group.enter()
+
         reportQueue.async {
 
             // send any logs in storage first before we clean up the resources
-            logController?.uploadAllPersistedLogs()
+            if let logController {
+                group.enter()
+                logController.uploadAllPersistedLogs {
+                    group.leave()
+                }
+            }
 
             // if we have a crash reporter, we fetch the unsent crash reports first
             // and save their identifiers to the corresponding sessions
             if let crashReporter = crashReporter {
+                group.enter()
                 crashReporter.fetchUnsentCrashReports { reports in
                     sendCrashReports(
                         storage: storage,
@@ -47,13 +60,29 @@ class UnsentDataHandler {
                         otel: otel,
                         currentSessionId: currentSessionId,
                         crashReporter: crashReporter,
-                        crashReports: reports
+                        crashReports: reports,
+                        completion: {
+                            group.leave()
+                        }
                     )
                 }
             } else {
-                sendSessions(storage: storage, upload: upload, currentSessionId: currentSessionId)
+                group.enter()
+                sendSessions(
+                    storage: storage,
+                    upload: upload,
+                    currentSessionId: currentSessionId,
+                    completion: {
+                        group.leave()
+                    }
+                )
             }
 
+            group.leave()
+        }
+
+        group.notify(queue: reportQueue) {
+            completion?()
         }
     }
 
@@ -63,8 +92,12 @@ class UnsentDataHandler {
         otel: EmbraceOpenTelemetry?,
         currentSessionId: EmbraceIdentifier?,
         crashReporter: EmbraceCrashReporter,
-        crashReports: [EmbraceCrashReport]
+        crashReports: [EmbraceCrashReport],
+        completion: UnsentDataHandlerCompletion? = nil
     ) {
+
+        let group = DispatchGroup()
+        group.enter()
 
         // send crash reports
         for report in crashReports {
@@ -84,6 +117,7 @@ class UnsentDataHandler {
             }
 
             // send crash log
+            group.enter()
             sendCrashLog(
                 report: report,
                 reporter: crashReporter,
@@ -91,7 +125,9 @@ class UnsentDataHandler {
                 storage: storage,
                 upload: upload,
                 otel: otel
-            )
+            ) {
+                group.leave()
+            }
         }
 
         // Send the crash reports notification
@@ -103,11 +139,19 @@ class UnsentDataHandler {
         }
 
         // send sessions
+        group.enter()
         sendSessions(
             storage: storage,
             upload: upload,
             currentSessionId: currentSessionId
-        )
+        ) {
+            group.leave()
+        }
+
+        group.leave()
+        group.notify(queue: .global(qos: .utility)) {
+            completion?()
+        }
     }
 
     static public func sendCrashLog(
@@ -116,7 +160,8 @@ class UnsentDataHandler {
         session: EmbraceSession?,
         storage: EmbraceStorage?,
         upload: EmbraceUpload?,
-        otel: EmbraceOpenTelemetry?
+        otel: EmbraceOpenTelemetry?,
+        completion: UnsentDataHandlerCompletion? = nil
     ) {
         let timestamp = (report.timestamp ?? session?.lastHeartbeatTime) ?? Date()
 
@@ -130,6 +175,7 @@ class UnsentDataHandler {
         )
 
         guard let upload = upload else {
+            completion?()
             return
         }
 
@@ -155,12 +201,16 @@ class UnsentDataHandler {
                     Embrace.logger.warning(
                         "Error trying to upload crash report \(report.id):\n\(error.localizedDescription)")
                 }
+
+                completion?()
             }
 
         } catch {
             Embrace.logger.warning(
                 "Error encoding crash report \(report.id) for session \(String(describing: report.sessionId)):\n"
                     + error.localizedDescription)
+
+            completion?()
         }
     }
 
@@ -203,7 +253,8 @@ class UnsentDataHandler {
     static private func sendSessions(
         storage: EmbraceStorage,
         upload: EmbraceUpload,
-        currentSessionId: EmbraceIdentifier?
+        currentSessionId: EmbraceIdentifier?,
+        completion: UnsentDataHandlerCompletion? = nil
     ) {
 
         // clean up old spans + close open spans
@@ -213,6 +264,9 @@ class UnsentDataHandler {
         // fetch all sessions in the storage
         let sessions: [EmbraceSession] = storage.fetchAllSessions()
 
+        let group = DispatchGroup()
+        group.enter()
+
         for session in sessions {
             // ignore current session
             if let currentSessionId = currentSessionId,
@@ -221,18 +275,33 @@ class UnsentDataHandler {
                 continue
             }
 
-            sendSession(session, storage: storage, upload: upload, performCleanUp: false)
+            group.enter()
+            sendSession(
+                session,
+                storage: storage,
+                upload: upload,
+                performCleanUp: false,
+                completion: {
+                    group.leave()
+                }
+            )
         }
 
         // remove old metadata
         cleanMetadata(storage: storage, currentSessionId: currentSessionId?.stringValue)
+
+        group.leave()
+        group.notify(queue: .global(qos: .utility)) {
+            completion?()
+        }
     }
 
     static public func sendSession(
         _ session: EmbraceSession,
         storage: EmbraceStorage,
         upload: EmbraceUpload,
-        performCleanUp: Bool = true
+        performCleanUp: Bool = true,
+        completion: UnsentDataHandlerCompletion? = nil
     ) {
         // create payload
         let payload = SessionPayloadBuilder.build(for: session, storage: storage)
@@ -242,10 +311,12 @@ class UnsentDataHandler {
             payloadData = try JSONEncoder().encode(payload).gzipped()
         } catch {
             Embrace.logger.warning("Error encoding session \(session.id.stringValue):\n" + error.localizedDescription)
+            completion?()
             return
         }
 
         guard let payloadData = payloadData else {
+            completion?()
             return
         }
 
@@ -266,6 +337,8 @@ class UnsentDataHandler {
                 Embrace.logger.warning(
                     "Error trying to upload session \(session.id.stringValue):\n\(error.localizedDescription)")
             }
+
+            completion?()
         }
     }
 
@@ -295,15 +368,17 @@ class UnsentDataHandler {
         storage.cleanMetadata(currentSessionId: sessionId, currentProcessId: ProcessIdentifier.current.stringValue)
     }
 
-    static func sendCriticalLogs(fileUrl: URL?, upload: EmbraceUpload?) {
+    static func sendCriticalLogs(fileUrl: URL?, upload: EmbraceUpload?, completion: UnsentDataHandlerCompletion? = nil) {
         // feature is only available on iOS 15+
         if #unavailable(iOS 15.0, tvOS 15.0) {
+            completion?()
             return
         }
 
         guard let upload = upload,
             let fileUrl = fileUrl
         else {
+            completion?()
             return
         }
 
@@ -311,6 +386,7 @@ class UnsentDataHandler {
         defer { try? FileManager.default.removeItem(at: fileUrl) }
 
         guard let logs = try? String(contentsOf: fileUrl), !logs.isEmpty else {
+            completion?()
             return
         }
 
@@ -333,9 +409,75 @@ class UnsentDataHandler {
         // send log
         do {
             let payloadData = try JSONEncoder().encode(payload).gzipped()
-            upload.uploadLog(id: id, data: payloadData, completion: nil)
+            upload.uploadLog(id: id, data: payloadData) { _ in
+                completion?()
+            }
         } catch {
             Embrace.logger.error("Error sending critical logs!:\n\(error.localizedDescription)")
+            completion?()
+        }
+    }
+}
+
+extension UnsentDataHandler {
+
+    static func sendUnsentData(
+        storage: EmbraceStorage?,
+        upload: EmbraceUpload?,
+        otel: EmbraceOpenTelemetry?,
+        logController: LogControllable? = nil,
+        currentSessionId: EmbraceIdentifier? = nil,
+        crashReporter: EmbraceCrashReporter? = nil
+    ) async {
+        await withCheckedContinuation { continuation in
+            sendUnsentData(
+                storage: storage,
+                upload: upload,
+                otel: otel,
+                logController: logController,
+                currentSessionId: currentSessionId,
+                crashReporter: crashReporter
+            ) {
+                continuation.resume()
+            }
+        }
+    }
+
+    static func sendCriticalLogs(fileUrl: URL?, upload: EmbraceUpload?) async {
+        await withCheckedContinuation { continuation in
+            sendCriticalLogs(fileUrl: fileUrl, upload: upload) {
+                continuation.resume()
+            }
+        }
+    }
+
+    static public func sendSession(
+        _ session: EmbraceSession,
+        storage: EmbraceStorage,
+        upload: EmbraceUpload,
+        performCleanUp: Bool = true
+    ) async {
+        await withCheckedContinuation { continuation in
+            sendSession(session, storage: storage, upload: upload, performCleanUp: performCleanUp) {
+                continuation.resume()
+            }
+        }
+    }
+
+    static public func sendCrashLog(
+        report: EmbraceCrashReport,
+        reporter: EmbraceCrashReporter?,
+        session: EmbraceSession?,
+        storage: EmbraceStorage?,
+        upload: EmbraceUpload?,
+        otel: EmbraceOpenTelemetry?
+    ) async {
+        await withCheckedContinuation { continuation in
+            sendCrashLog(
+                report: report, reporter: reporter, session: session, storage: storage, upload: upload, otel: otel
+            ) {
+                continuation.resume()
+            }
         }
     }
 }

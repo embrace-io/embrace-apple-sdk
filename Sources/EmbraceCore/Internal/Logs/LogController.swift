@@ -15,7 +15,7 @@ import Foundation
 #endif
 
 protocol LogControllable: LogBatcherDelegate {
-    func uploadAllPersistedLogs()
+    func uploadAllPersistedLogs(_ completion: (() -> Void)?)
     func createLog(
         _ message: String,
         severity: EmbraceLogSeverity,
@@ -70,14 +70,19 @@ class LogController: LogControllable {
         self.sessionController = controller
     }
 
-    func uploadAllPersistedLogs() {
+    func uploadAllPersistedLogs(_ completion: (() -> Void)? = nil) {
         guard let storage = storage else {
+            completion?()
             return
         }
 
         let logs: [EmbraceLog] = storage.fetchAll(excludingProcessIdentifier: ProcessIdentifier.current)
-        if logs.count > 0 {
-            send(batches: divideInBatches(logs))
+        if logs.isEmpty == false {
+            send(batches: divideInBatches(logs)) {
+                completion?()
+            }
+        } else {
+            completion?()
         }
     }
 
@@ -188,7 +193,7 @@ extension LogController {
             }
             let resourcePayload = try createResourcePayload(sessionId: sessionId)
             let metadataPayload = try createMetadataPayload(sessionId: sessionId)
-            send(logs: logs, resourcePayload: resourcePayload, metadataPayload: metadataPayload)
+            send(logs: logs, resourcePayload: resourcePayload, metadataPayload: metadataPayload, completion: {})
         } catch let exception {
             Error.couldntCreatePayload(reason: exception.localizedDescription).log()
         }
@@ -196,14 +201,19 @@ extension LogController {
 }
 
 extension LogController {
-    fileprivate func send(batches: [LogsBatch]) {
+    fileprivate func send(batches: [LogsBatch], completion: (() -> Void)? = nil) {
         guard sdkStateProvider?.isEnabled == true else {
+            completion?()
             return
         }
 
         guard batches.isEmpty == false else {
+            completion?()
             return
         }
+
+        let group = DispatchGroup()
+        group.enter()
 
         for batch in batches {
             do {
@@ -231,23 +241,35 @@ extension LogController {
                 let resourcePayload = try createResourcePayload(sessionId: sessionId, processId: processId)
                 let metadataPayload = try createMetadataPayload(sessionId: sessionId, processId: processId)
 
+                group.enter()
+
                 send(
                     logs: batch.logs,
                     resourcePayload: resourcePayload,
-                    metadataPayload: metadataPayload
+                    metadataPayload: metadataPayload,
+                    completion: {
+                        group.leave()
+                    }
                 )
             } catch let exception {
                 Error.couldntCreatePayload(reason: exception.localizedDescription).log()
             }
+        }
+
+        group.leave()
+        group.notify(queue: .global(qos: .default)) {
+            completion?()
         }
     }
 
     fileprivate func send(
         logs: [EmbraceLog],
         resourcePayload: ResourcePayload,
-        metadataPayload: MetadataPayload
+        metadataPayload: MetadataPayload,
+        completion: (() -> Void)?
     ) {
         guard let upload = upload else {
+            completion?()
             return
         }
         let logPayloads = logs.map { LogPayloadBuilder.build(log: $0) }
@@ -258,6 +280,7 @@ extension LogController {
         do {
             let envelopeData = try JSONEncoder().encode(envelope).gzipped()
             upload.uploadLog(id: UUID().uuidString, data: envelopeData) { [weak self] result in
+                defer { completion?() }
                 guard let self = self else {
                     return
                 }
@@ -270,6 +293,7 @@ extension LogController {
             }
         } catch let exception {
             Error.couldntCreatePayload(reason: exception.localizedDescription).log()
+            completion?()
         }
     }
 
