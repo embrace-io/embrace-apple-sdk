@@ -265,6 +265,34 @@ final class EmbraceCoreTests: XCTestCase {
         XCTAssertFalse(spanData.hasEnded)
     }
 
+    func test_buildSpan_withAttributes_withErrorCode() throws {
+        let storage = try EmbraceStorage.createInMemoryDb()
+
+        guard let embrace = try getLocalEmbrace(storage: storage) else {
+            XCTFail("\(#function): failed to get embrace instance")
+            return
+        }
+
+        let builder = embrace.buildSpan(
+            name: "testSpan",
+            type: .performance,
+            attributes: ["foo": "bar"],
+            autoTerminationCode: .userAbandon)
+
+        if let span = builder.startSpan() as? ReadableSpan {
+            XCTAssertEqual(
+                span.toSpanData().attributes,
+                [
+                    "emb.auto_termination.code": .string("user_abandon"),
+                    "foo": .string("bar"),
+                    "emb.type": .string("perf")
+                ])
+
+        } else {
+            XCTFail("Failed to get Span from Builder")
+        }
+    }
+
     // MARK: - Crash+CrashRecorder tests
     func test_appendCrashInfo_throwsOnNotHavingCrashReporter() throws {
         let embrace = try getLocalEmbrace(crashReporter: nil)
@@ -318,8 +346,8 @@ final class EmbraceCoreTests: XCTestCase {
     }
 
     func randomString(length: Int) -> String {
-      let letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-      return String((0..<length).map { _ in letters.randomElement()! })
+        let letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        return String((0..<length).map { _ in letters.randomElement()! })
     }
 }
 */

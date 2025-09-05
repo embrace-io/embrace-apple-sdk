@@ -42,12 +42,14 @@ extension Embrace: EmbraceOpenTelemetry {
         attributes: [String: String] = [:],
         autoTerminationCode: SpanErrorCode? = nil
     ) -> SpanBuilder {
+        var extraAttributes = [String: String]()
+
         if let autoTerminationCode = autoTerminationCode {
-            var attributes = attributes
-            attributes[SpanSemantics.keyAutoTerminationCode] = autoTerminationCode.rawValue
+            extraAttributes[SpanSemantics.keyAutoTerminationCode] = autoTerminationCode.rawValue
         }
 
-        return otel.buildSpan(name: name, type: type, attributes: attributes)
+        extraAttributes.merge(attributes) { left, _ in left }
+        return otel.buildSpan(name: name, type: type, attributes: extraAttributes)
     }
 
     /// Record a span after the fact
