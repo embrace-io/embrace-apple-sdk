@@ -132,7 +132,6 @@ extension HangCaptureService: HangObserver {
         // Capture the stack now
         let pre = NanosecondClock.current
         let backtrace = EmbraceBacktrace.backtrace(of: mainThread, suspendingThreads: true)
-        let frames: [String] = []
         let post = NanosecondClock.current
 
         // process it later
@@ -152,8 +151,6 @@ extension HangCaptureService: HangObserver {
             let stackString: String
             do {
                 let jsonData = try JSONSerialization.data(withJSONObject: frames, options: [.prettyPrinted, .sortedKeys])
-                try? jsonData.write(to: URL(fileURLWithPath: "/Users/alexcohen/Desktop/stack.json"))
-
                 stackString = jsonData.base64EncodedString()
             } catch let exception {
                 stackString = ""
