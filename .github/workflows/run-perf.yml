@@ -64,8 +64,8 @@ jobs:
             PERF_MAIN: ${{ steps.perfmain.outputs.out }}
         with:
           script: |
-            const outputpr = JSON.parse(process.env.PERF_PR || "[]");
-            const outputmain = JSON.parse(process.env.PERF_MAIN || "[]");
+            const outputpr = JSON.parse(process.env.PERF_PR);
+            const outputmain = JSON.parse(process.env.PERF_MAIN);
 
             const THRESHOLD = 1.0; // percent
 

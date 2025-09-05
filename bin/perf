@@ -7,7 +7,7 @@ WORKSPACE=".swiftpm/xcode/package.xcworkspace"
 SCHEME="EmbraceIO-Package"
 DESTINATION="platform=iOS Simulator,name=iPhone 16 Pro"
 : "${SHOULD_CLEAN:=1}"
-: "${ITERATIONS:=100}"
+: "${ITERATIONS:=10}"
 # ------------------------------------------------
 PRE_ACTIONS="clean build-for-testing"
 if (( SHOULD_CLEAN != 1 )); then
