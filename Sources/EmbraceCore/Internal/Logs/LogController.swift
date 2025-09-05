@@ -105,7 +105,8 @@ class LogController: LogControllable {
             initialAttributes: attributes
         )
 
-        // things that require the state from this thread
+        // These all need to be at the callsite in order to
+        // have correct information about the users intention.
         attributesBuilder
             .addLogType(type)
             .addApplicationState()
