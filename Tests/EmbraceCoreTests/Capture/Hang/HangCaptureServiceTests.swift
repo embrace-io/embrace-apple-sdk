@@ -7,8 +7,6 @@ import XCTest
 @testable import EmbraceCore
 @testable import EmbraceOTelInternal
 
-// swiftlint:disable force_cast
-
 final class HangWatchdogTests: XCTestCase {
 
     // MARK: - Test Properties
@@ -27,6 +25,15 @@ final class HangWatchdogTests: XCTestCase {
         watchdog = nil
         mockObserver = nil
         super.tearDown()
+    }
+
+    private func setupWatchdog(_ observer: MockHangObserver, threshold: TimeInterval = 0.249, hang: TimeInterval = 1) {
+        watchdog = HangWatchdog(threshold: threshold, runLoop: RunLoop.main)
+        watchdog.hangObserver = observer
+        DispatchQueue.main.asyncAfter(deadline: .now() + hang) {
+            // Block thread long enough to trigger multiple updates
+            Thread.sleep(forTimeInterval: hang)
+        }
     }
 
     // MARK: - Test Cases
@@ -59,18 +66,12 @@ final class HangWatchdogTests: XCTestCase {
             hangExpectation.fulfill()
         }
 
-        // Create watchdog with shorter threshold for testing
-        watchdog = HangWatchdog(threshold: 0.1)
-        watchdog.hangObserver = mockObserver
-
-        // Simulate hang by blocking the main thread
-        DispatchQueue.main.async {
-            // Block thread for longer than threshold
-            Thread.sleep(forTimeInterval: 0.2)
-        }
+        // Create watchdog with a short threashold
+        // and hand the main queue
+        setupWatchdog(mockObserver, threshold: 0.05, hang: 0.2)
 
         // Wait for expectation with timeout
-        wait(for: [hangExpectation], timeout: 0.5)
+        wait(for: [hangExpectation], timeout: .longTimeout)
 
         // Verify hang was detected
         XCTAssertTrue(mockObserver.hangStartedCalled)
@@ -92,18 +93,12 @@ final class HangWatchdogTests: XCTestCase {
             self.watchdog.hangObserver = nil
         }
 
-        // Create watchdog with shorter threshold for testing
-        watchdog = HangWatchdog(threshold: 0.05)
-        watchdog.hangObserver = mockObserver
-
-        // Simulate hang by blocking the main thread for longer than update interval
-        DispatchQueue.main.async {
-            // Block thread long enough to trigger multiple updates
-            Thread.sleep(forTimeInterval: 0.2)
-        }
+        // Create watchdog with a short threashold
+        // and hand the main queue
+        setupWatchdog(mockObserver, threshold: 0.05, hang: 0.2)
 
         // Wait for expectations
-        wait(for: [hangStartedExpectation, hangUpdatedExpectation], timeout: 0.5)
+        wait(for: [hangStartedExpectation, hangUpdatedExpectation], timeout: .longTimeout)
 
         // Verify hang was updated
         XCTAssertTrue(mockObserver.hangStartedCalled)
@@ -119,19 +114,12 @@ final class HangWatchdogTests: XCTestCase {
             hangEndedExpectation.fulfill()
         }
 
-        // Create watchdog with shorter threshold for testing
-        watchdog = HangWatchdog(threshold: 0.05)
-        watchdog.hangObserver = mockObserver
-
-        // Simulate hang that starts and ends
-        DispatchQueue.main.async {
-            // Block thread for longer than threshold
-            Thread.sleep(forTimeInterval: 0.1)
-            // Then let it resume
-        }
+        // Create watchdog with a short threashold
+        // and hand the main queue
+        setupWatchdog(mockObserver, threshold: 0.05, hang: 0.1)
 
         // Wait for hang to end
-        wait(for: [hangEndedExpectation], timeout: 0.5)
+        wait(for: [hangEndedExpectation], timeout: .longTimeout)
 
         // Verify hang ended was called
         XCTAssertTrue(mockObserver.hangEndedCalled)
@@ -146,17 +134,12 @@ final class HangWatchdogTests: XCTestCase {
             hangStartedExpectation.fulfill()
         }
 
-        // Create watchdog
-        watchdog = HangWatchdog(threshold: 0.1)
-        watchdog.hangObserver = mockObserver
-
-        // Simulate delay shorter than threshold
-        DispatchQueue.main.async {
-            Thread.sleep(forTimeInterval: 0.05)  // Less than threshold
-        }
+        // Create watchdog with a short threashold
+        // and hand the main queue
+        setupWatchdog(mockObserver, threshold: 1, hang: 0.01)
 
         // Wait briefly to ensure no hang is detected
-        wait(for: [hangStartedExpectation], timeout: 0.3)
+        wait(for: [hangStartedExpectation], timeout: .shortTimeout)
 
         // Verify no hang was detected
         XCTAssertFalse(mockObserver.hangStartedCalled)
@@ -221,5 +204,3 @@ class MockHangObserver: HangObserver {
         onHangEnded?(at.monotonic, duration.monotonic)
     }
 }
-
-// swiftlint:enable force_cast
