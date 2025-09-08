@@ -31,6 +31,8 @@ open class CaptureService: NSObject {
     /// `EmbraceConsoleLogger` instance used to generate internal logs.
     private(set) public weak var logger: InternalLogger?
 
+    private(set) public weak var metadata: MetadataPropertiesHandling?
+
     /// Getter for the state of the capture service.
     public let state: EmbraceAtomic<CaptureServiceState> = EmbraceAtomic(.uninstalled)
 
@@ -47,6 +49,7 @@ open class CaptureService: NSObject {
 
         self.otel = otel
         self.logger = logger
+        self.metadata = metadata
 
         onInstall()
     }

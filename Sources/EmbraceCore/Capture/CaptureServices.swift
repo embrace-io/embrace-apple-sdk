@@ -146,7 +146,7 @@ final class CaptureServices {
         crashReporter?.install(context: context)
 
         for service in services {
-            service.install(otel: Embrace.client, logger: Embrace.logger)
+            service.install(otel: Embrace.client, logger: Embrace.logger, metadata: Embrace.client?.metadata)
         }
     }
 

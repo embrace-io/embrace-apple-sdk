@@ -130,6 +130,8 @@ extension RemoteConfig: EmbraceConfigurable {
 
     public var networkPayloadCaptureRules: [NetworkPayloadCaptureRule] { payload.networkPayloadCaptureRules }
 
+    public var memoryCaptureEnabled: Bool { payload.memoryCaptureEnabled }
+
     public var spanEventsLimits: SpanEventsLimits {
         SpanEventsLimits(
             breadcrumb: UInt(max(payload.breadcrumbLimit, 0))
