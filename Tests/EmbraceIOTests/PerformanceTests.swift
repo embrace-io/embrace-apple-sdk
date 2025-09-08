@@ -57,6 +57,13 @@ class PerformanceTests: XCTestCase {
     }
 
     @MainActor
+    func test_noopMainActorIsolated() {
+    }
+
+    func test_noopNotIsolated() {
+    }
+
+    @MainActor
     func test_embraceStartBasic() {
         runStartup(
             Embrace.Options(
