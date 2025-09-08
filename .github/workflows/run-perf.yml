@@ -52,6 +52,7 @@ jobs:
           echo "out<<EOF" >> "$GITHUB_OUTPUT"
           cat perf.txt >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
+          cat perf.txt
       
         # checkout the main branch
       - name: Checkout Main
@@ -67,6 +68,7 @@ jobs:
           echo "out<<EOF" >> "$GITHUB_OUTPUT"
           cat perf.txt >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
+          cat perf.txt
 
       - name: Run Performance Comparison
         env:
