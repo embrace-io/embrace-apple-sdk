@@ -11,19 +11,9 @@ import Foundation
     import EmbraceCoreDataInternal
 #endif
 
-@objc public enum MetadataLifespan: Int {
-    /// The resource will be removed when the session ends.
-    case session
-    /// The resource will be removed when the process ends
-    case process
-
-    /// The resource will be removed when the app is uninstalled.
-    case permanent
-}
-
 /// Class used to generate resources, properties and persona tags to be included in sessions and logs.
 @objc(EMBMetadataHandler)
-public class MetadataHandler: NSObject {
+public class MetadataHandler: NSObject, MetadataPropertiesHandling {
 
     static let maxKeyLength = 128
     static let maxValueLength = 1024
@@ -99,6 +89,29 @@ public class MetadataHandler: NSObject {
     /// - Throws: `MetadataError.invalidSession` if a property with a `.session` lifespan is added when there's no active session.
     @objc public func addProperty(key: String, value: String, lifespan: MetadataLifespan = .session) throws {
         try addMetadata(key: key, value: value, type: .customProperty, lifespan: lifespan)
+    }
+
+    public func setProperty(key: String, value: String?, lifespan: MetadataLifespan) throws {
+        try modifyMetdata(key: key, value: value, type: .customProperty, lifespan: lifespan)
+    }
+
+    private func modifyMetdata(key: String, value: String?, type: MetadataRecordType, lifespan: MetadataLifespan) throws {
+        guard let storage = storage else {
+            return
+        }
+
+        // Validate the key
+        if value != nil {
+            // validate key
+            guard key.count <= Self.maxKeyLength else {
+                throw MetadataError.invalidKey("The key length can not be greater than \(Self.maxKeyLength)")
+            }
+        }
+
+        let lifespanContext = try currentContext(for: lifespan.recordLifespan)
+        synchronizationQueue.async {
+            storage.setMetadata(key: key, value: value, type: type, lifespan: lifespan.recordLifespan, lifespanId: lifespanContext)
+        }
     }
 
     func addMetadata(key: String, value: String, type: MetadataRecordType, lifespan: MetadataLifespan) throws {

@@ -174,6 +174,36 @@ extension EmbraceStorage {
         }
     }
 
+    /// Adds/Updates/Removes the `MetadataRecord` for the given key, type and lifespan with a new given value (or nil to remove).
+    /// - Returns: Immutable copy of the updated record, if any
+    @discardableResult
+    public func setMetadata(
+        key: String,
+        value: String?,
+        type: MetadataRecordType,
+        lifespan: MetadataRecordLifespan,
+        lifespanId: String
+    ) -> EmbraceMetadata? {
+        coreData.performOperation(save: true) { context in
+
+            // remove
+            guard let value else {
+                removeMetadata(key: key, type: type, lifespan: lifespan, lifespanId: lifespanId)
+                return nil
+            }
+
+            // update
+            let request = fetchMetadataRequest(key: key, type: type, lifespan: lifespan, lifespanId: lifespanId)
+            if let metadata = fetchMetadata(request: request, context: context) {
+                metadata.value = value
+                return metadata.toImmutable()
+            }
+
+            // add
+            return addMetadata(key: key, value: value, type: type, lifespan: lifespan, lifespanId: lifespanId)
+        }
+    }
+
     /// Updates the `MetadataRecord` for the given key, type and lifespan with a new given value.
     /// - Returns: Immutable copy of the updated record, if any
     @discardableResult
