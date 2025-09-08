@@ -87,11 +87,11 @@ public class AppMemoryCaptureService: CaptureService {
         }
 
         // update the footprint at the process level
-        try? metadata?.setProperty(key: "emb.memory_level", value: memory.level.asString(), lifespan: .process)
-        try? metadata?.setProperty(key: "emb.memory_pressure", value: memory.pressure.asString(), lifespan: .process)
-        try? metadata?.setProperty(key: "emb.memory_footprint", value: "\(memory.footprint)", lifespan: .process)
-        try? metadata?.setProperty(key: "emb.memory_limit", value: "\(memory.limit)", lifespan: .process)
-        try? metadata?.setProperty(key: "emb.memory_remaining", value: "\(memory.remaining)", lifespan: .process)
+        try? metadata?.setProcessProperty(key: "emb.memory_level", value: memory.level.asString())
+        try? metadata?.setProcessProperty(key: "emb.memory_pressure", value: memory.pressure.asString())
+        try? metadata?.setProcessProperty(key: "emb.memory_footprint", value: "\(memory.footprint)")
+        try? metadata?.setProcessProperty(key: "emb.memory_limit", value: "\(memory.limit)")
+        try? metadata?.setProcessProperty(key: "emb.memory_remaining", value: "\(memory.remaining)")
     }
 }
 

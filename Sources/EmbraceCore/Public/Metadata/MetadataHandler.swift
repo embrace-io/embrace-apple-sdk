@@ -11,6 +11,18 @@ import Foundation
     import EmbraceCoreDataInternal
 #endif
 
+@objc public enum MetadataLifespan: Int {
+
+    /// The property will be removed when the session ends.
+    case session
+
+    /// The property will be removed when the process ends
+    case process
+
+    /// The property will be removed when the app is uninstalled.
+    case permanent
+}
+
 /// Class used to generate resources, properties and persona tags to be included in sessions and logs.
 @objc(EMBMetadataHandler)
 public class MetadataHandler: NSObject, MetadataPropertiesHandling {
@@ -91,8 +103,26 @@ public class MetadataHandler: NSObject, MetadataPropertiesHandling {
         try addMetadata(key: key, value: value, type: .customProperty, lifespan: lifespan)
     }
 
-    public func setProperty(key: String, value: String?, lifespan: MetadataLifespan) throws {
-        try modifyMetdata(key: key, value: value, type: .customProperty, lifespan: lifespan)
+    /// Adds/Updates/Removes a property with the given key, value to the process.
+    /// If there are 2 properties with the same key but different lifespans, the one with a shorter lifespan will be used.
+    /// - Parameters:
+    ///   - key: The key of the property to add. Can not be longer than 128 characters.
+    ///   - value: The value of the property to add. Will be truncated if its longer than 1024 characters.
+    /// - Throws: `MetadataError.invalidKey` if the key is longer than 128 characters.
+    /// - Throws: `MetadataError.invalidSession` if a property with a `.session` lifespan is added when there's no active session.
+    public func setProcessProperty(key: String, value: String?) throws {
+        try modifyMetdata(key: key, value: value, type: .customProperty, lifespan: .process)
+    }
+
+    /// Adds/Updates/Removes a property with the given key, value to the session.
+    /// If there are 2 properties with the same key but different lifespans, the one with a shorter lifespan will be used.
+    /// - Parameters:
+    ///   - key: The key of the property to add. Can not be longer than 128 characters.
+    ///   - value: The value of the property to add. Will be truncated if its longer than 1024 characters.
+    /// - Throws: `MetadataError.invalidKey` if the key is longer than 128 characters.
+    /// - Throws: `MetadataError.invalidSession` if a property with a `.session` lifespan is added when there's no active session.
+    public func setSessionProperty(key: String, value: String?) throws {
+        try modifyMetdata(key: key, value: value, type: .customProperty, lifespan: .session)
     }
 
     private func modifyMetdata(key: String, value: String?, type: MetadataRecordType, lifespan: MetadataLifespan) throws {
