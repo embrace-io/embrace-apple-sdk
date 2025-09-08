@@ -46,6 +46,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
     var networkPayloadCaptureRules: [NetworkPayloadCaptureRule]
 
     var useLegacyUrlSessionProxy: Bool
+    var memoryCaptureEnabled: Bool
 
     var useNewStorageForSpanEvents: Bool
 
@@ -103,6 +104,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         case networkPayLoadCapture = "network_capture"
         case useLegacyUrlSessionProxy = "use_legacy_urlsession_proxy"
         case useNewStorageForSpanEvents = "use_new_storage_for_span_events"
+        case memoryCaptureEnabled = "memory_capture_enabled"
     }
 
     public init(from decoder: Decoder) throws {
@@ -115,6 +117,13 @@ public struct RemoteConfigPayload: Decodable, Equatable {
                 Float.self,
                 forKey: .sdkEnabledThreshold
             ) ?? defaultPayload.sdkEnabledThreshold
+
+        // memoryCapsureEnabled
+        memoryCaptureEnabled =
+            try rootContainer.decodeIfPresent(
+                Bool.self,
+                forKey: .memoryCaptureEnabled
+            ) ?? defaultPayload.memoryCaptureEnabled
 
         // background session
         if rootContainer.contains(.background) {
@@ -391,6 +400,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         networkPayloadCaptureRules = []
         useLegacyUrlSessionProxy = false
         useNewStorageForSpanEvents = false
+        memoryCaptureEnabled = true
     }
 }
 

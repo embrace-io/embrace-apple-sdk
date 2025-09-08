@@ -155,4 +155,8 @@ extension EmbraceConfig /* EmbraceConfigurable delegation */ {
     public var useNewStorageForSpanEvents: Bool {
         configurable.useNewStorageForSpanEvents
     }
+    
+    public var memoryCaptureEnabled: Bool {
+        configurable.memoryCaptureEnabled
+    }
 }
