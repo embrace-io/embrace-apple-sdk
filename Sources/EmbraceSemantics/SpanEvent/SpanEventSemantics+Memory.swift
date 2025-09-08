@@ -8,11 +8,21 @@
 
 extension SpanEventType {
     public static let lowMemory = SpanEventType(system: "low_memory")
+    public static let memoryPressure = SpanEventType(system: "memory_pressure")
+    public static let memoryLevel = SpanEventType(system: "memory_level")
 }
 
 extension SpanEventSemantics {
     public struct LowMemory {
         public static let name = "emb-device-low-memory"
+    }
+
+    public struct MemoryPressure {
+        public static let name = "emb-memory-pressure"
+    }
+
+    public struct MemoryLevel {
+        public static let name = "emb-memory-level"
     }
 }
 

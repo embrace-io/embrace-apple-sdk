@@ -65,4 +65,8 @@ import Foundation
     static func hangWatchdog() -> HangCaptureService {
         return HangCaptureService()
     }
+
+    static func appMemory() -> AppMemoryCaptureService {
+        return .shared
+    }
 }
