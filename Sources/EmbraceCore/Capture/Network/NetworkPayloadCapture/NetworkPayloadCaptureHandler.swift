@@ -34,9 +34,9 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
     }
     internal var state: EmbraceMutex<MutableState>
 
-    private var otel: OTelSignalsHandler?
+    private var otel: EmbraceOTelSignalsHandler?
 
-    init(otel: OTelSignalsHandler?) {
+    init(otel: EmbraceOTelSignalsHandler?) {
         self.otel = otel
         self.state = EmbraceMutex(MutableState())
 
@@ -155,7 +155,7 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
             }
 
             // generate otel log
-            try? otel?.log(
+            try? otel?.internalLog(
                 "",
                 severity: .info,
                 type: .networkCapture,

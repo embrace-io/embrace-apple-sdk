@@ -12,7 +12,7 @@
 
     protocol UIViewControllerHandlerDataSource: AnyObject {
         var state: CaptureServiceState { get }
-        var otel: OTelSignalsHandler? { get }
+        var otel: EmbraceOTelSignalsHandler? { get }
 
         var instrumentVisibility: Bool { get }
         var instrumentFirstRender: Bool { get }
@@ -425,7 +425,7 @@
         }
 
         private func createSpan(
-            with otel: OTelSignalsHandler,
+            with otel: EmbraceOTelSignalsHandler,
             viewName: String,
             className: String,
             name: String,
@@ -433,7 +433,7 @@
             startTime: Date,
             parent: EmbraceSpan? = nil
         ) -> EmbraceSpan? {
-            return try? otel.createSpan(
+            return try? otel.createInternalSpan(
                 name: name,
                 parentSpan: parent,
                 type: type,

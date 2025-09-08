@@ -13,7 +13,7 @@ import Foundation
 struct SessionSpanUtils {
 
     static func span(
-        otel: OTelSignalsHandler?,
+        otel: EmbraceOTelSignalsHandler?,
         id: EmbraceIdentifier,
         startTime: Date,
         state: SessionState,
@@ -26,7 +26,7 @@ struct SessionSpanUtils {
             SpanSemantics.Session.keyColdStart: String(coldStart)
         ]
 
-        return try? otel?.createSpan(
+        return try? otel?.createInternalSpan(
             name: SpanSemantics.Session.name,
             type: .session,
             startTime: startTime,

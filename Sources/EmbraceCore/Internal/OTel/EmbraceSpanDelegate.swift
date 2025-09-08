@@ -25,8 +25,8 @@ protocol EmbraceSpanDataSource: AnyObject {
         type: EmbraceType?,
         timestamp: Date,
         attributes: [String: String],
-        internalCount: Int,
-        isInternal: Bool
+        internalAttributes: [String: String],
+        currentCount: Int
     ) throws -> EmbraceSpanEvent
 
     func createLink(
@@ -34,15 +34,13 @@ protocol EmbraceSpanDataSource: AnyObject {
         spanId: String,
         traceId: String,
         attributes: [String: String],
-        internalCount: Int,
-        isInternal: Bool
+        currentCount: Int
     ) throws -> EmbraceSpanLink
 
     func validateAttribute(
         for span: EmbraceSpan,
         key: String,
         value: String?,
-        internalCount: Int,
-        isInternal: Bool
+        currentCount: Int
     ) throws -> (String, String?)
 }

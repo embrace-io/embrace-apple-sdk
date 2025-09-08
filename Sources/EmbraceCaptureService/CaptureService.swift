@@ -21,11 +21,10 @@ import Foundation
 ///
 /// This base class provides the necessary functionality and structure that should be used
 /// by all capture services.
-@objc(EMBCaptureService)
 open class CaptureService: NSObject {
 
     /// Getter for the OTel signals handler used by the capture service.
-    private(set) public weak var otel: OTelSignalsHandler?
+    private(set) package weak var otel: EmbraceOTelSignalsHandler?
 
     /// `EmbraceConsoleLogger` instance used to generate internal logs.
     private(set) public weak var logger: InternalLogger?
@@ -34,7 +33,7 @@ open class CaptureService: NSObject {
     @ThreadSafe
     private(set) public var state: CaptureServiceState = .uninstalled
 
-    public func install(otel: OTelSignalsHandler?, logger: InternalLogger? = nil) {
+    package func install(otel: EmbraceOTelSignalsHandler?, logger: InternalLogger? = nil) {
         guard state == .uninstalled else {
             return
         }
@@ -47,7 +46,7 @@ open class CaptureService: NSObject {
         state = .installed
     }
 
-    public func start() {
+    package func start() {
         guard state != .uninstalled else {
             return
         }
@@ -56,7 +55,7 @@ open class CaptureService: NSObject {
         onStart()
     }
 
-    public func stop() {
+    package func stop() {
         guard state == .active else {
             return
         }
@@ -68,19 +67,19 @@ open class CaptureService: NSObject {
     /// This method will be called once when the Embrace SDK starts.
     /// You should override this method if your `CaptureService` needs some sort of
     /// setup process before it can start generating data.
-    @objc open func onInstall() {
+    open func onInstall() {
 
     }
 
     /// This method is called by the Embrace SDK when it's been setup and started capturing data.
     /// You should override this method if your `CaptureService` needs to do something when started.
-    @objc open func onStart() {
+    open func onStart() {
 
     }
 
     /// This method is called by the Embrace SDK when it stops capturing data.
     /// You should override this method if your `CaptureService` needs to do something when stopped.
-    @objc open func onStop() {
+    open func onStop() {
 
     }
 

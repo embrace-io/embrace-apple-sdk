@@ -34,7 +34,7 @@ extension StartupInstrumentation {
                 return nil
             }
 
-            return try? otel.createSpan(
+            return try? otel.createInternalSpan(
                 name: name,
                 parentSpan: rootSpan,
                 type: type,

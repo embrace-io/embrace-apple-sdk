@@ -67,7 +67,7 @@ public class LowPowerModeCaptureService: CaptureService {
 
         let reason = wasManuallyFetched ? SpanSemantics.LowPower.systemQuery : SpanSemantics.LowPower.systemNotification
 
-        currentSpan = try? otel?.createSpan(
+        currentSpan = try? otel?.createInternalSpan(
             name: SpanSemantics.LowPower.name,
             type: .lowPower,
             attributes: [

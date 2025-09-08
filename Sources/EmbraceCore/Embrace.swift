@@ -70,8 +70,8 @@ import Foundation
         return EmbraceMeta.sdkVersion
     }
 
-    /// Returns the current `OTelSignalsHandler` used to generate spans and logs.
-    @objc public let otel: EmbraceOTelSignalsHandler
+    /// Returns the current `EmbraceOTelSignalsHandler` used to generate spans and logs.
+    public let otel: DefaultOTelSignalsHandler
 
     /// Returns the current `MetadataHandler` used to store resources and session properties.
     @objc public let metadata: MetadataHandler
@@ -189,7 +189,7 @@ import Foundation
         )
 
         // initialize otel handler
-        self.otel = EmbraceOTelSignalsHandler(
+        self.otel = DefaultOTelSignalsHandler(
             storage: storage,
             sessionController: sessionController,
             logController: self.logController,

@@ -67,7 +67,7 @@
                 throw parentSpanNotFoundError
             }
 
-            return try? viewCaptureService.otel?.createSpan(
+            return try? viewCaptureService.otel?.createInternalSpan(
                 name: name,
                 parentSpan: parentSpan,
                 type: type,

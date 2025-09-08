@@ -35,11 +35,9 @@ public class LowMemoryWarningCaptureService: CaptureService {
             return
         }
 
-        let event = EmbraceSpanEvent(
+        try? otel?.addInternalSessionEvent(
             name: SpanEventSemantics.LowMemory.name,
             type: .lowMemory
         )
-
-        try? otel?.addInternalSessionEvent(event)
     }
 }

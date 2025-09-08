@@ -104,12 +104,11 @@
             }
 
             // create span event
-            let event = EmbraceSpanEvent(
+            try? otel?.addInternalSessionEvent(
                 name: SpanEventSemantics.Tap.name,
                 type: .tap,
                 attributes: attributes
             )
-            try? otel?.addInternalSessionEvent(event)
         }
 
         func shouldRecordCoordinates(from target: UIView) -> Bool {

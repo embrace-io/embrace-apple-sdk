@@ -10,7 +10,7 @@ import UserNotifications
     import EmbraceSemantics
 #endif
 
-@objc extension EmbraceOTelSignalsHandler {
+extension DefaultOTelSignalsHandler: PushNotificationSignalHandler {
 
     /// Adds a PushNotification span event to the current Embrace session using the data from the given `UNNotification`.
     /// - Parameters:
@@ -21,7 +21,7 @@ import UserNotifications
     /// - Throws: `EmbraceOTelError.invalidSession` if there is not active Embrace session.
     /// - Throws: `EmbraceOTelError.spanEventLimitReached` if the limit hass ben reached for the given span even type.
     /// - Throws: `PushNotificationError.invalidPayload` if the `aps` object is not present in the `userInfo` of the `UNNotification`.
-    @objc public func addPushNotificationEvent(
+    public func addPushNotificationEvent(
         notification: UNNotification,
         timestamp: Date = Date(),
         attributes: [String: String] = [:],
@@ -49,7 +49,7 @@ import UserNotifications
     /// - Throws: `EmbraceOTelError.invalidSession` if there is not active Embrace session.
     /// - Throws: `EmbraceOTelError.spanEventLimitReached` if the limit hass ben reached for the given span even type.
     /// - Throws: `PushNotificationError.invalidPayload` if the `aps` object is not present in the `userInfo` of the `UNNotification`.
-    @objc public func addPushNotificationEvent(
+    public func addPushNotificationEvent(
         userInfo: [AnyHashable: Any],
         timestamp: Date = Date(),
         attributes: [String: String] = [:],
@@ -60,31 +60,24 @@ import UserNotifications
             throw EmbraceOTelError.invalidSession
         }
 
-        guard limiter.shouldAddSessionEvent(ofType: .pushNotification) else {
-            throw EmbraceOTelError.spanEventLimitReached("PushNotification event limit reached!")
-        }
-
         // find aps key
         guard let apsDict = userInfo[Constants.apsRootKey] as? [AnyHashable: Any] else {
             throw PushNotificationError.invalidPayload("Couldn't find aps object!")
         }
 
-        let dict = Self.parse(apsDict: apsDict, captureData: captureData)
-        let sanitized = sanitizer.sanitizeSpanEventAttributes(attributes)
-        let finalAttributes = sanitized.merging(dict) { (current, _) in current }
+        let internalAttributes = Self.parse(apsDict: apsDict, captureData: captureData)
 
-        let event = EmbraceSpanEvent(
+        try span.addSessionEvent(
             name: SpanEventSemantics.PushNotification.name,
             type: .pushNotification,
-            timestamp: timestamp,
-            attributes: finalAttributes
+            attributes: attributes,
+            internalAttributes: internalAttributes,
+            isInternal: false
         )
-
-        span.addSessionEvent(event)
     }
 
     // MARK: Internal
-    public static func parse(apsDict: [AnyHashable: Any], captureData: Bool) -> [String: String] {
+    private static func parse(apsDict: [AnyHashable: Any], captureData: Bool) -> [String: String] {
 
         var dict: [String: String] = [:]
 
@@ -150,7 +143,7 @@ import UserNotifications
         return contentAvailable == 1
     }
 
-    public struct Constants {
+    private struct Constants {
         static let apsRootKey = "aps"
         static let apsAlert = "alert"
         static let apsTitle = "title"
@@ -165,21 +158,28 @@ import UserNotifications
     }
 }
 
-extension OTelSignalsHandler {
+protocol PushNotificationSignalHandler {
     func addPushNotificationEvent(
         notification: UNNotification,
-        timestamp: Date = Date(),
-        attributes: [String: String] = [:],
-        captureData: Bool = true
-    ) throws {
-        guard let internalHandler = self as? EmbraceOTelSignalsHandler else {
+        timestamp: Date,
+        attributes: [String: String],
+        captureData: Bool
+    ) throws
+}
+
+extension EmbraceOTelSignalsHandler {
+    func addInternalPushNotificationEvent(
+        notification: UNNotification,
+        captureData: Bool
+    ) {
+        guard let handler = self as? PushNotificationSignalHandler else {
             return
         }
 
-        try internalHandler.addPushNotificationEvent(
+        try? handler.addPushNotificationEvent(
             notification: notification,
-            timestamp: timestamp,
-            attributes: attributes,
+            timestamp: Date(),
+            attributes: [:],
             captureData: captureData
         )
     }

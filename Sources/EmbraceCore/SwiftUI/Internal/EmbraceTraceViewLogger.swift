@@ -46,7 +46,7 @@ final class EmbraceTraceViewLogger {
     // MARK: – Properties
 
     /// The OTel signals handler, used to build and start spans.
-    let otel: OTelSignalsHandler?
+    let otel: EmbraceOTelSignalsHandler?
 
     /// Internal logger for debug/error reporting related to span creation.
     let logger: InternalLogger?
@@ -65,7 +65,7 @@ final class EmbraceTraceViewLogger {
     ///
     /// If `otel` or `config` is `nil`, tracing calls become no-ops.
     init(
-        otel: OTelSignalsHandler?,
+        otel: EmbraceOTelSignalsHandler?,
         logger: InternalLogger?,
         config: EmbraceConfigurable?
     ) {
@@ -117,7 +117,7 @@ extension EmbraceTraceViewLogger {
         }
 
         // Build the span with full name: "swiftui.view.<viewName>.<semantics>"
-        return try? otel.createSpan(
+        return try? otel.createInternalSpan(
             name: "emb-swiftui.view.\(name).\(semantics)",
             parentSpan: parent,
             type: .viewLoad,

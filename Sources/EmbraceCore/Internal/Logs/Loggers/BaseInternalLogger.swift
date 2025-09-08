@@ -20,7 +20,7 @@ class BaseInternalLogger: InternalLogger {
         var level: LogLevel = .error
     #endif
 
-    var otel: OTelSignalsHandler?
+    var otel: EmbraceOTelSignalsHandler?
 
     struct MutableState {
         var limits: InternalLogLimits = InternalLogLimits()
@@ -177,7 +177,7 @@ class BaseInternalLogger: InternalLogger {
             .build()
 
         // send log
-        try? otel?.log(
+        try? otel?.internalLog(
             message,
             severity: level.severity,
             type: .internal,

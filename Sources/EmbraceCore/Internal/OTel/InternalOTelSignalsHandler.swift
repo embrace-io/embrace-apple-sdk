@@ -5,10 +5,11 @@
 import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
     import EmbraceSemantics
 #endif
 
-typealias InternalOTelSignalsHandler = OTelSignalsHandler & AutoTerminationSpansHandler & OnlyExportableLogsHandler
+typealias InternalOTelSignalsHandler = EmbraceOTelSignalsHandler & AutoTerminationSpansHandler & OnlyExportableLogsHandler
 
 protocol AutoTerminationSpansHandler {
     func autoTerminateSpans()

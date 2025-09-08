@@ -99,7 +99,7 @@ extension HangCaptureService: HangObserver {
         // build the span
         queue.async { [self] in
             do {
-                span = try otel?.createSpan(
+                span = try otel?.createInternalSpan(
                     name: SpanSemantics.ThreadBlockage.name,
                     type: .threadBlockage,
                     startTime: at.date,

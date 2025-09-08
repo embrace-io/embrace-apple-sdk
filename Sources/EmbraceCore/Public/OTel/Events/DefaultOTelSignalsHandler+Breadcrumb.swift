@@ -8,7 +8,7 @@ import Foundation
     import EmbraceSemantics
 #endif
 
-@objc extension EmbraceOTelSignalsHandler {
+extension DefaultOTelSignalsHandler {
 
     /// Adds a Breadcrumb span event to the current Embrace session.
     /// - Parameters:
@@ -17,7 +17,7 @@ import Foundation
     ///   - attributes: Attributes of the breadcrumb.
     /// - Throws: `EmbraceOTelError.invalidSession` if there is not active Embrace session.
     /// - Throws: `EmbraceOTelError.spanEventLimitReached` if the limit hass ben reached for the given span even type.
-    @objc public func addBreadcrumb(
+    public func addBreadcrumb(
         _ message: String,
         timestamp: Date = Date(),
         attributes: [String: String] = [:]
@@ -27,20 +27,15 @@ import Foundation
             throw EmbraceOTelError.invalidSession
         }
 
-        guard limiter.shouldAddSessionEvent(ofType: .breadcrumb) else {
-            throw EmbraceOTelError.spanEventLimitReached("Breadcrumb limit reached for the span event type!")
-        }
-
-        var finalAttributes = sanitizer.sanitizeSpanEventAttributes(attributes)
-        finalAttributes[SpanEventSemantics.Breadcrumb.keyMessage] = message
-
-        let event = EmbraceSpanEvent(
+        try span.addSessionEvent(
             name: SpanEventSemantics.Breadcrumb.name,
             type: .breadcrumb,
             timestamp: timestamp,
-            attributes: finalAttributes
+            attributes: attributes,
+            internalAttributes: [
+                SpanEventSemantics.Breadcrumb.keyMessage: message
+            ],
+            isInternal: false
         )
-
-        span.addSessionEvent(event)
     }
 }

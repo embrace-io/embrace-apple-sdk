@@ -107,13 +107,11 @@
                 attributes[SpanEventSemantics.WebView.keyErrorCode] = String(errorCode)
             }
 
-            let event = EmbraceSpanEvent(
+            try? otel?.addInternalSessionEvent(
                 name: SpanEventSemantics.WebView.name,
                 type: .webView,
                 attributes: attributes
             )
-
-            try? otel?.addInternalSessionEvent(event)
         }
 
         private func getUrlString(url: URL) -> String {

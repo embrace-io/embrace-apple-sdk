@@ -14,7 +14,7 @@ import Foundation
 public class StartupInstrumentation: NSObject {
 
     var provider: StartupDataProvider
-    var otel: OTelSignalsHandler?
+    var otel: EmbraceOTelSignalsHandler?
 
     struct MutableState {
         var rootSpan: EmbraceSpan?
@@ -60,7 +60,7 @@ public class StartupInstrumentation: NSObject {
         let startTime = provider.constructorClosestToMainTime
 
         // build parent
-        let parent = try? otel.createSpan(
+        let parent = try? otel.createInternalSpan(
             name: SpanSemantics.Startup.parentName + "-" + provider.startupType.rawValue,
             type: .startup,
             startTime: prewarmed ? startTime : processStartTime,
@@ -69,7 +69,7 @@ public class StartupInstrumentation: NSObject {
 
         // pre init (only on non-prewarmed startups)
         if !prewarmed {
-            _ = try? otel.createSpan(
+            _ = try? otel.createInternalSpan(
                 name: SpanSemantics.Startup.preMainInitName,
                 parentSpan: parent,
                 type: .startup,
@@ -80,7 +80,7 @@ public class StartupInstrumentation: NSObject {
         }
 
         // first frame rendered
-        let firstFrameSpan = try? otel.createSpan(
+        let firstFrameSpan = try? otel.createInternalSpan(
             name: SpanSemantics.Startup.firstFrameRenderedName,
             parentSpan: parent,
             type: .startup,
@@ -112,7 +112,7 @@ public class StartupInstrumentation: NSObject {
             ]
 
             // app init
-            _ = try? otel.createSpan(
+            _ = try? otel.createInternalSpan(
                 name: SpanSemantics.Startup.appInitName,
                 parentSpan: $0.rootSpan,
                 type: .startup,
@@ -125,7 +125,7 @@ public class StartupInstrumentation: NSObject {
             if let sdkSetupStartTime = provider.sdkSetupStartTime,
                 let sdkSetupEndTime = provider.sdkSetupEndTime
             {
-                _ = try? otel.createSpan(
+                _ = try? otel.createInternalSpan(
                     name: SpanSemantics.Startup.sdkSetup,
                     parentSpan: $0.rootSpan,
                     type: .startup,
@@ -139,7 +139,7 @@ public class StartupInstrumentation: NSObject {
             if let sdkStartStarTime = provider.sdkStartStartTime,
                 let sdkStartEndTime = provider.sdkStartEndTime
             {
-                _ = try? otel.createSpan(
+                _ = try? otel.createInternalSpan(
                     name: SpanSemantics.Startup.sdkStart,
                     parentSpan: $0.rootSpan,
                     type: .startup,

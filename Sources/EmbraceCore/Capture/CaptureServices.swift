@@ -24,14 +24,14 @@ final class CaptureServices {
     var crashReporter: EmbraceCrashReporter?
 
     weak var config: EmbraceConfigurable?
-    weak var otel: EmbraceOTelSignalsHandler?
+    weak var otel: InternalOTelSignalsHandler?
 
     init(
         options: Embrace.Options,
         config: EmbraceConfigurable?,
         storage: EmbraceStorage?,
         upload: EmbraceUpload?,
-        otel: EmbraceOTelSignalsHandler?
+        otel: InternalOTelSignalsHandler?
     ) throws {
         self.config = config
         self.otel = otel

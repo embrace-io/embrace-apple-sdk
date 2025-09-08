@@ -17,7 +17,7 @@ extension Notification.Name {
 
 protocol URLSessionTaskHandlerDataSource: AnyObject {
     var state: CaptureServiceState { get }
-    var otel: OTelSignalsHandler? { get }
+    var otel: EmbraceOTelSignalsHandler? { get }
 
     var injectTracingHeader: Bool { get }
     var requestsDataSource: URLSessionRequestsDataSource? { get }
@@ -128,7 +128,7 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
              - HTTP Attributes: https://opentelemetry.io/docs/specs/semconv/attributes-registry/http/
              */
             let name = httpMethod.isEmpty ? url.path : "\(httpMethod) \(url.path)"
-            let span = try? otel.createSpan(
+            let span = try? otel.createInternalSpan(
                 name: name,
                 type: .networkRequest,
                 attributes: attributes

@@ -55,7 +55,7 @@ class MetricKitCrashCaptureService: CaptureService, MetricKitCrashPayloadListene
             )
             .build()
 
-        try? otel?.log(
+        try? otel?.internalLog(
             "",
             severity: .fatal,
             type: .crash,
