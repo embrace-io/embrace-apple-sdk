@@ -4,20 +4,11 @@
 
 import Foundation
 
-@objc public enum MetadataLifespan: Int {
-
-    /// The property will be removed when the session ends.
-    case session
-
-    /// The property will be removed when the process ends
-    case process
-
-    /// The property will be removed when the app is uninstalled.
-    case permanent
-}
-
 public protocol MetadataPropertiesHandling: AnyObject {
 
-    /// Adds, removes or updates a property with a given key and lifespan.
-    func setProperty(key: String, value: String?, lifespan: MetadataLifespan) throws
+    /// Adds, removes or updates a property with a given key to the process.
+    func setProcessProperty(key: String, value: String?) throws
+
+    /// Adds, removes or updates a property with a given key to the session.
+    func setSessionProperty(key: String, value: String?) throws
 }
