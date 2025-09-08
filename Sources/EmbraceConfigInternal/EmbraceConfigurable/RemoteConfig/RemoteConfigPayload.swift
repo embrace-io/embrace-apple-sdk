@@ -44,6 +44,8 @@ public struct RemoteConfigPayload: Decodable, Equatable {
 
     var networkPayloadCaptureRules: [NetworkPayloadCaptureRule]
 
+    var memoryCaptureEnabled: Bool
+
     enum CodingKeys: String, CodingKey {
         case sdkEnabledThreshold = "threshold"
 
@@ -95,6 +97,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         }
 
         case networkPayLoadCapture = "network_capture"
+        case memoryCaptureEnabled = "memory_capture_enabled"
     }
 
     public init(from decoder: Decoder) throws {
@@ -107,6 +110,13 @@ public struct RemoteConfigPayload: Decodable, Equatable {
                 Float.self,
                 forKey: .sdkEnabledThreshold
             ) ?? defaultPayload.sdkEnabledThreshold
+
+        // memoryCapsureEnabled
+        memoryCaptureEnabled =
+            try rootContainer.decodeIfPresent(
+                Bool.self,
+                forKey: .memoryCaptureEnabled
+            ) ?? defaultPayload.memoryCaptureEnabled
 
         // background session
         if rootContainer.contains(.background) {
@@ -359,6 +369,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         hangLimitsSamplesPerHang = 0
 
         networkPayloadCaptureRules = []
+        memoryCaptureEnabled = true
     }
 }
 
