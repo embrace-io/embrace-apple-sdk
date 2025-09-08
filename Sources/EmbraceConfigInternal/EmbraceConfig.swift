@@ -151,4 +151,8 @@ extension EmbraceConfig /* EmbraceConfigurable delegation */ {
     public var networkPayloadCaptureRules: [NetworkPayloadCaptureRule] {
         configurable.networkPayloadCaptureRules
     }
+
+    public var memoryCaptureEnabled: Bool {
+        configurable.memoryCaptureEnabled
+    }
 }
