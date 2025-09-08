@@ -67,6 +67,7 @@ install-hooks:
 	@for hook in $(HOOKS_DIR)/*; do \
 		hook_name=$$(basename $$hook); \
 		target="$(GIT_HOOKS_DIR)/$$hook_name"; \
+		mkdir -p "$(GIT_HOOKS_DIR)"; \
 		rm -f $$target; \
 		ln -s $$hook $$target; \
 		chmod +x $$hook; \
