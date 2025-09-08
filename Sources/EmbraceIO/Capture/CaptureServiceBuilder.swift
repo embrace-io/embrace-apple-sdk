@@ -6,6 +6,7 @@ import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCaptureService
+    import EmbraceCrash
 #endif
 
 /// Class used to build the list of `CaptureServices` to be used by the `Embrace` instance.
@@ -80,6 +81,11 @@ public class CaptureServiceBuilder: NSObject {
         // hang
         if !services.contains(where: { $0 is HangCaptureService }) {
             add(.hangWatchdog())
+        }
+
+        // memory
+        if !services.contains(where: { $0 is AppMemoryCaptureService }) {
+            add(.appMemory())
         }
 
         return self
