@@ -908,7 +908,7 @@
 			repositoryURL = "https://github.com/open-telemetry/opentelemetry-swift-core";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 1.0.0;
+				minimumVersion = 2.1.1;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
