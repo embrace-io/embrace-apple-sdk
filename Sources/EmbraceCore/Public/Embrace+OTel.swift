@@ -33,8 +33,8 @@ extension Embrace: EmbraceOpenTelemetry {
     /// - Parameters:
     ///    - name: The name of the span.
     ///    - type: The type of the span. Will be set as the `emb.type` attribute.
-    ///    - autoTerminationCode: `SpanErrorCode` to be used to automatically close this span if the current session ends while the span is open.
     ///    - attributes: A dictionary of attributes to set on the span.
+    ///    - autoTerminationCode: `SpanErrorCode` to be used to automatically close this span if the current session ends while the span is open.
     /// - Returns: An OpenTelemetry `SpanBuilder`.
     public func buildSpan(
         name: String,
@@ -42,14 +42,14 @@ extension Embrace: EmbraceOpenTelemetry {
         attributes: [String: String] = [:],
         autoTerminationCode: SpanErrorCode? = nil
     ) -> SpanBuilder {
-        var extraAttributes = [String: String]()
-
-        if let autoTerminationCode = autoTerminationCode {
-            extraAttributes[SpanSemantics.keyAutoTerminationCode] = autoTerminationCode.rawValue
+        guard let autoTerminationCode = autoTerminationCode else {
+            return otel.buildSpan(name: name, type: type, attributes: attributes)
         }
 
-        extraAttributes.merge(attributes) { left, _ in left }
-        return otel.buildSpan(name: name, type: type, attributes: extraAttributes)
+        var attributes = attributes
+        attributes[SpanSemantics.keyAutoTerminationCode] = autoTerminationCode.rawValue
+
+        return otel.buildSpan(name: name, type: type, attributes: attributes)
     }
 
     /// Record a span after the fact
