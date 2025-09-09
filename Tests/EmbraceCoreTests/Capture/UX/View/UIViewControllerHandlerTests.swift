@@ -471,7 +471,7 @@
 
     extension UIViewControllerHandlerTests {
         func createSpan(name: String? = nil, parent: EmbraceSpan? = nil) -> EmbraceSpan {
-            return try! otel.createSpan(
+            return try! otel.createInternalSpan(
                 name: name ?? "test-span",
                 parentSpan: parent,
                 type: .viewLoad

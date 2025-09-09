@@ -3,6 +3,7 @@
 //
 
 import EmbraceCaptureService
+import EmbraceCommonInternal
 import EmbraceSemantics
 import Foundation
 
@@ -10,7 +11,7 @@ import Foundation
 
 class MockURLSessionTaskHandlerDataSource: URLSessionTaskHandlerDataSource {
     var state: CaptureServiceState = .uninstalled
-    var otel: OTelSignalsHandler?
+    var otel: EmbraceOTelSignalsHandler?
 
     var injectTracingHeader = false
     var requestsDataSource: URLSessionRequestsDataSource?

@@ -10,10 +10,11 @@
     import EmbraceCaptureService
     import TestSupport
     import EmbraceSemantics
+    import EmbraceCommonInternal
 
     class MockUIViewControllerHandlerDataSource: UIViewControllerHandlerDataSource {
         var state: CaptureServiceState = .active
-        var otel: OTelSignalsHandler? = MockOTelSignalsHandler()
+        var otel: EmbraceOTelSignalsHandler? = MockOTelSignalsHandler()
         var instrumentVisibility: Bool = true
         var instrumentFirstRender: Bool = true
 

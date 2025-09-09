@@ -19,17 +19,18 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
 
     public init() {}
 
-    public func createSpan(
+    public func _createSpan(
         name: String,
-        parentSpan: EmbraceSpan?,
+        parentSpan: EmbraceSpan? = nil,
         type: EmbraceType,
-        status: EmbraceSpanStatus,
+        status: EmbraceSpanStatus = .unset,
         startTime: Date,
-        endTime: Date?,
-        events: [EmbraceSpanEvent],
-        links: [EmbraceSpanLink],
-        attributes: [String: String],
-        autoTerminationCode: EmbraceSpanErrorCode?
+        endTime: Date? = nil,
+        events: [EmbraceSpanEvent] = [],
+        links: [EmbraceSpanLink] = [],
+        attributes: [String: String] = [:],
+        autoTerminationCode: EmbraceSpanErrorCode? = nil,
+        isInternal: Bool = true
     ) throws -> EmbraceSpan {
 
         let traceId = parentSpan?.context.traceId ?? .randomTraceId()
@@ -60,11 +61,12 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
         return span
     }
 
-    public func addSessionEvent(
+    public func _addSessionEvent(
         name: String,
-        type: EmbraceType?,
-        timestamp: Date,
-        attributes: [String: String]
+        type: EmbraceType? = nil,
+        timestamp: Date = Date(),
+        attributes: [String: String] = [:],
+        isInternal: Bool = true
     ) throws {
         let event = EmbraceSpanEvent(
             name: name,
@@ -75,14 +77,16 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
         events.append(event)
     }
 
-    public func log(
+    public func _log(
         _ message: String,
-        severity: EmbraceLogSeverity,
+        severity: EmbraceLogSeverity = .info,
         type: EmbraceType,
-        timestamp: Date,
-        attachment: EmbraceLogAttachment?,
-        attributes: [String: String],
-        stackTraceBehavior: EmbraceStackTraceBehavior
+        timestamp: Date = Date(),
+        attachment: EmbraceLogAttachment? = nil,
+        attributes: [String: String] = [:],
+        stackTraceBehavior: EmbraceStackTraceBehavior = .defaultStackTrace(),
+        isInternal: Bool = true,
+        send: Bool = true
     ) {
         let log = MockLog(
             id: UUID().withoutHyphen,
@@ -113,7 +117,7 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
         timestamp: Date,
         attributes: [String: String]
     ) {
-        log(
+        _log(
             message,
             severity: severity,
             type: type,

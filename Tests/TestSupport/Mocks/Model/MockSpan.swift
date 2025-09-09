@@ -5,6 +5,8 @@
 import EmbraceSemantics
 import Foundation
 
+@testable import EmbraceCore
+
 public protocol MockSpanDelegate: AnyObject {
     func onSpanEnded(_ span: EmbraceSpan)
 }
@@ -86,5 +88,28 @@ public class MockSpan: EmbraceSpan {
     public func setAttribute(key: String, value: String?) throws {
         attributes[key] = value
     }
+}
 
+extension MockSpan: EmbraceSpanInternalAttributes {
+    public func _setInternalAttribute(key: String, value: String?) {
+        try? setAttribute(key: key, value: value)
+    }
+}
+
+extension MockSpan: EmbraceSpanSessionEvents {
+    public func _addSessionEvent(
+        name: String,
+        type: EmbraceType? = .performance,
+        timestamp: Date = Date(),
+        attributes: [String: String] = [:],
+        internalAttributes: [String: String] = [:],
+        isInternal: Bool
+    ) throws {
+        try addEvent(
+            name: name,
+            type: type,
+            timestamp: timestamp,
+            attributes: internalAttributes.merging(attributes) { (current, _) in current }
+        )
+    }
 }

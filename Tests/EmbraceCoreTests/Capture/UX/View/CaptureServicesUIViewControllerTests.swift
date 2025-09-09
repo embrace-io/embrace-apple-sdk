@@ -137,7 +137,7 @@
             service.install(otel: otel)
             service.start()
 
-            let parent = try! otel.createSpan(name: "test", type: .viewLoad)
+            let parent = try! otel.createInternalSpan(name: "test", type: .viewLoad)
             handler.parentSpan = parent
 
             // when calling buildChildSpan
