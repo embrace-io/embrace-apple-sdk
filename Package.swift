@@ -45,8 +45,8 @@ let package = Package(
             exact: "2.3.0"
         ),
         .package(
-            url: "https://github.com/open-telemetry/opentelemetry-swift",
-            exact: "2.0.2"
+            url: "https://github.com/open-telemetry/opentelemetry-swift-core",
+            exact: "2.1.1"
         ),
         .package(
             url: "https://github.com/swiftlang/swift-syntax.git",
@@ -113,7 +113,7 @@ let package = Package(
         .target(
             name: "EmbraceCommonInternal",
             dependencies: [
-                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
+                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift-core")
             ]
         ),
         .testTarget(
@@ -129,7 +129,7 @@ let package = Package(
             name: "EmbraceSemantics",
             dependencies: [
                 "EmbraceCommonInternal",
-                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
+                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift-core")
             ]
         ),
 
@@ -138,7 +138,7 @@ let package = Package(
             name: "EmbraceCaptureService",
             dependencies: [
                 "EmbraceOTelInternal",
-                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
+                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift-core")
             ]
         ),
         .testTarget(
@@ -187,7 +187,7 @@ let package = Package(
             dependencies: [
                 "EmbraceCommonInternal",
                 "EmbraceSemantics",
-                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
+                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift-core")
             ]
         ),
         .testTarget(
@@ -322,7 +322,7 @@ let package = Package(
                 "EmbraceCore",
                 "EmbraceOTelInternal",
                 "EmbraceCommonInternal",
-                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
+                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift-core")
             ],
             path: "Tests/TestSupport",
             exclude: ["Objc"]
