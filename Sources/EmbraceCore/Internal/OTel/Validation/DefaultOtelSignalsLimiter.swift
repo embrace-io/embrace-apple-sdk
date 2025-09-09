@@ -18,7 +18,8 @@ class DefaultOtelSignalsLimiter: OTelSignalsLimiter {
         var limits = SessionLimits()
 
         var customSpanCounter = 0
-        var eventCounter: [String: UInt] = [:]
+        var eventCounter = 0
+        var eventTypeCounter: [String: UInt] = [:]
         var linkCounter = 0
         var logCounter: [Int: UInt] = [:]
     }
@@ -28,9 +29,9 @@ class DefaultOtelSignalsLimiter: OTelSignalsLimiter {
 
     init(
         sessionLimits: SessionLimits = SessionLimits(),
-        spanEventTypeLimits: SpanEventTypeLimits,
-        logSeverityLimits: LogSeverityLimits,
-        configNotificationCenter: NotificationCenter
+        spanEventTypeLimits: SpanEventTypeLimits = SpanEventTypeLimits(),
+        logSeverityLimits: LogSeverityLimits = LogSeverityLimits(),
+        configNotificationCenter: NotificationCenter = .default
     ) {
         state.withLock {
             $0.limits = sessionLimits
@@ -65,9 +66,10 @@ class DefaultOtelSignalsLimiter: OTelSignalsLimiter {
     func reset() {
         state.withLock {
             $0.customSpanCounter = 0
-            $0.eventCounter = [:]
+            $0.eventCounter = 0
+            $0.eventTypeCounter.removeAll()
             $0.linkCounter = 0
-            $0.logCounter = [:]
+            $0.logCounter.removeAll()
         }
     }
 
@@ -85,28 +87,29 @@ class DefaultOtelSignalsLimiter: OTelSignalsLimiter {
     func shouldAddSessionEvent(ofType type: EmbraceType?) -> Bool {
         return state.withLock {
             // check total limit
-            if $0.eventCounter.count >= $0.limits.events.count {
+            if $0.eventCounter >= $0.limits.events.sessionSpanEventCount {
                 return false
             }
 
             // check limit for event type
             let type = type?.rawValue ?? Self.emptyType
 
-            guard let typeLimits = $0.limits.events.typeLimits,
-                let limit = limitForEventType(type, limits: typeLimits)
-            else {
+            guard let typeLimits = $0.limits.events.typeLimits else {
+                $0.eventCounter += 1
                 return true
             }
 
             // apply limit
+            let limit = limitForEventType(type, limits: typeLimits)
             var result = false
 
-            var count = $0.eventCounter[type] ?? 0
+            var count = $0.eventTypeCounter[type] ?? 0
             if count < limit {
+                $0.eventCounter += 1
                 count += 1
                 result = true
             }
-            $0.eventCounter[type] = count
+            $0.eventTypeCounter[type] = count
 
             return result
         }
@@ -139,13 +142,13 @@ class DefaultOtelSignalsLimiter: OTelSignalsLimiter {
 
     func shouldAddSpanEvent(currentCount count: Int) -> Bool {
         return state.withLock {
-            count < $0.limits.customSpans.events.count
+            count < $0.limits.events.customSpanEventCount
         }
     }
 
     func shouldAddSpanLink(currentCount count: Int) -> Bool {
         return state.withLock {
-            count < $0.limits.customSpans.links.count
+            count < $0.limits.links.customSpanLinkCount
         }
     }
 
@@ -156,12 +159,12 @@ class DefaultOtelSignalsLimiter: OTelSignalsLimiter {
     }
 
     // MARK: Private
-    private func limitForEventType(_ type: String, limits: SpanEventTypeLimits) -> UInt? {
+    private func limitForEventType(_ type: String, limits: SpanEventTypeLimits) -> UInt {
         if type == EmbraceType.breadcrumb.rawValue {
             return limits.breadcrumb
         }
 
-        return nil
+        return UInt.max
     }
 
     private func consolidatedSeverity(_ severity: EmbraceLogSeverity) -> EmbraceLogSeverity {

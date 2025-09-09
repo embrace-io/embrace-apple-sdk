@@ -6,7 +6,6 @@ import Foundation
 import OpenTelemetrySdk
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceStorageInternal
     import EmbraceCommonInternal
 #endif
 

@@ -156,6 +156,8 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
 
             $0.autoTerminationSpans.removeAll()
         }
+
+        limiter.reset()
     }
 
     // creates a log that is not saved nor added to the batch
@@ -268,12 +270,19 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDataSource {
         timestamp: Date,
         attributes: [String: String],
         internalAttributes: [String: String],
-        currentCount: Int
+        currentCount: Int,
+        isSessionEvent: Bool = false
     ) throws -> EmbraceSpanEvent {
 
         // check limit
-        guard limiter.shouldAddSpanEvent(currentCount: currentCount) else {
-            throw EmbraceOTelError.spanEventLimitReached("Events limit reached for span \(span.name)")
+        if isSessionEvent {
+            guard limiter.shouldAddSessionEvent(ofType: type) else {
+                throw EmbraceOTelError.spanEventLimitReached("Events limit reached for session span!")
+            }
+        } else {
+            guard limiter.shouldAddSpanEvent(currentCount: currentCount) else {
+                throw EmbraceOTelError.spanEventLimitReached("Events limit reached for span \(span.name)")
+            }
         }
 
         let sanitizedAttributes = sanitizer.sanitizeSpanEventAttributes(attributes)

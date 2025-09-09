@@ -37,7 +37,7 @@ class DefaultOtelSignalsSanitizer: OTelSignalsSanitizer {
     }
 
     func sanitizeSpanEventName(_ name: String) -> String {
-        return sanitizeName(name, lengthLimit: sessionLimits.customSpans.events.nameLength)
+        return sanitizeName(name, lengthLimit: sessionLimits.events.nameLength)
     }
 
     func sanitizeAttributeKey(_ key: String) -> String {

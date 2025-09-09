@@ -125,7 +125,8 @@ class DefaultEmbraceSpan: EmbraceSpan {
         timestamp: Date = Date(),
         attributes: [String: String] = [:],
         internalAttributes: [String: String] = [:],
-        isInternal: Bool
+        isInternal: Bool,
+        isSessionEvent: Bool = false
     ) throws {
 
         var event: EmbraceSpanEvent?
@@ -151,7 +152,8 @@ class DefaultEmbraceSpan: EmbraceSpan {
                 timestamp: timestamp,
                 attributes: attributes,
                 internalAttributes: internalAttributes,
-                currentCount: currentCount
+                currentCount: currentCount,
+                isSessionEvent: isSessionEvent
             )
         }
 
@@ -303,7 +305,8 @@ extension DefaultEmbraceSpan: EmbraceSpanSessionEvents {
             timestamp: timestamp,
             attributes: attributes,
             internalAttributes: internalAttributes,
-            isInternal: isInternal
+            isInternal: isInternal,
+            isSessionEvent: true
         )
     }
 }

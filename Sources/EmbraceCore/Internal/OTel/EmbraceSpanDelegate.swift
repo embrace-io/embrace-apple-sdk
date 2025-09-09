@@ -26,7 +26,8 @@ protocol EmbraceSpanDataSource: AnyObject {
         timestamp: Date,
         attributes: [String: String],
         internalAttributes: [String: String],
-        currentCount: Int
+        currentCount: Int,
+        isSessionEvent: Bool
     ) throws -> EmbraceSpanEvent
 
     func createLink(

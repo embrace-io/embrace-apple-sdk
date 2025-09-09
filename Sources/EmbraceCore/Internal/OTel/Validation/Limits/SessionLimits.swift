@@ -26,26 +26,37 @@ struct SessionLimits {
     }
 
     struct SpanLimits {
-        let count: Int = 500
-        let nameLength: Int = 128
-        let events: SpanEventLimits = SpanEventLimits(count: 20, typeLimits: nil)
-        let links: SpanLinkLimits = SpanLinkLimits(count: 20)
-        let attributeCount: Int = 100
+        let count: Int
+        let nameLength: Int
+        let attributeCount: Int
+
+        init(
+            count: Int = 500,
+            nameLength: Int = 128,
+            attributeCount: Int = 100
+        ) {
+            self.count = count
+            self.nameLength = nameLength
+            self.attributeCount = attributeCount
+        }
     }
 
     struct SpanEventLimits {
-        let count: Int
+        let sessionSpanEventCount: Int
+        let customSpanEventCount: Int
         let nameLength: Int
         var typeLimits: SpanEventTypeLimits?
         let attributeCount: Int
 
         init(
-            count: Int = 1000,
+            sessionSpanEventCount: Int = 1000,
+            customSpanEventCount: Int = 20,
             nameLength: Int = 128,
             typeLimits: SpanEventTypeLimits? = SpanEventTypeLimits(),
             attributeCount: Int = 10
         ) {
-            self.count = count
+            self.sessionSpanEventCount = sessionSpanEventCount
+            self.customSpanEventCount = customSpanEventCount
             self.nameLength = nameLength
             self.typeLimits = typeLimits
             self.attributeCount = attributeCount
@@ -53,17 +64,31 @@ struct SessionLimits {
     }
 
     struct SpanLinkLimits {
-        let count: Int
+        let sessionSpanLinkCount: Int
+        let customSpanLinkCount: Int
         let attributeCount: Int
 
-        init(count: Int = 200, attributeCount: Int = 10) {
-            self.count = count
+        init(
+            sessionSpanLinkCount: Int = 200,
+            customSpanLinkCount: Int = 20,
+            attributeCount: Int = 10
+        ) {
+            self.sessionSpanLinkCount = sessionSpanLinkCount
+            self.customSpanLinkCount = customSpanLinkCount
             self.attributeCount = attributeCount
         }
     }
 
     struct LogLimits {
-        var severityLimits: LogSeverityLimits = LogSeverityLimits()
-        let attributeCount: Int = 100
+        var severityLimits: LogSeverityLimits
+        let attributeCount: Int
+
+        init(
+            severityLimits: LogSeverityLimits = LogSeverityLimits(),
+            attributeCount: Int = 100
+        ) {
+            self.severityLimits = severityLimits
+            self.attributeCount = attributeCount
+        }
     }
 }
