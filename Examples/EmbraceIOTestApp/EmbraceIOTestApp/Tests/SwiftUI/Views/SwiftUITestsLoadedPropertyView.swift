@@ -8,6 +8,13 @@ import SwiftUI
 
 struct SwiftUITestsLoadedPropertyView: View {
     @Binding var loadedState: Bool
+    let toggleIdentifier: String
+
+    init(loadedState: Binding<Bool>, toggleIdentifier: String? = nil) {
+        _loadedState = loadedState
+        self.toggleIdentifier = toggleIdentifier ?? UUID().uuidString
+    }
+
     var body: some View {
         Toggle(isOn: $loadedState) {
             Text("Produce Content Complete Span")
@@ -15,6 +22,7 @@ struct SwiftUITestsLoadedPropertyView: View {
                 .foregroundStyle(.embraceSteel)
         }
         .tint(.embracePurple)
+        .accessibilityIdentifier(toggleIdentifier)
     }
 }
 
