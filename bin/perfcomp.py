@@ -3,7 +3,7 @@ from statistics import mean
 from github import Github
 from scipy import stats
 
-THRESHOLD = float(os.getenv("THRESHOLD", "1.0")) / 100.0  # percent → fraction
+THRESHOLD = float(os.getenv("THRESHOLD_PCT", "1.0")) / 100.0  # percent → fraction
 ALPHA = float(os.getenv("ALPHA", "0.05"))
 
 pr_data = json.loads(os.getenv("PERF_PR", "[]"))

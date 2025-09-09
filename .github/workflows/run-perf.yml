@@ -15,7 +15,7 @@ concurrency:
 env:
   ITERATIONS: 20
   SHOULD_CLEAN: 1
-  THRESHOLD: 5.0
+  THRESHOLD_PCT: 5.0
   TESTS: |
     EmbraceIOTests/PerformanceTests
 
@@ -33,7 +33,7 @@ jobs:
       
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.3'
 
       - name: Install dependencies
         run: pip install scipy pygithub
