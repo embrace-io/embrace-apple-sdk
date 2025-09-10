@@ -55,7 +55,7 @@ private class EmbraceThreadList {
             withThreads {
                 let err = thread_suspend($0)
                 if err != KERN_SUCCESS {
-                    print("[THREAD.SUSPEND] err: \(err), \(String(cString: mach_error_string(err)))")
+                    Embrace.logger.warning("[THREAD.SUSPEND] err: \(err), \(String(cString: mach_error_string(err)))")
                 }
             }
         #endif
@@ -67,7 +67,7 @@ private class EmbraceThreadList {
             withThreads {
                 let err = thread_resume($0)
                 if err != KERN_SUCCESS {
-                    print("[THREAD.RESUME] err: \(err), \(String(cString: mach_error_string(err)))")
+                    Embrace.logger.warning("[THREAD.RESUME] err: \(err), \(String(cString: mach_error_string(err)))")
                 }
             }
         #endif
@@ -151,11 +151,7 @@ extension EmbraceBacktrace {
     // 3- sets up deferal of resuming all threads and releasing task thread memory.
     // 4- takes a backtrace and symbolicates it (or simply gets the images if not available).
     static func takeSnapshot(of thread: pthread_t, suspendingThreads: Bool) -> [EmbraceBacktraceThread] {
-        let pre = clock_gettime_nsec_np(CLOCK_UPTIME_RAW)
         let snap = _takeSnapshot(of: thread, suspendingThreads: suspendingThreads)
-        let post = clock_gettime_nsec_np(CLOCK_UPTIME_RAW)
-        let cost = Double(post - pre) / 1_000_000.0
-        print("[COST] \(cost) ms, frames: \(snap.first?.callstack.count ?? 0)")
         return snap
     }
 
@@ -196,11 +192,7 @@ extension EmbraceBacktrace {
 extension EmbraceBacktrace {
 
     static func takeSnapshotApple() -> [EmbraceBacktraceThread] {
-        let pre = clock_gettime_nsec_np(CLOCK_UPTIME_RAW)
         let snap = _takeSnapshotApple()
-        let post = clock_gettime_nsec_np(CLOCK_UPTIME_RAW)
-        let cost = Double(post - pre) / 1_000_000.0
-        print("[COST] \(cost) ms, frames: \(snap.first?.callstack.count ?? 0)")
         return snap
     }
 
