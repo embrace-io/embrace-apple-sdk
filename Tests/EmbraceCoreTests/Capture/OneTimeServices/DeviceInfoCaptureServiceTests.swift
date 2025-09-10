@@ -5,6 +5,7 @@
 import EmbraceCommonInternal
 import EmbraceObjCUtilsInternal
 import EmbraceStorageInternal
+import OpenTelemetryApi
 import OpenTelemetrySdk
 import XCTest
 
@@ -70,7 +71,7 @@ final class DeviceInfoCaptureServiceTests: XCTestCase {
 
         // os version
         let osVersion = handler.fetchMetadata(
-            key: ResourceAttributes.osVersion.rawValue,
+            key: SemanticConventions.Os.version.rawValue,
             type: .requiredResource,
             lifespan: .process,
             lifespanId: processId
@@ -100,7 +101,7 @@ final class DeviceInfoCaptureServiceTests: XCTestCase {
 
         // model
         let model = handler.fetchMetadata(
-            key: ResourceAttributes.deviceModelIdentifier.rawValue,
+            key: SemanticConventions.Device.modelIdentifier.rawValue,
             type: .requiredResource,
             lifespan: .process,
             lifespanId: processId
@@ -111,7 +112,7 @@ final class DeviceInfoCaptureServiceTests: XCTestCase {
 
         // osType
         let osType = handler.fetchMetadata(
-            key: ResourceAttributes.osType.rawValue,
+            key: SemanticConventions.Os.type.rawValue,
             type: .requiredResource,
             lifespan: .process,
             lifespanId: processId
