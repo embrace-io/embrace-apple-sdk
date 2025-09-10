@@ -34,6 +34,7 @@ class LogController: LogControllable {
     private(set) weak var sessionController: SessionControllable?
     private weak var storage: Storage?
     private weak var upload: EmbraceLogUploader?
+    private let mainThread: pthread_t
 
     weak var sdkStateProvider: EmbraceSDKStateProvider?
 
@@ -61,9 +62,11 @@ class LogController: LogControllable {
         upload: EmbraceLogUploader?,
         controller: SessionControllable
     ) {
+        precondition(Thread.isMainThread, "Must be called on the main thread")
         self.storage = storage
         self.upload = upload
         self.sessionController = controller
+        self.mainThread = pthread_self()
     }
 
     func uploadAllPersistedLogs(_ completion: (() -> Void)? = nil) {
@@ -105,19 +108,23 @@ class LogController: LogControllable {
             initialAttributes: attributes
         )
 
-        // things that require the state from this thread
+        // These all need to be at the callsite in order to
+        // have correct information about the users intention.
         attributesBuilder
             .addLogType(type)
             .addApplicationState()
             .addSessionIdentifier()
 
-        // We want to ensure the backtrace is taken this thread,
+        // We want to ensure the backtrace is taken on this thread,
         // but added from the queue as to not use up possibly main thread resources.
         let addStacktraceBlock: ((_ builder: EmbraceLogAttributesBuilder) -> Void)?
         switch stackTraceBehavior {
         case .default where severity == .warn || severity == .error:
-            let stackTrace = Thread.callStackSymbols
-            addStacktraceBlock = { $0.addStackTrace(stackTrace) }
+            let backtrace = EmbraceBacktrace.backtrace(of: pthread_self(), suspendingThreads: false)
+            addStacktraceBlock = { $0.addBacktrace(backtrace) }
+        case .main where severity == .warn || severity == .error:
+            let backtrace = EmbraceBacktrace.backtrace(of: mainThread, suspendingThreads: true)
+            addStacktraceBlock = { $0.addBacktrace(backtrace) }
         case .custom(let customStackTrace) where severity == .warn || severity == .error:
             let stackTrace = customStackTrace.frames
             addStacktraceBlock = { $0.addStackTrace(stackTrace) }

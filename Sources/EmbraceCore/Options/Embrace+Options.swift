@@ -27,6 +27,8 @@ extension Embrace {
         @objc public let export: OpenTelemetryExport?
         @objc public let runtimeConfiguration: EmbraceConfigurable?
         @objc public let processors: [OpenTelemetryProcessor]?
+        @objc public let backtracer: Backtracer?
+        @objc public let symbolicator: Symbolicator?
 
         /// Default initializer for `Embrace.Options` that requires an array of `CaptureServices` to be passed.
         ///
@@ -52,7 +54,9 @@ extension Embrace {
             crashReporter: CrashReporter?,
             logLevel: LogLevel = .default,
             export: OpenTelemetryExport? = nil,
-            processors: [OpenTelemetryProcessor]? = nil
+            processors: [OpenTelemetryProcessor]? = nil,
+            backtracer: Backtracer? = nil,
+            symbolicator: Symbolicator? = nil
         ) {
             self.appId = appId
             self.appGroupId = appGroupId
@@ -64,6 +68,8 @@ extension Embrace {
             self.export = export
             self.runtimeConfiguration = nil
             self.processors = processors
+            self.backtracer = backtracer
+            self.symbolicator = symbolicator
         }
 
         /// Initializer for `Embrace.Options` that does not require an appId.
@@ -83,7 +89,9 @@ extension Embrace {
             captureServices: [CaptureService],
             crashReporter: CrashReporter?,
             logLevel: LogLevel = .default,
-            runtimeConfiguration: EmbraceConfigurable = .default
+            runtimeConfiguration: EmbraceConfigurable = .default,
+            backtracer: Backtracer? = nil,
+            symbolicator: Symbolicator? = nil
         ) {
             self.appId = nil
             self.appGroupId = nil
@@ -95,6 +103,8 @@ extension Embrace {
             self.export = export
             self.runtimeConfiguration = runtimeConfiguration
             self.processors = nil
+            self.backtracer = backtracer
+            self.symbolicator = symbolicator
         }
     }
 }

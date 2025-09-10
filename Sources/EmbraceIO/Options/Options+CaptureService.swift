@@ -10,6 +10,8 @@ import Foundation
     import EmbraceCommonInternal
     import EmbraceKSCrashSupport
     import EmbraceOTelInternal
+    import EmbraceKSCrashBacktraceSupport
+    import KSCrashDemangleFilter
 #endif
 
 extension Embrace.Options {
@@ -43,7 +45,9 @@ extension Embrace.Options {
             captureServices: .automatic,
             crashReporter: KSCrashReporter(),
             logLevel: logLevel,
-            export: export
+            export: export,
+            backtracer: KSCrashBacktracing(),
+            symbolicator: KSCrashBacktracing()
         )
     }
 
@@ -68,7 +72,9 @@ extension Embrace.Options {
             platform: platform,
             captureServices: .automatic,
             crashReporter: KSCrashReporter(),
-            processors: nil
+            processors: nil,
+            backtracer: KSCrashBacktracing(),
+            symbolicator: KSCrashBacktracing()
         )
     }
 
@@ -95,7 +101,9 @@ extension Embrace.Options {
             platform: platform,
             captureServices: .automatic,
             crashReporter: KSCrashReporter(),
-            processors: processors
+            processors: processors,
+            backtracer: KSCrashBacktracing(),
+            symbolicator: KSCrashBacktracing()
         )
     }
 
@@ -115,7 +123,9 @@ extension Embrace.Options {
             export: export,
             captureServices: .automatic,
             crashReporter: KSCrashReporter(),
-            logLevel: logLevel
+            logLevel: logLevel,
+            backtracer: KSCrashBacktracing(),
+            symbolicator: KSCrashBacktracing()
         )
     }
 }

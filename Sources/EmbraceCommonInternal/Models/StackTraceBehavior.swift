@@ -10,7 +10,11 @@ public enum StackTraceBehavior {
     case notIncluded
 
     /// The default behavior for automatically capturing stack traces.
+    /// which takes a stack of the current thread.
     case `default`
+
+    /// Stack traces are taken for the main thread.
+    case main
 
     /// A custom stack trace provided.
     case custom(_ value: EmbraceStackTrace)
