@@ -26,34 +26,31 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: ["iOS"]
-        xcode_version: ["16.2"]
-        macos-version: ["14"]
         include:
 
           # iOS
           - platform: "iOS"
-            xcode_version: "16.2"
-            macos-version: "14"
-
-          - platform: "iOS"
             xcode_version: "16.4"
             macos-version: "15"
+            platform-version: "^18"
 
           # tvOS
           - platform: "tvOS"
             xcode_version: "16.4"
             macos-version: "15"
+            platform-version: "^18"
 
           # macOS
           - platform: "macOS"
             xcode_version: "16.4"
             macos-version: "15"
+            platform-version: "^15"
 
           # watchOS
           - platform: "watchOS"
             xcode_version: "16.4"
             macos-version: "15"
+            platform-version: "^11"
 
     permissions:
       checks: write
@@ -63,6 +60,14 @@ jobs:
           sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app
           xcodebuild -version
         continue-on-error: false
+
+      - name: Ensure the Platform is Downloaded
+        if: ${{ matrix.platform != 'macOS' && matrix.platform != 'mac-catalyst' }}
+        run: |
+          xcodebuild -runFirstLaunch
+          xcrun simctl list
+          xcodebuild -downloadPlatform ${{ matrix.platform }}
+          xcodebuild -runFirstLaunch
 
       - uses: actions/checkout@v4
         timeout-minutes: 2
@@ -75,9 +80,11 @@ jobs:
           workspace: ".swiftpm/xcode/package.xcworkspace"
           scheme: EmbraceIO-Package
           platform: ${{ matrix.platform }}
+          platform-version: ${{ matrix.platform-version }}
           upload-logs: always
           code-coverage: true
           trust-plugins: false
+          arch: arm64
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5.4.3

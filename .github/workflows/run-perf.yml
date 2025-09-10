@@ -13,6 +13,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  ITERATIONS: 20
+  SHOULD_CLEAN: 1
+  THRESHOLD_PCT: 5.0
   TESTS: |
     EmbraceIOTests/PerformanceTests
 
@@ -28,10 +31,19 @@ jobs:
         with:
           persist-credentials: false
       
-      - name: Copy perf test binary
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: pip install scipy pygithub
+
+      - name: Copy binaries
         run: |
           cp bin/perf /tmp/perf
+          cp bin/perfcomp.py /tmp/perfcomp.py
           chmod +x /tmp/perf
+          chmod +x /tmp/perfcomp.py
 
       - name: Run PR perf tests
         id: perfpr
@@ -40,6 +52,7 @@ jobs:
           echo "out<<EOF" >> "$GITHUB_OUTPUT"
           cat perf.txt >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
+          cat perf.txt
       
         # checkout the main branch
       - name: Checkout Main
@@ -55,96 +68,14 @@ jobs:
           echo "out<<EOF" >> "$GITHUB_OUTPUT"
           cat perf.txt >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
-      
-      # make the comment
-      - name: Comment perf comparison
-        uses: actions/github-script@v7
+          cat perf.txt
+
+      - name: Run Performance Comparison
         env:
-            PERF_PR: ${{ steps.perfpr.outputs.out }}
-            PERF_MAIN: ${{ steps.perfmain.outputs.out }}
-        with:
-          script: |
-            const outputpr = JSON.parse(process.env.PERF_PR || "[]");
-            const outputmain = JSON.parse(process.env.PERF_MAIN || "[]");
-
-            const THRESHOLD = 1.0; // percent
-
-            function pctDelta(prAvg, mainAvg) {
-              if (!isFinite(prAvg) || !isFinite(mainAvg) || mainAvg === 0) return null;
-              return ((prAvg - mainAvg) / mainAvg) * 100;
-            }
-
-            function fmtPct(p) {
-              const sign = p >= 0 ? "+" : "";
-              return `${sign}${p.toFixed(2)}%`;
-            }
-
-            function badge(p) {
-              if (p === null) return "⚪ `n/a`";
-              const abs = Math.abs(p);
-              if (abs < THRESHOLD) return "⚪ ~0%";
-              return p > 0 ? `🔴 ${fmtPct(p)}` : `🟢 ${fmtPct(p)}`;
-            }
-
-            const mainByName = new Map(outputmain.map(m => [m.name, m]));
-            const rows = [];
-
-            for (const pr of outputpr) {
-              let main = mainByName.get(pr.name);
-              if (!main) {
-                main = {
-                  avg: 0.0,
-                }
-              }
-
-              const p = pctDelta(pr.avg, main.avg);
-              const pct = p === null ? "`n/a`" : fmtPct(p);
-              rows.push({
-                name: pr.name,
-                pr,
-                main,
-                pct,
-                flag: badge(p),
-              });
-            }
-
-            rows.sort((a, b) => {
-              const ap = a.pct === "`n/a`" ? 0 : Math.abs(parseFloat(a.pct));
-              const bp = b.pct === "`n/a`" ? 0 : Math.abs(parseFloat(b.pct));
-              return bp - ap;
-            });
-
-            let body = "<!-- perf-check-comment -->\n";
-            body += "### 🚀 Perf Comparison (PR vs Main)\n";
-            body += `Threshold: \`${THRESHOLD}%\`\n\n`;
-            body += "| Test | PR Avg (s) | Main Avg (s) | Δ vs Main | Status |\n";
-            body += "|------|------------:|-------------:|----------:|:-------|\n";
-
-            for (const r of rows) {
-              body += `| \`${r.name}\` | ${r.pr.avg.toFixed(3)} | ${r.main.avg.toFixed(3)} | ${r.pct} | ${r.flag} |\n`;
-            }
-
-            // Look for an existing comment with the marker
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
-
-            const existing = comments.find(c => c.body.includes("<!-- perf-check-comment -->"));
-
-            if (existing) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: existing.id,
-                body,
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body,
-              });
-            }
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PERF_PR: ${{ steps.perfpr.outputs.out }}
+          PERF_MAIN: ${{ steps.perfmain.outputs.out }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          python /tmp/perfcomp.py

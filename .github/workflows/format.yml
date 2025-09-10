@@ -1,0 +1,77 @@
+name: Format
+on:
+  pull_request:
+
+concurrency:
+  group: "format-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}"
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  
+jobs:
+  formatting-check:
+    name: Formatting Checks
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+      timeout-minutes: 4
+      with:
+        fetch-depth: 0
+        persist-credentials: false
+
+    - name: Install tools
+      run: |
+        brew install swift-format
+        brew install clang-format
+
+    - name: Check Swift formatting
+      id: check_swift_format
+      run: |
+        make check-swift-format-changes 2>&1 \
+        | while read -r line; do
+          if [[ "$line" =~ ^([^:]+):([0-9]+):([0-9]+):\ error:\ (.*)$ ]]; then
+            file="${BASH_REMATCH[1]}"
+            line="${BASH_REMATCH[2]}"
+            col="${BASH_REMATCH[3]}"
+            msg="${BASH_REMATCH[4]}"
+            echo "::error file=$file,line=$line,col=$col::$msg"
+        elif [[ "$line" =~ ^([^:]+):([0-9]+):([0-9]+):\ warning:\ (.*)$ ]]; then
+          file="${BASH_REMATCH[1]}"
+          line="${BASH_REMATCH[2]}"
+          col="${BASH_REMATCH[3]}"
+          msg="${BASH_REMATCH[4]}"
+          echo "::warning file=$file,line=$line,col=$col::$msg"
+        else
+            echo "$line"
+          fi
+        done
+
+    - name: Check Clang formatting
+      id: check_clang_format
+      run: |
+        make check-format-changes 2>&1 \
+        | while read -r line; do
+        # Matches: file:line:col: error: message
+        if [[ "$line" =~ ^([^:]+):([0-9]+):([0-9]+):\ error:\ (.*)$ ]]; then
+          file="${BASH_REMATCH[1]}"
+          lineno="${BASH_REMATCH[2]}"
+          col="${BASH_REMATCH[3]}"
+          msg="${BASH_REMATCH[4]}"
+
+        # Emit a GitHub annotation (shows inline on the PR)
+          echo "::error file=$file,line=$lineno,col=$col::$msg"
+
+        # Some versions may emit warnings (rare for clang-format, but keep just in case)
+        elif [[ "$line" =~ ^([^:]+):([0-9]+):([0-9]+):\ warning:\ (.*)$ ]]; then
+          file="${BASH_REMATCH[1]}"
+          lineno="${BASH_REMATCH[2]}"
+          col="${BASH_REMATCH[3]}"
+          msg="${BASH_REMATCH[4]}"
+          echo "::warning file=$file,line=$lineno,col=$col::$msg"
+
+        else
+        # Pass through anything else (e.g., usage errors)
+          echo "$line"
+        fi
+        done

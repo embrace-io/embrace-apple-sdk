@@ -15,7 +15,6 @@
 		7B3143BF2AFDECCF00BA0D2F /* Icon+Meta.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B3143BE2AFDECCE00BA0D2F /* Icon+Meta.swift */; };
 		7B3143C62AFF1E7D00BA0D2F /* ReflexGameModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B3143C52AFF1E7D00BA0D2F /* ReflexGameModel.swift */; };
 		7B3229DC2B2950D500664F04 /* BubbleMinigameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B56309F2ABF323400E0DF39 /* BubbleMinigameView.swift */; };
-		7B3BD2192BBC5A1600938444 /* StdoutExporter in Frameworks */ = {isa = PBXBuildFile; productRef = 7B3BD2182BBC5A1600938444 /* StdoutExporter */; };
 		7B3CBA0A2C52E67600688E7B /* PersonaGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B3CBA092C52E67600688E7B /* PersonaGrid.swift */; };
 		7B4C0BDF2BA9F93400F0BC37 /* App+SmokeTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B4C0BDE2BA9F93400F0BC37 /* App+SmokeTest.swift */; };
 		7B4FFC2D2B1E5B7B006239F7 /* Endpoints+InfoPlist.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B4FFC2C2B1E5B7B006239F7 /* Endpoints+InfoPlist.swift */; };
@@ -43,6 +42,7 @@
 		7BCB66282AC4742800ABD33A /* MenuList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BCB66272AC4742800ABD33A /* MenuList.swift */; };
 		7BCB662A2AC4767B00ABD33A /* MainMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BCB66292AC4767B00ABD33A /* MainMenu.swift */; };
 		7BCB662E2AC476BC00ABD33A /* NetworkStressTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BCB662D2AC476BC00ABD33A /* NetworkStressTest.swift */; };
+		FA0347142E65F63100FB7E87 /* StdoutExporter in Frameworks */ = {isa = PBXBuildFile; productRef = FA0347132E65F63100FB7E87 /* StdoutExporter */; };
 		FA3B0A112C3C2A5600315578 /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = FA3B0A102C3C2A5600315578 /* EmbraceCore */; };
 		FA3B0A152C3C2A5600315578 /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = FA3B0A142C3C2A5600315578 /* EmbraceCrashlyticsSupport */; };
 		FA3B0A172C3C2A5600315578 /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = FA3B0A162C3C2A5600315578 /* EmbraceIO */; };
@@ -153,7 +153,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				7B3BD2192BBC5A1600938444 /* StdoutExporter in Frameworks */,
 				FA716C822C45B94A00AD0161 /* EmbraceCrashlyticsSupport in Frameworks */,
 				FA3B0A152C3C2A5600315578 /* EmbraceCrashlyticsSupport in Frameworks */,
 				FA716C7E2C45B94A00AD0161 /* EmbraceCore in Frameworks */,
@@ -162,6 +161,7 @@
 				FAF85DFB2C45B1C6002306FF /* EmbraceIO in Frameworks */,
 				FA3B0A172C3C2A5600315578 /* EmbraceIO in Frameworks */,
 				FA3B0A112C3C2A5600315578 /* EmbraceCore in Frameworks */,
+				FA0347142E65F63100FB7E87 /* StdoutExporter in Frameworks */,
 				FAF85DF52C45B1C6002306FF /* EmbraceCore in Frameworks */,
 				FAF85DF92C45B1C6002306FF /* EmbraceCrashlyticsSupport in Frameworks */,
 				FAEF5A152C6BA46F00484474 /* EmbraceCrashlyticsSupport in Frameworks */,
@@ -522,7 +522,6 @@
 			);
 			name = BrandGame;
 			packageProductDependencies = (
-				7B3BD2182BBC5A1600938444 /* StdoutExporter */,
 				FA3B0A102C3C2A5600315578 /* EmbraceCore */,
 				FA3B0A142C3C2A5600315578 /* EmbraceCrashlyticsSupport */,
 				FA3B0A162C3C2A5600315578 /* EmbraceIO */,
@@ -536,6 +535,7 @@
 				FAEF5A142C6BA46F00484474 /* EmbraceCrashlyticsSupport */,
 				FAEF5A162C6BA46F00484474 /* EmbraceIO */,
 				FAEF5A182C6BA46F00484474 /* EmbraceSemantics */,
+				FA0347132E65F63100FB7E87 /* StdoutExporter */,
 			);
 			productName = BrandGame;
 			productReference = 7B56308A2ABE743400E0DF39 /* BrandGame.app */;
@@ -566,8 +566,8 @@
 			);
 			mainGroup = 7B5630812ABE743400E0DF39;
 			packageReferences = (
-				7B3BD1FD2BBC5A1600938444 /* XCRemoteSwiftPackageReference "opentelemetry-swift" */,
 				FAEF5A0F2C6BA46F00484474 /* XCLocalSwiftPackageReference "../.." */,
+				FA0347122E65F63100FB7E87 /* XCRemoteSwiftPackageReference "opentelemetry-swift-core" */,
 			);
 			productRefGroup = 7B56308B2ABE743400E0DF39 /* Products */;
 			projectDirPath = "";
@@ -903,20 +903,20 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		7B3BD1FD2BBC5A1600938444 /* XCRemoteSwiftPackageReference "opentelemetry-swift" */ = {
+		FA0347122E65F63100FB7E87 /* XCRemoteSwiftPackageReference "opentelemetry-swift-core" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/open-telemetry/opentelemetry-swift";
+			repositoryURL = "https://github.com/open-telemetry/opentelemetry-swift-core";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 2.0.0;
+				minimumVersion = 2.1.1;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		7B3BD2182BBC5A1600938444 /* StdoutExporter */ = {
+		FA0347132E65F63100FB7E87 /* StdoutExporter */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 7B3BD1FD2BBC5A1600938444 /* XCRemoteSwiftPackageReference "opentelemetry-swift" */;
+			package = FA0347122E65F63100FB7E87 /* XCRemoteSwiftPackageReference "opentelemetry-swift-core" */;
 			productName = StdoutExporter;
 		};
 		FA3B0A102C3C2A5600315578 /* EmbraceCore */ = {
