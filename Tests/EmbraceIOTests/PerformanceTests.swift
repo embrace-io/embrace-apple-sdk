@@ -108,4 +108,10 @@ class PerformanceBacktraceTests: XCTestCase {
         _ = EmbraceBacktrace.backtrace()
     }
 
+    func test_embraceBacktraceAndSymbolicate() {
+        let result = EmbraceBacktrace.backtrace().threads.compactMap { thread in
+            thread.callstack.frames(symbolicated: true)
+        }
+        print("")
+    }
 }

@@ -44,9 +44,9 @@ public class KSCrashBacktracing: Backtracer, Symbolicator {
             returnAddress: result.returnAddress,
             callInstruction: result.callInstruction,
             symbolAddress: result.symbolAddress,
-            symbolName: backtraceDemangle(result.symbolName != nil ? String(cString: result.symbolName!) : nil),
-            imageName: result.imageName != nil ? NSString(utf8String: result.imageName!)?.lastPathComponent ?? nil : nil,
-            imageUUID: result.imageUUID != nil ? NSString(utf8String: result.imageUUID!) as? String : nil,
+            symbolName: result.symbolName.flatMap { backtraceDemangle(String(cString: $0)) },
+            imageName: result.imageName.flatMap { String(cString: $0) },
+            imageUUID: NSUUID(uuidBytes: result.imageUUID).uuidString,
             imageAddress: result.imageAddress,
             imageSize: result.imageSize
         )

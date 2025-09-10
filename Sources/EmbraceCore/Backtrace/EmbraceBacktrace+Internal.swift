@@ -85,7 +85,49 @@ private class EmbraceThreadList {
     }
 }
 
-var _symbolCache: EmbraceMutex<[UInt64: EmbraceBacktraceFrame]> = EmbraceMutex([:])
+private var _symbolCache = SymbolCache()
+
+internal class SymbolCache {
+    struct Item {
+        var accessDate: UInt64
+        let frame: EmbraceBacktraceFrame
+        let address: UInt64
+    }
+    let cache: EmbraceMutex<[UInt64: Item]> = EmbraceMutex([:])
+    let limit: Int
+
+    init(limit: Int = 4096) {
+        self.limit = limit
+    }
+
+    func retrieve(_ address: UInt64) -> EmbraceBacktraceFrame? {
+        return cache.withLock {
+            $0[address]?.accessDate = clock_gettime_nsec_np(CLOCK_MONOTONIC)
+            return $0[address]?.frame
+        }
+    }
+
+    func store(_ frame: EmbraceBacktraceFrame, for address: UInt64) {
+        cache.withLock {
+            $0[address] = Item(
+                accessDate: clock_gettime_nsec_np(CLOCK_MONOTONIC),
+                frame: frame,
+                address: address
+            )
+
+            // purge
+            if $0.count > limit {
+                let keysToRemove = $0.values.sorted { $0.accessDate < $1.accessDate }.prefix($0.count - limit).map(\.address)
+                for key in keysToRemove {
+                    $0.removeValue(forKey: key)
+                    if $0.count <= limit {
+                        break
+                    }
+                }
+            }
+        }
+    }
+}
 
 extension EmbraceBacktraceThread.Callstack {
     func frames(symbolicated: Bool) -> [EmbraceBacktraceFrame] {
@@ -114,7 +156,7 @@ extension EmbraceBacktraceFrame {
             return self
         }
 
-        if let cached = _symbolCache.withLock({ $0[address] }) {
+        if let cached = _symbolCache.retrieve(address) {
             return cached
         }
 
@@ -130,14 +172,14 @@ extension EmbraceBacktraceFrame {
             ),
             image: result.imageName != nil
                 ? Image(
-                    uuid: NSUUID(uuidBytes: result.imageUUID).uuidString,
-                    name: result.imageName!,
+                    uuid: result.imageUUID ?? "",
+                    name: result.imageName ?? "",
                     address: result.imageAddress,
                     size: result.imageSize
                 ) : nil
         )
 
-        _symbolCache.withLock { $0[address] = symbolicatedFrame }
+        _symbolCache.store(symbolicatedFrame, for: address)
 
         return symbolicatedFrame
     }
