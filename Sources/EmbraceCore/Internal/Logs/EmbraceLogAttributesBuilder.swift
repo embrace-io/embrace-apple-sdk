@@ -45,13 +45,6 @@ class EmbraceLogAttributesBuilder {
     private func serializeProcessedStackTrace(_ processedStackTrace: [[String: Any]]) {
         do {
             let jsonData = try JSONSerialization.data(withJSONObject: processedStackTrace, options: [.prettyPrinted, .sortedKeys])
-            #if targetEnvironment(simulator)
-                if #available(iOS 16.0, *) {
-                    let url: URL = .desktopDirectory.appendingPathComponent("stackTrace.json")
-                    try? jsonData.write(to: url)
-                }
-            #endif
-
             let stackTraceInBase64 = jsonData.base64EncodedString()
             attributes[LogSemantics.keyStackTrace] = stackTraceInBase64
         } catch let exception {
