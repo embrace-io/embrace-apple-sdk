@@ -82,20 +82,32 @@ run_quiet xcodebuild ${PRE_ACTIONS} \
   -destination "${DESTINATION}" \
   >/dev/null
 
+log "Running a few warm-up iterations..."
+run_quiet xcodebuild test-without-building \
+  -workspace "${WORKSPACE}" \
+  -scheme "${SCHEME}" \
+  "${TEST_ARGS[@]}" \
+  -destination "${DESTINATION}" \
+  -test-iterations 3 \
+  -skipPackageUpdates \
+  -skipPackagePluginValidation \
+  -skipMacroValidation \
+  -disableAutomaticPackageResolution \
+  >/dev/null
 
-  log "Testing with $((ITERATIONS - 1)) iteration(s)..."
-  run_quiet xcodebuild test-without-building \
-    -workspace "${WORKSPACE}" \
-    -scheme "${SCHEME}" \
-    "${TEST_ARGS[@]}" \
-    -destination "${DESTINATION}" \
-    -resultBundlePath "${RESULT_FILE}" \
-    -test-iterations "${ITERATIONS}" \
-    -skipPackageUpdates \
-    -skipPackagePluginValidation \
-    -skipMacroValidation \
-    -disableAutomaticPackageResolution \
-    >/dev/null
+log "Testing with $((ITERATIONS - 1)) iteration(s)..."
+run_quiet xcodebuild test-without-building \
+  -workspace "${WORKSPACE}" \
+  -scheme "${SCHEME}" \
+  "${TEST_ARGS[@]}" \
+  -destination "${DESTINATION}" \
+  -resultBundlePath "${RESULT_FILE}" \
+  -test-iterations "${ITERATIONS}" \
+  -skipPackageUpdates \
+  -skipPackagePluginValidation \
+  -skipMacroValidation \
+  -disableAutomaticPackageResolution \
+  >/dev/null
 
 # we could use `xcrun xcresulttool get test-results metrics`,
 # or `xcresultparser`, but both complicate things. 
@@ -133,6 +145,7 @@ run_quiet xcrun xcresulttool get test-results tests \
         avg:     $avg,
         median:  $median,
         stddev:  $stddev,
-        count:   $n
+        count:   $n,
+        all:     $rest
       }
   ]'
