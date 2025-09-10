@@ -12,6 +12,7 @@ import Foundation
     import EmbraceConfigInternal
     import EmbraceOTelInternal
     import EmbraceConfiguration
+    import EmbraceObjCUtilsInternal
 #endif
 
 protocol LogControllable: LogBatcherDelegate {
@@ -34,7 +35,6 @@ class LogController: LogControllable {
     private(set) weak var sessionController: SessionControllable?
     private weak var storage: Storage?
     private weak var upload: EmbraceLogUploader?
-    private let mainThread: pthread_t
 
     weak var sdkStateProvider: EmbraceSDKStateProvider?
 
@@ -62,11 +62,9 @@ class LogController: LogControllable {
         upload: EmbraceLogUploader?,
         controller: SessionControllable
     ) {
-        precondition(Thread.isMainThread, "Must be called on the main thread")
         self.storage = storage
         self.upload = upload
         self.sessionController = controller
-        self.mainThread = pthread_self()
     }
 
     func uploadAllPersistedLogs(_ completion: (() -> Void)? = nil) {
@@ -123,7 +121,7 @@ class LogController: LogControllable {
             let backtrace = EmbraceBacktrace.backtrace(of: pthread_self(), suspendingThreads: false)
             addStacktraceBlock = { $0.addBacktrace(backtrace) }
         case .main where severity == .warn || severity == .error:
-            let backtrace = EmbraceBacktrace.backtrace(of: mainThread, suspendingThreads: true)
+            let backtrace = EmbraceBacktrace.backtrace(of: EmbraceGetMainThread(), suspendingThreads: true)
             addStacktraceBlock = { $0.addBacktrace(backtrace) }
         case .custom(let customStackTrace) where severity == .warn || severity == .error:
             let stackTrace = customStackTrace.frames
