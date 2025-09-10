@@ -20,7 +20,7 @@ final class EmbraceIOTestSwiftUI: XCTestCase {
 
     }
 
-    func testAllLogCases() {
+    func testAllSwiftUICases() {
         caseManualCapture()
         app.swipeDown()
         caseManualCapture_ContentComplete()
