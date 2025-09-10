@@ -40,9 +40,9 @@ jobs:
       - name: Erase Simulators
         run: |
             xcrun simctl erase all
-      - name: Boot Simulator
-        run: |
-          xcrun simctl boot "${{ matrix.device }}"
+     # - name: Boot Simulator
+     #   run: |
+     #     xcrun simctl boot "${{ matrix.device }}"
 
       - name: Cache SPM Dependencies
         uses: actions/cache@v4
