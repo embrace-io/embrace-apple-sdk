@@ -52,8 +52,8 @@ class ResourceStorageExporter: EmbraceResourceProvider {
             attributes[SemanticConventions.Service.version.rawValue] = .string(appVersion)
         }
 
-        if attributes[SemanticConventions.Telemetry.sdkVersion.rawValue] == nil {
-            attributes[SemanticConventions.Telemetry.sdkVersion.rawValue] = .string("swift")
+        if attributes[SemanticConventions.Telemetry.sdkLanguage.rawValue] == nil {
+            attributes[SemanticConventions.Telemetry.sdkLanguage.rawValue] = .string("swift")
         }
 
         return Resource(attributes: attributes)
