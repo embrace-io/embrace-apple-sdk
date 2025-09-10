@@ -90,7 +90,7 @@ class MockEmbraceSpanHandler: EmbraceSpanHandler {
     }
 
     var onSpanAttributesUpdatedCallCount: Int = 0
-    func onSpanAttributesUpdated(_ span: EmbraceSpan, attributes: [String: String]) {
+    func onSpanAttributesUpdated(_ span: EmbraceSpan, key: String, value: String?, attributes: [String: String]) {
         onSpanAttributesUpdatedCallCount += 1
     }
 

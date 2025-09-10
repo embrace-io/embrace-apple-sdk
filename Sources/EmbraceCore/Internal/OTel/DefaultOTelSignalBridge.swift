@@ -44,7 +44,7 @@ class DefaultOTelSignalBridge: EmbraceOTelSignalBridge {
 
     }
 
-    func addSpanLink(_ span: any EmbraceSpan, event: EmbraceSpanLink) {
+    func addSpanLink(_ span: any EmbraceSpan, link: EmbraceSpanLink) {
 
     }
 

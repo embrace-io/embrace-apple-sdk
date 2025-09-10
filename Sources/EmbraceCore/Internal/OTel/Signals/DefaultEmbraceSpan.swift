@@ -243,7 +243,12 @@ class DefaultEmbraceSpan: EmbraceSpan {
         }
 
         if update {
-            handler.onSpanAttributesUpdated(self, attributes: attributes)
+            handler.onSpanAttributesUpdated(
+                self,
+                key: attribute.0,
+                value: attribute.1,
+                attributes: attributes
+            )
         }
     }
 

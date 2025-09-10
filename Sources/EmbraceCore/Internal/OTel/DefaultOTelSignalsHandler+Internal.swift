@@ -241,22 +241,27 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
 // MARK: EmbraceSpanDelegate
 extension DefaultOTelSignalsHandler: EmbraceSpanDelegate {
     func onSpanStatusUpdated(_ span: EmbraceSpan, status: EmbraceSpanStatus) {
+        bridge.updateSpanStatus(span, status: status)
         storage?.setSpanStatus(id: span.context.spanId, traceId: span.context.traceId, status: status)
     }
 
     func onSpanEventAdded(_ span: EmbraceSpan, event: EmbraceSpanEvent) {
+        bridge.addSpanEvent(span, event: event)
         storage?.addSpanEvent(id: span.context.spanId, traceId: span.context.traceId, event: event)
     }
 
     func onSpanLinkAdded(_ span: EmbraceSpan, link: EmbraceSpanLink) {
+        bridge.addSpanLink(span, link: link)
         storage?.addSpanLink(id: span.context.spanId, traceId: span.context.traceId, link: link)
     }
 
-    func onSpanAttributesUpdated(_ span: EmbraceSpan, attributes: [String: String]) {
+    func onSpanAttributesUpdated(_ span: EmbraceSpan, key: String, value: String?, attributes: [String: String]) {
+        bridge.updateSpanAttribute(span, key: key, value: value)
         storage?.setSpanAttributes(id: span.context.spanId, traceId: span.context.traceId, attributes: attributes)
     }
 
     func onSpanEnded(_ span: any EmbraceSpan, endTime: Date) {
+        bridge.endSpan(span, endTime: endTime)
         storage?.endSpan(id: span.context.spanId, traceId: span.context.traceId, endTime: endTime)
     }
 }

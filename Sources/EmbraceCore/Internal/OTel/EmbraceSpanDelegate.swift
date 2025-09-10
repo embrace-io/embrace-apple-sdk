@@ -14,7 +14,7 @@ protocol EmbraceSpanDelegate: AnyObject {
     func onSpanStatusUpdated(_ span: EmbraceSpan, status: EmbraceSpanStatus)
     func onSpanEventAdded(_ span: EmbraceSpan, event: EmbraceSpanEvent)
     func onSpanLinkAdded(_ span: EmbraceSpan, link: EmbraceSpanLink)
-    func onSpanAttributesUpdated(_ span: EmbraceSpan, attributes: [String: String])
+    func onSpanAttributesUpdated(_ span: EmbraceSpan, key: String, value: String?, attributes: [String: String])
     func onSpanEnded(_ span: EmbraceSpan, endTime: Date)
 }
 
