@@ -45,8 +45,8 @@ let package = Package(
             exact: "2.3.0"
         ),
         .package(
-            url: "https://github.com/open-telemetry/opentelemetry-swift",
-            exact: "2.0.2"
+            url: "https://github.com/open-telemetry/opentelemetry-swift-core",
+            exact: "2.1.1"
         ),
         .package(
             url: "https://github.com/swiftlang/swift-syntax.git",
@@ -182,7 +182,7 @@ let package = Package(
             dependencies: [
                 "EmbraceCommonInternal",
                 "EmbraceSemantics",
-                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
+                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift-core")
             ]
         ),
         .testTarget(
@@ -315,7 +315,7 @@ let package = Package(
                 "EmbraceCore",
                 "EmbraceOTelInternal",
                 "EmbraceCommonInternal",
-                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift")
+                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift-core")
             ],
             path: "Tests/TestSupport",
             exclude: ["Objc"]

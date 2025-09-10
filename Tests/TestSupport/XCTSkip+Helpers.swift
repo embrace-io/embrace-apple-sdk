@@ -2,6 +2,7 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceCommonInternal
 import XCTest
 
 extension XCTestCase {
@@ -22,5 +23,21 @@ extension XCTestCase {
         #else
             return false
         #endif
+    }
+}
+
+/// Sometimes a test just can't run more than once for N reasons, this helps skip it
+/// if run more than once without failing.
+private var _runCountMap: EmbraceMutex<[String: Int]> = EmbraceMutex([:])
+extension XCTestCase {
+    public func XCTSkipIfRunMoreThanOnce(_ function: String = #function) throws {
+        let count = _runCountMap.withLock {
+            let val = $0[function, default: 0]
+            $0[function] = val + 1
+            return val
+        }
+        guard count < 1 else {
+            throw XCTSkip("Skipping test as it ran more than once")
+        }
     }
 }
