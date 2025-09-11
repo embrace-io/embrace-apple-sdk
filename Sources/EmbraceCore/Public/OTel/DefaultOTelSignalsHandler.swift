@@ -66,9 +66,9 @@ public class DefaultOTelSignalsHandler {
     /// - Throws: `EmbraceOTelError.spanEventLimitReached` if the limit hass ben reached for the given span even type.
     public func addSessionEvent(
         name: String,
-        type: EmbraceType?,
-        timestamp: Date,
-        attributes: [String: String]
+        type: EmbraceType? = nil,
+        timestamp: Date = Date(),
+        attributes: [String: String] = [:]
     ) throws {
         try _addSessionEvent(
             name: name,
@@ -112,7 +112,7 @@ public class DefaultOTelSignalsHandler {
 
     // MARK: Internal
     let storage: EmbraceStorage?
-    let sessionController: SessionController?
+    let sessionController: SessionControllable?
     let logController: LogController?
     let limiter: OTelSignalsLimiter
     let sanitizer: OTelSignalsSanitizer
@@ -131,7 +131,7 @@ public class DefaultOTelSignalsHandler {
 
     init(
         storage: EmbraceStorage?,
-        sessionController: SessionController?,
+        sessionController: SessionControllable?,
         logController: LogController?,
         limiter: OTelSignalsLimiter,
         sanitizer: OTelSignalsSanitizer = DefaultOtelSignalsSanitizer(),

@@ -12,7 +12,7 @@ class SpyLogRepository: LogRepository {
 
     var didCallFetchAll = false
     var stubbedFetchAllResult: [EmbraceLog] = []
-    func fetchAllLogs(excludingProcessIdentifier processIdentifier: EmbraceIdentifier) -> [EmbraceLog] {
+    func fetchAllLogs(excludingProcessIdentifier processIdentifier: EmbraceIdentifier?) -> [EmbraceLog] {
         didCallFetchAll = true
         return stubbedFetchAllResult
     }

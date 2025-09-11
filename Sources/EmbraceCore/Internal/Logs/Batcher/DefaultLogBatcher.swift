@@ -22,6 +22,7 @@ protocol LogBatcher: AnyObject {
 
     var logBatchLimits: LogBatchLimits { get }
     var delegate: LogBatcherDelegate? { get set }
+    var batch: LogsBatch? { get }
 }
 
 class DefaultLogBatcher: LogBatcher {
@@ -31,7 +32,7 @@ class DefaultLogBatcher: LogBatcher {
     weak var delegate: LogBatcherDelegate?
 
     private var batchDeadlineWorkItem: DispatchWorkItem?
-    private var batch: LogsBatch?
+    var batch: LogsBatch?
 
     init(
         logBatchLimits: LogBatchLimits = LogBatchLimits(),

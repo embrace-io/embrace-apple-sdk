@@ -10,7 +10,7 @@ import Foundation
 
 public protocol LogRepository {
     func saveLog(_ log: EmbraceLog)
-    func fetchAllLogs(excludingProcessIdentifier processIdentifier: EmbraceIdentifier) -> [EmbraceLog]
+    func fetchAllLogs(excludingProcessIdentifier processIdentifier: EmbraceIdentifier?) -> [EmbraceLog]
     func remove(logs: [EmbraceLog])
 }
 
@@ -21,9 +21,11 @@ extension EmbraceStorage {
         coreData.save()
     }
 
-    public func fetchAllLogs(excludingProcessIdentifier processIdentifier: EmbraceIdentifier) -> [EmbraceLog] {
+    public func fetchAllLogs(excludingProcessIdentifier processIdentifier: EmbraceIdentifier? = nil) -> [EmbraceLog] {
         let request = LogRecord.createFetchRequest()
-        request.predicate = NSPredicate(format: "processIdRaw != %@", processIdentifier.stringValue)
+        if let processIdentifier {
+            request.predicate = NSPredicate(format: "processIdRaw != %@", processIdentifier.stringValue)
+        }
 
         // fetch
         var result: [EmbraceLog] = []

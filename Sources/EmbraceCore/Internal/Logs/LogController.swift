@@ -50,12 +50,13 @@ class LogController: LogControllable {
         storage: Storage?,
         upload: EmbraceLogUploader?,
         sessionController: SessionControllable,
+        batcher: LogBatcher = DefaultLogBatcher(),
         queue: DispatchQueue
     ) {
         self.storage = storage
         self.upload = upload
         self.sessionController = sessionController
-        self.batcher = DefaultLogBatcher()
+        self.batcher = batcher
         self.queue = queue
 
         self.batcher.delegate = self

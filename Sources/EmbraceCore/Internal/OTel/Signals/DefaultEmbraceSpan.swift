@@ -64,7 +64,7 @@ class DefaultEmbraceSpan: EmbraceSpan {
 
     init(
         context: EmbraceSpanContext,
-        parentSpanId: String?,
+        parentSpanId: String? = nil,
         name: String,
         type: EmbraceType = .performance,
         status: EmbraceSpanStatus = .unset,

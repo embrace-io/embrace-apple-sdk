@@ -148,10 +148,7 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
 
             for span in $0.autoTerminationSpans.values {
                 let code = span.autoTerminationCode ?? .unknown
-                span.setInternalAttribute(key: SpanSemantics.keyErrorCode, value: code.name)
-                span.setStatus(.error)
                 span.end(errorCode: code, endTime: now)
-                span.end(endTime: now)
             }
 
             $0.autoTerminationSpans.removeAll()

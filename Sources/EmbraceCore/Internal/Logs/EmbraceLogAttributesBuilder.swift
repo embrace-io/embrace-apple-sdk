@@ -59,12 +59,8 @@ class EmbraceLogAttributesBuilder {
     }
 
     /// Makes sure that `emb.type` attribute is not already set in attributes
-    /// If not set, will set the `emb.type` to the value
     @discardableResult
     func addLogType(_ logType: EmbraceType) -> Self {
-        guard attributes[LogSemantics.keyEmbraceType] == nil else {
-            return self
-        }
         attributes[LogSemantics.keyEmbraceType] = logType.rawValue
         return self
     }
@@ -101,18 +97,12 @@ class EmbraceLogAttributesBuilder {
 
     @discardableResult
     func addApplicationState() -> Self {
-        guard attributes[LogSemantics.keyState] == nil else {
-            return self
-        }
-
         return addApplicationState(currentSession?.state)
     }
 
     @discardableResult
     func addApplicationState(_ state: SessionState?) -> Self {
-        guard let state = state,
-            attributes[LogSemantics.keyState] == nil
-        else {
+        guard let state = state else {
             return self
         }
         attributes[LogSemantics.keyState] = state.rawValue
@@ -121,18 +111,12 @@ class EmbraceLogAttributesBuilder {
 
     @discardableResult
     func addSessionIdentifier() -> Self {
-        guard attributes[LogSemantics.keySessionId] == nil else {
-            return self
-        }
-
         return addSessionIdentifier(currentSession?.id)
     }
 
     @discardableResult
     func addSessionIdentifier(_ sessionId: EmbraceIdentifier?) -> Self {
-        guard let sessionId = sessionId,
-            attributes[LogSemantics.keySessionId] == nil
-        else {
+        guard let sessionId = sessionId else {
             return self
         }
         attributes[LogSemantics.keySessionId] = sessionId.stringValue

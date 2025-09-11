@@ -25,6 +25,8 @@ class MockSessionController: SessionControllable {
 
     weak var storage: EmbraceStorage?
     var currentSession: EmbraceSession?
+    var currentSessionSpan: EmbraceSpan?
+    weak var spanHandler: EmbraceSpanHandler?
 
     func clear() {}
 
@@ -69,6 +71,29 @@ class MockSessionController: SessionControllable {
 
         currentSession = session
 
+        currentSessionSpan = InternalEmbraceSpan(
+            context: EmbraceSpanContext(
+                spanId: TestConstants.spanId,
+                traceId: TestConstants.traceId
+            ),
+            name: "emb-session",
+            type: .session,
+            status: .ok,
+            startTime: startTime,
+            attributes: [
+                "session.id": session!.id.stringValue,
+                "emb.state": state.rawValue,
+                "emb.cold_start": String(nextSessionColdStart),
+                "emb.terminated": String(nextSessionAppTerminated)
+            ],
+            sessionId: session!.id,
+            processId: ProcessIdentifier.current,
+            handler: spanHandler
+        )
+        if let storage {
+            storage.upsertSpan(currentSessionSpan!)
+        }
+
         return session
     }
 
@@ -76,6 +101,12 @@ class MockSessionController: SessionControllable {
     func endSession() -> Date {
         didCallEndSession = true
         currentSession = nil
+
+        if let span = currentSessionSpan {
+            span.end()
+            storage?.upsertSpan(span)
+        }
+        currentSessionSpan = nil
 
         return Date()
     }

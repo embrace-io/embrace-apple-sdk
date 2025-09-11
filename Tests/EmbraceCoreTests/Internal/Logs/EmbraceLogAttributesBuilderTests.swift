@@ -164,18 +164,6 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
 
         thenResultingAttributes(is: ["emb.type": EmbraceType.message.rawValue])
     }
-
-    func test_onAddLogType_whenAlreadySet_doesNotChangeValue() {
-        givenSessionController()
-        givenMetadataFetcher()
-        givenEmbraceLogAttributesBuilder(withInitialAttributes: ["emb.type": EmbraceType.crash.rawValue])
-
-        whenInvokingAddLogType(.message)
-        whenInvokingBuild()
-
-        thenResultingAttributes(is: ["emb.type": EmbraceType.crash.rawValue])
-    }
-
 }
 
 extension EmbraceLogAttributesBuilderTests {

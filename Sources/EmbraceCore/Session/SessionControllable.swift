@@ -5,6 +5,7 @@
 import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceSemantics
     import EmbraceCommonInternal
     import EmbraceStorageInternal
 #endif
@@ -14,6 +15,7 @@ import Foundation
 protocol SessionControllable: AnyObject {
 
     var currentSession: EmbraceSession? { get }
+    var currentSessionSpan: EmbraceSpan? { get }
 
     @discardableResult
     func startSession(state: SessionState) -> EmbraceSession?

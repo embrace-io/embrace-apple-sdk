@@ -75,7 +75,7 @@ class SpyStorage: Storage {
     var didCallFetchAllExcludingProcessIdentifier = false
     var stubbedFetchAllExcludingProcessIdentifier: [EmbraceLog] = []
     var fetchAllExcludingProcessIdentifierReceivedParameter: EmbraceIdentifier!
-    func fetchAllLogs(excludingProcessIdentifier processIdentifier: EmbraceIdentifier) -> [EmbraceLog] {
+    func fetchAllLogs(excludingProcessIdentifier processIdentifier: EmbraceIdentifier?) -> [EmbraceLog] {
         didCallFetchAllExcludingProcessIdentifier = true
         fetchAllExcludingProcessIdentifierReceivedParameter = processIdentifier
         return stubbedFetchAllExcludingProcessIdentifier
