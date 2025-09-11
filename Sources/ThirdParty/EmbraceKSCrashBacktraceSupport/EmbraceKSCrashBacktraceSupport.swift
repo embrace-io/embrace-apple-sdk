@@ -17,7 +17,7 @@ public class KSCrashBacktracing: Backtracer, Symbolicator {
 
     public func backtrace(of thread: pthread_t) -> [UInt] {
 
-        // In KSCrash there, a bug that causes a backtrace on the pthread_self
+        // In KSCrash there's a bug that causes a backtrace on the pthread_self
         // to not work. So for now we'll simply use `backtrace`
         // fix: https://github.com/kstenerud/KSCrash/pull/690
 
