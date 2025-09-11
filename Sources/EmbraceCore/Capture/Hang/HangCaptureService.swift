@@ -79,7 +79,13 @@ extension HangCaptureService: HangObserver {
     public func hangStarted(at: NanosecondClock, duration: NanosecondClock) {
 
         logger?.debug("[Watchdog] Hang started, at \(at.date) after waiting \(duration.uptime.milliseconds) ms")
-
+        
+        // If for some reason the span isn't closed yes, skip this hang.
+        guard span == nil else {
+            logger?.warning("[Watchdog] span is not nil, will not log this hang")
+            return
+        }
+        
         // Keep tabs on how many hang spans we've created
         guard
             limitData.withLock({
@@ -106,21 +112,22 @@ extension HangCaptureService: HangObserver {
             return
         }
 
-        queue.async { [self] in
-            span =
-                builder
-                .setStartTime(time: at.date)
-                .setAttribute(key: "last_known_time_unix_nano", value: .int(Int(at.realtime)))
-                .setAttribute(key: "interval_code", value: .int(0))
-                .setAttribute(key: "thread_priority", value: .int(0))
-                .startSpan()
-        }
-
-        // Send an error log which will contain the stacktrace
+        span = builder
+            .setStartTime(time: at.date)
+            .setAttribute(key: "last_known_time_unix_nano", value: .int(Int(at.realtime)))
+            .setAttribute(key: "interval_code", value: .int(0))
+            .setAttribute(key: "thread_priority", value: .int(0))
+            .startSpan()
+        
         Embrace.client?.log(
-            "Hang Detected",
+            "Hang",
             severity: .error,
             timestamp: at.date,
+            attributes: [
+                "emb.spanid": span?.context.spanId.hexString ?? "",
+                "emb.traceid": span?.context.traceId.hexString ?? "",
+                "emb.started_after_ms": "\(duration.uptime.milliseconds)"
+            ],
             stackTraceBehavior: .main
         )
     }
