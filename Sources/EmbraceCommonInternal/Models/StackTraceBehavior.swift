@@ -14,6 +14,7 @@ public enum StackTraceBehavior {
     case `default`
 
     /// Stack traces are taken for the main thread.
+    /// Only available if `EmbraceBacktrace.isAvailable == true`.
     case main
 
     /// A custom stack trace provided.

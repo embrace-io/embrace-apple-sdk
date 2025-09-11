@@ -45,6 +45,10 @@ extension Embrace {
         ///   - logLevel: The `LogLevel` to use for console logs.
         ///   - export: `OpenTelemetryExport` object to export telemetry using OpenTelemetry protocols
         ///   - processors: `OpenTelemetryProcessor` objects to do extra processing
+        ///   - backtracer: Optional `Backtracer` to capture stack traces. Defaults to the
+        ///     built-in mechanism, which is sufficient for most apps.
+        ///   - symbolicator: Optional `Symbolicator` to resolve frames into symbols;
+        ///     without it, only raw addresses are shown.
         @objc public init(
             appId: String,
             appGroupId: String? = nil,

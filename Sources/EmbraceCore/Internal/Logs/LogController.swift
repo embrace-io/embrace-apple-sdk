@@ -118,11 +118,21 @@ class LogController: LogControllable {
         let addStacktraceBlock: ((_ builder: EmbraceLogAttributesBuilder) -> Void)?
         switch stackTraceBehavior {
         case .default where severity == .warn || severity == .error:
-            let backtrace = EmbraceBacktrace.backtrace(of: pthread_self(), suspendingThreads: false)
-            addStacktraceBlock = { $0.addBacktrace(backtrace) }
+            if EmbraceBacktrace.isAvailable {
+                let backtrace = EmbraceBacktrace.backtrace(of: pthread_self(), suspendingThreads: false)
+                addStacktraceBlock = { $0.addBacktrace(backtrace) }
+            } else {
+                let stacktrace = Thread.callStackSymbols
+                addStacktraceBlock = { $0.addStackTrace(stacktrace) }
+            }
         case .main where severity == .warn || severity == .error:
-            let backtrace = EmbraceBacktrace.backtrace(of: EmbraceGetMainThread(), suspendingThreads: true)
-            addStacktraceBlock = { $0.addBacktrace(backtrace) }
+            if EmbraceBacktrace.isAvailable {
+                let backtrace = EmbraceBacktrace.backtrace(of: EmbraceGetMainThread(), suspendingThreads: true)
+                addStacktraceBlock = { $0.addBacktrace(backtrace) }
+            } else {
+                addStacktraceBlock = nil
+                Embrace.logger.warning("stackTraceBehavior .main is unavailable without EmbraceBacktrace")
+            }
         case .custom(let customStackTrace) where severity == .warn || severity == .error:
             let stackTrace = customStackTrace.frames
             addStacktraceBlock = { $0.addStackTrace(stackTrace) }

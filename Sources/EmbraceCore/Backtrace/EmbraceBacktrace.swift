@@ -171,3 +171,15 @@ public struct EmbraceBacktrace: Codable {
     }
 }
 extension EmbraceBacktrace: Sendable {}
+
+extension EmbraceBacktrace {
+    /// Indicates whether backtrace capture is available in the current client configuration.
+    ///
+    /// This returns `true` if a `Backtracer` instance has been provided in
+    /// `Embrace.client?.options`. Otherwise, it returns `false`, meaning
+    /// the SDK cannot capture custom stack traces and will rely solely on
+    /// system defaults.
+    static public var isAvailable: Bool {
+        Embrace.client?.options.backtracer != nil
+    }
+}
