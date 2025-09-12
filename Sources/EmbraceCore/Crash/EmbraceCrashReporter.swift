@@ -19,7 +19,7 @@ extension Notification.Name {
 public final class EmbraceCrashReporter: NSObject {
 
     private let reporter: CrashReporter
-    private let logger: InternalLogger?
+    private let logger: InternalLogger
     internal let queue: DispatchQueue = DispatchQueue(
         label: "com.embrace.crashreporter", qos: .utility, autoreleaseFrequency: .workItem)
     private let signalsBlockList: [CrashSignal]
@@ -80,7 +80,7 @@ public final class EmbraceCrashReporter: NSObject {
 
     public init(
         reporter: CrashReporter,
-        logger: InternalLogger? = nil,
+        logger: InternalLogger,
         signalsBlockList: [CrashSignal] = [.SIGTERM]
     ) {
         self.reporter = reporter
@@ -99,7 +99,7 @@ public final class EmbraceCrashReporter: NSObject {
         do {
             try reporter.install(context: context)
         } catch {
-            logger?.error("EmbraceCrashReporter install failed: \(error)")
+            logger.error("EmbraceCrashReporter install failed: \(error)")
         }
     }
 
@@ -124,6 +124,20 @@ public final class EmbraceCrashReporter: NSObject {
                 completion(reportsToSend)
             }
         }
+    }
+
+    func fetchUnsentTerminationAttributes() async -> [TerminationMetadata] {
+        guard let reporter = reporter as? TerminationReporter else {
+            return []
+        }
+        return await reporter.fetchUnsentTerminationAttributes()
+    }
+
+    public func deleteTerminationData(_ metadata: TerminationMetadata) async {
+        guard let reporter = reporter as? TerminationReporter else {
+            return
+        }
+        await reporter.deleteTerminationData(metadata)
     }
 
     /// Permanently deletes a crash report for the given identifier.

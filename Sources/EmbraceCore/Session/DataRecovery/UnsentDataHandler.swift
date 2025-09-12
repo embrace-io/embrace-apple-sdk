@@ -52,6 +52,13 @@ class UnsentDataHandler {
             // if we have a crash reporter, we fetch the unsent crash reports first
             // and save their identifiers to the corresponding sessions
             if let crashReporter = crashReporter {
+
+                group.enter()
+                Task {
+                    await sendTerminatedProcessesInfo(crashReporter: crashReporter, upload: upload, storage: storage)
+                    group.leave()
+                }
+
                 group.enter()
                 crashReporter.fetchUnsentCrashReports { reports in
                     sendCrashReports(
@@ -83,6 +90,85 @@ class UnsentDataHandler {
 
         group.notify(queue: reportQueue) {
             completion?()
+        }
+    }
+
+    static private func sendTerminatedProcessesInfo(
+        crashReporter: EmbraceCrashReporter,
+        upload: EmbraceUpload,
+        storage: EmbraceStorage?
+    ) async {
+
+        let terminations = await crashReporter.fetchUnsentTerminationAttributes()
+        await withTaskGroup { group in
+            for term in terminations {
+                group.addTask {
+                    await sendTerminationLog(
+                        data: term,
+                        upload: upload,
+                        reporter: crashReporter,
+                        storage: storage
+                    )
+                }
+            }
+            for await _ in group {}
+        }
+    }
+
+    static public func sendTerminationLog(
+        data: TerminationMetadata,
+        upload: EmbraceUpload,
+        reporter: EmbraceCrashReporter,
+        storage: EmbraceStorage?
+    ) async {
+        print("[TERM] uploading log for \(data.processId)")
+
+        let timestamp = data.timestamp
+
+        // send otel log
+        let attributesBuilder = EmbraceLogAttributesBuilder(
+            session: nil,
+            crashReport: nil,
+            storage: storage,
+            // make keys "emb.termination.$0"
+            initialAttributes: data.metadata.compactMapValues { "\($0)" }
+        )
+
+        let attributes =
+            attributesBuilder
+            .addLogType(.message)
+            .addApplicationProperties()
+            .addApplicationState()
+            .addSessionIdentifier()
+            .build()
+
+        let payload = LogPayloadBuilder.build(
+            timestamp: timestamp,
+            severity: LogSeverity.fatal,
+            body: "termination_\(data.processId)",
+            attributes: attributes,
+            storage: storage,
+            sessionId: nil
+        )
+
+        let payloadData: Data
+        do {
+            payloadData = try JSONEncoder().encode(payload).gzipped()
+        } catch {
+            Embrace.logger.warning(
+                "Error encoding crash report \(data.processId) for session \(String(describing: data.processId)):\n"
+                    + error.localizedDescription)
+            return
+        }
+
+        let result = await upload.uploadLog(id: data.processId, data: payloadData)
+        switch result {
+        case .success:
+            await reporter.deleteTerminationData(data)
+
+        case .failure(let error):
+            Embrace.logger.warning(
+                "Error trying to upload crash report \(data.processId):\n\(error.localizedDescription)")
         }
     }
 

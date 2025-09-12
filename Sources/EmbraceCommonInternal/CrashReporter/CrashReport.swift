@@ -17,10 +17,13 @@ import Foundation
     public private(set) var provider: String
 
     /// An internal identifier used by the provider.
-    public private(set) var internalId: Int?
+    public private(set) var internalId: String?
 
     /// If available, the session id that was ended by this crash.
     public private(set) var sessionId: String?
+
+    /// If available, the process id that was ended by this crash.
+    public private(set) var processId: String?
 
     /// The date when the crash occurred if available.
     public private(set) var timestamp: Date?
@@ -31,8 +34,9 @@ import Foundation
     public init(
         payload: String,
         provider: String,
-        internalId: Int? = nil,
+        internalId: String? = nil,
         sessionId: String? = nil,
+        processId: String? = nil,
         timestamp: Date? = nil,
         signal: CrashSignal? = nil
     ) {
@@ -41,6 +45,7 @@ import Foundation
         self.provider = provider
         self.internalId = internalId
         self.sessionId = sessionId
+        self.processId = processId
         self.timestamp = timestamp
         self.signal = signal
     }

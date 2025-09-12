@@ -193,3 +193,36 @@ public typealias FrameAddress = UInt
     ///            (e.g., missing symbols/dSYMs, unknown image).
     @objc func symbolicate(address: FrameAddress) -> SymbolicatedFrame?
 }
+
+public protocol TerminationAttributeValue {}
+extension String: TerminationAttributeValue {}
+extension Int: TerminationAttributeValue {}
+extension Int8: TerminationAttributeValue {}
+extension Int16: TerminationAttributeValue {}
+extension Int32: TerminationAttributeValue {}
+extension Int64: TerminationAttributeValue {}
+extension UInt: TerminationAttributeValue {}
+extension UInt8: TerminationAttributeValue {}
+extension UInt16: TerminationAttributeValue {}
+extension UInt32: TerminationAttributeValue {}
+extension UInt64: TerminationAttributeValue {}
+extension Bool: TerminationAttributeValue {}
+extension Double: TerminationAttributeValue {}
+
+public struct TerminationMetadata {
+    public let processId: String
+    public let timestamp: Date
+    public let metadata: [String: TerminationAttributeValue]
+
+    public init(processId: String, timestamp: Date, metadata: [String: TerminationAttributeValue]) {
+        self.processId = processId
+        self.timestamp = timestamp
+        self.metadata = metadata
+    }
+}
+
+public protocol TerminationReporter {
+
+    func fetchUnsentTerminationAttributes() async -> [TerminationMetadata]
+    func deleteTerminationData(_ metadata: TerminationMetadata) async
+}

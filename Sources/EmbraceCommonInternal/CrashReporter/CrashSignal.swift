@@ -115,3 +115,75 @@ extension CrashSignal {
         }
     }
 }
+
+/// Mach exception types, matching the `EXC_*` constants from <mach/exception_types.h>
+@objc public enum MachException: Int64, CaseIterable {
+    /// Could not access memory.
+    /// - code: `kern_return_t` describing the error.
+    /// - subcode: Bad memory address.
+    case `EXC_BAD_ACCESS` = 1
+
+    /// Instruction failed.
+    /// Illegal or undefined instruction or operand.
+    case `EXC_BAD_INSTRUCTION` = 2
+
+    /// Arithmetic exception.
+    /// Exact nature of exception is in `code` field.
+    case `EXC_ARITHMETIC` = 3
+
+    /// Emulation instruction encountered.
+    /// Details in `code` and `subcode` fields.
+    case `EXC_EMULATION` = 4
+
+    /// Software-generated exception.
+    /// - code: Exact exception.
+    /// - Codes 0–0xFFFF reserved to hardware.
+    /// - Codes 0x10000–0x1FFFF reserved for OS emulation (Unix).
+    case `EXC_SOFTWARE` = 5
+
+    /// Trace, breakpoint, etc.
+    /// Details in `code` field.
+    case `EXC_BREAKPOINT` = 6
+
+    /// System calls.
+    case `EXC_SYSCALL` = 7
+
+    /// Mach system calls.
+    case `EXC_MACH_SYSCALL` = 8
+
+    /// RPC alert.
+    case `EXC_RPC_ALERT` = 9
+
+    /// Abnormal process exit.
+    case `EXC_CRASH` = 10
+
+    /// Hit resource consumption limit.
+    /// Exact resource is in `code` field.
+    case `EXC_RESOURCE` = 11
+
+    /// Violated guarded resource protections.
+    case `EXC_GUARD` = 12
+
+    /// Abnormal process exited to corpse state.
+    case `EXC_CORPSE_NOTIFY` = 13
+}
+
+extension MachException {
+    public var name: String {
+        switch self {
+        case .EXC_BAD_ACCESS: return "EXC_BAD_ACCESS"
+        case .EXC_BAD_INSTRUCTION: return "EXC_BAD_INSTRUCTION"
+        case .EXC_ARITHMETIC: return "EXC_ARITHMETIC"
+        case .EXC_EMULATION: return "EXC_EMULATION"
+        case .EXC_SOFTWARE: return "EXC_SOFTWARE"
+        case .EXC_BREAKPOINT: return "EXC_BREAKPOINT"
+        case .EXC_SYSCALL: return "EXC_SYSCALL"
+        case .EXC_MACH_SYSCALL: return "EXC_MACH_SYSCALL"
+        case .EXC_RPC_ALERT: return "EXC_RPC_ALERT"
+        case .EXC_CRASH: return "EXC_CRASH"
+        case .EXC_RESOURCE: return "EXC_RESOURCE"
+        case .EXC_GUARD: return "EXC_GUARD"
+        case .EXC_CORPSE_NOTIFY: return "EXC_CORPSE_NOTIFY"
+        }
+    }
+}

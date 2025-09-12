@@ -42,14 +42,10 @@ public final class CrashlyticsReporter: NSObject, CrashReporter {
     /// Object used to interact with Firebase
     let wrapper: CrashlyticsWrapper = CrashlyticsWrapper()
 
-    public var basePath: String? {
-        nil
-    }
+    public let basePath: String? = nil
 
     /// We let Crashlytics handle MetricKit
-    public var disableMetricKitReports: Bool {
-        true
-    }
+    public let disableMetricKitReports: Bool = true
 
     /// Block called when there's a new report to upload
     public var onNewReport: ((EmbraceCrashReport) -> Void)?

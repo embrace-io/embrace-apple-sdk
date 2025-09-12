@@ -45,7 +45,8 @@ final class CaptureServices {
                 partitionId: partitionIdentifier,
                 appGroupId: options.appGroupId
             ),
-            notificationCenter: Embrace.notificationCenter
+            notificationCenter: Embrace.notificationCenter,
+            logger: Embrace.logger
         )
         if let reporter = options.crashReporter {
             crashReporter = EmbraceCrashReporter(reporter: reporter, logger: Embrace.logger)
