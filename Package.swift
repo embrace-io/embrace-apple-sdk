@@ -291,6 +291,7 @@ let package = Package(
             name: "EmbraceCrash",
             dependencies: [
                 "EmbraceCommonInternal",
+                "EmbraceTerminations",
                 .product(name: "Recording", package: "KSCrash")
             ],
             path: "Sources/ThirdParty/EmbraceKSCrashSupport"
@@ -328,11 +329,20 @@ let package = Package(
 
         // Utilities
         .target(
-            name: "EmbraceObjCUtilsInternal"
+            name: "EmbraceObjCUtilsInternal",
         ),
         .testTarget(
             name: "EmbraceObjCUtilsInternalTests",
             dependencies: ["EmbraceObjCUtilsInternal", "TestSupport"]
+        ),
+
+        // Terminations
+        .target(
+            name: "EmbraceTerminations",
+            dependencies: [
+                "EmbraceCommonInternal",
+                .product(name: "Recording", package: "KSCrash")
+            ]
         ),
 
         // test support --------------------------------------------------------------
