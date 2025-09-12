@@ -105,6 +105,8 @@ extension LoggingView {
             return .default
         case .notIncluded:
             return .notIncluded
+        case .main:
+            return .main
         case .custom:
             return .custom(
                 try EmbraceStackTrace(
@@ -134,6 +136,7 @@ extension LoggingView {
     enum Behavior: Int {
         case notIncluded
         case `default`
+        case main
         case custom
 
         static func from(_ stackTraceBehavior: StackTraceBehavior) -> Self {
@@ -144,6 +147,8 @@ extension LoggingView {
                 return .default
             case .custom(_):
                 return .custom
+            case .main:
+                return .main
             }
         }
 
@@ -155,6 +160,8 @@ extension LoggingView {
                 "Default"
             case .custom:
                 "Custom"
+            case .main:
+                "Main"
             }
         }
     }

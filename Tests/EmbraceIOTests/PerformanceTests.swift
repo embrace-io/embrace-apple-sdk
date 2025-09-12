@@ -84,4 +84,33 @@ class PerformanceTests: XCTestCase {
             )
         )
     }
+
+}
+
+class PerformanceBacktraceTests: XCTestCase {
+
+    override class func setUp() {
+        super.setUp()
+        _ = try? Embrace.setup(options: Embrace.Options(appId: "myApp")).start()
+    }
+
+    override class func tearDown() {
+        super.tearDown()
+        _ = try? Embrace.client?.stop()
+        Embrace.client = nil
+    }
+
+    func test_embraceAppleStacktrace() {
+        _ = Thread.callStackReturnAddresses
+    }
+
+    func test_embraceBacktrace() {
+        _ = EmbraceBacktrace.backtrace()
+    }
+
+    func test_embraceBacktraceAndSymbolicate() {
+        _ = EmbraceBacktrace.backtrace().threads.compactMap { thread in
+            thread.callstack.frames(symbolicated: true)
+        }
+    }
 }

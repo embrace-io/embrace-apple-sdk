@@ -70,6 +70,8 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
             identifier = "stackTraceBehavior_notIncluded"
         case .custom:
             identifier = "stackTraceBehavior_custom"
+        case .main:
+            identifier = "stackTraceBehavior_main"
         }
 
         let button = app.buttons[identifier]
