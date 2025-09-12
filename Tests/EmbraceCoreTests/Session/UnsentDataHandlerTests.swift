@@ -39,7 +39,8 @@ class UnsentDataHandlerTests: XCTestCase {
             appId: TestConstants.appId,
             sdkVersion: TestConstants.sdkVersion,
             filePathProvider: filePathProvider,
-            notificationCenter: NotificationCenter.default
+            notificationCenter: NotificationCenter.default,
+            logger: MockLogger()
         )
 
         let urlSessionconfig = URLSessionConfiguration.ephemeral
@@ -170,8 +171,8 @@ class UnsentDataHandlerTests: XCTestCase {
         let otel = MockEmbraceOpenTelemetry()
 
         // given a crash reporter
-        let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.stringValue)
-        let embraceReporter = EmbraceCrashReporter(reporter: crashReporter)
+        let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.toString)
+        let embraceReporter = EmbraceCrashReporter(reporter: crashReporter, logger: logger)
         let report = crashReporter.mockReports[0]
 
         // given a finished session in the storage
@@ -241,8 +242,8 @@ class UnsentDataHandlerTests: XCTestCase {
         let otel = MockEmbraceOpenTelemetry()
 
         // given a crash reporter
-        let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.stringValue)
-        let embraceReporter = EmbraceCrashReporter(reporter: crashReporter)
+        let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.toString)
+        let embraceReporter = EmbraceCrashReporter(reporter: crashReporter, logger: logger)
         let report = crashReporter.mockReports[0]
 
         // then the crash report id is set on the session
@@ -315,8 +316,8 @@ class UnsentDataHandlerTests: XCTestCase {
         let otel = MockEmbraceOpenTelemetry()
 
         // given a crash reporter
-        let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.stringValue)
-        let embraceReporter = EmbraceCrashReporter(reporter: crashReporter)
+        let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.toString)
+        let embraceReporter = EmbraceCrashReporter(reporter: crashReporter, logger: logger)
         let report = crashReporter.mockReports[0]
 
         // given an unfinished session in the storage
@@ -383,8 +384,8 @@ class UnsentDataHandlerTests: XCTestCase {
         let otel = MockEmbraceOpenTelemetry()
 
         // given a crash reporter
-        let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.stringValue)
-        let embraceReporter = EmbraceCrashReporter(reporter: crashReporter)
+        let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.toString)
+        let embraceReporter = EmbraceCrashReporter(reporter: crashReporter, logger: logger)
         let report = crashReporter.mockReports[0]
 
         // given a finished session in the storage
