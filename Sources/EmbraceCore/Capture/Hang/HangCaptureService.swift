@@ -124,9 +124,9 @@ extension HangCaptureService: HangObserver {
             severity: .error,
             timestamp: at.date,
             attributes: [
-                "emb.spanid": span?.context.spanId.hexString ?? "",
-                "emb.traceid": span?.context.traceId.hexString ?? "",
-                "emb.started_after_ms": "\(duration.uptime.milliseconds)"
+                "spanid": span?.context.spanId.hexString ?? "",
+                "traceid": span?.context.traceId.hexString ?? "",
+                "started_after_ms": "\(duration.uptime.milliseconds)"
             ],
             stackTraceBehavior: .main
         )
