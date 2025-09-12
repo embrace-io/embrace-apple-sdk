@@ -36,6 +36,7 @@ let package = Package(
         .library(name: "EmbraceCore", targets: ["EmbraceCore", "EmbraceConfiguration"]),
         .library(name: "EmbraceSemantics", targets: ["EmbraceSemantics"]),
         .library(name: "EmbraceMacros", targets: ["EmbraceMacros", "EmbraceCore"]),
+        .library(name: "EmbraceMetricKitSupport", targets: ["EmbraceMetricKitSupport"]),
         .library(name: "EmbraceKSCrashSupport", targets: ["EmbraceKSCrashSupport"]),
         .library(name: "EmbraceKSCrashBacktraceSupport", targets: ["EmbraceKSCrashBacktraceSupport"]),
         .library(name: "EmbraceCrashlyticsSupport", targets: ["EmbraceCrashlyticsSupport"])
@@ -275,6 +276,35 @@ let package = Package(
                 "EmbraceMacroPlugin",
                 "EmbraceIO",
                 .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax")
+            ]
+        ),
+
+        // metric kit support
+        .target(
+            name: "EmbraceMetricKitSupport",
+            dependencies: [
+                "EmbraceCommonInternal",
+                "EmbraceObjCUtilsInternal",
+                "EmbraceMetricKitSupportObjC",
+                .product(name: "Recording", package: "KSCrash")
+            ],
+            path: "Sources/ThirdParty/EmbraceMetricKitSupport"
+        ),
+        .target(
+            name: "EmbraceMetricKitSupportObjC",
+            dependencies: [
+                "EmbraceCommonInternal",
+                "EmbraceObjCUtilsInternal",
+                .product(name: "Recording", package: "KSCrash")
+            ],
+            path: "Sources/ThirdParty/EmbraceMetricKitSupportObjC"
+        ),
+        .testTarget(
+            name: "EmbraceMetricKitSupportTests",
+            dependencies: ["EmbraceMetricKitSupport", "EmbraceCommonInternal", "TestSupport"],
+            path: "Tests/ThirdParty/EmbraceMetricKitSupportTests",
+            resources: [
+                .copy("MetricKitReports/")
             ]
         ),
 
