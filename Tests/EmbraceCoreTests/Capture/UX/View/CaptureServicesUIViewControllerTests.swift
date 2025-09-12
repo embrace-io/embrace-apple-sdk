@@ -17,7 +17,8 @@
             appId: nil,
             sdkVersion: TestConstants.sdkVersion,
             filePathProvider: EmbraceFilePathProvider(partitionId: "test", appGroupId: nil),
-            notificationCenter: NotificationCenter.default
+            notificationCenter: NotificationCenter.default,
+            logger: MockLogger()
         )
         let enabledOptions = ViewCaptureService.Options(instrumentVisibility: true, instrumentFirstRender: true)
         let disabledOptions = ViewCaptureService.Options(instrumentVisibility: false, instrumentFirstRender: false)

@@ -37,8 +37,8 @@ class CrashReporterMock: CrashReporter {
                 EmbraceCrashReport(
                     payload: "test",
                     provider: "mock",
-                    internalId: 123,
-                    sessionId: crashSessionId ?? EmbraceIdentifier.random.stringValue,
+                    internalId: "123",
+                    sessionId: crashSessionId ?? SessionIdentifier.random.toString,
                     timestamp: Date()
                 )
             ]
