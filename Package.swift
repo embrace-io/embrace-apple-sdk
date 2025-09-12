@@ -138,6 +138,7 @@ let package = Package(
             name: "EmbraceCaptureService",
             dependencies: [
                 "EmbraceOTelInternal",
+                "EmbraceConfiguration",
                 .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift-core")
             ]
         ),
