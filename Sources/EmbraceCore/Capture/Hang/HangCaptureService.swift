@@ -79,7 +79,13 @@ extension HangCaptureService: HangObserver {
     public func hangStarted(at: NanosecondClock, duration: NanosecondClock) {
 
         logger?.debug("[Watchdog] Hang started, at \(at.date) after waiting \(duration.uptime.milliseconds) ms")
-
+        
+        // If for some reason the span isn't closed yes, skip this hang.
+        guard span == nil else {
+            logger?.warning("[Watchdog] span is not nil, will not log this hang")
+            return
+        }
+        
         // Keep tabs on how many hang spans we've created
         guard
             limitData.withLock({
@@ -106,15 +112,24 @@ extension HangCaptureService: HangObserver {
             return
         }
 
-        queue.async { [self] in
-            span =
-                builder
-                .setStartTime(time: at.date)
-                .setAttribute(key: "last_known_time_unix_nano", value: .int(Int(at.realtime)))
-                .setAttribute(key: "interval_code", value: .int(0))
-                .setAttribute(key: "thread_priority", value: .int(0))
-                .startSpan()
-        }
+        span = builder
+            .setStartTime(time: at.date)
+            .setAttribute(key: "last_known_time_unix_nano", value: .int(Int(at.realtime)))
+            .setAttribute(key: "interval_code", value: .int(0))
+            .setAttribute(key: "thread_priority", value: .int(0))
+            .startSpan()
+        
+        Embrace.client?.log(
+            "Hang",
+            severity: .error,
+            timestamp: at.date,
+            attributes: [
+                "spanid": span?.context.spanId.hexString ?? "",
+                "traceid": span?.context.traceId.hexString ?? "",
+                "started_after_ms": "\(duration.uptime.milliseconds)"
+            ],
+            stackTraceBehavior: .main
+        )
     }
 
     public func hangUpdated(at: NanosecondClock, duration: NanosecondClock) {
@@ -123,27 +138,39 @@ extension HangCaptureService: HangObserver {
         guard
             limitData.withLock({
                 $0.samplesInHangCount += 1
-                return $0.samplesInHangCount <= $0.limits.samplesPerHang
+                return $0.hangsInSessionCount <= $0.limits.hangPerSession || $0.samplesInHangCount <= $0.limits.samplesPerHang
             })
         else {
             return
         }
 
-        // Are we over the limit or don't have a span for some reason?
-        guard let span else {
-            return
-        }
-
         // Capture the stack now
         let pre = NanosecondClock.current
-        // TODO: Implement stacktrace collection here. Currently, frames is empty and stacktraces are not captured.
-        let frames: [String] = []
+        let backtrace = EmbraceBacktrace.backtrace(of: mainThread, suspendingThreads: true)
         let post = NanosecondClock.current
 
         // process it later
-        queue.async {
+        queue.async { [self] in
 
-            let stackString = frames.joined()
+            guard let span else {
+                return
+            }
+
+            let frames: [[String: Any]]
+            if let thread = backtrace.threads.first {
+                frames = thread.frames(symbolicated: true).compactMap { $0.asProcessedFrame() }
+            } else {
+                frames = []
+            }
+
+            let stackString: String
+            do {
+                let jsonData = try JSONSerialization.data(withJSONObject: frames, options: [.prettyPrinted, .sortedKeys])
+                stackString = jsonData.base64EncodedString()
+            } catch let exception {
+                stackString = ""
+                Embrace.logger.error("Couldn't convert stack trace to json string: \(exception.localizedDescription)")
+            }
 
             span.addEvent(
                 name: "perf.thread_blockage_sample",

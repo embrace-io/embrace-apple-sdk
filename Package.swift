@@ -37,6 +37,7 @@ let package = Package(
         .library(name: "EmbraceSemantics", targets: ["EmbraceSemantics"]),
         .library(name: "EmbraceMacros", targets: ["EmbraceMacros", "EmbraceCore"]),
         .library(name: "EmbraceKSCrashSupport", targets: ["EmbraceKSCrashSupport"]),
+        .library(name: "EmbraceKSCrashBacktraceSupport", targets: ["EmbraceKSCrashBacktraceSupport"]),
         .library(name: "EmbraceCrashlyticsSupport", targets: ["EmbraceCrashlyticsSupport"])
     ],
     dependencies: [
@@ -63,7 +64,8 @@ let package = Package(
                 "EmbraceCore",
                 "EmbraceCommonInternal",
                 "EmbraceSemantics",
-                "EmbraceKSCrashSupport"
+                "EmbraceKSCrashSupport",
+                "EmbraceKSCrashBacktraceSupport"
             ],
             linkerSettings: linkerSettings
         ),
@@ -138,6 +140,7 @@ let package = Package(
             name: "EmbraceCaptureService",
             dependencies: [
                 "EmbraceOTelInternal",
+                "EmbraceConfiguration",
                 .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift-core")
             ]
         ),
@@ -283,6 +286,15 @@ let package = Package(
                 .product(name: "Recording", package: "KSCrash")
             ],
             path: "Sources/ThirdParty/EmbraceKSCrashSupport"
+        ),
+        .target(
+            name: "EmbraceKSCrashBacktraceSupport",
+            dependencies: [
+                "EmbraceCommonInternal",
+                .product(name: "DemangleFilter", package: "KSCrash"),
+                .product(name: "Recording", package: "KSCrash")
+            ],
+            path: "Sources/ThirdParty/EmbraceKSCrashBacktraceSupport"
         ),
         .testTarget(
             name: "EmbraceCrashTests",

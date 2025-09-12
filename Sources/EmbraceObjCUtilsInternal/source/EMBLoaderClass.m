@@ -3,6 +3,7 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <pthread.h>
 #import <sys/time.h>
 
 #if TARGET_OS_OSX
@@ -15,6 +16,9 @@
 #import "EMBLoaderClass.h"
 #import "EMBStartupTracker.h"
 
+static pthread_t sMainThread = NULL;
+pthread_t EmbraceGetMainThread(void) { return sMainThread; }
+
 @implementation EMBLoaderClass
 
 #pragma mark -  Start up measurement
@@ -22,6 +26,10 @@
 // First method to be called
 + (void)load
 {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        sMainThread = pthread_self();
+    });
     [[EMBStartupTracker shared] setLoadTime:[NSDate now]];
 }
 
