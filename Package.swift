@@ -285,19 +285,9 @@ let package = Package(
             dependencies: [
                 "EmbraceCommonInternal",
                 "EmbraceObjCUtilsInternal",
-                "EmbraceMetricKitSupportObjC",
                 .product(name: "Recording", package: "KSCrash")
             ],
             path: "Sources/ThirdParty/EmbraceMetricKitSupport"
-        ),
-        .target(
-            name: "EmbraceMetricKitSupportObjC",
-            dependencies: [
-                "EmbraceCommonInternal",
-                "EmbraceObjCUtilsInternal",
-                .product(name: "Recording", package: "KSCrash")
-            ],
-            path: "Sources/ThirdParty/EmbraceMetricKitSupportObjC"
         ),
         .testTarget(
             name: "EmbraceMetricKitSupportTests",
