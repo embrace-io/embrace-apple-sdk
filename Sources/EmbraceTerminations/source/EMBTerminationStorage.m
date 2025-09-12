@@ -354,10 +354,6 @@ void EMBTerminationStorageWillWriteCrashEvent(KSCrash_ExceptionHandlingPlan *_No
         return;
     }
 
-    // Ensure the reporter doesn't write this crash out.
-    plan->shouldWriteReport = false;
-    plan->shouldRecordAllThreads = false;
-
     // Update everything, we can lock if we're not in an async safe callback.
     EMBTerminationStorageUpdate(plan->requiresAsyncSafety, ^(EMBTerminationStorage *_Nonnull storage) {
         storage->stackOverflow = context->isStackOverflow;
