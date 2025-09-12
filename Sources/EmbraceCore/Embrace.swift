@@ -100,7 +100,7 @@ import Foundation
     private static let _syncLock = ReadWriteLock()
     static let notificationCenter: NotificationCenter = NotificationCenter()
 
-    static var logger: DefaultInternalLogger = DefaultInternalLogger(exportFilePath: EmbraceFileSystem.criticalLogsURL)
+    static let logger: DefaultInternalLogger = DefaultInternalLogger(exportFilePath: EmbraceFileSystem.criticalLogsURL)
 
     /// Method used to configure the Embrace SDK.
     /// - Parameter options: `Embrace.Options` to be used by the SDK.
