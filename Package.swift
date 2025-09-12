@@ -329,7 +329,7 @@ let package = Package(
 
         // Utilities
         .target(
-            name: "EmbraceObjCUtilsInternal",
+            name: "EmbraceObjCUtilsInternal"
         ),
         .testTarget(
             name: "EmbraceObjCUtilsInternalTests",
