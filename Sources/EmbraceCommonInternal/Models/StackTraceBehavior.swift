@@ -13,12 +13,12 @@ public enum StackTraceBehavior {
     /// which takes a stack of the current thread.
     case `default`
 
+    /// A custom stack trace provided.
+    case custom(_ value: EmbraceStackTrace)
+
     /// Stack traces are taken for the main thread.
     /// Only available if `EmbraceBacktrace.isAvailable == true`.
     case main
-
-    /// A custom stack trace provided.
-    case custom(_ value: EmbraceStackTrace)
 }
 
 extension StackTraceBehavior: Equatable {
