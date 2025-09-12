@@ -72,7 +72,7 @@ extension LogSeverity: @retroactive CaseIterable {
 
 extension StackTraceBehavior: @retroactive CaseIterable {
     public static var allCases: [StackTraceBehavior] {
-        [.default, .notIncluded, .custom(customStackTrace)]
+        [.default, .notIncluded, .main, .custom(customStackTrace)]
     }
 
     var text: String {
@@ -107,7 +107,7 @@ extension StackTraceBehavior: @retroactive Hashable {
         case .custom(let st):
             hasher.combine(st.frames)
         default:
-            break
+            hasher.combine(text)
         }
     }
 }
