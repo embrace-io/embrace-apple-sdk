@@ -24,7 +24,7 @@ public enum StackTraceBehavior {
 extension StackTraceBehavior: Equatable {
     public static func == (lhs: StackTraceBehavior, rhs: StackTraceBehavior) -> Bool {
         switch (lhs, rhs) {
-        case (.notIncluded, .notIncluded), (.default, .default):
+        case (.notIncluded, .notIncluded), (.default, .default), (.main, .main):
             return true
         case let (.custom(lhsValue), .custom(rhsValue)):
             return lhsValue == rhsValue
