@@ -196,7 +196,7 @@ class MockHangObserver: HangObserver {
         onHangUpdated?(at.monotonic, duration.monotonic)
     }
 
-    func hangEnded(at: EmbraceCore.NanosecondClock, duration: EmbraceCore.NanosecondClock) {
+    func hangEnded(at: NanosecondClock, duration: NanosecondClock) {
         hangEndedCalled = true
         hangEndedCallCount += 1
         lastEndTime = at.monotonic
