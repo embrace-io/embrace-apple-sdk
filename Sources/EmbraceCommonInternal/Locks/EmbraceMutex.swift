@@ -57,6 +57,18 @@ extension EmbraceMutex {
     }
 }
 
+extension EmbraceMutex where Value: ExpressibleByNilLiteral {
+
+    /// Synchronously gets the value and set container to nil.
+    public func takeValue() -> Value {
+        withLock {
+            let val = $0
+            $0 = nil
+            return val
+        }
+    }
+}
+
 /// A thread-safe, general-purpose read/write lock for protecting access to a value.
 public final class EmbraceReadWriteLock<Value> {
 

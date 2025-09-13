@@ -63,6 +63,11 @@ final class CaptureServices {
                     otel: Embrace.client
                 )
             }
+
+            // Ensure the hang service has the watchdog reporter
+            services
+                .compactMap { $0 as? HangCaptureService }
+                .forEach { $0.crashReporter = crashReporter }
         }
 
         // pass storage reference to capture services

@@ -19,6 +19,7 @@ extension Notification.Name {
 public final class EmbraceCrashReporter: NSObject {
 
     private let reporter: CrashReporter
+    private let watchdogReporter: WatchdogReporter?
     private let logger: InternalLogger?
     internal let queue: DispatchQueue = DispatchQueue(
         label: "com.embrace.crashreporter", qos: .utility, autoreleaseFrequency: .workItem)
@@ -84,6 +85,8 @@ public final class EmbraceCrashReporter: NSObject {
         signalsBlockList: [CrashSignal] = [.SIGTERM]
     ) {
         self.reporter = reporter
+        // `as` can be expensive, so cache it here
+        self.watchdogReporter = reporter as? WatchdogReporter
         self.logger = logger
         self.signalsBlockList = signalsBlockList
         super.init()
@@ -152,5 +155,20 @@ public final class EmbraceCrashReporter: NSObject {
 
     public func getCrashInfo(key: String) -> String? {
         reporter.getCrashInfo(key: key)
+    }
+}
+
+extension EmbraceCrashReporter {
+
+    func watchdogEventStarted(_ event: WatchdogEvent) {
+        watchdogReporter?.watchdogEventStarted(event)
+    }
+
+    func watchdogEventOngoing(_ event: WatchdogEvent) {
+        watchdogReporter?.watchdogEventOngoing(event)
+    }
+
+    func watchdogEventEnded(_ event: WatchdogEvent) {
+        watchdogReporter?.watchdogEventEnded(event)
     }
 }

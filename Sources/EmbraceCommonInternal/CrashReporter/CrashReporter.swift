@@ -193,3 +193,21 @@ public typealias FrameAddress = UInt
     ///            (e.g., missing symbols/dSYMs, unknown image).
     @objc func resolve(address: FrameAddress) -> SymbolicatedFrame?
 }
+
+// MARK: - Watchdog Reporting
+public struct WatchdogEvent {
+    public let timestamp: NanosecondClock
+    public let duration: NanosecondClock
+
+    public init(timestamp: NanosecondClock, duration: NanosecondClock) {
+        self.timestamp = timestamp
+        self.duration = duration
+    }
+}
+
+public protocol WatchdogReporter: CrashReporter {
+
+    func watchdogEventStarted(_ event: WatchdogEvent)
+    func watchdogEventOngoing(_ event: WatchdogEvent)
+    func watchdogEventEnded(_ event: WatchdogEvent)
+}
