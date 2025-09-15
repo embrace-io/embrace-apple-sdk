@@ -127,6 +127,12 @@ let package = Package(
         .target(
             name: "EmbraceSemantics"
         ),
+        .testTarget(
+            name: "EmbraceSemanticsTests",
+            dependencies: [
+                "TestSupport"
+            ]
+        ),
 
         // capture service -----------------------------------------------------------
         .target(
