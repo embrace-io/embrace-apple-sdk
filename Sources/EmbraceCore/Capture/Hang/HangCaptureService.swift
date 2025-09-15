@@ -120,7 +120,7 @@ extension HangCaptureService: HangObserver {
             span =
                 builder
                 .setStartTime(time: at.date)
-                .setAttribute(key: "sample_overhead", value: "\((post.monotonic - pre.monotonic))")
+                .setAttribute(key: "sample_overhead", value: "\(post.monotonic - pre.monotonic)")
                 .setAttribute(key: "frame_count", value: "\(stack.frameCount)")
                 .setAttribute(key: LogSemantics.keyStackTrace, value: stack.stackString)
                 .startSpan()
@@ -157,8 +157,6 @@ extension HangCaptureService: HangObserver {
                 attributes: [
                     "sample_overhead": .int(Int(post.monotonic - pre.monotonic)),
                     "frame_count": .int(stack.frameCount),
-                    "thread_state": .string("BLOCKED"),  // means nothing on iOS
-                    "sample_code": .int(0),  // means nothing on iOS
                     LogSemantics.keyStackTrace: .string(stack.stackString)
                 ],
                 timestamp: at.date
