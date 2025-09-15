@@ -27,7 +27,7 @@ public class EmbraceStackTraceBehavior: NSObject {
     let mode: StackTraceBehaviorMode
     let customStackTrace: EmbraceStackTrace?
 
-    public var stackTraceFames: [String]? {
+    public var stackTraceFrames: [String]? {
         switch mode {
         case .notIncluded: return nil
         case .defaultStackTrace: return Thread.callStackSymbols

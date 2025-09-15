@@ -126,7 +126,7 @@ class LogController: LogControllable {
         // but added from the queue as to not use up possibly main thread resources.
         var addStacktraceBlock: ((_ builder: EmbraceLogAttributesBuilder) -> Void)?
         if severity == .warn || severity == .error,
-            let frames = stackTraceBehavior.stackTraceFames
+            let frames = stackTraceBehavior.stackTraceFrames
         {
             addStacktraceBlock = { $0.addStackTrace(frames) }
         }

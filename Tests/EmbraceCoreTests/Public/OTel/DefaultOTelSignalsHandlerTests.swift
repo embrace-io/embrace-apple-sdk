@@ -414,6 +414,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         }
     }
 
+    // MARK: attachments
     func test_log_embraceHostedAttachment_success() throws {
         // given a handler
         // when creating a log with an attachment (data)
@@ -474,5 +475,104 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
             return log.attributes["emb.attachment_id"] == "test" && log.attributes["emb.attachment_url"] == url.absoluteString && log.attributes["emb.attachment_size"] == nil
                 && log.attributes["emb.attachment_error_code"] == nil
         }
+    }
+
+    // MARK: stack traces
+    func test_log_defaultStackTrace() throws {
+        // given a handler
+        // when creating a non-warn/error log with default stack trace
+        try handler.log("test", severity: .info, stackTraceBehavior: .defaultStackTrace())
+
+        // then the stack trace is not added
+        wait(delay: .defaultTimeout)
+        XCTAssertNil(logController.batcher.batch!.logs[0].attributes["emb.stacktrace.ios"])
+    }
+
+    func test_warnLog_defaultStackTrace() throws {
+        // given a handler
+        // when creating a warn log with default stack trace
+        try handler.log("test", severity: .warn, stackTraceBehavior: .defaultStackTrace())
+
+        // then the stack trace is added
+        wait(delay: .defaultTimeout)
+        XCTAssertNotNil(logController.batcher.batch!.logs[0].attributes["emb.stacktrace.ios"])
+    }
+
+    func test_errorLog_defaultStackTrace() throws {
+        // given a handler
+        // when creating a error log with default stack trace
+        try handler.log("test", severity: .error, stackTraceBehavior: .defaultStackTrace())
+
+        // then the stack trace is added
+        wait(delay: .defaultTimeout)
+        XCTAssertNotNil(logController.batcher.batch!.logs[0].attributes["emb.stacktrace.ios"])
+    }
+
+    let customFrames = [
+        "0   Page_Contents                       0x000000010af45dec main + 136",
+        "1   ExecutionExtension                  0x00000001002a7e24 ExecutionExtension + 32292"
+    ]
+
+    func test_log_customStackTrace() throws {
+        // given a handler
+        // when creating a non-warn/error log with custom stack trace
+        let stackTrace = try EmbraceStackTrace(frames: customFrames)
+        try handler.log("test", severity: .info, stackTraceBehavior: .customStackTrace(stackTrace))
+
+        // then the stack trace is not added
+        wait(delay: .defaultTimeout)
+        XCTAssertNil(logController.batcher.batch!.logs[0].attributes["emb.stacktrace.ios"])
+    }
+
+    func test_warnLog_customStackTrace() throws {
+        // given a handler
+        // when creating a warn log with custom stack trace
+        let stackTrace = try EmbraceStackTrace(frames: customFrames)
+        try handler.log("test", severity: .warn, stackTraceBehavior: .customStackTrace(stackTrace))
+
+        // then the stack trace is added
+        wait(delay: .defaultTimeout)
+        XCTAssertNotNil(logController.batcher.batch!.logs[0].attributes["emb.stacktrace.ios"])
+    }
+
+    func test_errorLog_customStackTrace() throws {
+        // given a handler
+        // when creating a error log with custom stack trace
+        let stackTrace = try EmbraceStackTrace(frames: customFrames)
+        try handler.log("test", severity: .error, stackTraceBehavior: .customStackTrace(stackTrace))
+
+        // then the stack trace is added
+        wait(delay: .defaultTimeout)
+        XCTAssertNotNil(logController.batcher.batch!.logs[0].attributes["emb.stacktrace.ios"])
+    }
+
+    func test_log_noStackTrace() throws {
+        // given a handler
+        // when creating a non-warn/error log with no stack trace
+        try handler.log("test", severity: .info, stackTraceBehavior: .notIncluded())
+
+        // then the stack trace is not added
+        wait(delay: .defaultTimeout)
+        XCTAssertNil(logController.batcher.batch!.logs[0].attributes["emb.stacktrace.ios"])
+    }
+
+    func test_warnLog_noStackTrace() throws {
+        // given a handler
+        // when creating a warn log with no stack trace
+        try handler.log("test", severity: .warn, stackTraceBehavior: .notIncluded())
+
+        // then the stack trace is not added
+        wait(delay: .defaultTimeout)
+        XCTAssertNil(logController.batcher.batch!.logs[0].attributes["emb.stacktrace.ios"])
+    }
+
+    func test_errorLog_noStackTrace() throws {
+        // given a handler
+        // when creating a error log with no stack trace
+        try handler.log("test", severity: .error, stackTraceBehavior: .notIncluded())
+
+        // then the stack trace is not added
+        wait(delay: .defaultTimeout)
+        XCTAssertNil(logController.batcher.batch!.logs[0].attributes["emb.stacktrace.ios"])
     }
 }
