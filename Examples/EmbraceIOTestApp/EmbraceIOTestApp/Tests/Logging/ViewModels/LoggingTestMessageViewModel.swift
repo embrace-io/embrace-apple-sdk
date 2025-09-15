@@ -83,6 +83,8 @@ extension StackTraceBehavior: @retroactive CaseIterable {
             "Not Included"
         case .custom:
             "Custom"
+        case .main:
+            "Main"
         }
     }
 

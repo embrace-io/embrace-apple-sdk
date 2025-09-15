@@ -199,6 +199,22 @@ class EmbraceStackTraceTests: XCTestCase {
             }
         }
     }
+
+    func test_stackTraceBehaviorMissingCaseWarning() {
+        let behavior: StackTraceBehavior = .main
+        switch behavior {
+        case .notIncluded:
+            break
+        case .default:
+            break
+        case .main:
+            break
+        case .custom(_):
+            break
+        @unknown default:
+            break
+        }
+    }
 }
 
 extension EmbraceStackTraceTests {
