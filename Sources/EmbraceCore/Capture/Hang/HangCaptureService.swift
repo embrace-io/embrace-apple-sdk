@@ -59,7 +59,7 @@ public final class HangCaptureService: CaptureService {
     let limitData: EmbraceMutex<MutableLimitData>
 
     private let spanQueue = DispatchQueue(label: "io.embrace.hang.service")
-    var span: OpenTelemetryApi.Span?
+    private var span: OpenTelemetryApi.Span?
 
     public var limits: HangLimits {
         get {
@@ -79,12 +79,6 @@ extension HangCaptureService: HangObserver {
     public func hangStarted(at: NanosecondClock, duration: NanosecondClock) {
 
         logger?.debug("[Watchdog] Hang started, at \(at.date) after waiting \(duration.uptime.milliseconds) ms")
-
-        // If for some reason the span isn't closed yes, skip this hang.
-        guard span == nil else {
-            logger?.warning("[Watchdog] span is not nil, will not log this hang")
-            return
-        }
 
         // Keep tabs on how many hang spans we've created
         guard
@@ -122,27 +116,13 @@ extension HangCaptureService: HangObserver {
         let post = NanosecondClock.current
 
         spanQueue.async { [self] in
-
-            let frames: [[String: Any]]
-            if let thread = backtrace.threads.first {
-                frames = thread.frames(symbolicated: true).compactMap { $0.asProcessedFrame() }
-            } else {
-                frames = []
-            }
-
-            let stackString: String
-            do {
-                let jsonData = try JSONSerialization.data(withJSONObject: frames, options: [])
-                stackString = jsonData.base64EncodedString()
-            } catch let exception {
-                stackString = ""
-                Embrace.logger.error("Couldn't convert stack trace to json string: \(exception.localizedDescription)")
-            }
-
+            let stack = processBacktrace(backtrace)
             span =
                 builder
                 .setStartTime(time: at.date)
-                .setAttribute(key: LogSemantics.keyStackTrace, value: stackString)
+                .setAttribute(key: "sample_overhead", value: "\((post.monotonic - pre.monotonic))")
+                .setAttribute(key: "frame_count", value: "\(stack.frameCount)")
+                .setAttribute(key: LogSemantics.keyStackTrace, value: stack.stackString)
                 .startSpan()
         }
     }
@@ -153,7 +133,7 @@ extension HangCaptureService: HangObserver {
         guard
             limitData.withLock({
                 $0.samplesInHangCount += 1
-                return $0.hangsInSessionCount <= $0.limits.hangPerSession || $0.samplesInHangCount <= $0.limits.samplesPerHang
+                return $0.hangsInSessionCount <= $0.limits.hangPerSession && $0.samplesInHangCount <= $0.limits.samplesPerHang
             })
         else {
             return
@@ -171,30 +151,15 @@ extension HangCaptureService: HangObserver {
                 return
             }
 
-            let frames: [[String: Any]]
-            if let thread = backtrace.threads.first {
-                frames = thread.frames(symbolicated: true).compactMap { $0.asProcessedFrame() }
-            } else {
-                frames = []
-            }
-
-            let stackString: String
-            do {
-                let jsonData = try JSONSerialization.data(withJSONObject: frames, options: [])
-                stackString = jsonData.base64EncodedString()
-            } catch let exception {
-                stackString = ""
-                Embrace.logger.error("Couldn't convert stack trace to json string: \(exception.localizedDescription)")
-            }
-
+            let stack = processBacktrace(backtrace)
             span.addEvent(
                 name: "perf.thread_blockage_sample",
                 attributes: [
                     "sample_overhead": .int(Int(post.monotonic - pre.monotonic)),
-                    "frame_count": .int(frames.count),
+                    "frame_count": .int(stack.frameCount),
                     "thread_state": .string("BLOCKED"),  // means nothing on iOS
                     "sample_code": .int(0),  // means nothing on iOS
-                    LogSemantics.keyStackTrace: .string(stackString)
+                    LogSemantics.keyStackTrace: .string(stack.stackString)
                 ],
                 timestamp: at.date
             )
@@ -208,5 +173,28 @@ extension HangCaptureService: HangObserver {
             span?.end(time: at.date)
             span = nil
         }
+    }
+
+    private func processBacktrace(_ backtrace: EmbraceBacktrace) -> (frameCount: Int, stackString: String) {
+
+        dispatchPrecondition(condition: .onQueue(spanQueue))
+
+        let frames: [[String: Any]]
+        if let thread = backtrace.threads.first {
+            frames = thread.frames(symbolicated: true).compactMap { $0.asProcessedFrame() }
+        } else {
+            frames = []
+        }
+
+        let stackString: String
+        do {
+            let jsonData = try JSONSerialization.data(withJSONObject: frames, options: [])
+            stackString = jsonData.base64EncodedString()
+        } catch let exception {
+            stackString = ""
+            Embrace.logger.error("Couldn't convert stack trace to json string: \(exception.localizedDescription)")
+        }
+
+        return (frames.count, stackString)
     }
 }
