@@ -133,6 +133,7 @@
 		4D7A9E6E2E1C3A0C00C43C81 /* SwiftUICaptureTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D7A9E6D2E1C3A0100C43C81 /* SwiftUICaptureTest.swift */; };
 		4D7A9E742E1CA4B100C43C81 /* SwiftUICaptureTestViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D7A9E732E1CA4AF00C43C81 /* SwiftUICaptureTestViewModel.swift */; };
 		4DAF52012DEA51970025F669 /* EmbraceIOTestPostedPayloads.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DAF52002DEA51870025F669 /* EmbraceIOTestPostedPayloads.swift */; };
+		4DCD37FE2E70C36E004F28A5 /* EmbraceIOTestSwiftUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DCD37FD2E70C365004F28A5 /* EmbraceIOTestSwiftUI.swift */; };
 		4DF12A332D302CBE00C93E62 /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4DF12A322D302CBE00C93E62 /* EmbraceCore */; };
 		4DF12A372D302CBE00C93E62 /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 4DF12A362D302CBE00C93E62 /* EmbraceCrashlyticsSupport */; };
 		4DF12A392D302CBE00C93E62 /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = 4DF12A382D302CBE00C93E62 /* EmbraceIO */; };
@@ -272,6 +273,7 @@
 		4D7A9E732E1CA4AF00C43C81 /* SwiftUICaptureTestViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUICaptureTestViewModel.swift; sourceTree = "<group>"; };
 		4D94F2532D429257008DECEE /* EmbraceIOTestAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = EmbraceIOTestAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		4DAF52002DEA51870025F669 /* EmbraceIOTestPostedPayloads.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbraceIOTestPostedPayloads.swift; sourceTree = "<group>"; };
+		4DCD37FD2E70C365004F28A5 /* EmbraceIOTestSwiftUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbraceIOTestSwiftUI.swift; sourceTree = "<group>"; };
 		4DF12A202D302C3200C93E62 /* EmbraceIOTestApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = EmbraceIOTestApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4DF440822E3C4C2D00708D6A /* SwiftUITestViewEmbraceViewCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUITestViewEmbraceViewCapture.swift; sourceTree = "<group>"; };
 		4DF440842E3D4FE500708D6A /* SwiftUIManualCaptureTestUIComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUIManualCaptureTestUIComponent.swift; sourceTree = "<group>"; };
@@ -427,6 +429,7 @@
 		4D6337A62DE1157200557BDC /* EmbraceIOTestAppUITests */ = {
 			isa = PBXGroup;
 			children = (
+				4DCD37FD2E70C365004F28A5 /* EmbraceIOTestSwiftUI.swift */,
 				4DAF52002DEA51870025F669 /* EmbraceIOTestPostedPayloads.swift */,
 				4D63379F2DE1157200557BDC /* Common */,
 				4D6337A02DE1157200557BDC /* EmbraceIOTestCrashesUITests.swift */,
@@ -1082,6 +1085,7 @@
 				4DAF52012DEA51970025F669 /* EmbraceIOTestPostedPayloads.swift in Sources */,
 				4D6337A72DE1157200557BDC /* Extensions.swift in Sources */,
 				4D6337A82DE1157200557BDC /* EmbraceIOTestCrashesUITests.swift in Sources */,
+				4DCD37FE2E70C36E004F28A5 /* EmbraceIOTestSwiftUI.swift in Sources */,
 				4D6337A92DE1157200557BDC /* EmbraceIOTestLogsUITests.swift in Sources */,
 				4D6337AA2DE1157200557BDC /* EmbraceIOTestStartupUITests.swift in Sources */,
 				4D6337AB2DE1157200557BDC /* EmbraceIOTestNetworkingUITests.swift in Sources */,

@@ -10,7 +10,7 @@ import OpenTelemetryApi
 
 public struct LogSemantics {
     public static let keyEmbraceType = "emb.type"
-    public static let keyId = SemanticAttributes.logRecordUid.rawValue
+    public static let keyId = SemanticConventions.Log.recordUid.rawValue
     public static let keyState = "emb.state"
     public static let keySessionId = "session.id"
     public static let keyStackTrace = "emb.stacktrace.ios"

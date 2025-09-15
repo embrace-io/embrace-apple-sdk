@@ -29,7 +29,9 @@ struct SwiftUIEmbraceTraceViewCaptureTestUIComponent: View {
         Section {
             VStack(alignment: .leading) {
                 Section {
-                    SwiftUITestsLoadedPropertyView(loadedState: $viewModel.contentComplete)
+                    SwiftUITestsLoadedPropertyView(
+                        loadedState: $viewModel.contentComplete,
+                        toggleIdentifier: "embraceTraceViewCaptureContentComplete")
                 } header: {
                     Text("Content Complete")
                         .textCase(nil)
@@ -37,7 +39,9 @@ struct SwiftUIEmbraceTraceViewCaptureTestUIComponent: View {
                         .foregroundStyle(.embraceSilver)
                 }
                 Section {
-                    SwiftUITestsAttributesView { key, value in
+                    SwiftUITestsAttributesView(
+                        keyIdentifier: "embraceTraceViewCapturePropertyKey", valueIdentifier: "embraceTraceViewCapturePropertyValue", addIdentifier: "embraceTraceViewCaptureAddProperty"
+                    ) { key, value in
                         viewModel.addAttribute(key: key, value: value)
                     }
                 } header: {

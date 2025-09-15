@@ -25,7 +25,9 @@ struct SwiftUIManualCaptureTestUIComponent: View {
         Section {
             VStack(alignment: .leading) {
                 Section {
-                    SwiftUITestsLoadedPropertyView(loadedState: $viewModel.contentComplete)
+                    SwiftUITestsLoadedPropertyView(
+                        loadedState: $viewModel.contentComplete,
+                        toggleIdentifier: "manualCaptureContentComplete")
                 } header: {
                     Text("Content Complete")
                         .textCase(nil)
@@ -33,7 +35,7 @@ struct SwiftUIManualCaptureTestUIComponent: View {
                         .foregroundStyle(.embraceSilver)
                 }
                 Section {
-                    SwiftUITestsAttributesView { key, value in
+                    SwiftUITestsAttributesView(keyIdentifier: "manualCapturePropertyKey", valueIdentifier: "manualCapturePropertyValue", addIdentifier: "manualCaptureAddProperty") { key, value in
                         viewModel.addAttribute(key: key, value: value)
                     }
                 } header: {

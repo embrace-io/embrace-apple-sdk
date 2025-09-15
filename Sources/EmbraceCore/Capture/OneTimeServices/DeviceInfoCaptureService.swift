@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import OpenTelemetryApi
 import OpenTelemetrySdk
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
@@ -18,7 +19,7 @@ class DeviceInfoCaptureService: ResourceCaptureService {
             // os type
             // Should always be "darwin" as can be seen in semantic convention docs:
             // https://opentelemetry.io/docs/specs/semconv/resource/os/
-            ResourceAttributes.osType.rawValue: "darwin",
+            SemanticConventions.Os.type.rawValue: "darwin",
 
             // os variant
             DeviceResourceKey.osVariant.rawValue: EMBDevice.operatingSystemType
@@ -38,13 +39,13 @@ class DeviceInfoCaptureService: ResourceCaptureService {
             DeviceResourceKey.totalDiskSpace.rawValue: String(EMBDevice.totalDiskSpace.intValue),
 
             // os version
-            ResourceAttributes.osVersion.rawValue: EMBDevice.operatingSystemVersion,
+            SemanticConventions.Os.version.rawValue: EMBDevice.operatingSystemVersion,
 
             // os build
             DeviceResourceKey.osBuild.rawValue: EMBDevice.operatingSystemBuild,
 
             // model
-            ResourceAttributes.deviceModelIdentifier.rawValue: EMBDevice.model,
+            SemanticConventions.Device.modelIdentifier.rawValue: EMBDevice.model,
 
             // architecture
             DeviceResourceKey.architecture.rawValue: EMBDevice.architecture

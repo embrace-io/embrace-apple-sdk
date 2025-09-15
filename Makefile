@@ -118,6 +118,7 @@ install-hooks:
 	done
 	@echo "Done!"
 
+# remove hooks
 uninstall-hooks:
 	@echo "Uninstalling Git hooks..."
 	@for hook in $(HOOKS_DIR)/*; do \

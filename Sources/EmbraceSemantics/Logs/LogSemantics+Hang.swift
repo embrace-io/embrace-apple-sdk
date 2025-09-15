@@ -14,7 +14,7 @@ extension LogType {
 
 extension LogSemantics {
     public struct Hang {
-        public static let keyId = SemanticAttributes.logRecordUid.rawValue
+        public static let keyId = SemanticConventions.Log.recordUid.rawValue
         public static let keyProvider = "emb.provider"
         public static let keyPayload = "emb.payload"
         public static let keyPayLoadTimestamp = "emb.payload.timestamp"

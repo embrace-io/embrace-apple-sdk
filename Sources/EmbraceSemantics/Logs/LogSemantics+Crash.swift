@@ -15,7 +15,7 @@ extension LogType {
 
 extension LogSemantics {
     public struct Crash {
-        public static let keyId = SemanticAttributes.logRecordUid.rawValue
+        public static let keyId = SemanticConventions.Log.recordUid.rawValue
         public static let keyProvider = "emb.provider"
         public static let keyPayload = "emb.payload"
 

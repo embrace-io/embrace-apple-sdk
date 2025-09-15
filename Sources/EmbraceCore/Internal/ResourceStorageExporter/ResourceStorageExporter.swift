@@ -40,20 +40,20 @@ class ResourceStorageExporter: EmbraceResourceProvider {
             partialResult[record.key] = .string(record.value)
         }
 
-        if attributes[ResourceAttributes.serviceName.rawValue] == nil {
+        if attributes[SemanticConventions.Service.name.rawValue] == nil {
             let serviceName = [Bundle.main.bundleIdentifier, ProcessInfo.processInfo.processName]
                 .compactMap { $0 }
                 .joined(separator: ":")
 
-            attributes[ResourceAttributes.serviceName.rawValue] = .string(serviceName)
+            attributes[SemanticConventions.Service.name.rawValue] = .string(serviceName)
         }
 
-        if attributes[ResourceAttributes.serviceVersion.rawValue] == nil, let appVersion = EMBDevice.appVersion {
-            attributes[ResourceAttributes.serviceVersion.rawValue] = .string(appVersion)
+        if attributes[SemanticConventions.Service.version.rawValue] == nil, let appVersion = EMBDevice.appVersion {
+            attributes[SemanticConventions.Service.version.rawValue] = .string(appVersion)
         }
 
-        if attributes[ResourceAttributes.telemetrySdkLanguage.rawValue] == nil {
-            attributes[ResourceAttributes.telemetrySdkLanguage.rawValue] = .string("swift")
+        if attributes[SemanticConventions.Telemetry.sdkLanguage.rawValue] == nil {
+            attributes[SemanticConventions.Telemetry.sdkLanguage.rawValue] = .string("swift")
         }
 
         return Resource(attributes: attributes)

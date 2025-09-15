@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import OpenTelemetryApi
 import OpenTelemetrySdk
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
@@ -163,15 +164,20 @@ struct ResourcePayload: Codable {
                 default:
                     break
                 }
-            } else if let key = ResourceAttributes(rawValue: resource.key) {
+            } else if let key = SemanticConventions.Device(rawValue: resource.key) {
                 switch key {
-                case .deviceModelIdentifier:
+                case .modelIdentifier:
                     self.deviceModel = resource.value
-                case .deviceManufacturer:
+                case .manufacturer:
                     self.deviceManufacturer = resource.value
-                case .osVersion:
+                default:
+                    break
+                }
+            } else if let key = SemanticConventions.Os(rawValue: resource.key) {
+                switch key {
+                case .version:
                     self.osVersion = resource.value
-                case .osType:
+                case .type:
                     self.osType = resource.value
                 default:
                     break

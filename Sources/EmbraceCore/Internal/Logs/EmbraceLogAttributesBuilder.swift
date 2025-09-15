@@ -14,7 +14,7 @@ class EmbraceLogAttributesBuilder {
     private weak var sessionControllable: SessionControllable?
     private var session: EmbraceSession?
     private var crashReport: EmbraceCrashReport?
-    private var attributes: [String: String]
+    internal var attributes: [String: String]
 
     private var currentSession: EmbraceSession? {
         session ?? sessionControllable?.currentSession
@@ -42,12 +42,7 @@ class EmbraceLogAttributesBuilder {
         self.attributes = initialAttributes
     }
 
-    @discardableResult
-    func addStackTrace(_ stackTrace: [String]) -> Self {
-        guard !stackTrace.isEmpty else {
-            return self
-        }
-        let processedStackTrace = EMBStackTraceProccessor.processStackTrace(stackTrace)
+    private func serializeProcessedStackTrace(_ processedStackTrace: [[String: Any]]) {
         do {
             let jsonData = try JSONSerialization.data(withJSONObject: processedStackTrace, options: [])
             let stackTraceInBase64 = jsonData.base64EncodedString()
@@ -55,6 +50,25 @@ class EmbraceLogAttributesBuilder {
         } catch let exception {
             Embrace.logger.error("Couldn't convert stack trace to json string: \(exception.localizedDescription)")
         }
+    }
+
+    @discardableResult
+    func addStackTrace(_ stackTrace: [String]) -> Self {
+        guard !stackTrace.isEmpty else {
+            return self
+        }
+        let processedStackTrace = EMBStackTraceProccessor.processStackTrace(stackTrace)
+        serializeProcessedStackTrace(processedStackTrace)
+        return self
+    }
+
+    @discardableResult
+    func addBacktrace(_ backtrace: EmbraceBacktrace) -> Self {
+        guard let thread = backtrace.threads.first else {
+            return self
+        }
+        let processedStackTrace = thread.frames(symbolicated: true).compactMap { $0.asProcessedFrame() }
+        serializeProcessedStackTrace(processedStackTrace)
         return self
     }
 
