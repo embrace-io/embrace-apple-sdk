@@ -116,14 +116,11 @@ extension HangCaptureService: HangObserver {
         let post = NanosecondClock.current
 
         spanQueue.async { [self] in
-            let stack = processBacktrace(backtrace)
             span =
                 builder
                 .setStartTime(time: at.date)
-                .setAttribute(key: "sample_overhead", value: "\(post.monotonic - pre.monotonic)")
-                .setAttribute(key: "frame_count", value: "\(stack.frameCount)")
-                .setAttribute(key: LogSemantics.keyStackTrace, value: stack.stackString)
                 .startSpan()
+            addSamplingSpanEvent(time: at.date, backtrace: backtrace, overhead: Int(post.monotonic - pre.monotonic))
         }
     }
 
@@ -146,21 +143,7 @@ extension HangCaptureService: HangObserver {
 
         // process it later
         spanQueue.async { [self] in
-
-            guard let span else {
-                return
-            }
-
-            let stack = processBacktrace(backtrace)
-            span.addEvent(
-                name: "perf.thread_blockage_sample",
-                attributes: [
-                    "sample_overhead": .int(Int(post.monotonic - pre.monotonic)),
-                    "frame_count": .int(stack.frameCount),
-                    LogSemantics.keyStackTrace: .string(stack.stackString)
-                ],
-                timestamp: at.date
-            )
+            addSamplingSpanEvent(time: at.date, backtrace: backtrace, overhead: Int(post.monotonic - pre.monotonic))
         }
     }
 
@@ -171,6 +154,30 @@ extension HangCaptureService: HangObserver {
             span?.end(time: at.date)
             span = nil
         }
+    }
+
+    private func addSamplingSpanEvent(time: Date, backtrace: EmbraceBacktrace, overhead: Int) {
+
+        dispatchPrecondition(condition: .onQueue(spanQueue))
+
+        guard let span else {
+            return
+        }
+
+        let stack = processBacktrace(backtrace)
+        guard stack.frameCount > 0 else {
+            return
+        }
+
+        span.addEvent(
+            name: "perf.thread_blockage_sample",
+            attributes: [
+                "sample_overhead": .int(overhead),
+                "frame_count": .int(stack.frameCount),
+                LogSemantics.keyStackTrace: .string(stack.stackString)
+            ],
+            timestamp: time
+        )
     }
 
     private func processBacktrace(_ backtrace: EmbraceBacktrace) -> (frameCount: Int, stackString: String) {
@@ -184,15 +191,18 @@ extension HangCaptureService: HangObserver {
             frames = []
         }
 
+        let frameCount: Int
         let stackString: String
         do {
             let jsonData = try JSONSerialization.data(withJSONObject: frames, options: [])
             stackString = jsonData.base64EncodedString()
+            frameCount = frames.count
         } catch let exception {
             stackString = ""
+            frameCount = 0
             Embrace.logger.error("Couldn't convert stack trace to json string: \(exception.localizedDescription)")
         }
 
-        return (frames.count, stackString)
+        return (frameCount, stackString)
     }
 }
