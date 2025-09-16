@@ -18,6 +18,8 @@ env:
   THRESHOLD_PCT: 5.0
   TESTS: |
     EmbraceIOTests/PerformanceTests
+  BENCHMARKS: |
+    BenchmarksUITests
 
 jobs:
   perf:
@@ -41,19 +43,27 @@ jobs:
       - name: Copy binaries
         run: |
           cp bin/perf /tmp/perf
+          cp bin/benchmarks /tmp/benchmarks
           cp bin/perfcomp.py /tmp/perfcomp.py
           chmod +x /tmp/perf
+          chmod +x /tmp/benchmarks
           chmod +x /tmp/perfcomp.py
 
       - name: Run PR perf tests
         id: perfpr
         run: |
-          /tmp/perf >perf.txt
+          jq -n \
+            --slurpfile a <(bin/perf) \
+            --slurpfile b <(bin/benchmarks) \
+            '$a[0] + $b[0]' \
+            > combined.json
+
           echo "out<<EOF" >> "$GITHUB_OUTPUT"
-          cat perf.txt >> "$GITHUB_OUTPUT"
+          cat combined.json >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
-          cat perf.txt
-      
+
+          cat combined.json
+
         # checkout the main branch
       - name: Checkout Main
         uses: actions/checkout@v4
@@ -64,11 +74,17 @@ jobs:
       - name: Run Main perf tests
         id: perfmain
         run: |
-          /tmp/perf >perf.txt
+          jq -n \
+            --slurpfile a <(bin/perf) \
+            --slurpfile b <(bin/benchmarks) \
+            '$a[0] + $b[0]' \
+            > combined.json
+
           echo "out<<EOF" >> "$GITHUB_OUTPUT"
-          cat perf.txt >> "$GITHUB_OUTPUT"
+          cat combined.json >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
-          cat perf.txt
+
+          cat combined.json
 
       - name: Run Performance Comparison
         env:
