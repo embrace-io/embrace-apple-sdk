@@ -1,3 +1,7 @@
+//
+//  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
+//
+
 import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
@@ -12,7 +16,7 @@ import Foundation
 #endif
 
 @objc(KSCrashReporter)
-public final class KSCrashReporter: NSObject, CrashReporter, TerminationReporter {
+public final class KSCrashReporter: NSObject, CrashReporter {
 
     private struct KSCrashKey {
         static let user = "user"
@@ -26,28 +30,13 @@ public final class KSCrashReporter: NSObject, CrashReporter, TerminationReporter
 
     private var crashContext: CrashReporterContext? = nil
     private var lastSession: String?
-    private var threadcrumb: EmbraceThreadcrumb?
+    private var threadcrumb = EmbraceThreadcrumb()
     private let reporter: KSCrash = KSCrash.shared
 
     public override init() {
         super.init()
         self.reporter.userInfo = [:]
         self.lastSession = try? String(contentsOf: Self.lastSessionURL, encoding: .utf8)
-        self.threadcrumb = EmbraceThreadcrumb()
-    }
-
-    static private var lastSessionURL: URL {
-        try! FileManager.default.url(
-            for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: false
-        ).appendingPathComponent("last_session")
-    }
-
-    static private var symbolDirectoryURL: URL! {
-        let url = try! FileManager.default.url(
-            for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: false
-        ).appendingPathComponent("ThreadcrumbSymbols")
-        try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
-        return url
     }
 
     // this is the path that contains `/Reports`.
@@ -74,8 +63,9 @@ public final class KSCrashReporter: NSObject, CrashReporter, TerminationReporter
             config.enableSwapCxaThrow = false
             config.installPath = context.filePathProvider.directoryURL(for: "embrace_crash_reporter")?.path
             config.reportStoreConfiguration.appName = context.appId ?? "default"
-            config.willWriteReportCallback = EMBTerminationStorageWillWriteCrashEvent
             config.monitors = [.cppException, .machException, .nsException, .signal, .userReported, .system, .applicationState]
+            config.willWriteReportCallback = EMBTerminationStorageWillWriteCrashEvent
+
             do {
                 try reporter.install(with: config)
             } catch {
@@ -83,36 +73,6 @@ public final class KSCrashReporter: NSObject, CrashReporter, TerminationReporter
                 throw error
             }
         #endif
-    }
-
-    public func deleteTerminationData(_ metadata: TerminationMetadata) async {
-        if !EMBTerminationStorageRemoveForIdentifier(metadata.processId) {
-            crashContext?.logger.error("Error deleting temrination data for identifier: \(metadata.processId)")
-        }
-    }
-
-    public func fetchUnsentTerminationAttributes() async -> [TerminationMetadata] {
-        let identifiers: [String] = EMBTerminationStorageGetIdentifiers()
-        return identifiers.compactMap { id in
-
-            // don't send the current one
-            if id == ProcessIdentifier.current.value {
-                return nil
-            }
-
-            var storage = EMBTerminationStorage()
-            let ok = withUnsafeMutablePointer(to: &storage) { ptr in
-                EMBTerminationStorageForIdentifier(id, ptr)
-            }
-            if ok {
-                return TerminationMetadata(
-                    processId: storage.processIdentifier,
-                    timestamp: storage.lastKnownDate,
-                    metadata: storage.toDictionary()
-                )
-            }
-            return nil
-        }
     }
 
     /// Fetches all saved `EmbraceCrashReport`.
@@ -232,7 +192,7 @@ public final class KSCrashReporter: NSObject, CrashReporter, TerminationReporter
 
                 // log it
                 crashContext?.logger.info("sid: \(value)")
-                let stack = threadcrumb?.log(value).map { UInt64(truncating: $0) } ?? []
+                let stack = threadcrumb.log(value).map { UInt64(truncating: $0) } ?? []
                 _writeSymbols(
                     stack,
                     sessionId: value,
@@ -247,6 +207,40 @@ public final class KSCrashReporter: NSObject, CrashReporter, TerminationReporter
 
     public func getCrashInfo(key: String) -> String? {
         reporter.userInfo?[key] as? String
+    }
+
+}
+
+extension KSCrashReporter: TerminationReporter {
+
+    public func deleteTerminationData(_ metadata: TerminationMetadata) async {
+        if !EMBTerminationStorageRemoveForIdentifier(metadata.processId) {
+            crashContext?.logger.error("Error deleting temrination data for identifier: \(metadata.processId)")
+        }
+    }
+
+    public func fetchUnsentTerminationAttributes() async -> [TerminationMetadata] {
+        let identifiers: [String] = EMBTerminationStorageGetIdentifiers()
+        return identifiers.compactMap { id in
+
+            // don't send the current one
+            if id == ProcessIdentifier.current.value {
+                return nil
+            }
+
+            var storage = TerminationStorage()
+            let ok = withUnsafeMutablePointer(to: &storage) { ptr in
+                EMBTerminationStorageForIdentifier(id, ptr)
+            }
+            if ok {
+                return TerminationMetadata(
+                    processId: storage.processIdentifier,
+                    timestamp: storage.lastKnownDate,
+                    metadata: storage.toDictionary()
+                )
+            }
+            return nil
+        }
     }
 
     private func _writeSymbols(_ symbols: [UInt64], sessionId: String, processId: String, sdk: String?) {
@@ -278,101 +272,22 @@ public final class KSCrashReporter: NSObject, CrashReporter, TerminationReporter
         let output = [sessionId, processId, sdk].compactMap { $0 }.joined(separator: "\n")
         try? output.write(to: url, atomically: false, encoding: .utf8)
     }
+
 }
 
-/// Safely decode a fixed-size C char buffer (possibly not null-terminated) as UTF-8.
-private func fixedCString<T>(cString: T) -> String {
+extension KSCrashReporter {
 
-    var copy = cString  // make a local so we can take an inout pointer
-    return withUnsafePointer(to: &copy) { ptr in
-        let byteCount = MemoryLayout<T>.size
-        return ptr.withMemoryRebound(to: UInt8.self, capacity: byteCount) { u8 in
-            let buf = UnsafeBufferPointer(start: u8, count: byteCount)
-            let end = buf.firstIndex(of: 0) ?? byteCount
-            return String(decoding: buf.prefix(end), as: UTF8.self)
-        }
-    }
-}
-
-extension EMBTerminationStorage {
-
-    var processIdentifier: String {
-        withUnsafePointer(to: uuid) {
-            $0.withMemoryRebound(to: UInt8.self, capacity: 16) { bytes in
-                UUID(
-                    uuid: (
-                        bytes[0], bytes[1], bytes[2], bytes[3],
-                        bytes[4], bytes[5], bytes[6], bytes[7],
-                        bytes[8], bytes[9], bytes[10], bytes[11],
-                        bytes[12], bytes[13], bytes[14], bytes[15]
-                    )
-                ).uuidString
-            }
-        }
+    static private var lastSessionURL: URL {
+        try! FileManager.default.url(
+            for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: false
+        ).appendingPathComponent("last_session")
     }
 
-    var lastKnownDate: Date {
-        let value = creationTimestampEpochMillis + (updateTimestampMonotonicMillis - creationTimestampMonotonicMillis)
-        let seconds = Double(value) / 1000.0
-        return Date(timeIntervalSince1970: seconds)
-    }
-
-    func toDictionary() -> [String: TerminationAttributeValue] {
-        var dict: [String: TerminationAttributeValue] = [:]
-
-        dict["magic"] = magic
-        dict["version"] = version
-        dict["creationTimestampMonotonicMillis"] = creationTimestampMonotonicMillis
-        dict["creationTimestampEpochMillis"] = creationTimestampEpochMillis
-        dict["updateTimestampMonotonicMillis"] = updateTimestampMonotonicMillis
-
-        dict["uuid"] = processIdentifier
-        dict["pid"] = pid
-        dict["stackOverflow"] = stackOverflow != 0
-        dict["address"] = address
-
-        dict["cleanExitSet"] = cleanExitSet != 0
-        dict["exitCalled"] = exitCalled != 0
-        dict["quickExitCalled"] = quickExitCalled != 0
-        dict["terminateCalled"] = terminateCalled != 0
-
-        dict["exceptionSet"] = exceptionSet != 0
-        dict["exceptionType"] = exceptionType  // keep raw type value
-        dict["exceptionName"] = fixedCString(cString: exceptionName)
-        dict["exceptionReason"] = fixedCString(cString: exceptionReason)
-        dict["exceptionUserInfo"] = fixedCString(cString: exceptionUserInfo)
-
-        dict["machExceptionSet"] = machExceptionSet != 0
-        dict["machExceptionNumber"] = machExceptionNumber
-        dict["machExceptionNumberName"] = MachException(rawValue: machExceptionNumber)?.name
-        dict["machExceptionCode"] = machExceptionCode
-        dict["machExceptionSubcode"] = machExceptionSubcode
-
-        dict["signalSet"] = signalSet != 0
-        dict["signalNumber"] = signalNumber
-        dict["signalNumberName"] = CrashSignal(rawValue: Int(signalNumber))?.stringValue
-        dict["signalCode"] = signalCode
-
-        dict["appTransitionState"] = appTransitionState
-        if let state = AppTransitionState(rawValue: appTransitionState) {
-            dict["appTransitionStateName"] = String(cString: state.cString())
-            dict["appTransitionStateIsUserPercetible"] = state.isUserPerceptible()
-        }
-
-        dict["memoryFootprint"] = memoryFootprint
-        dict["memoryRemaining"] = memoryRemaining
-        dict["memoryLimit"] = memoryLimit
-
-        dict["memoryLevel"] = memoryLevel
-        if let value = AppMemoryState(rawValue: UInt(memoryLevel)) {
-            dict["memoryLevelName"] = String(cString: value.cString())
-        }
-
-        dict["memoryPressure"] = memoryPressure
-        if let value = AppMemoryState(rawValue: UInt(memoryPressure)) {
-            dict["memoryPressureName"] = String(cString: value.cString())
-        }
-
-        return dict
+    static private var symbolDirectoryURL: URL! {
+        let url = try! FileManager.default.url(
+            for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: false
+        ).appendingPathComponent("ThreadcrumbSymbols")
+        try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        return url
     }
 }

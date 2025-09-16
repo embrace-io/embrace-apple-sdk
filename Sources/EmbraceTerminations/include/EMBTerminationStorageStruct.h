@@ -89,7 +89,7 @@ typedef struct __attribute__((aligned(8))) {
     // - End Version 1 -
     //
 
-} EMBTerminationStorage;
+} EMBTerminationStorage NS_SWIFT_NAME(TerminationStorage);
 #pragma pack(pop)
 
 //_Static_assert(sizeof(EMBTerminationStorage) == 9344, "Unexpected struct size");
