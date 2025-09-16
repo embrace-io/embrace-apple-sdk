@@ -13,22 +13,7 @@ import Foundation
     import EmbraceConfiguration
 #endif
 
-protocol LogControllable: LogBatcherDelegate {
-    func uploadAllPersistedLogs(_ completion: (() -> Void)?)
-    func createLog(
-        _ message: String,
-        severity: EmbraceLogSeverity,
-        type: EmbraceType,
-        timestamp: Date,
-        attachment: EmbraceLogAttachment?,
-        attributes: [String: String],
-        stackTraceBehavior: EmbraceStackTraceBehavior,
-        send: Bool,
-        completion: ((EmbraceLog?) -> Void)?
-    )
-}
-
-class LogController: LogControllable {
+class LogController: LogBatcherDelegate {
     weak var storage: Storage?
     weak var upload: EmbraceLogUploader?
     weak var sessionController: SessionControllable?
@@ -189,15 +174,19 @@ class LogController: LogControllable {
             )
 
             if send {
-                // save log
-                storage?.saveLog(log)
-
-                // add to batch
-                batcher.addLog(log)
+                addLog(log)
             }
 
             completion?(log)
         }
+    }
+
+    public func addLog(_ log: EmbraceLog) {
+        // save log
+        storage?.saveLog(log)
+
+        // add to batch
+        batcher.addLog(log)
     }
 }
 

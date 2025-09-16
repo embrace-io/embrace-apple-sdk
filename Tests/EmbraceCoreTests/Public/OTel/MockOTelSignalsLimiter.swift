@@ -27,11 +27,11 @@ class MockOTelSignalsLimiter: OTelSignalsLimiter {
         return shouldAddSessionEventReturnValue
     }
 
-    var sshouldCreateLogCallCount: Int = 0
-    var sshouldCreateLogReturnValue: Bool = true
+    var shouldCreateLogCallCount: Int = 0
+    var shouldCreateLogReturnValue: Bool = true
     func shouldCreateLog(type: EmbraceType, severity: EmbraceLogSeverity) -> Bool {
-        sshouldCreateLogCallCount += 1
-        return sshouldCreateLogReturnValue
+        shouldCreateLogCallCount += 1
+        return shouldCreateLogReturnValue
     }
 
     var shouldAddSpanEventCallCount: Int = 0

@@ -70,7 +70,8 @@ extension EmbraceOTelSignalsHandler {
             events: events,
             links: links,
             attributes: attributes,
-            autoTerminationCode: autoTerminationCode, isInternal: true
+            autoTerminationCode: autoTerminationCode,
+            isInternal: true
         )
     }
 

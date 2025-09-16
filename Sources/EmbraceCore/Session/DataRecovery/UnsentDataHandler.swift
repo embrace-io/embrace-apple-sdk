@@ -19,7 +19,7 @@ class UnsentDataHandler {
         storage: EmbraceStorage?,
         upload: EmbraceUpload?,
         otel: InternalOTelSignalsHandler?,
-        logController: LogControllable? = nil,
+        logController: LogController? = nil,
         currentSessionId: EmbraceIdentifier? = nil,
         crashReporter: EmbraceCrashReporter? = nil,
         completion: UnsentDataHandlerCompletion? = nil
@@ -423,7 +423,7 @@ extension UnsentDataHandler {
         storage: EmbraceStorage?,
         upload: EmbraceUpload?,
         otel: InternalOTelSignalsHandler?,
-        logController: LogControllable? = nil,
+        logController: LogController? = nil,
         currentSessionId: EmbraceIdentifier? = nil,
         crashReporter: EmbraceCrashReporter? = nil
     ) async {

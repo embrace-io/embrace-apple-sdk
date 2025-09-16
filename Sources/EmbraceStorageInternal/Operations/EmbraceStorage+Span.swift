@@ -13,10 +13,15 @@ import Foundation
 extension EmbraceStorage {
 
     /// Adds or updates a span to the storage synchronously.
-    public func upsertSpan(_ span: EmbraceSpan) {
+    public func upsertSpan(_ span: EmbraceSpan, onlyUpdate: Bool = false) {
 
         // update existing?
         if updateExistingSpan(span) {
+            return
+        }
+
+        // check if we can add a new span
+        guard !onlyUpdate else {
             return
         }
 

@@ -101,6 +101,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         XCTAssertEqual(span.links[0].context.spanId, TestConstants.spanId)
         XCTAssertEqual(span.links[0].context.traceId, TestConstants.traceId)
         XCTAssertEqual(span.attributes["key"], "value")
+        XCTAssertTrue(span is DefaultEmbraceSpan)
 
         // then the span has the correct internal attributes
         XCTAssertEqual(span.attributes["emb.type"], "perf")
@@ -335,7 +336,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         )
 
         // then the right calls are made
-        XCTAssertEqual(limiter.sshouldCreateLogCallCount, 1)
+        XCTAssertEqual(limiter.shouldCreateLogCallCount, 1)
         XCTAssertEqual(sanitizer.sanitizeLogAttributesCallCount, 1)
 
         // then the log is created correctly
@@ -359,14 +360,14 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
     func test_log_failure() throws {
         // given a handler
         // when creating a log that would break the limit
-        limiter.sshouldCreateLogReturnValue = false
+        limiter.shouldCreateLogReturnValue = false
 
         XCTAssertThrowsError(try handler.log("test", severity: .info)) { error in
 
             // then the correct error is thrown
             XCTAssert(error is EmbraceOTelError)
             XCTAssertEqual((error as! EmbraceOTelError).errorCode, -6)
-            XCTAssertEqual(limiter.sshouldCreateLogCallCount, 1)
+            XCTAssertEqual(limiter.shouldCreateLogCallCount, 1)
             XCTAssertEqual(sanitizer.sanitizeLogAttributesCallCount, 0)
             XCTAssertEqual(bridge.createLogCallCount, 0)
 

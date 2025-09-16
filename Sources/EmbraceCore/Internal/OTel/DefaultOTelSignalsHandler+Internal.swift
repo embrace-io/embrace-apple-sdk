@@ -131,7 +131,7 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
             type: type,
             timestamp: timestamp,
             attachment: attachment,
-            attributes: sanitizer.sanitizeLogAttributes(attributes),
+            attributes: isInternal ? attributes : sanitizer.sanitizeLogAttributes(attributes),
             stackTraceBehavior: stackTraceBehavior,
             send: send
         ) { [weak self] log in
@@ -314,7 +314,7 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDataSource {
         return EmbraceSpanLink(
             spanId: spanId,
             traceId: traceId,
-            attributes: sanitizer.sanitizeSpanEventAttributes(attributes)
+            attributes: sanitizer.sanitizeSpanLinkAttributes(attributes)
         )
     }
 
@@ -339,5 +339,37 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDataSource {
         let finalValue = sanitizer.sanitizeAttributeValue(value)
 
         return (finalKey, finalValue)
+    }
+}
+
+// MARK: EmbraceOTelDelegate
+extension DefaultOTelSignalsHandler: EmbraceOTelDelegate {
+    public func onStartSpan(_ span: EmbraceSpan) {
+
+        // check limits
+        var onlyUpdate = false
+        if !limiter.shouldCreateCustomSpan() {
+            onlyUpdate = true
+            Embrace.logger.warning("Limit reached for spans on the current Embrace session!")
+        }
+
+        // update db
+        storage?.upsertSpan(span, onlyUpdate: onlyUpdate)
+    }
+
+    public func onEndSpan(_ span: EmbraceSpan) {
+        // update db
+        storage?.upsertSpan(span, onlyUpdate: true)
+    }
+
+    public func onEmitLog(_ log: EmbraceLog) {
+
+        guard limiter.shouldCreateLog(type: log.type, severity: log.severity) else {
+            Embrace.logger.warning("Limit reached for logs on the current Embrace session!")
+            return
+        }
+
+        // add log
+        logController?.addLog(log)
     }
 }
