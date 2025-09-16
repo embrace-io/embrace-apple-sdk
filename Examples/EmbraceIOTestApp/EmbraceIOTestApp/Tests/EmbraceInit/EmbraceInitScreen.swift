@@ -6,6 +6,7 @@
 
 import EmbraceCommonInternal
 import EmbraceIO
+import EmbraceKSCrashBacktraceSupport
 import EmbraceKSCrashSupport
 import EmbraceObjCUtilsInternal
 import SwiftUI
@@ -108,7 +109,8 @@ extension EmbraceInitScreen {
                             captureServices: services,
                             crashReporter: KSCrashReporter(),
                             export: .init(
-                                spanExporter: dataCollector.spanExporter, logExporter: dataCollector.logExporter))
+                                spanExporter: dataCollector.spanExporter, logExporter: dataCollector.logExporter),
+                            backtracer: KSCrashBacktracing())
                 ).start()
             viewModel.showProgressview = false
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {

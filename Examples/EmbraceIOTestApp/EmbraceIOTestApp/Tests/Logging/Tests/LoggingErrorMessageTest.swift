@@ -110,7 +110,7 @@ class LoggingErrorMessageTest: PayloadTest {
         switch stackTraceBehavior {
         case .notIncluded:
             return false
-        case .default, .custom:
+        case .default, .custom, .main:
             switch loggedMessageSeverity {
             case .trace, .debug, .info, .fatal, .critical:
                 return false

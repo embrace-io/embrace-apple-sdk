@@ -12,6 +12,7 @@ import Foundation
     import EmbraceConfigInternal
     import EmbraceOTelInternal
     import EmbraceConfiguration
+    import EmbraceObjCUtilsInternal
 #endif
 
 protocol LogControllable: LogBatcherDelegate {
@@ -109,19 +110,33 @@ class LogController: LogControllable {
             initialAttributes: attributes
         )
 
-        // things that require the state from this thread
+        // These all need to be at the callsite in order to
+        // have correct information about the users intention.
         attributesBuilder
             .addLogType(type)
             .addApplicationState()
             .addSessionIdentifier()
 
-        // We want to ensure the backtrace is taken this thread,
+        // We want to ensure the backtrace is taken on this thread,
         // but added from the queue as to not use up possibly main thread resources.
         let addStacktraceBlock: ((_ builder: EmbraceLogAttributesBuilder) -> Void)?
         switch stackTraceBehavior {
         case .default where severity == .warn || severity == .error:
-            let stackTrace = Thread.callStackSymbols
-            addStacktraceBlock = { $0.addStackTrace(stackTrace) }
+            if EmbraceBacktrace.isAvailable {
+                let backtrace = EmbraceBacktrace.backtrace(of: pthread_self(), suspendingThreads: false)
+                addStacktraceBlock = { $0.addBacktrace(backtrace) }
+            } else {
+                let stacktrace = Thread.callStackSymbols
+                addStacktraceBlock = { $0.addStackTrace(stacktrace) }
+            }
+        case .main where severity == .warn || severity == .error:
+            if EmbraceBacktrace.isAvailable {
+                let backtrace = EmbraceBacktrace.backtrace(of: EmbraceGetMainThread(), suspendingThreads: true)
+                addStacktraceBlock = { $0.addBacktrace(backtrace) }
+            } else {
+                addStacktraceBlock = nil
+                Embrace.logger.warning("stackTraceBehavior .main is unavailable without EmbraceBacktrace")
+            }
         case .custom(let customStackTrace) where severity == .warn || severity == .error:
             let stackTrace = customStackTrace.frames
             addStacktraceBlock = { $0.addStackTrace(stackTrace) }
