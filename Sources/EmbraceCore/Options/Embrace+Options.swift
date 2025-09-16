@@ -24,6 +24,8 @@ extension Embrace {
         @objc public let crashReporter: CrashReporter?
         @objc public let logLevel: LogLevel
         @objc public let runtimeConfiguration: EmbraceConfigurable?
+        @objc public let backtracer: Backtracer?
+        @objc public let symbolicator: Symbolicator?
 
         /// Default initializer for `Embrace.Options` that requires an array of `CaptureServices` to be passed.
         ///
@@ -38,8 +40,10 @@ extension Embrace {
         ///   - captureServices: The `CaptureServices` to be installed.
         ///   - crashReporter: The `CrashReporter` to be installed.
         ///   - logLevel: The `LogLevel` to use for console logs.
-        ///   - export: `OpenTelemetryExport` object to export telemetry using OpenTelemetry protocols
-        ///   - processors: `OpenTelemetryProcessor` objects to do extra processing
+        ///   - backtracer: Optional `Backtracer` to capture stack traces. Defaults to the
+        ///     built-in mechanism, which is sufficient for most apps.
+        ///   - symbolicator: Optional `Symbolicator` to resolve frames into symbols;
+        ///     without it, only raw addresses are shown.
         @objc public init(
             appId: String,
             appGroupId: String? = nil,
@@ -47,7 +51,9 @@ extension Embrace {
             endpoints: Embrace.Endpoints? = nil,
             captureServices: [CaptureService],
             crashReporter: CrashReporter?,
-            logLevel: LogLevel = .default
+            logLevel: LogLevel = .default,
+            backtracer: Backtracer? = nil,
+            symbolicator: Symbolicator? = nil
         ) {
             self.appId = appId
             self.appGroupId = appGroupId
@@ -57,6 +63,8 @@ extension Embrace {
             self.crashReporter = crashReporter
             self.logLevel = logLevel
             self.runtimeConfiguration = nil
+            self.backtracer = backtracer
+            self.symbolicator = symbolicator
         }
 
         /// Initializer for `Embrace.Options` that does not require an appId.
@@ -75,7 +83,9 @@ extension Embrace {
             captureServices: [CaptureService],
             crashReporter: CrashReporter?,
             logLevel: LogLevel = .default,
-            runtimeConfiguration: EmbraceConfigurable = .default
+            runtimeConfiguration: EmbraceConfigurable = .default,
+            backtracer: Backtracer? = nil,
+            symbolicator: Symbolicator? = nil
         ) {
             self.appId = nil
             self.appGroupId = nil
@@ -85,6 +95,8 @@ extension Embrace {
             self.crashReporter = crashReporter
             self.logLevel = logLevel
             self.runtimeConfiguration = runtimeConfiguration
+            self.backtracer = backtracer
+            self.symbolicator = symbolicator
         }
     }
 }

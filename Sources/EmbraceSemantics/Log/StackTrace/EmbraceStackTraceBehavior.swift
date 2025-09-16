@@ -18,6 +18,12 @@ public class EmbraceStackTraceBehavior: NSObject {
         return .init(mode: .defaultStackTrace)
     }
 
+    /// Behavior used to include the the stack trace for the main thread.
+    /// Only available if `EmbraceBacktrace.isAvailable == true`.
+    @objc public class func mainThreadStackTrace() -> EmbraceStackTraceBehavior {
+        return .init(mode: .mainThreadStackTrace)
+    }
+
     /// Behavior used to include a custom `EmbraceStackTrace`.
     /// - Parameter stackTrace: The custom stack trace to use.
     @objc public class func customStackTrace(_ stackTrace: EmbraceStackTrace) -> EmbraceStackTraceBehavior {
@@ -31,9 +37,28 @@ public class EmbraceStackTraceBehavior: NSObject {
         switch mode {
         case .notIncluded: return nil
         case .defaultStackTrace: return Thread.callStackSymbols
+        case .mainThreadStackTrace: return Thread.callStackSymbols
         case .customStackTrace: return customStackTrace?.frames
         }
     }
+
+    /*
+     if EmbraceBacktrace.isAvailable {
+         let backtrace = EmbraceBacktrace.backtrace(of: pthread_self(), suspendingThreads: false)
+         addStacktraceBlock = { $0.addBacktrace(backtrace) }
+     } else {
+         let stacktrace = Thread.callStackSymbols
+         addStacktraceBlock = { $0.addStackTrace(stacktrace) }
+     }
+ case .main where severity == .warn || severity == .error:
+     if EmbraceBacktrace.isAvailable {
+         let backtrace = EmbraceBacktrace.backtrace(of: EmbraceGetMainThread(), suspendingThreads: true)
+         addStacktraceBlock = { $0.addBacktrace(backtrace) }
+     } else {
+         addStacktraceBlock = nil
+         Embrace.logger.warning("stackTraceBehavior .main is unavailable without EmbraceBacktrace")
+     }
+     */
 
     init(mode: StackTraceBehaviorMode, customStackTrace: EmbraceStackTrace? = nil) {
         self.mode = mode
@@ -42,5 +67,5 @@ public class EmbraceStackTraceBehavior: NSObject {
 }
 
 enum StackTraceBehaviorMode {
-    case notIncluded, defaultStackTrace, customStackTrace
+    case notIncluded, defaultStackTrace, mainThreadStackTrace, customStackTrace
 }

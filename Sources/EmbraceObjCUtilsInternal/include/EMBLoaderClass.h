@@ -7,7 +7,8 @@
 NS_ASSUME_NONNULL_BEGIN
 
 @interface EMBLoaderClass : NSObject
-
 @end
+
+FOUNDATION_EXPORT pthread_t EmbraceGetMainThread(void);
 
 NS_ASSUME_NONNULL_END

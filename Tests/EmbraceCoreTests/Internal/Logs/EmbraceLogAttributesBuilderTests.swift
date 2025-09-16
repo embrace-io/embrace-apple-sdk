@@ -136,7 +136,7 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
         givenMetadataFetcher()
         givenEmbraceLogAttributesBuilder()
 
-        whenInvokingAddStackTrace(withStack: [])
+        sut.addStackTrace([])
         whenInvokingBuild()
 
         thenResultingAttributes(is: .empty())
@@ -147,7 +147,20 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
         givenMetadataFetcher()
         givenEmbraceLogAttributesBuilder()
 
-        whenInvokingAddStackTrace(withStack: Thread.callStackSymbols)
+        sut.addStackTrace(Thread.callStackSymbols)
+        whenInvokingBuild()
+
+        thenResultingAttributes(containsKey: "emb.stacktrace.ios")
+    }
+
+    // MARK: - addBackTrace Tests
+
+    func test_onAddBacktrace_doesNothing() {
+        givenSessionController()
+        givenMetadataFetcher()
+        givenEmbraceLogAttributesBuilder()
+
+        sut.addBacktrace(EmbraceBacktrace.backtrace())
         whenInvokingBuild()
 
         thenResultingAttributes(containsKey: "emb.stacktrace.ios")
@@ -193,10 +206,6 @@ extension EmbraceLogAttributesBuilderTests {
 
     fileprivate func whenInvokingBuild() {
         result = sut.build()
-    }
-
-    fileprivate func whenInvokingAddStackTrace(withStack stacktrace: [String]) {
-        sut.addStackTrace(stacktrace)
     }
 
     fileprivate func whenInvokingAddSessionIdentifier() {

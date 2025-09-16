@@ -79,10 +79,11 @@ class FullyImplementedURLSessionDelegate: NSObject,
     func urlSession(
         _ session: URLSession,
         didReceive challenge: URLAuthenticationChallenge,
-        completionHandler: @escaping (
-            URLSession.AuthChallengeDisposition,
-            URLCredential?
-        ) -> Void
+        completionHandler:
+            @escaping (
+                URLSession.AuthChallengeDisposition,
+                URLCredential?
+            ) -> Void
     ) {
         didCallDidReceiveChallenge = true
         didReceiveChallengeExpectation.fulfill()
@@ -96,10 +97,11 @@ class FullyImplementedURLSessionDelegate: NSObject,
         _ session: URLSession,
         task: URLSessionTask,
         willBeginDelayedRequest request: URLRequest,
-        completionHandler: @escaping @Sendable (
-            URLSession.DelayedRequestDisposition,
-            URLRequest?
-        ) -> Void
+        completionHandler:
+            @escaping @Sendable (
+                URLSession.DelayedRequestDisposition,
+                URLRequest?
+            ) -> Void
     ) {
         didCallWillBeginDelayedRequest = true
         willBeginDelayedRequestExpectation.fulfill()
@@ -127,10 +129,11 @@ class FullyImplementedURLSessionDelegate: NSObject,
         _ session: URLSession,
         task: URLSessionTask,
         didReceive challenge: URLAuthenticationChallenge,
-        completionHandler: @escaping @Sendable (
-            URLSession.AuthChallengeDisposition,
-            URLCredential?
-        ) -> Void
+        completionHandler:
+            @escaping @Sendable (
+                URLSession.AuthChallengeDisposition,
+                URLCredential?
+            ) -> Void
     ) {
         didCallTaskWithReceivedAuthenticationChallenge = true
         taskWithReceivedAuthenticationChallengeExpectation.fulfill()

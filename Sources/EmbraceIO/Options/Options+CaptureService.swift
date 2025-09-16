@@ -9,6 +9,8 @@ import Foundation
     import EmbraceCore
     import EmbraceCommonInternal
     import EmbraceKSCrashSupport
+    import EmbraceKSCrashBacktraceSupport
+    import KSCrashDemangleFilter
 #endif
 
 extension Embrace.Options {
@@ -39,7 +41,35 @@ extension Embrace.Options {
             endpoints: endpoints,
             captureServices: .automatic,
             crashReporter: KSCrashReporter(),
-            logLevel: logLevel
+            logLevel: logLevel,
+            backtracer: KSCrashBacktracing(),
+            symbolicator: KSCrashBacktracing()
+        )
+    }
+
+    /// Convenience initializer for `Embrace.Options` that automatically includes the default `CaptureServices` and `CrashReporter`,
+    /// You can see list of platform service defaults in ``CaptureServiceBuilder.addDefaults``.
+    ///
+    /// If you wish to customize which `CaptureServices` and `CrashReporter` are installed, please refer to the `Embrace.Options`
+    /// initializer found in the `EmbraceCore` target.
+    ///
+    /// - Parameters:
+    ///   - appId: The `appId` of the project.
+    ///   - appGroupId: The app group identifier used by the app, if any.
+    ///   - platform: `Platform` in which the app will run. Defaults to `.iOS`.
+    @objc public convenience init(
+        appId: String,
+        appGroupId: String? = nil,
+        platform: Platform = .default
+    ) {
+        self.init(
+            appId: appId,
+            appGroupId: appGroupId,
+            platform: platform,
+            captureServices: .automatic,
+            crashReporter: KSCrashReporter(),
+            backtracer: KSCrashBacktracing(),
+            symbolicator: KSCrashBacktracing()
         )
     }
 }

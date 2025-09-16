@@ -11,6 +11,7 @@ import Foundation
     import EmbraceSemantics
     import EmbraceConfigInternal
     import EmbraceConfiguration
+    import EmbraceObjCUtilsInternal
 #endif
 
 class LogController: LogBatcherDelegate {
@@ -101,13 +102,14 @@ class LogController: LogBatcherDelegate {
             initialAttributes: attributes
         )
 
-        // things that require the state from this thread
+        // These all need to be at the callsite in order to
+        // have correct information about the users intention.
         attributesBuilder
             .addLogType(type)
             .addApplicationState()
             .addSessionIdentifier()
 
-        // We want to ensure the backtrace is taken this thread,
+        // We want to ensure the backtrace is taken on this thread,
         // but added from the queue as to not use up possibly main thread resources.
         var addStacktraceBlock: ((_ builder: EmbraceLogAttributesBuilder) -> Void)?
         if severity == .warn || severity == .error,
