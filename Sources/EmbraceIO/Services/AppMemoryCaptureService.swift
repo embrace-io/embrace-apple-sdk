@@ -54,44 +54,27 @@ public class AppMemoryCaptureService: CaptureService {
         // send pressure or level updates
         if let eventName, let eventType {
 
-            let date = Date()
-
             let event = RecordingSpanEvent(
                 name: eventName,
-                timestamp: date,
+                timestamp: Date(),
                 attributes: [
                     SpanEventSemantics.keyEmbraceType: .string(eventType),
-                    "emb.memory_level": .string(memory.level.asString()),
-                    "emb.memory_pressure": .string(memory.pressure.asString()),
-                    "emb.memory_footprint": .int(Int(memory.footprint)),
-                    "emb.memory_limit": .int(Int(memory.limit)),
-                    "emb.memory_remaining": .int(Int(memory.remaining))
+                    SpanEventSemantics.Memory.level: .string(memory.level.asString()),
+                    SpanEventSemantics.Memory.pressure: .string(memory.pressure.asString()),
+                    SpanEventSemantics.Memory.footprint: .int(Int(memory.footprint)),
+                    SpanEventSemantics.Memory.limit: .int(Int(memory.limit)),
+                    SpanEventSemantics.Memory.remaining: .int(Int(memory.remaining))
                 ]
             )
             add(event: event)
-
-            otel?.log(
-                eventName,
-                severity: .warn,
-                type: .message,
-                timestamp: date,
-                attributes: [
-                    "emb.memory_level": memory.level.asString(),
-                    "emb.memory_pressure": memory.pressure.asString(),
-                    "emb.memory_footprint": "\(memory.footprint)",
-                    "emb.memory_limit": "\(memory.limit)",
-                    "emb.memory_remaining": "\(memory.remaining)"
-                ],
-                stackTraceBehavior: .notIncluded
-            )
         }
 
         // update the footprint at the process level
-        try? metadata?.setProcessProperty(key: "emb.memory_level", value: memory.level.asString())
-        try? metadata?.setProcessProperty(key: "emb.memory_pressure", value: memory.pressure.asString())
-        try? metadata?.setProcessProperty(key: "emb.memory_footprint", value: "\(memory.footprint)")
-        try? metadata?.setProcessProperty(key: "emb.memory_limit", value: "\(memory.limit)")
-        try? metadata?.setProcessProperty(key: "emb.memory_remaining", value: "\(memory.remaining)")
+        try? metadata?.setProcessProperty(key: SpanEventSemantics.Memory.level, value: memory.level.asString())
+        try? metadata?.setProcessProperty(key: SpanEventSemantics.Memory.pressure, value: memory.pressure.asString())
+        try? metadata?.setProcessProperty(key: SpanEventSemantics.Memory.footprint, value: "\(memory.footprint)")
+        try? metadata?.setProcessProperty(key: SpanEventSemantics.Memory.limit, value: "\(memory.limit)")
+        try? metadata?.setProcessProperty(key: SpanEventSemantics.Memory.remaining, value: "\(memory.remaining)")
     }
 }
 

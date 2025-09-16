@@ -26,6 +26,17 @@ extension SpanEventSemantics {
     }
 }
 
+extension SpanEventSemantics {
+
+    public struct Memory {
+        public static let level = "emb.memory_level"
+        public static let pressure = "emb.memory_pressure"
+        public static let footprint = "emb.memory_footprint"
+        public static let limit = "emb.memory_limit"
+        public static let remaining = "emb.memory_remaining"
+    }
+}
+
 extension SpanType {
     @available(
         *,
