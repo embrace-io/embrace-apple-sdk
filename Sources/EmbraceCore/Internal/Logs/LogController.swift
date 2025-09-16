@@ -86,7 +86,7 @@ class LogController: LogBatcherDelegate {
         timestamp: Date = Date(),
         attachment: EmbraceLogAttachment? = nil,
         attributes: [String: String] = [:],
-        stackTraceBehavior: EmbraceStackTraceBehavior = .defaultStackTrace(),
+        stackTraceBehavior: EmbraceStackTraceBehavior = .default,
         send: Bool = true,
         completion: ((EmbraceLog?) -> Void)? = nil
     ) {
@@ -111,11 +111,29 @@ class LogController: LogBatcherDelegate {
 
         // We want to ensure the backtrace is taken on this thread,
         // but added from the queue as to not use up possibly main thread resources.
-        var addStacktraceBlock: ((_ builder: EmbraceLogAttributesBuilder) -> Void)?
-        if severity == .warn || severity == .error,
-            let frames = stackTraceBehavior.stackTraceFrames
-        {
-            addStacktraceBlock = { $0.addStackTrace(frames) }
+        let addStacktraceBlock: ((_ builder: EmbraceLogAttributesBuilder) -> Void)?
+        switch stackTraceBehavior {
+        case .default where severity == .warn || severity == .error:
+            if EmbraceBacktrace.isAvailable {
+                let backtrace = EmbraceBacktrace.backtrace(of: pthread_self(), suspendingThreads: false)
+                addStacktraceBlock = { $0.addBacktrace(backtrace) }
+            } else {
+                let stacktrace = Thread.callStackSymbols
+                addStacktraceBlock = { $0.addStackTrace(stacktrace) }
+            }
+        case .main where severity == .warn || severity == .error:
+            if EmbraceBacktrace.isAvailable {
+                let backtrace = EmbraceBacktrace.backtrace(of: EmbraceGetMainThread(), suspendingThreads: true)
+                addStacktraceBlock = { $0.addBacktrace(backtrace) }
+            } else {
+                addStacktraceBlock = nil
+                Embrace.logger.warning("stackTraceBehavior .main is unavailable without EmbraceBacktrace")
+            }
+        case .custom(let customStackTrace) where severity == .warn || severity == .error:
+            let stackTrace = customStackTrace.frames
+            addStacktraceBlock = { $0.addStackTrace(stackTrace) }
+        default:
+            addStacktraceBlock = nil
         }
 
         // Now we can jump to the queue and process everything.

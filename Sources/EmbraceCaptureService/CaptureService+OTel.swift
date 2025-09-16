@@ -94,7 +94,7 @@ extension CaptureService {
         timestamp: Date = Date(),
         attachment: EmbraceLogAttachment? = nil,
         attributes: [String: String] = [:],
-        stackTraceBehavior: EmbraceStackTraceBehavior = .defaultStackTrace()
+        stackTraceBehavior: EmbraceStackTraceBehavior = .default
     ) throws {
         try otel?._log(
             message,

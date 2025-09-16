@@ -62,7 +62,7 @@ class MetricKitHangCaptureService: CaptureService, MetricKitHangPayloadListener 
             type: .hang,
             timestamp: Date(),
             attributes: attributes,
-            stackTraceBehavior: .notIncluded()
+            stackTraceBehavior: .notIncluded
         )
     }
 }

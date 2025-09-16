@@ -482,7 +482,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
     func test_log_defaultStackTrace() throws {
         // given a handler
         // when creating a non-warn/error log with default stack trace
-        try handler.log("test", severity: .info, stackTraceBehavior: .defaultStackTrace())
+        try handler.log("test", severity: .info, stackTraceBehavior: .default)
 
         // then the stack trace is not added
         wait(delay: .defaultTimeout)
@@ -492,7 +492,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
     func test_warnLog_defaultStackTrace() throws {
         // given a handler
         // when creating a warn log with default stack trace
-        try handler.log("test", severity: .warn, stackTraceBehavior: .defaultStackTrace())
+        try handler.log("test", severity: .warn, stackTraceBehavior: .default)
 
         // then the stack trace is added
         wait(delay: .defaultTimeout)
@@ -502,7 +502,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
     func test_errorLog_defaultStackTrace() throws {
         // given a handler
         // when creating a error log with default stack trace
-        try handler.log("test", severity: .error, stackTraceBehavior: .defaultStackTrace())
+        try handler.log("test", severity: .error, stackTraceBehavior: .default)
 
         // then the stack trace is added
         wait(delay: .defaultTimeout)
@@ -518,7 +518,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         // given a handler
         // when creating a non-warn/error log with custom stack trace
         let stackTrace = try EmbraceStackTrace(frames: customFrames)
-        try handler.log("test", severity: .info, stackTraceBehavior: .customStackTrace(stackTrace))
+        try handler.log("test", severity: .info, stackTraceBehavior: .custom(stackTrace))
 
         // then the stack trace is not added
         wait(delay: .defaultTimeout)
@@ -529,7 +529,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         // given a handler
         // when creating a warn log with custom stack trace
         let stackTrace = try EmbraceStackTrace(frames: customFrames)
-        try handler.log("test", severity: .warn, stackTraceBehavior: .customStackTrace(stackTrace))
+        try handler.log("test", severity: .warn, stackTraceBehavior: .custom(stackTrace))
 
         // then the stack trace is added
         wait(delay: .defaultTimeout)
@@ -540,7 +540,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         // given a handler
         // when creating a error log with custom stack trace
         let stackTrace = try EmbraceStackTrace(frames: customFrames)
-        try handler.log("test", severity: .error, stackTraceBehavior: .customStackTrace(stackTrace))
+        try handler.log("test", severity: .error, stackTraceBehavior: .custom(stackTrace))
 
         // then the stack trace is added
         wait(delay: .defaultTimeout)
@@ -550,7 +550,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
     func test_log_noStackTrace() throws {
         // given a handler
         // when creating a non-warn/error log with no stack trace
-        try handler.log("test", severity: .info, stackTraceBehavior: .notIncluded())
+        try handler.log("test", severity: .info, stackTraceBehavior: .notIncluded)
 
         // then the stack trace is not added
         wait(delay: .defaultTimeout)
@@ -560,7 +560,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
     func test_warnLog_noStackTrace() throws {
         // given a handler
         // when creating a warn log with no stack trace
-        try handler.log("test", severity: .warn, stackTraceBehavior: .notIncluded())
+        try handler.log("test", severity: .warn, stackTraceBehavior: .notIncluded)
 
         // then the stack trace is not added
         wait(delay: .defaultTimeout)
@@ -570,7 +570,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
     func test_errorLog_noStackTrace() throws {
         // given a handler
         // when creating a error log with no stack trace
-        try handler.log("test", severity: .error, stackTraceBehavior: .notIncluded())
+        try handler.log("test", severity: .error, stackTraceBehavior: .notIncluded)
 
         // then the stack trace is not added
         wait(delay: .defaultTimeout)

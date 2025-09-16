@@ -84,7 +84,7 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
         timestamp: Date = Date(),
         attachment: EmbraceLogAttachment? = nil,
         attributes: [String: String] = [:],
-        stackTraceBehavior: EmbraceStackTraceBehavior = .defaultStackTrace(),
+        stackTraceBehavior: EmbraceStackTraceBehavior = .default,
         isInternal: Bool = true,
         send: Bool = true
     ) {
@@ -124,7 +124,7 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
             timestamp: timestamp,
             attachment: nil,
             attributes: attributes,
-            stackTraceBehavior: .notIncluded()
+            stackTraceBehavior: .notIncluded
         )
     }
 }

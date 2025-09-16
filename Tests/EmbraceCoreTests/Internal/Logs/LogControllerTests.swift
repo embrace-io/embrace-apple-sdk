@@ -307,7 +307,7 @@ class LogControllerTests: XCTestCase {
         givenLogController()
 
         let expectation = XCTestExpectation()
-        whenCreatingLog(severity: .warn, stackTraceBehavior: .notIncluded()) { log in
+        whenCreatingLog(severity: .warn, stackTraceBehavior: .notIncluded) { log in
             self.thenLogHasntGotAnEmbbededStackTraceInTheAttributes(log!)
             expectation.fulfill()
         }
@@ -319,7 +319,7 @@ class LogControllerTests: XCTestCase {
         givenLogController()
 
         let expectation = XCTestExpectation()
-        whenCreatingLog(severity: .error, stackTraceBehavior: .notIncluded()) { log in
+        whenCreatingLog(severity: .error, stackTraceBehavior: .notIncluded) { log in
             self.thenLogHasntGotAnEmbbededStackTraceInTheAttributes(log!)
             expectation.fulfill()
         }
@@ -333,7 +333,7 @@ class LogControllerTests: XCTestCase {
         let customStackTrace = try EmbraceStackTrace(frames: Thread.callStackSymbols)
 
         let expectation = XCTestExpectation()
-        whenCreatingLog(severity: .error, stackTraceBehavior: .customStackTrace(customStackTrace)) { log in
+        whenCreatingLog(severity: .error, stackTraceBehavior: .custom(customStackTrace)) { log in
             self.thenLogHasAnEmbbededStackTraceInTheAttributes(log!)
             expectation.fulfill()
         }
@@ -347,7 +347,7 @@ class LogControllerTests: XCTestCase {
         let customStackTrace = try EmbraceStackTrace(frames: Thread.callStackSymbols)
 
         let expectation = XCTestExpectation()
-        whenCreatingLog(severity: .info, stackTraceBehavior: .customStackTrace(customStackTrace)) { log in
+        whenCreatingLog(severity: .info, stackTraceBehavior: .custom(customStackTrace)) { log in
             self.thenLogHasntGotAnEmbbededStackTraceInTheAttributes(log!)
             expectation.fulfill()
         }
@@ -446,7 +446,7 @@ extension LogControllerTests {
 
     fileprivate func whenCreatingLog(
         severity: EmbraceLogSeverity = .info,
-        stackTraceBehavior: EmbraceStackTraceBehavior = .defaultStackTrace(),
+        stackTraceBehavior: EmbraceStackTraceBehavior = .default,
         completion: ((EmbraceLog?) -> Void)? = nil
     ) {
         sut.createLog(
