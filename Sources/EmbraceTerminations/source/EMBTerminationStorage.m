@@ -2,16 +2,57 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
+/**
+ * EMBTerminationStorage
+ * ---------------------
+ * Purpose:
+ *   Persist lightweight termination/crash context for the current process to a
+ *   memory-mapped file so that the next launch can reason about the previous
+ *   session (e.g., whether it exited cleanly or crashed, and with what details).
+ *
+ * Storage format:
+ *   The file contains a single, POD C struct (EMBTerminationStorage) written
+ *   directly via mmap(2). The struct begins with a magic and version for
+ *   validation, followed by timestamps (epoch and monotonic), process identity
+ *   (pid and UUID), exit/crash markers, exception/mach/signal details, app
+ *   transition state, and coarse memory state.
+ *
+ * File lifecycle:
+ *   - On launch, we create a new file named by the current process identifier
+ *     (UUID) under Application Support (or Caches on tvOS) in:
+ *       <root>/embrace.io/termination/<uuid>.term
+ *   - We memory-map the file and zero it; then we populate header fields.
+ *   - Throughout the process lifetime we update the mapped struct in-place.
+ *   - On library unload/process exit we call msync() as a best-effort flush.
+ *   - On next launch we read the most recent .term file to present prior state.
+ *
+ * Concurrency & safety:
+ *   - Updates outside crash-time use an os_unfair_lock for mutual exclusion.
+ *   - Crash-time updates may run in async-signal contexts; in those cases we
+ *     avoid locking and only perform simple, async-safe writes.
+ *   - Callers must pass canLock=NO when in async-signal-sensitive paths.
+ *
+ * Validation:
+ *   - When loading a previous file, we validate magic, version, timestamps,
+ *     pid and UUID, and we clamp string buffers to ensure NUL-termination.
+ *
+ * Non-goals:
+ *   - This is not a crash report store. It is a minimal breadcrumb for the
+ *     next launch to understand termination conditions.
+ */
+
 #import "EMBTerminationStorage.h"
 
 #import <os/lock.h>
 #import <stdlib.h>
 #import <sys/mman.h>
+#import <sys/stat.h>
 
 @import EmbraceCommonInternal;
 @import KSCrashRecording;
 
-// MARK: - Constants
+#pragma mark - Constants
+// Constants for on-disk format and file naming
 
 const uint64_t kEMBTerminationStorageVersion_1 = 1;
 const uint64_t kEMBTerminationStorageCurrentVersion = kEMBTerminationStorageVersion_1;
@@ -19,13 +60,26 @@ const uint64_t kEMBTerminationStorageMagic = 0x45435241424D5245ULL;
 
 NSString *const kEMBTerminationStorageExtension = @"term";
 
-// MARK: - Statics
+#pragma mark - Globals & State
+// Process-wide state for the mapped storage and synchronization
 
 static os_unfair_lock sStorageLock = OS_UNFAIR_LOCK_INIT;
 static EMBTerminationStorage *sStorage = NULL;
+static size_t sStorageSize = 0;
 
-// MARK: - Exit
+/// Returns the current time for the given clock in milliseconds.
+static inline uint64_t milliseconds(clockid_t clock) { return clock_gettime_nsec_np(clock) / 1000000; }
 
+/// Wall-clock time in milliseconds since Unix epoch.
+static inline uint64_t walltime() { return milliseconds(CLOCK_REALTIME); }
+
+/// Monotonic time in milliseconds (CLOCK_MONOTONIC_RAW).
+static inline uint64_t monotonic() { return milliseconds(CLOCK_MONOTONIC_RAW); }
+
+#pragma mark - Exit Hooks
+// Clean-exit signals from atexit() and app termination
+
+/// atexit() handler: marks a clean exit and that exit() was called.
 static void _atExit(void)
 {
     EMBTerminationStorageUpdate(YES, ^(EMBTerminationStorage *_Nonnull storage) {
@@ -34,6 +88,7 @@ static void _atExit(void)
     });
 }
 
+/// Notification callback for UIApplicationWillTerminateNotification; marks a clean exit and that terminate was called.
 static void _willTerminateNotification(CFNotificationCenterRef center, void *observer, CFNotificationName name,
                                        const void *object, CFDictionaryRef userInfo)
 {
@@ -43,14 +98,14 @@ static void _willTerminateNotification(CFNotificationCenterRef center, void *obs
     });
 }
 
-// MARK: - Storage Private
+#pragma mark - Private Helpers
+// Filesystem utilities, mapping, validation, and logging
 
-static inline uint64_t milliseconds(clockid_t clock) { return clock_gettime_nsec_np(clock) / 1000000; }
-
-static inline uint64_t walltime() { return milliseconds(CLOCK_REALTIME); }
-
-static inline uint64_t monotonic() { return milliseconds(CLOCK_MONOTONIC_RAW); }
-
+/**
+ * Returns the root directory URL for termination files, creating it if necessary.
+ * On tvOS uses NSCachesDirectory; otherwise NSApplicationSupportDirectory.
+ * Path: <container>/<embrace.io>/termination
+ */
 static NSURL *rootURL()
 {
     static NSURL *sRootURL;
@@ -76,6 +131,65 @@ static NSURL *rootURL()
     return sRootURL;
 }
 
+/// Returns an array of filenames (optionally stripped of extension) with the given extension in directoryURL.
+static NSArray<NSString *> *_Nonnull fileWithExtensionInURL(NSURL *_Nonnull directoryURL, NSString *_Nonnull extension,
+                                                            BOOL keepExtension)
+{
+    NSArray<NSString *> *allFiles = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:directoryURL.path
+                                                                                        error:nil];
+    if (!allFiles) {
+        return @[];
+    }
+
+    NSMutableArray<NSString *> *output = [NSMutableArray array];
+    for (NSString *name in allFiles) {
+        if ([name.pathExtension isEqualToString:extension]) {
+            [output addObject:keepExtension ? name : [name stringByDeletingPathExtension]];
+        }
+    }
+    return output;
+}
+
+/**
+ * Returns the most recently modified file URL with the given extension in directoryURL.
+ * Returns nil if no such file exists or on error.
+ */
+static NSURL *_Nullable mostRecentFileWithExtensionInURL(NSURL *_Nonnull directoryURL, NSString *_Nonnull extension)
+{
+    NSFileManager *fm = [NSFileManager defaultManager];
+    NSArray<NSURL *> *urls = [fm contentsOfDirectoryAtURL:directoryURL
+                               includingPropertiesForKeys:nil
+                                                  options:0
+                                                    error:nil];
+    if (!urls) return nil;
+
+    NSURL *latestURL = nil;
+    NSDate *latestDate = nil;
+
+    for (NSURL *url in urls) {
+        if (![url.pathExtension isEqualToString:extension]) {
+            continue;
+            ;
+        }
+
+        NSDictionary<NSFileAttributeKey, id> *attrs = [fm attributesOfItemAtPath:url.path error:nil];
+        if (!attrs) continue;
+
+        NSDate *modDate = attrs[NSFileModificationDate];
+        if (!latestDate || [modDate compare:latestDate] == NSOrderedDescending) {
+            latestDate = modDate;
+            latestURL = url;
+        }
+    }
+
+    return latestURL;
+}
+
+/**
+ * Loads the EMBTerminationStorage struct from a file URL.
+ * Validates magic, version, timestamps, pid, UUID, and clamps strings.
+ * Returns YES on successful load and validation, NO otherwise.
+ */
 static bool EMBTerminationStorageLoad(NSURL *url, EMBTerminationStorage *storage)
 {
     const char *path = url.path.UTF8String;
@@ -86,30 +200,101 @@ static bool EMBTerminationStorageLoad(NSURL *url, EMBTerminationStorage *storage
         return false;
     }
 
+    // Verify file size is at least the size of EMBTerminationStorage
+    struct stat st = { 0 };
+    if (fstat(fd, &st) == -1) {
+        printf("Could not stat file %s: %s\n", path, strerror(errno));
+        close(fd);
+        return false;
+    }
     size_t expectedSize = sizeof(EMBTerminationStorage);
-    if (read(fd, storage, expectedSize) != expectedSize) {
+    if ((size_t)st.st_size < expectedSize) {
+        printf("File %s too small: %lld bytes, expected at least %zu\n", path, (long long)st.st_size, expectedSize);
+        close(fd);
+        return false;
+    }
+
+    // Read exactly the struct size from the beginning
+    ssize_t nread = pread(fd, storage, expectedSize, 0);
+    if (nread < 0) {
         printf("Could not read file %s: %s\n", path, strerror(errno));
+        close(fd);
+        return false;
+    }
+    if ((size_t)nread != expectedSize) {
+        printf("Short read on %s: %zd bytes, expected %zu\n", path, nread, expectedSize);
         close(fd);
         return false;
     }
 
     close(fd);
 
+    // Basic header validation
     if (storage->magic != kEMBTerminationStorageMagic) {
-        printf("Wrong magic\n");
+        printf("Wrong magic in %s\n", path);
         return false;
     }
 
     if (storage->version != kEMBTerminationStorageVersion_1) {
-        printf("Wrong version\n");
+        printf("Wrong version in %s: %llu\n", path, (unsigned long long)storage->version);
         return false;
     }
 
-    // we should really validate more things here.
+    // Sanity checks on timestamps
+    if (storage->creationTimestampEpochMillis == 0 || storage->creationTimestampMonotonicMillis == 0 ||
+        storage->updateTimestampMonotonicMillis == 0) {
+        printf("Invalid timestamps in %s (zero values)\n", path);
+        return false;
+    }
+    if (storage->updateTimestampMonotonicMillis < storage->creationTimestampMonotonicMillis) {
+        printf("Update timestamp earlier than creation in %s\n", path);
+        return false;
+    }
+
+    // PID must be valid
+    if (storage->pid <= 0) {
+        printf("Invalid pid in %s: %d\n", path, storage->pid);
+        return false;
+    }
+
+    // UUID should not be all zeros
+    {
+        uuid_t zero = { 0 };
+        if (memcmp(storage->uuid, zero, sizeof(uuid_t)) == 0) {
+            printf("Invalid uuid (all zeros) in %s\n", path);
+            return false;
+        }
+    }
+
+    // App transition state should be within known enum bounds (defensive)
+    if (storage->appTransitionState < 0 || storage->appTransitionState > KSCrashAppTransitionStateBackground) {
+        // If enum grows, this is a soft warning; treat as invalid only if wildly out of range
+        printf("Suspicious appTransitionState in %s: %d\n", path, storage->appTransitionState);
+        // Do not fail hard here; comment out the return if being too strict causes issues
+        // return false;
+    }
+
+    // Ensure string buffers are NUL-terminated within their bounds
+    storage->exceptionName[EMB_SMALL_BUFFER_SIZE - 1] = '\0';
+    storage->exceptionReason[EMB_LARGE_BUFFER_SIZE - 1] = '\0';
+    storage->exceptionUserInfo[EMB_LARGE_BUFFER_SIZE - 1] = '\0';
+
+    // Memory values can be zero, but if limit is set, footprint should be <= limit
+    if (storage->memoryLimit > 0 && storage->memoryFootprint > storage->memoryLimit) {
+        printf("Suspicious memory footprint in %s: footprint=%lld limit=%lld\n", path,
+               (long long)storage->memoryFootprint, (long long)storage->memoryLimit);
+        // Not a hard failure; could be transient
+    }
 
     return true;
 }
 
+/**
+ * Creates or truncates a file to the given size and memory maps it with read-write.
+ * Returns a pointer to the mapped memory or NULL on failure.
+ * The returned pointer is asserted to be aligned to EMBTerminationStorage alignment.
+ * On failure, the file is unlinked and cleaned up.
+ */
 static void *EMBTerminationStorageMap(NSURL *url, size_t size)
 {
     const char *path = url.path.UTF8String;
@@ -149,6 +334,7 @@ static void *EMBTerminationStorageMap(NSURL *url, size_t size)
     return ptr;
 }
 
+/// Logs the contents of an EMBTerminationStorage struct to stdout.
 static void EMBTerminationStorageLog(const EMBTerminationStorage *storage)
 {
     printf("EMBTerminationStorage {\n");
@@ -209,62 +395,14 @@ static void EMBTerminationStorageLog(const EMBTerminationStorage *storage)
     printf("}\n");
 }
 
-static NSArray<NSString *> *_Nonnull fileWithExtensionInURL(NSURL *_Nonnull directoryURL, NSString *_Nonnull extension,
-                                                            BOOL keepExtension)
-{
-    NSArray<NSString *> *allFiles = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:directoryURL.path
-                                                                                        error:nil];
-    if (!allFiles) {
-        return @[];
-    }
-
-    NSMutableArray<NSString *> *output = [NSMutableArray array];
-    for (NSString *name in allFiles) {
-        if ([name.pathExtension isEqualToString:extension]) {
-            [output addObject:keepExtension ? name : [name stringByDeletingPathExtension]];
-        }
-    }
-    return output;
-}
-
-static NSURL *_Nullable mostRecentFileWithExtensionInURL(NSURL *_Nonnull directoryURL, NSString *_Nonnull extension)
-{
-    NSFileManager *fm = [NSFileManager defaultManager];
-    NSArray<NSURL *> *urls = [fm contentsOfDirectoryAtURL:directoryURL
-                               includingPropertiesForKeys:nil
-                                                  options:0
-                                                    error:nil];
-    if (!urls) return nil;
-
-    NSURL *latestURL = nil;
-    NSDate *latestDate = nil;
-
-    for (NSURL *url in urls) {
-        if (![url.pathExtension isEqualToString:extension]) {
-            continue;
-            ;
-        }
-
-        NSDictionary<NSFileAttributeKey, id> *attrs = [fm attributesOfItemAtPath:url.path error:nil];
-        if (!attrs) continue;
-
-        NSDate *modDate = attrs[NSFileModificationDate];
-        if (!latestDate || [modDate compare:latestDate] == NSOrderedDescending) {
-            latestDate = modDate;
-            latestURL = url;
-        }
-    }
-
-    return latestURL;
-}
-
-// MARK: - Storage Public
+#pragma mark - Public API
+// Initialization, updates, and query helpers
 
 static BOOL EMBTerminationStorageInitialize()
 {
     printf("size of storage: %lu\n", sizeof(EMBTerminationStorage));
 
-    // Load up previous storage
+    // Attempt to load and log the most recent previous session.
     NSURL *previousStorageURL = mostRecentFileWithExtensionInURL(rootURL(), kEMBTerminationStorageExtension);
     if (previousStorageURL) {
         EMBTerminationStorage storage = { 0 };
@@ -275,7 +413,7 @@ static BOOL EMBTerminationStorageInitialize()
         }
     }
 
-    // create the new storage
+    // Create a fresh, zeroed, memory-mapped storage for this process.
     NSString *identifier = EMBCurrentProcessIdentifier.value;
     NSURL *appStorageURL = [[rootURL() URLByAppendingPathComponent:identifier]
         URLByAppendingPathExtension:kEMBTerminationStorageExtension];
@@ -287,6 +425,8 @@ static BOOL EMBTerminationStorageInitialize()
     }
     memset(mmapData, 0, size);
 
+    // Record mapping pointer and size.
+    sStorageSize = size;
     sStorage = (EMBTerminationStorage *)mmapData;
     sStorage->magic = kEMBTerminationStorageMagic;
     sStorage->version = kEMBTerminationStorageCurrentVersion;
@@ -342,6 +482,10 @@ static BOOL EMBTerminationStorageInitialize()
     return YES;
 }
 
+/**
+ * Captures fatal crash context into the termination storage.
+ * Async-signal-aware: uses canLock flag to avoid locking when unsafe.
+ */
 void EMBTerminationStorageWillWriteCrashEvent(KSCrash_ExceptionHandlingPlan *_Nonnull const plan,
                                               const struct KSCrash_MonitorContext *_Nonnull context)
 {
@@ -355,7 +499,7 @@ void EMBTerminationStorageWillWriteCrashEvent(KSCrash_ExceptionHandlingPlan *_No
     }
 
     // Update everything, we can lock if we're not in an async safe callback.
-    EMBTerminationStorageUpdate(plan->requiresAsyncSafety, ^(EMBTerminationStorage *_Nonnull storage) {
+    EMBTerminationStorageUpdate(plan->requiresAsyncSafety == NO, ^(EMBTerminationStorage *_Nonnull storage) {
         storage->stackOverflow = context->isStackOverflow;
         storage->address = context->faultAddress;
         if (context->crashReason) {
@@ -377,7 +521,7 @@ void EMBTerminationStorageWillWriteCrashEvent(KSCrash_ExceptionHandlingPlan *_No
             storage->signalNumber = context->signal.signum;
         }
 
-#define IS_TYPE(type) (strncmp(type, context->monitorId, strlen(type)) == 0)
+#define IS_TYPE(type) (context->monitorId && strncmp(context->monitorId, type, strlen(type)) == 0)
 
         if IS_TYPE ("NSException") {
             storage->exceptionSet = 1;
@@ -395,6 +539,10 @@ void EMBTerminationStorageWillWriteCrashEvent(KSCrash_ExceptionHandlingPlan *_No
     });
 }
 
+/**
+ * Updates the termination storage, optionally acquiring a lock if safe to do so.
+ * Updates the monotonic timestamp before invoking the update block.
+ */
 void EMBTerminationStorageUpdate(BOOL canLock, EMBTerminationStorageUpdateBlock _Nullable block)
 {
     if (canLock) {
@@ -411,6 +559,7 @@ void EMBTerminationStorageUpdate(BOOL canLock, EMBTerminationStorageUpdateBlock 
     }
 }
 
+/// Removes the termination storage file for the given identifier. Returns YES on success.
 BOOL EMBTerminationStorageRemoveForIdentifier(NSString *_Nonnull identifier)
 {
     if (!identifier) {
@@ -421,11 +570,13 @@ BOOL EMBTerminationStorageRemoveForIdentifier(NSString *_Nonnull identifier)
     return [NSFileManager.defaultManager removeItemAtURL:appStorageURL error:nil];
 }
 
+/// Returns all identifiers (filenames without extension) of termination storage files.
 NSArray<NSString *> *_Nonnull EMBTerminationStorageGetIdentifiers(void)
 {
     return fileWithExtensionInURL(rootURL(), kEMBTerminationStorageExtension, NO);
 }
 
+/// Loads the termination storage contents for the given identifier into outStorage. Returns YES on success.
 BOOL EMBTerminationStorageForIdentifier(NSString *_Nonnull identifier, EMBTerminationStorage *_Nonnull outStorage)
 {
     if (!outStorage || !identifier) {
@@ -436,11 +587,21 @@ BOOL EMBTerminationStorageForIdentifier(NSString *_Nonnull identifier, EMBTermin
     return EMBTerminationStorageLoad(appStorageURL, outStorage);
 }
 
-// Call this early, but not before any type of system that might measure startup.
+/// Early constructor to initialize termination storage at library load time.
 __attribute__((constructor(103))) static void EMBTerminationStorageInit(void)
 {
     @autoreleasepool {
         EMBTerminationStorageInitialize();
+    }
+}
+
+/// Destructor to best-effort flush storage at library unload / process exit.
+__attribute__((destructor)) static void EMBTerminationStorageDeinit(void)
+{
+    // Best-effort final flush and cleanup at library unload / process exit.
+    if (sStorage && sStorageSize > 0) {
+        // msync to try to flush mmap changes to disk before exit.
+        msync((void *)sStorage, sStorageSize, MS_SYNC);
     }
 }
 
