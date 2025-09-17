@@ -65,17 +65,21 @@ jobs:
           echo "Benchmarks"
           get_best_sim "Examples/Benchmarks/Benchmarks.xcworkspace" "Benchmarks" "~iPhone" "iOS Simulator" "~" 30
 
+          /tmp/benchmarks >benchmarks.json
+          /tmp/perf >perf.json
+          
+          cat perf.json
+          cat benchmarks.json
+
           jq -n \
-            --slurpfile a <(/tmp/perf) \
-            --slurpfile b <(/tmp/benchmarks) \
+            --slurpfile a perf.json \
+            --slurpfile b benchmarks.json \
             '$a[0] + $b[0]' \
             > combined.json
 
           echo "out<<EOF" >> "$GITHUB_OUTPUT"
           cat combined.json >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
-
-          cat combined.json
 
         # checkout the main branch
       - name: Checkout Main
