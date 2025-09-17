@@ -45,9 +45,11 @@ jobs:
           cp bin/perf /tmp/perf
           cp bin/benchmarks /tmp/benchmarks
           cp bin/perfcomp.py /tmp/perfcomp.py
+          cp bin/destinations /tmp/destinations
           chmod +x /tmp/perf
           chmod +x /tmp/benchmarks
           chmod +x /tmp/perfcomp.py
+          chmod +x /tmp/destinations
 
       - name: Run PR perf tests
         id: perfpr
