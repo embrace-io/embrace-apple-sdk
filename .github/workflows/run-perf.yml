@@ -53,8 +53,8 @@ jobs:
         id: perfpr
         run: |
           jq -n \
-            --slurpfile a <(bin/perf) \
-            --slurpfile b <(bin/benchmarks) \
+            --slurpfile a <(/tmp/perf) \
+            --slurpfile b <(/tmp/benchmarks) \
             '$a[0] + $b[0]' \
             > combined.json
 
@@ -75,8 +75,8 @@ jobs:
         id: perfmain
         run: |
           jq -n \
-            --slurpfile a <(bin/perf) \
-            --slurpfile b <(bin/benchmarks) \
+            --slurpfile a <(/tmp/perf) \
+            --slurpfile b <(/tmp/benchmarks) \
             '$a[0] + $b[0]' \
             > combined.json
 
