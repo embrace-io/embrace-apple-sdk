@@ -81,13 +81,12 @@ extension HangCaptureService: HangObserver {
         logger?.debug("[Watchdog] Hang started, at \(at.date) after waiting \(duration.uptime.milliseconds) ms")
 
         // Keep tabs on how many hang spans we've created
-        guard
-            limitData.withLock({
-                $0.samplesInHangCount = 0
-                $0.hangsInSessionCount += 1
-                return $0.hangsInSessionCount <= $0.limits.hangPerSession
-            })
-        else {
+        let sampleInfo = limitData.withLock {
+            $0.samplesInHangCount = 0
+            $0.hangsInSessionCount += 1
+            return (canStart: $0.hangsInSessionCount <= $0.limits.hangPerSession, canSample: $0.samplesInHangCount <= $0.limits.samplesPerHang)
+        }
+        guard sampleInfo.canStart else {
             let limitData = limitData.withLock { $0 }
             logger?.warning(
                 "[Watchdog] Dropping hang due to surpassing limit, \(limitData.hangsInSessionCount) of \(limitData.limits.hangPerSession)")
@@ -120,7 +119,9 @@ extension HangCaptureService: HangObserver {
                 builder
                 .setStartTime(time: at.date)
                 .startSpan()
-            addSamplingSpanEvent(time: at.date, backtrace: backtrace, overhead: Int(post.monotonic - pre.monotonic))
+            if sampleInfo.canSample {
+                addSamplingSpanEvent(time: at.date, backtrace: backtrace, overhead: Int(post.monotonic - pre.monotonic))
+            }
         }
     }
 
