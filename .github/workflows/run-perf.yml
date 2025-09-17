@@ -54,6 +54,14 @@ jobs:
       - name: Run PR perf tests
         id: perfpr
         run: |
+          source /tmp/destinations
+
+          echo "EmbraceIO"
+          get_best_sim ".swiftpm/xcode/package.xcworkspace" "EmbraceIO-Package" "~iPhone" "iOS Simulator" "~" 30
+
+          echo "Benchmarks"
+          get_best_sim "Examples/Benchmarks/Benchmarks.xcworkspace" "Benchmarks" "~iPhone" "iOS Simulator" "~" 30
+
           jq -n \
             --slurpfile a <(/tmp/perf) \
             --slurpfile b <(/tmp/benchmarks) \
