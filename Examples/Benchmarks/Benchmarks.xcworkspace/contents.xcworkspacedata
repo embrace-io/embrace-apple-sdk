@@ -4,4 +4,7 @@
    <FileRef
       location = "container:Benchmarks.xcodeproj">
    </FileRef>
+   <FileRef
+      location = "group:Benchmarks.xctestplan">
+   </FileRef>
 </Workspace>

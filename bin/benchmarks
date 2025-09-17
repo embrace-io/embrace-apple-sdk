@@ -12,7 +12,7 @@ WORKSPACE="Examples/Benchmarks/Benchmarks.xcworkspace"
 PRE_ACTIONS="clean build-for-testing"
 
 UDID=$(get_best_sim "${WORKSPACE}" "${SCHEME}" "~iPhone" "iOS Simulator" "~")
-DESTINATION="id=${UDID}"
+DESTINATION="id=${UDID},arch=arm64"
 
 echo "Using destination: ${DESTINATION}" >&2
 
