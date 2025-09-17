@@ -1,12 +1,20 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+# Load the function
+source "$(dirname "$0")/destinations"
+
 # -------------------- CONFIG --------------------
 : "${BENCHMARKS:=BenchmarksUITests}"
 SCHEME="Benchmarks"
-DESTINATION="platform=iOS Simulator,name=iPhone 16 Pro"
+WORKSPACE="Examples/Benchmarks/Benchmarks.xcworkspace"
 # ------------------------------------------------
 PRE_ACTIONS="clean build-for-testing"
+
+UDID=$(get_best_sim "${WORKSPACE}" "${SCHEME}" "~iPhone" "iOS Simulator" "~")
+DESTINATION="id=${UDID}"
+
+echo "Using destination: ${DESTINATION}" >&2
 
 # collect tests
 IFS=$'\n' read -r -d '' -a BENCHMARKS <<< "${BENCHMARKS}" || true
@@ -57,9 +65,8 @@ log "Starting benchmarks, ${BENCHMARKS[*]}"
 rm -rf "${TMPDIR_ROOT}" >/dev/null 2>&1 || true
 
 log "Running Benchmarks"
-#run_quiet 
-xcodebuild test \
-  -workspace "Examples/Benchmarks/Benchmarks.xcworkspace" \
+run_quiet xcodebuild test \
+  -workspace "${WORKSPACE}" \
   -scheme "${SCHEME}" \
   "${TEST_ARGS[@]}" \
   -destination "${DESTINATION}" \
@@ -68,7 +75,7 @@ xcodebuild test \
   -skipPackagePluginValidation \
   -skipMacroValidation \
   -disableAutomaticPackageResolution \
-  #>/dev/null
+  >/dev/null
 
 log "Crunching results..."
 run_quiet xcrun xcresulttool get test-results metrics tests \
