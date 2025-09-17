@@ -54,11 +54,6 @@ jobs:
       - name: Run PR perf tests
         id: perfpr
         run: |
-          source /tmp/destinations
-          get_sim "Examples/Benchmarks/Benchmarks.xcworkspace" "Benchmarks" "~iPhone" "iOS Simulator" "~" 20
-
-          xcodebuild -workspace "Examples/Benchmarks/Benchmarks.xcworkspace" -scheme "Benchmarks" -showdestinations -json
-
           jq -n \
             --slurpfile a <(/tmp/perf) \
             --slurpfile b <(/tmp/benchmarks) \

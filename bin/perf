@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+# Load the function
+source "$(dirname "$0")/destinations"
+
 # -------------------- CONFIG --------------------
 : "${TESTS:=EmbraceIOTests/PerformanceTests}"
 WORKSPACE=".swiftpm/xcode/package.xcworkspace"
 SCHEME="EmbraceIO-Package"
-DESTINATION="platform=iOS Simulator,name=iPhone 16 Pro"
 : "${SHOULD_CLEAN:=1}"
 : "${ITERATIONS:=10}"
 # ------------------------------------------------
@@ -13,6 +15,11 @@ PRE_ACTIONS="clean build-for-testing"
 if (( SHOULD_CLEAN != 1 )); then
   PRE_ACTIONS="build-for-testing"
 fi
+
+UDID=$(get_best_sim "${WORKSPACE}" "${SCHEME}" "~iPhone" "iOS Simulator" "~")
+DESTINATION="id=${UDID}"
+
+echo "Using destination: ${DESTINATION}" >&2
 
 # collect tests
 IFS=$'\n' read -r -d '' -a TESTS <<< "${TESTS}" || true
@@ -108,13 +115,6 @@ run_quiet xcodebuild test-without-building \
   -skipMacroValidation \
   -disableAutomaticPackageResolution \
   >/dev/null
-
-# we could use `xcrun xcresulttool get test-results metrics`,
-# or `xcresultparser`, but both complicate things. 
-# For option 1, we need the test to have a `measure{}` in it
-# which most don't. Maybe someday we'll optimize for that.
-
-# Also, we're skipping the first iteration as a warm-up.
 
 log "Crunching results..."
 run_quiet xcrun xcresulttool get test-results tests \
