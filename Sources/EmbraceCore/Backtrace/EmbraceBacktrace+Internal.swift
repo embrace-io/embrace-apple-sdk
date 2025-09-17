@@ -172,7 +172,7 @@ extension EmbraceBacktraceFrame {
             ),
             image: result.imageName != nil
                 ? Image(
-                    uuid: result.imageUUID ?? "",
+                    uuid: NSUUID(uuidBytes: result.imageUUID).uuidString,
                     name: result.imageName.flatMap { $0 as NSString }?.lastPathComponent ?? "",
                     address: result.imageAddress,
                     size: result.imageSize
