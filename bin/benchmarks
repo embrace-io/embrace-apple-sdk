@@ -12,8 +12,13 @@ WORKSPACE="Examples/Benchmarks/Benchmarks.xcworkspace"
 PRE_ACTIONS="clean build-for-testing"
 
 DESTINATION=$(get_best_id_arch "${WORKSPACE}" "${SCHEME}" "~iPhone" "iOS Simulator" "~")
+UDID=$(get_best_id "${WORKSPACE}" "${SCHEME}" "~iPhone" "iOS Simulator" "~")
 
 echo "Using destination: ${DESTINATION}" >&2
+echo "Using UDID: ${UDID}" >&2
+
+xcrun simctl boot "$UDID" --arch=arm64 >&dev/null || true
+xcrun simctl bootstatus "$UDID" -b >&2 || true
 
 # collect tests
 IFS=$'\n' read -r -d '' -a BENCHMARKS <<< "${BENCHMARKS}" || true
