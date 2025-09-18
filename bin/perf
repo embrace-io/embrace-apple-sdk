@@ -22,8 +22,8 @@ UDID=$(get_best_id "${WORKSPACE}" "${SCHEME}" "~iPhone" "iOS Simulator" "~")
 echo "Using destination: ${DESTINATION}" >&2
 echo "Using UDID: ${UDID}" >&2
 
-xcrun simctl boot "$UDID" --arch=arm64 >&dev/null || true
-xcrun simctl bootstatus "$UDID" -b >&2 || true
+xcrun simctl boot "$UDID" --arch=arm64 >/dev/null || true
+xcrun simctl bootstatus "$UDID" -b >/dev/null || true
 
 # collect tests
 IFS=$'\n' read -r -d '' -a TESTS <<< "${TESTS}" || true
