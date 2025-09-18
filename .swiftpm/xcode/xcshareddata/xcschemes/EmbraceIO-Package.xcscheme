@@ -462,9 +462,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "EmbraceKSCrashSupport"
-               BuildableName = "EmbraceKSCrashSupport"
-               BlueprintName = "EmbraceKSCrashSupport"
+               BlueprintIdentifier = "EmbraceCrash"
+               BuildableName = "EmbraceCrash"
+               BlueprintName = "EmbraceCrash"
                ReferencedContainer = "container:">
             </BuildableReference>
          </BuildActionEntry>

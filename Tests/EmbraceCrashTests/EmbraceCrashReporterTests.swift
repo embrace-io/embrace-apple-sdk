@@ -11,7 +11,7 @@
     import XCTest
 
     @testable import EmbraceCore
-    @testable import EmbraceKSCrashSupport
+    @testable import EmbraceCrash
 
     class EmbraceCrashReporterTests: XCTestCase {
 
