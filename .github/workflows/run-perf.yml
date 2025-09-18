@@ -47,39 +47,17 @@ jobs:
           cp bin/benchmarks /tmp/benchmarks
           cp bin/perfcomp.py /tmp/perfcomp.py
           cp bin/destinations /tmp/destinations
+          cp bin/run_regression_tests /tmp/run_regression_tests
           chmod +x /tmp/perf
           chmod +x /tmp/benchmarks
           chmod +x /tmp/perfcomp.py
           chmod +x /tmp/destinations
+          chmod +x /tmp/run_regression_tests
 
       - name: Run PR perf tests
         id: perfpr
         run: |
-          /tmp/platform
-          
-          source /tmp/destinations
-
-          echo "EmbraceIO"
-          get_best_id ".swiftpm/xcode/package.xcworkspace" "EmbraceIO-Package" "~iPhone" "iOS Simulator" "~"
-
-          echo "Benchmarks"
-          get_best_id "Examples/Benchmarks/Benchmarks.xcworkspace" "Benchmarks" "~iPhone" "iOS Simulator" "~"
-
-          /tmp/benchmarks >benchmarks.json
-          /tmp/perf >perf.json
-          
-          cat perf.json
-          cat benchmarks.json
-
-          jq -n \
-            --slurpfile a perf.json \
-            --slurpfile b benchmarks.json \
-            '$a[0] + $b[0]' \
-            > combined.json
-
-          echo "out<<EOF" >> "$GITHUB_OUTPUT"
-          cat combined.json >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
+          /tmp/run_regression_tests
 
         # checkout the main branch
       - name: Checkout Main
@@ -91,17 +69,7 @@ jobs:
       - name: Run Main perf tests
         id: perfmain
         run: |
-          jq -n \
-            --slurpfile a <(/tmp/perf) \
-            --slurpfile b <(/tmp/benchmarks) \
-            '$a[0] + $b[0]' \
-            > combined.json
-
-          echo "out<<EOF" >> "$GITHUB_OUTPUT"
-          cat combined.json >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
-
-          cat combined.json
+          /tmp/run_regression_tests
 
       - name: Run Performance Comparison
         env:
