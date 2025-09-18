@@ -60,10 +60,10 @@ jobs:
           source /tmp/destinations
 
           echo "EmbraceIO"
-          get_best_sim ".swiftpm/xcode/package.xcworkspace" "EmbraceIO-Package" "~iPhone" "iOS Simulator" "~" 30
+          get_best_destination ".swiftpm/xcode/package.xcworkspace" "EmbraceIO-Package" "~iPhone" "iOS Simulator" "~"
 
           echo "Benchmarks"
-          get_best_sim "Examples/Benchmarks/Benchmarks.xcworkspace" "Benchmarks" "~iPhone" "iOS Simulator" "~" 30
+          get_best_destination "Examples/Benchmarks/Benchmarks.xcworkspace" "Benchmarks" "~iPhone" "iOS Simulator" "~"
 
           /tmp/benchmarks >benchmarks.json
           /tmp/perf >perf.json

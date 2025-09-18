@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-set -Eeuo pipefail
+# set -Eeuo pipefail
 
-get_best_sim() {
+get_best_destination() {
   local container="$1"
   local scheme="$2"
   local name="$3"
@@ -9,7 +9,7 @@ get_best_sim() {
   local ver="$5"
 
   get_sim "$container" "$scheme" "$name" "$os" "$ver" 1 \
-    | jq -r '.[0].id // empty'
+    | jq -r '.[0].destination // empty'
 }
 
 # Usage:
@@ -41,45 +41,61 @@ get_sim() {
     *) echo "Unknown container type: $container" >&2; return 2 ;;
   esac
 
-  # Run xcodebuild -showdestinations and convert to JSON
+    # Run xcodebuild -showdestinations and convert to JSON
   local json
   json="$(
     xcodebuild "$flag" "$container" -scheme "$scheme" -showdestinations 2>/dev/null \
-    | sed -n 's/.*platform:\([^,}]*\).*id:\([^,}]*\).*OS:\([^,}]*\).*name:\([^}]*\).*/{"platform":"\1","id":"\2","os":"\3","name":"\4"}/p' \
+    | sed -n 's/.*platform:\([^,}]*\).*arch:\([^,}]*\).*id:\([^,}]*\).*OS:\([^,}]*\).*name:\([^}]*\).*/{"platform":"\1","arch":"\2","id":"\3","os":"\4","name":"\5"}/p' \
     | jq -s .
   )"
 
-  jq -r \
-    --arg NAME "$name" \
-    --arg OS "$os" \
-    --arg VER "$ver" \
-    --argjson NAME_FUZZY "$nameFuzzy" \
-    --argjson OS_FUZZY "$osFuzzy" \
-    --argjson VER_FUZZY "$verFuzzy" \
-    --argjson LIMIT "$limit" '
-      def down: ascii_downcase;
+jq -r \
+  --arg NAME "$name" \
+  --arg OS "$os" \
+  --arg VER "$ver" \
+  --argjson NAME_FUZZY "$nameFuzzy" \
+  --argjson OS_FUZZY "$osFuzzy" \
+  --argjson VER_FUZZY "$verFuzzy" \
+  --argjson LIMIT "$limit" '
+    def trim: gsub("^[[:space:]]+|[[:space:]]+$";"");
+    def down: ascii_downcase;
+    def eqi($b):        (.|tostring|trim|down) == ($b|tostring|trim|down);
+    def containsi($b):  (.|tostring|trim|down) | contains($b|tostring|trim|down);
 
-      [ .[] 
-        | select(.name != "Any iOS Simulator Device") # skip placeholder
-        | select(
-            ($NAME == "") or
-            ($NAME_FUZZY == 0 and ((.name | down) == ($NAME | down))) or
-            ($NAME_FUZZY == 1 and ((.name | down) | contains($NAME | down)))
-          )
-        | select(
-            ($OS == "") or
-            ($OS_FUZZY == 0 and ((.platform | down) == ($OS | down))) or
-            ($OS_FUZZY == 1 and ((.platform | down) | contains($OS | down)))
-          )
-        | select(
-            ($VER == "") or
-            ($VER_FUZZY == 0 and (.os == $VER)) or
-            ($VER_FUZZY == 1 and ((.os | startswith($VER)) or (.os | contains($VER))))
-          )
-        | .ver_nums = ((.os // "0") | split(".") | map(tonumber? // 0))
-      ]
-      | sort_by(.ver_nums) | reverse
-      | .[:$LIMIT]
-      | map(del(.ver_nums))
-    ' <<<"$json"
+    # Compute per-candidate score (exact > fuzzy). Penalize non-matches hard.
+    def score($N; $NF; $O; $OF; $V; $VF):
+      (if $N == "" then 0
+       elif $NF == 0 then if (.name // "")     | eqi($N)        then 30 else -1000 end
+       else                 if (.name // "")     | containsi($N) then 10 else -1000 end end)
+      +
+      (if $O == "" then 0
+       elif $OF == 0 then if (.platform // "") | eqi($O)        then 20 else -1000 end
+       else                 if (.platform // "") | containsi($O) then  5 else -1000 end end)
+      +
+      (if $V == "" then 0
+       elif $VF == 0 then if (.os // "") == ($VER|trim)         then 20 else -1000 end
+       else                 if (.os // "") | startswith($VER|trim)
+                              or ((.os // "") | contains($VER|trim)) then 8 else -1000 end end)
+      +
+      (if (.arch? // "") == "arm64" then 2 else 0 end)
+    ;
+
+    [ .[]
+      | select(.name != "Any iOS Simulator Device")
+      # normalize/trim all fields first
+      | .platform = (.platform // "" | trim)
+      | .arch     = (.arch?    // "" | trim)
+      | .id       = (.id       // "" | trim)
+      | .os       = (.os       // "" | trim)
+      | .name     = (.name     // "" | trim)
+      | .ver_nums   = ((.os // "0") | split(".") | map(tonumber? // 0))
+      | .score      = score($NAME; $NAME_FUZZY; $OS; $OS_FUZZY; $VER; $VER_FUZZY)
+      | .destination = ("platform=" + .platform + ",name=" + .name + ",OS=" + .os + ",id=" + .id)
+    ]
+    | map(select(.score > -1000))
+    | sort_by([.id, .score, .ver_nums]) | group_by(.id) | map(.[-1])   # best per UDID
+    | sort_by([.score, .ver_nums]) | reverse
+    | .[:$LIMIT]
+    | map(del(.ver_nums, .score))
+' <<<"$json"
 }
