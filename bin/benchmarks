@@ -11,7 +11,7 @@ WORKSPACE="Examples/Benchmarks/Benchmarks.xcworkspace"
 # ------------------------------------------------
 PRE_ACTIONS="clean build-for-testing"
 
-DESTINATION=$(get_best_destination "${WORKSPACE}" "${SCHEME}" "~iPhone" "iOS Simulator" "~")
+DESTINATION=$(get_best_id_arch "${WORKSPACE}" "${SCHEME}" "~iPhone" "iOS Simulator" "~")
 
 echo "Using destination: ${DESTINATION}" >&2
 
@@ -64,7 +64,8 @@ log "Starting benchmarks, ${BENCHMARKS[*]}"
 rm -rf "${TMPDIR_ROOT}" >/dev/null 2>&1 || true
 
 log "Running Benchmarks"
-run_quiet xcodebuild test \
+#run_quiet \
+xcodebuild test \
   -workspace "${WORKSPACE}" \
   -scheme "${SCHEME}" \
   "${TEST_ARGS[@]}" \
@@ -74,10 +75,12 @@ run_quiet xcodebuild test \
   -skipPackagePluginValidation \
   -skipMacroValidation \
   -disableAutomaticPackageResolution \
-  >/dev/null
-
+  | xcbeautify
+  #>/dev/null
+  
 log "Crunching results..."
-run_quiet xcrun xcresulttool get test-results metrics tests \
+#run_quiet \
+xcrun xcresulttool get test-results metrics tests \
        --path "${RESULT_FILE}" \
        --format json \
         | jq '

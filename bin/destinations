@@ -1,6 +1,28 @@
 #!/usr/bin/env bash
 # set -Eeuo pipefail
 
+get_best_id() {
+  local container="$1"
+  local scheme="$2"
+  local name="$3"
+  local os="$4"
+  local ver="$5"
+
+  get_sim "$container" "$scheme" "$name" "$os" "$ver" 1 \
+    | jq -r '.[0].id // empty'
+}
+
+get_best_id_arch() {
+  local container="$1"
+  local scheme="$2"
+  local name="$3"
+  local os="$4"
+  local ver="$5"
+
+  get_sim "$container" "$scheme" "$name" "$os" "$ver" 1 \
+    | jq -r '.[0] | "id=\(.id),arch=\(.arch)" // empty'
+}
+
 get_best_destination() {
   local container="$1"
   local scheme="$2"
@@ -90,7 +112,8 @@ jq -r \
       | .name     = (.name     // "" | trim)
       | .ver_nums   = ((.os // "0") | split(".") | map(tonumber? // 0))
       | .score      = score($NAME; $NAME_FUZZY; $OS; $OS_FUZZY; $VER; $VER_FUZZY)
-      | .destination = ("platform=" + .platform + ",name=" + .name + ",OS=" + .os + ",id=" + .id)
+      | .destination = ("platform=" + .platform + ",arch=" + .arch + ",id=" + .id + ",OS=" + .os + ",name=" + .name)
+      | .smurf = ("{ platform:" + .platform + ", arch:" + .arch + ", id:" + .id + ",OS:" + .os + ", name:" + .name + " }")
     ]
     | map(select(.score > -1000))
     | sort_by([.id, .score, .ver_nums]) | group_by(.id) | map(.[-1])   # best per UDID

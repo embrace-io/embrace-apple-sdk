@@ -16,7 +16,7 @@ if (( SHOULD_CLEAN != 1 )); then
   PRE_ACTIONS="build-for-testing"
 fi
 
-DESTINATION=$(get_best_destination "${WORKSPACE}" "${SCHEME}" "~iPhone" "iOS Simulator" "~")
+DESTINATION=$(get_best_id_arch "${WORKSPACE}" "${SCHEME}" "~iPhone" "iOS Simulator" "~")
 
 echo "Using destination: ${DESTINATION}" >&2
 

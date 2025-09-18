@@ -3,16 +3,16 @@ set -Eeuo pipefail
 
 PLATFORM="${1:-iOS}"
 
-echo "🔧 Running initial Xcode setup..."
+echo ">Running initial Xcode setup..."
 xcodebuild -runFirstLaunch
 
-echo "📋 Current simulators:"
+echo ">Current simulators:"
 xcrun simctl list
 
-echo "📥 Downloading platform: $PLATFORM"
+echo ">Downloading platform: $PLATFORM"
 xcodebuild -downloadPlatform "$PLATFORM"
 
-echo "🔧 Running Xcode setup again..."
+echo ">Running Xcode setup again..."
 xcodebuild -runFirstLaunch
 
-echo "✅ Platform setup complete"
+echo ">Platform setup complete"
