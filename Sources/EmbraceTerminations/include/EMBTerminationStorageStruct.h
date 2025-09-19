@@ -85,6 +85,15 @@ typedef struct __attribute__((aligned(8))) {
     uint8_t memoryLevel;     // KSCrashAppMemoryState
     uint8_t memoryPressure;  // KSCrashAppMemoryState
 
+    // - WATCHDOG DATA SECTION --
+
+    // hang
+    uint8_t inHang;
+    uint64_t hangStartTimestampMonotonicMillis;
+
+    // protected data / device screen off
+    uint8_t protectedDataUnavailable;
+
     //
     // - End Version 1 -
     //
