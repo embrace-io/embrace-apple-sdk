@@ -88,7 +88,7 @@ public class RemoteConfig {
 }
 
 extension RemoteConfig: EmbraceConfigurable {
-    public var hangLimits: EmbraceConfiguration.HangLimits {
+    public var hangLimits: HangLimits {
         HangLimits(
             hangPerSession: payload.hangLimitsHangPerSession,
             samplesPerHang: payload.hangLimitsSamplesPerHang

@@ -3,7 +3,7 @@
 //
 
 import EmbraceCore
-import EmbraceKSCrashSupport
+import EmbraceCrash
 import XCTest
 
 @testable import EmbraceCore

@@ -160,7 +160,7 @@ extension EmbraceBacktraceFrame {
             return cached
         }
 
-        guard let result = Embrace.client?.options.symbolicator?.symbolicate(address: UInt(address)) else {
+        guard let result = Embrace.client?.options.symbolicator?.resolve(address: UInt(address)) else {
             return self
         }
 

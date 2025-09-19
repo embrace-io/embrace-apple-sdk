@@ -8,7 +8,7 @@ import Foundation
     import EmbraceCaptureService
     import EmbraceCore
     import EmbraceCommonInternal
-    import EmbraceKSCrashSupport
+    import EmbraceCrash
     import EmbraceOTelInternal
     import EmbraceKSCrashBacktraceSupport
     import KSCrashDemangleFilter

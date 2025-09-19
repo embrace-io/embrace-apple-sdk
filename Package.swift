@@ -36,7 +36,7 @@ let package = Package(
         .library(name: "EmbraceCore", targets: ["EmbraceCore", "EmbraceConfiguration"]),
         .library(name: "EmbraceSemantics", targets: ["EmbraceSemantics"]),
         .library(name: "EmbraceMacros", targets: ["EmbraceMacros", "EmbraceCore"]),
-        .library(name: "EmbraceKSCrashSupport", targets: ["EmbraceKSCrashSupport"]),
+        .library(name: "EmbraceCrash", targets: ["EmbraceCrash"]),
         .library(name: "EmbraceKSCrashBacktraceSupport", targets: ["EmbraceKSCrashBacktraceSupport"]),
         .library(name: "EmbraceCrashlyticsSupport", targets: ["EmbraceCrashlyticsSupport"])
     ],
@@ -64,7 +64,7 @@ let package = Package(
                 "EmbraceCore",
                 "EmbraceCommonInternal",
                 "EmbraceSemantics",
-                "EmbraceKSCrashSupport",
+                "EmbraceCrash",
                 "EmbraceKSCrashBacktraceSupport"
             ],
             linkerSettings: linkerSettings
@@ -280,7 +280,7 @@ let package = Package(
 
         // kscrash support  -------------------------------------------------------
         .target(
-            name: "EmbraceKSCrashSupport",
+            name: "EmbraceCrash",
             dependencies: [
                 "EmbraceCommonInternal",
                 .product(name: "Recording", package: "KSCrash")
@@ -298,7 +298,7 @@ let package = Package(
         ),
         .testTarget(
             name: "EmbraceCrashTests",
-            dependencies: ["EmbraceCore", "EmbraceKSCrashSupport", "EmbraceCommonInternal", "TestSupport"],
+            dependencies: ["EmbraceCore", "EmbraceCrash", "EmbraceCommonInternal", "TestSupport"],
             resources: [
                 .copy("Mocks/")
             ]
