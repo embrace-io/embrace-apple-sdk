@@ -20,6 +20,7 @@ env:
     EmbraceIOTests/PerformanceTests
   BENCHMARKS: |
     BenchmarksUITests
+  EMB_BIN_HOME: ${{ github.workspace }}/embrace/bin
 
 jobs:
   perf:
@@ -42,23 +43,24 @@ jobs:
 
       - name: Copy binaries
         run: |
-          mkdir -p $HOME/embrace/bin
-          cp bin/platform $HOME/embrace/bin/platform
-          cp bin/perf $HOME/embrace/bin/perf
-          cp bin/benchmarks $HOME/embrace/bin/benchmarks
-          cp bin/perfcomp.py $HOME/embrace/bin/perfcomp.py
-          cp bin/destinations $HOME/embrace/bin/destinations
-          cp bin/run_regression_tests $HOME/embrace/bin/run_regression_tests
-          chmod +x $HOME/embrace/bin/perf
-          chmod +x $HOME/embrace/bin/benchmarks
-          chmod +x $HOME/embrace/bin/perfcomp.py
-          chmod +x $HOME/embrace/bin/destinations
-          chmod +x $HOME/embrace/bin/run_regression_tests
+          echo "Copying binaries to $EMB_BIN_HOME"
+          mkdir -p "$EMB_BIN_HOME"
+          cp bin/platform "$EMB_BIN_HOME"
+          cp bin/perf "$EMB_BIN_HOME"
+          cp bin/benchmarks "$EMB_BIN_HOME"
+          cp bin/perfcomp.py "$EMB_BIN_HOME"
+          cp bin/destinations "$EMB_BIN_HOME"
+          cp bin/run_regression_tests "$EMB_BIN_HOME"
+          chmod +x "$EMB_BIN_HOME/perf"
+          chmod +x "$EMB_BIN_HOME/benchmarks"
+          chmod +x "$EMB_BIN_HOME/perfcomp.py"
+          chmod +x "$EMB_BIN_HOME/destinations"
+          chmod +x "$EMB_BIN_HOME/run_regression_tests"
 
       - name: Run PR perf tests
         id: perfpr
         run: |
-          /$HOME/embrace/bin/run_regression_tests
+          $EMB_BIN_HOME/run_regression_tests
 
         # checkout the main branch
       - name: Checkout Main
@@ -70,7 +72,7 @@ jobs:
       - name: Run Main perf tests
         id: perfmain
         run: |
-          $HOME/embrace/bin/run_regression_tests
+          $EMB_BIN_HOME/run_regression_tests
 
       - name: Run Performance Comparison
         env:
@@ -80,4 +82,4 @@ jobs:
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          python $HOME/embrace/bin/perfcomp.py
+          python $EMB_BIN_HOME/perfcomp.py
