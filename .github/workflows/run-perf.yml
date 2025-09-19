@@ -65,6 +65,7 @@ jobs:
       - name: Run PR perf tests
         id: perfpr
         run: |
+          ls -lsa $EMB_BIN_HOME
           $EMB_BIN_HOME/run_regression_tests
 
         # checkout the main branch
@@ -77,6 +78,7 @@ jobs:
       - name: Run Main perf tests
         id: perfmain
         run: |
+          ls -lsa $EMB_BIN_HOME
           $EMB_BIN_HOME/run_regression_tests
 
       - name: Run Performance Comparison
