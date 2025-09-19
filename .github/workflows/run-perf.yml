@@ -42,22 +42,23 @@ jobs:
 
       - name: Copy binaries
         run: |
-          cp bin/platform /tmp/platform
-          cp bin/perf /tmp/perf
-          cp bin/benchmarks /tmp/benchmarks
-          cp bin/perfcomp.py /tmp/perfcomp.py
-          cp bin/destinations /tmp/destinations
-          cp bin/run_regression_tests /tmp/run_regression_tests
-          chmod +x /tmp/perf
-          chmod +x /tmp/benchmarks
-          chmod +x /tmp/perfcomp.py
-          chmod +x /tmp/destinations
-          chmod +x /tmp/run_regression_tests
+          mkdir -p $HOME/embrace/bin
+          cp bin/platform $HOME/embrace/bin/platform
+          cp bin/perf $HOME/embrace/bin/perf
+          cp bin/benchmarks $HOME/embrace/bin/benchmarks
+          cp bin/perfcomp.py $HOME/embrace/bin/perfcomp.py
+          cp bin/destinations $HOME/embrace/bin/destinations
+          cp bin/run_regression_tests $HOME/embrace/bin/run_regression_tests
+          chmod +x $HOME/embrace/bin/perf
+          chmod +x $HOME/embrace/bin/benchmarks
+          chmod +x $HOME/embrace/bin/perfcomp.py
+          chmod +x $HOME/embrace/bin/destinations
+          chmod +x $HOME/embrace/bin/run_regression_tests
 
       - name: Run PR perf tests
         id: perfpr
         run: |
-          /tmp/run_regression_tests
+          /$HOME/embrace/bin/run_regression_tests
 
         # checkout the main branch
       - name: Checkout Main
@@ -69,7 +70,7 @@ jobs:
       - name: Run Main perf tests
         id: perfmain
         run: |
-          /tmp/run_regression_tests
+          $HOME/embrace/bin/run_regression_tests
 
       - name: Run Performance Comparison
         env:
@@ -79,4 +80,4 @@ jobs:
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          python /tmp/perfcomp.py
+          python $HOME/embrace/bin/perfcomp.py

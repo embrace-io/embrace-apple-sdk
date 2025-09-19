@@ -4,6 +4,9 @@ set -Eeuo pipefail
 # Load the function
 source "$(dirname "$0")/destinations"
 
+# Log helper (stderr so JSON stays clean)
+log() { printf '%s\n' "$*" >&2; }
+
 # -------------------- CONFIG --------------------
 : "${TESTS:=EmbraceIOTests/PerformanceTests}"
 WORKSPACE=".swiftpm/xcode/package.xcworkspace"
@@ -22,6 +25,12 @@ UDID=$(get_best_id "${WORKSPACE}" "${SCHEME}" "~iPhone" "iOS Simulator" "~")
 echo "Using destination: ${DESTINATION}" >&2
 echo "Using UDID: ${UDID}" >&2
 
+if [ ! -d "${WORKSPACE}" ]; then
+  log "${WORKSPACE} workspace does not exist, skipping."
+  # you can exit or create one here
+  exit 0
+fi
+
 xcrun simctl boot "$UDID" --arch=arm64 >/dev/null || true
 xcrun simctl bootstatus "$UDID" -b >/dev/null || true
 
@@ -32,9 +41,6 @@ TEST_ARGS=()
 for t in "${TESTS[@]}"; do
     TEST_ARGS+=("-only-testing:${t}")
 done
-
-# Log helper (stderr so JSON stays clean)
-log() { printf '%s\n' "$*" >&2; }
 
 if ! [[ "$ITERATIONS" =~ ^[0-9]+$ ]]; then
   log "ERROR: ITERATIONS must be an integer"
