@@ -22,6 +22,8 @@ jq -n \
     '$a[0] + $b[0]' \
     > combined.json
 
+cat combined.json
+
     echo "out<<EOF" >> "$GITHUB_OUTPUT"
     cat combined.json >> "$GITHUB_OUTPUT"
     echo "EOF" >> "$GITHUB_OUTPUT"

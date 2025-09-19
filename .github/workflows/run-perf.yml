@@ -20,7 +20,7 @@ env:
     EmbraceIOTests/PerformanceTests
   BENCHMARKS: |
     BenchmarksUITests
-  EMB_BIN_HOME: ${{ github.workspace }}/embrace/bin
+  EMB_BIN_HOME: ${{ runner.tool_cache }}/embrace/bin
 
 jobs:
   perf:
