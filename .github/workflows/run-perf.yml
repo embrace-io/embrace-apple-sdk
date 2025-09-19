@@ -23,7 +23,7 @@ env:
 
 jobs:
   perf:
-    runs-on: macos-14
+    runs-on: macos-latest
 
     steps:
 
