@@ -65,8 +65,7 @@ jobs:
       - name: Run PR perf tests
         id: perfpr
         run: |
-          echo "$EMB_BIN_HOME"
-          $EMB_BIN_HOME/platform
+          $EMB_BIN_HOME/run_regression_tests
 
         # checkout the main branch
       - name: Checkout Main
@@ -78,8 +77,7 @@ jobs:
       - name: Run Main perf tests
         id: perfmain
         run: |
-          echo "$EMB_BIN_HOME"
-          $EMB_BIN_HOME/platform
+          $EMB_BIN_HOME/run_regression_tests
 
       - name: Run Performance Comparison
         env:
