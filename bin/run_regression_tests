@@ -7,8 +7,10 @@ source $EMB_BIN_HOME/destinations
 echo "EmbraceIO"
 get_sim ".swiftpm/xcode/package.xcworkspace" "EmbraceIO-Package" "~Pro" "iOS Simulator" "~" 1
 
-echo "Benchmarks"
-get_sim "Examples/Benchmarks/Benchmarks.xcworkspace" "Benchmarks" "~Pro" "iOS Simulator" "~" 1
+if [ -d "Examples/Benchmarks/Benchmarks.xcworkspace" ]; then
+    echo "Benchmarks"
+    get_sim "Examples/Benchmarks/Benchmarks.xcworkspace" "Benchmarks" "~Pro" "iOS Simulator" "~" 1
+fi
 
 $EMB_BIN_HOME/benchmarks >benchmarks.json
 $EMB_BIN_HOME/perf >perf.json
