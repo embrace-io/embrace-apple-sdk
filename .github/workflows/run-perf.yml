@@ -24,11 +24,11 @@ env:
 jobs:
   perf:
     runs-on: macos-latest
-    
-    env:
-      EMB_BIN_HOME: ${{ runner.tool_cache }}/embrace/bin
 
     steps:
+
+      - name: Export Embrace Binary Home
+        run: echo "EMB_BIN_HOME=${{ runner.tool_cache }}/embrace/bin" >> "$GITHUB_ENV"
 
       # checkout this PR branch
       - name: Checkout PR
