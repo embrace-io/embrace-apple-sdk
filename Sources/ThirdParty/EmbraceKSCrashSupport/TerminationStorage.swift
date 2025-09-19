@@ -150,6 +150,11 @@ extension TerminationStorage {
             dict["memoryPressureName"] = String(cString: value.cString())
         }
 
+        dict["inHang"] = inHang
+        dict["hangStartTimestampMonotonicMillis"] = hangStartTimestampMonotonicMillis
+
+        dict["protectedDataUnavailable"] = protectedDataUnavailable
+
         return dict
     }
 }

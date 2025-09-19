@@ -76,28 +76,6 @@ static inline uint64_t walltime() { return milliseconds(CLOCK_REALTIME); }
 /// Monotonic time in milliseconds (CLOCK_MONOTONIC_RAW).
 static inline uint64_t monotonic() { return milliseconds(CLOCK_MONOTONIC_RAW); }
 
-#pragma mark - Exit Hooks
-// Clean-exit signals from atexit() and app termination
-
-/// atexit() handler: marks a clean exit and that exit() was called.
-static void _atExit(void)
-{
-    EMBTerminationStorageUpdate(YES, ^(EMBTerminationStorage *_Nonnull storage) {
-        storage->cleanExitSet = 1;
-        storage->exitCalled = 1;
-    });
-}
-
-/// Notification callback for UIApplicationWillTerminateNotification; marks a clean exit and that terminate was called.
-static void _willTerminateNotification(CFNotificationCenterRef center, void *observer, CFNotificationName name,
-                                       const void *object, CFDictionaryRef userInfo)
-{
-    EMBTerminationStorageUpdate(YES, ^(EMBTerminationStorage *_Nonnull storage) {
-        storage->cleanExitSet = 1;
-        storage->terminateCalled = 1;
-    });
-}
-
 #pragma mark - Private Helpers
 // Filesystem utilities, mapping, validation, and logging
 
@@ -392,6 +370,13 @@ static void EMBTerminationStorageLog(const EMBTerminationStorage *storage)
     printf("  memoryPressure:                %s\n", KSCrashAppMemoryStateToString(storage->memoryPressure));
     printf("\n");
 
+    printf("  inHang:                        %u\n", storage->inHang);
+    printf("  hangStartTsMonotonicMillis:    %" PRIu64 "\n", storage->hangStartTimestampMonotonicMillis);
+    printf("\n");
+
+    printf("  protectedDataUnavailable:      %u\n", storage->protectedDataUnavailable);
+    printf("\n");
+
     printf("}\n");
 }
 
@@ -441,12 +426,57 @@ static BOOL EMBTerminationStorageInitialize()
 
     printf("[EMBTermination] process uuid: %s\n", identifier.UTF8String);
 
-    // Ensure we get normal exits out of the way
-    atexit(_atExit);
+    // atexit() handler: marks a clean exit and that exit() was called.
+    atexit_b(^{
+        EMBTerminationStorageUpdate(YES, ^(EMBTerminationStorage *_Nonnull storage) {
+            storage->cleanExitSet = 1;
+            storage->exitCalled = 1;
+        });
+    });
 
-    CFNotificationCenterAddObserver(CFNotificationCenterGetLocalCenter(), NULL, _willTerminateNotification,
-                                    CFSTR("UIApplicationWillTerminateNotification"), NULL,
-                                    CFNotificationSuspensionBehaviorDeliverImmediately);
+#define REG_NOTIF(name, block)                                    \
+    [[NSNotificationCenter defaultCenter] addObserverForName:name \
+                                                      object:nil  \
+                                                       queue:nil  \
+                                                  usingBlock:^(NSNotification *_Nonnull notification)block]
+
+    // Notification callback for UIApplicationWillTerminateNotification; marks a clean exit and that terminate was
+    // called.
+    REG_NOTIF(@"UIApplicationWillTerminateNotification", {
+        EMBTerminationStorageUpdate(YES, ^(EMBTerminationStorage *_Nonnull storage) {
+            storage->cleanExitSet = 1;
+            storage->terminateCalled = 1;
+        });
+    });
+
+    // protected data
+    REG_NOTIF(@"UIApplicationProtectedDataDidBecomeAvailable", {
+        EMBTerminationStorageUpdate(YES, ^(EMBTerminationStorage *_Nonnull storage) {
+            storage->protectedDataUnavailable = 0;
+        });
+    });
+    REG_NOTIF(@"UIApplicationProtectedDataWillBecomeUnavailable", {
+        EMBTerminationStorageUpdate(YES, ^(EMBTerminationStorage *_Nonnull storage) {
+            storage->protectedDataUnavailable = 1;
+        });
+    });
+
+    // hangs
+    REG_NOTIF(@"io.embrace.HangStarted", {
+        EMBTerminationStorageUpdate(YES, ^(EMBTerminationStorage *_Nonnull storage) {
+            storage->inHang = 1;
+            storage->hangStartTimestampMonotonicMillis = storage->updateTimestampMonotonicMillis;
+        });
+    });
+    REG_NOTIF(@"io.embrace.HangUpdated", {
+        EMBTerminationStorageUpdate(YES, ^(EMBTerminationStorage *_Nonnull storage) {
+                                    });
+    });
+    REG_NOTIF(@"io.embrace.HangEnded", {
+        EMBTerminationStorageUpdate(YES, ^(EMBTerminationStorage *_Nonnull storage) {
+            storage->inHang = 0;
+        });
+    });
 
     // Track state
     [KSCrashAppStateTracker.sharedInstance addObserverWithBlock:^(KSCrashAppTransitionState transitionState) {

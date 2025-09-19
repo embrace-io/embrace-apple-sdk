@@ -89,6 +89,8 @@ extension HangCaptureService: HangObserver {
 
         logger?.debug("[Watchdog] Hang started, at \(at.date) after waiting \(duration.uptime.millisecondsValue) ms")
 
+        NotificationCenter.default.post(name: .embraceHangStarted, object: nil)
+
         // Keep tabs on how many hang spans we've created
         let sampleInfo = limitData.withLock {
             $0.samplesInHangCount = 1
@@ -149,6 +151,8 @@ extension HangCaptureService: HangObserver {
     public func hangUpdated(at: EmbraceClock, duration: EmbraceClock) {
         logger?.debug("[Watchdog] Hang for \(duration.uptime.millisecondsValue) ms")
 
+        NotificationCenter.default.post(name: .embraceHangUpdated, object: nil)
+
         guard
             limitData.withLock({
                 $0.samplesInHangCount += 1
@@ -175,6 +179,8 @@ extension HangCaptureService: HangObserver {
 
     public func hangEnded(at: EmbraceClock, duration: EmbraceClock) {
         logger?.debug("[Watchdog] Hang ended at \(at.date) after \(duration.uptime.millisecondsValue) ms")
+
+        NotificationCenter.default.post(name: .embraceHangEnded, object: nil)
 
         spanQueue.async { [self] in
             span?.end(time: at.date)
