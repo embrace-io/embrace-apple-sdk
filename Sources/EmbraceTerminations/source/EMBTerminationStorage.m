@@ -614,7 +614,11 @@ BOOL EMBTerminationStorageForIdentifier(NSString *_Nonnull identifier, EMBTermin
     }
     NSURL *appStorageURL = [[rootURL() URLByAppendingPathComponent:identifier]
         URLByAppendingPathExtension:kEMBTerminationStorageExtension];
-    return EMBTerminationStorageLoad(appStorageURL, outStorage);
+    if (!EMBTerminationStorageLoad(appStorageURL, outStorage)) {
+        [NSFileManager.defaultManager removeItemAtURL:appStorageURL error:nil];
+        return NO;
+    }
+    return YES;
 }
 
 /// Early constructor to initialize termination storage at library load time.
