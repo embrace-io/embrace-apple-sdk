@@ -20,12 +20,14 @@ env:
     EmbraceIOTests/PerformanceTests
   BENCHMARKS: |
     BenchmarksUITests
-  EMB_BIN_HOME: ~/embrace/bin
 
 jobs:
   perf:
     runs-on: macos-latest
     
+    env:
+      EMB_BIN_HOME: ${{ runner.tool_cache }}/embrace/bin
+
     steps:
 
       # checkout this PR branch
@@ -63,7 +65,8 @@ jobs:
       - name: Run PR perf tests
         id: perfpr
         run: |
-          $EMB_BIN_HOME/run_regression_tests
+          echo "$EMB_BIN_HOME"
+          $EMB_BIN_HOME/platform
 
         # checkout the main branch
       - name: Checkout Main
@@ -75,7 +78,8 @@ jobs:
       - name: Run Main perf tests
         id: perfmain
         run: |
-          $EMB_BIN_HOME/run_regression_tests
+          echo "$EMB_BIN_HOME"
+          $EMB_BIN_HOME/platform
 
       - name: Run Performance Comparison
         env:
