@@ -236,6 +236,14 @@ import Foundation
         if let extraProcessors = options.processors?.map({ $0.processor }) {
             processors.append(contentsOf: extraProcessors)
         }
+        processors.insert(
+            EmbraceMetadataSpanProcessor(
+                providers: [
+                    FlushIntervalMetadataProvider()
+                ]
+            ),
+            at: 0
+        )
 
         EmbraceOTel.setup(spanProcessors: processors)
 
