@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+PLATFORM="${1:-iOS}"
+
+echo ">Running initial Xcode setup..."
+xcodebuild -runFirstLaunch
+
+echo ">Current simulators:"
+xcrun simctl list
+
+echo ">Downloading platform: $PLATFORM"
+xcodebuild -downloadPlatform "$PLATFORM"
+
+echo ">Running Xcode setup again..."
+xcodebuild -runFirstLaunch
+
+echo ">Platform setup complete"
