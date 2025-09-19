@@ -16,8 +16,8 @@ WORKSPACE="Examples/Benchmarks/Benchmarks.xcworkspace"
 # ------------------------------------------------
 PRE_ACTIONS="clean build-for-testing"
 
-DESTINATION=$(get_best_id_arch "${WORKSPACE}" "${SCHEME}" "~iPhone" "iOS Simulator" "~")
-UDID=$(get_best_id "${WORKSPACE}" "${SCHEME}" "~iPhone" "iOS Simulator" "~")
+DESTINATION=$(get_best_id_arch "${WORKSPACE}" "${SCHEME}" "~Pro" "iOS Simulator" "~")
+UDID=$(get_best_id "${WORKSPACE}" "${SCHEME}" "~Pro" "iOS Simulator" "~")
 
 log "Using destination: ${DESTINATION}"
 log "Using UDID: ${UDID}"

@@ -5,16 +5,13 @@ $EMB_BIN_HOME/platform
 source $EMB_BIN_HOME/destinations
 
 echo "EmbraceIO"
-get_best_id ".swiftpm/xcode/package.xcworkspace" "EmbraceIO-Package" "~iPhone" "iOS Simulator" "~"
+get_sim ".swiftpm/xcode/package.xcworkspace" "EmbraceIO-Package" "~Pro" "iOS Simulator" "~" 1
 
 echo "Benchmarks"
-get_best_id "Examples/Benchmarks/Benchmarks.xcworkspace" "Benchmarks" "~iPhone" "iOS Simulator" "~"
+get_sim "Examples/Benchmarks/Benchmarks.xcworkspace" "Benchmarks" "~Pro" "iOS Simulator" "~" 1
 
 $EMB_BIN_HOME/benchmarks >benchmarks.json
 $EMB_BIN_HOME/perf >perf.json
-          
-cat perf.json
-cat benchmarks.json
 
 jq -n \
     --slurpfile a perf.json \
@@ -24,6 +21,6 @@ jq -n \
 
 cat combined.json
 
-    echo "out<<EOF" >> "$GITHUB_OUTPUT"
-    cat combined.json >> "$GITHUB_OUTPUT"
-    echo "EOF" >> "$GITHUB_OUTPUT"
+echo "out<<EOF" >> "$GITHUB_OUTPUT"
+cat combined.json >> "$GITHUB_OUTPUT"
+echo "EOF" >> "$GITHUB_OUTPUT"
