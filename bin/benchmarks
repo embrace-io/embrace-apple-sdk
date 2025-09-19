@@ -7,6 +7,8 @@ source "${EMB_BIN_HOME}/destinations"
 # Log helper (stderr so JSON stays clean)
 log() { printf '%s\n' "$*" >&2; }
 
+log ">> BENCHMARKS"
+
 # -------------------- CONFIG --------------------
 : "${BENCHMARKS:=BenchmarksUITests}"
 SCHEME="Benchmarks"
@@ -17,8 +19,8 @@ PRE_ACTIONS="clean build-for-testing"
 DESTINATION=$(get_best_id_arch "${WORKSPACE}" "${SCHEME}" "~iPhone" "iOS Simulator" "~")
 UDID=$(get_best_id "${WORKSPACE}" "${SCHEME}" "~iPhone" "iOS Simulator" "~")
 
-echo "Using destination: ${DESTINATION}" >&2
-echo "Using UDID: ${UDID}" >&2
+log "Using destination: ${DESTINATION}"
+log "Using UDID: ${UDID}"
 
 if [ ! -d "${WORKSPACE}" ]; then
   log "${WORKSPACE} workspace does not exist, skipping."
@@ -26,8 +28,11 @@ if [ ! -d "${WORKSPACE}" ]; then
   exit 0
 fi
 
-xcrun simctl boot "$UDID" --arch=arm64 >/dev/null || true
-xcrun simctl bootstatus "$UDID" -b >/dev/null || true
+log "Booting simulator ${UDID}..."
+xcrun simctl boot "$UDID" --arch=arm64 >&2 || true
+
+log "Waiting for simulator to finish booting..."
+xcrun simctl bootstatus "$UDID" -b >&2 || true
 
 # collect tests
 IFS=$'\n' read -r -d '' -a BENCHMARKS <<< "${BENCHMARKS}" || true
@@ -75,21 +80,17 @@ log "Starting benchmarks, ${BENCHMARKS[*]}"
 rm -rf "${TMPDIR_ROOT}" >/dev/null 2>&1 || true
 
 log "Running Benchmarks"
-run_quiet \
+#run_quiet \
 xcodebuild test \
   -workspace "${WORKSPACE}" \
   -scheme "${SCHEME}" \
   "${TEST_ARGS[@]}" \
   -destination "${DESTINATION}" \
   -resultBundlePath "${RESULT_FILE}" \
-  -skipPackageUpdates \
-  -skipPackagePluginValidation \
-  -skipMacroValidation \
-  -disableAutomaticPackageResolution \
-  >/dev/null
+  | xcpretty >&2
   
 log "Crunching results..."
-#run_quiet \
+run_quiet \
 xcrun xcresulttool get test-results metrics tests \
        --path "${RESULT_FILE}" \
        --format json \

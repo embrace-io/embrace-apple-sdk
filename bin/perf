@@ -7,6 +7,8 @@ source "${EMB_BIN_HOME}/destinations"
 # Log helper (stderr so JSON stays clean)
 log() { printf '%s\n' "$*" >&2; }
 
+log ">> PERF"
+
 # -------------------- CONFIG --------------------
 : "${TESTS:=EmbraceIOTests/PerformanceTests}"
 WORKSPACE=".swiftpm/xcode/package.xcworkspace"
@@ -31,8 +33,11 @@ if [ ! -d "${WORKSPACE}" ]; then
   exit 0
 fi
 
-xcrun simctl boot "$UDID" --arch=arm64 >/dev/null || true
-xcrun simctl bootstatus "$UDID" -b >/dev/null || true
+log "Booting simulator ${UDID}..."
+xcrun simctl boot "$UDID" --arch=arm64 >&2 || true
+
+log "Waiting for simulator to finish booting..."
+xcrun simctl bootstatus "$UDID" -b >&2 || true
 
 # collect tests
 IFS=$'\n' read -r -d '' -a TESTS <<< "${TESTS}" || true
@@ -93,24 +98,20 @@ log "Starting performance tests, ${TESTS[*]}"
 rm -rf "${TMPDIR_ROOT}" >/dev/null 2>&1 || true
 
 log "${PRE_ACTIONS} test bundle for '${DESTINATION}'…"
-run_quiet xcodebuild ${PRE_ACTIONS} \
+xcodebuild ${PRE_ACTIONS} \
   -workspace "${WORKSPACE}" \
   -scheme "${SCHEME}" \
   -destination "${DESTINATION}" \
-  >/dev/null
+  | xcpretty >&2
 
 log "Running a few warm-up iterations..."
-run_quiet xcodebuild test-without-building \
+xcodebuild test-without-building \
   -workspace "${WORKSPACE}" \
   -scheme "${SCHEME}" \
   "${TEST_ARGS[@]}" \
   -destination "${DESTINATION}" \
   -test-iterations 3 \
-  -skipPackageUpdates \
-  -skipPackagePluginValidation \
-  -skipMacroValidation \
-  -disableAutomaticPackageResolution \
-  >/dev/null
+  | xcpretty >&2
 
 log "Testing with $((ITERATIONS - 1)) iteration(s)..."
 run_quiet xcodebuild test-without-building \
@@ -120,11 +121,7 @@ run_quiet xcodebuild test-without-building \
   -destination "${DESTINATION}" \
   -resultBundlePath "${RESULT_FILE}" \
   -test-iterations "${ITERATIONS}" \
-  -skipPackageUpdates \
-  -skipPackagePluginValidation \
-  -skipMacroValidation \
-  -disableAutomaticPackageResolution \
-  >/dev/null
+  | xcpretty >&2
 
 log "Crunching results..."
 run_quiet xcrun xcresulttool get test-results tests \

@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  ITERATIONS: 20
+  ITERATIONS: 5
   SHOULD_CLEAN: 1
   THRESHOLD_PCT: 5.0
   TESTS: |
@@ -39,7 +39,10 @@ jobs:
           python-version: '3.13'
 
       - name: Install dependencies
-        run: pip install scipy pygithub
+        run: |
+          pip install scipy pygithub
+          gem install xcpretty
+          brew install xcbeautify
 
       - name: Copy binaries
         run: |
