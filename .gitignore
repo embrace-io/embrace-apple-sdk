@@ -62,3 +62,6 @@ Examples/AppSizeTester/*.xcworkspace
 
 ## pods
 Examples/BrandGamePod
+
+## Benchmarks user data
+Examples/Benchmarks/Benchmarks.xcworkspace/xcuserdata

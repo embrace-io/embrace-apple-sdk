@@ -1,11 +1,18 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+# Load the function
+source "${EMB_BIN_HOME}/destinations"
+
+# Log helper (stderr so JSON stays clean)
+log() { printf '%s\n' "$*" >&2; }
+
+log ">> PERF"
+
 # -------------------- CONFIG --------------------
 : "${TESTS:=EmbraceIOTests/PerformanceTests}"
 WORKSPACE=".swiftpm/xcode/package.xcworkspace"
 SCHEME="EmbraceIO-Package"
-DESTINATION="platform=iOS Simulator,name=iPhone 16 Pro"
 : "${SHOULD_CLEAN:=1}"
 : "${ITERATIONS:=10}"
 # ------------------------------------------------
@@ -14,6 +21,24 @@ if (( SHOULD_CLEAN != 1 )); then
   PRE_ACTIONS="build-for-testing"
 fi
 
+DESTINATION=$(get_best_id_arch "${WORKSPACE}" "${SCHEME}" "iPhone~Pro" "iOS Simulator" "~")
+UDID=$(get_best_id "${WORKSPACE}" "${SCHEME}" "iPhone~Pro" "iOS Simulator" "~")
+
+echo "Using destination: ${DESTINATION}" >&2
+echo "Using UDID: ${UDID}" >&2
+
+if [ ! -d "${WORKSPACE}" ]; then
+  log "${WORKSPACE} workspace does not exist, skipping."
+  # you can exit or create one here
+  exit 0
+fi
+
+log "Booting simulator ${UDID}..."
+xcrun simctl boot "$UDID" --arch=arm64 >&2 || true
+
+log "Waiting for simulator to finish booting..."
+xcrun simctl bootstatus "$UDID" -b >&2 || true
+
 # collect tests
 IFS=$'\n' read -r -d '' -a TESTS <<< "${TESTS}" || true
 
@@ -21,9 +46,6 @@ TEST_ARGS=()
 for t in "${TESTS[@]}"; do
     TEST_ARGS+=("-only-testing:${t}")
 done
-
-# Log helper (stderr so JSON stays clean)
-log() { printf '%s\n' "$*" >&2; }
 
 if ! [[ "$ITERATIONS" =~ ^[0-9]+$ ]]; then
   log "ERROR: ITERATIONS must be an integer"
@@ -76,24 +98,20 @@ log "Starting performance tests, ${TESTS[*]}"
 rm -rf "${TMPDIR_ROOT}" >/dev/null 2>&1 || true
 
 log "${PRE_ACTIONS} test bundle for '${DESTINATION}'…"
-run_quiet xcodebuild ${PRE_ACTIONS} \
+xcodebuild ${PRE_ACTIONS} \
   -workspace "${WORKSPACE}" \
   -scheme "${SCHEME}" \
   -destination "${DESTINATION}" \
-  >/dev/null
+  | xcpretty >&2
 
 log "Running a few warm-up iterations..."
-run_quiet xcodebuild test-without-building \
+xcodebuild test-without-building \
   -workspace "${WORKSPACE}" \
   -scheme "${SCHEME}" \
   "${TEST_ARGS[@]}" \
   -destination "${DESTINATION}" \
   -test-iterations 3 \
-  -skipPackageUpdates \
-  -skipPackagePluginValidation \
-  -skipMacroValidation \
-  -disableAutomaticPackageResolution \
-  >/dev/null
+  | xcpretty >&2
 
 log "Testing with $((ITERATIONS - 1)) iteration(s)..."
 run_quiet xcodebuild test-without-building \
@@ -103,18 +121,7 @@ run_quiet xcodebuild test-without-building \
   -destination "${DESTINATION}" \
   -resultBundlePath "${RESULT_FILE}" \
   -test-iterations "${ITERATIONS}" \
-  -skipPackageUpdates \
-  -skipPackagePluginValidation \
-  -skipMacroValidation \
-  -disableAutomaticPackageResolution \
-  >/dev/null
-
-# we could use `xcrun xcresulttool get test-results metrics`,
-# or `xcresultparser`, but both complicate things. 
-# For option 1, we need the test to have a `measure{}` in it
-# which most don't. Maybe someday we'll optimize for that.
-
-# Also, we're skipping the first iteration as a warm-up.
+  | xcpretty >&2
 
 log "Crunching results..."
 run_quiet xcrun xcresulttool get test-results tests \

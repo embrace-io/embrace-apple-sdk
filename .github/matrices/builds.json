@@ -1,0 +1,35 @@
+{
+  "pr": {
+    "include": [
+      {
+        "platform": "iOS",
+        "xcode_version": "16.4",
+        "macos-version": "15"
+      }
+    ]
+  },
+  "main": {
+    "include": [
+      {
+        "platform": "iOS",
+        "xcode_version": "16.4",
+        "macos-version": "15"
+      },
+      {
+        "platform": "tvOS",
+        "xcode_version": "16.4",
+        "macos-version": "15"
+      },
+      {
+        "platform": "macOS",
+        "xcode_version": "16.4",
+        "macos-version": "15"
+      },
+      {
+        "platform": "watchOS",
+        "xcode_version": "16.4",
+        "macos-version": "15"
+      }
+    ]
+  }
+}
