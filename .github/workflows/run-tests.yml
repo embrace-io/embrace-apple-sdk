@@ -70,6 +70,7 @@ jobs:
 
       - name: Run Unit Tests
         uses: mxcl/xcodebuild@96d9ef9fd2ab35ddad713d320955eb31ca8d6d21 # 3.5.1
+        timeout-minutes: 80
         with:
           workspace: ".swiftpm/xcode/package.xcworkspace"
           scheme: EmbraceIO-Package
