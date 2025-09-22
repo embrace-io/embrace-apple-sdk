@@ -45,6 +45,7 @@ jobs:
           pip install scipy pygithub
           gem install xcpretty
           brew install xcbeautify
+          brew install coreutils
 
       - name: Copy binaries
         run: |
