@@ -28,11 +28,7 @@ if [ ! -d "${WORKSPACE}" ]; then
   exit 0
 fi
 
-log "Booting simulator ${UDID}..."
-xcrun simctl boot "$UDID" --arch=arm64 >&2 || true
-
-log "Waiting for simulator to finish booting..."
-xcrun simctl bootstatus "$UDID" -b >&2 || true
+boot_sim "${UDID}"
 
 # collect tests
 IFS=$'\n' read -r -d '' -a BENCHMARKS <<< "${BENCHMARKS}" || true
