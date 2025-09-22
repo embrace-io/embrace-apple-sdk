@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 boot_sim() {
   local UDID="${1:?usage: boot_sim <udid> [timeout=120] [--launch]}"
-  local TIMEOUT="${2:-120}"
+  local TIMEOUT="${2:-60}"
   local INTERVAL=1
   local elapsed=0
 
@@ -13,7 +13,17 @@ boot_sim() {
   open -ga Simulator --args -CurrentDeviceUDID "$UDID" || true
 
   echo "[boot_sim] Booting…" >&2
-  xcrun simctl boot "$UDID" --arch=arm64 >/dev/null >&2 || true
+  #xcrun simctl boot "$UDID" --arch=arm64 >/dev/null >&2 || true
+  local boot
+  boot="$(xcrun simctl boot "$UDID" --arch=arm64 2>&1)"
+  echo "[boot_sim] Boot output: $boot" >&2
+
+  if [[ "$boot" == *"current state: Booted"* ]]; then
+    echo "[boot_sim] Booted." >&2
+    exit 0
+  fi
+
+  # maybe check for Unable to boot device in current state: Booted
 
   echo "[boot_sim] Waiting for bootstatus to succeed…" >&2
   while (( elapsed < TIMEOUT )); do
