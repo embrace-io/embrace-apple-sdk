@@ -20,7 +20,7 @@ boot_sim() {
 
   if [[ "$boot" == *"current state: Booted"* ]]; then
     echo "[boot_sim] Booted." >&2
-    exit 0
+    return 0
   fi
 
   # maybe check for Unable to boot device in current state: Booted
