@@ -9,36 +9,17 @@ boot_sim() {
 
   echo "[boot_sim] Target: $UDID (timeout ${TIMEOUT}s)" >&2
 
-  echo "[boot_sim] Launching Simulator.app..." >&2
-  open -ga Simulator --args -CurrentDeviceUDID "$UDID" || true
+  echo "[boot_sim] Shutting simulator down..." >&2
+  xcrun simctl shutdown "$UDID" >/dev/null 2>&1 || true
 
-  echo "[boot_sim] Booting…" >&2
-  #xcrun simctl boot "$UDID" --arch=arm64 >/dev/null >&2 || true
-  local boot
-  boot="$(xcrun simctl boot "$UDID" --arch=arm64 2>&1)"
-  echo "[boot_sim] Boot output: $boot" >&2
+  echo "[boot_sim] Booting..." >&2
+  xcrun simctl boot "$UDID" --arch=arm64 >/dev/null 2>&1 || true
 
-  if [[ "$boot" == *"current state: Booted"* ]]; then
-    echo "[boot_sim] Booted." >&2
-    return 0
-  fi
+  echo "[boot_sim] Waiting..." >&2
+  gtimeout "$TIMEOUT" xcrun simctl bootstatus "$UDID" 2>&1 \
+  | awk '/^[[:space:]]/ { sub(/^[[:space:]]+/, ""); print "[boot_sim] " $0 }' >&2
 
-  # maybe check for Unable to boot device in current state: Booted
-
-  echo "[boot_sim] Waiting for bootstatus to succeed…" >&2
-  while (( elapsed < TIMEOUT )); do
-    local out
-    if out="$(gtimeout $INTERVAL xcrun simctl bootstatus "$UDID" >/dev/null)"; then
-      echo "[boot_sim] Booted." >&2
-      return 0
-    else
-      echo "[boot_sim] ...booting" >&2
-    fi
-    (( elapsed += INTERVAL ))
-  done
-
-  echo "[boot_sim] Timeout after ${TIMEOUT}s waiting for bootstatus to succeed." >&2
-  return 124
+  return 0
 }
 
 
