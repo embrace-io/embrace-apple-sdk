@@ -30,6 +30,7 @@ struct ResourcePayload: Codable {
     var environmentDetail: String?
     var appFramework: Int?
     var launchCount: Int?
+    var sdkPlatform: String?
     var sdkVersion: String?
     var appVersion: String?
     var appBundleId: String?
@@ -64,6 +65,7 @@ struct ResourcePayload: Codable {
         case appFramework = "app_framework"
         case launchCount = "launch_count"
         case sdkVersion = "sdk_version"
+        case sdkPlatform = "sdk_platform"
         case appVersion = "app_version"
         case appBundleId = "app_bundle_id"
         case processIdentifier = "process_identifier"
@@ -92,6 +94,7 @@ struct ResourcePayload: Codable {
         try container.encode(appFramework, forKey: .appFramework)
         try container.encode(launchCount, forKey: .launchCount)
         try container.encode(sdkVersion, forKey: .sdkVersion)
+        try container.encode(sdkPlatform, forKey: .sdkPlatform)
         try container.encode(appVersion, forKey: .appVersion)
         try container.encode(appBundleId, forKey: .appBundleId)
         try container.encode(processIdentifier, forKey: .processIdentifier)
@@ -110,7 +113,10 @@ struct ResourcePayload: Codable {
 
         // bundle_id is constant and won't change over app install lifetime
         self.appBundleId = Bundle.main.bundleIdentifier
-        self.osName = EMBDevice.operatingSystemType
+        // The backend uses this values to identify the platform through out all the system
+        // The specific OS is going to be reported in the `osAlternateType` field
+        self.osName = "ios"
+        self.sdkPlatform = "ios"
 
         // use the current sdk version as a fallback in case the resource is missing
         // (this happens when sending critical logs while the sdk is not totally initialized)

@@ -77,7 +77,8 @@ class ResourcePayloadTests: XCTestCase {
         XCTAssertEqual(json["os_build"] as? String, "23D60")
         XCTAssertEqual(json["os_type"] as? String, "darwin")
         XCTAssertEqual(json["os_alternate_type"] as? String, "iOS_variant")
-        XCTAssertEqual(json["os_name"] as? String, EMBDevice.operatingSystemType)
+        XCTAssertEqual(json["os_name"] as? String, "ios")
+        XCTAssertEqual(json["sdk_platform"] as? String, "ios")
 
         let jsonKeys = Set(json.keys)
         let expectedKeys = Set(ResourcePayload.CodingKeys.allCases.map { $0.rawValue })
@@ -93,5 +94,7 @@ class ResourcePayloadTests: XCTestCase {
         let json = try XCTUnwrap(JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any])
 
         XCTAssertEqual(json["app_bundle_id"] as? String, Bundle.main.bundleIdentifier!)
+        XCTAssertEqual(json["os_name"] as? String, "ios")
+        XCTAssertEqual(json["sdk_platform"] as? String, "ios")
     }
 }
