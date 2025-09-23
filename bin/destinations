@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 boot_sim() {
   local UDID="${1:?usage: boot_sim <udid> [timeout=120] [--launch]}"
-  local TIMEOUT="${2:-60}"
+  local TIMEOUT="${2:-120}"
   local INTERVAL=1
   local elapsed=0
 
@@ -17,7 +17,7 @@ boot_sim() {
 
   echo "[boot_sim] Waiting..." >&2
   gtimeout "$TIMEOUT" xcrun simctl bootstatus "$UDID" 2>&1 \
-  | awk '/^[[:space:]]/ { sub(/^[[:space:]]+/, ""); print "[boot_sim] " $0 }' >&2
+  | awk 'NF { sub(/^[[:space:]]+/, ""); print "[boot_sim] " $0 }' >&2
 
   return 0
 }
