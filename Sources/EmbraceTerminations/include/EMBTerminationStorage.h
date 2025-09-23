@@ -35,6 +35,14 @@ typedef void (^EMBTerminationStorageUpdateBlock)(EMBTerminationStorage *storage)
 #pragma mark - Public API
 
 /**
+ * Retrieves a termination storage snapshot for the previous session.
+ *
+ * @param outStorage Output parameter populated on success.
+ * @return YES if a record exists and outStorage was populated; NO otherwise.
+ */
+BOOL EMBTerminationStorageGetStorageForPreviousProcess(EMBTerminationStorage *_Nonnull outStorage);
+
+/**
  * Opens the shared termination storage for mutation and optionally acquires a lock.
  *
  * @param canLock Indicates whether the caller may acquire a lock. Set to NO when called from a signal
