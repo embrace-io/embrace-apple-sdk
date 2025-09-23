@@ -25,6 +25,14 @@ extension TerminationStorage {
         }
     }
 
+    /// Retrieve a snapshot of storage for the previous session
+    /// - Returns: The storage if present, otherwise `nil`.
+    public static func previous() -> TerminationStorage? {
+        var storage = TerminationStorage()
+        let ok = EMBTerminationStorageGetStorageForPreviousProcess(&storage)
+        return ok ? storage : nil
+    }
+
     /// Retrieve a snapshot of storage for an identifier.
     /// - Parameters:
     ///   - identifier: The identifier to query.
@@ -158,3 +166,46 @@ extension TerminationStorage {
         return dict
     }
 }
+
+#if canImport(FoundationModels)
+
+    import FoundationModels
+
+    @available(iOS 26.0, *)
+    extension TerminationStorage {
+
+        @Generable
+        struct IntelligentTerminationReason {
+            let reason: String
+            let confidence: Double
+            let explanation: String
+            let insights: [String]
+        }
+
+        nonisolated
+            func intelligentlyFigureoutWhyTheTermination() async -> String?
+        {
+
+            let instructions = """
+                You are an expert in iOS reliability and observability.
+                You will be presented with a bunch of key value pairs that 
+                represent a run of an apps process. Your job is to expertly figure out
+                why that process was terminated, and explain it in the most simple,
+                but effective terminology. If you don't know why, you can also say that.
+                """
+            let session = LanguageModelSession(instructions: instructions)
+
+            let prompt = "Here are the key value pairs, why was this process terminated? \(toDictionary())"
+            do {
+                let response = try await session.respond(to: prompt, generating: IntelligentTerminationReason.self)
+                print("\(response.content)")
+                return response.content.reason
+            } catch {
+                print("[TI] \(error)")
+                return nil
+            }
+        }
+
+    }
+
+#endif

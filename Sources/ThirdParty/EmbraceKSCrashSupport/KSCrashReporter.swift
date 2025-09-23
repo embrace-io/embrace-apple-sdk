@@ -37,6 +37,15 @@ public final class KSCrashReporter: NSObject, CrashReporter {
         super.init()
         self.reporter.userInfo = [:]
         self.lastSession = try? String(contentsOf: Self.lastSessionURL, encoding: .utf8)
+
+        if #available(iOS 26.0, *) {
+            if let previousSession = TerminationStorage.previous() {
+                Task {
+                    let reason = await previousSession.intelligentlyFigureoutWhyTheTermination()
+                    print("term reason: \(reason)")
+                }
+            }
+        }
     }
 
     // this is the path that contains `/Reports`.
