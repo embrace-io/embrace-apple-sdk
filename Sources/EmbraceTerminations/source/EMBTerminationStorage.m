@@ -63,6 +63,9 @@ NSString *const kEMBTerminationStorageExtension = @"term";
 #pragma mark - Globals & State
 // Process-wide state for the mapped storage and synchronization
 
+static EMBTerminationStorage sPreviousProcessStorage = { 0 };
+static BOOL sPreviousProcessStorageValid = NO;
+
 static os_unfair_lock sStorageLock = OS_UNFAIR_LOCK_INIT;
 static EMBTerminationStorage *sStorage = NULL;
 static size_t sStorageSize = 0;
@@ -390,10 +393,10 @@ static BOOL EMBTerminationStorageInitialize()
     // Attempt to load and log the most recent previous session.
     NSURL *previousStorageURL = mostRecentFileWithExtensionInURL(rootURL(), kEMBTerminationStorageExtension);
     if (previousStorageURL) {
-        EMBTerminationStorage storage = { 0 };
-        if (EMBTerminationStorageLoad(previousStorageURL, &storage)) {
+        if (EMBTerminationStorageLoad(previousStorageURL, &sPreviousProcessStorage)) {
             printf("\n----- PREVIOUS SESSION -----\n");
-            EMBTerminationStorageLog(&storage);
+            EMBTerminationStorageLog(&sPreviousProcessStorage);
+            sPreviousProcessStorageValid = YES;
             printf("----- -------- ------- -----\n\n");
         }
     }
@@ -618,6 +621,16 @@ BOOL EMBTerminationStorageForIdentifier(NSString *_Nonnull identifier, EMBTermin
         [NSFileManager.defaultManager removeItemAtURL:appStorageURL error:nil];
         return NO;
     }
+    return YES;
+}
+
+BOOL EMBTerminationStorageGetStorageForPreviousProcess(EMBTerminationStorage *_Nonnull outStorage)
+{
+    if (!outStorage || !sPreviousProcessStorageValid) {
+        return NO;
+    }
+
+    memcpy(outStorage, &sPreviousProcessStorage, sizeof(EMBTerminationStorage));
     return YES;
 }
 
