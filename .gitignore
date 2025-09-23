@@ -60,5 +60,12 @@ sonar-output
 Examples/AppSizeTester/*.xcodeproj
 Examples/AppSizeTester/*.xcworkspace
 
+# Exception: Don't ignore Benchmarks project files
+!Examples/Benchmarks/*.xcworkspace
+!Examples/Benchmarks/*.xcodeproj
+
 ## pods
 Examples/BrandGamePod
+
+## Benchmarks user data
+Examples/Benchmarks/Benchmarks.xcworkspace/xcuserdata

@@ -1,0 +1,119 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+# Load the function
+source "${EMB_BIN_HOME}/destinations"
+
+# Log helper (stderr so JSON stays clean)
+log() { printf '%s\n' "$*" >&2; }
+
+log ">> BENCHMARKS"
+
+# -------------------- CONFIG --------------------
+: "${BENCHMARKS:=BenchmarksUITests}"
+SCHEME="Benchmarks"
+WORKSPACE="Examples/Benchmarks/Benchmarks.xcworkspace"
+# ------------------------------------------------
+PRE_ACTIONS="clean build-for-testing"
+
+DESTINATION=$(get_best_id_arch "${WORKSPACE}" "${SCHEME}" "iPhone~Pro" "iOS Simulator" "~")
+UDID=$(get_best_id "${WORKSPACE}" "${SCHEME}" "iPhone~Pro" "iOS Simulator" "~")
+
+log "Using destination: ${DESTINATION}"
+log "Using UDID: ${UDID}"
+
+if [ ! -d "${WORKSPACE}" ]; then
+  log "${WORKSPACE} workspace does not exist, skipping."
+  # you can exit or create one here
+  exit 0
+fi
+
+boot_sim "${UDID}"
+
+# collect tests
+IFS=$'\n' read -r -d '' -a BENCHMARKS <<< "${BENCHMARKS}" || true
+
+TEST_ARGS=()
+for t in "${BENCHMARKS[@]}"; do
+    TEST_ARGS+=("-only-testing:${t}")
+done
+
+# Temp dir for intermediate results
+TMPDIR_ROOT="$(mktemp -d -t perf-run-XXXXXX)"
+RESULT_FILE="${TMPDIR_ROOT}/TestResults.xcresult"
+
+run_quiet() {
+    local out status
+    out=$(mktemp) || { echo "mktemp failed" >&2; return 2; }
+
+    # Run the command/pipeline in a subshell with pipefail
+    ( set -o pipefail; "$@" ) >"$out" 2>&1
+    status=$?
+
+    if [ $status -ne 0 ]; then
+        # On failure: dump everything to stderr
+        cat "$out" >&2
+        rm -f "$out"
+        return $status
+    fi
+
+    # On success: replay stdout (caller can redirect if they want silence)
+    cat "$out"
+    rm -f "$out"
+    return 0
+}
+
+cleanup() {
+  # remove temp artifacts; keep final bundle if it exists
+  rm -rf "${TMPDIR_ROOT}"
+}
+trap cleanup EXIT
+trap 'exit 130' INT QUIT  # 130 = terminated by Ctrl-C/QUIT
+
+log "Starting benchmarks, ${BENCHMARKS[*]}"
+
+# Start clean
+rm -rf "${TMPDIR_ROOT}" >/dev/null 2>&1 || true
+
+log "Running Benchmarks"
+xcodebuild test \
+  -workspace "${WORKSPACE}" \
+  -scheme "${SCHEME}" \
+  "${TEST_ARGS[@]}" \
+  -destination "${DESTINATION}" \
+  -resultBundlePath "${RESULT_FILE}" \
+  | xcpretty >&2
+  
+log "Crunching results..."
+run_quiet \
+xcrun xcresulttool get test-results metrics tests \
+       --path "${RESULT_FILE}" \
+       --format json \
+        | jq '
+  def median($a):
+    ($a|length) as $n
+    | ($a|sort) as $s
+    | if $n==0 then null
+      elif ($n % 2)==1 then $s[($n/2|floor)]
+      else ($s[$n/2 - 1] + $s[$n/2]) / 2
+      end;
+
+  [ .[] as $tc
+    | ( [ $tc.testRuns[]?.metrics[]?.measurements[] ] ) as $all
+    | ($all | length) as $n
+    | (if $n>0 then ($all|add)/$n else null end) as $avg
+    | (median($all)) as $median
+    | (if $n>1 then ( $all | map((. - $avg) * (. - $avg)) | add / $n | sqrt ) else null end) as $stddev
+    | {
+        name:    $tc.testIdentifier,
+        result:  "Passed",
+        min:     (if $n>0 then ($all | min) else null end),
+        max:     (if $n>0 then ($all | max) else null end),
+        avg:     $avg,
+        median:  $median,
+        stddev:  $stddev,
+        count:   $n,
+        all:     $all
+      }
+  ]'
+

@@ -15,7 +15,8 @@ rows = []
 for pr in pr_data:
     main = main_by_name.get(pr["name"])
     if not main:
-        continue
+        main = pr.copy()
+    
     a, b = pr, main
     pr_mean, main_mean = a["avg"], b["avg"]
     slowdown_pct = (pr_mean - main_mean) / main_mean if main_mean else float("inf")

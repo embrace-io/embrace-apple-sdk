@@ -145,7 +145,7 @@
 		4DF440892E3D502A00708D6A /* SwiftUIEmbraceTraceViewCaptureTestUIComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DF440882E3D502100708D6A /* SwiftUIEmbraceTraceViewCaptureTestUIComponent.swift */; };
 		4DF4408B2E3D517F00708D6A /* SwiftUITestsLoadedPropertyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DF4408A2E3D517400708D6A /* SwiftUITestsLoadedPropertyView.swift */; };
 		4DF4408D2E3D518B00708D6A /* SwiftUITestsAttributesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DF4408C2E3D518400708D6A /* SwiftUITestsAttributesView.swift */; };
-		FADD99932E3961590076712E /* EmbraceKSCrashSupport in Frameworks */ = {isa = PBXBuildFile; productRef = FADD99922E3961590076712E /* EmbraceKSCrashSupport */; };
+		FABF5DE92E80B9C20051B9B4 /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = FABF5DE82E80B9C20051B9B4 /* EmbraceCrash */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -289,7 +289,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4D61D1C72DE0BAC70048B5E2 /* EmbraceIO in Frameworks */,
-				FADD99932E3961590076712E /* EmbraceKSCrashSupport in Frameworks */,
+				FABF5DE92E80B9C20051B9B4 /* EmbraceCrash in Frameworks */,
 				4D61D1C12DE0BAC70048B5E2 /* EmbraceCore in Frameworks */,
 				4D61D1C52DE0BAC70048B5E2 /* EmbraceCrashlyticsSupport in Frameworks */,
 				4D61D1C92DE0BAC70048B5E2 /* EmbraceSemantics in Frameworks */,
@@ -982,7 +982,7 @@
 				4D61D1C42DE0BAC70048B5E2 /* EmbraceCrashlyticsSupport */,
 				4D61D1C62DE0BAC70048B5E2 /* EmbraceIO */,
 				4D61D1C82DE0BAC70048B5E2 /* EmbraceSemantics */,
-				FADD99922E3961590076712E /* EmbraceKSCrashSupport */,
+				FABF5DE82E80B9C20051B9B4 /* EmbraceCrash */,
 			);
 			productName = EmbraceIOTestAppUITests;
 			productReference = 4D94F2532D429257008DECEE /* EmbraceIOTestAppUITests.xctest */;
@@ -1553,9 +1553,10 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = EmbraceSemantics;
 		};
-		FADD99922E3961590076712E /* EmbraceKSCrashSupport */ = {
+		FABF5DE82E80B9C20051B9B4 /* EmbraceCrash */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = EmbraceKSCrashSupport;
+			package = 4D54F27F2E3AB89D00E38132 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
+			productName = EmbraceCrash;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
