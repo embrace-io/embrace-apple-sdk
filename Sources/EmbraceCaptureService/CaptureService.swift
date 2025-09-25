@@ -31,17 +31,20 @@ open class CaptureService: NSObject {
     /// `EmbraceConsoleLogger` instance used to generate internal logs.
     private(set) public weak var logger: InternalLogger?
 
+    private(set) public weak var metadata: MetadataPropertiesHandling?
+
     /// Getter for the state of the capture service.
     @ThreadSafe
     private(set) public var state: CaptureServiceState = .uninstalled
 
-    public func install(otel: EmbraceOpenTelemetry?, logger: InternalLogger? = nil) {
+    public func install(otel: EmbraceOpenTelemetry?, logger: InternalLogger? = nil, metadata: MetadataPropertiesHandling? = nil) {
         guard state == .uninstalled else {
             return
         }
 
         self.otel = otel
         self.logger = logger
+        self.metadata = metadata
 
         onInstall()
 
