@@ -11,7 +11,7 @@ import XCTest
 
 @testable import EmbraceCore
 
-class DeviceIdentifierHelperTests: XCTestCase {
+class DeviceIdentifierProviderTests: XCTestCase {
 
     let fileProvider = TemporaryFilepathProvider()
     var fileURL: URL!
@@ -31,7 +31,7 @@ class DeviceIdentifierHelperTests: XCTestCase {
     }
 
     func test_retrieve_withNoFile_shouldCreateNewFile() throws {
-        let result = DeviceIdentifierHelper.retrieve(fileURL: fileURL)
+        let result = DeviceIdentifierProvider.retrieve(fileURL: fileURL)
 
         XCTAssert(FileManager.default.fileExists(atPath: fileURL.path))
 
@@ -49,7 +49,7 @@ class DeviceIdentifierHelperTests: XCTestCase {
         #endif
         let keychainDeviceId = KeychainAccess.deviceId
 
-        let result = DeviceIdentifierHelper.retrieve(fileURL: fileURL)
+        let result = DeviceIdentifierProvider.retrieve(fileURL: fileURL)
         XCTAssertEqual(result, EmbraceIdentifier(value: keychainDeviceId))
     }
 
@@ -60,7 +60,7 @@ class DeviceIdentifierHelperTests: XCTestCase {
 
         try uuid.uuidString.write(to: fileURL, atomically: true, encoding: .utf8)
 
-        let result = DeviceIdentifierHelper.retrieve(fileURL: fileURL)
+        let result = DeviceIdentifierProvider.retrieve(fileURL: fileURL)
         XCTAssertEqual(result, deviceId)
     }
 }

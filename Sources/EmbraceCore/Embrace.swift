@@ -162,7 +162,7 @@ import Foundation
         self.logLevel = options.logLevel
 
         // retrieve device identifier
-        self.deviceId = DeviceIdentifierHelper.retrieve(fileURL: EmbraceFileSystem.deviceIdURL)
+        self.deviceId = DeviceIdentifierProvider.retrieve(fileURL: EmbraceFileSystem.deviceIdURL)
 
         // initialize remote configuration
         self.config = Embrace.createConfig(options: options, deviceId: deviceId)
