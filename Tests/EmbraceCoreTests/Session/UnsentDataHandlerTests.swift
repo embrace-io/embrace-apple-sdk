@@ -416,6 +416,9 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // then the crash log upload data is no longer cached
         let uploadData = upload.cache.fetchAllUploadData()
+        wait(timeout: .veryLongTimeout) {
+            uploadData.count == 0
+        }
         XCTAssertEqual(uploadData.count, 0)
 
         // then the raw crash log was constructed correctly
