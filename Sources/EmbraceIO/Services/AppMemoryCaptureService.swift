@@ -27,11 +27,17 @@ public class AppMemoryCaptureService: CaptureService {
     public static let shared = AppMemoryCaptureService()
     private var enabled: EmbraceMutex<Bool> = EmbraceMutex(true)
 
-    private override init() {
+    private static let _lazySwizzle: Void = {
         // In KSCrash 2.3, the shared AppMemoryTracker is not accessible to the outside,
         // so for now i'm simply swizzling it. In 3.0, I've fixed it so it's accessible
         // and we'll just use that.
         AppMemoryTracker.embraceSwizzle()
+    }()
+
+    public override func onInstall() {
+        if enabled.safeValue {
+            Self._lazySwizzle
+        }
     }
 
     public override func onConfigUpdated(_ config: any EmbraceConfigurable) {
