@@ -5,6 +5,8 @@
 import EmbraceConfiguration
 
 public class EditableConfig: EmbraceConfigurable {
+    public var memoryCaptureEnabled: Bool = true
+
     public var hangLimits: HangLimits = HangLimits()
 
     public var isSDKEnabled: Bool = true
@@ -58,7 +60,8 @@ public class EditableConfig: EmbraceConfigurable {
         internalLogLimits: InternalLogLimits = InternalLogLimits(),
         networkPayloadCaptureRules: [NetworkPayloadCaptureRule] = [],
         hangLimits: HangLimits = HangLimits(),
-        useLegacyUrlSessionProxy: Bool = false
+        useLegacyUrlSessionProxy: Bool = false,
+        memoryCaptureEnabled: Bool = false
     ) {
         self.isSDKEnabled = isSdkEnabled
         self.isBackgroundSessionEnabled = isBackgroundSessionEnabled
@@ -73,6 +76,7 @@ public class EditableConfig: EmbraceConfigurable {
         self.networkPayloadCaptureRules = networkPayloadCaptureRules
         self.hangLimits = hangLimits
         self.useLegacyUrlSessionProxy = useLegacyUrlSessionProxy
+        self.memoryCaptureEnabled = memoryCaptureEnabled
     }
 }
 
