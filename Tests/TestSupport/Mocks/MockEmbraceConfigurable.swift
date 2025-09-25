@@ -28,7 +28,8 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         networkPayloadCaptureRules: [NetworkPayloadCaptureRule] = [],
         updateCompletionParamDidUpdate: Bool = false,
         updateCompletionParamError: Error? = nil,
-        hangLimits: HangLimits = HangLimits()
+        hangLimits: HangLimits = HangLimits(),
+        memoryCaptureEnabled: Bool = false
     ) {
         self._isSDKEnabled = isSDKEnabled
         self._isBackgroundSessionEnabled = isBackgroundSessionEnabled
@@ -47,6 +48,7 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         self._internalLogLimits = internalLogLimits
         self._hangLimits = hangLimits
         self._networkPayloadCaptureRules = networkPayloadCaptureRules
+        self._memoryCaptureEnabled = memoryCaptureEnabled
         self.updateCompletionParamDidUpdate = updateCompletionParamDidUpdate
         self.updateCompletionParamError = updateCompletionParamError
     }
@@ -60,6 +62,20 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         }
         set {
             _isSDKEnabled = newValue
+        }
+    }
+
+    private var _memoryCaptureEnabled: Bool
+    public let memoryCaptureEnabledExpectation = XCTestExpectation(
+        description: "memoryCaptureEnabled called"
+    )
+    public var memoryCaptureEnabled: Bool {
+        get {
+            memoryCaptureEnabledExpectation.fulfill()
+            return _memoryCaptureEnabled
+        }
+        set {
+            _memoryCaptureEnabled = newValue
         }
     }
 
