@@ -15,7 +15,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
     var sessionController: MockSessionController!
     var logController: LogController!
     var limiter: MockOTelSignalsLimiter!
-    var sanitizer: MockOTelSignalsSanitizier!
+    var sanitizer: MockOTelSignalsSanitizer!
     var bridge: MockOTelSignalBridge!
     var storage: EmbraceStorage!
     var upload: SpyEmbraceLogUploader!
@@ -35,7 +35,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         )
 
         limiter = MockOTelSignalsLimiter()
-        sanitizer = MockOTelSignalsSanitizier()
+        sanitizer = MockOTelSignalsSanitizer()
         bridge = MockOTelSignalBridge()
 
         handler = DefaultOTelSignalsHandler(

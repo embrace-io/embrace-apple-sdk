@@ -8,7 +8,7 @@ import XCTest
 
 @testable import EmbraceCore
 
-class MockOTelSignalsSanitizier: OTelSignalsSanitizer {
+class MockOTelSignalsSanitizer: OTelSignalsSanitizer {
 
     var sanitizeSpanNameCallCount: Int = 0
     var sanitizeSpanNameReturnValue: String?
