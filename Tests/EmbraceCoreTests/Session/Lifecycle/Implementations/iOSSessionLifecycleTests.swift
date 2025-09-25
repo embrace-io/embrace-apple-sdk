@@ -127,7 +127,7 @@ import XCTest
             XCTAssertEqual(mockController.currentSession?.state, "foreground")
         }
 
-        func test_appDidBecomeActive_hasCurrentSession_coldStartTrue_callsUpdateToForegroundState_keepsSameSession() {
+        func test_appDidBecomeActive_hasCurrentSession_coldStartTrue_gracePeriodTrue_callsUpdateToForegroundState_keepsSameSession() {
             mockController.nextSessionColdStart = true
             mockController.startSession(state: .background)
 
@@ -146,6 +146,25 @@ import XCTest
             XCTAssertFalse(mockController.didCallStartSession)
             XCTAssertFalse(mockController.didCallEndSession)
             XCTAssertTrue(mockController.didCallUpdateSession)
+        }
+
+        func test_appDidBecomeActive_hasCurrentSession_coldStartTrue_gracePeriodFalse_startsNewForegroundSession() {
+            lifecycle = iOSSessionLifecycle(controller: mockController, launchGracePeriod: 0)
+            lifecycle.setup()
+
+            mockController.nextSessionColdStart = true
+            mockController.startSession(state: .background)
+
+            let session = mockController.currentSession
+            mockController.didCallStartSession = false
+
+            lifecycle.appDidBecomeActive()
+
+            XCTAssertNotEqual(session!.id, mockController.currentSession!.id)
+            XCTAssertTrue(mockController.didCallStartSession)
+            XCTAssertTrue(mockController.didCallEndSession)
+            XCTAssertEqual(mockController.currentSession!.state, "foreground")
+            XCTAssertFalse(mockController.didCallUpdateSession)
         }
 
         func test_appDidBecomeActive_hasCurrentSession_withColdStartFalse_createsNewForegroundSession() {

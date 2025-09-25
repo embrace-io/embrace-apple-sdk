@@ -19,9 +19,12 @@
         var active: Bool = false
         weak var controller: SessionControllable?
         var currentState: SessionState = .background
+        let launchGracePeriod: TimeInterval
 
-        init(controller: SessionControllable) {
+        init(controller: SessionControllable, launchGracePeriod: TimeInterval = 5.0) {
             self.controller = controller
+            self.launchGracePeriod = launchGracePeriod
+
             listenForUIApplication()
         }
 
@@ -109,13 +112,17 @@
                     return
                 }
 
-                if currentSession.coldStart {
-                    // check if current session is cold start
-                    // flip state to foreground if so
+                if currentSession.coldStart && Date().timeIntervalSince(currentSession.startTime) <= launchGracePeriod {
+                    // if this is the first session and we're still
+                    // inside the launch grace period
+                    // swap the session state to foreground and keep it
                     controller.update(state: .foreground)
+
                 } else {
-                    // if not cold start, end current background session
-                    // start a new foreground session
+                    // otherwise just start a new foreground session
+                    // and end the current background session
+                    // (if the config is disabled, the background session
+                    // should be dropped and not be sent)
                     controller.startSession(state: .foreground)
                 }
 
