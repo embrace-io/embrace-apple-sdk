@@ -27,7 +27,7 @@ class LogController: LogBatcherDelegate {
         sessionController?.currentSession?.id
     }
 
-    struct Constants {
+    private struct Constants {
         static let attachmentLimit: Int = 5
         static let attachmentSizeLimit: Int = 1_048_576  // 1 MiB
     }
