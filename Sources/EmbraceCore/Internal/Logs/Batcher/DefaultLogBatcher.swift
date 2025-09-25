@@ -26,7 +26,7 @@ protocol LogBatcher: AnyObject {
 }
 
 class DefaultLogBatcher: LogBatcher {
-    private(set) var logBatchLimits: LogBatchLimits
+    let logBatchLimits: LogBatchLimits
     private let processorQueue: DispatchQueue
 
     weak var delegate: LogBatcherDelegate?
