@@ -147,16 +147,16 @@ final class EmbraceAtomicExtrasTests: XCTestCase {
     func testToggleReturnsOldAndFlips() {
         let flag = EmbraceAtomic<Bool>(false)
 
-        let old0 = flag.toggle()  // returns old (false), new becomes true
-        XCTAssertEqual(old0, true)
+        let new0 = flag.toggle()
+        XCTAssertEqual(new0, true)
         XCTAssertEqual(flag.load(), true)
 
-        let old1 = flag.toggle(.seqCst)  // explicit order
-        XCTAssertEqual(old1, false)
+        let new1 = flag.toggle(.seqCst)  // explicit order
+        XCTAssertEqual(new1, false)
         XCTAssertEqual(flag.load(), false)
 
-        let old2 = flag.toggle(.acqRel)
-        XCTAssertEqual(old2, true)
+        let new2 = flag.toggle(.acqRel)
+        XCTAssertEqual(new2, true)
         XCTAssertEqual(flag.load(), true)
     }
 
