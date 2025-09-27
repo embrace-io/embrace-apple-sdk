@@ -66,7 +66,7 @@ public class MetadataRecord: NSManagedObject {
 }
 
 extension MetadataRecord: EmbraceStorageRecord {
-    public static var entityName = "MetadataRecord"
+    public static let entityName = "MetadataRecord"
 
     static public var entityDescription: NSEntityDescription {
         let entity = NSEntityDescription()

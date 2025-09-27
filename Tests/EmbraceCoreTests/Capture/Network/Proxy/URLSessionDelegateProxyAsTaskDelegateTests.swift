@@ -7,6 +7,7 @@ import XCTest
 
 @testable import EmbraceCore
 
+@MainActor
 final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
     private var otherSwizzler: DummyURLSessionInitWithDelegateSwizzler?
     private var urlSessionCaptureService: URLSessionCaptureService!

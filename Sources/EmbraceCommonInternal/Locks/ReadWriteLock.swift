@@ -7,7 +7,7 @@ import Foundation
 /// Wrapper around `pthread_rwlock_t` as the direct usage of the API would create
 /// crashes due to how Swift's memory model works.
 ///
-final public class ReadWriteLock {
+final public class ReadWriteLock: @unchecked Sendable {
     private var _lock: UnsafeMutablePointer<pthread_rwlock_t>
 
     public init() {

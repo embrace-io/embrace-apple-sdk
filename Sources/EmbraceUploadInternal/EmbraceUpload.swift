@@ -14,7 +14,7 @@ public protocol EmbraceLogUploader: AnyObject {
 }
 
 /// Class in charge of uploading all the data collected by the Embrace SDK.
-public class EmbraceUpload: EmbraceLogUploader {
+public class EmbraceUpload: EmbraceLogUploader, @unchecked Sendable {
 
     public private(set) var options: Options
     public private(set) var logger: InternalLogger

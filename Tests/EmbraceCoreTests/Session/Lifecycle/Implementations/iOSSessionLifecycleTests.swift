@@ -10,7 +10,7 @@ import XCTest
 #if os(iOS)
 
     // swiftlint:disable type_name
-    final class iOSSessionLifecycleTests: XCTestCase {
+    final class iOSSessionLifecycleTests: XCTestCase, @unchecked Sendable {
         // swiftlint:enable type_name
 
         var mockController = MockSessionController()
@@ -56,11 +56,15 @@ import XCTest
         }
 
         @MainActor
-        func test_startSession_fromBackgroundQueue_callsControllerStartSession_andSetsSessionState() async {
+        func test_startSession_fromBackgroundQueue_callsControllerStartSession_andSetsSessionState() {
 
-            await Task.detached {
+            let expectation = XCTestExpectation()
+            DispatchQueue.global(qos: .default).async { [self] in
                 self.lifecycle.startSession()
-            }.value
+                expectation.fulfill()
+            }
+            wait(for: [expectation], timeout: .longTimeout)
+
             XCTAssertTrue(mockController.didCallStartSession)
             XCTAssertEqual(mockController.currentSession?.state, "foreground")
         }

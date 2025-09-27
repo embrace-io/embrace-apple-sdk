@@ -64,7 +64,7 @@ import Foundation
         public static let noApp: UIBackgroundTaskIdentifier = UIBackgroundTaskIdentifier(rawValue: Int.max - 2)
     }
 
-    private class BackgroundTaskProvider {
+    private class BackgroundTaskProvider: @unchecked Sendable {
 
         // App can be nil on some occasions such as before
         // the UIApplication has actually been created.

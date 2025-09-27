@@ -8,8 +8,8 @@
 
     extension UIViewController {
         private struct AssociatedKeys {
-            static var embraceIdentifier: Int = 0
-            static var anotherIdentifier: Int = 1
+            nonisolated(unsafe) static var embraceIdentifier: Int = 0
+            nonisolated(unsafe) static var anotherIdentifier: Int = 1
         }
 
         var emb_instrumentation_state: ViewInstrumentationState? {

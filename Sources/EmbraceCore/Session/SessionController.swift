@@ -26,7 +26,7 @@ extension Notification.Name {
 ///     Just before a session will end. See ``Notification.Name.embraceSessionWillEnd``
 ///
 
-class SessionController: SessionControllable {
+class SessionController: SessionControllable, @unchecked Sendable {
 
     @ThreadSafe
     private(set) var currentSession: EmbraceSession?

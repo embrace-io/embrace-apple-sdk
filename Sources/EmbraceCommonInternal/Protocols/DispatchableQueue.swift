@@ -5,7 +5,7 @@
 import Foundation
 
 public protocol DispatchableQueue {
-    func async(_ block: @escaping () -> Void)
+    func async(_ block: @Sendable @escaping () -> Void)
     func sync(execute block: () -> Void)
 }
 
@@ -16,7 +16,7 @@ public class DefaultDispatchableQueue: DispatchableQueue {
         self.queue = queue
     }
 
-    public func async(_ block: @escaping () -> Void) {
+    public func async(_ block: @Sendable @escaping () -> Void) {
         queue.async(group: nil, execute: block)
     }
 

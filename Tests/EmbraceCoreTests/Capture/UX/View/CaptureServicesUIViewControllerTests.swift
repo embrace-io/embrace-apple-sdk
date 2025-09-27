@@ -11,6 +11,7 @@
     import TestSupport
     import EmbraceCommonInternal
 
+    @MainActor
     class CaptureServicesUIViewControllerTests: XCTestCase {
 
         let context = CrashReporterContext(

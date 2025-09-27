@@ -16,13 +16,14 @@ import SwiftUI
 /// Without this context, each render tick would spawn disjoint spans instead of a
 /// cohesive grouping per SwiftUI evaluation pass.
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
-private struct EmbraceTraceEnvironmentKey: EnvironmentKey {
-    static let defaultValue: EmbraceTraceViewContext = EmbraceTraceViewContext()
+private struct EmbraceTraceEnvironmentKey: @MainActor EnvironmentKey {
+    @MainActor static let defaultValue: EmbraceTraceViewContext = EmbraceTraceViewContext()
 }
 
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
 extension EnvironmentValues {
     /// Provides access to the shared `EmbraceTraceViewContext` for the current view subtree.
+    @MainActor
     var embraceTraceViewContext: EmbraceTraceViewContext {
         get { self[EmbraceTraceEnvironmentKey.self] }
         set { self[EmbraceTraceEnvironmentKey.self] = newValue }
@@ -35,7 +36,7 @@ extension EnvironmentValues {
 ///   once the run loop advances. This ensures that nested spans (body, appear,
 ///   disappear) all refer to the same parent span until the cycle completes.
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
-final class EmbraceTraceViewContext {
+final class EmbraceTraceViewContext: @unchecked Sendable {
     /// The parent span for the current render cycle. Reset to `nil` once ended.
     var firstCycleSpan: Span?
 }

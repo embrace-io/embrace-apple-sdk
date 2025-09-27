@@ -35,6 +35,7 @@ open class CaptureService: NSObject {
     @ThreadSafe
     private(set) public var state: CaptureServiceState = .uninstalled
 
+    @MainActor
     public func install(otel: EmbraceOpenTelemetry?, logger: InternalLogger? = nil) {
         guard state == .uninstalled else {
             return
@@ -69,7 +70,7 @@ open class CaptureService: NSObject {
     /// This method will be called once when the Embrace SDK starts.
     /// You should override this method if your `CaptureService` needs some sort of
     /// setup process before it can start generating data.
-    @objc open func onInstall() {
+    @MainActor @objc open func onInstall() {
 
     }
 

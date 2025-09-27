@@ -77,7 +77,7 @@ public class SpanRecord: NSManagedObject {
 }
 
 extension SpanRecord: EmbraceStorageRecord {
-    public static var entityName = "SpanRecord"
+    public static let entityName = "SpanRecord"
 
     static public var entityDescription: NSEntityDescription {
         let entity = NSEntityDescription()

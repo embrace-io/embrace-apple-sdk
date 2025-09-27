@@ -38,7 +38,7 @@ extension EmbraceStorage {
         coldStart: Bool = false,
         cleanExit: Bool = false,
         appTerminated: Bool = false,
-        completion: (() -> Void)? = nil
+        completion: (@Sendable () -> Void)? = nil
     ) -> EmbraceSession? {
 
         let hbTime = lastHeartbeatTime ?? Date()
@@ -151,7 +151,7 @@ extension EmbraceStorage {
     /// Completion will be sent on an undefined queue.
     public func fetchLatestSession(
         ignoringCurrentSessionId sessionId: SessionIdentifier? = nil,
-        _ completion: @escaping (EmbraceSession?) -> Void
+        _ completion: @Sendable @escaping (EmbraceSession?) -> Void
     ) {
         coreData.performAsyncOperation { [self] _ in
 

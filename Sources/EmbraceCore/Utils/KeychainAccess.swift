@@ -9,18 +9,19 @@ import Security
     import EmbraceCommonInternal
 #endif
 
-class KeychainAccess {
+class KeychainAccess: @unchecked Sendable {
 
     static let kEmbraceKeychainService = "io.embrace.keys"
     static let kEmbraceDeviceId = "io.embrace.deviceid_v3"
 
     private init() {}
 
-    static var keychain: KeychainInterface = DefaultKeychainInterface()
+    nonisolated(unsafe)
+        internal static var keychain: EmbraceMutex<KeychainInterface> = EmbraceMutex(DefaultKeychainInterface())
 
     static var deviceId: UUID {
         // fetch existing id
-        let pair = keychain.valueFor(
+        let pair = keychain.safeValue.valueFor(
             service: kEmbraceKeychainService as CFString,
             account: kEmbraceDeviceId as CFString
         )
@@ -34,7 +35,7 @@ class KeychainAccess {
 
         // generate new id
         let newId = UUID()
-        keychain.setValue(
+        keychain.safeValue.setValue(
             service: kEmbraceKeychainService as CFString,
             account: kEmbraceDeviceId as CFString,
             value: newId.uuidString

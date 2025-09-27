@@ -7,6 +7,7 @@
     import UIKit
 
     /// Implement this protocol on your ViewControllers to customize certain aspects of how Embrace logs you ViewControllers.
+    @MainActor
     public protocol EmbraceViewControllerCustomization {
 
         /// Optional.

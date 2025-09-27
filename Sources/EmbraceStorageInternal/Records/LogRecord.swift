@@ -81,7 +81,7 @@ public class LogRecord: NSManagedObject {
 }
 
 extension LogRecord: EmbraceStorageRecord {
-    public static var entityName = "LogRecord"
+    public static let entityName = "LogRecord"
 
     static public var entityDescriptions: [NSEntityDescription] {
         let entity = NSEntityDescription()

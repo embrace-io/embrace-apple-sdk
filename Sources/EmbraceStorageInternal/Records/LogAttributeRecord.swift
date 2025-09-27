@@ -63,7 +63,7 @@ public class LogAttributeRecord: NSManagedObject {
 }
 
 extension LogAttributeRecord: EmbraceStorageRecord {
-    public static var entityName = "LogAttributeRecord"
+    public static let entityName = "LogAttributeRecord"
 }
 
 struct ImmutableLogAttributeRecord: EmbraceLogAttribute {

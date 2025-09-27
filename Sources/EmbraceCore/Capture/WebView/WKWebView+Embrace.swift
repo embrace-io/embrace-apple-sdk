@@ -11,7 +11,7 @@
 
     extension WKWebView {
         private struct AssociatedKeys {
-            static var embraceProxy: Int = 0
+            nonisolated(unsafe) static var embraceProxy: Int = 0
         }
 
         var emb_proxy: EMBWKNavigationDelegateProxy? {

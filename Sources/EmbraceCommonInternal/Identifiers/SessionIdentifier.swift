@@ -4,7 +4,7 @@
 
 import Foundation
 
-public struct SessionIdentifier: Equatable {
+public struct SessionIdentifier: Equatable, Sendable {
     let value: UUID
 
     public init(value: UUID) {

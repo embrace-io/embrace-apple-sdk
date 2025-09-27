@@ -794,14 +794,19 @@ extension EmbraceStorage {
         cleanExit: Bool = false,
         appTerminated: Bool = false
     ) async -> EmbraceSession? {
+        var createdSession: EmbraceSession?
         await withCheckedContinuation { continuation in
-            var session: EmbraceSession? = nil
-            session = addSession(
-                id: id, processId: processId, state: state, traceId: traceId, spanId: spanId, startTime: startTime
+            createdSession = addSession(
+                id: id,
+                processId: processId,
+                state: state,
+                traceId: traceId,
+                spanId: spanId,
+                startTime: startTime
             ) {
-                continuation.resume(returning: session)
+                continuation.resume()
             }
         }
+        return createdSession
     }
-
 }

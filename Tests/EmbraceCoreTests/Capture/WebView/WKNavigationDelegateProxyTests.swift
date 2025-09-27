@@ -9,6 +9,7 @@
     import XCTest
 
     @available(iOS 14.5, *)
+    @MainActor
     class WKNavigationDelegateProxyTests: XCTestCase {
 
         // had to retain these because the test crashes when deallocating instances of these classes
@@ -24,11 +25,11 @@
             // when calls are made to the proxy
             let webView = WKWebView()
             let error = NSError(domain: "com.embrace.test", code: 0)
-            let block: (WKNavigationResponsePolicy) -> Void = { _ in }
-            let block1: (WKNavigationActionPolicy) -> Void = { _ in }
-            let block2: (WKNavigationActionPolicy, WKWebpagePreferences) -> Void = { _, _ in }
-            let block3: (URLSession.AuthChallengeDisposition, URLCredential?) -> Void = { _, _ in }
-            let block4: (Bool) -> Void = { _ in }
+            let block: @MainActor (WKNavigationResponsePolicy) -> Void = { _ in }
+            let block1: @MainActor (WKNavigationActionPolicy) -> Void = { _ in }
+            let block2: @MainActor (WKNavigationActionPolicy, WKWebpagePreferences) -> Void = { _, _ in }
+            let block3: @MainActor (URLSession.AuthChallengeDisposition, URLCredential?) -> Void = { _, _ in }
+            let block4: @MainActor (Bool) -> Void = { _ in }
 
             let expectedCallbackCount: Int = 14
 
@@ -71,7 +72,7 @@
 
             // when calls are made to the proxy
             let webView = WKWebView()
-            let block: (WKNavigationResponsePolicy) -> Void = { _ in }
+            let block: @MainActor (WKNavigationResponsePolicy) -> Void = { _ in }
             let error = NSError(domain: "com.embrace.test", code: 0)
 
             let expectedCount: Int = 3

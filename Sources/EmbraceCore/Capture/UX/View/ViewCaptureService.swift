@@ -88,14 +88,17 @@
             return blockList.safeValue.isBlocked(viewController: vc)
         }
 
+        @MainActor
         func onViewBecameInteractive(_ vc: UIViewController) {
             handler.onViewBecameInteractive(vc)
         }
 
+        @MainActor
         func parentSpan(for vc: UIViewController) -> Span? {
             return handler.parentSpan(for: vc)
         }
 
+        @MainActor
         override public func onInstall() {
             lock.lock()
             defer {
@@ -129,12 +132,14 @@
 
     extension ViewCaptureService {
 
+        @MainActor
         fileprivate func instrumentRender(of viewControllerType: UIViewController.Type) {
             instrumentViewDidLoad(of: viewControllerType)
             instrumentViewWillAppear(of: viewControllerType)
             instrumentViewDidAppear(of: viewControllerType)
         }
 
+        @MainActor
         fileprivate func instrumentViewDidLoad(of viewControllerType: UIViewController.Type) {
             let selector = #selector(UIViewController.viewDidLoad)
             do {
@@ -162,6 +167,7 @@
             }
         }
 
+        @MainActor
         fileprivate func instrumentViewWillAppear(of viewControllerType: UIViewController.Type) {
             let selector = #selector(UIViewController.viewWillAppear(_:))
             do {
@@ -202,6 +208,7 @@
             }
         }
 
+        @MainActor
         fileprivate func instrumentViewDidAppear(of viewControllerType: UIViewController.Type) {
             let selector = #selector(UIViewController.viewDidAppear(_:))
             do {
@@ -235,6 +242,7 @@
             }
         }
 
+        @MainActor
         fileprivate func instrumentViewDidDisappear(of viewControllerType: UIViewController.Type) {
             let selector = #selector(UIViewController.viewDidDisappear(_:))
             do {
@@ -254,6 +262,7 @@
             }
         }
 
+        @MainActor
         fileprivate func instrumentInitWithCoder() {
             let selector = #selector(UIViewController.init(coder:))
             do {
@@ -288,6 +297,7 @@
             }
         }
 
+        @MainActor
         fileprivate func instrumentInitWithNibAndBundle() {
             let selector = #selector(UIViewController.init(nibName:bundle:))
             do {

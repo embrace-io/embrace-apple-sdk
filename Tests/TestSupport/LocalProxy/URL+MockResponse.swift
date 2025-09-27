@@ -5,16 +5,19 @@
 import Foundation
 
 extension URL {
-    private static var mockResponseKey: UInt8 = 2
+
+    struct Keys {
+        nonisolated(unsafe) static var mockResponseKey: UInt8 = 2
+    }
 
     public var mockResponse: URLTestProxiedResponse? {
         get {
-            return objc_getAssociatedObject(self, &URL.mockResponseKey) as? URLTestProxiedResponse
+            return objc_getAssociatedObject(self, &Keys.mockResponseKey) as? URLTestProxiedResponse
         }
         set {
             objc_setAssociatedObject(
                 self,
-                &URL.mockResponseKey,
+                &Keys.mockResponseKey,
                 newValue,
                 objc_AssociationPolicy.OBJC_ASSOCIATION_RETAIN_NONATOMIC
             )

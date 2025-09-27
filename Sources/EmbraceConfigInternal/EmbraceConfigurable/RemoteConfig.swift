@@ -10,7 +10,7 @@ import Foundation
 #endif
 
 /// Remote config uses the Embrace Config Service to request config values
-public class RemoteConfig {
+public class RemoteConfig: @unchecked Sendable {
 
     let logger: InternalLogger
 

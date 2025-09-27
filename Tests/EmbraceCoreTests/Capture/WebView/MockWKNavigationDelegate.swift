@@ -12,7 +12,7 @@
         func webView(
             _ webView: WKWebView,
             decidePolicyFor navigationResponse: WKNavigationResponse,
-            decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void
+            decisionHandler: @MainActor @escaping (WKNavigationResponsePolicy) -> Void
         ) {
             callCount += 1
         }
@@ -36,7 +36,7 @@
         func webView(
             _ webView: WKWebView,
             decidePolicyFor navigationAction: WKNavigationAction,
-            decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+            decisionHandler: @MainActor @escaping (WKNavigationActionPolicy) -> Void
         ) {
             callCount += 1
         }
@@ -45,7 +45,7 @@
             _ webView: WKWebView,
             decidePolicyFor navigationAction: WKNavigationAction,
             preferences: WKWebpagePreferences,
-            decisionHandler: @escaping (WKNavigationActionPolicy, WKWebpagePreferences) -> Void
+            decisionHandler: @MainActor @escaping (WKNavigationActionPolicy, WKWebpagePreferences) -> Void
         ) {
             callCount += 1
         }
@@ -81,7 +81,7 @@
         func webView(
             _ webView: WKWebView,
             didReceive challenge: URLAuthenticationChallenge,
-            completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+            completionHandler: @MainActor @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
         ) {
             callCount += 1
         }
@@ -96,7 +96,7 @@
         func webView(
             _ webView: WKWebView,
             authenticationChallenge challenge: URLAuthenticationChallenge,
-            shouldAllowDeprecatedTLS decisionHandler: @escaping (Bool) -> Void
+            shouldAllowDeprecatedTLS decisionHandler: @MainActor @escaping (Bool) -> Void
         ) {
             callCount += 1
         }

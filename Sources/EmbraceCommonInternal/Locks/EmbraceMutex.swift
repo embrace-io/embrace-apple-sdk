@@ -40,7 +40,7 @@ public final class EmbraceMutex<Value> {
     private var storage: Value
 }
 
-extension EmbraceMutex: @unchecked Sendable where Value: Sendable {}
+extension EmbraceMutex: @unchecked Sendable {}
 
 extension EmbraceMutex {
 
@@ -100,4 +100,4 @@ public final class EmbraceReadWriteLock<Value> {
     private var storage: Value
 }
 
-extension EmbraceReadWriteLock: @unchecked Sendable where Value: Sendable {}
+extension EmbraceReadWriteLock: @unchecked Sendable {}

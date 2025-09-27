@@ -5,28 +5,28 @@
 import Foundation
 
 /// Representation of a crash that will be reported through Embrace.
-@objc public class EmbraceCrashReport: NSObject {
+@objc final public class EmbraceCrashReport: NSObject, Sendable {
 
     /// Unique identifier of this crash.
-    public private(set) var id: UUID
+    public let id: UUID
 
     /// A string of the actual crash payload collected by `provider`.
-    public private(set) var payload: String
+    public let payload: String
 
     /// The unique name of the provider that collected this crash.
-    public private(set) var provider: String
+    public let provider: String
 
     /// An internal identifier used by the provider.
-    public private(set) var internalId: Int?
+    public let internalId: Int?
 
     /// If available, the session id that was ended by this crash.
-    public private(set) var sessionId: String?
+    public let sessionId: String?
 
     /// The date when the crash occurred if available.
-    public private(set) var timestamp: Date?
+    public let timestamp: Date?
 
     /// If this crash is signal based, the signal that caused the crash.
-    public private(set) var signal: CrashSignal?
+    public let signal: CrashSignal?
 
     public init(
         payload: String,

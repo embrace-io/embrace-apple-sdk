@@ -7,7 +7,7 @@ import XCTest
 @testable import EmbraceCore
 @testable import EmbraceObjCUtilsInternal
 
-class DummyURLSessionDelegate: NSObject, URLSessionDelegate {}
+final class DummyURLSessionDelegate: NSObject, URLSessionDelegate {}
 
 class URLSessionInitWithDelegateSwizzlerTests: XCTestCase {
     private var sut: URLSessionInitWithDelegateSwizzler!
@@ -105,4 +105,4 @@ extension URLSessionInitWithDelegateSwizzlerTests {
 }
 
 // unsupported delegates
-class GTMSessionFetcher: NSObject, URLSessionDelegate {}
+final class GTMSessionFetcher: NSObject, URLSessionDelegate {}
