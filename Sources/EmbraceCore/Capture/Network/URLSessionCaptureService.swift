@@ -10,8 +10,13 @@ import Foundation
     import EmbraceObjCUtilsInternal
 #endif
 
-typealias URLSessionCompletion = (Data?, URLResponse?, Error?) -> Void
-typealias DownloadTaskCompletion = (URL?, URLResponse?, Error?) -> Void
+typealias URLSessionCompletion = @Sendable (Data?, URLResponse?, Error?) -> Void
+typealias DownloadTaskCompletion = @Sendable (URL?, URLResponse?, Error?) -> Void
+
+private final class _EMBTaskBox<T>: @unchecked Sendable {
+    var value: T?
+    init(_ value: T? = nil) { self.value = value }
+}
 
 protocol URLSessionSwizzler: Swizzlable {
     init(handler: URLSessionTaskHandler, baseClass: AnyClass)
@@ -277,10 +282,10 @@ struct DataTaskWithURLRequestSwizzler: URLSessionSwizzler {
 
 struct DataTaskWithURLAndCompletionSwizzler: URLSessionSwizzler {
     typealias ImplementationType =
-        @convention(c) (URLSession, Selector, URL, URLSessionCompletion?) ->
+        @convention(c) @Sendable (URLSession, Selector, URL, URLSessionCompletion?) ->
         URLSessionDataTask
     typealias BlockImplementationType =
-        @convention(block) (URLSession, URL, URLSessionCompletion?) ->
+        @convention(block) @Sendable (URLSession, URL, URLSessionCompletion?) ->
         URLSessionDataTask
     static let selector: Selector = #selector(
         URLSession.dataTask(with:completionHandler:)
@@ -341,16 +346,16 @@ struct DataTaskWithURLRequestAndCompletionSwizzler: URLSessionSwizzler {
                     return task
                 }
 
-                var originalTask: URLSessionDataTask?
+                nonisolated(unsafe) let unsafeHandler = handler
 
+                let taskBox = _EMBTaskBox<URLSessionDataTask>()
                 let dataTask = originalImplementation(urlSession, Self.selector, request) { data, response, error in
-                    if let task = originalTask {
-                        handler?.finish(task: task, data: data, error: error)
+                    if let task = taskBox.value {
+                        unsafeHandler?.finish(task: task, data: data, error: error)
                     }
                     completion(data, response, error)
                 }
-
-                originalTask = dataTask
+                taskBox.value = dataTask
                 handler?.create(task: dataTask)
                 return dataTask
             }
@@ -418,16 +423,17 @@ struct UploadTaskWithRequestFromDataWithCompletionSwizzler: URLSessionSwizzler {
                 }
 
                 let request = urlRequest.addEmbraceHeaders()
-                var originalTask: URLSessionUploadTask?
-                let uploadTask = originalImplementation(urlSession, Self.selector, request, uploadData) {
-                    data, response, error in
-                    if let task = originalTask {
-                        handler?.finish(task: task, data: data, error: error)
+
+                nonisolated(unsafe) let unsafeHandler = handler
+
+                let taskBox = _EMBTaskBox<URLSessionUploadTask>()
+                let uploadTask = originalImplementation(urlSession, Self.selector, request, uploadData) { data, response, error in
+                    if let task = taskBox.value {
+                        unsafeHandler?.finish(task: task, data: data, error: error)
                     }
                     completion(data, response, error)
                 }
-
-                originalTask = uploadTask
+                taskBox.value = uploadTask
                 handler?.create(task: uploadTask)
                 return uploadTask
             }
@@ -494,15 +500,16 @@ struct UploadTaskWithRequestFromFileWithCompletionSwizzler: URLSessionSwizzler {
                     return task
                 }
 
-                var originalTask: URLSessionUploadTask?
-                let uploadTask = originalImplementation(urlSession, Self.selector, request, url) {
-                    data, response, error in
-                    if let task = originalTask {
-                        handler?.finish(task: task, data: data, error: error)
+                nonisolated(unsafe) let unsafeHandler = handler
+
+                let taskBox = _EMBTaskBox<URLSessionUploadTask>()
+                let uploadTask = originalImplementation(urlSession, Self.selector, request, url) { data, response, error in
+                    if let task = taskBox.value {
+                        unsafeHandler?.finish(task: task, data: data, error: error)
                     }
                     completion(data, response, error)
                 }
-                originalTask = uploadTask
+                taskBox.value = uploadTask
                 handler?.create(task: uploadTask)
                 return uploadTask
             }
@@ -571,18 +578,20 @@ struct DownloadTaskWithURLRequestWithCompletionSwizzler: URLSessionSwizzler {
                     return task
                 }
 
-                var originalTask: URLSessionDownloadTask?
+                nonisolated(unsafe) let unsafeHandler = handler
+
+                let taskBox = _EMBTaskBox<URLSessionDownloadTask>()
                 let downloadTask = originalImplementation(urlSession, Self.selector, request) { url, response, error in
-                    if let task = originalTask {
+                    if let task = taskBox.value {
                         var data: Data?
                         if let url = url, let dataFromURL = try? Data(contentsOf: url) {
                             data = dataFromURL
                         }
-                        handler?.finish(task: task, data: data, error: error)
+                        unsafeHandler?.finish(task: task, data: data, error: error)
                     }
                     completion(url, response, error)
                 }
-                originalTask = downloadTask
+                taskBox.value = downloadTask
                 handler?.create(task: downloadTask)
                 return downloadTask
             }

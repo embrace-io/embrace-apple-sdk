@@ -6,17 +6,18 @@ import XCTest
 
 @testable import EmbraceCore
 
+@MainActor
 final class ManualSessionLifecycleTests: XCTestCase {
 
     var mockController = MockSessionController()
     var lifecycle: ManualSessionLifecycle!
 
-    override func setUpWithError() throws {
+    override func setUp() async throws {
         lifecycle = ManualSessionLifecycle(controller: mockController)
         lifecycle.setup()
     }
 
-    override func tearDownWithError() throws {
+    override func tearDown() async throws {
         lifecycle = nil
     }
 

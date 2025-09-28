@@ -5,7 +5,7 @@
 import Foundation
 import OpenTelemetryApi
 
-public protocol EmbraceLog {
+public protocol EmbraceLog: Sendable {
     var idRaw: String { get }
     var processIdRaw: String { get }
     var severityRaw: Int { get }

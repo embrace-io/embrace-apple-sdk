@@ -4,7 +4,7 @@
 
 import Foundation
 
-public enum StorageMechanism {
+public enum StorageMechanism: Sendable {
     case inMemory(name: String)
     case onDisk(name: String, baseURL: URL, journalMode: JournalMode)
 }

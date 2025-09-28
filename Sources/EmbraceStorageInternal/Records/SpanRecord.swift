@@ -34,7 +34,7 @@ public class SpanRecord: NSManagedObject {
         processId: ProcessIdentifier,
         sessionId: SessionIdentifier? = nil
     ) -> EmbraceSpan? {
-        var result: EmbraceSpan?
+        nonisolated(unsafe) var result: EmbraceSpan?
 
         context.performAndWait {
             guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {

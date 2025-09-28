@@ -4,7 +4,7 @@
 
 import Foundation
 import OpenTelemetryApi
-import OpenTelemetrySdk
+@preconcurrency import OpenTelemetrySdk
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceSemantics
@@ -13,7 +13,7 @@ import OpenTelemetrySdk
 
 /// A really simple implementation of the SpanProcessor that converts the ExportableSpan to SpanData
 /// and passes it to the configured exporter in both `onStart` and `onEnd`
-public class SingleSpanProcessor: SpanProcessor {
+public class SingleSpanProcessor: SpanProcessor, @unchecked Sendable {
 
     let spanExporter: SpanExporter
     private let processorQueue = DispatchQueue(label: "io.embrace.spanprocessor", qos: .utility)
@@ -84,8 +84,9 @@ public class SingleSpanProcessor: SpanProcessor {
             }
         }
 
+        let resultData = data
         processorQueue.async {
-            _ = self.spanExporter.export(spans: [data])
+            _ = self.spanExporter.export(spans: [resultData])
         }
     }
 

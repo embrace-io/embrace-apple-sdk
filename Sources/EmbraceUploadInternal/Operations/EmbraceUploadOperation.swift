@@ -76,7 +76,7 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
     }
 
     private func sendRequest(_ r: URLRequest, retryCount: Int) {
-        var request = r
+        nonisolated(unsafe) var request = r
 
         // increment attempt count
         attemptCount += 1

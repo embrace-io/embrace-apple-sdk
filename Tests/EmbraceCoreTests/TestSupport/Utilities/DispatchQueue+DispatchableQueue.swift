@@ -7,7 +7,7 @@ import Foundation
 
 // Only add this extension to Test Targets
 extension DispatchQueue: DispatchableQueue {
-    public func async(_ block: @escaping () -> Void) {
+    public func async(_ block: @escaping @Sendable () -> Void) {
         self.async(execute: block)
     }
 }

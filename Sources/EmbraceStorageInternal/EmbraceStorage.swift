@@ -16,14 +16,14 @@ public typealias Storage = EmbraceStorageMetadataFetcher & LogRepository
 /// It provides an abstraction layer over a CoreData database.
 public class EmbraceStorage: Storage, @unchecked Sendable {
     public private(set) var options: Options
-    public private(set) var logger: InternalLogger
+    public private(set) var logger: SendableInternalLogger
     public private(set) var coreData: CoreDataWrapper
 
     /// Returns an `EmbraceStorage` instance for the given `EmbraceStorage.Options`
     /// - Parameters:
     ///   - options: `EmbraceStorage.Options` instance
     ///   - logger : `EmbraceConsoleLogger` instance
-    public init(options: Options, logger: InternalLogger) throws {
+    public init(options: Options, logger: SendableInternalLogger) throws {
         self.options = options
         self.logger = logger
 

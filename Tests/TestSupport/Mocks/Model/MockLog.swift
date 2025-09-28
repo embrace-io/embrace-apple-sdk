@@ -6,7 +6,7 @@ import EmbraceCommonInternal
 import Foundation
 import OpenTelemetryApi
 
-public class MockLog: EmbraceLog {
+public class MockLog: EmbraceLog, @unchecked Sendable {
     public var idRaw: String
     public var processIdRaw: String
     public var severityRaw: Int
@@ -45,7 +45,7 @@ public class MockLog: EmbraceLog {
     }
 }
 
-public class MockLogAttribute: EmbraceLogAttribute {
+public class MockLogAttribute: EmbraceLogAttribute, @unchecked Sendable {
     public var key: String
     public var valueRaw: String = ""
     public var typeRaw: Int = 0

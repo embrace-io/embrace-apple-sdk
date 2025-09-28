@@ -4,7 +4,7 @@
 
 import Foundation
 
-public struct LogIdentifier: Codable, Equatable {
+public struct LogIdentifier: Codable, Equatable, Sendable {
     public let value: UUID
 
     public init(value: UUID) {

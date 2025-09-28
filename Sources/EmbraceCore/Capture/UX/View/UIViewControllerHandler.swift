@@ -19,6 +19,7 @@
         var instrumentVisibility: Bool { get }
         var instrumentFirstRender: Bool { get }
 
+        @MainActor
         func isViewControllerBlocked(_ vc: UIViewController) -> Bool
     }
 

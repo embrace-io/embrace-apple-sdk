@@ -84,7 +84,7 @@ struct GzipError: Swift.Error, Sendable {
 
     internal init(code: Int32, msg: UnsafePointer<CChar>?) {
 
-        self.message = msg.flatMap(String.init(validatingUTF8:)) ?? "Unknown gzip error"
+        self.message = msg.flatMap(String.init(validatingCString:)) ?? "Unknown gzip error"
         self.kind = Kind(code: code)
     }
 

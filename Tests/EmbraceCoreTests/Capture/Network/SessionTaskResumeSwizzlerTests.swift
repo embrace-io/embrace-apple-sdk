@@ -8,7 +8,7 @@ import XCTest
 @testable import EmbraceCommonInternal
 @testable import EmbraceCore
 
-class SessionTaskResumeSwizzlerTests: XCTestCase {
+class SessionTaskResumeSwizzlerTests: XCTestCase, @unchecked Sendable {
     private var session: URLSession!
     private var sut: SessionTaskResumeSwizzler!
     private var handler: MockURLSessionTaskHandler!
@@ -19,7 +19,7 @@ class SessionTaskResumeSwizzlerTests: XCTestCase {
 
     func test_afterInstall_taskWillBeCreatedInHandler() async throws {
         givenSessionTaskResumeSwizzler()
-        try givenSwizzlingWasDone()
+        try await givenSwizzlingWasDone()
         givenProxiedUrlSession()
         try await whenInvokingDataTaskResume()
         thenHandlerShouldHaveInvokedCreateWithTask()
@@ -39,7 +39,8 @@ extension SessionTaskResumeSwizzlerTests {
         sut = SessionTaskResumeSwizzler(handler: handler)
     }
 
-    fileprivate func givenSwizzlingWasDone() throws {
+    @MainActor
+    fileprivate func givenSwizzlingWasDone() async throws {
         try sut.install()
     }
 

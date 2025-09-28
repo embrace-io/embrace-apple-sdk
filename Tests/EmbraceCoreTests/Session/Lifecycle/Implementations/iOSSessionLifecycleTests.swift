@@ -9,19 +9,19 @@ import XCTest
 
 #if os(iOS)
 
-    // swiftlint:disable type_name
+    @MainActor
     final class iOSSessionLifecycleTests: XCTestCase, @unchecked Sendable {
         // swiftlint:enable type_name
 
         var mockController = MockSessionController()
-        var lifecycle: iOSSessionLifecycle!
+        nonisolated(unsafe) var lifecycle: iOSSessionLifecycle!
 
-        override func setUpWithError() throws {
+        override func setUp() async throws {
             lifecycle = iOSSessionLifecycle(controller: mockController)
             lifecycle.setup()
         }
 
-        override func tearDownWithError() throws {
+        override func tearDown() async throws {
             lifecycle = nil
         }
 
@@ -55,7 +55,6 @@ import XCTest
             XCTAssertEqual(mockController.currentSession?.state, "foreground")
         }
 
-        @MainActor
         func test_startSession_fromBackgroundQueue_callsControllerStartSession_andSetsSessionState() {
 
             let expectation = XCTestExpectation()

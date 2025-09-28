@@ -84,6 +84,7 @@
             }
         }
 
+        @MainActor
         func isViewControllerBlocked(_ vc: UIViewController) -> Bool {
             return blockList.safeValue.isBlocked(viewController: vc)
         }

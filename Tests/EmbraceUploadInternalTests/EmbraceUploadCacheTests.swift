@@ -123,10 +123,9 @@ class EmbraceUploadCacheTests: XCTestCase {
         // then the upload data should exist
         let expectation = XCTestExpectation()
 
-        let request = NSFetchRequest<UploadDataRecord>(entityName: UploadDataRecord.entityName)
-        request.predicate = NSPredicate(format: "id == %@ AND type == %i", "id", EmbraceUploadType.spans.rawValue)
-
         cache.coreData.context.perform {
+            let request = NSFetchRequest<UploadDataRecord>(entityName: UploadDataRecord.entityName)
+            request.predicate = NSPredicate(format: "id == %@ AND type == %i", "id", EmbraceUploadType.spans.rawValue)
             do {
                 let result = try cache.coreData.context.fetch(request)
                 if result.count > 0 {
@@ -152,9 +151,8 @@ class EmbraceUploadCacheTests: XCTestCase {
         // then only the last data should exist
         let expectation = XCTestExpectation()
 
-        let request = NSFetchRequest<UploadDataRecord>(entityName: UploadDataRecord.entityName)
-
         cache.coreData.context.perform {
+            let request = NSFetchRequest<UploadDataRecord>(entityName: UploadDataRecord.entityName)
             do {
                 let result = try cache.coreData.context.fetch(request)
                 if result.count == 1,
@@ -191,9 +189,8 @@ class EmbraceUploadCacheTests: XCTestCase {
         // then the upload data should not exist
         let expectation = XCTestExpectation()
 
-        let request = NSFetchRequest<UploadDataRecord>(entityName: UploadDataRecord.entityName)
-
         cache.coreData.context.perform {
+            let request = NSFetchRequest<UploadDataRecord>(entityName: UploadDataRecord.entityName)
             do {
                 let result = try cache.coreData.context.fetch(request)
                 if result.count == 0 {
@@ -228,9 +225,8 @@ class EmbraceUploadCacheTests: XCTestCase {
         // then the data is updated successfully
         let expectation = XCTestExpectation()
 
-        let request = NSFetchRequest<UploadDataRecord>(entityName: UploadDataRecord.entityName)
-
         cache.coreData.context.perform {
+            let request = NSFetchRequest<UploadDataRecord>(entityName: UploadDataRecord.entityName)
             do {
                 let result = try cache.coreData.context.fetch(request)
                 if result.count == 1,

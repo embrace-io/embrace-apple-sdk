@@ -20,10 +20,10 @@ import Foundation
 
 typealias WorkTrackerID = UInt64
 
-internal class WorkTracker {
+internal class WorkTracker: @unchecked Sendable {
 
     let name: String
-    let logger: InternalLogger
+    let logger: SendableInternalLogger
     var observer: NSObjectProtocol?
     let queue: DispatchQueue
 
@@ -34,7 +34,7 @@ internal class WorkTracker {
     }
     private var _busyData = EmbraceMutex(BusyData())
 
-    init(name: String, logger: InternalLogger) {
+    init(name: String, logger: SendableInternalLogger) {
         self.name = name
         self.logger = logger
         self.observer = nil

@@ -43,7 +43,7 @@ extension UNUserNotificationCenterDelegateProxy: UNUserNotificationCenterDelegat
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,
-        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+        withCompletionHandler completionHandler: @escaping @Sendable (UNNotificationPresentationOptions) -> Void
     ) {
 
         // generate span event
@@ -72,7 +72,7 @@ extension UNUserNotificationCenterDelegateProxy: UNUserNotificationCenterDelegat
         func userNotificationCenter(
             _ center: UNUserNotificationCenter,
             didReceive response: UNNotificationResponse,
-            withCompletionHandler completionHandler: @escaping () -> Void
+            withCompletionHandler completionHandler: @escaping @Sendable () -> Void
         ) {
 
             // generate span event

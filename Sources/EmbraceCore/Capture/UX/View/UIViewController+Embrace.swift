@@ -12,7 +12,9 @@
             nonisolated(unsafe) static var anotherIdentifier: Int = 1
         }
 
-        var emb_instrumentation_state: ViewInstrumentationState? {
+        nonisolated
+            var emb_instrumentation_state: ViewInstrumentationState?
+        {
             get {
                 if let value = objc_getAssociatedObject(
                     self,

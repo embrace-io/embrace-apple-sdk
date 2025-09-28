@@ -26,3 +26,5 @@ import Foundation
     @discardableResult @objc func critical(_ message: String, attributes: [String: String]) -> Bool
     @discardableResult @objc func critical(_ message: String) -> Bool
 }
+
+public typealias SendableInternalLogger = InternalLogger & Sendable

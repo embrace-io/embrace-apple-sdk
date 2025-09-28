@@ -16,7 +16,7 @@ extension Notification.Name {
 }
 
 /// Main Embrace system used to report crashes.
-public final class EmbraceCrashReporter: NSObject {
+public final class EmbraceCrashReporter: NSObject, @unchecked Sendable {
 
     private let reporter: CrashReporter
     private let logger: InternalLogger?
@@ -105,7 +105,7 @@ public final class EmbraceCrashReporter: NSObject {
 
     /// Fetches all saved `EmbraceCrashReport`.
     /// - Parameter completion: Completion handler to be called with the fetched `CrashReports`
-    public func fetchUnsentCrashReports(completion: @escaping ([EmbraceCrashReport]) -> Void) {
+    public func fetchUnsentCrashReports(completion: @escaping @Sendable ([EmbraceCrashReport]) -> Void) {
         queue.async { [self] in
             reporter.fetchUnsentCrashReports { [self] reports in
 

@@ -3,8 +3,8 @@
 //
 
 import Foundation
-import OpenTelemetryApi
-import OpenTelemetrySdk
+@preconcurrency import OpenTelemetryApi
+@preconcurrency import OpenTelemetrySdk
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceStorageInternal
@@ -24,7 +24,7 @@ protocol LogBatcher: AnyObject {
     var limits: LogsLimits { get }
 }
 
-class DefaultLogBatcher: LogBatcher {
+class DefaultLogBatcher: LogBatcher, @unchecked Sendable {
     private let repository: LogRepository
     private let processorQueue: DispatchQueue
     private let logLimits: LogBatchLimits

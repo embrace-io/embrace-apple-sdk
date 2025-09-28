@@ -145,7 +145,7 @@ extension RemoteConfig: EmbraceConfigurable {
         )
     }
 
-    public func update(completion: @escaping (Bool, (any Error)?) -> Void) {
+    public func update(completion: @escaping @Sendable (Bool, (any Error)?) -> Void) {
         guard updating == false else {
             completion(false, nil)
             return
