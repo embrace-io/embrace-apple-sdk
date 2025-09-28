@@ -16,8 +16,8 @@ import SwiftUI
 /// Without this context, each render tick would spawn disjoint spans instead of a
 /// cohesive grouping per SwiftUI evaluation pass.
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
-private struct EmbraceTraceEnvironmentKey: @MainActor EnvironmentKey {
-    @MainActor static let defaultValue: EmbraceTraceViewContext = EmbraceTraceViewContext()
+private struct EmbraceTraceEnvironmentKey: EnvironmentKey {
+    static let defaultValue: EmbraceTraceViewContext = EmbraceTraceViewContext()
 }
 
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)

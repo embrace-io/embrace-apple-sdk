@@ -15,8 +15,8 @@ import SwiftUI
 
 /// The environment key for injecting `EmbraceTraceViewLogger` into SwiftUI's `EnvironmentValues`.
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
-private struct EmbraceTraceViewLoggerEnvironmentKey: @MainActor EnvironmentKey {
-    @MainActor static let defaultValue: EmbraceTraceViewLogger = EmbraceTraceViewLogger(
+private struct EmbraceTraceViewLoggerEnvironmentKey: EnvironmentKey {
+    static let defaultValue: EmbraceTraceViewLogger = EmbraceTraceViewLogger(
         otel: Embrace.client,
         logger: Embrace.logger,
         config: Embrace.client?.config.configurable

@@ -5,6 +5,7 @@
 #if canImport(WebKit)
     import WebKit
 
+    @MainActor
     class MockWKNavigationDelegate: NSObject, WKNavigationDelegate {
 
         var callCount: Int = 0
