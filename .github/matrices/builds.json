@@ -3,7 +3,7 @@
     "include": [
       {
         "platform": "iOS",
-        "xcode_version": "16.4",
+        "xcode_version": "26.0",
         "macos-version": "15"
       }
     ]
