@@ -2,7 +2,9 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import UserNotifications
+// A few delegates are not marked @Sendable in Swift 6.1
+// which causes warnings (and errors in release mode).
+@preconcurrency import UserNotifications
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceOTelInternal
