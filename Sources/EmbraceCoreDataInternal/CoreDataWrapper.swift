@@ -18,7 +18,7 @@ public class CoreDataWrapper: @unchecked Sendable {
 
     var container: NSPersistentContainer!
     public private(set) var context: NSManagedObjectContext!
-    let logger: SendableInternalLogger
+    let logger: InternalLogger
 
     private let workTracker: WorkTracker
 
@@ -31,7 +31,7 @@ public class CoreDataWrapper: @unchecked Sendable {
 
     public init(
         options: CoreDataWrapper.Options,
-        logger: SendableInternalLogger,
+        logger: InternalLogger,
         isTesting: Bool = ProcessInfo.processInfo.isTesting
     ) throws {
         self.options = options

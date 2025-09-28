@@ -20,7 +20,7 @@ import Foundation
         private var taskID: UIBackgroundTaskIdentifier = .invalid
         private static let taskProvider: BackgroundTaskProvider = BackgroundTaskProvider()
 
-        init?(name: String, logger: SendableInternalLogger) {
+        init?(name: String, logger: InternalLogger) {
 
             self.name = name
 

@@ -12,7 +12,7 @@
         func webView(
             _ webView: WKWebView,
             decidePolicyFor navigationResponse: WKNavigationResponse,
-            decisionHandler: @MainActor @escaping @Sendable (WKNavigationResponsePolicy) -> Void
+            decisionHandler: @escaping @MainActor @Sendable (WKNavigationResponsePolicy) -> Void
         ) {
             callCount += 1
         }
@@ -36,7 +36,7 @@
         func webView(
             _ webView: WKWebView,
             decidePolicyFor navigationAction: WKNavigationAction,
-            decisionHandler: @MainActor @escaping @Sendable (WKNavigationActionPolicy) -> Void
+            decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void
         ) {
             callCount += 1
         }
@@ -45,7 +45,7 @@
             _ webView: WKWebView,
             decidePolicyFor navigationAction: WKNavigationAction,
             preferences: WKWebpagePreferences,
-            decisionHandler: @MainActor @escaping @Sendable (WKNavigationActionPolicy, WKWebpagePreferences) -> Void
+            decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy, WKWebpagePreferences) -> Void
         ) {
             callCount += 1
         }
@@ -81,7 +81,7 @@
         func webView(
             _ webView: WKWebView,
             didReceive challenge: URLAuthenticationChallenge,
-            completionHandler: @MainActor @escaping @Sendable (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+            completionHandler: @escaping @MainActor @Sendable (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
         ) {
             callCount += 1
         }
@@ -96,7 +96,7 @@
         func webView(
             _ webView: WKWebView,
             authenticationChallenge challenge: URLAuthenticationChallenge,
-            shouldAllowDeprecatedTLS decisionHandler: @MainActor @escaping @Sendable (Bool) -> Void
+            shouldAllowDeprecatedTLS decisionHandler: @escaping @MainActor @Sendable (Bool) -> Void
         ) {
             callCount += 1
         }

@@ -11,21 +11,19 @@ import OpenTelemetryApi
 
 extension NSObject {
     private struct AssociatedKeys {
-        static let embraceSpanKey: UInt8 = 8
+        nonisolated(unsafe) static var embraceSpanKey: UInt8 = 8
     }
 
     var emb_associatedSpan: Span? {
         get {
-            var key = AssociatedKeys.embraceSpanKey
             return objc_getAssociatedObject(
                 self,
-                &key) as? Span
+                &AssociatedKeys.embraceSpanKey) as? Span
         }
         set {
-            var key = AssociatedKeys.embraceSpanKey
             objc_setAssociatedObject(
                 self,
-                &key,
+                &AssociatedKeys.embraceSpanKey,
                 newValue,
                 .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         }

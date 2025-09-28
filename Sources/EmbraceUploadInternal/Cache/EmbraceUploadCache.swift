@@ -16,9 +16,9 @@ final class EmbraceUploadCache: Sendable {
 
     let options: EmbraceUpload.CacheOptions
     let coreData: CoreDataWrapper
-    let logger: SendableInternalLogger
+    let logger: InternalLogger
 
-    init(options: EmbraceUpload.CacheOptions, logger: SendableInternalLogger) throws {
+    init(options: EmbraceUpload.CacheOptions, logger: InternalLogger) throws {
         self.options = options
         self.logger = logger
 

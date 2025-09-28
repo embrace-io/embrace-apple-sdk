@@ -35,7 +35,7 @@ public class EmbraceUpload: EmbraceLogUploader, @unchecked Sendable {
     ///   - queue: `DispatchQueue` to be used for all upload operations
     public init(
         options: Options,
-        logger: SendableInternalLogger,
+        logger: InternalLogger,
         queue: DispatchQueue
     ) throws {
 
