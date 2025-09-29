@@ -2,11 +2,17 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
+import TestSupport
 import XCTest
 
 @testable import EmbraceIO
 
 class EmbraceIOTests: XCTestCase {
+
+    @MainActor
+    override func setUp() async throws {
+        let _ = EmbraceIO.shared
+    }
 
     func test_attributesStringConversion() {
 
@@ -65,5 +71,28 @@ class EmbraceIOTests: XCTestCase {
         struct NotAllowed: EmbraceIO.AttributeValueType {}
 
         XCTAssertFalse(isSupportedAttributeValueType(NotAllowed()))
+    }
+
+    func test_log() {
+
+        EmbraceIO.shared.log(
+            .debug,
+            "Hello",
+            timestamp: .current,
+            attributes: nil
+        )
+
+    }
+
+    @concurrent
+    func test_concurrentlog() async {
+
+        EmbraceIO.shared.log(
+            .debug,
+            "Hello",
+            timestamp: .current,
+            attributes: nil
+        )
+
     }
 }
