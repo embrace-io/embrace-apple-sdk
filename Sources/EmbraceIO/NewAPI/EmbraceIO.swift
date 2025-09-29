@@ -2,6 +2,7 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceCommonInternal
 import EmbraceCore
 import Foundation
 
@@ -11,17 +12,6 @@ final public class EmbraceIO: Sendable {
 
     public let isAvailable: Bool
 
-    @discardableResult
-    public func start() -> Bool {
-        do {
-            try Embrace.client?.start()
-            return true
-        } catch {
-            failure("init error: \(error)")
-            return false
-        }
-    }
-
     nonisolated(unsafe) private let _client: Embrace?
     private init() {
         do {
@@ -29,7 +19,7 @@ final public class EmbraceIO: Sendable {
                 options: Embrace.Options(
                     appId: Self.appID
                 )
-            )
+            ).start()
             self.isAvailable = self._client != nil
         } catch {
             self._client = nil
@@ -46,7 +36,7 @@ extension EmbraceIO {
     }
 
     private static let appID: String = {
-        Bundle.main.infoDictionary?["EMBApplicationId"] as? String ?? ""
+        Bundle.main.infoDictionary?["EMBApplicationId"] as? String ?? "12345"
     }()
 
     private func expectClient() -> Embrace? {
@@ -63,19 +53,17 @@ extension EmbraceIO {
 extension EmbraceIO {
 
     public func log(
+        _ level: LogSeverity = .info,
         _ message: String,
-        attributes: @autoclosure () -> [AttributeKey: AttributeValueType]
+        timestamp: NanosecondClock = .current,
+        attributes: @autoclosure () -> [AttributeKey: AttributeValueType]? = nil
     ) {
-        guard let client = expectClient() else {
-            return
-        }
-
-        client.log(
+        expectClient()?.log(
             message,
-            severity: .info,
+            severity: level,
             type: .message,
-            timestamp: Date(),
-            attributes: attributes().asInternalAttributes(),
+            timestamp: timestamp.date,
+            attributes: attributes()?.asInternalAttributes() ?? [:],
             stackTraceBehavior: .notIncluded
         )
     }
