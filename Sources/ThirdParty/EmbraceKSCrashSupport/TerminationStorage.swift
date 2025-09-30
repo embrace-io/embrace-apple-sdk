@@ -167,7 +167,8 @@ extension TerminationStorage {
     }
 }
 
-#if canImport(FoundationModels)
+/*
+#if DEBUG && canImport(FoundationModels)
 
     import FoundationModels
 
@@ -188,7 +189,7 @@ extension TerminationStorage {
 
             let instructions = """
                 You are an expert in iOS reliability and observability.
-                You will be presented with a bunch of key value pairs that 
+                You will be presented with a bunch of key value pairs that
                 represent a run of an apps process. Your job is to expertly figure out
                 why that process was terminated, and explain it in the most simple,
                 but effective terminology. If you don't know why, you can also say that.
@@ -209,3 +210,4 @@ extension TerminationStorage {
     }
 
 #endif
+*/
