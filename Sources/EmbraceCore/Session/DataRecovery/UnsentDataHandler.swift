@@ -100,9 +100,10 @@ class UnsentDataHandler {
     ) async {
 
         let terminations = await crashReporter.fetchUnsentTerminationAttributes()
-        await withTaskGroup { group in
+        await withTaskGroup(of: Void.self) { group in
             for term in terminations {
                 group.addTask {
+                    guard !Task.isCancelled else { return }
                     await sendTerminationLog(
                         data: term,
                         upload: upload,
@@ -111,7 +112,7 @@ class UnsentDataHandler {
                     )
                 }
             }
-            for await _ in group {}
+            await group.waitForAll()
         }
     }
 
