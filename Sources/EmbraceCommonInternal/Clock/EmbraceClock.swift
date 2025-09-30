@@ -337,7 +337,7 @@ public struct EmbraceClock: Sendable {
     /// ```swift
     /// let c = EmbraceClock.current
     /// ```
-    private init() {
+    internal init() {
         self.init(
             uptime: .nanoseconds(clock_gettime_nsec_np(CLOCK_UPTIME_RAW)),
             monotonic: .nanoseconds(clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)),
@@ -351,7 +351,7 @@ public struct EmbraceClock: Sendable {
     /// ```swift
     /// let zero = EmbraceClock(EmbraceClock.Instant.nanoseconds(0)) // private ctor
     /// ```
-    private init(_ value: Instant) {
+    internal init(_ value: Instant) {
         self.uptime = value
         self.monotonic = value
         self.realtime = value
@@ -367,7 +367,7 @@ public struct EmbraceClock: Sendable {
     ///     realtime: .nanoseconds(3)
     /// )
     /// ```
-    private init(uptime: Instant, monotonic: Instant, realtime: Instant) {
+    internal init(uptime: Instant, monotonic: Instant, realtime: Instant) {
         self.uptime = uptime
         self.monotonic = monotonic
         self.realtime = realtime

@@ -183,24 +183,24 @@ class MockHangObserver: HangObserver {
     func hangStarted(at: EmbraceClock, duration: EmbraceClock) {
         hangStartedCalled = true
         hangStartedCallCount += 1
-        lastStartTime = at.monotonic
-        lastHangDuration = duration.monotonic
-        onHangStarted?(at.monotonic, duration.monotonic)
+        lastStartTime = at.monotonic.nanosecondsValue
+        lastHangDuration = duration.monotonic.nanosecondsValue
+        onHangStarted?(at.monotonic.nanosecondsValue, duration.monotonic.nanosecondsValue)
     }
 
     func hangUpdated(at: EmbraceClock, duration: EmbraceClock) {
         hangUpdatedCalled = true
         hangUpdatedCallCount += 1
-        lastUpdateTime = at.monotonic
-        lastHangDuration = duration.monotonic
-        onHangUpdated?(at.monotonic, duration.monotonic)
+        lastUpdateTime = at.monotonic.nanosecondsValue
+        lastHangDuration = duration.monotonic.nanosecondsValue
+        onHangUpdated?(at.monotonic.nanosecondsValue, duration.monotonic.nanosecondsValue)
     }
 
-    func hangEnded(at: EmbraceCore.EmbraceClock, duration: EmbraceCore.EmbraceClock) {
+    func hangEnded(at: EmbraceClock, duration: EmbraceClock) {
         hangEndedCalled = true
         hangEndedCallCount += 1
-        lastEndTime = at.monotonic
-        lastHangDuration = duration.monotonic
-        onHangEnded?(at.monotonic, duration.monotonic)
+        lastEndTime = at.monotonic.nanosecondsValue
+        lastHangDuration = duration.monotonic.nanosecondsValue
+        onHangEnded?(at.monotonic.nanosecondsValue, duration.monotonic.nanosecondsValue)
     }
 }
