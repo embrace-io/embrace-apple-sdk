@@ -25,27 +25,35 @@ public class AppMemoryCaptureService: CaptureService {
     // This is shared for now until we have access to the AppMemoryTracker
     // and can add an observer. See `init` for why.
     public static let shared = AppMemoryCaptureService()
-    private var enabled: EmbraceMutex<Bool> = EmbraceMutex(true)
 
-    private static let _lazySwizzle: Void = {
-        // In KSCrash 2.3, the shared AppMemoryTracker is not accessible to the outside,
-        // so for now i'm simply swizzling it. In 3.0, I've fixed it so it's accessible
-        // and we'll just use that.
-        AppMemoryTracker.embraceSwizzle()
-    }()
+    struct ServiceMutableData {
+        var enabled: Bool = true
+        var observer: Any? = nil
+    }
+    private var serviceData = EmbraceMutex(ServiceMutableData())
+    var enabled: Bool {
+        get { serviceData.withLock { $0.enabled } }
+        set { serviceData.withLock { $0.enabled = newValue } }
+    }
+
+    var observer: Any? {
+        get { serviceData.withLock { $0.observer } }
+        set { serviceData.withLock { $0.observer = newValue } }
+    }
 
     public override func onInstall() {
-        if enabled.safeValue {
-            Self._lazySwizzle
+        guard enabled else { return }
+        observer = AppMemoryTracker.shared.addObserver { [weak self] memory, changes in
+            self?.memoryChanged(memory: memory, with: changes)
         }
     }
 
     public override func onConfigUpdated(_ config: any EmbraceConfigurable) {
-        enabled.safeValue = config.memoryCaptureEnabled
+        enabled = config.memoryCaptureEnabled
     }
 
     fileprivate func memoryChanged(memory: AppMemory, with changes: AppMemoryTrackerChangeType) {
-        guard state == .active, enabled.safeValue else {
+        guard state == .active, enabled else {
             return
         }
 
@@ -93,58 +101,5 @@ public class AppMemoryCaptureService: CaptureService {
 extension AppMemoryState {
     func asString() -> String {
         String(cString: cString())
-    }
-}
-
-extension AppMemoryTracker {
-
-    // Replacement implementation (Swift side).
-    // Keep the *Swift* signature matching the Obj-C selector `_handleMemoryChange:type:`
-    // i.e. `_handleMemoryChange(_:type:)` once imported to Swift.
-    @objc
-    dynamic
-        func embHandleMemoryChange(_ memory: AppMemory, type changes: AppMemoryTrackerChangeType)
-    {
-
-        // tell the capture service
-        AppMemoryCaptureService.shared.memoryChanged(memory: memory, with: changes)
-
-        // Call the original implementation (now swapped)
-        embHandleMemoryChange(memory, type: changes)
-    }
-
-    fileprivate static func embraceSwizzle() {
-        let cls: AnyClass = AppMemoryTracker.self
-
-        // Original Obj-C selector is `_handleMemoryChange:type:`
-        let originalSel = NSSelectorFromString("_handleMemoryChange:type:")
-        let swizzledSel = #selector(AppMemoryTracker.embHandleMemoryChange(_:type:))
-
-        guard
-            let originalMethod = class_getInstanceMethod(cls, originalSel),
-            let swizzledMethod = class_getInstanceMethod(cls, swizzledSel)
-        else {
-            return
-        }
-
-        // If the original method is inherited, class_addMethod will succeed
-        // and we then replace the swizzled selector to point at the original IMP.
-        let didAdd = class_addMethod(
-            cls,
-            originalSel,
-            method_getImplementation(swizzledMethod),
-            method_getTypeEncoding(swizzledMethod)
-        )
-
-        if didAdd {
-            class_replaceMethod(
-                cls,
-                swizzledSel,
-                method_getImplementation(originalMethod),
-                method_getTypeEncoding(originalMethod)
-            )
-        } else {
-            method_exchangeImplementations(originalMethod, swizzledMethod)
-        }
     }
 }
