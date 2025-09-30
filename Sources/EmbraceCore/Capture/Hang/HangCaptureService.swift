@@ -78,7 +78,7 @@ extension HangCaptureService: HangObserver {
 
     public func hangStarted(at: EmbraceClock, duration: EmbraceClock) {
 
-        logger?.debug("[Watchdog] Hang started, at \(at.date) after waiting \(duration.uptime.milliseconds) ms")
+        logger?.debug("[Watchdog] Hang started, at \(at.date) after waiting \(duration.uptime.millisecondsValue) ms")
 
         // Keep tabs on how many hang spans we've created
         let sampleInfo = limitData.withLock {
@@ -120,13 +120,17 @@ extension HangCaptureService: HangObserver {
                 .setStartTime(time: at.date)
                 .startSpan()
             if sampleInfo.canSample {
-                addSamplingSpanEvent(time: at.date, backtrace: backtrace, overhead: Int(post.monotonic - pre.monotonic))
+                addSamplingSpanEvent(
+                    time: at.date,
+                    backtrace: backtrace,
+                    overhead: Int((post.monotonic - pre.monotonic).nanosecondsValue)
+                )
             }
         }
     }
 
     public func hangUpdated(at: EmbraceClock, duration: EmbraceClock) {
-        logger?.debug("[Watchdog] Hang for \(duration.uptime.milliseconds) ms")
+        logger?.debug("[Watchdog] Hang for \(duration.uptime.millisecondsValue) ms")
 
         guard
             limitData.withLock({
@@ -144,12 +148,16 @@ extension HangCaptureService: HangObserver {
 
         // process it later
         spanQueue.async { [self] in
-            addSamplingSpanEvent(time: at.date, backtrace: backtrace, overhead: Int(post.monotonic - pre.monotonic))
+            addSamplingSpanEvent(
+                time: at.date,
+                backtrace: backtrace,
+                overhead: Int((post.monotonic - pre.monotonic).nanosecondsValue)
+            )
         }
     }
 
     public func hangEnded(at: EmbraceClock, duration: EmbraceClock) {
-        logger?.debug("[Watchdog] Hang ended at \(at.date) after \(duration.uptime.milliseconds) ms")
+        logger?.debug("[Watchdog] Hang ended at \(at.date) after \(duration.uptime.millisecondsValue) ms")
 
         spanQueue.async { [self] in
             span?.end(time: at.date)

@@ -276,7 +276,7 @@ extension HangWatchdog {
                 let hangTime = now - enterTime
 
                 // Hangtime is based on uptime, we don't count the time the app is suspended.
-                let isHang = hangTime.uptime >= threasholdInNs
+                let isHang = hangTime.uptime.nanosecondsValue >= threasholdInNs
 
                 let startHang = isHang && $0.hanging == false
                 if startHang { $0.hanging = true }
