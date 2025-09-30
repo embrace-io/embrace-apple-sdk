@@ -15,9 +15,9 @@ import Foundation
 /// - hangUpdated: Called periodically while a hang persists on a background queue.
 /// - hangEnded: Called when the hang ends on the hung thread.
 public protocol HangObserver: AnyObject {
-    func hangStarted(at: NanosecondClock, duration: NanosecondClock)
-    func hangUpdated(at: NanosecondClock, duration: NanosecondClock)
-    func hangEnded(at: NanosecondClock, duration: NanosecondClock)
+    func hangStarted(at: EmbraceClock, duration: EmbraceClock)
+    func hangUpdated(at: EmbraceClock, duration: EmbraceClock)
+    func hangEnded(at: EmbraceClock, duration: EmbraceClock)
 }
 
 /// A watchdog that detects and reports RunLoop hangs exceeding a specified threshold.
@@ -48,7 +48,7 @@ final public class HangWatchdog {
 
     /// The time in nanoseconds since the start of the hang.
     /// 0 if not in a hang.
-    public var timeSinceHangStart: NanosecondClock? {
+    public var timeSinceHangStart: EmbraceClock? {
         hangData.withLock {
             guard $0.hanging else {
                 return nil
@@ -129,7 +129,7 @@ final public class HangWatchdog {
     /// the timestamp when the RunLoop was entered.
     private struct HangData {
         var hanging: Bool = false
-        var enterTime: NanosecondClock = .current
+        var enterTime: EmbraceClock = .current
         weak var hangObserver: HangObserver?
     }
     private var hangData = EmbraceMutex(HangData())
@@ -211,14 +211,14 @@ extension HangWatchdog {
             if activity == .beforeWaiting {
 
                 // check for a hang that needs to end
-                let (observer, now, hangTime): (HangObserver?, NanosecondClock?, NanosecondClock?) = hangData.withLock {
+                let (observer, now, hangTime): (HangObserver?, EmbraceClock?, EmbraceClock?) = hangData.withLock {
                     guard $0.hanging else {
                         return (nil, nil, nil)
                     }
                     $0.hanging = false
 
                     // update the time value
-                    let now: NanosecondClock = .current
+                    let now: EmbraceClock = .current
                     let hangTime = now - $0.enterTime
 
                     return ($0.hangObserver, now, hangTime)
@@ -252,7 +252,7 @@ extension HangWatchdog {
         runLoopPrecondition(runloop: runLoop)
 
         // store the time
-        let startTime: NanosecondClock = .current
+        let startTime: EmbraceClock = .current
         hangData.withLock { $0.enterTime = startTime }
 
         let threasholdInNs = UInt64(threshold * 1_000_000_000)
@@ -270,7 +270,7 @@ extension HangWatchdog {
             guard let self else { return }
             precondition(Thread.current == self.watchdogThread)
 
-            let now: NanosecondClock = .current
+            let now: EmbraceClock = .current
             let (observer, startHang, enterTime, hangTime) = hangData.withLock {
                 let enterTime = $0.enterTime
                 let hangTime = now - enterTime

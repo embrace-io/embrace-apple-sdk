@@ -7,12 +7,15 @@ import Foundation
 /// A clock that works in nanoseconds
 /// and contains the 3 basic times needed to
 /// work with performance and interact with the outside world.
-public struct NanosecondClock: Sendable {
+public struct EmbraceClock: Sendable {
 
     public typealias Nanoseconds = UInt64
 
     /// The clock for the current time.
-    public static var current: NanosecondClock { NanosecondClock() }
+    public static var current: EmbraceClock { EmbraceClock() }
+
+    /// The clock for a ver far distant future.
+    public static var never: EmbraceClock { EmbraceClock(0) }
 
     /// Uptime in nanoseconds, not incrementing during sleep.
     /// CLOCK_UPTIME_RAW
@@ -50,19 +53,37 @@ public struct NanosecondClock: Sendable {
     }
 }
 
-extension NanosecondClock {
+extension EmbraceClock {
 
     /// Substract one clock from another
-    static func - (lhs: NanosecondClock, rhs: NanosecondClock) -> NanosecondClock {
-        return NanosecondClock(
+    public static func - (lhs: EmbraceClock, rhs: EmbraceClock) -> EmbraceClock {
+        return EmbraceClock(
             uptime: lhs.uptime &- rhs.uptime,
             monotonic: lhs.monotonic &- rhs.monotonic,
             realtime: lhs.realtime &- rhs.realtime
         )
     }
+
+    /// Substract a duration from the clock.
+    public static func - (lhs: EmbraceClock, rhs: Nanoseconds) -> EmbraceClock {
+        return EmbraceClock(
+            uptime: lhs.uptime &- rhs,
+            monotonic: lhs.monotonic &- rhs,
+            realtime: lhs.realtime &- rhs
+        )
+    }
+
+    /// Add a duration from the clock.
+    public static func + (lhs: EmbraceClock, rhs: Nanoseconds) -> EmbraceClock {
+        return EmbraceClock(
+            uptime: lhs.uptime &+ rhs,
+            monotonic: lhs.monotonic &+ rhs,
+            realtime: lhs.realtime &+ rhs
+        )
+    }
 }
 
-extension NanosecondClock {
+extension EmbraceClock {
 
     /// Get a `Date` from the clock.
     @inlinable
@@ -71,7 +92,7 @@ extension NanosecondClock {
     }
 }
 
-extension NanosecondClock.Nanoseconds {
+extension EmbraceClock.Nanoseconds {
 
     /// Convert nanoseconds to milliseconds
     @inlinable

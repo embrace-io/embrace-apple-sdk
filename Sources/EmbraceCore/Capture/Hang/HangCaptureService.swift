@@ -76,7 +76,7 @@ extension HangCaptureService: HangObserver {
     // Hang span documented here:
     // https://www.notion.so/embraceio/ANRs-1d77e3c9985281c58765d8c622443e2c
 
-    public func hangStarted(at: NanosecondClock, duration: NanosecondClock) {
+    public func hangStarted(at: EmbraceClock, duration: EmbraceClock) {
 
         logger?.debug("[Watchdog] Hang started, at \(at.date) after waiting \(duration.uptime.milliseconds) ms")
 
@@ -110,9 +110,9 @@ extension HangCaptureService: HangObserver {
         }
 
         // Capture the stack now
-        let pre = NanosecondClock.current
+        let pre = EmbraceClock.current
         let backtrace = EmbraceBacktrace.backtrace(of: mainThread, suspendingThreads: true)
-        let post = NanosecondClock.current
+        let post = EmbraceClock.current
 
         spanQueue.async { [self] in
             span =
@@ -125,7 +125,7 @@ extension HangCaptureService: HangObserver {
         }
     }
 
-    public func hangUpdated(at: NanosecondClock, duration: NanosecondClock) {
+    public func hangUpdated(at: EmbraceClock, duration: EmbraceClock) {
         logger?.debug("[Watchdog] Hang for \(duration.uptime.milliseconds) ms")
 
         guard
@@ -138,9 +138,9 @@ extension HangCaptureService: HangObserver {
         }
 
         // Capture the stack now
-        let pre = NanosecondClock.current
+        let pre = EmbraceClock.current
         let backtrace = EmbraceBacktrace.backtrace(of: mainThread, suspendingThreads: true)
-        let post = NanosecondClock.current
+        let post = EmbraceClock.current
 
         // process it later
         spanQueue.async { [self] in
@@ -148,7 +148,7 @@ extension HangCaptureService: HangObserver {
         }
     }
 
-    public func hangEnded(at: NanosecondClock, duration: NanosecondClock) {
+    public func hangEnded(at: EmbraceClock, duration: EmbraceClock) {
         logger?.debug("[Watchdog] Hang ended at \(at.date) after \(duration.uptime.milliseconds) ms")
 
         spanQueue.async { [self] in

@@ -180,7 +180,7 @@ class MockHangObserver: HangObserver {
     var lastEndTime: UInt64 = 0
     var lastHangDuration: UInt64 = 0
 
-    func hangStarted(at: NanosecondClock, duration: NanosecondClock) {
+    func hangStarted(at: EmbraceClock, duration: EmbraceClock) {
         hangStartedCalled = true
         hangStartedCallCount += 1
         lastStartTime = at.monotonic
@@ -188,7 +188,7 @@ class MockHangObserver: HangObserver {
         onHangStarted?(at.monotonic, duration.monotonic)
     }
 
-    func hangUpdated(at: NanosecondClock, duration: NanosecondClock) {
+    func hangUpdated(at: EmbraceClock, duration: EmbraceClock) {
         hangUpdatedCalled = true
         hangUpdatedCallCount += 1
         lastUpdateTime = at.monotonic
@@ -196,7 +196,7 @@ class MockHangObserver: HangObserver {
         onHangUpdated?(at.monotonic, duration.monotonic)
     }
 
-    func hangEnded(at: EmbraceCore.NanosecondClock, duration: EmbraceCore.NanosecondClock) {
+    func hangEnded(at: EmbraceCore.EmbraceClock, duration: EmbraceCore.EmbraceClock) {
         hangEndedCalled = true
         hangEndedCallCount += 1
         lastEndTime = at.monotonic
