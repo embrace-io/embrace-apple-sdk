@@ -38,14 +38,16 @@ public final class KSCrashReporter: NSObject, CrashReporter {
         self.reporter.userInfo = [:]
         self.lastSession = try? String(contentsOf: Self.lastSessionURL, encoding: .utf8)
 
-        if #available(iOS 26.0, *) {
+        /*
+        #if DEBUG && canImport(FoundationModels)
             if let previousSession = TerminationStorage.previous() {
                 Task {
                     let reason = await previousSession.intelligentlyFigureoutWhyTheTermination()
-                    print("term reason: \(reason)")
+                    print("term reason: \(reason ?? "nil")")
                 }
             }
-        }
+        #endif
+        */
     }
 
     // this is the path that contains `/Reports`.
@@ -201,7 +203,7 @@ public final class KSCrashReporter: NSObject, CrashReporter {
 
                 // log it
                 crashContext?.logger.info("sid: \(value)")
-                let stack = threadcrumb.log(value).map { UInt64(truncating: $0) } ?? []
+                let stack = threadcrumb.log(value).map { UInt64(truncating: $0) }
                 _writeSymbols(
                     stack,
                     sessionId: value,
