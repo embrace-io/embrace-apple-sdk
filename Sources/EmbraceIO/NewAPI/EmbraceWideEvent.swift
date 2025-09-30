@@ -24,13 +24,16 @@ public protocol EmbraceIdentifiable: Sendable {
     var name: EmbraceEventName { get }
 }
 
-public protocol EmbraceIntervaled: EmbraceIdentifiable {
+public protocol EmbraceIntervaled: Sendable {
     var startTime: NanosecondClock { get }
     var endTime: NanosecondClock { get }
 }
 
-extension EmbraceIntervaled {
+extension EmbraceIntervaled where Self: EmbraceIdentifiable {
     public var startTime: NanosecondClock { timestamp }
+}
+
+extension EmbraceIntervaled where Self: EmbraceIdentifiable, Self: EmbraceIntervaled {
     public var duration: NanosecondClock { endTime - startTime }
 }
 
