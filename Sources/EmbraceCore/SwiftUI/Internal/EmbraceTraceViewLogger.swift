@@ -96,7 +96,7 @@ extension EmbraceTraceViewLogger {
     func startSpan(
         _ name: String,
         semantics: String,
-        time: Date? = nil,
+        time: Date = Date(),
         parent: EmbraceSpan? = nil,
         attributes: [String: String]? = nil,
         _ function: StaticString = #function
@@ -120,6 +120,7 @@ extension EmbraceTraceViewLogger {
             name: "emb-swiftui.view.\(name).\(semantics)",
             parentSpan: parent,
             type: .viewLoad,
+            startTime: time,
             attributes: attributes ?? [:]
         )
     }
@@ -133,13 +134,13 @@ extension EmbraceTraceViewLogger {
     ///   - function: Automatically captures the calling function name (for debug logs).
     func endSpan(
         _ span: EmbraceSpan?,
-        time: Date? = nil,
+        time: Date = Date(),
         errorCode: EmbraceSpanErrorCode? = nil,
         _ function: StaticString = #function
     ) {
         dispatchPrecondition(condition: .onQueue(.main))
         guard let span = span else { return }
-        span.end(errorCode: errorCode, endTime: time ?? Date())
+        span.end(errorCode: errorCode, endTime: time)
     }
 
     /// Creates a span that automatically ends on the next main run loop tick.
@@ -161,7 +162,7 @@ extension EmbraceTraceViewLogger {
     func cycledSpan(
         _ name: String,
         semantics: String,
-        time: Date? = nil,
+        time: Date = Date(),
         parent: EmbraceSpan? = nil,
         attributes: [String: String]? = nil,
         _ function: StaticString = #function,
