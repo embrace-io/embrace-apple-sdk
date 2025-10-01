@@ -73,4 +73,22 @@ extension EmbraceIO {
 
 extension EmbraceIO {
 
+    public func beginSpan(
+        _ name: EmbraceEventName,
+        timestamp: NanosecondClock = .current,
+        attributes: @autoclosure () -> [AttributeKey: AttributeValueType]? = nil
+    ) -> EmbraceSpan {
+
+        let span = expectClient()?
+            .buildSpan(
+                name: name.name,
+                type: .performance,
+                attributes: attributes()?.asInternalAttributes() ?? [:],
+            )
+            .setStartTime(time: timestamp.date)
+            .startSpan()
+
+        return EmbraceSpan()
+    }
+
 }
