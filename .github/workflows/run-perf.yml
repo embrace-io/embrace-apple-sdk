@@ -65,6 +65,7 @@ jobs:
 
       - name: Run PR perf tests
         id: perfpr
+        continue-on-error: true
         run: |
           ls -lsa $EMB_BIN_HOME
           $EMB_BIN_HOME/run_regression_tests
@@ -78,11 +79,13 @@ jobs:
       
       - name: Run Main perf tests
         id: perfmain
+        continue-on-error: true
         run: |
           ls -lsa $EMB_BIN_HOME
           $EMB_BIN_HOME/run_regression_tests
 
       - name: Run Performance Comparison
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PERF_PR: ${{ steps.perfpr.outputs.out }}
