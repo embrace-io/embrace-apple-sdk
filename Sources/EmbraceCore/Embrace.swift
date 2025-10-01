@@ -260,8 +260,6 @@ import Foundation
 
         // startup tracking
         startupInstrumentation.otel = self
-        EMBStartupTracker.shared().internalNotificationCenter = Embrace.notificationCenter
-        EMBStartupTracker.shared().trackDidFinishLaunching()
 
         // config update event
         Embrace.notificationCenter.addObserver(

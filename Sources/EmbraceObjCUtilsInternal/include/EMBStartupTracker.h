@@ -23,11 +23,10 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic, strong, nullable) NSDate *sdkStartStartTime;
 @property(nonatomic, strong, nullable) NSDate *sdkStartEndTime;
 
-@property(nonatomic, weak) NSNotificationCenter *internalNotificationCenter;
-
 + (instancetype)shared;
 
-- (void)trackDidFinishLaunching;
+- (instancetype)init NS_UNAVAILABLE;
++ (instancetype)new NS_UNAVAILABLE;
 
 @end
 
