@@ -21,6 +21,9 @@ public struct EmbraceEventName: Codable, Sendable, ExpressibleByStringLiteral {
 public protocol EmbraceIdentifiable: Sendable {
     var id: UUID { get }
     var timestamp: NanosecondClock { get }
+}
+
+public protocol EmbraceNamed: Sendable {
     var name: EmbraceEventName { get }
 }
 
@@ -41,12 +44,8 @@ public protocol EmbraceAttributed: Sendable {
     var attributes: [EmbraceIO.AttributeKey: EmbraceIO.AttributeValueType] { get }
 }
 
-public protocol EmbraceMutableAttributed: EmbraceAttributed {
-    func addAttribute(_ key: EmbraceIO.AttributeKey, value: EmbraceIO.AttributeValueType?)
-    func setAttributes(_ attributes: [EmbraceIO.AttributeKey: EmbraceIO.AttributeValueType]?)
-}
+public protocol EmbraceEvent: EmbraceIdentifiable, EmbraceNamed, EmbraceAttributed {}
 
-public protocol EmbraceEvent: EmbraceIdentifiable, EmbraceAttributed {}
-public protocol EmbraceSpan: EmbraceIdentifiable, EmbraceIntervaled, EmbraceAttributed {
-    func end(at timestamp: NanosecondClock)
+public protocol EmbraceSpan: EmbraceIdentifiable, EmbraceNamed, EmbraceIntervaled, EmbraceAttributed {
+
 }
