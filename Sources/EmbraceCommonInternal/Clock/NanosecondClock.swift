@@ -53,7 +53,7 @@ public struct NanosecondClock: Sendable {
 extension NanosecondClock {
 
     /// Substract one clock from another
-    static func - (lhs: NanosecondClock, rhs: NanosecondClock) -> NanosecondClock {
+    static public func - (lhs: NanosecondClock, rhs: NanosecondClock) -> NanosecondClock {
         return NanosecondClock(
             uptime: lhs.uptime &- rhs.uptime,
             monotonic: lhs.monotonic &- rhs.monotonic,
