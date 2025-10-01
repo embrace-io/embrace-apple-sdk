@@ -1,4 +1,4 @@
-// swift-tools-version: 5.9
+// swift-tools-version: 6.1
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import CompilerPluginSupport
@@ -50,7 +50,7 @@ let package = Package(
             exact: "2.1.1"
         ),
         .package(
-            url: "https://github.com/swiftlang/swift-syntax.git",
+            url: "https://github.com/apple/swift-syntax.git",
             from: "509.0.0"
         )
     ],
@@ -256,6 +256,8 @@ let package = Package(
         .macro(
             name: "EmbraceMacroPlugin",
             dependencies: [
+                .product(name: "SwiftSyntax", package: "swift-syntax"),
+                .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
                 .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
                 .product(name: "SwiftCompilerPlugin", package: "swift-syntax")
             ],

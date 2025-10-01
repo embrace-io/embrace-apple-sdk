@@ -6,7 +6,7 @@
 /// - This struct will be serialized into an `emb.type` attribute.
 /// - This struct is encoded as a String with the format `<primary>.<secondary>`.
 /// - The primary category is required, but the secondary category is optional.
-public protocol EmbraceType: Hashable, Codable, CustomStringConvertible, RawRepresentable where RawValue == String {
+public protocol EmbraceType: Sendable, Hashable, Codable, CustomStringConvertible, RawRepresentable where RawValue == String {
 
     var primary: PrimaryType { get }
 
@@ -16,7 +16,7 @@ public protocol EmbraceType: Hashable, Codable, CustomStringConvertible, RawRepr
 }
 
 /// Top level category for the EmbraceType
-public enum PrimaryType: String, CaseIterable {
+public enum PrimaryType: String, CaseIterable, Sendable {
     /// Category for observing a logical operation
     case performance = "perf"
 

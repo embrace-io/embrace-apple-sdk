@@ -3,8 +3,8 @@
 //
 
 import Foundation
-import OpenTelemetryApi
-import OpenTelemetrySdk
+@preconcurrency import OpenTelemetryApi
+@preconcurrency import OpenTelemetrySdk
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
@@ -17,7 +17,11 @@ public final class EmbraceOTel: NSObject {
     let instrumentationName = "EmbraceOpenTelemetry"
     let instrumentationVersion = "semver:\(EmbraceMeta.sdkVersion)"
 
-    public private(set) static var processor: SingleSpanProcessor?
+    private static let _processor = EmbraceMutex<SingleSpanProcessor?>(nil)
+    public static var processor: SingleSpanProcessor? {
+        get { _processor.safeValue }
+        set { _processor.safeValue = newValue }
+    }
 
     /// Setup the OpenTelemetryApi
     /// - Parameter: spanProcessor The processor in which to run during the lifetime of each Span

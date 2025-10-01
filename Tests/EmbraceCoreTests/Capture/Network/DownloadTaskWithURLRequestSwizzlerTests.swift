@@ -19,6 +19,7 @@ class DownloadTaskWithURLRequestSwizzlerTests: XCTestCase {
         try? sut.unswizzleInstanceMethod()
     }
 
+    @MainActor
     func test_afterInstall_taskWillBeCreatedInHandler() throws {
         givenDownloadTaskWithURLRequestSwizzler()
         try givenSwizzlingWasDone()
@@ -27,6 +28,7 @@ class DownloadTaskWithURLRequestSwizzlerTests: XCTestCase {
         thenHandlerShouldHaveInvokedCreateWithTask()
     }
 
+    @MainActor
     func test_afterInstall_taskShouldHaveEmbraceHeaders() throws {
         givenDownloadTaskWithURLRequestSwizzler()
         try givenSwizzlingWasDone()
@@ -49,6 +51,7 @@ extension DownloadTaskWithURLRequestSwizzlerTests {
         sut = DownloadTaskWithURLRequestSwizzler(handler: handler)
     }
 
+    @MainActor
     fileprivate func givenSwizzlingWasDone() throws {
         try sut.install()
     }

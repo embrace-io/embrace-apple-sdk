@@ -2,15 +2,16 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceCommonInternal
 import Foundation
 import Network
 
-class EmbraceReachabilityMonitor {
+final class EmbraceReachabilityMonitor: @unchecked Sendable {
     private let queue: DispatchQueue
     private let monitor: NWPathMonitor
-    private var wasConnected: Bool = true
+    @ThreadSafe private var wasConnected: Bool = true
 
-    var onConnectionRegained: (() -> Void)?
+    @ThreadSafe var onConnectionRegained: (() -> Void)?
 
     init(queue: DispatchQueue) {
         self.queue = queue

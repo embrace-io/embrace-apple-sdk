@@ -148,6 +148,7 @@ final class CaptureServices {
         }
     }
 
+    @MainActor
     func install() {
         crashReporter?.install(context: context)
 

@@ -5,11 +5,11 @@
 import Foundation
 import OpenTelemetryApi
 
-public enum EmbraceLogAttributeType: Int {
+public enum EmbraceLogAttributeType: Int, Sendable {
     case string, int, double, bool
 }
 
-public protocol EmbraceLogAttribute {
+public protocol EmbraceLogAttribute: Sendable {
     var key: String { get }
     var valueRaw: String { get }
     var typeRaw: Int { get }

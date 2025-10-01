@@ -13,7 +13,7 @@ extension Notification.Name {
     public static let embraceConfigUpdated = Notification.Name("embraceConfigUpdated")
 }
 
-public class EmbraceConfig {
+public class EmbraceConfig: @unchecked Sendable {
 
     public let options: Options
     let logger: InternalLogger

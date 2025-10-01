@@ -12,7 +12,7 @@ import XCTest
 @testable import EmbraceCore
 @testable import EmbraceUploadInternal
 
-final class SessionControllerTests: XCTestCase {
+final class SessionControllerTests: XCTestCase, @unchecked Sendable {
 
     var storage: EmbraceStorage!
     var controller: SessionController!

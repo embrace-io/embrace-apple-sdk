@@ -2,7 +2,9 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import UserNotifications
+// A few delegates are not marked @Sendable in Swift 6.1
+// which causes warnings (and errors in release mode).
+@preconcurrency import UserNotifications
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceOTelInternal
@@ -43,7 +45,7 @@ extension UNUserNotificationCenterDelegateProxy: UNUserNotificationCenterDelegat
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,
-        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+        withCompletionHandler completionHandler: @escaping @Sendable (UNNotificationPresentationOptions) -> Void
     ) {
 
         // generate span event
@@ -72,7 +74,7 @@ extension UNUserNotificationCenterDelegateProxy: UNUserNotificationCenterDelegat
         func userNotificationCenter(
             _ center: UNUserNotificationCenter,
             didReceive response: UNNotificationResponse,
-            withCompletionHandler completionHandler: @escaping () -> Void
+            withCompletionHandler completionHandler: @escaping @Sendable () -> Void
         ) {
 
             // generate span event

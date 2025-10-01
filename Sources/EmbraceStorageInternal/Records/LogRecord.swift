@@ -4,7 +4,7 @@
 
 import CoreData
 import Foundation
-import OpenTelemetryApi
+@preconcurrency import OpenTelemetryApi
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
@@ -28,7 +28,7 @@ public class LogRecord: NSManagedObject {
         timestamp: Date = Date(),
         attributes: [String: AttributeValue]
     ) -> EmbraceLog? {
-        var result: EmbraceLog?
+        nonisolated(unsafe) var result: EmbraceLog?
 
         context.performAndWait {
             guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
@@ -81,7 +81,7 @@ public class LogRecord: NSManagedObject {
 }
 
 extension LogRecord: EmbraceStorageRecord {
-    public static var entityName = "LogRecord"
+    public static let entityName = "LogRecord"
 
     static public var entityDescriptions: [NSEntityDescription] {
         let entity = NSEntityDescription()

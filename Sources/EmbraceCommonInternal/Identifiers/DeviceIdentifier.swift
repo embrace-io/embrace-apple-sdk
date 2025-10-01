@@ -4,7 +4,7 @@
 
 import Foundation
 
-public struct DeviceIdentifier: Equatable {
+public struct DeviceIdentifier: Equatable, Sendable {
 
     let value: UUID
 

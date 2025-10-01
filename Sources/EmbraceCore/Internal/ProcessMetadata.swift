@@ -14,7 +14,7 @@ extension ProcessMetadata {
 
     /// The Date at which this process started
     /// Retrieved via `sysctl` and `kinfo_proc.kp_proc`
-    static var startTime: Date? = {
+    nonisolated(unsafe) static var startTime: Date? = {
         // Allocate memory
         let infoPointer = UnsafeMutablePointer<kinfo_proc>.allocate(capacity: 1)
         infoPointer.initialize(to: kinfo_proc())

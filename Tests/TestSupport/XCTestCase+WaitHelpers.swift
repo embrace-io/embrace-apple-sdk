@@ -15,9 +15,10 @@ extension XCTestCase {
         timeout: TimeInterval = .defaultTimeout, interval: TimeInterval = 0.1, until block: @escaping () throws -> Bool
     ) {
         let expectation = expectation(description: "wait for block to pass")
+        nonisolated(unsafe) let unsafeBlock = block
         let timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { _ in
             do {
-                if try block() {
+                if try unsafeBlock() {
                     expectation.fulfill()
                 }
             } catch {

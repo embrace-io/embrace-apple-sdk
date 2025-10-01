@@ -13,7 +13,7 @@ import OSLog
     import EmbraceConfiguration
 #endif
 
-class DefaultInternalLogger: BaseInternalLogger {
+class DefaultInternalLogger: BaseInternalLogger, @unchecked Sendable {
 
     let subsystem: String = "com.embrace.logger"
     let defaultCategory: String = "internal"

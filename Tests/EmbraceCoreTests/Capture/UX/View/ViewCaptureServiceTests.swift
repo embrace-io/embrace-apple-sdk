@@ -10,12 +10,13 @@
     import EmbraceOTelInternal
     import TestSupport
 
+    @MainActor
     class ViewCaptureServiceTests: XCTestCase {
 
         var handler: MockUIViewControllerHandler!
         var service: ViewCaptureService!
 
-        override func setUpWithError() throws {
+        override func setUp() async throws {
             handler = MockUIViewControllerHandler()
             service = ViewCaptureService(options: ViewCaptureService.Options(), handler: handler, lock: NSLock())
             service.install(otel: nil)

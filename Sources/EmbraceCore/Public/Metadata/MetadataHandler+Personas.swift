@@ -34,7 +34,7 @@ extension MetadataHandler {
     /// Fetch the current set of persona tags.
     ///
     /// - Parameter completion: A closure that receives the list of persona tags.
-    public func getCurrentPersonas(completion: @escaping ([PersonaTag]) -> Void) {
+    public func getCurrentPersonas(completion: @Sendable @escaping ([PersonaTag]) -> Void) {
         guard let storage = self.storage else {
             completion([])
             return
@@ -119,7 +119,7 @@ extension MetadataHandler {
     /// Asynchronously retrieve the current set of persona tags as strings.
     ///
     /// - Note: This method is for Objective-C compatibility. In Swift, there's an equivalent using the `PersonaTag` enum
-    @objc public func getCurrentPersonas(completion: @escaping ([String]) -> Void) {
+    @objc public func getCurrentPersonas(completion: @Sendable @escaping ([String]) -> Void) {
         getCurrentPersonas { personaTags in
             completion(personaTags.map(\.rawValue))
         }

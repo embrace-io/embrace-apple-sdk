@@ -7,7 +7,7 @@ import XCTest
 
 @testable import EmbraceCore
 
-class UploadTaskWithRequestFromFileSwizzlerTests: XCTestCase {
+class UploadTaskWithRequestFromFileSwizzlerTests: XCTestCase, @unchecked Sendable {
     private var handler: MockURLSessionTaskHandler!
     private var sut: UploadTaskWithRequestFromFileSwizzler!
     private var session: URLSession!
@@ -19,18 +19,18 @@ class UploadTaskWithRequestFromFileSwizzlerTests: XCTestCase {
         try? sut.unswizzleInstanceMethod()
     }
 
-    func test_afterInstall_taskWillBeCreatedInHandler() throws {
+    func test_afterInstall_taskWillBeCreatedInHandler() async throws {
         givenUploadTaskWithURLRequestAndCompletionSwizzler()
-        try givenSwizzlingWasDone()
+        try await givenSwizzlingWasDone()
         givenSuccessfulRequest()
         givenProxiedUrlSession()
         whenInvokingUploadTaskWithRequestFromFile()
         thenHandlerShouldHaveInvokedCreateWithTask()
     }
 
-    func test_afterInstall_taskShouldHaveEmbraceHeaders() throws {
+    func test_afterInstall_taskShouldHaveEmbraceHeaders() async throws {
         givenUploadTaskWithURLRequestAndCompletionSwizzler()
-        try givenSwizzlingWasDone()
+        try await givenSwizzlingWasDone()
         givenSuccessfulRequest()
         givenProxiedUrlSession()
         whenInvokingUploadTaskWithRequestFromFile()
@@ -52,6 +52,7 @@ extension UploadTaskWithRequestFromFileSwizzlerTests {
         sut = UploadTaskWithRequestFromFileSwizzler(handler: handler)
     }
 
+    @MainActor
     fileprivate func givenSwizzlingWasDone() throws {
         try sut.install()
     }

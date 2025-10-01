@@ -51,7 +51,7 @@ import Foundation
     ///
     /// - Note: The completion is invoked on an arbitrary queue. If you need main-thread work, hop explicitly.
     /// - Parameter completion: Called with zero or more `EmbraceCrashReport` instances.
-    @objc func fetchUnsentCrashReports(completion: @escaping ([EmbraceCrashReport]) -> Void)
+    @objc func fetchUnsentCrashReports(completion: @escaping @Sendable ([EmbraceCrashReport]) -> Void)
 
     /// Optional callback fired each time a new crash report becomes available after installation.
     ///
@@ -120,7 +120,7 @@ public typealias FrameAddress = UInt
 // MARK: - Symbolication
 
 /// A single symbolicated frame describing where an address resolves within an image.
-@objc public class SymbolicatedFrame: NSObject {
+@objc final public class SymbolicatedFrame: NSObject, Sendable {
 
     /// Program counter captured at the time of the backtrace (often a “return address”).
     public let returnAddress: FrameAddress

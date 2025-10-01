@@ -4,7 +4,7 @@
 
 import Foundation
 
-public enum SessionState: String {
+public enum SessionState: String, Sendable {
     case foreground
     case background
     case unknown

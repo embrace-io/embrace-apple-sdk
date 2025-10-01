@@ -6,9 +6,9 @@ import Foundation
 
 extension URLSessionTask {
     private struct AssociatedKeys {
-        static var embraceCaptured: UInt8 = 0
-        static var embraceData: UInt8 = 1
-        static var embraceStartTime: UInt8 = 2
+        nonisolated(unsafe) static var embraceCaptured: UInt8 = 0
+        nonisolated(unsafe) static var embraceData: UInt8 = 1
+        nonisolated(unsafe) static var embraceStartTime: UInt8 = 2
     }
 
     var embraceCaptured: Bool {
