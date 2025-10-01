@@ -78,16 +78,6 @@ public final class HangCaptureService: CaptureService {
             limitData.withLock { $0.limits = newValue }
         }
     }
-
-    private var crashReporterData: EmbraceMutex<EmbraceCrashReporter?> = EmbraceMutex(nil)
-    internal var crashReporter: EmbraceCrashReporter? {
-        get {
-            crashReporterData.withLock { $0 }
-        }
-        set {
-            crashReporterData.withLock { $0 = newValue }
-        }
-    }
 }
 
 extension HangCaptureService: HangObserver {
@@ -99,8 +89,9 @@ extension HangCaptureService: HangObserver {
 
         logger?.debug("[Watchdog] Hang started, at \(at.date) after waiting \(duration.uptime.millisecondsValue) ms")
 
-        crashReporter?.watchdogEventStarted(
-            WatchdogEvent(timestamp: at, duration: duration)
+        NotificationCenter.default.post(
+            name: .hangEventStarted,
+            object: WatchdogEvent(timestamp: at, duration: duration)
         )
 
         // Keep tabs on how many hang spans we've created
@@ -163,8 +154,9 @@ extension HangCaptureService: HangObserver {
     public func hangUpdated(at: EmbraceClock, duration: EmbraceClock) {
         logger?.debug("[Watchdog] Hang for \(duration.uptime.millisecondsValue) ms")
 
-        crashReporter?.watchdogEventOngoing(
-            WatchdogEvent(timestamp: at, duration: duration)
+        NotificationCenter.default.post(
+            name: .hangEventUpdated,
+            object: WatchdogEvent(timestamp: at, duration: duration)
         )
 
         guard
@@ -194,10 +186,11 @@ extension HangCaptureService: HangObserver {
     public func hangEnded(at: EmbraceClock, duration: EmbraceClock) {
         logger?.debug("[Watchdog] Hang ended at \(at.date) after \(duration.uptime.millisecondsValue) ms")
 
-        crashReporter?.watchdogEventEnded(
-            WatchdogEvent(timestamp: at, duration: duration)
+        NotificationCenter.default.post(
+            name: .hangEventEnded,
+            object: WatchdogEvent(timestamp: at, duration: duration)
         )
-        
+
         spanQueue.async { [self] in
             span?.end(time: at.date)
             span = nil

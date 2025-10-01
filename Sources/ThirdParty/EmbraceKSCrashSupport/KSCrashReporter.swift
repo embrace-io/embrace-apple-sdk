@@ -36,10 +36,15 @@ public final class KSCrashReporter: NSObject, CrashReporter {
         var lastReportTime: Date? = nil
     }
     private var watchdogData: EmbraceMutex<WatchdogEventData> = EmbraceMutex(WatchdogEventData())
+    private var handObservers: [NSObjectProtocol] = []
 
     public override init() {
         reporter.userInfo = [:]
         super.init()
+    }
+
+    deinit {
+        unregisterForHangs()
     }
 
     // this is the path that contains `/Reports`.
@@ -76,6 +81,7 @@ public final class KSCrashReporter: NSObject, CrashReporter {
                 }
             }
             try reporter.install(with: config)
+            registerForHangs()
         #endif
     }
 
@@ -207,7 +213,26 @@ public final class KSCrashReporter: NSObject, CrashReporter {
 
 }
 
-extension KSCrashReporter: WatchdogReporter {
+extension KSCrashReporter {
+
+    private func registerForHangs() {
+        NotificationCenter.default.addObserver(forName: .hangEventStarted, object: nil, queue: nil) { [weak self] notification in
+            if let event = notification.object as? WatchdogEvent {
+                self?.watchdogEventStarted(event)
+            }
+        }
+        NotificationCenter.default.addObserver(forName: .hangEventEnded, object: nil, queue: nil) { [weak self] notification in
+            if let event = notification.object as? WatchdogEvent {
+                self?.watchdogEventEnded(event)
+            }
+        }
+    }
+
+    private func unregisterForHangs() {
+        let observers = handObservers
+        handObservers.removeAll()
+        observers.compactMap { NotificationCenter.default.removeObserver($0) }
+    }
 
     public func watchdogEventStarted(_ event: WatchdogEvent) {
 
@@ -222,10 +247,6 @@ extension KSCrashReporter: WatchdogReporter {
             logAllThreads: true,
             terminateProgram: false
         )
-    }
-
-    public func watchdogEventOngoing(_ event: WatchdogEvent) {
-        // update the stack here every N seconds/ms... ??
     }
 
     public func watchdogEventEnded(_ event: WatchdogEvent) {
