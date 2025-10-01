@@ -5,6 +5,8 @@
 import EmbraceConfiguration
 
 public class EditableConfig: EmbraceConfigurable {
+    public var memoryCaptureEnabled: Bool = true
+
     public var hangLimits: HangLimits = HangLimits()
 
     public var isSDKEnabled: Bool = true
@@ -55,7 +57,8 @@ public class EditableConfig: EmbraceConfigurable {
         isSwiftUiViewInstrumentationEnabled: Bool = false,
         internalLogLimits: InternalLogLimits = InternalLogLimits(),
         networkPayloadCaptureRules: [NetworkPayloadCaptureRule] = [],
-        hangLimits: HangLimits = HangLimits()
+        hangLimits: HangLimits = HangLimits(),
+        memoryCaptureEnabled: Bool = false
     ) {
         self.isSDKEnabled = isSdkEnabled
         self.isBackgroundSessionEnabled = isBackgroundSessionEnabled
@@ -69,6 +72,7 @@ public class EditableConfig: EmbraceConfigurable {
         self.internalLogLimits = internalLogLimits
         self.networkPayloadCaptureRules = networkPayloadCaptureRules
         self.hangLimits = hangLimits
+        self.memoryCaptureEnabled = memoryCaptureEnabled
     }
 }
 

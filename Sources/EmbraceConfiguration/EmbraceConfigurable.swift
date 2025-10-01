@@ -39,6 +39,8 @@ import Foundation
 
     var networkPayloadCaptureRules: [NetworkPayloadCaptureRule] { get }
 
+    var memoryCaptureEnabled: Bool { get }
+
     var hangLimits: HangLimits { get }
 
     /// Tell the configurable implementation it should update if possible.
