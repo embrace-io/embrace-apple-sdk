@@ -44,8 +44,12 @@ public protocol EmbraceAttributed: Sendable {
     var attributes: [EmbraceIO.AttributeKey: EmbraceIO.AttributeValueType] { get }
 }
 
-public protocol EmbraceEvent: EmbraceIdentifiable, EmbraceNamed, EmbraceAttributed {}
+public struct EmbraceSpan: EmbraceIdentifiable, EmbraceNamed, EmbraceIntervaled, EmbraceAttributed {
 
-public protocol EmbraceSpan: EmbraceIdentifiable, EmbraceNamed, EmbraceIntervaled, EmbraceAttributed {
+    public let id: UUID
+    public let timestamp: NanosecondClock
+    public let name: EmbraceEventName
+    public let endTime: NanosecondClock
+    public let attributes: [EmbraceIO.AttributeKey: EmbraceIO.AttributeValueType]
 
 }
