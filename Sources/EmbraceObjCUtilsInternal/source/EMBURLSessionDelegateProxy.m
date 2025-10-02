@@ -31,11 +31,16 @@
 
 - (BOOL)respondsToSelector:(SEL)aSelector
 {
-    if (sel_isEqual(aSelector, DID_FINISH_COLLECTING_METRICS) || sel_isEqual(aSelector, DID_RECEIVE_DATA_SELECTOR) ||
-        sel_isEqual(aSelector, DID_FINISH_DOWNLOADING) || sel_isEqual(aSelector, DID_COMPLETE_WITH_ERROR) ||
-        sel_isEqual(aSelector, DID_BECOME_INVALID_WITH_ERROR)) {
+    if (sel_isEqual(aSelector, DID_RECEIVE_DATA_SELECTOR)) {
+        return [self.originalDelegate respondsToSelector:aSelector];
+    }
+
+    if (sel_isEqual(aSelector, DID_FINISH_COLLECTING_METRICS) || sel_isEqual(aSelector, DID_COMPLETE_WITH_ERROR) ||
+        sel_isEqual(aSelector, DID_BECOME_INVALID_WITH_ERROR) || sel_isEqual(aSelector, DID_RECEIVE_RESPONSE) ||
+        sel_isEqual(aSelector, DID_FINISH_DOWNLOADING)) {
         return YES;
     }
+
     return [self.originalDelegate respondsToSelector:aSelector];
 }
 
