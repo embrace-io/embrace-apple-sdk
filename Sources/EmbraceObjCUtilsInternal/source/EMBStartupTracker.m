@@ -35,9 +35,31 @@
     }
 }
 
+- (void)resetLifecycleNotifications
+{
+#if TARGET_OS_IOS
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:UIApplicationDidBecomeActiveNotification object:nil];
+    [[NSNotificationCenter defaultCenter] removeObserver:self
+                                                    name:UIApplicationDidFinishLaunchingNotification
+                                                  object:nil];
+#elif TARGET_OS_OSX
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:NSApplicationDidBecomeActiveNotification object:nil];
+    [[NSNotificationCenter defaultCenter] removeObserver:self
+                                                    name:NSApplicationDidFinishLaunchingNotification
+                                                  object:nil];
+#endif
+
+    self.appDidFinishLaunchingEndTime = nil;
+    self.appFirstDidBecomeActiveTime = nil;
+    [EMBStartupTracker shared].firstFrameTime = nil;
+
+    [self trackLifecycleNotifications];
+}
+
 - (void)trackLifecycleNotifications
 {
     self.appDidFinishLaunchingEndTime = nil;
+    self.appFirstDidBecomeActiveTime = nil;
 
 #if TARGET_OS_IOS
     [[NSNotificationCenter defaultCenter] addObserver:self
@@ -62,6 +84,8 @@
 
 - (void)onAppDidBecomeActive:(NSNotification *)notification
 {
+    self.appFirstDidBecomeActiveTime = NSDate.date;
+
 #if TARGET_OS_IOS
     [[NSNotificationCenter defaultCenter] removeObserver:self name:UIApplicationDidBecomeActiveNotification object:nil];
 #elif TARGET_OS_OSX

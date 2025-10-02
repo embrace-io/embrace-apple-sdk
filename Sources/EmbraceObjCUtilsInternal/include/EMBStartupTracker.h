@@ -18,6 +18,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic, strong, nullable) NSDate *appDidFinishLaunchingEndTime;
 @property(nonatomic, copy, nullable) void (^onAppDidFinishLaunchingEndTimeSet)(NSDate *);
 
+@property(nonatomic, strong, nullable) NSDate *appFirstDidBecomeActiveTime;
+
 @property(nonatomic, strong, nullable) NSDate *sdkSetupStartTime;
 @property(nonatomic, strong, nullable) NSDate *sdkSetupEndTime;
 @property(nonatomic, strong, nullable) NSDate *sdkStartStartTime;
@@ -27,6 +29,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (instancetype)init NS_UNAVAILABLE;
 + (instancetype)new NS_UNAVAILABLE;
+
+- (void)resetLifecycleNotifications;
 
 @end
 
