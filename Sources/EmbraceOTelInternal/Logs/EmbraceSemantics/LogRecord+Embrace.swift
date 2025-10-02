@@ -12,7 +12,7 @@ import OpenTelemetrySdk
 extension ReadableLogRecord {
     public var embType: LogType? {
         switch attributes[LogSemantics.keyEmbraceType] {
-        case let .string(value):
+        case .string(let value):
             return LogType(rawValue: value)
         default:
             return nil

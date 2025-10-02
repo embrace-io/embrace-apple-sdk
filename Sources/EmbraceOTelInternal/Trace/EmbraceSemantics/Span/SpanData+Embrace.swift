@@ -14,7 +14,7 @@ extension SpanData {
     public var embType: SpanType {
         if let raw = attributes[SpanSemantics.keyEmbraceType] {
             switch raw {
-            case let .string(val):
+            case .string(let val):
                 return SpanType(rawValue: val) ?? .performance
             default:
                 break

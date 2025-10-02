@@ -59,9 +59,11 @@ class NetworkingSwizzle: NSObject {
     }
 
     private func setupDataTaskWithCompletionHandler() {
-        typealias ImplementationType = @convention(c) (URLSession, Selector, URLRequest, URLSessionCompletion?) ->
+        typealias ImplementationType =
+            @convention(c) (URLSession, Selector, URLRequest, URLSessionCompletion?) ->
             URLSessionDataTask
-        typealias BlockImplementationType = @convention(block) (URLSession, URLRequest, URLSessionCompletion?) ->
+        typealias BlockImplementationType =
+            @convention(block) (URLSession, URLRequest, URLSessionCompletion?) ->
             URLSessionDataTask
 
         let selector: Selector = #selector(

@@ -48,7 +48,7 @@ public class CoreDataWrapper {
                 description.type = NSInMemoryStoreType
                 container.persistentStoreDescriptions = [description]
 
-            case let .onDisk(_, baseURL, journalMode):
+            case .onDisk(_, let baseURL, let journalMode):
                 try FileManager.default.createDirectory(at: baseURL, withIntermediateDirectories: true)
                 let description = NSPersistentStoreDescription()
                 #if !os(macOS)
@@ -82,7 +82,6 @@ public class CoreDataWrapper {
             logger.critical("Error initializing CoreData \"\(name)\": \(loadPersistentStoreError.localizedDescription)")
             throw loadPersistentStoreError
         }
-
 
         context = container.newBackgroundContext()
     }

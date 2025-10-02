@@ -46,7 +46,7 @@ class NetworkingTest: PayloadTest {
         testItems.append(
             evaluate("http.request.method", expecting: requestMethod.description, on: networkCallSpan.attributes))
 
-        if case let .success(code) = client.status {
+        if case .success(let code) = client.status {
             testItems.append(
                 evaluate("http.response.status_code", expecting: "\(code)", on: networkCallSpan.attributes))
         } else {

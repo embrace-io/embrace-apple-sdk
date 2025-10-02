@@ -22,7 +22,7 @@ import SwiftUI
             return .unknown
         case .testing:
             return .testing
-        case let .testComplete(result):
+        case .testComplete(let result):
             return result
         }
     }

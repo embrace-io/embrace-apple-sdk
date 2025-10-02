@@ -183,7 +183,8 @@ class SessionController: SessionControllable {
             // are disabled in the config, we drop the session!
             // +
             if session.coldStart == true && session.state == SessionState.background.rawValue
-                && backgroundSessionsEnabled == false {
+                && backgroundSessionsEnabled == false
+            {
                 delete()
                 return now
             }

@@ -169,7 +169,8 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
 
                 // Check if we drop crashes for a specific signal using the signalsBlockList
                 if let crashSignal = self.getCrashSignal(fromReport: report),
-                    self.shouldDropCrashReport(withSignal: crashSignal) {
+                    self.shouldDropCrashReport(withSignal: crashSignal)
+                {
                     // if we find a report we should drop, then we also delete it from KSCrash
                     self.deleteCrashReport(id: Int(id))
                     continue
@@ -203,7 +204,8 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
                 }
 
                 if let reportDict = report[KSCrashKey.crashReport] as? [AnyHashable: Any],
-                    let rawTimestamp = reportDict[KSCrashKey.timestamp] as? String {
+                    let rawTimestamp = reportDict[KSCrashKey.timestamp] as? String
+                {
                     timestamp = EmbraceCrashReporter.dateFormatter.date(from: rawTimestamp)
                 }
 
@@ -240,12 +242,14 @@ public final class EmbraceCrashReporter: NSObject, CrashReporter {
         }
 
         if let signalName = signalPayload[KSCrashKey.signalName] as? String,
-            let crashSignal = CrashSignal.from(string: signalName) {
+            let crashSignal = CrashSignal.from(string: signalName)
+        {
             return crashSignal
         }
 
         if let signalCode = signalPayload[KSCrashKey.signal] as? Int,
-            let crashSignal = CrashSignal(rawValue: signalCode) {
+            let crashSignal = CrashSignal(rawValue: signalCode)
+        {
             return crashSignal
         }
 

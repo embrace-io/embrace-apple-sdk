@@ -166,7 +166,8 @@ class EmbraceLogAttributesBuilder {
 
     @discardableResult
     func addHangReportProperties(id: String?, provider: String?, payload: String?, startTime: Date, endTime: Date)
-        -> Self {
+        -> Self
+    {
         guard let id = id,
             let provider = provider,
             let payload = payload

@@ -21,7 +21,7 @@ extension StackTraceBehavior: Equatable {
         switch (lhs, rhs) {
         case (.notIncluded, .notIncluded), (.default, .default):
             return true
-        case let (.custom(lhsValue), .custom(rhsValue)):
+        case (.custom(let lhsValue), .custom(let rhsValue)):
             return lhsValue == rhsValue
         default:
             return false
