@@ -32,4 +32,8 @@ class StartupSDKSetupSpanTest: PayloadTest {
 
         return .init(items: testItems)
     }
+
+    func runTestPreparations() {
+        resetStartupInstrumentation()
+    }
 }
