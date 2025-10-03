@@ -16,35 +16,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          
+      - id: set
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "push" && "${GITHUB_REF}" == "refs/heads/main" ]]; then
+            MATRIX=$(jq -c .main .github/matrices/builds.json)
+          else
+            MATRIX=$(jq -c .pr .github/matrices/builds.json)
+          fi
+          echo "matrix=${MATRIX}" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: prepare
     name: Build ${{ matrix.platform }}, on macOS ${{ matrix.macos-version }}, with Xcode ${{ matrix.xcode_version }}
     timeout-minutes: 30
     runs-on: macos-${{ matrix.macos-version }}
     
     strategy:
       fail-fast: false
-      matrix:
-        include:
-
-          # iOS
-          - platform: "iOS"
-            xcode_version: "16.4"
-            macos-version: "15"
-
-          # tvOS
-          - platform: "tvOS"
-            xcode_version: "16.4"
-            macos-version: "15"
-
-          # macOS
-          - platform: "macOS"
-            xcode_version: "16.4"
-            macos-version: "15"
-
-          # watchOS
-          - platform: "watchOS"
-            xcode_version: "16.4"
-            macos-version: "15"
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
 
     steps:
     - name: Select Xcode
@@ -58,14 +57,15 @@ jobs:
       with:
         persist-credentials: false
 
-    - name: Cache .build directory
-      uses: actions/cache@v4
+    - name: Build
+      uses: mxcl/xcodebuild@96d9ef9fd2ab35ddad713d320955eb31ca8d6d21 # 3.5.1
       with:
-        path: .build
-        key: ${{ runner.os }}-build-${{ hashFiles('**/Package.resolved') }}
-        restore-keys: |
-          ${{ runner.os }}-build-
-
-    - name: Run build script
-      run: |
-        bin/build ${{ matrix.platform }} | xcpretty && exit ${PIPESTATUS[0]}
+        action: build
+        workspace: ".swiftpm/xcode/package.xcworkspace"
+        scheme: EmbraceIO-Package
+        platform: ${{ matrix.platform }}
+        platform-version: ${{ matrix.platform-version }}
+        upload-logs: always
+        code-coverage: false
+        trust-plugins: false
+        arch: arm64

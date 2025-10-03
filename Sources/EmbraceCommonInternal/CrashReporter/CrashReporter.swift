@@ -191,5 +191,5 @@ public typealias FrameAddress = UInt
     ///                      consider normalizing (e.g., `addr - 1`) before calling.
     /// - Returns: A `SymbolicatedFrame` on success, or `nil` if the address could not be resolved
     ///            (e.g., missing symbols/dSYMs, unknown image).
-    @objc func symbolicate(address: FrameAddress) -> SymbolicatedFrame?
+    @objc func resolve(address: FrameAddress) -> SymbolicatedFrame?
 }

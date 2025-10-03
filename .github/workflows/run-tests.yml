@@ -19,38 +19,32 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - id: set
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "push" && "${GITHUB_REF}" == "refs/heads/main" ]]; then
+            MATRIX=$(jq -c .main .github/matrices/builds.json)
+          else
+            MATRIX=$(jq -c .pr .github/matrices/builds.json)
+          fi
+          echo "matrix=${MATRIX}" >> "$GITHUB_OUTPUT"
+
   run-tests:
+    needs: prepare
     name: Test ${{ matrix.platform }}, on macOS ${{ matrix.macos-version }}, with Xcode ${{ matrix.xcode_version }}
     timeout-minutes: 30
     runs-on: macos-${{ matrix.macos-version }}
+    
     strategy:
       fail-fast: false
-      matrix:
-        include:
-
-          # iOS
-          - platform: "iOS"
-            xcode_version: "16.4"
-            macos-version: "15"
-            platform-version: "^18"
-
-          # tvOS
-          - platform: "tvOS"
-            xcode_version: "16.4"
-            macos-version: "15"
-            platform-version: "^18"
-
-          # macOS
-          - platform: "macOS"
-            xcode_version: "16.4"
-            macos-version: "15"
-            platform-version: "^15"
-
-          # watchOS
-          - platform: "watchOS"
-            xcode_version: "16.4"
-            macos-version: "15"
-            platform-version: "^11"
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
 
     permissions:
       checks: write
@@ -76,6 +70,7 @@ jobs:
 
       - name: Run Unit Tests
         uses: mxcl/xcodebuild@96d9ef9fd2ab35ddad713d320955eb31ca8d6d21 # 3.5.1
+        timeout-minutes: 80
         with:
           workspace: ".swiftpm/xcode/package.xcworkspace"
           scheme: EmbraceIO-Package

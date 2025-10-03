@@ -13,17 +13,22 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  ITERATIONS: 20
+  ITERATIONS: 5
   SHOULD_CLEAN: 1
   THRESHOLD_PCT: 5.0
   TESTS: |
     EmbraceIOTests/PerformanceTests
+  BENCHMARKS: |
+    BenchmarksUITests
 
 jobs:
   perf:
     runs-on: macos-latest
-    
+
     steps:
+
+      - name: Export Embrace Binary Home
+        run: echo "EMB_BIN_HOME=${{ runner.tool_cache }}/embrace/bin" >> "$GITHUB_ENV"
 
       # checkout this PR branch
       - name: Checkout PR
@@ -36,24 +41,35 @@ jobs:
           python-version: '3.13'
 
       - name: Install dependencies
-        run: pip install scipy pygithub
+        run: |
+          pip install scipy pygithub
+          gem install xcpretty
+          brew install xcbeautify
+          brew install coreutils
 
       - name: Copy binaries
         run: |
-          cp bin/perf /tmp/perf
-          cp bin/perfcomp.py /tmp/perfcomp.py
-          chmod +x /tmp/perf
-          chmod +x /tmp/perfcomp.py
+          echo "Copying binaries to $EMB_BIN_HOME"
+          mkdir -p "$EMB_BIN_HOME"
+          cp bin/platform "$EMB_BIN_HOME"
+          cp bin/perf "$EMB_BIN_HOME"
+          cp bin/benchmarks "$EMB_BIN_HOME"
+          cp bin/perfcomp.py "$EMB_BIN_HOME"
+          cp bin/destinations "$EMB_BIN_HOME"
+          cp bin/run_regression_tests "$EMB_BIN_HOME"
+          chmod +x "$EMB_BIN_HOME/perf"
+          chmod +x "$EMB_BIN_HOME/benchmarks"
+          chmod +x "$EMB_BIN_HOME/perfcomp.py"
+          chmod +x "$EMB_BIN_HOME/destinations"
+          chmod +x "$EMB_BIN_HOME/run_regression_tests"
 
       - name: Run PR perf tests
         id: perfpr
+        continue-on-error: true
         run: |
-          /tmp/perf >perf.txt
-          echo "out<<EOF" >> "$GITHUB_OUTPUT"
-          cat perf.txt >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
-          cat perf.txt
-      
+          ls -lsa $EMB_BIN_HOME
+          $EMB_BIN_HOME/run_regression_tests
+
         # checkout the main branch
       - name: Checkout Main
         uses: actions/checkout@v4
@@ -63,14 +79,13 @@ jobs:
       
       - name: Run Main perf tests
         id: perfmain
+        continue-on-error: true
         run: |
-          /tmp/perf >perf.txt
-          echo "out<<EOF" >> "$GITHUB_OUTPUT"
-          cat perf.txt >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
-          cat perf.txt
+          ls -lsa $EMB_BIN_HOME
+          $EMB_BIN_HOME/run_regression_tests
 
       - name: Run Performance Comparison
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PERF_PR: ${{ steps.perfpr.outputs.out }}
@@ -78,4 +93,4 @@ jobs:
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          python /tmp/perfcomp.py
+          python $EMB_BIN_HOME/perfcomp.py

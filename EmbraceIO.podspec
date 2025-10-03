@@ -26,7 +26,8 @@ Pod::Spec.new do |spec|
     subs.dependency "EmbraceIO/EmbraceCaptureService"
     subs.dependency "EmbraceIO/EmbraceCore"
     subs.dependency "EmbraceIO/EmbraceCommonInternal"
-    subs.dependency "EmbraceIO/EmbraceKSCrashSupport"
+    subs.dependency "EmbraceIO/EmbraceCrash"
+    subs.dependency "EmbraceIO/EmbraceKSCrashBacktraceSupport"
     subs.dependency "EmbraceIO/EmbraceSemantics"
   end
 
@@ -58,6 +59,7 @@ Pod::Spec.new do |spec|
     subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
     subs.dependency "EmbraceIO/EmbraceOTelInternal"
     subs.dependency "EmbraceIO/OpenTelemetrySdk"
+    subs.dependency "EmbraceIO/EmbraceConfiguration"
   end
 
   spec.subspec 'EmbraceConfigInternal' do |subs|
@@ -101,10 +103,16 @@ Pod::Spec.new do |spec|
     subs.dependency "EmbraceIO/EmbraceCommonInternal"
   end
 
-  spec.subspec 'EmbraceKSCrashSupport' do |subs|
-    subs.source_files = "Sources/ThirdParty/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
+  spec.subspec 'EmbraceCrash' do |subs|
+    subs.source_files = "Sources/ThirdParty/EmbraceKSCrashSupport/**/*.{h,m,mm,c,cpp,swift}"
     subs.dependency "EmbraceIO/EmbraceCommonInternal"
     subs.dependency "EmbraceIO/EmbraceSemantics"
+    subs.dependency "EmbraceIO/EmbraceKSCrash"
+  end
+
+  spec.subspec 'EmbraceKSCrashBacktraceSupport' do |subs|
+    subs.source_files = "Sources/ThirdParty/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
+    subs.dependency "EmbraceIO/EmbraceCommonInternal"
     subs.dependency "EmbraceIO/EmbraceKSCrash"
   end
 
@@ -114,7 +122,7 @@ Pod::Spec.new do |spec|
 
   # External
   spec.subspec 'EmbraceKSCrash' do |subs|
-    subs.dependency "KSCrash", "2.3.0"
+    subs.dependency "KSCrash", "2.4.0"
   end
 
   spec.subspec 'OpenTelemetrySdk' do |subs|

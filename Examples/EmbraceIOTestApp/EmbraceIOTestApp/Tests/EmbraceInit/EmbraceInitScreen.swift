@@ -5,9 +5,9 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceCrash
 import EmbraceIO
 import EmbraceKSCrashBacktraceSupport
-import EmbraceKSCrashSupport
 import EmbraceObjCUtilsInternal
 import SwiftUI
 

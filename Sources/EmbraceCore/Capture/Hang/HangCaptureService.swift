@@ -20,7 +20,7 @@ public final class HangCaptureService: CaptureService {
     ) {
         dispatchPrecondition(condition: .onQueue(.main))
         self.mainThread = pthread_self()
-        self.limitData = EmbraceMutex(LimitData(limits: limits))
+        self.limitData = EmbraceMutex(MutableLimitData(limits: limits))
         super.init()
     }
 
@@ -52,16 +52,16 @@ public final class HangCaptureService: CaptureService {
 
     private var mainThread: pthread_t
     private var watchdog: HangWatchdog?
-    private let queue = DispatchQueue(label: "io.embrace.hang.service")
 
-    private var span: EmbraceSpan?
-
-    struct LimitData {
+    struct MutableLimitData {
         var limits: HangLimits = HangLimits()
         var hangsInSessionCount: UInt = 0
         var samplesInHangCount: UInt = 0
     }
-    var limitData: EmbraceMutex<LimitData>
+    let limitData: EmbraceMutex<MutableLimitData>
+
+    private let spanQueue = DispatchQueue(label: "io.embrace.hang.service")
+    private var span: EmbraceSpan?
 
     public var limits: HangLimits {
         get {
@@ -83,21 +83,20 @@ extension HangCaptureService: HangObserver {
         logger?.debug("[Watchdog] Hang started, at \(at.date) after waiting \(duration.uptime.milliseconds) ms")
 
         // Keep tabs on how many hang spans we've created
-        guard
-            limitData.withLock({
-                $0.samplesInHangCount = 0
-                $0.hangsInSessionCount += 1
-                return $0.hangsInSessionCount <= $0.limits.hangPerSession
-            })
-        else {
-            let limitData = self.limitData.withLock { $0 }
+        let sampleInfo = limitData.withLock {
+            $0.samplesInHangCount = 0
+            $0.hangsInSessionCount += 1
+            return (canStart: $0.hangsInSessionCount <= $0.limits.hangPerSession, canSample: $0.samplesInHangCount <= $0.limits.samplesPerHang)
+        }
+        guard sampleInfo.canStart else {
+            let limitData = limitData.withLock { $0 }
             logger?.warning(
                 "[Watchdog] Dropping hang due to surpassing limit, \(limitData.hangsInSessionCount) of \(limitData.limits.hangPerSession)")
             return
         }
 
         // build the span
-        queue.async { [self] in
+        spanQueue.async { [self] in
             do {
                 span = try otel?.createInternalSpan(
                     name: SpanSemantics.ThreadBlockage.name,
@@ -112,6 +111,15 @@ extension HangCaptureService: HangObserver {
             } catch {
                 logger?.warning("[Watchdog] failed to create emb-thread-blockage span.")
             }
+
+            // Capture the stack now
+            let pre = NanosecondClock.current
+            let backtrace = EmbraceBacktrace.backtrace(of: mainThread, suspendingThreads: true)
+            let post = NanosecondClock.current
+
+            if sampleInfo.canSample {
+                addSamplingSpanEvent(time: at.date, backtrace: backtrace, overhead: Int(post.monotonic - pre.monotonic))
+            }
         }
     }
 
@@ -121,56 +129,80 @@ extension HangCaptureService: HangObserver {
         guard
             limitData.withLock({
                 $0.samplesInHangCount += 1
-                return $0.samplesInHangCount <= $0.limits.samplesPerHang
+                return $0.hangsInSessionCount <= $0.limits.hangPerSession && $0.samplesInHangCount <= $0.limits.samplesPerHang
             })
         else {
             return
         }
 
-        // Are we over the limit or don't have a span for some reason?
-        guard let span else {
-            return
-        }
-
         // Capture the stack now
         let pre = NanosecondClock.current
-        // TODO: Implement stacktrace collection here. Currently, frames is empty and stacktraces are not captured.
-        let frames: [String] = []
+        let backtrace = EmbraceBacktrace.backtrace(of: mainThread, suspendingThreads: true)
         let post = NanosecondClock.current
 
         // process it later
-        queue.async { [self] in
-            do {
-                let stackString = frames.joined()
-                try span.addEvent(
-                    name: SpanEventSemantics.ThreadBlockage.name,
-                    type: .threadBlockage,
-                    timestamp: at.date,
-                    attributes: [
-                        SpanEventSemantics.ThreadBlockage.keySampleOverhead: String(post.monotonic - pre.monotonic),
-                        SpanEventSemantics.ThreadBlockage.keyFrameCount: String(frames.count),
-                        SpanEventSemantics.ThreadBlockage.keyThreadState: SpanEventSemantics.ThreadBlockage.blockedThreadState,
-                        SpanEventSemantics.ThreadBlockage.keySampleCode: "0",
-                        SpanEventSemantics.ThreadBlockage.keyStacktrace: stackString
-                    ]
-                )
-            } catch {
-                logger?.warning("[Watchdog] failed to create emb-thread-blockage event.")
-            }
+        spanQueue.async { [self] in
+            addSamplingSpanEvent(time: at.date, backtrace: backtrace, overhead: Int(post.monotonic - pre.monotonic))
         }
     }
 
     public func hangEnded(at: NanosecondClock, duration: NanosecondClock) {
         logger?.debug("[Watchdog] Hang ended at \(at.date) after \(duration.uptime.milliseconds) ms")
 
-        // Are we over the limit or don't have a span for some reason?
+        spanQueue.async { [self] in
+            span?.end(endTime: at.date)
+            span = nil
+        }
+    }
+
+    private func addSamplingSpanEvent(time: Date, backtrace: EmbraceBacktrace, overhead: Int) {
+
+        dispatchPrecondition(condition: .onQueue(spanQueue))
+
         guard let span else {
             return
         }
 
-        queue.async {
-            span.end(endTime: at.date)
-            self.span = nil
+        let stack = processBacktrace(backtrace)
+        guard stack.frameCount > 0 else {
+            return
         }
+
+        try? span.addEvent(
+            name: SpanEventSemantics.ThreadBlockage.name,
+            type: .threadBlockage,
+            timestamp: time,
+            attributes: [
+                SpanEventSemantics.ThreadBlockage.keySampleOverhead: String(overhead),
+                SpanEventSemantics.ThreadBlockage.keyFrameCount: String(stack.frameCount),
+                SpanEventSemantics.ThreadBlockage.keyStacktrace: stack.stackString
+            ]
+        )
+    }
+
+    private func processBacktrace(_ backtrace: EmbraceBacktrace) -> (frameCount: Int, stackString: String) {
+
+        dispatchPrecondition(condition: .onQueue(spanQueue))
+
+        let frames: [[String: Any]]
+        if let thread = backtrace.threads.first {
+            frames = thread.frames(symbolicated: true).compactMap { $0.asProcessedFrame() }
+        } else {
+            frames = []
+        }
+
+        let frameCount: Int
+        let stackString: String
+        do {
+            let jsonData = try JSONSerialization.data(withJSONObject: frames, options: [])
+            stackString = jsonData.base64EncodedString()
+            frameCount = frames.count
+        } catch let exception {
+            stackString = ""
+            frameCount = 0
+            Embrace.logger.error("Couldn't convert stack trace to json string: \(exception.localizedDescription)")
+        }
+
+        return (frameCount, stackString)
     }
 }

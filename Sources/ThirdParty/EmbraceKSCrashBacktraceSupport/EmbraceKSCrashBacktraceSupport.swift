@@ -33,10 +33,10 @@ public class KSCrashBacktracing: Backtracer, Symbolicator {
         return addresses
     }
 
-    public func symbolicate(address: UInt) -> SymbolicatedFrame? {
+    public func resolve(address: UInt) -> SymbolicatedFrame? {
 
         var result = SymbolInformation()
-        guard KSCrashRecordingCore.symbolicate(address: UInt(address), result: &result) else {
+        guard symbolicate(address: UInt(address), result: &result) else {
             return nil
         }
 
