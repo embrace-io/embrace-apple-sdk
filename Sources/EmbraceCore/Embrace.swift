@@ -286,12 +286,8 @@ import Foundation
 
         EMBStartupTracker.shared().sdkStartStartTime = Date()
 
-        if EMBStartupTracker.shared().appDidFinishLaunchingEndTime != nil {
-            Embrace.logger.error("Embrace SDK can't start after didFinishLaunching if you want startup instrumentation to work.")
-        }
-
-        if EMBStartupTracker.shared().appFirstDidBecomeActiveTime != nil {
-            Embrace.logger.error("Embrace SDK can't start after the first didBecomeActive if you want startup instrumentation to work.")
+        if EMBStartupTracker.shared().appDidFinishLaunchingEndTime != nil || EMBStartupTracker.shared().appFirstDidBecomeActiveTime != nil {
+            Embrace.logger.error("Embrace SDK should be started before the app is launched and becomes active. This is required for the startup instrumentation to work.")
         }
 
         // must be called on main thread in order to fetch the app state
