@@ -13,7 +13,6 @@
         import EmbraceConfiguration
     #endif
 
-    @objc(EMBViewCaptureService)
     public final class ViewCaptureService: CaptureService, UIViewControllerHandlerDataSource {
         public let options: ViewCaptureService.Options
         private let handler: UIViewControllerHandler
@@ -32,12 +31,8 @@
 
         var blockList = EmbraceMutex(ViewControllerBlockList())
 
-        @objc public convenience init(options: ViewCaptureService.Options) {
+        public convenience init(options: ViewCaptureService.Options = ViewCaptureService.Options()) {
             self.init(options: options, lock: NSLock())
-        }
-
-        public convenience override init() {
-            self.init(lock: NSLock())
         }
 
         init(
@@ -61,7 +56,7 @@
             updateBlockList(config: Embrace.client?.config.configurable)
         }
 
-        @objc public override func onConfigUpdated(_ config: EmbraceConfigurable) {
+        public override func onConfigUpdated(_ config: EmbraceConfigurable) {
             updateBlockList(config: config)
         }
 

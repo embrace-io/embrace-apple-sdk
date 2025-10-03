@@ -4,25 +4,25 @@
 
 import Foundation
 
-@objc public protocol InternalLogger: AnyObject {
-    @discardableResult @objc func trace(_ message: String, attributes: [String: String]) -> Bool
-    @discardableResult @objc func trace(_ message: String) -> Bool
+public protocol InternalLogger: AnyObject {
+    @discardableResult func trace(_ message: String, attributes: [String: String]) -> Bool
+    @discardableResult func trace(_ message: String) -> Bool
 
-    @discardableResult @objc func debug(_ message: String, attributes: [String: String]) -> Bool
-    @discardableResult @objc func debug(_ message: String) -> Bool
+    @discardableResult func debug(_ message: String, attributes: [String: String]) -> Bool
+    @discardableResult func debug(_ message: String) -> Bool
 
-    @discardableResult @objc func info(_ message: String, attributes: [String: String]) -> Bool
-    @discardableResult @objc func info(_ message: String) -> Bool
+    @discardableResult func info(_ message: String, attributes: [String: String]) -> Bool
+    @discardableResult func info(_ message: String) -> Bool
 
-    @discardableResult @objc func warning(_ message: String, attributes: [String: String]) -> Bool
-    @discardableResult @objc func warning(_ message: String) -> Bool
+    @discardableResult func warning(_ message: String, attributes: [String: String]) -> Bool
+    @discardableResult func warning(_ message: String) -> Bool
 
-    @discardableResult @objc func error(_ message: String, attributes: [String: String]) -> Bool
-    @discardableResult @objc func error(_ message: String) -> Bool
+    @discardableResult func error(_ message: String, attributes: [String: String]) -> Bool
+    @discardableResult func error(_ message: String) -> Bool
 
-    @discardableResult @objc func startup(_ message: String, attributes: [String: String]) -> Bool
-    @discardableResult @objc func startup(_ message: String) -> Bool
+    @discardableResult func startup(_ message: String, attributes: [String: String]) -> Bool
+    @discardableResult func startup(_ message: String) -> Bool
 
-    @discardableResult @objc func critical(_ message: String, attributes: [String: String]) -> Bool
-    @discardableResult @objc func critical(_ message: String) -> Bool
+    @discardableResult func critical(_ message: String, attributes: [String: String]) -> Bool
+    @discardableResult func critical(_ message: String) -> Bool
 }

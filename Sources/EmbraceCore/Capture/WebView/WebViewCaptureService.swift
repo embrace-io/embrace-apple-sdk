@@ -13,27 +13,18 @@
     #endif
 
     /// Service that generates OpenTelemetry span events when a `WKWebView` loads an URL or throws an error.
-    @objc(EMBWebViewCaptureService)
     public final class WebViewCaptureService: CaptureService {
 
-        @objc public let options: WebViewCaptureService.Options
+        public let options: WebViewCaptureService.Options
         private static let knownBadProxies = [
             "SafeDKWKNavigationDelegateInterceptor"
         ]
         private let lock: NSLocking
         private var swizzlers: [any Swizzlable] = []
 
-        @objc public convenience init(options: WebViewCaptureService.Options) {
-            self.init(options: options, lock: NSLock())
-        }
-
-        public convenience override init() {
-            self.init(lock: NSLock())
-        }
-
-        init(
+        public init(
             options: WebViewCaptureService.Options = WebViewCaptureService.Options(),
-            lock: NSLocking
+            lock: NSLocking = NSLock()
         ) {
             self.options = options
             self.lock = lock

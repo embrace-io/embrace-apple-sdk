@@ -10,8 +10,7 @@ import Foundation
     import EmbraceObjCUtilsInternal
 #endif
 
-@objc(EMBStartupInstrumentation)
-public class StartupInstrumentation: NSObject {
+public final class StartupInstrumentation {
 
     var provider: StartupDataProvider
     var otel: EmbraceOTelSignalsHandler?
@@ -25,8 +24,6 @@ public class StartupInstrumentation: NSObject {
     init(provider: StartupDataProvider = DefaultStartupDataProvider()) {
         self.provider = provider
         self.state = EmbraceMutex(MutableState())
-
-        super.init()
 
         self.provider.onFirstFrameTimeSet = { [weak self] date in
             self?.endSpans(date)

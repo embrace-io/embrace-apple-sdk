@@ -5,7 +5,7 @@
 import Foundation
 
 /// Represents an OTel span signal.
-@objc public protocol EmbraceSpan {
+public protocol EmbraceSpan {
 
     /// Name of the span
     var name: String { get }

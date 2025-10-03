@@ -11,7 +11,6 @@
 
     /// Service that generates OpenTelemetry span events for taps on the screen.
     /// Note that any taps done on a keyboard view will be automatically ignored.
-    @objc(EMBTapCaptureService)
     public final class TapCaptureService: CaptureService {
 
         public let options: TapCaptureService.Options
@@ -19,11 +18,10 @@
         private var swizzler: UIWindowSendEventSwizzler?
         private let lock: NSLocking
 
-        @objc public convenience init(options: TapCaptureService.Options = TapCaptureService.Options()) {
-            self.init(options: options, lock: NSLock())
-        }
-
-        init(options: TapCaptureService.Options, lock: NSLock) {
+        public init(
+            options: TapCaptureService.Options = TapCaptureService.Options(),
+            lock: NSLock = NSLock()
+        ) {
             self.options = options
             self.lock = lock
         }

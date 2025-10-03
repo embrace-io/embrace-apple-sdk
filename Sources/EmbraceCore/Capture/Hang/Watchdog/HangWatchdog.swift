@@ -14,7 +14,7 @@ import Foundation
 /// - hangStarted: Called when a hang is first detected on a background queue.
 /// - hangUpdated: Called periodically while a hang persists on a background queue.
 /// - hangEnded: Called when the hang ends on the hung thread.
-public protocol HangObserver: AnyObject {
+protocol HangObserver: AnyObject {
     func hangStarted(at: NanosecondClock, duration: NanosecondClock)
     func hangUpdated(at: NanosecondClock, duration: NanosecondClock)
     func hangEnded(at: NanosecondClock, duration: NanosecondClock)
@@ -24,31 +24,31 @@ public protocol HangObserver: AnyObject {
 /// Use this class to monitor app responsiveness by receiving callbacks when
 /// the monitored RunLoop is blocked beyond acceptable durations.
 /// Initialize as early as possible during app launch to start monitoring.
-final public class HangWatchdog {
+final class HangWatchdog {
 
     /// Default hang threshold defined by Apple (0.25 seconds).
-    public static let defaultAppleHangThreshold: TimeInterval = 0.249
+    static let defaultAppleHangThreshold: TimeInterval = 0.249
 
     /// The interval, in seconds, that the monitored RunLoop must be blocked
     /// before it is considered a hang.
     /// Default is 0.25 seconds (250 milliseconds).
-    public let threshold: TimeInterval
+    let threshold: TimeInterval
 
     /// The HangObserver instance that receives callbacks for hang start,
     /// hang update, and hang end events.
-    public weak var hangObserver: HangObserver? {
+    weak var hangObserver: HangObserver? {
         set { hangData.withLock { $0.hangObserver = newValue } }
         get { hangData.withLock { $0.hangObserver } }
     }
 
     /// Returns true if we're currently in a hang.
-    public var inHang: Bool {
+    var inHang: Bool {
         hangData.withLock { $0.hanging }
     }
 
     /// The time in nanoseconds since the start of the hang.
     /// 0 if not in a hang.
-    public var timeSinceHangStart: NanosecondClock? {
+    var timeSinceHangStart: NanosecondClock? {
         hangData.withLock {
             guard $0.hanging else {
                 return nil
@@ -61,7 +61,7 @@ final public class HangWatchdog {
     /// - Parameters:
     ///   - threshold: The hang threshold in seconds.
     ///   - runLoop: The RunLoop to monitor for hangs.
-    public init(
+    init(
         threshold: TimeInterval = HangWatchdog.defaultAppleHangThreshold,
         runLoop: RunLoop = .main
     ) {
@@ -303,15 +303,15 @@ extension HangWatchdog {
             CFRunLoopAddTimer(watchdogRunLoop?.getCFRunLoop(), timer, .commonModes)
         }
     }
-}
 
-// MARK: - Private Helpers
+    // MARK: - Private Helpers
 
-/// Ensures that the provided RunLoop matches the current thread’s RunLoop.
-/// - Parameter runloop: The RunLoop expected to be current.
-public func runLoopPrecondition(runloop: @autoclosure () -> RunLoop) {
-    precondition(
-        {
-            runloop() == RunLoop.current
-        }())
+    /// Ensures that the provided RunLoop matches the current thread’s RunLoop.
+    /// - Parameter runloop: The RunLoop expected to be current.
+    func runLoopPrecondition(runloop: @autoclosure () -> RunLoop) {
+        precondition(
+            {
+                runloop() == RunLoop.current
+            }())
+    }
 }

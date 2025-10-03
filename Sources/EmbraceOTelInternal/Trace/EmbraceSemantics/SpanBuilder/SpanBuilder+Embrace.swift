@@ -19,12 +19,6 @@ extension SpanBuilder {
         setAttribute(key: SpanSemantics.keyIsPrivateSpan, value: "true")
     }
 
-    @available(*, deprecated, message: "The concept of key spans is no longer supported")
-    @discardableResult public func markAsKeySpan() -> Self {
-        // TODO: Remove in next major version
-        return self
-    }
-
     @discardableResult public func error(errorCode: EmbraceSpanErrorCode) -> Self {
         setAttribute(key: SpanSemantics.keyErrorCode, value: errorCode.name)
     }

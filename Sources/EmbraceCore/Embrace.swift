@@ -28,45 +28,39 @@ import Foundation
 /// try Embrace.setup(options: options)
 /// try Embrace.client?.start()
 /// ```
-@objc public class Embrace: NSObject {
+public class Embrace {
 
     /**
      Returns the current `Embrace` client.
     
      This will be `nil` until the `setup` method is called, or if the setup process fails.
      */
-    @objc public internal(set) static var client: Embrace?
+    public internal(set) static var client: Embrace?
 
     /// The `Embrace.Options` that were used to configure the SDK.
-    @objc public private(set) var options: Embrace.Options
+    public private(set) var options: Embrace.Options
 
     /// Returns the current state of the SDK.
-    @objc public private(set) var state: EmbraceSDKState = .notInitialized
-
-    /// Returns whether the SDK was started.
-    @available(*, deprecated, message: "Use `state` instead.")
-    @objc public var started: Bool {
-        return state == .started
-    }
+    public private(set) var state: EmbraceSDKState = .notInitialized
 
     /// Returns the `DeviceIdentifier` used by Embrace for the current device.
     public private(set) var deviceId: EmbraceIdentifier
 
     /// Used to control the verbosity level of the Embrace SDK console logs.
-    @objc public var logLevel: LogLevel = .error {
+    public var logLevel: LogLevel = .error {
         didSet {
             Embrace.logger.level = logLevel
         }
     }
 
     /// Returns true if the SDK is started and was not disabled through remote configurations.
-    @objc public var isSDKEnabled: Bool {
+    public var isSDKEnabled: Bool {
         let remoteConfigEnabled = config.isSDKEnabled
         return state == .started && remoteConfigEnabled
     }
 
     /// Returns the version of the Embrace SDK.
-    @objc public class var sdkVersion: String {
+    public class var sdkVersion: String {
         return EmbraceMeta.sdkVersion
     }
 
@@ -74,10 +68,10 @@ import Foundation
     public let otel: DefaultOTelSignalsHandler
 
     /// Returns the current `MetadataHandler` used to store resources and session properties.
-    @objc public let metadata: MetadataHandler
+    public let metadata: MetadataHandler
 
     /// Returns the current `StartupInstrumentation` used to instrument the app startup process.
-    @objc public let startupInstrumentation: StartupInstrumentation
+    public let startupInstrumentation: StartupInstrumentation
 
     let metricKit: MetricKitHandler
 
@@ -112,7 +106,7 @@ import Foundation
     /// - Note: This method won't do anything if the Embrace SDK was already setup.
     /// - Returns: The `Embrace` client instance.
     @discardableResult
-    @objc public static func setup(options: Embrace.Options) throws -> Embrace {
+    public static func setup(options: Embrace.Options) throws -> Embrace {
         if !Thread.isMainThread {
             throw EmbraceSetupError.invalidThread("Embrace must be setup on the main thread")
         }
@@ -143,10 +137,6 @@ import Foundation
                 throw EmbraceSetupError.unableToInitialize("Unable to initialize Embrace.client")
             }
         }
-    }
-
-    private override init() {
-        fatalError("Use init(options:) instead")
     }
 
     deinit {
@@ -216,8 +206,6 @@ import Foundation
         // initialize startup instrumentation
         self.startupInstrumentation = StartupInstrumentation()
 
-        super.init()
-
         // metrick kit
         captureServices.addMetricKitServices(
             payloadProvider: metricKit,
@@ -257,7 +245,7 @@ import Foundation
     /// - Note: This method won't do anything if the Embrace SDK was already started or if it was disabled via the remote configurations.
     /// - Returns: The `Embrace` client instance.
     @discardableResult
-    @objc public func start() throws -> Embrace {
+    public func start() throws -> Embrace {
         guard Thread.isMainThread else {
             throw EmbraceSetupError.invalidThread("Embrace must be started on the main thread")
         }
@@ -341,7 +329,7 @@ import Foundation
     /// - Note: The SDK can't be started again once stopped.
     /// - Returns: The `Embrace` client instance.
     @discardableResult
-    @objc public func stop() throws -> Embrace {
+    public func stop() throws -> Embrace {
         guard Thread.isMainThread else {
             throw EmbraceSetupError.invalidThread("Embrace must be stopped on the main thread")
         }
@@ -371,7 +359,7 @@ import Foundation
     }
 
     /// Returns the current session identifier, if any.
-    @objc public func currentSessionId() -> String? {
+    public func currentSessionId() -> String? {
         guard isSDKEnabled else {
             return nil
         }
@@ -380,14 +368,14 @@ import Foundation
     }
 
     /// Returns the current device identifier.
-    @objc public func currentDeviceId() -> String? {
+    public func currentDeviceId() -> String? {
         return deviceId.stringValue
     }
 
     /// Forces the Embrace SDK to start a new session.
     /// - Note: If there was a session running, it will be ended before starting a new one.
     /// - Note: This method won't do anything if the SDK is stopped.
-    @objc public func startNewSession() {
+    public func startNewSession() {
         guard isSDKEnabled else {
             return
         }
@@ -399,7 +387,7 @@ import Foundation
 
     /// Forces the Embrace SDK to stop the current session, if any.
     /// - Note: This method won't do anything if the SDK is stopped.
-    @objc public func endCurrentSession() {
+    public func endCurrentSession() {
         guard isSDKEnabled else {
             return
         }
@@ -410,7 +398,7 @@ import Foundation
     }
 
     /// Call this if you want the Embrace SDK to clear the upload cache data on the next launch.
-    @objc public func resetUploadCache() {
+    public func resetUploadCache() {
         Embrace.resetUploadCache = true
     }
 

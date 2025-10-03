@@ -11,8 +11,7 @@ import Foundation
     import KSCrash
 #endif
 
-@objc(KSCrashReporter)
-public final class KSCrashReporter: NSObject, CrashReporter {
+public final class KSCrashReporter: CrashReporter {
 
     private struct KSCrashKey {
         static let user = "user"
@@ -26,9 +25,8 @@ public final class KSCrashReporter: NSObject, CrashReporter {
 
     private let reporter: KSCrash = KSCrash.shared
 
-    public override init() {
+    public init() {
         reporter.userInfo = [:]
-        super.init()
     }
 
     // this is the path that contains `/Reports`.

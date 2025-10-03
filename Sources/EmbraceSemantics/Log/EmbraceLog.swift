@@ -5,7 +5,7 @@
 import Foundation
 
 /// Represents an OTel log signal.
-@objc public protocol EmbraceLog {
+public protocol EmbraceLog {
 
     /// Identifier for the log
     var id: String { get }

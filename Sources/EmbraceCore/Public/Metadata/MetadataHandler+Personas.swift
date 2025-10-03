@@ -12,26 +12,6 @@ import Foundation
 
 extension MetadataHandler {
 
-    /// Retrieve the current set of persona tags.
-    ///
-    /// - Important: We strongly advise against calling this method from the main thread,
-    /// as it may block the UI. Use `getCurrentPersonas(completion:)` instead.
-    @available(*, deprecated, message: "Use `getCurrentPersonas(completion:)` instead.")
-    public var currentPersonas: [PersonaTag] {
-        guard let storage = storage else {
-            return []
-        }
-
-        var records: [EmbraceMetadata] = []
-        if let sessionId = sessionController?.currentSession?.id {
-            records = storage.fetchPersonaTagsForSessionId(sessionId)
-        } else {
-            records = storage.fetchPersonaTagsForProcessId(ProcessIdentifier.current)
-        }
-
-        return records.map { PersonaTag($0.key) }
-    }
-
     /// Fetch the current set of persona tags.
     ///
     /// - Parameter completion: A closure that receives the list of persona tags.
@@ -101,26 +81,14 @@ extension MetadataHandler {
     ///
     /// - Note: This method is for Objective-C compatibility. In Swift, it is
     /// recommended to use ``PersonaTag`` and define custom persona tags as static properties.
-    @objc public func add(persona: String, lifespan: MetadataLifespan = .session) throws {
+    public func add(persona: String, lifespan: MetadataLifespan = .session) throws {
         try add(persona: PersonaTag(persona), lifespan: lifespan)
-    }
-
-    /// Retrieve the current set of persona tags as strings.
-    ///
-    /// - Note: This method is for Objective-C compatibility. In Swift, it is
-    ///         recommended to use the `currentPersonaTags` property.
-    ///
-    /// - Important: We strongly advise against calling this method from the main thread,
-    /// as it may block the UI. Use `fetchCurrentPersonas(completion:)` instead.
-    @available(*, deprecated, message: "Use `getCurrentPersonas(completion:)` instead.")
-    @objc public func getCurrentPersonas() -> [String] {
-        currentPersonas.map(\.rawValue)
     }
 
     /// Asynchronously retrieve the current set of persona tags as strings.
     ///
     /// - Note: This method is for Objective-C compatibility. In Swift, there's an equivalent using the `PersonaTag` enum
-    @objc public func getCurrentPersonas(completion: @escaping ([String]) -> Void) {
+    public func getCurrentPersonas(completion: @escaping ([String]) -> Void) {
         getCurrentPersonas { personaTags in
             completion(personaTags.map(\.rawValue))
         }

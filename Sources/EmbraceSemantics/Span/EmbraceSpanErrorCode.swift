@@ -3,7 +3,7 @@
 //
 
 /// Embrace specific error status for spans
-@objc public enum EmbraceSpanErrorCode: Int {
+public enum EmbraceSpanErrorCode: Int {
     /// Span ended in an expected, but less than optimal state
     case failure = 1
 

@@ -5,7 +5,7 @@
 import Foundation
 
 /// Used to determine the end state of the previous app run.
-@objc public enum LastRunEndState: Int {
+public enum LastRunEndState: Int {
     /// Last end state can't be determined
     case unavailable
 

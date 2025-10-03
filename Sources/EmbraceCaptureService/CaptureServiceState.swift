@@ -5,7 +5,7 @@
 import Foundation
 
 /// The state of a `CaptureService`
-@objc public enum CaptureServiceState: Int {
+public enum CaptureServiceState: Int {
     /// Indicates that the service has not been installed yet.
     case uninstalled
 

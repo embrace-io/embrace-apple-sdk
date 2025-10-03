@@ -11,8 +11,7 @@ import Foundation
 #endif
 
 /// Service that generates OpenTelemetry spans when the phone is running in low power mode.
-@objc(EMBLowPowerModeCaptureService)
-public class LowPowerModeCaptureService: CaptureService {
+public final class LowPowerModeCaptureService: CaptureService {
     public let provider: PowerModeProvider
 
     @ThreadSafe var wasLowPowerModeEnabled = false
