@@ -1,31 +1,13 @@
 {
-  "originHash" : "b688f832dc9d0767b0ef971fde8d54a70d0c2cdd65d868f1c2e0949c2b054537",
+  "originHash" : "30bf3f1af4d312afac34bcff9ba35cc3f452c81988789fae8ce52c8747bfec81",
   "pins" : [
     {
       "identity" : "kscrash",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/kstenerud/KSCrash",
       "state" : {
-        "revision" : "4a8b8e2155449fd2ffdb61f6b534db9f0655dbb5",
-        "version" : "2.3.0"
-      }
-    },
-    {
-      "identity" : "opentelemetry-swift-core",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/open-telemetry/opentelemetry-swift-core",
-      "state" : {
-        "revision" : "6aebc7734e154cd221ea9fb76bd4f611262be962",
-        "version" : "2.1.1"
-      }
-    },
-    {
-      "identity" : "swift-atomics",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-atomics.git",
-      "state" : {
-        "revision" : "b601256eab081c0f92f059e12818ac1d4f178ff7",
-        "version" : "1.3.0"
+        "revision" : "f7675440853aa7a6dc4e1606fdb2e3423e6f1757",
+        "version" : "2.4.0"
       }
     },
     {
