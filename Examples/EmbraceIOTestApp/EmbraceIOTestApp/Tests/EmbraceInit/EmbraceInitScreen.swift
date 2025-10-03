@@ -94,6 +94,12 @@ extension EmbraceInitScreen {
 
         self.dataCollector.networkSpy?.simulateEmbraceAPI = viewModel.simulateEmbraceAPI
         do {
+
+            // At this point we're way past early notifications,
+            // so let's reset them, then call them so testing works correctly.
+            EMBStartupTracker.shared().resetLifecycleNotifications()
+
+            // Now run the code we'd usually have  during startup
             viewModel.showProgressview = true
             let services = CaptureServiceBuilder()
                 .addDefaults()
@@ -113,9 +119,15 @@ extension EmbraceInitScreen {
                             backtracer: KSCrashBacktracing())
                 ).start()
             viewModel.showProgressview = false
+
+            // And now fake normal lifecycle notifications so startup instrumentation works.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 NotificationCenter.default.post(
-                    name: NSNotification.Name("UIApplicationDidFinishLaunchingNotification"), object: nil)
+                    name: UIApplication.didFinishLaunchingNotification, object: nil)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    NotificationCenter.default.post(
+                        name: UIApplication.didBecomeActiveNotification, object: nil)
+                }
             }
         } catch let e {
             viewModel.showProgressview = false
