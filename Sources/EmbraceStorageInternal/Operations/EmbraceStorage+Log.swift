@@ -9,63 +9,23 @@ import Foundation
 #endif
 
 public protocol LogRepository {
-    func createLog(
-        id: EmbraceIdentifier,
-        sessionId: EmbraceIdentifier?,
-        processId: EmbraceIdentifier,
-        severity: EmbraceLogSeverity,
-        type: EmbraceType,
-        body: String,
-        timestamp: Date,
-        attributes: [String: String]
-    ) -> EmbraceLog?
-    func fetchAll(excludingProcessIdentifier processIdentifier: EmbraceIdentifier) -> [EmbraceLog]
+    func saveLog(_ log: EmbraceLog)
+    func fetchAllLogs(excludingProcessIdentifier processIdentifier: EmbraceIdentifier?) -> [EmbraceLog]
     func remove(logs: [EmbraceLog])
-    func removeAllLogs()
 }
 
 extension EmbraceStorage {
 
-    @discardableResult
-    public func createLog(
-        id: EmbraceIdentifier,
-        sessionId: EmbraceIdentifier?,
-        processId: EmbraceIdentifier,
-        severity: EmbraceLogSeverity,
-        type: EmbraceType = .message,
-        body: String,
-        timestamp: Date = Date(),
-        attributes: [String: String]
-    ) -> EmbraceLog? {
-        if let log = LogRecord.create(
-            context: coreData.context,
-            id: id.stringValue,
-            sessionId: sessionId,
-            processId: processId,
-            severity: severity,
-            type: type,
-            body: body,
-            timestamp: timestamp,
-            attributes: attributes
-        ) {
-            coreData.save()
-            return log
+    public func saveLog(_ log: EmbraceLog) {
+        LogRecord.create(context: coreData.context, log: log)
+        coreData.save()
+    }
+
+    public func fetchAllLogs(excludingProcessIdentifier processIdentifier: EmbraceIdentifier? = nil) -> [EmbraceLog] {
+        let request = LogRecord.createFetchRequest()
+        if let processIdentifier {
+            request.predicate = NSPredicate(format: "processIdRaw != %@", processIdentifier.stringValue)
         }
-
-        return nil
-    }
-
-    func fetchLogRecord(id: String, processId: EmbraceIdentifier) -> LogRecord? {
-        let request = LogRecord.createFetchRequest()
-        request.predicate = NSPredicate(
-            format: "id == %@ AND processIdRaw == %@", id, processId.stringValue)
-
-        return coreData.fetch(withRequest: request).first
-    }
-
-    public func fetchAll(excludingProcessIdentifier processIdentifier: EmbraceIdentifier) -> [EmbraceLog] {
-        let request = LogRecord.createFetchRequest()
-        request.predicate = NSPredicate(format: "processIdRaw != %@", processIdentifier.stringValue)
 
         // fetch
         var result: [EmbraceLog] = []
@@ -80,20 +40,22 @@ extension EmbraceStorage {
         return result
     }
 
-    public func removeAllLogs() {
-        let records: [LogRecord] = fetchAll()
-        coreData.deleteRecords(records)
-    }
-
     public func remove(logs: [EmbraceLog]) {
-        var records: [LogRecord] = []
+
+        var predicates: [NSPredicate] = []
 
         for log in logs {
-            if let record = fetchLogRecord(id: log.id, processId: log.processId) {
-                records.append(record)
-            }
+            predicates.append(
+                NSPredicate(
+                    format: "id == %@ AND processIdRaw == %@",
+                    log.id,
+                    log.processId.stringValue
+                ))
         }
 
-        coreData.deleteRecords(records)
+        let request = LogRecord.createFetchRequest()
+        request.predicate = NSCompoundPredicate(orPredicateWithSubpredicates: predicates)
+
+        coreData.deleteRecords(withRequest: request)
     }
 }

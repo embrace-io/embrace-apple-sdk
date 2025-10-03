@@ -8,8 +8,6 @@ import XCTest
 @testable import EmbraceCommonInternal
 @testable import EmbraceCore
 
-// swiftlint:disable force_try
-
 class DataTaskWithURLAndCompletionSwizzlerTests: XCTestCase {
     private var session: URLSession!
     private var sut: DataTaskWithURLAndCompletionSwizzler!
@@ -152,5 +150,3 @@ extension DataTaskWithURLAndCompletionSwizzlerTests {
         XCTAssertNotNil(headers["x-emb-st"])
     }
 }
-
-// swiftlint:enable force_try

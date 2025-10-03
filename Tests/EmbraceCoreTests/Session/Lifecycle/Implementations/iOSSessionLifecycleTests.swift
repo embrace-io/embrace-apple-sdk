@@ -9,9 +9,7 @@ import XCTest
 
 #if os(iOS)
 
-    // swiftlint:disable type_name
     final class iOSSessionLifecycleTests: XCTestCase {
-        // swiftlint:enable type_name
 
         var mockController = MockSessionController()
         var lifecycle: iOSSessionLifecycle!

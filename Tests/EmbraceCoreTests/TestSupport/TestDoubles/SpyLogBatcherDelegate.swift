@@ -13,8 +13,4 @@ class SpyLogBatcherDelegate: LogBatcherDelegate {
     func batchFinished(withLogs logs: [EmbraceLog]) {
         didCallBatchFinished = true
     }
-
-    var limits = LogsLimits()
-
-    var currentSessionId: EmbraceIdentifier?
 }

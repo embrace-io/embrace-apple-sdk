@@ -92,7 +92,7 @@ class NetworkPayloadCaptureHandlerTests: XCTestCase {
 
     func test_processUnactive_validRequest() throws {
         // given a deactivated handler
-        let otel = MockEmbraceOpenTelemetry()
+        let otel = MockOTelSignalsHandler()
         let handler = DefaultNetworkPayloadCaptureHandler(otel: otel)
         handler.active = false
 
@@ -112,7 +112,7 @@ class NetworkPayloadCaptureHandlerTests: XCTestCase {
 
     func test_processActive_invalidRequest() throws {
         // given a handler with no rules
-        let otel = MockEmbraceOpenTelemetry()
+        let otel = MockOTelSignalsHandler()
         let handler = DefaultNetworkPayloadCaptureHandler(otel: otel)
         handler.active = true
 
@@ -132,7 +132,7 @@ class NetworkPayloadCaptureHandlerTests: XCTestCase {
 
     func test_processActive_requestWithNoRule() throws {
         // given a handler
-        let otel = MockEmbraceOpenTelemetry()
+        let otel = MockOTelSignalsHandler()
         let handler = DefaultNetworkPayloadCaptureHandler(otel: otel)
         handler.active = true
         handler.updateRules(rules)
@@ -156,7 +156,7 @@ class NetworkPayloadCaptureHandlerTests: XCTestCase {
 
     func test_processActive_requestWithRule() throws {
         // given a handler
-        let otel = MockEmbraceOpenTelemetry()
+        let otel = MockOTelSignalsHandler()
         let handler = DefaultNetworkPayloadCaptureHandler(otel: otel)
         handler.active = true
         handler.updateRules(rules)
@@ -179,12 +179,12 @@ class NetworkPayloadCaptureHandlerTests: XCTestCase {
 
         // then a log is generated
         XCTAssertEqual(otel.logs.count, 1)
-        XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string("sys.network_capture"))
-        XCTAssertEqual(otel.logs[0].attributes["url"], .string("www.test.com/user/1234"))
-        XCTAssertEqual(otel.logs[0].attributes["encryption-mechanism"], .string("hybrid"))
+        XCTAssertEqual(otel.logs[0].type, .networkCapture)
+        XCTAssertEqual(otel.logs[0].attributes["url"], "www.test.com/user/1234")
+        XCTAssertEqual(otel.logs[0].attributes["encryption-mechanism"], "hybrid")
         XCTAssertNotNil(otel.logs[0].attributes["encrypted-payload"])
-        XCTAssertEqual(otel.logs[0].attributes["payload-algorithm"], .string("aes-256-cbc"))
-        XCTAssertEqual(otel.logs[0].attributes["key-algorithm"], .string("RSA.PKCS1"))
+        XCTAssertEqual(otel.logs[0].attributes["payload-algorithm"], "aes-256-cbc")
+        XCTAssertEqual(otel.logs[0].attributes["key-algorithm"], "RSA.PKCS1")
         XCTAssertNotNil(otel.logs[0].attributes["encrypted-key"])
     }
 }

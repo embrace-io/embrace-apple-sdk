@@ -39,7 +39,7 @@ class MetricKitHangCaptureServiceTests: XCTestCase {
 
     func test_log() throws {
         // given a capture service
-        let otel = MockEmbraceOpenTelemetry()
+        let otel = MockOTelSignalsHandler()
         let provider = MockMetricKitPayloadProvider()
         let options = options(provider: provider)
         let service = MetricKitHangCaptureService(options: options)
@@ -54,21 +54,21 @@ class MetricKitHangCaptureServiceTests: XCTestCase {
         // then it creates the corresponding otel log
         let log = otel.logs[0]
         XCTAssertEqual(log.severity, .warn)
-        XCTAssertEqual(log.embType, .hang)
-        XCTAssertEqual(log.attributes["emb.state"], .string("unknown"))
+        XCTAssertEqual(log.type, .hang)
+        XCTAssertEqual(log.attributes["emb.state"], "unknown")
         XCTAssertNotNil(log.attributes["log.record.uid"])
-        XCTAssertEqual(log.attributes["emb.provider"], .string("metrickit"))
-        XCTAssertEqual(log.attributes["emb.payload"], .string("test"))
+        XCTAssertEqual(log.attributes["emb.provider"], "metrickit")
+        XCTAssertEqual(log.attributes["emb.payload"], "test")
         XCTAssertNotNil(log.attributes["emb.payload.timestamp"])
         XCTAssertEqual(
-            log.attributes["diagnostic.timestamp_start"], .string(String(startTime.nanosecondsSince1970Truncated)))
+            log.attributes["diagnostic.timestamp_start"], String(startTime.nanosecondsSince1970Truncated))
         XCTAssertEqual(
-            log.attributes["diagnostic.timestamp_end"], .string(String(endTime.nanosecondsSince1970Truncated)))
+            log.attributes["diagnostic.timestamp_end"], String(endTime.nanosecondsSince1970Truncated))
     }
 
     func test_not_started() throws {
         // given a capture service that is not started
-        let otel = MockEmbraceOpenTelemetry()
+        let otel = MockOTelSignalsHandler()
         let provider = MockMetricKitPayloadProvider()
         let options = options(provider: provider)
         let service = MetricKitHangCaptureService(options: options)
@@ -89,7 +89,7 @@ class MetricKitHangCaptureServiceTests: XCTestCase {
         stateProvider.isMetricKitEnabled = false
 
         // given a capture service
-        let otel = MockEmbraceOpenTelemetry()
+        let otel = MockOTelSignalsHandler()
         let provider = MockMetricKitPayloadProvider()
         let options = options(provider: provider, stateProvider: stateProvider)
         let service = MetricKitHangCaptureService(options: options)
@@ -112,7 +112,7 @@ class MetricKitHangCaptureServiceTests: XCTestCase {
         stateProvider.isMetricKitHangCaptureEnabled = false
 
         // given a capture service
-        let otel = MockEmbraceOpenTelemetry()
+        let otel = MockOTelSignalsHandler()
         let provider = MockMetricKitPayloadProvider()
         let options = options(provider: provider, stateProvider: stateProvider)
         let service = MetricKitHangCaptureService(options: options)

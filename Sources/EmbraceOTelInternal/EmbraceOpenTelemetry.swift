@@ -1,7 +1,7 @@
 //
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
-
+/*
 import Foundation
 import OpenTelemetryApi
 
@@ -38,7 +38,7 @@ public protocol EmbraceOpenTelemetry: AnyObject {
         severity: EmbraceLogSeverity,
         type: EmbraceType,
         attributes: [String: String],
-        stackTraceBehavior: StackTraceBehavior
+        stackTraceBehavior: EmbraceStackTraceBehavior
     )
 
     func log(
@@ -47,7 +47,7 @@ public protocol EmbraceOpenTelemetry: AnyObject {
         type: EmbraceType,
         timestamp: Date,
         attributes: [String: String],
-        stackTraceBehavior: StackTraceBehavior
+        stackTraceBehavior: EmbraceStackTraceBehavior
     )
 
     func log(
@@ -57,7 +57,7 @@ public protocol EmbraceOpenTelemetry: AnyObject {
         timestamp: Date,
         attachment: Data,
         attributes: [String: String],
-        stackTraceBehavior: StackTraceBehavior
+        stackTraceBehavior: EmbraceStackTraceBehavior
     )
 
     func log(
@@ -68,6 +68,7 @@ public protocol EmbraceOpenTelemetry: AnyObject {
         attachmentId: String,
         attachmentUrl: URL,
         attributes: [String: String],
-        stackTraceBehavior: StackTraceBehavior
+        stackTraceBehavior: EmbraceStackTraceBehavior
     )
 }
+*/

@@ -13,72 +13,23 @@ import Foundation
 extension EmbraceStorage {
 
     /// Adds or updates a span to the storage synchronously.
-    /// - Parameters:
-    ///   - id: Identifier of the span
-    ///   - name: name of the span
-    ///   - traceId: Identifier of the trace containing this span
-    ///   - type: SpanType of the span
-    ///   - data: Data of the span
-    ///   - startTime: Date of when the span started
-    ///   - endTime: Date of when the span ended (optional)
-    ///   - processId: Identifier of the process in which this span was created
-    ///   - sessionId: Identifier of the session containing this span (optional)
-    /// - Returns: The newly stored `SpanRecord`
-    public func upsertSpan(
-        id: String,
-        traceId: String,
-        parentSpanId: String? = nil,
-        name: String,
-        type: EmbraceType,
-        status: EmbraceSpanStatus = .unset,
-        startTime: Date,
-        endTime: Date? = nil,
-        sessionId: EmbraceIdentifier? = nil,
-        processId: EmbraceIdentifier = ProcessIdentifier.current,
-        events: [EmbraceSpanEvent] = [],
-        links: [EmbraceSpanLink] = [],
-        attributes: [String: String] = [:]
-    ) {
+    public func upsertSpan(_ span: EmbraceSpan, onlyUpdate: Bool = false) {
 
         // update existing?
-        if updateExistingSpan(
-            id: id,
-            traceId: traceId,
-            parentSpanId: parentSpanId,
-            name: name,
-            type: type,
-            status: status,
-            startTime: startTime,
-            endTime: endTime,
-            processId: processId,
-            sessionId: sessionId,
-            events: events,
-            links: links,
-            attributes: attributes
-        ) {
+        if updateExistingSpan(span) {
+            return
+        }
+
+        // check if we can add a new span
+        guard !onlyUpdate else {
             return
         }
 
         // make space if needed
-        removeOldSpanIfNeeded(forType: type)
+        removeOldSpanIfNeeded(forType: span.type)
 
         // add new
-        SpanRecord.create(
-            context: coreData.context,
-            id: id,
-            traceId: traceId,
-            parentSpanId: parentSpanId,
-            name: name,
-            type: type,
-            status: status,
-            startTime: startTime,
-            endTime: endTime,
-            sessionId: sessionId,
-            processId: processId,
-            events: events,
-            links: links,
-            attributes: attributes
-        )
+        SpanRecord.create(context: coreData.context, span: span)
         coreData.save()
     }
 
@@ -90,41 +41,28 @@ extension EmbraceStorage {
         return request
     }
 
-    func updateExistingSpan(
-        id: String,
-        traceId: String,
-        parentSpanId: String? = nil,
-        name: String,
-        type: EmbraceType,
-        status: EmbraceSpanStatus,
-        startTime: Date,
-        endTime: Date? = nil,
-        processId: EmbraceIdentifier = ProcessIdentifier.current,
-        sessionId: EmbraceIdentifier? = nil,
-        events: [EmbraceSpanEvent] = [],
-        links: [EmbraceSpanLink] = [],
-        attributes: [String: String] = [:]
-    ) -> Bool {
-        var result = false
+    func updateExistingSpan(_ span: EmbraceSpan) -> Bool {
 
-        let request = fetchSpanRequest(id: id, traceId: traceId)
-        coreData.fetchFirstAndPerform(withRequest: request) { span, context in
-            guard let span else { return }
+        var result = false
+        let request = fetchSpanRequest(id: span.context.spanId, traceId: span.context.traceId)
+
+        coreData.fetchFirstAndPerform(withRequest: request) { record, context in
+            guard let record else { return }
 
             // prevent modifications on closed spans!
-            if span.endTime == nil {
-                span.name = name
-                span.parentSpanId = parentSpanId
-                span.typeRaw = type.rawValue
-                span.statusRaw = status.rawValue
-                span.startTime = startTime
-                span.endTime = endTime
-                span.processIdRaw = processId.stringValue
-                span.sessionIdRaw = sessionId?.stringValue
-                span.attributes = attributes.keyValueEncoded()
+            if record.endTime == nil {
+                record.name = span.name
+                record.parentSpanId = span.parentSpanId
+                record.typeRaw = span.type.rawValue
+                record.statusRaw = span.status.rawValue
+                record.startTime = span.startTime
+                record.endTime = span.endTime
+                record.processIdRaw = span.processId.stringValue
+                record.sessionIdRaw = span.sessionId?.stringValue
+                record.attributes = span.attributes.keyValueEncoded()
 
-                self.updateEvents(span: span, events: events, context: context)
-                self.updateLinks(span: span, links: links, context: context)
+                self.updateEvents(span: record, events: span.events, context: context)
+                self.updateLinks(span: record, links: span.links, context: context)
 
                 coreData.save()
             }

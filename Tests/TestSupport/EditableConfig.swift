@@ -31,9 +31,9 @@ public class EditableConfig: EmbraceConfigurable {
 
     public var isMetricKitHangCaptureEnabled: Bool = false
 
-    public var spanEventsLimits = SpanEventsLimits()
+    public var spanEventTypeLimits = SpanEventTypeLimits()
 
-    public var logsLimits = LogsLimits()
+    public var logSeverityLimits = LogSeverityLimits()
 
     public var internalLogLimits = InternalLogLimits()
 

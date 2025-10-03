@@ -5,7 +5,7 @@
 import Foundation
 
 /// Represents an OTel span event
-@objc public class EmbraceSpanEvent: NSObject {
+@objc open class EmbraceSpanEvent: NSObject {
 
     /// Name of the event
     @objc public let name: String

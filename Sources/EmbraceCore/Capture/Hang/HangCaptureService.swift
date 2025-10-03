@@ -3,12 +3,10 @@
 //
 
 import Foundation
-import OpenTelemetryApi
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCaptureService
     import EmbraceCommonInternal
-    import EmbraceOTelInternal
     import EmbraceSemantics
     import EmbraceConfiguration
 #endif
@@ -41,7 +39,11 @@ public final class HangCaptureService: CaptureService {
 
     public override func onSessionWillEnd(_ session: any EmbraceSession) {
         let value = limitData.withLock { $0.hangsInSessionCount }
-        try? Embrace.client?.metadata.updateProperty(key: "emb-thread-blockage", value: "\(value)")
+
+        try? Embrace.client?.metadata.updateProperty(
+            key: SpanSemantics.ThreadBlockage.name,
+            value: "\(value)"
+        )
     }
 
     public override func onConfigUpdated(_ config: any EmbraceConfigurable) {
@@ -52,7 +54,7 @@ public final class HangCaptureService: CaptureService {
     private var watchdog: HangWatchdog?
     private let queue = DispatchQueue(label: "io.embrace.hang.service")
 
-    private var span: OpenTelemetryApi.Span?
+    private var span: EmbraceSpan?
 
     struct LimitData {
         var limits: HangLimits = HangLimits()
@@ -95,25 +97,21 @@ extension HangCaptureService: HangObserver {
         }
 
         // build the span
-        guard
-            let builder = buildSpan(
-                name: "emb-thread-blockage",
-                type: EmbraceType(primary: .performance, secondary: "thread_blockage"),
-                attributes: [:]
-            )
-        else {
-            logger?.warning("[Watchdog] failed to create emb-thread-blockage span.")
-            return
-        }
-
         queue.async { [self] in
-            span =
-                builder
-                .setStartTime(time: at.date)
-                .setAttribute(key: "last_known_time_unix_nano", value: .int(Int(at.realtime)))
-                .setAttribute(key: "interval_code", value: .int(0))
-                .setAttribute(key: "thread_priority", value: .int(0))
-                .startSpan()
+            do {
+                span = try otel?.createInternalSpan(
+                    name: SpanSemantics.ThreadBlockage.name,
+                    type: .threadBlockage,
+                    startTime: at.date,
+                    attributes: [
+                        SpanSemantics.ThreadBlockage.keyLastKnownTime: String(at.realtime),
+                        SpanSemantics.ThreadBlockage.keyIntervalCode: "0",
+                        SpanSemantics.ThreadBlockage.keyThreadPriority: "0"
+                    ]
+                )
+            } catch {
+                logger?.warning("[Watchdog] failed to create emb-thread-blockage span.")
+            }
         }
     }
 
@@ -141,21 +139,24 @@ extension HangCaptureService: HangObserver {
         let post = NanosecondClock.current
 
         // process it later
-        queue.async {
-
-            let stackString = frames.joined()
-
-            span.addEvent(
-                name: "perf.thread_blockage_sample",
-                attributes: [
-                    "sample_overhead": .int(Int(post.monotonic - pre.monotonic)),
-                    "frame_count": .int(frames.count),
-                    "thread_state": .string("BLOCKED"),
-                    "sample_code": .int(0),
-                    "stacktrace": .string(stackString)
-                ],
-                timestamp: at.date
-            )
+        queue.async { [self] in
+            do {
+                let stackString = frames.joined()
+                try span.addEvent(
+                    name: SpanEventSemantics.ThreadBlockage.name,
+                    type: .threadBlockage,
+                    timestamp: at.date,
+                    attributes: [
+                        SpanEventSemantics.ThreadBlockage.keySampleOverhead: String(post.monotonic - pre.monotonic),
+                        SpanEventSemantics.ThreadBlockage.keyFrameCount: String(frames.count),
+                        SpanEventSemantics.ThreadBlockage.keyThreadState: SpanEventSemantics.ThreadBlockage.blockedThreadState,
+                        SpanEventSemantics.ThreadBlockage.keySampleCode: "0",
+                        SpanEventSemantics.ThreadBlockage.keyStacktrace: stackString
+                    ]
+                )
+            } catch {
+                logger?.warning("[Watchdog] failed to create emb-thread-blockage event.")
+            }
         }
     }
 
@@ -168,7 +169,7 @@ extension HangCaptureService: HangObserver {
         }
 
         queue.async {
-            span.end(time: at.date)
+            span.end(endTime: at.date)
             self.span = nil
         }
     }

@@ -11,8 +11,6 @@ import XCTest
 
 @testable import EmbraceCore
 
-// swiftlint:disable force_cast
-
 final class MetadataHandlerTests: XCTestCase {
 
     var storage: EmbraceStorage!
@@ -417,5 +415,3 @@ final class MetadataHandlerTests: XCTestCase {
         XCTAssertEqual(metadata.count, 0)
     }
 }
-
-// swiftlint:enable force_cast

@@ -6,7 +6,6 @@ import EmbraceCommonInternal
 import EmbraceSemantics
 import EmbraceStorageInternal
 import Foundation
-import OpenTelemetryApi
 import TestSupport
 
 class RandomError: Error, CustomNSError {
@@ -69,34 +68,14 @@ class SpyStorage: Storage {
     }
 
     var didCallCreate = false
-    func createLog(
-        id: EmbraceIdentifier,
-        sessionId: EmbraceIdentifier?,
-        processId: EmbraceIdentifier,
-        severity: EmbraceLogSeverity,
-        type: EmbraceType,
-        body: String,
-        timestamp: Date,
-        attributes: [String: String]
-    ) -> EmbraceLog? {
+    func saveLog(_ log: EmbraceLog) {
         didCallCreate = true
-
-        return MockLog(
-            id: id.stringValue,
-            severity: severity,
-            type: type,
-            timestamp: timestamp,
-            body: body,
-            sessionId: sessionId,
-            processId: processId,
-            attributes: attributes
-        )
     }
 
     var didCallFetchAllExcludingProcessIdentifier = false
     var stubbedFetchAllExcludingProcessIdentifier: [EmbraceLog] = []
     var fetchAllExcludingProcessIdentifierReceivedParameter: EmbraceIdentifier!
-    func fetchAll(excludingProcessIdentifier processIdentifier: EmbraceIdentifier) -> [EmbraceLog] {
+    func fetchAllLogs(excludingProcessIdentifier processIdentifier: EmbraceIdentifier?) -> [EmbraceLog] {
         didCallFetchAllExcludingProcessIdentifier = true
         fetchAllExcludingProcessIdentifierReceivedParameter = processIdentifier
         return stubbedFetchAllExcludingProcessIdentifier
@@ -107,10 +86,5 @@ class SpyStorage: Storage {
     func remove(logs: [EmbraceLog]) {
         didCallRemoveLogs = true
         removeLogsReceivedParameter = logs
-    }
-
-    var didCallRemoveAllLogs = false
-    func removeAllLogs() {
-        didCallRemoveAllLogs = true
     }
 }

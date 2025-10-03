@@ -3,11 +3,8 @@
 //
 
 import Foundation
-import OpenTelemetryApi
-import OpenTelemetrySdk
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceOTelInternal
     import EmbraceSemantics
 #endif
 
@@ -48,7 +45,7 @@ struct SpanPayload: Encodable {
         if span.status == .ok || !failed {
             self.status = span.status.name
         } else {
-            self.status = Status.sessionCrashedError().name
+            self.status = EmbraceSpanStatus.error.name
         }
 
         let end = endTime ?? span.endTime

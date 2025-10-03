@@ -36,7 +36,6 @@ let project = Project(
                 .target(name: "EmbraceCaptureService"),
                 .target(name: "EmbraceCommonInternal"),
                 .target(name: "EmbraceConfigInternal"),
-                .target(name: "EmbraceOTelInternal"),
                 .target(name: "EmbraceStorageInternal"),
                 .target(name: "EmbraceUploadInternal"),
                 .target(name: "EmbraceObjCUtilsInternal"),
@@ -59,7 +58,7 @@ let project = Project(
             deploymentTargets: .iOS("13.0"),
             sources: ["Sources/EmbraceCommonInternal/**"],
             dependencies: [
-                .external(name: "OpenTelemetrySdk")
+                .target(name: "EmbraceSemantics")
             ],
             settings: .settings(base: [
                 "SKIP_INSTALL": "NO",
@@ -73,10 +72,6 @@ let project = Project(
             bundleId: "com.embraceio.EmbraceSemantics",
             deploymentTargets: .iOS("13.0"),
             sources: ["Sources/EmbraceSemantics/**"],
-            dependencies: [
-                .target(name: "EmbraceCommonInternal"),
-                .external(name: "OpenTelemetrySdk")
-            ],
             settings: .settings(base: [
                 "SKIP_INSTALL": "NO",
                 "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES"
@@ -90,8 +85,8 @@ let project = Project(
             deploymentTargets: .iOS("13.0"),
             sources: ["Sources/EmbraceCaptureService/**"],
             dependencies: [
-                .target(name: "EmbraceOTelInternal"),
-                .external(name: "OpenTelemetrySdk")
+                .target(name: "EmbraceSemantics"),
+                .target(name: "EmbraceCommonInternal")
             ],
             settings: .settings(base: [
                 "SKIP_INSTALL": "NO",
@@ -170,7 +165,6 @@ let project = Project(
             sources: ["Sources/EmbraceUploadInternal/**"],
             dependencies: [
                 .target(name: "EmbraceCommonInternal"),
-                .target(name: "EmbraceOTelInternal"),
                 .target(name: "EmbraceCoreDataInternal")
             ],
             settings: .settings(base: [

@@ -8,7 +8,7 @@ import Foundation
     import EmbraceSemantics
 #endif
 
-class DeviceIdentifierHelper {
+class DeviceIdentifierProvider {
     static func retrieve(fileURL: URL?) -> EmbraceIdentifier {
 
         // retrieve from file

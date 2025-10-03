@@ -39,7 +39,7 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
 
     func test_valid_signal() throws {
         // given a capture service
-        let otel = MockEmbraceOpenTelemetry()
+        let otel = MockOTelSignalsHandler()
         let provider = MockMetricKitPayloadProvider()
         let stateProvider = MockMetricKitStateProvider()
         stateProvider.metricKitCrashSignals = [3, 5]
@@ -54,16 +54,16 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
         // then it creates the corresponding otel log
         let log = otel.logs[0]
         XCTAssertEqual(log.severity, .fatal)
-        XCTAssertEqual(log.embType, .crash)
-        XCTAssertEqual(log.attributes["emb.state"], .string("unknown"))
+        XCTAssertEqual(log.type, .crash)
+        XCTAssertEqual(log.attributes["emb.state"], "unknown")
         XCTAssertNotNil(log.attributes["log.record.uid"])
-        XCTAssertEqual(log.attributes["emb.provider"], .string("metrickit"))
-        XCTAssertEqual(log.attributes["emb.payload"], .string("test"))
+        XCTAssertEqual(log.attributes["emb.provider"], "metrickit")
+        XCTAssertEqual(log.attributes["emb.payload"], "test")
     }
 
     func test_invalid_signal() throws {
         // given a capture service
-        let otel = MockEmbraceOpenTelemetry()
+        let otel = MockOTelSignalsHandler()
         let provider = MockMetricKitPayloadProvider()
         let stateProvider = MockMetricKitStateProvider()
         stateProvider.metricKitCrashSignals = [3, 5]
@@ -81,7 +81,7 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
 
     func test_not_started() throws {
         // given a capture service that is not started
-        let otel = MockEmbraceOpenTelemetry()
+        let otel = MockOTelSignalsHandler()
         let provider = MockMetricKitPayloadProvider()
         let options = options(provider: provider)
         let service = MetricKitCrashCaptureService(options: options)
@@ -100,7 +100,7 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
         stateProvider.isMetricKitEnabled = false
 
         // given a capture service
-        let otel = MockEmbraceOpenTelemetry()
+        let otel = MockOTelSignalsHandler()
         let provider = MockMetricKitPayloadProvider()
         let options = options(provider: provider, stateProvider: stateProvider)
         let service = MetricKitCrashCaptureService(options: options)
@@ -121,7 +121,7 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
         stateProvider.isMetricKitCrashCaptureEnabled = false
 
         // given a capture service
-        let otel = MockEmbraceOpenTelemetry()
+        let otel = MockOTelSignalsHandler()
         let provider = MockMetricKitPayloadProvider()
         let options = options(provider: provider, stateProvider: stateProvider)
         let service = MetricKitCrashCaptureService(options: options)
@@ -162,7 +162,7 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
         )
 
         // given a capture service
-        let otel = MockEmbraceOpenTelemetry()
+        let otel = MockOTelSignalsHandler()
         let provider = MockMetricKitPayloadProvider()
         let options = options(provider: provider, fetcher: storage)
         let service = MetricKitCrashCaptureService(options: options)
@@ -175,12 +175,12 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
         // then it creates the corresponding otel log
         let log = otel.logs[0]
         XCTAssertEqual(log.severity, .fatal)
-        XCTAssertEqual(log.embType, .crash)
-        XCTAssertEqual(log.attributes["emb.state"], .string("unknown"))
+        XCTAssertEqual(log.type, .crash)
+        XCTAssertEqual(log.attributes["emb.state"], "unknown")
         XCTAssertNotNil(log.attributes["log.record.uid"])
-        XCTAssertEqual(log.attributes["emb.provider"], .string("metrickit"))
-        XCTAssertEqual(log.attributes["emb.payload"], .string("test"))
-        XCTAssertEqual(log.attributes["emb.properties.test1"], .string("metadata"))
-        XCTAssertEqual(log.attributes["emb.properties.test2"], .string("metadata"))
+        XCTAssertEqual(log.attributes["emb.provider"], "metrickit")
+        XCTAssertEqual(log.attributes["emb.payload"], "test")
+        XCTAssertEqual(log.attributes["emb.properties.test1"], "metadata")
+        XCTAssertEqual(log.attributes["emb.properties.test2"], "metadata")
     }
 }

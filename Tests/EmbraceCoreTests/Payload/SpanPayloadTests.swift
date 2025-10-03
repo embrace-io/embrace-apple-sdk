@@ -4,15 +4,10 @@
 
 import EmbraceSemantics
 import Foundation
-import OpenTelemetryApi
 import TestSupport
 import XCTest
 
 @testable import EmbraceCore
-@testable import EmbraceOTelInternal
-@testable import OpenTelemetrySdk
-
-// swiftlint:disable force_cast
 
 class SpanPayloadTests: XCTestCase {
 
@@ -27,9 +22,9 @@ class SpanPayloadTests: XCTestCase {
 
     var testSpan: EmbraceSpan {
         return MockSpan(
-            id: SpanId.random().hexString,
-            traceId: TraceId.random().hexString,
-            parentSpanId: SpanId.random().hexString,
+            id: .randomSpanId(),
+            traceId: .randomTraceId(),
+            parentSpanId: .randomSpanId(),
             name: "test-span",
             type: .performance,
             status: .ok,
@@ -44,8 +39,8 @@ class SpanPayloadTests: XCTestCase {
             ],
             links: [
                 EmbraceSpanLink(
-                    spanId: SpanId.random().hexString,
-                    traceId: TraceId.random().hexString,
+                    spanId: .randomSpanId(),
+                    traceId: .randomTraceId(),
                     attributes: testAttributes)
             ],
             sessionId: TestConstants.sessionId,
@@ -176,5 +171,3 @@ class SpanPayloadTests: XCTestCase {
         XCTAssertEqual(payload.endTime, now.nanosecondsSince1970Truncated)
     }
 }
-
-// swiftlint:enable force_cast

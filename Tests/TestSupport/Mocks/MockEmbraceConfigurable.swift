@@ -22,8 +22,8 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         isMetricKitCrashCaptureEnabled: Bool = false,
         metricKitCrashSignals: [String] = [],
         isMetricKitHangCaptureEnabled: Bool = false,
-        spanEventsLimits: SpanEventsLimits = SpanEventsLimits(),
-        logsLimits: LogsLimits = LogsLimits(),
+        spanEventTypeLimits: SpanEventTypeLimits = SpanEventTypeLimits(),
+        logSeverityLimits: LogSeverityLimits = LogSeverityLimits(),
         internalLogLimits: InternalLogLimits = InternalLogLimits(),
         networkPayloadCaptureRules: [NetworkPayloadCaptureRule] = [],
         updateCompletionParamDidUpdate: Bool = false,
@@ -42,8 +42,8 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         self._isMetricKitCrashCaptureEnabled = isMetricKitCrashCaptureEnabled
         self._metricKitCrashSignals = metricKitCrashSignals
         self._isMetricKitHangCaptureEnabled = isMetricKitHangCaptureEnabled
-        self._spanEventsLimits = spanEventsLimits
-        self._logsLimits = logsLimits
+        self._spanEventTypeLimits = spanEventTypeLimits
+        self._logSeverityLimits = logSeverityLimits
         self._internalLogLimits = internalLogLimits
         self._hangLimits = hangLimits
         self._networkPayloadCaptureRules = networkPayloadCaptureRules
@@ -205,27 +205,27 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         }
     }
 
-    private var _spanEventsLimits: SpanEventsLimits
-    public let spanEventsLimitsExpectation = XCTestExpectation(description: "spanEventsLimits called")
-    public var spanEventsLimits: SpanEventsLimits {
+    private var _spanEventTypeLimits: SpanEventTypeLimits
+    public let spanEventTypeLimitsExpectation = XCTestExpectation(description: "spanEventTypeLimits called")
+    public var spanEventTypeLimits: SpanEventTypeLimits {
         get {
-            spanEventsLimitsExpectation.fulfill()
-            return _spanEventsLimits
+            spanEventTypeLimitsExpectation.fulfill()
+            return _spanEventTypeLimits
         }
         set {
-            _spanEventsLimits = newValue
+            _spanEventTypeLimits = newValue
         }
     }
 
-    private var _logsLimits: LogsLimits
-    public let logsLimitsExpectation = XCTestExpectation(description: "logsLimits called")
-    public var logsLimits: LogsLimits {
+    private var _logSeverityLimits: LogSeverityLimits
+    public let logSeverityLimitsExpectation = XCTestExpectation(description: "logSeverityLimits called")
+    public var logSeverityLimits: LogSeverityLimits {
         get {
-            logsLimitsExpectation.fulfill()
-            return _logsLimits
+            logSeverityLimitsExpectation.fulfill()
+            return _logSeverityLimits
         }
         set {
-            _logsLimits = newValue
+            _logSeverityLimits = newValue
         }
     }
 

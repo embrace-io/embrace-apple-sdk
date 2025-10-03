@@ -5,7 +5,6 @@
 import EmbraceCommonInternal
 import EmbraceSemantics
 import EmbraceStorageInternal
-import OpenTelemetryApi
 import TestSupport
 import XCTest
 

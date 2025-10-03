@@ -8,7 +8,6 @@ import Foundation
     import EmbraceSemantics
     import EmbraceCommonInternal
     import EmbraceConfigInternal
-    import EmbraceOTelInternal
     import EmbraceStorageInternal
     import EmbraceUploadInternal
     import EmbraceObjCUtilsInternal
@@ -71,6 +70,9 @@ import Foundation
         return EmbraceMeta.sdkVersion
     }
 
+    /// Returns the current `EmbraceOTelSignalsHandler` used to generate spans and logs.
+    public let otel: DefaultOTelSignalsHandler
+
     /// Returns the current `MetadataHandler` used to store resources and session properties.
     @objc public let metadata: MetadataHandler
 
@@ -84,12 +86,10 @@ import Foundation
     let upload: EmbraceUpload?
     let captureServices: CaptureServices
 
-    let logController: LogControllable
+    let logController: LogController
 
     let sessionController: SessionController
     let sessionLifecycle: SessionLifecycle
-
-    let spanEventsLimiter: SpanEventsLimiter
 
     let processingQueue = DispatchQueue(
         label: "com.embrace.processing",
@@ -155,7 +155,6 @@ import Foundation
 
     init(
         options: Embrace.Options,
-        logControllable: LogControllable? = nil,
         embraceStorage: EmbraceStorage? = nil
     ) throws {
 
@@ -163,7 +162,7 @@ import Foundation
         self.logLevel = options.logLevel
 
         // retrieve device identifier
-        self.deviceId = DeviceIdentifierHelper.retrieve(fileURL: EmbraceFileSystem.deviceIdURL)
+        self.deviceId = DeviceIdentifierProvider.retrieve(fileURL: EmbraceFileSystem.deviceIdURL)
 
         // initialize remote configuration
         self.config = Embrace.createConfig(options: options, deviceId: deviceId)
@@ -177,22 +176,37 @@ import Foundation
         // initialize storage module
         self.storage = try embraceStorage ?? Embrace.createStorage(options: options, configuration: config.configurable)
 
+        // initialize session controller
+        self.sessionController = SessionController(storage: storage, upload: upload, config: config)
+        self.sessionLifecycle = Embrace.createSessionLifecycle(controller: sessionController)
+
+        // initialize log controller
+        self.logController = LogController(
+            storage: storage,
+            upload: upload,
+            sessionController: sessionController,
+            queue: processingQueue
+        )
+
+        // initialize otel handler
+        self.otel = DefaultOTelSignalsHandler(
+            storage: storage,
+            sessionController: sessionController,
+            logController: self.logController,
+            limiter: DefaultOtelSignalsLimiter(
+                spanEventTypeLimits: config.spanEventTypeLimits,
+                logSeverityLimits: config.logSeverityLimits,
+                configNotificationCenter: Embrace.notificationCenter
+            )
+        )
+
         // initialize capture services
         self.captureServices = try CaptureServices(
             options: options,
             config: config.configurable,
             storage: storage,
-            upload: upload
-        )
-
-        // initialize session controller
-        self.sessionController = SessionController(storage: storage, upload: upload, config: config)
-        self.sessionLifecycle = Embrace.createSessionLifecycle(controller: sessionController)
-
-        // initialize span events limiter
-        self.spanEventsLimiter = SpanEventsLimiter(
-            spanEventsLimits: config.spanEventsLimits,
-            configNotificationCenter: Embrace.notificationCenter
+            upload: upload,
+            otel: self.otel
         )
 
         // initialize metadata handler
@@ -202,65 +216,26 @@ import Foundation
         // initialize startup instrumentation
         self.startupInstrumentation = StartupInstrumentation()
 
-        // initialize log controller
-        var logController: LogController?
-        if let logControllable = logControllable {
-            self.logController = logControllable
-        } else {
-            let controller = LogController(
-                storage: storage,
-                upload: upload,
-                controller: sessionController
-            )
-            logController = controller
-            self.logController = controller
-        }
-
         super.init()
 
+        // metrick kit
         captureServices.addMetricKitServices(
             payloadProvider: metricKit,
             metadataFetcher: storage,
             stateProvider: self
         )
 
+        // set providers
         sessionController.sdkStateProvider = self
-        logController?.sdkStateProvider = self
+        sessionController.otel = self.otel
+        logController.sdkStateProvider = self
+        Embrace.logger.otel = self.otel
 
-        // setup otel
-        var processors = Array.processors(
-            for: storage,
-            sessionController: sessionController,
-            export: options.export,
-            sdkStateProvider: self
-        )
-        if let extraProcessors = options.processors?.map({ $0.processor }) {
-            processors.append(contentsOf: extraProcessors)
-        }
-
-        EmbraceOTel.setup(spanProcessors: processors)
-
-        let logBatcher = DefaultLogBatcher(
-            repository: storage,
-            logLimits: .init(),
-            delegate: self.logController
-        )
-
-        sessionController.setLogBatcher(logBatcher)
-
-        let logSharedState = DefaultEmbraceLogSharedState.create(
-            storage: self.storage,
-            batcher: logBatcher,
-            exporter: options.export?.logExporter,
-            sdkStateProvider: self
-        )
-
-        EmbraceOTel.setup(logSharedState: logSharedState)
+        // fetch app state
         sessionLifecycle.setup()
-        Embrace.logger.otel = self
 
         // startup tracking
-        startupInstrumentation.otel = self
+        startupInstrumentation.otel = self.otel
         EMBStartupTracker.shared().internalNotificationCenter = Embrace.notificationCenter
         EMBStartupTracker.shared().trackDidFinishLaunching()
 
@@ -303,55 +278,55 @@ import Foundation
                 return self
             }
 
-            let processStartSpan = createProcessStartSpan()
-            defer { processStartSpan.end() }
-
-            recordSpan(
-                name: "emb-sdk-start-process",
-                parent: processStartSpan,
-                type: .performance
-            ) { _ in
-
-                state = .started
-
-                startupInstrumentation.buildMainSpans()
-                sessionLifecycle.startSession()
-                captureServices.install()
-
-                // save latest session in memory before its sent and deleted
-                // this will be used to link metric kit payloads to the session
-                storage.fetchLatestSession { [self] session in
-                    metricKit.lastSession = session
-                    metricKit.install()
+            // embrace process start spans
+            let spans = createProcessStartSpans()
+            defer {
+                for span in spans {
+                    span.end()
                 }
+            }
 
-                // WARNING: This is dangerous as it calls out to external code.
-                self.captureServices.start()
+            // set sdk state
+            state = .started
 
-                self.processingQueue.async { [weak self] in
-                    // fetch crash reports and link them to sessions
-                    // then upload them
-                    UnsentDataHandler.sendUnsentData(
-                        storage: self?.storage,
-                        upload: self?.upload,
-                        otel: self,
-                        logController: self?.logController,
-                        currentSessionId: self?.sessionController.currentSession?.id,
-                        crashReporter: self?.captureServices.crashReporter
-                    )
+            // start instrumentation
+            startupInstrumentation.buildMainSpans()
+            sessionLifecycle.startSession()
+            captureServices.install()
 
-                    // remove old versions data
-                    self?.cleanUpOldVersionsData()
-                }
+            // save latest session in memory before its sent and deleted
+            // this will be used to link metric kit payloads to the session
+            storage.fetchLatestSession { [self] session in
+                metricKit.lastSession = session
+                metricKit.install()
+            }
 
-                // retry any remaining cached upload data
-                self.upload?.retryCachedData()
+            // WARNING: This is dangerous as it calls out to external code.
+            self.captureServices.start()
 
-                if let appId = options.appId {
-                    Embrace.logger.startup("Embrace SDK started successfully with key: \(appId)")
-                } else {
-                    Embrace.logger.startup("Embrace SDK started successfully!")
-                }
+            self.processingQueue.async { [weak self] in
+                // fetch crash reports and link them to sessions
+                // then upload them
+                UnsentDataHandler.sendUnsentData(
+                    storage: self?.storage,
+                    upload: self?.upload,
+                    otel: self?.otel,
+                    logController: self?.logController,
+                    currentSessionId: self?.sessionController.currentSession?.id,
+                    crashReporter: self?.captureServices.crashReporter
+                )
+
+                // remove old versions data
+                self?.cleanUpOldVersionsData()
+            }
+
+            // retry any remaining cached upload data
+            self.upload?.retryCachedData()
+
+            if let appId = options.appId {
+                Embrace.logger.startup("Embrace SDK started successfully with key: \(appId)")
+            } else {
+                Embrace.logger.startup("Embrace SDK started successfully!")
             }
 
             EMBStartupTracker.shared().sdkStartEndTime = Date()
@@ -442,7 +417,6 @@ import Foundation
     /// Called every time the remote config changes
     @objc private func onConfigUpdated() {
         Embrace.logger.limits = config.internalLogLimits
-        Embrace.client?.logController.limits = config.logsLimits
 
         if !config.isSDKEnabled {
             Embrace.logger.debug("SDK was disabled")

@@ -11,13 +11,13 @@
 
     class WebViewCaptureServiceTests: XCTestCase {
 
-        let otel = MockEmbraceOpenTelemetry()
+        var otel = MockOTelSignalsHandler()
         let service = WebViewCaptureService()
         let navigation = WKNavigation()
         let response = WKNavigationResponse()
 
         override func setUpWithError() throws {
-            otel.clear()
+            otel = MockOTelSignalsHandler()
             service.install(otel: otel)  // only does something the first time its called
         }
 
@@ -59,7 +59,7 @@
 
             let event = otel.events[0]
             XCTAssertEqual(event.name, "emb-web-view")
-            XCTAssertEqual(event.attributes["emb.type"], .string("ux.webview"))
+            XCTAssertEqual(event.attributes["emb.type"], "ux.webview")
             XCTAssertEqual(event.attributes["webview.url"]!.description, url.absoluteString)
         }
 
@@ -73,8 +73,8 @@
 
             let event = otel.events.last!
             XCTAssertEqual(event.name, "emb-web-view")
-            XCTAssertEqual(event.attributes["emb.type"], .string("ux.webview"))
-            XCTAssertEqual(event.attributes["webview.error_code"], .int(123))
+            XCTAssertEqual(event.attributes["emb.type"], "ux.webview")
+            XCTAssertEqual(event.attributes["webview.error_code"], "123")
         }
     }
 #endif

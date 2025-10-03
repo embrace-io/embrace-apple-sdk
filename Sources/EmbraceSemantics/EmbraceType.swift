@@ -48,6 +48,10 @@ import Foundation
             .joined(separator: ".")
     }
 
+    @objc override public var description: String {
+        rawValue
+    }
+
     @objc required public convenience init?(rawValue: String) {
         let components = rawValue.components(separatedBy: ".")
         guard let first = components.first else {

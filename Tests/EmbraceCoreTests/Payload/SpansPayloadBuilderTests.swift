@@ -5,13 +5,10 @@
 import EmbraceCommonInternal
 import EmbraceSemantics
 import EmbraceStorageInternal
-import OpenTelemetryApi
 import TestSupport
 import XCTest
 
 @testable import EmbraceCore
-@testable import EmbraceOTelInternal
-@testable import OpenTelemetrySdk
 
 final class SpansPayloadBuilderTests: XCTestCase {
 
@@ -23,7 +20,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
 
         sessionRecord = MockSession(
             id: TestConstants.sessionId,
-            processId: .random,
+            processId: TestConstants.processId,
             state: .foreground,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
@@ -37,39 +34,32 @@ final class SpansPayloadBuilderTests: XCTestCase {
         storage.coreData.destroy()
     }
 
-    func testSpan(startTime: Date, endTime: Date?, name: String?) -> SpanData {
-        return SpanData(
-            traceId: TraceId.random(),
-            spanId: SpanId.random(),
-            parentSpanId: nil,
-            name: name ?? "test-span",
-            kind: .internal,
-            startTime: startTime,
-            status: endTime == nil ? .unset : .ok,
-            endTime: endTime ?? Date(),
-            hasEnded: endTime != nil
-        )
-    }
-
     func addSpan(
         startTime: Date,
-        endTime: Date?,
-        id: String? = nil,
-        traceId: String? = nil,
-        name: String? = nil,
-        type: EmbraceType = .performance
+        endTime: Date? = nil,
+        id: String = .randomSpanId(),
+        traceId: String = .randomTraceId(),
+        name: String = "test-span",
+        type: EmbraceType = .performance,
+        sessionId: EmbraceIdentifier? = TestConstants.sessionId
     ) throws {
-        let spanData = testSpan(startTime: startTime, endTime: endTime, name: name)
-
-        return storage.upsertSpan(
-            id: id ?? spanData.spanId.hexString,
-            traceId: traceId ?? spanData.traceId.hexString,
-            name: spanData.name,
+        let span = MockSpan(
+            id: id,
+            traceId: traceId,
+            parentSpanId: nil,
+            name: name,
             type: type,
-            status: spanData.embStatus,
-            startTime: spanData.startTime,
-            endTime: spanData.hasEnded ? spanData.endTime : nil
+            status: endTime == nil ? .unset : .ok,
+            startTime: startTime,
+            endTime: endTime,
+            events: [],
+            links: [],
+            sessionId: sessionId,
+            processId: TestConstants.processId,
+            attributes: [:]
         )
+
+        storage.upsertSpan(span)
     }
 
     func test_noSessionSpan() throws {
@@ -188,7 +178,8 @@ final class SpansPayloadBuilderTests: XCTestCase {
         // given a closed span that started and ended before the session
         try addSpan(
             startTime: Date(timeIntervalSince1970: 0),
-            endTime: Date(timeIntervalSince1970: 10)
+            endTime: Date(timeIntervalSince1970: 10),
+            sessionId: nil
         )
 
         // when building the spans payload

@@ -3,20 +3,16 @@
 //
 
 import Foundation
-import OpenTelemetryApi
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCaptureService
     import EmbraceCommonInternal
-    import EmbraceOTelInternal
     import EmbraceSemantics
 #endif
 
 /// Service that generates OpenTelemetry span events when the application receives a low memory warning.
 @objc(EMBLowMemoryWarningCaptureService)
 public class LowMemoryWarningCaptureService: CaptureService {
-
-    public var onWarningCaptured: (() -> Void)?
 
     @ThreadSafe var started = false
 
@@ -39,16 +35,9 @@ public class LowMemoryWarningCaptureService: CaptureService {
             return
         }
 
-        let event = RecordingSpanEvent(
+        try? otel?.addInternalSessionEvent(
             name: SpanEventSemantics.LowMemory.name,
-            timestamp: Date(),
-            attributes: [
-                SpanEventSemantics.keyEmbraceType: .string(EmbraceType.lowMemory.rawValue)
-            ]
+            type: .lowMemory
         )
-
-        if add(event: event) {
-            onWarningCaptured?()
-        }
     }
 }

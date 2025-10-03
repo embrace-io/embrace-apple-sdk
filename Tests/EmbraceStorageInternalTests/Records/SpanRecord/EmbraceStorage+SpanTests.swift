@@ -2,7 +2,7 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import OpenTelemetryApi
+import TestSupport
 import XCTest
 
 @testable import EmbraceStorageInternal
@@ -26,21 +26,15 @@ final class EmbraceStorage_SpanTests: XCTestCase {
         for i in 0..<3 {
             // given inserted record
             storage.upsertSpan(
-                id: SpanId.random().hexString,
-                traceId: TraceId.random().hexString,
-                name: "example \(i)",
-                type: .performance,
-                startTime: Date()
-            )
+                MockSpan(
+                    name: "example \(i)",
+                ))
         }
 
         storage.upsertSpan(
-            id: SpanId.random().hexString,
-            traceId: TraceId.random().hexString,
-            name: "newest",
-            type: .performance,
-            startTime: Date()
-        )
+            MockSpan(
+                name: "newest",
+            ))
 
         let request = SpanRecord.createFetchRequest()
         request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: true)]
@@ -57,23 +51,18 @@ final class EmbraceStorage_SpanTests: XCTestCase {
         // insert 3 .performance spans
         for i in 0..<3 {
             storage.upsertSpan(
-                id: SpanId.random().hexString,
-                traceId: TraceId.random().hexString,
-                name: "performance \(i)",
-                type: .performance,
-                startTime: Date()
-            )
+                MockSpan(
+                    name: "performance \(i)",
+                ))
         }
 
         // insert 3 .networkHTTP spans
         for i in 0..<3 {
             storage.upsertSpan(
-                id: SpanId.random().hexString,
-                traceId: TraceId.random().hexString,
-                name: "network \(i)",
-                type: .networkRequest,
-                startTime: Date()
-            )
+                MockSpan(
+                    name: "network \(i)",
+                    type: .networkRequest,
+                ))
         }
 
         let request = SpanRecord.createFetchRequest()
@@ -103,21 +92,15 @@ final class EmbraceStorage_SpanTests: XCTestCase {
         for i in 0..<(storage.options.spanLimitDefault + 1) {
             // given inserted record
             storage.upsertSpan(
-                id: SpanId.random().hexString,
-                traceId: TraceId.random().hexString,
-                name: "example \(i)",
-                type: .performance,
-                startTime: Date()
-            )
+                MockSpan(
+                    name: "example \(i)",
+                ))
         }
 
         storage.upsertSpan(
-            id: SpanId.random().hexString,
-            traceId: TraceId.random().hexString,
-            name: "newest",
-            type: .performance,
-            startTime: Date()
-        )
+            MockSpan(
+                name: "newest",
+            ))
 
         let request = SpanRecord.createFetchRequest()
         request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: true)]
@@ -125,5 +108,4 @@ final class EmbraceStorage_SpanTests: XCTestCase {
 
         XCTAssertEqual(allRecords.count, storage.options.spanLimitDefault)
     }
-
 }

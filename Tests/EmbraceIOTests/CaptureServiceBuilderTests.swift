@@ -7,8 +7,6 @@ import XCTest
 
 @testable import EmbraceIO
 
-// swiftlint:disable force_cast
-
 class CaptureServiceBuilderTests: XCTestCase {
 
     func test_defaults() throws {
@@ -293,5 +291,3 @@ class CaptureServiceBuilderTests: XCTestCase {
         XCTAssert(builder == builder2)
     }
 }
-
-// swiftlint:enable force_cast

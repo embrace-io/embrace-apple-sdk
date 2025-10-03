@@ -28,19 +28,7 @@ public class SpanRecord: NSManagedObject {
 
     class func create(
         context: NSManagedObjectContext,
-        id: String,
-        traceId: String,
-        parentSpanId: String?,
-        name: String,
-        type: EmbraceType,
-        status: EmbraceSpanStatus,
-        startTime: Date,
-        endTime: Date? = nil,
-        sessionId: EmbraceIdentifier? = nil,
-        processId: EmbraceIdentifier,
-        events: [EmbraceSpanEvent] = [],
-        links: [EmbraceSpanLink] = [],
-        attributes: [String: String]
+        span: EmbraceSpan
     ) {
         context.performAndWait {
             guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
@@ -48,20 +36,20 @@ public class SpanRecord: NSManagedObject {
             }
 
             let record = SpanRecord(entity: description, insertInto: context)
-            record.id = id
-            record.traceId = traceId
-            record.parentSpanId = parentSpanId
-            record.name = name
-            record.typeRaw = type.rawValue
-            record.statusRaw = status.rawValue
-            record.startTime = startTime
-            record.endTime = endTime
-            record.sessionIdRaw = sessionId?.stringValue
-            record.processIdRaw = processId.stringValue
-            record.attributes = attributes.keyValueEncoded()
+            record.id = span.context.spanId
+            record.traceId = span.context.traceId
+            record.parentSpanId = span.parentSpanId
+            record.name = span.name
+            record.typeRaw = span.type.rawValue
+            record.statusRaw = span.status.rawValue
+            record.startTime = span.startTime
+            record.endTime = span.endTime
+            record.sessionIdRaw = span.sessionId?.stringValue
+            record.processIdRaw = span.processId.stringValue
+            record.attributes = span.attributes.keyValueEncoded()
 
             // events
-            for event in events {
+            for event in span.events {
                 if let event = SpanEventRecord.create(
                     context: context,
                     event: event,
@@ -72,7 +60,7 @@ public class SpanRecord: NSManagedObject {
             }
 
             // links
-            for link in links {
+            for link in span.links {
                 if let link = SpanLinkRecord.create(
                     context: context,
                     link: link,

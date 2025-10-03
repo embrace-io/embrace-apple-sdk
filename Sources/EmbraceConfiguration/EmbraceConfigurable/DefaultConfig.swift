@@ -31,9 +31,9 @@ public class DefaultConfig: EmbraceConfigurable {
 
     public var isMetricKitHangCaptureEnabled: Bool = false
 
-    public let spanEventsLimits = SpanEventsLimits()
+    public let spanEventTypeLimits = SpanEventTypeLimits()
 
-    public let logsLimits = LogsLimits()
+    public let logSeverityLimits = LogSeverityLimits()
 
     public let internalLogLimits = InternalLogLimits()
 

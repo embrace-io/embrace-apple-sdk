@@ -7,12 +7,10 @@
     import WebKit
     #if !EMBRACE_COCOAPOD_BUILDING_SDK
         import EmbraceCommonInternal
-        import EmbraceOTelInternal
         import EmbraceCaptureService
         import EmbraceSemantics
         import EmbraceObjCUtilsInternal
     #endif
-    import OpenTelemetryApi
 
     /// Service that generates OpenTelemetry span events when a `WKWebView` loads an URL or throws an error.
     @objc(EMBWebViewCaptureService)
@@ -101,21 +99,19 @@
 
             let urlString = getUrlString(url: url)
 
-            var attributes: [String: AttributeValue] = [
-                SpanEventSemantics.keyEmbraceType: .string(EmbraceType.webView.rawValue),
-                SpanEventSemantics.WebView.keyUrl: .string(urlString)
+            var attributes: [String: String] = [
+                SpanEventSemantics.WebView.keyUrl: urlString
             ]
 
             if let errorCode = statusCode, errorCode != 200 {
-                attributes[SpanEventSemantics.WebView.keyErrorCode] = .int(errorCode)
+                attributes[SpanEventSemantics.WebView.keyErrorCode] = String(errorCode)
             }
 
-            let event = RecordingSpanEvent(
+            try? otel?.addInternalSessionEvent(
                 name: SpanEventSemantics.WebView.name,
-                timestamp: Date(),
+                type: .webView,
                 attributes: attributes
             )
-            otel?.add(event: event)
         }
 
         private func getUrlString(url: URL) -> String {

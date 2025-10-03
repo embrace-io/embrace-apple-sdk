@@ -9,8 +9,6 @@ import XCTest
 @testable import EmbraceConfigInternal
 @testable import EmbraceCore
 
-// swiftlint:disable force_cast
-
 class EncryptedNetworkPayloadTests: XCTestCase {
 
     let startTime = Date(timeIntervalSince1970: 100)
@@ -138,5 +136,3 @@ class EncryptedNetworkPayloadTests: XCTestCase {
         XCTAssertNil(result)
     }
 }
-
-// swiftlint:enable force_cast

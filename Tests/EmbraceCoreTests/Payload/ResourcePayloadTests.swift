@@ -4,8 +4,6 @@
 
 import EmbraceObjCUtilsInternal
 import EmbraceStorageInternal
-import OpenTelemetryApi
-import OpenTelemetrySdk
 import TestSupport
 import XCTest
 
@@ -32,12 +30,11 @@ class ResourcePayloadTests: XCTestCase {
             MockMetadata.createResourceRecord(key: DeviceResourceKey.totalDiskSpace.rawValue, value: "494384795648"),
             MockMetadata.createResourceRecord(key: DeviceResourceKey.architecture.rawValue, value: "arm64"),
             MockMetadata.createResourceRecord(
-                key: SemanticConventions.Device.modelIdentifier.rawValue, value: "arm64_model"),
-            MockMetadata.createResourceRecord(key: SemanticConventions.Device.manufacturer.rawValue, value: "Apple"),
+                key: DeviceResourceKey.deviceModelIdentifier.rawValue, value: "arm64_model"),
             MockMetadata.createResourceRecord(key: DeviceResourceKey.screenResolution.rawValue, value: "1179x2556"),
-            MockMetadata.createResourceRecord(key: SemanticConventions.Os.version.rawValue, value: "17.0.1"),
+            MockMetadata.createResourceRecord(key: DeviceResourceKey.osVersion.rawValue, value: "17.0.1"),
             MockMetadata.createResourceRecord(key: DeviceResourceKey.osBuild.rawValue, value: "23D60"),
-            MockMetadata.createResourceRecord(key: SemanticConventions.Os.type.rawValue, value: "darwin"),
+            MockMetadata.createResourceRecord(key: DeviceResourceKey.osType.rawValue, value: "darwin"),
             MockMetadata.createResourceRecord(key: DeviceResourceKey.osVariant.rawValue, value: "iOS_variant"),
             MockMetadata.createResourceRecord(key: DeviceResourceKey.locale.rawValue, value: "en_US_POSIX"),
             MockMetadata.createResourceRecord(key: DeviceResourceKey.timezone.rawValue, value: "GMT-3:00"),

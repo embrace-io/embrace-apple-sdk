@@ -3,7 +3,6 @@
 //
 
 import Foundation
-import OpenTelemetryApi
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceSemantics
@@ -11,7 +10,6 @@ import OpenTelemetryApi
     import EmbraceConfigInternal
     import EmbraceStorageInternal
     import EmbraceUploadInternal
-    import EmbraceOTelInternal
 #endif
 
 extension Notification.Name {
@@ -33,19 +31,19 @@ class SessionController: SessionControllable {
     private(set) var currentSession: EmbraceSession?
 
     @ThreadSafe
-    private(set) var currentSessionSpan: Span?
+    private(set) var currentSessionSpan: EmbraceSpan?
 
     @ThreadSafe
     private(set) var attachmentCount: Int = 0
 
     // Lock used for session boundaries. Will be shared at both start/end of session
     private let lock = UnfairLock()
-    private weak var logBatcher: LogBatcher?
     weak var storage: EmbraceStorage?
     weak var upload: EmbraceUpload?
     private let uploader: SessionUploader
     weak var config: EmbraceConfig?
     weak var sdkStateProvider: EmbraceSDKStateProvider?
+    weak var otel: InternalOTelSignalsHandler?
 
     private var backgroundSessionsEnabled: Bool {
         return config?.isBackgroundSessionEnabled == true
@@ -85,10 +83,6 @@ class SessionController: SessionControllable {
         delete()
     }
 
-    func setLogBatcher(_ batcher: LogBatcher) {
-        self.logBatcher = batcher
-    }
-
     @discardableResult
     func startSession(state: SessionState) -> EmbraceSession? {
         return startSession(state: state, startTime: Date())
@@ -105,7 +99,9 @@ class SessionController: SessionControllable {
             return nil
         }
 
-        guard let storage = storage else {
+        guard let storage = storage,
+            let otel = otel
+        else {
             return nil
         }
 
@@ -129,22 +125,35 @@ class SessionController: SessionControllable {
         // we lock after end session to avoid a deadlock
         let session = lock.locked {
 
+            var result: EmbraceSession?
+
             // create session span
             let newId = EmbraceIdentifier.random
-            let span = SessionSpanUtils.span(id: newId, startTime: startTime, state: state, coldStart: isColdStart)
+            guard
+                let span = SessionSpanUtils.span(
+                    otel: otel,
+                    id: newId,
+                    startTime: startTime,
+                    state: state,
+                    coldStart: isColdStart
+                )
+            else {
+                return result
+            }
+
             currentSessionSpan = span
 
             // create session record and save it
-            let session = storage.addSession(
+            result = storage.addSession(
                 id: newId,
                 processId: ProcessIdentifier.current,
                 state: state,
-                traceId: span.context.traceId.hexString,
-                spanId: span.context.spanId.hexString,
+                traceId: span.context.traceId,
+                spanId: span.context.spanId,
                 startTime: startTime,
                 coldStart: isColdStart
             )
-            currentSession = session
+            currentSession = result
 
             // start heartbeat
             heartbeat.start()
@@ -152,7 +161,7 @@ class SessionController: SessionControllable {
             firstSession = false
             attachmentCount = 0
 
-            return session
+            return result
         }
 
         // post notification
@@ -190,28 +199,21 @@ class SessionController: SessionControllable {
             // -
 
             // auto terminate spans
-            EmbraceOTel.processor?.autoTerminateSpans()
+            otel?.autoTerminateSpans()
 
             // post public notification
             NotificationCenter.default.post(name: .embraceSessionWillEnd, object: currentSession)
 
-            // end log batches
-            logBatcher?.forceEndCurrentBatch(waitUntilFinished: true)
-
             // end span
-            if let currentSessionSpan {
-                // Ending span for otel processors
-                // Note: our exporter wont trigger an update on the stored span
-                // to prevent race conditions.
-                currentSessionSpan.end(time: now)
+            currentSessionSpan?.end(endTime: now)
 
-                // Manually updating the span record synchronously.
-                storage?.endSpan(
-                    id: currentSessionSpan.context.spanId.hexString,
-                    traceId: currentSessionSpan.context.traceId.hexString,
-                    endTime: now
-                )
-            }
+            // TODO: Check if needed
+            // Manually updating the span record synchronously.
+            //            storage?.endSpan(
+            //                id: currentSessionSpan.context.spanId.hexString,
+            //                traceId: currentSessionSpan.context.traceId.hexString,
+            //                endTime: now
+            //            )
 
             // update session end time and clean exit
             currentSession = storage?.updateSession(session: session, endTime: now, cleanExit: true)
@@ -240,7 +242,6 @@ class SessionController: SessionControllable {
 
         if let span = currentSessionSpan {
             SessionSpanUtils.setState(span: span, state: state)
-            Embrace.client?.flush(span)
         }
     }
 
@@ -253,7 +254,6 @@ class SessionController: SessionControllable {
 
         if let span = currentSessionSpan {
             SessionSpanUtils.setTerminated(span: span, terminated: appTerminated)
-            Embrace.client?.flush(span)
         }
     }
 
@@ -266,7 +266,6 @@ class SessionController: SessionControllable {
 
         if let span = currentSessionSpan {
             SessionSpanUtils.setHeartbeat(span: span, heartbeat: heartbeat)
-            Embrace.client?.flush(span)
         }
     }
 

@@ -6,10 +6,8 @@
     #if !EMBRACE_COCOAPOD_BUILDING_SDK
         import EmbraceCaptureService
         import EmbraceCommonInternal
-        import EmbraceOTelInternal
         import EmbraceSemantics
     #endif
-    import OpenTelemetryApi
 
     /// Service that generates OpenTelemetry span events for taps on the screen.
     /// Note that any taps done on a keyboard view will be automatically ignored.
@@ -92,27 +90,25 @@
 
             let viewName = accessibilityIdentifier ?? String(describing: targetClass)
 
-            var attributes: [String: AttributeValue] = [
-                SpanEventSemantics.Tap.keyViewName: .string(viewName),
-                SpanEventSemantics.keyEmbraceType: .string(EmbraceType.tap.rawValue)
+            var attributes: [String: String] = [
+                SpanEventSemantics.Tap.keyViewName: viewName
             ]
 
             // get coordinates
             if shouldRecordCoordinates(from: target) {
                 let point = touch.location(in: target.window)
-                attributes[SpanEventSemantics.Tap.keyCoordinates] = .string(point.toString())
+                attributes[SpanEventSemantics.Tap.keyCoordinates] = point.toString()
                 Embrace.logger.trace("Captured tap at \(point) on: \(viewName)")
             } else {
                 Embrace.logger.trace("Captured tap with no coordinates on: \(viewName)")
             }
 
             // create span event
-            let event = RecordingSpanEvent(
+            try? otel?.addInternalSessionEvent(
                 name: SpanEventSemantics.Tap.name,
-                timestamp: Date(),
+                type: .tap,
                 attributes: attributes
             )
-            add(event: event)
         }
 
         func shouldRecordCoordinates(from target: UIView) -> Bool {

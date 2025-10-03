@@ -18,8 +18,6 @@ final class GenericLogExporterTests: XCTestCase {
     func test_genericExporter_isCalled_whenConfiguredInSharedState() throws {
         let exporter = InMemoryLogRecordExporter()
         let sharedState = DefaultEmbraceLogSharedState.create(
-            storage: try .createInMemoryDb(),
-            batcher: DummyLogBatcher(),
             exporter: exporter,
             sdkStateProvider: sdkStateProvider
         )

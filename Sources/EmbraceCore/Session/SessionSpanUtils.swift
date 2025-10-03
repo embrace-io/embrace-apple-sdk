@@ -3,37 +3,47 @@
 //
 
 import Foundation
-import OpenTelemetryApi
-import OpenTelemetrySdk
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
     import EmbraceStorageInternal
-    import EmbraceOTelInternal
     import EmbraceSemantics
 #endif
 
 struct SessionSpanUtils {
 
-    static func span(id: EmbraceIdentifier, startTime: Date, state: SessionState, coldStart: Bool) -> Span {
-        EmbraceOTel().buildSpan(name: SpanSemantics.Session.name, type: .session)
-            .setStartTime(time: startTime)
-            .setAttribute(key: SpanSemantics.Session.keyId, value: id.stringValue)
-            .setAttribute(key: SpanSemantics.Session.keyState, value: state.rawValue)
-            .setAttribute(key: SpanSemantics.Session.keyColdStart, value: coldStart)
-            .startSpan()
+    static func span(
+        otel: EmbraceOTelSignalsHandler?,
+        id: EmbraceIdentifier,
+        startTime: Date,
+        state: SessionState,
+        coldStart: Bool
+    ) -> EmbraceSpan? {
+
+        let attributes: [String: String] = [
+            SpanSemantics.Session.keyId: id.stringValue,
+            SpanSemantics.Session.keyState: state.rawValue,
+            SpanSemantics.Session.keyColdStart: String(coldStart)
+        ]
+
+        return try? otel?.createInternalSpan(
+            name: SpanSemantics.Session.name,
+            type: .session,
+            startTime: startTime,
+            attributes: attributes
+        )
     }
 
-    static func setState(span: Span?, state: SessionState) {
-        span?.setAttribute(key: SpanSemantics.Session.keyState, value: state.rawValue)
+    static func setState(span: EmbraceSpan?, state: SessionState) {
+        span?.setInternalAttribute(key: SpanSemantics.Session.keyState, value: state.rawValue)
     }
 
-    static func setHeartbeat(span: Span?, heartbeat: Date) {
-        span?.setAttribute(key: SpanSemantics.Session.keyHeartbeat, value: heartbeat.nanosecondsSince1970Truncated)
+    static func setHeartbeat(span: EmbraceSpan?, heartbeat: Date) {
+        span?.setInternalAttribute(key: SpanSemantics.Session.keyHeartbeat, value: String(heartbeat.nanosecondsSince1970Truncated))
     }
 
-    static func setTerminated(span: Span?, terminated: Bool) {
-        span?.setAttribute(key: SpanSemantics.Session.keyTerminated, value: terminated)
+    static func setTerminated(span: EmbraceSpan?, terminated: Bool) {
+        span?.setInternalAttribute(key: SpanSemantics.Session.keyTerminated, value: String(terminated))
     }
 
     static func payload(
@@ -57,7 +67,7 @@ extension SpanPayload {
         self.spanId = session.spanId
         self.parentSpanId = nil
         self.name = SpanSemantics.Session.name
-        self.status = session.crashReportId != nil ? Status.sessionCrashedError().name : Status.ok.name
+        self.status = session.crashReportId != nil ? EmbraceSpanStatus.error.name : EmbraceSpanStatus.ok.name
         self.startTime = session.startTime.nanosecondsSince1970Truncated
         self.endTime =
             session.endTime?.nanosecondsSince1970Truncated ?? session.lastHeartbeatTime.nanosecondsSince1970Truncated
@@ -120,11 +130,5 @@ extension SpanPayload {
         self.events = span?.events.map { SpanEventPayload(from: $0) } ?? []
         self.links = span?.links.map { SpanLinkPayload(from: $0) } ?? []
         self.attributes = attributeArray
-    }
-}
-
-extension OpenTelemetryApi.Status {
-    static func sessionCrashedError() -> Status {
-        return Status.error(description: "Session crashed!")
     }
 }

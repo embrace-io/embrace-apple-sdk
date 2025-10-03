@@ -2,17 +2,16 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 #if canImport(UIKit) && !os(watchOS)
+    import Foundation
     import UIKit
     import SwiftUI
     #if !EMBRACE_COCOAPOD_BUILDING_SDK
+        import EmbraceSemantics
         import EmbraceCaptureService
         import EmbraceCommonInternal
-        import EmbraceOTelInternal
         import EmbraceConfigInternal
         import EmbraceConfiguration
     #endif
-    import OpenTelemetryApi
-    import Foundation
 
     @objc(EMBViewCaptureService)
     public final class ViewCaptureService: CaptureService, UIViewControllerHandlerDataSource {
@@ -92,7 +91,7 @@
             handler.onViewBecameInteractive(vc)
         }
 
-        func parentSpan(for vc: UIViewController) -> Span? {
+        func parentSpan(for vc: UIViewController) -> EmbraceSpan? {
             return handler.parentSpan(for: vc)
         }
 

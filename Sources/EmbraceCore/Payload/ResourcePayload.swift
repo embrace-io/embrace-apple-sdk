@@ -3,8 +3,6 @@
 //
 
 import Foundation
-import OpenTelemetryApi
-import OpenTelemetrySdk
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceStorageInternal
@@ -161,23 +159,11 @@ struct ResourcePayload: Codable {
                     self.osBuild = resource.value
                 case .osVariant:
                     self.osAlternateType = resource.value
-                default:
-                    break
-                }
-            } else if let key = SemanticConventions.Device(rawValue: resource.key) {
-                switch key {
-                case .modelIdentifier:
+                case .deviceModelIdentifier:
                     self.deviceModel = resource.value
-                case .manufacturer:
-                    self.deviceManufacturer = resource.value
-                default:
-                    break
-                }
-            } else if let key = SemanticConventions.Os(rawValue: resource.key) {
-                switch key {
-                case .version:
+                case .osVersion:
                     self.osVersion = resource.value
-                case .type:
+                case .osType:
                     self.osType = resource.value
                 default:
                     break

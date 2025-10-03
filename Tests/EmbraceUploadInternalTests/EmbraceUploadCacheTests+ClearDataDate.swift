@@ -85,16 +85,6 @@ extension EmbraceUploadCacheTests {
         XCTAssertNotNil(records.first(where: { $0.id == "id4" }))
         XCTAssertNotNil(records.first(where: { $0.id == "id5" }))
         XCTAssertNotNil(records.first(where: { $0.id == "id6" }))
-
-        // make sure the vacuum performance span was added
-        let spans = spanProcessor.endedSpans
-        XCTAssertEqual(spans.count, 1)
-        let vacuumSpan = spans[0]
-        XCTAssertEqual(vacuumSpan.name, "emb-upload-cache-vacuum")
-        XCTAssertEqual(vacuumSpan.embType, .performance)
-        XCTAssertEqual(vacuumSpan.attributes["emb.private"], .string("true"))
-        XCTAssertEqual(vacuumSpan.attributes["removed"], .string("2"))
-        XCTAssertNotNil(vacuumSpan.endTime)
     }
 
     func test_clearStaleDataIfNeeded_basedOn_date_noLimit() throws {

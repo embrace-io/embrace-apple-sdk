@@ -3,10 +3,7 @@
 //
 
 import EmbraceCommonInternal
-import EmbraceOTelInternal
 import EmbraceStorageInternal
-import OpenTelemetryApi
-import OpenTelemetrySdk
 import TestSupport
 import XCTest
 
@@ -14,21 +11,19 @@ import XCTest
 
 final class SessionSpanUtilsTests: XCTestCase {
 
-    var spanProcessor: MockSpanProcessor!
+    var otel: MockOTelSignalsHandler!
 
     override func setUpWithError() throws {
-        spanProcessor = MockSpanProcessor()
-        EmbraceOTel.setup(spanProcessors: [spanProcessor])
+        otel = MockOTelSignalsHandler()
     }
 
     override func tearDownWithError() throws {
-        spanProcessor = nil
-        EmbraceOTel.setup(spanProcessors: [])
     }
 
     func test_buildSpan() throws {
         // when building a session span
         _ = SessionSpanUtils.span(
+            otel: otel,
             id: TestConstants.sessionId,
             startTime: TestConstants.date,
             state: .foreground,
@@ -36,18 +31,19 @@ final class SessionSpanUtilsTests: XCTestCase {
         )
 
         // then the span is correct
-        let spanData = spanProcessor.startedSpans[0]
-        XCTAssertEqual(spanData.name, "emb-session")
-        XCTAssertEqual(spanData.startTime, TestConstants.date)
-        XCTAssertEqual(spanData.attributes["emb.type"], .string("ux.session"))
-        XCTAssertEqual(spanData.attributes["session.id"], .string(TestConstants.sessionId.stringValue))
-        XCTAssertEqual(spanData.attributes["emb.state"], .string(SessionState.foreground.rawValue))
-        XCTAssertEqual(spanData.attributes["emb.cold_start"], .bool(true))
+        let span = otel.startedSpans[0]
+        XCTAssertEqual(span.name, "emb-session")
+        XCTAssertEqual(span.type, .session)
+        XCTAssertEqual(span.startTime, TestConstants.date)
+        XCTAssertEqual(span.attributes["session.id"], TestConstants.sessionId.stringValue)
+        XCTAssertEqual(span.attributes["emb.state"], SessionState.foreground.rawValue)
+        XCTAssertEqual(span.attributes["emb.cold_start"], "true")
     }
 
     func test_setState() throws {
         // given a session span
         let span = SessionSpanUtils.span(
+            otel: otel,
             id: TestConstants.sessionId,
             startTime: TestConstants.date,
             state: .foreground,
@@ -56,16 +52,16 @@ final class SessionSpanUtilsTests: XCTestCase {
 
         // when updating the state
         SessionSpanUtils.setState(span: span, state: .background)
-        span.end()
+        span!.end()
 
         // then it is updated correctly
-        let spanData = spanProcessor.endedSpans[0]
-        XCTAssertEqual(spanData.attributes["emb.state"], .string(SessionState.background.rawValue))
+        XCTAssertEqual(otel.endedSpans[0].attributes["emb.state"], SessionState.background.rawValue)
     }
 
     func test_setHeartbeat() throws {
         // given a session span
         let span = SessionSpanUtils.span(
+            otel: otel,
             id: TestConstants.sessionId,
             startTime: TestConstants.date,
             state: .foreground,
@@ -75,19 +71,19 @@ final class SessionSpanUtilsTests: XCTestCase {
         // when updating the heartbeat
         let heartbeat = Date()
         SessionSpanUtils.setHeartbeat(span: span, heartbeat: heartbeat)
-        span.end()
+        span!.end()
 
         // then it is updated correctly
-        let spanData = spanProcessor.endedSpans[0]
         XCTAssertEqual(
-            spanData.attributes["emb.heartbeat_time_unix_nano"],
-            .int(heartbeat.nanosecondsSince1970Truncated)
+            otel.endedSpans[0].attributes["emb.heartbeat_time_unix_nano"],
+            String(heartbeat.nanosecondsSince1970Truncated)
         )
     }
 
     func test_setTerminated() throws {
         // given a session span
         let span = SessionSpanUtils.span(
+            otel: otel,
             id: TestConstants.sessionId,
             startTime: TestConstants.date,
             state: .foreground,
@@ -96,11 +92,10 @@ final class SessionSpanUtilsTests: XCTestCase {
 
         // when updating the terminated flag
         SessionSpanUtils.setTerminated(span: span, terminated: true)
-        span.end()
+        span!.end()
 
         // then it is updated correctly
-        let spanData = spanProcessor.endedSpans[0]
-        XCTAssertEqual(spanData.attributes["emb.terminated"], .bool(true))
+        XCTAssertEqual(otel.endedSpans[0].attributes["emb.terminated"], "true")
     }
 
     func test_payloadFromSesssion() throws {

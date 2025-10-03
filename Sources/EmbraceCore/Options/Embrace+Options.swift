@@ -7,7 +7,6 @@ import Foundation
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCaptureService
     import EmbraceCommonInternal
-    import EmbraceOTelInternal
     import EmbraceConfigInternal
     import EmbraceConfiguration
 #endif
@@ -24,9 +23,7 @@ extension Embrace {
         @objc public let services: [CaptureService]
         @objc public let crashReporter: CrashReporter?
         @objc public let logLevel: LogLevel
-        @objc public let export: OpenTelemetryExport?
         @objc public let runtimeConfiguration: EmbraceConfigurable?
-        @objc public let processors: [OpenTelemetryProcessor]?
         @objc public let backtracer: Backtracer?
         @objc public let symbolicator: Symbolicator?
 
@@ -43,8 +40,6 @@ extension Embrace {
         ///   - captureServices: The `CaptureServices` to be installed.
         ///   - crashReporter: The `CrashReporter` to be installed.
         ///   - logLevel: The `LogLevel` to use for console logs.
-        ///   - export: `OpenTelemetryExport` object to export telemetry using OpenTelemetry protocols
-        ///   - processors: `OpenTelemetryProcessor` objects to do extra processing
         ///   - backtracer: Optional `Backtracer` to capture stack traces. Defaults to the
         ///     built-in mechanism, which is sufficient for most apps.
         ///   - symbolicator: Optional `Symbolicator` to resolve frames into symbols;
@@ -57,8 +52,6 @@ extension Embrace {
             captureServices: [CaptureService],
             crashReporter: CrashReporter?,
             logLevel: LogLevel = .default,
-            export: OpenTelemetryExport? = nil,
-            processors: [OpenTelemetryProcessor]? = nil,
             backtracer: Backtracer? = nil,
             symbolicator: Symbolicator? = nil
         ) {
@@ -69,9 +62,7 @@ extension Embrace {
             self.services = captureServices
             self.crashReporter = crashReporter
             self.logLevel = logLevel
-            self.export = export
             self.runtimeConfiguration = nil
-            self.processors = processors
             self.backtracer = backtracer
             self.symbolicator = symbolicator
         }
@@ -88,7 +79,6 @@ extension Embrace {
         ///   - logLevel: The `LogLevel` to use for console logs.
         ///   - runtimeConfiguration: An object to control runtime behavior of the SDK itself.
         @objc public init(
-            export: OpenTelemetryExport,
             platform: Platform = .default,
             captureServices: [CaptureService],
             crashReporter: CrashReporter?,
@@ -104,9 +94,7 @@ extension Embrace {
             self.services = captureServices
             self.crashReporter = crashReporter
             self.logLevel = logLevel
-            self.export = export
             self.runtimeConfiguration = runtimeConfiguration
-            self.processors = nil
             self.backtracer = backtracer
             self.symbolicator = symbolicator
         }
@@ -118,7 +106,6 @@ extension Embrace.Options {
     func validate() throws {
         try validateAppId()
         try validateGroupId()
-        try validateOTelExport()
     }
 
     func validateAppId() throws {
@@ -138,12 +125,6 @@ extension Embrace.Options {
 
         if groupId.isEmpty {
             throw EmbraceSetupError.invalidAppGroupId("`appGroupId` must not be empty if provided")
-        }
-    }
-
-    func validateOTelExport() throws {
-        if appId == nil, export == nil {
-            throw EmbraceSetupError.invalidOptions("`OpenTelemetryExport` must be provided when not using an `appId`")
         }
     }
 }

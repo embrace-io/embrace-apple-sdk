@@ -3,14 +3,15 @@
 //
 
 import EmbraceCaptureService
-import EmbraceOTelInternal
+import EmbraceCommonInternal
+import EmbraceSemantics
 import Foundation
 
 @testable import EmbraceCore
 
 class MockURLSessionTaskHandlerDataSource: URLSessionTaskHandlerDataSource {
     var state: CaptureServiceState = .uninstalled
-    var otel: EmbraceOpenTelemetry?
+    var otel: EmbraceOTelSignalsHandler?
 
     var injectTracingHeader = false
     var requestsDataSource: URLSessionRequestsDataSource?

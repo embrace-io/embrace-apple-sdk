@@ -9,7 +9,7 @@ import Foundation
 #endif
 
 /// Protocol used to receive signals emitted from 3rd party OTel implementations
-protocol EmbraceOTelDelegate {
+public protocol EmbraceOTelDelegate {
 
     /// Called when a span is started
     func onStartSpan(_ span: EmbraceSpan)

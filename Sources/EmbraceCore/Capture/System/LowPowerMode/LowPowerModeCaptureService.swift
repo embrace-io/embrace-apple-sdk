@@ -3,12 +3,10 @@
 //
 
 import Foundation
-import OpenTelemetryApi
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCaptureService
     import EmbraceCommonInternal
-    import EmbraceOTelInternal
     import EmbraceSemantics
 #endif
 
@@ -18,7 +16,7 @@ public class LowPowerModeCaptureService: CaptureService {
     public let provider: PowerModeProvider
 
     @ThreadSafe var wasLowPowerModeEnabled = false
-    @ThreadSafe var currentSpan: Span?
+    @ThreadSafe var currentSpan: EmbraceSpan?
 
     public init(provider: PowerModeProvider = DefaultPowerModeProvider()) {
         self.provider = provider
@@ -69,18 +67,13 @@ public class LowPowerModeCaptureService: CaptureService {
 
         let reason = wasManuallyFetched ? SpanSemantics.LowPower.systemQuery : SpanSemantics.LowPower.systemNotification
 
-        guard
-            let builder = buildSpan(
-                name: SpanSemantics.LowPower.name,
-                type: .lowPower,
-                attributes: [SpanSemantics.LowPower.keyStartReason: reason]
-            )
-        else {
-            Embrace.logger.warning("Error trying to create low power mode span!")
-            return
-        }
-
-        currentSpan = builder.startSpan()
+        currentSpan = try? otel?.createInternalSpan(
+            name: SpanSemantics.LowPower.name,
+            type: .lowPower,
+            attributes: [
+                SpanSemantics.LowPower.keyStartReason: reason
+            ]
+        )
     }
 
     func endSpan() {

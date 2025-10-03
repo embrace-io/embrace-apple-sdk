@@ -7,8 +7,6 @@ import XCTest
 
 @testable import EmbraceConfigInternal
 
-// swiftlint:disable force_try
-
 class RemoteConfigPayloadTests: XCTestCase {
 
     func testOnReceivingEmptyRemoteConfig_RemoteConfigPayload_shouldUseDefaultValues() throws {
@@ -124,5 +122,3 @@ class RemoteConfigPayloadTests: XCTestCase {
         return try XCTUnwrap(Data(contentsOf: URL(fileURLWithPath: path)))
     }
 }
-
-// swiftlint:enable force_try

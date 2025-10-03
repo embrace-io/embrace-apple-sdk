@@ -10,65 +10,57 @@ import Foundation
     import EmbraceCommonInternal
     import EmbraceSemantics
     import EmbraceConfigInternal
-    import EmbraceOTelInternal
     import EmbraceConfiguration
     import EmbraceObjCUtilsInternal
 #endif
 
-protocol LogControllable: LogBatcherDelegate {
-    func uploadAllPersistedLogs(_ completion: (() -> Void)?)
-    func createLog(
-        _ message: String,
-        severity: EmbraceLogSeverity,
-        type: EmbraceType,
-        timestamp: Date,
-        attachment: Data?,
-        attachmentId: String?,
-        attachmentUrl: URL?,
-        attributes: [String: String],
-        stackTraceBehavior: StackTraceBehavior,
-        queue: DispatchQueue
-    )
-}
-
-class LogController: LogControllable {
-    private(set) weak var sessionController: SessionControllable?
-    private weak var storage: Storage?
-    private weak var upload: EmbraceLogUploader?
+class LogController: LogBatcherDelegate {
+    weak var storage: Storage?
+    weak var upload: EmbraceLogUploader?
+    weak var sessionController: SessionControllable?
+    let batcher: LogBatcher
+    let queue: DispatchQueue
 
     weak var sdkStateProvider: EmbraceSDKStateProvider?
-
-    var otel: EmbraceOTelBridge = EmbraceOTel()  // var so we can inject a mock for testing
-
-    /// This will probably be injected eventually.
-    /// For consistency, I created a constant
-    static let maxLogsPerBatch: Int = 20
-
-    struct MutableState {
-        var limits: LogsLimits = LogsLimits()
-    }
-    private let state = EmbraceMutex(MutableState())
-
-    var limits: LogsLimits {
-        get { state.withLock { $0.limits } }
-        set { state.withLock { $0.limits = newValue } }
-    }
 
     var currentSessionId: EmbraceIdentifier? {
         sessionController?.currentSession?.id
     }
 
-    static let attachmentLimit: Int = 5
-    static let attachmentSizeLimit: Int = 1_048_576  // 1 MiB
+    private struct Constants {
+        static let attachmentLimit: Int = 5
+        static let attachmentSizeLimit: Int = 1_048_576  // 1 MiB
+    }
 
     init(
         storage: Storage?,
         upload: EmbraceLogUploader?,
-        controller: SessionControllable
+        sessionController: SessionControllable,
+        batcher: LogBatcher = DefaultLogBatcher(),
+        queue: DispatchQueue
     ) {
         self.storage = storage
         self.upload = upload
-        self.sessionController = controller
+        self.sessionController = sessionController
+        self.batcher = batcher
+        self.queue = queue
+
+        self.batcher.delegate = self
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(onSessionEnd),
+            name: Notification.Name.embraceSessionWillEnd,
+            object: nil
+        )
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    @objc func onSessionEnd() {
+        batcher.forceEndCurrentBatch(waitUntilFinished: true)
     }
 
     func uploadAllPersistedLogs(_ completion: (() -> Void)? = nil) {
@@ -77,7 +69,7 @@ class LogController: LogControllable {
             return
         }
 
-        let logs: [EmbraceLog] = storage.fetchAll(excludingProcessIdentifier: ProcessIdentifier.current)
+        let logs: [EmbraceLog] = storage.fetchAllLogs(excludingProcessIdentifier: ProcessIdentifier.current)
         if logs.isEmpty == false {
             send(batches: divideInBatches(logs)) {
                 completion?()
@@ -92,14 +84,14 @@ class LogController: LogControllable {
         severity: EmbraceLogSeverity,
         type: EmbraceType = .message,
         timestamp: Date = Date(),
-        attachment: Data? = nil,
-        attachmentId: String? = nil,
-        attachmentUrl: URL? = nil,
+        attachment: EmbraceLogAttachment? = nil,
         attributes: [String: String] = [:],
-        stackTraceBehavior: StackTraceBehavior = .default,
-        queue: DispatchQueue
+        stackTraceBehavior: EmbraceStackTraceBehavior = .default,
+        send: Bool = true,
+        completion: ((EmbraceLog?) -> Void)? = nil
     ) {
         guard let sessionController = sessionController else {
+            completion?(nil)
             return
         }
 
@@ -157,55 +149,77 @@ class LogController: LogControllable {
                 .build()
 
             // handle attachment data
-            if let attachment = attachment {
+            if let attachment {
 
-                let id = UUID().withoutHyphen
-                finalAttributes[LogSemantics.keyAttachmentId] = id
+                // embrace hosted data
+                if let data = attachment.data {
+                    finalAttributes[LogSemantics.keyAttachmentId] = attachment.id
 
-                let size = attachment.count
-                finalAttributes[LogSemantics.keyAttachmentSize] = String(size)
+                    let size = data.count
+                    finalAttributes[LogSemantics.keyAttachmentSize] = String(size)
 
-                // check attachment count limit
-                if sessionController.attachmentCount >= Self.attachmentLimit {
-                    finalAttributes[LogSemantics.keyAttachmentErrorCode] = LogSemantics.attachmentLimitReached
+                    // check attachment count limit
+                    if sessionController.attachmentCount >= Constants.attachmentLimit {
+                        finalAttributes[LogSemantics.keyAttachmentErrorCode] = LogSemantics.attachmentLimitReached
 
-                    // check attachment size limit
-                } else if size > Self.attachmentSizeLimit {
-                    finalAttributes[LogSemantics.keyAttachmentErrorCode] = LogSemantics.attachmentTooLarge
+                        // check attachment size limit
+                    } else if size > Constants.attachmentSizeLimit {
+                        finalAttributes[LogSemantics.keyAttachmentErrorCode] = LogSemantics.attachmentTooLarge
+                    }
+
+                    // upload attachment
+                    else {
+                        upload?.uploadAttachment(id: attachment.id, data: data, completion: nil)
+                    }
+
+                    sessionController.increaseAttachmentCount()
                 }
 
-                // upload attachment
-                else {
-                    upload?.uploadAttachment(id: id, data: attachment, completion: nil)
+                // pre-hosted attachment
+                else if let url = attachment.url {
+                    finalAttributes[LogSemantics.keyAttachmentId] = attachment.id
+                    finalAttributes[LogSemantics.keyAttachmentUrl] = url.absoluteString
                 }
-
-                sessionController.increaseAttachmentCount()
             }
 
-            // handle pre-uploaded attachment
-            else if let attachmentId = attachmentId,
-                let attachmentUrl = attachmentUrl
-            {
+            // create log
+            let log = DefaultEmbraceLog(
+                id: EmbraceIdentifier.random.stringValue,
+                severity: severity,
+                type: type,
+                timestamp: timestamp,
+                body: message,
+                attributes: finalAttributes,
+                sessionId: sessionController.currentSession?.id
+            )
 
-                finalAttributes[LogSemantics.keyAttachmentId] = attachmentId
-                finalAttributes[LogSemantics.keyAttachmentUrl] = attachmentUrl.absoluteString
+            if send {
+                addLog(log)
             }
 
-            otel.log(message, severity: severity, timestamp: timestamp, attributes: finalAttributes)
+            completion?(log)
         }
+    }
+
+    public func addLog(_ log: EmbraceLog) {
+        // save log
+        storage?.saveLog(log)
+
+        // add to batch
+        batcher.addLog(log)
     }
 }
 
 extension LogController {
     func batchFinished(withLogs logs: [EmbraceLog]) {
-        guard sdkStateProvider?.isEnabled == true else {
+        guard sdkStateProvider?.isEnabled == true,
+            logs.isEmpty == false,
+            let sessionId = sessionController?.currentSession?.id
+        else {
             return
         }
 
         do {
-            guard let sessionId = sessionController?.currentSession?.id, logs.isEmpty == false else {
-                return
-            }
             let resourcePayload = try createResourcePayload(sessionId: sessionId)
             let metadataPayload = try createMetadataPayload(sessionId: sessionId)
             send(logs: logs, resourcePayload: resourcePayload, metadataPayload: metadataPayload, completion: {})
@@ -314,14 +328,15 @@ extension LogController {
 
     fileprivate func divideInBatches(_ logs: [EmbraceLog]) -> [LogsBatch] {
         var batches: [LogsBatch] = []
-        var batch: LogsBatch = .init(limits: .init(maxBatchAge: .infinity, maxLogsPerBatch: Self.maxLogsPerBatch))
+        var batch: LogsBatch = .init(limits: batcher.logBatchLimits)
+
         for log in logs {
             let result = batch.add(log: log)
             switch result {
             case .success(let batchState):
                 if batchState == .closed {
                     batches.append(batch)
-                    batch = LogsBatch(limits: .init(maxLogsPerBatch: Self.maxLogsPerBatch))
+                    batch = LogsBatch(limits: batcher.logBatchLimits)
                 }
             case .failure:
                 // This shouldn't happen.
@@ -330,9 +345,11 @@ extension LogController {
                 batch = LogsBatch(limits: .init(), logs: [log])
             }
         }
+
         if batch.batchState != .closed && !batch.logs.isEmpty {
             batches.append(batch)
         }
+
         return batches
     }
 

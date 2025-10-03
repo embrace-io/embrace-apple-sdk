@@ -4,6 +4,7 @@
 
 import EmbraceCommonInternal
 import EmbraceSemantics
+import TestSupport
 import XCTest
 
 @testable import EmbraceStorageInternal
@@ -23,13 +24,13 @@ class EmbraceStorageLoggingTests: XCTestCase {
 
     func test_createLog_shouldCreateItInDataBase() throws {
         let id = EmbraceIdentifier.random
-        sut.createLog(
-            id: id,
-            sessionId: .random,
-            processId: .random,
-            severity: .info,
-            body: "log message",
-            attributes: .empty()
+        sut.saveLog(
+            MockLog(
+                id: id.stringValue,
+                body: "log message",
+                sessionId: .random,
+                processId: .random
+            )
         )
 
         let logs: [LogRecord] = sut.fetchAll()
@@ -46,23 +47,10 @@ class EmbraceStorageLoggingTests: XCTestCase {
         createInfoLog(pid: pid)
         createInfoLog()
 
-        let result = sut.fetchAll(excludingProcessIdentifier: pid)
+        let result = sut.fetchAllLogs(excludingProcessIdentifier: pid)
 
         XCTAssertEqual(result.count, 2)
         XCTAssertTrue(!result.contains(where: { $0.processId == pid }))
-    }
-
-    // MARK: - RemoveAllLogs
-
-    func testFilledDb_removeAllLogs_shouldCleanDb() throws {
-        createInfoLog()
-        createInfoLog()
-        createInfoLog()
-
-        sut.removeAllLogs()
-
-        let logs: [LogRecord] = sut.fetchAll()
-        XCTAssertEqual(logs.count, 0)
     }
 
     // MARK: - Remove Specific Logs
@@ -93,13 +81,16 @@ class EmbraceStorageLoggingTests: XCTestCase {
 extension EmbraceStorageLoggingTests {
     @discardableResult
     fileprivate func createInfoLog(withId id: UUID = UUID(), pid: EmbraceIdentifier = .random) -> EmbraceLog {
-        return sut.createLog(
-            id: EmbraceIdentifier(value: id),
+
+        let log = MockLog(
+            id: id.withoutHyphen,
+            body: "a log message",
             sessionId: .random,
             processId: pid,
-            severity: .info,
-            body: "a log message",
-            attributes: .empty()
-        )!
+        )
+
+        sut.saveLog(log)
+
+        return log
     }
 }

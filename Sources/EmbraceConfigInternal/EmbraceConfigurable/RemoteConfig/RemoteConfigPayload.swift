@@ -9,8 +9,6 @@ import Foundation
     import EmbraceCommonInternal
 #endif
 
-// swiftlint:disable nesting
-
 public struct RemoteConfigPayload: Decodable, Equatable {
     var sdkEnabledThreshold: Float
     var backgroundSessionThreshold: Float
@@ -361,5 +359,3 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         networkPayloadCaptureRules = []
     }
 }
-
-// swiftlint:enable nesting

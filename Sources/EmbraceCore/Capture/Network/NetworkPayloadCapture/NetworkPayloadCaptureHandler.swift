@@ -7,7 +7,6 @@ import Foundation
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceConfigInternal
     import EmbraceCommonInternal
-    import EmbraceOTelInternal
     import EmbraceStorageInternal
     import EmbraceSemantics
     import EmbraceConfiguration
@@ -35,9 +34,9 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
     }
     internal var state: EmbraceMutex<MutableState>
 
-    private var otel: EmbraceOpenTelemetry?
+    private var otel: EmbraceOTelSignalsHandler?
 
-    init(otel: EmbraceOpenTelemetry?) {
+    init(otel: EmbraceOTelSignalsHandler?) {
         self.otel = otel
         self.state = EmbraceMutex(MutableState())
 
@@ -156,7 +155,7 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
             }
 
             // generate otel log
-            otel?.log(
+            try? otel?.internalLog(
                 "",
                 severity: .info,
                 type: .networkCapture,
@@ -168,8 +167,7 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
                     LogSemantics.NetworkCapture.keyEncryptedKey: result.key,
                     LogSemantics.NetworkCapture.keyKeyAlgorithm: result.keyAlgorithm,
                     LogSemantics.NetworkCapture.keyAesIv: result.iv
-                ],
-                stackTraceBehavior: .default
+                ]
             )
 
             // flag rule as triggered

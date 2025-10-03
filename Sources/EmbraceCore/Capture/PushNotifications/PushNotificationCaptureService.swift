@@ -7,7 +7,6 @@ import UserNotifications
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
-    import EmbraceOTelInternal
     import EmbraceCaptureService
 #endif
 
@@ -46,6 +45,7 @@ import UserNotifications
             return
         }
 
+        proxy.otel = otel
         initializeSwizzlers()
 
         swizzlers.forEach {
@@ -65,7 +65,6 @@ import UserNotifications
     }
 }
 
-// swiftlint:disable line_length
 struct UNUserNotificationCenterSetDelegateSwizzler: Swizzlable {
     typealias ImplementationType =
         @convention(c) (UNUserNotificationCenter, Selector, UNUserNotificationCenterDelegate)
@@ -91,4 +90,3 @@ struct UNUserNotificationCenterSetDelegateSwizzler: Swizzlable {
         }
     }
 }
-// swiftlint:enable line_length

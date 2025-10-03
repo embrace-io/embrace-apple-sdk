@@ -3,11 +3,9 @@
 //
 
 import Foundation
-import OpenTelemetryApi
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
-    import EmbraceOTelInternal
     import EmbraceSemantics
     import EmbraceObjCUtilsInternal
 #endif
@@ -16,11 +14,11 @@ import OpenTelemetryApi
 public class StartupInstrumentation: NSObject {
 
     var provider: StartupDataProvider
-    var otel: EmbraceOpenTelemetry?
+    var otel: EmbraceOTelSignalsHandler?
 
     struct MutableState {
-        var rootSpan: Span?
-        var firstFrameSpan: Span?
+        var rootSpan: EmbraceSpan?
+        var firstFrameSpan: EmbraceSpan?
     }
     internal var state: EmbraceMutex<MutableState>
 
@@ -41,8 +39,8 @@ public class StartupInstrumentation: NSObject {
 
     func endSpans(_ endTime: Date) {
         state.withLock {
-            $0.firstFrameSpan?.end(time: endTime)
-            $0.rootSpan?.end(time: endTime)
+            $0.firstFrameSpan?.end(endTime: endTime)
+            $0.rootSpan?.end(endTime: endTime)
         }
     }
 
@@ -62,39 +60,33 @@ public class StartupInstrumentation: NSObject {
         let startTime = provider.constructorClosestToMainTime
 
         // build parent
-        let rootBuilder = otel.buildSpan(
+        let parent = try? otel.createInternalSpan(
             name: SpanSemantics.Startup.parentName + "-" + provider.startupType.rawValue,
             type: .startup,
-            attributes: attributes,
-            autoTerminationCode: nil
+            startTime: prewarmed ? startTime : processStartTime,
+            attributes: attributes
         )
-        rootBuilder.setStartTime(time: prewarmed ? startTime : processStartTime)
-        let parent = rootBuilder.startSpan()
 
         // pre init (only on non-prewarmed startups)
         if !prewarmed {
-            otel.recordCompletedSpan(
+            _ = try? otel.createInternalSpan(
                 name: SpanSemantics.Startup.preMainInitName,
+                parentSpan: parent,
                 type: .startup,
-                parent: parent,
                 startTime: processStartTime,
                 endTime: startTime,
-                attributes: attributes,
-                events: [],
-                errorCode: nil
+                attributes: attributes
             )
         }
 
         // first frame rendered
-        let firstFrameBuilder = otel.buildSpan(
+        let firstFrameSpan = try? otel.createInternalSpan(
             name: SpanSemantics.Startup.firstFrameRenderedName,
+            parentSpan: parent,
             type: .startup,
-            attributes: attributes,
-            autoTerminationCode: nil
+            startTime: startTime,
+            attributes: attributes
         )
-        firstFrameBuilder.setStartTime(time: startTime)
-        firstFrameBuilder.setParent(parent)
-        let firstFrameSpan = firstFrameBuilder.startSpan()
 
         // save state
         state.withLock {
@@ -120,30 +112,26 @@ public class StartupInstrumentation: NSObject {
             ]
 
             // app init
-            otel.recordCompletedSpan(
+            _ = try? otel.createInternalSpan(
                 name: SpanSemantics.Startup.appInitName,
+                parentSpan: $0.rootSpan,
                 type: .startup,
-                parent: $0.rootSpan,
                 startTime: provider.constructorClosestToMainTime,
                 endTime: appDidFinishLaunchingTime,
-                attributes: attributes,
-                events: [],
-                errorCode: nil
+                attributes: attributes
             )
 
             // sdk setup
             if let sdkSetupStartTime = provider.sdkSetupStartTime,
                 let sdkSetupEndTime = provider.sdkSetupEndTime
             {
-                otel.recordCompletedSpan(
+                _ = try? otel.createInternalSpan(
                     name: SpanSemantics.Startup.sdkSetup,
+                    parentSpan: $0.rootSpan,
                     type: .startup,
-                    parent: $0.rootSpan,
                     startTime: sdkSetupStartTime,
                     endTime: sdkSetupEndTime,
-                    attributes: attributes,
-                    events: [],
-                    errorCode: nil
+                    attributes: attributes
                 )
             }
 
@@ -151,15 +139,13 @@ public class StartupInstrumentation: NSObject {
             if let sdkStartStarTime = provider.sdkStartStartTime,
                 let sdkStartEndTime = provider.sdkStartEndTime
             {
-                otel.recordCompletedSpan(
+                _ = try? otel.createInternalSpan(
                     name: SpanSemantics.Startup.sdkStart,
+                    parentSpan: $0.rootSpan,
                     type: .startup,
-                    parent: $0.rootSpan,
                     startTime: sdkStartStarTime,
                     endTime: sdkStartEndTime,
-                    attributes: attributes,
-                    events: [],
-                    errorCode: nil
+                    attributes: attributes
                 )
             }
         }

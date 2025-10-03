@@ -33,7 +33,7 @@ public protocol EmbraceOTelSignalBridge {
     func addSpanEvent(_ span: EmbraceSpan, event: EmbraceSpanEvent)
 
     /// Called when a new span link is added to a span
-    func addSpanLink(_ span: EmbraceSpan, event: EmbraceSpanLink)
+    func addSpanLink(_ span: EmbraceSpan, link: EmbraceSpanLink)
 
     /// Called when the span is ended
     func endSpan(_ span: EmbraceSpan, endTime: Date)

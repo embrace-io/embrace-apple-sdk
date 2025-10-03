@@ -61,8 +61,6 @@ class EmbraceLogRecordBuilder: EventBuilder {
     }
 
     func emit() {
-        let resource = sharedState.resourceProvider.getResource()
-
         if spanContext == nil {
             spanContext = OpenTelemetry.instance.contextProvider.activeSpan?.context
         }
@@ -70,7 +68,7 @@ class EmbraceLogRecordBuilder: EventBuilder {
         sharedState.processors.forEach {
             let now = Date()
             let log = ReadableLogRecord(
-                resource: resource,
+                resource: Resource(),
                 instrumentationScopeInfo: instrumentationScope,
                 timestamp: timestamp ?? now,
                 observedTimestamp: observedTimestamp ?? now,

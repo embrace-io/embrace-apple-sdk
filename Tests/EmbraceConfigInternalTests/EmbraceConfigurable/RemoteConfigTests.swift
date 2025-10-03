@@ -101,8 +101,8 @@ final class RemoteConfigTests: XCTestCase {
         config.payload.breadcrumbLimit = 987
 
         XCTAssertEqual(
-            config.spanEventsLimits,
-            SpanEventsLimits(breadcrumb: 987)
+            config.spanEventTypeLimits,
+            SpanEventTypeLimits(breadcrumb: 987)
         )
     }
 
@@ -115,8 +115,8 @@ final class RemoteConfigTests: XCTestCase {
         config.payload.logsErrorLimit = 30
 
         XCTAssertEqual(
-            config.logsLimits,
-            LogsLimits(info: 10, warning: 20, error: 30)
+            config.logSeverityLimits,
+            LogSeverityLimits(info: 10, warning: 20, error: 30)
         )
     }
 

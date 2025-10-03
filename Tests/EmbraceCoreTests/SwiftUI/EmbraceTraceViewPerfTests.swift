@@ -2,10 +2,7 @@
 
     import UIKit
     import EmbraceCommonInternal
-    import EmbraceOTelInternal
     import EmbraceStorageInternal
-    import OpenTelemetryApi
-    import OpenTelemetrySdk
     import SwiftUI
     import TestSupport
     import XCTest
@@ -15,16 +12,14 @@
     @available(iOS 13, macOS 10.15, tvOS 13, *)
     final class EmbraceTraceViewPerfTests: XCTestCase {
 
-        var spanProcessor: MockSpanProcessor!
-        var mockOTel: MockEmbraceOpenTelemetry!
+        var mockOTel: MockOTelSignalsHandler!
         var mockConfig: MockEmbraceConfigurable!
         var mockLogger: MockLogger!
         var traceViewLogger: EmbraceTraceViewLogger!
         var traceViewContext: EmbraceTraceViewContext!
 
         override func setUpWithError() throws {
-            mockOTel = MockEmbraceOpenTelemetry()
-            spanProcessor = mockOTel.spanProcessor
+            mockOTel = MockOTelSignalsHandler()
             mockConfig = MockEmbraceConfigurable(isSwiftUiViewInstrumentationEnabled: true)
             mockLogger = MockLogger()
 
@@ -38,8 +33,6 @@
         }
 
         override func tearDownWithError() throws {
-            spanProcessor = nil
-            EmbraceOTel.setup(spanProcessors: [])
             mockOTel = nil
             mockConfig = nil
             mockLogger = nil
@@ -81,7 +74,6 @@
                 runLayout()
             }
         }
-
     }
 
 #endif
