@@ -12,7 +12,6 @@ import Foundation
 #endif
 
 /// Service that generates OpenTelemetry span events for hangs.
-@objc(EMBHangCaptureService)
 public final class HangCaptureService: CaptureService {
 
     public init(
@@ -78,7 +77,7 @@ extension HangCaptureService: HangObserver {
     // Hang span documented here:
     // https://www.notion.so/embraceio/ANRs-1d77e3c9985281c58765d8c622443e2c
 
-    public func hangStarted(at: NanosecondClock, duration: NanosecondClock) {
+    func hangStarted(at: NanosecondClock, duration: NanosecondClock) {
 
         logger?.debug("[Watchdog] Hang started, at \(at.date) after waiting \(duration.uptime.milliseconds) ms")
 
@@ -123,7 +122,7 @@ extension HangCaptureService: HangObserver {
         }
     }
 
-    public func hangUpdated(at: NanosecondClock, duration: NanosecondClock) {
+    func hangUpdated(at: NanosecondClock, duration: NanosecondClock) {
         logger?.debug("[Watchdog] Hang for \(duration.uptime.milliseconds) ms")
 
         guard
@@ -146,7 +145,7 @@ extension HangCaptureService: HangObserver {
         }
     }
 
-    public func hangEnded(at: NanosecondClock, duration: NanosecondClock) {
+    func hangEnded(at: NanosecondClock, duration: NanosecondClock) {
         logger?.debug("[Watchdog] Hang ended at \(at.date) after \(duration.uptime.milliseconds) ms")
 
         spanQueue.async { [self] in

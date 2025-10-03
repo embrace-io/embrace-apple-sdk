@@ -5,8 +5,7 @@
 import Foundation
 
 /// Class used to add custom stack traces to `EmbraceLogs`.
-@objc
-public class EmbraceStackTrace: NSObject {
+public struct EmbraceStackTrace {
     /// The maximum amount of characters a stack trace frame can have.
     private static let maximumFrameLength = 10000
 
@@ -35,7 +34,7 @@ public class EmbraceStackTrace: NSObject {
     /// - Throws: An `EmbraceStackTraceError.frameIsTooLong` if any of the frames has more than the `maximumFrameLength` (10.000 characters).
     ///
     /// - Important: A stacktrace can't have more than `maximumAmountOfFrames` (200); if that happens, we'll trim the exceeding frames.
-    @objc public init(frames: [String]) throws {
+    public init(frames: [String]) throws {
         let trimmedStackTrace = EmbraceStackTrace.trimStackTrace(frames)
         try EmbraceStackTrace.validateStackFrames(trimmedStackTrace)
         self.frames = trimmedStackTrace
@@ -80,5 +79,9 @@ public class EmbraceStackTrace: NSObject {
         */
         let pattern = #"^\s*(\d+)\s+([^\s]+(?:\s+[^\s]+)*)\s+(0x[0-9A-Fa-f]+)\s+(\S.+?)(?:\s+\+\s+(\d+))?$"#
         return frame.range(of: pattern, options: .regularExpression) != nil
+    }
+
+    public static func == (lhs: EmbraceStackTrace, rhs: EmbraceStackTrace) -> Bool {
+        return lhs.frames == rhs.frames
     }
 }

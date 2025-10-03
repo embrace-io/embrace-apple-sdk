@@ -7,24 +7,24 @@ import Foundation
 /// A clock that works in nanoseconds
 /// and contains the 3 basic times needed to
 /// work with performance and interact with the outside world.
-public struct NanosecondClock: Sendable {
+struct NanosecondClock: Sendable {
 
-    public typealias Nanoseconds = UInt64
+    typealias Nanoseconds = UInt64
 
     /// The clock for the current time.
-    public static var current: NanosecondClock { NanosecondClock() }
+    static var current: NanosecondClock { NanosecondClock() }
 
     /// Uptime in nanoseconds, not incrementing during sleep.
     /// CLOCK_UPTIME_RAW
-    public let uptime: Nanoseconds
+    let uptime: Nanoseconds
 
     /// Monotonic time in nanoseconds, increments during sleep.
     /// using CLOCK_MONOTONIC_RAW.
-    public let monotonic: Nanoseconds
+    let monotonic: Nanoseconds
 
     /// Walltime (real time, unix epoch) in nanoseconds.
     /// using CLOCK_REALTIME.
-    public let realtime: Nanoseconds
+    let realtime: Nanoseconds
 
     /// Private intializers
     private init() {

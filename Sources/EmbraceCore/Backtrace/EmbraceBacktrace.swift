@@ -9,7 +9,7 @@ import Foundation
 /// A frame optionally contains symbolication information (`symbol`) and the
 /// binary image that owns the address (`image`). When symbolication is not
 /// available (or deferred), only the raw `address` will be present.
-public struct EmbraceBacktraceFrame: Codable {
+struct EmbraceBacktraceFrame: Codable {
     /// The program counter (return address) captured for this frame.
     ///
     /// This is an absolute virtual address in the target process at the time of capture.
@@ -54,7 +54,7 @@ extension EmbraceBacktraceFrame.Symbol: Sendable {}
 extension EmbraceBacktraceFrame.Image: Sendable {}
 
 /// A single thread’s captured call stack.
-public struct EmbraceBacktraceThread: Codable {
+struct EmbraceBacktraceThread: Codable {
     /// The 0-based index of the thread in the capture.
     ///
     /// This is the index assigned during snapshotting and is not guaranteed
@@ -71,7 +71,7 @@ public struct EmbraceBacktraceThread: Codable {
     /// - Note: Symbolication requires image metadata and symbol tables to be present.
     ///   If symbolication is unavailable, `symbol`/`image` may remain `nil` even when
     ///   `symbolicated == true`.
-    public func frames(symbolicated: Bool) -> [EmbraceBacktraceFrame] {
+    func frames(symbolicated: Bool) -> [EmbraceBacktraceFrame] {
         callstack.frames(symbolicated: symbolicated)
     }
 
@@ -112,18 +112,18 @@ extension EmbraceBacktraceTimestampUnits: Sendable {}
 ///
 /// The snapshot includes the capture `timestamp` and its `timestampUnits` so
 /// that multiple captures can be ordered and correlated with other telemetry.
-public struct EmbraceBacktrace: Codable {
+struct EmbraceBacktrace: Codable {
     /// Units for `timestamp`.
-    public let timestampUnits: EmbraceBacktraceTimestampUnits
+    let timestampUnits: EmbraceBacktraceTimestampUnits
 
     /// The capture timestamp, measured using a monotonic clock.
     ///
     /// This value is intended for relative ordering and duration measurements.
     /// It is not wall-clock time.
-    public let timestamp: UInt64
+    let timestamp: UInt64
 
     /// The set of threads captured in this snapshot.
-    public let threads: [EmbraceBacktraceThread]
+    let threads: [EmbraceBacktraceThread]
 
     // MARK: - Capture
 

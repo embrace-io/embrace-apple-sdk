@@ -14,18 +14,17 @@ import Foundation
 extension Embrace {
 
     /// Class used to setup the Embrace SDK.
-    @objc(EMBOptions)
-    public final class Options: NSObject {
-        @objc public let appId: String?
-        @objc public let appGroupId: String?
-        @objc public let platform: Platform
-        @objc public let endpoints: Embrace.Endpoints?
-        @objc public let services: [CaptureService]
-        @objc public let crashReporter: CrashReporter?
-        @objc public let logLevel: LogLevel
-        @objc public let runtimeConfiguration: EmbraceConfigurable?
-        @objc public let backtracer: Backtracer?
-        @objc public let symbolicator: Symbolicator?
+    public struct Options {
+        public let appId: String?
+        public let appGroupId: String?
+        public let platform: Platform
+        public let endpoints: Embrace.Endpoints?
+        public let services: [CaptureService]
+        public let crashReporter: CrashReporter?
+        public let logLevel: LogLevel
+        public let runtimeConfiguration: EmbraceConfigurable?
+        public let backtracer: Backtracer?
+        public let symbolicator: Symbolicator?
 
         /// Default initializer for `Embrace.Options` that requires an array of `CaptureServices` to be passed.
         ///
@@ -44,7 +43,7 @@ extension Embrace {
         ///     built-in mechanism, which is sufficient for most apps.
         ///   - symbolicator: Optional `Symbolicator` to resolve frames into symbols;
         ///     without it, only raw addresses are shown.
-        @objc public init(
+        public init(
             appId: String,
             appGroupId: String? = nil,
             platform: Platform = .default,
@@ -78,7 +77,7 @@ extension Embrace {
         ///   - crashReporter: The `CrashReporter` to be installed.
         ///   - logLevel: The `LogLevel` to use for console logs.
         ///   - runtimeConfiguration: An object to control runtime behavior of the SDK itself.
-        @objc public init(
+        public init(
             platform: Platform = .default,
             captureServices: [CaptureService],
             crashReporter: CrashReporter?,

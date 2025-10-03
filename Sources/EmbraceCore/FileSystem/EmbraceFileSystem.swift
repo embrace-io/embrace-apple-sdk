@@ -4,7 +4,7 @@
 
 import Foundation
 
-public struct EmbraceFileSystem {
+struct EmbraceFileSystem {
     static let version = 7
     static let rootDirectoryName = "io.embrace.data"
     static let versionDirectoryName = "v7"

@@ -9,8 +9,7 @@ import Foundation
 #endif
 
 /// Special `CrashReporter` implementation that captures crash data from Crashlytics reports.
-@objc(EMBCrashlyticsReporter)
-public final class CrashlyticsReporter: NSObject, CrashReporter {
+public final class CrashlyticsReporter: CrashReporter {
 
     static let providerIdentifier = "crashlytics"
 
@@ -24,7 +23,7 @@ public final class CrashlyticsReporter: NSObject, CrashReporter {
         }
     }
 
-    @objc public convenience override init() {
+    public convenience init() {
         self.init(
             options: Options(
                 domain: "crashlyticsreports-pa.googleapis.com",

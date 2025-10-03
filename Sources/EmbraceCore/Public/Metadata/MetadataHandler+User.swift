@@ -9,7 +9,7 @@ import Foundation
     import EmbraceStorageInternal
 #endif
 
-@objc extension MetadataHandler {
+extension MetadataHandler {
 
     /// Set a 'name' for the current user.
     /// Will be set permanently until explicitly unset via the `clearUserProperties()` method.

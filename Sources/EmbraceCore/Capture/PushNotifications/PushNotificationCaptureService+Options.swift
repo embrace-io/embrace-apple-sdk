@@ -6,17 +6,12 @@ import Foundation
 
 extension PushNotificationCaptureService {
     /// Class used to setup a `PushNotificationCaptureService`.
-    @objc(EMBPushNotificationCaptureServiceOptions)
-    public final class Options: NSObject {
+    public struct Options {
         /// Defines wether or not the Embrace SDK should capture the data from the push notifications
-        @objc public let captureData: Bool
+        public let captureData: Bool
 
-        @objc public init(captureData: Bool) {
+        public init(captureData: Bool = false) {
             self.captureData = captureData
-        }
-
-        @objc public convenience override init() {
-            self.init(captureData: false)
         }
     }
 }

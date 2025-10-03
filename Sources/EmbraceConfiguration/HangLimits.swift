@@ -5,7 +5,7 @@
 import Foundation
 
 /// HangLimits manages limits for the app hangs generated through the SDK
-@objc public class HangLimits: NSObject {
+public struct HangLimits: Equatable {
 
     /// Maximum number of captured hangs in a session.
     public let hangPerSession: UInt
@@ -18,10 +18,7 @@ import Foundation
         self.samplesPerHang = samplesPerHang
     }
 
-    public override func isEqual(_ object: Any?) -> Bool {
-        guard let other = object as? Self else {
-            return false
-        }
-        return hangPerSession == other.hangPerSession && samplesPerHang == other.samplesPerHang
+    public static func == (lhs: HangLimits, rhs: HangLimits) -> Bool {
+        return lhs.hangPerSession == rhs.hangPerSession && lhs.samplesPerHang == rhs.samplesPerHang
     }
 }

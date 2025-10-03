@@ -8,7 +8,7 @@ import Foundation
     import EmbraceCaptureService
 #endif
 
-@objc extension CaptureService {
+extension CaptureService {
     /// Returns a `URLSessionCaptureService` with the given `URLSessionCaptureService.Options`.
     /// - Parameter options: `URLSessionCaptureService.Options` used to configure the service.
     public static func urlSession(

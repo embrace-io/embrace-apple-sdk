@@ -106,7 +106,7 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
         }
     }
 
-    public func process(
+    func process(
         request: URLRequest?,
         response: URLResponse?,
         data: Data?,

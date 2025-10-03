@@ -3,7 +3,6 @@
 //
 
 /// Used to define the platform the current application is running on.
-@objc(EMBPlatform)
 public enum Platform: Int {
     case unity
     case reactNative

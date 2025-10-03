@@ -9,19 +9,18 @@ import Foundation
 #endif
 
 /// Class used to build the list of `CaptureServices` to be used by the `Embrace` instance.
-@objc(EMBCaptureServiceBuilder)
-public class CaptureServiceBuilder: NSObject {
+public class CaptureServiceBuilder {
     private var services: [CaptureService] = []
 
     /// Returns the list of `CaptureServices` generated with this builder.
-    @objc public func build() -> [CaptureService] {
+    public func build() -> [CaptureService] {
         return services
     }
 
     /// Adds the given `CaptureService`.
     /// - Note: If there was another `CaptureService` already added of the same type, it will be replaced with the new one.
     @discardableResult
-    @objc public func add(_ service: CaptureService) -> Self {
+    public func add(_ service: CaptureService) -> Self {
         remove(ofType: type(of: service))
         services.append(service)
 
@@ -31,8 +30,8 @@ public class CaptureServiceBuilder: NSObject {
     /// Removes a previously added `CaptureService` of the given type, if any.
     /// - Parameter type: Type of the `CaptureService` to remove.
     @discardableResult
-    @objc public func remove(ofType type: AnyClass) -> Self {
-        services.removeAll(where: { $0.isKind(of: type) })
+    public func remove(ofType: AnyClass) -> Self {
+        services.removeAll(where: { type(of: $0) == ofType })
 
         return self
     }
@@ -42,7 +41,7 @@ public class CaptureServiceBuilder: NSObject {
     /// `WebViewCaptureService`, `LowMemoryWarningCaptureService` and `LowPowerModeCaptureService`.
     /// - Note: Any existing `CaptureService` previously added will not get replaced by calling this method.
     @discardableResult
-    @objc public func addDefaults() -> Self {
+    public func addDefaults() -> Self {
         // url session
         if !services.contains(where: { $0 is URLSessionCaptureService }) {
             add(.urlSession())

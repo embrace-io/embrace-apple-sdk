@@ -11,13 +11,12 @@
     /// Class used as a block list for the  `ViewCaptureService`.
     /// Can be configured with a list of types and names to select `UIViewControllers` to be ignored by the capture service.
     /// Additionally, `UIHostingControllers` and their child controllers can be ignored.
-    @objc(EMBViewControllerBlockList)
-    public class ViewControllerBlockList: NSObject {
+    public struct ViewControllerBlockList {
         public let types: [AnyClass]
         public let names: [String]
         public let blockHostingControllers: Bool
 
-        @objc public init(types: [AnyClass] = [], names: [String] = [], blockHostingControllers: Bool = true) {
+        public init(types: [AnyClass] = [], names: [String] = [], blockHostingControllers: Bool = true) {
             self.types = types
             self.names = names.map { $0.uppercased() }
             self.blockHostingControllers = blockHostingControllers

@@ -5,7 +5,7 @@
 import Foundation
 
 /// Representation of a crash that will be reported through Embrace.
-@objc public class EmbraceCrashReport: NSObject {
+public struct EmbraceCrashReport {
 
     /// Unique identifier of this crash.
     public private(set) var id: UUID

@@ -7,7 +7,7 @@ import Foundation
 // MARK: - Run State
 
 /// Describes the termination state of the previous app run.
-@objc public enum LastRunState: Int {
+public enum LastRunState: Int {
     /// The previous run state could not be determined (e.g., first launch or missing/invalid metadata).
     case unavailable
     /// The previous run ended in a crash (uncaught exception, signal, abort, watchdog, etc.).
@@ -22,7 +22,7 @@ import Foundation
 ///
 /// These keys are intended for use with `CrashReporter.appendCrashInfo(key:value:)`
 /// and retrieval via `CrashReporter.getCrashInfo(key:)`.
-@objc public class CrashReporterInfoKey: NSObject {
+public struct CrashReporterInfoKey {
     /// Session identifier (e.g., Embrace session id). Value should be a stable string for the lifetime of the session.
     static public let sessionId = "emb-sid"
     /// SDK version string (e.g., "5.2.1"). Use to correlate reports with the runtime SDK build.
@@ -39,40 +39,40 @@ import Foundation
 /// 3. On next launch, call `getLastRunState()` to know whether the prior run crashed.
 /// 4. Use `fetchUnsentCrashReports(completion:)` to process and upload any pending reports.
 /// 5. After successful handling, call `deleteCrashReport(_:)` to remove a report from local storage.
-@objc public protocol CrashReporter {
+public protocol CrashReporter {
 
     /// Installs crash handlers and initializes storage.
     ///
     /// - Parameter context: Implementation-defined installation parameters.
     /// - Throws: An error if installation fails (e.g., storage not writable, handler setup failed).
-    @objc func install(context: CrashReporterContext) throws
+    func install(context: CrashReporterContext) throws
 
     /// Asynchronously fetches crash reports that have not yet been sent/processed.
     ///
     /// - Note: The completion is invoked on an arbitrary queue. If you need main-thread work, hop explicitly.
     /// - Parameter completion: Called with zero or more `EmbraceCrashReport` instances.
-    @objc func fetchUnsentCrashReports(completion: @escaping ([EmbraceCrashReport]) -> Void)
+    func fetchUnsentCrashReports(completion: @escaping ([EmbraceCrashReport]) -> Void)
 
     /// Optional callback fired each time a new crash report becomes available after installation.
     ///
     /// - Important: The callback may be invoked on a background queue.
-    @objc var onNewReport: ((EmbraceCrashReport) -> Void)? { get set }
+    var onNewReport: ((EmbraceCrashReport) -> Void)? { get set }
 
     /// Returns the prior run’s termination state.
     ///
     /// - Returns: A `LastRunState` reflecting whether the previous run crashed or exited cleanly.
-    @objc func getLastRunState() -> LastRunState
+    func getLastRunState() -> LastRunState
 
     /// Deletes a crash report from local storage.
     ///
     /// Call this after you have successfully uploaded/processed the report to prevent reprocessing.
     /// - Parameter report: The report to delete.
-    @objc func deleteCrashReport(_ report: EmbraceCrashReport)
+    func deleteCrashReport(_ report: EmbraceCrashReport)
 
     /// When `true`, the reporter will not register MetricKit crash payload handling.
     ///
     /// - Discussion: Use this to avoid double-reporting when another component owns MetricKit handling.
-    @objc var disableMetricKitReports: Bool { get }
+    var disableMetricKitReports: Bool { get }
 
     /// Attaches a string value to the crash context under a custom key.
     ///
@@ -81,18 +81,18 @@ import Foundation
     ///   - value: A value to record. Pass `nil` to remove a previously stored value.
     ///
     /// - Important: Keys and values should be small. Avoid high-cardinality or PII.
-    @objc func appendCrashInfo(key: String, value: String?)
+    func appendCrashInfo(key: String, value: String?)
 
     /// Retrieves a previously stored crash info value.
     ///
     /// - Parameter key: The key previously used in `appendCrashInfo(key:value:)`.
     /// - Returns: The stored value or `nil` if absent.
-    @objc func getCrashInfo(key: String) -> String?
+    func getCrashInfo(key: String) -> String?
 
     /// Root directory used by the crash reporter for on-disk artifacts, if applicable.
     ///
     /// - Note: Useful for debugging and diagnostics. Not all implementations persist to disk.
-    @objc var basePath: String? { get }
+    var basePath: String? { get }
 }
 
 // MARK: - Backtracing
@@ -103,7 +103,7 @@ import Foundation
 public typealias FrameAddress = UInt
 
 /// Captures stack backtraces for threads.
-@objc public protocol Backtracer {
+public protocol Backtracer {
 
     /// Captures a backtrace for the provided thread.
     ///
@@ -114,13 +114,13 @@ public typealias FrameAddress = UInt
     /// - Important: Many symbolication pipelines expect the *call site* rather than the *return address*.
     ///   Implementations commonly transform the raw PC to a canonical call instruction (e.g., `returnAddress - 1` on ARM).
     ///   See `SymbolicatedFrame.callInstruction`.
-    @objc func backtrace(of thread: pthread_t) -> [FrameAddress]
+    func backtrace(of thread: pthread_t) -> [FrameAddress]
 }
 
 // MARK: - Symbolication
 
 /// A single symbolicated frame describing where an address resolves within an image.
-@objc public class SymbolicatedFrame: NSObject {
+public struct SymbolicatedFrame {
 
     /// Program counter captured at the time of the backtrace (often a “return address”).
     public let returnAddress: FrameAddress
@@ -161,7 +161,7 @@ public typealias FrameAddress = UInt
     ///   - imageUUID: Optional UUID string used to match dSYMs.
     ///   - imageAddress: The image base address (slide applied if appropriate).
     ///   - imageSize: The image size in bytes.
-    @objc public init(
+    public init(
         returnAddress: FrameAddress,
         callInstruction: FrameAddress,
         symbolAddress: FrameAddress,
@@ -183,7 +183,7 @@ public typealias FrameAddress = UInt
 }
 
 /// Resolves raw addresses to human-readable symbols and image metadata.
-@objc public protocol Symbolicator {
+public protocol Symbolicator {
 
     /// Resolves a single frame address to symbolic information.
     ///
@@ -191,5 +191,5 @@ public typealias FrameAddress = UInt
     ///                      consider normalizing (e.g., `addr - 1`) before calling.
     /// - Returns: A `SymbolicatedFrame` on success, or `nil` if the address could not be resolved
     ///            (e.g., missing symbols/dSYMs, unknown image).
-    @objc func resolve(address: FrameAddress) -> SymbolicatedFrame?
+    func resolve(address: FrameAddress) -> SymbolicatedFrame?
 }

@@ -125,17 +125,17 @@ class BaseInternalLogger: InternalLogger {
         return log(level: .error, message: message)
     }
 
-    @discardableResult @objc func startup(_ message: String, attributes: [String: String] = [:]) -> Bool {
+    @discardableResult func startup(_ message: String, attributes: [String: String] = [:]) -> Bool {
         return log(level: .info, message: message, attributes: attributes, customExport: true)
     }
-    @discardableResult @objc func startup(_ message: String) -> Bool {
+    @discardableResult func startup(_ message: String) -> Bool {
         return log(level: .info, message: message, customExport: true)
     }
 
-    @discardableResult @objc func critical(_ message: String, attributes: [String: String] = [:]) -> Bool {
+    @discardableResult func critical(_ message: String, attributes: [String: String] = [:]) -> Bool {
         return log(level: .critical, message: message, attributes: attributes, customExport: true)
     }
-    @discardableResult @objc func critical(_ message: String) -> Bool {
+    @discardableResult func critical(_ message: String) -> Bool {
         return log(level: .critical, message: message, customExport: true)
     }
 

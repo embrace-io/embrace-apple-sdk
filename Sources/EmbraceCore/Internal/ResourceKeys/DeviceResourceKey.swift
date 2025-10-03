@@ -4,7 +4,7 @@
 
 import Foundation
 
-public enum DeviceResourceKey: String, Codable {
+enum DeviceResourceKey: String, Codable {
     case isJailbroken = "emb.device.is_jailbroken"
     case locale = "emb.device.locale"
     case timezone = "emb.device.timezone"

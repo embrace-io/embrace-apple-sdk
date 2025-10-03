@@ -2,7 +2,7 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-@objc public enum EmbraceLogSeverity: Int, Codable {
+public enum EmbraceLogSeverity: Int, Codable {
     case trace = 1
     case debug = 5
     case info = 9

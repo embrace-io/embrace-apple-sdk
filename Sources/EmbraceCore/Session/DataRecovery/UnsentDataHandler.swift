@@ -153,7 +153,7 @@ class UnsentDataHandler {
         }
     }
 
-    static public func sendCrashLog(
+    static func sendCrashLog(
         report: EmbraceCrashReport,
         reporter: EmbraceCrashReporter?,
         session: EmbraceSession?,
@@ -294,7 +294,7 @@ class UnsentDataHandler {
         }
     }
 
-    static public func sendSession(
+    static func sendSession(
         _ session: EmbraceSession,
         storage: EmbraceStorage,
         upload: EmbraceUpload,
@@ -449,7 +449,7 @@ extension UnsentDataHandler {
         }
     }
 
-    static public func sendSession(
+    static func sendSession(
         _ session: EmbraceSession,
         storage: EmbraceStorage,
         upload: EmbraceUpload,
@@ -462,7 +462,7 @@ extension UnsentDataHandler {
         }
     }
 
-    static public func sendCrashLog(
+    static func sendCrashLog(
         report: EmbraceCrashReport,
         reporter: EmbraceCrashReporter?,
         session: EmbraceSession?,

@@ -20,7 +20,6 @@ protocol URLSessionSwizzler: Swizzlable {
 class EmbraceDummyURLSessionDelegate: NSObject, URLSessionDelegate {}
 
 /// Service that generates OpenTelemetry spans for network requests that use `URLSession`.
-@objc(EMBURLSessionCaptureService)
 public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandlerDataSource {
 
     public let options: URLSessionCaptureService.Options
@@ -29,18 +28,14 @@ public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandl
     private(set) var swizzlers: [any URLSessionSwizzler] = []
     private var handler: URLSessionTaskHandler?
 
-    @objc public convenience init(options: URLSessionCaptureService.Options) {
-        self.init(options: options, lock: NSLock(), swizzlerProvider: DefaultURLSessionSwizzlerProvider())
-    }
-
-    public convenience override init() {
-        self.init(lock: NSLock(), swizzlerProvider: DefaultURLSessionSwizzlerProvider())
+    public convenience init(options: URLSessionCaptureService.Options = URLSessionCaptureService.Options()) {
+        self.init(options: options, lock: NSLock())
     }
 
     init(
         options: URLSessionCaptureService.Options = URLSessionCaptureService.Options(),
         lock: NSLocking,
-        swizzlerProvider: URLSessionSwizzlerProvider
+        swizzlerProvider: URLSessionSwizzlerProvider = DefaultURLSessionSwizzlerProvider()
     ) {
         self.options = options
         self.lock = lock

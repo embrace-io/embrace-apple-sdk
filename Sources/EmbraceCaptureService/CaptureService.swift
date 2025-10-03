@@ -21,7 +21,7 @@ import Foundation
 ///
 /// This base class provides the necessary functionality and structure that should be used
 /// by all capture services.
-open class CaptureService: NSObject {
+open class CaptureService {
 
     /// Getter for the OTel signals handler used by the capture service.
     private(set) package weak var otel: EmbraceOTelSignalsHandler?
@@ -32,6 +32,8 @@ open class CaptureService: NSObject {
     /// Getter for the state of the capture service.
     @ThreadSafe
     private(set) public var state: CaptureServiceState = .uninstalled
+
+    public init() {}
 
     package func install(otel: EmbraceOTelSignalsHandler?, logger: InternalLogger? = nil) {
         guard state == .uninstalled else {

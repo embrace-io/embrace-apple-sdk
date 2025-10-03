@@ -5,17 +5,16 @@
 import Foundation
 
 /// Class used to add attachments when creating `EmbraceLogs`.
-@objc
-public class EmbraceLogAttachment: NSObject {
+public class EmbraceLogAttachment {
 
-    @objc public let id: String
-    @objc public let data: Data?
-    @objc public let url: URL?
+    public let id: String
+    public let data: Data?
+    public let url: URL?
 
     /// Creates a new `EmbraceLogAttachment` with the given `Data`.
     /// Use this method to upload attachments that are hosted by Embrace.
     /// - Parameter data: The attachment data
-    @objc public init(data: Data) {
+    public init(data: Data) {
         self.id = EmbraceIdentifier.random.stringValue
         self.data = data
         self.url = nil
@@ -26,7 +25,7 @@ public class EmbraceLogAttachment: NSObject {
     /// - Parameters:
     ///   - id: Identifier of the attachment
     ///   - url: Download url for th attachment data
-    @objc public init(id: String, url: URL) {
+    public init(id: String, url: URL) {
         self.id = id
         self.data = nil
         self.url = url

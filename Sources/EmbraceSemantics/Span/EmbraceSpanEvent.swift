@@ -5,19 +5,19 @@
 import Foundation
 
 /// Represents an OTel span event
-@objc open class EmbraceSpanEvent: NSObject {
+open class EmbraceSpanEvent {
 
     /// Name of the event
-    @objc public let name: String
+    public let name: String
 
     /// Embrace specific type of the event, if any
-    @objc public let type: EmbraceType?
+    public let type: EmbraceType?
 
     /// Date when the event occured
-    @objc public let timestamp: Date
+    public let timestamp: Date
 
     /// Attributes of the event
-    @objc public let attributes: [String: String]
+    public let attributes: [String: String]
 
     /// Creates a new `EmbraceSpanEvent`
     /// - Parameters:
@@ -25,7 +25,7 @@ import Foundation
     ///   - type: Type of the event
     ///   - timestamp: Timestamp of the event
     ///   - attributes: Attributes of the event
-    @objc package init(
+    package init(
         name: String,
         type: EmbraceType? = .performance,
         timestamp: Date = Date(),
