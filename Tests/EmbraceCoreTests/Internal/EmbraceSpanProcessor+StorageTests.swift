@@ -15,17 +15,18 @@ final class EmbraceSpanProcessor_StorageTests: XCTestCase {
 
     func test_spanProcessor_withStorage_usesStorageExporter() throws {
         let storage = try EmbraceStorage.createInMemoryDb()
-        let sessionController = MockSessionController()
 
         defer { storage.coreData.destroy() }
 
-        let processor = SingleSpanProcessor(
+        let processor = EmbraceSpanProcessor(
             spanExporter: StorageSpanExporter(
-                options: .init(storage: storage, sessionController: sessionController),
+                storage: storage,
                 logger: MockLogger()
             ),
-            sdkStateProvider: sdkStateProvider
+            sdkStateProvider: sdkStateProvider,
+            criticalResourceGroup: DispatchGroup()
         )
-        XCTAssert(processor.spanExporter is StorageSpanExporter)
+
+        XCTAssert(processor.spanExporters.first is StorageSpanExporter)
     }
 }
