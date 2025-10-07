@@ -22,10 +22,6 @@ import OpenTelemetryApi
 
 public class AppMemoryCaptureService: CaptureService {
 
-    // This is shared for now until we have access to the AppMemoryTracker
-    // and can add an observer. See `init` for why.
-    public static let shared = AppMemoryCaptureService()
-
     struct ServiceMutableData {
         var enabled: Bool = true
         var observer: Any? = nil
