@@ -18,18 +18,18 @@ import Foundation
 public struct WatchdogEvent {
 
     /// The timestamp at which the hang was first detected.
-    public let timestamp: NanosecondClock
+    public let timestamp: EmbraceClock
 
     /// The total duration the main thread was blocked.
     /// This value increases for updated hang events, and remains constant once the hang ends.
-    public let duration: NanosecondClock
+    public let duration: EmbraceClock
 
     /// Creates a new `WatchdogEvent` instance.
     ///
     /// - Parameters:
     ///   - timestamp: The time when the hang was first observed.
     ///   - duration: The hang duration.
-    public init(timestamp: NanosecondClock, duration: NanosecondClock) {
+    public init(timestamp: EmbraceClock, duration: EmbraceClock) {
         self.timestamp = timestamp
         self.duration = duration
     }
