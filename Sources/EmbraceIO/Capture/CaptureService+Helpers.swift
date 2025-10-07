@@ -67,6 +67,6 @@ import Foundation
     }
 
     static func appMemory() -> AppMemoryCaptureService {
-        return .shared
+        return AppMemoryCaptureService()
     }
 }
