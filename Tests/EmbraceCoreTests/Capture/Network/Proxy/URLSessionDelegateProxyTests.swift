@@ -61,6 +61,13 @@ extension URLSessionDelegateProxyTests {
         try whenInvokingDidReceiveInformationalResponse()
         thenOriginalDelegateShouldHaveInvokedDidReceiveInformationalResponse()
     }
+
+    func test_onWillPerformHTTPRedirection_shouldForwardToOriginalDelegate() throws {
+        givenProxyWithFullyImplementedOriginalDelegate()
+        try whenInvokingWillPerformHTTPRedirection()
+        thenOriginalDelegateShouldHaveInvokedWillPerformHTTPRedirection()
+    }
+
 }
 
 // MARK: - Test Forwarding to each TaskDelegate Method
@@ -198,6 +205,17 @@ extension URLSessionDelegateProxyTests {
             totalBytesExpectedToSend: .random(in: 0...100))
     }
 
+    fileprivate func whenInvokingWillPerformHTTPRedirection() throws {
+        if #available(iOS 17.0, macOS 14.0, watchOS 10.0, tvOS 17.0, *) {
+            (sut as URLSessionTaskDelegate).urlSession?(
+                .shared,
+                task: aTask(),
+                willPerformHTTPRedirection: .init(),
+                newRequest: .init(url: .init(string: "https://embrace.io")!),
+                completionHandler: { _ in })
+        }
+    }
+
     fileprivate func whenInvokingDidReceiveInformationalResponse() throws {
         if #available(iOS 17.0, macOS 14.0, watchOS 10.0, tvOS 17.0, *) {
             (sut as URLSessionTaskDelegate).urlSession?(
@@ -297,6 +315,10 @@ extension URLSessionDelegateProxyTests {
             didWriteData: 0,
             totalBytesWritten: 0,
             totalBytesExpectedToWrite: 0)
+    }
+
+    fileprivate func thenOriginalDelegateShouldHaveInvokedWillPerformHTTPRedirection() {
+        XCTAssertTrue(originalDelegate.didCallWillPerformHTTPRedirection)
     }
 
     fileprivate func thenOriginalDelegateShouldHaveInvokedDidWriteData() {
