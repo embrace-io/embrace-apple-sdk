@@ -12,7 +12,6 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic, assign) BOOL didInvokeDidBecomeInvalidWithError;
 @property(nonatomic, assign) BOOL didInvokeDidFinishCollectingMetrics;
 @property(nonatomic, assign) BOOL didInvokedDidCompleteWithError;
-@property(nonatomic, assign) BOOL didInvokedDidFinishDownloadingToURL;
 
 @end
 
