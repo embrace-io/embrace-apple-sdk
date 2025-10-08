@@ -18,9 +18,7 @@ class EmbraceAttachmentUploadOperation: EmbraceUploadOperation, @unchecked Senda
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
 
-        request.setValue(metadataOptions.userAgent, forHTTPHeaderField: "User-Agent")
-        request.setValue(metadataOptions.apiKey, forHTTPHeaderField: "X-EM-AID")
-        request.setValue(metadataOptions.deviceId, forHTTPHeaderField: "X-EM-DID")
+        addHeaders(to: &request)
 
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
