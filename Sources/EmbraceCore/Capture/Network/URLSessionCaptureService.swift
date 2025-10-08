@@ -146,6 +146,16 @@ struct URLSessionInitWithDelegateSwizzler: URLSessionSwizzler {
                 let newDelegate = EMBURLSessionDelegateProxy(delegate: proxiedDelegate, handler: handler)
                 let session = originalImplementation(urlSession, Self.selector, configuration, newDelegate, queue)
 
+                // Have we been swizzled by Firebase??
+                // This is a simple check to see if Firebase is 'isa' swizzling the delegate proxy.
+                // Things tend to break when they do.
+                if let checkedDelegate = session.delegate {
+                    let className = NSStringFromClass(type(of: checkedDelegate))
+                    if className.starts(with: "fir_") {
+                        Embrace.logger.warning("URLSession.delegate is swizzled by Firebase, which usually leads to broken delegate behaviour!")
+                    }
+                }
+
                 // If we have already been swizzled by another player, we notify our proxied delegate,
                 // as this will later help determine whether or not to forward the invocation of various
                 // `URLSessionDelegate` methods.
