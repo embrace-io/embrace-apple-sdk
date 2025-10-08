@@ -8,10 +8,12 @@ import Foundation
 class SpyEmbraceLogUploader: EmbraceLogUploader {
     var didCallUploadLog = false
     var didCallUploadLogCount = 0
+    var logPayloadTypes: String? = nil
     var stubbedLogCompletion: (Result<(), Error>)?
-    func uploadLog(id: String, data: Data, completion: ((Result<(), Error>) -> Void)?) {
+    func uploadLog(id: String, data: Data, payloadTypes: String, completion: ((Result<(), Error>) -> Void)?) {
         didCallUploadLogCount += 1
         didCallUploadLog = true
+        logPayloadTypes = payloadTypes
         if let result = stubbedLogCompletion {
             completion?(result)
         }

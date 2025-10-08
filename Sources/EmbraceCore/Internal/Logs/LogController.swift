@@ -284,14 +284,19 @@ extension LogController {
             completion?()
             return
         }
+
         let logPayloads = logs.map { LogPayloadBuilder.build(log: $0) }
         let envelope = PayloadEnvelope.init(
             data: logPayloads,
             resource: resourcePayload,
-            metadata: metadataPayload)
+            metadata: metadataPayload
+        )
+
         do {
             let envelopeData = try JSONEncoder().encode(envelope).gzipped()
-            upload.uploadLog(id: UUID().uuidString, data: envelopeData) { [weak self] result in
+            let payloadTypes = logsPayloadTypes(logs)
+
+            upload.uploadLog(id: UUID().uuidString, data: envelopeData, payloadTypes: payloadTypes) { [weak self] result in
                 defer { completion?() }
                 guard let self = self else {
                     return
@@ -372,6 +377,17 @@ extension LogController {
         }
 
         return MetadataPayload(from: metadata)
+    }
+
+    /// Returns the comma separated list of all the `emb.types` for an array of `EmbraceLogs`
+    fileprivate func logsPayloadTypes(_ logs: [EmbraceLog]) -> String {
+        guard logs.count > 0 else {
+            return ""
+        }
+
+        let types = logs.compactMap { $0.attribute(forKey: LogSemantics.keyEmbraceType)?.valueRaw }
+        let set = Set(types)
+        return set.joined(separator: ",")
     }
 }
 

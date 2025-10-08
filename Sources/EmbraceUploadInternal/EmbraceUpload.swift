@@ -9,7 +9,7 @@ import Foundation
 #endif
 
 public protocol EmbraceLogUploader: AnyObject {
-    func uploadLog(id: String, data: Data, completion: ((Result<(), Error>) -> Void)?)
+    func uploadLog(id: String, data: Data, payloadTypes: String, completion: ((Result<(), Error>) -> Void)?)
     func uploadAttachment(id: String, data: Data, completion: ((Result<(), Error>) -> Void)?)
 }
 
@@ -109,6 +109,7 @@ public class EmbraceUpload: EmbraceLogUploader {
                     id: uploadData.id,
                     data: uploadData.data,
                     type: type,
+                    payloadTypes: uploadData.payloadTypes,
                     attemptCount: uploadData.attemptCount
                 ) {
                     sem.signal()
@@ -142,13 +143,15 @@ public class EmbraceUpload: EmbraceLogUploader {
     /// - Parameters:
     ///   - id: Identifier of the log batch (has no utility aside of caching)
     ///   - data: Data of the log's payload
+    ///   - payloadTypes: Comma separated list of all the emb.types of logs that are being uploaded
     ///   - completion: Completion block called when the data is successfully cached, or when an `Error` occurs
-    public func uploadLog(id: String, data: Data, completion: ((Result<(), Error>) -> Void)?) {
+    public func uploadLog(id: String, data: Data, payloadTypes: String = "", completion: ((Result<(), Error>) -> Void)?) {
         queue.async { [weak self] in
             self?.uploadData(
                 id: id,
                 data: data,
                 type: .log,
+                payloadTypes: payloadTypes,
                 completion: completion
             )
         }
@@ -175,6 +178,7 @@ public class EmbraceUpload: EmbraceLogUploader {
         id: String,
         data: Data,
         type: EmbraceUploadType,
+        payloadTypes: String? = nil,
         attemptCount: Int = 0,
         completion: ((Result<(), Error>) -> Void)?
     ) {
@@ -197,7 +201,7 @@ public class EmbraceUpload: EmbraceLogUploader {
                 return
             }
 
-            if !strongSelf.cache.saveUploadData(id: id, type: type, data: data) {
+            if !strongSelf.cache.saveUploadData(id: id, type: type, data: data, payloadTypes: payloadTypes) {
                 strongSelf.logger.debug("Error caching upload data!")
             }
         }
@@ -208,6 +212,7 @@ public class EmbraceUpload: EmbraceLogUploader {
             type: type,
             urlSession: urlSession,
             data: data,
+            payloadTypes: payloadTypes,
             retryCount: options.redundancy.automaticRetryCount,
             attemptCount: attemptCount
         ) { [weak self] (result, attemptCount) in
@@ -237,6 +242,7 @@ public class EmbraceUpload: EmbraceLogUploader {
         id: String,
         data: Data,
         type: EmbraceUploadType,
+        payloadTypes: String?,
         attemptCount: Int,
         completion: @escaping (() -> Void)
     ) {
@@ -250,6 +256,7 @@ public class EmbraceUpload: EmbraceLogUploader {
             endpoint: endpoint(for: type),
             identifier: id,
             data: data,
+            payloadTypes: payloadTypes,
             retryCount: retries,
             exponentialBackoffBehavior: options.redundancy.exponentialBackoffBehavior,
             attemptCount: attemptCount,
@@ -273,6 +280,7 @@ public class EmbraceUpload: EmbraceLogUploader {
         type: EmbraceUploadType,
         urlSession: URLSession,
         data: Data,
+        payloadTypes: String?,
         retryCount: Int,
         attemptCount: Int,
         completion: @escaping EmbraceUploadOperationCompletion
@@ -286,6 +294,7 @@ public class EmbraceUpload: EmbraceLogUploader {
                 endpoint: endpoint(for: type),
                 identifier: id,
                 data: data,
+                payloadTypes: payloadTypes,
                 retryCount: retryCount,
                 exponentialBackoffBehavior: options.redundancy.exponentialBackoffBehavior,
                 attemptCount: attemptCount,
@@ -301,6 +310,7 @@ public class EmbraceUpload: EmbraceLogUploader {
             endpoint: endpoint(for: type),
             identifier: id,
             data: data,
+            payloadTypes: payloadTypes,
             retryCount: retryCount,
             exponentialBackoffBehavior: options.redundancy.exponentialBackoffBehavior,
             attemptCount: attemptCount,
