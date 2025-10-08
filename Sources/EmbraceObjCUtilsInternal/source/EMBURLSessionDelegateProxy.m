@@ -131,11 +131,20 @@
     }
 }
 
-- (void)URLSession:(NSURLSession *)session task:(nonnull NSURLSessionTask *)task willPerformHTTPRedirection:(nonnull NSHTTPURLResponse *)response newRequest:(nonnull NSURLRequest *)request completionHandler:(nonnull void (^)(NSURLRequest * _Nullable))completionHandler {
+- (void)URLSession:(NSURLSession *)session
+                          task:(nonnull NSURLSessionTask *)task
+    willPerformHTTPRedirection:(nonnull NSHTTPURLResponse *)response
+                    newRequest:(nonnull NSURLRequest *)request
+             completionHandler:(nonnull void (^)(NSURLRequest *_Nullable))completionHandler
+{
     id target = [self getTargetForSelector:WILL_PERFORM_REDIRECTION session:session];
 
     if (target) {
-        [(id<NSURLSessionTaskDelegate>)target URLSession:session task:task willPerformHTTPRedirection:response newRequest:request completionHandler:completionHandler];
+        [(id<NSURLSessionTaskDelegate>)target URLSession:session
+                                                    task:task
+                              willPerformHTTPRedirection:response
+                                              newRequest:request
+                                       completionHandler:completionHandler];
     }
 }
 
