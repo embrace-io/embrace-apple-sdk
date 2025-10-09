@@ -34,6 +34,6 @@ class StartupFirstFrameSpanTest: PayloadTest {
     }
 
     func runTestPreparations() {
-        resetStartupInstrumentation()
+        TestHelpers.resetStartupInstrumentation()
     }
 }

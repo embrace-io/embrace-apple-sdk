@@ -34,6 +34,6 @@ class StartupSDKSetupSpanTest: PayloadTest {
     }
 
     func runTestPreparations() {
-        resetStartupInstrumentation()
+        TestHelpers.resetStartupInstrumentation()
     }
 }

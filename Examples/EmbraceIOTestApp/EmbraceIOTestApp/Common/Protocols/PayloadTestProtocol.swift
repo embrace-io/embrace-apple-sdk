@@ -27,8 +27,6 @@ protocol PayloadTest {
     )
     func evaluateLogExistence(withMessage: String, on logs: [ReadableLogRecord]) -> (TestReportItem, ReadableLogRecord?)
     func runTestPreparations()
-
-    func resetStartupInstrumentation()
 }
 
 extension PayloadTest {
@@ -108,10 +106,4 @@ extension PayloadTest {
 
     // TODO: Remove default initializer when 'testRelevantPayloadNames' is removed.
     var expectedNotificationsForTestReady: [String] { [] }
-
-    func resetStartupInstrumentation() {
-        EMBStartupTracker.shared().resetLifecycleNotifications()
-        NotificationCenter.default.post(name: UIApplication.didFinishLaunchingNotification, object: nil)
-        NotificationCenter.default.post(name: UIApplication.didBecomeActiveNotification, object: nil)
-    }
 }

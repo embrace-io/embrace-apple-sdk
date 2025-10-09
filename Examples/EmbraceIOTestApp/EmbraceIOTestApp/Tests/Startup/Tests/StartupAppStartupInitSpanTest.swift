@@ -35,6 +35,6 @@ class StartupAppStartupInitSpanTest: PayloadTest {
     }
 
     func runTestPreparations() {
-        resetStartupInstrumentation()
+        TestHelpers.resetStartupInstrumentation()
     }
 }
