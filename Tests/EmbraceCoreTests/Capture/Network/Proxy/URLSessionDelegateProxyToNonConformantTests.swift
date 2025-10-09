@@ -41,7 +41,13 @@ class URLSessionDelegateProxyToNonConformantTests: XCTestCase {
         givenProxyContainingDelegateImplemetingMethodsButNotConformingToSpecificProtocols()
         whenInvokindDidCompleteWithError()
         try thenDidCompleteWithErrorShouldBeCalledOnDelegate()
-        thenHandlerShouldHaveInvokedFinishWithBodySize()
+        thenHandlerShouldHaveInvokedFinishWithData()
+    }
+
+    func testShouldForwardToDidFinishDownloadingToURLOnNonConformingObjectIfRespondsToTheSelector() throws {
+        givenProxyContainingDelegateImplemetingMethodsButNotConformingToSpecificProtocols()
+        try whenInvokingDidFinishDownloadingToURL()
+        try thenDidFinishDownloadingToURLShouldBeCalledOnDelegate()
     }
 
     func testShouldForwardToDidBecomeInvalidWithErrorOnNonConformingObjectIfRespondsToTheSelector() throws {
@@ -106,9 +112,13 @@ extension URLSessionDelegateProxyToNonConformantTests {
     fileprivate func whenInvokingDidFinishDownloadingToURL() throws {
         sut.urlSession(
             urlSession,
-            task: aDownloadTask(),
-            didCompleteWithError: nil
+            downloadTask: aDownloadTask(),
+            didFinishDownloadingTo: try XCTUnwrap(URL(string: "https://embrace.io"))
         )
+    }
+
+    fileprivate func thenDidFinishDownloadingToURLShouldBeCalledOnDelegate() throws {
+        XCTAssertTrue(try XCTUnwrap(originalDelegate).didInvokedDidFinishDownloadingToURL)
     }
 
     fileprivate func thenDidCompleteWithErrorShouldBeCalledOnDelegate() throws {
