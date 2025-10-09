@@ -8,7 +8,6 @@ import Foundation
     import EmbraceCommonInternal
 #endif
 
-@objc
 extension Embrace {
     /// This defines the error types related to crash reporting within the Embrace SDK.
     private enum EmbraceCrashReportError: LocalizedError, CustomNSError {

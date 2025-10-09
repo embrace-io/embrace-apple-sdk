@@ -27,7 +27,7 @@ extension Embrace.Options {
     ///   - platform: `Platform` in which the app will run. Defaults to `.iOS`.
     ///   - endpoints: `Embrace.Endpoints` instance.
     ///   - logLevel: `LogLevel` for Embrace console logs
-    @objc public convenience init(
+    public init(
         appId: String,
         appGroupId: String? = nil,
         platform: Platform = .default,
@@ -57,7 +57,7 @@ extension Embrace.Options {
     ///   - appId: The `appId` of the project.
     ///   - appGroupId: The app group identifier used by the app, if any.
     ///   - platform: `Platform` in which the app will run. Defaults to `.iOS`.
-    @objc public convenience init(
+    public init(
         appId: String,
         appGroupId: String? = nil,
         platform: Platform = .default
@@ -71,12 +71,6 @@ extension Embrace.Options {
             backtracer: KSCrashBacktracing(),
             symbolicator: KSCrashBacktracing()
         )
-    }
-}
-
-extension Embrace.Options: ExpressibleByStringLiteral {
-    public convenience init(stringLiteral value: String) {
-        self.init(appId: value)
     }
 }
 

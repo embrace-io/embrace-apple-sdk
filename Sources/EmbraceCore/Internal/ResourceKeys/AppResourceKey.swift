@@ -4,7 +4,7 @@
 
 import Foundation
 
-public enum AppResourceKey: String, Codable {
+enum AppResourceKey: String, Codable {
     case bundleVersion = "emb.app.bundle_version"
     case environment = "emb.app.environment"
     case detailedEnvironment = "emb.app.environment_detailed"

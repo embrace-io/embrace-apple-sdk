@@ -12,7 +12,7 @@ import Foundation
     import EmbraceCoreDataInternal
 #endif
 
-@objc public enum MetadataLifespan: Int {
+public enum MetadataLifespan: Int {
     /// The resource will be removed when the session ends.
     case session
     /// The resource will be removed when the process ends
@@ -23,8 +23,7 @@ import Foundation
 }
 
 /// Class used to generate resources, properties and persona tags to be included in sessions and logs.
-@objc(EMBMetadataHandler)
-public class MetadataHandler: NSObject {
+public class MetadataHandler {
 
     static let maxKeyLength = 128
     static let maxValueLength = 1024
@@ -32,7 +31,6 @@ public class MetadataHandler: NSObject {
     weak var storage: EmbraceStorage?
     weak var sessionController: SessionControllable?
 
-    private let coreData: CoreDataWrapper?
     internal let synchronizationQueue: DispatchableQueue
 
     init(
@@ -43,47 +41,6 @@ public class MetadataHandler: NSObject {
         self.storage = storage
         self.sessionController = sessionController
         self.synchronizationQueue = syncronizationQueue
-
-        // tmp core data stack
-        // only created if the db file is found
-        // the entire data gets migrated to the real db and the file is removed
-        // that means this should only be executed once
-        let coreDataStackName = "EmbraceMetadataTmp"
-        if let url = storage?.options.storageMechanism.baseUrl,
-            FileManager.default.fileExists(atPath: url.appendingPathComponent(coreDataStackName + ".sqlite").path)
-        {
-
-            let options = CoreDataWrapper.Options(
-                storageMechanism: .onDisk(name: coreDataStackName, baseURL: url, journalMode: .delete),
-                entities: [MetadataRecordTmp.entityDescription]
-            )
-
-            do {
-                self.coreData = try CoreDataWrapper(options: options, logger: Embrace.logger)
-            } catch {
-                Embrace.logger.error("Error setting up temp metadata database!:\n\(error.localizedDescription)")
-                self.coreData = nil
-            }
-        } else {
-            self.coreData = nil
-        }
-
-        super.init()
-
-        cloneDataBase()
-    }
-
-    /// Adds a resource with the given key, value and lifespan.
-    /// If there are 2 resources with the same key but different lifespans, the one with a shorter lifespan will be used.
-    /// - Parameters:
-    ///   - key: The key of the resource to add. Can not be longer than 128 characters.
-    ///   - value: The value of the resource to add. Will be truncated if its longer than 1024 characters.
-    ///   - lifespan: The lifespan of the resource to add.
-    /// - Throws: `MetadataError.invalidKey` if the key is longer than 128 characters.
-    /// - Throws: `MetadataError.invalidSession` if a resource with a `.session` lifespan is added when there's no active session.
-    @available(*, deprecated, message: "For internal purposes only, will be removed eventually.")
-    @objc public func addResource(key: String, value: String, lifespan: MetadataLifespan = .session) throws {
-        try addMetadata(key: key, value: value, type: .resource, lifespan: lifespan)
     }
 
     func addCriticalResource(key: String, value: String) {
@@ -98,7 +55,7 @@ public class MetadataHandler: NSObject {
     ///   - lifespan: The lifespan of the property to add.
     /// - Throws: `MetadataError.invalidKey` if the key is longer than 128 characters.
     /// - Throws: `MetadataError.invalidSession` if a property with a `.session` lifespan is added when there's no active session.
-    @objc public func addProperty(key: String, value: String, lifespan: MetadataLifespan = .session) throws {
+    public func addProperty(key: String, value: String, lifespan: MetadataLifespan = .session) throws {
         try addMetadata(key: key, value: value, type: .customProperty, lifespan: lifespan)
     }
 
@@ -136,7 +93,7 @@ public class MetadataHandler: NSObject {
     ///   - key: The key of the resource to update.
     ///   - value: The value of the resource to update. Will be truncated if its longer than 1024 characters.
     ///   - lifespan: The lifespan of the resource to update.
-    @objc public func updateResource(key: String, value: String, lifespan: MetadataLifespan = .session) throws {
+    public func updateResource(key: String, value: String, lifespan: MetadataLifespan = .session) throws {
         try update(key: key, value: value, type: .resource, lifespan: lifespan)
     }
 
@@ -145,7 +102,7 @@ public class MetadataHandler: NSObject {
     ///   - key: The key of the property to update.
     ///   - value: The value of the property to update. Will be truncated if its longer than 1024 characters.
     ///   - lifespan: The lifespan of the property to update.
-    @objc public func updateProperty(key: String, value: String, lifespan: MetadataLifespan = .session) throws {
+    public func updateProperty(key: String, value: String, lifespan: MetadataLifespan = .session) throws {
         try update(key: key, value: value, type: .customProperty, lifespan: lifespan)
     }
 
@@ -171,7 +128,7 @@ public class MetadataHandler: NSObject {
     /// - Parameters:
     ///   - key: The key of the resource to remove.
     ///   - lifespan: The lifespan of the resource to remove.
-    @objc public func removeResource(key: String, lifespan: MetadataLifespan = .session) throws {
+    public func removeResource(key: String, lifespan: MetadataLifespan = .session) throws {
         try remove(key: key, type: .resource, lifespan: lifespan)
     }
 
@@ -179,7 +136,7 @@ public class MetadataHandler: NSObject {
     /// - Parameters:
     ///   - key: The key of the property to remove.
     ///   - lifespan: The lifespan of the property to remove.
-    @objc public func removeProperty(key: String, lifespan: MetadataLifespan = .session) throws {
+    public func removeProperty(key: String, lifespan: MetadataLifespan = .session) throws {
         try remove(key: key, type: .customProperty, lifespan: lifespan)
     }
 
@@ -259,49 +216,6 @@ extension MetadataLifespan {
         case .session: return .session
         case .process: return .process
         case .permanent: return .permanent
-        }
-    }
-}
-
-// tmp core data stack
-extension MetadataHandler {
-    func cloneDataBase() {
-        guard let coreData = coreData,
-            let storage = storage
-        else {
-            return
-        }
-
-        let request = NSFetchRequest<MetadataRecordTmp>(entityName: MetadataRecordTmp.entityName)
-
-        coreData.fetchAndPerform(withRequest: request) { oldRecords, _ in
-            for record in oldRecords {
-                guard let type = MetadataRecordType(rawValue: record.type),
-                    let lifespan = MetadataRecordLifespan(rawValue: record.lifespan)
-                else {
-                    continue
-                }
-
-                storage.addMetadata(
-                    key: record.key,
-                    value: record.value,
-                    type: type,
-                    lifespan: lifespan,
-                    lifespanId: record.lifespanId
-                )
-            }
-        }
-
-        // remove temporary db file
-        switch coreData.options.storageMechanism {
-        case .onDisk:
-            if let url = coreData.options.storageMechanism.fileURL {
-                do {
-                    try FileManager.default.removeItem(at: url)
-                } catch {}
-            }
-
-        default: return
         }
     }
 }

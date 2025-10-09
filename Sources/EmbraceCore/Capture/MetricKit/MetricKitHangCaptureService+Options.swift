@@ -10,7 +10,7 @@ import Foundation
 #endif
 
 extension MetricKitHangCaptureService {
-    final class Options: NSObject {
+    final class Options {
         let payloadProvider: MetricKitPayloadProvider?
         let metadataFetcher: EmbraceStorageMetadataFetcher?
         let stateProvider: EmbraceMetricKitStateProvider?

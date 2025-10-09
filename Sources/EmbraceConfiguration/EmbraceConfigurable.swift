@@ -6,7 +6,7 @@ import Foundation
 
 /// This protocol is used to add configuration to the runtime of the SDK
 /// It is used to configure the ongoing behavior of the SDK
-@objc public protocol EmbraceConfigurable {
+public protocol EmbraceConfigurable: AnyObject {
     var isSDKEnabled: Bool { get }
 
     var isBackgroundSessionEnabled: Bool { get }

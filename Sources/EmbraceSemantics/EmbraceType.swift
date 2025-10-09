@@ -8,51 +8,47 @@ import Foundation
 /// - This struct will be serialized into an `emb.type` attribute.
 /// - This struct is encoded as a String with the format `<primary>.<secondary>`.
 /// - The primary category is required, but the secondary category is optional.
-@objc public class EmbraceType: NSObject, RawRepresentable {
+public class EmbraceType: RawRepresentable, Hashable {
 
     public let primary: PrimaryType
     public let secondary: String?
 
-    @objc public init(primary: PrimaryType, secondary: String? = nil) {
+    public init(primary: PrimaryType, secondary: String? = nil) {
         self.primary = primary
         self.secondary = secondary
     }
 
     // MARK: Convenience initializers
-    @objc public convenience init(performance secondary: String) {
+    public convenience init(performance secondary: String) {
         self.init(primary: .performance, secondary: secondary)
     }
 
-    @objc public convenience init(ux secondary: String) {
+    public convenience init(ux secondary: String) {
         self.init(primary: .ux, secondary: secondary)
     }
 
-    @objc public convenience init(system secondary: String) {
+    public convenience init(system secondary: String) {
         self.init(primary: .system, secondary: secondary)
     }
 
-    @objc public static var performance: EmbraceType {
+    public static var performance: EmbraceType {
         .init(primary: .performance, secondary: nil)
     }
-    @objc public static var ux: EmbraceType {
+    public static var ux: EmbraceType {
         .init(primary: .ux, secondary: nil)
     }
-    @objc public static var system: EmbraceType {
+    public static var system: EmbraceType {
         .init(primary: .system, secondary: nil)
     }
 
     // MARK: RawRepresentable
-    @objc public var rawValue: String {
+    public var rawValue: String {
         [primary.name, secondary]
             .compactMap { $0 }
             .joined(separator: ".")
     }
 
-    @objc override public var description: String {
-        rawValue
-    }
-
-    @objc required public convenience init?(rawValue: String) {
+    required public convenience init?(rawValue: String) {
         let components = rawValue.components(separatedBy: ".")
         guard let first = components.first else {
             return nil
@@ -63,24 +59,18 @@ import Foundation
         self.init(primary: PrimaryType(name: first), secondary: secondary)
     }
 
-    @objc override public func isEqual(_ object: Any?) -> Bool {
-        guard let other = object as? Self else {
-            return false
-        }
-
-        return primary == other.primary && secondary == other.secondary
+    public static func == (lhs: EmbraceType, rhs: EmbraceType) -> Bool {
+        return lhs.primary == rhs.primary && lhs.secondary == rhs.secondary
     }
 
-    @objc override public var hash: Int {
-        var hasher = Hasher()
+    public func hash(into hasher: inout Hasher) {
         hasher.combine(primary)
-        hasher.combine(secondary ?? "")
-        return hasher.finalize()
+        hasher.combine(secondary)
     }
 }
 
 /// Top level category for the EmbraceType
-@objc public enum PrimaryType: Int, CaseIterable {
+public enum PrimaryType: Int, CaseIterable {
     /// Category for observing a logical operation
     case performance = 1
 

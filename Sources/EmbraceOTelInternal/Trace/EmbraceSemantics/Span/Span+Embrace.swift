@@ -11,11 +11,6 @@ import OpenTelemetryApi
 
 extension Span {
 
-    @available(*, deprecated, message: "The concept of key spans is no longer supported")
-    public func markAsKeySpan() {
-        // TODO: Remove in next major version
-    }
-
     /// Mark this Span as private. This is used for observability of the SDK itself
     /// When marked as private, a span will not appear in the Embrace dashboard.
     /// - Note: This method should not be called by application developers, it is only public

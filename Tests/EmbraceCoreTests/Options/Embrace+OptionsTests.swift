@@ -18,7 +18,9 @@ final class Embrace_OptionsTests: XCTestCase {
     func test_init_withEndpoints_setsEndpoints() throws {
         let endpoints = Embrace.Endpoints(baseURL: "base", configBaseURL: "config")
         let options = Embrace.Options(appId: "myApp", endpoints: endpoints, captureServices: [], crashReporter: nil)
-        XCTAssertEqual(options.endpoints, endpoints)
+
+        XCTAssertEqual(options.endpoints?.baseURL, endpoints.baseURL)
+        XCTAssertEqual(options.endpoints?.configBaseURL, endpoints.configBaseURL)
     }
 
     func test_init_withRuntimeConfiguration_usesInjectedObject() throws {

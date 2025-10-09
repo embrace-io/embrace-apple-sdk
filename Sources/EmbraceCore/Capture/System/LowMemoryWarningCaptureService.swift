@@ -11,8 +11,7 @@ import Foundation
 #endif
 
 /// Service that generates OpenTelemetry span events when the application receives a low memory warning.
-@objc(EMBLowMemoryWarningCaptureService)
-public class LowMemoryWarningCaptureService: CaptureService {
+public final class LowMemoryWarningCaptureService: CaptureService {
 
     @ThreadSafe var started = false
 

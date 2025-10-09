@@ -257,37 +257,4 @@ class CaptureServiceBuilderTests: XCTestCase {
         let service = list[0] as! PushNotificationCaptureService
         XCTAssert(service.options.captureData)
     }
-
-    func test_add_returnValue() throws {
-        // given a builder
-        let builder = CaptureServiceBuilder()
-
-        // when adding a service
-        let builder2 = builder.add(.lowMemoryWarning())
-
-        // then the builder is returned
-        XCTAssert(builder == builder2)
-    }
-
-    func test_remove_returnValue() throws {
-        // given a builder
-        let builder = CaptureServiceBuilder()
-
-        // when removing a service
-        let builder2 = builder.remove(ofType: LowMemoryWarningCaptureService.self)
-
-        // then the builder is returned
-        XCTAssert(builder == builder2)
-    }
-
-    func test_addDefaults_returnValue() throws {
-        // given a builder
-        let builder = CaptureServiceBuilder()
-
-        // when adding the default services
-        let builder2 = builder.addDefaults()
-
-        // then the builder is returned
-        XCTAssert(builder == builder2)
-    }
 }

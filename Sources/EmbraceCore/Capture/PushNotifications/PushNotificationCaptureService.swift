@@ -11,24 +11,16 @@ import UserNotifications
 #endif
 
 /// Service that generates OpenTelemetry span events when notifications are received through the `UNUserNotificationCenter`.
-@objc public final class PushNotificationCaptureService: CaptureService {
+public final class PushNotificationCaptureService: CaptureService {
 
-    @objc public let options: PushNotificationCaptureService.Options
+    public let options: PushNotificationCaptureService.Options
     private let lock: NSLocking
     private var swizzlers: [any Swizzlable] = []
     var proxy: UNUserNotificationCenterDelegateProxy
 
-    @objc public convenience init(options: PushNotificationCaptureService.Options) {
-        self.init(options: options, lock: NSLock())
-    }
-
-    public convenience override init() {
-        self.init(lock: NSLock())
-    }
-
-    init(
+    public init(
         options: PushNotificationCaptureService.Options = PushNotificationCaptureService.Options(),
-        lock: NSLocking
+        lock: NSLocking = NSLock()
     ) {
         self.options = options
         self.lock = lock

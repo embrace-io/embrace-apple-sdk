@@ -11,8 +11,7 @@ import OpenTelemetrySdk
     import EmbraceSemantics
 #endif
 
-@objc(EMBEmbraceOTel)
-public final class EmbraceOTel: NSObject {
+public final class EmbraceOTel {
 
     let instrumentationName = "EmbraceOpenTelemetry"
     let instrumentationVersion = "semver:\(EmbraceMeta.sdkVersion)"
