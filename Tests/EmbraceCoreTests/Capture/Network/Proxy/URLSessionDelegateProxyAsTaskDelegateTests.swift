@@ -220,7 +220,7 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
     }
 
     @available(iOS 15.0, watchOS 8.0, tvOS 15.0, *)
-    func test_async_taskWithNoDelegate_callsSessionDelegate() async throws {
+    func test_async_taskWithNoDelegate_callsNothing() async throws {
         givenCaptureServiceInstalled()
         givenSessionDelegate()
         givenURLSession(delegate: sessionDelegate)
@@ -230,9 +230,24 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
 
         let sessionDelegate = try XCTUnwrap(sessionDelegate as? FullyImplementedURLSessionDelegate)
         XCTAssertTrue(sessionDelegate.didCallCreateTask)
-        XCTAssertTrue(sessionDelegate.didCallDidFinishCollecting)
+        XCTAssertFalse(sessionDelegate.didCallDidFinishCollecting)
+        XCTAssertFalse(sessionDelegate.didCallDidCompleteWithError)
 
-        // DEV: async/await calls do not call `didCompleteWithError` method as response is handled inline
+        unswizzleDefaultCaptureService()
+    }
+
+    @available(iOS 15.0, watchOS 8.0, tvOS 15.0, *)
+    func test_async_taskWithDelegate_callsSessionDelegate() async throws {
+        givenCaptureServiceInstalled()
+        givenSessionDelegate()
+        givenURLSession(delegate: sessionDelegate)
+
+        let url = mockedURL(string: "https://example.com")
+        let (_, _) = try await urlSession.data(from: url, delegate: sessionDelegate as? URLSessionTaskDelegate)
+
+        let sessionDelegate = try XCTUnwrap(sessionDelegate as? FullyImplementedURLSessionDelegate)
+        XCTAssertTrue(sessionDelegate.didCallCreateTask)
+        XCTAssertTrue(sessionDelegate.didCallDidFinishCollecting)
         XCTAssertFalse(sessionDelegate.didCallDidCompleteWithError)
 
         unswizzleDefaultCaptureService()
