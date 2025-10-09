@@ -152,7 +152,9 @@ struct URLSessionInitWithDelegateSwizzler: URLSessionSwizzler {
                 if let checkedDelegate = session.delegate {
                     let className = NSStringFromClass(type(of: checkedDelegate))
                     if className.starts(with: "fir_") {
-                        Embrace.logger.warning("URLSession.delegate is swizzled by Firebase, which usually leads to broken delegate behaviour!")
+                        Embrace.logger.warning(
+                            "URLSession.delegate is being swizzled by Firebase, which usually leads to broken delegate behaviour! To mitigate, you should always call `Emrace.setup().start()` before configuring Firebase."
+                        )
                     }
                 }
 
