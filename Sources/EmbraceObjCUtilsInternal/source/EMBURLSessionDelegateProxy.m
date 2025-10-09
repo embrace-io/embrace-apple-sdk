@@ -8,6 +8,32 @@
 
 @implementation EMBURLSessionDelegateProxy
 
+static Class emb_gul_class_imp(id self, SEL _cmd) { return nil; }
+
+// If EMBDisableFirIsa is YES, then we don't add `-gul_class`
+// and this allows Firebase to isa swizzle our proxy.
+static void add_firebase_swizzle_override_if_needed(Class cls)
+{
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"EMBDisableFirIsa"]) {
+        return;
+    }
+
+    SEL selector = @selector(gul_class);
+    const char *types = "@@:";  // return type: object (Class), arguments: self + _cmd
+    BOOL success = class_addMethod(cls, selector, (IMP)emb_gul_class_imp, types);
+    if (!success) {
+        NSLog(@"Failed to add -gul_class to %@", NSStringFromClass(cls));
+    }
+}
+
++ (void)load
+{
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        add_firebase_swizzle_override_if_needed(self);
+    });
+}
+
 - (instancetype)initWithDelegate:(id<NSURLSessionDelegate>)delegate handler:(id<URLSessionTaskHandler>)handler
 {
     self = [super init];
@@ -37,10 +63,14 @@
 // If it's here, it simply returns and does not do any swizzling.
 // We want this because Firebase 'isa' swizzling isn't being a good citizen.
 // ref: https://tinyurl.com/293k3hw9
+// NOT: We're adding it dynamiclly above only if the
+// UserDefaults setting of EMBDisableFirIsa is not present or NO.
+/*
 - (Class)gul_class
 {
     return nil;
 }
+*/
 
 #pragma mark - Forwarding plumbing
 
