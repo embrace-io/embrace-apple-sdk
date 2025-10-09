@@ -32,4 +32,8 @@ class StartupPreMainPayloadTest: PayloadTest {
 
         return .init(items: testItems)
     }
+
+    func runTestPreparations() {
+        TestHelpers.resetStartupInstrumentation()
+    }
 }

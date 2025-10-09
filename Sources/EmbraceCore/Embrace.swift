@@ -260,8 +260,6 @@ import Foundation
 
         // startup tracking
         startupInstrumentation.otel = self
-        EMBStartupTracker.shared().internalNotificationCenter = Embrace.notificationCenter
-        EMBStartupTracker.shared().trackDidFinishLaunching()
 
         // config update event
         Embrace.notificationCenter.addObserver(
@@ -287,6 +285,10 @@ import Foundation
         }
 
         EMBStartupTracker.shared().sdkStartStartTime = Date()
+
+        if EMBStartupTracker.shared().appDidFinishLaunchingEndTime != nil || EMBStartupTracker.shared().appFirstDidBecomeActiveTime != nil {
+            Embrace.logger.error("Embrace SDK should be started before the app is launched and becomes active. This is required for the startup instrumentation to work.")
+        }
 
         // must be called on main thread in order to fetch the app state
         sessionLifecycle.setup()
