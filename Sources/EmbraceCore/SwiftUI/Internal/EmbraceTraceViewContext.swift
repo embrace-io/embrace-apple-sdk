@@ -23,6 +23,7 @@ private struct EmbraceTraceEnvironmentKey: EnvironmentKey {
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
 extension EnvironmentValues {
     /// Provides access to the shared `EmbraceTraceViewContext` for the current view subtree.
+    @MainActor
     var embraceTraceViewContext: EmbraceTraceViewContext {
         get { self[EmbraceTraceEnvironmentKey.self] }
         set { self[EmbraceTraceEnvironmentKey.self] = newValue }
@@ -35,7 +36,7 @@ extension EnvironmentValues {
 ///   once the run loop advances. This ensures that nested spans (body, appear,
 ///   disappear) all refer to the same parent span until the cycle completes.
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
-final class EmbraceTraceViewContext {
+final class EmbraceTraceViewContext: @unchecked Sendable {
     /// The parent span for the current render cycle. Reset to `nil` once ended.
     var firstCycleSpan: Span?
 }

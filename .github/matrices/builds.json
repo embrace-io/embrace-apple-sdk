@@ -3,7 +3,12 @@
     "include": [
       {
         "platform": "iOS",
-        "xcode_version": "16.4",
+        "xcode_version": "26.0",
+        "macos-version": "15"
+      },
+      {
+        "platform": "iOS",
+        "xcode_version": "16.4.0",
         "macos-version": "15"
       }
     ]
@@ -12,22 +17,22 @@
     "include": [
       {
         "platform": "iOS",
-        "xcode_version": "16.4",
+        "xcode_version": "26.0",
         "macos-version": "15"
       },
       {
         "platform": "tvOS",
-        "xcode_version": "16.4",
+        "xcode_version": "26.0",
         "macos-version": "15"
       },
       {
         "platform": "macOS",
-        "xcode_version": "16.4",
+        "xcode_version": "26.0",
         "macos-version": "15"
       },
       {
         "platform": "watchOS",
-        "xcode_version": "16.4",
+        "xcode_version": "26.0",
         "macos-version": "15"
       }
     ]

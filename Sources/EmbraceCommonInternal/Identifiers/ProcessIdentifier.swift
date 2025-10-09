@@ -4,7 +4,7 @@
 
 import Foundation
 
-public struct ProcessIdentifier: Equatable {
+public struct ProcessIdentifier: Equatable, Sendable {
     // this used to be a base 16 encoded UInt32,
     // so handling it as a string is currently required
     public let value: String

@@ -28,7 +28,7 @@ extension XCTestCase {
 
 /// Sometimes a test just can't run more than once for N reasons, this helps skip it
 /// if run more than once without failing.
-private var _runCountMap: EmbraceMutex<[String: Int]> = EmbraceMutex([:])
+private let _runCountMap: EmbraceMutex<[String: Int]> = EmbraceMutex([:])
 extension XCTestCase {
     public func XCTSkipIfRunMoreThanOnce(_ function: String = #function) throws {
         let count = _runCountMap.withLock {

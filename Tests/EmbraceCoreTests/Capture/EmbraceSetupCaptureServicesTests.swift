@@ -8,6 +8,7 @@ import XCTest
 
 @testable import EmbraceCore
 
+@MainActor
 final class EmbraceSetupCaptureServicesTests: XCTestCase {
 
     class ExampleCaptureService: CaptureService {

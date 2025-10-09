@@ -6,18 +6,19 @@ import XCTest
 
 @testable import EmbraceCore
 
+@MainActor
 final class Embrace_OTelTests: XCTestCase {
 
     var client: Embrace!
 
-    override func setUpWithError() throws {
+    override func setUp() async throws {
         client = try Embrace(
             options: .init(appId: "debug", captureServices: [], crashReporter: nil),
             embraceStorage: .createInMemoryDb()
         )
     }
 
-    override func tearDownWithError() throws {
+    override func tearDown() async throws {
         client = nil
     }
 

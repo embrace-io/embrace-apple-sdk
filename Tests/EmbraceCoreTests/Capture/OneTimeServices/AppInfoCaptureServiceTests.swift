@@ -9,6 +9,7 @@ import XCTest
 
 @testable import EmbraceCore
 
+@MainActor
 final class AppInfoCaptureServiceTests: XCTestCase {
 
     func test_started() throws {

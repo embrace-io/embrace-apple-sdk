@@ -23,22 +23,24 @@ public class UploadDataRecord: NSManagedObject {
             Int,
         date: Date
     ) -> UploadDataRecord? {
-        var record: UploadDataRecord?
+        nonisolated(unsafe) var result: UploadDataRecord?
 
         context.performAndWait {
             guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
                 return
             }
 
-            record = UploadDataRecord(entity: description, insertInto: context)
-            record?.id = id
-            record?.type = type
-            record?.data = data
-            record?.attemptCount = attemptCount
-            record?.date = date
+            let record = UploadDataRecord(entity: description, insertInto: context)
+            record.id = id
+            record.type = type
+            record.data = data
+            record.attemptCount = attemptCount
+            record.date = date
+
+            result = record
         }
 
-        return record
+        return result
     }
 
     func toImmutable() -> ImmutableUploadDataRecord {
@@ -85,7 +87,7 @@ extension UploadDataRecord {
     }
 }
 
-struct ImmutableUploadDataRecord {
+struct ImmutableUploadDataRecord: Sendable {
     let id: String
     let type: Int
     let data: Data

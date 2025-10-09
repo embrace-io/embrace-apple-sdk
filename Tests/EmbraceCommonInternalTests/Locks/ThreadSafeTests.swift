@@ -7,7 +7,7 @@ import XCTest
 
 @testable import EmbraceCommonInternal
 
-class ThreadSafeTests: XCTestCase {
+class ThreadSafeTests: XCTestCase, @unchecked Sendable {
     @ThreadSafe private var sut: Int = 0
 
     override func setUpWithError() throws {

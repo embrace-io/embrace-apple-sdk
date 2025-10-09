@@ -8,7 +8,7 @@ import XCTest
 @testable import EmbraceCommonInternal
 @testable import EmbraceCore
 
-class DataTaskWithURLRequestSwizzlerTests: XCTestCase {
+class DataTaskWithURLRequestSwizzlerTests: XCTestCase, @unchecked Sendable {
     private var session: URLSession!
     private var sut: DataTaskWithURLRequestSwizzler!
     private var handler: MockURLSessionTaskHandler!
@@ -18,17 +18,17 @@ class DataTaskWithURLRequestSwizzlerTests: XCTestCase {
         try? sut.unswizzleInstanceMethod()
     }
 
-    func test_afterInstall_taskWillBeCreatedInHandler() throws {
+    func test_afterInstall_taskWillBeCreatedInHandler() async throws {
         givenDataTaskWithURLRequestSwizzler()
-        try givenSwizzlingWasDone()
+        try await givenSwizzlingWasDone()
         givenProxiedUrlSession()
         whenInvokingDataTaskWithUrl()
         thenHandlerShouldHaveInvokedCreateWithTask()
     }
 
-    func test_afterInstall_taskShouldHaveEmbraceHeaders() throws {
+    func test_afterInstall_taskShouldHaveEmbraceHeaders() async throws {
         givenDataTaskWithURLRequestSwizzler()
-        try givenSwizzlingWasDone()
+        try await givenSwizzlingWasDone()
         givenProxiedUrlSession()
         whenInvokingDataTaskWithUrl()
         try thenDataTaskShouldHaveEmbraceHeaders()
@@ -48,8 +48,8 @@ extension DataTaskWithURLRequestSwizzlerTests {
         sut = DataTaskWithURLRequestSwizzler(handler: handler)
     }
 
-    fileprivate func givenSwizzlingWasDone() throws {
-        try sut.install()
+    fileprivate func givenSwizzlingWasDone() async throws {
+        try await sut.install()
     }
 
     fileprivate func givenProxiedUrlSession() {

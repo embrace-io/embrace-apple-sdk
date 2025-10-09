@@ -7,7 +7,7 @@ import XCTest
 
 @testable import EmbraceCore
 
-class DownloadTaskWithURLWithCompletionSwizzlerTests: XCTestCase {
+class DownloadTaskWithURLWithCompletionSwizzlerTests: XCTestCase, @unchecked Sendable {
     private var handler: MockURLSessionTaskHandler!
     private var sut: DownloadTaskWithURLRequestWithCompletionSwizzler!
     private var session: URLSession!
@@ -19,51 +19,51 @@ class DownloadTaskWithURLWithCompletionSwizzlerTests: XCTestCase {
         try? sut.unswizzleInstanceMethod()
     }
 
-    func testAfterInstall_onExecutingRequest_taskWillBeCreatedInHandler() throws {
+    func testAfterInstall_onExecutingRequest_taskWillBeCreatedInHandler() async throws {
         let expectation = expectation(description: #function)
         givenDownloadTaskWithURLRequestAndCompletionSwizzler()
-        try givenSwizzlingWasDone()
+        try await givenSwizzlingWasDone()
         givenSuccessfulRequest()
         givenProxiedUrlSession()
         whenInvokingDownloadTaskWithURLRequest(completionHandler: { _, _, _ in
             self.thenHandlerShouldHaveInvokedCreateWithTask()
             expectation.fulfill()
         })
-        wait(for: [expectation])
+        await fulfillment(of: [expectation])
     }
 
-    func testAfterInstall_onFinishingRequest_taskWillBeFinishedInHandler() throws {
+    func testAfterInstall_onFinishingRequest_taskWillBeFinishedInHandler() async throws {
         let expectation = expectation(description: #function)
         givenDownloadTaskWithURLRequestAndCompletionSwizzler()
-        try givenSwizzlingWasDone()
+        try await givenSwizzlingWasDone()
         givenSuccessfulRequest()
         givenProxiedUrlSession()
         whenInvokingDownloadTaskWithURLRequest(completionHandler: { _, _, _ in
             self.thenHandlerShouldHaveInvokedFinishTask()
             expectation.fulfill()
         })
-        wait(for: [expectation])
+        await fulfillment(of: [expectation])
     }
 
     #if !os(watchOS)
-        func testAfterInstall_onFailedRequest_taskWillBeFinishedInHandler() throws {
+        func testAfterInstall_onFailedRequest_taskWillBeFinishedInHandler() async throws {
             let expectation = expectation(description: #function)
             givenDownloadTaskWithURLRequestAndCompletionSwizzler()
-            try givenSwizzlingWasDone()
+            try await givenSwizzlingWasDone()
             givenFailedRequest()
             givenProxiedUrlSession()
             whenInvokingDownloadTaskWithURLRequest(completionHandler: { _, _, _ in
                 self.thenHandlerShouldHaveInvokedFinishTaskWithError()
                 expectation.fulfill()
             })
-            wait(for: [expectation])
+            await fulfillment(of: [expectation])
         }
     #endif
 
-    func test_afterInstall_taskShouldHaveEmbraceHeaders() throws {
+    func test_afterInstall_taskShouldHaveEmbraceHeaders() async throws {
         let expectation = expectation(description: #function)
         givenDownloadTaskWithURLRequestAndCompletionSwizzler()
-        try givenSwizzlingWasDone()
+        try await givenSwizzlingWasDone()
         givenProxiedUrlSession()
         givenSuccessfulRequest()
         whenInvokingDownloadTaskWithURLRequest(completionHandler: { _, _, _ in
@@ -72,7 +72,7 @@ class DownloadTaskWithURLWithCompletionSwizzlerTests: XCTestCase {
             // swiftlint:enable force_try
             expectation.fulfill()
         })
-        wait(for: [expectation])
+        await fulfillment(of: [expectation])
     }
 
     func test_withoutInstall_taskWontBeCreatedInHandler() throws {
@@ -94,6 +94,7 @@ extension DownloadTaskWithURLWithCompletionSwizzlerTests {
         sut = DownloadTaskWithURLRequestWithCompletionSwizzler(handler: handler)
     }
 
+    @MainActor
     fileprivate func givenSwizzlingWasDone() throws {
         try sut.install()
     }
@@ -121,7 +122,7 @@ extension DownloadTaskWithURLWithCompletionSwizzlerTests {
     }
 
     fileprivate func whenInvokingDownloadTaskWithURLRequest(
-        completionHandler: @escaping (URL?, URLResponse?, Error?) -> Void
+        completionHandler: @escaping @Sendable (URL?, URLResponse?, Error?) -> Void
     ) {
         downloadTask = session.downloadTask(with: request) { url, response, error in
             completionHandler(url, response, error)

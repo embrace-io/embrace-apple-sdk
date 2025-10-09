@@ -5,7 +5,7 @@
 import Foundation
 
 @objc(MockCrashlytics) class MockCrashlytics: NSObject {
-    static var instance: MockCrashlytics?
+    nonisolated(unsafe) static var instance: MockCrashlytics?
 
     @objc class func sharedInstance() -> MockCrashlytics? {
         return MockCrashlytics.instance

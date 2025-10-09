@@ -19,10 +19,11 @@
         var instrumentVisibility: Bool { get }
         var instrumentFirstRender: Bool { get }
 
+        @MainActor
         func isViewControllerBlocked(_ vc: UIViewController) -> Bool
     }
 
-    class UIViewControllerHandler {
+    class UIViewControllerHandler: @unchecked Sendable {
 
         weak var dataSource: UIViewControllerHandlerDataSource?
         private let queue: DispatchableQueue
@@ -51,6 +52,7 @@
             Embrace.notificationCenter.removeObserver(self)
         }
 
+        @MainActor
         func parentSpan(for vc: UIViewController) -> Span? {
             guard let id = vc.emb_instrumentation_state?.identifier else {
                 return nil
@@ -84,6 +86,7 @@
             }
         }
 
+        @MainActor
         func onViewDidLoadStart(_ vc: UIViewController, now: Date = Date()) {
 
             guard dataSource?.state == .active,
@@ -140,6 +143,7 @@
             }
         }
 
+        @MainActor
         func onViewDidLoadEnd(_ vc: UIViewController, now: Date = Date()) {
             guard let id = vc.emb_instrumentation_state?.identifier else {
                 return
@@ -153,6 +157,7 @@
             }
         }
 
+        @MainActor
         func onViewWillAppearStart(_ vc: UIViewController, now: Date = Date()) {
             guard let id = vc.emb_instrumentation_state?.identifier else {
                 return
@@ -184,6 +189,7 @@
             }
         }
 
+        @MainActor
         func onViewWillAppearEnd(_ vc: UIViewController, now: Date = Date()) {
             guard let id = vc.emb_instrumentation_state?.identifier else {
                 return
@@ -197,6 +203,7 @@
             }
         }
 
+        @MainActor
         func onViewIsAppearingStart(_ vc: UIViewController, now: Date = Date()) {
             guard let id = vc.emb_instrumentation_state?.identifier else {
                 return
@@ -228,6 +235,7 @@
             }
         }
 
+        @MainActor
         func onViewIsAppearingEnd(_ vc: UIViewController, now: Date = Date()) {
             queue.async {
                 guard let id = vc.emb_instrumentation_state?.identifier,
@@ -240,6 +248,7 @@
             }
         }
 
+        @MainActor
         func onViewDidAppearStart(_ vc: UIViewController, now: Date = Date()) {
             guard let id = vc.emb_instrumentation_state?.identifier else {
                 return
@@ -271,6 +280,7 @@
             }
         }
 
+        @MainActor
         func onViewDidAppearEnd(_ vc: UIViewController, now: Date = Date()) {
             if self.dataSource?.instrumentVisibility == true {
                 // Create id only if necessary. This could happen when `instrumentFirstRender` is `false`
@@ -348,6 +358,7 @@
             }
         }
 
+        @MainActor
         func onViewDidDisappear(_ vc: UIViewController) {
             guard let id = vc.emb_instrumentation_state?.identifier else {
                 return
@@ -367,6 +378,7 @@
             }
         }
 
+        @MainActor
         func onViewBecameInteractive(_ vc: UIViewController) {
             guard let id = vc.emb_instrumentation_state?.identifier else {
                 return

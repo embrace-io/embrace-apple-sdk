@@ -4,7 +4,7 @@
 
 import Foundation
 
-public protocol EmbraceSession {
+public protocol EmbraceSession: Sendable {
     var idRaw: String { get }
     var processIdRaw: String { get }
     var state: String { get }

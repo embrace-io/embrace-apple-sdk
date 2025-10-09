@@ -28,7 +28,7 @@ public class MetadataRecord: NSManagedObject {
         lifespanId: String,
         collectedAt: Date = Date()
     ) -> EmbraceMetadata? {
-        var result: EmbraceMetadata?
+        nonisolated(unsafe) var result: EmbraceMetadata?
 
         context.performAndWait {
             guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
@@ -66,7 +66,7 @@ public class MetadataRecord: NSManagedObject {
 }
 
 extension MetadataRecord: EmbraceStorageRecord {
-    public static var entityName = "MetadataRecord"
+    public static let entityName = "MetadataRecord"
 
     static public var entityDescription: NSEntityDescription {
         let entity = NSEntityDescription()

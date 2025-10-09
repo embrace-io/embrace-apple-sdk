@@ -30,6 +30,7 @@
             self.lock = lock
         }
 
+        @MainActor
         override public func onInstall() {
             lock.lock()
             defer {
@@ -53,6 +54,7 @@
             }
         }
 
+        @MainActor
         func handleCapturedEvent(_ event: UIEvent) {
             guard state == .active else {
                 return
@@ -136,7 +138,7 @@
     class UIWindowSendEventSwizzler: Swizzlable {
         typealias ImplementationType = @convention(c) (UIWindow, Selector, UIEvent) -> Void
         typealias BlockImplementationType = @convention(block) (UIWindow, UIEvent) -> Void
-        static var selector: Selector = #selector(
+        static let selector: Selector = #selector(
             UIWindow.sendEvent(_:)
         )
 
