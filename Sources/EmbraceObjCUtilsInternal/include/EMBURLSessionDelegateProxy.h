@@ -19,11 +19,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 @end
 
-@interface EMBURLSessionDelegateProxy : NSProxy <NSURLSessionDelegate,
-                                                 NSURLSessionTaskDelegate,
-                                                 NSURLSessionDataDelegate,
-                                                 NSURLSessionDownloadDelegate,
-                                                 NSURLSessionStreamDelegate>
+@interface EMBURLSessionDelegateProxy
+    : NSObject <NSURLSessionDelegate, NSURLSessionTaskDelegate, NSURLSessionDataDelegate, NSURLSessionStreamDelegate>
 
 @property(nonatomic, strong, nullable) id originalDelegate;
 
@@ -35,8 +32,13 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (instancetype)initWithDelegate:(id<NSURLSessionDelegate> _Nullable)delegate
                          handler:(id<URLSessionTaskHandler>)handler;
-- (id)getTargetForSelector:(SEL)selector session:(NSURLSession *)session;
+
+- (id)getTargetForSelector:(SEL)sel session:(NSURLSession *)session;
 
 @end
+
+// Uses NSInvocation from swift to call into target.
+// Returns YES on success.
+FOUNDATION_EXPORT BOOL EmbraceInvoke(id target, SEL aSelector, NSArray<id> *arguments);
 
 NS_ASSUME_NONNULL_END
