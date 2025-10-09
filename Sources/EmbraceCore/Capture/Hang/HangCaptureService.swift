@@ -80,6 +80,11 @@ extension HangCaptureService: HangObserver {
 
         logger?.debug("[Watchdog] Hang started, at \(at.date) after waiting \(duration.uptime.millisecondsValue) ms")
 
+        NotificationCenter.default.post(
+            name: .hangEventStarted,
+            object: WatchdogEvent(timestamp: at, duration: duration)
+        )
+
         // Keep tabs on how many hang spans we've created
         let sampleInfo = limitData.withLock {
             $0.samplesInHangCount = 0
@@ -132,6 +137,11 @@ extension HangCaptureService: HangObserver {
     public func hangUpdated(at: EmbraceClock, duration: EmbraceClock) {
         logger?.debug("[Watchdog] Hang for \(duration.uptime.millisecondsValue) ms")
 
+        NotificationCenter.default.post(
+            name: .hangEventUpdated,
+            object: WatchdogEvent(timestamp: at, duration: duration)
+        )
+
         guard
             limitData.withLock({
                 $0.samplesInHangCount += 1
@@ -159,6 +169,11 @@ extension HangCaptureService: HangObserver {
     public func hangEnded(at: EmbraceClock, duration: EmbraceClock) {
         logger?.debug("[Watchdog] Hang ended at \(at.date) after \(duration.uptime.millisecondsValue) ms")
 
+        NotificationCenter.default.post(
+            name: .hangEventEnded,
+            object: WatchdogEvent(timestamp: at, duration: duration)
+        )
+
         spanQueue.async { [self] in
             span?.end(time: at.date)
             span = nil
@@ -169,6 +184,7 @@ extension HangCaptureService: HangObserver {
 
         dispatchPrecondition(condition: .onQueue(spanQueue))
 
+        // Are we over the limit or don't have a span for some reason?
         guard let span else {
             return
         }
