@@ -28,4 +28,11 @@
     self.didInvokedDidCompleteWithError = YES;
 }
 
+- (void)URLSession:(NSURLSession *)session
+                 downloadTask:(NSURLSessionDownloadTask *)downloadTask
+    didFinishDownloadingToURL:(NSURL *)location
+{
+    self.didInvokedDidFinishDownloadingToURL = YES;
+}
+
 @end

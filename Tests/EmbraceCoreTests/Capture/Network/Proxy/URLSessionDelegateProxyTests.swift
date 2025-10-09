@@ -91,6 +91,27 @@ extension URLSessionDelegateProxyTests {
     }
 }
 
+// MARK: - Test Forwarding to each Download Task Method
+extension URLSessionDelegateProxyTests {
+    func test_onExecutingDidFinishDownloadingTo_shouldForwardToOriginalDelegate() {
+        givenProxyWithFullyImplementedOriginalDelegate()
+        whenInvokingDidFinishDownloadingTo()
+        thenOriginalDelegateShouldHaveInvokedDidFinishDownloadingTo()
+    }
+
+    func test_onExecutingDidWriteData_shouldForwardToOriginalDelegate() {
+        givenProxyWithFullyImplementedOriginalDelegate()
+        whenInvokingDidWriteData()
+        thenOriginalDelegateShouldHaveInvokedDidWriteData()
+    }
+
+    func test_onExecutingDidResumeAtOffset_shouldForwardToOriginalDelegate() {
+        givenProxyWithFullyImplementedOriginalDelegate()
+        whenInvokingDidResumeAtOffset()
+        thenOriginalDelegateShouldHaveInvokedDidResumeAtOffset()
+    }
+}
+
 // MARK: - Test Forwarding to each Stream Task Method
 extension URLSessionDelegateProxyTests {
     func test_onExecutingReadClosedForStreamingTask_shouldForwardToOriginalDelegate() {
@@ -218,6 +239,21 @@ extension URLSessionDelegateProxyTests {
         (sut as URLSessionDataDelegate).urlSession?(.shared, dataTask: aTask(), didReceive: Data())
     }
 
+    fileprivate func whenInvokingDidFinishDownloadingTo() {
+        (sut as URLSessionDownloadDelegate).urlSession(
+            .shared,
+            downloadTask: aDownloadTask(),
+            didFinishDownloadingTo: .init(string: "https://embrace.io")!)
+    }
+
+    fileprivate func whenInvokingDidResumeAtOffset() {
+        (sut as URLSessionDownloadDelegate).urlSession?(
+            .shared,
+            downloadTask: aDownloadTask(),
+            didResumeAtOffset: 0,
+            expectedTotalBytes: 0)
+    }
+
     fileprivate func whenInvokingReadClosedForStreamingTask() {
         (sut as URLSessionStreamDelegate).urlSession?(
             .shared,
@@ -270,6 +306,19 @@ extension URLSessionDelegateProxyTests {
 
     fileprivate func thenOriginalDelegateShouldHaveInvokedTaskDidBecomeStreamingTask() {
         XCTAssertTrue(originalDelegate.didCallDidBecomeStreamTask)
+    }
+
+    fileprivate func whenInvokingDidWriteData() {
+        (sut as URLSessionDownloadDelegate).urlSession?(
+            .shared,
+            downloadTask: aDownloadTask(),
+            didWriteData: 0,
+            totalBytesWritten: 0,
+            totalBytesExpectedToWrite: 0)
+    }
+
+    fileprivate func thenOriginalDelegateShouldHaveInvokedWillPerformHTTPRedirection() {
+        XCTAssertTrue(originalDelegate.didCallWillPerformHTTPRedirection)
     }
 
     fileprivate func thenOriginalDelegateShouldHaveInvokedDidWriteData() {
