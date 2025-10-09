@@ -44,6 +44,11 @@
 
 #pragma mark - Forwarding plumbing
 
+- (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector
+{
+    return [[self forwardingTargetForSelector:aSelector] methodSignatureForSelector:aSelector];
+}
+
 - (id)getTargetForSelector:(SEL)sel session:(NSURLSession *)session
 {
     return [self forwardingTargetForSelector:sel];
@@ -77,7 +82,7 @@
 
 - (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error
 {
-    [self.handler finishWithTask:task bodySize:-1 error:error];
+    [self.handler finishWithTask:task data:nil error:error];
 
     if ([self.originalDelegate respondsToSelector:_cmd]) {
         [(id<NSURLSessionTaskDelegate>)self.originalDelegate URLSession:session task:task didCompleteWithError:error];
@@ -113,3 +118,24 @@
 }
 
 @end
+
+BOOL EmbraceInvoke(id target, SEL aSelector, NSArray *arguments)
+{
+    NSMethodSignature *sig = [target methodSignatureForSelector:aSelector];
+    if (!sig) {
+        return NO;
+    }
+
+    NSInvocation *inv = [NSInvocation invocationWithMethodSignature:sig];
+    inv.selector = aSelector;
+    inv.target = target;
+
+    for (NSUInteger index = 0, argIndex = 2; index < arguments.count; index++, argIndex++) {
+        id arg = arguments[index];
+        [inv setArgument:&arg atIndex:argIndex];
+    }
+
+    [inv invoke];
+
+    return YES;
+}

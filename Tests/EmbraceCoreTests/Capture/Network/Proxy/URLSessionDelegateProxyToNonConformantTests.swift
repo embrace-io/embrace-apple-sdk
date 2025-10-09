@@ -66,22 +66,29 @@ extension URLSessionDelegateProxyToNonConformantTests {
     }
 
     fileprivate func whenInvokingDidReceiveData(_ data: Data) {
-        dataTask = aDataTask()
-        (sut as URLSessionDataDelegate).urlSession?(
-            urlSession,
-            dataTask: dataTask,
-            didReceive: data
+        InvocationHelper.invoke(
+            on: sut,
+            selector: NSSelectorFromString("URLSession:dataTask:didReceiveData:"),
+            parameters: [
+                URLSession.shared,
+                aDataTask(),
+                data
+            ]
         )
     }
 
     fileprivate func whenInvokingDidBecomeInvalidWithError() {
-        sut.urlSession(
-            urlSession,
-            didBecomeInvalidWithError: NSError(
-                domain: .random(),
-                code: .random(),
-                userInfo: [:]
-            )
+        InvocationHelper.invoke(
+            on: sut,
+            selector: NSSelectorFromString("URLSession:didBecomeInvalidWithError:"),
+            parameters: [
+                URLSession.shared,
+                NSError(
+                    domain: .random(),
+                    code: .random(),
+                    userInfo: [:]
+                )
+            ]
         )
     }
 
@@ -91,29 +98,43 @@ extension URLSessionDelegateProxyToNonConformantTests {
         let metrics =
             kclass.alloc().perform(NSSelectorFromString("init")).takeUnretainedValue() as! URLSessionTaskMetrics
 
-        sut.urlSession(
-            urlSession,
-            task: aDataTask(),
-            didFinishCollecting: metrics
+        InvocationHelper.invoke(
+            on: sut,
+            selector: NSSelectorFromString("URLSession:task:didFinishCollectingMetrics:"),
+            parameters: [
+                URLSession.shared,
+                aDataTask(),
+                metrics
+            ]
         )
     }
 
     fileprivate func whenInvokindDidCompleteWithError() {
-        sut.urlSession(
-            urlSession,
-            task: aDataTask(),
-            didCompleteWithError: NSError(
-                domain: .random(),
-                code: .random()
-            )
+
+        InvocationHelper.invoke(
+            on: sut,
+            selector: NSSelectorFromString("URLSession:task:didCompleteWithError:"),
+            parameters: [
+                URLSession.shared,
+                aDataTask(),
+                NSError(
+                    domain: .random(),
+                    code: .random()
+                )
+            ]
         )
     }
 
     fileprivate func whenInvokingDidFinishDownloadingToURL() throws {
-        sut.urlSession(
-            urlSession,
-            downloadTask: aDownloadTask(),
-            didFinishDownloadingTo: try XCTUnwrap(URL(string: "https://embrace.io"))
+
+        InvocationHelper.invoke(
+            on: sut,
+            selector: NSSelectorFromString("URLSession:downloadTask:didFinishDownloadingToURL:"),
+            parameters: [
+                URLSession.shared,
+                aDownloadTask(),
+                URL(string: "https://embrace.io")!
+            ]
         )
     }
 

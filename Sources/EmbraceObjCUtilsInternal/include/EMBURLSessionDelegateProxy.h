@@ -37,4 +37,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 @end
 
+// Uses NSInvocation from swift to call into target.
+// Returns YES on success.
+FOUNDATION_EXPORT BOOL EmbraceInvoke(id target, SEL aSelector, NSArray<id> *arguments);
+
 NS_ASSUME_NONNULL_END
