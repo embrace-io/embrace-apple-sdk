@@ -13,12 +13,6 @@ import OpenTelemetrySdk
 #endif
 
 extension Embrace: EmbraceOpenTelemetry {
-    private var exporter: SpanExporter {
-        StorageSpanExporter(
-            options: .init(storage: storage, sessionController: sessionController),
-            logger: Embrace.logger
-        )
-    }
 
     var otel: EmbraceOTel { EmbraceOTel() }
 

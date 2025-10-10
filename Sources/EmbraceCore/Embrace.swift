@@ -82,6 +82,7 @@ import Foundation
     let storage: EmbraceStorage
     let upload: EmbraceUpload?
     let captureServices: CaptureServices
+    let captureServicesGroup: DispatchGroup
 
     let logController: LogControllable
 
@@ -176,6 +177,10 @@ import Foundation
         // initialize storage module
         self.storage = try embraceStorage ?? Embrace.createStorage(options: options, configuration: config.configurable)
 
+        // Create a group for the services, this group leaves once the services are started.
+        self.captureServicesGroup = DispatchGroup()
+        self.captureServicesGroup.enter()
+
         // initialize capture services
         self.captureServices = try CaptureServices(
             options: options,
@@ -227,17 +232,15 @@ import Foundation
         logController?.sdkStateProvider = self
 
         // setup otel
-        var processors = Array.processors(
-            for: storage,
-            sessionController: sessionController,
-            export: options.export,
-            sdkStateProvider: self
+        EmbraceOTel.setup(
+            spanProcessors: buildProcessors(
+                for: storage,
+                sessionController: sessionController,
+                customExporter: options.export,
+                customProcessors: options.processors?.compactMap { $0.processor },
+                sdkStateProvider: self
+            )
         )
-        if let extraProcessors = options.processors?.map({ $0.processor }) {
-            processors.append(contentsOf: extraProcessors)
-        }
-
-        EmbraceOTel.setup(spanProcessors: processors)
 
         let logBatcher = DefaultLogBatcher(
             repository: storage,
@@ -328,6 +331,10 @@ import Foundation
 
                 // WARNING: This is dangerous as it calls out to external code.
                 self.captureServices.start()
+
+                // now that services are started, and critical pieces are in place,
+                // notify anyone who cares.
+                self.captureServicesGroup.leave()
 
                 self.processingQueue.async { [weak self] in
                     // fetch crash reports and link them to sessions

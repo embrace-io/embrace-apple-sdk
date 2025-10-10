@@ -33,6 +33,7 @@ class NetworkingSwizzle: NSObject {
 
     /// Contains all exported spans that were produced before a new session was created
     private(set) var exportedOrphanedSpans: [SpanData] = []
+    private let exportedOrphanedSpansLock = NSLock()
 
     /// Contains all the logs exported, grouped by Session Id.
     private(set) var exportedLogsBySessions: [String: [ReadableLogRecord]] = [:]
@@ -163,6 +164,7 @@ class NetworkingSwizzle: NSObject {
         }
 
         ///assign orphaned exported spans into correct session
+        exportedOrphanedSpansLock.lock()
         (spans + spans_snapshots).forEach { span in
             guard span["name"] as? String != "emb-session" else { return }
             if let attributes = span["attributes"] as? [[String: String]],
@@ -178,6 +180,7 @@ class NetworkingSwizzle: NSObject {
                 }
             }
         }
+        exportedOrphanedSpansLock.unlock()
 
         attemptToMatchSpansByStartTime()
 
@@ -185,6 +188,7 @@ class NetworkingSwizzle: NSObject {
     }
 
     private func capturedExportedSpan(_ spanExporter: TestSpanExporter) {
+        exportedOrphanedSpansLock.lock()
         for span in spanExporter.latestExportedSpans {
             if span.name == "emb-session" {
                 if let currentSessionId = span.attributes["session.id"]?.description {
@@ -196,7 +200,7 @@ class NetworkingSwizzle: NSObject {
                 exportedOrphanedSpans.append(span)
             }
         }
-
+        exportedOrphanedSpansLock.unlock()
         attemptToMatchSpansByStartTime()
     }
 
@@ -219,6 +223,7 @@ class NetworkingSwizzle: NSObject {
 
                 let sessionStartTime = Date(timeIntervalSince1970: (sessionSpan["start_time_unix_nano"] as? Double ?? 0) / 1_000_000_000)
                 let sessionEndTime = Date(timeIntervalSince1970: (sessionSpan["end_time_unix_nano"] as? Double ?? 0) / 1_000_000_000)
+                exportedOrphanedSpansLock.lock()
                 for orphanedSpan in exportedOrphanedSpans {
                     if orphanedSpan.startTime >= sessionStartTime && orphanedSpan.startTime <= sessionEndTime {
                         exportedSpansBySession[sessionId, default: []].append(orphanedSpan)
@@ -227,7 +232,9 @@ class NetworkingSwizzle: NSObject {
                     }
 
                 }
+
                 exportedOrphanedSpans.removeAll { exportedSpansBySession[sessionId]?.firstIndex(of: $0) != nil }
+                exportedOrphanedSpansLock.unlock()
             }
         }
     }
