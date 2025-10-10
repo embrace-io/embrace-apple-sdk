@@ -352,10 +352,19 @@ public class EmbraceUpload: EmbraceLogUploader {
 }
 
 extension EmbraceUpload {
+
     public func retryCachedData() async {
         await withCheckedContinuation { continuation in
             retryCachedData {
                 continuation.resume()
+            }
+        }
+    }
+
+    public func uploadLog(id: String, data: Data) async -> Result<(), Error> {
+        await withCheckedContinuation { continuation in
+            uploadLog(id: id, data: data) { result in
+                continuation.resume(returning: result)
             }
         }
     }
