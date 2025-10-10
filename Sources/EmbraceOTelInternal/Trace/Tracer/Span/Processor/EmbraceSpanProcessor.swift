@@ -192,7 +192,7 @@ package class EmbraceSpanProcessor: SpanProcessor {
 
         // add resource
         if let resource {
-            spanData.settingResource(resource)
+            spanData = spanData.settingResource(resource)
         }
 
         return spanData
