@@ -1,3 +1,8 @@
+## 6.13.2
+*Oct 13, 2025*
+* Fixes
+    * Fixed issues related to the internal metadata migration database.
+
 ## 6.13.1
 *Aug 26, 2025*
 * Fixes
