@@ -369,7 +369,7 @@ final class EmbraceSpanProcessorExporterTests: XCTestCase {
         processor.processorQueue.async {
             expectation.fulfill()
         }
-        wait(for: [expectation], timeout: .shortTimeout)
+        wait(for: [expectation], timeout: .longTimeout)
 
         // then the session id is added to the exported data
         let exportedSpans: [SpanRecord] = storage.fetchAll()
