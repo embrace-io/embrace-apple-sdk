@@ -181,6 +181,7 @@ extension HangCaptureService: HangObserver {
         span.addEvent(
             name: "perf.thread_blockage_sample",
             attributes: [
+                SpanEventSemantics.keyEmbraceType: .string("perf.thread_blockage_sample"),
                 "sample_overhead": .int(overhead),
                 "frame_count": .int(stack.frameCount),
                 LogSemantics.keyStackTrace: .string(stack.stackString)
