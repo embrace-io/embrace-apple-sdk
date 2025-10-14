@@ -18,30 +18,49 @@ import OpenTelemetryApi
 public class Breadcrumb: NSObject, SpanEvent {
     public let name: String
     public let timestamp: Date
-    public private(set) var attributes: [String: AttributeValue]
+    public let message: String
 
     init(
         message: String,
         timestamp: Date = Date(),
-        attributes: [String: AttributeValue]
     ) {
         self.name = SpanEventSemantics.Breadcrumb.name
         self.timestamp = timestamp
-        self.attributes = attributes
-        self.attributes[SpanEventSemantics.Breadcrumb.keyMessage] = .string(message)
-        self.attributes[SpanEventSemantics.keyEmbraceType] = .string(SpanEventType.breadcrumb.rawValue)
+        self.message = message
+    }
+
+    @available(*, deprecated, message: "Attributes are not supported on breadcrumbs. Use a Log or SpanEvent instead if you require attribute support.")
+    convenience init(
+        message: String,
+        timestamp: Date = Date(),
+        attributes: [String: AttributeValue]
+    ) {
+        self.init(message: message, timestamp: timestamp)
+    }
+
+    @available(*, deprecated, message: "Attributes are not supported on breadcrumbs. Use a Log or SpanEvent instead if you require attribute support.")
+    public var attributes: [String: AttributeValue] {
+        [
+            SpanEventSemantics.Breadcrumb.keyMessage: .string(message),
+            SpanEventSemantics.keyEmbraceType: .string(SpanEventType.breadcrumb.rawValue)
+        ]
     }
 }
 
 extension SpanEvent where Self == Breadcrumb {
+
+    public static func breadcrumb(
+        _ message: String
+    ) -> SpanEvent {
+        Breadcrumb(message: message)
+    }
+
+    @available(*, deprecated, message: "Attributes are not supported on breadcrumbs. Use a Log or SpanEvent instead if you require attribute support.")
     public static func breadcrumb(
         _ message: String,
         properties: [String: String] = [:]
     ) -> SpanEvent {
-        let otelAttributes = properties.reduce(into: [String: AttributeValue]()) {
-            $0[$1.key] = AttributeValue.string($1.value)
-        }
-        return Breadcrumb(message: message, attributes: otelAttributes)
+        breadcrumb(message)
     }
 }
 
