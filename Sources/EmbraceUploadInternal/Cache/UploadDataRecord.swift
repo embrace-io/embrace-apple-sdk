@@ -11,6 +11,7 @@ public class UploadDataRecord: NSManagedObject {
     @NSManaged var id: String
     @NSManaged var type: Int
     @NSManaged var data: Data
+    @NSManaged var payloadTypes: String?
     @NSManaged var attemptCount: Int
     @NSManaged var date: Date
 
@@ -19,8 +20,8 @@ public class UploadDataRecord: NSManagedObject {
         id: String,
         type: Int,
         data: Data,
-        attemptCount:
-            Int,
+        payloadTypes: String?,
+        attemptCount: Int,
         date: Date
     ) -> UploadDataRecord? {
         var record: UploadDataRecord?
@@ -34,6 +35,7 @@ public class UploadDataRecord: NSManagedObject {
             record?.id = id
             record?.type = type
             record?.data = data
+            record?.payloadTypes = payloadTypes
             record?.attemptCount = attemptCount
             record?.date = date
         }
@@ -46,6 +48,7 @@ public class UploadDataRecord: NSManagedObject {
             id: id,
             type: type,
             data: data,
+            payloadTypes: payloadTypes,
             attemptCount: attemptCount,
             date: date
         )
@@ -72,6 +75,12 @@ extension UploadDataRecord {
         dataAttribute.name = "data"
         dataAttribute.attributeType = .binaryDataAttributeType
 
+        let payloadTypesAttribute = NSAttributeDescription()
+        payloadTypesAttribute.name = "payloadTypes"
+        payloadTypesAttribute.attributeType = .stringAttributeType
+        payloadTypesAttribute.isOptional = true
+        payloadTypesAttribute.defaultValue = nil
+
         let attemptCountAttribute = NSAttributeDescription()
         attemptCountAttribute.name = "attemptCount"
         attemptCountAttribute.attributeType = .integer64AttributeType
@@ -80,7 +89,15 @@ extension UploadDataRecord {
         dateAttribute.name = "date"
         dateAttribute.attributeType = .dateAttributeType
 
-        entity.properties = [idAttribute, typeAttribute, dataAttribute, attemptCountAttribute, dateAttribute]
+        entity.properties = [
+            idAttribute,
+            typeAttribute,
+            dataAttribute,
+            payloadTypesAttribute,
+            attemptCountAttribute,
+            dateAttribute
+        ]
+
         return entity
     }
 }
@@ -89,6 +106,7 @@ struct ImmutableUploadDataRecord {
     let id: String
     let type: Int
     let data: Data
+    let payloadTypes: String?
     let attemptCount: Int
     let date: Date
 }

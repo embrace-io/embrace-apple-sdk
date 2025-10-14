@@ -113,8 +113,9 @@ class EmbraceUploadCache {
     ///   - id: Identifier of the data
     ///   - type: Type of the data
     ///   - data: Data to cache
+    ///   - payloadTypes: Payload types, if any
     /// - Returns: Boolean indicating if the operation was successful
-    @discardableResult func saveUploadData(id: String, type: EmbraceUploadType, data: Data) -> Bool {
+    @discardableResult func saveUploadData(id: String, type: EmbraceUploadType, data: Data, payloadTypes: String? = nil) -> Bool {
 
         coreData.performOperation { context in
 
@@ -123,6 +124,7 @@ class EmbraceUploadCache {
             do {
                 if let uploadData = try context.fetch(request).first {
                     uploadData.data = data
+                    uploadData.payloadTypes = payloadTypes
                     try context.save()
                     return true
                 }
@@ -139,6 +141,7 @@ class EmbraceUploadCache {
                 id: id,
                 type: type.rawValue,
                 data: data,
+                payloadTypes: payloadTypes,
                 attemptCount: 0,
                 date: Date()
             ) {

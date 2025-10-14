@@ -174,6 +174,19 @@ class LogControllerTests: XCTestCase {
         thenLogUploadShouldUpload(times: 1)
     }
 
+    func test_batchPayloadTypes() {
+        givenStorage(withLogs: [
+            randomLogRecord(type: "test"),
+            randomLogRecord(type: "test"),
+            randomLogRecord(type: "type"),
+            randomLogRecord(type: "sys.log")
+        ])
+        givenLogController()
+        whenInvokingSetup()
+        thenLogUploadShouldUpload(times: 1)
+        thenPayloadTypesIsSet(["test", "type", "sys.log"])
+    }
+
     // MARK: LogController.Error tests
     func test_errorAsNSError_shouldProvideValuesForEachCase() {
         let allCases = [
@@ -428,6 +441,21 @@ extension LogControllerTests {
         XCTAssertTrue(upload.didCallUploadLog)
     }
 
+    fileprivate func thenPayloadTypesIsSet(_ types: [String]) {
+        guard types.count > 0 else {
+            return
+        }
+
+        XCTAssertNotNil(upload.logPayloadTypes)
+        let payloadTypes = upload.logPayloadTypes!.components(separatedBy: ",")
+
+        XCTAssertEqual(types.count, payloadTypes.count)
+
+        for type in types {
+            XCTAssert(payloadTypes.contains(type))
+        }
+    }
+
     fileprivate func thenStorageShouldCallRemove(withLogs logs: [EmbraceLog]) throws {
         let unwrappedStorage = try XCTUnwrap(storage)
         wait(timeout: 1.0) {
@@ -528,12 +556,17 @@ extension LogControllerTests {
         }
     }
 
-    fileprivate func randomLogRecord(sessionId: SessionIdentifier? = nil) -> EmbraceLog {
+    fileprivate func randomLogRecord(
+        sessionId: SessionIdentifier? = nil,
+        type: String = "test"
+    ) -> EmbraceLog {
 
         var attributes: [String: AttributeValue] = [:]
         if let sessionId = sessionId {
             attributes["session.id"] = AttributeValue(sessionId.toString)
         }
+
+        attributes["emb.type"] = AttributeValue(type)
 
         return MockLog(
             id: .random,
