@@ -202,9 +202,10 @@ package class EmbraceSpanProcessor: SpanProcessor {
 
         let exporters = self.spanExporters
         var spansToExport: [SpanData] = spans
-        let resource = resourceProvider?()
+        let provider = resourceProvider
 
         let block = { [self] in
+            let resource = provider?()
             spansToExport = spansToExport.compactMap { hydrateSpan($0, with: resource) }
             for exporter in exporters {
                 _ = exporter.export(spans: spansToExport)
