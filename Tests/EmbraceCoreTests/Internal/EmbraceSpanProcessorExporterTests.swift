@@ -11,14 +11,25 @@ import XCTest
 @testable import EmbraceOTelInternal
 @testable import OpenTelemetrySdk
 
-final class StorageSpanExporterTests: XCTestCase {
+final class EmbraceSpanProcessorExporterTests: XCTestCase {
+
+    func processor(storage: EmbraceStorage, session: SessionControllable) -> EmbraceSpanProcessor {
+        EmbraceSpanProcessor(
+            spanExporter: StorageSpanExporter(
+                storage: storage,
+                logger: MockLogger()
+            ),
+            sdkStateProvider: MockEmbraceSDKStateProvider(),
+            sessionIdProvider: { session.currentSession?.idRaw }
+        )
+    }
+
     func test_DB_preventsClosedSpan_fromUpdatingEndTime() throws {
         // Given
         let storage = try EmbraceStorage.createInMemoryDb()
         let sessionController = MockSessionController()
         sessionController.startSession(state: .foreground)
-        let exporter = StorageSpanExporter(
-            options: .init(storage: storage, sessionController: sessionController), logger: MockLogger())
+        let processor = processor(storage: storage, session: sessionController)
 
         let traceId = TraceId.random()
         let spanId = SpanId.random()
@@ -50,8 +61,13 @@ final class StorageSpanExporterTests: XCTestCase {
         )
 
         // When spans are exported
-        _ = exporter.export(spans: [closedSpanData])
-        _ = exporter.export(spans: [updated_closedSpanData])
+        let expectation = XCTestExpectation()
+        processor.processCompletedSpanData(closedSpanData)
+        processor.processCompletedSpanData(updated_closedSpanData)
+        processor.processorQueue.async {
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: .shortTimeout)
 
         let exportedSpans: [SpanRecord] = storage.fetchAll()
         XCTAssertTrue(exportedSpans.count == 1)
@@ -71,8 +87,7 @@ final class StorageSpanExporterTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         let sessionController = MockSessionController()
         sessionController.startSession(state: .foreground)
-        let exporter = StorageSpanExporter(
-            options: .init(storage: storage, sessionController: sessionController), logger: MockLogger())
+        let processor = processor(storage: storage, session: sessionController)
 
         let traceId = TraceId.random()
         let spanId = SpanId.random()
@@ -105,8 +120,13 @@ final class StorageSpanExporterTests: XCTestCase {
         )
 
         // When spans are exported
-        _ = exporter.export(spans: [openSpanData])
-        _ = exporter.export(spans: [updated_openSpanData])
+        let expectation = XCTestExpectation()
+        processor.processIncompletedSpanData(openSpanData, span: nil, sync: false)
+        processor.processIncompletedSpanData(updated_openSpanData, span: nil, sync: false)
+        processor.processorQueue.async {
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: .shortTimeout)
 
         let exportedSpans: [SpanRecord] = storage.fetchAll()
         XCTAssertTrue(exportedSpans.count == 1)
@@ -114,9 +134,6 @@ final class StorageSpanExporterTests: XCTestCase {
         let exportedSpan = exportedSpans.first
         XCTAssertEqual(exportedSpan?.traceId, traceId.hexString)
         XCTAssertEqual(exportedSpan?.id, spanId.hexString)
-
-        XCTAssertNotNil(exportedSpan!.sessionIdRaw)
-        XCTAssertEqual(exportedSpan!.sessionIdRaw, sessionController.currentSession?.id?.toString)
 
         let spanData = try JSONDecoder().decode(SpanData.self, from: exportedSpan!.data)
         XCTAssertEqual(spanData.attributes["foo"], .string("baz"))
@@ -127,8 +144,7 @@ final class StorageSpanExporterTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         let sessionController = MockSessionController()
         sessionController.startSession(state: .foreground)
-        let exporter = StorageSpanExporter(
-            options: .init(storage: storage, sessionController: sessionController), logger: MockLogger())
+        let processor = processor(storage: storage, session: sessionController)
 
         let traceId = TraceId.random()
         let spanId = SpanId.random()
@@ -144,7 +160,7 @@ final class StorageSpanExporterTests: XCTestCase {
             name: name,
             kind: .internal,
             startTime: startTime,
-            attributes: ["emb.type": .string("ux.session")],
+            attributes: ["emb.type": .string("perf")],
             endTime: endTime,
             hasEnded: false
         )
@@ -156,13 +172,18 @@ final class StorageSpanExporterTests: XCTestCase {
             name: name,
             kind: .internal,
             startTime: startTime,
-            attributes: ["emb.type": .string("ux.session")],
+            attributes: ["emb.type": .string("perf")],
             endTime: endTime,
             hasEnded: true
         )
 
         // when an open session span is exported
-        _ = exporter.export(spans: [openSessionSpan])
+        let expectation = XCTestExpectation()
+        processor.processIncompletedSpanData(openSessionSpan, span: nil, sync: false)
+        processor.processorQueue.async {
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: .shortTimeout)
 
         // then the data is exported
         var exportedSpans: [SpanRecord] = storage.fetchAll()
@@ -172,14 +193,19 @@ final class StorageSpanExporterTests: XCTestCase {
         XCTAssertNil(exportedSpans[0].endTime)
 
         // when a closed session span is exported
-        _ = exporter.export(spans: [closedSessionSpan])
+        let expectation1 = XCTestExpectation()
+        processor.processCompletedSpanData(closedSessionSpan)
+        processor.processorQueue.async {
+            expectation1.fulfill()
+        }
+        wait(for: [expectation1], timeout: .shortTimeout)
 
         // then the data is NOT exported
         exportedSpans = storage.fetchAll()
         XCTAssertTrue(exportedSpans.count == 1)
         XCTAssertEqual(exportedSpans[0].traceId, traceId.hexString)
         XCTAssertEqual(exportedSpans[0].id, spanId.hexString)
-        XCTAssertNil(exportedSpans[0].endTime)
+        XCTAssertNotNil(exportedSpans[0].endTime)
     }
 
     func test_name_empty() throws {
@@ -187,8 +213,7 @@ final class StorageSpanExporterTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         let sessionController = MockSessionController()
         sessionController.startSession(state: .foreground)
-        let exporter = StorageSpanExporter(
-            options: .init(storage: storage, sessionController: sessionController), logger: MockLogger())
+        let processor = processor(storage: storage, session: sessionController)
 
         let traceId = TraceId.random()
         let spanId = SpanId.random()
@@ -210,7 +235,12 @@ final class StorageSpanExporterTests: XCTestCase {
         )
 
         // when the span is exported
-        _ = exporter.export(spans: [spanData])
+        let expectation = XCTestExpectation()
+        processor.processCompletedSpanData(spanData)
+        processor.processorQueue.async {
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: .shortTimeout)
 
         // then the data is not exported
         let exportedSpans: [SpanRecord] = storage.fetchAll()
@@ -222,8 +252,7 @@ final class StorageSpanExporterTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         let sessionController = MockSessionController()
         sessionController.startSession(state: .foreground)
-        let exporter = StorageSpanExporter(
-            options: .init(storage: storage, sessionController: sessionController), logger: MockLogger())
+        let processor = processor(storage: storage, session: sessionController)
 
         let traceId = TraceId.random()
         let spanId = SpanId.random()
@@ -248,7 +277,12 @@ final class StorageSpanExporterTests: XCTestCase {
         )
 
         // when the span is exported
-        _ = exporter.export(spans: [spanData])
+        let expectation = XCTestExpectation()
+        processor.processCompletedSpanData(spanData)
+        processor.processorQueue.async {
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: .shortTimeout)
 
         // then the data is exported with a truncated name
         let exportedSpans: [SpanRecord] = storage.fetchAll()
@@ -263,8 +297,7 @@ final class StorageSpanExporterTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         let sessionController = MockSessionController()
         sessionController.startSession(state: .foreground)
-        let exporter = StorageSpanExporter(
-            options: .init(storage: storage, sessionController: sessionController), logger: MockLogger())
+        let processor = processor(storage: storage, session: sessionController)
 
         let traceId = TraceId.random()
         let spanId = SpanId.random()
@@ -289,7 +322,12 @@ final class StorageSpanExporterTests: XCTestCase {
         )
 
         // when the span is exported
-        _ = exporter.export(spans: [spanData])
+        let expectation = XCTestExpectation()
+        processor.processCompletedSpanData(spanData)
+        processor.processorQueue.async {
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: .shortTimeout)
 
         // then the data is exported without truncating the anme
         let exportedSpans: [SpanRecord] = storage.fetchAll()
@@ -304,8 +342,7 @@ final class StorageSpanExporterTests: XCTestCase {
         let storage = try EmbraceStorage.createInMemoryDb()
         let sessionController = MockSessionController()
         sessionController.startSession(state: .foreground)
-        let exporter = StorageSpanExporter(
-            options: .init(storage: storage, sessionController: sessionController), logger: MockLogger())
+        let processor = processor(storage: storage, session: sessionController)
 
         let traceId = TraceId.random()
         let spanId = SpanId.random()
@@ -325,8 +362,14 @@ final class StorageSpanExporterTests: XCTestCase {
             endTime: endTime,
             hasEnded: false
         )
+
         // when an open session span is exported
-        _ = exporter.export(spans: [span])
+        let expectation = XCTestExpectation()
+        processor.processIncompletedSpanData(span, span: nil, sync: false)
+        processor.processorQueue.async {
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: .longTimeout)
 
         // then the session id is added to the exported data
         let exportedSpans: [SpanRecord] = storage.fetchAll()

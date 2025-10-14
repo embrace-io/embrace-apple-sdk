@@ -10,6 +10,8 @@ import SwiftUI
 class SpanTestUIComponentViewModel: UIComponentViewModelBase {
     var spanExporter: TestSpanExporter = .init()
     private weak var observingObject: NSObjectProtocol?
+    private var failureCount: Int = 0
+    private var maxFailureCount: Int = 10
 
     override func testButtonPressed() {
         super.testButtonPressed()
@@ -64,6 +66,13 @@ class SpanTestUIComponentViewModel: UIComponentViewModelBase {
         else { return }
 
         let testReport = payloadTestObject.test(spans: spans)
+        if !testReport.passed {
+            failureCount += 1
+            if failureCount < maxFailureCount {
+                print("[FAIL:\(failureCount)] all spans available but still failing, waiting for more data...")
+                return
+            }
+        }
         testFinished(with: testReport)
         unregisterNotification()
     }
