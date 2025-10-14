@@ -32,4 +32,14 @@ class EmbraceSetupTests: XCTestCase {
         }
         wait(for: [expectation])
     }
+
+    func test_useAfterFree_ASan() {
+        let p = UnsafeMutablePointer<Int>.allocate(capacity: 1)
+        p.initialize(to: 42)
+        p.deinitialize(count: 1)
+        p.deallocate()
+
+        // Deliberate use-after-free
+        _ = p.pointee  // ASan: heap-use-after-free
+    }
 }
