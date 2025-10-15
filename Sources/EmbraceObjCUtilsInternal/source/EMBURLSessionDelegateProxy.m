@@ -8,32 +8,6 @@
 
 @implementation EMBURLSessionDelegateProxy
 
-static Class emb_gul_class_imp(id self, SEL _cmd) { return nil; }
-
-// If EMBDisableFirIsa is YES, then we don't add `-gul_class`
-// and this allows Firebase to isa swizzle our proxy.
-static void add_firebase_swizzle_override_if_needed(Class cls)
-{
-    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"EMBDisableFirIsa"]) {
-        return;
-    }
-
-    SEL selector = @selector(gul_class);
-    const char *types = "@@:";  // return type: object (Class), arguments: self + _cmd
-    BOOL success = class_addMethod(cls, selector, (IMP)emb_gul_class_imp, types);
-    if (!success) {
-        NSLog(@"Failed to add -gul_class to %@", NSStringFromClass(cls));
-    }
-}
-
-+ (void)load
-{
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        add_firebase_swizzle_override_if_needed(self);
-    });
-}
-
 - (instancetype)initWithDelegate:(id<NSURLSessionDelegate>)delegate handler:(id<URLSessionTaskHandler>)handler
 {
     self = [super init];
@@ -44,39 +18,15 @@ static void add_firebase_swizzle_override_if_needed(Class cls)
     return self;
 }
 
-#pragma mark - Firebase SWizzling Fixer
-
-/*
- Keep this here as it helps debug issues when they occur.
-+ (BOOL)instancesRespondToSelector:(SEL)aSelector
-{
-    static EMBURLSessionDelegateProxy *sFakeProxy;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        sFakeProxy = [[EMBURLSessionDelegateProxy alloc] initWithDelegate:nil handler:nil];
-    });
-    return [sFakeProxy respondsToSelector:aSelector];
-}
- */
-
-// Firebase checks for the presence of this function in order to 'isa' swizzle.
-// If it's here, it simply returns and does not do any swizzling.
-// We want this because Firebase 'isa' swizzling isn't being a good citizen.
-// ref: https://tinyurl.com/293k3hw9
-// NOT: We're adding it dynamiclly above only if the
-// UserDefaults setting of EMBDisableFirIsa is not present or NO.
-/*
-- (Class)gul_class
-{
-    return nil;
-}
-*/
-
 #pragma mark - Forwarding plumbing
 
 - (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector
 {
-    return [[self forwardingTargetForSelector:aSelector] methodSignatureForSelector:aSelector];
+    id target = [self forwardingTargetForSelector:aSelector];
+    if (target == nil) {
+        return [super methodSignatureForSelector:aSelector];
+    }
+    return [target methodSignatureForSelector:aSelector];
 }
 
 - (id)getTargetForSelector:(SEL)sel session:(NSURLSession *)session
@@ -96,11 +46,31 @@ static void add_firebase_swizzle_override_if_needed(Class cls)
 
 - (id)forwardingTargetForSelector:(SEL)sel
 {
-    // Any selector we don't implement, pass through transparently.
+    // We can't call `-respondsToSelector:` from here.
+    if (sel == @selector(URLSession:task:didCompleteWithError:) ||
+        sel == @selector(URLSession:task:didFinishCollectingMetrics:) ||
+        sel == @selector(URLSession:dataTask:didReceiveData:)) {
+        return nil;
+    }
+
+    id forwardingTarget = nil;
+
+    forwardingTarget = [super forwardingTargetForSelector:sel];
+    if (forwardingTarget) {
+        return forwardingTarget == self ? nil : forwardingTarget;
+    }
+
+    // is the original doing any forwarding?
+    forwardingTarget = [self.originalDelegate forwardingTargetForSelector:sel];
+    if (forwardingTarget) {
+        return forwardingTarget;
+    }
+
     if ([self.originalDelegate respondsToSelector:sel]) {
         return self.originalDelegate;
     }
-    return [super forwardingTargetForSelector:sel];
+
+    return nil;
 }
 
 - (BOOL)conformsToProtocol:(Protocol *)aProtocol
@@ -153,6 +123,9 @@ BOOL EmbraceInvoke(id target, SEL aSelector, NSArray *arguments)
 {
     NSMethodSignature *sig = [target methodSignatureForSelector:aSelector];
     if (!sig) {
+        return NO;
+    }
+    if (![target respondsToSelector:aSelector]) {
         return NO;
     }
 

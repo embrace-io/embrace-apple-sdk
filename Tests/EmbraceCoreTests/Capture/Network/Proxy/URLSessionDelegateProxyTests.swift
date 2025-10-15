@@ -524,9 +524,10 @@ extension URLSessionDelegateProxyTests {
     @objc static func invoke(
         on target: AnyObject,
         selector: Selector,
-        parameters: [Any]
+        parameters: [Any],
+        expect: Bool = true
     ) {
         let result = EmbraceInvoke(target, selector, parameters)
-        XCTAssertTrue(result)
+        XCTAssert(result == expect)
     }
 }
