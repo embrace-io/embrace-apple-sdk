@@ -62,7 +62,7 @@ extension URLSessionDelegateProxyToNonConformantTests {
         originalDelegate = URLSessionDelegateImplementerButWithoutConforming()
         handler = .init()
         urlSession = URLSession(configuration: .ephemeral)
-        sut = EMBURLSessionDelegateProxy(delegate: originalDelegate, handler: handler)
+        sut = EmbraceMakeURLSessionDelegateProxy(originalDelegate, handler)
     }
 
     fileprivate func whenInvokingDidReceiveData(_ data: Data) {

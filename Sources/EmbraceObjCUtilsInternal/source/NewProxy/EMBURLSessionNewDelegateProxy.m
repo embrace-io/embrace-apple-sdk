@@ -2,11 +2,11 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-#import "EMBURLSessionDelegateProxy.h"
+#import "EMBURLSessionNewDelegateProxy.h"
 #import <Foundation/Foundation.h>
 #import "objc/runtime.h"
 
-@implementation EMBURLSessionDelegateProxy
+@implementation EMBURLSessionNewDelegateProxy
 
 - (instancetype)initWithDelegate:(id<NSURLSessionDelegate>)delegate handler:(id<URLSessionTaskHandler>)handler
 {
@@ -118,27 +118,3 @@
 }
 
 @end
-
-BOOL EmbraceInvoke(id target, SEL aSelector, NSArray *arguments)
-{
-    NSMethodSignature *sig = [target methodSignatureForSelector:aSelector];
-    if (!sig) {
-        return NO;
-    }
-    if (![target respondsToSelector:aSelector]) {
-        return NO;
-    }
-
-    NSInvocation *inv = [NSInvocation invocationWithMethodSignature:sig];
-    inv.selector = aSelector;
-    inv.target = target;
-
-    for (NSUInteger index = 0, argIndex = 2; index < arguments.count; index++, argIndex++) {
-        id arg = arguments[index];
-        [inv setArgument:&arg atIndex:argIndex];
-    }
-
-    [inv invoke];
-
-    return YES;
-}

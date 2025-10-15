@@ -39,7 +39,7 @@ extension URLSessionDelegateProxyForwardingTests {
     fileprivate func givenProxyContainingDelegateWithoutImplementingMethods() {
         originalDelegate = .init()
         handler = .init()
-        sut = EMBURLSessionDelegateProxy(delegate: originalDelegate, handler: handler)
+        sut = EmbraceMakeURLSessionDelegateProxy(originalDelegate, handler)
     }
 
     fileprivate func whenInvokingDidCompleteWithError() {

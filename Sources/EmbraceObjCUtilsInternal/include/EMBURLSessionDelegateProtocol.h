@@ -3,6 +3,7 @@
 //
 
 #import <Foundation/Foundation.h>
+#import "EMBURLSessionDelegateProtocol.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -19,8 +20,10 @@ NS_ASSUME_NONNULL_BEGIN
 
 @end
 
-@interface EMBURLSessionDelegateProxy
-    : NSObject <NSURLSessionDelegate, NSURLSessionTaskDelegate, NSURLSessionDataDelegate, NSURLSessionStreamDelegate>
+@protocol EMBURLSessionDelegateProxy <NSURLSessionDelegate,
+                                      NSURLSessionTaskDelegate,
+                                      NSURLSessionDataDelegate,
+                                      NSURLSessionStreamDelegate>
 
 @property(nonatomic, strong, nullable) id originalDelegate;
 
@@ -40,5 +43,8 @@ NS_ASSUME_NONNULL_BEGIN
 // Uses NSInvocation from swift to call into target.
 // Returns YES on success.
 FOUNDATION_EXPORT BOOL EmbraceInvoke(id target, SEL aSelector, NSArray<id> *arguments);
+
+FOUNDATION_EXPORT id<EMBURLSessionDelegateProxy> _Nonnull EmbraceMakeURLSessionDelegateProxy(
+    id<NSURLSessionDelegate> _Nullable delegate, id<URLSessionTaskHandler> handler);
 
 NS_ASSUME_NONNULL_END

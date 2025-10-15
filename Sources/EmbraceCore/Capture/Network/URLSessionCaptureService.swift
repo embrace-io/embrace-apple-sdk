@@ -143,7 +143,7 @@ struct URLSessionInitWithDelegateSwizzler: URLSessionSwizzler {
                     return originalImplementation(urlSession, Self.selector, configuration, delegate, queue)
                 }
 
-                let newDelegate = EMBURLSessionDelegateProxy(delegate: proxiedDelegate, handler: handler)
+                let newDelegate = EmbraceMakeURLSessionDelegateProxy(proxiedDelegate, handler)
                 let session = originalImplementation(urlSession, Self.selector, configuration, newDelegate, queue)
 
                 // Have we been swizzled by Firebase??
@@ -223,7 +223,7 @@ struct SessionTaskResumeSwizzler: URLSessionSwizzler {
                     // we set a proxy delegate to get a callback when the task finishes
                     if handled, let handler = handler, task.state == .suspended {
                         let originalDelegate = task.delegate
-                        task.delegate = EMBURLSessionDelegateProxy(delegate: originalDelegate, handler: handler)
+                        task.delegate = EmbraceMakeURLSessionDelegateProxy(originalDelegate, handler)
                     }
 
                     // call original

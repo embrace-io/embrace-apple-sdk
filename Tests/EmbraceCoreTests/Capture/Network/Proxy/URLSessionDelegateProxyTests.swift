@@ -145,7 +145,7 @@ extension URLSessionDelegateProxyTests {
     fileprivate func givenProxyWithFullyImplementedOriginalDelegate() {
         handler = .init()
         originalDelegate = .init()
-        sut = EMBURLSessionDelegateProxy(delegate: originalDelegate, handler: handler)
+        sut = EmbraceMakeURLSessionDelegateProxy(originalDelegate, handler)
     }
 
     fileprivate func whenInvokingDidBecomeInvalidWithError() throws {
