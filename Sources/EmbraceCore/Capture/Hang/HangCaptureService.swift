@@ -41,7 +41,7 @@ public final class HangCaptureService: CaptureService {
 
     public override func onSessionWillEnd(_ session: any EmbraceSession) {
         let value = limitData.withLock { $0.hangsInSessionCount }
-        try? Embrace.client?.metadata.updateProperty(key: "emb-thread-blockage", value: "\(value)")
+        try? Embrace.client?.metadata.updateProperty(key: SpanSemantics.Hang.name, value: "\(value)")
     }
 
     public override func onConfigUpdated(_ config: any EmbraceConfigurable) {
@@ -96,12 +96,12 @@ extension HangCaptureService: HangObserver {
         // build the span
         guard
             let builder = buildSpan(
-                name: "emb-thread-blockage",
-                type: SpanType(primary: .performance, secondary: "thread_blockage"),
+                name: SpanSemantics.Hang.name,
+                type: SpanType.hang,
                 attributes: [
-                    "last_known_time_unix_nano": "\(at.realtime)",
-                    "interval_code": "0",
-                    "thread_priority": "0"
+                    SpanSemantics.Hang.keyLastKnownTimeUnixNano: "\(at.realtime)",
+                    SpanSemantics.Hang.keyIntervalCode: "0",
+                    SpanSemantics.Hang.keyThreadPriority: "0"
                 ]
             )
         else {
@@ -179,10 +179,11 @@ extension HangCaptureService: HangObserver {
         }
 
         span.addEvent(
-            name: "perf.thread_blockage_sample",
+            name: SpanEventSemantics.Hang.name,
             attributes: [
-                "sample_overhead": .int(overhead),
-                "frame_count": .int(stack.frameCount),
+                LogSemantics.keyEmbraceType: .string(SpanEventType.hang.rawValue),
+                SpanEventSemantics.Hang.keySampleOverhead: .int(overhead),
+                SpanEventSemantics.Hang.keyFrameCount: .int(stack.frameCount),
                 LogSemantics.keyStackTrace: .string(stack.stackString)
             ],
             timestamp: time
