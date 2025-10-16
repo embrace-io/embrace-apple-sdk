@@ -21,6 +21,10 @@ final class EmbraceAtomicTests: XCTestCase {
     func test_UInt32_basicOps() { runIntegerSuite(initial: UInt32(1), delta: 2) }
     func test_UInt64_basicOps() { runIntegerSuite(initial: UInt64(1), delta: 2) }
 
+    // MARK: - Double suite
+
+    func test_Double_basicOps() { runDoubleSuite(initial: 1.5, delta: 2.5) }
+
     // MARK: - Bool suite
 
     func test_Bool_basicOps() {
@@ -30,7 +34,7 @@ final class EmbraceAtomicTests: XCTestCase {
         b.store(true, order: .release)
         XCTAssertTrue(b.load(order: .acquire))
 
-        let old = b.exchange(false, order: .acqRel)
+        let old = b.exchange(false, order: .acquireAndRelease)
         XCTAssertTrue(old)
         XCTAssertFalse(b.load())
 
@@ -39,8 +43,7 @@ final class EmbraceAtomicTests: XCTestCase {
             b.compareExchange(
                 expected: &expected,
                 desired: true,
-                successOrder: .release,
-                failureOrder: .acquire)
+                successOrder: .release)
         )
         XCTAssertTrue(b.load())
 
@@ -50,8 +53,7 @@ final class EmbraceAtomicTests: XCTestCase {
             b.compareExchange(
                 expected: &expFail,
                 desired: false,
-                successOrder: .release,
-                failureOrder: .acquire)
+                successOrder: .release)
         )
         XCTAssertEqual(expFail, true)
         XCTAssertTrue(b.load())
@@ -66,10 +68,10 @@ final class EmbraceAtomicTests: XCTestCase {
         let counter = EmbraceAtomic<Int64>(0)
 
         DispatchQueue.concurrentPerform(iterations: threads) { _ in
-            for _ in 0..<perThread { _ = counter.fetchAdd(1, order: .acqRel) }
+            for _ in 0..<perThread { _ = counter.fetchAdd(1, order: .acquireAndRelease) }
         }
 
-        XCTAssertEqual(counter.load(order: .seqCst), Int64(perThread * threads))
+        XCTAssertEqual(counter.load(order: .sequencialConsistency), Int64(perThread * threads))
     }
 
     func test_MemoryOrder_variants_compile() {
@@ -78,7 +80,7 @@ final class EmbraceAtomicTests: XCTestCase {
         a.store(1, order: .release)
         _ = a.exchange(2, order: .acquire)
         var exp: Int32 = 2
-        _ = a.compareExchange(expected: &exp, desired: 3, successOrder: .acqRel, failureOrder: .acquire)
+        _ = a.compareExchange(expected: &exp, desired: 3, successOrder: .acquireAndRelease)
     }
 }
 
@@ -90,7 +92,7 @@ final class EmbraceAtomicTests: XCTestCase {
 private func runIntegerSuite<T>(
     initial: T,
     delta: T,
-    order: MemoryOrder = .seqCst
+    order: MemoryOrder = .sequencialConsistency
 )
 where T: FixedWidthInteger & EmbraceAtomicArithmetic {
     let a = EmbraceAtomic<T>(initial)
@@ -103,16 +105,16 @@ where T: FixedWidthInteger & EmbraceAtomicArithmetic {
     XCTAssertEqual(a.load(order: .acquire), initial &* T(3))
 
     // exchange
-    let old = a.exchange(initial, order: .acqRel)
+    let old = a.exchange(initial, order: .acquireAndRelease)
     XCTAssertEqual(old, initial &* T(3))
     XCTAssertEqual(a.load(), initial)
 
     // fetchAdd / fetchSub
-    let preAdd = a.fetchAdd(delta, order: .acqRel)
+    let preAdd = a.fetchAdd(delta, order: .acquireAndRelease)
     XCTAssertEqual(preAdd, initial)
     XCTAssertEqual(a.load(), initial &+ delta)
 
-    let preSub = a.fetchSub(delta, order: .acqRel)
+    let preSub = a.fetchSub(delta, order: .acquireAndRelease)
     XCTAssertEqual(preSub, initial &+ delta)
     XCTAssertEqual(a.load(), initial)
 
@@ -122,8 +124,7 @@ where T: FixedWidthInteger & EmbraceAtomicArithmetic {
         a.compareExchange(
             expected: &expected,
             desired: initial &+ T(1),
-            successOrder: .release,
-            failureOrder: .acquire)
+            successOrder: .release)
     )
     XCTAssertEqual(a.load(), initial &+ T(1))
 
@@ -133,11 +134,61 @@ where T: FixedWidthInteger & EmbraceAtomicArithmetic {
         a.compareExchange(
             expected: &expectedFail,
             desired: initial &+ T(2),
-            successOrder: .release,
-            failureOrder: .acquire)
+            successOrder: .release)
     )
     XCTAssertEqual(expectedFail, initial &+ T(1))
     XCTAssertEqual(a.load(), initial &+ T(1))
+}
+
+/// Common test for Double covering: init/load/store/exchange/CAS/fetchAdd/fetchSub
+private func runDoubleSuite(
+    initial: Double,
+    delta: Double,
+    order: MemoryOrder = .sequencialConsistency
+) {
+    let a = EmbraceAtomic<Double>(initial)
+
+    // load
+    XCTAssertEqual(a.load(order: order), initial)
+
+    // store
+    a.store(initial * 3.0, order: .release)
+    XCTAssertEqual(a.load(order: .acquire), initial * 3.0)
+
+    // exchange
+    let old = a.exchange(initial, order: .acquireAndRelease)
+    XCTAssertEqual(old, initial * 3.0)
+    XCTAssertEqual(a.load(), initial)
+
+    // fetchAdd / fetchSub
+    let preAdd = a.fetchAdd(delta, order: .acquireAndRelease)
+    XCTAssertEqual(preAdd, initial)
+    XCTAssertEqual(a.load(), initial + delta)
+
+    let preSub = a.fetchSub(delta, order: .acquireAndRelease)
+    XCTAssertEqual(preSub, initial + delta)
+    XCTAssertEqual(a.load(), initial)
+
+    // compareExchange success
+    var expected = initial
+    XCTAssertTrue(
+        a.compareExchange(
+            expected: &expected,
+            desired: initial + 1.0,
+            successOrder: .release)
+    )
+    XCTAssertEqual(a.load(), initial + 1.0)
+
+    // compareExchange failure updates expected
+    var expectedFail = initial
+    XCTAssertFalse(
+        a.compareExchange(
+            expected: &expectedFail,
+            desired: initial + 2.0,
+            successOrder: .release)
+    )
+    XCTAssertEqual(expectedFail, initial + 1.0)
+    XCTAssertEqual(a.load(), initial + 1.0)
 }
 
 final class EmbraceAtomicExtrasTests: XCTestCase {
@@ -151,11 +202,11 @@ final class EmbraceAtomicExtrasTests: XCTestCase {
         XCTAssertEqual(new0, true)
         XCTAssertEqual(flag.load(), true)
 
-        let new1 = flag.toggle(.seqCst)  // explicit order
+        let new1 = flag.toggle(.sequencialConsistency)  // explicit order
         XCTAssertEqual(new1, false)
         XCTAssertEqual(flag.load(), false)
 
-        let new2 = flag.toggle(.acqRel)
+        let new2 = flag.toggle(.sequencialConsistency)
         XCTAssertEqual(new2, true)
         XCTAssertEqual(flag.load(), true)
     }
@@ -169,7 +220,7 @@ final class EmbraceAtomicExtrasTests: XCTestCase {
         for _ in 0..<iterations {
             group.enter()
             q.async {
-                _ = flag.toggle(.acqRel)
+                _ = flag.toggle(.acquireAndRelease)
                 group.leave()
             }
         }

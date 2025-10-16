@@ -40,13 +40,22 @@ extension MemoryOrder {
     var atomicOrder: EMBAtomicMemoryOrder {
         switch self {
         case .relaxed: return .relaxed
-        case .consume: return .consume
         case .acquire: return .acquire
         case .release: return .release
-        case .acqRel: return .acqRel
-        case .seqCst: return .seqCst
+        case .acquireAndRelease: return .acqRel
+        case .sequencialConsistency: return .seqCst
         @unknown default:
             fatalError("Encountered unknown MemoryOrder case")
+        }
+    }
+
+    public func failureOrdering() -> MemoryOrder {
+        switch self {
+        case .relaxed: return .relaxed
+        case .acquire: return .acquire
+        case .release: return .relaxed
+        case .acquireAndRelease: return .acquire
+        case .sequencialConsistency: return .sequencialConsistency
         }
     }
 }
@@ -350,6 +359,38 @@ extension UInt64: EmbraceAtomicArithmetic {
     }
     public static func _fetchSub(_ a: UnsafeMutablePointer<CType>, _ delta: UInt64, _ order: MemoryOrder) -> UInt64 {
         emb_atomic_uint64_fetch_sub(a, delta, order.atomicOrder)
+    }
+}
+
+// MARK: Double
+extension Double: EmbraceAtomicArithmetic {
+    public typealias CType = emb_atomic_double_t
+    public static func _init(_ a: UnsafeMutablePointer<CType>, _ value: Double) {
+        emb_atomic_double_init(a, value)
+    }
+    public static func _load(_ a: UnsafePointer<CType>, _ order: MemoryOrder) -> Double {
+        emb_atomic_double_load(a, order.atomicOrder)
+    }
+    public static func _store(_ a: UnsafeMutablePointer<CType>, _ value: Double, _ order: MemoryOrder) {
+        emb_atomic_double_store(a, value, order.atomicOrder)
+    }
+    public static func _exchange(_ a: UnsafeMutablePointer<CType>, _ value: Double, _ order: MemoryOrder) -> Double {
+        emb_atomic_double_exchange(a, value, order.atomicOrder)
+    }
+    public static func _compareExchange(
+        _ a: UnsafeMutablePointer<CType>,
+        _ expected: UnsafeMutablePointer<Double>,
+        _ desired: Double,
+        _ success: MemoryOrder,
+        _ failure: MemoryOrder
+    ) -> Bool {
+        emb_atomic_double_compare_exchange(a, expected, desired, success.atomicOrder, failure.atomicOrder)
+    }
+    public static func _fetchAdd(_ a: UnsafeMutablePointer<CType>, _ delta: Double, _ order: MemoryOrder) -> Double {
+        emb_atomic_double_fetch_add(a, delta, order.atomicOrder)
+    }
+    public static func _fetchSub(_ a: UnsafeMutablePointer<CType>, _ delta: Double, _ order: MemoryOrder) -> Double {
+        emb_atomic_double_fetch_sub(a, delta, order.atomicOrder)
     }
 }
 

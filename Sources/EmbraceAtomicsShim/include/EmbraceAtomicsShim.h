@@ -46,6 +46,8 @@ EMB_DECLARE_ATOMIC_TYPE(uint16_t, uint16)
 EMB_DECLARE_ATOMIC_TYPE(uint32_t, uint32)
 EMB_DECLARE_ATOMIC_TYPE(uint64_t, uint64)
 
+EMB_DECLARE_ATOMIC_TYPE(double, double)
+
 EMB_DECLARE_ATOMIC_TYPE(bool, bool)
 
 #ifdef __cplusplus

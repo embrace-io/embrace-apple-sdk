@@ -13,16 +13,14 @@ import Foundation
 public enum MemoryOrder {
     /// No ordering constraints: only atomicity is guaranteed.
     case relaxed
-    /// Data-dependent ordering (rarely used in practice).
-    case consume
     /// Ensure all prior reads are visible before this load.
     case acquire
     /// Ensure all subsequent writes become visible after this store.
     case release
     /// Combined acquire+release semantics.
-    case acqRel
+    case acquireAndRelease
     /// Sequential consistency (the strongest guarantee).
-    case seqCst
+    case sequencialConsistency
 }
 
 /// A generic atomic wrapper for types that conform to `EmbraceAtomicType`.
@@ -53,7 +51,7 @@ public final class EmbraceAtomic<T: EmbraceAtomicType> {
     /// - Parameter order: The memory ordering for the load.
     /// - Returns: The current value of the atomic.
     @inlinable
-    public func load(order: MemoryOrder = .seqCst) -> T {
+    public func load(order: MemoryOrder = .sequencialConsistency) -> T {
         T._load(storage, order)
     }
 
@@ -63,7 +61,7 @@ public final class EmbraceAtomic<T: EmbraceAtomicType> {
     ///   - value: The value to write.
     ///   - order: The memory ordering for the store.
     @inlinable
-    public func store(_ value: T, order: MemoryOrder = .seqCst) {
+    public func store(_ value: T, order: MemoryOrder = .sequencialConsistency) {
         T._store(storage, value, order)
     }
 
@@ -75,7 +73,7 @@ public final class EmbraceAtomic<T: EmbraceAtomicType> {
     /// - Returns: The previous value.
     @inlinable
     @discardableResult
-    public func exchange(_ value: T, order: MemoryOrder = .seqCst) -> T {
+    public func exchange(_ value: T, order: MemoryOrder = .sequencialConsistency) -> T {
         T._exchange(storage, value, order)
     }
 
@@ -96,10 +94,9 @@ public final class EmbraceAtomic<T: EmbraceAtomicType> {
     public func compareExchange(
         expected: inout T,
         desired: T,
-        successOrder: MemoryOrder = .seqCst,
-        failureOrder: MemoryOrder = .seqCst
+        successOrder: MemoryOrder = .sequencialConsistency
     ) -> Bool {
-        T._compareExchange(storage, &expected, desired, successOrder, failureOrder)
+        T._compareExchange(storage, &expected, desired, successOrder, successOrder.failureOrdering())
     }
 }
 
@@ -109,14 +106,14 @@ extension EmbraceAtomic where T: EmbraceAtomicArithmetic {
     /// Atomically add `delta` to the current value, returning the previous value.
     @inlinable
     @discardableResult
-    public func fetchAdd(_ delta: T, order: MemoryOrder = .seqCst) -> T {
+    public func fetchAdd(_ delta: T, order: MemoryOrder = .sequencialConsistency) -> T {
         T._fetchAdd(storage, delta, order)
     }
 
     /// Atomically subtract `delta` from the current value, returning the previous value.
     @inlinable
     @discardableResult
-    public func fetchSub(_ delta: T, order: MemoryOrder = .seqCst) -> T {
+    public func fetchSub(_ delta: T, order: MemoryOrder = .sequencialConsistency) -> T {
         T._fetchSub(storage, delta, order)
     }
 }
@@ -127,13 +124,13 @@ extension EmbraceAtomic where T: EmbraceAtomicArithmetic {
     /// Atomically add `rhs` to the current value (discarding the previous value).
     @inlinable
     public static func += (lhs: EmbraceAtomic<T>, rhs: T) {
-        _ = T._fetchAdd(lhs.storage, rhs, .seqCst)
+        _ = T._fetchAdd(lhs.storage, rhs, .sequencialConsistency)
     }
 
     /// Atomically subtract `rhs` from the current value (discarding the previous value).
     @inlinable
     public static func -= (lhs: EmbraceAtomic<T>, rhs: T) {
-        _ = T._fetchSub(lhs.storage, rhs, .seqCst)
+        _ = T._fetchSub(lhs.storage, rhs, .sequencialConsistency)
     }
 }
 
@@ -145,12 +142,12 @@ extension EmbraceAtomic where T == Bool {
     /// Uses a looped CAS to ensure correctness under contention.
     @inlinable
     @discardableResult
-    public func toggle(_ order: MemoryOrder = .acqRel) -> Bool {
+    public func toggle(_ order: MemoryOrder = .sequencialConsistency) -> Bool {
         var cur = self.load(order: .acquire)
         while true {
             let nxt = !cur
             var expected = cur
-            if T._compareExchange(storage, &expected, nxt, .acqRel, .acquire) { return nxt }
+            if T._compareExchange(storage, &expected, nxt, .sequencialConsistency, .acquire) { return nxt }
             cur = expected
         }
     }
