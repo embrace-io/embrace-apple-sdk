@@ -6,6 +6,7 @@
 #import <Foundation/Foundation.h>
 #import "objc/runtime.h"
 
+#import "LegacyProxy/EMBURLSessionLegacyDelegateProxy.h"
 #import "NewProxy/EMBURLSessionNewDelegateProxy.h"
 
 BOOL EmbraceInvoke(id target, SEL aSelector, NSArray *arguments)
@@ -32,8 +33,17 @@ BOOL EmbraceInvoke(id target, SEL aSelector, NSArray *arguments)
     return YES;
 }
 
-id<EMBURLSessionDelegateProxy> _Nonnull EmbraceMakeURLSessionDelegateProxy(id<NSURLSessionDelegate> _Nullable delegate,
-                                                                           id<URLSessionTaskHandler> handler)
+id<EMBURLSessionDelegateProxy> EmbraceMakeURLSessionDelegateProxy(id<NSURLSessionDelegate> _Nullable delegate,
+                                                                  id<URLSessionTaskHandler> handler)
 {
+    static BOOL sUseLegacyProxy;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        sUseLegacyProxy = [[NSUserDefaults standardUserDefaults] boolForKey:@"EMBUseLegacyURLSessionProxy"];
+    });
+
+    if (sUseLegacyProxy) {
+        return [[EMBURLSessionLegacyDelegateProxy alloc] initWithDelegate:delegate handler:handler];
+    }
     return [[EMBURLSessionNewDelegateProxy alloc] initWithDelegate:delegate handler:handler];
 }

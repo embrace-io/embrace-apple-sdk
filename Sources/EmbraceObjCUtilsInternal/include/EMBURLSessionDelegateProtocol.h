@@ -20,15 +20,14 @@ NS_ASSUME_NONNULL_BEGIN
 
 @end
 
-@protocol EMBURLSessionDelegateProxy <NSURLSessionDelegate,
+@protocol EMBURLSessionDelegateProxy <NSObject,
+                                      NSURLSessionDelegate,
                                       NSURLSessionTaskDelegate,
                                       NSURLSessionDataDelegate,
                                       NSURLSessionStreamDelegate>
 
 @property(nonatomic, strong, nullable) id originalDelegate;
 
-/// This helps to determine if, during the creation of the `URLSessionDelegateProxy`,
-/// another player or SDK has already swizzled or proxied NSURLSession/URLSession.
 @property(nonatomic, weak, nullable) id<NSURLSessionDelegate> swizzledDelegate;
 
 @property(nonatomic, strong, nullable) id<URLSessionTaskHandler> handler;
@@ -44,7 +43,7 @@ NS_ASSUME_NONNULL_BEGIN
 // Returns YES on success.
 FOUNDATION_EXPORT BOOL EmbraceInvoke(id target, SEL aSelector, NSArray<id> *arguments);
 
-FOUNDATION_EXPORT id<EMBURLSessionDelegateProxy> _Nonnull EmbraceMakeURLSessionDelegateProxy(
+FOUNDATION_EXPORT id<EMBURLSessionDelegateProxy> EmbraceMakeURLSessionDelegateProxy(
     id<NSURLSessionDelegate> _Nullable delegate, id<URLSessionTaskHandler> handler);
 
 NS_ASSUME_NONNULL_END
