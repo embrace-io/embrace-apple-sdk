@@ -2,6 +2,7 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceCommonInternal
 import EmbraceCore
 import Foundation
 
@@ -20,7 +21,7 @@ public struct EmbraceEventName: Codable, Sendable, ExpressibleByStringLiteral {
 
 public protocol EmbraceIdentifiable: Sendable {
     var id: UUID { get }
-    var timestamp: NanosecondClock { get }
+    var timestamp: EmbraceClock { get }
 }
 
 public protocol EmbraceNamed: Sendable {
@@ -28,16 +29,16 @@ public protocol EmbraceNamed: Sendable {
 }
 
 public protocol EmbraceIntervaled: Sendable {
-    var startTime: NanosecondClock { get }
-    var endTime: NanosecondClock { get }
+    var startTime: EmbraceClock { get }
+    var endTime: EmbraceClock { get }
 }
 
 extension EmbraceIntervaled where Self: EmbraceIdentifiable {
-    public var startTime: NanosecondClock { timestamp }
+    public var startTime: EmbraceClock { timestamp }
 }
 
 extension EmbraceIntervaled where Self: EmbraceIdentifiable, Self: EmbraceIntervaled {
-    public var duration: NanosecondClock { endTime - startTime }
+    public var duration: EmbraceClock { endTime - startTime }
 }
 
 public protocol EmbraceAttributed: Sendable {
@@ -47,9 +48,9 @@ public protocol EmbraceAttributed: Sendable {
 public struct EmbraceSpan: EmbraceIdentifiable, EmbraceNamed, EmbraceIntervaled, EmbraceAttributed {
 
     public let id: UUID
-    public let timestamp: NanosecondClock
+    public let timestamp: EmbraceClock
     public let name: EmbraceEventName
-    public let endTime: NanosecondClock
+    public let endTime: EmbraceClock
     public let attributes: [EmbraceIO.AttributeKey: EmbraceIO.AttributeValueType]
 
 }

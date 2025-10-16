@@ -55,7 +55,7 @@ extension EmbraceIO {
     public func log(
         _ level: LogSeverity = .info,
         _ message: String,
-        timestamp: NanosecondClock = .current,
+        timestamp: EmbraceClock = .current,
         attributes: @autoclosure () -> [AttributeKey: AttributeValueType]? = nil
     ) {
         expectClient()?.log(
@@ -75,7 +75,7 @@ extension EmbraceIO {
 
     public func beginSpan(
         _ name: EmbraceEventName,
-        timestamp: NanosecondClock = .current,
+        timestamp: EmbraceClock = .current,
         attributes: @autoclosure () -> [AttributeKey: AttributeValueType]? = nil
     ) -> EmbraceSpan {
 
@@ -88,7 +88,7 @@ extension EmbraceIO {
             .setStartTime(time: timestamp.date)
             .startSpan()
 
-        return EmbraceSpan()
+        return EmbraceSpan(id: UUID(), timestamp: timestamp, name: name, endTime: timestamp, attributes: [:])
     }
 
 }
