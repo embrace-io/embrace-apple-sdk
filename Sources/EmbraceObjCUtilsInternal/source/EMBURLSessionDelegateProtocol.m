@@ -33,13 +33,14 @@ BOOL EmbraceInvoke(id target, SEL aSelector, NSArray *arguments)
     return YES;
 }
 
+static NSString *const EMBUseLegacyURLSessionProxyKey = @"EMBUseLegacyURLSessionProxy";
 id<EMBURLSessionDelegateProxy> EmbraceMakeURLSessionDelegateProxy(id<NSURLSessionDelegate> _Nullable delegate,
                                                                   id<URLSessionTaskHandler> handler)
 {
     static BOOL sUseLegacyProxy;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        sUseLegacyProxy = [[NSUserDefaults standardUserDefaults] boolForKey:@"EMBUseLegacyURLSessionProxy"];
+        sUseLegacyProxy = [[NSUserDefaults standardUserDefaults] boolForKey:EMBUseLegacyURLSessionProxyKey];
     });
 
     if (sUseLegacyProxy) {

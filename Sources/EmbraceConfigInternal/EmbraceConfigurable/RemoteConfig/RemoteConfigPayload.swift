@@ -44,6 +44,8 @@ public struct RemoteConfigPayload: Decodable, Equatable {
 
     var networkPayloadCaptureRules: [NetworkPayloadCaptureRule]
 
+    var useLegacyUrlSessionProxy: Bool
+
     enum CodingKeys: String, CodingKey {
         case sdkEnabledThreshold = "threshold"
 
@@ -95,6 +97,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         }
 
         case networkPayLoadCapture = "network_capture"
+        case useLegacyUrlSessionProxy = "use_legacy_urlsession_proxy"
     }
 
     public init(from decoder: Decoder) throws {
@@ -324,6 +327,13 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         } else {
             metricKitCrashSignals = defaultPayload.metricKitCrashSignals
         }
+
+        // metric kit
+        useLegacyUrlSessionProxy =
+            try rootContainer.decodeIfPresent(
+                Bool.self,
+                forKey: .useLegacyUrlSessionProxy
+            ) ?? defaultPayload.useLegacyUrlSessionProxy
     }
 
     // defaults
@@ -359,6 +369,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         hangLimitsSamplesPerHang = 0
 
         networkPayloadCaptureRules = []
+        useLegacyUrlSessionProxy = false
     }
 }
 

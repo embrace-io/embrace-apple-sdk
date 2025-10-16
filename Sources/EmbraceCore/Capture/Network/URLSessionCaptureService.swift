@@ -8,6 +8,7 @@ import Foundation
     import EmbraceCaptureService
     import EmbraceCommonInternal
     import EmbraceObjCUtilsInternal
+    import EmbraceConfiguration
 #endif
 
 typealias URLSessionCompletion = (Data?, URLResponse?, Error?) -> Void
@@ -45,6 +46,16 @@ public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandl
         self.options = options
         self.lock = lock
         self.swizzlerProvider = swizzlerProvider
+    }
+
+    public static let EMBUseLegacyURLSessionProxyKey = "EMBUseLegacyURLSessionProxy"
+
+    public override func onConfigUpdated(_ config: any EmbraceConfigurable) {
+        // This key is used in EMBURLSessionDelegateProtocol.m in order to decide
+        // which url session proxy class to use. Depending on the situation,
+        // the change itself in the proxy will take place on the next restart
+        // since we don't want to have new and legacy proxies wunning at the same time.
+        UserDefaults.standard.set(config.useLegacyUrlSessionProxy, forKey: Self.EMBUseLegacyURLSessionProxyKey)
     }
 
     public override func onInstall() {

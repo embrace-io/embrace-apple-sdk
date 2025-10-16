@@ -145,6 +145,8 @@ extension RemoteConfig: EmbraceConfigurable {
         )
     }
 
+    public var useLegacyUrlSessionProxy: Bool { payload.useLegacyUrlSessionProxy }
+
     public func update(completion: @escaping (Bool, (any Error)?) -> Void) {
         guard updating == false else {
             completion(false, nil)
