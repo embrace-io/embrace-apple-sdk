@@ -39,30 +39,53 @@ extension URLSessionDelegateProxyForwardingTests {
     fileprivate func givenProxyContainingDelegateWithoutImplementingMethods() {
         originalDelegate = .init()
         handler = .init()
-        sut = EMBURLSessionDelegateProxy(delegate: originalDelegate, handler: handler)
+        sut = EmbraceMakeURLSessionDelegateProxy(originalDelegate, handler)
     }
 
     fileprivate func whenInvokingDidCompleteWithError() {
-        (sut as URLSessionDataDelegate).urlSession?(
-            .shared,
-            task: aTask(),
-            didCompleteWithError: NSError(domain: "domain", code: 1234))
+
+        InvocationHelper.invoke(
+            on: sut,
+            selector: NSSelectorFromString("URLSession:task:didCompleteWithError:"),
+            parameters: [
+                URLSession.shared,
+                aTask(),
+                NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown)
+            ]
+        )
     }
 
     fileprivate func whenInvokingMethodThatIsNotImplementedInProxyNorDelegate() {
-        (sut as URLSessionDataDelegate).urlSession?(
-            .shared,
-            dataTask: aTask(),
-            willCacheResponse: .init(),
-            completionHandler: { _ in })
+
+        let completionClosure = { (_: CachedURLResponse) in }
+        let block: AnyObject = unsafeBitCast(completionClosure as @convention(block) (CachedURLResponse) -> Void, to: AnyObject.self)
+
+        InvocationHelper.invoke(
+            on: sut,
+            selector: NSSelectorFromString("URLSession:dataTask:willCacheResponse:completionHandler:"),
+            parameters: [
+                URLSession.shared,
+                aTask(),
+                CachedURLResponse(),
+                block
+            ],
+            expect: false
+        )
     }
 
     fileprivate func whenInvokingMethodFromNonConformantDelegate() {
-        (sut as? URLSessionWebSocketDelegate)?.urlSession?(
-            .shared,
-            webSocketTask: aWebSocketTask(),
-            didCloseWith: .abnormalClosure,
-            reason: Data())
+
+        InvocationHelper.invoke(
+            on: sut,
+            selector: NSSelectorFromString("URLSession:webSocketTask:didCloseWithCode:reason:"),
+            parameters: [
+                URLSession.shared,
+                aWebSocketTask(),
+                URLSessionWebSocketTask.CloseCode.abnormalClosure,
+                Data()
+            ],
+            expect: false
+        )
     }
 
     fileprivate func thenProxyShouldHaveFinishedTaskInHandler() {

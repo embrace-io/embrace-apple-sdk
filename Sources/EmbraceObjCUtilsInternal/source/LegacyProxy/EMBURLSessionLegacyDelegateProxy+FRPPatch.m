@@ -3,21 +3,21 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "EMBURLSessionDelegateProxy.h"
-#import "EMBURLSessionDelegateProxyFunctions.h"
+#import "EMBURLSessionLegacyDelegateProxy.h"
+#import "EMBURLSessionLegacyDelegateProxyFunctions.h"
 #import "objc/runtime.h"
 
-@interface EMBURLSessionDelegateProxy (FRPPatch)
+@interface EMBURLSessionLegacyDelegateProxy (FRPPatch)
 @end
 
-@implementation EMBURLSessionDelegateProxy (FRPPatch)
+@implementation EMBURLSessionLegacyDelegateProxy (FRPPatch)
 
 /**
- This logic is only required to ensure our proxy (`EMBURLSessionDelegateProxy`) works correctly
+ This logic is only required to ensure our proxy (`EMBURLSessionLegacyDelegateProxy`) works correctly
  when Firebase Performance (FPR) is present.
 
  The problem arises when FPR performs method swizzling on our proxy. Depending on which component
- initializes first, it's possible that Firebase ends up swizzling our instance of `EMBURLSessionDelegateProxy`.
+ initializes first, it's possible that Firebase ends up swizzling our instance of `EMBURLSessionLegacyDelegateProxy`.
 
  In general, this wouldn’t be an issue. However, when FPR detects that an object is a proxy (`isProxy == YES`),
  it installs its own implementation of `respondsToSelector:`. Internally, this custom implementation uses

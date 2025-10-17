@@ -3,6 +3,7 @@
 //
 
 #import <Foundation/Foundation.h>
+#import "EMBURLSessionDelegateProtocol.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -19,24 +20,30 @@ NS_ASSUME_NONNULL_BEGIN
 
 @end
 
-@interface EMBURLSessionDelegateProxy : NSProxy <NSURLSessionDelegate,
-                                                 NSURLSessionTaskDelegate,
-                                                 NSURLSessionDataDelegate,
-                                                 NSURLSessionDownloadDelegate,
-                                                 NSURLSessionStreamDelegate>
+@protocol EMBURLSessionDelegateProxy <NSObject,
+                                      NSURLSessionDelegate,
+                                      NSURLSessionTaskDelegate,
+                                      NSURLSessionDataDelegate,
+                                      NSURLSessionStreamDelegate>
 
 @property(nonatomic, strong, nullable) id originalDelegate;
 
-/// This helps to determine if, during the creation of the `URLSessionDelegateProxy`,
-/// another player or SDK has already swizzled or proxied NSURLSession/URLSession.
 @property(nonatomic, weak, nullable) id<NSURLSessionDelegate> swizzledDelegate;
 
 @property(nonatomic, strong, nullable) id<URLSessionTaskHandler> handler;
 
 - (instancetype)initWithDelegate:(id<NSURLSessionDelegate> _Nullable)delegate
                          handler:(id<URLSessionTaskHandler>)handler;
-- (id)getTargetForSelector:(SEL)selector session:(NSURLSession *)session;
+
+- (id)getTargetForSelector:(SEL)sel session:(NSURLSession *)session;
 
 @end
+
+// Uses NSInvocation from swift to call into target.
+// Returns YES on success.
+FOUNDATION_EXPORT BOOL EmbraceInvoke(id target, SEL aSelector, NSArray<id> *arguments);
+
+FOUNDATION_EXPORT id<EMBURLSessionDelegateProxy> EmbraceMakeURLSessionDelegateProxy(
+    id<NSURLSessionDelegate> _Nullable delegate, id<URLSessionTaskHandler> handler);
 
 NS_ASSUME_NONNULL_END

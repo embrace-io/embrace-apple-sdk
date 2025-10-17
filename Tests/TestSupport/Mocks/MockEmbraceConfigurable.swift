@@ -28,7 +28,8 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         networkPayloadCaptureRules: [NetworkPayloadCaptureRule] = [],
         updateCompletionParamDidUpdate: Bool = false,
         updateCompletionParamError: Error? = nil,
-        hangLimits: HangLimits = HangLimits()
+        hangLimits: HangLimits = HangLimits(),
+        useLegacyUrlSessionProxy: Bool = false
     ) {
         self._isSDKEnabled = isSDKEnabled
         self._isBackgroundSessionEnabled = isBackgroundSessionEnabled
@@ -47,6 +48,7 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         self._internalLogLimits = internalLogLimits
         self._hangLimits = hangLimits
         self._networkPayloadCaptureRules = networkPayloadCaptureRules
+        self._useLegacyUrlSessionProxy = useLegacyUrlSessionProxy
         self.updateCompletionParamDidUpdate = updateCompletionParamDidUpdate
         self.updateCompletionParamError = updateCompletionParamError
     }
@@ -264,6 +266,19 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         }
         set {
             _networkPayloadCaptureRules = newValue
+        }
+    }
+
+    private var _useLegacyUrlSessionProxy: Bool
+    public let useLegacyUrlSessionProxyExpectation = XCTestExpectation(
+        description: "useLegacyUrlSessionProxy called")
+    public var useLegacyUrlSessionProxy: Bool {
+        get {
+            useLegacyUrlSessionProxyExpectation.fulfill()
+            return _useLegacyUrlSessionProxy
+        }
+        set {
+            _useLegacyUrlSessionProxy = newValue
         }
     }
 
