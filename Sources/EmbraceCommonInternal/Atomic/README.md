@@ -2,6 +2,15 @@
 
 A simple, type-safe wrapper for atomic operations in Swift, backed by C11/C++11 atomics.
 
+## Why Our Own Implementation?
+
+While there are standard atomic implementations available, we maintain our own for compatibility reasons:
+
+- **Apple's Synchronization framework**: Includes native atomic types, but they're only available on iOS 18+ (and equivalent versions on other platforms). We need to support iOS versions much further back.
+- **Swift-Atomics package**: Provides excellent atomic primitives, but is only distributed via Swift Package Manager. Our SDK also supports CocoaPods, requiring a solution that works across all package managers.
+
+By maintaining our own lightweight implementation, we ensure atomic operations work consistently across all supported iOS versions and distribution methods.
+
 ## What are Atomics?
 
 Atomics provide thread-safe operations on primitive values without using locks. When multiple threads access the same variable, atomics guarantee that each operation completes as a single, indivisible unit—preventing data races and ensuring memory consistency.
@@ -11,7 +20,6 @@ Atomics provide thread-safe operations on primitive values without using locks. 
 Use atomics instead of locks when you need:
 - **Simple shared state**: Counters, flags, or single primitive values accessed from multiple threads
 - **Lock-free performance**: Atomics are typically faster than locks for simple operations
-- **Wait-free guarantees**: Operations complete without blocking
 
 **Don't use atomics for:**
 - Complex state updates involving multiple values (use locks or actors instead)
@@ -84,29 +92,94 @@ if state.compareExchange(expected: &expected, desired: 1) {
 
 ## Memory Ordering
 
-All operations accept an optional `order` parameter that controls memory visibility across threads:
+**TL;DR: Just use the defaults.** Unless you're optimizing critical performance code and understand the implications, the default ordering (`.sequencialConsistency`) is what you want.
 
-- **`.sequencialConsistency`** (default): Strongest guarantee—all threads see operations in the same order
-- `.acquireAndRelease`: Synchronize with matching operations
-- `.acquire`: Ensure prior writes from other threads are visible
-- `.release`: Ensure current writes become visible to other threads
-- `.relaxed`: Only guarantees atomicity, no ordering constraints
+### What is Memory Ordering?
 
-### The Default: Sequential Consistency
+When multiple threads access atomics, memory ordering controls how changes become visible between threads. Think of it like synchronization rules that determine when one thread can see updates made by another.
 
-By default, all operations use `.sequencialConsistency`, which provides the strongest memory ordering guarantee. This ensures:
-- Operations appear in a consistent global order across all threads
-- No surprising reorderings or stale reads
-- Easiest to reason about correctness
+### Available Orderings (From Safest to Fastest)
 
-**We strongly recommend using the default** unless you have a specific performance reason and deep understanding of memory ordering. Incorrect use of relaxed orderings can lead to subtle, hard-to-debug race conditions.
+#### `.sequencialConsistency` (Default) — Use This
+
+**What it does:** All threads see all atomic operations in the same order. It's like everyone watching the same movie—no confusion about what happened when.
+
+**When to use:** Always, unless you have a proven performance bottleneck and deep expertise.
 
 ```swift
-// Recommended: Use the default ordering
-counter.fetchAdd(1)
+let counter = EmbraceAtomic<Int32>(0)
+counter.store(42)              // Uses sequential consistency by default
+let value = counter.load()     // Also uses sequential consistency
+```
 
-// Advanced: Only specify ordering if you know what you're doing
-counter.fetchAdd(1, order: .acquireAndRelease)
+#### `.acquireAndRelease` — Read-Modify-Write
+
+**What it does:** Combines acquire (when reading) and release (when writing) semantics. Used for operations that both read and write.
+
+**When to use:** Operations like `fetchAdd`, `compareExchange`, or `exchange` when you need synchronization but want slightly better performance than sequential consistency.
+
+```swift
+// Example: Thread-safe incrementing where you need to see previous updates
+let requestCount = EmbraceAtomic<Int32>(0)
+let previous = requestCount.fetchAdd(1, order: .acquireAndRelease)
+// You'll see all writes that happened before this, and your write will be
+// visible to others who acquire after this
+```
+
+#### `.acquire` — Reading Shared Data
+
+**What it does:** When you load a value, you're guaranteed to see all writes that happened before a corresponding release operation.
+
+**When to use:** Loading a flag/value after another thread has set it up with `.release`.
+
+```swift
+// Thread 1: Producer sets up data then releases flag
+dataBuffer.write(someData)
+isReady.store(true, order: .release)  // All writes above are visible
+
+// Thread 2: Consumer acquires flag then reads data
+if isReady.load(order: .acquire) {    // Can now safely see the data writes
+    let data = dataBuffer.read()
+}
+```
+
+#### `.release` — Publishing Shared Data
+
+**What it does:** When you store a value, all your previous writes become visible to threads that acquire this value.
+
+**When to use:** Storing a flag/value after you've set up data that other threads need.
+
+```swift
+// Publish a result after computing it
+result.store(computedValue, order: .release)
+// Any thread that loads with .acquire will see this value
+```
+
+#### `.relaxed` — No Synchronization (Advanced)
+
+**What it does:** Only guarantees the atomic operation itself is indivisible, but provides no ordering guarantees with other memory operations.
+
+**When to use:** Very rare. Only for counters or flags where you don't care about the order of operations, just that they're atomic (e.g., statistics counters that are read infrequently).
+
+```swift
+// Example: Simple counter where exact ordering doesn't matter
+let statsCounter = EmbraceAtomic<Int32>(0)
+statsCounter.fetchAdd(1, order: .relaxed)  // Just count, don't synchronize
+```
+
+**⚠️ Warning:** Using `.relaxed` incorrectly can cause subtle bugs. Avoid unless you're certain.
+
+### Quick Decision Guide
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ Do you have a proven performance bottleneck?            │
+│                                                           │
+│  NO  → Use default (nothing to specify)                 │
+│  YES → Are you an expert in memory ordering?            │
+│         NO  → Use default                                │
+│         YES → Consider .acquireAndRelease or .relaxed   │
+└─────────────────────────────────────────────────────────┘
 ```
 
 ## Supported Types
