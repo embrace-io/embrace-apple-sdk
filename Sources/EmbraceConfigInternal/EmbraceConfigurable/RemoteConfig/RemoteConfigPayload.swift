@@ -328,7 +328,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             metricKitCrashSignals = defaultPayload.metricKitCrashSignals
         }
 
-        // metric kit
+        // use old url session proxy
         useLegacyUrlSessionProxy =
             try rootContainer.decodeIfPresent(
                 Bool.self,
