@@ -3,46 +3,55 @@
 //
 
 /**
- EMBThreadcrumb (EmbraceThreadcrumb) creates a distinctive stack shape by walking per-character functions
- to reliably capture a pruned stack for later symbolication.
+ EMBThreadcrumb
+ --------------
+ Encodes a short message into a thread's call stack so it can be recovered later from crash reports.
 
- Usage:
+ Concept
+ - Map allowed characters to distinct function symbols and walk them to shape the stack.
+ - Capture the stack at the end of the walk and return a pruned list of return addresses.
+
+ Why
+ - Recover identifiers (e.g., request IDs or breadcrumbs) from post-mortem stacks when higher-level
+   context is unavailable.
+
+ Usage
  - Create an instance of EMBThreadcrumb.
- - Call -log: with an ASCII/underscore message.
- - Receive an array of return addresses representing the pruned stack.
+ - Call `-log:` with a message; only [0-9a-zA-Z_] characters are retained.
+ - Receive an array of return addresses suitable for offline symbolication.
 
- Threading notes:
- - Single-flight: one log at a time per instance.
- - The method is synchronous and blocks the caller until the stack is captured.
+ Guarantees
+ - Messages are sanitized and truncated to EMBThreadcrumbMaximumMessageLength.
+ - Calls to `-log:` are serialized within an instance and complete synchronously.
 
- Performance notes:
- - Lightweight implementation.
- - A background pthread is created once internally to facilitate stack capturing.
+ Limitations
+ - Low-level diagnostic tool that depends on stack behavior and symbol visibility.
+ - Not designed for concurrent `-log:` calls; use per-context instances if needed.
  */
 
 #import <Foundation/Foundation.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
+// Maximum number of characters encoded into the stack (excess is truncated).
+FOUNDATION_EXTERN NSInteger const EMBThreadcrumbMaximumMessageLength NS_SWIFT_NAME(EmbraceThreadcrumbMaximumMessageLength);
+
 /**
- EMBThreadcrumb creates a unique stack shape by imprinting a sanitized message into a background worker thread’s stack.
- It internally manages a dedicated background thread for this purpose.
- The message is sanitized to include only characters in [0-9a-zA-Z_] before imprinting into the thread’s stack.
+ A utility that imprints a sanitized message into a dedicated worker thread's call stack and returns a
+ pruned stack trace for later symbolication. Only [0-9a-zA-Z_] characters are encoded.
  */
 NS_SWIFT_NAME(EmbraceThreadcrumb)
 @interface EMBThreadcrumb : NSObject
 
 /**
- Synchronously imprints the provided message into a worker thread’s stack and returns a pruned stack trace.
+ Synchronously imprint the message and return a pruned stack trace.
 
- @param message A string message where only characters in [0-9a-zA-Z_] are retained; all other characters are stripped.
- @return An NSArray of NSNumber objects representing return addresses suitable for offline symbolication. Returns an
- empty array if the capture failed.
+ @param message Input text; only [0-9a-zA-Z_] characters are retained, others are stripped.
+ @return Array of return addresses suitable for offline symbolication.
 
- Thread-safety: This method is not reentrant and must not be called concurrently on the same EMBThreadcrumb instance.
- Performance: This method blocks the caller until the capture completes, but completion is typically very fast.
-
- Swift name: Exposed as EmbraceThreadcrumb.log in Swift due to the NS_SWIFT_NAME on the class.
+ Threading: Thread-safe; calls are serialized within an instance.
+ Performance: Blocks the caller briefly until capture completes.
+ Notes: Messages longer than EMBThreadcrumbMaximumMessageLength are truncated after sanitization.
  */
 - (NSArray<NSNumber *> *)log:(NSString *)message;
 

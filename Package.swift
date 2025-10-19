@@ -344,6 +344,13 @@ let package = Package(
                 .product(name: "Recording", package: "KSCrash")
             ]
         ),
+        .testTarget(
+            name: "EmbraceTerminationsTests",
+            dependencies: [
+                "EmbraceTerminations",
+                "TestSupport"
+            ]
+        ),
 
         // test support --------------------------------------------------------------
         .target(
