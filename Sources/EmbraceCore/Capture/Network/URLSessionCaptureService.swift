@@ -64,7 +64,7 @@ public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandl
             lock.unlock()
         }
 
-        guard state == .uninstalled else {
+        guard state.load() == .uninstalled else {
             return
         }
 
@@ -109,6 +109,10 @@ public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandl
 
     var ignoredTaskTypes: [AnyClass] {
         return Self.avTaskTypes
+    }
+
+    var serviceState: CaptureServiceState {
+        state.load()
     }
 }
 

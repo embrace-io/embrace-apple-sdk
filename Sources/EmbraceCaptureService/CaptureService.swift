@@ -32,11 +32,17 @@ open class CaptureService: NSObject {
     private(set) public weak var logger: InternalLogger?
 
     /// Getter for the state of the capture service.
-    @ThreadSafe
-    private(set) public var state: CaptureServiceState = .uninstalled
+    public let state: EmbraceAtomic<CaptureServiceState> = EmbraceAtomic(.uninstalled)
 
     public func install(otel: EmbraceOpenTelemetry?, logger: InternalLogger? = nil) {
-        guard state == .uninstalled else {
+
+        var expected = CaptureServiceState.uninstalled
+        guard
+            state.compareExchange(
+                expected: &expected,
+                desired: CaptureServiceState.installed
+            )
+        else {
             return
         }
 
@@ -44,24 +50,33 @@ open class CaptureService: NSObject {
         self.logger = logger
 
         onInstall()
-
-        state = .installed
     }
 
     public func start() {
-        guard state != .uninstalled else {
+
+        var expected = CaptureServiceState.uninstalled
+        guard
+            state.compareExchange(
+                expected: &expected,
+                desired: CaptureServiceState.active
+            )
+        else {
             return
         }
-        state = .active
 
         onStart()
     }
 
     public func stop() {
-        guard state == .active else {
+        var expected = CaptureServiceState.active
+        guard
+            state.compareExchange(
+                expected: &expected,
+                desired: CaptureServiceState.paused
+            )
+        else {
             return
         }
-        state = .paused
 
         onStop()
     }
@@ -114,7 +129,7 @@ extension CaptureService {
     ///   - attributes: Attributes of the span.
     /// - Returns: The newly created `SpanBuilder` instance, or `nil` if the capture service is not active.
     public func buildSpan(name: String, type: SpanType, attributes: [String: String]) -> SpanBuilder? {
-        guard state == .active else {
+        guard state.load() == .active else {
             return nil
         }
 
@@ -128,7 +143,7 @@ extension CaptureService {
     /// - Returns: Boolean indicating if the event was successfully added. If the capture service is not active, this method always returns false.
     @discardableResult
     public func add(event: RecordingSpanEvent) -> Bool {
-        guard state == .active else {
+        guard state.load() == .active else {
             return false
         }
 
@@ -143,7 +158,7 @@ extension CaptureService {
     /// - Returns: Boolean indicating if the events were successfully added. If the capture service is not active, this method always returns false.
     @discardableResult
     public func add(events: [RecordingSpanEvent]) -> Bool {
-        guard state == .active else {
+        guard state.load() == .active else {
             return false
         }
 

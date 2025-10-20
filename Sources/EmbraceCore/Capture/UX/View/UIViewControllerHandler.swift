@@ -13,7 +13,7 @@
     #endif
 
     protocol UIViewControllerHandlerDataSource: AnyObject {
-        var state: CaptureServiceState { get }
+        var serviceState: CaptureServiceState { get }
         var otel: EmbraceOpenTelemetry? { get }
 
         var instrumentVisibility: Bool { get }
@@ -86,7 +86,7 @@
 
         func onViewDidLoadStart(_ vc: UIViewController, now: Date = Date()) {
 
-            guard dataSource?.state == .active,
+            guard dataSource?.serviceState == .active,
                 dataSource?.instrumentFirstRender == true,
                 vc.emb_shouldCaptureView,
                 dataSource?.isViewControllerBlocked(vc) == false,

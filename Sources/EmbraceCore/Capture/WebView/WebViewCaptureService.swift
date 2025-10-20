@@ -49,7 +49,7 @@
                 lock.unlock()
             }
 
-            guard state == .uninstalled else {
+            guard state.load() == .uninstalled else {
                 return
             }
 

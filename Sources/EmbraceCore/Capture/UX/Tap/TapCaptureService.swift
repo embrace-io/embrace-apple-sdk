@@ -36,7 +36,7 @@
                 lock.unlock()
             }
 
-            guard state == .uninstalled else {
+            guard state.load() == .uninstalled else {
                 return
             }
 
@@ -54,7 +54,7 @@
         }
 
         func handleCapturedEvent(_ event: UIEvent) {
-            guard state == .active else {
+            guard state.load() == .active else {
                 return
             }
 
