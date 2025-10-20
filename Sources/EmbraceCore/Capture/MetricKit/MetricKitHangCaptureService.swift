@@ -23,7 +23,7 @@ class MetricKitHangCaptureService: CaptureService, MetricKitHangPayloadListener 
     }
 
     func didReceive(payload: Data, startTime: Date, endTime: Date) {
-        guard state.load() == .active,
+        guard isActive,
             let stateProvider = options.stateProvider,
             stateProvider.isMetricKitEnabled,
             stateProvider.isMetricKitHangCaptureEnabled

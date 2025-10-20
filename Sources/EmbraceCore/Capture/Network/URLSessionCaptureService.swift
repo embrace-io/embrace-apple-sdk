@@ -64,10 +64,6 @@ public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandl
             lock.unlock()
         }
 
-        guard state.load() == .uninstalled else {
-            return
-        }
-
         handler = DefaultURLSessionTaskHandler(dataSource: self)
         guard let handler = handler else {
             return
