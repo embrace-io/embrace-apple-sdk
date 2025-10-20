@@ -520,7 +520,10 @@ extension RawRepresentable where Self: EmbraceAtomicType, RawValue: EmbraceAtomi
             success,
             failure
         )
-        if !result, let value = Self(rawValue: rawExpected) {
+        if !result {
+            guard let value = Self(rawValue: rawExpected) else {
+                fatalError("Invalid RawValue encountered during compareExchange from atomic storage")
+            }
             expected.pointee = value
         }
         return result
