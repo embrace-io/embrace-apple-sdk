@@ -2,10 +2,11 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceCommonInternal
 import Foundation
 
 /// The state of a `CaptureService`
-@objc public enum CaptureServiceState: Int {
+@objc public enum CaptureServiceState: Int8, EmbraceAtomicType {
     /// Indicates that the service has not been installed yet.
     case uninstalled
 

@@ -23,6 +23,10 @@
         private let bundlePath: String
         private let lock: NSLocking
 
+        var serviceState: CaptureServiceState {
+            state.load()
+        }
+
         var instrumentVisibility: Bool {
             return options.instrumentVisibility
         }
@@ -102,7 +106,7 @@
                 lock.unlock()
             }
 
-            guard state == .uninstalled else {
+            guard state.load() == .uninstalled else {
                 return
             }
 

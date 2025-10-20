@@ -253,7 +253,7 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
 
 extension DefaultURLSessionTaskHandlerTests {
     fileprivate func givenTaskHandler() {
-        dataSource.state = .active
+        dataSource.serviceState = .active
         sut = DefaultURLSessionTaskHandler(
             processingQueue: MockQueue(),
             dataSource: dataSource,
@@ -262,7 +262,7 @@ extension DefaultURLSessionTaskHandlerTests {
     }
 
     fileprivate func givenStateChanged(toState: CaptureServiceState) {
-        dataSource.state = toState
+        dataSource.serviceState = toState
     }
 
     fileprivate func givenNetworkPayloadCaptureIsDisabled() {
@@ -376,7 +376,7 @@ extension DefaultURLSessionTaskHandlerTests {
     }
 
     fileprivate func thenTaskHandlerState(is state: CaptureServiceState) {
-        XCTAssertEqual(sut.dataSource?.state, state)
+        XCTAssertEqual(sut.dataSource?.serviceState, state)
     }
 
     fileprivate func thenNoSpanShouldBeCreated() {

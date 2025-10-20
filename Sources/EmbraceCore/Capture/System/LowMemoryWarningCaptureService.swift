@@ -35,7 +35,7 @@ public class LowMemoryWarningCaptureService: CaptureService {
     }
 
     @objc func didReceiveMemoryWarning(notification: Notification) {
-        guard state == .active else {
+        guard state.load() == .active else {
             return
         }
 
