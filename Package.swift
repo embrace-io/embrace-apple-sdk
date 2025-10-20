@@ -115,6 +115,7 @@ let package = Package(
         .target(
             name: "EmbraceCommonInternal",
             dependencies: [
+                "EmbraceAtomicsShim",
                 .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift-core")
             ]
         ),
@@ -124,6 +125,12 @@ let package = Package(
                 "EmbraceCommonInternal",
                 "TestSupport"
             ]
+        ),
+
+        // atomics ------------------------------------------------------------------
+        .target(
+            name: "EmbraceAtomicsShim",
+            publicHeadersPath: "include"
         ),
 
         // semantics -----------------------------------------------------------------
