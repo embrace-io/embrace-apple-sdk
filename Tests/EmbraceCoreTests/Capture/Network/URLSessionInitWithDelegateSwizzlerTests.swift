@@ -75,7 +75,7 @@ extension URLSessionInitWithDelegateSwizzlerTests {
     }
 
     fileprivate func whenInitializingURLSessionWithPreviouslySwizzledProxy() {
-        previouslySwizzledProxy = .init(delegate: nil, handler: MockURLSessionTaskHandler())
+        previouslySwizzledProxy = EmbraceMakeURLSessionDelegateProxy(nil, MockURLSessionTaskHandler())
         whenInitializingURLSessionWithDelegate(previouslySwizzledProxy)
     }
 
