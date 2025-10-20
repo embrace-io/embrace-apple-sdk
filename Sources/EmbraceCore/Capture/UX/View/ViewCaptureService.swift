@@ -106,10 +106,6 @@
                 lock.unlock()
             }
 
-            guard state.load() == .uninstalled else {
-                return
-            }
-
             guard options.instrumentVisibility || options.instrumentFirstRender else {
                 return
             }

@@ -36,10 +36,6 @@
                 lock.unlock()
             }
 
-            guard state.load() == .uninstalled else {
-                return
-            }
-
             do {
                 swizzler = UIWindowSendEventSwizzler()
                 swizzler?.onEvent = { [weak self] event in
@@ -54,7 +50,7 @@
         }
 
         func handleCapturedEvent(_ event: UIEvent) {
-            guard state.load() == .active else {
+            guard isActive else {
                 return
             }
 

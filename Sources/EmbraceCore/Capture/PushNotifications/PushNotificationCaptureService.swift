@@ -42,10 +42,6 @@ import UserNotifications
             lock.unlock()
         }
 
-        guard state.load() == .uninstalled else {
-            return
-        }
-
         initializeSwizzlers()
 
         swizzlers.forEach {

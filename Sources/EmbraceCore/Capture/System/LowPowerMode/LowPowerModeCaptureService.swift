@@ -51,7 +51,7 @@ public class LowPowerModeCaptureService: CaptureService {
     }
 
     @objc func didChangePowerMode(notification: Notification) {
-        guard state.load() == .active else {
+        guard isActive else {
             return
         }
 
