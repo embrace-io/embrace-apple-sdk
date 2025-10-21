@@ -6,13 +6,8 @@
 //
 
 import SwiftUI
-import EmbraceIO
-import EmbraceCrash
 
 struct ContentView: View {
-    init() {
-        _ = try? Embrace.setup(options: .init(appId: "ejqby")).start()
-    }
     var body: some View {
         VStack {
             Button {
