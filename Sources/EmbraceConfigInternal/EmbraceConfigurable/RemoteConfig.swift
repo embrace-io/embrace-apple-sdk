@@ -17,7 +17,8 @@ public class RemoteConfig {
     // config requests
     let _payload: EmbraceMutex<RemoteConfigPayload>
     var payload: RemoteConfigPayload {
-        _payload.safeValue
+        get { _payload.withLock { $0 } }
+        set { _payload.withLock { $0 = newValue } }
     }
     let fetcher: RemoteConfigFetcher
 

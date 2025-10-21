@@ -18,8 +18,10 @@ public class LowPowerModeCaptureService: CaptureService {
     public let provider: PowerModeProvider
 
     private let wasLowPowerModeEnabled = EmbraceAtomic(false)
-    internal let currentSpan = EmbraceMutex<Span?>(nil)
-
+    internal let _currentSpan = EmbraceMutex<Span?>(nil)
+    internal var currentSpan: Span? {
+        _currentSpan.withLock { $0 }
+    }
     public init(provider: PowerModeProvider = DefaultPowerModeProvider()) {
         self.provider = provider
     }
@@ -79,13 +81,13 @@ public class LowPowerModeCaptureService: CaptureService {
             return
         }
 
-        currentSpan.withLock {
+        _currentSpan.withLock {
             $0 = builder.startSpan()
         }
     }
 
     func endSpan() {
-        currentSpan.withLock {
+        _currentSpan.withLock {
             $0?.end()
             $0 = nil
         }
