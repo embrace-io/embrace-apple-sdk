@@ -21,26 +21,23 @@ import Foundation
 /// - Note: This is similar to the `atomic` property attribute in Objective-C, it gives thread safe acccess to the
 /// pointer, not the contents.
 @propertyWrapper
-public final class ThreadSafe<Value> {
-    private var value: Value
-    private let lock = UnfairLock()
+public final class ThreadSafe<Value>: Sendable {
+    private let storage: EmbraceMutex<Value>
 
     public init(wrappedValue: Value) {
-        self.value = wrappedValue
+        self.storage = EmbraceMutex(wrappedValue)
     }
 
     public var wrappedValue: Value {
         get {
-            lock.locked { value }
+            storage.withLock { $0 }
         }
         set {
-            lock.locked { value = newValue }
+            storage.withLock { $0 = newValue }
         }
     }
 
     public func modify(_ operation: (inout Value) -> Void) {
-        lock.locked {
-            operation(&value)
-        }
+        storage.withLock { operation(&$0) }
     }
 }

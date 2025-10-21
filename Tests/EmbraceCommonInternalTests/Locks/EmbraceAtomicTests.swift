@@ -327,3 +327,79 @@ final class EmbraceAtomicExtrasTests: XCTestCase {
         XCTAssertEqual(b.load(), 9)
     }
 }
+
+// MARK: - RawRepresentable Support Tests
+
+enum TestState: Int32, EmbraceAtomicType {
+    case idle = 0
+    case running = 1
+    case stopped = 2
+    case failed = 3
+}
+
+final class EmbraceAtomicRawRepresentableTests: XCTestCase {
+
+    func testRawRepresentableBasicOps() {
+        let state = EmbraceAtomic<TestState>(.idle)
+
+        // load
+        XCTAssertEqual(state.load(), .idle)
+
+        // store
+        state.store(.running, order: .release)
+        XCTAssertEqual(state.load(order: .acquire), .running)
+
+        // exchange
+        let old = state.exchange(.stopped, order: .acquireAndRelease)
+        XCTAssertEqual(old, .running)
+        XCTAssertEqual(state.load(), .stopped)
+
+        // compareExchange success
+        var expected: TestState = .stopped
+        XCTAssertTrue(
+            state.compareExchange(
+                expected: &expected,
+                desired: .failed,
+                successOrder: .release)
+        )
+        XCTAssertEqual(state.load(), .failed)
+
+        // compareExchange failure updates expected
+        var expectedFail: TestState = .idle
+        XCTAssertFalse(
+            state.compareExchange(
+                expected: &expectedFail,
+                desired: .running,
+                successOrder: .release)
+        )
+        XCTAssertEqual(expectedFail, .failed)
+        XCTAssertEqual(state.load(), .failed)
+    }
+
+    func testRawRepresentableConcurrentUpdates() {
+        let state = EmbraceAtomic<TestState>(.idle)
+        let iterations = 10_000
+        let group = DispatchGroup()
+        let q = DispatchQueue(label: "state.concurrent", attributes: .concurrent)
+
+        // Multiple threads trying to transition from idle to running
+        for _ in 0..<iterations {
+            group.enter()
+            q.async {
+                var expected: TestState = .idle
+                _ = state.compareExchange(
+                    expected: &expected,
+                    desired: .running,
+                    successOrder: .acquireAndRelease
+                )
+                group.leave()
+            }
+        }
+
+        XCTAssertEqual(group.wait(timeout: .now() + 5), .success, "Concurrent updates timed out")
+
+        // State should be either idle or running (only one thread should have succeeded)
+        let final = state.load()
+        XCTAssertTrue(final == .idle || final == .running)
+    }
+}

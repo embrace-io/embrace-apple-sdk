@@ -419,3 +419,113 @@ extension Bool: EmbraceAtomicType {
         emb_atomic_bool_compare_exchange(a, expected, desired, success.atomicOrder, failure.atomicOrder)
     }
 }
+
+// MARK: - RawRepresentable Support
+
+/// Atomic storage for RawRepresentable types.
+///
+/// This storage type wraps the RawValue's atomic representation and provides
+/// atomic operations through conversion between the RawRepresentable type
+/// and its underlying RawValue.
+@frozen
+public struct EmbraceAtomicRawRepresentableStorage<Value: RawRepresentable>
+where Value.RawValue: EmbraceAtomicType {
+    @usableFromInline
+    internal var _storage: Value.RawValue.CType
+}
+
+extension EmbraceAtomicRawRepresentableStorage {
+    @inlinable
+    @inline(__always)
+    internal static func _extractConst(
+        _ ptr: UnsafePointer<EmbraceAtomicRawRepresentableStorage>
+    ) -> UnsafePointer<Value.RawValue.CType> {
+        UnsafeRawPointer(ptr)
+            .assumingMemoryBound(to: Value.RawValue.CType.self)
+    }
+
+    @inlinable
+    @inline(__always)
+    internal static func _extractMut(
+        _ ptr: UnsafeMutablePointer<EmbraceAtomicRawRepresentableStorage>
+    ) -> UnsafeMutablePointer<Value.RawValue.CType> {
+        UnsafeMutableRawPointer(ptr)
+            .assumingMemoryBound(to: Value.RawValue.CType.self)
+    }
+}
+
+// MARK: RawRepresentable conformance to EmbraceAtomicType
+
+/// Extend RawRepresentable types to conform to EmbraceAtomicType
+/// when their RawValue is atomic.
+///
+/// This allows enums and other RawRepresentable types with atomic raw values
+/// (like Int32, UInt64, etc.) to be used with EmbraceAtomic.
+///
+/// Example:
+/// ```swift
+/// enum MyState: Int32, EmbraceAtomicType {
+///     case idle = 0
+///     case running = 1
+///     case stopped = 2
+/// }
+///
+/// let state = EmbraceAtomic<MyState>(.idle)
+/// state.store(.running)
+/// ```
+extension RawRepresentable where Self: EmbraceAtomicType, RawValue: EmbraceAtomicType {
+    public typealias CType = EmbraceAtomicRawRepresentableStorage<Self>
+
+    @inlinable
+    public static func _init(_ a: UnsafeMutablePointer<EmbraceAtomicRawRepresentableStorage<Self>>, _ value: Self) {
+        RawValue._init(EmbraceAtomicRawRepresentableStorage<Self>._extractMut(a), value.rawValue)
+    }
+
+    @inlinable
+    public static func _load(_ a: UnsafePointer<EmbraceAtomicRawRepresentableStorage<Self>>, _ order: MemoryOrder) -> Self {
+        let rawValue = RawValue._load(EmbraceAtomicRawRepresentableStorage<Self>._extractConst(a), order)
+        guard let value = Self(rawValue: rawValue) else {
+            fatalError("Invalid RawValue loaded from atomic storage")
+        }
+        return value
+    }
+
+    @inlinable
+    public static func _store(_ a: UnsafeMutablePointer<EmbraceAtomicRawRepresentableStorage<Self>>, _ value: Self, _ order: MemoryOrder) {
+        RawValue._store(EmbraceAtomicRawRepresentableStorage<Self>._extractMut(a), value.rawValue, order)
+    }
+
+    @inlinable
+    public static func _exchange(_ a: UnsafeMutablePointer<EmbraceAtomicRawRepresentableStorage<Self>>, _ value: Self, _ order: MemoryOrder) -> Self {
+        let rawValue = RawValue._exchange(EmbraceAtomicRawRepresentableStorage<Self>._extractMut(a), value.rawValue, order)
+        guard let value = Self(rawValue: rawValue) else {
+            fatalError("Invalid RawValue exchanged from atomic storage")
+        }
+        return value
+    }
+
+    @inlinable
+    public static func _compareExchange(
+        _ a: UnsafeMutablePointer<EmbraceAtomicRawRepresentableStorage<Self>>,
+        _ expected: UnsafeMutablePointer<Self>,
+        _ desired: Self,
+        _ success: MemoryOrder,
+        _ failure: MemoryOrder
+    ) -> Bool {
+        var rawExpected = expected.pointee.rawValue
+        let result = RawValue._compareExchange(
+            EmbraceAtomicRawRepresentableStorage<Self>._extractMut(a),
+            &rawExpected,
+            desired.rawValue,
+            success,
+            failure
+        )
+        if !result {
+            guard let value = Self(rawValue: rawExpected) else {
+                fatalError("Invalid RawValue encountered during compareExchange from atomic storage")
+            }
+            expected.pointee = value
+        }
+        return result
+    }
+}

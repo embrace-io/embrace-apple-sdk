@@ -13,7 +13,7 @@ import Foundation
 ///
 /// - Note: This type is `@unchecked Sendable` when the generic `Value` is `Sendable`,
 ///   meaning the caller is responsible for ensuring safe usage across concurrency domains.
-public final class EmbraceMutex<Value> {
+public final class EmbraceMutex<Value>: @unchecked Sendable {
 
     /// Creates a new mutex-protected wrapper around the given value.
     ///
@@ -39,8 +39,6 @@ public final class EmbraceMutex<Value> {
     private let lock: UnfairLock
     private var storage: Value
 }
-
-extension EmbraceMutex: @unchecked Sendable where Value: Sendable {}
 
 extension EmbraceMutex {
 
