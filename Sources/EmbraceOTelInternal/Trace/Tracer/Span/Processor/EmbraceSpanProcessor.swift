@@ -25,7 +25,10 @@ package class EmbraceSpanProcessor: SpanProcessor {
 
     weak var sdkStateProvider: EmbraceSDKStateProvider?
 
-    @ThreadSafe var autoTerminationSpans: [SpanId: SpanAutoTerminationData] = [:]
+    private let _autoTerminationSpans = EmbraceMutex<[SpanId: SpanAutoTerminationData]>([:])
+    var autoTerminationSpans: [SpanId: SpanAutoTerminationData] {
+        _autoTerminationSpans.withLock { $0 }
+    }
 
     /// Returns a new EmbraceSpanProcessor that converts spans to SpanData and forwards them to
     public init(
@@ -66,13 +69,16 @@ package class EmbraceSpanProcessor: SpanProcessor {
     public func autoTerminateSpans() {
         let now = Date()
 
-        for data in autoTerminationSpans.values {
+        let spans = _autoTerminationSpans.withLock {
+            let values = $0.values
+            $0 = [:]
+            return values
+        }
+        for data in spans {
             data.span.setAttribute(key: SpanSemantics.keyErrorCode, value: data.code)
             data.span.status = .error(description: data.code)
             data.span.end(time: now)
         }
-
-        autoTerminationSpans.removeAll()
     }
 
     public let isStartRequired: Bool = true
@@ -129,14 +135,17 @@ package class EmbraceSpanProcessor: SpanProcessor {
     }
 
     internal func processIncompletedSpanData(_ data: SpanData, span: ReadableSpan?, sync: Bool) {
+
         // cache if flagged for auto termination
-        if let span, let code = autoTerminationCode(for: data, parentId: data.parentSpanId) {
-            autoTerminationSpans[data.spanId] = SpanAutoTerminationData(
-                span: span,
-                spanData: data,
-                code: code,
-                parentId: data.parentSpanId
-            )
+        _autoTerminationSpans.withLock {
+            if let span, let code = locked_autoTerminationCode(for: data, parentId: data.parentSpanId, from: &$0) {
+                $0[data.spanId] = SpanAutoTerminationData(
+                    span: span,
+                    spanData: data,
+                    code: code,
+                    parentId: data.parentSpanId
+                )
+            }
         }
 
         runExporters(data, sync: sync)
@@ -227,17 +236,14 @@ package class EmbraceSpanProcessor: SpanProcessor {
 
     // finds the auto termination code from the span's attributes
     // also tries to find it from it's parent spans
-    private func autoTerminationCode(for data: SpanData, parentId: SpanId? = nil) -> String? {
+    private func locked_autoTerminationCode(for data: SpanData, parentId: SpanId? = nil, from: inout [SpanId: SpanAutoTerminationData]) -> String? {
         if let code = data.attributes[SpanSemantics.keyAutoTerminationCode] {
             return code.description
         }
 
-        if let parentId = parentId,
-            let parentData = autoTerminationSpans[parentId]
-        {
-            return autoTerminationCode(for: parentData.spanData, parentId: parentData.parentId)
+        if let parentId = parentId, let parentData = from[parentId] {
+            return locked_autoTerminationCode(for: parentData.spanData, parentId: parentData.parentId, from: &from)
         }
-
         return nil
     }
 
