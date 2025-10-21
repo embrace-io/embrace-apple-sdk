@@ -20,18 +20,21 @@ struct LogsBatch {
         case failure
     }
 
-    @ThreadSafe
-    private(set) var logs: [EmbraceLog]
+    private let _logs: EmbraceMutex<[EmbraceLog]>
+    public var logs: [EmbraceLog] { _logs.withLock { $0 } }
+
     private let limits: LogBatchLimits
 
     private var creationDate: Date? {
-        logs.sorted(by: { $0.timestamp < $1.timestamp })
-            .first?
-            .timestamp
+        _logs.withLock {
+            $0.sorted(by: { $0.timestamp < $1.timestamp })
+                .first?
+                .timestamp
+        }
     }
 
     var batchState: BatchState {
-        let isBatchFull = logs.count >= limits.maxLogsPerBatch
+        let isBatchFull = _logs.safeValue.count >= limits.maxLogsPerBatch
         let isBatchOld = -(creationDate?.timeIntervalSinceNow ?? 0.0) > limits.maxBatchAge
         if isBatchFull || isBatchOld {
             return .closed
@@ -40,7 +43,7 @@ struct LogsBatch {
     }
 
     init(limits: LogBatchLimits, logs: [EmbraceLog] = []) {
-        self.logs = logs
+        self._logs = EmbraceMutex(logs)
         self.limits = limits
     }
 
@@ -48,7 +51,7 @@ struct LogsBatch {
         guard batchState == .open else {
             return .failure
         }
-        logs.append(log)
+        _logs.withLock { $0.append(log) }
         return .success(batchState: batchState)
     }
 }

@@ -45,8 +45,8 @@ class LowPowerModeCollectorTests: XCTestCase {
         service.start()
 
         // then a span is started correctly
-        XCTAssertNotNil(service.currentSpan)
-        XCTAssertEqual(service.currentSpan!.name, "emb-device-low-power")
+        XCTAssertNotNil(service.currentSpan.safeValue)
+        XCTAssertEqual(service.currentSpan.safeValue!.name, "emb-device-low-power")
 
         let span = service.currentSpan as! ReadableSpan
         XCTAssertEqual(span.toSpanData().attributes["emb.type"], .string("sys.low_power"))
@@ -136,7 +136,7 @@ class LowPowerModeCollectorTests: XCTestCase {
 
         // then a span is started correctly
         XCTAssertNotNil(service.currentSpan)
-        XCTAssertEqual(service.currentSpan!.name, "emb-device-low-power")
+        XCTAssertEqual(service.currentSpan.safeValue!.name, "emb-device-low-power")
 
         let span = service.currentSpan as! ReadableSpan
         XCTAssertEqual(span.toSpanData().attributes["emb.type"], .string("sys.low_power"))

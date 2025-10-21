@@ -8,19 +8,23 @@
     #endif
 
     class ViewCaptureServiceSwizzlerCache {
-        @ThreadSafe
-        private var swizzledViewControllers: [UIViewController.Type]
+
+        private let swizzledViewControllers: EmbraceMutex<[UIViewController.Type]>
 
         init(swizzledViewControllers: [UIViewController.Type] = []) {
-            self.swizzledViewControllers = swizzledViewControllers
+            self.swizzledViewControllers = EmbraceMutex(swizzledViewControllers)
         }
 
         func wasViewControllerSwizzled(withType viewControllerType: UIViewController.Type) -> Bool {
-            swizzledViewControllers.contains(where: { viewControllerType == $0 })
+            swizzledViewControllers.withLock {
+                $0.contains(where: { viewControllerType == $0 })
+            }
         }
 
         func addNewSwizzled(viewControllerType: UIViewController.Type) {
-            swizzledViewControllers.append(viewControllerType)
+            swizzledViewControllers.withLock {
+                $0.append(viewControllerType)
+            }
         }
     }
 
