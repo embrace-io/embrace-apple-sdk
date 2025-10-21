@@ -17,7 +17,7 @@ import OpenTelemetryApi
 public class LowPowerModeCaptureService: CaptureService {
     public let provider: PowerModeProvider
 
-    @ThreadSafe var wasLowPowerModeEnabled = false
+    private let wasLowPowerModeEnabled = EmbraceAtomic(false)
     @ThreadSafe var currentSpan: Span?
 
     public init(provider: PowerModeProvider = DefaultPowerModeProvider()) {
@@ -43,7 +43,7 @@ public class LowPowerModeCaptureService: CaptureService {
             startSpan(wasManuallyFetched: true)
         }
 
-        wasLowPowerModeEnabled = provider.isLowPowerModeEnabled
+        wasLowPowerModeEnabled.store(provider.isLowPowerModeEnabled)
     }
 
     override public func onStop() {
@@ -55,13 +55,12 @@ public class LowPowerModeCaptureService: CaptureService {
             return
         }
 
-        if provider.isLowPowerModeEnabled && !wasLowPowerModeEnabled {
+        let prevLowPowerMode = wasLowPowerModeEnabled.exchange(provider.isLowPowerModeEnabled)
+        if provider.isLowPowerModeEnabled && !prevLowPowerMode {
             startSpan()
-        } else if !provider.isLowPowerModeEnabled && wasLowPowerModeEnabled {
+        } else if !provider.isLowPowerModeEnabled && prevLowPowerMode {
             endSpan()
         }
-
-        wasLowPowerModeEnabled = provider.isLowPowerModeEnabled
     }
 
     func startSpan(wasManuallyFetched: Bool = false) {

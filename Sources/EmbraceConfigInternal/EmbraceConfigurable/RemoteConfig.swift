@@ -22,7 +22,7 @@ public class RemoteConfig {
     static let deviceIdUsedDigits: UInt = 6
     let deviceIdHexValue: UInt64
 
-    @ThreadSafe private(set) var updating = false
+    private let updating = EmbraceAtomic<Bool>(false)
 
     let cacheURL: URL?
 
@@ -154,9 +154,9 @@ extension RemoteConfig: EmbraceConfigurable {
             return
         }
 
-        updating = true
+        self.updating.store(true)
         fetcher.fetch { [weak self] newPayload, data in
-            defer { self?.updating = false }
+            defer { self?.updating.store(false) }
             guard let strongSelf = self else {
                 completion(false, nil)
                 return
