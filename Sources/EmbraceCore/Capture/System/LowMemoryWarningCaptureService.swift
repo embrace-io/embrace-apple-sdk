@@ -18,8 +18,6 @@ public class LowMemoryWarningCaptureService: CaptureService {
 
     public var onWarningCaptured: (() -> Void)?
 
-    @ThreadSafe var started = false
-
     deinit {
         NotificationCenter.default.removeObserver(self)
     }
