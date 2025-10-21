@@ -37,7 +37,7 @@
             var uiReadySpans: [String: Span] = [:]
             var alreadyFinishedUiReadyIds: Set<String> = []
         }
-        private let data = EmbraceMutex(ViewControllerHandlerMutableData())
+        internal let data = EmbraceMutex(ViewControllerHandlerMutableData())
 
         init(queue: DispatchableQueue = .with(label: "com.embrace.UIViewControllerHandler", qos: .utility)) {
             self.queue = queue
