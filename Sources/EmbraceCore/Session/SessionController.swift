@@ -199,8 +199,11 @@ class SessionController: SessionControllable {
         EmbraceOTel.processor?.autoTerminateSpans()
 
         // post public notification
-        // WARNING: This is behind a lock, this is a problem, find a way to move this out of the lock.
-        NotificationCenter.default.post(name: .embraceSessionWillEnd, object: _currentSession)
+        // This is behind a lock, this is a problem, so we move it to the main queue so it runs after this code.
+        let mainQueueSession = _currentSession
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .embraceSessionWillEnd, object: mainQueueSession)
+        }
 
         // end log batches
         logBatcher?.forceEndCurrentBatch(waitUntilFinished: true)
