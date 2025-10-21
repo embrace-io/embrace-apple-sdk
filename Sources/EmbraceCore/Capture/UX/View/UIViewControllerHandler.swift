@@ -27,15 +27,17 @@
         weak var dataSource: UIViewControllerHandlerDataSource?
         private let queue: DispatchableQueue
 
-        @ThreadSafe var parentSpans: [String: Span] = [:]
-        @ThreadSafe var viewDidLoadSpans: [String: Span] = [:]
-        @ThreadSafe var viewWillAppearSpans: [String: Span] = [:]
-        @ThreadSafe var viewIsAppearingSpans: [String: Span] = [:]
-        @ThreadSafe var viewDidAppearSpans: [String: Span] = [:]
-        @ThreadSafe var visibilitySpans: [String: Span] = [:]
-
-        @ThreadSafe var uiReadySpans: [String: Span] = [:]
-        @ThreadSafe var alreadyFinishedUiReadyIds: Set<String> = []
+        struct ViewControllerHandlerMutableData {
+            var parentSpans: [String: Span] = [:]
+            var viewDidLoadSpans: [String: Span] = [:]
+            var viewWillAppearSpans: [String: Span] = [:]
+            var viewIsAppearingSpans: [String: Span] = [:]
+            var viewDidAppearSpans: [String: Span] = [:]
+            var visibilitySpans: [String: Span] = [:]
+            var uiReadySpans: [String: Span] = [:]
+            var alreadyFinishedUiReadyIds: Set<String> = []
+        }
+        internal let data = EmbraceMutex(ViewControllerHandlerMutableData())
 
         init(queue: DispatchableQueue = .with(label: "com.embrace.UIViewControllerHandler", qos: .utility)) {
             self.queue = queue
@@ -56,7 +58,7 @@
                 return nil
             }
 
-            return parentSpans[id]
+            return data.withLock { $0.parentSpans[id] }
         }
 
         @objc func foregroundSessionDidEnd(_ notification: Notification? = nil) {
@@ -65,22 +67,25 @@
             // end all parent spans and visibility spans if the app enters the background
             // also clear all the cached spans
             queue.async {
-                for span in self.visibilitySpans.values {
+                for span in self.data.withLock({ $0.visibilitySpans.values }) {
                     span.end(time: now)
                 }
 
-                for id in self.parentSpans.keys {
+                for id in self.data.withLock({ $0.parentSpans.keys }) {
                     self.forcefullyEndSpans(id: id, time: now)
                 }
 
-                self.parentSpans.removeAll()
-                self.viewDidLoadSpans.removeAll()
-                self.viewWillAppearSpans.removeAll()
-                self.viewIsAppearingSpans.removeAll()
-                self.viewDidAppearSpans.removeAll()
-                self.visibilitySpans.removeAll()
-                self.uiReadySpans.removeAll()
-                self.alreadyFinishedUiReadyIds.removeAll()
+                self.data.withLock {
+                    $0.parentSpans.removeAll()
+                    $0.viewDidLoadSpans.removeAll()
+                    $0.viewWillAppearSpans.removeAll()
+                    $0.viewIsAppearingSpans.removeAll()
+                    $0.viewDidAppearSpans.removeAll()
+                    $0.visibilitySpans.removeAll()
+                    $0.uiReadySpans.removeAll()
+                    $0.alreadyFinishedUiReadyIds.removeAll()
+                }
+
             }
         }
 
@@ -135,8 +140,10 @@
                     parent: parentSpan
                 )
 
-                self.parentSpans[id] = parentSpan
-                self.viewDidLoadSpans[id] = viewDidLoadSpan
+                self.data.withLock {
+                    $0.parentSpans[id] = parentSpan
+                    $0.viewDidLoadSpans[id] = viewDidLoadSpan
+                }
             }
         }
 
@@ -145,7 +152,7 @@
                 return
             }
             queue.async {
-                guard let span = self.viewDidLoadSpans.removeValue(forKey: id) else {
+                guard let span = self.data.withLock({ $0.viewDidLoadSpans.removeValue(forKey: id) }) else {
                     return
                 }
 
@@ -165,7 +172,7 @@
 
             queue.async {
                 guard let otel = self.dataSource?.otel,
-                    let parentSpan = self.parentSpans[id]
+                    let parentSpan = self.data.withLock({ $0.parentSpans[id] })
                 else {
                     return
                 }
@@ -180,7 +187,9 @@
                     parent: parentSpan
                 )
 
-                self.viewWillAppearSpans[id] = span
+                self.data.withLock {
+                    $0.viewWillAppearSpans[id] = span
+                }
             }
         }
 
@@ -189,7 +198,7 @@
                 return
             }
             queue.async {
-                guard let span = self.viewWillAppearSpans.removeValue(forKey: id) else {
+                guard let span = self.data.withLock({ $0.viewWillAppearSpans.removeValue(forKey: id) }) else {
                     return
                 }
 
@@ -209,7 +218,7 @@
 
             queue.async {
                 guard let otel = self.dataSource?.otel,
-                    let parentSpan = self.parentSpans[id]
+                    let parentSpan = self.data.withLock({ $0.parentSpans[id] })
                 else {
                     return
                 }
@@ -224,14 +233,16 @@
                     parent: parentSpan
                 )
 
-                self.viewIsAppearingSpans[id] = span
+                self.data.withLock {
+                    $0.viewIsAppearingSpans[id] = span
+                }
             }
         }
 
         func onViewIsAppearingEnd(_ vc: UIViewController, now: Date = Date()) {
             queue.async {
                 guard let id = vc.emb_instrumentation_state?.identifier,
-                    let span = self.viewIsAppearingSpans.removeValue(forKey: id)
+                    let span = self.data.withLock({ $0.viewIsAppearingSpans.removeValue(forKey: id) })
                 else {
                     return
                 }
@@ -252,7 +263,7 @@
 
             queue.async {
                 guard let otel = self.dataSource?.otel,
-                    let parentSpan = self.parentSpans[id]
+                    let parentSpan = self.data.withLock({ $0.parentSpans[id] })
                 else {
                     return
                 }
@@ -267,7 +278,9 @@
                     parent: parentSpan
                 )
 
-                self.viewDidAppearSpans[id] = span
+                self.data.withLock {
+                    $0.viewDidAppearSpans[id] = span
+                }
             }
         }
 
@@ -305,14 +318,14 @@
                         type: .view,
                         startTime: now
                     )
-                    self.visibilitySpans[id] = span
+                    self.data.withLock { $0.visibilitySpans[id] = span }
                 }
 
-                if let span = self.viewDidAppearSpans.removeValue(forKey: id) {
+                if let span = self.data.withLock({ $0.viewDidAppearSpans.removeValue(forKey: id) }) {
                     span.end(time: now)
                 }
 
-                guard let parentSpan = self.parentSpans[id] else {
+                guard let parentSpan = self.data.withLock({ $0.parentSpans[id] }) else {
                     return
                 }
 
@@ -334,7 +347,7 @@
 
                     // if the view controller was already flagged as ready to interact
                     // we end the spans right away
-                    if self.alreadyFinishedUiReadyIds.contains(id) {
+                    if self.data.withLock({ $0.alreadyFinishedUiReadyIds.contains(id) }) {
                         span.end(time: now)
                         parentSpan.end(time: now)
 
@@ -342,7 +355,7 @@
 
                         // otherwise we save it to close it later
                     } else {
-                        self.uiReadySpans[id] = span
+                        self.data.withLock { $0.uiReadySpans[id] = span }
                     }
                 }
             }
@@ -357,9 +370,9 @@
                 let now = Date()
 
                 // end visibility span
-                if let span = self.visibilitySpans[id] {
+                if let span = self.data.withLock({ $0.self.visibilitySpans[id] }) {
                     span.end(time: now)
-                    self.visibilitySpans[id] = nil
+                    self.data.withLock { $0.visibilitySpans[id] = nil }
                 }
 
                 // force end all spans
@@ -373,7 +386,7 @@
             }
 
             queue.async {
-                guard let parentSpan = self.parentSpans[id],
+                guard let parentSpan = self.data.withLock({ $0.parentSpans[id] }),
                     parentSpan.isTimeToInteractive
                 else {
                     return
@@ -381,7 +394,7 @@
 
                 // if we have a ui ready span it means that viewDidAppear already happened
                 // in this case we close the spans
-                if let span = self.uiReadySpans[id] {
+                if let span = self.data.withLock({ $0.uiReadySpans[id] }) {
                     let now = Date()
                     span.end(time: now)
                     parentSpan.end(time: now)
@@ -391,38 +404,49 @@
                     // the view controller so we can close the spans as soon as
                     // viewDidAppear ends
                 } else {
-                    self.alreadyFinishedUiReadyIds.insert(id)
+                    self.data.withLock { $0.alreadyFinishedUiReadyIds.insert(id) }
                 }
             }
         }
 
         private func forcefullyEndSpans(id: String, time: Date) {
 
-            if let viewDidLoadSpan = self.viewDidLoadSpans[id] {
-                viewDidLoadSpan.end(errorCode: .userAbandon, time: time)
-            }
+            data.withLock {
 
-            if let viewWillAppearSpan = self.viewWillAppearSpans[id] {
-                viewWillAppearSpan.end(errorCode: .userAbandon, time: time)
-            }
+                if let viewDidLoadSpan = $0.viewDidLoadSpans[id] {
+                    viewDidLoadSpan.end(errorCode: .userAbandon, time: time)
+                }
 
-            if let viewIsAppearingSpan = self.viewIsAppearingSpans[id] {
-                viewIsAppearingSpan.end(errorCode: .userAbandon, time: time)
-            }
+                if let viewWillAppearSpan = $0.viewWillAppearSpans[id] {
+                    viewWillAppearSpan.end(errorCode: .userAbandon, time: time)
+                }
 
-            if let viewDidAppearSpan = self.viewDidAppearSpans[id] {
-                viewDidAppearSpan.end(errorCode: .userAbandon, time: time)
-            }
+                if let viewIsAppearingSpan = $0.viewIsAppearingSpans[id] {
+                    viewIsAppearingSpan.end(errorCode: .userAbandon, time: time)
+                }
 
-            if let uiReadySpan = self.uiReadySpans[id] {
-                uiReadySpan.end(errorCode: .userAbandon, time: time)
-            }
+                if let viewDidAppearSpan = $0.viewDidAppearSpans[id] {
+                    viewDidAppearSpan.end(errorCode: .userAbandon, time: time)
+                }
 
-            if let parentSpan = self.parentSpans[id] {
-                parentSpan.end(errorCode: .userAbandon, time: time)
-            }
+                if let uiReadySpan = $0.uiReadySpans[id] {
+                    uiReadySpan.end(errorCode: .userAbandon, time: time)
+                }
 
-            self.clear(id: id)
+                if let parentSpan = $0.parentSpans[id] {
+                    parentSpan.end(errorCode: .userAbandon, time: time)
+                }
+
+                // clear
+                $0.parentSpans[id] = nil
+                $0.viewDidLoadSpans[id] = nil
+                $0.viewWillAppearSpans[id] = nil
+                $0.viewIsAppearingSpans[id] = nil
+                $0.viewDidAppearSpans[id] = nil
+                $0.uiReadySpans[id] = nil
+                $0.alreadyFinishedUiReadyIds.remove(id)
+
+            }
         }
 
         private func createSpan(
@@ -454,13 +478,15 @@
         }
 
         private func clear(id: String) {
-            self.parentSpans[id] = nil
-            self.viewDidLoadSpans[id] = nil
-            self.viewWillAppearSpans[id] = nil
-            self.viewIsAppearingSpans[id] = nil
-            self.viewDidAppearSpans[id] = nil
-            self.uiReadySpans[id] = nil
-            self.alreadyFinishedUiReadyIds.remove(id)
+            data.withLock {
+                $0.parentSpans[id] = nil
+                $0.viewDidLoadSpans[id] = nil
+                $0.viewWillAppearSpans[id] = nil
+                $0.viewIsAppearingSpans[id] = nil
+                $0.viewDidAppearSpans[id] = nil
+                $0.uiReadySpans[id] = nil
+                $0.alreadyFinishedUiReadyIds.remove(id)
+            }
         }
     }
 
