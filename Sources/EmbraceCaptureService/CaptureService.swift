@@ -54,17 +54,19 @@ open class CaptureService: NSObject {
 
     public func start() {
 
+        // Allow to go from installed -> active
         var expected = CaptureServiceState.installed
-        guard
-            state.compareExchange(
-                expected: &expected,
-                desired: CaptureServiceState.active
-            )
-        else {
+        if state.compareExchange(expected: &expected, desired: CaptureServiceState.active) {
+            onStart()
             return
         }
 
-        onStart()
+        // Or allow to go from paused -> active
+        expected = CaptureServiceState.paused
+        if state.compareExchange(expected: &expected, desired: CaptureServiceState.active) {
+            onStart()
+            return
+        }
     }
 
     public func stop() {
