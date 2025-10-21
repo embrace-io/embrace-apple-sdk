@@ -8,36 +8,36 @@ import XCTest
 @testable import EmbraceCommonInternal
 
 class ThreadSafeTests: XCTestCase {
-    @ThreadSafe private var sut: Int = 0
+    private var sut: EmbraceMutex<Int> = EmbraceMutex(0)
 
     override func setUpWithError() throws {
         try super.setUpWithError()
-        sut = 0
+        sut.safeValue = 0
     }
 
     func test_initialState() {
-        XCTAssertEqual(sut, 0)
+        XCTAssertEqual(sut.safeValue, 0)
     }
 
     func test_set_shouldModifyValue() {
-        sut = 100
-        XCTAssertEqual(sut, 100)
+        sut.safeValue = 100
+        XCTAssertEqual(sut.safeValue, 100)
     }
 
     func test_multipleSet_shouldModifyValue() {
-        sut = 2
-        XCTAssertEqual(sut, 2)
+        sut.safeValue = 2
+        XCTAssertEqual(sut.safeValue, 2)
 
-        sut = 1
-        XCTAssertEqual(sut, 1)
+        sut.safeValue = 1
+        XCTAssertEqual(sut.safeValue, 1)
     }
 
     func test_modify_shouldSafelyModifyInBlock() {
-        sut = 2
-        _sut.modify { value in
+        sut.safeValue = 2
+        sut.withLock { value in
             value += 1
         }
-        XCTAssertEqual(sut, 3)
+        XCTAssertEqual(sut.safeValue, 3)
     }
 }
 
@@ -50,23 +50,23 @@ extension ThreadSafeTests {
 
         for _ in 0..<tries {
             DispatchQueue.global().async {
-                self._sut.modify { $0 += 1 }
+                self.sut.withLock { $0 += 1 }
                 expectation.fulfill()
             }
         }
 
         wait(for: [expectation], timeout: 10.0)
-        XCTAssertEqual(sut, tries)
+        XCTAssertEqual(sut.safeValue, tries)
     }
 
     func test_parallelExecutionAndConcurrentAccess() {
         let tries = 1000
 
         DispatchQueue.concurrentPerform(iterations: tries) { _ in
-            self._sut.modify { $0 += 1 }
+            self.sut.withLock { $0 += 1 }
         }
 
-        XCTAssertEqual(sut, tries)
+        XCTAssertEqual(sut.safeValue, tries)
     }
 
     func test_simultaneousReadWrite_shouldntCrash() {
@@ -84,7 +84,7 @@ extension ThreadSafeTests {
             }
 
             DispatchQueue.global().async {
-                self.sut = .random()
+                self.sut.safeValue = .random()
                 writeExpectation.fulfill()
             }
         }

@@ -15,7 +15,10 @@ public class RemoteConfig {
     let logger: InternalLogger
 
     // config requests
-    @ThreadSafe var payload: RemoteConfigPayload
+    let _payload: EmbraceMutex<RemoteConfigPayload>
+    var payload: RemoteConfigPayload {
+        _payload.safeValue
+    }
     let fetcher: RemoteConfigFetcher
 
     // threshold values
@@ -43,7 +46,7 @@ public class RemoteConfig {
         fetcher: RemoteConfigFetcher,
         logger: InternalLogger
     ) {
-        self.payload = payload
+        self._payload = EmbraceMutex(payload)
         self.fetcher = fetcher
         self.deviceIdHexValue = options.deviceId.intValue(digitCount: Self.deviceIdUsedDigits)
         self.logger = logger
@@ -66,7 +69,9 @@ public class RemoteConfig {
 
         do {
             let data = try Data(contentsOf: url)
-            payload = try JSONDecoder().decode(RemoteConfigPayload.self, from: data)
+            try _payload.withLock {
+                $0 = try JSONDecoder().decode(RemoteConfigPayload.self, from: data)
+            }
         } catch {
             logger.error("Error loading cached remote config!")
         }
@@ -167,9 +172,11 @@ extension RemoteConfig: EmbraceConfigurable {
                 return
             }
 
-            let didUpdate = strongSelf.payload != newPayload
-            strongSelf.payload = newPayload
-
+            let didUpdate = strongSelf._payload.withLock {
+                let changed = $0 != newPayload
+                $0 = newPayload
+                return changed
+            }
             strongSelf.saveToCache(data)
 
             completion(didUpdate, nil)
