@@ -15,11 +15,7 @@ final public class EmbraceIO: Sendable {
     nonisolated(unsafe) private let _client: Embrace?
     private init() {
         do {
-            self._client = try Embrace.setup(
-                options: Embrace.Options(
-                    appId: Self.appID
-                )
-            ).start()
+            self._client = try Embrace.setup(options: OptionsGetter.get()).start()
             self.isAvailable = self._client != nil
         } catch {
             self._client = nil
@@ -34,10 +30,6 @@ extension EmbraceIO {
     private func failure(_ msg: String) {
         print("[EmbraceIO] \(msg)")
     }
-
-    private static let appID: String = {
-        Bundle.main.infoDictionary?["EMBApplicationId"] as? String ?? "12345"
-    }()
 
     private func expectClient() -> Embrace? {
         guard let client = _client else {
@@ -91,4 +83,12 @@ extension EmbraceIO {
         return EmbraceSpan(id: UUID(), timestamp: timestamp, name: name, endTime: timestamp, attributes: [:])
     }
 
+}
+
+//
+// MARK: - Customer options implementation
+
+@_cdecl("EmbraceIOSetupGetOptions")
+public func myEmbraceOptions() -> Embrace.Options {
+    Embrace.Options(appId: "12345")
 }
