@@ -43,11 +43,11 @@ let package = Package(
     dependencies: [
         .package(
             url: "https://github.com/kstenerud/KSCrash",
-            exact: "2.4.0"
+            from: "2.4.0"
         ),
         .package(
             url: "https://github.com/open-telemetry/opentelemetry-swift-core",
-            exact: "2.1.1"
+            from: "2.1.1"
         ),
         .package(
             url: "https://github.com/swiftlang/swift-syntax.git",
