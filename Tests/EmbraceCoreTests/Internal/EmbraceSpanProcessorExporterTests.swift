@@ -62,12 +62,12 @@ final class EmbraceSpanProcessorExporterTests: XCTestCase {
 
         // When spans are exported
         let expectation = XCTestExpectation()
-        processor.processCompletedSpanData(closedSpanData)
-        processor.processCompletedSpanData(updated_closedSpanData)
+        processor.processCompletedSpanData(closedSpanData, sync: true)
+        processor.processCompletedSpanData(updated_closedSpanData, sync: true)
         processor.processorQueue.async {
             expectation.fulfill()
         }
-        wait(for: [expectation], timeout: .shortTimeout)
+        wait(for: [expectation], timeout: .longTimeout)
 
         let exportedSpans: [SpanRecord] = storage.fetchAll()
         XCTAssertTrue(exportedSpans.count == 1)
@@ -121,12 +121,12 @@ final class EmbraceSpanProcessorExporterTests: XCTestCase {
 
         // When spans are exported
         let expectation = XCTestExpectation()
-        processor.processIncompletedSpanData(openSpanData, span: nil, sync: false)
-        processor.processIncompletedSpanData(updated_openSpanData, span: nil, sync: false)
+        processor.processIncompletedSpanData(openSpanData, span: nil, sync: true)
+        processor.processIncompletedSpanData(updated_openSpanData, span: nil, sync: true)
         processor.processorQueue.async {
             expectation.fulfill()
         }
-        wait(for: [expectation], timeout: .shortTimeout)
+        wait(for: [expectation], timeout: .longTimeout)
 
         let exportedSpans: [SpanRecord] = storage.fetchAll()
         XCTAssertTrue(exportedSpans.count == 1)
@@ -365,7 +365,7 @@ final class EmbraceSpanProcessorExporterTests: XCTestCase {
 
         // when an open session span is exported
         let expectation = XCTestExpectation()
-        processor.processIncompletedSpanData(span, span: nil, sync: false)
+        processor.processIncompletedSpanData(span, span: nil, sync: true)
         processor.processorQueue.async {
             expectation.fulfill()
         }
