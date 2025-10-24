@@ -112,7 +112,7 @@
 
         func test_onViewDidLoad_deactivatedService() {
             // given a handler that is not active
-            dataSource.state = .paused
+            dataSource.serviceState = .paused
 
             // when view did load is called
             let vc = MockViewController()

@@ -16,20 +16,19 @@ import OpenTelemetrySdk
 
 class StorageEmbraceLogExporter: LogRecordExporter {
 
-    @ThreadSafe
-    private(set) var state: State
+    internal let state: EmbraceAtomic<State>
     private let logBatcher: LogBatcher
     private let validation: LogDataValidation
 
     private let counter = EmbraceMutex([LogLevel: Int]())
 
-    enum State {
+    enum State: Int8, EmbraceAtomicType {
         case active
         case inactive
     }
 
     init(logBatcher: LogBatcher, state: State = .active, validators: [LogDataValidator] = .default) {
-        self.state = state
+        self.state = EmbraceAtomic(state)
         self.logBatcher = logBatcher
         self.validation = LogDataValidation(validators: validators)
 
@@ -52,7 +51,7 @@ class StorageEmbraceLogExporter: LogRecordExporter {
     }
 
     func export(logRecords: [ReadableLogRecord], explicitTimeout: TimeInterval?) -> ExportResult {
-        guard state == .active else {
+        guard state.load() == .active else {
             return .failure
         }
 
@@ -96,7 +95,7 @@ class StorageEmbraceLogExporter: LogRecordExporter {
     }
 
     func shutdown(explicitTimeout: TimeInterval?) {
-        state = .inactive
+        state.store(.inactive)
     }
 
     /// Everything is always persisted on disk, so calling this method has no effect at all.

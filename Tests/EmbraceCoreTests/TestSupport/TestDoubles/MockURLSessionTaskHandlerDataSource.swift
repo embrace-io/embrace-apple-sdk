@@ -9,7 +9,7 @@ import Foundation
 @testable import EmbraceCore
 
 class MockURLSessionTaskHandlerDataSource: URLSessionTaskHandlerDataSource {
-    var state: CaptureServiceState = .uninstalled
+    var serviceState: CaptureServiceState = .uninstalled
     var otel: EmbraceOpenTelemetry?
 
     var injectTracingHeader = false

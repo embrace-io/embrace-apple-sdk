@@ -19,7 +19,7 @@ public class EmbraceConfig {
     let logger: InternalLogger
     let notificationCenter: NotificationCenter
 
-    @ThreadSafe private var lastUpdateTime: TimeInterval = Date(timeIntervalSince1970: 0).timeIntervalSince1970
+    private let lastUpdateTime = EmbraceAtomic(Date(timeIntervalSince1970: 0).timeIntervalSince1970)
 
     public let configurable: EmbraceConfigurable
 
@@ -56,7 +56,7 @@ public class EmbraceConfig {
     // MARK: - Update
     @discardableResult
     public func updateIfNeeded() -> Bool {
-        guard Date().timeIntervalSince1970 - lastUpdateTime > options.minimumUpdateInterval else {
+        guard Date().timeIntervalSince1970 - lastUpdateTime.load() > options.minimumUpdateInterval else {
             return false
         }
 
@@ -74,7 +74,7 @@ public class EmbraceConfig {
                     )
                 }
 
-                self?.lastUpdateTime = Date().timeIntervalSince1970
+                self?.lastUpdateTime.store(Date().timeIntervalSince1970)
 
                 if didChange {
                     self?.notificationCenter.post(name: .embraceConfigUpdated, object: self?.configurable)

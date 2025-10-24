@@ -104,7 +104,7 @@ extension URLSessionCaptureServiceTests {
     }
 
     fileprivate func thenCaptureServiceStatus(is state: CaptureServiceState) {
-        XCTAssertEqual(sut.state, state)
+        XCTAssertEqual(sut.state.load(), state)
     }
 
     fileprivate func thenEachSwizzlerShouldHaveBeenInstalled() {

@@ -18,8 +18,6 @@ public class LowMemoryWarningCaptureService: CaptureService {
 
     public var onWarningCaptured: (() -> Void)?
 
-    @ThreadSafe var started = false
-
     deinit {
         NotificationCenter.default.removeObserver(self)
     }
@@ -35,7 +33,7 @@ public class LowMemoryWarningCaptureService: CaptureService {
     }
 
     @objc func didReceiveMemoryWarning(notification: Notification) {
-        guard state == .active else {
+        guard isActive else {
             return
         }
 
