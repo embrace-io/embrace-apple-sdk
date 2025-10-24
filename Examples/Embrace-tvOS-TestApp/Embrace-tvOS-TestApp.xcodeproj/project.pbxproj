@@ -1,0 +1,392 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		4D5959732EA04009002114ED /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4D5959722EA04009002114ED /* EmbraceCore */; };
+		4D5959752EA04009002114ED /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = 4D5959742EA04009002114ED /* EmbraceCrash */; };
+		4D5959772EA04009002114ED /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 4D5959762EA04009002114ED /* EmbraceCrashlyticsSupport */; };
+		4D5959792EA04009002114ED /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = 4D5959782EA04009002114ED /* EmbraceIO */; };
+		4D59597B2EA04009002114ED /* EmbraceKSCrashBacktraceSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 4D59597A2EA04009002114ED /* EmbraceKSCrashBacktraceSupport */; };
+		4D59597D2EA04009002114ED /* EmbraceMacros in Frameworks */ = {isa = PBXBuildFile; productRef = 4D59597C2EA04009002114ED /* EmbraceMacros */; };
+		4D59597F2EA04009002114ED /* EmbraceSemantics in Frameworks */ = {isa = PBXBuildFile; productRef = 4D59597E2EA04009002114ED /* EmbraceSemantics */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		4D5959632E9F04F4002114ED /* tvosTestApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = tvosTestApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		4D5959652E9F04F4002114ED /* Embrace-tvOS-TestApp */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Embrace-tvOS-TestApp";
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		4D5959602E9F04F4002114ED /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4D59597B2EA04009002114ED /* EmbraceKSCrashBacktraceSupport in Frameworks */,
+				4D5959792EA04009002114ED /* EmbraceIO in Frameworks */,
+				4D5959752EA04009002114ED /* EmbraceCrash in Frameworks */,
+				4D59597D2EA04009002114ED /* EmbraceMacros in Frameworks */,
+				4D5959732EA04009002114ED /* EmbraceCore in Frameworks */,
+				4D59597F2EA04009002114ED /* EmbraceSemantics in Frameworks */,
+				4D5959772EA04009002114ED /* EmbraceCrashlyticsSupport in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		4D59595A2E9F04F4002114ED = {
+			isa = PBXGroup;
+			children = (
+				4D5959652E9F04F4002114ED /* Embrace-tvOS-TestApp */,
+				4D5959642E9F04F4002114ED /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		4D5959642E9F04F4002114ED /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				4D5959632E9F04F4002114ED /* tvosTestApp.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		4D5959622E9F04F4002114ED /* tvosTestApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4D59596E2E9F04F5002114ED /* Build configuration list for PBXNativeTarget "tvosTestApp" */;
+			buildPhases = (
+				4D59595F2E9F04F4002114ED /* Sources */,
+				4D5959602E9F04F4002114ED /* Frameworks */,
+				4D5959612E9F04F4002114ED /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				4D5959652E9F04F4002114ED /* Embrace-tvOS-TestApp */,
+			);
+			name = tvosTestApp;
+			packageProductDependencies = (
+				4D5959722EA04009002114ED /* EmbraceCore */,
+				4D5959742EA04009002114ED /* EmbraceCrash */,
+				4D5959762EA04009002114ED /* EmbraceCrashlyticsSupport */,
+				4D5959782EA04009002114ED /* EmbraceIO */,
+				4D59597A2EA04009002114ED /* EmbraceKSCrashBacktraceSupport */,
+				4D59597C2EA04009002114ED /* EmbraceMacros */,
+				4D59597E2EA04009002114ED /* EmbraceSemantics */,
+			);
+			productName = "Embrace-tvOS-TestApp";
+			productReference = 4D5959632E9F04F4002114ED /* tvosTestApp.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		4D59595B2E9F04F4002114ED /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2600;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					4D5959622E9F04F4002114ED = {
+						CreatedOnToolsVersion = 26.0.1;
+					};
+				};
+			};
+			buildConfigurationList = 4D59595E2E9F04F4002114ED /* Build configuration list for PBXProject "Embrace-tvOS-TestApp" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 4D59595A2E9F04F4002114ED;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				4D5959712EA04009002114ED /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 4D5959642E9F04F4002114ED /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				4D5959622E9F04F4002114ED /* tvosTestApp */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		4D5959612E9F04F4002114ED /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		4D59595F2E9F04F4002114ED /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		4D59596C2E9F04F5002114ED /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = appletvos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				TVOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Debug;
+		};
+		4D59596D2E9F04F5002114ED /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = appletvos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				TVOS_DEPLOYMENT_TARGET = 26.0;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		4D59596F2E9F04F5002114ED /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIUserInterfaceStyle = Automatic;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.embrace.tvOSTestApp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 3;
+			};
+			name = Debug;
+		};
+		4D5959702E9F04F5002114ED /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIUserInterfaceStyle = Automatic;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.embrace.tvOSTestApp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 3;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		4D59595E2E9F04F4002114ED /* Build configuration list for PBXProject "Embrace-tvOS-TestApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4D59596C2E9F04F5002114ED /* Debug */,
+				4D59596D2E9F04F5002114ED /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4D59596E2E9F04F5002114ED /* Build configuration list for PBXNativeTarget "tvosTestApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4D59596F2E9F04F5002114ED /* Debug */,
+				4D5959702E9F04F5002114ED /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		4D5959712EA04009002114ED /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../../../embrace-apple-sdk";
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		4D5959722EA04009002114ED /* EmbraceCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EmbraceCore;
+		};
+		4D5959742EA04009002114ED /* EmbraceCrash */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EmbraceCrash;
+		};
+		4D5959762EA04009002114ED /* EmbraceCrashlyticsSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EmbraceCrashlyticsSupport;
+		};
+		4D5959782EA04009002114ED /* EmbraceIO */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EmbraceIO;
+		};
+		4D59597A2EA04009002114ED /* EmbraceKSCrashBacktraceSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EmbraceKSCrashBacktraceSupport;
+		};
+		4D59597C2EA04009002114ED /* EmbraceMacros */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EmbraceMacros;
+		};
+		4D59597E2EA04009002114ED /* EmbraceSemantics */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EmbraceSemantics;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 4D59595B2E9F04F4002114ED /* Project object */;
+}
