@@ -142,7 +142,7 @@ package class EmbraceSpanProcessor: SpanProcessor {
         runExporters(data, sync: sync)
     }
 
-    internal func processCompletedSpanData(_ spanData: SpanData) {
+    internal func processCompletedSpanData(_ spanData: SpanData, sync: Bool = false) {
         var data = spanData
         if data.hasEnded && data.status == .unset {
             if let errorCode = data.errorCode {
@@ -152,7 +152,7 @@ package class EmbraceSpanProcessor: SpanProcessor {
             }
         }
 
-        runExporters(data, sync: false)
+        runExporters(data, sync: sync)
     }
 
     private func runExporters(_ span: SpanData, sync: Bool) {
