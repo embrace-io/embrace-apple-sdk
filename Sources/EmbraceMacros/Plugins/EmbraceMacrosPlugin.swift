@@ -2,6 +2,7 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
+#if os(macOS)
 import SwiftCompilerPlugin
 import SwiftSyntaxMacros
 
@@ -23,3 +24,4 @@ struct EmbraceMacrosPlugin: CompilerPlugin {
         EmbraceTraceMacro.self
     ]
 }
+#endif

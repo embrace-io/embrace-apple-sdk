@@ -2,25 +2,23 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-import EmbraceIO
-import SwiftSyntax
-import SwiftSyntaxBuilder
-import SwiftSyntaxMacros
-import SwiftSyntaxMacrosTestSupport
-import XCTest
-
 #if canImport(EmbraceMacroPlugin)
+    import EmbraceIO
+    import SwiftSyntax
+    import SwiftSyntaxBuilder
+    import SwiftSyntaxMacros
+    import SwiftSyntaxMacrosTestSupport
+    import XCTest
+
     import EmbraceMacroPlugin
 
     let macros: [String: Macro.Type] = [
         "embraceTrace": EmbraceTraceMacro.self
     ]
-#endif
 
-final class EmbraceTraceMacroTests: XCTestCase {
+    final class EmbraceTraceMacroTests: XCTestCase {
 
-    func testHappyPath_injectsTracingStubs() throws {
-        #if canImport(EmbraceMacroPlugin)
+        func testHappyPath_injectsTracingStubs() throws {
             // can't get this working in a reliable way yet.
             /*
             let source = """
@@ -99,8 +97,6 @@ final class EmbraceTraceMacroTests: XCTestCase {
                 macros: macros
             )
              */
-        #else
-            throw XCTSkip("macros are only supported when running tests for the host platform")
-        #endif
+        }
     }
-}
+#endif
