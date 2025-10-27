@@ -11,41 +11,60 @@ import OpenTelemetrySdk
     import EmbraceCommonInternal
 #endif
 
-extension Collection where Element == SpanProcessor {
-    static func processors(
+extension Embrace {
+
+    // MARK: - Span Processor Pipeline
+
+    /// Builds the ordered list of span processors used by the Embrace SDK.
+    ///
+    /// This method assembles the processor pipeline responsible for exporting and processing spans
+    /// during runtime. It ensures the Embrace storage exporter is always first in the chain, followed
+    /// by any custom exporters or processors supplied by the integrator.
+    ///
+    /// The resulting list defines the core export behavior for all tracing data recorded by the SDK.
+    ///
+    /// - Parameters:
+    ///   - storage: The internal storage interface responsible for persisting spans.
+    ///   - sessionController: Provides access to the current session for contextual export decisions.
+    ///   - customExporter: An optional `OpenTelemetryExport` to forward spans to external systems.
+    ///   - customProcessors: Optional list of additional `SpanProcessor` instances to append.
+    ///   - sdkStateProvider: The provider of SDK runtime state, used to determine export behavior.
+    ///
+    /// - Returns: An ordered, array of span processors. The Embrace storage processor
+    ///   always appears first, followed by any user-supplied processors.
+    internal func buildProcessors(
         for storage: EmbraceStorage,
         sessionController: SessionControllable,
-        export: OpenTelemetryExport?,
+        customExporter: OpenTelemetryExport? = nil,
+        customProcessors: [any SpanProcessor]? = nil,
         sdkStateProvider: EmbraceSDKStateProvider
-    ) -> [SpanProcessor] {
-        var processors: [SpanProcessor] = [
-            SingleSpanProcessor(
-                spanExporter: StorageSpanExporter(
-                    options: .init(storage: storage, sessionController: sessionController),
-                    logger: Embrace.logger
-                ),
-                sdkStateProvider: sdkStateProvider
-            )
-        ]
+    ) -> [any SpanProcessor] {
 
-        if let external = export?.spanExporter {
-            processors.append(
-                BatchSpanProcessor(spanExporter: external) { [weak storage] items in
-                    let resource = getResource(storage: storage)
-                    for idx in items.indices {
-                        items[idx].settingResource(resource)
-                    }
-                })
-        }
+        // Base Embrace exporter used by everything.
+        let embraceStorageExporter = StorageSpanExporter(
+            storage: storage,
+            logger: Embrace.logger
+        )
 
-        return processors
-    }
+        // Construct the exporter list, ensuring Embrace is first.
+        let combinedExporters: [any SpanExporter] = {
+            guard let exporter = customExporter?.spanExporter else {
+                return [embraceStorageExporter]
+            }
+            return [embraceStorageExporter, exporter]
+        }()
 
-    static func getResource(storage: EmbraceStorage?) -> Resource {
-        guard let storage = storage else {
-            return Resource()
-        }
-        let provider = ResourceStorageExporter(storage: storage)
-        return provider.getResource()
+        // The core processor that dispatches completed spans to all exporters.
+        let baseProcessor = EmbraceSpanProcessor(
+            spanExporters: combinedExporters,
+            sdkStateProvider: sdkStateProvider,
+            logger: Embrace.logger,
+            sessionIdProvider: { sessionController.currentSession?.idRaw },
+            criticalResourceGroup: captureServicesGroup,
+            resourceProvider: { ResourceStorageExporter(storage: storage).getResource() }
+        )
+
+        // Combine with any custom processors.
+        return [baseProcessor] + (customProcessors ?? [])
     }
 }

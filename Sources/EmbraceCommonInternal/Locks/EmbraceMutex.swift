@@ -13,7 +13,7 @@ import Foundation
 ///
 /// - Note: This type is `@unchecked Sendable` when the generic `Value` is `Sendable`,
 ///   meaning the caller is responsible for ensuring safe usage across concurrency domains.
-public final class EmbraceMutex<Value> {
+public final class EmbraceMutex<Value>: @unchecked Sendable {
 
     /// Creates a new mutex-protected wrapper around the given value.
     ///
@@ -40,8 +40,6 @@ public final class EmbraceMutex<Value> {
     private var storage: Value
 }
 
-extension EmbraceMutex: @unchecked Sendable where Value: Sendable {}
-
 extension EmbraceMutex {
 
     /// Synchronously gets or sets the protected value using a lock.
@@ -56,6 +54,18 @@ extension EmbraceMutex {
     /// Synchronously gets the protected value without using the lock.
     public var unsafeValue: Value {
         storage
+    }
+}
+
+extension EmbraceMutex where Value: ExpressibleByNilLiteral {
+
+    /// Synchronously gets the value and set container to nil.
+    public func takeValue() -> Value {
+        withLock {
+            let val = $0
+            $0 = nil
+            return val
+        }
     }
 }
 

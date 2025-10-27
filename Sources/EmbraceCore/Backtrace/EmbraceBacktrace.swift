@@ -129,26 +129,18 @@ public struct EmbraceBacktrace: Codable {
 
     /// Captures a backtrace for the specified `pthread_t`.
     ///
-    /// This API is appropriate for capturing a thread other than the current one,
-    /// such as a suspected hang target.
-    ///
     /// - Parameters:
     ///   - thread: The pthread whose stack should be captured.
-    ///   - suspendingThreads: When `true`, suspends the target thread while
-    ///     unwinding to obtain a consistent snapshot. When `false`, captures
-    ///     without suspension for lower impact at the cost of potential minor
-    ///     inconsistencies if the thread is mutating registers concurrently.
+    ///   - threadIndex: The expected index of this thread in the list of all threads (ie: main = 0).
     /// - Returns: A backtrace snapshot containing exactly one `EmbraceBacktraceThread`.
     ///
-    /// - Important: Suspending threads can have performance and liveness implications,
-    ///   especially if taken on hot paths or under locks. Use with care in production.
     /// - Note: The `timestamp` is sourced from `CLOCK_MONOTONIC_RAW` via
     ///   `clock_gettime_nsec_np`, which is suitable for measuring intervals.
-    static func backtrace(of thread: pthread_t, suspendingThreads: Bool) -> EmbraceBacktrace {
+    static func backtrace(of thread: pthread_t, threadIndex: Int = 0) -> EmbraceBacktrace {
         EmbraceBacktrace(
             timestampUnits: .nanoseconds,
             timestamp: clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW),
-            threads: takeSnapshot(of: thread, suspendingThreads: suspendingThreads)
+            threads: takeSnapshot(of: thread, threadIndex: threadIndex)
         )
     }
 

@@ -43,15 +43,15 @@ let package = Package(
     dependencies: [
         .package(
             url: "https://github.com/kstenerud/KSCrash",
-            exact: "2.4.0"
+            from: "2.4.0"
         ),
         .package(
             url: "https://github.com/open-telemetry/opentelemetry-swift-core",
-            exact: "2.1.1"
+            from: "2.1.1"
         ),
         .package(
             url: "https://github.com/swiftlang/swift-syntax.git",
-            from: "509.0.0"
+            "509.0.0"..<"603.0.0"
         )
     ],
     targets: [
@@ -115,8 +115,10 @@ let package = Package(
         .target(
             name: "EmbraceCommonInternal",
             dependencies: [
+                "EmbraceAtomicsShim",
                 .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift-core")
-            ]
+            ],
+            exclude: ["Atomic/README.md"]
         ),
         .testTarget(
             name: "EmbraceCommonInternalTests",
@@ -124,6 +126,12 @@ let package = Package(
                 "EmbraceCommonInternal",
                 "TestSupport"
             ]
+        ),
+
+        // atomics ------------------------------------------------------------------
+        .target(
+            name: "EmbraceAtomicsShim",
+            publicHeadersPath: "include"
         ),
 
         // semantics -----------------------------------------------------------------

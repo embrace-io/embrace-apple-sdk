@@ -2,9 +2,9 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-#import "EMBURLSessionDelegateProxy.h"
+#import "EMBURLSessionLegacyDelegateProxy.h"
 #import <Foundation/Foundation.h>
-#import "EMBURLSessionDelegateProxyFunctions.h"
+#import "EMBURLSessionLegacyDelegateProxyFunctions.h"
 #import "objc/runtime.h"
 
 #define DID_FINISH_COLLECTING_METRICS @selector(URLSession:task:didFinishCollectingMetrics:)
@@ -15,11 +15,11 @@
 #define DID_RECEIVE_RESPONSE @selector(URLSession:dataTask:didReceiveResponse:completionHandler:)
 #define WILL_PERFORM_REDIRECTION @selector(URLSession:task:willPerformHTTPRedirection:newRequest:completionHandler:)
 
-@interface EMBURLSessionDelegateProxy ()
+@interface EMBURLSessionLegacyDelegateProxy ()
 
 @end
 
-@implementation EMBURLSessionDelegateProxy
+@implementation EMBURLSessionLegacyDelegateProxy
 
 - (instancetype)initWithDelegate:(id<NSURLSessionDelegate>)delegate handler:(id<URLSessionTaskHandler>)handler
 {
@@ -57,12 +57,12 @@
 
 - (BOOL)isKindOfClass:(Class)aClass
 {
-    return aClass == [EMBURLSessionDelegateProxy class];
+    return aClass == [EMBURLSessionLegacyDelegateProxy class];
 }
 
 - (BOOL)isMemberOfClass:(Class)aClass
 {
-    return aClass == [EMBURLSessionDelegateProxy class];
+    return aClass == [EMBURLSessionLegacyDelegateProxy class];
 }
 
 #pragma mark - NSURLSessionDelegate Methods

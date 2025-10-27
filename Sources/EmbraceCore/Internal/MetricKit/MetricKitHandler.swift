@@ -24,8 +24,11 @@ import Foundation
         _hangListeners.safeValue
     }
 
-    @ThreadSafe
-    var lastSession: EmbraceSession?
+    private let _lastSession = EmbraceMutex<EmbraceSession?>(nil)
+    public var lastSession: EmbraceSession? {
+        get { _lastSession.safeValue }
+        set { _lastSession.safeValue = newValue }
+    }
 
     let sessionLinkGracePeriod: TimeInterval = 5
 
@@ -45,7 +48,7 @@ import Foundation
         // check if the payload should be linked to the latest session
         var sessionId: SessionIdentifier?
 
-        if let session = lastSession {
+        if let session = _lastSession.safeValue {
             let payloadStart = payload.startTime.timeIntervalSince1970
             let payloadEnd = payload.endTime.timeIntervalSince1970
             let sessionEnd = session.endTime?.timeIntervalSince1970 ?? session.lastHeartbeatTime.timeIntervalSince1970

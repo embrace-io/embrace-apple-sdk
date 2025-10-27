@@ -32,7 +32,7 @@ class CaptureServiceTests: XCTestCase {
         let service = CaptureService()
 
         // then the initial state is correct
-        XCTAssertEqual(service.state, .uninstalled)
+        XCTAssertEqual(service.state.load(), .uninstalled)
     }
 
     func test_installed() throws {
@@ -43,7 +43,7 @@ class CaptureServiceTests: XCTestCase {
         service.install(otel: nil)
 
         // then the initial state is correct
-        XCTAssertEqual(service.state, .installed)
+        XCTAssertEqual(service.state.load(), .installed)
     }
 
     func test_active() throws {
@@ -55,7 +55,7 @@ class CaptureServiceTests: XCTestCase {
         service.start()
 
         // then the initial state is correct
-        XCTAssertEqual(service.state, .active)
+        XCTAssertEqual(service.state.load(), .active)
     }
 
     func test_paused() throws {
@@ -68,7 +68,7 @@ class CaptureServiceTests: XCTestCase {
         service.stop()
 
         // then the initial state is correct
-        XCTAssertEqual(service.state, .paused)
+        XCTAssertEqual(service.state.load(), .paused)
     }
 
     func test_internalCalls() throws {

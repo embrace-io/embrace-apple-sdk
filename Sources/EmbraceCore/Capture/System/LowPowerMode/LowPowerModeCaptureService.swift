@@ -17,9 +17,11 @@ import OpenTelemetryApi
 public class LowPowerModeCaptureService: CaptureService {
     public let provider: PowerModeProvider
 
-    @ThreadSafe var wasLowPowerModeEnabled = false
-    @ThreadSafe var currentSpan: Span?
-
+    private let wasLowPowerModeEnabled = EmbraceAtomic(false)
+    internal let _currentSpan = EmbraceMutex<Span?>(nil)
+    internal var currentSpan: Span? {
+        _currentSpan.withLock { $0 }
+    }
     public init(provider: PowerModeProvider = DefaultPowerModeProvider()) {
         self.provider = provider
     }
@@ -43,7 +45,7 @@ public class LowPowerModeCaptureService: CaptureService {
             startSpan(wasManuallyFetched: true)
         }
 
-        wasLowPowerModeEnabled = provider.isLowPowerModeEnabled
+        wasLowPowerModeEnabled.store(provider.isLowPowerModeEnabled)
     }
 
     override public func onStop() {
@@ -51,17 +53,16 @@ public class LowPowerModeCaptureService: CaptureService {
     }
 
     @objc func didChangePowerMode(notification: Notification) {
-        guard state == .active else {
+        guard isActive else {
             return
         }
 
-        if provider.isLowPowerModeEnabled && !wasLowPowerModeEnabled {
+        let prevLowPowerMode = wasLowPowerModeEnabled.exchange(provider.isLowPowerModeEnabled)
+        if provider.isLowPowerModeEnabled && !prevLowPowerMode {
             startSpan()
-        } else if !provider.isLowPowerModeEnabled && wasLowPowerModeEnabled {
+        } else if !provider.isLowPowerModeEnabled && prevLowPowerMode {
             endSpan()
         }
-
-        wasLowPowerModeEnabled = provider.isLowPowerModeEnabled
     }
 
     func startSpan(wasManuallyFetched: Bool = false) {
@@ -80,11 +81,15 @@ public class LowPowerModeCaptureService: CaptureService {
             return
         }
 
-        currentSpan = builder.startSpan()
+        _currentSpan.withLock {
+            $0 = builder.startSpan()
+        }
     }
 
     func endSpan() {
-        currentSpan?.end()
-        currentSpan = nil
+        _currentSpan.withLock {
+            $0?.end()
+            $0 = nil
+        }
     }
 }

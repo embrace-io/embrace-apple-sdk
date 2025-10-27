@@ -39,6 +39,8 @@ public class EditableConfig: EmbraceConfigurable {
 
     public var networkPayloadCaptureRules = [NetworkPayloadCaptureRule]()
 
+    public var useLegacyUrlSessionProxy: Bool = false
+
     public func update(completion: (Bool, (any Error)?) -> Void) {
         completion(false, nil)
     }
@@ -55,7 +57,8 @@ public class EditableConfig: EmbraceConfigurable {
         isSwiftUiViewInstrumentationEnabled: Bool = false,
         internalLogLimits: InternalLogLimits = InternalLogLimits(),
         networkPayloadCaptureRules: [NetworkPayloadCaptureRule] = [],
-        hangLimits: HangLimits = HangLimits()
+        hangLimits: HangLimits = HangLimits(),
+        useLegacyUrlSessionProxy: Bool = false
     ) {
         self.isSDKEnabled = isSdkEnabled
         self.isBackgroundSessionEnabled = isBackgroundSessionEnabled
@@ -69,6 +72,7 @@ public class EditableConfig: EmbraceConfigurable {
         self.internalLogLimits = internalLogLimits
         self.networkPayloadCaptureRules = networkPayloadCaptureRules
         self.hangLimits = hangLimits
+        self.useLegacyUrlSessionProxy = useLegacyUrlSessionProxy
     }
 }
 
