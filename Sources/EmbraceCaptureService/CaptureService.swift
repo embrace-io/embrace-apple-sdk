@@ -36,11 +36,10 @@ open class CaptureService: NSObject {
 
     public func install(otel: EmbraceOpenTelemetry?, logger: InternalLogger? = nil) {
 
-        var expected = CaptureServiceState.uninstalled
         guard
             state.compareExchange(
-                expected: &expected,
-                desired: CaptureServiceState.installed
+                expected: .uninstalled,
+                desired: .installed
             )
         else {
             return
@@ -55,26 +54,23 @@ open class CaptureService: NSObject {
     public func start() {
 
         // Allow to go from installed -> active
-        var expected = CaptureServiceState.installed
-        if state.compareExchange(expected: &expected, desired: CaptureServiceState.active) {
+        if state.compareExchange(expected: .installed, desired: .active) {
             onStart()
             return
         }
 
         // Or allow to go from paused -> active
-        expected = CaptureServiceState.paused
-        if state.compareExchange(expected: &expected, desired: CaptureServiceState.active) {
+        if state.compareExchange(expected: .paused, desired: .active) {
             onStart()
             return
         }
     }
 
     public func stop() {
-        var expected = CaptureServiceState.active
         guard
             state.compareExchange(
-                expected: &expected,
-                desired: CaptureServiceState.paused
+                expected: .active,
+                desired: .paused
             )
         else {
             return

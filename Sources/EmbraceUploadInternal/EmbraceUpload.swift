@@ -73,8 +73,7 @@ public class EmbraceUpload: EmbraceLogUploader {
             }
 
             // in place mechanism to not retry sending cache data at the same time
-            var expected = false
-            guard strongSelf.isRetryingCache.compareExchange(expected: &expected, desired: true) else {
+            guard strongSelf.isRetryingCache.compareExchange(expected: false, desired: true) else {
                 return
             }
 

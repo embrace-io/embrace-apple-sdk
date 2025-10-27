@@ -98,6 +98,28 @@ public final class EmbraceAtomic<T: EmbraceAtomicType> {
     ) -> Bool {
         T._compareExchange(storage, &expected, desired, successOrder, successOrder.failureOrdering())
     }
+
+    /// Compare-and-swap operation.
+    ///
+    /// Attempts to atomically replace the current value with `desired`
+    /// if it matches `expected`.
+    ///
+    /// - Parameters:
+    ///   - expected: The value expected to be present.
+    ///   - desired: The new value to set if comparison succeeds.
+    ///   - successOrder: Memory order if the swap succeeds.
+    ///   - failureOrder: Memory order if the swap fails.
+    /// - Returns: `true` if the swap succeeded, `false` otherwise.
+    @inlinable
+    @discardableResult
+    public func compareExchange(
+        expected: T,
+        desired: T,
+        successOrder: MemoryOrder = .sequencialConsistency
+    ) -> Bool {
+        var expected = expected
+        return T._compareExchange(storage, &expected, desired, successOrder, successOrder.failureOrdering())
+    }
 }
 
 // MARK: - Arithmetic Atomics
