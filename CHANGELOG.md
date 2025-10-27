@@ -2,6 +2,13 @@
 *Oct 13, 2025*
 * Fixes
     * Fixed issues related to the internal metadata migration database.
+* Improvements
+    * Updated OpenTelementry dependency to accept versions from v2.0.2 (instead of exact).
+    * Added support for swift-syntax 6 (support from v509 to v602).
+
+*Oct 13, 2025*
+* Fixes
+    * Fixed issues related to the internal metadata migration database.
 
 ## 6.13.1
 *Aug 26, 2025*
