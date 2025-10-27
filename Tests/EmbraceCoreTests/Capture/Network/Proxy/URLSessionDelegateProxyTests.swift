@@ -2,6 +2,8 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
+import Foundation
+import ObjectiveC.runtime
 import XCTest
 
 @testable import EmbraceCore
@@ -143,32 +145,48 @@ extension URLSessionDelegateProxyTests {
     fileprivate func givenProxyWithFullyImplementedOriginalDelegate() {
         handler = .init()
         originalDelegate = .init()
-        sut = EMBURLSessionDelegateProxy(delegate: originalDelegate, handler: handler)
+        sut = EmbraceMakeURLSessionDelegateProxy(originalDelegate, handler)
     }
 
     fileprivate func whenInvokingDidBecomeInvalidWithError() throws {
-        try XCTUnwrap(sut as URLSessionDelegate)
-            .urlSession?(
-                .shared,
-                didBecomeInvalidWithError: nil
-            )
+        InvocationHelper.invoke(
+            on: sut,
+            selector: NSSelectorFromString("URLSession:didBecomeInvalidWithError:"),
+            parameters: [
+                URLSession.shared,
+                NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown)
+            ]
+        )
     }
 
     fileprivate func whenInvokingDidCompleteWithError() throws {
-        try XCTUnwrap(sut as URLSessionDataDelegate)
-            .urlSession?(
-                .shared,
-                task: aTask(),
-                didCompleteWithError: NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown))
+        InvocationHelper.invoke(
+            on: sut,
+            selector: NSSelectorFromString("URLSession:task:didCompleteWithError:"),
+            parameters: [
+                URLSession.shared,
+                aTask(),
+                NSError(domain: NSURLErrorDomain, code: NSURLErrorUnknown)
+            ]
+        )
     }
 
     fileprivate func whenInvokingDidReceiveChallenge(withExpectation expectation: XCTestExpectation) throws {
-        try XCTUnwrap(sut as URLSessionDataDelegate).urlSession?(
-            .shared,
-            didReceive: .init(),
-            completionHandler: { _, _ in
-                expectation.fulfill()
-            })
+
+        let completionClosure = { (_: URLSession.AuthChallengeDisposition, _: URLCredential) in
+            expectation.fulfill()
+        }
+        let block: AnyObject = unsafeBitCast(completionClosure as @convention(block) (URLSession.AuthChallengeDisposition, URLCredential) -> Void, to: AnyObject.self)
+
+        InvocationHelper.invoke(
+            on: sut,
+            selector: NSSelectorFromString("URLSession:didReceiveChallenge:completionHandler:"),
+            parameters: [
+                URLSession.shared,
+                URLAuthenticationChallenge(),
+                block
+            ]
+        )
     }
 
     fileprivate func whenInvokingDidFinishCollectingMetrics() {
@@ -177,103 +195,211 @@ extension URLSessionDelegateProxyTests {
         let metrics =
             kclass.alloc().perform(NSSelectorFromString("init")).takeUnretainedValue() as! URLSessionTaskMetrics
 
-        (sut as URLSessionTaskDelegate).urlSession?(
-            .shared,
-            task: aTask(),
-            didFinishCollecting: metrics
+        InvocationHelper.invoke(
+            on: sut,
+            selector: NSSelectorFromString("URLSession:task:didFinishCollectingMetrics:"),
+            parameters: [
+                URLSession.shared,
+                aTask(),
+                metrics
+            ]
         )
     }
 
     fileprivate func whenInvokingDidCreateTask() throws {
         if #available(iOS 16.0, watchOS 10.0, tvOS 16.0, *) {
-            (sut as URLSessionTaskDelegate).urlSession?(.shared, didCreateTask: aTask())
+
+            InvocationHelper.invoke(
+                on: sut,
+                selector: NSSelectorFromString("URLSession:didCreateTask:"),
+                parameters: [
+                    URLSession.shared,
+                    aTask()
+                ]
+            )
+
         } else {
             throw XCTSkip("This test applies only for iOS 16 and above")
         }
     }
 
     fileprivate func whenInvokingTaskIsWaitingForConnectivity() {
-        (sut as URLSessionTaskDelegate).urlSession?(.shared, taskIsWaitingForConnectivity: aTask())
+        InvocationHelper.invoke(
+            on: sut,
+            selector: NSSelectorFromString("URLSession:taskIsWaitingForConnectivity:"),
+            parameters: [
+                URLSession.shared,
+                aTask()
+            ]
+        )
     }
 
     fileprivate func whenInvokingDidSendBodyData() {
-        (sut as URLSessionTaskDelegate).urlSession?(
-            .shared,
-            task: aTask(),
-            didSendBodyData: .random(in: 0...100),
-            totalBytesSent: .random(in: 0...100),
-            totalBytesExpectedToSend: .random(in: 0...100))
+
+        InvocationHelper.invoke(
+            on: sut,
+            selector: NSSelectorFromString("URLSession:task:didSendBodyData:totalBytesSent:totalBytesExpectedToSend:"),
+            parameters: [
+                URLSession.shared,
+                aTask(),
+                Int.random(in: 0...100),
+                Int.random(in: 0...100),
+                Int.random(in: 0...100)
+            ]
+        )
     }
 
     fileprivate func whenInvokingWillPerformHTTPRedirection() throws {
         if #available(iOS 17.0, macOS 14.0, watchOS 10.0, tvOS 17.0, *) {
-            (sut as URLSessionTaskDelegate).urlSession?(
-                .shared,
-                task: aTask(),
-                willPerformHTTPRedirection: .init(),
-                newRequest: .init(url: .init(string: "https://embrace.io")!),
-                completionHandler: { _ in })
+
+            let completionClosure = { (_: URLRequest?) in }
+            let block: AnyObject = unsafeBitCast(completionClosure as @convention(block) (URLRequest?) -> Void, to: AnyObject.self)
+
+            InvocationHelper.invoke(
+                on: sut,
+                selector: NSSelectorFromString("URLSession:task:willPerformHTTPRedirection:newRequest:completionHandler:"),
+                parameters: [
+                    URLSession.shared,
+                    aTask(),
+                    HTTPURLResponse(),
+                    URLRequest(url: URL(string: "https://embrace.io")!),
+                    block
+                ]
+            )
         }
     }
 
     fileprivate func whenInvokingDidReceiveInformationalResponse() throws {
         if #available(iOS 17.0, macOS 14.0, watchOS 10.0, tvOS 17.0, *) {
-            (sut as URLSessionTaskDelegate).urlSession?(
-                .shared,
-                task: aTask(),
-                didReceiveInformationalResponse: .init())
+
+            InvocationHelper.invoke(
+                on: sut,
+                selector: NSSelectorFromString("URLSession:task:didReceiveInformationalResponse:"),
+                parameters: [
+                    URLSession.shared,
+                    aTask(),
+                    HTTPURLResponse()
+                ]
+            )
         } else {
             throw XCTSkip("This test applies only for iOS 17")
         }
     }
 
     fileprivate func whenInvokingTaskDidBecomeDownloadTask() {
-        (sut as URLSessionDataDelegate).urlSession?(.shared, dataTask: aTask(), didBecome: aDownloadTask())
+
+        InvocationHelper.invoke(
+            on: sut,
+            selector: NSSelectorFromString("URLSession:dataTask:didBecomeDownloadTask:"),
+            parameters: [
+                URLSession.shared,
+                aTask(),
+                aDownloadTask()
+            ]
+        )
     }
 
     fileprivate func whenInvokingTaskDidBecomeStreamingTask() {
-        (sut as URLSessionDataDelegate).urlSession?(.shared, dataTask: aTask(), didBecome: aStreamTask())
+
+        InvocationHelper.invoke(
+            on: sut,
+            selector: NSSelectorFromString("URLSession:dataTask:didBecomeStreamingTask:"),
+            parameters: [
+                URLSession.shared,
+                aTask(),
+                aStreamTask()
+            ]
+        )
     }
 
     fileprivate func whenInvokingDidReceiveData() {
-        (sut as URLSessionDataDelegate).urlSession?(.shared, dataTask: aTask(), didReceive: Data())
+
+        InvocationHelper.invoke(
+            on: sut,
+            selector: NSSelectorFromString("URLSession:dataTask:didReceiveData:"),
+            parameters: [
+                URLSession.shared,
+                aTask(),
+                Data()
+            ]
+        )
     }
 
     fileprivate func whenInvokingDidFinishDownloadingTo() {
-        (sut as URLSessionDownloadDelegate).urlSession(
-            .shared,
-            downloadTask: aDownloadTask(),
-            didFinishDownloadingTo: .init(string: "https://embrace.io")!)
+
+        InvocationHelper.invoke(
+            on: sut,
+            selector: NSSelectorFromString("URLSession:downloadTask:didFinishDownloadingToURL:"),
+            parameters: [
+                URLSession.shared,
+                aDownloadTask(),
+                URL(string: "https://embrace.io")!
+            ]
+        )
     }
 
     fileprivate func whenInvokingDidResumeAtOffset() {
-        (sut as URLSessionDownloadDelegate).urlSession?(
-            .shared,
-            downloadTask: aDownloadTask(),
-            didResumeAtOffset: 0,
-            expectedTotalBytes: 0)
+
+        InvocationHelper.invoke(
+            on: sut,
+            selector: NSSelectorFromString("URLSession:downloadTask:didResumeAtOffset:expectedTotalBytes:"),
+            parameters: [
+                URLSession.shared,
+                aDownloadTask(),
+                0,
+                0
+            ]
+        )
     }
 
     fileprivate func whenInvokingReadClosedForStreamingTask() {
-        (sut as URLSessionStreamDelegate).urlSession?(
-            .shared,
-            readClosedFor: aStreamTask())
+
+        InvocationHelper.invoke(
+            on: sut,
+            selector: NSSelectorFromString("URLSession:readClosedForStreamTask:"),
+            parameters: [
+                URLSession.shared,
+                aStreamTask()
+            ]
+        )
     }
 
     fileprivate func whenInvokingWriteClosedForStreamingTask() {
-        (sut as URLSessionStreamDelegate).urlSession?(.shared, writeClosedFor: aStreamTask())
+
+        InvocationHelper.invoke(
+            on: sut,
+            selector: NSSelectorFromString("URLSession:writeClosedForStreamTask:"),
+            parameters: [
+                URLSession.shared,
+                aStreamTask()
+            ]
+        )
     }
 
     fileprivate func whenInvokingBetterRouteDiscoveredForStreamingTask() {
-        (sut as URLSessionStreamDelegate).urlSession?(.shared, betterRouteDiscoveredFor: aStreamTask())
+
+        InvocationHelper.invoke(
+            on: sut,
+            selector: NSSelectorFromString("URLSession:betterRouteDiscoveredForStreamTask:"),
+            parameters: [
+                URLSession.shared,
+                aStreamTask()
+            ]
+        )
     }
 
     fileprivate func whenInvokingStreamTaskDidBecome() {
-        (sut as URLSessionStreamDelegate).urlSession?(
-            .shared,
-            streamTask: aStreamTask(),
-            didBecome: .init(),
-            outputStream: .init())
+
+        InvocationHelper.invoke(
+            on: sut,
+            selector: NSSelectorFromString("URLSession:streamTask:didBecomeInputStream:outputStream:"),
+            parameters: [
+                URLSession.shared,
+                aStreamTask(),
+                InputStream(),
+                OutputStream()
+            ]
+        )
     }
 
     fileprivate func thenOriginalDelegateShouldHaveInvokedWriteClosedForStreamingTask() {
@@ -309,12 +435,15 @@ extension URLSessionDelegateProxyTests {
     }
 
     fileprivate func whenInvokingDidWriteData() {
-        (sut as URLSessionDownloadDelegate).urlSession?(
-            .shared,
-            downloadTask: aDownloadTask(),
-            didWriteData: 0,
-            totalBytesWritten: 0,
-            totalBytesExpectedToWrite: 0)
+        InvocationHelper.invoke(
+            on: sut,
+            selector: NSSelectorFromString("URLSession:downloadTask:didWriteData:totalBytesWritten:totalBytesExpectedToWrite:"),
+            parameters: [
+                URLSession.shared,
+                aDownloadTask(),
+                0, 0, 0
+            ]
+        )
     }
 
     fileprivate func thenOriginalDelegateShouldHaveInvokedWillPerformHTTPRedirection() {
@@ -378,4 +507,27 @@ extension URLSessionDelegateProxyTests {
     }
 
     fileprivate func aResponse() -> URLResponse { .init() }
+}
+
+@objc final class InvocationHelper: NSObject {
+
+    /// Dynamically invokes an Objective-C method with the given selector and arguments.
+    ///
+    /// - Parameters:
+    ///   - target: The object to invoke the selector on.
+    ///   - selector: The Objective-C selector to call.
+    ///   - parameters: Array of arguments to pass to the invocation (in order).
+    /// - Note:
+    ///   - Arguments must match the selector’s expected types and count.
+    ///   - The indices start at 2 (`self`, `_cmd` are 0 and 1).
+    ///   - This is primarily useful for proxy testing or forwarding.
+    @objc static func invoke(
+        on target: AnyObject,
+        selector: Selector,
+        parameters: [Any],
+        expect: Bool = true
+    ) {
+        let result = EmbraceInvoke(target, selector, parameters)
+        XCTAssert(result == expect)
+    }
 }

@@ -1,3 +1,23 @@
+## 6.14.1
+*Oct 14, 2025*
+* Fixes
+    * Fixed issues with the internal proxy on `URLSession`.
+* Improvemenets
+    * Improved logic around the automatic startup instrumentation.
+
+## 6.14.0
+*Oct 7, 2025*
+* Fixes
+    * Fixed `autoTerminationCode` being missing from Spans.
+    * Bumped OTel version to OTel Core 2.1.1.
+    * Fixed wrong OS Variant being added to logs/traces.
+    * Fixed Background App Launches being detected as a Foreground Session which produced long sessions to apps without Background Session support enabled.
+* Improvements
+    * Added Capture Service to detect App Hangs.
+    * Backtrace and Symbolication: Added ability for users to pass their own versions, using KSCrash as default.
+    * Added profiling to Main Thread for Hang detection.
+    * General internal stability improvements.
+    
 ## 6.13.1
 *Aug 26, 2025*
 * Fixes

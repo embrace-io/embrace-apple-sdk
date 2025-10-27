@@ -119,7 +119,7 @@ class LogController: LogControllable {
         switch stackTraceBehavior {
         case .default where severity == .warn || severity == .error:
             if EmbraceBacktrace.isAvailable {
-                let backtrace = EmbraceBacktrace.backtrace(of: pthread_self(), suspendingThreads: false)
+                let backtrace = EmbraceBacktrace.backtrace(of: pthread_self(), threadIndex: 0)
                 addStacktraceBlock = { $0.addBacktrace(backtrace) }
             } else {
                 let stacktrace = Thread.callStackSymbols
@@ -127,7 +127,7 @@ class LogController: LogControllable {
             }
         case .main where severity == .warn || severity == .error:
             if EmbraceBacktrace.isAvailable {
-                let backtrace = EmbraceBacktrace.backtrace(of: EmbraceGetMainThread(), suspendingThreads: true)
+                let backtrace = EmbraceBacktrace.backtrace(of: EmbraceGetMainThread(), threadIndex: 0)
                 addStacktraceBlock = { $0.addBacktrace(backtrace) }
             } else {
                 addStacktraceBlock = nil

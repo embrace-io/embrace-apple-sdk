@@ -49,10 +49,6 @@
                 lock.unlock()
             }
 
-            guard state == .uninstalled else {
-                return
-            }
-
             initializeSwizzlers()
 
             swizzlers.forEach {

@@ -7,7 +7,7 @@ import XCTest
 
 @testable import EmbraceCore
 
-#if os(iOS)
+#if os(iOS) || os(tvOS)
 
     // swiftlint:disable type_name
     final class iOSSessionLifecycleTests: XCTestCase {

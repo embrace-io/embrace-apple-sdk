@@ -15,14 +15,18 @@ public class RemoteConfig {
     let logger: InternalLogger
 
     // config requests
-    @ThreadSafe var payload: RemoteConfigPayload
+    let _payload: EmbraceMutex<RemoteConfigPayload>
+    var payload: RemoteConfigPayload {
+        get { _payload.withLock { $0 } }
+        set { _payload.withLock { $0 = newValue } }
+    }
     let fetcher: RemoteConfigFetcher
 
     // threshold values
     static let deviceIdUsedDigits: UInt = 6
     let deviceIdHexValue: UInt64
 
-    @ThreadSafe private(set) var updating = false
+    private let updating = EmbraceAtomic<Bool>(false)
 
     let cacheURL: URL?
 
@@ -43,7 +47,7 @@ public class RemoteConfig {
         fetcher: RemoteConfigFetcher,
         logger: InternalLogger
     ) {
-        self.payload = payload
+        self._payload = EmbraceMutex(payload)
         self.fetcher = fetcher
         self.deviceIdHexValue = options.deviceId.intValue(digitCount: Self.deviceIdUsedDigits)
         self.logger = logger
@@ -66,7 +70,9 @@ public class RemoteConfig {
 
         do {
             let data = try Data(contentsOf: url)
-            payload = try JSONDecoder().decode(RemoteConfigPayload.self, from: data)
+            try _payload.withLock {
+                $0 = try JSONDecoder().decode(RemoteConfigPayload.self, from: data)
+            }
         } catch {
             logger.error("Error loading cached remote config!")
         }
@@ -91,7 +97,8 @@ extension RemoteConfig: EmbraceConfigurable {
     public var hangLimits: HangLimits {
         HangLimits(
             hangPerSession: payload.hangLimitsHangPerSession,
-            samplesPerHang: payload.hangLimitsSamplesPerHang
+            samplesPerHang: payload.hangLimitsSamplesPerHang,
+            reportsWatchdogEvents: payload.hangLimitsReportsWatchdogEvents
         )
     }
 
@@ -145,15 +152,17 @@ extension RemoteConfig: EmbraceConfigurable {
         )
     }
 
+    public var useLegacyUrlSessionProxy: Bool { payload.useLegacyUrlSessionProxy }
+
     public func update(completion: @escaping (Bool, (any Error)?) -> Void) {
         guard updating == false else {
             completion(false, nil)
             return
         }
 
-        updating = true
+        self.updating.store(true)
         fetcher.fetch { [weak self] newPayload, data in
-            defer { self?.updating = false }
+            defer { self?.updating.store(false) }
             guard let strongSelf = self else {
                 completion(false, nil)
                 return
@@ -164,9 +173,11 @@ extension RemoteConfig: EmbraceConfigurable {
                 return
             }
 
-            let didUpdate = strongSelf.payload != newPayload
-            strongSelf.payload = newPayload
-
+            let didUpdate = strongSelf._payload.withLock {
+                let changed = $0 != newPayload
+                $0 = newPayload
+                return changed
+            }
             strongSelf.saveToCache(data)
 
             completion(didUpdate, nil)

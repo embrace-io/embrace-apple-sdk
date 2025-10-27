@@ -12,7 +12,7 @@
     import TestSupport
 
     class MockUIViewControllerHandlerDataSource: UIViewControllerHandlerDataSource {
-        var state: CaptureServiceState = .active
+        var serviceState: CaptureServiceState = .active
         var otel: EmbraceOpenTelemetry? = MockEmbraceOpenTelemetry()
         var instrumentVisibility: Bool = true
         var instrumentFirstRender: Bool = true
