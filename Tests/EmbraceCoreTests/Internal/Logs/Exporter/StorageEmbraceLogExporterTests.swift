@@ -353,7 +353,7 @@ extension StorageEmbraceLogExporterTests {
     }
 
     fileprivate func thenState(is newState: StorageEmbraceLogExporter.State) {
-        XCTAssertEqual(sut.state, newState)
+        XCTAssertEqual(sut.state.load(), newState)
     }
 
     fileprivate func thenResult(is exportResult: ExportResult) {

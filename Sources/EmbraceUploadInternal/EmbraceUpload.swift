@@ -20,8 +20,7 @@ public class EmbraceUpload: EmbraceLogUploader {
     public private(set) var logger: InternalLogger
     public private(set) var queue: DispatchQueue
 
-    @ThreadSafe
-    private(set) var isRetryingCache: Bool = false
+    private let isRetryingCache = EmbraceAtomic(false)
 
     private let urlSession: URLSession
     let cache: EmbraceUploadCache
@@ -74,15 +73,13 @@ public class EmbraceUpload: EmbraceLogUploader {
             }
 
             // in place mechanism to not retry sending cache data at the same time
-            guard !strongSelf.isRetryingCache else {
+            guard strongSelf.isRetryingCache.compareExchange(expected: false, desired: true) else {
                 return
             }
 
-            strongSelf.isRetryingCache = true
-
             defer {
                 // on finishing everything, allow to retry cache (i.e. reconnection)
-                strongSelf.isRetryingCache = false
+                strongSelf.isRetryingCache.store(false)
                 group.leave()
             }
 

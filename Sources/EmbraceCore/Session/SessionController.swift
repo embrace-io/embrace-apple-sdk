@@ -34,8 +34,8 @@ class SessionController: SessionControllable {
     @ThreadSafe
     private(set) var currentSessionSpan: Span?
 
-    @ThreadSafe
-    private(set) var attachmentCount: Int = 0
+    private let _attachmentCount = EmbraceAtomic<Int32>(0)
+    internal var attachmentCount: Int { Int(_attachmentCount.load()) }
 
     // Lock used for session boundaries. Will be shared at both start/end of session
     private let lock = UnfairLock()
@@ -149,7 +149,7 @@ class SessionController: SessionControllable {
             heartbeat.start()
 
             firstSession = false
-            attachmentCount = 0
+            _attachmentCount.store(0)
 
             return session
         }
@@ -287,7 +287,7 @@ class SessionController: SessionControllable {
     }
 
     func increaseAttachmentCount() {
-        attachmentCount += 1
+        _attachmentCount += 1
     }
 }
 

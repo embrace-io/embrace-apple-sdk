@@ -18,7 +18,7 @@ extension Notification.Name {
 }
 
 protocol URLSessionTaskHandlerDataSource: AnyObject {
-    var state: CaptureServiceState { get }
+    var serviceState: CaptureServiceState { get }
     var otel: EmbraceOpenTelemetry? { get }
 
     var injectTracingHeader: Bool { get }
@@ -76,7 +76,7 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
             task.embraceStartTime = Date()
 
             // don't capture if the service is not active
-            guard self.dataSource?.state == .active else {
+            guard self.dataSource?.serviceState == .active else {
                 return
             }
 
@@ -203,7 +203,7 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
 
     private func handleTaskFinished(_ task: URLSessionTask, bodySize: Int?, error: (any Error)?) {
         // stop if the service is disabled
-        guard self.dataSource?.state == .active else {
+        guard self.dataSource?.serviceState == .active else {
             return
         }
 
