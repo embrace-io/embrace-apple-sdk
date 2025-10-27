@@ -15,7 +15,7 @@ struct Embrace_tvOS_TestAppApp: App {
     }
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            LoginScreen()
         }
     }
 }
