@@ -38,7 +38,11 @@ public class EmbraceMetricKitSpan {
     private static let log: OSLog = MXMetricManager.makeLogHandle(category: "EmbraceSDK")
     @_spi(EmbraceSDK)
     public static func bootstrap(enabled: Bool) {
-        _enabled.store(enabled)
+        #if DEBUG  // we will remove this later, We just need to collect data for now.
+            _enabled.store(true)
+        #else
+            _enabled.store(enabled)
+        #endif
     }
     private static var _enabled: EmbraceAtomic<Bool> = false
     private static var enabled: Bool {

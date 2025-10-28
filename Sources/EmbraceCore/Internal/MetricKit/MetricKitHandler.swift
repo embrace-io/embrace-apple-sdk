@@ -58,12 +58,14 @@ import Foundation
 
         if let data = try? JSONEncoder().encode(payload) {
 
-            // Remove this when we know stuff works
-            if #available(iOS 16.0, *) {
-                let uuid = UUID().uuidString
-                let url: URL = .documentsDirectory.appendingPathComponent("\(uuid)_em.json")
-                try? data.write(to: url)
-            }
+            #if DEBUG
+                // Remove this when we know stuff works
+                if #available(iOS 16.0, *) {
+                    let uuid = UUID().uuidString
+                    let url: URL = .documentsDirectory.appendingPathComponent("\(uuid)_em.json")
+                    try? data.write(to: url)
+                }
+            #endif
 
             sendMetric(payload: data)
         }
@@ -137,12 +139,14 @@ import Foundation
         func didReceive(_ payloads: [MXMetricPayload]) {
             for payload in payloads {
 
-                // Remove this when we know stuff works
-                if #available(iOS 16.0, *) {
-                    let uuid = UUID().uuidString
-                    let url: URL = .documentsDirectory.appendingPathComponent("\(uuid)_mx.json")
-                    try? payload.jsonRepresentation().write(to: url)
-                }
+                #if DEBUG
+                    // Remove this when we know stuff works
+                    if #available(iOS 16.0, *) {
+                        let uuid = UUID().uuidString
+                        let url: URL = .documentsDirectory.appendingPathComponent("\(uuid)_mx.json")
+                        try? payload.jsonRepresentation().write(to: url)
+                    }
+                #endif
 
                 handlePayload(MetricPayload(payload: payload))
             }
