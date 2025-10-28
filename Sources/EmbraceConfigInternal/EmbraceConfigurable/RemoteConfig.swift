@@ -126,6 +126,8 @@ extension RemoteConfig: EmbraceConfigurable {
 
     public var isMetricKitHangCaptureEnabled: Bool { payload.metricKitHangCaptureEnabled }
 
+    public var isMetricKitInternalMetricsCaptureEnabled: Bool { payload.metricKitInternalMetricsCaptureEnabled }
+
     public var networkPayloadCaptureRules: [NetworkPayloadCaptureRule] { payload.networkPayloadCaptureRules }
 
     public var spanEventsLimits: SpanEventsLimits {

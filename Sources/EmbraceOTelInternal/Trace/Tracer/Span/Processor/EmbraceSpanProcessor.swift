@@ -92,8 +92,11 @@ package class EmbraceSpanProcessor: SpanProcessor {
             return
         }
 
+        let mkSpan = EmbraceMetricKitSpan.begin(name: "export-start")
         let data = span.toSpanData()
-        processIncompletedSpanData(data, span: span, sync: false)
+        processIncompletedSpanData(data, span: span, sync: false) {
+            mkSpan.end()
+        }
     }
 
     public func onEnd(span: OpenTelemetrySdk.ReadableSpan) {
@@ -101,8 +104,11 @@ package class EmbraceSpanProcessor: SpanProcessor {
             return
         }
 
+        let mkSpan = EmbraceMetricKitSpan.begin(name: "export-end")
         let data = span.toSpanData()
-        processCompletedSpanData(data)
+        processCompletedSpanData(data) {
+            mkSpan.end()
+        }
     }
 
     public func flush(span: OpenTelemetrySdk.ReadableSpan) {
@@ -110,8 +116,11 @@ package class EmbraceSpanProcessor: SpanProcessor {
             return
         }
 
+        let mkSpan = EmbraceMetricKitSpan.begin(name: "export-flush")
         let data = span.toSpanData()
-        processIncompletedSpanData(data, span: span, sync: true)
+        processIncompletedSpanData(data, span: span, sync: true) {
+            mkSpan.end()
+        }
     }
 
     public func forceFlush(timeout: TimeInterval?) {
@@ -119,11 +128,13 @@ package class EmbraceSpanProcessor: SpanProcessor {
             return
         }
 
+        let mkSpan = EmbraceMetricKitSpan.begin(name: "export-forceflush")
         let exporters = self.spanExporters
         processorQueue.sync {
             for exporter in exporters {
                 _ = exporter.flush(explicitTimeout: timeout)
             }
+            mkSpan.end()
         }
     }
 
@@ -136,7 +147,7 @@ package class EmbraceSpanProcessor: SpanProcessor {
         }
     }
 
-    internal func processIncompletedSpanData(_ data: SpanData, span: ReadableSpan?, sync: Bool) {
+    internal func processIncompletedSpanData(_ data: SpanData, span: ReadableSpan?, sync: Bool, completion: (() -> Void)? = nil) {
 
         // cache if flagged for auto termination
         _autoTerminationSpans.withLock {
@@ -150,10 +161,10 @@ package class EmbraceSpanProcessor: SpanProcessor {
             }
         }
 
-        runExporters(data, sync: sync)
+        runExporters(data, sync: sync, completion: completion)
     }
 
-    internal func processCompletedSpanData(_ spanData: SpanData, sync: Bool = false) {
+    internal func processCompletedSpanData(_ spanData: SpanData, sync: Bool = false, completion: (() -> Void)? = nil) {
         var data = spanData
         if data.hasEnded && data.status == .unset {
             if let errorCode = data.errorCode {
@@ -163,11 +174,11 @@ package class EmbraceSpanProcessor: SpanProcessor {
             }
         }
 
-        runExporters(data, sync: sync)
+        runExporters(data, sync: sync, completion: completion)
     }
 
-    private func runExporters(_ span: SpanData, sync: Bool) {
-        runExporters([span], sync: sync)
+    private func runExporters(_ span: SpanData, sync: Bool, completion: (() -> Void)? = nil) {
+        runExporters([span], sync: sync, completion: completion)
     }
 
     private func hydrateSpan(_ span: SpanData, with resource: Resource?, sessionId: String?) -> SpanData? {
@@ -209,20 +220,21 @@ package class EmbraceSpanProcessor: SpanProcessor {
         return spanData
     }
 
-    private func runExporters(_ spans: [SpanData], sync: Bool) {
+    private func runExporters(_ spans: [SpanData], sync: Bool, completion: (() -> Void)? = nil) {
 
         let exporters = self.spanExporters
-        var spansToExport: [SpanData] = spans
+        let spansToExport: [SpanData] = spans
         let provider = resourceProvider
         let sessionProvider = sessionIdProvider
 
-        let block = { [self] in
+        let block = { [exporters, spansToExport, completion, provider, self] in
             let resource = provider?()
             let sessionId = sessionProvider?()
             spansToExport = spansToExport.compactMap { hydrateSpan($0, with: resource, sessionId: sessionId) }
             for exporter in exporters {
-                _ = exporter.export(spans: spansToExport)
+                _ = exporter.export(spans: filteredSpans)
             }
+            completion?()
         }
 
         if sync {
@@ -235,7 +247,6 @@ package class EmbraceSpanProcessor: SpanProcessor {
                 block()
             }
         }
-
     }
 
     // finds the auto termination code from the span's attributes

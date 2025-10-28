@@ -123,7 +123,11 @@ import Foundation
 
         let setupTime = Date()
 
+        let span = EmbraceMetricKitSpan.begin(name: "sdk-setup", force: true)
+
         return try _syncLock.lockedForWriting {
+            defer { span.end() }
+
             if let client = client {
                 Embrace.logger.warning("Embrace was already initialized!")
                 return client
@@ -289,6 +293,7 @@ import Foundation
         }
 
         EMBStartupTracker.shared().sdkStartStartTime = Date()
+        let span = EmbraceMetricKitSpan.begin(name: "sdk-start", force: true)
 
         if EMBStartupTracker.shared().appDidFinishLaunchingEndTime != nil || EMBStartupTracker.shared().appFirstDidBecomeActiveTime != nil {
             Embrace.logger.error("Embrace SDK should be started before the app is launched and becomes active. This is required for the startup instrumentation to work.")
@@ -298,6 +303,9 @@ import Foundation
         sessionLifecycle.setup()
 
         return Embrace._syncLock.lockedForWriting {
+
+            defer { span.end() }
+
             guard state == .initialized else {
                 Embrace.logger.warning("The Embrace SDK can only be started once!")
                 return self

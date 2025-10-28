@@ -12,9 +12,9 @@ import Foundation
 
 class MetricKitCrashCaptureService: CaptureService, MetricKitCrashPayloadListener {
 
-    let options: MetricKitCrashCaptureService.Options
+    let options: MetricKitCaptureServiceOptions
 
-    init(options: MetricKitCrashCaptureService.Options) {
+    init(options: MetricKitCaptureServiceOptions) {
         self.options = options
     }
 

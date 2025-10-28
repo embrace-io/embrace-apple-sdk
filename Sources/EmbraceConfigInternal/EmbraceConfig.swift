@@ -136,6 +136,10 @@ extension EmbraceConfig /* EmbraceConfigurable delegation */ {
         configurable.isMetricKitHangCaptureEnabled
     }
 
+    public var isMetricKitInternalMetricsCaptureEnabled: Bool {
+        configurable.isMetricKitInternalMetricsCaptureEnabled
+    }
+
     public var spanEventsLimits: SpanEventsLimits {
         configurable.spanEventsLimits
     }
