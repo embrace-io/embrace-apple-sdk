@@ -8,25 +8,34 @@ import Foundation
     import EmbraceCaptureService
     import EmbraceCommonInternal
     import EmbraceSemantics
+    import EmbraceConfiguration
+    @_spi(EmbraceSDK) import EmbraceCommonInternal
 #endif
 
-class MetricKitHangCaptureService: CaptureService, MetricKitHangPayloadListener {
+class MetricKitMetricsCaptureService: CaptureService, MetricKitMetricsPayloadListener {
 
     let options: MetricKitCaptureServiceOptions
 
     init(options: MetricKitCaptureServiceOptions) {
         self.options = options
+        if let stateProvider = options.stateProvider {
+            EmbraceMetricKitSpan.bootstrap(enabled: stateProvider.isMetricKitEnabled && stateProvider.isMetricKitInternalMetricsCaptureEnabled)
+        }
     }
 
     override func onInstall() {
         options.payloadProvider?.add(listener: self)
     }
 
-    func didReceive(payload: Data, startTime: Date, endTime: Date) {
+    override func onConfigUpdated(_ config: any EmbraceConfigurable) {
+        EmbraceMetricKitSpan.bootstrap(enabled: config.isMetricKitEnabled && config.isMetricKitInternalMetricsCaptureEnabled)
+    }
+
+    func didReceive(metric payload: Data) {
         guard isActive,
             let stateProvider = options.stateProvider,
             stateProvider.isMetricKitEnabled,
-            stateProvider.isMetricKitHangCaptureEnabled
+            stateProvider.isMetricKitInternalMetricsCaptureEnabled
         else {
             return
         }
@@ -45,21 +54,19 @@ class MetricKitHangCaptureService: CaptureService, MetricKitHangPayloadListener 
 
         let attributes =
             attributesBuilder
-            .addLogType(.hang)
+            .addLogType(.metricKitMetrics)
             .addApplicationState(SessionState.unknown.rawValue)
-            .addHangReportProperties(
+            .addMetricKitMetricsProperties(
                 id: UUID().withoutHyphen,
-                provider: LogSemantics.Hang.metrickitProvider,
-                payload: payloadString,
-                startTime: startTime,
-                endTime: endTime
+                provider: LogSemantics.MetricKitMetrics.metrickitProvider,
+                payload: payloadString
             )
             .build()
 
         otel?.log(
-            "",
+            "MetricKit Internal Metrics",
             severity: .warn,
-            type: .hang,
+            type: .metricKitMetrics,
             timestamp: Date(),
             attributes: attributes,
             stackTraceBehavior: .notIncluded

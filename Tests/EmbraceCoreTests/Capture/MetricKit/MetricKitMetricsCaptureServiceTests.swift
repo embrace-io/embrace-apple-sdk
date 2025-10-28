@@ -9,14 +9,14 @@ import XCTest
 
 @testable import EmbraceCore
 
-class MetricKitHangCaptureServiceTests: XCTestCase {
+class MetricKitMetricsCaptureServiceTests: XCTestCase {
 
     func options(
         provider: MetricKitPayloadProvider,
         fetcher: EmbraceStorageMetadataFetcher? = nil,
         stateProvider: EmbraceMetricKitStateProvider? = nil
     ) -> MetricKitCaptureServiceOptions {
-        MetricKitCaptureServiceOptions(
+        return MetricKitCaptureServiceOptions(
             payloadProvider: provider,
             metadataFetcher: fetcher,
             stateProvider: stateProvider ?? MockMetricKitStateProvider()
@@ -27,43 +27,37 @@ class MetricKitHangCaptureServiceTests: XCTestCase {
         // given a capture service
         let provider = MockMetricKitPayloadProvider()
         let options = options(provider: provider)
-        let service = MetricKitHangCaptureService(options: options)
+        let service = MetricKitMetricsCaptureService(options: options)
 
         // when the service is installed
         service.install(otel: nil)
 
-        // then its added as a listener to the metric kit crash provider
-        XCTAssertTrue(provider.didCallAddHangListener)
-        XCTAssertTrue(provider.lastHangListener is MetricKitHangCaptureService)
+        // then its added as a listener to the metric kit metrics provider
+        XCTAssertTrue(provider.didCallAddMetricsListener)
+        XCTAssertTrue(provider.lastMetricsListener is MetricKitMetricsCaptureService)
     }
 
-    func test_log() throws {
+    func test_valid_metric() throws {
         // given a capture service
         let otel = MockEmbraceOpenTelemetry()
         let provider = MockMetricKitPayloadProvider()
-        let options = options(provider: provider)
-        let service = MetricKitHangCaptureService(options: options)
+        let stateProvider = MockMetricKitStateProvider()
+        let options = options(provider: provider, stateProvider: stateProvider)
+        let service = MetricKitMetricsCaptureService(options: options)
         service.install(otel: otel)
         service.start()
 
-        // when the service receives a payload
-        let startTime = Date(timeIntervalSince1970: 40)
-        let endTime = Date(timeIntervalSince1970: 50)
-        service.didReceive(payload: TestConstants.data, startTime: startTime, endTime: endTime)
+        // when the service receives a metric payload
+        service.didReceive(metric: TestConstants.data)
 
         // then it creates the corresponding otel log
         let log = otel.logs[0]
         XCTAssertEqual(log.severity, .warn)
-        XCTAssertEqual(log.embType, .hang)
+        XCTAssertEqual(log.embType, .metricKitMetrics)
         XCTAssertEqual(log.attributes["emb.state"], .string("unknown"))
         XCTAssertNotNil(log.attributes["log.record.uid"])
         XCTAssertEqual(log.attributes["emb.provider"], .string("metrickit"))
         XCTAssertEqual(log.attributes["emb.payload"], .string("test"))
-        XCTAssertNotNil(log.attributes["emb.payload.timestamp"])
-        XCTAssertEqual(
-            log.attributes["diagnostic.timestamp_start"], .string(String(startTime.nanosecondsSince1970Truncated)))
-        XCTAssertEqual(
-            log.attributes["diagnostic.timestamp_end"], .string(String(endTime.nanosecondsSince1970Truncated)))
     }
 
     func test_not_started() throws {
@@ -71,13 +65,11 @@ class MetricKitHangCaptureServiceTests: XCTestCase {
         let otel = MockEmbraceOpenTelemetry()
         let provider = MockMetricKitPayloadProvider()
         let options = options(provider: provider)
-        let service = MetricKitHangCaptureService(options: options)
+        let service = MetricKitMetricsCaptureService(options: options)
         service.install(otel: otel)
 
-        // when the service receives a payload
-        let startTime = Date(timeIntervalSince1970: 40)
-        let endTime = Date(timeIntervalSince1970: 50)
-        service.didReceive(payload: TestConstants.data, startTime: startTime, endTime: endTime)
+        // when the service receives a metric payload
+        service.didReceive(metric: TestConstants.data)
 
         // then it doesnt create a log
         XCTAssertEqual(otel.logs.count, 0)
@@ -92,14 +84,12 @@ class MetricKitHangCaptureServiceTests: XCTestCase {
         let otel = MockEmbraceOpenTelemetry()
         let provider = MockMetricKitPayloadProvider()
         let options = options(provider: provider, stateProvider: stateProvider)
-        let service = MetricKitHangCaptureService(options: options)
+        let service = MetricKitMetricsCaptureService(options: options)
         service.install(otel: otel)
         service.start()
 
-        // when the service receives a payload with the correct signal
-        let startTime = Date(timeIntervalSince1970: 40)
-        let endTime = Date(timeIntervalSince1970: 50)
-        service.didReceive(payload: TestConstants.data, startTime: startTime, endTime: endTime)
+        // when the service receives a metric payload
+        service.didReceive(metric: TestConstants.data)
 
         // then it doesnt create a log
         XCTAssertEqual(otel.logs.count, 0)
@@ -109,22 +99,43 @@ class MetricKitHangCaptureServiceTests: XCTestCase {
         // given remote config disabled
         let stateProvider = MockMetricKitStateProvider()
         stateProvider.isMetricKitEnabled = true
-        stateProvider.isMetricKitHangCaptureEnabled = false
+        stateProvider.isMetricKitInternalMetricsCaptureEnabled = false
 
         // given a capture service
         let otel = MockEmbraceOpenTelemetry()
         let provider = MockMetricKitPayloadProvider()
         let options = options(provider: provider, stateProvider: stateProvider)
-        let service = MetricKitHangCaptureService(options: options)
+        let service = MetricKitMetricsCaptureService(options: options)
         service.install(otel: otel)
         service.start()
 
-        // when the service receives a payload with the correct signal
-        let startTime = Date(timeIntervalSince1970: 40)
-        let endTime = Date(timeIntervalSince1970: 50)
-        service.didReceive(payload: TestConstants.data, startTime: startTime, endTime: endTime)
+        // when the service receives a metric payload
+        service.didReceive(metric: TestConstants.data)
 
         // then it doesnt create a log
         XCTAssertEqual(otel.logs.count, 0)
+    }
+
+    func test_with_storage() throws {
+        // given a capture service with storage
+        let storage = try EmbraceStorage.createInMemoryDb()
+        let otel = MockEmbraceOpenTelemetry()
+        let provider = MockMetricKitPayloadProvider()
+        let options = options(provider: provider, fetcher: storage)
+        let service = MetricKitMetricsCaptureService(options: options)
+        service.install(otel: otel)
+        service.start()
+
+        // when the service receives a metric payload
+        service.didReceive(metric: TestConstants.data)
+
+        // then it creates the corresponding otel log
+        let log = otel.logs[0]
+        XCTAssertEqual(log.severity, .warn)
+        XCTAssertEqual(log.embType, .metricKitMetrics)
+        XCTAssertEqual(log.attributes["emb.state"], .string("unknown"))
+        XCTAssertNotNil(log.attributes["log.record.uid"])
+        XCTAssertEqual(log.attributes["emb.provider"], .string("metrickit"))
+        XCTAssertEqual(log.attributes["emb.payload"], .string("test"))
     }
 }

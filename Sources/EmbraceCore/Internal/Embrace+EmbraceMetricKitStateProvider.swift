@@ -7,6 +7,10 @@
 #endif
 
 extension Embrace: EmbraceMetricKitStateProvider {
+    var isMetricKitInternalMetricsCaptureEnabled: Bool {
+        config.isMetricKitInternalMetricsCaptureEnabled
+    }
+
     public var isMetricKitEnabled: Bool {
         config.isMetrickKitEnabled
     }

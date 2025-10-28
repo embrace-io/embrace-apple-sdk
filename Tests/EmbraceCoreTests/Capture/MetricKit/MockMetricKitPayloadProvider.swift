@@ -19,4 +19,11 @@ class MockMetricKitPayloadProvider: MetricKitPayloadProvider {
         didCallAddHangListener = true
         lastHangListener = listener
     }
+
+    var didCallAddMetricsListener: Bool = false
+    var lastMetricsListener: AnyObject? = nil
+    func add(listener: any MetricKitMetricsPayloadListener) {
+        didCallAddMetricsListener = true
+        lastMetricsListener = listener
+    }
 }
