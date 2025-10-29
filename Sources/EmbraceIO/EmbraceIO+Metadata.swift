@@ -8,7 +8,7 @@ extension EmbraceIO {
     /// Set a 'name' for the current user.
     /// Will be set permanently until explicitly unset via the `clearUserProperties()` method.
     /// - Note: No validation is done on the identifier. Be sure it matches or can be mapped to a record in your system
-    var userName: String? {
+    public var userName: String? {
         get {
             Embrace.client?.metadata.userName
         }
@@ -32,7 +32,7 @@ extension EmbraceIO {
     /// Set an 'identifier' for the current user.
     /// Will be set permanently  until explicitly unset via the `clearUserProperties()` method.
     /// - Note: No validation is done on the email address. Be sure it matches or can be mapped to a record in your system
-    var userIdentifier: String? {
+    public var userIdentifier: String? {
         get {
             Embrace.client?.metadata.userIdentifier
         }
@@ -43,7 +43,7 @@ extension EmbraceIO {
 
     /// Clear all user properties.
     /// This will clear all user properties set via the `userName`, `userEmail` and `userIdentifier` properties.
-    func clearUserProperties() {
+    public func clearUserProperties() {
         Embrace.client?.metadata.clearUserProperties()
     }
 }
@@ -59,7 +59,7 @@ extension EmbraceIO {
     ///   - lifespan: The lifespan of the property to add.
     /// - Throws: `MetadataError.invalidKey` if the key is longer than 128 characters.
     /// - Throws: `MetadataError.invalidSession` if a property with a `.session` lifespan is added when there's no active session.
-    func setProperty(key: String, value: String?, lifespan: MetadataLifespan) throws {
+    public func setProperty(key: String, value: String?, lifespan: MetadataLifespan) throws {
         if let value {
             try Embrace.client?.metadata.addProperty(key: key, value: value, lifespan: lifespan)
         } else {
@@ -70,7 +70,7 @@ extension EmbraceIO {
     /// Removes all properties for the given lifespans. If no lifespans are passed, all properties are removed.
     /// - Parameters:
     ///   - lifespans: Array of lifespans.
-    func removeAllProperties(lifespans: [MetadataLifespan]) {
+    public func removeAllProperties(lifespans: [MetadataLifespan]) {
         Embrace.client?.metadata.removeAllProperties(lifespans: lifespans)
     }
 }
@@ -83,7 +83,7 @@ extension EmbraceIO {
     ///   - lifespan: The lifespan of the persona tag to add.
     /// - Throws: `MetadataError.invalidValue` if the value is longer than 32 characters.
     /// - Throws: `MetadataError.invalidSession` if a persona tag with a `.session` lifespan is added when there's no active session.
-    func addPersona(_ persona: String, lifespan: MetadataLifespan) throws {
+    public func addPersona(_ persona: String, lifespan: MetadataLifespan) throws {
         try Embrace.client?.metadata.add(persona: persona, lifespan: lifespan)
     }
 
@@ -96,21 +96,21 @@ extension EmbraceIO {
     /// metadata that belongs to a session or process that has ended. If you remove a persona with a process
     /// lifespan and that persona has already been applied to a previous session within the process, that metadata
     /// will apply to that earlier session but will not apply to the currently active session.
-    func removePersona(_ persona: String, lifespan: MetadataLifespan) throws {
+    public func removePersona(_ persona: String, lifespan: MetadataLifespan) throws {
         try Embrace.client?.metadata.remove(persona: persona, lifespan: lifespan)
     }
 
     /// Removes all persona tags for the given lifespans. If no lifespans are passed, all persona tags are removed.
     /// - Parameters:
     ///   - lifespans: Array of lifespans.
-    func removeAllPersonas(lifespans: [MetadataLifespan]) {
+    public func removeAllPersonas(lifespans: [MetadataLifespan]) {
         Embrace.client?.metadata.removeAllPersonas(lifespans: lifespans)
     }
 
     /// Asynchronously retrieve the current set of persona tags as strings.
     ///
     /// - Note: This method is for Objective-C compatibility. In Swift, there's an equivalent using the `PersonaTag` enum
-    func getCurrentPersonas(completion: @escaping ([String]) -> Void) {
+    public func getCurrentPersonas(completion: @escaping ([String]) -> Void) {
         guard let client = Embrace.client else {
             completion([])
             return
