@@ -9,6 +9,7 @@ import Foundation
     import EmbraceCommonInternal
     import EmbraceConfiguration
     import EmbraceCrash
+    import EmbraceKSCrashBacktraceSupport
 #endif
 
 extension EmbraceIO {
@@ -89,5 +90,43 @@ extension EmbraceIO {
             self.runtimeConfiguration = runtimeConfiguration
             self.processors = nil
         }
+    }
+}
+
+extension Embrace.Options {
+    static func from(options: EmbraceIO.Options) -> Embrace.Options? {
+
+        if let appId = options.appId {
+            return Embrace.Options(
+                appId: appId,
+                appGroupId: nil,
+                platform: options.platform,
+                endpoints: options.endpoints,
+                captureServices: options.captureServices.list,
+                crashReporter: options.crashReporter,
+                logLevel: options.logLevel,
+                export: options.export,
+                processors: options.processors,
+                backtracer: KSCrashBacktracing(),
+                symbolicator: KSCrashBacktracing()
+            )
+        }
+
+        if let export = options.export,
+            let config = options.runtimeConfiguration
+        {
+            return Embrace.Options(
+                export: export,
+                platform: options.platform,
+                captureServices: options.captureServices.list,
+                crashReporter: options.crashReporter,
+                logLevel: options.logLevel,
+                runtimeConfiguration: config,
+                backtracer: KSCrashBacktracing(),
+                symbolicator: KSCrashBacktracing()
+            )
+        }
+
+        return nil
     }
 }

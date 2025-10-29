@@ -6,6 +6,7 @@ import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCore
+    import EmbraceCaptureService
 #endif
 
 extension EmbraceIO {
@@ -49,6 +50,46 @@ extension EmbraceIO {
             self.lowMemoryWarning = lowMemoryWarning
             self.lowPowerMode = lowPowerMode
             self.hangWatchdog = hangWatchdog
+        }
+
+        var list: [CaptureService] {
+            var services: [CaptureService] = []
+
+            // url session
+            if let urlSessionOptions = urlSession {
+                services.append(URLSessionCaptureService(options: urlSessionOptions))
+            }
+
+            // tap
+            if let tapCaptureOptions = tapCapture {
+                services.append(TapCaptureService(options: tapCaptureOptions))
+            }
+
+            if let viewCaptureOptions = viewCapture {
+                services.append(ViewCaptureService(options: viewCaptureOptions))
+            }
+
+            if let webViewCaptureOptions = webViewCapture {
+                services.append(WebViewCaptureService(options: webViewCaptureOptions))
+            }
+
+            if let pushNotificationsOptions = pushNotifications {
+                services.append(PushNotificationCaptureService(options: pushNotificationsOptions))
+            }
+
+            if lowMemoryWarning {
+                services.append(LowMemoryWarningCaptureService())
+            }
+
+            if lowPowerMode {
+                services.append(LowPowerModeCaptureService())
+            }
+
+            if hangWatchdog {
+                services.append(HangCaptureService())
+            }
+
+            return services
         }
     }
 }

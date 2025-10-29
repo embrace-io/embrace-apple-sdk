@@ -69,3 +69,6 @@ Examples/BrandGamePod
 
 ## Benchmarks user data
 Examples/Benchmarks/Benchmarks.xcworkspace/xcuserdata
+
+#Don't ignore example apps project files
+!Examples/Embrace-tvOS-TestApp/*.xcodeproj
