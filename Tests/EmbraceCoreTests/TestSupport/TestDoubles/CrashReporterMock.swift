@@ -38,7 +38,7 @@ class CrashReporterMock: CrashReporter {
                     payload: "test",
                     provider: "mock",
                     internalId: 123,
-                    sessionId: crashSessionId ?? SessionIdentifier.random.toString,
+                    sessionId: crashSessionId ?? EmbraceIdentifier.random.stringValue,
                     timestamp: Date()
                 )
             ]

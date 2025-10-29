@@ -29,10 +29,10 @@ class ResourceCaptureService: CaptureService {
 
 extension EmbraceStorage: ResourceCaptureServiceHandler {
     func addRequiredResources(_ map: [String: String]) {
-        addRequiredResources(map, processId: .current)
+        addRequiredResources(map, processId: ProcessIdentifier.current)
     }
 
     func addCriticalResources(_ map: [String: String]) {
-        addCriticalResources(map, processId: .current)
+        addCriticalResources(map, processId: ProcessIdentifier.current)
     }
 }

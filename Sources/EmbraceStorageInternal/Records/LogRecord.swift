@@ -21,8 +21,8 @@ public class LogRecord: NSManagedObject {
 
     class func create(
         context: NSManagedObjectContext,
-        id: LogIdentifier,
-        processId: ProcessIdentifier,
+        id: EmbraceIdentifier,
+        processId: EmbraceIdentifier,
         severity: LogSeverity,
         body: String,
         timestamp: Date = Date(),
@@ -36,8 +36,8 @@ public class LogRecord: NSManagedObject {
             }
 
             let record = LogRecord(entity: description, insertInto: context)
-            record.idRaw = id.toString
-            record.processIdRaw = processId.value
+            record.idRaw = id.stringValue
+            record.processIdRaw = processId.stringValue
             record.severityRaw = severity.rawValue
             record.body = body
             record.timestamp = timestamp

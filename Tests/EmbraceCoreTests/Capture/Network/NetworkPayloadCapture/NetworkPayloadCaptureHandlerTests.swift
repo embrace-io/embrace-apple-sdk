@@ -203,7 +203,7 @@ extension DefaultNetworkPayloadCaptureHandler {
         set { state.withLock { $0.active = newValue } }
     }
 
-    var currentSessionId: SessionIdentifier? {
+    var currentSessionId: EmbraceIdentifier? {
         get { state.withLock { $0.currentSessionId } }
         set { state.withLock { $0.currentSessionId = newValue } }
     }

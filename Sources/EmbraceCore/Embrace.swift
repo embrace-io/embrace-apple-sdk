@@ -163,13 +163,13 @@ import Foundation
         self.logLevel = options.logLevel
 
         // retrieve device identifier
-        self.deviceId = DeviceIdentifier.retrieve(fileURL: EmbraceFileSystem.deviceIdURL)
+        self.deviceId = EmbraceIdentifier.retrieveDeviceId(fileURL: EmbraceFileSystem.deviceIdURL)
 
         // initialize remote configuration
         self.config = Embrace.createConfig(options: options, deviceId: deviceId)
 
         // initialize upload module
-        self.upload = try Embrace.createUpload(options: options, deviceId: deviceId.hex, configuration: config.configurable)
+        self.upload = try Embrace.createUpload(options: options, deviceId: deviceId.stringValue, configuration: config.configurable)
 
         // send critical logs from previous session
         UnsentDataHandler.sendCriticalLogs(fileUrl: EmbraceFileSystem.criticalLogsURL, upload: upload)
@@ -414,7 +414,7 @@ import Foundation
 
     /// Returns the current device identifier.
     @objc public func currentDeviceId() -> String? {
-        return deviceId.hex
+        return deviceId.stringValue
     }
 
     /// Forces the Embrace SDK to start a new session.

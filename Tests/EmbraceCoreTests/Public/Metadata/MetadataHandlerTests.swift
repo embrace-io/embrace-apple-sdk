@@ -208,7 +208,7 @@ final class MetadataHandlerTests: XCTestCase {
         let secondSessionId = newSession!.id!
         storage.addSession(
             id: secondSessionId,
-            processId: .current,
+            processId: ProcessIdentifier.current,
             state: .foreground,
             traceId: .random(),
             spanId: .random(),
@@ -270,8 +270,8 @@ final class MetadataHandlerTests: XCTestCase {
             syncronizationQueue: MockQueue()
         )
 
-        let otherProcessId = ProcessIdentifier.random
-        let otherSessionId = SessionIdentifier.random
+        let otherProcessId = EmbraceIdentifier.random
+        let otherSessionId = EmbraceIdentifier.random
         storage.addSession(
             id: otherSessionId,
             processId: otherProcessId,
@@ -287,7 +287,7 @@ final class MetadataHandlerTests: XCTestCase {
             value: "bar",
             type: .customProperty,
             lifespan: .process,
-            lifespanId: otherProcessId.value
+            lifespanId: otherProcessId.stringValue
         )
 
         // When removed

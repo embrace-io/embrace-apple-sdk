@@ -32,7 +32,7 @@ struct LogPayloadBuilder {
         body: String,
         attributes: [String: String],
         storage: EmbraceStorage?,
-        sessionId: SessionIdentifier?
+        sessionId: EmbraceIdentifier?
     ) -> PayloadEnvelope<[LogPayload]> {
 
         // build resources and metadata payloads

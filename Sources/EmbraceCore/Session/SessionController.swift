@@ -134,7 +134,7 @@ class SessionController: SessionControllable {
             // -
 
             // create session span
-            let newId = SessionIdentifier.random
+            let newId = EmbraceIdentifier.random
             let span = SessionSpanUtils.span(id: newId, startTime: startTime, state: state, coldStart: isColdStart)
             _currentSessionSpan = span
 

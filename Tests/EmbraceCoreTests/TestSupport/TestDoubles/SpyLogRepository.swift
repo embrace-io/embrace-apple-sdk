@@ -12,7 +12,7 @@ class SpyLogRepository: LogRepository {
 
     var didCallFetchAll = false
     var stubbedFetchAllResult: [EmbraceLog] = []
-    func fetchAll(excludingProcessIdentifier processIdentifier: ProcessIdentifier) -> [EmbraceLog] {
+    func fetchAll(excludingProcessIdentifier processIdentifier: EmbraceIdentifier) -> [EmbraceLog] {
         didCallFetchAll = true
         return stubbedFetchAllResult
     }
@@ -29,8 +29,8 @@ class SpyLogRepository: LogRepository {
 
     var didCallCreate = false
     func createLog(
-        id: LogIdentifier,
-        processId: ProcessIdentifier,
+        id: EmbraceIdentifier,
+        processId: EmbraceIdentifier,
         severity: LogSeverity,
         body: String,
         timestamp: Date,

@@ -20,7 +20,7 @@ extension EmbraceSpan {
         return SpanType(rawValue: typeRaw)
     }
 
-    public var processId: ProcessIdentifier? {
-        return ProcessIdentifier(string: processIdRaw)
+    public var processId: EmbraceIdentifier? {
+        return EmbraceIdentifier(stringValue: processIdRaw)
     }
 }
