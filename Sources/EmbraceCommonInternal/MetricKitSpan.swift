@@ -17,10 +17,11 @@ public class EmbraceMetricKitSpan {
     /// - Returns: EmbraceMetricKitSpan object - call .end() when the operation completes
     public static func begin(name: StaticString, force: Bool = false) -> EmbraceMetricKitSpan {
         let logged = force || enabled
+        let id: OSSignpostID = OSSignpostID(log: Self.log)
         if logged {
-            mxSignpost(.begin, log: Self.log, name: name)
+            mxSignpost(.begin, log: Self.log, name: name, signpostID: id)
         }
-        return EmbraceMetricKitSpan(name: name, logged: logged)
+        return EmbraceMetricKitSpan(name: name, signpostId: id, logged: logged)
     }
 
     /// Ends the signpost interval
@@ -28,7 +29,7 @@ public class EmbraceMetricKitSpan {
         guard logged && hasEnded.compareExchange(expected: false, desired: true) else {
             return
         }
-        mxSignpost(.end, log: Self.log, name: name)
+        mxSignpost(.end, log: Self.log, name: name, signpostID: signpostId)
     }
 
     // MARK: - Private
@@ -38,11 +39,7 @@ public class EmbraceMetricKitSpan {
     private static let log: OSLog = MXMetricManager.makeLogHandle(category: "EmbraceSDK")
     @_spi(EmbraceSDK)
     public static func bootstrap(enabled: Bool) {
-        #if DEBUG  // we will remove this later, We just need to collect data for now.
-            _enabled.store(true)
-        #else
-            _enabled.store(enabled)
-        #endif
+        _enabled.store(enabled)
     }
     private static var _enabled: EmbraceAtomic<Bool> = false
     private static var enabled: Bool {
@@ -52,10 +49,12 @@ public class EmbraceMetricKitSpan {
     private let name: StaticString
     private let logged: Bool
     private let hasEnded = EmbraceAtomic<Bool>(false)
+    private let signpostId: OSSignpostID
 
-    private init(name: StaticString, logged: Bool) {
+    private init(name: StaticString, signpostId: OSSignpostID, logged: Bool) {
         self.name = name
         self.logged = logged
+        self.signpostId = signpostId
     }
 
     deinit {
