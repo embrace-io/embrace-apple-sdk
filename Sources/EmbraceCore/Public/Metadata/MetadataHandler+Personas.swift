@@ -104,6 +104,17 @@ extension MetadataHandler {
         try add(persona: PersonaTag(persona), lifespan: lifespan)
     }
 
+    /// Removes the persona tag for the given value and lifespan.
+    /// - Parameters:
+    ///   - value: The key of the persona tag to remove.
+    ///   - lifespan: The lifespan of the persona tag to remove. This was declared when this persona was added.
+    ///
+    /// - Note: This method is for Objective-C compatibility. In Swift, it is
+    /// recommended to use ``PersonaTag`` and define custom persona tags as static properties.
+    @objc public func remove(persona: String, lifespan: MetadataLifespan = .session) throws {
+        try remove(persona: PersonaTag(persona), lifespan: lifespan)
+    }
+
     /// Retrieve the current set of persona tags as strings.
     ///
     /// - Note: This method is for Objective-C compatibility. In Swift, it is
