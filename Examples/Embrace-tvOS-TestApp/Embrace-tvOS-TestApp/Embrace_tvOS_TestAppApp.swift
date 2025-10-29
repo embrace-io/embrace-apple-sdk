@@ -5,8 +5,8 @@
 //  Created by Fernando Draghi on 14/10/2025.
 //
 
-import SwiftUI
 import EmbraceIO
+import SwiftUI
 
 @main
 struct Embrace_tvOS_TestAppApp: App {
