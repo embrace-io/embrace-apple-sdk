@@ -86,14 +86,11 @@ extension MetaData {
         } else {
             self.lowPowerModeEnabled = false
             self.isTestFlightApp = false
-            self.pid = 0
+            self.pid = -1
         }
 
-        if #available(iOS 26.0, *) {
-            self.bundleIdentifier = metaData.bundleIdentifier
-        } else {
-            self.bundleIdentifier = ""
-        }
+        // bundle identifier is special, it appeared in iOS 26 but is avaialble in the JSON.
+        self.bundleIdentifier = metaData.dictionaryRepresentation()["bundleIdentifier"] as? String ?? ""
 
         self.regionFormat = metaData.regionFormat
         self.osVersion = metaData.osVersion
