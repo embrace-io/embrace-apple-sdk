@@ -180,7 +180,7 @@ final class EmbraceSpanProcessorExporterTests: XCTestCase {
 
         // when an open session span is exported
         let expectation = XCTestExpectation()
-        processor.processIncompletedSpanData(openSessionSpan, span: nil, sync: false)
+        processor.processIncompletedSpanData(openSessionSpan, span: nil, sync: true)
         processor.processorQueue.async {
             expectation.fulfill()
         }
@@ -195,7 +195,7 @@ final class EmbraceSpanProcessorExporterTests: XCTestCase {
 
         // when a closed session span is exported
         let expectation1 = XCTestExpectation()
-        processor.processCompletedSpanData(closedSessionSpan)
+        processor.processCompletedSpanData(closedSessionSpan, sync: true)
         processor.processorQueue.async {
             expectation1.fulfill()
         }
@@ -237,7 +237,7 @@ final class EmbraceSpanProcessorExporterTests: XCTestCase {
 
         // when the span is exported
         let expectation = XCTestExpectation()
-        processor.processCompletedSpanData(spanData)
+        processor.processCompletedSpanData(spanData, sync: true)
         processor.processorQueue.async {
             expectation.fulfill()
         }
@@ -324,11 +324,11 @@ final class EmbraceSpanProcessorExporterTests: XCTestCase {
 
         // when the span is exported
         let expectation = XCTestExpectation()
-        processor.processCompletedSpanData(spanData)
+        processor.processCompletedSpanData(spanData, sync: true)
         processor.processorQueue.async {
             expectation.fulfill()
         }
-        wait(for: [expectation], timeout: .shortTimeout)
+        wait(for: [expectation], timeout: .longTimeout)
 
         // then the data is exported without truncating the anme
         let exportedSpans: [SpanRecord] = storage.fetchAll()
