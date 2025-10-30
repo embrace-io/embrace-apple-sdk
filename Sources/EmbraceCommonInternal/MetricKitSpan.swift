@@ -16,17 +16,14 @@ public class EmbraceMetricKitSpan {
     /// - Parameter name: The signpost name (will appear in MXMetricPayload as signpostMetrics.EmbraceSDK.{name})
     /// - Returns: EmbraceMetricKitSpan object - call .end() when the operation completes
     public static func begin(name: StaticString, force: Bool = false) -> EmbraceMetricKitSpan {
-        let logged = force || enabled
-        let id: OSSignpostID = OSSignpostID(log: Self.log)
-        if logged {
-            mxSignpost(.begin, log: Self.log, name: name, signpostID: id)
-        }
-        return EmbraceMetricKitSpan(name: name, signpostId: id, logged: logged)
+        let logged = true || force || enabled
+        let id: OSSignpostID? = logged ? OSSignpostID(log: Self.log) : nil
+        return EmbraceMetricKitSpan(name: name, signpostId: id)
     }
 
     /// Ends the signpost interval
     public func end() {
-        guard logged && hasEnded.compareExchange(expected: false, desired: true) else {
+        guard let signpostId, hasEnded.compareExchange(expected: false, desired: true) else {
             return
         }
         mxSignpost(.end, log: Self.log, name: name, signpostID: signpostId)
@@ -47,14 +44,15 @@ public class EmbraceMetricKitSpan {
     }
 
     private let name: StaticString
-    private let logged: Bool
     private let hasEnded = EmbraceAtomic<Bool>(false)
-    private let signpostId: OSSignpostID
+    private let signpostId: OSSignpostID?
 
-    private init(name: StaticString, signpostId: OSSignpostID, logged: Bool) {
+    private init(name: StaticString, signpostId: OSSignpostID?) {
         self.name = name
-        self.logged = logged
         self.signpostId = signpostId
+        if let signpostId {
+            mxSignpost(.begin, log: Self.log, name: name, signpostID: signpostId)
+        }
     }
 
     deinit {
