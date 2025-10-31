@@ -4,15 +4,15 @@
 //
 //
 
-import SwiftUI
 import EmbraceCore
 import EmbraceMacros
+import SwiftUI
 
 struct LoginScreen: View {
     @State var username: String = ""
     @State var userId: String = ""
     @State var userEmail: String = ""
-    
+
     var body: some View {
         VStack(alignment: .center) {
             HStack {
@@ -26,25 +26,26 @@ struct LoginScreen: View {
                     .font(.embraceFont(size: 80))
                     .foregroundStyle(.embraceYellow)
             }
-            
+
             Text("tvOS Test App")
                 .font(.embraceFont(size: 60))
                 .foregroundStyle(.embraceSteel)
-            
+
             TextField("UserName", text: $username)
                 .font(.embraceFontLight(size: 30))
                 .submitLabel(.continue)
                 .frame(width: 500)
+
             TextField("User email", text: $userEmail)
                 .font(.embraceFontLight(size: 30))
                 .submitLabel(.continue)
                 .frame(width: 500)
-            
+
             TextField("User id", text: $userId)
                 .font(.embraceFontLight(size: 30))
                 .submitLabel(.continue)
                 .frame(width: 500)
-            
+
             Button {
                 Embrace.client?.metadata.userName = username
                 Embrace.client?.metadata.userIdentifier = userId
@@ -54,7 +55,7 @@ struct LoginScreen: View {
                     .font(.embraceFont(size: 30))
                     .foregroundStyle(.embraceSilver)
             }.accessibilityLabel("Login Button")
-            
+
             Button {
                 Embrace.client?.metadata.userName = nil
                 Embrace.client?.metadata.userIdentifier = nil
