@@ -24,9 +24,9 @@ final class DeviceInfoCaptureServiceTests: XCTestCase {
         service.start()
 
         // then the app info resources are correctly stored
-        let processId = ProcessIdentifier.current.value
+        let processId = ProcessIdentifier.current.stringValue
 
-        let resources = handler.fetchResourcesForProcessId(.current)
+        let resources = handler.fetchResourcesForProcessId(ProcessIdentifier.current)
         XCTAssertEqual(resources.count, 10)
 
         // jailbroken

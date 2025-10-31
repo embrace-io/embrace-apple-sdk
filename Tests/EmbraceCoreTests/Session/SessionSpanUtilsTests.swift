@@ -40,7 +40,7 @@ final class SessionSpanUtilsTests: XCTestCase {
         XCTAssertEqual(spanData.name, "emb-session")
         XCTAssertEqual(spanData.startTime, TestConstants.date)
         XCTAssertEqual(spanData.attributes["emb.type"], .string("ux.session"))
-        XCTAssertEqual(spanData.attributes["session.id"], .string(TestConstants.sessionId.toString))
+        XCTAssertEqual(spanData.attributes["session.id"], .string(TestConstants.sessionId.stringValue))
         XCTAssertEqual(spanData.attributes["emb.state"], .string(SessionState.foreground.rawValue))
         XCTAssertEqual(spanData.attributes["emb.cold_start"], .bool(true))
     }
@@ -145,7 +145,7 @@ final class SessionSpanUtilsTests: XCTestCase {
         let sessionAttribute = payload.attributes.first {
             $0.key == "session.id"
         }
-        XCTAssertEqual(sessionAttribute!.value, TestConstants.sessionId.toString)
+        XCTAssertEqual(sessionAttribute!.value, TestConstants.sessionId.stringValue)
 
         let stateAttribute = payload.attributes.first {
             $0.key == "emb.state"

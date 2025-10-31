@@ -151,14 +151,14 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
             value: "metadata",
             type: .customProperty,
             lifespan: .session,
-            lifespanId: TestConstants.sessionId.toString
+            lifespanId: TestConstants.sessionId.stringValue
         )
         storage.addMetadata(
             key: "test2",
             value: "metadata",
             type: .customProperty,
             lifespan: .process,
-            lifespanId: TestConstants.processId.value
+            lifespanId: TestConstants.processId.stringValue
         )
 
         // given a capture service

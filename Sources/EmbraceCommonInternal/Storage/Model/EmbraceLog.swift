@@ -3,7 +3,6 @@
 //
 
 import Foundation
-import OpenTelemetryApi
 
 public protocol EmbraceLog {
     var idRaw: String { get }
@@ -17,8 +16,8 @@ public protocol EmbraceLog {
 }
 
 extension EmbraceLog {
-    public var processId: ProcessIdentifier? {
-        return ProcessIdentifier(string: processIdRaw)
+    public var processId: EmbraceIdentifier? {
+        return EmbraceIdentifier(stringValue: processIdRaw)
     }
 
     public var severity: LogSeverity {

@@ -17,7 +17,7 @@ final class RemoteConfigTests: XCTestCase {
         apiBaseUrl: "https://localhost:8080/config",
         queue: DispatchQueue(label: "com.test.embrace.queue"),
         appId: TestConstants.appId,
-        deviceId: DeviceIdentifier(string: "00000000000000000000000000800000")!,  // %50 threshold
+        deviceId: EmbraceIdentifier(stringValue: "00000000000000000000000000800000"),  // %50 threshold
         osVersion: TestConstants.osVersion,
         sdkVersion: TestConstants.sdkVersion,
         appVersion: TestConstants.appVersion,

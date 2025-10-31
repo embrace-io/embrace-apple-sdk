@@ -50,7 +50,7 @@ class LogControllerTests: XCTestCase {
     }
 
     func testHavingLogs_onSetup_fetchesResourcesFromStorage() throws {
-        let sessionId = SessionIdentifier.random
+        let sessionId = EmbraceIdentifier.random
         let log = randomLogRecord(sessionId: sessionId)
 
         givenStorage(withLogs: [log])
@@ -60,7 +60,7 @@ class LogControllerTests: XCTestCase {
     }
 
     func testHavingLogs_onSetup_fetchesMetadataFromStorage() throws {
-        let sessionId = SessionIdentifier.random
+        let sessionId = EmbraceIdentifier.random
         let log = randomLogRecord(sessionId: sessionId)
 
         givenStorage(withLogs: [log])
@@ -422,7 +422,7 @@ extension LogControllerTests {
         XCTAssertFalse(upload.didCallUploadLog)
     }
 
-    fileprivate func thenFetchesAllLogsExcluding(pid: ProcessIdentifier) throws {
+    fileprivate func thenFetchesAllLogsExcluding(pid: EmbraceIdentifier) throws {
         let unwrappedStorage = try XCTUnwrap(storage)
         XCTAssertTrue(unwrappedStorage.didCallFetchAllExcludingProcessIdentifier)
         XCTAssertEqual(unwrappedStorage.fetchAllExcludingProcessIdentifierReceivedParameter, pid)
@@ -471,13 +471,13 @@ extension LogControllerTests {
         XCTAssertFalse(unwrappedStorage.didCallRemoveLogs)
     }
 
-    fileprivate func thenFetchesResourcesFromStorage(sessionId: SessionIdentifier?) throws {
+    fileprivate func thenFetchesResourcesFromStorage(sessionId: EmbraceIdentifier?) throws {
         let unwrappedStorage = try XCTUnwrap(storage)
         XCTAssertTrue(unwrappedStorage.didCallFetchResourcesForSessionId)
         XCTAssertEqual(unwrappedStorage.fetchResourcesForSessionIdReceivedParameter, sessionId)
     }
 
-    fileprivate func thenFetchesMetadataFromStorage(sessionId: SessionIdentifier?) throws {
+    fileprivate func thenFetchesMetadataFromStorage(sessionId: EmbraceIdentifier?) throws {
         let unwrappedStorage = try XCTUnwrap(storage)
         XCTAssertTrue(unwrappedStorage.didCallFetchCustomPropertiesForSessionId)
         XCTAssertEqual(unwrappedStorage.fetchCustomPropertiesForSessionIdReceivedParameter, sessionId)
@@ -485,13 +485,13 @@ extension LogControllerTests {
         XCTAssertEqual(unwrappedStorage.fetchPersonaTagsForSessionIdReceivedParameter, sessionId)
     }
 
-    fileprivate func thenFetchesResourcesFromStorage(processId: ProcessIdentifier) throws {
+    fileprivate func thenFetchesResourcesFromStorage(processId: EmbraceIdentifier) throws {
         let unwrappedStorage = try XCTUnwrap(storage)
         XCTAssertTrue(unwrappedStorage.didCallFetchResourcesForProcessId)
         XCTAssertEqual(unwrappedStorage.fetchResourcesForProcessIdReceivedParameter, processId)
     }
 
-    fileprivate func thenFetchesMetadataFromStorage(processId: ProcessIdentifier) throws {
+    fileprivate func thenFetchesMetadataFromStorage(processId: EmbraceIdentifier) throws {
         let unwrappedStorage = try XCTUnwrap(storage)
         XCTAssertTrue(unwrappedStorage.didCallFetchPersonaTagsForProcessId)
         XCTAssertEqual(unwrappedStorage.fetchPersonaTagsForProcessIdReceivedParameter, processId)
@@ -557,13 +557,13 @@ extension LogControllerTests {
     }
 
     fileprivate func randomLogRecord(
-        sessionId: SessionIdentifier? = nil,
+        sessionId: EmbraceIdentifier? = nil,
         type: String = "test"
     ) -> EmbraceLog {
 
         var attributes: [String: AttributeValue] = [:]
         if let sessionId = sessionId {
-            attributes["session.id"] = AttributeValue(sessionId.toString)
+            attributes["session.id"] = AttributeValue(sessionId.stringValue)
         }
 
         attributes["emb.type"] = AttributeValue(type)

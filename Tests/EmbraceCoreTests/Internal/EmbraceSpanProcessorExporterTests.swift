@@ -79,7 +79,7 @@ final class EmbraceSpanProcessorExporterTests: XCTestCase {
         XCTAssertEqual(exportedSpan.endTime!.timeIntervalSince1970, endTime.timeIntervalSince1970, accuracy: 0.01)
 
         XCTAssertNotNil(exportedSpan.sessionIdRaw)
-        XCTAssertEqual(exportedSpan.sessionIdRaw, sessionController.currentSession?.id?.toString)
+        XCTAssertEqual(exportedSpan.sessionIdRaw, sessionController.currentSession?.id?.stringValue)
     }
 
     func test_DB_allowsOpenSpan_toUpdateAttributes() throws {

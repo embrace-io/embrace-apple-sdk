@@ -108,7 +108,7 @@ extension LogsBatchTests {
 
     fileprivate func randomLog(date: Date = Date()) -> EmbraceLog {
         return MockLog(
-            id: .init(),
+            id: .random,
             processId: .random,
             severity: .info,
             body: UUID().uuidString,

@@ -11,13 +11,13 @@ struct ContentView: View {
     var body: some View {
         VStack {
             Button {
-                
+
             } label: {
                 Text("Button 1")
             }
-            
+
             Button {
-                
+
             } label: {
                 Text("Button 2")
             }

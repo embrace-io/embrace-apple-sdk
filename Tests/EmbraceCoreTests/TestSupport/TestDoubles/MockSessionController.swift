@@ -12,7 +12,7 @@ import TestSupport
 class MockSessionController: SessionControllable {
 
     // Properties for mocking
-    var nextSessionId: SessionIdentifier?
+    var nextSessionId: EmbraceIdentifier?
     var nextSessionColdStart: Bool = false
     var nextSessionAppTerminated: Bool = false
 

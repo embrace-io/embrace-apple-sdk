@@ -65,7 +65,7 @@ struct EncryptedNetworkPayload: Encodable {
         startTime: Date?,
         endTime: Date?,
         matchedUrl: String,
-        sessionId: SessionIdentifier?
+        sessionId: EmbraceIdentifier?
     ) {
         guard let request = request,
             let url = request.url,
@@ -81,7 +81,7 @@ struct EncryptedNetworkPayload: Encodable {
         self.endTime = endTime?.nanosecondsSince1970Truncated
 
         self.matchedUrl = matchedUrl
-        self.sessionId = sessionId?.toString
+        self.sessionId = sessionId?.stringValue
 
         if let body = request.httpBody {
             self.requestBody = String(data: body, encoding: .utf8)

@@ -15,10 +15,10 @@ import OpenTelemetrySdk
 
 struct SessionSpanUtils {
 
-    static func span(id: SessionIdentifier, startTime: Date, state: SessionState, coldStart: Bool) -> Span {
+    static func span(id: EmbraceIdentifier, startTime: Date, state: SessionState, coldStart: Bool) -> Span {
         EmbraceOTel().buildSpan(name: SpanSemantics.Session.name, type: .session)
             .setStartTime(time: startTime)
-            .setAttribute(key: SpanSemantics.Session.keyId, value: id.toString)
+            .setAttribute(key: SpanSemantics.Session.keyId, value: id.stringValue)
             .setAttribute(key: SpanSemantics.Session.keyState, value: state.rawValue)
             .setAttribute(key: SpanSemantics.Session.keyColdStart, value: coldStart)
             .startSpan()

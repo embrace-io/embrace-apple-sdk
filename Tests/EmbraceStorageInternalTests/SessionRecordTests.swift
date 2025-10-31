@@ -33,12 +33,12 @@ class SessionRecordTests: XCTestCase {
         // then session should exist in storage
         let sessions: [SessionRecord] = storage.fetchAll()
         XCTAssertEqual(sessions.count, 1)
-        XCTAssertEqual(sessions[0].idRaw, TestConstants.sessionId.toString)
+        XCTAssertEqual(sessions[0].idRaw, TestConstants.sessionId.stringValue)
     }
 
     func test_fetchSession() throws {
         // given inserted session
-        let sessionId = SessionIdentifier.random
+        let sessionId = EmbraceIdentifier.random
         let original = storage.addSession(
             id: sessionId,
             processId: ProcessIdentifier.current,

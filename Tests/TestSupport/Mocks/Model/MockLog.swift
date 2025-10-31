@@ -15,15 +15,15 @@ public class MockLog: EmbraceLog {
     public var attributes: [MockLogAttribute]
 
     public init(
-        id: LogIdentifier,
-        processId: ProcessIdentifier,
+        id: EmbraceIdentifier,
+        processId: EmbraceIdentifier,
         severity: LogSeverity,
         body: String,
         timestamp: Date = Date(),
         attributes: [String: AttributeValue] = [:]
     ) {
-        self.idRaw = id.toString
-        self.processIdRaw = processId.value
+        self.idRaw = id.stringValue
+        self.processIdRaw = processId.stringValue
         self.severityRaw = severity.rawValue
         self.body = body
         self.timestamp = timestamp

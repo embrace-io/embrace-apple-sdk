@@ -9,7 +9,7 @@ import Foundation
 #endif
 
 protocol MetricKitCrashPayloadListener: AnyObject {
-    func didReceive(payload: Data, signal: Int, sessionId: SessionIdentifier?)
+    func didReceive(payload: Data, signal: Int, sessionId: EmbraceIdentifier?)
 }
 
 protocol MetricKitHangPayloadListener: AnyObject {

@@ -31,8 +31,8 @@ public class SpanRecord: NSManagedObject {
         data: Data,
         startTime: Date,
         endTime: Date? = nil,
-        processId: ProcessIdentifier,
-        sessionId: SessionIdentifier? = nil
+        processId: EmbraceIdentifier,
+        sessionId: EmbraceIdentifier? = nil
     ) -> EmbraceSpan? {
         var result: EmbraceSpan?
 
@@ -49,8 +49,8 @@ public class SpanRecord: NSManagedObject {
             record.data = data
             record.startTime = startTime
             record.endTime = endTime
-            record.processIdRaw = processId.value
-            record.sessionIdRaw = sessionId?.toString
+            record.processIdRaw = processId.stringValue
+            record.sessionIdRaw = sessionId?.stringValue
 
             result = record.toImmutable()
         }
