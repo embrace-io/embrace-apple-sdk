@@ -105,6 +105,7 @@ public class CoreDataWrapper {
         context = container.newBackgroundContext()
     }
 
+    @discardableResult
     private func loadPersistentStoreIfNeeded(logIfEmpty: Bool = true) -> Error? {
         // if we have persistent stores just continue on
         guard container.persistentStoreCoordinator.persistentStores.isEmpty else {
@@ -292,7 +293,7 @@ extension CoreDataWrapper {
             return true
         }
 
-        let nsError = error as? NSError
+        let nsError = error as NSError
 
         // Log the error so we have a trace
         logger.critical(
@@ -300,7 +301,7 @@ extension CoreDataWrapper {
             CoreData save failed '\(context.name ?? "???")',
             error: \(error.localizedDescription),
             """,
-            attributes: nsError?.userInfo.compactMapValues { "\($0)" } ?? [:]
+            attributes: nsError.userInfo.compactMapValues { "\($0)" }
         )
         return false
 
