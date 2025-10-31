@@ -16,7 +16,7 @@ public class EmbraceMetricKitSpan {
     /// - Parameter name: The signpost name (will appear in MXMetricPayload as signpostMetrics.EmbraceSDK.{name})
     /// - Returns: EmbraceMetricKitSpan object - call .end() when the operation completes
     public static func begin(name: StaticString, force: Bool = false) -> EmbraceMetricKitSpan {
-        let logged = true || force || enabled
+        let logged = force || enabled
         let id: OSSignpostID? = logged ? OSSignpostID(log: Self.log) : nil
         return EmbraceMetricKitSpan(name: name, signpostId: id)
     }
@@ -34,8 +34,7 @@ public class EmbraceMetricKitSpan {
     /// The OSLog object for EmbraceSDK signposts
     /// Created using MXMetricManager.makeLogHandle to ensure MetricKit tracks these signposts
     private static let log: OSLog = MXMetricManager.makeLogHandle(category: "EmbraceSDK")
-    @_spi(EmbraceSDK)
-    public static func bootstrap(enabled: Bool) {
+    package static func bootstrap(enabled: Bool) {
         _enabled.store(enabled)
     }
     private static var _enabled: EmbraceAtomic<Bool> = false
