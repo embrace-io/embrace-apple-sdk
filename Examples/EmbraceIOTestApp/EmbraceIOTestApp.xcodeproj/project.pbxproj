@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -283,6 +283,10 @@
 		4DF4408C2E3D518400708D6A /* SwiftUITestsAttributesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftUITestsAttributesView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		2A00211F2E9829AB00C015B2 /* Helpers */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Helpers; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
 		4D94F2502D429257008DECEE /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
@@ -545,6 +549,7 @@
 		4D6337D52DE1157700557BDC /* Common */ = {
 			isa = PBXGroup;
 			children = (
+				2A00211F2E9829AB00C015B2 /* Helpers */,
 				4D6337B12DE1157700557BDC /* Enums */,
 				4D6337B62DE1157700557BDC /* Extensions */,
 				4D6337BA2DE1157700557BDC /* PayloadExporters */,
@@ -999,6 +1004,9 @@
 			buildRules = (
 			);
 			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				2A00211F2E9829AB00C015B2 /* Helpers */,
 			);
 			name = EmbraceIOTestApp;
 			packageProductDependencies = (

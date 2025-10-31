@@ -3,10 +3,10 @@
 //
 
 extension SpanEventSemantics {
-    public struct ThreadBlockage {
-        public static let name = "perf.thread_blockage_sample"
+    public struct Hang {
+        public static let name = "thread_blockage_sample"
+
         public static let keySampleOverhead = "sample_overhead"
         public static let keyFrameCount = "frame_count"
-        public static let keyStacktrace = "stacktrace"
     }
 }

@@ -2,10 +2,6 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-extension EmbraceType {
-    public static let hang = EmbraceType(system: "ios.hang")
-}
-
 extension LogSemantics {
     public struct Hang {
         public static let keyId = "log.record.uid"

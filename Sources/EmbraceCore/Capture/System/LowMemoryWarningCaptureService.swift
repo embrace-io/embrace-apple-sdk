@@ -13,8 +13,6 @@ import Foundation
 /// Service that generates OpenTelemetry span events when the application receives a low memory warning.
 public final class LowMemoryWarningCaptureService: CaptureService {
 
-    @ThreadSafe var started = false
-
     deinit {
         NotificationCenter.default.removeObserver(self)
     }
@@ -30,7 +28,7 @@ public final class LowMemoryWarningCaptureService: CaptureService {
     }
 
     @objc func didReceiveMemoryWarning(notification: Notification) {
-        guard state == .active else {
+        guard isActive else {
             return
         }
 

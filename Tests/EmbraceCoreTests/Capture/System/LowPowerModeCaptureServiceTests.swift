@@ -68,7 +68,7 @@ class LowPowerModeCollectorTests: XCTestCase {
         service.install(otel: otel)
 
         // then its not started
-        XCTAssertFalse(service.state == .active)
+        XCTAssertFalse(service.state.load() == .active)
 
         // when low power mode changes
         provider.isLowPowerModeEnabled = false
@@ -80,7 +80,7 @@ class LowPowerModeCollectorTests: XCTestCase {
         service.start()
 
         // then it correctly starts
-        XCTAssertTrue(service.state == .active)
+        XCTAssertTrue(service.state.load() == .active)
 
         // when low power mode changes
         provider.isLowPowerModeEnabled = true
@@ -98,13 +98,13 @@ class LowPowerModeCollectorTests: XCTestCase {
         service.start()
 
         // then it correctly starts
-        XCTAssertTrue(service.state == .active)
+        XCTAssertTrue(service.state.load() == .active)
 
         // when it is stopped
         service.stop()
 
         // then it stops
-        XCTAssertFalse(service.state == .active)
+        XCTAssertFalse(service.state.load() == .active)
 
         // when low power mode changes
         provider.isLowPowerModeEnabled = true

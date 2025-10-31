@@ -33,10 +33,6 @@ public final class PushNotificationCaptureService: CaptureService {
             lock.unlock()
         }
 
-        guard state == .uninstalled else {
-            return
-        }
-
         proxy.otel = otel
         initializeSwizzlers()
 

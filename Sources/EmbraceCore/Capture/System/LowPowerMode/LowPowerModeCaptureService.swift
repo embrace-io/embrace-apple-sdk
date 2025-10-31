@@ -14,8 +14,11 @@ import Foundation
 public final class LowPowerModeCaptureService: CaptureService {
     public let provider: PowerModeProvider
 
-    @ThreadSafe var wasLowPowerModeEnabled = false
-    @ThreadSafe var currentSpan: EmbraceSpan?
+    private let wasLowPowerModeEnabled = EmbraceAtomic(false)
+    internal let _currentSpan = EmbraceMutex<EmbraceSpan?>(nil)
+    internal var currentSpan: EmbraceSpan? {
+        _currentSpan.withLock { $0 }
+    }
 
     public init(provider: PowerModeProvider = DefaultPowerModeProvider()) {
         self.provider = provider
@@ -40,7 +43,7 @@ public final class LowPowerModeCaptureService: CaptureService {
             startSpan(wasManuallyFetched: true)
         }
 
-        wasLowPowerModeEnabled = provider.isLowPowerModeEnabled
+        wasLowPowerModeEnabled.store(provider.isLowPowerModeEnabled)
     }
 
     override public func onStop() {
@@ -48,17 +51,16 @@ public final class LowPowerModeCaptureService: CaptureService {
     }
 
     @objc func didChangePowerMode(notification: Notification) {
-        guard state == .active else {
+        guard isActive else {
             return
         }
 
-        if provider.isLowPowerModeEnabled && !wasLowPowerModeEnabled {
+        let prevLowPowerMode = wasLowPowerModeEnabled.exchange(provider.isLowPowerModeEnabled)
+        if provider.isLowPowerModeEnabled && !prevLowPowerMode {
             startSpan()
-        } else if !provider.isLowPowerModeEnabled && wasLowPowerModeEnabled {
+        } else if !provider.isLowPowerModeEnabled && prevLowPowerMode {
             endSpan()
         }
-
-        wasLowPowerModeEnabled = provider.isLowPowerModeEnabled
     }
 
     func startSpan(wasManuallyFetched: Bool = false) {
@@ -66,17 +68,21 @@ public final class LowPowerModeCaptureService: CaptureService {
 
         let reason = wasManuallyFetched ? SpanSemantics.LowPower.systemQuery : SpanSemantics.LowPower.systemNotification
 
-        currentSpan = try? otel?.createInternalSpan(
-            name: SpanSemantics.LowPower.name,
-            type: .lowPower,
-            attributes: [
-                SpanSemantics.LowPower.keyStartReason: reason
-            ]
-        )
+        _currentSpan.withLock {
+            $0 = try? otel?.createInternalSpan(
+                name: SpanSemantics.LowPower.name,
+                type: .lowPower,
+                attributes: [
+                    SpanSemantics.LowPower.keyStartReason: reason
+                ]
+            )
+        }
     }
 
     func endSpan() {
-        currentSpan?.end()
-        currentSpan = nil
+        _currentSpan.withLock {
+            $0?.end()
+            $0 = nil
+        }
     }
 }

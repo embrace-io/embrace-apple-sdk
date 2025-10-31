@@ -52,6 +52,7 @@ class EmbraceUploadOperationTests: XCTestCase {
             endpoint: TestConstants.url,
             identifier: "id",
             data: Data(),
+            payloadTypes: "test",
             retryCount: 0,
             exponentialBackoffBehavior: .init(),
             attemptCount: 0
@@ -82,6 +83,7 @@ class EmbraceUploadOperationTests: XCTestCase {
         XCTAssertEqual(headers["Content-Encoding"], "gzip")
         XCTAssertEqual(headers["X-EM-AID"], testMetadataOptions.apiKey)
         XCTAssertEqual(headers["X-EM-DID"], testMetadataOptions.deviceId)
+        XCTAssertEqual(headers["X-EM-PAYLOAD-TYPES"], "test")
         XCTAssertNil(headers["x-emb-retry-count"])
     }
 

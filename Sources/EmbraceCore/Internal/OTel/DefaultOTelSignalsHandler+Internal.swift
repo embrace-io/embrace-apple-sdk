@@ -36,7 +36,17 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
         let sanitizedAttributes = isInternal ? attributes : sanitizer.sanitizeSpanAttributes(attributes)
         var internalAttributes = [String: String]()
         internalAttributes.setEmbraceType(type)
-        internalAttributes.setEmbraceSessionId(sessionController?.currentSession?.id)
+
+        // add session id if needed
+        var sessionId: EmbraceIdentifier?
+        if type == .session {
+            if let value = internalAttributes[SpanSemantics.Session.keyId] {
+                sessionId = EmbraceIdentifier(stringValue: value)
+            }
+        } else {
+            sessionId = sessionController?.currentSession?.id
+            internalAttributes.setEmbraceSessionId(sessionId)
+        }
 
         let finalAttributes = internalAttributes.merging(sanitizedAttributes) { (current, _) in current }
 
@@ -71,6 +81,7 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
             links: links,
             attributes: finalAttributes,
             internalAttributeCount: internalAttributes.count,
+            sessionId: sessionId,
             autoTerminationCode: code,
             isInternal: isInternal
         )
@@ -191,6 +202,7 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
         links: [EmbraceSpanLink],
         attributes: [String: String],
         internalAttributeCount: Int,
+        sessionId: EmbraceIdentifier?,
         autoTerminationCode: EmbraceSpanErrorCode?,
         isInternal: Bool
     ) -> DefaultEmbraceSpan {
@@ -208,7 +220,7 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
                 links: links,
                 attributes: attributes,
                 internalAttributeCount: internalAttributeCount,
-                sessionId: sessionController?.currentSession?.id,
+                sessionId: sessionId,
                 processId: ProcessIdentifier.current,
                 autoTerminationCode: autoTerminationCode,
                 handler: self
@@ -227,7 +239,7 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
             links: links,
             attributes: attributes,
             internalAttributeCount: internalAttributeCount,
-            sessionId: sessionController?.currentSession?.id,
+            sessionId: sessionId,
             processId: ProcessIdentifier.current,
             autoTerminationCode: autoTerminationCode,
             handler: self

@@ -188,41 +188,50 @@ extension EmbraceBacktraceFrame {
 
 extension EmbraceBacktrace {
 
-    // This does a few things.
-    // 1- suspends all threads except the current one.
-    // 2- gets the index of the thread we want a backtrace of.
-    // 3- sets up deferal of resuming all threads and releasing task thread memory.
-    // 4- takes a backtrace and symbolicates it (or simply gets the images if not available).
-    static func takeSnapshot(of thread: pthread_t, suspendingThreads: Bool) -> [EmbraceBacktraceThread] {
-        let snap = _takeSnapshot(of: thread, suspendingThreads: suspendingThreads)
+    static func takeSnapshot(of thread: pthread_t, threadIndex: Int = 0) -> [EmbraceBacktraceThread] {
+        let snap = _takeSnapshot(of: thread, threadIndex: threadIndex)
         return snap
     }
 
-    static func _takeSnapshot(of thread: pthread_t, suspendingThreads: Bool) -> [EmbraceBacktraceThread] {
+    static func _takeSnapshot(of thread: pthread_t, threadIndex: Int = 0) -> [EmbraceBacktraceThread] {
 
-        let threadList = suspendingThreads ? EmbraceThreadList() : nil
-        threadList?.suspend()
-        defer {
-            if suspendingThreads {
-                threadList?.resume()
+        guard let backtracer = Embrace.client?.options.backtracer else {
+            return []
+        }
+
+        // get the mach thread to take the snapshot of
+        let machThread = pthread_mach_thread_np(thread)
+        let canSuspend = pthread_self() != thread
+
+        // suspend thread if not the current thread.
+        if canSuspend {
+            guard thread_suspend(machThread) == KERN_SUCCESS else {
+                Embrace.logger.warning("[EmbraceBacktrace] error suspending thread")
+                return []
             }
         }
 
         // Get the actual snapshot,
+        let backtraceAddresses = backtracer.backtrace(of: thread)
+
+        // resume thread
+        if canSuspend {
+            thread_resume(machThread)
+        }
+
         // remove the entries that are part of the SDK,
         // get only the first N entries to not overload the system,
         // clean 'em up.
         let entries = 512
         let addresses =
-            Embrace.client?.options.backtracer?
-            .backtrace(of: thread)
+            backtraceAddresses
             .dropFirst(5)
             .prefix(entries)
-            .compactMap { $0 as UInt } ?? []
+            .compactMap { $0 as UInt }
 
         return [
             EmbraceBacktraceThread(
-                index: threadList?.indexOf(thread: thread) ?? 0,
+                index: threadIndex,
                 callstack: EmbraceBacktraceThread.Callstack(
                     addresses: addresses,
                     count: addresses.count

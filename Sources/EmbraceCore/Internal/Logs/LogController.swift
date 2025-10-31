@@ -115,7 +115,7 @@ class LogController: LogBatcherDelegate {
         switch stackTraceBehavior {
         case .default where severity == .warn || severity == .error:
             if EmbraceBacktrace.isAvailable {
-                let backtrace = EmbraceBacktrace.backtrace(of: pthread_self(), suspendingThreads: false)
+                let backtrace = EmbraceBacktrace.backtrace(of: pthread_self(), threadIndex: 0)
                 addStacktraceBlock = { $0.addBacktrace(backtrace) }
             } else {
                 let stacktrace = Thread.callStackSymbols
@@ -123,7 +123,7 @@ class LogController: LogBatcherDelegate {
             }
         case .main where severity == .warn || severity == .error:
             if EmbraceBacktrace.isAvailable {
-                let backtrace = EmbraceBacktrace.backtrace(of: EmbraceGetMainThread(), suspendingThreads: true)
+                let backtrace = EmbraceBacktrace.backtrace(of: EmbraceGetMainThread(), threadIndex: 0)
                 addStacktraceBlock = { $0.addBacktrace(backtrace) }
             } else {
                 addStacktraceBlock = nil
@@ -301,14 +301,19 @@ extension LogController {
             completion?()
             return
         }
+
         let logPayloads = logs.map { LogPayloadBuilder.build(log: $0) }
         let envelope = PayloadEnvelope.init(
             data: logPayloads,
             resource: resourcePayload,
-            metadata: metadataPayload)
+            metadata: metadataPayload
+        )
+
         do {
             let envelopeData = try JSONEncoder().encode(envelope).gzipped()
-            upload.uploadLog(id: UUID().uuidString, data: envelopeData) { [weak self] result in
+            let payloadTypes = logsPayloadTypes(logs)
+
+            upload.uploadLog(id: UUID().uuidString, data: envelopeData, payloadTypes: payloadTypes) { [weak self] result in
                 defer { completion?() }
                 guard let self = self else {
                     return
@@ -392,6 +397,17 @@ extension LogController {
         }
 
         return MetadataPayload(from: metadata)
+    }
+
+    /// Returns the comma separated list of all the `emb.types` for an array of `EmbraceLogs`
+    fileprivate func logsPayloadTypes(_ logs: [EmbraceLog]) -> String {
+        guard logs.count > 0 else {
+            return ""
+        }
+
+        let types = logs.compactMap { $0.attributes[LogSemantics.keyEmbraceType] }
+        let set = Set(types)
+        return set.joined(separator: ",")
     }
 }
 

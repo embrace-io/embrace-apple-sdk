@@ -2,7 +2,7 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-#if os(iOS)
+#if os(iOS) || os(tvOS)
     import Foundation
     #if !EMBRACE_COCOAPOD_BUILDING_SDK
         import EmbraceCommonInternal

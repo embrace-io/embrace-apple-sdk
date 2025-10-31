@@ -23,7 +23,7 @@ class MetricKitCrashCaptureService: CaptureService, MetricKitCrashPayloadListene
     }
 
     func didReceive(payload: Data, signal: Int, sessionId: EmbraceIdentifier?) {
-        guard state == .active,
+        guard isActive,
             let stateProvider = options.stateProvider,
             stateProvider.isMetricKitEnabled,
             stateProvider.isMetricKitCrashCaptureEnabled,

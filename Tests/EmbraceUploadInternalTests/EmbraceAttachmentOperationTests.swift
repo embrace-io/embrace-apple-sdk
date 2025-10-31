@@ -38,6 +38,7 @@ class EmbraceAttachmentUploadOperationTests: XCTestCase {
             endpoint: TestConstants.url,
             identifier: attachmentId,
             data: data,
+            payloadTypes: "test",
             retryCount: 0,
             exponentialBackoffBehavior: .init(),
             attemptCount: 0
@@ -51,6 +52,10 @@ class EmbraceAttachmentUploadOperationTests: XCTestCase {
         )
 
         XCTAssert(request.allHTTPHeaderFields!["Content-Type"]!.contains("multipart/form-data;"))
+        XCTAssertEqual(request.allHTTPHeaderFields!["User-Agent"], testMetadataOptions.userAgent)
+        XCTAssertEqual(request.allHTTPHeaderFields!["X-EM-AID"], testMetadataOptions.apiKey)
+        XCTAssertEqual(request.allHTTPHeaderFields!["X-EM-DID"], testMetadataOptions.deviceId)
+        XCTAssertEqual(request.allHTTPHeaderFields!["X-EM-PAYLOAD-TYPES"], "test")
 
         let body = String(data: request.httpBody!, encoding: .utf8)
 

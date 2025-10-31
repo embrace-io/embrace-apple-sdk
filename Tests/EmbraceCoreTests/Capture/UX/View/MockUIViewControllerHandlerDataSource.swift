@@ -13,7 +13,7 @@
     import EmbraceCommonInternal
 
     class MockUIViewControllerHandlerDataSource: UIViewControllerHandlerDataSource {
-        var state: CaptureServiceState = .active
+        var serviceState: CaptureServiceState = .active
         var otel: EmbraceOTelSignalsHandler? = MockOTelSignalsHandler()
         var instrumentVisibility: Bool = true
         var instrumentFirstRender: Bool = true

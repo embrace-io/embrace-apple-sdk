@@ -39,8 +39,11 @@ public struct RemoteConfigPayload: Decodable, Equatable {
 
     var hangLimitsHangPerSession: UInt
     var hangLimitsSamplesPerHang: UInt
+    var hangLimitsReportsWatchdogEvents: Bool
 
     var networkPayloadCaptureRules: [NetworkPayloadCaptureRule]
+
+    var useLegacyUrlSessionProxy: Bool
 
     enum CodingKeys: String, CodingKey {
         case sdkEnabledThreshold = "threshold"
@@ -90,9 +93,11 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         enum HangLimitsCodingKeys: String, CodingKey {
             case hangPerSession = "hang_per_session"
             case samplesPerHang = "samples_per_hang"
+            case reportsWatchdogEvents = "reports_watchdog_events"
         }
 
         case networkPayLoadCapture = "network_capture"
+        case useLegacyUrlSessionProxy = "use_legacy_urlsession_proxy"
     }
 
     public init(from decoder: Decoder) throws {
@@ -239,9 +244,16 @@ public struct RemoteConfigPayload: Decodable, Equatable {
                     UInt.self,
                     forKey: CodingKeys.HangLimitsCodingKeys.samplesPerHang
                 ) ?? defaultPayload.hangLimitsSamplesPerHang
+
+            hangLimitsReportsWatchdogEvents =
+                try hangLimitsContainer.decodeIfPresent(
+                    Bool.self,
+                    forKey: CodingKeys.HangLimitsCodingKeys.reportsWatchdogEvents
+                ) ?? defaultPayload.hangLimitsReportsWatchdogEvents
         } else {
             hangLimitsHangPerSession = defaultPayload.hangLimitsHangPerSession
             hangLimitsSamplesPerHang = defaultPayload.hangLimitsSamplesPerHang
+            hangLimitsReportsWatchdogEvents = defaultPayload.hangLimitsReportsWatchdogEvents
         }
 
         // internal logs limit
@@ -322,6 +334,13 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         } else {
             metricKitCrashSignals = defaultPayload.metricKitCrashSignals
         }
+
+        // use old url session proxy
+        useLegacyUrlSessionProxy =
+            try rootContainer.decodeIfPresent(
+                Bool.self,
+                forKey: .useLegacyUrlSessionProxy
+            ) ?? defaultPayload.useLegacyUrlSessionProxy
     }
 
     // defaults
@@ -355,7 +374,9 @@ public struct RemoteConfigPayload: Decodable, Equatable {
 
         hangLimitsHangPerSession = 200
         hangLimitsSamplesPerHang = 0
+        hangLimitsReportsWatchdogEvents = false
 
         networkPayloadCaptureRules = []
+        useLegacyUrlSessionProxy = false
     }
 }

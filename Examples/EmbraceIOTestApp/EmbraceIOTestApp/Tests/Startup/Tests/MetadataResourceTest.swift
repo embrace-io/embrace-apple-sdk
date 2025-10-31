@@ -119,4 +119,8 @@ class MetadataResourceTest: PayloadTest {
             }
         }
     }
+
+    func runTestPreparations() {
+        TestHelpers.resetStartupInstrumentation()
+    }
 }

@@ -13,12 +13,20 @@ public struct HangLimits: Equatable {
     /// Maximum number of samples captures per hang.
     public let samplesPerHang: UInt
 
-    public init(hangPerSession: UInt = 200, samplesPerHang: UInt = 0) {
+    /// Collects crash reports for Hangs that do not recover.
+    public let reportsWatchdogEvents: Bool
+
+    public init(
+        hangPerSession: UInt = 200,
+        samplesPerHang: UInt = 0,
+        reportsWatchdogEvents: Bool = false
+    ) {
         self.hangPerSession = hangPerSession
         self.samplesPerHang = samplesPerHang
+        self.reportsWatchdogEvents = reportsWatchdogEvents
     }
 
     public static func == (lhs: HangLimits, rhs: HangLimits) -> Bool {
-        return lhs.hangPerSession == rhs.hangPerSession && lhs.samplesPerHang == rhs.samplesPerHang
+        return lhs.hangPerSession == rhs.hangPerSession && lhs.samplesPerHang == rhs.samplesPerHang && lhs.reportsWatchdogEvents == rhs.reportsWatchdogEvents
     }
 }

@@ -4,6 +4,7 @@
 //
 //
 
+import EmbraceObjCUtilsInternal
 import OpenTelemetryApi
 import OpenTelemetrySdk
 

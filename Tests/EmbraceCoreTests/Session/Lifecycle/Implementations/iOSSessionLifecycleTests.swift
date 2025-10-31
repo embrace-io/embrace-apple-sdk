@@ -7,7 +7,7 @@ import XCTest
 
 @testable import EmbraceCore
 
-#if os(iOS)
+#if os(iOS) || os(tvOS)
 
     final class iOSSessionLifecycleTests: XCTestCase {
 

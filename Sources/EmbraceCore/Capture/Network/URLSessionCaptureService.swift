@@ -8,6 +8,7 @@ import Foundation
     import EmbraceCaptureService
     import EmbraceCommonInternal
     import EmbraceObjCUtilsInternal
+    import EmbraceConfiguration
 #endif
 
 typealias URLSessionCompletion = (Data?, URLResponse?, Error?) -> Void
@@ -42,14 +43,20 @@ public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandl
         self.swizzlerProvider = swizzlerProvider
     }
 
+    public static let EMBUseLegacyURLSessionProxyKey = "EMBUseLegacyURLSessionProxy"
+
+    public override func onConfigUpdated(_ config: any EmbraceConfigurable) {
+        // This key is used in EMBURLSessionDelegateProtocol.m in order to decide
+        // which url session proxy class to use. Depending on the situation,
+        // the change itself in the proxy will take place on the next restart
+        // since we don't want to have new and legacy proxies wunning at the same time.
+        UserDefaults.standard.set(config.useLegacyUrlSessionProxy, forKey: Self.EMBUseLegacyURLSessionProxyKey)
+    }
+
     public override func onInstall() {
         lock.lock()
         defer {
             lock.unlock()
-        }
-
-        guard state == .uninstalled else {
-            return
         }
 
         handler = DefaultURLSessionTaskHandler(dataSource: self)
@@ -94,6 +101,10 @@ public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandl
     var ignoredTaskTypes: [AnyClass] {
         return Self.avTaskTypes
     }
+
+    var serviceState: CaptureServiceState {
+        state.load()
+    }
 }
 
 struct URLSessionInitWithDelegateSwizzler: URLSessionSwizzler {
@@ -136,8 +147,20 @@ struct URLSessionInitWithDelegateSwizzler: URLSessionSwizzler {
                     return originalImplementation(urlSession, Self.selector, configuration, delegate, queue)
                 }
 
-                let newDelegate = EMBURLSessionDelegateProxy(delegate: proxiedDelegate, handler: handler)
+                let newDelegate = EmbraceMakeURLSessionDelegateProxy(proxiedDelegate, handler)
                 let session = originalImplementation(urlSession, Self.selector, configuration, newDelegate, queue)
+
+                // Have we been swizzled by Firebase??
+                // This is a simple check to see if Firebase is 'isa' swizzling the delegate proxy.
+                // Things tend to break when they do.
+                if let checkedDelegate = session.delegate {
+                    let className = NSStringFromClass(type(of: checkedDelegate))
+                    if className.starts(with: "fir_") {
+                        Embrace.logger.warning(
+                            "URLSession.delegate is being swizzled by Firebase, which usually leads to broken delegate behaviour! To mitigate, you should always call `Emrace.setup().start()` before configuring Firebase."
+                        )
+                    }
+                }
 
                 // If we have already been swizzled by another player, we notify our proxied delegate,
                 // as this will later help determine whether or not to forward the invocation of various
@@ -204,7 +227,7 @@ struct SessionTaskResumeSwizzler: URLSessionSwizzler {
                     // we set a proxy delegate to get a callback when the task finishes
                     if handled, let handler = handler, task.state == .suspended {
                         let originalDelegate = task.delegate
-                        task.delegate = EMBURLSessionDelegateProxy(delegate: originalDelegate, handler: handler)
+                        task.delegate = EmbraceMakeURLSessionDelegateProxy(originalDelegate, handler)
                     }
 
                     // call original

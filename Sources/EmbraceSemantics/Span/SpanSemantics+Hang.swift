@@ -3,13 +3,14 @@
 //
 
 extension EmbraceType {
-    public static let threadBlockage = EmbraceType(primary: .performance, secondary: "thread_blockage")
+    public static let hang = EmbraceType(performance: "thread_blockage")
 }
 
 extension SpanSemantics {
-    public struct ThreadBlockage {
+    public struct Hang {
         public static let name = "emb-thread-blockage"
-        public static let keyLastKnownTime = "last_known_time_unix_nano"
+
+        public static let keyLastKnownTimeUnixNano = "last_known_time_unix_nano"
         public static let keyIntervalCode = "interval_code"
         public static let keyThreadPriority = "thread_priority"
     }

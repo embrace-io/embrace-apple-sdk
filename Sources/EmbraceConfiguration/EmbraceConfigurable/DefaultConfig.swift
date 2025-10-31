@@ -39,6 +39,8 @@ public class DefaultConfig: EmbraceConfigurable {
 
     public let networkPayloadCaptureRules = [NetworkPayloadCaptureRule]()
 
+    public let useLegacyUrlSessionProxy = false
+
     public func update(completion: (Bool, (any Error)?) -> Void) {
         completion(false, nil)
     }

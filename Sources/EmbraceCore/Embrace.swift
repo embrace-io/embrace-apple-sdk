@@ -79,6 +79,7 @@ public class Embrace {
     let storage: EmbraceStorage
     let upload: EmbraceUpload?
     let captureServices: CaptureServices
+    let captureServicesGroup: DispatchGroup
 
     let logController: LogController
 
@@ -190,6 +191,10 @@ public class Embrace {
             )
         )
 
+        // Create a group for the services, this group leaves once the services are started.
+        self.captureServicesGroup = DispatchGroup()
+        self.captureServicesGroup.enter()
+
         // initialize capture services
         self.captureServices = try CaptureServices(
             options: options,
@@ -224,8 +229,6 @@ public class Embrace {
 
         // startup tracking
         startupInstrumentation.otel = self.otel
-        EMBStartupTracker.shared().internalNotificationCenter = Embrace.notificationCenter
-        EMBStartupTracker.shared().trackDidFinishLaunching()
 
         // config update event
         Embrace.notificationCenter.addObserver(
@@ -251,6 +254,10 @@ public class Embrace {
         }
 
         EMBStartupTracker.shared().sdkStartStartTime = Date()
+
+        if EMBStartupTracker.shared().appDidFinishLaunchingEndTime != nil || EMBStartupTracker.shared().appFirstDidBecomeActiveTime != nil {
+            Embrace.logger.error("Embrace SDK should be started before the app is launched and becomes active. This is required for the startup instrumentation to work.")
+        }
 
         // must be called on main thread in order to fetch the app state
         sessionLifecycle.setup()
@@ -291,6 +298,10 @@ public class Embrace {
 
             // WARNING: This is dangerous as it calls out to external code.
             self.captureServices.start()
+
+            // now that services are started, and critical pieces are in place,
+            // notify anyone who cares.
+            self.captureServicesGroup.leave()
 
             self.processingQueue.async { [weak self] in
                 // fetch crash reports and link them to sessions

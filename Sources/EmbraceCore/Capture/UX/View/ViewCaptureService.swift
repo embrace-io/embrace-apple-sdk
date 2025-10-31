@@ -21,6 +21,10 @@
         private let bundlePath: String
         private let lock: NSLocking
 
+        var serviceState: CaptureServiceState {
+            state.load()
+        }
+
         var instrumentVisibility: Bool {
             return options.instrumentVisibility
         }
@@ -94,10 +98,6 @@
             lock.lock()
             defer {
                 lock.unlock()
-            }
-
-            guard state == .uninstalled else {
-                return
             }
 
             guard options.instrumentVisibility || options.instrumentFirstRender else {

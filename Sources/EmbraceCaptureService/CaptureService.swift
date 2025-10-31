@@ -30,13 +30,18 @@ open class CaptureService {
     private(set) public weak var logger: InternalLogger?
 
     /// Getter for the state of the capture service.
-    @ThreadSafe
-    private(set) public var state: CaptureServiceState = .uninstalled
+    public let state: EmbraceAtomic<CaptureServiceState> = EmbraceAtomic(.uninstalled)
 
     public init() {}
 
     package func install(otel: EmbraceOTelSignalsHandler?, logger: InternalLogger? = nil) {
-        guard state == .uninstalled else {
+
+        guard
+            state.compareExchange(
+                expected: .uninstalled,
+                desired: .installed
+            )
+        else {
             return
         }
 
@@ -44,24 +49,32 @@ open class CaptureService {
         self.logger = logger
 
         onInstall()
-
-        state = .installed
     }
 
     package func start() {
-        guard state != .uninstalled else {
+
+        // Allow to go from installed -> active
+        if state.compareExchange(expected: .installed, desired: .active) {
+            onStart()
             return
         }
-        state = .active
 
-        onStart()
+        // Or allow to go from paused -> active
+        if state.compareExchange(expected: .paused, desired: .active) {
+            onStart()
+            return
+        }
     }
 
     package func stop() {
-        guard state == .active else {
+        guard
+            state.compareExchange(
+                expected: .active,
+                desired: .paused
+            )
+        else {
             return
         }
-        state = .paused
 
         onStop()
     }
@@ -101,5 +114,24 @@ open class CaptureService {
     /// You should override this method if your `CaptureService` needs to do something.
     open func onConfigUpdated(_ config: EmbraceConfigurable) {
 
+    }
+}
+
+extension CaptureService {
+
+    public var isInstalled: Bool {
+        state.load() == .installed
+    }
+
+    public var isUninstalled: Bool {
+        state.load() == .uninstalled
+    }
+
+    public var isActive: Bool {
+        state.load() == .active
+    }
+
+    public var isPaused: Bool {
+        state.load() == .paused
     }
 }

@@ -30,7 +30,7 @@
             // when it has a parentSpan for a view controller
             let id = "test"
             let span = createSpan()
-            handler.parentSpans[id] = span
+            handler.data.safeValue.parentSpans[id] = span
 
             // then it is succesfully fetched
             let vc = MockViewController()
@@ -58,13 +58,13 @@
             // given a handler with cached spans
             let id = "test"
             let span = createSpan()
-            handler.parentSpans[id] = span
-            handler.viewDidLoadSpans[id] = span
-            handler.viewWillAppearSpans[id] = span
-            handler.viewDidAppearSpans[id] = span
-            handler.visibilitySpans[id] = span
-            handler.uiReadySpans[id] = span
-            handler.alreadyFinishedUiReadyIds.insert(id)
+            handler.data.safeValue.parentSpans[id] = span
+            handler.data.safeValue.viewDidLoadSpans[id] = span
+            handler.data.safeValue.viewWillAppearSpans[id] = span
+            handler.data.safeValue.viewDidAppearSpans[id] = span
+            handler.data.safeValue.visibilitySpans[id] = span
+            handler.data.safeValue.uiReadySpans[id] = span
+            handler.data.safeValue.alreadyFinishedUiReadyIds.insert(id)
 
             // when foregroundSessionDidEnd is called
             handler.foregroundSessionDidEnd()
@@ -80,25 +80,25 @@
             let id = "test"
 
             let parentSpan = createTTFRSpan()
-            handler.parentSpans[id] = parentSpan
+            handler.data.safeValue.parentSpans[id] = parentSpan
 
             let viewDidLoadSpan = createViewDidLoadSpan()
-            handler.viewDidLoadSpans[id] = viewDidLoadSpan
+            handler.data.safeValue.viewDidLoadSpans[id] = viewDidLoadSpan
 
             let viewWillAppearSpan = createViewWillAppearSpan()
-            handler.viewWillAppearSpans[id] = viewWillAppearSpan
+            handler.data.safeValue.viewWillAppearSpans[id] = viewWillAppearSpan
 
             let viewIsAppearing = createViewWillAppearSpan()
-            handler.viewIsAppearingSpans[id] = viewIsAppearing
+            handler.data.safeValue.viewIsAppearingSpans[id] = viewIsAppearing
 
             let viewDidAppearSpan = createViewDidAppearSpan()
-            handler.viewDidAppearSpans[id] = viewDidAppearSpan
+            handler.data.safeValue.viewDidAppearSpans[id] = viewDidAppearSpan
 
             let visibilitySpan = createVisibilitySpan()
-            handler.visibilitySpans[id] = visibilitySpan
+            handler.data.safeValue.visibilitySpans[id] = visibilitySpan
 
             let uiReadySpan = createUiReadySpan()
-            handler.uiReadySpans[id] = uiReadySpan
+            handler.data.safeValue.uiReadySpans[id] = uiReadySpan
 
             // when appDidEnterBackground is called
             handler.foregroundSessionDidEnd()
@@ -111,7 +111,7 @@
 
         func test_onViewDidLoad_deactivatedService() {
             // given a handler that is not active
-            dataSource.state = .paused
+            dataSource.serviceState = .paused
 
             // when view did load is called
             let vc = MockViewController()
@@ -387,7 +387,7 @@
             // then the view did load span is ended
             wait(timeout: .longTimeout) {
                 let span = self.otel.startedSpans.first(where: { $0.name == "emb-view-did-load" })
-                return span != nil && self.handler.viewDidLoadSpans.isEmpty
+                return span != nil && self.handler.data.safeValue.viewDidLoadSpans.isEmpty
             }
         }
 
@@ -409,7 +409,7 @@
             // then the view will appear span is ended
             wait(timeout: .longTimeout) {
                 let span = self.otel.endedSpans.first(where: { $0.name == "emb-view-will-appear" })
-                return span != nil && self.handler.viewWillAppearSpans.isEmpty
+                return span != nil && self.handler.data.safeValue.viewWillAppearSpans.isEmpty
             }
         }
 
@@ -431,7 +431,7 @@
             // then the view will appear span is ended
             wait(timeout: .longTimeout) {
                 let span = self.otel.endedSpans.first(where: { $0.name == "emb-view-is-appearing" })
-                return span != nil && self.handler.viewIsAppearingSpans.isEmpty
+                return span != nil && self.handler.data.safeValue.viewIsAppearingSpans.isEmpty
             }
         }
 
@@ -456,16 +456,16 @@
                 let span2 = self.otel.startedSpans.first(where: { $0.name == "emb-screen-view" })
 
                 return span1 != nil && span1!.type == .viewLoad && span2 != nil && span2!.type == .view
-                    && self.handler.viewDidAppearSpans.isEmpty
+                    && self.handler.data.safeValue.viewDidAppearSpans.isEmpty
             }
         }
 
         func cacheIsEmpty(_ checkVisibilitySpans: Bool = false) -> Bool {
-            return handler.parentSpans.count == 0 && handler.viewDidLoadSpans.count == 0
-                && handler.viewWillAppearSpans.count == 0 && handler.viewIsAppearingSpans.count == 0
-                && handler.viewDidAppearSpans.count == 0
-                && (!checkVisibilitySpans || handler.visibilitySpans.count == 0) && handler.uiReadySpans.count == 0
-                && handler.alreadyFinishedUiReadyIds.count == 0
+            return handler.data.safeValue.parentSpans.count == 0 && handler.data.safeValue.viewDidLoadSpans.count == 0
+                && handler.data.safeValue.viewWillAppearSpans.count == 0 && handler.data.safeValue.viewIsAppearingSpans.count == 0
+                && handler.data.safeValue.viewDidAppearSpans.count == 0
+                && (!checkVisibilitySpans || handler.data.safeValue.visibilitySpans.count == 0) && handler.data.safeValue.uiReadySpans.count == 0
+                && handler.data.safeValue.alreadyFinishedUiReadyIds.count == 0
         }
     }
 

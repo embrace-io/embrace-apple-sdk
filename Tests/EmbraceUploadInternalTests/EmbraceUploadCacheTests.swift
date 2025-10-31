@@ -52,6 +52,7 @@ class EmbraceUploadCacheTests: XCTestCase {
             id: "id",
             type: EmbraceUploadType.spans.rawValue,
             data: Data(),
+            payloadTypes: "test",
             attemptCount: 0,
             date: Date()
         )
@@ -77,6 +78,7 @@ class EmbraceUploadCacheTests: XCTestCase {
             id: "id1",
             type: 0,
             data: Data(),
+            payloadTypes: "test",
             attemptCount: 0,
             date: Date()
         )
@@ -85,6 +87,7 @@ class EmbraceUploadCacheTests: XCTestCase {
             id: "id2",
             type: 0,
             data: Data(),
+            payloadTypes: "test",
             attemptCount: 0,
             date: Date()
         )
@@ -93,6 +96,7 @@ class EmbraceUploadCacheTests: XCTestCase {
             id: "id3",
             type: 0,
             data: Data(),
+            payloadTypes: "test",
             attemptCount: 0,
             date: Date()
         )
@@ -175,6 +179,7 @@ class EmbraceUploadCacheTests: XCTestCase {
             id: "id",
             type: EmbraceUploadType.spans.rawValue,
             data: Data(),
+            payloadTypes: "test",
             attemptCount: 0,
             date: Date()
         )
@@ -212,6 +217,7 @@ class EmbraceUploadCacheTests: XCTestCase {
             id: "id",
             type: EmbraceUploadType.spans.rawValue,
             data: Data(),
+            payloadTypes: "test",
             attemptCount: 0,
             date: Date()
         )

@@ -190,7 +190,7 @@ class UnsentDataHandler {
             )
             let payloadData = try JSONEncoder().encode(payload).gzipped()
 
-            upload.uploadLog(id: report.id.uuidString, data: payloadData) { result in
+            upload.uploadLog(id: report.id.uuidString, data: payloadData, payloadTypes: EmbraceType.crash.rawValue) { result in
                 switch result {
                 case .success:
                     // remove crash report
@@ -407,7 +407,7 @@ class UnsentDataHandler {
         // send log
         do {
             let payloadData = try JSONEncoder().encode(payload).gzipped()
-            upload.uploadLog(id: id, data: payloadData) { _ in
+            upload.uploadLog(id: id, data: payloadData, payloadTypes: EmbraceType.internal.rawValue) { _ in
                 completion?()
             }
         } catch {

@@ -22,6 +22,7 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
     private let endpoint: URL
     private let identifier: String
     private let data: Data
+    private let payloadTypes: String?
     private let retryCount: Int
     private let exponentialBackoffBehavior: EmbraceUpload.ExponentialBackoff
     private var attemptCount: Int
@@ -37,6 +38,7 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
         endpoint: URL,
         identifier: String,
         data: Data,
+        payloadTypes: String? = nil,
         retryCount: Int,
         exponentialBackoffBehavior: EmbraceUpload.ExponentialBackoff,
         attemptCount: Int,
@@ -49,6 +51,7 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
         self.endpoint = endpoint
         self.identifier = identifier
         self.data = data
+        self.payloadTypes = payloadTypes
         self.retryCount = retryCount
         self.exponentialBackoffBehavior = exponentialBackoffBehavior
         self.attemptCount = attemptCount
@@ -197,15 +200,23 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
         request.httpMethod = "POST"
         request.httpBody = data
 
+        addHeaders(to: &request)
+
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("gzip", forHTTPHeaderField: "Content-Encoding")
-        request.setValue(metadataOptions.userAgent, forHTTPHeaderField: "User-Agent")
 
+        return request
+    }
+
+    func addHeaders(to request: inout URLRequest) {
+        request.setValue(metadataOptions.userAgent, forHTTPHeaderField: "User-Agent")
         request.setValue(metadataOptions.apiKey, forHTTPHeaderField: "X-EM-AID")
         request.setValue(metadataOptions.deviceId, forHTTPHeaderField: "X-EM-DID")
 
-        return request
+        if let payloadTypes {
+            request.setValue(payloadTypes, forHTTPHeaderField: "X-EM-PAYLOAD-TYPES")
+        }
     }
 
     private func updateRequest(_ r: URLRequest, attemptCount: Int) -> URLRequest {

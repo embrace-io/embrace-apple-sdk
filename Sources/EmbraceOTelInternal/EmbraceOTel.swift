@@ -16,7 +16,7 @@ public final class EmbraceOTel {
     let instrumentationName = "EmbraceOpenTelemetry"
     let instrumentationVersion = "semver:\(EmbraceMeta.sdkVersion)"
 
-    public private(set) static var processor: SingleSpanProcessor?
+    package private(set) static var processor: EmbraceSpanProcessor?
 
     /// Setup the OpenTelemetryApi
     /// - Parameter: spanProcessor The processor in which to run during the lifetime of each Span
@@ -36,7 +36,7 @@ public final class EmbraceOTel {
             )
         )
 
-        processor = spanProcessors.first(where: { $0 is SingleSpanProcessor }) as? SingleSpanProcessor
+        processor = spanProcessors.first(where: { $0 is EmbraceSpanProcessor }) as? EmbraceSpanProcessor
     }
 
     public static func setup(logSharedState: EmbraceLogSharedState) {

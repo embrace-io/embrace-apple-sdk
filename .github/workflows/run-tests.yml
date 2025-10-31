@@ -38,7 +38,7 @@ jobs:
 
   run-tests:
     needs: prepare
-    name: Test ${{ matrix.platform }}, on macOS ${{ matrix.macos-version }}, with Xcode ${{ matrix.xcode_version }}
+    name: Test ${{ matrix.platform }}, on macOS ${{ matrix.macos-version }}, with Xcode ${{ matrix.xcode_version }}, sanitizer ${{ matrix.sanitizer }}
     timeout-minutes: 30
     runs-on: macos-${{ matrix.macos-version }}
     
@@ -69,7 +69,7 @@ jobs:
           persist-credentials: false
 
       - name: Run Unit Tests
-        uses: mxcl/xcodebuild@96d9ef9fd2ab35ddad713d320955eb31ca8d6d21 # 3.5.1
+        uses: mxcl/xcodebuild@d3ee9b419c1be9a988086c58fe0988f32d99cfc5 # 3.6.0
         timeout-minutes: 80
         with:
           workspace: ".swiftpm/xcode/package.xcworkspace"
@@ -80,6 +80,7 @@ jobs:
           code-coverage: true
           trust-plugins: false
           arch: arm64
+          sanitizer: ${{ matrix.sanitizer }}
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5.4.3

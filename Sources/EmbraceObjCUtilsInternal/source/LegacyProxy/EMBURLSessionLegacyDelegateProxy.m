@@ -2,9 +2,9 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-#import "EMBURLSessionDelegateProxy.h"
+#import "EMBURLSessionLegacyDelegateProxy.h"
 #import <Foundation/Foundation.h>
-#import "EMBURLSessionDelegateProxyFunctions.h"
+#import "EMBURLSessionLegacyDelegateProxyFunctions.h"
 #import "objc/runtime.h"
 
 #define DID_FINISH_COLLECTING_METRICS @selector(URLSession:task:didFinishCollectingMetrics:)
@@ -13,12 +13,13 @@
 #define DID_COMPLETE_WITH_ERROR @selector(URLSession:task:didCompleteWithError:)
 #define DID_BECOME_INVALID_WITH_ERROR @selector(URLSession:didBecomeInvalidWithError:)
 #define DID_RECEIVE_RESPONSE @selector(URLSession:dataTask:didReceiveResponse:completionHandler:)
+#define WILL_PERFORM_REDIRECTION @selector(URLSession:task:willPerformHTTPRedirection:newRequest:completionHandler:)
 
-@interface EMBURLSessionDelegateProxy ()
+@interface EMBURLSessionLegacyDelegateProxy ()
 
 @end
 
-@implementation EMBURLSessionDelegateProxy
+@implementation EMBURLSessionLegacyDelegateProxy
 
 - (instancetype)initWithDelegate:(id<NSURLSessionDelegate>)delegate handler:(id<URLSessionTaskHandler>)handler
 {
@@ -33,7 +34,7 @@
 {
     if (sel_isEqual(aSelector, DID_FINISH_COLLECTING_METRICS) || sel_isEqual(aSelector, DID_RECEIVE_DATA_SELECTOR) ||
         sel_isEqual(aSelector, DID_FINISH_DOWNLOADING) || sel_isEqual(aSelector, DID_COMPLETE_WITH_ERROR) ||
-        sel_isEqual(aSelector, DID_BECOME_INVALID_WITH_ERROR)) {
+        sel_isEqual(aSelector, DID_BECOME_INVALID_WITH_ERROR) || sel_isEqual(aSelector, WILL_PERFORM_REDIRECTION)) {
         return YES;
     }
     return [self.originalDelegate respondsToSelector:aSelector];
@@ -56,12 +57,12 @@
 
 - (BOOL)isKindOfClass:(Class)aClass
 {
-    return aClass == [EMBURLSessionDelegateProxy class];
+    return aClass == [EMBURLSessionLegacyDelegateProxy class];
 }
 
 - (BOOL)isMemberOfClass:(Class)aClass
 {
-    return aClass == [EMBURLSessionDelegateProxy class];
+    return aClass == [EMBURLSessionLegacyDelegateProxy class];
 }
 
 #pragma mark - NSURLSessionDelegate Methods
@@ -127,6 +128,23 @@
 
     if (target) {
         [(id<NSURLSessionTaskDelegate>)target URLSession:session task:task didFinishCollectingMetrics:metrics];
+    }
+}
+
+- (void)URLSession:(NSURLSession *)session
+                          task:(nonnull NSURLSessionTask *)task
+    willPerformHTTPRedirection:(nonnull NSHTTPURLResponse *)response
+                    newRequest:(nonnull NSURLRequest *)request
+             completionHandler:(nonnull void (^)(NSURLRequest *_Nullable))completionHandler
+{
+    id target = [self getTargetForSelector:WILL_PERFORM_REDIRECTION session:session];
+
+    if (target) {
+        [(id<NSURLSessionTaskDelegate>)target URLSession:session
+                                                    task:task
+                              willPerformHTTPRedirection:response
+                                              newRequest:request
+                                       completionHandler:completionHandler];
     }
 }
 
