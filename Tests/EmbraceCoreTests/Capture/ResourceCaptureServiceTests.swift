@@ -32,7 +32,7 @@ class ResourceCaptureServiceTests: XCTestCase {
         XCTAssertEqual(metadata.count, 3)
         XCTAssertEqual(metadata[0].typeRaw, "requiredResource")
         XCTAssertEqual(metadata[0].lifespanRaw, "process")
-        XCTAssertEqual(metadata[0].lifespanId, ProcessIdentifier.current.value)
+        XCTAssertEqual(metadata[0].lifespanId, ProcessIdentifier.current.stringValue)
     }
 
     func test_addCriticalResource() throws {
@@ -54,6 +54,6 @@ class ResourceCaptureServiceTests: XCTestCase {
         XCTAssertEqual(metadata.count, 3)
         XCTAssertEqual(metadata[0].typeRaw, "requiredResource")
         XCTAssertEqual(metadata[0].lifespanRaw, "process")
-        XCTAssertEqual(metadata[0].lifespanId, ProcessIdentifier.current.value)
+        XCTAssertEqual(metadata[0].lifespanId, ProcessIdentifier.current.stringValue)
     }
 }

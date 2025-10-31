@@ -21,7 +21,7 @@ class UnsentDataHandler {
         upload: EmbraceUpload?,
         otel: EmbraceOpenTelemetry?,
         logController: LogControllable? = nil,
-        currentSessionId: SessionIdentifier? = nil,
+        currentSessionId: EmbraceIdentifier? = nil,
         crashReporter: EmbraceCrashReporter? = nil,
         completion: UnsentDataHandlerCompletion? = nil
     ) {
@@ -90,7 +90,7 @@ class UnsentDataHandler {
         storage: EmbraceStorage,
         upload: EmbraceUpload,
         otel: EmbraceOpenTelemetry?,
-        currentSessionId: SessionIdentifier?,
+        currentSessionId: EmbraceIdentifier?,
         crashReporter: EmbraceCrashReporter,
         crashReports: [EmbraceCrashReport],
         completion: UnsentDataHandlerCompletion? = nil
@@ -105,8 +105,8 @@ class UnsentDataHandler {
             var session: EmbraceSession?
 
             // link session with crash report if possible
-            if let sessionId = SessionIdentifier(string: report.sessionId) {
-                if let fetchedSession = storage.fetchSession(id: sessionId) {
+            if let sessionId = report.sessionId {
+                if let fetchedSession = storage.fetchSession(id: EmbraceIdentifier(stringValue: sessionId)) {
                     session = storage.updateSession(
                         session: fetchedSession,
                         endTime: report.timestamp,
@@ -252,7 +252,7 @@ class UnsentDataHandler {
     static private func sendSessions(
         storage: EmbraceStorage,
         upload: EmbraceUpload,
-        currentSessionId: SessionIdentifier?,
+        currentSessionId: EmbraceIdentifier?,
         completion: UnsentDataHandlerCompletion? = nil
     ) {
 
@@ -287,7 +287,7 @@ class UnsentDataHandler {
         }
 
         // remove old metadata
-        cleanMetadata(storage: storage, currentSessionId: currentSessionId?.toString)
+        cleanMetadata(storage: storage, currentSessionId: currentSessionId?.stringValue)
 
         group.leave()
         group.notify(queue: .global(qos: .utility)) {
@@ -343,7 +343,7 @@ class UnsentDataHandler {
         }
     }
 
-    static private func cleanOldSpans(storage: EmbraceStorage, currentSessionId: SessionIdentifier? = nil) {
+    static private func cleanOldSpans(storage: EmbraceStorage, currentSessionId: EmbraceIdentifier? = nil) {
         // first we delete any span record that is closed and its older
         // than the oldest session we have on storage
         // since spans are only sent when included in a session
@@ -354,7 +354,7 @@ class UnsentDataHandler {
         storage.cleanUpSpans(date: oldestSession?.startTime)
     }
 
-    static private func closeOpenSpans(storage: EmbraceStorage, currentSessionId: SessionIdentifier? = nil) {
+    static private func closeOpenSpans(storage: EmbraceStorage, currentSessionId: EmbraceIdentifier? = nil) {
         // then we need to close any remaining open spans
         // we use the latest session on storage to determine the `endTime`
         // since we need to have a valid `endTime` for these spans, we default
@@ -366,7 +366,7 @@ class UnsentDataHandler {
 
     static private func cleanMetadata(storage: EmbraceStorage, currentSessionId: String? = nil) {
         let sessionId = currentSessionId ?? Embrace.client?.currentSessionId()
-        storage.cleanMetadata(currentSessionId: sessionId, currentProcessId: ProcessIdentifier.current.value)
+        storage.cleanMetadata(currentSessionId: sessionId, currentProcessId: ProcessIdentifier.current.stringValue)
     }
 
     static func sendCriticalLogs(fileUrl: URL?, upload: EmbraceUpload?, completion: UnsentDataHandlerCompletion? = nil) {
@@ -392,7 +392,7 @@ class UnsentDataHandler {
         }
 
         // manually construct log payload
-        let id = LogIdentifier().toString
+        let id = EmbraceIdentifier.random.stringValue
         let attributes: [String: String] = [
             LogSemantics.keyId: id,
             LogSemantics.keyEmbraceType: LogType.internal.rawValue
@@ -427,7 +427,7 @@ extension UnsentDataHandler {
         upload: EmbraceUpload?,
         otel: EmbraceOpenTelemetry?,
         logController: LogControllable? = nil,
-        currentSessionId: SessionIdentifier? = nil,
+        currentSessionId: EmbraceIdentifier? = nil,
         crashReporter: EmbraceCrashReporter? = nil
     ) async {
         await withCheckedContinuation { continuation in

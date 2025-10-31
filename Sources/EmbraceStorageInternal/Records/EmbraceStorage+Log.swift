@@ -11,14 +11,14 @@ import OpenTelemetryApi
 
 public protocol LogRepository {
     func createLog(
-        id: LogIdentifier,
-        processId: ProcessIdentifier,
+        id: EmbraceIdentifier,
+        processId: EmbraceIdentifier,
         severity: LogSeverity,
         body: String,
         timestamp: Date,
         attributes: [String: AttributeValue]
     ) -> EmbraceLog?
-    func fetchAll(excludingProcessIdentifier processIdentifier: ProcessIdentifier) -> [EmbraceLog]
+    func fetchAll(excludingProcessIdentifier processIdentifier: EmbraceIdentifier) -> [EmbraceLog]
     func remove(logs: [EmbraceLog])
     func removeAllLogs()
 }
@@ -27,8 +27,8 @@ extension EmbraceStorage {
 
     @discardableResult
     public func createLog(
-        id: LogIdentifier,
-        processId: ProcessIdentifier,
+        id: EmbraceIdentifier,
+        processId: EmbraceIdentifier,
         severity: LogSeverity,
         body: String,
         timestamp: Date = Date(),
@@ -57,9 +57,9 @@ extension EmbraceStorage {
         return coreData.fetch(withRequest: request).first
     }
 
-    public func fetchAll(excludingProcessIdentifier processIdentifier: ProcessIdentifier) -> [EmbraceLog] {
+    public func fetchAll(excludingProcessIdentifier processIdentifier: EmbraceIdentifier) -> [EmbraceLog] {
         let request = LogRecord.createFetchRequest()
-        request.predicate = NSPredicate(format: "processIdRaw != %@", processIdentifier.value)
+        request.predicate = NSPredicate(format: "processIdRaw != %@", processIdentifier.stringValue)
 
         // fetch
         var result: [EmbraceLog] = []

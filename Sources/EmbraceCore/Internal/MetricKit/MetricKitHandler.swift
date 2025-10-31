@@ -46,7 +46,7 @@ import Foundation
 
     func handlePayload(_ payload: MetricKitDiagnosticPayload) {
         // check if the payload should be linked to the latest session
-        var sessionId: SessionIdentifier?
+        var sessionId: EmbraceIdentifier?
 
         if let session = _lastSession.safeValue {
             let payloadStart = payload.startTime.timeIntervalSince1970
@@ -82,7 +82,7 @@ import Foundation
         }
     }
 
-    func sendCrash(payload: Data, signal: Int, sessionId: SessionIdentifier?) {
+    func sendCrash(payload: Data, signal: Int, sessionId: EmbraceIdentifier?) {
         for listener in crashListeners {
             listener.didReceive(payload: payload, signal: signal, sessionId: sessionId)
         }

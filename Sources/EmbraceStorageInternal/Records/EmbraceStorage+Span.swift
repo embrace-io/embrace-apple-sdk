@@ -33,8 +33,8 @@ extension EmbraceStorage {
         data: Data,
         startTime: Date,
         endTime: Date? = nil,
-        processId: ProcessIdentifier = .current,
-        sessionId: SessionIdentifier? = nil
+        processId: EmbraceIdentifier = ProcessIdentifier.current,
+        sessionId: EmbraceIdentifier? = nil
     ) -> EmbraceSpan? {
 
         // update existing?
@@ -91,8 +91,8 @@ extension EmbraceStorage {
         data: Data,
         startTime: Date,
         endTime: Date? = nil,
-        processId: ProcessIdentifier = .current,
-        sessionId: SessionIdentifier? = nil
+        processId: EmbraceIdentifier = ProcessIdentifier.current,
+        sessionId: EmbraceIdentifier? = nil
     ) -> EmbraceSpan? {
         var result: EmbraceSpan?
 
@@ -107,8 +107,8 @@ extension EmbraceStorage {
                 span.data = data
                 span.startTime = startTime
                 span.endTime = endTime
-                span.processIdRaw = processId.value
-                span.sessionIdRaw = sessionId?.toString
+                span.processIdRaw = processId.stringValue
+                span.sessionIdRaw = sessionId?.stringValue
                 coreData.save()
             }
 
@@ -166,7 +166,7 @@ extension EmbraceStorage {
         } else {
             request.predicate = NSPredicate(
                 format: "endTime != nil AND processIdRaw != %@",
-                ProcessIdentifier.current.value)
+                ProcessIdentifier.current.stringValue)
         }
 
         coreData.deleteRecords(withRequest: request)
@@ -180,7 +180,7 @@ extension EmbraceStorage {
         let request = SpanRecord.createFetchRequest()
         request.predicate = NSPredicate(
             format: "endTime = nil AND processIdRaw != %@",
-            ProcessIdentifier.current.value
+            ProcessIdentifier.current.stringValue
         )
 
         coreData.fetchAndPerform(withRequest: request) { [self] spans in

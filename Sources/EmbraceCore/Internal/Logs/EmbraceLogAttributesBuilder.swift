@@ -89,7 +89,7 @@ class EmbraceLogAttributesBuilder {
     }
 
     @discardableResult
-    func addApplicationProperties(sessionId: SessionIdentifier?) -> Self {
+    func addApplicationProperties(sessionId: EmbraceIdentifier?) -> Self {
         guard let sessionId = sessionId,
             let storage = storage
         else {

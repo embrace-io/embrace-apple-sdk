@@ -85,7 +85,7 @@ class MetadataRecordTests: XCTestCase {
                 value: "test",
                 type: .resource,
                 lifespan: .session,
-                lifespanId: i % 2 == 0 ? TestConstants.sessionId.toString : "test"
+                lifespanId: i % 2 == 0 ? TestConstants.sessionId.stringValue : "test"
             )
 
             storage.addMetadata(
@@ -93,7 +93,7 @@ class MetadataRecordTests: XCTestCase {
                 value: "test",
                 type: .resource,
                 lifespan: .process,
-                lifespanId: i % 2 == 0 ? TestConstants.processId.value : "test"
+                lifespanId: i % 2 == 0 ? TestConstants.processId.stringValue : "test"
             )
         }
 
@@ -103,14 +103,14 @@ class MetadataRecordTests: XCTestCase {
             value: "test",
             type: .resource,
             lifespan: .session,
-            lifespanId: TestConstants.sessionId.toString
+            lifespanId: TestConstants.sessionId.stringValue
         )
         let resource2 = storage.addMetadata(
             key: "test2",
             value: "test",
             type: .resource,
             lifespan: .process,
-            lifespanId: TestConstants.processId.value
+            lifespanId: TestConstants.processId.stringValue
         )
 
         // then they should be inserted
@@ -133,7 +133,7 @@ class MetadataRecordTests: XCTestCase {
                 value: "test",
                 type: .customProperty,
                 lifespan: .session,
-                lifespanId: i % 2 == 0 ? TestConstants.sessionId.toString : "test"
+                lifespanId: i % 2 == 0 ? TestConstants.sessionId.stringValue : "test"
             )
 
             storage.addMetadata(
@@ -141,7 +141,7 @@ class MetadataRecordTests: XCTestCase {
                 value: "test",
                 type: .customProperty,
                 lifespan: .process,
-                lifespanId: i % 2 == 0 ? TestConstants.processId.value : "test"
+                lifespanId: i % 2 == 0 ? TestConstants.processId.stringValue : "test"
             )
         }
 
@@ -151,14 +151,14 @@ class MetadataRecordTests: XCTestCase {
             value: "test",
             type: .customProperty,
             lifespan: .session,
-            lifespanId: TestConstants.sessionId.toString
+            lifespanId: TestConstants.sessionId.stringValue
         )
         let property2 = storage.addMetadata(
             key: "test2",
             value: "test",
             type: .customProperty,
             lifespan: .process,
-            lifespanId: TestConstants.processId.value
+            lifespanId: TestConstants.processId.stringValue
         )
 
         // then they should be inserted
@@ -215,7 +215,7 @@ class MetadataRecordTests: XCTestCase {
             value: "test",
             type: .resource,
             lifespan: .session,
-            lifespanId: TestConstants.sessionId.toString
+            lifespanId: TestConstants.sessionId.stringValue
         )
         storage.addMetadata(
             key: "test2",
@@ -229,7 +229,7 @@ class MetadataRecordTests: XCTestCase {
             value: "test",
             type: .resource,
             lifespan: .process,
-            lifespanId: TestConstants.processId.value
+            lifespanId: TestConstants.processId.stringValue
         )
         storage.addMetadata(
             key: "test4",
@@ -241,8 +241,8 @@ class MetadataRecordTests: XCTestCase {
 
         // when cleaning old metadata
         storage.cleanMetadata(
-            currentSessionId: TestConstants.sessionId.toString,
-            currentProcessId: TestConstants.processId.value
+            currentSessionId: TestConstants.sessionId.stringValue,
+            currentProcessId: TestConstants.processId.stringValue
         )
 
         // then only the correct records should be removed
@@ -462,7 +462,7 @@ class MetadataRecordTests: XCTestCase {
             value: "test",
             type: .resource,
             lifespan: .process,
-            lifespanId: TestConstants.processId.value
+            lifespanId: TestConstants.processId.stringValue
         )
         storage.addMetadata(
             key: "test2",
@@ -476,7 +476,7 @@ class MetadataRecordTests: XCTestCase {
             value: "test",
             type: .resource,
             lifespan: .session,
-            lifespanId: TestConstants.sessionId.toString
+            lifespanId: TestConstants.sessionId.stringValue
         )
         storage.addMetadata(
             key: "test4",
@@ -496,19 +496,21 @@ class MetadataRecordTests: XCTestCase {
             value: "test",
             type: .customProperty,
             lifespan: .process,
-            lifespanId: TestConstants.processId.value
+            lifespanId: TestConstants.processId.stringValue
         )
         storage.addMetadata(
             key: "test7",
             value: "test",
             type: .customProperty,
             lifespan: .session,
-            lifespanId: TestConstants.sessionId.toString
+            lifespanId: TestConstants.sessionId.stringValue
         )
 
         // when fetching all resources by session id and process id
         let resources = storage.fetchResources(
-            sessionId: TestConstants.sessionId.toString, processId: TestConstants.processId.value)
+            sessionId: TestConstants.sessionId.stringValue,
+            processId: TestConstants.processId.stringValue
+        )
 
         // then the correct records are fetched
         XCTAssertEqual(resources.count, 3)
@@ -538,7 +540,7 @@ class MetadataRecordTests: XCTestCase {
             value: "test",
             type: .resource,
             lifespan: .process,
-            lifespanId: TestConstants.processId.value
+            lifespanId: TestConstants.processId.stringValue
         )
         storage.addMetadata(
             key: "test2",
@@ -552,7 +554,7 @@ class MetadataRecordTests: XCTestCase {
             value: "test",
             type: .resource,
             lifespan: .session,
-            lifespanId: TestConstants.sessionId.toString
+            lifespanId: TestConstants.sessionId.stringValue
         )
         storage.addMetadata(
             key: "test4",
@@ -572,14 +574,14 @@ class MetadataRecordTests: XCTestCase {
             value: "test",
             type: .customProperty,
             lifespan: .process,
-            lifespanId: TestConstants.processId.value
+            lifespanId: TestConstants.processId.stringValue
         )
         storage.addMetadata(
             key: "test7",
             value: "test",
             type: .customProperty,
             lifespan: .session,
-            lifespanId: TestConstants.sessionId.toString
+            lifespanId: TestConstants.sessionId.stringValue
         )
 
         // when fetching all resources by session id
@@ -613,7 +615,7 @@ class MetadataRecordTests: XCTestCase {
             value: "test",
             type: .resource,
             lifespan: .process,
-            lifespanId: TestConstants.processId.value
+            lifespanId: TestConstants.processId.stringValue
         )
         storage.addMetadata(
             key: "test2",
@@ -627,7 +629,7 @@ class MetadataRecordTests: XCTestCase {
             value: "test",
             type: .resource,
             lifespan: .session,
-            lifespanId: TestConstants.sessionId.toString
+            lifespanId: TestConstants.sessionId.stringValue
         )
         storage.addMetadata(
             key: "test4",
@@ -647,14 +649,14 @@ class MetadataRecordTests: XCTestCase {
             value: "test",
             type: .customProperty,
             lifespan: .process,
-            lifespanId: TestConstants.processId.value
+            lifespanId: TestConstants.processId.stringValue
         )
         storage.addMetadata(
             key: "test7",
             value: "test",
             type: .customProperty,
             lifespan: .session,
-            lifespanId: TestConstants.sessionId.toString
+            lifespanId: TestConstants.sessionId.stringValue
         )
 
         // when fetching all resources by process id
@@ -688,7 +690,7 @@ class MetadataRecordTests: XCTestCase {
             value: "test",
             type: .customProperty,
             lifespan: .process,
-            lifespanId: TestConstants.processId.value
+            lifespanId: TestConstants.processId.stringValue
         )
         storage.addMetadata(
             key: "test2",
@@ -702,7 +704,7 @@ class MetadataRecordTests: XCTestCase {
             value: "test",
             type: .customProperty,
             lifespan: .session,
-            lifespanId: TestConstants.sessionId.toString
+            lifespanId: TestConstants.sessionId.stringValue
         )
         storage.addMetadata(
             key: "test4",
@@ -722,19 +724,21 @@ class MetadataRecordTests: XCTestCase {
             value: "test",
             type: .resource,
             lifespan: .process,
-            lifespanId: TestConstants.processId.value
+            lifespanId: TestConstants.processId.stringValue
         )
         storage.addMetadata(
             key: "test7",
             value: "test",
             type: .resource,
             lifespan: .session,
-            lifespanId: TestConstants.sessionId.toString
+            lifespanId: TestConstants.sessionId.stringValue
         )
 
         // when fetching all resources by session id and process id
         let resources = storage.fetchCustomProperties(
-            sessionId: TestConstants.sessionId.toString, processId: TestConstants.processId.value)
+            sessionId: TestConstants.sessionId.stringValue,
+            processId: TestConstants.processId.stringValue
+        )
 
         // then the correct records are fetched
         XCTAssertEqual(resources.count, 3)
@@ -764,7 +768,7 @@ class MetadataRecordTests: XCTestCase {
             value: "test",
             type: .customProperty,
             lifespan: .process,
-            lifespanId: TestConstants.processId.value
+            lifespanId: TestConstants.processId.stringValue
         )
         storage.addMetadata(
             key: "test2",
@@ -778,7 +782,7 @@ class MetadataRecordTests: XCTestCase {
             value: "test",
             type: .customProperty,
             lifespan: .session,
-            lifespanId: TestConstants.sessionId.toString
+            lifespanId: TestConstants.sessionId.stringValue
         )
         storage.addMetadata(
             key: "test4",
@@ -798,14 +802,14 @@ class MetadataRecordTests: XCTestCase {
             value: "test",
             type: .resource,
             lifespan: .process,
-            lifespanId: TestConstants.processId.value
+            lifespanId: TestConstants.processId.stringValue
         )
         storage.addMetadata(
             key: "test7",
             value: "test",
             type: .resource,
             lifespan: .session,
-            lifespanId: TestConstants.sessionId.toString
+            lifespanId: TestConstants.sessionId.stringValue
         )
 
         // when fetching all resources by session id
@@ -839,14 +843,14 @@ class MetadataRecordTests: XCTestCase {
             value: "test",
             type: .customProperty,
             lifespan: .process,
-            lifespanId: TestConstants.processId.value
+            lifespanId: TestConstants.processId.stringValue
         )
         storage.addMetadata(
             key: "test2",
             value: "test",
             type: .resource,
             lifespan: .session,
-            lifespanId: TestConstants.sessionId.toString
+            lifespanId: TestConstants.sessionId.stringValue
         )
         storage.addMetadata(
             key: "test3",
@@ -872,19 +876,21 @@ class MetadataRecordTests: XCTestCase {
             value: "test",
             type: .personaTag,
             lifespan: .session,
-            lifespanId: TestConstants.sessionId.toString
+            lifespanId: TestConstants.sessionId.stringValue
         )
         storage.addMetadata(
             key: "test7",
             value: "test",
             type: .personaTag,
             lifespan: .process,
-            lifespanId: TestConstants.processId.value
+            lifespanId: TestConstants.processId.stringValue
         )
 
         // when fetching all persona tags by session id and process id
         let resources = storage.fetchPersonaTags(
-            sessionId: TestConstants.sessionId.toString, processId: TestConstants.processId.value)
+            sessionId: TestConstants.sessionId.stringValue,
+            processId: TestConstants.processId.stringValue
+        )
 
         // then the correct records are fetched
         XCTAssertEqual(resources.count, 3)
@@ -914,14 +920,14 @@ class MetadataRecordTests: XCTestCase {
             value: "test",
             type: .customProperty,
             lifespan: .process,
-            lifespanId: TestConstants.processId.value
+            lifespanId: TestConstants.processId.stringValue
         )
         storage.addMetadata(
             key: "test2",
             value: "test",
             type: .resource,
             lifespan: .session,
-            lifespanId: TestConstants.sessionId.toString
+            lifespanId: TestConstants.sessionId.stringValue
         )
         storage.addMetadata(
             key: "test3",
@@ -947,14 +953,14 @@ class MetadataRecordTests: XCTestCase {
             value: "test",
             type: .personaTag,
             lifespan: .session,
-            lifespanId: TestConstants.sessionId.toString
+            lifespanId: TestConstants.sessionId.stringValue
         )
         storage.addMetadata(
             key: "test7",
             value: "test",
             type: .personaTag,
             lifespan: .process,
-            lifespanId: TestConstants.processId.value
+            lifespanId: TestConstants.processId.stringValue
         )
 
         // when fetching all persona tags by session
@@ -988,14 +994,14 @@ class MetadataRecordTests: XCTestCase {
             value: "test",
             type: .customProperty,
             lifespan: .process,
-            lifespanId: TestConstants.processId.value
+            lifespanId: TestConstants.processId.stringValue
         )
         storage.addMetadata(
             key: "test2",
             value: "test",
             type: .resource,
             lifespan: .session,
-            lifespanId: TestConstants.sessionId.toString
+            lifespanId: TestConstants.sessionId.stringValue
         )
         storage.addMetadata(
             key: "test3",
@@ -1021,14 +1027,14 @@ class MetadataRecordTests: XCTestCase {
             value: "test",
             type: .personaTag,
             lifespan: .session,
-            lifespanId: TestConstants.sessionId.toString
+            lifespanId: TestConstants.sessionId.stringValue
         )
         storage.addMetadata(
             key: "test7",
             value: "test",
             type: .personaTag,
             lifespan: .process,
-            lifespanId: TestConstants.processId.value
+            lifespanId: TestConstants.processId.stringValue
         )
 
         // when fetching all persona tags by session

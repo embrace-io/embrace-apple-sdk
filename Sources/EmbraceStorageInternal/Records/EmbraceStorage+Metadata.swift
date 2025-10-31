@@ -11,11 +11,11 @@ import Foundation
 
 public protocol EmbraceStorageMetadataFetcher: AnyObject {
     func fetchAllResources() -> [EmbraceMetadata]
-    func fetchResourcesForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata]
-    func fetchResourcesForProcessId(_ processId: ProcessIdentifier) -> [EmbraceMetadata]
-    func fetchCustomPropertiesForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata]
-    func fetchPersonaTagsForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata]
-    func fetchPersonaTagsForProcessId(_ processId: ProcessIdentifier) -> [EmbraceMetadata]
+    func fetchResourcesForSessionId(_ sessionId: EmbraceIdentifier) -> [EmbraceMetadata]
+    func fetchResourcesForProcessId(_ processId: EmbraceIdentifier) -> [EmbraceMetadata]
+    func fetchCustomPropertiesForSessionId(_ sessionId: EmbraceIdentifier) -> [EmbraceMetadata]
+    func fetchPersonaTagsForSessionId(_ sessionId: EmbraceIdentifier) -> [EmbraceMetadata]
+    func fetchPersonaTagsForProcessId(_ processId: EmbraceIdentifier) -> [EmbraceMetadata]
 }
 
 extension EmbraceStorage {
@@ -66,7 +66,7 @@ extension EmbraceStorage {
     // WARNING: This MUST be run behind `.performOperation` or `.performAsynOperation`.
     private func _addResources(
         _ map: [String: String], allowMainQueue: Bool, context: NSManagedObjectContext,
-        processId: ProcessIdentifier = .current
+        processId: EmbraceIdentifier = ProcessIdentifier.current
     ) {
 
         guard let description = NSEntityDescription.entity(forEntityName: MetadataRecord.entityName, in: context)
@@ -84,7 +84,7 @@ extension EmbraceStorage {
                 key,
                 MetadataRecordType.requiredResource.rawValue,
                 MetadataRecordLifespan.process.rawValue,
-                processId.value
+                processId.stringValue
             )
 
             var record: MetadataRecord?
@@ -105,7 +105,7 @@ extension EmbraceStorage {
                 record?.value = value
                 record?.typeRaw = MetadataRecordType.requiredResource.rawValue
                 record?.lifespanRaw = MetadataRecordLifespan.process.rawValue
-                record?.lifespanId = processId.value
+                record?.lifespanId = processId.stringValue
                 record?.collectedAt = Date()
             }
         }
@@ -113,14 +113,14 @@ extension EmbraceStorage {
     }
 
     /// Adds or updates all the given critical resources **synchronously**
-    public func addCriticalResources(_ map: [String: String], processId: ProcessIdentifier = .current) {
+    public func addCriticalResources(_ map: [String: String], processId: EmbraceIdentifier = ProcessIdentifier.current) {
         coreData.performOperation(allowMainQueue: true) { context in
             _addResources(map, allowMainQueue: true, context: context, processId: processId)
         }
     }
 
     /// Adds or updates all the given required resources **asynchronously**
-    public func addRequiredResources(_ map: [String: String], processId: ProcessIdentifier = .current) {
+    public func addRequiredResources(_ map: [String: String], processId: EmbraceIdentifier = ProcessIdentifier.current) {
         coreData.performAsyncOperation { [self] context in
             _addResources(map, allowMainQueue: true, context: context, processId: processId)
         }
@@ -359,7 +359,7 @@ extension EmbraceStorage {
     }
 
     /// Returns immutable copies of all records with types `.requiredResource` or `.resource` that are tied to a given session id
-    public func fetchResourcesForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata] {
+    public func fetchResourcesForSessionId(_ sessionId: EmbraceIdentifier) -> [EmbraceMetadata] {
         guard let session = fetchSession(id: sessionId) else {
             return []
         }
@@ -368,14 +368,14 @@ extension EmbraceStorage {
     }
 
     /// Returns immutable copies of all records with types `.requiredResource` or `.resource` that are tied to a given process id
-    public func fetchResourcesForProcessId(_ processId: ProcessIdentifier) -> [EmbraceMetadata] {
+    public func fetchResourcesForProcessId(_ processId: EmbraceIdentifier) -> [EmbraceMetadata] {
 
         let request = MetadataRecord.createFetchRequest()
         request.predicate = NSCompoundPredicate(
             type: .and,
             subpredicates: [
                 resourcePredicate(),
-                lifespanPredicate(processId: processId.value)
+                lifespanPredicate(processId: processId.stringValue)
             ]
         )
 
@@ -417,7 +417,7 @@ extension EmbraceStorage {
     }
 
     /// Returns immutable copies of all records of the `.customProperty` type that are tied to a given session id
-    public func fetchCustomPropertiesForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata] {
+    public func fetchCustomPropertiesForSessionId(_ sessionId: EmbraceIdentifier) -> [EmbraceMetadata] {
         guard let session = fetchSession(id: sessionId) else {
             return []
         }
@@ -450,7 +450,7 @@ extension EmbraceStorage {
     }
 
     /// Returns immutable copies of all records of the `.personaTag` type that are tied to a given session id
-    public func fetchPersonaTagsForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata] {
+    public func fetchPersonaTagsForSessionId(_ sessionId: EmbraceIdentifier) -> [EmbraceMetadata] {
         guard let session = fetchSession(id: sessionId) else {
             return []
         }
@@ -459,14 +459,14 @@ extension EmbraceStorage {
     }
 
     /// Returns immutable copies of all records of the `.personaTag` type that are tied to a given process id
-    public func fetchPersonaTagsForProcessId(_ processId: ProcessIdentifier) -> [EmbraceMetadata] {
+    public func fetchPersonaTagsForProcessId(_ processId: EmbraceIdentifier) -> [EmbraceMetadata] {
 
         let request = MetadataRecord.createFetchRequest()
         request.predicate = NSCompoundPredicate(
             type: .and,
             subpredicates: [
                 personaTagPredicate(),
-                lifespanPredicate(processId: processId.value)
+                lifespanPredicate(processId: processId.stringValue)
             ]
         )
 

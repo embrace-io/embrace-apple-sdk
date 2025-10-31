@@ -12,7 +12,7 @@ import XCTest
 
 class LogPayloadBuilderTests: XCTestCase {
     func test_build_addsLogIdAttribute() throws {
-        let logId = LogIdentifier(value: try XCTUnwrap(UUID(uuidString: "53B55EDD-889A-4876-86BA-6798288B609C")))
+        let logId = EmbraceIdentifier(value: try XCTUnwrap(UUID(uuidString: "53B55EDD-889A-4876-86BA-6798288B609C")))
         let record = MockLog(
             id: logId,
             processId: .random,
@@ -25,7 +25,7 @@ class LogPayloadBuilderTests: XCTestCase {
 
         let attribute = payload.attributes.first(where: { $0.key == "log.record.uid" })
         XCTAssertNotNil(attribute)
-        XCTAssertEqual(attribute?.value, logId.toString)
+        XCTAssertEqual(attribute?.value, logId.stringValue)
     }
 
     func test_buildLogRecordWithAttributes_mapsKeyValuesAsAttributeStruct() {
@@ -78,7 +78,7 @@ class LogPayloadBuilderTests: XCTestCase {
             value: "test",
             type: .customProperty,
             lifespan: .session,
-            lifespanId: TestConstants.sessionId.toString
+            lifespanId: TestConstants.sessionId.stringValue
         )
         storage.addMetadata(
             key: "tag1",
@@ -91,7 +91,7 @@ class LogPayloadBuilderTests: XCTestCase {
             value: "tag2",
             type: .personaTag,
             lifespan: .session,
-            lifespanId: TestConstants.sessionId.toString
+            lifespanId: TestConstants.sessionId.stringValue
         )
 
         // when manually building a log payload

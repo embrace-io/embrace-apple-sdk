@@ -35,6 +35,10 @@ class StorageSpanExporter: SpanExporter {
 
             do {
                 let data = try spanData.toJSON()
+                var sessionId: EmbraceIdentifier? = nil
+                if let id = spanData.attributes[SpanSemantics.keySessionId]?.description {
+                    sessionId = EmbraceIdentifier(stringValue: id)
+                }
 
                 storage.upsertSpan(
                     id: spanData.spanId.hexString,
@@ -44,7 +48,7 @@ class StorageSpanExporter: SpanExporter {
                     data: data,
                     startTime: spanData.startTime,
                     endTime: endTime,
-                    sessionId: SessionIdentifier(string: spanData.attributes[SpanSemantics.keySessionId]?.description)
+                    sessionId: sessionId
                 )
             } catch let exception {
                 logger?.error(exception.localizedDescription)

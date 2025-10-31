@@ -52,7 +52,7 @@ class DefaultLogBatcher: LogBatcher {
     func addLogRecord(logRecord: ReadableLogRecord) {
         processorQueue.async {
             if let record = self.repository.createLog(
-                id: LogIdentifier(),
+                id: EmbraceIdentifier.random,
                 processId: ProcessIdentifier.current,
                 severity: logRecord.severity?.toLogSeverity() ?? .info,
                 body: logRecord.body?.description ?? "",

@@ -28,7 +28,7 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
     // MARK: - addSessionIdentifier Tests
 
     func testOnHavingSession_addSessionIdentifier_addsTheIdentifierToAttributes() {
-        let identifier = SessionIdentifier.random
+        let identifier = EmbraceIdentifier.random
         givenSessionController(sessionWithId: identifier)
         givenMetadataFetcher()
         givenEmbraceLogAttributesBuilder()
@@ -36,7 +36,7 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
         whenInvokingAddSessionIdentifier()
         whenInvokingBuild()
 
-        thenResultingAttributes(is: ["session.id": identifier.toString])
+        thenResultingAttributes(is: ["session.id": identifier.stringValue])
     }
 
     func testOnNotHavingSession_addSessionIdentifier_addsNothingToAttributes() {
@@ -53,7 +53,7 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
     // MARK: - addApplicationProperties Tests
 
     func testOnHavingMetadataCustomProperties_addApplicationProperties_addsCustomPropertiesToAttributes() {
-        let sessionId = SessionIdentifier.random
+        let sessionId = EmbraceIdentifier.random
         givenSessionController(sessionWithId: sessionId)
         givenMetadataFetcher(with: [
             MockMetadata.createSessionPropertyRecord(key: "custom_prop_int", value: .int(1), sessionId: sessionId),
@@ -192,7 +192,7 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
 
 extension EmbraceLogAttributesBuilderTests {
     fileprivate func givenSessionController(
-        sessionWithId sessionId: SessionIdentifier = .random,
+        sessionWithId sessionId: EmbraceIdentifier = .random,
         sessionState: SessionState = .foreground
     ) {
         controller = MockSessionController()

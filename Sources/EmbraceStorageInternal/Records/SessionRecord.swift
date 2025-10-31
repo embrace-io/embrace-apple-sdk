@@ -34,8 +34,8 @@ public class SessionRecord: NSManagedObject {
     /// Note that this must be called within a `perform` on the CoreData context.
     class func create(
         context: NSManagedObjectContext,
-        id: SessionIdentifier,
-        processId: ProcessIdentifier,
+        id: EmbraceIdentifier,
+        processId: EmbraceIdentifier,
         state: SessionState,
         traceId: String,
         spanId: String,
@@ -52,8 +52,8 @@ public class SessionRecord: NSManagedObject {
         }
 
         let record = SessionRecord(entity: description, insertInto: context)
-        record.idRaw = id.toString
-        record.processIdRaw = processId.value
+        record.idRaw = id.stringValue
+        record.processIdRaw = processId.stringValue
         record.state = state.rawValue
         record.traceId = traceId
         record.spanId = spanId

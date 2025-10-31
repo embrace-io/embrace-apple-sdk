@@ -46,7 +46,7 @@ class AppInfoCaptureService: ResourceCaptureService {
             AppResourceKey.framework.rawValue: String(Embrace.client?.options.platform.frameworkId ?? -1),
 
             // process id
-            AppResourceKey.processIdentifier.rawValue: ProcessIdentifier.current.value,
+            AppResourceKey.processIdentifier.rawValue: ProcessIdentifier.current.stringValue,
 
             // pre-warm
             AppResourceKey.processPreWarm.rawValue: isPreWarm

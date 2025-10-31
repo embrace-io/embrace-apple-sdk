@@ -73,7 +73,7 @@ class LogController: LogControllable {
             return
         }
 
-        let logs: [EmbraceLog] = storage.fetchAll(excludingProcessIdentifier: .current)
+        let logs: [EmbraceLog] = storage.fetchAll(excludingProcessIdentifier: ProcessIdentifier.current)
         if logs.isEmpty == false {
             send(batches: divideInBatches(logs)) {
                 completion?()
@@ -245,9 +245,11 @@ extension LogController {
                 //
                 // If we can't find a sessionId, we use the processId instead
 
-                var sessionId: SessionIdentifier?
+                var sessionId: EmbraceIdentifier?
                 if let log = batch.logs.first(where: { $0.attribute(forKey: LogSemantics.keySessionId) != nil }) {
-                    sessionId = SessionIdentifier(string: log.attribute(forKey: LogSemantics.keySessionId)?.valueRaw)
+                    if let id = log.attribute(forKey: LogSemantics.keySessionId)?.valueRaw {
+                        sessionId = EmbraceIdentifier(stringValue: id)
+                    }
                 }
 
                 let resourcePayload = try createResourcePayload(sessionId: sessionId, processId: processId)
@@ -339,8 +341,8 @@ extension LogController {
     }
 
     fileprivate func createResourcePayload(
-        sessionId: SessionIdentifier?,
-        processId: ProcessIdentifier = ProcessIdentifier.current
+        sessionId: EmbraceIdentifier?,
+        processId: EmbraceIdentifier = ProcessIdentifier.current
     ) throws -> ResourcePayload {
         guard let storage = storage else {
             throw Error.couldntAccessStorageModule
@@ -358,8 +360,8 @@ extension LogController {
     }
 
     fileprivate func createMetadataPayload(
-        sessionId: SessionIdentifier?,
-        processId: ProcessIdentifier = ProcessIdentifier.current
+        sessionId: EmbraceIdentifier?,
+        processId: EmbraceIdentifier = ProcessIdentifier.current
     ) throws -> MetadataPayload {
         guard let storage = storage else {
             throw Error.couldntAccessStorageModule

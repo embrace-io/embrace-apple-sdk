@@ -20,11 +20,11 @@ public protocol EmbraceSession {
 }
 
 extension EmbraceSession {
-    public var id: SessionIdentifier? {
-        return SessionIdentifier(string: idRaw)
+    public var id: EmbraceIdentifier? {
+        return EmbraceIdentifier(stringValue: idRaw)
     }
 
-    public var processId: ProcessIdentifier? {
-        return ProcessIdentifier(string: processIdRaw)
+    public var processId: EmbraceIdentifier? {
+        return EmbraceIdentifier(stringValue: processIdRaw)
     }
 }

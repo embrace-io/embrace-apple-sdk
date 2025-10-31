@@ -24,45 +24,45 @@ class SpyStorage: Storage {
     }
 
     var didCallFetchResourcesForSessionId = false
-    var fetchResourcesForSessionIdReceivedParameter: SessionIdentifier!
+    var fetchResourcesForSessionIdReceivedParameter: EmbraceIdentifier!
     var stubbedFetchResourcesForSessionId: [EmbraceMetadata] = []
-    func fetchResourcesForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata] {
+    func fetchResourcesForSessionId(_ sessionId: EmbraceIdentifier) -> [EmbraceMetadata] {
         didCallFetchResourcesForSessionId = true
         fetchResourcesForSessionIdReceivedParameter = sessionId
         return stubbedFetchResourcesForSessionId
     }
 
     var didCallFetchResourcesForProcessId = false
-    var fetchResourcesForProcessIdReceivedParameter: ProcessIdentifier!
+    var fetchResourcesForProcessIdReceivedParameter: EmbraceIdentifier!
     var stubbedFetchResourcesForProcessId: [EmbraceMetadata] = []
-    func fetchResourcesForProcessId(_ processId: ProcessIdentifier) -> [EmbraceMetadata] {
+    func fetchResourcesForProcessId(_ processId: EmbraceIdentifier) -> [EmbraceMetadata] {
         didCallFetchResourcesForProcessId = true
         fetchResourcesForProcessIdReceivedParameter = processId
         return stubbedFetchResourcesForProcessId
     }
 
     var didCallFetchCustomPropertiesForSessionId = false
-    var fetchCustomPropertiesForSessionIdReceivedParameter: SessionIdentifier!
+    var fetchCustomPropertiesForSessionIdReceivedParameter: EmbraceIdentifier!
     var stubbedFetchCustomPropertiesForSessionId: [EmbraceMetadata] = []
-    func fetchCustomPropertiesForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata] {
+    func fetchCustomPropertiesForSessionId(_ sessionId: EmbraceIdentifier) -> [EmbraceMetadata] {
         didCallFetchCustomPropertiesForSessionId = true
         fetchCustomPropertiesForSessionIdReceivedParameter = sessionId
         return stubbedFetchCustomPropertiesForSessionId
     }
 
     var didCallFetchPersonaTagsForSessionId = false
-    var fetchPersonaTagsForSessionIdReceivedParameter: SessionIdentifier!
+    var fetchPersonaTagsForSessionIdReceivedParameter: EmbraceIdentifier!
     var stubbedFetchPersonaTagsForSessionId: [EmbraceMetadata] = []
-    func fetchPersonaTagsForSessionId(_ sessionId: SessionIdentifier) -> [EmbraceMetadata] {
+    func fetchPersonaTagsForSessionId(_ sessionId: EmbraceIdentifier) -> [EmbraceMetadata] {
         didCallFetchPersonaTagsForSessionId = true
         fetchPersonaTagsForSessionIdReceivedParameter = sessionId
         return stubbedFetchPersonaTagsForSessionId
     }
 
     var didCallFetchPersonaTagsForProcessId = false
-    var fetchPersonaTagsForProcessIdReceivedParameter: ProcessIdentifier!
+    var fetchPersonaTagsForProcessIdReceivedParameter: EmbraceIdentifier!
     var stubbedFetchPersonaTagsForProcessId: [EmbraceMetadata] = []
-    func fetchPersonaTagsForProcessId(_ processId: ProcessIdentifier) -> [EmbraceMetadata] {
+    func fetchPersonaTagsForProcessId(_ processId: EmbraceIdentifier) -> [EmbraceMetadata] {
         didCallFetchPersonaTagsForProcessId = true
         fetchPersonaTagsForProcessIdReceivedParameter = processId
         return stubbedFetchPersonaTagsForProcessId
@@ -70,8 +70,8 @@ class SpyStorage: Storage {
 
     var didCallCreate = false
     func createLog(
-        id: LogIdentifier,
-        processId: ProcessIdentifier,
+        id: EmbraceIdentifier,
+        processId: EmbraceIdentifier,
         severity: LogSeverity,
         body: String,
         timestamp: Date,
@@ -91,8 +91,8 @@ class SpyStorage: Storage {
 
     var didCallFetchAllExcludingProcessIdentifier = false
     var stubbedFetchAllExcludingProcessIdentifier: [EmbraceLog] = []
-    var fetchAllExcludingProcessIdentifierReceivedParameter: ProcessIdentifier!
-    func fetchAll(excludingProcessIdentifier processIdentifier: ProcessIdentifier) -> [EmbraceLog] {
+    var fetchAllExcludingProcessIdentifierReceivedParameter: EmbraceIdentifier!
+    func fetchAll(excludingProcessIdentifier processIdentifier: EmbraceIdentifier) -> [EmbraceLog] {
         didCallFetchAllExcludingProcessIdentifier = true
         fetchAllExcludingProcessIdentifierReceivedParameter = processIdentifier
         return stubbedFetchAllExcludingProcessIdentifier
