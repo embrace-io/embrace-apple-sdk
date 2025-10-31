@@ -249,7 +249,8 @@ let package = Package(
         .target(
             name: "EmbraceCoreDataInternal",
             dependencies: [
-                "EmbraceCommonInternal"
+                "EmbraceCommonInternal",
+                "EmbraceObjCUtilsInternal"
             ]
         ),
         .testTarget(
