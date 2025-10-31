@@ -150,6 +150,7 @@ class EmbraceUploadCache {
                         context.delete(record)
                     }
                 }
+                return true
             }
             return false
         }
