@@ -52,7 +52,7 @@ class MetricKitMetricsCaptureServiceTests: XCTestCase {
 
         // then it creates the corresponding otel log
         let log = otel.logs[0]
-        XCTAssertEqual(log.severity, .warn)
+        XCTAssertEqual(log.severity, .info)
         XCTAssertEqual(log.embType, .metricKitMetrics)
         XCTAssertEqual(log.attributes["emb.state"], .string("unknown"))
         XCTAssertNotNil(log.attributes["log.record.uid"])
@@ -131,7 +131,7 @@ class MetricKitMetricsCaptureServiceTests: XCTestCase {
 
         // then it creates the corresponding otel log
         let log = otel.logs[0]
-        XCTAssertEqual(log.severity, .warn)
+        XCTAssertEqual(log.severity, .info)
         XCTAssertEqual(log.embType, .metricKitMetrics)
         XCTAssertEqual(log.attributes["emb.state"], .string("unknown"))
         XCTAssertNotNil(log.attributes["log.record.uid"])

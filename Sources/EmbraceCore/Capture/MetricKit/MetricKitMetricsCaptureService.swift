@@ -9,7 +9,6 @@ import Foundation
     import EmbraceCommonInternal
     import EmbraceSemantics
     import EmbraceConfiguration
-    @_spi(EmbraceSDK) import EmbraceCommonInternal
 #endif
 
 class MetricKitMetricsCaptureService: CaptureService, MetricKitMetricsPayloadListener {
@@ -65,7 +64,7 @@ class MetricKitMetricsCaptureService: CaptureService, MetricKitMetricsPayloadLis
 
         otel?.log(
             "MetricKit Internal Metrics",
-            severity: .warn,
+            severity: .info,
             type: .metricKitMetrics,
             timestamp: Date(),
             attributes: attributes,
