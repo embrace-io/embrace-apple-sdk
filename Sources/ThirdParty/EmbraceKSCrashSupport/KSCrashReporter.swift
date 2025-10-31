@@ -176,7 +176,7 @@ public final class KSCrashReporter: NSObject, CrashReporter {
                 payload: payload,
                 provider: "kscrash",  // from LogSemantics+Crash.swift
                 internalId: "\(id)",
-                sessionId: sessionId?.toString,
+                sessionId: sessionId?.stringValue,
                 timestamp: timestamp,
                 signal: signal
             )
@@ -235,7 +235,7 @@ public final class KSCrashReporter: NSObject, CrashReporter {
                 _writeSymbols(
                     stack,
                     sessionId: value,
-                    processId: ProcessIdentifier.current.value,
+                    processId: ProcessIdentifier.current.stringValue,
                     sdk: crashContext?.sdkVersion
                 )
                 try? value.write(to: Self.lastSessionURL, atomically: false, encoding: .utf8)
@@ -372,7 +372,7 @@ extension KSCrashReporter: TerminationReporter {
         return identifiers.compactMap { id in
 
             // don't send the current one
-            if id == ProcessIdentifier.current.value {
+            if id == ProcessIdentifier.current.stringValue {
                 return nil
             }
 
