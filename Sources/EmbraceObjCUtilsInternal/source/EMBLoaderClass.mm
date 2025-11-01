@@ -2,6 +2,7 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
+#import <CoreData/CoreData.h>
 #import <Foundation/Foundation.h>
 #import <pthread.h>
 #import <sys/time.h>
@@ -18,6 +19,22 @@
 
 static pthread_t sMainThread = NULL;
 pthread_t EmbraceGetMainThread(void) { return sMainThread; }
+
+NSError *_Nullable EmbraceSaveManagedContext(NSManagedObjectContext *context)
+{
+    NSError *error = nil;
+    @try {
+        if (![context save:&error]) {
+            return error;
+        }
+    } @catch (NSException *exception) {
+        NSMutableDictionary *info = exception.userInfo ? [exception.userInfo mutableCopy] : [NSMutableDictionary new];
+        info[@"exception_name"] = exception.name;
+        info[@"exception_reason"] = exception.reason;
+        return [NSError errorWithDomain:@"EmbraceSaveManagedContextException" code:0 userInfo:info];
+    }
+    return nil;
+}
 
 @implementation EMBLoaderClass
 
