@@ -95,6 +95,7 @@ extension HangCaptureService: HangObserver {
                 object: WatchdogEvent(timestamp: at, duration: duration)
             )
         }
+        NotificationCenter.default.post(name: .embraceHangStarted, object: nil)
 
         // Keep tabs on how many hang spans we've created
         let sampleInfo = limitData.withLock {
@@ -162,6 +163,7 @@ extension HangCaptureService: HangObserver {
                 object: WatchdogEvent(timestamp: at, duration: duration)
             )
         }
+        NotificationCenter.default.post(name: .embraceHangUpdated, object: nil)
 
         guard
             limitData.withLock({
@@ -196,6 +198,7 @@ extension HangCaptureService: HangObserver {
                 object: WatchdogEvent(timestamp: at, duration: duration)
             )
         }
+        NotificationCenter.default.post(name: .embraceHangEnded, object: nil)
 
         spanQueue.async { [self] in
             span?.end(time: at.date)

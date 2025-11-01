@@ -35,6 +35,10 @@ public struct ProcessIdentifier {
     public static let current: EmbraceIdentifier = .random
 }
 
+@objc public class EMBCurrentProcessIdentifier: NSObject {
+    @objc public static let value = ProcessIdentifier.current.stringValue
+}
+
 // MARK: Int Value
 extension EmbraceIdentifier {
     /// Returns the integer value of the device identifier using the number of digits from the suffix
