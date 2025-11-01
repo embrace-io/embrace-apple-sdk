@@ -76,7 +76,9 @@ class SessionController: SessionControllable {
         self.queue = queue
 
         self.heartbeat.callback = { [weak self] in
+            let span = EmbraceMetricKitSpan.begin(name: "heartbeat")
             self?.update(heartbeat: Date())
+            span.end()
         }
     }
 

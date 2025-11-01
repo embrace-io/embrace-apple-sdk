@@ -5,6 +5,7 @@
 @testable import EmbraceCore
 
 class MockMetricKitStateProvider: EmbraceMetricKitStateProvider {
+    var isMetricKitInternalMetricsCaptureEnabled: Bool = true
     var isMetricKitEnabled: Bool = true
     var isMetricKitCrashCaptureEnabled: Bool = true
     var metricKitCrashSignals: [Int] = [9]
