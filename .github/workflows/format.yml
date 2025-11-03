@@ -1,4 +1,5 @@
 name: Format
+
 on:
   pull_request:
 
@@ -8,7 +9,7 @@ concurrency:
 
 permissions:
   contents: read
-  
+
 jobs:
   formatting-check:
     name: Formatting Checks

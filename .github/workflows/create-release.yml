@@ -40,7 +40,7 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
-          persist-credentials: true 
+          persist-credentials: true
 
       - name: Define Production Readiness
         run: |
@@ -174,7 +174,7 @@ jobs:
           echo "::notice::Creating Release $RC_VERSION in Github"
           if gh release view $RC_VERSION --repo embrace-io/embrace-apple-sdk > /dev/null 2>&1; then
             echo "::warning::Version '$RC_VERSION' already exists in GitHub. Skipping and continuing"
-          else 
+          else
             PRERELEASE_FLAG=""
             if [ "$IS_PRODUCTION_READY" == "false" ]; then
               PRERELEASE_FLAG="--prerelease"
