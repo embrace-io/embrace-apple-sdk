@@ -46,7 +46,7 @@ public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
 
     private let content: () -> Content
     private let name: String
-    private let attributes: [String: String]?
+    private let attributes: EmbraceAttributes?
     private let contentCompleteValue: Value?
 
     /// Creates a new `EmbraceTraceView` that wraps the given content for tracing.
@@ -58,7 +58,7 @@ public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
     ///   - content: A closure returning the view content to wrap.
     public init(
         _ viewName: String,
-        attributes: [String: String]? = nil,
+        attributes: EmbraceAttributes? = nil,
         contentComplete: Value? = nil,
         content: @escaping () -> Content
     ) {
@@ -81,7 +81,7 @@ public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
 
     public init(
         _ viewName: String,
-        attributes: [String: String]? = nil,
+        attributes: EmbraceAttributes? = nil,
         content: @escaping () -> Content
     ) where Value == Never {
         self.init(

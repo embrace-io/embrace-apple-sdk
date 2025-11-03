@@ -62,7 +62,8 @@ class DefaultEmbraceSpanTests: XCTestCase {
         XCTAssertEqual(span.events[0].name, "event")
         XCTAssertEqual(span.links[0].context.spanId, "spanId")
         XCTAssertEqual(span.links[0].context.traceId, "traceId")
-        XCTAssertEqual(span.attributes, ["myKey": "myValue"])
+        XCTAssertEqual(span.attributes.count, 1)
+        XCTAssertEqual(span.attributes["myKey"] as! String, "myValue")
         XCTAssertEqual(span.state.safeValue.internalEventCount, 0)
         XCTAssertEqual(span.state.safeValue.internalLinkCount, 0)
         XCTAssertEqual(span.state.safeValue.internalAttributeCount, 1)
@@ -102,8 +103,9 @@ class DefaultEmbraceSpanTests: XCTestCase {
         XCTAssertEqual(span.events[1].name, "newEvent")
         XCTAssertEqual(span.events[1].type, .performance)
         XCTAssertEqual(span.events[1].timestamp, Date(timeIntervalSince1970: 5))
-        XCTAssertEqual(span.events[1].attributes["emb.type"], "perf")
-        XCTAssertEqual(span.events[1].attributes["key"], "value")
+        XCTAssertEqual(span.events[1].attributes.count, 2)
+        XCTAssertEqual(span.events[1].attributes["emb.type"] as! String, "perf")
+        XCTAssertEqual(span.events[1].attributes["key"] as! String, "value")
         XCTAssertEqual(span.state.safeValue.internalEventCount, 0)
         XCTAssertEqual(handler.createEventCallCount, 1)
         XCTAssertEqual(handler.onSpanEventAddedCallCount, 1)
@@ -155,9 +157,10 @@ class DefaultEmbraceSpanTests: XCTestCase {
         XCTAssertEqual(span.events[1].name, "newSessionEvent")
         XCTAssertEqual(span.events[1].type, .performance)
         XCTAssertEqual(span.events[1].timestamp, Date(timeIntervalSince1970: 5))
-        XCTAssertEqual(span.events[1].attributes["emb.type"], "perf")
-        XCTAssertEqual(span.events[1].attributes["key1"], "value1")
-        XCTAssertEqual(span.events[1].attributes["key2"], "value2")
+        XCTAssertEqual(span.events[1].attributes.count, 3)
+        XCTAssertEqual(span.events[1].attributes["emb.type"] as! String, "perf")
+        XCTAssertEqual(span.events[1].attributes["key1"] as! String, "value1")
+        XCTAssertEqual(span.events[1].attributes["key2"] as! String, "value2")
         XCTAssertEqual(span.state.safeValue.internalEventCount, 0)
         XCTAssertEqual(handler.createEventCallCount, 1)
         XCTAssertEqual(handler.onSpanEventAddedCallCount, 1)
@@ -211,9 +214,10 @@ class DefaultEmbraceSpanTests: XCTestCase {
         XCTAssertEqual(span.events[1].name, "newSessionEvent")
         XCTAssertEqual(span.events[1].type, .performance)
         XCTAssertEqual(span.events[1].timestamp, Date(timeIntervalSince1970: 5))
-        XCTAssertEqual(span.events[1].attributes["emb.type"], "perf")
-        XCTAssertEqual(span.events[1].attributes["key1"], "value1")
-        XCTAssertEqual(span.events[1].attributes["key2"], "value2")
+        XCTAssertEqual(span.events[1].attributes.count, 3)
+        XCTAssertEqual(span.events[1].attributes["emb.type"] as! String, "perf")
+        XCTAssertEqual(span.events[1].attributes["key1"] as! String, "value1")
+        XCTAssertEqual(span.events[1].attributes["key2"] as! String, "value2")
         XCTAssertEqual(span.state.safeValue.internalEventCount, 1)
         XCTAssertEqual(handler.createEventCallCount, 0)
         XCTAssertEqual(handler.onSpanEventAddedCallCount, 1)
@@ -236,7 +240,7 @@ class DefaultEmbraceSpanTests: XCTestCase {
         XCTAssertEqual(span.links.count, 2)
         XCTAssertEqual(span.links[1].context.spanId, TestConstants.spanId)
         XCTAssertEqual(span.links[1].context.traceId, TestConstants.traceId)
-        XCTAssertEqual(span.links[1].attributes["key"], "value")
+        XCTAssertEqual(span.links[1].attributes["key"] as! String, "value")
         XCTAssertEqual(span.state.safeValue.internalLinkCount, 0)
         XCTAssertEqual(handler.createLinkCallCount, 1)
         XCTAssertEqual(handler.onSpanLinkAddedCallCount, 1)
@@ -276,7 +280,7 @@ class DefaultEmbraceSpanTests: XCTestCase {
         // then the attribute is set
         // the internal counter doesn't increase
         // and the handler is notified
-        XCTAssertEqual(span.attributes["key"], "value")
+        XCTAssertEqual(span.attributes["key"] as! String, "value")
         XCTAssertEqual(span.state.safeValue.internalAttributeCount, 1)
         XCTAssertEqual(handler.validateAttributeCallCount, 1)
         XCTAssertEqual(handler.onSpanAttributesUpdatedCallCount, 1)
@@ -310,7 +314,7 @@ class DefaultEmbraceSpanTests: XCTestCase {
         // then the attribute is deleted
         // the internal counte doesn't change
         // and the handler is notified
-        XCTAssertEqual(span.attributes["myKey"], nil)
+        XCTAssertNil(span.attributes["myKey"])
         XCTAssertEqual(span.state.safeValue.internalAttributeCount, 1)
         XCTAssertEqual(handler.validateAttributeCallCount, 1)
         XCTAssertEqual(handler.onSpanAttributesUpdatedCallCount, 1)
@@ -326,7 +330,7 @@ class DefaultEmbraceSpanTests: XCTestCase {
         // then the attribute is set
         // the internal counter increases
         // and the handler is notified
-        XCTAssertEqual(span.attributes["key"], "value")
+        XCTAssertEqual(span.attributes["key"] as! String, "value")
         XCTAssertEqual(span.state.safeValue.internalAttributeCount, 2)
         XCTAssertEqual(handler.validateAttributeCallCount, 0)
         XCTAssertEqual(handler.onSpanAttributesUpdatedCallCount, 1)
@@ -340,14 +344,14 @@ class DefaultEmbraceSpanTests: XCTestCase {
         span.setInternalAttribute(key: "key", value: "value")
 
         // then the attribute is set and the internal counter increases
-        XCTAssertEqual(span.attributes["key"], "value")
+        XCTAssertEqual(span.attributes["key"] as! String, "value")
         XCTAssertEqual(span.state.safeValue.internalAttributeCount, 2)
 
         // when deleting it
         span.setInternalAttribute(key: "key", value: nil)
 
         // then the attribute is deleted and the internal counter decreases
-        XCTAssertEqual(span.attributes["key"], nil)
+        XCTAssertNil(span.attributes["key"])
         XCTAssertEqual(span.state.safeValue.internalAttributeCount, 1)
 
         XCTAssertEqual(handler.validateAttributeCallCount, 0)

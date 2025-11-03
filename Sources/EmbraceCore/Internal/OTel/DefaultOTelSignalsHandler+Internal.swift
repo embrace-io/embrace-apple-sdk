@@ -20,7 +20,7 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
         endTime: Date? = nil,
         events: [EmbraceSpanEvent] = [],
         links: [EmbraceSpanLink] = [],
-        attributes: [String: String] = [:],
+        attributes: EmbraceAttributes = [:],
         autoTerminationCode: EmbraceSpanErrorCode? = nil,
         isInternal: Bool = true
     ) throws -> EmbraceSpan {
@@ -34,13 +34,13 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
 
         // add embrace specific attributes
         let sanitizedAttributes = isInternal ? attributes : sanitizer.sanitizeSpanAttributes(attributes)
-        var internalAttributes = [String: String]()
+        var internalAttributes = [String: EmbraceAttributeValue]()
         internalAttributes.setEmbraceType(type)
 
         // add session id if needed
         var sessionId: EmbraceIdentifier?
         if type == .session {
-            if let value = internalAttributes[SpanSemantics.Session.keyId] {
+            if let value = internalAttributes[SpanSemantics.Session.keyId] as? String {
                 sessionId = EmbraceIdentifier(stringValue: value)
             }
         } else {
@@ -103,7 +103,7 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
         name: String,
         type: EmbraceType? = nil,
         timestamp: Date = Date(),
-        attributes: [String: String] = [:],
+        attributes: EmbraceAttributes = [:],
         isInternal: Bool = true
     ) throws {
 
@@ -126,7 +126,7 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
         type: EmbraceType,
         timestamp: Date = Date(),
         attachment: EmbraceLogAttachment? = nil,
-        attributes: [String: String] = [:],
+        attributes: EmbraceAttributes = [:],
         stackTraceBehavior: EmbraceStackTraceBehavior = .default,
         isInternal: Bool = true,
         send: Bool = true
@@ -176,7 +176,7 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
         severity: EmbraceLogSeverity,
         type: EmbraceType = .message,
         timestamp: Date = Date(),
-        attributes: [String: String] = [:]
+        attributes: EmbraceAttributes = [:]
     ) {
         try? _log(
             message,
@@ -200,7 +200,7 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
         endTime: Date?,
         events: [EmbraceSpanEvent],
         links: [EmbraceSpanLink],
-        attributes: [String: String],
+        attributes: EmbraceAttributes,
         internalAttributeCount: Int,
         sessionId: EmbraceIdentifier?,
         autoTerminationCode: EmbraceSpanErrorCode?,
@@ -264,7 +264,7 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDelegate {
         storage?.addSpanLink(id: span.context.spanId, traceId: span.context.traceId, link: link)
     }
 
-    func onSpanAttributesUpdated(_ span: EmbraceSpan, key: String, value: String?, attributes: [String: String]) {
+    func onSpanAttributesUpdated(_ span: EmbraceSpan, key: String, value: EmbraceAttributeValue?, attributes: EmbraceAttributes) {
         bridge.updateSpanAttribute(span, key: key, value: value)
         storage?.setSpanAttributes(id: span.context.spanId, traceId: span.context.traceId, attributes: attributes)
     }
@@ -282,8 +282,8 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDataSource {
         name: String,
         type: EmbraceType?,
         timestamp: Date,
-        attributes: [String: String],
-        internalAttributes: [String: String],
+        attributes: EmbraceAttributes,
+        internalAttributes: EmbraceAttributes,
         currentCount: Int,
         isSessionEvent: Bool = false
     ) throws -> EmbraceSpanEvent {
@@ -314,7 +314,7 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDataSource {
         for span: EmbraceSpan,
         spanId: String,
         traceId: String,
-        attributes: [String: String],
+        attributes: EmbraceAttributes,
         currentCount: Int
     ) throws -> EmbraceSpanLink {
 
@@ -333,9 +333,9 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDataSource {
     func validateAttribute(
         for span: EmbraceSpan,
         key: String,
-        value: String?,
+        value: EmbraceAttributeValue?,
         currentCount: Int
-    ) throws -> (String, String?) {
+    ) throws -> (String, EmbraceAttributeValue?) {
 
         // no limits when removing a key
         guard let value else {

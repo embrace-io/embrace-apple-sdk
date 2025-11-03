@@ -85,7 +85,7 @@ class LogController: LogBatcherDelegate {
         type: EmbraceType = .message,
         timestamp: Date = Date(),
         attachment: EmbraceLogAttachment? = nil,
-        attributes: [String: String] = [:],
+        attributes: EmbraceAttributes = [:],
         stackTraceBehavior: EmbraceStackTraceBehavior = .default,
         send: Bool = true,
         completion: ((EmbraceLog?) -> Void)? = nil
@@ -261,7 +261,7 @@ extension LogController {
 
                 var sessionId: EmbraceIdentifier?
                 if let log = batch.logs.first(where: { $0.attributes[LogSemantics.keySessionId] != nil }) {
-                    if let value = log.attributes[LogSemantics.keySessionId] {
+                    if let value = log.attributes[LogSemantics.keySessionId] as? String {
                         sessionId = EmbraceIdentifier(stringValue: value)
                     }
                 }
@@ -405,7 +405,7 @@ extension LogController {
             return ""
         }
 
-        let types = logs.compactMap { $0.attributes[LogSemantics.keyEmbraceType] }
+        let types = logs.compactMap { $0.attributes[LogSemantics.keyEmbraceType] as? String }
         let set = Set(types)
         return set.joined(separator: ",")
     }

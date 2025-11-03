@@ -28,7 +28,7 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
         endTime: Date? = nil,
         events: [EmbraceSpanEvent] = [],
         links: [EmbraceSpanLink] = [],
-        attributes: [String: String] = [:],
+        attributes: EmbraceAttributes = [:],
         autoTerminationCode: EmbraceSpanErrorCode? = nil,
         isInternal: Bool = true
     ) throws -> EmbraceSpan {
@@ -65,7 +65,7 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
         name: String,
         type: EmbraceType? = nil,
         timestamp: Date = Date(),
-        attributes: [String: String] = [:],
+        attributes: EmbraceAttributes = [:],
         isInternal: Bool = true
     ) throws {
         let event = EmbraceSpanEvent(
@@ -83,7 +83,7 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
         type: EmbraceType,
         timestamp: Date = Date(),
         attachment: EmbraceLogAttachment? = nil,
-        attributes: [String: String] = [:],
+        attributes: EmbraceAttributes = [:],
         stackTraceBehavior: EmbraceStackTraceBehavior = .default,
         isInternal: Bool = true,
         send: Bool = true
@@ -115,7 +115,7 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
         severity: EmbraceLogSeverity,
         type: EmbraceType,
         timestamp: Date,
-        attributes: [String: String]
+        attributes: EmbraceAttributes
     ) {
         _log(
             message,

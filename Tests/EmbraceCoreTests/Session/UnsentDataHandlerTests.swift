@@ -223,7 +223,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // then the raw crash log was sent
         XCTAssertEqual(otel.logs.count, 1)
-        XCTAssertEqual(otel.logs[0].attributes["emb.type"], EmbraceType.crash.rawValue)
+        XCTAssertEqual(otel.logs[0].attributes["emb.type"] as! String, EmbraceType.crash.rawValue)
         XCTAssertEqual(otel.logs[0].timestamp, report.timestamp)
     }
 
@@ -296,7 +296,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // then the raw crash log was sent
         XCTAssertEqual(otel.logs.count, 1)
-        XCTAssertEqual(otel.logs[0].attributes["emb.type"], EmbraceType.crash.rawValue)
+        XCTAssertEqual(otel.logs[0].attributes["emb.type"] as! String, EmbraceType.crash.rawValue)
         XCTAssertEqual(otel.logs[0].timestamp, report.timestamp)
     }
 
@@ -366,7 +366,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // then the raw crash log was sent
         XCTAssertEqual(otel.logs.count, 1)
-        XCTAssertEqual(otel.logs[0].attributes["emb.type"], EmbraceType.crash.rawValue)
+        XCTAssertEqual(otel.logs[0].attributes["emb.type"] as! String, EmbraceType.crash.rawValue)
         XCTAssertEqual(otel.logs[0].timestamp, report.timestamp)
     }
 
@@ -425,11 +425,11 @@ class UnsentDataHandlerTests: XCTestCase {
         XCTAssertEqual(otel.logs[0].timestamp, report.timestamp)
         XCTAssertEqual(otel.logs[0].body, "")
         XCTAssertEqual(otel.logs[0].severity, .fatal)
-        XCTAssertEqual(otel.logs[0].attributes["session.id"], TestConstants.sessionId.stringValue)
-        XCTAssertEqual(otel.logs[0].attributes["emb.state"], SessionState.foreground.rawValue)
-        XCTAssertEqual(otel.logs[0].attributes["log.record.uid"], report.id.withoutHyphen)
-        XCTAssertEqual(otel.logs[0].attributes["emb.provider"], report.provider)
-        XCTAssertEqual(otel.logs[0].attributes["emb.payload"], report.payload)
+        XCTAssertEqual(otel.logs[0].attributes["session.id"] as! String, TestConstants.sessionId.stringValue)
+        XCTAssertEqual(otel.logs[0].attributes["emb.state"] as! String, SessionState.foreground.rawValue)
+        XCTAssertEqual(otel.logs[0].attributes["log.record.uid"] as! String, report.id.withoutHyphen)
+        XCTAssertEqual(otel.logs[0].attributes["emb.provider"] as! String, report.provider)
+        XCTAssertEqual(otel.logs[0].attributes["emb.payload"] as! String, report.payload)
     }
 
     func test_spanCleanUp_sendUnsentData() async throws {

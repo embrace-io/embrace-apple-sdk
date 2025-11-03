@@ -104,12 +104,12 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         XCTAssertEqual(span.events[0].name, "event")
         XCTAssertEqual(span.links[0].context.spanId, TestConstants.spanId)
         XCTAssertEqual(span.links[0].context.traceId, TestConstants.traceId)
-        XCTAssertEqual(span.attributes["key"], "value")
+        XCTAssertEqual(span.attributes["key"] as! String, "value")
         XCTAssertTrue(span is InternalEmbraceSpan)
 
         // then the span has the correct internal attributes
-        XCTAssertEqual(span.attributes["emb.type"], "perf")
-        XCTAssertEqual(span.attributes["session.id"], sessionController.currentSession!.id.stringValue)
+        XCTAssertEqual(span.attributes["emb.type"] as! String, "perf")
+        XCTAssertEqual(span.attributes["session.id"] as! String, sessionController.currentSession!.id.stringValue)
 
         // then the span is saved in storage correctly
         let record = storage.fetchSpan(id: span.context.spanId, traceId: span.context.traceId)
@@ -122,9 +122,9 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         XCTAssertEqual(record!.events[0].name, "event")
         XCTAssertEqual(record!.links[0].context.spanId, TestConstants.spanId)
         XCTAssertEqual(record!.links[0].context.traceId, TestConstants.traceId)
-        XCTAssertEqual(record!.attributes["key"], "value")
-        XCTAssertEqual(record!.attributes["emb.type"], "perf")
-        XCTAssertEqual(record!.attributes["session.id"], sessionController.currentSession!.id.stringValue)
+        XCTAssertEqual(record!.attributes["key"] as! String, "value")
+        XCTAssertEqual(record!.attributes["emb.type"] as! String, "perf")
+        XCTAssertEqual(record!.attributes["session.id"] as! String, sessionController.currentSession!.id.stringValue)
     }
 
     func test_addInternalSessionEvent() throws {
@@ -154,8 +154,8 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         XCTAssertEqual(span.events[0].name, "test")
         XCTAssertEqual(span.events[0].type, .lowPower)
         XCTAssertEqual(span.events[0].timestamp, timestamp)
-        XCTAssertEqual(span.events[0].attributes["emb.type"], "sys.low_power")
-        XCTAssertEqual(span.events[0].attributes["key"], "value")
+        XCTAssertEqual(span.events[0].attributes["emb.type"] as! String, "sys.low_power")
+        XCTAssertEqual(span.events[0].attributes["key"] as! String, "value")
 
         // then the event is saved correctly
         let record = storage.fetchSpan(id: span.context.spanId, traceId: span.context.traceId)!
@@ -163,8 +163,8 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         XCTAssertEqual(record.events[0].name, "test")
         XCTAssertEqual(record.events[0].type, .lowPower)
         XCTAssertEqual(record.events[0].timestamp, timestamp)
-        XCTAssertEqual(record.events[0].attributes["emb.type"], "sys.low_power")
-        XCTAssertEqual(record.events[0].attributes["key"], "value")
+        XCTAssertEqual(record.events[0].attributes["emb.type"] as! String, "sys.low_power")
+        XCTAssertEqual(record.events[0].attributes["key"] as! String, "value")
     }
 
     func test_internalLog() throws {
@@ -190,17 +190,18 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         wait(timeout: .defaultTimeout) {
             let log = self.logController.batcher.batch!.logs[0]
 
-            return log.body == "test" && log.severity == .debug && log.type == .message && log.timestamp == timestamp && log.attributes["key"] == "value" && log.attributes["emb.type"] == "sys.log"
-                && log.attributes["emb.state"] == "foreground" && log.attributes["session.id"] == self.sessionController.currentSession!.id.stringValue && self.bridge.createLogCallCount == 1
+            return log.body == "test" && log.severity == .debug && log.type == .message && log.timestamp == timestamp && log.attributes["key"] as! String == "value"
+                && log.attributes["emb.type"] as! String == "sys.log" && log.attributes["emb.state"] as! String == "foreground"
+                && log.attributes["session.id"] as! String == self.sessionController.currentSession!.id.stringValue && self.bridge.createLogCallCount == 1
         }
 
         // then the log is saved correctly
         wait(timeout: .defaultTimeout) {
             let record = self.storage.fetchAllLogs()[0]
 
-            return record.body == "test" && record.severity == .debug && record.type == .message && record.timestamp == timestamp && record.attributes["key"] == "value"
-                && record.attributes["emb.type"] == "sys.log" && record.attributes["emb.state"] == "foreground"
-                && record.attributes["session.id"] == self.sessionController.currentSession!.id.stringValue
+            return record.body == "test" && record.severity == .debug && record.type == .message && record.timestamp == timestamp && record.attributes["key"] as! String == "value"
+                && record.attributes["emb.type"] as! String == "sys.log" && record.attributes["emb.state"] as! String == "foreground"
+                && record.attributes["session.id"] as! String == self.sessionController.currentSession!.id.stringValue
         }
     }
 
@@ -298,7 +299,8 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
 
         // then the span is updated on the db
         let record = storage.fetchSpan(id: span.context.spanId, traceId: span.context.traceId)
-        XCTAssertEqual(record!.attributes, ["key": "value"])
+        XCTAssertEqual(record!.attributes.count, 1)
+        XCTAssertEqual(record!.attributes["key"] as! String, "value")
     }
 
     func test_onSpanEnded() throws {
@@ -348,9 +350,9 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         XCTAssertEqual(event.type, .performance)
         XCTAssertEqual(event.timestamp, timestamp)
         XCTAssertEqual(event.attributes.count, 3)
-        XCTAssertEqual(event.attributes["emb.type"], "perf")
-        XCTAssertEqual(event.attributes["sanitizedKey"], "sanitizedValue")
-        XCTAssertEqual(event.attributes["internalKey"], "internalValue")
+        XCTAssertEqual(event.attributes["emb.type"] as! String, "perf")
+        XCTAssertEqual(event.attributes["sanitizedKey"] as! String, "sanitizedValue")
+        XCTAssertEqual(event.attributes["internalKey"] as! String, "internalValue")
     }
 
     func test_createEvent_failure() throws {
@@ -410,8 +412,8 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         XCTAssertEqual(event.type, .performance)
         XCTAssertEqual(event.timestamp, timestamp)
         XCTAssertEqual(event.attributes.count, 2)
-        XCTAssertEqual(event.attributes["emb.type"], "perf")
-        XCTAssertEqual(event.attributes["internalKey"], "internalValue")
+        XCTAssertEqual(event.attributes["emb.type"] as! String, "perf")
+        XCTAssertEqual(event.attributes["internalKey"] as! String, "internalValue")
     }
 
     func test_createEvent_session_success() throws {
@@ -444,9 +446,9 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         XCTAssertEqual(event.type, .performance)
         XCTAssertEqual(event.timestamp, timestamp)
         XCTAssertEqual(event.attributes.count, 3)
-        XCTAssertEqual(event.attributes["emb.type"], "perf")
-        XCTAssertEqual(event.attributes["sanitizedKey"], "sanitizedValue")
-        XCTAssertEqual(event.attributes["internalKey"], "internalValue")
+        XCTAssertEqual(event.attributes["emb.type"] as! String, "perf")
+        XCTAssertEqual(event.attributes["sanitizedKey"] as! String, "sanitizedValue")
+        XCTAssertEqual(event.attributes["internalKey"] as! String, "internalValue")
     }
 
     func test_createEvent_session_failure() throws {
@@ -503,7 +505,7 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         XCTAssertEqual(link.context.spanId, TestConstants.spanId)
         XCTAssertEqual(link.context.traceId, TestConstants.traceId)
         XCTAssertEqual(link.attributes.count, 1)
-        XCTAssertEqual(link.attributes["sanitizedKey"], "sanitizedValue")
+        XCTAssertEqual(link.attributes["sanitizedKey"] as! String, "sanitizedValue")
     }
 
     func test_createLink_failure() throws {
@@ -548,7 +550,7 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
 
         // then the attribute is correct
         XCTAssertEqual(attribute.0, "sanitizedKey")
-        XCTAssertEqual(attribute.1, "sanitizedValue")
+        XCTAssertEqual(attribute.1 as! String, "sanitizedValue")
     }
 
     func test_validateAttribute_failure() throws {
@@ -595,7 +597,7 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
 
         // then the attribute is updated correctly
         XCTAssertEqual(attribute.0, "sanitizedKey")
-        XCTAssertEqual(attribute.1, "sanitizedValue")
+        XCTAssertEqual(attribute.1 as! String, "sanitizedValue")
     }
 
     func test_validateAttribute_delete() throws {
@@ -611,7 +613,7 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
 
         // then the attribute is deleted correctly
         XCTAssertEqual(attribute.0, "key")
-        XCTAssertEqual(attribute.1, nil)
+        XCTAssertNil(attribute.1)
     }
 
     // MARK: EmbraceOTelDelegate
@@ -652,15 +654,17 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         XCTAssertNil(record!.endTime)
         XCTAssertEqual(record!.events.count, 1)
         XCTAssertEqual(record!.events[0].name, "event")
-        XCTAssertEqual(record!.events[0].attributes["emb.type"], "perf")
-        XCTAssertEqual(record!.events[0].attributes["key"], "value")
+        XCTAssertEqual(record!.events[0].attributes["emb.type"] as! String, "perf")
+        XCTAssertEqual(record!.events[0].attributes["key"] as! String, "value")
         XCTAssertEqual(record!.links.count, 1)
         XCTAssertEqual(record!.links[0].context.spanId, "linkSpanId")
         XCTAssertEqual(record!.links[0].context.traceId, "linkTraceId")
-        XCTAssertEqual(record!.links[0].attributes, ["key": "value"])
+        XCTAssertEqual(record!.links[0].attributes.count, 1)
+        XCTAssertEqual(record!.links[0].attributes["key"] as! String, "value")
         XCTAssertEqual(record!.sessionId, TestConstants.sessionId)
         XCTAssertEqual(record!.processId, TestConstants.processId)
-        XCTAssertEqual(record!.attributes, ["key": "value"])
+        XCTAssertEqual(record!.attributes.count, 1)
+        XCTAssertEqual(record!.attributes["key"] as! String, "value")
     }
 
     func test_onStartSpan_limit_noUpdate() throws {
@@ -724,15 +728,17 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         XCTAssertEqual(record!.endTime, endTime)
         XCTAssertEqual(record!.events.count, 1)
         XCTAssertEqual(record!.events[0].name, "event")
-        XCTAssertEqual(record!.events[0].attributes["emb.type"], "perf")
-        XCTAssertEqual(record!.events[0].attributes["key"], "value")
+        XCTAssertEqual(record!.events[0].attributes["emb.type"] as! String, "perf")
+        XCTAssertEqual(record!.events[0].attributes["key"] as! String, "value")
         XCTAssertEqual(record!.links.count, 1)
         XCTAssertEqual(record!.links[0].context.spanId, "linkSpanId")
         XCTAssertEqual(record!.links[0].context.traceId, "linkTraceId")
-        XCTAssertEqual(record!.links[0].attributes, ["key": "value"])
+        XCTAssertEqual(record!.links[0].attributes.count, 1)
+        XCTAssertEqual(record!.links[0].attributes["key"] as! String, "value")
         XCTAssertEqual(record!.sessionId, TestConstants.sessionId)
         XCTAssertEqual(record!.processId, TestConstants.processId)
-        XCTAssertEqual(record!.attributes, ["key": "value"])
+        XCTAssertEqual(record!.attributes.count, 1)
+        XCTAssertEqual(record!.attributes["key"] as! String, "value")
     }
 
     func test_onEndSpan_existing() throws {
@@ -773,15 +779,17 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         XCTAssertEqual(record!.endTime, endTime)
         XCTAssertEqual(record!.events.count, 1)
         XCTAssertEqual(record!.events[0].name, "event")
-        XCTAssertEqual(record!.events[0].attributes["emb.type"], "perf")
-        XCTAssertEqual(record!.events[0].attributes["key"], "value")
+        XCTAssertEqual(record!.events[0].attributes["emb.type"] as! String, "perf")
+        XCTAssertEqual(record!.events[0].attributes["key"] as! String, "value")
         XCTAssertEqual(record!.links.count, 1)
         XCTAssertEqual(record!.links[0].context.spanId, "linkSpanId")
         XCTAssertEqual(record!.links[0].context.traceId, "linkTraceId")
-        XCTAssertEqual(record!.links[0].attributes, ["key": "value"])
+        XCTAssertEqual(record!.links[0].attributes.count, 1)
+        XCTAssertEqual(record!.links[0].attributes["key"] as! String, "value")
         XCTAssertEqual(record!.sessionId, TestConstants.sessionId)
         XCTAssertEqual(record!.processId, TestConstants.processId)
-        XCTAssertEqual(record!.attributes, ["key": "value"])
+        XCTAssertEqual(record!.attributes.count, 1)
+        XCTAssertEqual(record!.attributes["key"] as! String, "value")
     }
 
     func test_onEndSpan_notFound() throws {

@@ -55,15 +55,15 @@ class MetricKitHangCaptureServiceTests: XCTestCase {
         let log = otel.logs[0]
         XCTAssertEqual(log.severity, .warn)
         XCTAssertEqual(log.type, .hang)
-        XCTAssertEqual(log.attributes["emb.state"], "unknown")
+        XCTAssertEqual(log.attributes["emb.state"] as! String, "unknown")
         XCTAssertNotNil(log.attributes["log.record.uid"])
-        XCTAssertEqual(log.attributes["emb.provider"], "metrickit")
-        XCTAssertEqual(log.attributes["emb.payload"], "test")
+        XCTAssertEqual(log.attributes["emb.provider"] as! String, "metrickit")
+        XCTAssertEqual(log.attributes["emb.payload"] as! String, "test")
         XCTAssertNotNil(log.attributes["emb.payload.timestamp"])
         XCTAssertEqual(
-            log.attributes["diagnostic.timestamp_start"], String(startTime.nanosecondsSince1970Truncated))
+            log.attributes["diagnostic.timestamp_start"] as! String, String(startTime.nanosecondsSince1970Truncated))
         XCTAssertEqual(
-            log.attributes["diagnostic.timestamp_end"], String(endTime.nanosecondsSince1970Truncated))
+            log.attributes["diagnostic.timestamp_end"] as! String, String(endTime.nanosecondsSince1970Truncated))
     }
 
     func test_not_started() throws {

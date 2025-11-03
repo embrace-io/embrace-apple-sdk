@@ -19,7 +19,7 @@ class DefaultOTelSignalBridge: EmbraceOTelSignalBridge {
         endTime: Date?,
         events: [EmbraceSpanEvent],
         links: [EmbraceSpanLink],
-        attributes: [String: String]
+        attributes: EmbraceAttributes
     ) -> EmbraceSpanContext {
 
         // get trace id from parent if possible
@@ -36,7 +36,7 @@ class DefaultOTelSignalBridge: EmbraceOTelSignalBridge {
 
     }
 
-    func updateSpanAttribute(_ span: any EmbraceSpan, key: String, value: String?) {
+    func updateSpanAttribute(_ span: any EmbraceSpan, key: String, value: EmbraceAttributeValue?) {
 
     }
 

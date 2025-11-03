@@ -76,7 +76,7 @@ public class SpanRecord: NSManagedObject {
         return NSFetchRequest<SpanRecord>(entityName: entityName)
     }
 
-    func toImmutable(attributes: [String: String]? = nil) -> EmbraceSpan {
+    func toImmutable(attributes: EmbraceAttributes? = nil) -> EmbraceSpan {
 
         var sessionId: EmbraceIdentifier?
         if let sessionIdRaw {
@@ -283,7 +283,7 @@ class ImmutableSpanRecord: EmbraceSpan {
     let endTime: Date?
     let events: [EmbraceSpanEvent]
     let links: [EmbraceSpanLink]
-    let attributes: [String: String]
+    let attributes: EmbraceAttributes
     let sessionId: EmbraceIdentifier?
     let processId: EmbraceIdentifier
 
@@ -297,7 +297,7 @@ class ImmutableSpanRecord: EmbraceSpan {
         endTime: Date? = nil,
         events: [EmbraceSpanEvent],
         links: [EmbraceSpanLink],
-        attributes: [String: String],
+        attributes: EmbraceAttributes,
         sessionId: EmbraceIdentifier? = nil,
         processId: EmbraceIdentifier
     ) {
@@ -319,11 +319,11 @@ class ImmutableSpanRecord: EmbraceSpan {
         // no op
     }
 
-    func addEvent(name: String, type: EmbraceType?, timestamp: Date, attributes: [String: String]) throws {
+    func addEvent(name: String, type: EmbraceType?, timestamp: Date, attributes: EmbraceAttributes) throws {
         // no op
     }
 
-    func addLink(spanId: String, traceId: String, attributes: [String: String]) throws {
+    func addLink(spanId: String, traceId: String, attributes: EmbraceAttributes) throws {
         // no op
     }
 
@@ -335,7 +335,7 @@ class ImmutableSpanRecord: EmbraceSpan {
         // no op
     }
 
-    func setAttribute(key: String, value: String?) throws {
+    func setAttribute(key: String, value: EmbraceAttributeValue?) throws {
         // no op
     }
 }

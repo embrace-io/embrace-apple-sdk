@@ -24,7 +24,7 @@ extension DefaultOTelSignalsHandler: PushNotificationSignalHandler {
     public func addPushNotificationEvent(
         notification: UNNotification,
         timestamp: Date = Date(),
-        attributes: [String: String] = [:],
+        attributes: EmbraceAttributes = [:],
         captureData: Bool = true
     ) throws {
         var userInfo: [AnyHashable: Any] = [:]
@@ -52,7 +52,7 @@ extension DefaultOTelSignalsHandler: PushNotificationSignalHandler {
     public func addPushNotificationEvent(
         userInfo: [AnyHashable: Any],
         timestamp: Date = Date(),
-        attributes: [String: String] = [:],
+        attributes: EmbraceAttributes = [:],
         captureData: Bool = true
     ) throws {
 
@@ -162,7 +162,7 @@ protocol PushNotificationSignalHandler {
     func addPushNotificationEvent(
         notification: UNNotification,
         timestamp: Date,
-        attributes: [String: String],
+        attributes: EmbraceAttributes,
         captureData: Bool
     ) throws
 }

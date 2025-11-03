@@ -605,7 +605,7 @@ extension LogControllerTests {
         XCTAssertNotNil(log.attributes["emb.attachment_size"])
 
         if let errorCode {
-            XCTAssertEqual(log.attributes["emb.attachment_error_code"], errorCode)
+            XCTAssertEqual(log.attributes["emb.attachment_error_code"] as! String, errorCode)
         } else {
             XCTAssertNil(log.attributes["emb.attachment_error_code"])
         }

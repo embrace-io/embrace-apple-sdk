@@ -34,7 +34,7 @@
             type: EmbraceType = .viewLoad,
             startTime: Date = Date(),
             endTime: Date? = nil,
-            attributes: [String: String] = [:]
+            attributes: EmbraceAttributes = [:]
         ) throws -> EmbraceSpan? {
             return try Embrace.client?.captureServices.createChildSpan(
                 for: self,

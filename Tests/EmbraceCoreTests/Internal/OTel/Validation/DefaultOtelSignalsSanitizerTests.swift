@@ -53,7 +53,7 @@ class DefaultOtelSignalsSanitizerTests: XCTestCase {
         let attributeValue = sanitizer.sanitizeAttributeValue("123456789")
 
         // then the value gets correctly sanitized
-        XCTAssertEqual(attributeValue, "12345")
+        XCTAssertEqual(attributeValue as! String, "12345")
     }
 
     let testAttributes: [String: String] = [
@@ -79,8 +79,8 @@ class DefaultOtelSignalsSanitizerTests: XCTestCase {
 
         // then the attributes get correctly sanitized
         XCTAssertEqual(attributes.count, 2)
-        XCTAssertEqual(attributes["123"], "123")
-        XCTAssertEqual(attributes["12345"], "12345")
+        XCTAssertEqual(attributes["123"] as! String, "123")
+        XCTAssertEqual(attributes["12345"] as! String, "12345")
     }
 
     func test_sanitizeSpanEventAttributes() throws {
@@ -100,8 +100,8 @@ class DefaultOtelSignalsSanitizerTests: XCTestCase {
 
         // then the attributes get correctly sanitized
         XCTAssertEqual(attributes.count, 2)
-        XCTAssertEqual(attributes["123"], "123")
-        XCTAssertEqual(attributes["12345"], "12345")
+        XCTAssertEqual(attributes["123"] as! String, "123")
+        XCTAssertEqual(attributes["12345"] as! String, "12345")
     }
 
     func test_sanitizeSpanLinkAttributes() throws {
@@ -121,8 +121,8 @@ class DefaultOtelSignalsSanitizerTests: XCTestCase {
 
         // then the attributes get correctly sanitized
         XCTAssertEqual(attributes.count, 2)
-        XCTAssertEqual(attributes["123"], "123")
-        XCTAssertEqual(attributes["12345"], "12345")
+        XCTAssertEqual(attributes["123"] as! String, "123")
+        XCTAssertEqual(attributes["12345"] as! String, "12345")
     }
 
     func test_sanitizeLogAttributes() throws {
@@ -142,7 +142,7 @@ class DefaultOtelSignalsSanitizerTests: XCTestCase {
 
         // then the attributes get correctly sanitized
         XCTAssertEqual(attributes.count, 2)
-        XCTAssertEqual(attributes["123"], "123")
-        XCTAssertEqual(attributes["12345"], "12345")
+        XCTAssertEqual(attributes["123"] as! String, "123")
+        XCTAssertEqual(attributes["12345"] as! String, "12345")
     }
 }

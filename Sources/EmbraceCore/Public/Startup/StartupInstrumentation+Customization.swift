@@ -23,7 +23,7 @@ extension StartupInstrumentation {
         type: EmbraceType = .startup,
         startTime: Date = Date(),
         endTime: Date? = nil,
-        attributes: [String: String] = [:]
+        attributes: EmbraceAttributes = [:]
     ) -> EmbraceSpan? {
         guard let otel = otel else {
             return nil
@@ -50,7 +50,7 @@ extension StartupInstrumentation {
     ///   - attributes: A dictionary of attributes to add to the trace. Each key-value pair represents an attribute.
     /// - Returns: A boolean indicating if the operation was succesful.
     @discardableResult
-    public func addAttributesToTrace(_ attributes: [String: String]) throws -> Bool {
+    public func addAttributesToTrace(_ attributes: EmbraceAttributes) throws -> Bool {
 
         return try state.withLock {
             guard let rootSpan = $0.rootSpan else {

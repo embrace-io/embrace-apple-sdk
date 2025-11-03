@@ -29,7 +29,8 @@ class DefaultEmbraceLogTests: XCTestCase {
         XCTAssertEqual(log.type, .message)
         XCTAssertEqual(log.timestamp, timestamp)
         XCTAssertEqual(log.body, "body")
-        XCTAssertEqual(log.attributes, ["key1": "value1"])
+        XCTAssertEqual(log.attributes.count, 1)
+        XCTAssertEqual(log.attributes["key1"] as! String, "value1")
         XCTAssertEqual(log.sessionId, TestConstants.sessionId)
         XCTAssertEqual(log.processId, TestConstants.processId)
     }

@@ -16,7 +16,7 @@ class InternalEmbraceSpan: DefaultEmbraceSpan {
         name: String,
         type: EmbraceType? = .performance,
         timestamp: Date = Date(),
-        attributes: [String: String] = [:]
+        attributes: EmbraceAttributes = [:]
     ) throws {
         try _addEvent(
             name: name,
@@ -27,7 +27,7 @@ class InternalEmbraceSpan: DefaultEmbraceSpan {
         )
     }
 
-    override func setAttribute(key: String, value: String?) throws {
+    override func setAttribute(key: String, value: EmbraceAttributeValue?) throws {
         try _setAttribute(
             key: key,
             value: value,

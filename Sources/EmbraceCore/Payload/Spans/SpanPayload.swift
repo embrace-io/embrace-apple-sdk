@@ -56,7 +56,7 @@ struct SpanPayload: Encodable {
         }
 
         var attributeArray: [Attribute] = span.attributes.map { entry in
-            Attribute(key: entry.key, value: entry.value)
+            Attribute(key: entry.key, value: String(describing: entry.value))
         }
         if failed {
             attributeArray.append(Attribute(key: SpanSemantics.keyErrorCode, value: "failure"))

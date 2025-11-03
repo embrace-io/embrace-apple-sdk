@@ -21,6 +21,6 @@ protocol OnlyExportableLogsHandler {
         severity: EmbraceLogSeverity,
         type: EmbraceType,
         timestamp: Date,
-        attributes: [String: String]
+        attributes: EmbraceAttributes
     )
 }

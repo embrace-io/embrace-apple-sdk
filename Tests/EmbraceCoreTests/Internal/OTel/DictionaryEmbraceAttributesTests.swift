@@ -11,14 +11,14 @@ import XCTest
 class DictionaryEmbraceAttributesTests: XCTestCase {
 
     func test_setEmbraceType() {
-        var attributes: [String: String] = [:]
+        var attributes: EmbraceAttributes = [:]
         attributes.setEmbraceType(.performance)
-        XCTAssertEqual(attributes["emb.type"], "perf")
+        XCTAssertEqual(attributes["emb.type"] as! String, "perf")
     }
 
     func test_setEmbraceSessionId() {
-        var attributes: [String: String] = [:]
+        var attributes: EmbraceAttributes = [:]
         attributes.setEmbraceSessionId(TestConstants.sessionId)
-        XCTAssertEqual(attributes["session.id"], TestConstants.sessionId.stringValue)
+        XCTAssertEqual(attributes["session.id"] as! String, TestConstants.sessionId.stringValue)
     }
 }

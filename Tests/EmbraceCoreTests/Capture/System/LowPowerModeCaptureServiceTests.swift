@@ -44,7 +44,7 @@ class LowPowerModeCollectorTests: XCTestCase {
         XCTAssertEqual(service.currentSpan!.name, "emb-device-low-power")
 
         XCTAssertEqual(service.currentSpan!.type, .lowPower)
-        XCTAssertEqual(service.currentSpan!.attributes["start_reason"], "system_query")
+        XCTAssertEqual(service.currentSpan!.attributes["start_reason"] as! String, "system_query")
     }
 
     func test_fetchOnStart_modeDisabled() {
@@ -133,7 +133,7 @@ class LowPowerModeCollectorTests: XCTestCase {
         XCTAssertEqual(service.currentSpan!.name, "emb-device-low-power")
 
         XCTAssertEqual(service.currentSpan!.type, .lowPower)
-        XCTAssertEqual(service.currentSpan!.attributes["start_reason"], "system_notification")
+        XCTAssertEqual(service.currentSpan!.attributes["start_reason"] as! String, "system_notification")
     }
 
     func test_systemEvent_modeDisabled() {

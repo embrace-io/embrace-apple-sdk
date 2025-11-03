@@ -15,7 +15,7 @@ class DefaultEmbraceLog: EmbraceLog {
     let type: EmbraceType
     let timestamp: Date
     let body: String
-    let attributes: [String: String]
+    let attributes: EmbraceAttributes
     let sessionId: EmbraceIdentifier?
     let processId: EmbraceIdentifier
 
@@ -25,7 +25,7 @@ class DefaultEmbraceLog: EmbraceLog {
         type: EmbraceType = .message,
         timestamp: Date,
         body: String,
-        attributes: [String: String] = [:],
+        attributes: EmbraceAttributes = [:],
         sessionId: EmbraceIdentifier? = nil,
         processId: EmbraceIdentifier = ProcessIdentifier.current
     ) {

@@ -98,7 +98,7 @@ extension EmbraceTraceViewLogger {
         semantics: String,
         time: Date = Date(),
         parent: EmbraceSpan? = nil,
-        attributes: [String: String]? = nil,
+        attributes: EmbraceAttributes? = nil,
         _ function: StaticString = #function
     ) -> EmbraceSpan? {
         dispatchPrecondition(condition: .onQueue(.main))
@@ -164,7 +164,7 @@ extension EmbraceTraceViewLogger {
         semantics: String,
         time: Date = Date(),
         parent: EmbraceSpan? = nil,
-        attributes: [String: String]? = nil,
+        attributes: EmbraceAttributes? = nil,
         _ function: StaticString = #function,
         _ completed: @escaping () -> Void
     ) -> EmbraceSpan? {
