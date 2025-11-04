@@ -27,6 +27,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+
       - id: set
         run: |
           if [[ "${GITHUB_EVENT_NAME}" == "push" && "${GITHUB_REF}" == "refs/heads/main" ]]; then
@@ -41,7 +42,6 @@ jobs:
     name: Test ${{ matrix.platform }}, on macOS ${{ matrix.macos-version }}, with Xcode ${{ matrix.xcode_version }}, sanitizer ${{ matrix.sanitizer }}
     timeout-minutes: 30
     runs-on: macos-${{ matrix.macos-version }}
-    
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
@@ -51,17 +51,21 @@ jobs:
     steps:
       - name: Select Xcode
         run: |
-          sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app
+          sudo xcode-select -s /Applications/Xcode_${MATRIX_XCODE_VERSION}.app
           xcodebuild -version
         continue-on-error: false
+        env:
+          MATRIX_XCODE_VERSION: ${{ matrix.xcode_version }}
 
       - name: Ensure the Platform is Downloaded
         if: ${{ matrix.platform != 'macOS' && matrix.platform != 'mac-catalyst' }}
         run: |
           xcodebuild -runFirstLaunch
           xcrun simctl list
-          xcodebuild -downloadPlatform ${{ matrix.platform }}
+          xcodebuild -downloadPlatform ${MATRIX_PLATFORM}
           xcodebuild -runFirstLaunch
+        env:
+          MATRIX_PLATFORM: ${{ matrix.platform }}
 
       - uses: actions/checkout@v4
         timeout-minutes: 2

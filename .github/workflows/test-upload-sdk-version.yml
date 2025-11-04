@@ -32,4 +32,3 @@ jobs:
           uploadUrl: ${{ vars.SDK_VERSION_URL }}
         env:
           SDK_VERSION_TOKEN: ${{ secrets.SDK_VERSION_TOKEN }}
-

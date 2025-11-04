@@ -24,9 +24,7 @@ env:
 jobs:
   perf:
     runs-on: macos-latest
-
     steps:
-
       - name: Export Embrace Binary Home
         run: echo "EMB_BIN_HOME=${{ runner.tool_cache }}/embrace/bin" >> "$GITHUB_ENV"
 
@@ -70,13 +68,12 @@ jobs:
           ls -lsa $EMB_BIN_HOME
           $EMB_BIN_HOME/run_regression_tests
 
-        # checkout the main branch
       - name: Checkout Main
         uses: actions/checkout@v4
         with:
           ref: main
           persist-credentials: false
-      
+
       - name: Run Main perf tests
         id: perfmain
         continue-on-error: true
