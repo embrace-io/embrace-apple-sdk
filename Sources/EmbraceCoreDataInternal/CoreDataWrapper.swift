@@ -289,21 +289,21 @@ extension CoreDataWrapper {
         loadPersistentStoreIfNeeded()
 
         // Call into ObjC to capture any ObjC exceptions thrown.
-        guard let error = EmbraceSaveManagedContext(context) else {
-            return true
+        if let error = EmbraceSaveManagedContext(context) {
+
+            let nsError = error as NSError
+
+            // Log the error so we have a trace
+            logger.critical(
+                """
+                CoreData save failed '\(context.name ?? "???")',
+                error: \(error.localizedDescription),
+                """,
+                attributes: nsError.userInfo.compactMapValues { "\($0)" }
+            )
+            return false
         }
-
-        let nsError = error as NSError
-
-        // Log the error so we have a trace
-        logger.critical(
-            """
-            CoreData save failed '\(context.name ?? "???")',
-            error: \(error.localizedDescription),
-            """,
-            attributes: nsError.userInfo.compactMapValues { "\($0)" }
-        )
-        return false
+        return true
 
     }
 }
