@@ -227,7 +227,7 @@ package class EmbraceSpanProcessor: SpanProcessor {
         let provider = resourceProvider
         let sessionProvider = sessionIdProvider
 
-        let block = { [exporters, spansToExport, completion, provider, self] in
+        let block = { [exporters, spansToExport, completion, provider, sessionProvider, self] in
             let resource = provider?()
             let sessionId = sessionProvider?()
             spansToExport = spansToExport.compactMap { hydrateSpan($0, with: resource, sessionId: sessionId) }
