@@ -11,6 +11,14 @@ public protocol EmbraceAttributeValue: CustomStringConvertible, Sendable {}
 extension String: EmbraceAttributeValue {}
 extension Bool: EmbraceAttributeValue {}
 extension Int: EmbraceAttributeValue {}
+extension Int8: EmbraceAttributeValue {}
+extension Int16: EmbraceAttributeValue {}
+extension Int32: EmbraceAttributeValue {}
+extension Int64: EmbraceAttributeValue {}
 extension UInt: EmbraceAttributeValue {}
+extension UInt8: EmbraceAttributeValue {}
+extension UInt16: EmbraceAttributeValue {}
+extension UInt32: EmbraceAttributeValue {}
+extension UInt64: EmbraceAttributeValue {}
 extension Float: EmbraceAttributeValue {}
 extension Double: EmbraceAttributeValue {}
