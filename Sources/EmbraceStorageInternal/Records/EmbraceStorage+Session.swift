@@ -72,11 +72,7 @@ extension EmbraceStorage {
                 return
             }
 
-            do {
-                try coreData.context.save()
-            } catch {
-                logger.critical("Failed to save new session!")
-            }
+            coreData.save()
         }
 
         return ImmutableSessionRecord(
@@ -263,13 +259,7 @@ extension EmbraceStorage {
                 fetchedSession.crashReportId = crashReportId
             }
 
-            do {
-                if context.hasChanges {
-                    try context.save()
-                }
-            } catch {
-                logger.critical("Failed to update session, error: \(error)")
-            }
+            coreData.save()
         }
 
         return session.updated(
