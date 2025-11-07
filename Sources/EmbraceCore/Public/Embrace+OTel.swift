@@ -120,6 +120,13 @@ extension Embrace: EmbraceOpenTelemetry {
         add(events: [event])
     }
 
+    /// Waits synchronously for all work to be completed
+    public func waitForAllWork() {
+        processingQueue.asyncAndWait(flags: .assignCurrentContext) {}
+        guard let proc = EmbraceOTel.processor else { return }
+        proc.processorQueue.asyncAndWait(flags: .assignCurrentContext) {}
+    }
+
     /// Flushes the given `ReadableSpan` compliant `Span` to disk.
     /// This is intended to save changes on long running spans.
     /// - Parameter span: A `Span` object that implements `ReadableSpan`.

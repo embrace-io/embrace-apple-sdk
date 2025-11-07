@@ -17,7 +17,7 @@ package class EmbraceSpanProcessor: SpanProcessor {
     let nameLengthLimit = 128
 
     let spanExporters: [SpanExporter]
-    internal let processorQueue = DispatchQueue(label: "io.embrace.spanprocessor", qos: .utility)
+    package let processorQueue = DispatchQueue(label: "io.embrace.spanprocessor", qos: .utility)
     let resourceProvider: (() -> Resource?)?
     private weak var logger: InternalLogger? = nil
     let sessionIdProvider: (() -> String?)?
