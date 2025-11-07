@@ -4,45 +4,42 @@
 //
 //
 
+import EmbraceMacros
 import SwiftUI
 
+@EmbraceTrace
 struct MainScreen: View {
+    @Environment(AppNavigator.self) var navigator
+    @State private var presentedLogin = false
+
     var body: some View {
-        VStack {
-            Button {
-
-            } label: {
-                VStack {
-                    Text("Button 1")
-                    Hints(buttonName: "1")
+        VStack(alignment: .center) {
+            EmbraceLogo()
+                .padding(.bottom, 150)
+            ScrollView {
+                ForEach(MainScreenDataModel.allCases, id: \.rawValue) { option in
+                    EmbraceButton(title: option.title, accessibilityLabel: option.identifier) {
+                        navigator.path.append(option)
+                    }
+                    .padding(.bottom, 10)
                 }
-            }
-
-            Button {
-
-            } label: {
-                VStack {
-                    Text("Button 2")
-                    Hints(buttonName: "2")
-                }
+                .padding([.leading, .trailing, .top, .bottom], 50)
             }
         }
         .padding()
-    }
-}
-
-struct Hints: View {
-    @Environment(\.isFocused) var isFocused: Bool
-    let buttonName: String
-    var text: String {
-        isFocused ? "Here's a hint for button: \(buttonName)" : ""
-    }
-    var body: some View {
-        Text(text)
-            .opacity(isFocused ? 1.0 : 0)
+        .navigationDestination(for: MainScreenDataModel.self) {
+            $0.screen
+        }
+        .onAppear {
+            if !presentedLogin {
+                navigator.navigate(to: .login)
+                presentedLogin = true
+            }
+        }
     }
 }
 
 #Preview {
     MainScreen()
+        .environment(AppNavigator())
 }

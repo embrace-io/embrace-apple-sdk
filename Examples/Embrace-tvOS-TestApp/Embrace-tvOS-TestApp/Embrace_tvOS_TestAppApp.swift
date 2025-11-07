@@ -10,13 +10,25 @@ import SwiftUI
 
 @main
 struct Embrace_tvOS_TestAppApp: App {
-    init() {
+    @State private var navigator = AppNavigator()
 
+    init() {
         _ = try? Embrace.setup(options: .init(appId: "ejqby")).start()
     }
+
     var body: some Scene {
         WindowGroup {
-            LoginScreen()
+            NavigationStack(path: $navigator.path) {
+                MainScreen()
+                    .environment(navigator)
+                    .navigationDestination(for: AppScreens.self) { screen in
+                        switch screen {
+                        case .login:
+                            LoginScreen()
+                                .environment(navigator)
+                        }
+                    }
+            }
         }
     }
 }

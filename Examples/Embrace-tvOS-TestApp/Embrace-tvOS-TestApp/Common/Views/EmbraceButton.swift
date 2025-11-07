@@ -9,17 +9,30 @@ import SwiftUI
 struct EmbraceButton: View {
     let title: String
     var accessibilityLabel: String = ""
-    let action: @MainActor() -> Void
-    
+    let action: @MainActor () -> Void
+
     var body: some View {
         Button {
             action()
         } label: {
-            Text(title)
-                .font(.embraceFont(size: 30))
-                .foregroundStyle(.embraceSilver)
+            EmbraceButtonFocusableText(title: title)
         }
         .accessibilityLabel(accessibilityLabel)
+    }
+}
+
+private struct EmbraceButtonFocusableText: View {
+    @Environment(\.isFocused) var isFocused: Bool
+    var title: String
+
+    private var style: Color {
+        isFocused ? .embraceLead : .embraceSilver
+    }
+
+    var body: some View {
+        Text(title)
+            .font(.embraceFont(size: 30))
+            .foregroundStyle(style)
     }
 }
 

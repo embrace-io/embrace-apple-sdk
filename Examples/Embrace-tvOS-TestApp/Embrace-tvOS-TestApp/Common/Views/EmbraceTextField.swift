@@ -11,12 +11,12 @@ struct EmbraceTextField: View {
     @Binding var output: String
     let submitLabel: SubmitLabel
     let frameWidth: CGFloat
-    
+
     var body: some View {
         TextField(title, text: $output)
             .font(.embraceFontLight(size: 30))
             .submitLabel(submitLabel)
-            .frame(width: frameWidth)        
+            .frame(width: frameWidth)
     }
 }
 
