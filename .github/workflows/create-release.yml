@@ -159,6 +159,21 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Generate Release Notes
+        id: release_notes
+        uses: embrace-io/public-actions/release-notes-generator@main
+        with:
+          github_token: ${{ github.token }}
+          current_tag: ${{ needs.extractor.outputs.rc_version }}
+          update_changelog: true
+          create_release: false
+
       - name: Disable GitHub CLI Prompt if Enabled
         run: |
           if [ "$(gh config get prompt)" = "enabled" ]; then
@@ -170,6 +185,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           RC_VERSION: ${{ needs.extractor.outputs.rc_version}}
           IS_PRODUCTION_READY: ${{ needs.extractor.outputs.is_production_ready }}
+          RELEASE_NOTES: ${{ steps.release_notes.outputs.changelog }}
         run: |
           echo "::notice::Creating Release $RC_VERSION in Github"
           if gh release view $RC_VERSION --repo embrace-io/embrace-apple-sdk > /dev/null 2>&1; then
@@ -179,7 +195,7 @@ jobs:
             if [ "$IS_PRODUCTION_READY" == "false" ]; then
               PRERELEASE_FLAG="--prerelease"
             fi
-            gh release create $RC_VERSION --title "$RC_VERSION" $PRERELEASE_FLAG --repo embrace-io/embrace-apple-sdk  --verify-tag
+            gh release create $RC_VERSION --title "$RC_VERSION" $PRERELEASE_FLAG --repo embrace-io/embrace-apple-sdk --verify-tag --notes "$RELEASE_NOTES"
           fi
 
   push_podspec:
