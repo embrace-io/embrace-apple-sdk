@@ -164,10 +164,11 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
+          persist-credentials: false
 
       - name: Generate Release Notes
         id: release_notes
-        uses: embrace-io/public-actions/release-notes-generator@v1
+        uses: embrace-io/public-actions/release-notes-generator@1841c9025e9640e5bbf83db6900b828df30addeb
         with:
           github_token: ${{ github.token }}
           current_tag: ${{ needs.extractor.outputs.rc_version }}
