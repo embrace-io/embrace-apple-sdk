@@ -167,7 +167,7 @@ jobs:
 
       - name: Generate Release Notes
         id: release_notes
-        uses: embrace-io/public-actions/release-notes-generator@main
+        uses: embrace-io/public-actions/release-notes-generator@v1
         with:
           github_token: ${{ github.token }}
           current_tag: ${{ needs.extractor.outputs.rc_version }}
