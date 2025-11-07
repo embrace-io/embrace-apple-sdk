@@ -172,7 +172,7 @@ jobs:
         with:
           github_token: ${{ github.token }}
           current_tag: ${{ needs.extractor.outputs.rc_version }}
-          update_changelog: true
+          include_unmatched: true
           create_release: false
 
       - name: Disable GitHub CLI Prompt if Enabled
