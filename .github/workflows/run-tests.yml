@@ -1,0 +1,92 @@
+name: Run Swift Tests
+
+on:
+  workflow_call:
+    secrets:
+      CODECOV_TOKEN:
+        required: true
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - id: set
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "push" && "${GITHUB_REF}" == "refs/heads/main" ]]; then
+            MATRIX=$(jq -c .main .github/matrices/builds.json)
+          else
+            MATRIX=$(jq -c .pr .github/matrices/builds.json)
+          fi
+          echo "matrix=${MATRIX}" >> "$GITHUB_OUTPUT"
+
+  run-tests:
+    needs: prepare
+    name: Test ${{ matrix.platform }}, on macOS ${{ matrix.macos-version }}, with Xcode ${{ matrix.xcode_version }}, sanitizer ${{ matrix.sanitizer }}
+    timeout-minutes: 30
+    runs-on: macos-${{ matrix.macos-version }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+
+    permissions:
+      checks: write
+    steps:
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_${MATRIX_XCODE_VERSION}.app
+          xcodebuild -version
+        continue-on-error: false
+        env:
+          MATRIX_XCODE_VERSION: ${{ matrix.xcode_version }}
+
+      - name: Ensure the Platform is Downloaded
+        if: ${{ matrix.platform != 'macOS' && matrix.platform != 'mac-catalyst' }}
+        run: |
+          xcodebuild -runFirstLaunch
+          xcrun simctl list
+          xcodebuild -downloadPlatform ${MATRIX_PLATFORM}
+          xcodebuild -runFirstLaunch
+        env:
+          MATRIX_PLATFORM: ${{ matrix.platform }}
+
+      - uses: actions/checkout@v4
+        timeout-minutes: 2
+        with:
+          persist-credentials: false
+
+      - name: Run Unit Tests
+        uses: mxcl/xcodebuild@d3ee9b419c1be9a988086c58fe0988f32d99cfc5 # 3.6.0
+        timeout-minutes: 80
+        with:
+          workspace: ".swiftpm/xcode/package.xcworkspace"
+          scheme: EmbraceIO-Package
+          platform: ${{ matrix.platform }}
+          platform-version: ${{ matrix.platform-version }}
+          upload-logs: always
+          code-coverage: true
+          trust-plugins: false
+          arch: arm64
+          sanitizer: ${{ matrix.sanitizer }}
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5.4.3
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
