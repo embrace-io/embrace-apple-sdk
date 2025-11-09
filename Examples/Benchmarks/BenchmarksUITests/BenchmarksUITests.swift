@@ -26,4 +26,16 @@ final class BenchmarksUITests: XCTestCase {
             app.launch()
         }
     }
+
+    @MainActor
+    func testSpanEventsLogicalWritesEfficiency() throws {
+        let app = XCUIApplication()
+        app.launch()
+        let button = app.buttons["logical-writes-test-button"]
+        XCTAssertTrue(button.exists)
+
+        measure(metrics: [XCTStorageMetric(application: app)]) {
+            button.tap()
+        }
+    }
 }
