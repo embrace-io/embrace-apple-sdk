@@ -119,36 +119,4 @@ run_quiet xcodebuild test-without-building \
   -test-iterations "${ITERATIONS}" \
   | xcpretty >&2
 
-log "Crunching results..."
-run_quiet xcrun xcresulttool get test-results tests \
-       --path "${RESULT_FILE}" \
-       --format json \
-        | jq '
-  [ .. | objects | select(.nodeType? == "Test Case")
-    | . as $tc
-    | ([$tc | .. | objects | select(.nodeType? == "Repetition") | .durationInSeconds]) as $all
-    | ($all[1:]) as $rest
-    | ($rest | length) as $n
-    | ($rest | (if $n>0 then add/$n else null end)) as $avg
-    | ($rest | sort) as $sorted
-    | (if $n>0 then
-         (if ($n % 2)==1
-            then $sorted[($n/2|floor)]
-            else ($sorted[($n/2-1)] + $sorted[$n/2]) / 2
-          end)
-       else null end) as $median
-    | (if $n>0 then
-         ( ($rest | map((. - $avg) * (. - $avg)) | add) / $n | sqrt )
-       else null end) as $stddev
-    | {
-        name:    $tc.name,
-        result:  $tc.result,
-        min:     (if $n>0 then ($rest | min) else null end),
-        max:     (if $n>0 then ($rest | max) else null end),
-        avg:     $avg,
-        median:  $median,
-        stddev:  $stddev,
-        count:   $n,
-        all:     $rest
-      }
-  ]'
+run_quiet "${EMB_BIN_HOME}/crunch-results" "${RESULT_FILE}"
