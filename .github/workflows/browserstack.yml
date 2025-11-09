@@ -29,7 +29,6 @@ permissions:
 
 jobs:
   browserstack-benchmarks:
-    timeout-minutes: 60
     runs-on: macos-15
     outputs:
       build_id: ${{ steps.execute_tests.outputs.build_id }}
@@ -178,8 +177,8 @@ jobs:
         run: |
           echo "Waiting for build $BUILD_ID to complete..."
 
-          MAX_WAIT_TIME=1200    # 20 minutes max wait
-          POLL_INTERVAL=20     # Poll every 20 seconds
+          MAX_WAIT_TIME=3600    # 60 minutes max wait
+          POLL_INTERVAL=30     # Poll every 30 seconds
           ELAPSED_TIME=0
 
           while [ $ELAPSED_TIME -lt $MAX_WAIT_TIME ]; do
