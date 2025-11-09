@@ -81,8 +81,10 @@ jobs:
 
       - name: Extract PR Performance Stats
         id: crunch-results-pr
+        env:
+          RESULT_PATH: ${{ steps.result-path.outputs.path }}
         run: |
-          RESULTS=$($PERF_STATS_SCRIPT "${{ steps.result-path.outputs.path }}")
+          RESULTS=$($PERF_STATS_SCRIPT "$RESULT_PATH")
           echo "$RESULTS"
           echo "results<<EOF" >> $GITHUB_OUTPUT
           echo "$RESULTS" >> $GITHUB_OUTPUT
@@ -115,8 +117,10 @@ jobs:
 
       - name: Extract Main Performance Stats
         id: crunch-results-main
+        env:
+          RESULT_PATH: ${{ steps.result-path-main.outputs.path }}
         run: |
-          RESULTS=$($PERF_STATS_SCRIPT "${{ steps.result-path-main.outputs.path }}")
+          RESULTS=$($PERF_STATS_SCRIPT "$RESULT_PATH")
           echo "$RESULTS"
           echo "results<<EOF" >> $GITHUB_OUTPUT
           echo "$RESULTS" >> $GITHUB_OUTPUT
