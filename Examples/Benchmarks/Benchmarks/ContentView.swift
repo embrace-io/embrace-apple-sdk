@@ -32,7 +32,7 @@ struct ContentView: View {
         VStack {
             Button("Test Logical Writes") {
 
-                for _ in 0..<1000 {
+                for _ in 0..<500 {
                     let value = """
                             \(randomDoubleFullRange()),
                             \(randomDoubleFullRange()),
