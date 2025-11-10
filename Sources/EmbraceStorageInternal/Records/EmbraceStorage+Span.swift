@@ -83,6 +83,36 @@ extension EmbraceStorage {
         return request
     }
 
+    /// Adds span events to a span
+    /// - Parameters:
+    ///   - id: Identifier of the span
+    ///   - traceId: Identifier of the trace containing this span
+    ///   - events: Array of span events to be added to the storage. These spans are all expected to be new
+    ///   spans not yet added to the store.
+    package func addEventsToSpan(id: String, traceId: String, events: [EmbraceSpanEvent]) {
+
+        guard !events.isEmpty else { return }
+
+        let request = fetchSpanRequest(id: id, traceId: traceId)
+        coreData.fetchFirstAndPerform(withRequest: request) { span in
+            guard let span else { return }
+            for event in events {
+                if let rec = SpanEventRecord.create(
+                    context: coreData.context,
+                    name: event.name,
+                    timestamp: event.timestamp,
+                    attributes: event.attributes,
+                    span: span
+                ) {
+                    span.events.insert(rec)
+                }
+
+            }
+            coreData.save()
+        }
+
+    }
+
     func updateExistingSpan(
         id: String,
         name: String,

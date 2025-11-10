@@ -198,6 +198,8 @@ let package = Package(
             dependencies: [
                 "EmbraceCommonInternal",
                 "EmbraceSemantics",
+                "EmbraceCoreDataInternal",
+                "EmbraceStorageInternal",
                 .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift-core")
             ]
         ),

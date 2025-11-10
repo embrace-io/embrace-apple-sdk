@@ -41,6 +41,8 @@ public class DefaultConfig: EmbraceConfigurable {
 
     public let useLegacyUrlSessionProxy = false
 
+    public let useNewStorageForSpanEvents = false
+
     public func update(completion: (Bool, (any Error)?) -> Void) {
         completion(false, nil)
     }

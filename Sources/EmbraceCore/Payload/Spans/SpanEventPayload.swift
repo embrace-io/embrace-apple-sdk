@@ -6,6 +6,7 @@ import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceOTelInternal
+    import EmbraceCommonInternal
 #endif
 
 struct SpanEventPayload: Encodable {
@@ -20,6 +21,12 @@ struct SpanEventPayload: Encodable {
     }
 
     init(from event: SpanEvent) {
+        self.name = event.name
+        self.timestamp = event.timestamp.nanosecondsSince1970Truncated
+        self.attributes = PayloadUtils.convertSpanAttributes(event.attributes)
+    }
+
+    init(from event: EmbraceSpanEvent) {
         self.name = event.name
         self.timestamp = event.timestamp.nanosecondsSince1970Truncated
         self.attributes = PayloadUtils.convertSpanAttributes(event.attributes)

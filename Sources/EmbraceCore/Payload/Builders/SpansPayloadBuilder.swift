@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import OpenTelemetryApi
 import OpenTelemetrySdk
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
@@ -51,7 +52,8 @@ class SpansPayloadBuilder {
                 let failed = session.crashReportId != nil && (record.endTime == nil || record.endTime == endTime)
 
                 let span = try JSONDecoder().decode(SpanData.self, from: record.data)
-                let payload = SpanPayload(from: span, endTime: failed ? endTime : record.endTime, failed: failed)
+                let adjustedSpan = spanDataAdjustedForEvents(span, in: record)
+                let payload = SpanPayload(from: adjustedSpan, endTime: failed ? endTime : record.endTime, failed: failed)
 
                 if failed || span.hasEnded {
                     spans.append(payload)
@@ -66,31 +68,52 @@ class SpansPayloadBuilder {
         return (spans, spanSnapshots)
     }
 
+    // Take in SpanData, and if the events are empty, fills it in with events from the EmbraceSpan.
+    // I've chosen to do adjust spans this way in order to keep compatibility with all current tests
+    // so we're not building new tests to fit with our changes.
+    private class func spanDataAdjustedForEvents(_ spanData: SpanData, in record: EmbraceSpan) -> SpanData {
+        var newSpanData: SpanData = spanData
+        if newSpanData.events.isEmpty {
+            newSpanData.settingEvents(
+                record.events.map {
+                    SpanData.Event(
+                        name: $0.name,
+                        timestamp: $0.timestamp,
+                        attributes: $0.attributes.mapValues { v in .string(v) }
+                    )
+                }
+            )
+        }
+        return newSpanData
+    }
+
     class func buildSessionSpanPayload(
         for session: EmbraceSession,
         storage: EmbraceStorage,
         customProperties: [EmbraceMetadata] = [],
         sessionNumber: Int
     ) -> SpanPayload? {
+
+        let sessionSpan = storage.fetchSpan(id: session.spanId, traceId: session.traceId)
+        let adjustedSpanData: SpanData?
         do {
-            var spanData: SpanData?
-            let sessionSpan = storage.fetchSpan(id: session.spanId, traceId: session.traceId)
-
-            if let rawData = sessionSpan?.data {
-                spanData = try JSONDecoder().decode(SpanData.self, from: rawData)
+            if let sessionSpan {
+                let spanData = try JSONDecoder().decode(SpanData.self, from: sessionSpan.data)
+                adjustedSpanData = spanDataAdjustedForEvents(spanData, in: sessionSpan)
+            } else {
+                adjustedSpanData = nil
             }
-
-            return SessionSpanUtils.payload(
-                from: session,
-                spanData: spanData,
-                properties: customProperties,
-                sessionNumber: sessionNumber
-            )
 
         } catch {
             Embrace.logger.warning("Error fetching span for session \(session.idRaw):\n\(error.localizedDescription)")
+            return nil
         }
 
-        return nil
+        return SessionSpanUtils.payload(
+            from: session,
+            spanData: adjustedSpanData,
+            properties: customProperties,
+            sessionNumber: sessionNumber
+        )
     }
 }

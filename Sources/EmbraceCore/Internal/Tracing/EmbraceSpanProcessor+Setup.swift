@@ -29,6 +29,7 @@ extension Embrace {
     ///   - customExporter: An optional `OpenTelemetryExport` to forward spans to external systems.
     ///   - customProcessors: Optional list of additional `SpanProcessor` instances to append.
     ///   - sdkStateProvider: The provider of SDK runtime state, used to determine export behavior.
+    ///   - useNewStorageForSpanEvents: Boolean flag to control whether to use new storage for span events.
     ///
     /// - Returns: An ordered, array of span processors. The Embrace storage processor
     ///   always appears first, followed by any user-supplied processors.
@@ -37,13 +38,15 @@ extension Embrace {
         sessionController: SessionControllable,
         customExporter: OpenTelemetryExport? = nil,
         customProcessors: [any SpanProcessor]? = nil,
-        sdkStateProvider: EmbraceSDKStateProvider
+        sdkStateProvider: EmbraceSDKStateProvider,
+        useNewStorageForSpanEvents: Bool
     ) -> [any SpanProcessor] {
 
         // Base Embrace exporter used by everything.
         let embraceStorageExporter = StorageSpanExporter(
             storage: storage,
-            logger: Embrace.logger
+            logger: Embrace.logger,
+            useNewStorage: useNewStorageForSpanEvents
         )
 
         // Construct the exporter list, ensuring Embrace is first.

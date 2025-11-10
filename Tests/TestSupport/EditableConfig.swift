@@ -41,6 +41,8 @@ public class EditableConfig: EmbraceConfigurable {
 
     public var useLegacyUrlSessionProxy: Bool = false
 
+    public var useNewStorageForSpanEvents: Bool = false
+
     public func update(completion: (Bool, (any Error)?) -> Void) {
         completion(false, nil)
     }
@@ -58,7 +60,8 @@ public class EditableConfig: EmbraceConfigurable {
         internalLogLimits: InternalLogLimits = InternalLogLimits(),
         networkPayloadCaptureRules: [NetworkPayloadCaptureRule] = [],
         hangLimits: HangLimits = HangLimits(),
-        useLegacyUrlSessionProxy: Bool = false
+        useLegacyUrlSessionProxy: Bool = false,
+        useNewStorageForSpanEvents: Bool = false
     ) {
         self.isSDKEnabled = isSdkEnabled
         self.isBackgroundSessionEnabled = isBackgroundSessionEnabled
@@ -73,6 +76,7 @@ public class EditableConfig: EmbraceConfigurable {
         self.networkPayloadCaptureRules = networkPayloadCaptureRules
         self.hangLimits = hangLimits
         self.useLegacyUrlSessionProxy = useLegacyUrlSessionProxy
+        self.useNewStorageForSpanEvents = useNewStorageForSpanEvents
     }
 }
 
