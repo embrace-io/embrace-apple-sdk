@@ -168,7 +168,7 @@ package class EmbraceSpanProcessor: SpanProcessor {
         runExporters([span], sync: sync)
     }
 
-    private func hydrateSpan(_ span: SpanData, with resource: Resource?) -> SpanData? {
+    private func hydrateSpan(_ span: SpanData, with resource: Resource?, sessionId: String?) -> SpanData? {
 
         // spanData endTime is non-optional and will be set during `toSpanData()`
         let endTime = span.hasEnded ? span.endTime : nil
@@ -193,7 +193,7 @@ package class EmbraceSpanProcessor: SpanProcessor {
         }
 
         // add session id attribute
-        if let sessionId = sessionIdProvider?() {
+        if let sessionId {
             var attributes = spanData.attributes
             attributes[SpanSemantics.keySessionId] = .string(sessionId)
             spanData = spanData.settingAttributes(attributes)
@@ -212,10 +212,12 @@ package class EmbraceSpanProcessor: SpanProcessor {
         let exporters = self.spanExporters
         var spansToExport: [SpanData] = spans
         let provider = resourceProvider
+        let sessionProvider = sessionIdProvider
 
         let block = { [self] in
             let resource = provider?()
-            spansToExport = spansToExport.compactMap { hydrateSpan($0, with: resource) }
+            let sessionId = sessionProvider?()
+            spansToExport = spansToExport.compactMap { hydrateSpan($0, with: resource, sessionId: sessionId) }
             for exporter in exporters {
                 _ = exporter.export(spans: spansToExport)
             }
