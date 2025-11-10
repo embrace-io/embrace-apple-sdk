@@ -19,7 +19,8 @@ jobs:
 
   run-tests:
     name: Sim Benchmarks
-    runs-on: macos-15
+    runs-on: macos-latest-large
+    timeout-minutes: 60
     strategy:
       fail-fast: false
 

@@ -16,24 +16,24 @@ on:
     outputs:
       build_id:
         description: 'BrowserStack build ID'
-        value: ${{ jobs.browserstack-benchmarks.outputs.build_id }}
+        value: ${{ jobs.test.outputs.build_id }}
       build_status:
         description: 'Build status (passed/failed/error)'
-        value: ${{ jobs.browserstack-benchmarks.outputs.build_status }}
+        value: ${{ jobs.test.outputs.build_status }}
       results:
         description: 'Benchmark results JSON'
-        value: ${{ jobs.browserstack-benchmarks.outputs.results }}
+        value: ${{ jobs.extract-results.outputs.results }}
 
 permissions:
   contents: read
 
 jobs:
-  browserstack-benchmarks:
-    runs-on: macos-15
+  build:
+    runs-on: macos-latest-large
+    timeout-minutes: 30
     outputs:
-      build_id: ${{ steps.execute_tests.outputs.build_id }}
-      build_status: ${{ steps.wait_tests.outputs.build_status }}
-      results: ${{ steps.extract_results.outputs.results }}
+      app_url: ${{ steps.upload_app.outputs.app_url }}
+      test_suite_url: ${{ steps.upload_test_suite.outputs.test_suite_url }}
 
     steps:
       - name: Select Xcode
@@ -137,13 +137,23 @@ jobs:
           echo "test_suite_url=$TEST_SUITE_URL" >> $GITHUB_OUTPUT
           echo "Test suite uploaded successfully: $TEST_SUITE_URL"
 
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    timeout-minutes: 40
+    outputs:
+      build_id: ${{ steps.execute_tests.outputs.build_id }}
+      build_status: ${{ steps.wait_tests.outputs.build_status }}
+      session_id: ${{ steps.wait_tests.outputs.session_id }}
+
+    steps:
       - name: Execute Tests on BrowserStack
         id: execute_tests
         env:
           BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
           BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
-          APP_URL: ${{ steps.upload_app.outputs.app_url }}
-          TEST_SUITE_URL: ${{ steps.upload_test_suite.outputs.test_suite_url }}
+          APP_URL: ${{ needs.build.outputs.app_url }}
+          TEST_SUITE_URL: ${{ needs.build.outputs.test_suite_url }}
         run: |
           # Execute tests on a single iOS device
           BUILD_RESPONSE=$(curl -u "$BROWSERSTACK_USERNAME:$BROWSERSTACK_ACCESS_KEY" \
@@ -246,11 +256,24 @@ jobs:
           path: result_bundle.xcresult.zip
           if-no-files-found: warn
 
+  extract-results:
+    runs-on: macos-latest-large
+    needs: test
+    if: success()
+    timeout-minutes: 10
+    outputs:
+      results: ${{ steps.extract_results.outputs.results }}
+
+    steps:
+      - name: Download Result Bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: browserstack-result-bundle-${{ needs.test.outputs.build_id }}-${{ needs.test.outputs.session_id }}
+
       - name: Extract and Display Benchmark Results
         id: extract_results
-        if: success()
         env:
-          SESSION_ID: ${{ steps.wait_tests.outputs.session_id }}
+          SESSION_ID: ${{ needs.test.outputs.session_id }}
         run: |
           if [ -z "$SESSION_ID" ] || [ "$SESSION_ID" = "null" ]; then
             echo "No session ID available, skipping metrics extraction"
