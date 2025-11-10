@@ -1,8 +1,12 @@
 name: On Device Benchmarks
 
 on:
-  pull_request:
+  workflow_call:
   workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -68,21 +72,3 @@ jobs:
           TITLE: ${{ env.TITLE }}
         run: |
           python bin/perfcomp.py
-
-      - name: Display Results Summary
-        if: always()
-        env:
-          PR_BUILD_ID: ${{ needs.browserstack-pr.outputs.build_id }}
-          PR_BUILD_STATUS: ${{ needs.browserstack-pr.outputs.build_status }}
-          MAIN_BUILD_ID: ${{ needs.browserstack-main.outputs.build_id }}
-          MAIN_BUILD_STATUS: ${{ needs.browserstack-main.outputs.build_status }}
-        run: |
-          echo "### BrowserStack Test Results"
-          echo ""
-          echo "**PR Branch:**"
-          echo "- Build ID: $PR_BUILD_ID"
-          echo "- Status: $PR_BUILD_STATUS"
-          echo ""
-          echo "**Main Branch:**"
-          echo "- Build ID: $MAIN_BUILD_ID"
-          echo "- Status: $MAIN_BUILD_STATUS"
