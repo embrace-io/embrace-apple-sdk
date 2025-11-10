@@ -30,6 +30,7 @@ final class BenchmarksUITests: XCTestCase {
     @MainActor
     func testSpanEventsLogicalWritesEfficiency() throws {
         let app = XCUIApplication()
+        app.launchEnvironment["EMBUseNewStorageForEvents"] = "1"
         app.launchEnvironment["EMBIgnoreBreadcrumbLimits"] = "1"
 
         app.launch()

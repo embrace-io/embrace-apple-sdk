@@ -29,7 +29,8 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         updateCompletionParamDidUpdate: Bool = false,
         updateCompletionParamError: Error? = nil,
         hangLimits: HangLimits = HangLimits(),
-        useLegacyUrlSessionProxy: Bool = false
+        useLegacyUrlSessionProxy: Bool = false,
+        useNewStorageForSpanEvents: Bool = false
     ) {
         self._isSDKEnabled = isSDKEnabled
         self._isBackgroundSessionEnabled = isBackgroundSessionEnabled
@@ -49,6 +50,7 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         self._hangLimits = hangLimits
         self._networkPayloadCaptureRules = networkPayloadCaptureRules
         self._useLegacyUrlSessionProxy = useLegacyUrlSessionProxy
+        self._useNewStorageForSpanEvents = useNewStorageForSpanEvents
         self.updateCompletionParamDidUpdate = updateCompletionParamDidUpdate
         self.updateCompletionParamError = updateCompletionParamError
     }
@@ -279,6 +281,19 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         }
         set {
             _useLegacyUrlSessionProxy = newValue
+        }
+    }
+
+    private var _useNewStorageForSpanEvents: Bool
+    public let useNewStorageForSpanEventsExpectation = XCTestExpectation(
+        description: "useNewStorageForSpanEvents called")
+    public var useNewStorageForSpanEvents: Bool {
+        get {
+            useNewStorageForSpanEventsExpectation.fulfill()
+            return _useNewStorageForSpanEvents
+        }
+        set {
+            _useNewStorageForSpanEvents = newValue
         }
     }
 

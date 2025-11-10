@@ -522,4 +522,236 @@ final class SpansPayloadBuilderTests: XCTestCase {
         XCTAssertEqual(closed[0].name, "emb-session")  // session span always first
         XCTAssertEqual(open.count, 0)
     }
+
+    // MARK: - New Storage for Events Tests
+
+    func test_payloadBuilder_retrievesEventsFromSeparateStorage() throws {
+        // given a span stored with events in separate storage (new storage mechanism)
+        let spanData = testSpan(
+            startTime: Date(timeIntervalSince1970: 55),
+            endTime: Date(timeIntervalSince1970: 60),
+            name: "test-span"
+        )
+
+        // store span data WITHOUT events (simulating new storage mechanism)
+        let spanDataWithoutEvents = spanData.spanDataByRemovingEvents()
+        let data = try spanDataWithoutEvents.toJSON()
+
+        storage.upsertSpan(
+            id: spanData.spanId.hexString,
+            name: spanData.name,
+            traceId: spanData.traceId.hexString,
+            type: .performance,
+            data: data,
+            startTime: spanData.startTime,
+            endTime: spanData.endTime
+        )
+
+        // add events separately to storage
+        let event1 = ImmutableSpanEventRecord(
+            name: "event1",
+            timestamp: Date(timeIntervalSince1970: 56),
+            attributes: ["key1": "value1"]
+        )
+        let event2 = ImmutableSpanEventRecord(
+            name: "event2",
+            timestamp: Date(timeIntervalSince1970: 57),
+            attributes: ["key2": "value2"]
+        )
+        storage.addEventsToSpan(
+            id: spanData.spanId.hexString,
+            traceId: spanData.traceId.hexString,
+            events: [event1, event2]
+        )
+
+        // when building the spans payload
+        let (closed, _) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
+
+        // then the payload includes events from separate storage
+        XCTAssertEqual(closed.count, 2)  // session span + test span
+        XCTAssertEqual(closed[0].name, "emb-session")
+
+        let spanPayload = closed[1]
+        XCTAssertEqual(spanPayload.name, "test-span")
+        XCTAssertEqual(spanPayload.events.count, 2)
+        XCTAssertEqual(spanPayload.events[0].name, "event1")
+        XCTAssertEqual(spanPayload.events[1].name, "event2")
+
+        // verify event attributes
+        let event1Attrs = spanPayload.events[0].attributes
+        XCTAssertTrue(event1Attrs.contains { $0.key == "key1" && $0.value == "value1" })
+
+        let event2Attrs = spanPayload.events[1].attributes
+        XCTAssertTrue(event2Attrs.contains { $0.key == "key2" && $0.value == "value2" })
+    }
+
+    func test_payloadBuilder_usesSpanDataEventsWhenPresent() throws {
+        // given a span stored with events in SpanData (old storage mechanism)
+        let event1 = SpanData.Event(
+            name: "event1",
+            timestamp: Date(timeIntervalSince1970: 56),
+            attributes: ["key1": .string("value1")]
+        )
+        let event2 = SpanData.Event(
+            name: "event2",
+            timestamp: Date(timeIntervalSince1970: 57),
+            attributes: ["key2": .string("value2")]
+        )
+
+        let spanData = SpanData(
+            traceId: TraceId.random(),
+            spanId: SpanId.random(),
+            parentSpanId: nil,
+            name: "test-span",
+            kind: .internal,
+            startTime: Date(timeIntervalSince1970: 55),
+            events: [event1, event2],
+            endTime: Date(timeIntervalSince1970: 60),
+            hasEnded: true
+        )
+
+        // store span data WITH events (old storage mechanism)
+        let data = try spanData.toJSON()
+
+        storage.upsertSpan(
+            id: spanData.spanId.hexString,
+            name: spanData.name,
+            traceId: spanData.traceId.hexString,
+            type: .performance,
+            data: data,
+            startTime: spanData.startTime,
+            endTime: spanData.endTime
+        )
+
+        // when building the spans payload
+        let (closed, _) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
+
+        // then the payload uses events from SpanData
+        XCTAssertEqual(closed.count, 2)  // session span + test span
+        XCTAssertEqual(closed[0].name, "emb-session")
+
+        let spanPayload = closed[1]
+        XCTAssertEqual(spanPayload.name, "test-span")
+        XCTAssertEqual(spanPayload.events.count, 2)
+        XCTAssertEqual(spanPayload.events[0].name, "event1")
+        XCTAssertEqual(spanPayload.events[1].name, "event2")
+    }
+
+    func test_payloadBuilder_prefersSpanDataEventsOverSeparateStorage() throws {
+        // given a span with events in both SpanData and separate storage
+        let spanDataEvent = SpanData.Event(
+            name: "spandata_event",
+            timestamp: Date(timeIntervalSince1970: 56),
+            attributes: ["source": .string("spandata")]
+        )
+
+        let spanData = SpanData(
+            traceId: TraceId.random(),
+            spanId: SpanId.random(),
+            parentSpanId: nil,
+            name: "test-span",
+            kind: .internal,
+            startTime: Date(timeIntervalSince1970: 55),
+            events: [spanDataEvent],
+            endTime: Date(timeIntervalSince1970: 60),
+            hasEnded: true
+        )
+
+        // store span data WITH events
+        let data = try spanData.toJSON()
+
+        storage.upsertSpan(
+            id: spanData.spanId.hexString,
+            name: spanData.name,
+            traceId: spanData.traceId.hexString,
+            type: .performance,
+            data: data,
+            startTime: spanData.startTime,
+            endTime: spanData.endTime
+        )
+
+        // also add an event to separate storage (shouldn't be used)
+        let separateEvent = ImmutableSpanEventRecord(
+            name: "separate_event",
+            timestamp: Date(timeIntervalSince1970: 57),
+            attributes: ["source": "separate"]
+        )
+        storage.addEventsToSpan(
+            id: spanData.spanId.hexString,
+            traceId: spanData.traceId.hexString,
+            events: [separateEvent]
+        )
+
+        // when building the spans payload
+        let (closed, _) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
+
+        // then the payload prefers events from SpanData over separate storage
+        XCTAssertEqual(closed.count, 2)  // session span + test span
+        XCTAssertEqual(closed[0].name, "emb-session")
+
+        let spanPayload = closed[1]
+        XCTAssertEqual(spanPayload.name, "test-span")
+        XCTAssertEqual(spanPayload.events.count, 1)
+        XCTAssertEqual(spanPayload.events[0].name, "spandata_event")
+
+        // verify it's from SpanData, not separate storage
+        let attrs = spanPayload.events[0].attributes
+        XCTAssertTrue(attrs.contains { $0.key == "source" && $0.value == "spandata" })
+    }
+
+    func test_payloadBuilder_sessionSpan_retrievesEventsFromSeparateStorage() throws {
+        // given a session span with events in separate storage
+        // Use the sessionRecord's traceId and spanId which are valid
+        let sessionTraceId = TraceId(fromHexString: sessionRecord.traceId)
+        let sessionSpanId = SpanId(fromHexString: sessionRecord.spanId)
+
+        let sessionSpanData = SpanData(
+            traceId: sessionTraceId,
+            spanId: sessionSpanId,
+            parentSpanId: nil,
+            name: "emb-session",
+            kind: .internal,
+            startTime: sessionRecord.startTime,
+            endTime: sessionRecord.endTime!,
+            hasEnded: true
+        )
+
+        // store session span WITHOUT events
+        let spanDataWithoutEvents = sessionSpanData.spanDataByRemovingEvents()
+        let data = try spanDataWithoutEvents.toJSON()
+
+        storage.upsertSpan(
+            id: sessionRecord.spanId,
+            name: "emb-session",
+            traceId: sessionRecord.traceId,
+            type: .session,
+            data: data,
+            startTime: sessionSpanData.startTime,
+            endTime: sessionSpanData.endTime
+        )
+
+        // add events separately to storage
+        let event1 = ImmutableSpanEventRecord(
+            name: "session_event1",
+            timestamp: Date(timeIntervalSince1970: 60),
+            attributes: ["type": "session_info"]
+        )
+        storage.addEventsToSpan(
+            id: sessionRecord.spanId,
+            traceId: sessionRecord.traceId,
+            events: [event1]
+        )
+
+        // when building the spans payload
+        let (closed, _) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
+
+        // then the session span payload includes events from separate storage
+        XCTAssertEqual(closed.count, 1)
+        XCTAssertEqual(closed[0].name, "emb-session")
+        XCTAssertEqual(closed[0].events.count, 1)
+        XCTAssertEqual(closed[0].events[0].name, "session_event1")
+
+        let attrs = closed[0].events[0].attributes
+        XCTAssertTrue(attrs.contains { $0.key == "type" && $0.value == "session_info" })
+    }
 }

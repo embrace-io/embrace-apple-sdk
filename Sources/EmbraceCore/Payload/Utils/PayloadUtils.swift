@@ -48,4 +48,14 @@ class PayloadUtils {
 
         return result
     }
+
+    static func convertSpanAttributes(_ attributes: [String: String]) -> [Attribute] {
+        var result: [Attribute] = []
+
+        for (key, value) in attributes {
+            result.append(Attribute(key: key, value: value))
+        }
+
+        return result
+    }
 }

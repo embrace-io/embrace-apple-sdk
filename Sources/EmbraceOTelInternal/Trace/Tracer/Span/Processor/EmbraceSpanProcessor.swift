@@ -16,6 +16,7 @@ package class EmbraceSpanProcessor: SpanProcessor {
 
     let nameLengthLimit = 128
 
+    let embraceExporter: StorageSpanExporter?
     let spanExporters: [SpanExporter]
     package let processorQueue = DispatchQueue(label: "io.embrace.spanprocessor", qos: .utility)
     let resourceProvider: (() -> Resource?)?
@@ -40,6 +41,7 @@ package class EmbraceSpanProcessor: SpanProcessor {
         resourceProvider: (() -> Resource?)? = nil
     ) {
         self.spanExporters = spanExporters
+        self.embraceExporter = spanExporters.first { $0 is StorageSpanExporter } as? StorageSpanExporter
         self.sdkStateProvider = sdkStateProvider
         self.logger = logger
         self.sessionIdProvider = sessionIdProvider

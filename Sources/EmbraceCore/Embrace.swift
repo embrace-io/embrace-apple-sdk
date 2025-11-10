@@ -238,7 +238,8 @@ import Foundation
                 sessionController: sessionController,
                 customExporter: options.export,
                 customProcessors: options.processors?.compactMap { $0.processor },
-                sdkStateProvider: self
+                sdkStateProvider: self,
+                useNewStorageForSpanEvents: config.useNewStorageForSpanEvents
             )
         )
 

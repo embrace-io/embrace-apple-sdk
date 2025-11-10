@@ -43,6 +43,8 @@ import Foundation
 
     var useLegacyUrlSessionProxy: Bool { get }
 
+    var useNewStorageForSpanEvents: Bool { get }
+
     /// Tell the configurable implementation it should update if possible.
     /// - Parameters:
     ///     - completion: A completion block that takes two parameters (didChange, error). Completion block should pass `true`

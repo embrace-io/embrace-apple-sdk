@@ -151,4 +151,8 @@ extension EmbraceConfig /* EmbraceConfigurable delegation */ {
     public var networkPayloadCaptureRules: [NetworkPayloadCaptureRule] {
         configurable.networkPayloadCaptureRules
     }
+
+    public var useNewStorageForSpanEvents: Bool {
+        configurable.useNewStorageForSpanEvents
+    }
 }

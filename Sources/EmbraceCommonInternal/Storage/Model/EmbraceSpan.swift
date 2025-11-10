@@ -13,6 +13,7 @@ public protocol EmbraceSpan {
     var startTime: Date { get }
     var endTime: Date? { get }
     var processIdRaw: String { get }
+    var events: [EmbraceSpanEvent] { get }
 }
 
 extension EmbraceSpan {

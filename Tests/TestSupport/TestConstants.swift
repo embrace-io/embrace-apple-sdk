@@ -4,6 +4,7 @@
 
 import EmbraceCommonInternal
 import Foundation
+import OpenTelemetryApi
 
 // swiftlint:disable line_length
 
@@ -15,8 +16,8 @@ public struct TestConstants {
 
     public static let sessionId = EmbraceIdentifier(stringValue: "18EDB6CE-90C2-456B-97CB-91E0F5941CCA")
     public static let processId = EmbraceIdentifier(stringValue: "12345678")
-    public static let traceId = "traceId"
-    public static let spanId = "spanId"
+    public static let traceId = TraceId.random().hexString
+    public static let spanId = SpanId.random().hexString
 
     public static let appId = "appId"
     public static let deviceId = EmbraceIdentifier(stringValue: "18EDB6CE90C2456B97CB91E0F5941CCA")
