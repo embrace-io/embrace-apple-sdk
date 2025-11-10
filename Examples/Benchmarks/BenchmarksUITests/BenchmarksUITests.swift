@@ -30,6 +30,8 @@ final class BenchmarksUITests: XCTestCase {
     @MainActor
     func testSpanEventsLogicalWritesEfficiency() throws {
         let app = XCUIApplication()
+        app.launchEnvironment["EMBIgnoreBreadcrumbLimits"] = "1"
+
         app.launch()
         let button = app.buttons["logical-writes-test-button"]
         XCTAssertTrue(button.exists)

@@ -64,8 +64,16 @@ class SpanEventsLimiter {
         }
     }
 
+    #if DEBUG
+        private let _unlimitedBreadcrumbs: Bool = ProcessInfo.processInfo.environment["EMBIgnoreBreadcrumbLimits"] == "1"
+    #else
+        private let _unlimitedBreadcrumbs: Bool = false
+    #endif
     private func limitForEventType(_ type: String?, limits: SpanEventsLimits) -> UInt? {
         if type == SpanEventType.breadcrumb.rawValue {
+            if _unlimitedBreadcrumbs {
+                return UInt.max
+            }
             return limits.breadcrumb
         }
 
