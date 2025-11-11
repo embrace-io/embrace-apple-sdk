@@ -1,8 +1,14 @@
 # Taken and modified from KSCrash: https://github.com/kstenerud/KSCrash
 #
 # Directories to search
-SEARCH_DIRS = Sources Tests Examples
-SWIFT_SEARCH_DIRS = Sources Tests Examples
+SEARCH_DIRS = Sources Tests
+SWIFT_SEARCH_DIRS = Sources Tests
+
+# Optionally include Examples directory (set INCLUDE_EXAMPLES=1 to enable)
+ifdef INCLUDE_EXAMPLES
+  SEARCH_DIRS += Examples
+  SWIFT_SEARCH_DIRS += Examples
+endif
 
 # File extensions to format
 FILE_EXTENSIONS = c cpp h m mm
