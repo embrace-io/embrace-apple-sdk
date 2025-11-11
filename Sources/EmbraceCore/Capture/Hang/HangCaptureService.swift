@@ -129,13 +129,17 @@ extension HangCaptureService: HangObserver, @unchecked Sendable {
         }
 
         // Capture the stack now if we need to.
-        var backtrace: EmbraceBacktrace? = nil
-        var pre: EmbraceClock? = nil
-        var post: EmbraceClock? = nil
+        let backtrace: EmbraceBacktrace?
+        let pre: EmbraceClock?
+        let post: EmbraceClock?
         if sampleInfo.canSample {
             pre = EmbraceClock.current
             backtrace = EmbraceBacktrace.backtrace(of: mainThread, threadIndex: 0)
             post = EmbraceClock.current
+        } else {
+            backtrace = nil
+            pre = nil
+            post = nil
         }
 
         spanQueue.async { [self] in

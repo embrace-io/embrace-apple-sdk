@@ -85,6 +85,7 @@
             completionHandler: @escaping @MainActor @Sendable (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
         ) {
             callCount += 1
+            completionHandler(.performDefaultHandling, nil)
         }
 
         func webViewWebContentProcessDidTerminate(
@@ -100,6 +101,7 @@
             shouldAllowDeprecatedTLS decisionHandler: @escaping @MainActor @Sendable (Bool) -> Void
         ) {
             callCount += 1
+            decisionHandler(false)
         }
 
         @available(iOS 14.5, *)

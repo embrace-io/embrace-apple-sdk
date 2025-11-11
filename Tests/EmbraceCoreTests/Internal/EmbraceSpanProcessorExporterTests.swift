@@ -702,12 +702,12 @@ final class EmbraceSpanProcessorExporterTests: XCTestCase {
             hasEnded: false
         )
 
-        var expectation = XCTestExpectation()
+        let expectation1 = XCTestExpectation()
         processor.processIncompletedSpanData(spanData, span: nil, sync: true)
         processor.processorQueue.async {
-            expectation.fulfill()
+            expectation1.fulfill()
         }
-        wait(for: [expectation], timeout: .shortTimeout)
+        wait(for: [expectation1], timeout: .shortTimeout)
 
         // verify 1 event stored
         var exportedSpan = storage.fetchSpan(id: spanId.hexString, traceId: traceId.hexString)
@@ -727,12 +727,12 @@ final class EmbraceSpanProcessorExporterTests: XCTestCase {
             hasEnded: false
         )
 
-        expectation = XCTestExpectation()
+        let expectation2 = XCTestExpectation()
         processor.processIncompletedSpanData(spanData, span: nil, sync: true)
         processor.processorQueue.async {
-            expectation.fulfill()
+            expectation2.fulfill()
         }
-        wait(for: [expectation], timeout: .shortTimeout)
+        wait(for: [expectation2], timeout: .shortTimeout)
 
         // verify 2 events stored (no duplicate of event1)
         exportedSpan = storage.fetchSpan(id: spanId.hexString, traceId: traceId.hexString)
@@ -752,12 +752,12 @@ final class EmbraceSpanProcessorExporterTests: XCTestCase {
             hasEnded: false
         )
 
-        expectation = XCTestExpectation()
+        let expectation3 = XCTestExpectation()
         processor.processIncompletedSpanData(spanData, span: nil, sync: true)
         processor.processorQueue.async {
-            expectation.fulfill()
+            expectation3.fulfill()
         }
-        wait(for: [expectation], timeout: .shortTimeout)
+        wait(for: [expectation3], timeout: .shortTimeout)
 
         // then all 3 events are stored without duplicates
         exportedSpan = storage.fetchSpan(id: spanId.hexString, traceId: traceId.hexString)

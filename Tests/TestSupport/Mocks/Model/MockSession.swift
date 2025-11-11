@@ -64,7 +64,7 @@ extension MockSession {
 extension MockSession {
     public func copyWithCrashReportId(_ crid: String) -> MockSession {
         MockSession(
-            id: SessionIdentifier(string: idRaw)!,
+            id: EmbraceIdentifier(stringValue: idRaw),
             processId: processId!,
             state: SessionState(rawValue: state)!,
             traceId: traceId,

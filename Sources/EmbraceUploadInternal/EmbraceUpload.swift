@@ -52,11 +52,9 @@ public class EmbraceUpload: EmbraceLogUploader, @unchecked Sendable {
         // reachability monitor
         if options.redundancy.retryOnInternetConnected {
             let monitorQueue = DispatchQueue(label: "com.embrace.upload.reachability")
-            reachabilityMonitor = EmbraceReachabilityMonitor(queue: monitorQueue)
-            reachabilityMonitor?.onConnectionRegained = { [weak self] in
+            reachabilityMonitor = EmbraceReachabilityMonitor(queue: monitorQueue) { [weak self] in
                 self?.retryCachedData()
             }
-
             reachabilityMonitor?.start()
         }
     }
