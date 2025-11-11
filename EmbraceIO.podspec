@@ -46,7 +46,13 @@ Pod::Spec.new do |spec|
 
   spec.subspec 'EmbraceCommonInternal' do |subs|
     subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
+    subs.dependency "EmbraceIO/EmbraceAtomicsShim"
     subs.dependency "EmbraceIO/OpenTelemetrySdk"
+  end
+
+  spec.subspec 'EmbraceAtomicsShim' do |subs|
+    subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
+    subs.public_header_files = "Sources/#{subs.module_name}/include/**/*.h"
   end
 
   spec.subspec 'EmbraceSemantics' do |subs|

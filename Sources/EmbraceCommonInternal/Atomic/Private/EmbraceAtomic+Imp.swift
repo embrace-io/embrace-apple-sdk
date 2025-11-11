@@ -28,8 +28,9 @@
 //  • All operations accept a `MemoryOrder` which is converted to the C enum.
 //  • `Bool` intentionally does not conform to `EmbraceAtomicArithmetic`.
 //
-
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
 import EmbraceAtomicsShim
+#endif
 
 // MARK: - Memory Order Mapping
 
