@@ -11,6 +11,7 @@ import XCTest
 
 @testable import EmbraceCore
 
+@MainActor
 final class DeviceInfoCaptureServiceTests: XCTestCase {
 
     func test_started() throws {

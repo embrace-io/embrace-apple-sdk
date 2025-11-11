@@ -15,7 +15,7 @@ class DummyURLSessionInitWithDelegateSwizzler: Swizzlable {
         @convention(block) (
             URLSession, URLSessionConfiguration, URLSessionDelegate?, OperationQueue?
         ) -> URLSession
-    static var selector: Selector = #selector(
+    static let selector: Selector = #selector(
         URLSession.init(configuration:delegate:delegateQueue:)
     )
     var baseClass: AnyClass
@@ -34,7 +34,7 @@ class DummyURLSessionInitWithDelegateSwizzler: Swizzlable {
         }
     }
 
-    class DummyURLProxy: NSObject, URLSessionDelegate {
+    class DummyURLProxy: NSObject, URLSessionDelegate, @unchecked Sendable {
         var originalDelegate: URLSessionDelegate?
         var didForwardToTargetSuccessfully: Bool = false
         var didInvokeForwardingTarget: Bool = false

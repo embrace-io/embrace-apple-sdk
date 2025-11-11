@@ -12,6 +12,7 @@
     import TestSupport
     import EmbraceCommonInternal
 
+    @MainActor
     class UIViewControllerHandlerTests: XCTestCase {
 
         var dataSource: MockUIViewControllerHandlerDataSource!
@@ -20,7 +21,7 @@
         }
         var handler: UIViewControllerHandler!
 
-        override func setUpWithError() throws {
+        override func setUp() async throws {
             dataSource = MockUIViewControllerHandlerDataSource()
             handler = UIViewControllerHandler(queue: DispatchQueue.main)
             handler.dataSource = dataSource

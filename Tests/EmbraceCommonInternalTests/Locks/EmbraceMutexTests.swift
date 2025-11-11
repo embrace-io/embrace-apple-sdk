@@ -7,7 +7,7 @@ import XCTest
 
 @testable import EmbraceCommonInternal
 
-class EmbraceMutexTests: XCTestCase {
+class EmbraceMutexTests: XCTestCase, @unchecked Sendable {
     private var sut: EmbraceMutex<Int> = EmbraceMutex(0)
 
     override func setUpWithError() throws {

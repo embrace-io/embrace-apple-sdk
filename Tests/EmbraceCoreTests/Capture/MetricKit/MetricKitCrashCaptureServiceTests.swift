@@ -9,6 +9,7 @@ import XCTest
 
 @testable import EmbraceCore
 
+@MainActor
 class MetricKitCrashCaptureServiceTests: XCTestCase {
 
     func options(

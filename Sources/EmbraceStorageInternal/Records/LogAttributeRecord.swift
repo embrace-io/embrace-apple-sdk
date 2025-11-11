@@ -4,7 +4,7 @@
 
 import CoreData
 import Foundation
-import OpenTelemetryApi
+@preconcurrency import OpenTelemetryApi
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
@@ -23,20 +23,28 @@ public class LogAttributeRecord: NSManagedObject {
         value: AttributeValue,
         log: LogRecord?
     ) -> LogAttributeRecord? {
-        var record: LogAttributeRecord?
+        // Safe: `performAndWait` executes this closure synchronously on the context's queue.
+        nonisolated(unsafe) var result: LogAttributeRecord?
+        let logId = log?.objectID
 
         context.performAndWait {
             guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
                 return
             }
 
-            record = LogAttributeRecord(entity: description, insertInto: context)
-            record?.key = key
-            record?.setValue(value)
-            record?.log = log
+            let record = LogAttributeRecord(entity: description, insertInto: context)
+            record.key = key
+            record.setValue(value)
+            if let logId {
+                record.log = try? context.existingObject(with: logId) as? LogRecord
+            } else {
+                record.log = nil
+            }
+
+            result = record
         }
 
-        return record
+        return result
     }
 
     func setValue(_ value: AttributeValue) {
@@ -63,7 +71,7 @@ public class LogAttributeRecord: NSManagedObject {
 }
 
 extension LogAttributeRecord: EmbraceStorageRecord {
-    public static var entityName = "LogAttributeRecord"
+    public static let entityName = "LogAttributeRecord"
 }
 
 struct ImmutableLogAttributeRecord: EmbraceLogAttribute {

@@ -12,7 +12,7 @@ import Foundation
     import EmbraceConfiguration
 #endif
 
-class BaseInternalLogger: InternalLogger {
+class BaseInternalLogger: InternalLogger, @unchecked Sendable {
 
     #if DEBUG
         var level: LogLevel = .debug

@@ -4,7 +4,7 @@
 
 import Foundation
 
-public enum MetadataRecordType: String, Codable {
+public enum MetadataRecordType: String, Codable, Sendable {
     /// Resource that is attached to session and logs data
     case resource
 
@@ -18,7 +18,7 @@ public enum MetadataRecordType: String, Codable {
     case personaTag
 }
 
-public enum MetadataRecordLifespan: String, Codable {
+public enum MetadataRecordLifespan: String, Codable, Sendable {
     /// Value tied to a specific session
     case session
 

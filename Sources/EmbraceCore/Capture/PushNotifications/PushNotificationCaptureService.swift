@@ -69,7 +69,7 @@ struct UNUserNotificationCenterSetDelegateSwizzler: Swizzlable {
     typealias BlockImplementationType =
         @convention(block) (UNUserNotificationCenter, UNUserNotificationCenterDelegate)
         -> Void
-    static var selector: Selector = #selector(setter: UNUserNotificationCenter.delegate)
+    static let selector: Selector = #selector(setter: UNUserNotificationCenter.delegate)
     var baseClass: AnyClass
     let proxy: UNUserNotificationCenterDelegateProxy
 

@@ -5,7 +5,7 @@
 import Foundation
 
 /// SpanEventsLimits manages limits for span events included in the session span
-@objc public class SpanEventsLimits: NSObject {
+@objc final public class SpanEventsLimits: NSObject, Sendable {
     public let breadcrumb: UInt
 
     public init(breadcrumb: UInt = 100) {

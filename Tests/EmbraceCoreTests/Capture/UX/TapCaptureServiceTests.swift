@@ -9,17 +9,16 @@
     import EmbraceOTelInternal
     import TestSupport
 
-    // swiftlint:disable force_cast
-
+    @MainActor
     final class TapCaptureServiceTests: XCTestCase {
 
         private var otel: MockEmbraceOpenTelemetry!
 
-        override func setUpWithError() throws {
+        override func setUp() async throws {
             otel = MockEmbraceOpenTelemetry()
         }
 
-        override func tearDownWithError() throws {
+        override func tearDown() async throws {
             otel = nil
         }
 
@@ -200,7 +199,5 @@
             return shouldCaptureNextCoordinates
         }
     }
-
-// swiftlint:enable force_cast
 
 #endif

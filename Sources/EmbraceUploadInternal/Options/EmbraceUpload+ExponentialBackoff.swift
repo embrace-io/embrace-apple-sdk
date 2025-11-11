@@ -5,7 +5,7 @@
 import Foundation
 
 extension EmbraceUpload {
-    public struct ExponentialBackoff {
+    public struct ExponentialBackoff: Sendable {
         let baseDelay: Double
         let maxDelay: Double
 

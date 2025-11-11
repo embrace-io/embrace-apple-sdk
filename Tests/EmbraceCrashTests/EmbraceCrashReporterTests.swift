@@ -13,7 +13,7 @@
     @testable import EmbraceCore
     @testable import EmbraceCrash
 
-    class EmbraceCrashReporterTests: XCTestCase {
+    class EmbraceCrashReporterTests: XCTestCase, @unchecked Sendable {
 
         let logger = MockLogger()
         var context: CrashReporterContext = .testContext

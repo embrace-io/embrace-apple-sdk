@@ -85,9 +85,9 @@ private class EmbraceThreadList {
     }
 }
 
-private var _symbolCache = SymbolCache()
+private let _symbolCache = SymbolCache()
 
-internal class SymbolCache {
+internal class SymbolCache: @unchecked Sendable {
     struct Item {
         var accessDate: UInt64
         let frame: EmbraceBacktraceFrame

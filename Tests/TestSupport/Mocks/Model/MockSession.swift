@@ -5,19 +5,19 @@
 import EmbraceCommonInternal
 import Foundation
 
-public class MockSession: EmbraceSession {
-    public var idRaw: String
-    public var processIdRaw: String
-    public var state: String
-    public var traceId: String
-    public var spanId: String
-    public var startTime: Date
-    public var endTime: Date?
-    public var lastHeartbeatTime: Date
-    public var crashReportId: String?
-    public var coldStart: Bool
-    public var cleanExit: Bool
-    public var appTerminated: Bool
+final public class MockSession: EmbraceSession {
+    public let idRaw: String
+    public let processIdRaw: String
+    public let state: String
+    public let traceId: String
+    public let spanId: String
+    public let startTime: Date
+    public let endTime: Date?
+    public let lastHeartbeatTime: Date
+    public let crashReportId: String?
+    public let coldStart: Bool
+    public let cleanExit: Bool
+    public let appTerminated: Bool
 
     public init(
         id: EmbraceIdentifier,
@@ -57,6 +57,25 @@ extension MockSession {
             traceId: "",
             spanId: "",
             startTime: Date()
+        )
+    }
+}
+
+extension MockSession {
+    public func copyWithCrashReportId(_ crid: String) -> MockSession {
+        MockSession(
+            id: SessionIdentifier(string: idRaw)!,
+            processId: processId!,
+            state: SessionState(rawValue: state)!,
+            traceId: traceId,
+            spanId: spanId,
+            startTime: startTime,
+            endTime: endTime,
+            lastHeartbeatTime: lastHeartbeatTime,
+            crashReportId: crid,
+            coldStart: coldStart,
+            cleanExit: cleanExit,
+            appTerminated: appTerminated
         )
     }
 }

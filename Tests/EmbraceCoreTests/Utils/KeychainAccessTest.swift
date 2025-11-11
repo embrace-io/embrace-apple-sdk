@@ -30,7 +30,7 @@ class KeychainAccessTests: XCTestCase {
     let mockKeyChain = AlwaysSuccessfulKeychainInterface()
 
     override func setUpWithError() throws {
-        KeychainAccess.keychain = mockKeyChain
+        KeychainAccess.keychain.safeValue = mockKeyChain
     }
 
     func test_loadSavedDeviceId_returnsMatchingId() {

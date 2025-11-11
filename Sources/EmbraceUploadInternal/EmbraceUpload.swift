@@ -9,12 +9,12 @@ import Foundation
 #endif
 
 public protocol EmbraceLogUploader: AnyObject {
-    func uploadLog(id: String, data: Data, payloadTypes: String, completion: ((Result<(), Error>) -> Void)?)
-    func uploadAttachment(id: String, data: Data, completion: ((Result<(), Error>) -> Void)?)
+    func uploadLog(id: String, data: Data, payloadTypes: String, completion: (@Sendable (Result<(), Error>) -> Void)?)
+    func uploadAttachment(id: String, data: Data, completion: (@Sendable (Result<(), Error>) -> Void)?)
 }
 
 /// Class in charge of uploading all the data collected by the Embrace SDK.
-public class EmbraceUpload: EmbraceLogUploader {
+public class EmbraceUpload: EmbraceLogUploader, @unchecked Sendable {
 
     public private(set) var options: Options
     public private(set) var logger: InternalLogger
@@ -125,7 +125,7 @@ public class EmbraceUpload: EmbraceLogUploader {
     ///   - id: Identifier of the session
     ///   - data: Data of the session's payload
     ///   - completion: Completion block called when the data is successfully cached, or when an `Error` occurs
-    public func uploadSpans(id: String, data: Data, completion: ((Result<(), Error>) -> Void)?) {
+    public func uploadSpans(id: String, data: Data, completion: (@Sendable (Result<(), Error>) -> Void)?) {
         queue.async { [weak self] in
             self?.uploadData(
                 id: id,
@@ -142,7 +142,7 @@ public class EmbraceUpload: EmbraceLogUploader {
     ///   - data: Data of the log's payload
     ///   - payloadTypes: Comma separated list of all the emb.types of logs that are being uploaded
     ///   - completion: Completion block called when the data is successfully cached, or when an `Error` occurs
-    public func uploadLog(id: String, data: Data, payloadTypes: String = "", completion: ((Result<(), Error>) -> Void)?) {
+    public func uploadLog(id: String, data: Data, payloadTypes: String = "", completion: (@Sendable (Result<(), Error>) -> Void)?) {
         queue.async { [weak self] in
             self?.uploadData(
                 id: id,
@@ -159,7 +159,7 @@ public class EmbraceUpload: EmbraceLogUploader {
     ///   - id: Identifier of the attachment
     ///   - data: The attachment's data
     ///   - completion: Completion block called when the data is successfully uploaded, or when an `Error` occurs
-    public func uploadAttachment(id: String, data: Data, completion: ((Result<(), Error>) -> Void)?) {
+    public func uploadAttachment(id: String, data: Data, completion: (@Sendable (Result<(), Error>) -> Void)?) {
         queue.async { [weak self] in
             self?.uploadData(
                 id: id,
@@ -177,7 +177,7 @@ public class EmbraceUpload: EmbraceLogUploader {
         type: EmbraceUploadType,
         payloadTypes: String? = nil,
         attemptCount: Int = 0,
-        completion: ((Result<(), Error>) -> Void)?
+        completion: (@Sendable (Result<(), Error>) -> Void)?
     ) {
 
         // validate identifier
@@ -241,7 +241,7 @@ public class EmbraceUpload: EmbraceLogUploader {
         type: EmbraceUploadType,
         payloadTypes: String?,
         attemptCount: Int,
-        completion: @escaping (() -> Void)
+        completion: @escaping @Sendable () -> Void
     ) {
         let totalPendingRetries = options.redundancy.maximumAmountOfRetries - attemptCount
         let retries = min(options.redundancy.automaticRetryCount, totalPendingRetries)

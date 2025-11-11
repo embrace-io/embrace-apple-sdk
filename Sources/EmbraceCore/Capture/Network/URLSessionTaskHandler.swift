@@ -28,7 +28,7 @@ protocol URLSessionTaskHandlerDataSource: AnyObject {
     var ignoredTaskTypes: [AnyClass] { get }
 }
 
-final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
+final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler, @unchecked Sendable {
     private var spans: [URLSessionTask: Span] = [:]
     private let queue: DispatchableQueue
     private let capturedDataQueue: DispatchableQueue

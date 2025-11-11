@@ -11,7 +11,7 @@ import OpenTelemetryApi
 
 extension NSObject {
     private struct AssociatedKeys {
-        static var embraceSpanKey: UInt8 = 8
+        nonisolated(unsafe) static var embraceSpanKey: UInt8 = 8
     }
 
     var emb_associatedSpan: Span? {

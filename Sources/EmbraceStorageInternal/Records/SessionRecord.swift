@@ -91,7 +91,7 @@ public class SessionRecord: NSManagedObject {
 }
 
 extension SessionRecord: EmbraceStorageRecord {
-    public static var entityName = "Session"
+    public static let entityName = "Session"
 
     static public var entityDescription: NSEntityDescription {
         let entity = NSEntityDescription()

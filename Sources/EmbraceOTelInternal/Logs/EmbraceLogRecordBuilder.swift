@@ -3,8 +3,8 @@
 //
 
 import Foundation
-import OpenTelemetryApi
-import OpenTelemetrySdk
+@preconcurrency import OpenTelemetryApi
+@preconcurrency import OpenTelemetrySdk
 
 class EmbraceLogRecordBuilder: EventBuilder {
 

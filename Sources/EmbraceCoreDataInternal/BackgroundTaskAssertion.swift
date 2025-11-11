@@ -14,7 +14,7 @@ import Foundation
     /// This class is a wrapper around `UIApplication.shared.beginBackgroundTask`.
     /// Based off https://developer.apple.com/forums/thread/85066 and https://developer.apple.com/forums/thread/729335
 
-    class BackgroundTaskAssertion {
+    class BackgroundTaskAssertion: @unchecked Sendable {
 
         let name: String
         private var taskID: UIBackgroundTaskIdentifier = .invalid
@@ -64,16 +64,24 @@ import Foundation
         public static let noApp: UIBackgroundTaskIdentifier = UIBackgroundTaskIdentifier(rawValue: Int.max - 2)
     }
 
-    private class BackgroundTaskProvider {
+    private class BackgroundTaskProvider: @unchecked Sendable {
 
         // App can be nil on some occasions such as before
         // the UIApplication has actually been created.
         // For this, we have our own optional UIApplication getter.
         private var app: UIApplication? {
-            UIApplication.shared as UIApplication?
+            if Thread.isMainThread {
+                MainActor.assumeIsolated {
+                    UIApplication.shared as UIApplication?
+                }
+            } else {
+                DispatchQueue.main.sync {
+                    UIApplication.shared as UIApplication?
+                }
+            }
         }
 
-        func beginBackgroundTask(withName taskName: String, expirationHandler handler: @escaping () -> Void)
+        func beginBackgroundTask(withName taskName: String, expirationHandler handler: @escaping @Sendable () -> Void)
             -> UIBackgroundTaskIdentifier
         {
             // If app is nil, we have a special identifier.

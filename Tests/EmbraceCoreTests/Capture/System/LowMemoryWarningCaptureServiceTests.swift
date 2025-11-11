@@ -9,14 +9,15 @@
     import UIKit
     @testable import EmbraceCore
 
+    @MainActor
     class LowMemoryWarningCaptureServiceTests: XCTestCase {
         private var otel: MockEmbraceOpenTelemetry!
 
-        override func setUpWithError() throws {
+        override func setUp() async throws {
             otel = MockEmbraceOpenTelemetry()
         }
 
-        override func tearDownWithError() throws {
+        override func tearDown() async throws {
             otel = nil
         }
 

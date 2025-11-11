@@ -9,6 +9,7 @@
     import XCTest
     import TestSupport
 
+    @MainActor
     class WebViewCaptureServiceTests: XCTestCase {
 
         let otel = MockEmbraceOpenTelemetry()
@@ -16,7 +17,7 @@
         let navigation = WKNavigation()
         let response = WKNavigationResponse()
 
-        override func setUpWithError() throws {
+        override func setUp() async throws {
             otel.clear()
             service.install(otel: otel)  // only does something the first time its called
         }

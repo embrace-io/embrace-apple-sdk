@@ -8,10 +8,10 @@ import Foundation
 import OpenTelemetryApi
 import TestSupport
 
-class RandomError: Error, CustomNSError {
-    static var errorDomain: String = "Embrace"
-    var errorCode: Int = .random()
-    var errorUserInfo: [String: Any] = .empty()
+final class RandomError: Error, CustomNSError, Sendable {
+    static let errorDomain: String = "Embrace"
+    let errorCode: Int = .random()
+    let errorUserInfo: [String: String] = .empty()
 }
 
 class SpyStorage: Storage {

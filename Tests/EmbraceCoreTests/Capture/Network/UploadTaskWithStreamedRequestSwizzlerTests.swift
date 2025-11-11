@@ -7,7 +7,7 @@ import XCTest
 
 @testable import EmbraceCore
 
-class UploadTaskWithStreamedRequestSwizzlerTests: XCTestCase {
+class UploadTaskWithStreamedRequestSwizzlerTests: XCTestCase, @unchecked Sendable {
     private var handler: MockURLSessionTaskHandler!
     private var sut: UploadTaskWithStreamedRequestSwizzler!
     private var session: URLSession!
@@ -19,18 +19,18 @@ class UploadTaskWithStreamedRequestSwizzlerTests: XCTestCase {
         try? sut.unswizzleInstanceMethod()
     }
 
-    func test_afterInstall_taskWillBeCreatedInHandler() throws {
+    func test_afterInstall_taskWillBeCreatedInHandler() async throws {
         givenUploadTaskWithStreamedRequestSwizzler()
-        try givenSwizzlingWasDone()
+        try await givenSwizzlingWasDone()
         givenSuccessfulRequest()
         givenProxiedUrlSession()
         whenInvokingUploadTaskWithStreamedRequest()
         thenHandlerShouldHaveInvokedCreateWithTask()
     }
 
-    func test_afterInstall_taskShouldHaveEmbraceHeaders() throws {
+    func test_afterInstall_taskShouldHaveEmbraceHeaders() async throws {
         givenUploadTaskWithStreamedRequestSwizzler()
-        try givenSwizzlingWasDone()
+        try await givenSwizzlingWasDone()
         givenSuccessfulRequest()
         givenProxiedUrlSession()
         whenInvokingUploadTaskWithStreamedRequest()
@@ -52,7 +52,8 @@ extension UploadTaskWithStreamedRequestSwizzlerTests {
         sut = UploadTaskWithStreamedRequestSwizzler(handler: handler)
     }
 
-    fileprivate func givenSwizzlingWasDone() throws {
+    @MainActor
+    fileprivate func givenSwizzlingWasDone() async throws {
         try sut.install()
     }
 

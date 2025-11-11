@@ -7,7 +7,7 @@ import EmbraceConfiguration
 import Foundation
 import XCTest
 
-public class MockEmbraceConfigurable: EmbraceConfigurable {
+public class MockEmbraceConfigurable: EmbraceConfigurable, @unchecked Sendable {
 
     public init(
         isSDKEnabled: Bool = false,

@@ -7,7 +7,7 @@ import XCTest
 
 @testable import EmbraceCore
 
-class UploadTaskWithRequestFromDataAndCompletionSwizzlerTests: XCTestCase {
+class UploadTaskWithRequestFromDataAndCompletionSwizzlerTests: XCTestCase, @unchecked Sendable {
     private var handler: MockURLSessionTaskHandler!
     private var sut: UploadTaskWithRequestFromDataWithCompletionSwizzler!
     private var session: URLSession!
@@ -19,51 +19,51 @@ class UploadTaskWithRequestFromDataAndCompletionSwizzlerTests: XCTestCase {
         try? sut.unswizzleInstanceMethod()
     }
 
-    func testAfterInstall_onExecutingRequest_taskWillBeCreatedInHandler() throws {
+    func testAfterInstall_onExecutingRequest_taskWillBeCreatedInHandler() async throws {
         let expectation = expectation(description: #function)
         givenUploadTaskWithURLRequestAndCompletionSwizzler()
-        try givenSwizzlingWasDone()
+        try await givenSwizzlingWasDone()
         givenSuccessfulRequest()
         givenProxiedUrlSession()
         whenInvokingUploadTaskWithURLRequest(completionHandler: { _, _, _ in
             self.thenHandlerShouldHaveInvokedCreateWithTask()
             expectation.fulfill()
         })
-        wait(for: [expectation])
+        await fulfillment(of: [expectation])
     }
 
-    func testAfterInstall_onFinishingRequest_taskWillBeFinishedInHandler() throws {
+    func testAfterInstall_onFinishingRequest_taskWillBeFinishedInHandler() async throws {
         let expectation = expectation(description: #function)
         givenUploadTaskWithURLRequestAndCompletionSwizzler()
-        try givenSwizzlingWasDone()
+        try await givenSwizzlingWasDone()
         givenSuccessfulRequest()
         givenProxiedUrlSession()
         whenInvokingUploadTaskWithURLRequest(completionHandler: { _, _, _ in
             self.thenHandlerShouldHaveInvokedFinishTask()
             expectation.fulfill()
         })
-        wait(for: [expectation])
+        await fulfillment(of: [expectation])
     }
 
     #if !os(watchOS)
-        func testAfterInstall_onFailedRequest_taskWillBeFinishedInHandler() throws {
+        func testAfterInstall_onFailedRequest_taskWillBeFinishedInHandler() async throws {
             let expectation = expectation(description: #function)
             givenUploadTaskWithURLRequestAndCompletionSwizzler()
-            try givenSwizzlingWasDone()
+            try await givenSwizzlingWasDone()
             givenFailedRequest()
             givenProxiedUrlSession()
             whenInvokingUploadTaskWithURLRequest(completionHandler: { _, _, _ in
                 self.thenHandlerShouldHaveInvokedFinishTaskWithError()
                 expectation.fulfill()
             })
-            wait(for: [expectation])
+            await fulfillment(of: [expectation])
         }
     #endif
 
-    func test_afterInstall_taskShouldHaveEmbraceHeaders() throws {
+    func test_afterInstall_taskShouldHaveEmbraceHeaders() async throws {
         let expectation = expectation(description: #function)
         givenUploadTaskWithURLRequestAndCompletionSwizzler()
-        try givenSwizzlingWasDone()
+        try await givenSwizzlingWasDone()
         givenProxiedUrlSession()
         givenSuccessfulRequest()
         whenInvokingUploadTaskWithURLRequest(completionHandler: { _, _, _ in
@@ -72,7 +72,7 @@ class UploadTaskWithRequestFromDataAndCompletionSwizzlerTests: XCTestCase {
             // swiftlint:enable force_try
             expectation.fulfill()
         })
-        wait(for: [expectation])
+        await fulfillment(of: [expectation])
     }
 
     func test_withoutInstall_taskWontBeCreatedInHandler() throws {
@@ -94,6 +94,7 @@ extension UploadTaskWithRequestFromDataAndCompletionSwizzlerTests {
         sut = UploadTaskWithRequestFromDataWithCompletionSwizzler(handler: handler)
     }
 
+    @MainActor
     fileprivate func givenSwizzlingWasDone() throws {
         try sut.install()
     }
@@ -121,7 +122,7 @@ extension UploadTaskWithRequestFromDataAndCompletionSwizzlerTests {
     }
 
     fileprivate func whenInvokingUploadTaskWithURLRequest(
-        completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void
+        completionHandler: @escaping @Sendable (Data?, URLResponse?, Error?) -> Void
     ) {
         uploadTask = session.uploadTask(with: request, from: Data()) { data, response, error in
             completionHandler(data, response, error)

@@ -3,7 +3,7 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-import OpenTelemetryApi
+@preconcurrency import OpenTelemetryApi
 import SwiftUI
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
@@ -26,6 +26,7 @@ private struct EmbraceTraceViewLoggerEnvironmentKey: EnvironmentKey {
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
 extension EnvironmentValues {
     /// Provides the singleton `EmbraceTraceViewLogger` used by `EmbraceTraceView`.
+    @MainActor
     var embraceTraceViewLogger: EmbraceTraceViewLogger {
         get { self[EmbraceTraceViewLoggerEnvironmentKey.self] }
         set { self[EmbraceTraceViewLoggerEnvironmentKey.self] = newValue }
@@ -43,7 +44,7 @@ extension EnvironmentValues {
 ///
 /// If any dependency (OTel client, configuration, etc.) is absent, tracing is effectively disabled.
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
-final class EmbraceTraceViewLogger {
+final class EmbraceTraceViewLogger: @unchecked Sendable {
     // MARK: – Properties
 
     /// The OpenTelemetry client instance, used to build and start spans.
@@ -53,7 +54,8 @@ final class EmbraceTraceViewLogger {
     let logger: InternalLogger?
 
     /// Configuration controlling feature flags, such as whether SwiftUI view tracing is on.
-    let config: EmbraceConfigurable?
+    nonisolated(unsafe)
+        let config: EmbraceConfigurable?
 
     // MARK: – Initialization
 
@@ -177,7 +179,7 @@ extension EmbraceTraceViewLogger {
         parent: Span? = nil,
         attributes: [String: String]? = nil,
         _ function: StaticString = #function,
-        _ completed: @escaping () -> Void
+        _ completed: @Sendable @escaping () -> Void
     ) -> Span? {
         guard
             let span = startSpan(

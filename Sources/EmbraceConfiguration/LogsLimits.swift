@@ -6,7 +6,7 @@ import Foundation
 
 /// LogsLimits manages limits for the logs generated through the SDK
 /// This is broken into the major log severities so each can be managed
-@objc public class LogsLimits: NSObject {
+@objc final public class LogsLimits: NSObject, Sendable {
     public let info: UInt
     /// Includes trace, debug and info logs
     public let warning: UInt

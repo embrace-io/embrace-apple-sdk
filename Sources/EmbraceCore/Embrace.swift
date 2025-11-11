@@ -28,14 +28,14 @@ import Foundation
 /// try Embrace.setup(options: options)
 /// try Embrace.client?.start()
 /// ```
-@objc public class Embrace: NSObject {
+@objc public class Embrace: NSObject, @unchecked Sendable {
 
     /**
      Returns the current `Embrace` client.
     
      This will be `nil` until the `setup` method is called, or if the setup process fails.
      */
-    @objc public internal(set) static var client: Embrace?
+    @objc nonisolated(unsafe) public internal(set) static var client: Embrace?
 
     /// The `Embrace.Options` that were used to configure the SDK.
     @objc public private(set) var options: Embrace.Options
@@ -101,7 +101,21 @@ import Foundation
     private static let _syncLock = ReadWriteLock()
     static let notificationCenter: NotificationCenter = NotificationCenter()
 
-    static var logger: DefaultInternalLogger = DefaultInternalLogger(exportFilePath: EmbraceFileSystem.criticalLogsURL)
+    private static let _loggerLock = UnfairLock()
+    nonisolated(unsafe) private static var _logger: DefaultInternalLogger = DefaultInternalLogger(exportFilePath: EmbraceFileSystem.criticalLogsURL)
+
+    static var logger: DefaultInternalLogger {
+        get {
+            _loggerLock.lock()
+            defer { _loggerLock.unlock() }
+            return _logger
+        }
+        set {
+            _loggerLock.lock()
+            defer { _loggerLock.unlock() }
+            _logger = newValue
+        }
+    }
 
     /// Method used to configure the Embrace SDK.
     /// - Parameter options: `Embrace.Options` to be used by the SDK.
@@ -111,6 +125,7 @@ import Foundation
     /// - Throws: `EmbraceSetupError.invalidOptions` when providing more than one `CrashReporter`.
     /// - Note: This method won't do anything if the Embrace SDK was already setup.
     /// - Returns: The `Embrace` client instance.
+    @MainActor
     @discardableResult
     @objc public static func setup(options: Embrace.Options) throws -> Embrace {
         if !Thread.isMainThread {
@@ -157,6 +172,7 @@ import Foundation
         Embrace.notificationCenter.removeObserver(self)
     }
 
+    @MainActor
     init(
         options: Embrace.Options,
         logControllable: LogControllable? = nil,
@@ -286,6 +302,7 @@ import Foundation
     /// - Throws: `EmbraceSetupError.invalidThread` if not called from the main thread.
     /// - Note: This method won't do anything if the Embrace SDK was already started or if it was disabled via the remote configurations.
     /// - Returns: The `Embrace` client instance.
+    @MainActor
     @discardableResult
     @objc public func start() throws -> Embrace {
         guard Thread.isMainThread else {

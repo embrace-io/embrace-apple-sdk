@@ -7,7 +7,7 @@ import XCTest
 
 @testable import EmbraceCore
 
-class UploadTaskWithRequestFromFileWithCompletionSwizzlerTests: XCTestCase {
+class UploadTaskWithRequestFromFileWithCompletionSwizzlerTests: XCTestCase, @unchecked Sendable {
     private var handler: MockURLSessionTaskHandler!
     private var sut: UploadTaskWithRequestFromFileWithCompletionSwizzler!
     private var session: URLSession!
@@ -19,72 +19,50 @@ class UploadTaskWithRequestFromFileWithCompletionSwizzlerTests: XCTestCase {
         try? sut.unswizzleInstanceMethod()
     }
 
-    func testAfterInstall_onExecutingRequest_taskWillBeCreatedInHandler() throws {
-        let expectation = expectation(description: #function)
+    func testAfterInstall_onExecutingRequest_taskWillBeCreatedInHandler() async throws {
         givenUploadTaskWithRequestFromFileAndCompletionSwizzler()
-        try givenSwizzlingWasDone()
+        try await givenSwizzlingWasDone()
         givenSuccessfulRequest()
         givenProxiedUrlSession()
-        whenInvokingUploadTaskWithURLRequestFromFile(completionHandler: { _, _, _ in
-            self.thenHandlerShouldHaveInvokedCreateWithTask()
-            expectation.fulfill()
-        })
-        wait(for: [expectation])
+        await whenInvokingUploadTaskWithURLRequestFromFile()
+        thenHandlerShouldHaveInvokedCreateWithTask()
     }
 
-    func testAfterInstall_onFinishingRequest_taskWillBeFinishedInHandler() throws {
-        let expectation = expectation(description: #function)
+    func testAfterInstall_onFinishingRequest_taskWillBeFinishedInHandler() async throws {
         givenUploadTaskWithRequestFromFileAndCompletionSwizzler()
-        try givenSwizzlingWasDone()
+        try await givenSwizzlingWasDone()
         givenSuccessfulRequest()
         givenProxiedUrlSession()
-        whenInvokingUploadTaskWithURLRequestFromFile(completionHandler: { _, _, _ in
-            self.thenHandlerShouldHaveInvokedFinishTask()
-            expectation.fulfill()
-        })
-        wait(for: [expectation])
+        await whenInvokingUploadTaskWithURLRequestFromFile()
+        thenHandlerShouldHaveInvokedFinishTask()
     }
 
     #if !os(watchOS)
-        func testAfterInstall_onFailedRequest_taskWillBeFinishedInHandler() throws {
-            let expectation = expectation(description: #function)
+        func testAfterInstall_onFailedRequest_taskWillBeFinishedInHandler() async throws {
             givenUploadTaskWithRequestFromFileAndCompletionSwizzler()
-            try givenSwizzlingWasDone()
+            try await givenSwizzlingWasDone()
             givenFailedRequest()
             givenProxiedUrlSession()
-            whenInvokingUploadTaskWithURLRequestFromFile(completionHandler: { _, _, _ in
-                self.thenHandlerShouldHaveInvokedFinishTaskWithError()
-                expectation.fulfill()
-            })
-            wait(for: [expectation])
+            await whenInvokingUploadTaskWithURLRequestFromFile()
+            thenHandlerShouldHaveInvokedFinishTaskWithError()
         }
     #endif
 
-    func test_afterInstall_taskShouldHaveEmbraceHeaders() throws {
-        let expectation = expectation(description: #function)
+    func test_afterInstall_taskShouldHaveEmbraceHeaders() async throws {
         givenUploadTaskWithRequestFromFileAndCompletionSwizzler()
-        try givenSwizzlingWasDone()
+        try await givenSwizzlingWasDone()
         givenProxiedUrlSession()
         givenSuccessfulRequest()
-        whenInvokingUploadTaskWithURLRequestFromFile(completionHandler: { _, _, _ in
-            // swiftlint:disable force_try
-            try! self.thenDataTaskShouldHaveEmbraceHeaders()
-            // swiftlint:enable force_try
-            expectation.fulfill()
-        })
-        wait(for: [expectation])
+        await whenInvokingUploadTaskWithURLRequestFromFile()
+        try! thenDataTaskShouldHaveEmbraceHeaders()
     }
 
-    func test_withoutInstall_taskWontBeCreatedInHandler() throws {
-        let expectation = expectation(description: #function)
+    func test_withoutInstall_taskWontBeCreatedInHandler() async throws {
         givenUploadTaskWithRequestFromFileAndCompletionSwizzler()
         givenProxiedUrlSession()
         givenSuccessfulRequest()
-        whenInvokingUploadTaskWithURLRequestFromFile(completionHandler: { _, _, _ in
-            self.thenHandlerShouldntHaveInvokedCreate()
-            expectation.fulfill()
-        })
-        wait(for: [expectation])
+        await whenInvokingUploadTaskWithURLRequestFromFile()
+        thenHandlerShouldntHaveInvokedCreate()
     }
 }
 
@@ -94,7 +72,8 @@ extension UploadTaskWithRequestFromFileWithCompletionSwizzlerTests {
         sut = UploadTaskWithRequestFromFileWithCompletionSwizzler(handler: handler)
     }
 
-    fileprivate func givenSwizzlingWasDone() throws {
+    @MainActor
+    fileprivate func givenSwizzlingWasDone() async throws {
         try sut.install()
     }
 
@@ -120,18 +99,18 @@ extension UploadTaskWithRequestFromFileWithCompletionSwizzlerTests {
         session = ProxiedURLSessionProvider.default()
     }
 
-    fileprivate func whenInvokingUploadTaskWithURLRequestFromFile(
-        completionHandler: @escaping ((Data?, URLResponse?, Error?) -> Void)
-    ) {
+    fileprivate func whenInvokingUploadTaskWithURLRequestFromFile() async {
         let dummyFile = Bundle.module.url(forResource: "dummy", withExtension: "json", subdirectory: "Mocks")!
-        uploadTask = session.uploadTask(
-            with: request,
-            fromFile: dummyFile,
-            completionHandler: { data, response, error in
-
-                completionHandler(data, response, error)
-            })
-        uploadTask.resume()
+        await withCheckedContinuation { continuation in
+            uploadTask = session.uploadTask(
+                with: request,
+                fromFile: dummyFile,
+                completionHandler: { data, response, error in
+                    continuation.resume()
+                    //completionHandler(data, response, error)
+                })
+            uploadTask.resume()
+        }
     }
 
     fileprivate func thenHandlerShouldHaveInvokedCreateWithTask() {

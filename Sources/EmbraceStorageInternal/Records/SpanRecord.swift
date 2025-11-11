@@ -35,7 +35,7 @@ public class SpanRecord: NSManagedObject {
         processId: EmbraceIdentifier,
         sessionId: EmbraceIdentifier? = nil
     ) -> EmbraceSpan? {
-        var result: EmbraceSpan?
+        nonisolated(unsafe) var result: EmbraceSpan?
 
         context.performAndWait {
             guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
@@ -80,7 +80,7 @@ public class SpanRecord: NSManagedObject {
 }
 
 extension SpanRecord: EmbraceStorageRecord {
-    public static var entityName = "SpanRecord"
+    public static let entityName = "SpanRecord"
 
     static public var entityDescriptions: [NSEntityDescription] {
         let entity = NSEntityDescription()

@@ -7,9 +7,9 @@ import XCTest
 @testable import EmbraceCore
 @testable import EmbraceObjCUtilsInternal
 
-class DummyURLSessionDelegate: NSObject, URLSessionDelegate {}
+final class DummyURLSessionDelegate: NSObject, URLSessionDelegate {}
 
-class URLSessionInitWithDelegateSwizzlerTests: XCTestCase {
+class URLSessionInitWithDelegateSwizzlerTests: XCTestCase, @unchecked Sendable {
     private var sut: URLSessionInitWithDelegateSwizzler!
     private var session: URLSession!
     private var originalDelegate: URLSessionDelegate!
@@ -20,17 +20,17 @@ class URLSessionInitWithDelegateSwizzlerTests: XCTestCase {
         try? sut.unswizzleClassMethod()
     }
 
-    func testAfterInstall_onCreateURLSessionWithDelegate_originalShouldBeWrapped() throws {
+    func testAfterInstall_onCreateURLSessionWithDelegate_originalShouldBeWrapped() async throws {
         givenURLSessionInitWithDelegateSwizzler()
-        try givenSwizzlingWasDone()
+        try await givenSwizzlingWasDone()
         whenInitializingURLSessionWithDelegate()
         thenSessionsDelegateShouldntBeDummyDelegate()
         thenSessionsDelegateShouldBeAnEmbracesProxy()
     }
 
-    func testAfterInstall_onCreateURLSessionWithoutDelegate_delegateShouldntBeNil() throws {
+    func testAfterInstall_onCreateURLSessionWithoutDelegate_delegateShouldntBeNil() async throws {
         givenURLSessionInitWithDelegateSwizzler()
-        try givenSwizzlingWasDone()
+        try await givenSwizzlingWasDone()
         whenInitializingURLSessionWithoutDelegate()
         thenSessionsDelegateShouldBeAnEmbracesProxy()
     }
@@ -40,17 +40,17 @@ class URLSessionInitWithDelegateSwizzlerTests: XCTestCase {
         thenBaseClassShouldBeURLSession()
     }
 
-    func test_unsupportedDelegates() throws {
+    func test_unsupportedDelegates() async throws {
         givenURLSessionInitWithDelegateSwizzler()
-        try givenSwizzlingWasDone()
+        try await givenSwizzlingWasDone()
         whenInitializingURLSessionWithDelegate(GTMSessionFetcher())
         thenSessionsDelegateShouldntBeEmbracesProxy()
         XCTAssertTrue(session.delegate.self is GTMSessionFetcher)
     }
 
-    func test_preventProxyingOurselves() throws {
+    func test_preventProxyingOurselves() async throws {
         givenURLSessionInitWithDelegateSwizzler()
-        try givenSwizzlingWasDone()
+        try await givenSwizzlingWasDone()
         whenInitializingURLSessionWithPreviouslySwizzledProxy()
         thenSessionsDelegateShouldBeAnEmbracesProxy()
         thenSessionDelegateShouldBePreviouslySwizzledProxy()
@@ -63,6 +63,7 @@ extension URLSessionInitWithDelegateSwizzlerTests {
         sut = URLSessionInitWithDelegateSwizzler(handler: handler)
     }
 
+    @MainActor
     fileprivate func givenSwizzlingWasDone() throws {
         try sut.install()
     }
@@ -105,4 +106,4 @@ extension URLSessionInitWithDelegateSwizzlerTests {
 }
 
 // unsupported delegates
-class GTMSessionFetcher: NSObject, URLSessionDelegate {}
+final class GTMSessionFetcher: NSObject, URLSessionDelegate {}

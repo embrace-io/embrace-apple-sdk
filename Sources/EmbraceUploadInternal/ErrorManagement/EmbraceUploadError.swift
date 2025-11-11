@@ -5,7 +5,7 @@
 import Foundation
 
 /// Enum containing possible error codes
-public enum EmbraceUploadErrorCode: Int {
+public enum EmbraceUploadErrorCode: Int, Sendable {
     case invalidMetadata = 1000
     case invalidData = 1001
     case operationCancelled = 1002

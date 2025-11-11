@@ -44,6 +44,7 @@
             return viewCaptureService
         }
 
+        @MainActor
         func onInteractionReady(for vc: UIViewController) throws {
             guard let viewCaptureService = try validateCaptureService() else {
                 return
@@ -52,6 +53,7 @@
             viewCaptureService.onViewBecameInteractive(vc)
         }
 
+        @MainActor
         func buildChildSpan(
             for vc: UIViewController,
             name: String,
@@ -83,6 +85,7 @@
             return builder
         }
 
+        @MainActor
         func recordCompletedChildSpan(
             for vc: UIViewController,
             name: String,
@@ -117,6 +120,7 @@
             span.end(time: endTime)
         }
 
+        @MainActor
         func addAttributesToTrace(
             for viewController: UIViewController,
             attributes: [String: String]

@@ -10,7 +10,7 @@ import Foundation
 #endif
 
 /// Remote config uses the Embrace Config Service to request config values
-public class RemoteConfig {
+public class RemoteConfig: @unchecked Sendable {
 
     let logger: InternalLogger
 
@@ -158,7 +158,7 @@ extension RemoteConfig: EmbraceConfigurable {
 
     public var useNewStorageForSpanEvents: Bool { payload.useNewStorageForSpanEvents }
 
-    public func update(completion: @escaping (Bool, (any Error)?) -> Void) {
+    public func update(completion: @escaping @Sendable (Bool, (any Error)?) -> Void) {
         guard updating == false else {
             completion(false, nil)
             return

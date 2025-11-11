@@ -8,7 +8,7 @@ import Foundation
     import EmbraceCommonInternal
 #endif
 
-class CrashlyticsWrapper {
+class CrashlyticsWrapper: @unchecked Sendable {
 
     class Options {
         let className: String

@@ -8,9 +8,7 @@ import XCTest
 @testable import EmbraceCommonInternal
 @testable import EmbraceCore
 
-// swiftlint:disable force_try
-
-class DataTaskWithURLAndCompletionSwizzlerTests: XCTestCase {
+class DataTaskWithURLAndCompletionSwizzlerTests: XCTestCase, @unchecked Sendable {
     private var session: URLSession!
     private var sut: DataTaskWithURLAndCompletionSwizzler!
     private var sut2: DataTaskWithURLRequestAndCompletionSwizzler!
@@ -19,62 +17,62 @@ class DataTaskWithURLAndCompletionSwizzlerTests: XCTestCase {
 
     private var dataTask: URLSessionDataTask!
 
-    override func tearDownWithError() throws {
+    override func tearDown() async throws {
         try? sut.unswizzleInstanceMethod()
     }
 
-    func testAfterInstall_onExecutingRequest_taskWillBeCreatedInHandler() throws {
+    func testAfterInstall_onExecutingRequest_taskWillBeCreatedInHandler() async throws {
         let expectation = expectation(description: #function)
         givenDataTaskWithURLAndCompletionSwizzler()
-        try givenSwizzlingWasDone()
+        try await givenSwizzlingWasDone()
         givenSuccessfulRequest()
         givenProxiedUrlSession()
         whenInvokingDataTaskWithUrl(completionHandler: { _, _, _ in
             self.thenHandlerShouldHaveInvokedCreateWithTask()
             expectation.fulfill()
         })
-        wait(for: [expectation])
+        await fulfillment(of: [expectation])
     }
 
-    func testAfterInstall_onFinishingRequest_taskWillBeFinishedInHandler() throws {
+    func testAfterInstall_onFinishingRequest_taskWillBeFinishedInHandler() async throws {
         let expectation = expectation(description: #function)
         givenDataTaskWithURLAndCompletionSwizzler()
-        try givenSwizzlingWasDone()
+        try await givenSwizzlingWasDone()
         givenSuccessfulRequest()
         givenProxiedUrlSession()
         whenInvokingDataTaskWithUrl(completionHandler: { _, _, _ in
             self.thenHandlerShouldHaveInvokedFinishTask()
             expectation.fulfill()
         })
-        wait(for: [expectation])
+        await fulfillment(of: [expectation])
     }
 
     #if !os(watchOS)
-        func testAfterInstall_onFailedRequest_taskWillBeFinishedInHandler() throws {
+        func testAfterInstall_onFailedRequest_taskWillBeFinishedInHandler() async throws {
             let expectation = expectation(description: #function)
             givenDataTaskWithURLAndCompletionSwizzler()
-            try givenSwizzlingWasDone()
+            try await givenSwizzlingWasDone()
             givenFailedRequest()
             givenProxiedUrlSession()
             whenInvokingDataTaskWithUrl(completionHandler: { _, _, _ in
                 self.thenHandlerShouldHaveInvokedFinishTaskWithError()
                 expectation.fulfill()
             })
-            wait(for: [expectation])
+            await fulfillment(of: [expectation])
         }
     #endif
 
-    func test_afterInstall_taskShouldHaveEmbraceHeaders() throws {
+    func test_afterInstall_taskShouldHaveEmbraceHeaders() async throws {
         let expectation = expectation(description: #function)
         givenDataTaskWithURLAndCompletionSwizzler()
-        try givenSwizzlingWasDone()
+        try await givenSwizzlingWasDone()
         givenProxiedUrlSession()
         givenSuccessfulRequest()
         whenInvokingDataTaskWithUrl(completionHandler: { _, _, _ in
             try! self.thenDataTaskShouldHaveHeaders()
             expectation.fulfill()
         })
-        wait(for: [expectation])
+        await fulfillment(of: [expectation])
     }
 
     func test_withoutInstall_taskWontBeCreatedInHandler() throws {
@@ -97,6 +95,7 @@ extension DataTaskWithURLAndCompletionSwizzlerTests {
         sut2 = DataTaskWithURLRequestAndCompletionSwizzler(handler: handler)
     }
 
+    @MainActor
     fileprivate func givenSwizzlingWasDone() throws {
         try sut.install()
         try sut2.install()
@@ -120,7 +119,7 @@ extension DataTaskWithURLAndCompletionSwizzlerTests {
         url.mockResponse = .failure(withError: error, response: mockResponse)
     }
 
-    fileprivate func whenInvokingDataTaskWithUrl(completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void) {
+    fileprivate func whenInvokingDataTaskWithUrl(completionHandler: @escaping @Sendable (Data?, URLResponse?, Error?) -> Void) {
         dataTask = session.dataTask(with: url) { data, response, error in
             completionHandler(data, response, error)
         }
@@ -152,5 +151,3 @@ extension DataTaskWithURLAndCompletionSwizzlerTests {
         XCTAssertNotNil(headers["x-emb-st"])
     }
 }
-
-// swiftlint:enable force_try

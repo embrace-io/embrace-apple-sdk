@@ -4,7 +4,7 @@
 
 import Darwin
 import Foundation
-import OpenTelemetryApi
+@preconcurrency import OpenTelemetryApi
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCaptureService
@@ -80,7 +80,7 @@ public final class HangCaptureService: CaptureService {
     }
 }
 
-extension HangCaptureService: HangObserver {
+extension HangCaptureService: HangObserver, @unchecked Sendable {
 
     // Hang span documented here:
     // https://www.notion.so/embraceio/ANRs-1d77e3c9985281c58765d8c622443e2c

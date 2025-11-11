@@ -9,7 +9,7 @@ import Foundation
 #endif
 
 /// Levels ordered by severity
-@objc public enum LogLevel: Int {
+@objc public enum LogLevel: Int, Sendable {
     case none
     case trace
     case debug

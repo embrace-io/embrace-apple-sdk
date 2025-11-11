@@ -111,15 +111,19 @@ public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
 
         // If no _RenderLoop_ span exists for this render tick, create one.
         if context.firstCycleSpan == nil {
+            // Capture a local reference to avoid capturing `self` (and its generic types)
+            let ctx = context
             context.firstCycleSpan = logger.cycledSpan(
                 name,
                 semantics: SpanSemantics.SwiftUIView.renderLoopName,
                 time: startTime,
                 parent: nil,
                 attributes: attributes
-            ) {
-                // Reset cycle root after the run loop tick completes
-                context.firstCycleSpan = nil
+            ) { [weak ctx] in
+                // Reset cycle root after the run loop tick completes on the main actor
+                Task { @MainActor in
+                    ctx?.firstCycleSpan = nil
+                }
             }
         }
 

@@ -9,7 +9,7 @@ import Foundation
 
 @testable import EmbraceCore
 
-public class DummyLogControllable: LogControllable {
+public class DummyLogControllable: LogControllable, @unchecked Sendable {
 
     public init() {}
 

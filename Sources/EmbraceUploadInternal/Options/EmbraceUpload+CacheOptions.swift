@@ -10,7 +10,7 @@ import Foundation
 
 extension EmbraceUpload {
 
-    public class CacheOptions {
+    final public class CacheOptions: Sendable {
         /// Determines where the db is going to be
         let storageMechanism: StorageMechanism
 

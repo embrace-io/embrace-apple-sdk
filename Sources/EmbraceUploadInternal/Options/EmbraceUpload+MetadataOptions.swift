@@ -6,7 +6,7 @@ import Foundation
 
 extension EmbraceUpload {
     /// Used to construct the http request headers
-    public class MetadataOptions {
+    final public class MetadataOptions: Sendable {
         public let apiKey: String
         public let userAgent: String
         public let deviceId: String

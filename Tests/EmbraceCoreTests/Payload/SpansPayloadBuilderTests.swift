@@ -208,7 +208,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
 
     func test_openSpan_withinCrashedSession() throws {
         // given a crashed session
-        sessionRecord.crashReportId = "test"
+        sessionRecord = sessionRecord.copyWithCrashReportId("test")
 
         // given a open span that started after the crashed session
         let span = try addSpan(
@@ -235,7 +235,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
 
     func test_openSpan_beforeCrashedSession() throws {
         // given a crashed session
-        sessionRecord.crashReportId = "test"
+        sessionRecord = sessionRecord.copyWithCrashReportId("test")
 
         // given a open span that started before the crashed session
         let span = try addSpan(
@@ -262,7 +262,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
 
     func test_closedSpan_withinCrashedSession() throws {
         // given a crashed session
-        sessionRecord.crashReportId = "test"
+        sessionRecord = sessionRecord.copyWithCrashReportId("test")
 
         // given a open span that started after the crashed session
         let span = try addSpan(

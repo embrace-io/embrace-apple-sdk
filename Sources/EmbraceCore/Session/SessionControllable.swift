@@ -11,7 +11,7 @@ import Foundation
 
 /// Protocol for managing sessions.
 /// See ``SessionController`` for main conformance
-protocol SessionControllable: AnyObject {
+protocol SessionControllable: AnyObject, Sendable {
 
     var currentSession: EmbraceSession? { get }
 

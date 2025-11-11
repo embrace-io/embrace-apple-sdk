@@ -12,6 +12,7 @@
 
     import EmbraceMacroPlugin
 
+    @MainActor
     let macros: [String: Macro.Type] = [
         "embraceTrace": EmbraceTraceMacro.self
     ]

@@ -9,6 +9,7 @@
     import SwiftUI
     @testable import EmbraceCore
 
+    @MainActor
     class ViewControllerBlockListTests: XCTestCase {
 
         func test_isBlocked_byName() {

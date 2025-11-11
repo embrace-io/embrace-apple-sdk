@@ -2,7 +2,7 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import OpenTelemetryApi
+@preconcurrency import OpenTelemetryApi
 import OpenTelemetrySdk
 import XCTest
 

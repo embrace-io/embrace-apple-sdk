@@ -11,6 +11,7 @@ protocol SessionLifecycle {
     var controller: SessionControllable? { get }
 
     /// Method called during ``Embrace.init``
+    @MainActor
     func setup()
 
     /// Prevents the lifecycle from starting new sessions

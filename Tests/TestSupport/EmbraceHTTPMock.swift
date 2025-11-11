@@ -5,7 +5,7 @@
 import Foundation
 
 extension URL {
-    private static var testNameKey: UInt8 = 4
+    nonisolated(unsafe) private static var testNameKey: UInt8 = 4
 
     public var testName: String? {
         get {
@@ -29,8 +29,8 @@ extension URL {
 
 public class EmbraceHTTPMock: URLProtocol {
 
-    private static var mockedResponses = [String: MockResponse]()
-    private static var requests = [String: [URLRequest]]()
+    nonisolated(unsafe) private static var mockedResponses = [String: MockResponse]()
+    nonisolated(unsafe) private static var requests = [String: [URLRequest]]()
 
     /// Adds a mocked response for a given url
     public class func mock(

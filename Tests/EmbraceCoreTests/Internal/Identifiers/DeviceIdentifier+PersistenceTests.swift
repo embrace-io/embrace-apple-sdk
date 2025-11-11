@@ -16,7 +16,7 @@ class DeviceIdentifier_PersistenceTests: XCTestCase {
     var fileURL: URL!
 
     override func setUpWithError() throws {
-        KeychainAccess.keychain = AlwaysSuccessfulKeychainInterface()
+        KeychainAccess.keychain.safeValue = AlwaysSuccessfulKeychainInterface()
 
         try? FileManager.default.removeItem(at: fileProvider.tmpDirectory)
 

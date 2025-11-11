@@ -4,7 +4,7 @@
 
 /// Used to define the platform the current application is running on.
 @objc(EMBPlatform)
-public enum Platform: Int {
+public enum Platform: Int, Sendable {
     case unity
     case reactNative
     case flutter

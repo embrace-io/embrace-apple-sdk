@@ -12,7 +12,7 @@ import Foundation
     import EmbraceSemantics
 #endif
 
-typealias UnsentDataHandlerCompletion = () -> Void
+typealias UnsentDataHandlerCompletion = @Sendable () -> Void
 
 class UnsentDataHandler {
 

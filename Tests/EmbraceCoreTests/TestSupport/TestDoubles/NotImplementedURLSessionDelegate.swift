@@ -7,5 +7,6 @@ import Foundation
 class NotImplementedURLSessionDelegate: NSObject,
     URLSessionTaskDelegate,
     URLSessionDataDelegate,
-    URLSessionStreamDelegate
+    URLSessionStreamDelegate,
+    @unchecked Sendable
 {}

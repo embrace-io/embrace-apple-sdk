@@ -11,7 +11,7 @@ class MockURLSessionSwizzler: URLSessionSwizzler {
     // Random types and selector. This class shouldn't actually swizzle anything as methods are overriden.
     typealias ImplementationType = URLSession
     typealias BlockImplementationType = URLSession
-    static var selector: Selector = #selector(URLSession.dataTask(with:) as (URLSession) -> (URL) -> URLSessionDataTask)
+    static let selector: Selector = #selector(URLSession.dataTask(with:) as (URLSession) -> (URL) -> URLSessionDataTask)
     var baseClass: AnyClass = URLSession.self
 
     required init(handler: URLSessionTaskHandler, baseClass: AnyClass) {}

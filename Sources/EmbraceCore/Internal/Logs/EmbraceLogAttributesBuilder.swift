@@ -9,7 +9,7 @@
     import EmbraceSemantics
 #endif
 
-class EmbraceLogAttributesBuilder {
+class EmbraceLogAttributesBuilder: @unchecked Sendable {
     private weak var storage: EmbraceStorageMetadataFetcher?
     private weak var sessionControllable: SessionControllable?
     private var session: EmbraceSession?

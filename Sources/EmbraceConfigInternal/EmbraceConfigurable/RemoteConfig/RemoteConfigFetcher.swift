@@ -8,7 +8,7 @@ import Foundation
     import EmbraceCommonInternal
 #endif
 
-class RemoteConfigFetcher {
+class RemoteConfigFetcher: @unchecked Sendable {
 
     static let routePath = "/v2/config"
 
@@ -30,7 +30,7 @@ class RemoteConfigFetcher {
         )
     }
 
-    func fetch(completion: @escaping (RemoteConfigPayload?, Data?) -> Void) {
+    func fetch(completion: @escaping @Sendable (RemoteConfigPayload?, Data?) -> Void) {
         guard let request = newRequest() else {
             completion(nil, nil)
             return

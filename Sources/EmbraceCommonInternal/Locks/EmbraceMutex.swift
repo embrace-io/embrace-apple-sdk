@@ -110,4 +110,4 @@ public final class EmbraceReadWriteLock<Value> {
     private var storage: Value
 }
 
-extension EmbraceReadWriteLock: @unchecked Sendable where Value: Sendable {}
+extension EmbraceReadWriteLock: @unchecked Sendable {}

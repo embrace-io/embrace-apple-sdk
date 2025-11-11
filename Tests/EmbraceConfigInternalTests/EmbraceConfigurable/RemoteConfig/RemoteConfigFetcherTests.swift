@@ -9,7 +9,7 @@ import XCTest
 @testable import EmbraceConfigInternal
 
 class RemoteConfigFetcherTests: XCTestCase {
-    static var urlSessionConfig: URLSessionConfiguration!
+    nonisolated(unsafe) static var urlSessionConfig: URLSessionConfiguration!
     let logger = MockLogger()
 
     private var apiBaseUrl: String {

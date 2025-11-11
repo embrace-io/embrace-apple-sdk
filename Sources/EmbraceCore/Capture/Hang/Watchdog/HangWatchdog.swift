@@ -24,7 +24,7 @@ public protocol HangObserver: AnyObject {
 /// Use this class to monitor app responsiveness by receiving callbacks when
 /// the monitored RunLoop is blocked beyond acceptable durations.
 /// Initialize as early as possible during app launch to start monitoring.
-final public class HangWatchdog {
+final public class HangWatchdog: @unchecked Sendable {
 
     /// Default hang threshold defined by Apple (0.25 seconds).
     public static let defaultAppleHangThreshold: TimeInterval = 0.249

@@ -28,6 +28,7 @@
             listenForUIApplication()
         }
 
+        @MainActor
         func setup() {
             // only fetch the app state once during setup
             // MUST BE DONE ON THE MAIN THREAD!!!

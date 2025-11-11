@@ -10,7 +10,7 @@ import OpenTelemetryApi
     import EmbraceSemantics
 #endif
 
-public protocol EmbraceOpenTelemetry: AnyObject {
+public protocol EmbraceOpenTelemetry: AnyObject, Sendable {
     func buildSpan(
         name: String,
         type: SpanType,

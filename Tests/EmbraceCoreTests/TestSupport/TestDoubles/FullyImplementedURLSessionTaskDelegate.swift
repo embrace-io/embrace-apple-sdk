@@ -9,7 +9,8 @@ class FullyImplementedURLSessionDelegate: NSObject,
     URLSessionTaskDelegate,
     URLSessionDataDelegate,
     URLSessionStreamDelegate,
-    URLSessionDownloadDelegate
+    URLSessionDownloadDelegate,
+    @unchecked Sendable
 {
     // MARK: - Task Delegate Methods
     var didCallCreateTask = false

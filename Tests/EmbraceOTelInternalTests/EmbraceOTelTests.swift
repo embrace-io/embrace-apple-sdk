@@ -1,6 +1,6 @@
 import EmbraceCommonInternal
 import EmbraceStorageInternal
-import OpenTelemetryApi
+@preconcurrency import OpenTelemetryApi
 import OpenTelemetrySdk
 import TestSupport
 import XCTest

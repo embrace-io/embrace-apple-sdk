@@ -23,7 +23,7 @@ import Foundation
 
 /// Class used to generate resources, properties and persona tags to be included in sessions and logs.
 @objc(EMBMetadataHandler)
-public class MetadataHandler: NSObject {
+public class MetadataHandler: NSObject, @unchecked Sendable {
 
     static let maxKeyLength = 128
     static let maxValueLength = 1024
@@ -252,7 +252,7 @@ extension MetadataHandler {
     }
 }
 
-extension MetadataLifespan {
+extension MetadataLifespan: Sendable {
     var recordLifespan: MetadataRecordLifespan {
         switch self {
         case .session: return .session

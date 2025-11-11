@@ -5,9 +5,9 @@
 import EmbraceCommonInternal
 import EmbraceCore
 
-public class MockLogger: InternalLogger {
+public class MockLogger: InternalLogger, @unchecked Sendable {
 
-    public var level: LogLevel = .debug
+    nonisolated(unsafe) public var level: LogLevel = .debug
 
     public init(level: LogLevel = .none) {
         self.level = level

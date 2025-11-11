@@ -5,7 +5,7 @@
 import Foundation
 
 /// HangLimits manages limits for the app hangs generated through the SDK
-@objc public class HangLimits: NSObject {
+@objc final public class HangLimits: NSObject, Sendable {
 
     /// Maximum number of captured hangs in a session.
     public let hangPerSession: UInt
