@@ -171,11 +171,11 @@ extension UserInfo {
     }
 }
 
-extension PersonaTag: @retroactive Identifiable {
+extension PersonaTag: Identifiable {
     public var id: String { rawValue }
 }
 
-extension PersonaTag: @retroactive Hashable {}
+extension PersonaTag: Hashable {}
 
 #Preview {
     UserInfo()
