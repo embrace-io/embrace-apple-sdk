@@ -18,7 +18,8 @@ Pod::Spec.new do |spec|
 
   ## Tell the Swift source code to not import subspecs as modules.
   spec.pod_target_xcconfig = {
-    'SWIFT_ACTIVE_COMPILATION_CONDITIONS' => 'EMBRACE_COCOAPOD_BUILDING_SDK'
+    'SWIFT_ACTIVE_COMPILATION_CONDITIONS' => 'EMBRACE_COCOAPOD_BUILDING_SDK',
+    'OTHER_SWIFT_FLAGS' => '$(inherited) -package-name EmbraceIO'
   }
 
   spec.subspec 'EmbraceIO' do |subs|
@@ -83,6 +84,8 @@ Pod::Spec.new do |spec|
     subs.dependency "EmbraceIO/EmbraceCommonInternal"
     subs.dependency "EmbraceIO/EmbraceSemantics"
     subs.dependency "EmbraceIO/OpenTelemetrySdk"
+    subs.dependency "EmbraceIO/EmbraceCoreDataInternal"
+    subs.dependency "EmbraceIO/EmbraceStorageInternal"
   end
 
   spec.subspec 'EmbraceStorageInternal' do |subs|
@@ -95,6 +98,7 @@ Pod::Spec.new do |spec|
   spec.subspec 'EmbraceCoreDataInternal' do |subs|
     subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
     subs.dependency "EmbraceIO/EmbraceCommonInternal"
+    subs.dependency "EmbraceIO/EmbraceObjCUtilsInternal"
   end
 
   spec.subspec 'EmbraceUploadInternal' do |subs|
