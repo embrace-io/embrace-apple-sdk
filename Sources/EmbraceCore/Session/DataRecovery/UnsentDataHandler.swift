@@ -219,7 +219,7 @@ class UnsentDataHandler {
         report: EmbraceCrashReport,
         session: EmbraceSession?,
         timestamp: Date
-    ) -> [String: String] {
+    ) -> EmbraceAttributes {
 
         let attributesBuilder = EmbraceLogAttributesBuilder(
             session: session,

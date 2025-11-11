@@ -42,7 +42,7 @@ public class SpanLinkRecord: NSManagedObject {
         return result
     }
 
-    func update(spanId: String, traceId: String, attributes: [String: String]) {
+    func update(spanId: String, traceId: String, attributes: EmbraceAttributes) {
         self.spanId = spanId
         self.traceId = traceId
         self.attributes = attributes.keyValueEncoded()

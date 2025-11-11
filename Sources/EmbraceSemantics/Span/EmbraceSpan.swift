@@ -35,7 +35,7 @@ public protocol EmbraceSpan {
     var links: [EmbraceSpanLink] { get }
 
     /// Attributes of the span
-    var attributes: [String: String] { get }
+    var attributes: EmbraceAttributes { get }
 
     /// Identifier of the active Embrace Session when the log was emitted, if any.
     var sessionId: EmbraceIdentifier? { get }
@@ -52,7 +52,7 @@ public protocol EmbraceSpan {
         name: String,
         type: EmbraceType?,
         timestamp: Date,
-        attributes: [String: String]
+        attributes: EmbraceAttributes
     ) throws
 
     /// Adds a link to the span
@@ -60,12 +60,12 @@ public protocol EmbraceSpan {
     func addLink(
         spanId: String,
         traceId: String,
-        attributes: [String: String]
+        attributes: EmbraceAttributes
     ) throws
 
     /// Sets an attribute to the span
     /// Can fail if the attribute limit is reached.
-    func setAttribute(key: String, value: String?) throws
+    func setAttribute(key: String, value: EmbraceAttributeValue?) throws
 
     /// Ends the span with the given `endTime`
     func end(endTime: Date)
@@ -81,7 +81,7 @@ extension EmbraceSpan {
     public func addEvent(
         name: String,
         type: EmbraceType? = .performance,
-        attributes: [String: String]
+        attributes: EmbraceAttributes
     ) throws {
         try addEvent(name: name, type: type, timestamp: Date(), attributes: attributes)
     }

@@ -13,7 +13,7 @@ import Foundation
 struct LogPayloadBuilder {
     static func build(log: EmbraceLog) -> LogPayload {
         var finalAttributes: [Attribute] = log.attributes.map { entry in
-            Attribute(key: entry.key, value: entry.value)
+            Attribute(key: entry.key, value: String(describing: entry.value))
         }
 
         finalAttributes.append(.init(key: LogSemantics.keyId, value: log.id))
@@ -30,7 +30,7 @@ struct LogPayloadBuilder {
         timestamp: Date,
         severity: EmbraceLogSeverity,
         body: String,
-        attributes: [String: String],
+        attributes: EmbraceAttributes,
         storage: EmbraceStorage?,
         sessionId: EmbraceIdentifier?
     ) -> PayloadEnvelope<[LogPayload]> {
@@ -54,7 +54,7 @@ struct LogPayloadBuilder {
         }
 
         let finalAttributes: [Attribute] = attributes.map { entry in
-            Attribute(key: entry.key, value: entry.value)
+            Attribute(key: entry.key, value: String(describing: entry.value))
         }
 
         let logPayload = LogPayload(

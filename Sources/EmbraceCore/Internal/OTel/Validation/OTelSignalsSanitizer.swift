@@ -13,10 +13,10 @@ protocol OTelSignalsSanitizer {
     func sanitizeSpanEventName(_ name: String) -> String
 
     func sanitizeAttributeKey(_ key: String) -> String
-    func sanitizeAttributeValue(_ value: String?) -> String?
+    func sanitizeAttributeValue(_ value: EmbraceAttributeValue?) -> EmbraceAttributeValue?
 
-    func sanitizeSpanAttributes(_ attributes: [String: String]) -> [String: String]
-    func sanitizeSpanEventAttributes(_ attributes: [String: String]) -> [String: String]
-    func sanitizeSpanLinkAttributes(_ attributes: [String: String]) -> [String: String]
-    func sanitizeLogAttributes(_ attributes: [String: String]) -> [String: String]
+    func sanitizeSpanAttributes(_ attributes: EmbraceAttributes) -> EmbraceAttributes
+    func sanitizeSpanEventAttributes(_ attributes: EmbraceAttributes) -> EmbraceAttributes
+    func sanitizeSpanLinkAttributes(_ attributes: EmbraceAttributes) -> EmbraceAttributes
+    func sanitizeLogAttributes(_ attributes: EmbraceAttributes) -> EmbraceAttributes
 }

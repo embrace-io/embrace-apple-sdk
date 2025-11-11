@@ -59,7 +59,7 @@
 
             let event = otel.events[0]
             XCTAssertEqual(event.name, "emb-web-view")
-            XCTAssertEqual(event.attributes["emb.type"], "ux.webview")
+            XCTAssertEqual(event.attributes["emb.type"] as! String, "ux.webview")
             XCTAssertEqual(event.attributes["webview.url"]!.description, url.absoluteString)
         }
 
@@ -73,8 +73,8 @@
 
             let event = otel.events.last!
             XCTAssertEqual(event.name, "emb-web-view")
-            XCTAssertEqual(event.attributes["emb.type"], "ux.webview")
-            XCTAssertEqual(event.attributes["webview.error_code"], "123")
+            XCTAssertEqual(event.attributes["emb.type"] as! String, "ux.webview")
+            XCTAssertEqual(event.attributes["webview.error_code"] as! String, "123")
         }
     }
 #endif

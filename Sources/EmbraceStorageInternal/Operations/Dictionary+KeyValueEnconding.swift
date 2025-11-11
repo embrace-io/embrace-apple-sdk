@@ -2,11 +2,12 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceSemantics
 import Foundation
 
-extension Dictionary where Key == String, Value == String {
+extension Dictionary where Key == String, Value == EmbraceAttributeValue {
 
-    /// Encodes a `[String: String]` dictionary into a single `String` as a comma separated key value list
+    /// Encodes a `[String: EmbraceAttributeValue]` dictionary into a single `String` as a comma separated key value list
     /// Example: "key1,value1,key2,value2,key3,value3"
     func keyValueEncoded() -> String {
         guard self.count > 0 else {
@@ -14,7 +15,8 @@ extension Dictionary where Key == String, Value == String {
         }
 
         let keyValues = self.map { key, value in
-            key.keyValueEncoded() + "," + value.keyValueEncoded()
+            let strValue = String(describing: value)
+            return key.keyValueEncoded() + "," + strValue.keyValueEncoded()
         }
 
         return keyValues.joined(separator: ",")

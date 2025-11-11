@@ -21,7 +21,7 @@ class EmbraceSpanEndErrorCodeTests: XCTestCase {
         // and has the error code attribute
         XCTAssertEqual(span.endTime, endTime)
         XCTAssertEqual(span.status, .error)
-        XCTAssertEqual(span.attributes["emb.error_code"], "faliure")
+        XCTAssertEqual(span.attributes["emb.error_code"] as! String, "faliure")
     }
 
     func end_withErrorCode_nil() throws {
@@ -37,6 +37,6 @@ class EmbraceSpanEndErrorCodeTests: XCTestCase {
         // and it doesn't have the error code attribute
         XCTAssertEqual(span.endTime, endTime)
         XCTAssertEqual(span.status, .ok)
-        XCTAssertEqual(span.attributes["emb.error_code"], nil)
+        XCTAssertNil(span.attributes["emb.error_code"])
     }
 }

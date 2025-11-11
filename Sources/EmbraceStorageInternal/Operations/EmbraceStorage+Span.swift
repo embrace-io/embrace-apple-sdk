@@ -172,7 +172,7 @@ extension EmbraceStorage {
     ///   - id: Identifier of the span
     ///   - traceId: Trace identifier of the span
     ///   - attributes: New span attributes
-    public func setSpanAttributes(id: String, traceId: String, attributes: [String: String]) {
+    public func setSpanAttributes(id: String, traceId: String, attributes: EmbraceAttributes) {
         coreData.performAsyncOperation(save: true) { context in
             do {
                 let request = self.fetchSpanRequest(id: id, traceId: traceId)

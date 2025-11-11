@@ -14,7 +14,7 @@ protocol EmbraceSpanDelegate: AnyObject {
     func onSpanStatusUpdated(_ span: EmbraceSpan, status: EmbraceSpanStatus)
     func onSpanEventAdded(_ span: EmbraceSpan, event: EmbraceSpanEvent)
     func onSpanLinkAdded(_ span: EmbraceSpan, link: EmbraceSpanLink)
-    func onSpanAttributesUpdated(_ span: EmbraceSpan, key: String, value: String?, attributes: [String: String])
+    func onSpanAttributesUpdated(_ span: EmbraceSpan, key: String, value: EmbraceAttributeValue?, attributes: EmbraceAttributes)
     func onSpanEnded(_ span: EmbraceSpan, endTime: Date)
 }
 
@@ -24,8 +24,8 @@ protocol EmbraceSpanDataSource: AnyObject {
         name: String,
         type: EmbraceType?,
         timestamp: Date,
-        attributes: [String: String],
-        internalAttributes: [String: String],
+        attributes: EmbraceAttributes,
+        internalAttributes: EmbraceAttributes,
         currentCount: Int,
         isSessionEvent: Bool
     ) throws -> EmbraceSpanEvent
@@ -34,14 +34,14 @@ protocol EmbraceSpanDataSource: AnyObject {
         for span: EmbraceSpan,
         spanId: String,
         traceId: String,
-        attributes: [String: String],
+        attributes: EmbraceAttributes,
         currentCount: Int
     ) throws -> EmbraceSpanLink
 
     func validateAttribute(
         for span: EmbraceSpan,
         key: String,
-        value: String?,
+        value: EmbraceAttributeValue?,
         currentCount: Int
-    ) throws -> (String, String?)
+    ) throws -> (String, EmbraceAttributeValue?)
 }

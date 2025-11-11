@@ -65,8 +65,9 @@ class InternalEmbraceSpanTests: XCTestCase {
         XCTAssertEqual(span.events[1].name, "newEvent")
         XCTAssertEqual(span.events[1].type, .performance)
         XCTAssertEqual(span.events[1].timestamp, Date(timeIntervalSince1970: 5))
-        XCTAssertEqual(span.events[1].attributes["emb.type"], "perf")
-        XCTAssertEqual(span.events[1].attributes["key"], "value")
+        XCTAssertEqual(span.events[1].attributes.count, 2)
+        XCTAssertEqual(span.events[1].attributes["emb.type"] as! String, "perf")
+        XCTAssertEqual(span.events[1].attributes["key"] as! String, "value")
         XCTAssertEqual(span.state.safeValue.internalEventCount, 1)
         XCTAssertEqual(handler.createEventCallCount, 0)
         XCTAssertEqual(handler.onSpanEventAddedCallCount, 1)
@@ -82,7 +83,7 @@ class InternalEmbraceSpanTests: XCTestCase {
         // then the attribute is set
         // the internal counter increases
         // and the handler is notified
-        XCTAssertEqual(span.attributes["key"], "value")
+        XCTAssertEqual(span.attributes["key"] as! String, "value")
         XCTAssertEqual(span.state.safeValue.internalAttributeCount, 2)
         XCTAssertEqual(handler.validateAttributeCallCount, 0)
         XCTAssertEqual(handler.onSpanAttributesUpdatedCallCount, 1)

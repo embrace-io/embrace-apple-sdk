@@ -55,10 +55,10 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
         let log = otel.logs[0]
         XCTAssertEqual(log.severity, .fatal)
         XCTAssertEqual(log.type, .crash)
-        XCTAssertEqual(log.attributes["emb.state"], "unknown")
+        XCTAssertEqual(log.attributes["emb.state"] as! String, "unknown")
         XCTAssertNotNil(log.attributes["log.record.uid"])
-        XCTAssertEqual(log.attributes["emb.provider"], "metrickit")
-        XCTAssertEqual(log.attributes["emb.payload"], "test")
+        XCTAssertEqual(log.attributes["emb.provider"] as! String, "metrickit")
+        XCTAssertEqual(log.attributes["emb.payload"] as! String, "test")
     }
 
     func test_invalid_signal() throws {
@@ -176,11 +176,11 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
         let log = otel.logs[0]
         XCTAssertEqual(log.severity, .fatal)
         XCTAssertEqual(log.type, .crash)
-        XCTAssertEqual(log.attributes["emb.state"], "unknown")
+        XCTAssertEqual(log.attributes["emb.state"] as! String, "unknown")
         XCTAssertNotNil(log.attributes["log.record.uid"])
-        XCTAssertEqual(log.attributes["emb.provider"], "metrickit")
-        XCTAssertEqual(log.attributes["emb.payload"], "test")
-        XCTAssertEqual(log.attributes["emb.properties.test1"], "metadata")
-        XCTAssertEqual(log.attributes["emb.properties.test2"], "metadata")
+        XCTAssertEqual(log.attributes["emb.provider"] as! String, "metrickit")
+        XCTAssertEqual(log.attributes["emb.payload"] as! String, "test")
+        XCTAssertEqual(log.attributes["emb.properties.test1"] as! String, "metadata")
+        XCTAssertEqual(log.attributes["emb.properties.test2"] as! String, "metadata")
     }
 }

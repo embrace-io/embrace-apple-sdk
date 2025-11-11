@@ -16,8 +16,8 @@ class MockEmbraceSpanHandler: EmbraceSpanHandler {
         name: String,
         type: EmbraceType?,
         timestamp: Date,
-        attributes: [String: String],
-        internalAttributes: [String: String],
+        attributes: EmbraceAttributes,
+        internalAttributes: EmbraceAttributes,
         currentCount: Int,
         isSessionEvent: Bool
     ) throws -> EmbraceSpanEvent {
@@ -41,7 +41,7 @@ class MockEmbraceSpanHandler: EmbraceSpanHandler {
         for span: EmbraceSpan,
         spanId: String,
         traceId: String,
-        attributes: [String: String],
+        attributes: EmbraceAttributes,
         currentCount: Int
     ) throws -> EmbraceSpanLink {
         createLinkCallCount += 1
@@ -62,9 +62,9 @@ class MockEmbraceSpanHandler: EmbraceSpanHandler {
     func validateAttribute(
         for span: EmbraceSpan,
         key: String,
-        value: String?,
+        value: EmbraceAttributeValue?,
         currentCount: Int
-    ) throws -> (String, String?) {
+    ) throws -> (String, EmbraceAttributeValue?) {
         validateAttributeCallCount += 1
 
         if let validateAttributeError {
@@ -90,7 +90,7 @@ class MockEmbraceSpanHandler: EmbraceSpanHandler {
     }
 
     var onSpanAttributesUpdatedCallCount: Int = 0
-    func onSpanAttributesUpdated(_ span: EmbraceSpan, key: String, value: String?, attributes: [String: String]) {
+    func onSpanAttributesUpdated(_ span: EmbraceSpan, key: String, value: EmbraceAttributeValue?, attributes: EmbraceAttributes) {
         onSpanAttributesUpdatedCallCount += 1
     }
 

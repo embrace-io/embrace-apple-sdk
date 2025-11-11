@@ -20,7 +20,7 @@ extension DefaultOTelSignalsHandler {
     public func addBreadcrumb(
         _ message: String,
         timestamp: Date = Date(),
-        attributes: [String: String] = [:]
+        attributes: EmbraceAttributes = [:]
     ) throws {
 
         guard let span = sessionController?.currentSessionSpan else {

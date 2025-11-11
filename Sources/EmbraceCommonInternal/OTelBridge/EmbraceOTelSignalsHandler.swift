@@ -21,7 +21,7 @@ package protocol EmbraceOTelSignalsHandler: AnyObject {
         endTime: Date?,
         events: [EmbraceSpanEvent],
         links: [EmbraceSpanLink],
-        attributes: [String: String],
+        attributes: EmbraceAttributes,
         autoTerminationCode: EmbraceSpanErrorCode?,
         isInternal: Bool
     ) throws -> EmbraceSpan
@@ -30,7 +30,7 @@ package protocol EmbraceOTelSignalsHandler: AnyObject {
         name: String,
         type: EmbraceType?,
         timestamp: Date,
-        attributes: [String: String],
+        attributes: EmbraceAttributes,
         isInternal: Bool
     ) throws
 
@@ -40,7 +40,7 @@ package protocol EmbraceOTelSignalsHandler: AnyObject {
         type: EmbraceType,
         timestamp: Date,
         attachment: EmbraceLogAttachment?,
-        attributes: [String: String],
+        attributes: EmbraceAttributes,
         stackTraceBehavior: EmbraceStackTraceBehavior,
         isInternal: Bool,
         send: Bool
@@ -57,7 +57,7 @@ extension EmbraceOTelSignalsHandler {
         endTime: Date? = nil,
         events: [EmbraceSpanEvent] = [],
         links: [EmbraceSpanLink] = [],
-        attributes: [String: String] = [:],
+        attributes: EmbraceAttributes = [:],
         autoTerminationCode: EmbraceSpanErrorCode? = nil
     ) throws -> EmbraceSpan {
         return try _createSpan(
@@ -79,7 +79,7 @@ extension EmbraceOTelSignalsHandler {
         name: String,
         type: EmbraceType? = nil,
         timestamp: Date = Date(),
-        attributes: [String: String] = [:]
+        attributes: EmbraceAttributes = [:]
     ) throws {
         try _addSessionEvent(
             name: name,
@@ -96,7 +96,7 @@ extension EmbraceOTelSignalsHandler {
         type: EmbraceType = .internal,
         timestamp: Date = Date(),
         attachment: EmbraceLogAttachment? = nil,
-        attributes: [String: String] = [:],
+        attributes: EmbraceAttributes = [:],
         stackTraceBehavior: EmbraceStackTraceBehavior = .default
     ) throws {
         try _log(

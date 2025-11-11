@@ -20,14 +20,14 @@ public protocol EmbraceOTelSignalBridge {
         endTime: Date?,
         events: [EmbraceSpanEvent],
         links: [EmbraceSpanLink],
-        attributes: [String: String]
+        attributes: EmbraceAttributes
     ) -> EmbraceSpanContext
 
     /// Called when the span status is updated
     func updateSpanStatus(_ span: EmbraceSpan, status: EmbraceSpanStatus)
 
     /// Called when a span attribute is added, modified or removed
-    func updateSpanAttribute(_ span: EmbraceSpan, key: String, value: String?)
+    func updateSpanAttribute(_ span: EmbraceSpan, key: String, value: EmbraceAttributeValue?)
 
     /// Called when a new span even is added to a span
     func addSpanEvent(_ span: EmbraceSpan, event: EmbraceSpanEvent)

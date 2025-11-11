@@ -14,7 +14,7 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
     private var sut: EmbraceLogAttributesBuilder!
     private var storage: MockMetadataFetcher!
     private var controller: MockSessionController!
-    private var result: [String: String]!
+    private var result: EmbraceAttributes!
 
     // MARK: - Test Build Alone
 
@@ -224,8 +224,11 @@ extension EmbraceLogAttributesBuilderTests {
         sut.addLogType(logType)
     }
 
-    fileprivate func thenResultingAttributes(is dict: [String: String]) {
-        XCTAssertEqual(result, dict)
+    fileprivate func thenResultingAttributes(is dict: EmbraceAttributes) {
+        XCTAssertEqual(result.count, dict.count)
+        for key in result.keys {
+            XCTAssertEqual("\(result[key]!)", "\(dict[key]!)")
+        }
     }
 
     fileprivate func thenResultingAttributes(containsKey key: String) {

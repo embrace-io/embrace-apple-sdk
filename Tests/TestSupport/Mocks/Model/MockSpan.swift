@@ -24,7 +24,7 @@ public class MockSpan: EmbraceSpan {
     public var links: [EmbraceSpanLink]
     public var sessionId: EmbraceIdentifier?
     public var processId: EmbraceIdentifier
-    public var attributes: [String: String]
+    public var attributes: EmbraceAttributes
 
     public var status: EmbraceSpanStatus {
         _status
@@ -45,7 +45,7 @@ public class MockSpan: EmbraceSpan {
         links: [EmbraceSpanLink] = [],
         sessionId: EmbraceIdentifier? = nil,
         processId: EmbraceIdentifier = TestConstants.processId,
-        attributes: [String: String] = [:],
+        attributes: EmbraceAttributes = [:],
         delegate: MockSpanDelegate? = nil
     ) {
         self.context = EmbraceSpanContext(spanId: id, traceId: traceId)
@@ -67,11 +67,11 @@ public class MockSpan: EmbraceSpan {
         self._status = status
     }
 
-    public func addEvent(name: String, type: EmbraceType?, timestamp: Date, attributes: [String: String]) throws {
+    public func addEvent(name: String, type: EmbraceType?, timestamp: Date, attributes: EmbraceAttributes) throws {
         events.append(EmbraceSpanEvent(name: name, type: type, timestamp: timestamp, attributes: attributes))
     }
 
-    public func addLink(spanId: String, traceId: String, attributes: [String: String]) throws {
+    public func addLink(spanId: String, traceId: String, attributes: EmbraceAttributes) throws {
         links.append(EmbraceSpanLink(spanId: spanId, traceId: traceId, attributes: attributes))
     }
 
@@ -85,13 +85,13 @@ public class MockSpan: EmbraceSpan {
         end(endTime: Date())
     }
 
-    public func setAttribute(key: String, value: String?) throws {
+    public func setAttribute(key: String, value: EmbraceAttributeValue?) throws {
         attributes[key] = value
     }
 }
 
 extension MockSpan: EmbraceSpanInternalAttributes {
-    public func _setInternalAttribute(key: String, value: String?) {
+    public func _setInternalAttribute(key: String, value: EmbraceAttributeValue?) {
         try? setAttribute(key: key, value: value)
     }
 }
@@ -101,8 +101,8 @@ extension MockSpan: EmbraceSpanSessionEvents {
         name: String,
         type: EmbraceType? = .performance,
         timestamp: Date = Date(),
-        attributes: [String: String] = [:],
-        internalAttributes: [String: String] = [:],
+        attributes: EmbraceAttributes = [:],
+        internalAttributes: EmbraceAttributes = [:],
         isInternal: Bool
     ) throws {
         try addEvent(

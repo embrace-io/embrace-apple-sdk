@@ -57,7 +57,7 @@
             type: EmbraceType = .viewLoad,
             startTime: Date = Date(),
             endTime: Date? = nil,
-            attributes: [String: String] = [:]
+            attributes: EmbraceAttributes = [:]
         ) throws -> EmbraceSpan? {
             guard let viewCaptureService = try validateCaptureService() else {
                 return nil
@@ -78,7 +78,7 @@
 
         func addAttributesToTrace(
             for viewController: UIViewController,
-            attributes: [String: String]
+            attributes: EmbraceAttributes
         ) throws {
             guard let viewCaptureService = try validateCaptureService() else {
                 return

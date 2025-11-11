@@ -44,7 +44,7 @@ public class SpanEventRecord: NSManagedObject {
         return result
     }
 
-    func update(name: String, timestamp: Date, attributes: [String: String]) {
+    func update(name: String, timestamp: Date, attributes: EmbraceAttributes) {
         self.name = name
         self.timestamp = timestamp
         self.attributes = attributes.keyValueEncoded()

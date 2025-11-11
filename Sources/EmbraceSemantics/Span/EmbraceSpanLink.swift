@@ -11,13 +11,13 @@ public class EmbraceSpanLink {
     public let context: EmbraceSpanContext
 
     /// Attributes of the link
-    public let attributes: [String: String]
+    public let attributes: EmbraceAttributes
 
     /// Creates a new `EmbraceSpanLink`
     /// - Parameters:
     ///   - context: Span context of the link
     ///   - attributes: Attributes of the link
-    package init(context: EmbraceSpanContext, attributes: [String: String] = [:]) {
+    package init(context: EmbraceSpanContext, attributes: EmbraceAttributes = [:]) {
         self.context = context
         self.attributes = attributes
     }
@@ -27,7 +27,7 @@ public class EmbraceSpanLink {
     ///   - spanId: Span identifier of the link
     ///   - traceId: Trace identifier of the link
     ///   - attributes: Attributes of the link
-    package convenience init(spanId: String, traceId: String, attributes: [String: String] = [:]) {
+    package convenience init(spanId: String, traceId: String, attributes: EmbraceAttributes = [:]) {
         self.init(
             context: EmbraceSpanContext(spanId: spanId, traceId: traceId),
             attributes: attributes

@@ -22,7 +22,7 @@ struct SpanLinkPayload: Encodable {
         self.spanId = link.context.spanId
 
         self.attributes = link.attributes.map { entry in
-            Attribute(key: entry.key, value: entry.value)
+            Attribute(key: entry.key, value: String(describing: entry.value))
         }
     }
 

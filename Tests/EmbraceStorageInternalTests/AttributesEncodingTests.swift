@@ -2,6 +2,7 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceSemantics
 import XCTest
 
 @testable import EmbraceStorageInternal
@@ -9,7 +10,7 @@ import XCTest
 class AttributesEncodingTests: XCTestCase {
 
     func test_encode() {
-        let dict = [
+        let dict: EmbraceAttributes = [
             "key": "value",
             "key,": "value,",
             "key%2C": "value%2C"

@@ -100,12 +100,12 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         XCTAssertEqual(span.events[0].name, "event")
         XCTAssertEqual(span.links[0].context.spanId, TestConstants.spanId)
         XCTAssertEqual(span.links[0].context.traceId, TestConstants.traceId)
-        XCTAssertEqual(span.attributes["key"], "value")
+        XCTAssertEqual(span.attributes["key"] as! String, "value")
         XCTAssertTrue(span is DefaultEmbraceSpan)
 
         // then the span has the correct internal attributes
-        XCTAssertEqual(span.attributes["emb.type"], "perf")
-        XCTAssertEqual(span.attributes["session.id"], sessionController.currentSession!.id.stringValue)
+        XCTAssertEqual(span.attributes["emb.type"] as! String, "perf")
+        XCTAssertEqual(span.attributes["session.id"] as! String, sessionController.currentSession!.id.stringValue)
 
         // then the span is saved in storage correctly
         let record = storage.fetchSpan(id: span.context.spanId, traceId: span.context.traceId)
@@ -118,9 +118,9 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         XCTAssertEqual(record!.events[0].name, "event")
         XCTAssertEqual(record!.links[0].context.spanId, TestConstants.spanId)
         XCTAssertEqual(record!.links[0].context.traceId, TestConstants.traceId)
-        XCTAssertEqual(record!.attributes["key"], "value")
-        XCTAssertEqual(record!.attributes["emb.type"], "perf")
-        XCTAssertEqual(record!.attributes["session.id"], sessionController.currentSession!.id.stringValue)
+        XCTAssertEqual(record!.attributes["key"] as! String, "value")
+        XCTAssertEqual(record!.attributes["emb.type"] as! String, "perf")
+        XCTAssertEqual(record!.attributes["session.id"] as! String, sessionController.currentSession!.id.stringValue)
     }
 
     func test_createSpan_failure() throws {
@@ -161,8 +161,8 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         let span = try handler.createSpan(name: "test", attributes: ["key": "value"])
 
         // then the attributes are sanitized
-        XCTAssertEqual(span.attributes["key"], nil)
-        XCTAssertEqual(span.attributes["sanitizedKey"], "sanitizedValue")
+        XCTAssertNil(span.attributes["key"])
+        XCTAssertEqual(span.attributes["sanitizedKey"] as! String, "sanitizedValue")
     }
 
     func test_createSpan_attributeCollision() throws {
@@ -172,8 +172,8 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         let span = try handler.createSpan(name: "test", attributes: ["session.id": "test", "emb.type": "test"])
 
         // then the correct internal attributes are kept
-        XCTAssertEqual(span.attributes["session.id"], sessionController.currentSession!.id.stringValue)
-        XCTAssertEqual(span.attributes["emb.type"], "perf")
+        XCTAssertEqual(span.attributes["session.id"] as! String, sessionController.currentSession!.id.stringValue)
+        XCTAssertEqual(span.attributes["emb.type"] as! String, "perf")
     }
 
     func test_createSpan_autoTermination() throws {
@@ -187,7 +187,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         // then the span is automatically terminated with the correct code
         XCTAssertEqual(span.status, .error)
         XCTAssertNotNil(span.endTime)
-        XCTAssertEqual(span.attributes["emb.error_code"], "user_abandon")
+        XCTAssertEqual(span.attributes["emb.error_code"] as! String, "user_abandon")
     }
 
     func test_createSpan_autoTermination_parentCode() throws {
@@ -203,11 +203,11 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         // then both spans are automatically terminated with the correct code
         XCTAssertEqual(parentSpan.status, .error)
         XCTAssertNotNil(parentSpan.endTime)
-        XCTAssertEqual(parentSpan.attributes["emb.error_code"], "user_abandon")
+        XCTAssertEqual(parentSpan.attributes["emb.error_code"] as! String, "user_abandon")
 
         XCTAssertEqual(span.status, .error)
         XCTAssertNotNil(span.endTime)
-        XCTAssertEqual(span.attributes["emb.error_code"], "user_abandon")
+        XCTAssertEqual(span.attributes["emb.error_code"] as! String, "user_abandon")
     }
 
     // MARK: addSessionEvent
@@ -229,8 +229,8 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         XCTAssertEqual(span.events[0].name, "test")
         XCTAssertEqual(span.events[0].type, .lowPower)
         XCTAssertEqual(span.events[0].timestamp, timestamp)
-        XCTAssertEqual(span.events[0].attributes["emb.type"], "sys.low_power")
-        XCTAssertEqual(span.events[0].attributes["key"], "value")
+        XCTAssertEqual(span.events[0].attributes["emb.type"] as! String, "sys.low_power")
+        XCTAssertEqual(span.events[0].attributes["key"] as! String, "value")
 
         // then the event is saved correctly
         let record = storage.fetchSpan(id: span.context.spanId, traceId: span.context.traceId)!
@@ -238,8 +238,8 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         XCTAssertEqual(record.events[0].name, "test")
         XCTAssertEqual(record.events[0].type, .lowPower)
         XCTAssertEqual(record.events[0].timestamp, timestamp)
-        XCTAssertEqual(record.events[0].attributes["emb.type"], "sys.low_power")
-        XCTAssertEqual(record.events[0].attributes["key"], "value")
+        XCTAssertEqual(record.events[0].attributes["emb.type"] as! String, "sys.low_power")
+        XCTAssertEqual(record.events[0].attributes["key"] as! String, "value")
     }
 
     func test_addSessionEvent_failure_noSession() throws {
@@ -307,8 +307,8 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
 
         // then the attributes are sanitized
         let span = sessionController.currentSessionSpan!
-        XCTAssertEqual(span.events[0].attributes["key"], nil)
-        XCTAssertEqual(span.events[0].attributes["sanitizedKey"], "sanitizedValue")
+        XCTAssertNil(span.events[0].attributes["key"])
+        XCTAssertEqual(span.events[0].attributes["sanitizedKey"] as! String, "sanitizedValue")
     }
 
     func test_addSessionEvent_attributeCollision() throws {
@@ -319,7 +319,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
 
         // then the correct internal attributes are kept
         let span = sessionController.currentSessionSpan!
-        XCTAssertEqual(span.events[0].attributes["emb.type"], "perf")
+        XCTAssertEqual(span.events[0].attributes["emb.type"] as! String, "perf")
     }
 
     // MARK: log
@@ -343,17 +343,18 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         wait(timeout: .defaultTimeout) {
             let log = self.logController.batcher.batch!.logs[0]
 
-            return log.body == "test" && log.severity == .debug && log.type == .message && log.timestamp == timestamp && log.attributes["key"] == "value" && log.attributes["emb.type"] == "sys.log"
-                && log.attributes["emb.state"] == "foreground" && log.attributes["session.id"] == self.sessionController.currentSession!.id.stringValue && self.bridge.createLogCallCount == 1
+            return log.body == "test" && log.severity == .debug && log.type == .message && log.timestamp == timestamp && log.attributes["key"] as! String == "value"
+                && log.attributes["emb.type"] as! String == "sys.log" && log.attributes["emb.state"] as! String == "foreground"
+                && log.attributes["session.id"] as! String == self.sessionController.currentSession!.id.stringValue && self.bridge.createLogCallCount == 1
         }
 
         // then the log is saved correctly
         wait(timeout: .defaultTimeout) {
             let record = self.storage.fetchAllLogs()[0]
 
-            return record.body == "test" && record.severity == .debug && record.type == .message && record.timestamp == timestamp && record.attributes["key"] == "value"
-                && record.attributes["emb.type"] == "sys.log" && record.attributes["emb.state"] == "foreground"
-                && record.attributes["session.id"] == self.sessionController.currentSession!.id.stringValue
+            return record.body == "test" && record.severity == .debug && record.type == .message && record.timestamp == timestamp && record.attributes["key"] as! String == "value"
+                && record.attributes["emb.type"] as! String == "sys.log" && record.attributes["emb.state"] as! String == "foreground"
+                && record.attributes["session.id"] as! String == self.sessionController.currentSession!.id.stringValue
         }
     }
 
@@ -391,7 +392,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         wait(timeout: .defaultTimeout) {
             let log = self.logController.batcher.batch!.logs[0]
 
-            return log.attributes["key"] == nil && log.attributes["sanitizedKey"] == "sanitizedValue"
+            return log.attributes["key"] == nil && log.attributes["sanitizedKey"] as! String == "sanitizedValue"
         }
     }
 
@@ -411,7 +412,8 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         wait(timeout: .defaultTimeout) {
             let log = self.logController.batcher.batch!.logs[0]
 
-            return log.attributes["emb.type"] == "sys.log" && log.attributes["session.id"] == self.sessionController.currentSession!.id.stringValue && log.attributes["emb.state"] == "foreground"
+            return log.attributes["emb.type"] as! String == "sys.log" && log.attributes["session.id"] as! String == self.sessionController.currentSession!.id.stringValue
+                && log.attributes["emb.state"] as! String == "foreground"
         }
     }
 
@@ -425,7 +427,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         wait(timeout: .defaultTimeout) {
             let log = self.logController.batcher.batch!.logs[0]
 
-            return log.attributes["emb.attachment_id"] != nil && log.attributes["emb.attachment_size"] == "4" && log.attributes["emb.attachment_error_code"] == nil
+            return log.attributes["emb.attachment_id"] != nil && log.attributes["emb.attachment_size"] as! String == "4" && log.attributes["emb.attachment_error_code"] == nil
         }
     }
 
@@ -439,8 +441,8 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         wait(timeout: .defaultTimeout) {
             let log = self.logController.batcher.batch!.logs[0]
 
-            return log.attributes["emb.attachment_id"] != nil && log.attributes["emb.attachment_size"] == "4" && log.attributes["emb.attachment_error_code"] == "OVER_MAX_ATTACHMENTS"
-
+            return log.attributes["emb.attachment_id"] != nil && log.attributes["emb.attachment_size"] as! String == "4"
+                && log.attributes["emb.attachment_error_code"] as! String == "OVER_MAX_ATTACHMENTS"
         }
     }
 
@@ -458,8 +460,8 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         wait(timeout: .defaultTimeout) {
             let log = self.logController.batcher.batch!.logs[0]
 
-            return log.attributes["emb.attachment_id"] != nil && log.attributes["emb.attachment_size"] == "1048600" && log.attributes["emb.attachment_error_code"] == "ATTACHMENT_TOO_LARGE"
-
+            return log.attributes["emb.attachment_id"] != nil && log.attributes["emb.attachment_size"] as! String == "1048600"
+                && log.attributes["emb.attachment_error_code"] as! String == "ATTACHMENT_TOO_LARGE"
         }
     }
 
@@ -473,7 +475,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         wait(timeout: .defaultTimeout) {
             let log = self.logController.batcher.batch!.logs[0]
 
-            return log.attributes["emb.attachment_id"] == "test" && log.attributes["emb.attachment_url"] == url.absoluteString && log.attributes["emb.attachment_size"] == nil
+            return log.attributes["emb.attachment_id"] as! String == "test" && log.attributes["emb.attachment_url"] as! String == url.absoluteString && log.attributes["emb.attachment_size"] == nil
                 && log.attributes["emb.attachment_error_code"] == nil
         }
     }

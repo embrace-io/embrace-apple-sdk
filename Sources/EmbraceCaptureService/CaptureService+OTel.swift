@@ -37,7 +37,7 @@ extension CaptureService {
         endTime: Date? = nil,
         events: [EmbraceSpanEvent] = [],
         links: [EmbraceSpanLink] = [],
-        attributes: [String: String] = [:],
+        attributes: EmbraceAttributes = [:],
         autoTerminationCode: EmbraceSpanErrorCode? = nil
     ) throws -> EmbraceSpan? {
         return try otel?._createSpan(
@@ -66,7 +66,7 @@ extension CaptureService {
         name: String,
         type: EmbraceType?,
         timestamp: Date,
-        attributes: [String: String]
+        attributes: EmbraceAttributes
     ) throws {
         try otel?._addSessionEvent(
             name: name,
@@ -93,7 +93,7 @@ extension CaptureService {
         type: EmbraceType = .message,
         timestamp: Date = Date(),
         attachment: EmbraceLogAttachment? = nil,
-        attributes: [String: String] = [:],
+        attributes: EmbraceAttributes = [:],
         stackTraceBehavior: EmbraceStackTraceBehavior = .default
     ) throws {
         try otel?._log(

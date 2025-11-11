@@ -50,9 +50,9 @@ class DefaultOtelSignalsSanitizer: OTelSignalsSanitizer {
         return key
     }
 
-    func sanitizeAttributeValue(_ value: String?) -> String? {
-        guard let value else {
-            return nil
+    func sanitizeAttributeValue(_ value: EmbraceAttributeValue?) -> EmbraceAttributeValue? {
+        guard let value = value as? String else {
+            return value
         }
 
         // truncate
@@ -64,13 +64,13 @@ class DefaultOtelSignalsSanitizer: OTelSignalsSanitizer {
         return value
     }
 
-    func sanitizeAttributes(_ attributes: [String: String], limit: Int) -> [String: String] {
-        var finalAttributes: [String: String] = [:]
+    func sanitizeAttributes(_ attributes: EmbraceAttributes, limit: Int) -> EmbraceAttributes {
+        var finalAttributes: EmbraceAttributes = [:]
         let sortedKeys = attributes.keys.sorted()
         var count = 0
 
         for key in sortedKeys {
-            guard let value = attributes[key] else {
+            guard let value = attributes[key] as? String else {
                 continue
             }
 
@@ -87,19 +87,19 @@ class DefaultOtelSignalsSanitizer: OTelSignalsSanitizer {
         return finalAttributes
     }
 
-    func sanitizeSpanAttributes(_ attributes: [String: String]) -> [String: String] {
+    func sanitizeSpanAttributes(_ attributes: EmbraceAttributes) -> EmbraceAttributes {
         return sanitizeAttributes(attributes, limit: sessionLimits.customSpans.attributeCount)
     }
 
-    func sanitizeSpanEventAttributes(_ attributes: [String: String]) -> [String: String] {
+    func sanitizeSpanEventAttributes(_ attributes: EmbraceAttributes) -> EmbraceAttributes {
         return sanitizeAttributes(attributes, limit: sessionLimits.events.attributeCount)
     }
 
-    func sanitizeSpanLinkAttributes(_ attributes: [String: String]) -> [String: String] {
+    func sanitizeSpanLinkAttributes(_ attributes: EmbraceAttributes) -> EmbraceAttributes {
         return sanitizeAttributes(attributes, limit: sessionLimits.links.attributeCount)
     }
 
-    func sanitizeLogAttributes(_ attributes: [String: String]) -> [String: String] {
+    func sanitizeLogAttributes(_ attributes: EmbraceAttributes) -> EmbraceAttributes {
         return sanitizeAttributes(attributes, limit: sessionLimits.logs.attributeCount)
     }
 }

@@ -39,7 +39,7 @@ public class DefaultOTelSignalsHandler {
         endTime: Date? = nil,
         events: [EmbraceSpanEvent] = [],
         links: [EmbraceSpanLink] = [],
-        attributes: [String: String] = [:],
+        attributes: EmbraceAttributes = [:],
         autoTerminationCode: EmbraceSpanErrorCode? = nil
     ) throws -> EmbraceSpan {
         return try _createSpan(
@@ -68,7 +68,7 @@ public class DefaultOTelSignalsHandler {
         name: String,
         type: EmbraceType? = nil,
         timestamp: Date = Date(),
-        attributes: [String: String] = [:]
+        attributes: EmbraceAttributes = [:]
     ) throws {
         try _addSessionEvent(
             name: name,
@@ -95,7 +95,7 @@ public class DefaultOTelSignalsHandler {
         type: EmbraceType = .message,
         timestamp: Date = Date(),
         attachment: EmbraceLogAttachment? = nil,
-        attributes: [String: String] = [:],
+        attributes: EmbraceAttributes = [:],
         stackTraceBehavior: EmbraceStackTraceBehavior = .default
     ) throws {
         try _log(

@@ -17,7 +17,7 @@ open class EmbraceSpanEvent {
     public let timestamp: Date
 
     /// Attributes of the event
-    public let attributes: [String: String]
+    public let attributes: EmbraceAttributes
 
     /// Creates a new `EmbraceSpanEvent`
     /// - Parameters:
@@ -29,7 +29,7 @@ open class EmbraceSpanEvent {
         name: String,
         type: EmbraceType? = .performance,
         timestamp: Date = Date(),
-        attributes: [String: String] = [:]
+        attributes: EmbraceAttributes = [:]
     ) {
         self.name = name
         self.type = type

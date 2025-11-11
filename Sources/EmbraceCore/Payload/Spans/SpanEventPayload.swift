@@ -24,7 +24,7 @@ struct SpanEventPayload: Encodable {
         self.timestamp = event.timestamp.nanosecondsSince1970Truncated
 
         self.attributes = event.attributes.map { entry in
-            Attribute(key: entry.key, value: entry.value)
+            Attribute(key: entry.key, value: String(describing: entry.value))
         }
     }
 

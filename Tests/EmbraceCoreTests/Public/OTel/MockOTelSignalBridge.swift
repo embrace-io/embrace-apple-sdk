@@ -21,7 +21,7 @@ class MockOTelSignalBridge: EmbraceOTelSignalBridge {
         endTime: Date?,
         events: [EmbraceSpanEvent],
         links: [EmbraceSpanLink],
-        attributes: [String: String]
+        attributes: EmbraceAttributes
     ) -> EmbraceSpanContext {
         startSpanCallCount += 1
 
@@ -38,7 +38,7 @@ class MockOTelSignalBridge: EmbraceOTelSignalBridge {
     }
 
     var updateSpanAttributeCallCount: Int = 0
-    func updateSpanAttribute(_ span: any EmbraceSpan, key: String, value: String?) {
+    func updateSpanAttribute(_ span: any EmbraceSpan, key: String, value: EmbraceAttributeValue?) {
         updateSpanAttributeCallCount += 1
     }
 

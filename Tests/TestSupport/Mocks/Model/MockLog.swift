@@ -12,11 +12,11 @@ public class MockLog: EmbraceLog {
     public var type: EmbraceType
     public var timestamp: Date
     public var body: String
-    public var attributes: [String: String]
+    public var attributes: EmbraceAttributes
     public var sessionId: EmbraceIdentifier?
     public var processId: EmbraceIdentifier
 
-    public func setAttribute(key: String, value: String?) {
+    public func setAttribute(key: String, value: EmbraceAttributeValue?) {
         attributes[key] = value
     }
 
@@ -26,7 +26,7 @@ public class MockLog: EmbraceLog {
         type: EmbraceType = .message,
         timestamp: Date = Date(),
         body: String = "Mock",
-        attributes: [String: String] = [:],
+        attributes: EmbraceAttributes = [:],
         sessionId: EmbraceIdentifier? = nil,
         processId: EmbraceIdentifier = .random
     ) {

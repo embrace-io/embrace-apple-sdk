@@ -35,9 +35,9 @@ final class SessionSpanUtilsTests: XCTestCase {
         XCTAssertEqual(span.name, "emb-session")
         XCTAssertEqual(span.type, .session)
         XCTAssertEqual(span.startTime, TestConstants.date)
-        XCTAssertEqual(span.attributes["session.id"], TestConstants.sessionId.stringValue)
-        XCTAssertEqual(span.attributes["emb.state"], SessionState.foreground.rawValue)
-        XCTAssertEqual(span.attributes["emb.cold_start"], "true")
+        XCTAssertEqual(span.attributes["session.id"] as! String, TestConstants.sessionId.stringValue)
+        XCTAssertEqual(span.attributes["emb.state"] as! String, SessionState.foreground.rawValue)
+        XCTAssertEqual(span.attributes["emb.cold_start"] as! String, "true")
     }
 
     func test_setState() throws {
@@ -55,7 +55,7 @@ final class SessionSpanUtilsTests: XCTestCase {
         span!.end()
 
         // then it is updated correctly
-        XCTAssertEqual(otel.endedSpans[0].attributes["emb.state"], SessionState.background.rawValue)
+        XCTAssertEqual(otel.endedSpans[0].attributes["emb.state"] as! String, SessionState.background.rawValue)
     }
 
     func test_setHeartbeat() throws {
@@ -75,7 +75,7 @@ final class SessionSpanUtilsTests: XCTestCase {
 
         // then it is updated correctly
         XCTAssertEqual(
-            otel.endedSpans[0].attributes["emb.heartbeat_time_unix_nano"],
+            otel.endedSpans[0].attributes["emb.heartbeat_time_unix_nano"] as! String,
             String(heartbeat.nanosecondsSince1970Truncated)
         )
     }
@@ -95,7 +95,7 @@ final class SessionSpanUtilsTests: XCTestCase {
         span!.end()
 
         // then it is updated correctly
-        XCTAssertEqual(otel.endedSpans[0].attributes["emb.terminated"], "true")
+        XCTAssertEqual(otel.endedSpans[0].attributes["emb.terminated"] as! String, "true")
     }
 
     func test_payloadFromSesssion() throws {

@@ -14,7 +14,7 @@ class EmbraceLogAttributesBuilder {
     private weak var sessionControllable: SessionControllable?
     private var session: EmbraceSession?
     private var crashReport: EmbraceCrashReport?
-    internal var attributes: [String: String]
+    internal var attributes: EmbraceAttributes
 
     private var currentSession: EmbraceSession? {
         session ?? sessionControllable?.currentSession
@@ -23,7 +23,7 @@ class EmbraceLogAttributesBuilder {
     init(
         storage: EmbraceStorageMetadataFetcher?,
         sessionControllable: SessionControllable,
-        initialAttributes: [String: String]
+        initialAttributes: EmbraceAttributes
     ) {
         self.storage = storage
         self.sessionControllable = sessionControllable
@@ -34,7 +34,7 @@ class EmbraceLogAttributesBuilder {
         session: EmbraceSession?,
         crashReport: EmbraceCrashReport? = nil,
         storage: EmbraceStorageMetadataFetcher? = nil,
-        initialAttributes: [String: String]
+        initialAttributes: EmbraceAttributes
     ) {
         self.session = session
         self.storage = storage
@@ -183,7 +183,7 @@ class EmbraceLogAttributesBuilder {
         return self
     }
 
-    func build() -> [String: String] {
+    func build() -> EmbraceAttributes {
         attributes
     }
 }

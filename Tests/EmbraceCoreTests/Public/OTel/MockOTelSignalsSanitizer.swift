@@ -32,36 +32,36 @@ class MockOTelSignalsSanitizer: OTelSignalsSanitizer {
     }
 
     var sanitizeAttributeValueCallCount: Int = 0
-    var sanitizeAttributeValueReturnValue: String?
-    func sanitizeAttributeValue(_ value: String?) -> String? {
+    var sanitizeAttributeValueReturnValue: EmbraceAttributeValue?
+    func sanitizeAttributeValue(_ value: EmbraceAttributeValue?) -> EmbraceAttributeValue? {
         sanitizeAttributeValueCallCount += 1
         return sanitizeAttributeValueReturnValue ?? value
     }
 
     var sanitizeSpanAttributesCallCount: Int = 0
-    var sanitizeSpanAttributesReturnValue: [String: String]?
-    func sanitizeSpanAttributes(_ attributes: [String: String]) -> [String: String] {
+    var sanitizeSpanAttributesReturnValue: EmbraceAttributes?
+    func sanitizeSpanAttributes(_ attributes: EmbraceAttributes) -> EmbraceAttributes {
         sanitizeSpanAttributesCallCount += 1
         return sanitizeSpanAttributesReturnValue ?? attributes
     }
 
     var sanitizeSpanEventAttributesCallCount: Int = 0
-    var sanitizeSpanEventAttributesReturnValue: [String: String]?
-    func sanitizeSpanEventAttributes(_ attributes: [String: String]) -> [String: String] {
+    var sanitizeSpanEventAttributesReturnValue: EmbraceAttributes?
+    func sanitizeSpanEventAttributes(_ attributes: EmbraceAttributes) -> EmbraceAttributes {
         sanitizeSpanEventAttributesCallCount += 1
         return sanitizeSpanEventAttributesReturnValue ?? attributes
     }
 
     var sanitizeSpanLinkAttributesCallCount: Int = 0
-    var sanitizeSpanLinkAttributesReturnValue: [String: String]?
-    func sanitizeSpanLinkAttributes(_ attributes: [String: String]) -> [String: String] {
+    var sanitizeSpanLinkAttributesReturnValue: EmbraceAttributes?
+    func sanitizeSpanLinkAttributes(_ attributes: EmbraceAttributes) -> EmbraceAttributes {
         sanitizeSpanLinkAttributesCallCount += 1
         return sanitizeSpanLinkAttributesReturnValue ?? attributes
     }
 
     var sanitizeLogAttributesCallCount: Int = 0
-    var sanitizeLogAttributesReturnValue: [String: String]?
-    func sanitizeLogAttributes(_ attributes: [String: String]) -> [String: String] {
+    var sanitizeLogAttributesReturnValue: EmbraceAttributes?
+    func sanitizeLogAttributes(_ attributes: EmbraceAttributes) -> EmbraceAttributes {
         sanitizeLogAttributesCallCount += 1
         return sanitizeLogAttributesReturnValue ?? attributes
     }

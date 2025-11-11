@@ -8,7 +8,7 @@ import Foundation
     import EmbraceSemantics
 #endif
 
-extension Dictionary where Key == String, Value == String {
+extension Dictionary where Key == String, Value == EmbraceAttributeValue {
     mutating func setEmbraceType(_ type: EmbraceType) {
         self[SpanSemantics.keyEmbraceType] = type.rawValue
     }

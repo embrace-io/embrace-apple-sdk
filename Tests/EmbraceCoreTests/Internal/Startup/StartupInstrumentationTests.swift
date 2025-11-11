@@ -227,7 +227,7 @@ class StartupInstrumentationTests: XCTestCase {
         provider.firstFrameTime = Date(timeIntervalSince1970: 15)
 
         let parent = otel.endedSpans.first(where: { $0.name == "emb-app-startup-cold" })
-        XCTAssertEqual(parent!.attributes["key1"], "value1")
-        XCTAssertEqual(parent!.attributes["key2"], "value2")
+        XCTAssertEqual(parent!.attributes["key1"] as! String, "value1")
+        XCTAssertEqual(parent!.attributes["key2"] as! String, "value2")
     }
 }

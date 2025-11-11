@@ -42,7 +42,7 @@ public class LogRecord: NSManagedObject {
         return NSFetchRequest<LogRecord>(entityName: entityName)
     }
 
-    func toImmutable(attributes: [String: String]? = nil) -> EmbraceLog {
+    func toImmutable(attributes: EmbraceAttributes? = nil) -> EmbraceLog {
 
         var sessionId: EmbraceIdentifier?
         if let sessionIdRaw {
@@ -128,7 +128,7 @@ class ImmutableLogRecord: EmbraceLog {
     let type: EmbraceType
     let timestamp: Date
     let body: String
-    let attributes: [String: String]
+    let attributes: EmbraceAttributes
     let sessionId: EmbraceIdentifier?
     let processId: EmbraceIdentifier
 
@@ -138,7 +138,7 @@ class ImmutableLogRecord: EmbraceLog {
         type: EmbraceType,
         timestamp: Date,
         body: String,
-        attributes: [String: String],
+        attributes: EmbraceAttributes,
         sessionId: EmbraceIdentifier? = nil,
         processId: EmbraceIdentifier
     ) {

@@ -18,5 +18,5 @@ protocol EmbraceMetadataProvider {
     var currentProcessId: EmbraceIdentifier { get }
 
     /// Returns the user properties for a given session identifier
-    func userProperties(sessionId: EmbraceIdentifier) -> [String: String]
+    func userProperties(sessionId: EmbraceIdentifier) -> EmbraceAttributes
 }
