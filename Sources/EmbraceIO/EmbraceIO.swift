@@ -66,8 +66,9 @@ public class EmbraceIO {
     /// - Throws: `EmbraceSetupError.invalidAppId` if the provided `appId` is invalid.
     /// - Note: This method won't do anything if the Embrace SDK was already setup.
     public static func setup(options: EmbraceIO.Options) throws {
-        // TODO: Convert and pass options
-        try Embrace.setup(options: .init(appId: options.appId))
+        if let internalOptions = Embrace.Options.from(options: options) {
+            try Embrace.setup(options: internalOptions)
+        }
     }
 
     /// Method used to start the Embrace SDK.
