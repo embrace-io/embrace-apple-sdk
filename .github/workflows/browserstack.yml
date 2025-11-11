@@ -1,0 +1,343 @@
+name: BrowserStack Benchmarks UI Tests
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: 'Git ref to checkout (branch, tag, or commit SHA)'
+        required: false
+        type: string
+        default: ''
+    secrets:
+      BROWSERSTACK_USERNAME:
+        required: true
+      BROWSERSTACK_ACCESS_KEY:
+        required: true
+    outputs:
+      build_id:
+        description: 'BrowserStack build ID'
+        value: ${{ jobs.test.outputs.build_id }}
+      build_status:
+        description: 'Build status (passed/failed/error)'
+        value: ${{ jobs.test.outputs.build_status }}
+      results:
+        description: 'Benchmark results JSON'
+        value: ${{ jobs.extract-results.outputs.results }}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-latest-large
+    timeout-minutes: 30
+    outputs:
+      app_url: ${{ steps.upload_app.outputs.app_url }}
+      test_suite_url: ${{ steps.upload_test_suite.outputs.test_suite_url }}
+
+    steps:
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.0.app
+          xcodebuild -version
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        timeout-minutes: 5
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+          persist-credentials: false
+      
+      - name: Install dependencies
+        run: |
+          brew install xcbeautify
+
+      - name: Archive Benchmarks App
+        run: |
+          xcodebuild archive \
+            -workspace Examples/Benchmarks/Benchmarks.xcworkspace \
+            -scheme Benchmarks \
+            -sdk iphoneos \
+            -configuration Debug \
+            -archivePath build/Benchmarks.xcarchive \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcbeautify
+
+      - name: Export IPA
+        run: |
+          # Extract the .app from the archive and create IPA manually
+          # This works for unsigned builds
+          mkdir -p build/Payload
+          cp -r build/Benchmarks.xcarchive/Products/Applications/Benchmarks.app build/Payload/
+
+          # Create IPA (it's just a zip file with Payload folder)
+          cd build
+          zip -r ../Benchmarks.ipa Payload
+          cd ..
+
+          # Cleanup
+          rm -rf build/Payload
+
+          ls -lh Benchmarks.ipa
+
+      - name: Build UI Test Runner
+        run: |
+          xcodebuild build-for-testing \
+            -workspace Examples/Benchmarks/Benchmarks.xcworkspace \
+            -scheme Benchmarks \
+            -sdk iphoneos \
+            -configuration Debug \
+            -derivedDataPath build/DerivedData \
+            -only-testing:BenchmarksUITests \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcbeautify
+
+      - name: Create Test Suite Zip
+        run: |
+          # Find the test runner app
+          TEST_RUNNER_PATH=$(find build/DerivedData/Build/Products/Debug-iphoneos -name "BenchmarksUITests-Runner.app" -type d | head -1)
+          echo "Test runner path: $TEST_RUNNER_PATH"
+
+          # Create test suite zip
+          cd $(dirname "$TEST_RUNNER_PATH")
+          zip -r "$GITHUB_WORKSPACE/BenchmarksUITests.zip" "BenchmarksUITests-Runner.app"
+          cd "$GITHUB_WORKSPACE"
+
+          ls -lh BenchmarksUITests.zip
+
+      - name: Upload App to BrowserStack
+        id: upload_app
+        env:
+          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+        run: |
+          APP_UPLOAD_RESPONSE=$(curl -u "$BROWSERSTACK_USERNAME:$BROWSERSTACK_ACCESS_KEY" \
+            -X POST "https://api-cloud.browserstack.com/app-automate/xcuitest/v2/app" \
+            -F "file=@Benchmarks.ipa")
+
+          echo "App upload response: $APP_UPLOAD_RESPONSE"
+          APP_URL=$(echo "$APP_UPLOAD_RESPONSE" | jq -r '.app_url')
+          echo "app_url=$APP_URL" >> $GITHUB_OUTPUT
+          echo "App uploaded successfully: $APP_URL"
+
+      - name: Upload Test Suite to BrowserStack
+        id: upload_test_suite
+        env:
+          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+        run: |
+          TEST_UPLOAD_RESPONSE=$(curl -u "$BROWSERSTACK_USERNAME:$BROWSERSTACK_ACCESS_KEY" \
+            -X POST "https://api-cloud.browserstack.com/app-automate/xcuitest/v2/test-suite" \
+            -F "file=@BenchmarksUITests.zip")
+
+          echo "Test suite upload response: $TEST_UPLOAD_RESPONSE"
+          TEST_SUITE_URL=$(echo "$TEST_UPLOAD_RESPONSE" | jq -r '.test_suite_url')
+          echo "test_suite_url=$TEST_SUITE_URL" >> $GITHUB_OUTPUT
+          echo "Test suite uploaded successfully: $TEST_SUITE_URL"
+
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    timeout-minutes: 40
+    outputs:
+      build_id: ${{ steps.execute_tests.outputs.build_id }}
+      build_status: ${{ steps.wait_tests.outputs.build_status }}
+      session_id: ${{ steps.wait_tests.outputs.session_id }}
+
+    steps:
+      - name: Execute Tests on BrowserStack
+        id: execute_tests
+        env:
+          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+          APP_URL: ${{ needs.build.outputs.app_url }}
+          TEST_SUITE_URL: ${{ needs.build.outputs.test_suite_url }}
+        run: |
+          # Execute tests on a single iOS device
+          BUILD_RESPONSE=$(curl -u "$BROWSERSTACK_USERNAME:$BROWSERSTACK_ACCESS_KEY" \
+            -X POST "https://api-cloud.browserstack.com/app-automate/xcuitest/v2/build" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"devices\": [\"iPhone 17 Pro-26\"],
+              \"app\": \"$APP_URL\",
+              \"testSuite\": \"$TEST_SUITE_URL\",
+              \"project\": \"embrace-apple-sdk\",
+              \"buildName\": \"Benchmarks UI Tests - ${{ github.sha }}\",
+              \"networkLogs\": false,
+              \"deviceLogs\": true,
+              \"debugScreenshots\": false,
+              \"video\": false,
+              \"enableResultBundle\": true
+            }")
+
+          echo "Build execution response: $BUILD_RESPONSE"
+          BUILD_ID=$(echo "$BUILD_RESPONSE" | jq -r '.build_id')
+          echo "build_id=$BUILD_ID" >> $GITHUB_OUTPUT
+          echo "Tests started with build ID: $BUILD_ID"
+          echo "View results at: https://app-automate.browserstack.com/dashboard/v2/builds/$BUILD_ID"
+
+      - name: Wait for Tests to Complete
+        id: wait_tests
+        env:
+          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+          BUILD_ID: ${{ steps.execute_tests.outputs.build_id }}
+        run: |
+          echo "Waiting for build $BUILD_ID to complete..."
+
+          MAX_WAIT_TIME=3600    # 60 minutes max wait
+          POLL_INTERVAL=30     # Poll every 30 seconds
+          ELAPSED_TIME=0
+
+          while [ $ELAPSED_TIME -lt $MAX_WAIT_TIME ]; do
+            BUILD_STATUS_RESPONSE=$(curl -u "$BROWSERSTACK_USERNAME:$BROWSERSTACK_ACCESS_KEY" \
+              -X GET "https://api-cloud.browserstack.com/app-automate/xcuitest/v2/builds/$BUILD_ID")
+
+            STATUS=$(echo "$BUILD_STATUS_RESPONSE" | jq -r '.status')
+            echo "Current status: $STATUS (elapsed: ${ELAPSED_TIME}s)"
+
+            if [ "$STATUS" = "passed" ] || [ "$STATUS" = "done" ] || [ "$STATUS" = "failed" ] || [ "$STATUS" = "error" ]; then
+              echo "Build finished with status: $STATUS"
+              echo "$BUILD_STATUS_RESPONSE" | jq '.'
+
+              # Extract and save session ID for result bundle download
+              SESSION_ID=$(echo "$BUILD_STATUS_RESPONSE" | jq -r '.devices[0].sessions[0].id // empty')
+              echo "session_id=$SESSION_ID" >> $GITHUB_OUTPUT
+              echo "Session ID: $SESSION_ID"
+
+              # Save build status for output
+              echo "build_status=$STATUS" >> $GITHUB_OUTPUT
+              break
+            fi
+
+            sleep $POLL_INTERVAL
+            ELAPSED_TIME=$((ELAPSED_TIME + POLL_INTERVAL))
+          done
+
+          if [ $ELAPSED_TIME -ge $MAX_WAIT_TIME ]; then
+            echo "Timeout waiting for build to complete"
+            exit 1
+          fi
+
+      - name: Download Result Bundle
+        env:
+          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+          BUILD_ID: ${{ steps.execute_tests.outputs.build_id }}
+          SESSION_ID: ${{ steps.wait_tests.outputs.session_id }}
+        run: |
+          if [ -z "$SESSION_ID" ] || [ "$SESSION_ID" = "null" ]; then
+            echo "Warning: No session ID available"
+            echo "This may be normal if the tests didn't complete successfully"
+            exit 0
+          fi
+
+          echo "Downloading result bundle for build $BUILD_ID, session $SESSION_ID..."
+
+          # Download result bundle using the proper API endpoint
+          curl -u "$BROWSERSTACK_USERNAME:$BROWSERSTACK_ACCESS_KEY" \
+            -X GET "https://api-cloud.browserstack.com/app-automate/xcuitest/v2/builds/$BUILD_ID/sessions/$SESSION_ID/resultbundle" \
+            -o result_bundle.xcresult.zip
+
+          if [ -f result_bundle.xcresult.zip ]; then
+            echo "Result bundle downloaded successfully"
+            ls -lh result_bundle.xcresult.zip
+          else
+            echo "Warning: Result bundle file not created"
+          fi
+
+      - name: Upload Result Bundle as Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browserstack-result-bundle-${{ steps.execute_tests.outputs.build_id }}-${{ steps.wait_tests.outputs.session_id }}
+          path: result_bundle.xcresult.zip
+          if-no-files-found: warn
+
+  extract-results:
+    runs-on: macos-latest-large
+    needs: test
+    if: success()
+    timeout-minutes: 10
+    outputs:
+      results: ${{ steps.extract_results.outputs.results }}
+
+    steps:
+      - name: Download Result Bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: browserstack-result-bundle-${{ needs.test.outputs.build_id }}-${{ needs.test.outputs.session_id }}
+
+      - name: Extract and Display Benchmark Results
+        id: extract_results
+        env:
+          SESSION_ID: ${{ needs.test.outputs.session_id }}
+        run: |
+          if [ -z "$SESSION_ID" ] || [ "$SESSION_ID" = "null" ]; then
+            echo "No session ID available, skipping metrics extraction"
+            echo "results={}" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          if [ ! -f result_bundle.xcresult.zip ]; then
+            echo "Result bundle not found, skipping metrics extraction"
+            echo "results={}" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "Extracting result bundle..."
+          unzip -q result_bundle.xcresult.zip -d result_bundle
+
+          # Find the .xcresult directory
+          RESULT_PATH=$(find result_bundle -name "*.xcresult" -type d | head -1)
+
+          if [ -z "$RESULT_PATH" ]; then
+            echo "No .xcresult directory found in the bundle"
+            echo "results={}" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "Processing metrics from $RESULT_PATH..."
+          BENCHMARK_RESULTS=$(xcrun xcresulttool get test-results metrics tests \
+            --path "$RESULT_PATH" \
+            --format json \
+            | jq -c '
+              def median($a):
+                ($a|length) as $n
+                | ($a|sort) as $s
+                | if $n==0 then null
+                  elif ($n % 2)==1 then $s[($n/2|floor)]
+                  else ($s[$n/2 - 1] + $s[$n/2]) / 2
+                  end;
+
+              [ .[] as $tc
+                | ( $tc.testRuns[]?.metrics[]? ) as $metrics
+                | ( [ $metrics.measurements[] ] ) as $all
+                | ($all | length) as $n
+                | (if $n>0 then ($all|add)/$n else null end) as $avg
+                | (median($all)) as $median
+                | (if $n>1 then ( $all | map((. - $avg) * (. - $avg)) | add / $n | sqrt ) else null end) as $stddev
+                | {
+                    name:              $tc.testIdentifier,
+                    displayName:       $metrics.displayName,
+                    unitOfMeasurement: $metrics.unitOfMeasurement,
+                    result:            "Passed",
+                    min:               (if $n>0 then ($all | min) else null end),
+                    max:               (if $n>0 then ($all | max) else null end),
+                    avg:               $avg,
+                    median:            $median,
+                    stddev:            $stddev,
+                    count:             $n,
+                    all:               $all
+                  }
+              ]')
+
+          # Display the results
+          echo "$BENCHMARK_RESULTS" | jq '.'
+
+          # Save results to output using EOF delimiter for multiline
+          echo "results<<EOF" >> $GITHUB_OUTPUT
+          echo "$BENCHMARK_RESULTS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT

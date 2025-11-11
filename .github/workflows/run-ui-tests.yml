@@ -1,0 +1,74 @@
+name: UI Tests App
+
+on:
+  workflow_dispatch: {}
+  pull_request: {}
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  run-ui-tests-app:
+    timeout-minutes: 60
+    runs-on: [macos-15]
+    strategy:
+      fail-fast: false
+      matrix:
+        xcode_version: ["16.4"]
+        device:
+          - "iPhone 16 Pro"
+    permissions:
+      checks: write
+
+    steps:
+      - name: Select Xcode
+        # See https://github.com/actions/runner-images/blob/main/images/macos/macos-15-Readme.md
+        run: |
+          sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app
+          xcodebuild -version
+      - uses: actions/checkout@v4
+        timeout-minutes: 5
+        with:
+          persist-credentials: false
+
+      - name: Shutdown Simulators
+        run: |
+            xcrun simctl shutdown all
+      - name: Erase Simulators
+        run: |
+            xcrun simctl erase all
+     # - name: Boot Simulator
+     #   run: |
+     #     xcrun simctl boot "${{ matrix.device }}"
+
+      - name: Cache SPM Dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            .build/checkouts
+            .build/artifacts
+            .build/*-apple-*/debug/Swift*
+            .build/*-apple-*/debug/SourceKit*
+            .build/*-apple-*/debug/ArgumentParser*
+          key: ${{ runner.os }}-spm-build-cache-test-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-build-cache-test
+
+      - name: Install xcbeautify
+        run: brew install xcbeautify
+
+      - name: Run UI Tests
+        env:
+          IS_XCTEST: true
+        run: |
+          set -e && xcodebuild -project "./Examples/EmbraceIOTestApp/EmbraceIOTestApp.xcodeproj" -scheme "EmbraceIOTestApp" -derivedDataPath "build/DerivedData" -resultBundlePath ".build/test/output" -destination "platform=iOS Simulator,name=${{ matrix.device }}" -parallel-testing-enabled NO test -retry-tests-on-failure -test-iterations 3 | xcbeautify && exit ${PIPESTATUS[0]}
+
+      - name: Upload xcresult Bundle Manually
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: output_xcresult
+          path: .build/test/output.xcresult
