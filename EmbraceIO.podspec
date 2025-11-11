@@ -1,6 +1,6 @@
 Pod::Spec.new do |spec|
   spec.name                           = "EmbraceIO"
-  spec.version                        = "6.15.0-rc1"
+  spec.version                        = "6.15.0-rc2"
   spec.summary                        = "Visibility into your users that you didn't have before."
   spec.description                    = <<-DESC
                       Embrace is the only performance monitoring platform focused solely on mobile. We are built
@@ -18,8 +18,7 @@ Pod::Spec.new do |spec|
 
   ## Tell the Swift source code to not import subspecs as modules.
   spec.pod_target_xcconfig = {
-    'SWIFT_ACTIVE_COMPILATION_CONDITIONS' => 'EMBRACE_COCOAPOD_BUILDING_SDK',
-    'OTHER_SWIFT_FLAGS' => '$(inherited) -package-name EmbraceIO'
+    'SWIFT_ACTIVE_COMPILATION_CONDITIONS' => 'EMBRACE_COCOAPOD_BUILDING_SDK'
   }
 
   spec.subspec 'EmbraceIO' do |subs|
@@ -47,13 +46,7 @@ Pod::Spec.new do |spec|
 
   spec.subspec 'EmbraceCommonInternal' do |subs|
     subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
-    subs.dependency "EmbraceIO/EmbraceAtomicsShim"
     subs.dependency "EmbraceIO/OpenTelemetrySdk"
-  end
-
-  spec.subspec 'EmbraceAtomicsShim' do |subs|
-    subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
-    subs.public_header_files = "Sources/#{subs.module_name}/include/**/*.h"
   end
 
   spec.subspec 'EmbraceSemantics' do |subs|
@@ -84,8 +77,6 @@ Pod::Spec.new do |spec|
     subs.dependency "EmbraceIO/EmbraceCommonInternal"
     subs.dependency "EmbraceIO/EmbraceSemantics"
     subs.dependency "EmbraceIO/OpenTelemetrySdk"
-    subs.dependency "EmbraceIO/EmbraceCoreDataInternal"
-    subs.dependency "EmbraceIO/EmbraceStorageInternal"
   end
 
   spec.subspec 'EmbraceStorageInternal' do |subs|
@@ -98,7 +89,6 @@ Pod::Spec.new do |spec|
   spec.subspec 'EmbraceCoreDataInternal' do |subs|
     subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
     subs.dependency "EmbraceIO/EmbraceCommonInternal"
-    subs.dependency "EmbraceIO/EmbraceObjCUtilsInternal"
   end
 
   spec.subspec 'EmbraceUploadInternal' do |subs|
