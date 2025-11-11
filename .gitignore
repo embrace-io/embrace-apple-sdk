@@ -64,8 +64,14 @@ Examples/AppSizeTester/*.xcworkspace
 !Examples/Benchmarks/*.xcworkspace
 !Examples/Benchmarks/*.xcodeproj
 
+# Exception: Don't ignore BrandGame-CocoaPods project files
+!Examples/BrandGame-CocoaPods/*.xcworkspace
+!Examples/BrandGame-CocoaPods/*.xcodeproj
+
 ## pods
 Examples/BrandGamePod
+Examples/BrandGame-CocoaPods/Pods/
+Examples/BrandGame-CocoaPods/Podfile.lock
 
 ## Benchmarks user data
 Examples/Benchmarks/Benchmarks.xcworkspace/xcuserdata

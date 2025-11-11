@@ -3,8 +3,13 @@
 //
 
 import Combine
-import EmbraceCore
 import SwiftUI
+
+#if COCOAPODS
+    import EmbraceIO
+#else
+    import EmbraceCore
+#endif
 
 struct UserInfo: View {
 
@@ -60,7 +65,7 @@ struct UserInfo: View {
         }
 
         func clearPersonas() {
-            try? Embrace.client?.metadata.removeAllPersonas()
+            Embrace.client?.metadata.removeAllPersonas()
             objectWillChange.send()
         }
 
@@ -75,9 +80,17 @@ struct UserInfo: View {
         }
 
         func hasPersona(_ persona: PersonaTag) -> Bool {
-            let currentPersonas = Embrace.client?.metadata.currentPersonas ?? []
+            let group = DispatchGroup()
+            var contains = false
 
-            return currentPersonas.contains(persona)
+            group.enter()
+            Embrace.client?.metadata.getCurrentPersonas { tags in
+                contains = tags.contains(persona)
+                group.leave()
+            }
+            group.wait()
+
+            return contains
         }
     }
 
@@ -158,11 +171,11 @@ extension UserInfo {
     }
 }
 
-extension PersonaTag: Identifiable {
+extension PersonaTag: @retroactive Identifiable {
     public var id: String { rawValue }
 }
 
-extension PersonaTag: Hashable {}
+extension PersonaTag: @retroactive Hashable {}
 
 #Preview {
     UserInfo()

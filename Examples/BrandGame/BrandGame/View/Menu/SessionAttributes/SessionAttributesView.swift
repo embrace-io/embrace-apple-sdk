@@ -141,7 +141,7 @@ extension SessionAttributesView {
         switch property.type {
         case .resource:
             if appliesToAllAttributes {
-                try metadata?.removeAllResources(lifespans: [metadataLifespan])
+                metadata?.removeAllResources(lifespans: [metadataLifespan])
             } else {
                 try metadata?.removeResource(
                     key: property.key,
@@ -150,7 +150,7 @@ extension SessionAttributesView {
             }
         case .sessionProperty:
             if appliesToAllAttributes {
-                try metadata?.removeAllProperties(lifespans: [metadataLifespan])
+                metadata?.removeAllProperties(lifespans: [metadataLifespan])
             } else {
                 try metadata?.removeProperty(
                     key: property.key,
