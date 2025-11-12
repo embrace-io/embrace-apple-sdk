@@ -49,7 +49,6 @@ open class CaptureService: NSObject {
 
         self.otel = otel
         self.logger = logger
-        self.metadata = metadata
 
         onInstall()
     }
