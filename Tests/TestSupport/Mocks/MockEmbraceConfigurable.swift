@@ -22,6 +22,7 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         isMetricKitCrashCaptureEnabled: Bool = false,
         metricKitCrashSignals: [String] = [],
         isMetricKitHangCaptureEnabled: Bool = false,
+        isMetricKitInternalMetricsCaptureEnabled: Bool = false,
         spanEventsLimits: SpanEventsLimits = SpanEventsLimits(),
         logsLimits: LogsLimits = LogsLimits(),
         internalLogLimits: InternalLogLimits = InternalLogLimits(),
@@ -44,6 +45,7 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         self._isMetricKitCrashCaptureEnabled = isMetricKitCrashCaptureEnabled
         self._metricKitCrashSignals = metricKitCrashSignals
         self._isMetricKitHangCaptureEnabled = isMetricKitHangCaptureEnabled
+        self._isMetricKitInternalMetricsCaptureEnabled = isMetricKitInternalMetricsCaptureEnabled
         self._spanEventsLimits = spanEventsLimits
         self._logsLimits = logsLimits
         self._internalLogLimits = internalLogLimits
@@ -168,6 +170,18 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         }
         set {
             _isMetricKitEnabled = newValue
+        }
+    }
+
+    private var _isMetricKitInternalMetricsCaptureEnabled: Bool
+    public let isMetricKitInternalMetricsCaptureEnabledExpectation = XCTestExpectation(description: "isMetricKitInternalMetricsCaptureEnabled called")
+    public var isMetricKitInternalMetricsCaptureEnabled: Bool {
+        get {
+            isMetricKitInternalMetricsCaptureEnabledExpectation.fulfill()
+            return _isMetricKitInternalMetricsCaptureEnabled
+        }
+        set {
+            _isMetricKitInternalMetricsCaptureEnabled = newValue
         }
     }
 

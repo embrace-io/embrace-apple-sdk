@@ -24,6 +24,11 @@ import Foundation
         _hangListeners.safeValue
     }
 
+    private var _metricsListeners = EmbraceMutex<[MetricKitMetricsPayloadListener]>([])
+    var metricsListeners: [MetricKitMetricsPayloadListener] {
+        _metricsListeners.safeValue
+    }
+
     private let _lastSession = EmbraceMutex<EmbraceSession?>(nil)
     public var lastSession: EmbraceSession? {
         get { _lastSession.safeValue }
@@ -42,6 +47,28 @@ import Foundation
         #if !os(tvOS) && !os(macOS) && !os(watchOS)
             MXMetricManager.shared.remove(self)
         #endif
+    }
+
+    func handlePayload(_ payload: MetricPayload) {
+
+        // No reason to send anything if we don't have any signposts
+        guard let signpostMetrics = payload.signpostMetrics, signpostMetrics.isEmpty == false else {
+            return
+        }
+
+        if let data = try? JSONEncoder().encode(payload) {
+
+            #if DEBUG
+                // Remove this when we know stuff works
+                if #available(iOS 16.0, *) {
+                    let uuid = UUID().uuidString
+                    let url: URL = .documentsDirectory.appendingPathComponent("\(uuid)_em.json")
+                    try? data.write(to: url)
+                }
+            #endif
+
+            sendMetric(payload: data)
+        }
     }
 
     func handlePayload(_ payload: MetricKitDiagnosticPayload) {
@@ -82,6 +109,12 @@ import Foundation
         }
     }
 
+    func add(listener: any MetricKitMetricsPayloadListener) {
+        _metricsListeners.withLock {
+            $0.append(listener)
+        }
+    }
+
     func sendCrash(payload: Data, signal: Int, sessionId: EmbraceIdentifier?) {
         for listener in crashListeners {
             listener.didReceive(payload: payload, signal: signal, sessionId: sessionId)
@@ -93,12 +126,30 @@ import Foundation
             listener.didReceive(payload: payload, startTime: startTime, endTime: endTime)
         }
     }
+
+    func sendMetric(payload: Data) {
+        for listener in metricsListeners {
+            listener.didReceive(metric: payload)
+        }
+    }
 }
 
 #if canImport(MetricKit) && !os(macOS) && !os(tvOS)
     extension MetricKitHandler: MXMetricManagerSubscriber {
         func didReceive(_ payloads: [MXMetricPayload]) {
-            // noop for now
+            for payload in payloads {
+
+                #if DEBUG
+                    // Remove this when we know stuff works
+                    if #available(iOS 16.0, *) {
+                        let uuid = UUID().uuidString
+                        let url: URL = .documentsDirectory.appendingPathComponent("\(uuid)_mx.json")
+                        try? payload.jsonRepresentation().write(to: url)
+                    }
+                #endif
+
+                handlePayload(MetricPayload(payload: payload))
+            }
         }
 
         @available(iOS 14.0, *)

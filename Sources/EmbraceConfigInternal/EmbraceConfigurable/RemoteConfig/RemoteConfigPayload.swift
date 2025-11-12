@@ -26,6 +26,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
     var metricKitCrashCaptureEnabled: Bool
     var metricKitCrashSignals: [String]
     var metricKitHangCaptureEnabled: Bool
+    var metricKitInternalMetricsCaptureEnabled: Bool
 
     var breadcrumbLimit: Int
 
@@ -71,6 +72,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         case metricKitEnabledThreshold = "metrickit_v2_pct_enabled"
         case metricKitReportersEnabled = "metrickit_v2_reporters_enabled"
         case metricKitCrashSignalsEnabled = "metrickit_v2_crash_signals_enabled"
+        case metricKitInternalMetricsCaptureEnabled = "metrickit_v2_internal_metrics_enabled"
 
         case ui
         enum UICodingKeys: String, CodingKey {
@@ -320,6 +322,12 @@ public struct RemoteConfigPayload: Decodable, Equatable {
                 forKey: .metricKitEnabledThreshold
             ) ?? defaultPayload.metricKitEnabledThreshold
 
+        metricKitInternalMetricsCaptureEnabled =
+            try rootContainer.decodeIfPresent(
+                Bool.self,
+                forKey: .metricKitInternalMetricsCaptureEnabled
+            ) ?? defaultPayload.metricKitInternalMetricsCaptureEnabled
+
         if let strArray = try rootContainer.decodeIfPresent(
             String.self,
             forKey: .metricKitReportersEnabled
@@ -371,6 +379,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         metricKitCrashCaptureEnabled = false
         metricKitCrashSignals = [CrashSignal.SIGKILL.stringValue]
         metricKitHangCaptureEnabled = false
+        metricKitInternalMetricsCaptureEnabled = false
 
         breadcrumbLimit = 100
 
