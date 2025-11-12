@@ -1,4 +1,17 @@
 ## 6.14.1
+*Nov 12, 2025*
+* Fixes
+    * Fixed a potential deadlock on the Session Controller.
+    * Fixed potential crashes by Objective C exceptions thrown by Core Data not being caught.
+    * Fixed a main thread hang caused by Objective C Runtime calls during backtrace capture.
+    * tvOS: Fixed App Lifecycle notifications not being tracked.
+    * tvOS: Fixed Sessions not being sent when App is sent to background.
+* Improvements
+    * Improved storage performance when dealing with many span events.
+    * Changed lock-based synchronization approach for lock-free atomics via newely introduced EmbraceAtomic.
+    * Revamped URL Session Swizzling.
+    * Simplified Breadcrumbs by removing custom attributes and only allowing a Message parameter.
+
 *Oct 14, 2025*
 * Fixes
     * Fixed issues with the internal proxy on `URLSession`.
