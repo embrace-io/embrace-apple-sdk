@@ -1,6 +1,6 @@
 Pod::Spec.new do |spec|
   spec.name                           = "EmbraceIO"
-  spec.version                        = "6.14.1"
+  spec.version                        = "6.15.0"
   spec.summary                        = "Visibility into your users that you didn't have before."
   spec.description                    = <<-DESC
                       Embrace is the only performance monitoring platform focused solely on mobile. We are built
@@ -13,7 +13,7 @@ Pod::Spec.new do |spec|
   spec.source                         = { :git => "https://github.com/embrace-io/embrace-apple-sdk.git", :tag => spec.version }
   spec.requires_arc                   = true
   spec.ios.deployment_target          = "13.0"
-  spec.swift_version                  = "5.7"
+  spec.swift_version                  = "5.9"
   spec.default_subspec = "EmbraceIO"
 
   ## Tell the Swift source code to not import subspecs as modules.
@@ -132,10 +132,10 @@ Pod::Spec.new do |spec|
 
   # External
   spec.subspec 'EmbraceKSCrash' do |subs|
-    subs.dependency "KSCrash", "2.4.0"
+    subs.dependency "KSCrash", "~> 2.4"
   end
 
   spec.subspec 'OpenTelemetrySdk' do |subs|
-    subs.dependency "OpenTelemetry-Swift-Sdk", "2.1.1"
+    subs.dependency "OpenTelemetry-Swift-Sdk", "~> 2.1"
   end
 end
