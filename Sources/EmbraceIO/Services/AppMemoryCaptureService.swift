@@ -49,7 +49,7 @@ public class AppMemoryCaptureService: CaptureService {
     }
 
     fileprivate func memoryChanged(memory: AppMemory, with changes: AppMemoryTrackerChangeType) {
-        guard state == .active, enabled else {
+        guard isActive else {
             return
         }
 
