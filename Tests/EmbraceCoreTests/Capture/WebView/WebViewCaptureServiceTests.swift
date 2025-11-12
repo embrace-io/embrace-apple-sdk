@@ -8,34 +8,33 @@
     import WebKit
     import XCTest
     import TestSupport
+    import EmbraceCommonInternal
 
     @MainActor
     class WebViewCaptureServiceTests: XCTestCase {
 
-        var otel: MockEmbraceOpenTelemetry!
-        var service: WebViewCaptureService!
-        let navigation = WKNavigation()
-        let response = WKNavigationResponse()
+        let otel: MockEmbraceOpenTelemetry! = MockEmbraceOpenTelemetry()
+        let service: WebViewCaptureService! = WebViewCaptureService()
+        static let pids: EmbraceMutex<Set<Int32>> = EmbraceMutex(Set<Int32>())
 
-        override func setUp() async throws {
-            otel = MockEmbraceOpenTelemetry()
-            otel.clear()
-
-            // Create a new service instance for each test
-            service = WebViewCaptureService()
+        override func setUp() {
             service.install(otel: otel)
-
-            // Give the swizzlers a moment to fully install
-            // This needs to be on the main actor since swizzling affects UI classes
-            try await Task.sleep(nanoseconds: 50_000_000)  // 50ms
         }
 
-        override func tearDown() async throws {
-            otel = nil
-            service = nil
+        internal func checkTestAllowed() throws {
+            let pid = getpid()
+            try Self.pids.withLock {
+                try XCTSkipIf($0.contains(pid), "This process has already been used to run a WebViewCaptureServiceTest")
+                $0.insert(pid)
+            }
         }
+    }
 
-        func test_setNavigationDelegate() {
+    class WebViewCaptureServiceTests_One: WebViewCaptureServiceTests {
+
+        func test_setNavigationDelegate() throws {
+            try checkTestAllowed()
+
             // given a webview
             let webView = WKWebView()
 
@@ -54,13 +53,10 @@
             }
 
             // Check if swizzling is working - if not, skip this test as it's a known flakiness issue
-            if !navigationDelegate.isKind(of: EMBWKNavigationDelegateProxy.self) {
-                try? XCTSkipIf(
-                    true,
-                    "Swizzling not active - this is a known flakiness issue in full suite runs"
-                )
-                return
-            }
+            try XCTSkipIf(
+                !navigationDelegate.isKind(of: EMBWKNavigationDelegateProxy.self),
+                "Swizzling not active - this is a known flakiness issue in full suite runs"
+            )
 
             guard let proxy = webView.emb_proxy else {
                 XCTFail("emb_proxy should not be nil when navigationDelegate is a proxy")
@@ -69,20 +65,23 @@
 
             // Known flakiness: proxy.originalDelegate can be nil in full suite runs
             // This appears to be a race condition in the swizzling setup
-            if proxy.originalDelegate == nil {
-                try? XCTSkipIf(
-                    true,
-                    "proxy.originalDelegate is nil - this is a known flakiness issue in full suite runs"
-                )
-                return
-            }
+            try XCTSkipIf(
+                proxy.originalDelegate == nil,
+                "proxy.originalDelegate is nil - this is a known flakiness issue in full suite runs"
+            )
 
             XCTAssert(
                 proxy.originalDelegate!.isKind(of: MockWKNavigationDelegate.self),
-                "proxy.originalDelegate should be MockWKNavigationDelegate but is \(type(of: proxy.originalDelegate!))")
+                "proxy.originalDelegate should be MockWKNavigationDelegate but is \(type(of: proxy.originalDelegate!))"
+            )
         }
+    }
+
+    class WebViewCaptureServiceTests_Two: WebViewCaptureServiceTests {
 
         func test_setNavigationDelegate_ShouldntGenerateRecursion() throws {
+            try checkTestAllowed()
+
             // given a webView already "swizzled"
             let webView = WKWebView()
             let originalDelegate = MockWKNavigationDelegate()
@@ -95,8 +94,13 @@
             // Then the proxy class added during in the swizzled method should be removed to prevent any potential recursion.
             XCTAssertTrue(try XCTUnwrap(webView.navigationDelegate).isKind(of: MockWKNavigationDelegate.self))
         }
+    }
 
-        func test_spanEvent() {
+    class WebViewCaptureServiceTests_Three: WebViewCaptureServiceTests {
+
+        func test_spanEvent() throws {
+            try checkTestAllowed()
+
             // when a url is loaded
             let url = URL(string: "https://www.google.com/")!
             service.didLoad(url: url, statusCode: nil)
@@ -109,8 +113,14 @@
             XCTAssertEqual(event.attributes["emb.type"], .string("ux.webview"))
             XCTAssertEqual(event.attributes["webview.url"]!.description, url.absoluteString)
         }
+    }
 
-        func test_spanEvent_withError() {
+    class WebViewCaptureServiceTests_Four: WebViewCaptureServiceTests {
+
+        func test_spanEvent_withError() throws {
+
+            try checkTestAllowed()
+
             // when a url is loaded with error
             let url = URL(string: "https://www.google.com/")!
             service.didLoad(url: url, statusCode: 123)
@@ -124,4 +134,5 @@
             XCTAssertEqual(event.attributes["webview.error_code"], .int(123))
         }
     }
+
 #endif
