@@ -19,9 +19,10 @@ class DataTaskWithURLSwizzlerTests: XCTestCase {
         try? sut.unswizzleInstanceMethod()
     }
 
-    func test_afterInstall_taskWillBeCreatedInHandler() throws {
+    @MainActor
+    func test_afterInstall_taskWillBeCreatedInHandler() async throws {
         givenDataTaskWithURLSwizzler()
-        try givenSwizzlingWasDone()
+        try await givenSwizzlingWasDone()
         givenProxiedUrlSession()
         whenInvokingDataTaskWithUrl()
         thenHandlerShouldHaveInvokedCreateWithTask()
@@ -42,7 +43,8 @@ extension DataTaskWithURLSwizzlerTests {
         sut2 = DataTaskWithURLRequestSwizzler(handler: handler)
     }
 
-    fileprivate func givenSwizzlingWasDone() throws {
+    @MainActor
+    fileprivate func givenSwizzlingWasDone() async throws {
         try sut.install()
         try sut2.install()
     }

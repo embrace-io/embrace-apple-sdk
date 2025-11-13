@@ -41,7 +41,7 @@ extension Swizzlable {
     }
 }
 
-enum UnswizzleError: LocalizedError {
+enum UnswizzleError: LocalizedError, @unchecked Sendable {
     case noMethodForSelector(value: Selector, class: AnyClass)
     case implementationInCacheNotFound(method: Method)
 

@@ -25,6 +25,7 @@ class MockCaptureService: CaptureService {
     }
 }
 
+@MainActor
 class CaptureServiceTests: XCTestCase {
 
     func test_initialState() throws {

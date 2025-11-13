@@ -6,7 +6,7 @@ import Foundation
 
 protocol KeychainInterface {
     func valueFor(service: CFString, account: CFString) -> (value: String?, status: OSStatus)
-    func setValue(service: CFString, account: CFString, value: String, completion: @escaping (OSStatus) -> Void)
+    func setValue(service: CFString, account: CFString, value: String, completion: @escaping @Sendable (OSStatus) -> Void)
     func deleteValue(service: CFString, account: CFString) -> OSStatus
 }
 
@@ -45,7 +45,7 @@ class DefaultKeychainInterface: KeychainInterface {
         service: CFString,
         account: CFString,
         value: String,
-        completion: @escaping (OSStatus) -> Void
+        completion: @escaping @Sendable (OSStatus) -> Void
     ) {
         /*
         
@@ -62,7 +62,9 @@ class DefaultKeychainInterface: KeychainInterface {
          * The system can return cached results for some queries, making read operations more predictable in terms of performance.
         
          */
-        queue.async {
+        let serviceString = service as String
+        let accountString = account as String
+        queue.async { [serviceString, accountString] in
             guard let dataFromString = value.data(using: String.Encoding.utf8, allowLossyConversion: false) else {
                 completion(errSecParam)
                 return
@@ -70,8 +72,8 @@ class DefaultKeychainInterface: KeychainInterface {
 
             let query: NSMutableDictionary = [
                 kSecClass: kSecClassGenericPassword,
-                kSecAttrService: service,
-                kSecAttrAccount: account,
+                kSecAttrService: serviceString,
+                kSecAttrAccount: accountString,
                 kSecValueData: dataFromString
             ]
 

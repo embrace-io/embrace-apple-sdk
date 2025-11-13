@@ -9,7 +9,7 @@ import TestSupport
 
 @testable import EmbraceCore
 
-class MockSessionController: SessionControllable {
+class MockSessionController: SessionControllable, @unchecked Sendable {
 
     // Properties for mocking
     var nextSessionId: EmbraceIdentifier?

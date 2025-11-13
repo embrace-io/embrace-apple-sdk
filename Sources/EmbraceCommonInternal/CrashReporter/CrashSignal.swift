@@ -4,7 +4,7 @@
 
 import Foundation
 
-@objc public enum CrashSignal: Int {
+@objc public enum CrashSignal: Int, Sendable {
     case SIGHUP = 1
     case SIGINT = 2
     case SIGQUIT = 3

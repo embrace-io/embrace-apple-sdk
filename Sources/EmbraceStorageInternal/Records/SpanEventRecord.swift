@@ -23,21 +23,24 @@ public class SpanEventRecord: NSManagedObject {
         attributes: [String: String],
         span: SpanRecord?
     ) -> SpanEventRecord? {
-        var record: SpanEventRecord?
+        nonisolated(unsafe) var result: SpanEventRecord?
+        nonisolated(unsafe) let spanRecord: SpanRecord? = span
 
         context.performAndWait {
             guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
                 return
             }
 
-            record = SpanEventRecord(entity: description, insertInto: context)
-            record?.name = name
-            record?.timestamp = timestamp
-            record?.setAttributes(attributes)
-            record?.span = span
+            let record = SpanEventRecord(entity: description, insertInto: context)
+            record.name = name
+            record.timestamp = timestamp
+            record.setAttributes(attributes)
+            record.span = spanRecord
+
+            result = record
         }
 
-        return record
+        return result
     }
 
     func setAttributes(_ attributes: [String: String]) {
@@ -65,7 +68,7 @@ public class SpanEventRecord: NSManagedObject {
 }
 
 extension SpanEventRecord: EmbraceStorageRecord {
-    public static var entityName = "SpanEventRecord"
+    public static let entityName = "SpanEventRecord"
 }
 
 package struct ImmutableSpanEventRecord: EmbraceSpanEvent {

@@ -20,6 +20,7 @@ public protocol Swizzlable {
     var baseClass: AnyClass { get }
 
     /// Should be called when the swizzling should be executed.
+    @MainActor
     func install() throws
 
     /// Swizzles an instance method of the base class with a new implementation provided as a block.

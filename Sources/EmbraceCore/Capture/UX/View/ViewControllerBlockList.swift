@@ -23,6 +23,7 @@
             self.blockHostingControllers = blockHostingControllers
         }
 
+        @MainActor
         func isBlocked(viewController: UIViewController) -> Bool {
             if blockHostingControllers && isHostingController(viewController) {
                 return true
@@ -35,6 +36,7 @@
             return false
         }
 
+        @MainActor
         private func isHostingController(_ vc: UIViewController?) -> Bool {
             guard let vc else {
                 return false

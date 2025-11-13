@@ -15,7 +15,7 @@ import Foundation
     import EmbraceObjCUtilsInternal
 #endif
 
-protocol LogControllable: LogBatcherDelegate {
+protocol LogControllable: LogBatcherDelegate, Sendable {
     func uploadAllPersistedLogs(_ completion: (() -> Void)?)
     func createLog(
         _ message: String,
@@ -31,7 +31,7 @@ protocol LogControllable: LogBatcherDelegate {
     )
 }
 
-class LogController: LogControllable {
+class LogController: LogControllable, @unchecked Sendable {
     private(set) weak var sessionController: SessionControllable?
     private weak var storage: Storage?
     private weak var upload: EmbraceLogUploader?
@@ -115,7 +115,7 @@ class LogController: LogControllable {
 
         // We want to ensure the backtrace is taken on this thread,
         // but added from the queue as to not use up possibly main thread resources.
-        let addStacktraceBlock: ((_ builder: EmbraceLogAttributesBuilder) -> Void)?
+        let addStacktraceBlock: (@Sendable (_ builder: EmbraceLogAttributesBuilder) -> Void)?
         switch stackTraceBehavior {
         case .default where severity == .warn || severity == .error:
             if EmbraceBacktrace.isAvailable {
@@ -280,7 +280,7 @@ extension LogController {
         logs: [EmbraceLog],
         resourcePayload: ResourcePayload,
         metadataPayload: MetadataPayload,
-        completion: (() -> Void)?
+        completion: (@Sendable () -> Void)?
     ) {
         guard let upload = upload else {
             completion?()
@@ -300,7 +300,7 @@ extension LogController {
 
             upload.uploadLog(id: UUID().uuidString, data: envelopeData, payloadTypes: payloadTypes) { [weak self] result in
                 defer { completion?() }
-                guard let self = self else {
+                guard let self else {
                     return
                 }
                 if case Result.failure(let error) = result {

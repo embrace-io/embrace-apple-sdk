@@ -11,7 +11,7 @@ import Foundation
 
 class SessionPayloadBuilder {
 
-    static var resourceName = "emb.session.upload_index"
+    static let resourceName = "emb.session.upload_index"
 
     class func build(for session: EmbraceSession, storage: EmbraceStorage) -> PayloadEnvelope<[SpanPayload]>? {
 

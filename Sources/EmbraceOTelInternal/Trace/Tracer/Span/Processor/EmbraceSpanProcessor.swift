@@ -12,7 +12,7 @@ import OpenTelemetrySdk
 #endif
 
 /// The span processor used internally by Embrace.
-package class EmbraceSpanProcessor: SpanProcessor {
+package class EmbraceSpanProcessor: SpanProcessor, @unchecked Sendable {
 
     let nameLengthLimit = 128
 
@@ -24,7 +24,7 @@ package class EmbraceSpanProcessor: SpanProcessor {
     let sessionIdProvider: (() -> String?)?
     let criticalResourceGroup: DispatchGroup?
 
-    weak var sdkStateProvider: EmbraceSDKStateProvider?
+    private weak var sdkStateProvider: EmbraceSDKStateProvider?
 
     private let _autoTerminationSpans = EmbraceMutex<[SpanId: SpanAutoTerminationData]>([:])
     var autoTerminationSpans: [SpanId: SpanAutoTerminationData] {
@@ -227,7 +227,7 @@ package class EmbraceSpanProcessor: SpanProcessor {
         let provider = resourceProvider
         let sessionProvider = sessionIdProvider
 
-        let block = { [exporters, spansToExport, completion, provider, sessionProvider, self] in
+        nonisolated(unsafe) let block = { [exporters, spansToExport, completion, provider, sessionProvider, self] in
             let resource = provider?()
             let sessionId = sessionProvider?()
             let filteredSpans = spansToExport.compactMap { hydrateSpan($0, with: resource, sessionId: sessionId) }

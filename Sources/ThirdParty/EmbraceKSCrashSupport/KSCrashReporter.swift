@@ -15,11 +15,11 @@ import Foundation
 #endif
 
 @objc(KSCrashReporter)
-public final class KSCrashReporter: NSObject, CrashReporter {
+public final class KSCrashReporter: NSObject, CrashReporter, Sendable {
 
     // KSCrash uses C callbacks. We can't capture Swift in them.
     // The workaround is to hold onto a private shared instance.
-    private static weak var shared: KSCrashReporter?
+    nonisolated(unsafe) private static weak var shared: KSCrashReporter?
 
     private struct KSCrashKey {
         static let user = "user"
@@ -35,15 +35,15 @@ public final class KSCrashReporter: NSObject, CrashReporter {
         static let watchdgodEvent = "watchdog_event"
     }
 
-    private let reporter: KSCrash = KSCrash.shared
+    nonisolated(unsafe) private let reporter: KSCrash = KSCrash.shared
 
     struct WatchdogEventData {
         var reportID: Int64? = nil
         var inEvent: Bool = false
         var event: WatchdogEvent? = nil
     }
-    private var watchdogData: EmbraceMutex<WatchdogEventData> = EmbraceMutex(WatchdogEventData())
-    private var hangObservers: [NSObjectProtocol] = []
+    private let watchdogData: EmbraceMutex<WatchdogEventData> = EmbraceMutex(WatchdogEventData())
+    private let hangObservers: EmbraceMutex<[NSObjectProtocol]> = EmbraceMutex([])
 
     public override init() {
         reporter.userInfo = [:]
@@ -66,7 +66,7 @@ public final class KSCrashReporter: NSObject, CrashReporter {
     }
 
     /// Unused in this KSCrash implementation
-    public var onNewReport: ((EmbraceCrashReport) -> Void)?
+    nonisolated(unsafe) public var onNewReport: (@Sendable (EmbraceCrashReport) -> Void)? = nil
 
     /// Used to determine if the last session ended cleanly or in a crash.
     public func getLastRunState() -> LastRunState {
@@ -228,26 +228,31 @@ extension KSCrashReporter {
     /// Subscribes to `.hangEventStarted` and `.hangEventEnded` and forwards them to the
     /// corresponding handlers. Observers are stored in `hangObservers`.
     private func registerForHangs() {
+        var observers: [NSObjectProtocol] = []
         let obs1 = NotificationCenter.default.addObserver(forName: .hangEventStarted, object: nil, queue: nil) { [weak self] notification in
             if let event = notification.object as? WatchdogEvent {
                 self?.watchdogEventStarted(event)
             }
         }
-        hangObservers.append(obs1)
+        observers.append(obs1)
 
         let obs2 = NotificationCenter.default.addObserver(forName: .hangEventEnded, object: nil, queue: nil) { [weak self] notification in
             if let event = notification.object as? WatchdogEvent {
                 self?.watchdogEventEnded(event)
             }
         }
-        hangObservers.append(obs2)
+        observers.append(obs2)
+        hangObservers.withLock {
+            $0 = observers
+        }
     }
 
     /// Removes previously registered hang observers and clears `hangObservers`.
     private func unregisterForHangs() {
-        let observers = hangObservers
-        hangObservers.removeAll()
-        observers.forEach { NotificationCenter.default.removeObserver($0) }
+        hangObservers.withLock { observers in
+            observers.forEach { NotificationCenter.default.removeObserver($0) }
+            observers = []
+        }
     }
 
     /// Hang began: delete any prior synthetic report and write a new user-exception

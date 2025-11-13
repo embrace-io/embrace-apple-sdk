@@ -5,6 +5,7 @@
 #if canImport(WebKit)
     import WebKit
 
+    @MainActor
     class MockWKNavigationDelegate: NSObject, WKNavigationDelegate {
 
         var callCount: Int = 0
@@ -12,7 +13,7 @@
         func webView(
             _ webView: WKWebView,
             decidePolicyFor navigationResponse: WKNavigationResponse,
-            decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void
+            decisionHandler: @escaping @MainActor @Sendable (WKNavigationResponsePolicy) -> Void
         ) {
             callCount += 1
         }
@@ -36,7 +37,7 @@
         func webView(
             _ webView: WKWebView,
             decidePolicyFor navigationAction: WKNavigationAction,
-            decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+            decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void
         ) {
             callCount += 1
         }
@@ -45,7 +46,7 @@
             _ webView: WKWebView,
             decidePolicyFor navigationAction: WKNavigationAction,
             preferences: WKWebpagePreferences,
-            decisionHandler: @escaping (WKNavigationActionPolicy, WKWebpagePreferences) -> Void
+            decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy, WKWebpagePreferences) -> Void
         ) {
             callCount += 1
         }
@@ -81,9 +82,10 @@
         func webView(
             _ webView: WKWebView,
             didReceive challenge: URLAuthenticationChallenge,
-            completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+            completionHandler: @escaping @MainActor @Sendable (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
         ) {
             callCount += 1
+            completionHandler(.performDefaultHandling, nil)
         }
 
         func webViewWebContentProcessDidTerminate(
@@ -96,9 +98,10 @@
         func webView(
             _ webView: WKWebView,
             authenticationChallenge challenge: URLAuthenticationChallenge,
-            shouldAllowDeprecatedTLS decisionHandler: @escaping (Bool) -> Void
+            shouldAllowDeprecatedTLS decisionHandler: @escaping @MainActor @Sendable (Bool) -> Void
         ) {
             callCount += 1
+            decisionHandler(false)
         }
 
         @available(iOS 14.5, *)

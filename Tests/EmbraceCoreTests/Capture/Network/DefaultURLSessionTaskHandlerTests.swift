@@ -11,9 +11,7 @@ import XCTest
 @testable import EmbraceCaptureService
 @testable import EmbraceCore
 
-// swiftlint:disable line_length
-
-class DefaultURLSessionTaskHandlerTests: XCTestCase {
+class DefaultURLSessionTaskHandlerTests: XCTestCase, @unchecked Sendable {
     private var sut: DefaultURLSessionTaskHandler!
     private var task: URLSessionDataTask!
     private var session: URLSession!
@@ -568,5 +566,3 @@ extension DefaultURLSessionTaskHandlerTests {
         wait(timeout: 1.0, until: { self.task.response != nil })
     }
 }
-
-// swiftlint:enable line_length

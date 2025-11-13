@@ -29,7 +29,7 @@
 //  • `Bool` intentionally does not conform to `EmbraceAtomicArithmetic`.
 //
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-import EmbraceAtomicsShim
+    import EmbraceAtomicsShim
 #endif
 
 // MARK: - Memory Order Mapping

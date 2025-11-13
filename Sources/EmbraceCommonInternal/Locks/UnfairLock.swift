@@ -9,7 +9,7 @@ import Foundation
 ///
 /// For more information:
 /// - Swift law of exclusivity: https://github.com/apple/swift-evolution/blob/main/proposals/0176-enforce-exclusive-access-to-memory.md
-final public class UnfairLock {
+final public class UnfairLock: @unchecked Sendable {
     private var _lock: UnsafeMutablePointer<os_unfair_lock>
 
     public init() {

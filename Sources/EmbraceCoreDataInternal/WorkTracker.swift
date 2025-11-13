@@ -20,7 +20,7 @@ import Foundation
 
 typealias WorkTrackerID = UInt64
 
-internal class WorkTracker {
+internal class WorkTracker: @unchecked Sendable {
 
     let name: String
     let logger: InternalLogger

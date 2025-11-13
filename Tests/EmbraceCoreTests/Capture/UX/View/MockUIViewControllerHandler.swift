@@ -9,7 +9,7 @@
     @testable import EmbraceCore
     import OpenTelemetryApi
 
-    class MockUIViewControllerHandler: UIViewControllerHandler {
+    class MockUIViewControllerHandler: UIViewControllerHandler, @unchecked Sendable {
 
         var parentSpan: Span?
         var parentSpanCalled = false

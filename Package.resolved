@@ -1,4 +1,5 @@
 {
+  "originHash" : "ede49f2a2f8ae93d9efbb20c875d990471b30dba191df637eec730924500fa6c",
   "pins" : [
     {
       "identity" : "kscrash",
@@ -37,5 +38,5 @@
       }
     }
   ],
-  "version" : 2
+  "version" : 3
 }

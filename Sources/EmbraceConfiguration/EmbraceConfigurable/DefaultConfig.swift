@@ -2,8 +2,8 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-public class DefaultConfig: EmbraceConfigurable {
-    public var hangLimits: HangLimits = HangLimits()
+final public class DefaultConfig: EmbraceConfigurable {
+    public let hangLimits: HangLimits = HangLimits()
 
     public let isSDKEnabled: Bool = true
 
@@ -13,7 +13,7 @@ public class DefaultConfig: EmbraceConfigurable {
 
     public let isUiLoadInstrumentationEnabled: Bool = true
 
-    public var isWalModeEnabled: Bool = true
+    public let isWalModeEnabled: Bool = true
 
     public let viewControllerClassNameBlocklist: [String] = []
 
@@ -23,13 +23,13 @@ public class DefaultConfig: EmbraceConfigurable {
 
     public let isMetricKitEnabled: Bool = false
 
-    public var isMetricKitInstrumentationEnabled: Bool = false
+    public let isMetricKitInstrumentationEnabled: Bool = false
 
-    public var isMetricKitCrashCaptureEnabled: Bool = false
+    public let isMetricKitCrashCaptureEnabled: Bool = false
 
-    public var metricKitCrashSignals: [String] = []
+    public let metricKitCrashSignals: [String] = []
 
-    public var isMetricKitHangCaptureEnabled: Bool = false
+    public let isMetricKitHangCaptureEnabled: Bool = false
 
     public var isMetricKitInternalMetricsCaptureEnabled: Bool = false
 

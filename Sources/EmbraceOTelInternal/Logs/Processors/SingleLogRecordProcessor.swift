@@ -25,6 +25,7 @@ class SingleLogRecordProcessor: LogRecordProcessor {
             return
         }
 
+        let exporters = self.exporters
         exporters.forEach {
             _ = $0.export(logRecords: [logRecord])
         }
@@ -35,6 +36,7 @@ class SingleLogRecordProcessor: LogRecordProcessor {
             return .failure
         }
 
+        let exporters = self.exporters
         let resultSet = Set(exporters.map { $0.forceFlush() })
         if let firstResult = resultSet.first {
             return resultSet.count > 1 ? .failure : firstResult
@@ -43,6 +45,7 @@ class SingleLogRecordProcessor: LogRecordProcessor {
     }
 
     func shutdown(explicitTimeout: TimeInterval?) -> ExportResult {
+        let exporters = self.exporters
         exporters.forEach { $0.shutdown() }
         return .success
     }

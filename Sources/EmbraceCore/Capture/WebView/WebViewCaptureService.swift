@@ -130,9 +130,9 @@
     }
 
     struct WKWebViewSetNavigationDelegateSwizzler: Swizzlable {
-        typealias ImplementationType = @convention(c) (WKWebView, Selector, WKNavigationDelegate) -> Void
-        typealias BlockImplementationType = @convention(block) (WKWebView, WKNavigationDelegate) -> Void
-        static var selector: Selector = #selector(setter: WKWebView.navigationDelegate)
+        typealias ImplementationType = @convention(c) @MainActor (WKWebView, Selector, WKNavigationDelegate) -> Void
+        typealias BlockImplementationType = @convention(block) @MainActor (WKWebView, WKNavigationDelegate) -> Void
+        static let selector: Selector = #selector(setter: WKWebView.navigationDelegate)
         var baseClass: AnyClass
         weak var delegate: WebViewSwizzlerDelegate?
 
@@ -162,9 +162,9 @@
     }
 
     struct WKWebViewLoadRequestSwizzler: Swizzlable {
-        typealias ImplementationType = @convention(c) (WKWebView, Selector, URLRequest) -> WKNavigation?
-        typealias BlockImplementationType = @convention(block) (WKWebView, URLRequest) -> WKNavigation?
-        static var selector: Selector = #selector(WKWebView.load(_:))
+        typealias ImplementationType = @convention(c) @MainActor (WKWebView, Selector, URLRequest) -> WKNavigation?
+        typealias BlockImplementationType = @convention(block) @MainActor (WKWebView, URLRequest) -> WKNavigation?
+        static let selector: Selector = #selector(WKWebView.load(_:))
         var baseClass: AnyClass
 
         init(baseClass: AnyClass = WKWebView.self) {
@@ -185,9 +185,9 @@
     }
 
     struct WKWebViewLoadHTMLStringSwizzler: Swizzlable {
-        typealias ImplementationType = @convention(c) (WKWebView, Selector, String, URL?) -> WKNavigation?
-        typealias BlockImplementationType = @convention(block) (WKWebView, String, URL?) -> WKNavigation?
-        static var selector: Selector = #selector(WKWebView.loadHTMLString(_:baseURL:))
+        typealias ImplementationType = @convention(c) @MainActor (WKWebView, Selector, String, URL?) -> WKNavigation?
+        typealias BlockImplementationType = @convention(block) @MainActor (WKWebView, String, URL?) -> WKNavigation?
+        static let selector: Selector = #selector(WKWebView.loadHTMLString(_:baseURL:))
         var baseClass: AnyClass
 
         init(baseClass: AnyClass = WKWebView.self) {
@@ -208,9 +208,9 @@
     }
 
     struct WKWebViewLoadFileURLSwizzler: Swizzlable {
-        typealias ImplementationType = @convention(c) (WKWebView, Selector, URL, URL) -> WKNavigation?
-        typealias BlockImplementationType = @convention(block) (WKWebView, URL, URL) -> WKNavigation?
-        static var selector: Selector = #selector(WKWebView.loadFileURL(_:allowingReadAccessTo:))
+        typealias ImplementationType = @convention(c) @MainActor (WKWebView, Selector, URL, URL) -> WKNavigation?
+        typealias BlockImplementationType = @convention(block) @MainActor (WKWebView, URL, URL) -> WKNavigation?
+        static let selector: Selector = #selector(WKWebView.loadFileURL(_:allowingReadAccessTo:))
         var baseClass: AnyClass
 
         init(baseClass: AnyClass = WKWebView.self) {
@@ -231,9 +231,9 @@
     }
 
     struct WKWebViewLoadDataSwizzler: Swizzlable {
-        typealias ImplementationType = @convention(c) (WKWebView, Selector, Data, String, String, URL?) -> WKNavigation?
-        typealias BlockImplementationType = @convention(block) (WKWebView, Data, String, String, URL?) -> WKNavigation?
-        static var selector: Selector = #selector(
+        typealias ImplementationType = @convention(c) @MainActor (WKWebView, Selector, Data, String, String, URL?) -> WKNavigation?
+        typealias BlockImplementationType = @convention(block) @MainActor (WKWebView, Data, String, String, URL?) -> WKNavigation?
+        static let selector: Selector = #selector(
             WKWebView.load(_:mimeType:characterEncodingName:baseURL:)
         )
         var baseClass: AnyClass

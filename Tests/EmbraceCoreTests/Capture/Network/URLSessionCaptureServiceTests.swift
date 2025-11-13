@@ -9,6 +9,7 @@ import XCTest
 
 @testable import EmbraceCore
 
+@MainActor
 class URLSessionCaptureServiceTests: XCTestCase {
     private var sut: URLSessionCaptureService!
     private var lock: DummyLock!
@@ -16,13 +17,13 @@ class URLSessionCaptureServiceTests: XCTestCase {
     private var handler: MockURLSessionTaskHandler!
     private var otel: MockEmbraceOpenTelemetry!
 
-    override func setUp() {
+    override func setUp() async throws {
         lock = DummyLock()
         otel = MockEmbraceOpenTelemetry()
         givenURLSessionSwizzlerProvider()
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         sut.swizzlers.forEach {
             try? $0.unswizzleClassMethod()
             try? $0.unswizzleInstanceMethod()

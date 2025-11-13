@@ -28,23 +28,24 @@ public class MetadataRecordTmp: NSManagedObject {
         lifespanId: String,
         collectedAt: Date = Date()
     ) -> MetadataRecordTmp? {
-        var record: MetadataRecordTmp?
+        nonisolated(unsafe) var result: MetadataRecordTmp?
 
         context.performAndWait {
             guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
                 return
             }
 
-            record = MetadataRecordTmp(entity: description, insertInto: context)
-            record?.key = key
-            record?.value = value
-            record?.type = type
-            record?.lifespan = lifespan
-            record?.lifespanId = lifespanId
-            record?.collectedAt = collectedAt
+            let record = MetadataRecordTmp(entity: description, insertInto: context)
+            record.key = key
+            record.value = value
+            record.type = type
+            record.lifespan = lifespan
+            record.lifespanId = lifespanId
+            record.collectedAt = collectedAt
+            result = record
         }
 
-        return record
+        return result
     }
 }
 

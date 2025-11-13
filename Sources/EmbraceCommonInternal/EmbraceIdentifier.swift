@@ -5,7 +5,7 @@
 import Foundation
 
 /// Wrapper around UUID used for all Embrace signals.
-public class EmbraceIdentifier: Equatable {
+final public class EmbraceIdentifier: Sendable, Equatable {
     public let stringValue: String
 
     /// Creates an `EmbraceIdentifier` for the given `UUID`.

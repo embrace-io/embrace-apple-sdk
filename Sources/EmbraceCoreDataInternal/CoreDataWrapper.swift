@@ -14,7 +14,7 @@ import Foundation
     import EmbraceObjCUtilsInternal
 #endif
 
-public class CoreDataWrapper {
+public class CoreDataWrapper: @unchecked Sendable {
     public let options: CoreDataWrapper.Options
 
     var container: NSPersistentContainer!
@@ -144,9 +144,10 @@ public class CoreDataWrapper {
 
         let id = workTracker.increment(name)
 
-        var result: Result!
+        nonisolated(unsafe) let operationBlock = block
+        nonisolated(unsafe) var result: Result!
         context.performAndWait {
-            result = block(context)
+            result = operationBlock(context)
             if save {
                 saveIfNeeded()
             }
@@ -160,7 +161,7 @@ public class CoreDataWrapper {
     /// behind a background task assertion.
     /// And automatically save if requested.
     public func performAsyncOperation(
-        _ name: String = #function, save: Bool = false, _ block: @escaping (NSManagedObjectContext) -> Void
+        _ name: String = #function, save: Bool = false, _ block: @Sendable @escaping (NSManagedObjectContext) -> Void
     ) {
         let id = workTracker.increment(name)
 

@@ -92,15 +92,14 @@ class PerformanceTests: XCTestCase {
 
 }
 
+@MainActor
 class PerformanceBacktraceTests: XCTestCase {
 
-    override class func setUp() {
-        super.setUp()
+    override func setUp() async throws {
         _ = try? Embrace.setup(options: Embrace.Options(appId: "myApp")).start()
     }
 
-    override class func tearDown() {
-        super.tearDown()
+    override func tearDown() async throws {
         _ = try? Embrace.client?.stop()
         Embrace.client = nil
     }
@@ -202,7 +201,7 @@ extension EmbraceStorage {
         appTerminated: Bool = false
     ) async -> EmbraceSession? {
         await withCheckedContinuation { continuation in
-            var session: EmbraceSession? = nil
+            nonisolated(unsafe) var session: EmbraceSession? = nil
             session = addSession(
                 id: id, processId: processId, state: state, traceId: traceId, spanId: spanId, startTime: startTime
             ) {

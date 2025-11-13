@@ -6,7 +6,7 @@ import Foundation
 
 /// InternalLogLimits manages limits for the logs the SDK produces about its own operation
 /// This is broken into the major log severities so each can be managed
-@objc public class InternalLogLimits: NSObject {
+@objc final public class InternalLogLimits: NSObject, Sendable {
     public let trace: UInt
     public let debug: UInt
     public let info: UInt

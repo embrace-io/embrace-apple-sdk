@@ -8,7 +8,7 @@ import Foundation
     /// This class acts as a container for storing original implementations of methods that have been swizzled by the SDK.
     ///
     /// Important: This class is intended for testing purposes only.
-    public class SwizzleCache {
+    public class SwizzleCache: @unchecked Sendable {
         /// This class uniquely identifies and stores original method implementations before swizzling.
         /// It is used to make easier the unswizzling process by identifying the method implementation based on the Method,
         /// the swizzled class, and the class performing the swizzle operation.

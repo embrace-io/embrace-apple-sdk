@@ -5,12 +5,20 @@
 import EmbraceCore
 import EmbraceOTelInternal
 import OpenTelemetryApi
+@preconcurrency import OpenTelemetrySdk
 import XCTest
 
 final class W3C_TraceParentTests: XCTestCase {
 
     override func setUp() async throws {
-        OpenTelemetry.registerTracerProvider(tracerProvider: DefaultTracerProvider.instance)
+        // Setup with alwaysOff sampler to ensure unsampled spans for testing
+        // Register the tracer provider directly without calling EmbraceOTel.setup()
+        OpenTelemetry.registerTracerProvider(
+            tracerProvider: TracerProviderSdk(
+                sampler: Samplers.alwaysOff,
+                spanProcessors: []
+            )
+        )
     }
 
     func test_w3c_traceparent_returnsCorrectValue() {
@@ -27,7 +35,12 @@ final class W3C_TraceParentTests: XCTestCase {
             .startSpan()
 
         let traceparent = W3C.traceparent(from: span)
-        XCTAssertEqual(traceparent, "00-\(span.context.traceId.hexString)-\(span.context.spanId.hexString)-00")
+        // Verify that the traceparent matches the span's actual sampled state
+        let expectedSampledFlag = span.context.traceFlags.sampled ? "01" : "00"
+        XCTAssertEqual(
+            traceparent,
+            "00-\(span.context.traceId.hexString)-\(span.context.spanId.hexString)-\(expectedSampledFlag)"
+        )
     }
 
     func test_w3c_traceparent_fromSpanContext_returnsCorrectValue() {

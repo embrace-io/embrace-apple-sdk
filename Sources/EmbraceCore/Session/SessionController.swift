@@ -26,7 +26,7 @@ extension Notification.Name {
 ///     Just before a session will end. See ``Notification.Name.embraceSessionWillEnd``
 ///
 
-class SessionController: SessionControllable {
+class SessionController: SessionControllable, @unchecked Sendable {
 
     private let _attachmentCount = EmbraceAtomic<Int32>(0)
     internal var attachmentCount: Int { Int(_attachmentCount.load()) }

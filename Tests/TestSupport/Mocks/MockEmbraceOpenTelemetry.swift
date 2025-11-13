@@ -11,7 +11,7 @@ import OpenTelemetrySdk
 @testable import EmbraceCore
 @testable import EmbraceOTelInternal
 
-public class MockEmbraceOpenTelemetry: NSObject, EmbraceOpenTelemetry {
+public class MockEmbraceOpenTelemetry: NSObject, EmbraceOpenTelemetry, @unchecked Sendable {
     private(set) public var spanProcessor = MockSpanProcessor()
     private(set) public var events: [SpanEvent] = []
     private(set) public var logs: [ReadableLogRecord] = []
