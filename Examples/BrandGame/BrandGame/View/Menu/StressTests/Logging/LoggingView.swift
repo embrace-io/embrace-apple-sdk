@@ -2,9 +2,14 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import EmbraceCommonInternal
-import EmbraceIO
 import SwiftUI
+
+#if COCOAPODS
+    import EmbraceIO
+#else
+    import EmbraceCommonInternal
+    import EmbraceIO
+#endif
 
 struct LoggingView: View {
     @State private var logMessage: String = "This is the log message..."

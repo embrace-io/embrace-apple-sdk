@@ -46,8 +46,8 @@ ifeq ($(CLANG_FORMAT),)
 	@exit 1
 else
 	@echo "Running format with clang-format..."
-	find $(SEARCH_DIRS) $(foreach ext,$(FILE_EXTENSIONS),-name '*.$(ext)' -o) -false | \
-	xargs -r $(CLANG_FORMAT) -style=file -i
+	find $(SEARCH_DIRS) $(foreach ext,$(FILE_EXTENSIONS),-name '*.$(ext)' -o) -false -print0 | \
+	xargs -0 -r $(CLANG_FORMAT) -style=file -i
 endif
 
 check-format:
@@ -56,8 +56,8 @@ ifeq ($(CLANG_FORMAT),)
 	@exit 1
 else
 	@echo "Running check-format with clang-format..."
-	@find $(SEARCH_DIRS) $(foreach ext,$(FILE_EXTENSIONS),-name '*.$(ext)' -o) -false | \
-	xargs -r $(CLANG_FORMAT) -style=file -n -Werror
+	@find $(SEARCH_DIRS) $(foreach ext,$(FILE_EXTENSIONS),-name '*.$(ext)' -o) -false -print0 | \
+	xargs -0 -r $(CLANG_FORMAT) -style=file -n -Werror
 endif
 
 check-format-changes:
@@ -75,19 +75,19 @@ check-format-changes:
 # Format Swift source code using swift-format
 swift-format:
 	@echo "Running swift-format with swift-format..."
-	@{ find $(SWIFT_SEARCH_DIRS) -name '*.swift' -type f -not -path '*/.build/*'; \
-	   [ -f Package.swift ] && echo Package.swift; \
-	   [ -f Dangerfile.swift ] && echo Dangerfile.swift; } | \
-	while read file; do \
+	@{ find $(SWIFT_SEARCH_DIRS) -name '*.swift' -type f -not -path '*/.build/*' -print0; \
+	   [ -f Package.swift ] && printf "%s\0" Package.swift; \
+	   [ -f Dangerfile.swift ] && printf "%s\0" Dangerfile.swift; } | \
+	while IFS= read -r -d '' file; do \
 		$(SWIFT_FORMAT_CMD) format --in-place --configuration .swift-format "$$file"; \
 	done
 
 check-swift-format:
 	@echo "Running check-swift-format with swift-format..."
-	@{ find $(SWIFT_SEARCH_DIRS) -name '*.swift' -type f -not -path '*/.build/*'; \
-	   [ -f Package.swift ] && echo Package.swift; \
-	   [ -f Dangerfile.swift ] && echo Dangerfile.swift; } | \
-	while read file; do \
+	@{ find $(SWIFT_SEARCH_DIRS) -name '*.swift' -type f -not -path '*/.build/*' -print0; \
+	   [ -f Package.swift ] && printf "%s\0" Package.swift; \
+	   [ -f Dangerfile.swift ] && printf "%s\0" Dangerfile.swift; } | \
+	while IFS= read -r -d '' file; do \
 		$(SWIFT_FORMAT_CMD) lint --configuration .swift-format "$$file" --strict; \
 	done
 
