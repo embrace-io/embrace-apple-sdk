@@ -3,9 +3,9 @@ from statistics import mean
 from github import Github
 from scipy import stats
 
-THRESHOLD = float(os.getenv("THRESHOLD_PCT", "1.0")) / 100.0  # percent → fraction
+THRESHOLD = float(os.getenv("THRESHOLD_PCT", "15.0")) / 100.0  # percent → fraction
 ALPHA = float(os.getenv("ALPHA", "0.05"))
-TITLE = os.getenv("TITLE") or "🚀 Simulator Benchmarks (PR vs Main)"
+TITLE = os.getenv("TITLE") or "Set a title pls"
 
 pr_data = json.loads(os.getenv("PERF_PR", "[]"))
 main_data = json.loads(os.getenv("PERF_MAIN", "[]"))

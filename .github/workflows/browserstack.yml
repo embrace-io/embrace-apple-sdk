@@ -29,7 +29,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: macos-latest-large
+    runs-on: ${{ github.actor != 'dependabot[bot]' && 'macos-latest-xlarge' || 'macos-latest' }}
     timeout-minutes: 30
     outputs:
       app_url: ${{ steps.upload_app.outputs.app_url }}
@@ -257,7 +257,7 @@ jobs:
           if-no-files-found: warn
 
   extract-results:
-    runs-on: macos-latest-large
+    runs-on: ${{ github.actor != 'dependabot[bot]' && 'macos-latest-xlarge' || 'macos-latest' }}
     needs: test
     if: success()
     timeout-minutes: 10
