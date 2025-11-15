@@ -44,6 +44,8 @@ jobs:
 
   browserstack-main:
     name: Run BrowserStack Tests on Main
+    needs: [browserstack-pr]
+    if: success()
     uses: ./.github/workflows/browserstack.yml
     secrets:
       BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
@@ -55,7 +57,7 @@ jobs:
     name: Compare Performance Results
     needs: [browserstack-pr, browserstack-main]
     runs-on: ubuntu-latest
-    if: always()
+    if: success()
     permissions:
       pull-requests: write
       contents: read
