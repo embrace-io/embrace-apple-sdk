@@ -3,7 +3,6 @@
 //
 
 import Foundation
-import MetricKit
 
 // MARK: - Data Structures
 
@@ -68,121 +67,142 @@ struct AverageMemory: Codable {
 
 // MARK: - Data Structure Extensions
 
-extension MetaData {
+#if canImport(MetricKit)
 
-    init?(from metaData: MXMetaData?) {
-        guard let metaData = metaData else { return nil }
+    import MetricKit
 
-        if #available(iOS 14.0, *) {
-            self.platformArchitecture = metaData.platformArchitecture
-        } else {
-            self.platformArchitecture = ""
+    extension MetaData {
+
+        @available(iOS 13.0, macOS 12.0, *)
+        @available(tvOS, unavailable)
+        @available(watchOS, unavailable)
+        init?(from metaData: MXMetaData?) {
+            guard let metaData = metaData else { return nil }
+
+            if #available(iOS 14.0, *) {
+                self.platformArchitecture = metaData.platformArchitecture
+            } else {
+                self.platformArchitecture = ""
+            }
+
+            if #available(iOS 17.0, macOS 14.0, *) {
+                self.lowPowerModeEnabled = metaData.lowPowerModeEnabled
+                self.isTestFlightApp = metaData.isTestFlightApp
+                self.pid = metaData.pid
+            } else {
+                self.lowPowerModeEnabled = false
+                self.isTestFlightApp = false
+                self.pid = -1
+            }
+
+            // bundle identifier is special, it appeared in iOS 26 but is avaialble in the JSON.
+            self.bundleIdentifier = metaData.dictionaryRepresentation()["bundleIdentifier"] as? String ?? ""
+
+            self.regionFormat = metaData.regionFormat
+            self.osVersion = metaData.osVersion
+            self.deviceType = metaData.deviceType
+            self.applicationBuildVersion = metaData.applicationBuildVersion
         }
 
-        if #available(iOS 17.0, *) {
-            self.lowPowerModeEnabled = metaData.lowPowerModeEnabled
-            self.isTestFlightApp = metaData.isTestFlightApp
-            self.pid = metaData.pid
-        } else {
-            self.lowPowerModeEnabled = false
-            self.isTestFlightApp = false
-            self.pid = -1
-        }
-
-        // bundle identifier is special, it appeared in iOS 26 but is avaialble in the JSON.
-        self.bundleIdentifier = metaData.dictionaryRepresentation()["bundleIdentifier"] as? String ?? ""
-
-        self.regionFormat = metaData.regionFormat
-        self.osVersion = metaData.osVersion
-        self.deviceType = metaData.deviceType
-        self.applicationBuildVersion = metaData.applicationBuildVersion
     }
 
-}
+    extension Histogram {
 
-extension Histogram {
+        @available(iOS 13.0, macOS 12.0, *)
+        @available(tvOS, unavailable)
+        @available(watchOS, unavailable)
+        init?(histogram: MXHistogram<UnitDuration>?) {
+            guard let histogram = histogram else { return nil }
 
-    init?(histogram: MXHistogram<UnitDuration>?) {
-        guard let histogram = histogram else { return nil }
+            self.buckets = histogram.bucketEnumerator
+                .compactMap { $0 as? MXHistogramBucket<UnitDuration> }
+                .compactMap {
+                    HistogramBucket(
+                        bucketStart: $0.bucketStart.nanosecondsValue,
+                        bucketEnd: $0.bucketEnd.nanosecondsValue,
+                        bucketCount: $0.bucketCount
+                    )
+                }
+        }
+    }
 
-        self.buckets = histogram.bucketEnumerator
-            .compactMap { $0 as? MXHistogramBucket<UnitDuration> }
-            .compactMap {
-                HistogramBucket(
-                    bucketStart: $0.bucketStart.nanosecondsValue,
-                    bucketEnd: $0.bucketEnd.nanosecondsValue,
-                    bucketCount: $0.bucketCount
+    extension AverageMemory {
+
+        @available(iOS 13.0, macOS 12.0, *)
+        @available(tvOS, unavailable)
+        @available(watchOS, unavailable)
+        init?(average: MXAverage<UnitInformationStorage>?) {
+            guard let average = average else { return nil }
+
+            self.averageMeasurement = average.averageMeasurement.bytesValue
+            self.sampleCount = average.sampleCount
+            self.standardDeviation = average.standardDeviation
+        }
+    }
+
+    extension SignpostIntervalData {
+
+        @available(iOS 13.0, macOS 12.0, *)
+        @available(tvOS, unavailable)
+        @available(watchOS, unavailable)
+        init?(intervalData: MXSignpostIntervalData?) {
+            guard let intervalData = intervalData else { return nil }
+
+            self.histogrammedSignpostDuration = Histogram(histogram: intervalData.histogrammedSignpostDuration)
+            self.cumulativeCPUTime = intervalData.cumulativeCPUTime?.nanosecondsValue ?? 0
+            self.averageMemory = AverageMemory(average: intervalData.averageMemory)
+            self.cumulativeLogicalWrites = intervalData.cumulativeLogicalWrites?.bytesValue ?? 0
+
+            if #available(iOS 15.0, *) {
+                self.cumulativeHitchTimeRatio = intervalData.cumulativeHitchTimeRatio?.value ?? 0
+            } else {
+                self.cumulativeHitchTimeRatio = 0
+            }
+        }
+    }
+
+    extension MetricPayload {
+
+        static let allowedSignpostCategories = ["EmbraceSDK"]
+
+        @available(iOS 13.0, macOS 12.0, *)
+        @available(tvOS, unavailable)
+        @available(watchOS, unavailable)
+        init(payload: MXMetricPayload) {
+            self.latestApplicationVersion = payload.latestApplicationVersion
+            self.includesMultipleApplicationVersions = payload.includesMultipleApplicationVersions
+            self.timeStampBegin = Int(payload.timeStampBegin.timeIntervalSince1970 * 1_000_000_000)
+            self.timeStampEnd = Int(payload.timeStampEnd.timeIntervalSince1970 * 1_000_000_000)
+            self.metaData = MetaData(from: payload.metaData)
+            self.signpostMetrics = payload.signpostMetrics?.compactMap { signpost in
+                // See EmbraceMetricKitSpan
+                guard Self.allowedSignpostCategories.contains(signpost.signpostCategory) else {
+                    return nil
+                }
+                return SignpostMetric(
+                    signpostName: signpost.signpostName,
+                    signpostCategory: signpost.signpostCategory,
+                    totalCount: signpost.totalCount,
+                    signpostIntervalData: SignpostIntervalData(intervalData: signpost.signpostIntervalData)
                 )
             }
-    }
-}
-
-extension AverageMemory {
-
-    init?(average: MXAverage<UnitInformationStorage>?) {
-        guard let average = average else { return nil }
-
-        self.averageMeasurement = average.averageMeasurement.bytesValue
-        self.sampleCount = average.sampleCount
-        self.standardDeviation = average.standardDeviation
-    }
-}
-
-extension SignpostIntervalData {
-
-    init?(intervalData: MXSignpostIntervalData?) {
-        guard let intervalData = intervalData else { return nil }
-
-        self.histogrammedSignpostDuration = Histogram(histogram: intervalData.histogrammedSignpostDuration)
-        self.cumulativeCPUTime = intervalData.cumulativeCPUTime?.nanosecondsValue ?? 0
-        self.averageMemory = AverageMemory(average: intervalData.averageMemory)
-        self.cumulativeLogicalWrites = intervalData.cumulativeLogicalWrites?.bytesValue ?? 0
-
-        if #available(iOS 15.0, *) {
-            self.cumulativeHitchTimeRatio = intervalData.cumulativeHitchTimeRatio?.value ?? 0
-        } else {
-            self.cumulativeHitchTimeRatio = 0
         }
     }
-}
 
-extension MetricPayload {
+    // MARK: - Unit Conversions
 
-    static let allowedSignpostCategories = ["EmbraceSDK"]
-
-    init(payload: MXMetricPayload) {
-        self.latestApplicationVersion = payload.latestApplicationVersion
-        self.includesMultipleApplicationVersions = payload.includesMultipleApplicationVersions
-        self.timeStampBegin = Int(payload.timeStampBegin.timeIntervalSince1970 * 1_000_000_000)
-        self.timeStampEnd = Int(payload.timeStampEnd.timeIntervalSince1970 * 1_000_000_000)
-        self.metaData = MetaData(from: payload.metaData)
-        self.signpostMetrics = payload.signpostMetrics?.compactMap { signpost in
-            // See EmbraceMetricKitSpan
-            guard Self.allowedSignpostCategories.contains(signpost.signpostCategory) else {
-                return nil
-            }
-            return SignpostMetric(
-                signpostName: signpost.signpostName,
-                signpostCategory: signpost.signpostCategory,
-                totalCount: signpost.totalCount,
-                signpostIntervalData: SignpostIntervalData(intervalData: signpost.signpostIntervalData)
-            )
+    extension Measurement where UnitType == UnitDuration {
+        /// Converts a duration measurement to nanoseconds (Int)
+        var nanosecondsValue: Int {
+            Int(converted(to: .nanoseconds).value)
         }
     }
-}
 
-// MARK: - Unit Conversions
-
-extension Measurement where UnitType == UnitDuration {
-    /// Converts a duration measurement to nanoseconds (Int)
-    var nanosecondsValue: Int {
-        Int(converted(to: .nanoseconds).value)
+    extension Measurement where UnitType == UnitInformationStorage {
+        /// Converts a storage measurement to bytes (Int)
+        var bytesValue: Int {
+            Int(converted(to: .bytes).value)
+        }
     }
-}
 
-extension Measurement where UnitType == UnitInformationStorage {
-    /// Converts a storage measurement to bytes (Int)
-    var bytesValue: Int {
-        Int(converted(to: .bytes).value)
-    }
-}
+#endif

@@ -60,7 +60,7 @@ import Foundation
 
             #if DEBUG
                 // Remove this when we know stuff works
-                if #available(iOS 16.0, *) {
+                if #available(iOS 16.0, tvOS 16.0, watchOS 9.0, *) {
                     let uuid = UUID().uuidString
                     let url: URL = .documentsDirectory.appendingPathComponent("\(uuid)_em.json")
                     try? data.write(to: url)
@@ -141,7 +141,7 @@ import Foundation
 
                 #if DEBUG
                     // Remove this when we know stuff works
-                    if #available(iOS 16.0, *) {
+                    if #available(iOS 16.0, tvOS 16.0, watchOS 9.0, *) {
                         let uuid = UUID().uuidString
                         let url: URL = .documentsDirectory.appendingPathComponent("\(uuid)_mx.json")
                         try? payload.jsonRepresentation().write(to: url)
