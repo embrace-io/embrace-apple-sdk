@@ -77,7 +77,7 @@ jobs:
 
       - name: Upload Lint Output on Failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: cocoapod-lint-output
           path: cocoapod-lint-output.log
