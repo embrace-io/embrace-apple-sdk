@@ -122,9 +122,19 @@ extension Embrace: EmbraceOpenTelemetry {
 
     /// Waits synchronously for all work to be completed
     public func waitForAllWork() {
-        processingQueue.asyncAndWait(flags: .assignCurrentContext) {}
+
+        // This funcxtion used to use `asyncAndWait(::)`.
+        // But it appears it crashes on iOS 16.4 sim.
+        // Instead, just do what that function does under the hood.
+        // Radar: FB21077492
+        let group = DispatchGroup()
+
+        processingQueue.async(group: group, flags: .assignCurrentContext) {}
+        group.wait()
+
         guard let proc = EmbraceOTel.processor else { return }
-        proc.processorQueue.asyncAndWait(flags: .assignCurrentContext) {}
+        proc.processorQueue.async(group: group, flags: .assignCurrentContext) {}
+        group.wait()
     }
 
     /// Flushes the given `ReadableSpan` compliant `Span` to disk.

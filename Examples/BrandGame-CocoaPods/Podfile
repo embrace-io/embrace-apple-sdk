@@ -1,0 +1,36 @@
+# Uncomment the next line to define a global platform for your project
+platform :ios, '13.0'
+
+target 'BrandGame' do
+  # Comment the next line if you don't want to use dynamic frameworks
+  use_frameworks!
+
+  # Pods for BrandGame
+  pod 'EmbraceIO', :path => '../..'
+  pod 'OpenTelemetry-Swift-StdoutExporter'
+
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      # Add COCOAPODS flag to BrandGame target
+      if target.name == 'Pods-BrandGame'
+        config.build_settings['OTHER_SWIFT_FLAGS'] ||= ['$(inherited)']
+        config.build_settings['OTHER_SWIFT_FLAGS'] << '-D COCOAPODS'
+      end
+    end
+  end
+
+  # Add COCOAPODS flag to the main BrandGame target
+  installer.generated_projects.each do |project|
+    project.targets.each do |target|
+      if target.name == 'BrandGame'
+        target.build_configurations.each do |config|
+          config.build_settings['OTHER_SWIFT_FLAGS'] ||= ['$(inherited)']
+          config.build_settings['OTHER_SWIFT_FLAGS'] << '-D COCOAPODS'
+        end
+      end
+    end
+  end
+end
