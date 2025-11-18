@@ -36,7 +36,7 @@ jobs:
 
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           fetch-tags: true
@@ -111,7 +111,7 @@ jobs:
           SDK_VERSION_TOKEN: ${{ secrets.SDK_VERSION_TOKEN }}
 
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           persist-credentials: true
@@ -160,7 +160,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           fetch-tags: true
@@ -212,7 +212,7 @@ jobs:
       IS_PRODUCTION_READY: ${{ needs.extractor.outputs.is_production_ready }}
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ needs.extractor.outputs.rc_version }}
           fetch-depth: 0
