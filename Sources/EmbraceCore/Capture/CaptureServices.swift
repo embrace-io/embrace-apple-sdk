@@ -10,6 +10,7 @@ import Foundation
     import EmbraceStorageInternal
     import EmbraceUploadInternal
     import EmbraceConfiguration
+    import EmbraceObjCUtilsInternal
 #endif
 
 final class CaptureServices {
@@ -24,12 +25,18 @@ final class CaptureServices {
 
     weak var config: EmbraceConfigurable?
 
+    private let threadcrumbPid = EmbraceThreadcrumb()
+    private let threadcrumbSid = EmbraceThreadcrumb()
+
     init(
         options: Embrace.Options,
         config: EmbraceConfigurable?,
         storage: EmbraceStorage?,
         upload: EmbraceUpload?
     ) throws {
+
+        threadcrumbPid.log("pid_\(ProcessIdentifier.current.stringValue)")
+
         self.config = config
 
         // add required capture services
@@ -164,6 +171,7 @@ final class CaptureServices {
 
     @objc func onSessionStart(notification: Notification) {
         if let session = notification.object as? EmbraceSession {
+            threadcrumbSid.log("sid_\(session.idRaw)")
             crashReporter?.currentSessionId = session.idRaw
             for service in services { service.onSessionStart(session) }
         }
