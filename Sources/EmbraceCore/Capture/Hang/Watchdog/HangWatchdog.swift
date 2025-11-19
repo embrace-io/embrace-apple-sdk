@@ -73,6 +73,9 @@ final public class HangWatchdog {
     }
 
     deinit {
+        // Clear the observer first to prevent any in-flight callbacks
+        hangObserver = nil
+
         if let observer {
             CFRunLoopRemoveObserver(runLoop.getCFRunLoop(), observer, .commonModes)
         }
@@ -83,6 +86,7 @@ final public class HangWatchdog {
             // This will stop the runloop and effectively
             // exit the _watchdogThread_.
             CFRunLoopStop(watchdogRunLoop.getCFRunLoop())
+            CFRunLoopWakeUp(watchdogRunLoop.getCFRunLoop())
         }
         if let watchdogThread {
             // This effectively does nothing.
@@ -91,13 +95,11 @@ final public class HangWatchdog {
             // this here for if we ever decide to
             // do anything special.
             watchdogThread.cancel()
-
-            // Here we should really join the watchdogThread.
-            // There's no way to do that from a `Thread`.
-            // We could use a semaphore and wait to be signaled
-            // from the thread exit but at this point it's
-            // unlikely to be useful.
         }
+
+        // wait until the thread exits
+        // max 2 seconds in case something has gone wrong
+        _ = watchdogThreadJoinSemaphore.wait(timeout: .now() + .seconds(2))
     }
 
     /// Private.
@@ -109,6 +111,9 @@ final public class HangWatchdog {
     // The hi-priority thread used to ping the watchdog
     // _runLoop_.
     private var watchdogThread: Thread?
+
+    // Semaphore used to "join" watchdogThread
+    private let watchdogThreadJoinSemaphore: DispatchSemaphore = DispatchSemaphore(value: 0)
 
     // The RunLoop created on the watchdog thread that
     // allows us to use a timer to ping the watched _runLoop_.
@@ -156,13 +161,24 @@ extension HangWatchdog {
         _logInfo("[Watchdog] schedule thread")
 
         let semaphore = DispatchSemaphore(value: 0)
+        let exitSemaphore = watchdogThreadJoinSemaphore
 
         watchdogThread = Thread { [weak self] in
-            let rl = RunLoop.current
-            rl.add(NSMachPort(), forMode: .common)
-            self?.watchdogRunLoop = rl
-            semaphore.signal()
-            rl.run()
+
+            // For the setup, hold onto self to make sure we don't get half setup.
+            if let self {
+                RunLoop.current.add(NSMachPort(), forMode: .common)
+                watchdogRunLoop = RunLoop.current
+                semaphore.signal()
+            } else {
+                return
+            }
+
+            // Run the loop. On deinit, we'll stop this to exit the thread.
+            CFRunLoopRun()
+
+            // This signals deinit that we're done here and it can exit.
+            exitSemaphore.signal()
         }
         watchdogThread?.name = "com.embrace.watchdog"
         watchdogThread?.threadPriority = 1.0  // 1 is the max priority.

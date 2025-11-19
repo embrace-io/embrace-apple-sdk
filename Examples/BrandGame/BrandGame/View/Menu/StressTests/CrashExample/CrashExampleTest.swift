@@ -2,8 +2,13 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import EmbraceCore
 import SwiftUI
+
+#if COCOAPODS
+    import EmbraceIO
+#else
+    import EmbraceCore
+#endif
 
 struct CrashExampleTest: View {
     @State private var selectedExample: ExampleCrash = .fatalError

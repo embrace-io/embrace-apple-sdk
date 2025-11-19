@@ -15,21 +15,11 @@ struct ContentView: View {
         return sign * mantissa * pow(2.0, exponent)
     }
 
-    func logicalWrites() -> (logicalWrites: UInt64, footprint: UInt64) {
-        var info = rusage_info_current()
-        let status = withUnsafeMutablePointer(to: &info) {
-            $0.withMemoryRebound(to: integer_t.self, capacity: 1) {
-                proc_pid_rusage(getpid(), RUSAGE_INFO_CURRENT, $0)
-            }
-        }
-        guard status == 0 else {
-            return (0, 0)
-        }
-        return (info.ri_logical_writes, info.ri_phys_footprint)
-    }
-
     var body: some View {
+
         VStack {
+            Spacer()
+                .frame(height: 20)
             Button("Test Logical Writes") {
 
                 for _ in 0..<500 {
@@ -54,13 +44,13 @@ struct ContentView: View {
                 #if DEBUG
                     let formatter = ByteCountFormatStyle(style: .file, allowedUnits: .all)
                     let formatterFootprint = ByteCountFormatStyle(style: .memory, allowedUnits: .all)
-                    let pre = logicalWrites()
+                    let pre = EnergyMeasurement.shared.logicalWrites()
                     var allValuesLW: [UInt64] = []
                     var allValuesPF: [UInt64] = []
                 #endif
 
                 for index in 0..<1000 {
-                    let preWork = logicalWrites()
+                    let preWork = EnergyMeasurement.shared.logicalWrites()
                     let value = """
                             \(randomDoubleFullRange()),
                             \(randomDoubleFullRange()),
@@ -71,7 +61,7 @@ struct ContentView: View {
                     Embrace.client?.add(event: .breadcrumb(value))
                     Embrace.client?.waitForAllWork()
                     #if DEBUG
-                        let postWork = logicalWrites()
+                        let postWork = EnergyMeasurement.shared.logicalWrites()
                         let countLW = postWork.logicalWrites &- preWork.logicalWrites
                         let countPF = postWork.footprint > preWork.footprint ? postWork.footprint &- preWork.footprint : 0
                         if countLW > 0 || countPF > 0 {
@@ -86,7 +76,7 @@ struct ContentView: View {
                 Embrace.client?.waitForAllWork()
 
                 #if DEBUG
-                    let post = logicalWrites()
+                    let post = EnergyMeasurement.shared.logicalWrites()
                     let averageLW = Double(allValuesLW.reduce(0, +)) / Double(allValuesLW.count)
                     let averagePF = Double(allValuesPF.reduce(0, +)) / Double(allValuesPF.count)
                     let countPF = post.footprint > pre.footprint ? post.footprint &- pre.footprint : 0
@@ -99,13 +89,6 @@ struct ContentView: View {
         .padding()
     }
 }
-
-@_silgen_name("proc_pid_rusage")
-func proc_pid_rusage(
-    _ pid: Int32,
-    _ flavor: Int32,
-    _ buffer: UnsafeMutableRawPointer
-) -> Int32
 
 #Preview {
     ContentView()

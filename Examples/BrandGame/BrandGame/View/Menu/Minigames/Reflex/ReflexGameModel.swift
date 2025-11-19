@@ -2,11 +2,16 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import EmbraceCore
-import EmbraceOTelInternal
 import Foundation
 import OpenTelemetryApi
 import OpenTelemetrySdk
+
+#if COCOAPODS
+    import EmbraceIO
+#else
+    import EmbraceCore
+    import EmbraceOTelInternal
+#endif
 
 @Observable
 class ReflexGameModel {
