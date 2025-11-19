@@ -1,296 +1,303 @@
-## 6.14.1
-*Nov 12, 2025*
-* Fixes
-    * Fixed a potential deadlock on the Session Controller.
-    * Fixed potential crashes by Objective C exceptions thrown by Core Data not being caught.
-    * Fixed a main thread hang caused by Objective C Runtime calls during backtrace capture.
-    * tvOS: Fixed App Lifecycle notifications not being tracked.
-    * tvOS: Fixed Sessions not being sent when App is sent to background.
-* Improvements
-    * Improved storage performance when dealing with many span events.
-    * Changed lock-based synchronization approach for lock-free atomics via newely introduced EmbraceAtomic.
-    * Revamped URL Session Swizzling.
-    * Simplified Breadcrumbs by removing custom attributes and only allowing a Message parameter.
 
+## 6.15.1
+*Nov 19, 2025*
+- Fixes
+  - Fixed crash on iOS 16.4 simulators.
+
+## 6.15.0
+*Nov 12, 2025*
+- Fixes
+  - Fixed a potential deadlock on the Session Controller.
+  - Fixed potential crashes by Objective C exceptions thrown by Core Data not being caught.
+  - Fixed a main thread hang caused by Objective C Runtime calls during backtrace capture.
+  - tvOS: Fixed App Lifecycle notifications not being tracked.
+  - tvOS: Fixed Sessions not being sent when App is sent to background.
+- Improvements
+  - Improved storage performance when dealing with many span events.
+  - Changed lock-based synchronization approach for lock-free atomics via newely introduced EmbraceAtomic.
+  - Revamped URL Session Swizzling.
+  - Simplified Breadcrumbs by removing custom attributes and only allowing a Message parameter.
+
+## 6.14.1
 *Oct 14, 2025*
-* Fixes
-    * Fixed issues with the internal proxy on `URLSession`.
-* Improvemenets
-    * Improved logic around the automatic startup instrumentation.
+- Fixes
+  - Fixed issues with the internal proxy on `URLSession`.
+- Improvemenets
+  - Improved logic around the automatic startup instrumentation.
 
 ## 6.14.0
 *Oct 7, 2025*
-* Fixes
-    * Fixed `autoTerminationCode` being missing from Spans.
-    * Bumped OTel version to OTel Core 2.1.1.
-    * Fixed wrong OS Variant being added to logs/traces.
-    * Fixed Background App Launches being detected as a Foreground Session which produced long sessions to apps without Background Session support enabled.
-* Improvements
-    * Added Capture Service to detect App Hangs.
-    * Backtrace and Symbolication: Added ability for users to pass their own versions, using KSCrash as default.
-    * Added profiling to Main Thread for Hang detection.
-    * General internal stability improvements.
+- Fixes
+  - Fixed `autoTerminationCode` being missing from Spans.
+  - Bumped OTel version to OTel Core 2.1.1.
+  - Fixed wrong OS Variant being added to logs/traces.
+  - Fixed Background App Launches being detected as a Foreground Session which produced long sessions to apps without Background Session support enabled.
+- Improvements
+  - Added Capture Service to detect App Hangs.
+  - Backtrace and Symbolication: Added ability for users to pass their own versions, using KSCrash as default.
+  - Added profiling to Main Thread for Hang detection.
+  - General internal stability improvements.
     
 ## 6.13.1
 *Aug 26, 2025*
-* Fixes
-    * Made some helpers public to allow building `CaptureServices`.
-    * Prevent crashes related to not being able to load the persistence layer (e.g. when disk is full)
-* Improvements
-    * Bumped OpenTelemetry to 2.0.2, which includes minor changes.
-    * Updated documentation to mark `addResource` as internal-use only.
+- Fixes
+  - Made some helpers public to allow building `CaptureServices`.
+  - Prevent crashes related to not being able to load the persistence layer (e.g. when disk is full)
+- Improvements
+  - Bumped OpenTelemetry to 2.0.2, which includes minor changes.
+  - Updated documentation to mark `addResource` as internal-use only.
 
 ## 6.13.0
 *Aug 1, 2025*
-* Features
-    * Added support for instrumenting SwiftUI code.
-    * Added a new public API to purge the cache of the upload module (`Embrace.resetUploadCache`).
-    * Added the ability to provide a list of `UIViewController` names (remote configurable) to be excluded from `TTFR` and `TTI` capture.
+- Features
+  - Added support for instrumenting SwiftUI code.
+  - Added a new public API to purge the cache of the upload module (`Embrace.resetUploadCache`).
+  - Added the ability to provide a list of `UIViewController` names (remote configurable) to be excluded from `TTFR` and `TTI` capture.
 
-* Fixes
-    * Log limits are now correctly enforced.
-    * Breadcrumb limits from remote config are now properly applied.
-    * Fixed a crash in CoreData related to non-optional Date values.
-    * Fixed a crash that could occur when caching failed data uploads to the backend.
-    * Fixed a crash when accessing `URLSessionTask` data after the task had been released.
-    * Fixed a potential race condition when ending and restarting a session.
-    * Fixed a crash caused when intercepting `AVFoundation` related requests.
-    * Fixed a bug that prevented certain settings from being updated when receiving remote config.
-    * Fixed a crash that happened when trying to write a critical log file and no space was available.
-    * Added the possibility to use CoreData even while the phone is locked.
-    * The `processId` is now a `UUID` instead of a `UInt32`, preventing collisions.
+- Fixes
+  - Log limits are now correctly enforced.
+  - Breadcrumb limits from remote config are now properly applied.
+  - Fixed a crash in CoreData related to non-optional Date values.
+  - Fixed a crash that could occur when caching failed data uploads to the backend.
+  - Fixed a crash when accessing `URLSessionTask` data after the task had been released.
+  - Fixed a potential race condition when ending and restarting a session.
+  - Fixed a crash caused when intercepting `AVFoundation` related requests.
+  - Fixed a bug that prevented certain settings from being updated when receiving remote config.
+  - Fixed a crash that happened when trying to write a critical log file and no space was available.
+  - Added the possibility to use CoreData even while the phone is locked.
+  - The `processId` is now a `UUID` instead of a `UInt32`, preventing collisions.
 
-* Improvements
-    * Improved CoreData to only persist to disk when necessary to reduce disk writes.
-    * Moved significant CoreData work off the main queue to prevent deadlocks and improve user experience.
-    * Switched journal mode from `DELETE` to `WAL` (remote configurable) to reduce disk writes and CPU usage.
-    * Span names are now truncated instead of dropping spans entirely.
-    * Removed automatic capture of `UIHostingController`s (configurable).
-    * The SDK now removes unused data from version `5.x`.
+- Improvements
+  - Improved CoreData to only persist to disk when necessary to reduce disk writes.
+  - Moved significant CoreData work off the main queue to prevent deadlocks and improve user experience.
+  - Switched journal mode from `DELETE` to `WAL` (remote configurable) to reduce disk writes and CPU usage.
+  - Span names are now truncated instead of dropping spans entirely.
+  - Removed automatic capture of `UIHostingController`s (configurable).
+  - The SDK now removes unused data from version `5.x`.
 
 ## 6.12.2
 *July 7, 2025*
-* Fixes
-    * Fixed sessions being incorrectly flagged as Unrecognized Exits.
-    * Fixed logs generated by the `MetricKitHangCaptureService` not being exported.
+- Fixes
+  - Fixed sessions being incorrectly flagged as Unrecognized Exits.
+  - Fixed logs generated by the `MetricKitHangCaptureService` not being exported.
 
 ## 6.12.1
 *June 27, 2025*
-* Fixes
-	* Disabled a `KSCrash` flag that was unintentionally enabled when switching to the official repository. This flag caused a startup regression and is now reverted to its previous behavior (as in `6.9.2`).
+- Fixes
+	- Disabled a `KSCrash` flag that was unintentionally enabled when switching to the official repository. This flag caused a startup regression and is now reverted to its previous behavior (as in `6.9.2`).
 
 ## 6.12.0
 *June 24, 2025*
-* Fixes
-	* Fixed an issue that could cause deadlocks when public APIs were used excessively.
-	* Fixed the underlying problem that triggered the warning: "Binary image cache full. Not caching image" in apps with many associated binary images.
-	* Made a change to reduce the number of unexpected exits caused by holding onto a file lock / SQLite database lock during app suspension.
-* Features
-	* Added support for injecting a custom OTel processor during SDK initialization.
-* Improvements
-	* Improved how device and application metadata is persisted to reduce time and resource usage.
+- Fixes
+	- Fixed an issue that could cause deadlocks when public APIs were used excessively.
+	- Fixed the underlying problem that triggered the warning: "Binary image cache full. Not caching image" in apps with many associated binary images.
+	- Made a change to reduce the number of unexpected exits caused by holding onto a file lock / SQLite database lock during app suspension.
+- Features
+	- Added support for injecting a custom OTel processor during SDK initialization.
+- Improvements
+	- Improved how device and application metadata is persisted to reduce time and resource usage.
 
 ## 6.11.0
 *June 6, 2025*
-* Fixes
-    * Fixed compilation errors when having the Embrace SDK as a dependency of a static library in a SwiftPM project.
-* Changes
-    * Added new instrumentation around application startup.
-    * Added capture services to capture `MetricKit` reports.
+- Fixes
+  - Fixed compilation errors when having the Embrace SDK as a dependency of a static library in a SwiftPM project.
+- Changes
+  - Added new instrumentation around application startup.
+  - Added capture services to capture `MetricKit` reports.
 
 ## 6.10.1
 *May 28, 2025*
-* Fixes
-    * Fixed a crash that occurred when intercepting a `URLSessionTask` that was resumed more than once.
-    * Made several fixes to all public APIs to ensure they are safe to use from any thread (including the main thread).
-    * Fixed compatibility issues caused by Firebase Performance when it is initialized before Embrace and intercepts network requests.
-* Changes
-    * Added a new API in `Embrace.client`: `getCurrentPersonas(completion:)` (This deprecates the `currentPersonas` getter and its Objective-C compatible version).
+- Fixes
+  - Fixed a crash that occurred when intercepting a `URLSessionTask` that was resumed more than once.
+  - Made several fixes to all public APIs to ensure they are safe to use from any thread (including the main thread).
+  - Fixed compatibility issues caused by Firebase Performance when it is initialized before Embrace and intercepts network requests.
+- Changes
+  - Added a new API in `Embrace.client`: `getCurrentPersonas(completion:)` (This deprecates the `currentPersonas` getter and its Objective-C compatible version).
 
 ## 6.10.0
 *May 19, 2025*
-*  Fixes
-    * Fixed a crash that could occur when capturing data from requests (#217).
-    d * Fixean issue that prevented the Network Payload Capture feature from properly capturing request/response bodies.
-    * Reduced overhead and memory usage when capturing response bodies in most common use cases.
-    * Fixed crash that happened in UI Automation environments.
-* Changes
-    * KSCrash dependency now uses the main repository instead of a custom fork.
+-  Fixes
+  - Fixed a crash that could occur when capturing data from requests (#217).
+    d - Fixean issue that prevented the Network Payload Capture feature from properly capturing request/response bodies.
+  - Reduced overhead and memory usage when capturing response bodies in most common use cases.
+  - Fixed crash that happened in UI Automation environments.
+- Changes
+  - KSCrash dependency now uses the main repository instead of a custom fork.
 
 ## 6.9.2
 *Apr 30, 2025*
-* Fixes
-	* Improved Core Data fetches and cleanup routines to prevent potential crashes.
-	* Fixed a crash that could occur when ending and restarting sessions.
+- Fixes
+	- Improved Core Data fetches and cleanup routines to prevent potential crashes.
+	- Fixed a crash that could occur when ending and restarting sessions.
 
 ## 6.9.1
 *Apr 25th, 2025*
-* Fixes
-    * Fixed potential threading issues with Core Data.
+- Fixes
+  - Fixed potential threading issues with Core Data.
 
 ## 6.9.0
 *Apr 22th, 2025*
-* Changes
-    * Removed GRDB as a dependency.
-    * Reworked the internal storage system using Core Data.
+- Changes
+  - Removed GRDB as a dependency.
+  - Reworked the internal storage system using Core Data.
 
 ## 6.8.5
 *Apr 16th, 2025*
-* Fixes
-	* Fixed a crash that could occur when injecting the `traceparent` header into certain types of `NSURLSessionTask`.
-	* Fixed a compatibility issue that could arise in specific conditions when our URLSession capture service was isa-swizzled by other libraries.
-* Changes
-	* Added support for passing the `-ObjC` linker flag via SPM by setting the environment variable `EMBRACE_ENABLE_TUIST_OBJC_LINK`, which is required when using the SDK in Tuist-generated projects.
+- Fixes
+	- Fixed a crash that could occur when injecting the `traceparent` header into certain types of `NSURLSessionTask`.
+	- Fixed a compatibility issue that could arise in specific conditions when our URLSession capture service was isa-swizzled by other libraries.
+- Changes
+	- Added support for passing the `-ObjC` linker flag via SPM by setting the environment variable `EMBRACE_ENABLE_TUIST_OBJC_LINK`, which is required when using the SDK in Tuist-generated projects.
 
 ## 6.8.4
 *Apr 1st, 2025*
-* Fixes
-    * Fixed an issue where some `NSURLSessionDelegate` methods were not being called when using `URLSessionCaptureService`.
-    * Fixed crashes that could occur with short-lived `WKWebView` instances when `WebViewCaptureService` was enabled.
+- Fixes
+  - Fixed an issue where some `NSURLSessionDelegate` methods were not being called when using `URLSessionCaptureService`.
+  - Fixed crashes that could occur with short-lived `WKWebView` instances when `WebViewCaptureService` was enabled.
 
 ## 6.8.3
 *Mar 18th, 2025*
-* Fixes
-    * Fixed some methods from `NSURLSessionDataDelegate` and `NSURLSessionDownloadDelegate` not being called when using a `URLSessionCaptureService`.
+- Fixes
+  - Fixed some methods from `NSURLSessionDataDelegate` and `NSURLSessionDownloadDelegate` not being called when using a `URLSessionCaptureService`.
 
 ## 6.8.2
 *Mar 10th, 2025*
-* Features
-    * Added the ability to add custom stack traces to logs with `StackTraceBehavior.custom`.
-    * The `TapCaptureService` can now be configured to capture taps on either start or end.
-* Fixes
-    * Potential fixes for core data related crashes.
-* Changes
-    * Deprecated `Embrace.Endpoints.developmentBaseURL`.
+- Features
+  - Added the ability to add custom stack traces to logs with `StackTraceBehavior.custom`.
+  - The `TapCaptureService` can now be configured to capture taps on either start or end.
+- Fixes
+  - Potential fixes for core data related crashes.
+- Changes
+  - Deprecated `Embrace.Endpoints.developmentBaseURL`.
 
 ## 6.8.1
 *Feb 12th, 2025*
-* Features
-    * Enabled Automatic View Capture functionallity by default.
-* Fixes
-    * Fixed an issue that causes incompatibilities with libraries/apps reusing the same `URLSessionDelegate` across multiple `URLSession` objects.
-* Changes
-    * Refactored the way we create proxy objects for `WKWebView` and `URLSession` instrumentation functionalities.
+- Features
+  - Enabled Automatic View Capture functionallity by default.
+- Fixes
+  - Fixed an issue that causes incompatibilities with libraries/apps reusing the same `URLSessionDelegate` across multiple `URLSession` objects.
+- Changes
+  - Refactored the way we create proxy objects for `WKWebView` and `URLSession` instrumentation functionalities.
 
 ## 6.8.0
 *Feb 6th, 2025*
-* Features
-    * Possibility to add attachments to logs
-    * Possibility to stop the Embrace SDK from capturing and generating data
-* Fixes
-    * Fixed an issue causing `WKWebView`s to crash when calling the delegate method `webView(_:didFinish:)` when `WebViewCaptureService` is enabled.
-    * Fixed some potential issues with different features using proxy mechanisms (e.g. `URLSession` & `UNUserNotificationCenter` instrumentation).
-* Changes
-    * Beginning the migration to a new way of storing data.
+- Features
+  - Possibility to add attachments to logs
+  - Possibility to stop the Embrace SDK from capturing and generating data
+- Fixes
+  - Fixed an issue causing `WKWebView`s to crash when calling the delegate method `webView(_:didFinish:)` when `WebViewCaptureService` is enabled.
+  - Fixed some potential issues with different features using proxy mechanisms (e.g. `URLSession` & `UNUserNotificationCenter` instrumentation).
+- Changes
+  - Beginning the migration to a new way of storing data.
 
 ## 6.7.1
 *Jan 22nd, 2025**
-* Fixes
-    * Fixed an issue that caused the crash `'Cannot form weak reference to instance X of class Y'`.
-    * Fixed an issue that prevented enabling/disabling certain functionalities.
-    * Fixed incompatibility issues with AppLovin.
+- Fixes
+  - Fixed an issue that caused the crash `'Cannot form weak reference to instance X of class Y'`.
+  - Fixed an issue that prevented enabling/disabling certain functionalities.
+  - Fixed incompatibility issues with AppLovin.
 
 ## 6.7.0
 *Jan 10th, 2025**
-* Features
-    * Improvements to the Automatic View Capture functionality, allowing attributes to be added to traces (`TTFR` and `TTI`) using the `addAttributesToTrace(_:)` method.
-* Fixes
-    * Fixed an issue causing crashes in views controllers with very short lifecycles (particularly in hosting controllers acting as internal bridges in SwiftUI).
-    * Fixed a bug causing compilation issues related to the use of `DispatchQueue`.
+- Features
+  - Improvements to the Automatic View Capture functionality, allowing attributes to be added to traces (`TTFR` and `TTI`) using the `addAttributesToTrace(_:)` method.
+- Fixes
+  - Fixed an issue causing crashes in views controllers with very short lifecycles (particularly in hosting controllers acting as internal bridges in SwiftUI).
+  - Fixed a bug causing compilation issues related to the use of `DispatchQueue`.
 
 ## 6.6.0
 *Dec 12th, 2024*
-* Features
-    * Added new instrumentation for the `ViewCaptureService`. Can be enabled through `ViewCaptureService.Options.instrumentFirstRender`.
-    * Added url blacklist for the `URLSessionCaptureService`. Can be configured through `URLSessionCaptureService.Options.ignoredURLs`.
-    * Added the ability to auto terminate spans if the session ends while the span is still open.
-    * Updated the OpenTelemetry dependency to v1.12.1 which fixes some concurrency related crashes.
-    * Improved logic around Embrace data uploads and retries.
-    * Deprecated `Span.markAsKeySpan()`.
-* Fixes
-    * Fixed the remote config parse sometimes failing.
-    * Fixed the remote config cache not working properly.
-    * Fixed crash logs sometimes not containing the session properties.
-    * Fixed keychain related crash/hang during startup.
-    * Fixed issues with the `WebViewCaptureService` that could lead to a crash.
-    * Fixed issue with the `URLSessionCaptureService` when dealing with `URLSessionDelegate` objects in Objective-C responding to methods without conforming to specific protocols.
+- Features
+  - Added new instrumentation for the `ViewCaptureService`. Can be enabled through `ViewCaptureService.Options.instrumentFirstRender`.
+  - Added url blacklist for the `URLSessionCaptureService`. Can be configured through `URLSessionCaptureService.Options.ignoredURLs`.
+  - Added the ability to auto terminate spans if the session ends while the span is still open.
+  - Updated the OpenTelemetry dependency to v1.12.1 which fixes some concurrency related crashes.
+  - Improved logic around Embrace data uploads and retries.
+  - Deprecated `Span.markAsKeySpan()`.
+- Fixes
+  - Fixed the remote config parse sometimes failing.
+  - Fixed the remote config cache not working properly.
+  - Fixed crash logs sometimes not containing the session properties.
+  - Fixed keychain related crash/hang during startup.
+  - Fixed issues with the `WebViewCaptureService` that could lead to a crash.
+  - Fixed issue with the `URLSessionCaptureService` when dealing with `URLSessionDelegate` objects in Objective-C responding to methods without conforming to specific protocols.
 
 ## 6.5.2
 *Nov 14th, 2024*
-* Features
-    * `EmbraceCrashReporter` now receives a list of signals to be ignored. `SIGTERM` is ignored by default now.
-* Fixes
-    * Fixed network payload capture rules not working.
-    * Fixed `WebViewCaptureService` preventing the web view delegate from receiving messages.
-    * Fixed `PushNotificationCaptureService` preventing the user notification delegate from receiving messages.
-    * Fixed log batching logic.
+- Features
+  - `EmbraceCrashReporter` now receives a list of signals to be ignored. `SIGTERM` is ignored by default now.
+- Fixes
+  - Fixed network payload capture rules not working.
+  - Fixed `WebViewCaptureService` preventing the web view delegate from receiving messages.
+  - Fixed `PushNotificationCaptureService` preventing the user notification delegate from receiving messages.
+  - Fixed log batching logic.
 
 ## 6.5.1
 *Oct 29th, 2024*
-* Features
-    * Improved performance during the startup of the SDK.
-* Fixes
-    * Fixed compilation errors in WatchOS.
-    * Fixed visibility of `LogLevel`.
+- Features
+  - Improved performance during the startup of the SDK.
+- Fixes
+  - Fixed compilation errors in WatchOS.
+  - Fixed visibility of `LogLevel`.
 
 ## 6.5.0
 *Oct 18th, 2024*
-* Features
-    * Removed `SwiftLint` from `Package.swift` as a dependency, which reduces the download size of our SDK and prevents dependency resolution conflicts.
-    * For those consuming the SDK without an `appId`, `Embrace.Options` now includes the possibility to provide custom configuration (implementing `EmbraceConfigurable`).
-* Fixes
-    * Fixed a linking conflict issue affecting some users both with SPM and CocoaPods.
-    * Implemented a fix to expose user customization methods (`userName`, `userEmail`, `userIdentifier`, and `clearUserProperties`) to Objective-C.
-    * Fixed a bug that caused the `Span.Status` to be incorrect when exporting a session ended due to a crash.
+- Features
+  - Removed `SwiftLint` from `Package.swift` as a dependency, which reduces the download size of our SDK and prevents dependency resolution conflicts.
+  - For those consuming the SDK without an `appId`, `Embrace.Options` now includes the possibility to provide custom configuration (implementing `EmbraceConfigurable`).
+- Fixes
+  - Fixed a linking conflict issue affecting some users both with SPM and CocoaPods.
+  - Implemented a fix to expose user customization methods (`userName`, `userEmail`, `userIdentifier`, and `clearUserProperties`) to Objective-C.
+  - Fixed a bug that caused the `Span.Status` to be incorrect when exporting a session ended due to a crash.
 
 ## 6.4.2
 *Oct 2nd, 2024*
-* Fixes
-    * Fixed crash in `URLSessionCaptureService`.
-    * Fixed network body capture logs not being exported.
-    * Fixed logic for background sessions.
-    * Fixed linker error on simulators in iOS 17.5 and below when using cocoapods.
+- Fixes
+  - Fixed crash in `URLSessionCaptureService`.
+  - Fixed network body capture logs not being exported.
+  - Fixed logic for background sessions.
+  - Fixed linker error on simulators in iOS 17.5 and below when using cocoapods.
 
 ## 6.4.1
 *Sep 26th, 2024*
-* Features
-    * Updated OpenTelemetry dependencies to v1.10.1.
-* Fixes
-    * Fixed logs not having resources from the session when being recovered during the SDK startup.
-    * Fixed crash with the `gtm-session-fetcher` library.
-    * Fixed KSCrash dependency compilation issues in Xcode 16.
+- Features
+  - Updated OpenTelemetry dependencies to v1.10.1.
+- Fixes
+  - Fixed logs not having resources from the session when being recovered during the SDK startup.
+  - Fixed crash with the `gtm-session-fetcher` library.
+  - Fixed KSCrash dependency compilation issues in Xcode 16.
 
 ## 6.4.0
 *Sep 13th, 2024*
-* Features
-    * Added the option to use the SDK without an `appId` using `Embrace.Options`.
-    * Introduced a new parameter in the `log` API: `stackTraceBehavior` to specify the behavior for automatically capturing stack traces within a log.
-    * Added the capability to securely capture the body of network requests.
-* Changes
-    * Removed `-dynamic` targets from Swift Package Manager.
-    * Discontinued capturing the screen resolution of devices.
-* Fixes
-    * Updated `GRDB` to the current latest version (`6.29.1`) to support Xcode 16.
-    * Addressed issues related to our service for capturing Network Requests with the new concurrency system (aka. `async` / `await`).
-    * Fixed a crash associated with being with another player proxying `URLSession`.
-    * Resolved an issue that prevented proper forwarding of calls to the original delegate when swizzling `URLSession` due to a retention issue.
-    * Corrected the public API `recordCompletedSpan` to set `Span.Status` consistently with other `end` methods.
+- Features
+  - Added the option to use the SDK without an `appId` using `Embrace.Options`.
+  - Introduced a new parameter in the `log` API: `stackTraceBehavior` to specify the behavior for automatically capturing stack traces within a log.
+  - Added the capability to securely capture the body of network requests.
+- Changes
+  - Removed `-dynamic` targets from Swift Package Manager.
+  - Discontinued capturing the screen resolution of devices.
+- Fixes
+  - Updated `GRDB` to the current latest version (`6.29.1`) to support Xcode 16.
+  - Addressed issues related to our service for capturing Network Requests with the new concurrency system (aka. `async` / `await`).
+  - Fixed a crash associated with being with another player proxying `URLSession`.
+  - Resolved an issue that prevented proper forwarding of calls to the original delegate when swizzling `URLSession` due to a retention issue.
+  - Corrected the public API `recordCompletedSpan` to set `Span.Status` consistently with other `end` methods.
 
 ## 6.3.0
 *Aug 7th, 2024*
-* Features
-    * Added new public target: `EmbraceSemantics` to expose constants and attributes used to extend OTel Semantic Conventions
-    * Added Cocoapods support
-    * Added logic to link an emitted `LogRecord` to the active span context
-    * Created new APIs for `W3C.traceparent` to be used to support manually instrumented network requests
-* Changes
-    * Update `Embrace` to expose `LogType` on the `log` method
-    * Renamed `LogType.default` to `LogType.message`
-    * Adds `MigrationService` in `EmbraceStorage` target to structure DB migrations that occur. Will perform migrations
+- Features
+  - Added new public target: `EmbraceSemantics` to expose constants and attributes used to extend OTel Semantic Conventions
+  - Added Cocoapods support
+  - Added logic to link an emitted `LogRecord` to the active span context
+  - Created new APIs for `W3C.traceparent` to be used to support manually instrumented network requests
+- Changes
+  - Update `Embrace` to expose `LogType` on the `log` method
+  - Renamed `LogType.default` to `LogType.message`
+  - Adds `MigrationService` in `EmbraceStorage` target to structure DB migrations that occur. Will perform migrations
 during SDK setup if any are outstanding. Converted existing DB schema to be initialized using migrations.
-* Fixes
-    * Fixed the public `addPersona(persona: String, lifespan: MetadataLifespan)` method which wasn't properly forwarding the `lifespan`
-    * Fixed a bug that caused a reentrancy issue with the database when persisting spans.
+- Fixes
+  - Fixed the public `addPersona(persona: String, lifespan: MetadataLifespan)` method which wasn't properly forwarding the `lifespan`
+  - Fixed a bug that caused a reentrancy issue with the database when persisting spans.
 
 ## 6.2.0
 
@@ -298,29 +305,29 @@ July 30th, 2024
 
 **Features**
 
-* Adds `PushNotificationCaptureService` to instrument notifications received using Apple's `UserNotifications` framework
-* Adds `Embrace.lastRunEndState` method to retrieve an indication of how the previous start of the SDK finished
-    * Provided values can be `unavailable, `crash`, and `cleanExit`
-* Adds `CaptureServiceBuilder` to provide easier interface to setup/configure `CaptureService` instances
-* Adds `Embrace.tracer(instrumentationName: String)` method to retrieve OpenTelemetry `Tracer`
-    * This is useful for manual instrumentation using the `OpenTelemetryApi` directly
-* Adds ability to set "User Personas" in the `MetadataHandler`
-    * User Personas are great ways to tag users and identify commonalities
-    * See `MetadataHandler+Personas` for interface definition
+- Adds `PushNotificationCaptureService` to instrument notifications received using Apple's `UserNotifications` framework
+- Adds `Embrace.lastRunEndState` method to retrieve an indication of how the previous start of the SDK finished
+  - Provided values can be `unavailable, `crash`, and `cleanExit`
+- Adds `CaptureServiceBuilder` to provide easier interface to setup/configure `CaptureService` instances
+- Adds `Embrace.tracer(instrumentationName: String)` method to retrieve OpenTelemetry `Tracer`
+  - This is useful for manual instrumentation using the `OpenTelemetryApi` directly
+- Adds ability to set "User Personas" in the `MetadataHandler`
+  - User Personas are great ways to tag users and identify commonalities
+  - See `MetadataHandler+Personas` for interface definition
 
-** Changes **
-* Updates `TapCaptureService` with options to better control data capture
-    * Allows you to ignore specific views by class, or to prevent coordinate capture
-    * Optional `TapCaptureServiceDelegate` to have fine grained control over tap capture
+*- Changes **
+- Updates `TapCaptureService` with options to better control data capture
+  - Allows you to ignore specific views by class, or to prevent coordinate capture
+  - Optional `TapCaptureServiceDelegate` to have fine grained control over tap capture
 
-** Fixes **
-* Fixes bug that prevented user properties from being included on an Embrace session
-* Cleanup of public interface and code level documentation
+*- Fixes **
+- Fixes bug that prevented user properties from being included on an Embrace session
+- Cleanup of public interface and code level documentation
 
 ## 6.1.1
 
 **Bug fixes**
-* Bumps version in EmbraceMeta.swift
+- Bumps version in EmbraceMeta.swift
 
 ## 6.1.0
 
@@ -328,23 +335,23 @@ July 3rd, 2024
 
 **Features**
 
-* Updates license to Apache 2.0
-* Adds `flush(_ span: Span)` method to manually write span data to disk
-* Adds `WebViewCaptureService` to instrument `WKWebView` interactions
-* Adds `EmbraceCrashlyticsSupport` target to read Crashlytics crash reports
-* Adds "Internal Log" functionality to allow for logs to be created to observe SDK behavior/health
-    * Will have attribute `emb.type = sys.internal` to differentiate from user logs (`emb.type = sys.log`)
+- Updates license to Apache 2.0
+- Adds `flush(_ span: Span)` method to manually write span data to disk
+- Adds `WebViewCaptureService` to instrument `WKWebView` interactions
+- Adds `EmbraceCrashlyticsSupport` target to read Crashlytics crash reports
+- Adds "Internal Log" functionality to allow for logs to be created to observe SDK behavior/health
+  - Will have attribute `emb.type = sys.internal` to differentiate from user logs (`emb.type = sys.log`)
 
-** Changes **
-* Updates upload of spans to the `v2/spans` endpoint
-* Adds migration functionality to `EmbraceStorage` target
-    * Updates SpanRecord table with `process_identifier` to better help Span recovery and recording of spans
+*- Changes **
+- Updates upload of spans to the `v2/spans` endpoint
+- Adds migration functionality to `EmbraceStorage` target
+  - Updates SpanRecord table with `process_identifier` to better help Span recovery and recording of spans
     during SDK setup
-* Creates CODE_OF_CONDUCT.md
+- Creates CODE_OF_CONDUCT.md
 
 **Bug fixes**
-* Fixes `URLSessionDelegateProxy` behavior when calling `URLSessionDelegate` methods
-  * Issue occurred when deciding when to call `task.delegate` vs. `session.delegate`
+- Fixes `URLSessionDelegateProxy` behavior when calling `URLSessionDelegate` methods
+  - Issue occurred when deciding when to call `task.delegate` vs. `session.delegate`
 
 
 ## 6.0.0
@@ -353,21 +360,21 @@ April 22nd, 2024
 
 **Features**
 
-* Initial release of the 6.0.0 SDK.
-* This major version introduces a new core architecture focusing on:
-  * [OpenTelemetry](https://github.com/open-telemetry/opentelemetry-swift) Tracing and Logging at its core.
-  * Persistence in SQLite using [GRDB](https://github.com/groue/GRDB.swift)
-  * Swift-first interface for developers of Apple platforms
-* Automatic Instrumentation of:
-  * Application Crash Reports
-  * Network Requests
-  * Device Low Power Mode
-  * Application Memory Warnings
-  * UIViewController appearance
-  * User Tap Gestures
-* Manual instrumentation using:
-  * Spans for Performance Tracing
-  * Log messages
-  * Breadcrumbs
-* Allows for generic export of Traces and Logs via the protocols in the [OpenTelemetrySdk](https://github.com/open-telemetry/opentelemetry-swift).
-* Allows for custom Automatic Instrumentation via `CaptureService` subclasses
+- Initial release of the 6.0.0 SDK.
+- This major version introduces a new core architecture focusing on:
+  - [OpenTelemetry](https://github.com/open-telemetry/opentelemetry-swift) Tracing and Logging at its core.
+  - Persistence in SQLite using [GRDB](https://github.com/groue/GRDB.swift)
+  - Swift-first interface for developers of Apple platforms
+- Automatic Instrumentation of:
+  - Application Crash Reports
+  - Network Requests
+  - Device Low Power Mode
+  - Application Memory Warnings
+  - UIViewController appearance
+  - User Tap Gestures
+- Manual instrumentation using:
+  - Spans for Performance Tracing
+  - Log messages
+  - Breadcrumbs
+- Allows for generic export of Traces and Logs via the protocols in the [OpenTelemetrySdk](https://github.com/open-telemetry/opentelemetry-swift).
+- Allows for custom Automatic Instrumentation via `CaptureService` subclasses
