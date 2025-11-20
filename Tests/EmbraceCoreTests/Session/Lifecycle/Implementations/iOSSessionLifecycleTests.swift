@@ -311,6 +311,81 @@ import XCTest
 
             XCTAssertEqual(lifecycle.currentState, .background)
         }
+
+        // MARK: main thread enforcement
+        @MainActor
+        func test_startSession_calledOnMainThread_succeeds() {
+            // given lifecycle is setup on main thread
+            lifecycle.setup()
+
+            // when calling startSession on main thread
+            lifecycle.startSession()
+
+            // then it succeeds without precondition failure
+            XCTAssertTrue(mockController.didCallStartSession)
+        }
+
+        @MainActor
+        func test_endSession_calledOnMainThread_succeeds() {
+            // given lifecycle is setup on main thread
+            lifecycle.setup()
+            mockController.startSession(state: .foreground)
+
+            // when calling endSession on main thread
+            lifecycle.endSession()
+
+            // then it succeeds without precondition failure
+            XCTAssertTrue(mockController.didCallStartSession)
+        }
+
+        // MARK: notification handling on main thread
+        @MainActor
+        func test_appDidBecomeActive_firesOnMainThread_startsSession() {
+            // given lifecycle listening for notifications
+            lifecycle.setup()
+
+            // when app becomes active notification fires on main thread
+            NotificationCenter.default.post(name: UIApplication.didBecomeActiveNotification, object: nil)
+
+            // then session is started
+            XCTAssertTrue(mockController.didCallStartSession)
+            XCTAssertEqual(mockController.currentSession?.state, "foreground")
+        }
+
+        @MainActor
+        func test_appDidEnterBackground_firesOnMainThread_startsBackgroundSession() {
+            // given lifecycle listening for notifications with foreground session
+            lifecycle.setup()
+            mockController.startSession(state: .foreground)
+            mockController.didCallStartSession = false
+
+            // when app enters background notification fires on main thread
+            NotificationCenter.default.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
+
+            // then background session is started
+            XCTAssertTrue(mockController.didCallStartSession)
+            XCTAssertEqual(mockController.currentSession?.state, "background")
+        }
+
+        @MainActor
+        func test_appWillTerminate_firesOnMainThread_updatesSession() {
+            // given lifecycle listening for notifications with active session
+            lifecycle.setup()
+            mockController.startSession(state: .foreground)
+
+            var didUpdateAppTerminated = false
+            mockController.onUpdateSession { _, _, appTerminated in
+                if appTerminated == true {
+                    didUpdateAppTerminated = true
+                }
+            }
+
+            // when app will terminate notification fires on main thread
+            NotificationCenter.default.post(name: UIApplication.willTerminateNotification, object: nil)
+
+            // then session is updated with appTerminated
+            XCTAssertTrue(didUpdateAppTerminated)
+        }
     }
 
 #endif
