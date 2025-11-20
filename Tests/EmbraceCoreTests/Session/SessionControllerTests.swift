@@ -478,6 +478,227 @@ final class SessionControllerTests: XCTestCase {
             lastDate = controller.currentSession!.lastHeartbeatTime
         }
     }
+
+    func test_heartbeat_runsOnMainThread() throws {
+        // given a session controller with fast heartbeat
+        var heartbeatThread: Thread?
+        let controller = SessionController(storage: storage, upload: nil, config: nil, heartbeatInterval: 0.05)
+        controller.sdkStateProvider = sdkStateProvider
+
+        // when starting a session
+        controller.startSession(state: .foreground)
+
+        // then wait for heartbeat to fire
+        wait(delay: 0.2)
+
+        // then capture thread during heartbeat update
+        let expectation = expectation(description: "heartbeat fires")
+        controller.heartbeat.callback = {
+            heartbeatThread = Thread.current
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 1.0)
+
+        // then verify heartbeat ran on main thread
+        XCTAssertTrue(heartbeatThread?.isMainThread ?? false, "Heartbeat should run on main thread")
+    }
+
+    func test_heartbeat_doesNotCauseThreadingIssuesDuringRapidSessionTransitions() throws {
+        // given a session controller with very fast heartbeat
+        let controller = SessionController(
+            storage: storage,
+            upload: nil,
+            config: nil,
+            heartbeatInterval: 0.02
+        )
+        controller.sdkStateProvider = sdkStateProvider
+
+        // when starting session (starts heartbeat)
+        controller.startSession(state: .foreground)
+
+        // when rapidly transitioning sessions while heartbeat is running
+        for _ in 0..<20 {
+            wait(delay: 0.01)
+            controller.startSession(state: .foreground)
+        }
+
+        // then no crashes occurred and we have a valid session
+        XCTAssertNotNil(controller.currentSession)
+    }
+
+    // MARK: notification timing
+
+    func test_startSession_notificationFiresAfterSessionStateIsSet() throws {
+        var notificationSession: EmbraceSession?
+        var controllerSessionAtNotificationTime: EmbraceSession?
+
+        let observer = NotificationCenter.default.addObserver(
+            forName: .embraceSessionDidStart,
+            object: nil,
+            queue: nil
+        ) { notification in
+            notificationSession = notification.object as? EmbraceSession
+            controllerSessionAtNotificationTime = self.controller.currentSession
+        }
+
+        defer { NotificationCenter.default.removeObserver(observer) }
+
+        let session = controller.startSession(state: .foreground)
+
+        // then notification received correct session
+        XCTAssertEqual(notificationSession?.id, session?.id)
+        // then controller state was already updated when notification fired
+        XCTAssertEqual(controllerSessionAtNotificationTime?.id, session?.id)
+    }
+
+    func test_endSession_notificationFiresBeforeSessionCleared() throws {
+        var sessionAtNotificationTime: EmbraceSession?
+        var controllerSessionDuringWillEnd: EmbraceSession?
+
+        controller.startSession(state: .foreground)
+        let originalSession = controller.currentSession
+
+        let observer = NotificationCenter.default.addObserver(
+            forName: .embraceSessionWillEnd,
+            object: nil,
+            queue: nil
+        ) { notification in
+            sessionAtNotificationTime = notification.object as? EmbraceSession
+            // Controller should still have session when willEnd fires
+            controllerSessionDuringWillEnd = self.controller.currentSession
+        }
+
+        defer { NotificationCenter.default.removeObserver(observer) }
+
+        controller.endSession()
+
+        // then notification received correct session
+        XCTAssertEqual(sessionAtNotificationTime?.id, originalSession?.id)
+        // then controller still had session during willEnd notification
+        XCTAssertEqual(controllerSessionDuringWillEnd?.id, originalSession?.id)
+        // then controller session is now cleared after endSession completes
+        XCTAssertNil(controller.currentSession)
+    }
+
+    // MARK: firstSession thread safety
+
+    func test_firstSession_coldStart_subsequentSessionsNotColdStart() throws {
+        // when starting first session
+        let session1 = controller.startSession(state: .foreground)
+
+        // then first session should be cold start
+        XCTAssertTrue(session1!.coldStart)
+
+        // when starting subsequent sessions
+        for i in 1...10 {
+            let session = controller.startSession(state: .foreground)
+            // then they should not be cold start
+            XCTAssertFalse(session!.coldStart, "Session \(i) should not be cold start")
+        }
+    }
+
+    func test_rapidSessionTransitions_maintainsFirstSessionFlag() throws {
+        // when starting and ending sessions rapidly
+        for i in 0..<100 {
+            let session = controller.startSession(state: .foreground)
+
+            if i == 0 {
+                // then first session should be cold start
+                XCTAssertTrue(session!.coldStart, "First session should be cold start")
+            } else {
+                // then subsequent sessions should not be cold start
+                XCTAssertFalse(session!.coldStart, "Session \(i) should not be cold start")
+            }
+
+            // end some sessions to test varied patterns
+            if i % 2 == 0 {
+                controller.endSession()
+            }
+        }
+    }
+
+    // MARK: session transition atomicity
+
+    func test_startSession_endsCurrentSession_thenStartsNew() throws {
+        // given first session
+        let session1 = controller.startSession(state: .foreground)!
+        let session1Id = session1.id
+
+        // when starting second session (should end first, then start second)
+        let session2 = controller.startSession(state: .foreground)!
+        let session2Id = session2.id
+
+        // then they're different sessions
+        XCTAssertNotEqual(session1Id, session2Id)
+
+        // then controller has new session
+        XCTAssertEqual(controller.currentSession?.id, session2Id)
+
+        // then first session was ended in storage
+        let endedSession1 = storage.fetchSession(id: session1Id!)
+        XCTAssertNotNil(endedSession1?.endTime)
+    }
+
+    func test_startSession_whenPreviousSessionExists_oldSessionAccessibleDuringWillEndNotification() throws {
+        var sessionsDuringWillEnd: [EmbraceSession?] = []
+
+        // given observer tracking session state during transition
+        let observer = NotificationCenter.default.addObserver(
+            forName: .embraceSessionWillEnd,
+            object: nil,
+            queue: nil
+        ) { _ in
+            // during willEnd, should still have old session accessible
+            sessionsDuringWillEnd.append(self.controller.currentSession)
+        }
+
+        defer { NotificationCenter.default.removeObserver(observer) }
+
+        // when starting first session
+        let session1 = controller.startSession(state: .foreground)
+
+        // when starting second session (triggers willEnd for first)
+        let session2 = controller.startSession(state: .foreground)
+
+        // then old session was accessible during willEnd notification
+        XCTAssertEqual(sessionsDuringWillEnd.count, 1)
+        XCTAssertEqual(sessionsDuringWillEnd[0]?.id, session1!.id)
+
+        // then new session is now current
+        XCTAssertEqual(controller.currentSession?.id, session2!.id)
+    }
+
+    // MARK: background session with cold start
+
+    func test_coldStartBackgroundSession_transitionsToForeground_notDropped() throws {
+        // given background sessions disabled
+        let controller = SessionController(
+            storage: storage,
+            upload: nil,
+            config: nil
+        )
+        controller.sdkStateProvider = sdkStateProvider
+
+        // when starting cold start session in background
+        let session = controller.startSession(state: .background)
+
+        // then session is created
+        XCTAssertNotNil(session)
+        XCTAssertTrue(session!.coldStart)
+        XCTAssertEqual(session!.state, "background")
+
+        // when updating to foreground (simulating grace period transition)
+        controller.update(state: .foreground)
+
+        // when session ends
+        controller.endSession()
+
+        // then the session is stored (not dropped because it transitioned to foreground)
+        let sessions: [SessionRecord] = storage.fetchAll()
+        XCTAssertEqual(sessions.count, 1)
+        XCTAssertEqual(sessions.first?.state, "foreground")
+    }
 }
 
 extension SessionControllerTests {

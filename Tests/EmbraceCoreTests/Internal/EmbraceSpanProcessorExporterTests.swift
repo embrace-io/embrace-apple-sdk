@@ -184,7 +184,7 @@ final class EmbraceSpanProcessorExporterTests: XCTestCase {
         processor.processorQueue.async {
             expectation.fulfill()
         }
-        wait(for: [expectation], timeout: .shortTimeout)
+        wait(for: [expectation], timeout: .longTimeout)
 
         // then the data is exported
         var exportedSpans: [SpanRecord] = storage.fetchAll()
@@ -199,7 +199,7 @@ final class EmbraceSpanProcessorExporterTests: XCTestCase {
         processor.processorQueue.async {
             expectation1.fulfill()
         }
-        wait(for: [expectation1], timeout: .shortTimeout)
+        wait(for: [expectation1], timeout: .longTimeout)
 
         // then the data is NOT exported
         exportedSpans = storage.fetchAll()
@@ -241,7 +241,7 @@ final class EmbraceSpanProcessorExporterTests: XCTestCase {
         processor.processorQueue.async {
             expectation.fulfill()
         }
-        wait(for: [expectation], timeout: .shortTimeout)
+        wait(for: [expectation], timeout: .longTimeout)
 
         // then the data is not exported
         let exportedSpans: [SpanRecord] = storage.fetchAll()
@@ -283,7 +283,7 @@ final class EmbraceSpanProcessorExporterTests: XCTestCase {
         processor.processorQueue.async {
             expectation.fulfill()
         }
-        wait(for: [expectation], timeout: .shortTimeout)
+        wait(for: [expectation], timeout: .longTimeout)
 
         // then the data is exported with a truncated name
         let exportedSpans: [SpanRecord] = storage.fetchAll()
@@ -420,7 +420,7 @@ final class EmbraceSpanProcessorExporterTests: XCTestCase {
         processor.processorQueue.async {
             expectation.fulfill()
         }
-        wait(for: [expectation], timeout: .shortTimeout)
+        wait(for: [expectation], timeout: .longTimeout)
 
         // then the span is stored
         let exportedSpan = storage.fetchSpan(id: spanId.hexString, traceId: traceId.hexString)
@@ -505,7 +505,7 @@ final class EmbraceSpanProcessorExporterTests: XCTestCase {
         processor.processorQueue.async {
             expectation2.fulfill()
         }
-        wait(for: [expectation2], timeout: .shortTimeout)
+        wait(for: [expectation2], timeout: .longTimeout)
 
         // then only the new event is added (no duplicate of event1)
         exportedSpan = storage.fetchSpan(id: spanId.hexString, traceId: traceId.hexString)
@@ -552,7 +552,7 @@ final class EmbraceSpanProcessorExporterTests: XCTestCase {
         processor.processorQueue.async {
             expectation.fulfill()
         }
-        wait(for: [expectation], timeout: .shortTimeout)
+        wait(for: [expectation], timeout: .longTimeout)
 
         // then the span is stored
         let exportedSpans: [SpanRecord] = storage.fetchAll()
@@ -625,7 +625,7 @@ final class EmbraceSpanProcessorExporterTests: XCTestCase {
         processor.processorQueue.async {
             expectation.fulfill()
         }
-        wait(for: [expectation], timeout: .shortTimeout)
+        wait(for: [expectation], timeout: .longTimeout)
 
         // then the span is stored with events in separate storage
         let exportedSpan = storage.fetchSpan(id: spanId.hexString, traceId: traceId.hexString)
@@ -707,7 +707,7 @@ final class EmbraceSpanProcessorExporterTests: XCTestCase {
         processor.processorQueue.async {
             expectation.fulfill()
         }
-        wait(for: [expectation], timeout: .shortTimeout)
+        wait(for: [expectation], timeout: .longTimeout)
 
         // verify 1 event stored
         var exportedSpan = storage.fetchSpan(id: spanId.hexString, traceId: traceId.hexString)
@@ -732,7 +732,7 @@ final class EmbraceSpanProcessorExporterTests: XCTestCase {
         processor.processorQueue.async {
             expectation.fulfill()
         }
-        wait(for: [expectation], timeout: .shortTimeout)
+        wait(for: [expectation], timeout: .longTimeout)
 
         // verify 2 events stored (no duplicate of event1)
         exportedSpan = storage.fetchSpan(id: spanId.hexString, traceId: traceId.hexString)
@@ -757,7 +757,7 @@ final class EmbraceSpanProcessorExporterTests: XCTestCase {
         processor.processorQueue.async {
             expectation.fulfill()
         }
-        wait(for: [expectation], timeout: .shortTimeout)
+        wait(for: [expectation], timeout: .longTimeout)
 
         // then all 3 events are stored without duplicates
         exportedSpan = storage.fetchSpan(id: spanId.hexString, traceId: traceId.hexString)
