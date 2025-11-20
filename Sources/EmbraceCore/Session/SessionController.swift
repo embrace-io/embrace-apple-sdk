@@ -31,18 +31,19 @@ class SessionController: SessionControllable {
     private let _attachmentCount = EmbraceAtomic<Int32>(0)
     internal var attachmentCount: Int { Int(_attachmentCount.load()) }
 
-    // Lock used for session boundaries. Will be shared at both start/end of session
-    private let lock = UnfairLock()
+    // All mutable state is main thread affined
     private weak var logBatcher: LogBatcher?
     weak var storage: EmbraceStorage?
     weak var upload: EmbraceUpload?
-    private let uploader: SessionUploader
     weak var config: EmbraceConfig?
     weak var sdkStateProvider: EmbraceSDKStateProvider?
+
+    private let uploader: SessionUploader
 
     private struct SessionInfo {
         var session: EmbraceSession? = nil
         var sessionSpan: Span? = nil
+        var firstSession: Bool = true
     }
     private let _session: EmbraceMutex<SessionInfo> = EmbraceMutex(SessionInfo())
     var currentSession: EmbraceSession? {
@@ -58,7 +59,6 @@ class SessionController: SessionControllable {
 
     let heartbeat: SessionHeartbeat
     let queue: DispatchableQueue
-    var firstSession = true
 
     init(
         storage: EmbraceStorage,
@@ -66,15 +66,14 @@ class SessionController: SessionControllable {
         uploader: SessionUploader = DefaultSessionUploader(),
         config: EmbraceConfig?,
         heartbeatInterval: TimeInterval = SessionHeartbeat.defaultInterval,
-        queue: DispatchableQueue = .with(label: "com.embrace.session_controller_upload"),
-        heartbeatQueue: DispatchQueue = DispatchQueue(label: "com.embrace.session_heartbeat")
+        queue: DispatchableQueue = .with(label: "com.embrace.session_controller_upload")
     ) {
         self.storage = storage
         self.upload = upload
         self.uploader = uploader
         self.config = config
 
-        self.heartbeat = SessionHeartbeat(queue: heartbeatQueue, interval: heartbeatInterval)
+        self.heartbeat = SessionHeartbeat(queue: DispatchQueue.main, interval: heartbeatInterval)
         self.queue = queue
 
         self.heartbeat.callback = { [weak self] in
@@ -104,80 +103,90 @@ class SessionController: SessionControllable {
     @discardableResult
     func startSession(state: SessionState, startTime: Date = Date()) -> EmbraceSession? {
 
-        // we lock after end session to avoid a deadlock
+        dispatchPrecondition(condition: .onQueue(.main))
+
+        let nextSessionInfo: (session: EmbraceSession?, span: Span?)
+        defer {
+
+            _session.withLock {
+                $0.session = nextSessionInfo.session
+                $0.sessionSpan = nextSessionInfo.span
+                $0.firstSession = false
+            }
+
+            // post notification
+            if let session = nextSessionInfo.session {
+                NotificationCenter.default.post(name: .embraceSessionDidStart, object: session)
+            }
+
+        }
+
+        // Read current session info
         let inProgressSessionInfo = _session.safeValue
-        let sessionInfo: (session: EmbraceSession?, span: Span?) = lock.locked {
 
-            // end current session first
-            if inProgressSessionInfo.session != nil {
-                endSessionNoLock(inProgressSessionInfo.session, inProgressSessionInfo.sessionSpan)
-            }
-
-            guard sdkStateProvider?.isEnabled == true else {
-                return (nil, nil)
-            }
-
-            guard let storage = storage else {
-                return (nil, nil)
-            }
-
-            // detect cold start
-            let isColdStart = firstSession
-
-            // Don't start background session if the config is disabled.
-            //
-            // Note: There's an exception for the cold start session:
-            // We start the session anyways and we drop it when it ends if
-            // it's still considered a background session.
-            // Due to how iOS works we can't know for sure the state when the
-            // app starts, so we need to delay the logic!
-            //
-            // +
-            if isColdStart == false && state == .background && backgroundSessionsEnabled == false {
-                return (nil, nil)
-            }
-            // -
-
-            // create session span
-            let newId = EmbraceIdentifier.random
-            let span = SessionSpanUtils.span(id: newId, startTime: startTime, state: state, coldStart: isColdStart)
-
-            // create session record and save it
-            let session = storage.addSession(
-                id: newId,
-                processId: ProcessIdentifier.current,
-                state: state,
-                traceId: span.context.traceId.hexString,
-                spanId: span.context.spanId.hexString,
-                startTime: startTime,
-                coldStart: isColdStart
-            )
-
-            // start heartbeat
-            heartbeat.start()
-
-            firstSession = false
-            _attachmentCount.store(0)
-
-            return (session: session, span: span)
+        // Do session work
+        // end current session first
+        if inProgressSessionInfo.session != nil {
+            _endSession(inProgressSessionInfo.session, inProgressSessionInfo.sessionSpan, clear: false)
         }
 
-        _session.withLock {
-            $0.session = sessionInfo.session
-            $0.sessionSpan = sessionInfo.span
+        guard sdkStateProvider?.isEnabled == true else {
+            nextSessionInfo = (nil, nil)
+            return nextSessionInfo.session
         }
 
-        // post notification
-        if let session = sessionInfo.session {
-            NotificationCenter.default.post(name: .embraceSessionDidStart, object: session)
+        guard let storage = storage else {
+            nextSessionInfo = (nil, nil)
+            return nextSessionInfo.session
         }
 
-        return sessionInfo.session
+        // detect cold start - now thread-safe as firstSession is in _session
+        let isColdStart = inProgressSessionInfo.firstSession
+
+        // Don't start background session if the config is disabled.
+        //
+        // Note: There's an exception for the cold start session:
+        // We start the session anyways and we drop it when it ends if
+        // it's still considered a background session.
+        // Due to how iOS works we can't know for sure the state when the
+        // app starts, so we need to delay the logic!
+        //
+        // +
+        if isColdStart == false && state == .background && backgroundSessionsEnabled == false {
+            nextSessionInfo = (nil, nil)
+            return nextSessionInfo.session
+        }
+        // -
+
+        // create session span
+        let newId = EmbraceIdentifier.random
+        let span = SessionSpanUtils.span(id: newId, startTime: startTime, state: state, coldStart: isColdStart)
+
+        // create session record and save it
+        let session = storage.addSession(
+            id: newId,
+            processId: ProcessIdentifier.current,
+            state: state,
+            traceId: span.context.traceId.hexString,
+            spanId: span.context.spanId.hexString,
+            startTime: startTime,
+            coldStart: isColdStart
+        )
+
+        // start heartbeat
+        heartbeat.start()
+
+        _attachmentCount.store(0)
+
+        nextSessionInfo = (session, span)
+        return nextSessionInfo.session
     }
 
-    /// Ends the session session taking into account that the lock is held externally
+    /// Ends the session session
     @discardableResult
-    private func endSessionNoLock(_ inProgressSession: EmbraceSession?, _ inProgressSessionSpan: Span?) -> Date {
+    private func _endSession(_ inProgressSession: EmbraceSession?, _ inProgressSessionSpan: Span?, clear: Bool) -> Date {
+
+        dispatchPrecondition(condition: .onQueue(.main))
 
         guard let inProgressSession else {
             return Date()
@@ -188,7 +197,7 @@ class SessionController: SessionControllable {
         let now = Date()
 
         guard sdkStateProvider?.isEnabled == true else {
-            deleteNoLock(inProgressSession)
+            _delete(inProgressSession, clear: clear)
             return now
         }
 
@@ -198,7 +207,7 @@ class SessionController: SessionControllable {
         if inProgressSession.coldStart == true && inProgressSession.state == SessionState.background.rawValue
             && backgroundSessionsEnabled == false
         {
-            deleteNoLock(inProgressSession)
+            _delete(inProgressSession, clear: clear)
             return now
         }
         // -
@@ -207,11 +216,7 @@ class SessionController: SessionControllable {
         EmbraceOTel.processor?.autoTerminateSpans()
 
         // post public notification
-        // This is behind a lock, this is a problem, so we move it to the main queue so it runs after this code.
-        let mainQueueSession = inProgressSession
-        DispatchQueue.main.async {
-            NotificationCenter.default.post(name: .embraceSessionWillEnd, object: mainQueueSession)
-        }
+        NotificationCenter.default.post(name: .embraceSessionWillEnd, object: inProgressSession)
 
         // end log batches
         logBatcher?.forceEndCurrentBatch(waitUntilFinished: true)
@@ -243,11 +248,13 @@ class SessionController: SessionControllable {
         }
 
         // upload session
-        uploadSessionNoLock(sessionToUpload)
+        _uploadSession(sessionToUpload)
 
-        _session.withLock {
-            $0.session = nil
-            $0.sessionSpan = nil
+        if clear {
+            _session.withLock {
+                $0.session = nil
+                $0.sessionSpan = nil
+            }
         }
 
         return now
@@ -258,24 +265,18 @@ class SessionController: SessionControllable {
     /// - Returns: The `endTime` of the session
     @discardableResult
     func endSession() -> Date {
+        dispatchPrecondition(condition: .onQueue(.main))
+
         let sessionInfo = _session.safeValue
-        return lock.locked {
-            endSessionNoLock(sessionInfo.session, sessionInfo.sessionSpan)
-        }
+        return _endSession(sessionInfo.session, sessionInfo.sessionSpan, clear: true)
     }
 
     func update(state: SessionState) {
-        let sessionInfo = _session.safeValue
-        lock.locked {
-            guard let session = sessionInfo.session else {
-                return
-            }
 
-            let updatedSession = storage?.updateSession(session: session, state: state)
-            _session.withLock {
-                $0.session = updatedSession
-            }
-
+        dispatchPrecondition(condition: .onQueue(.main))
+        _session.withLock { sessionInfo in
+            guard let session = sessionInfo.session else { return }
+            sessionInfo.session = storage?.updateSession(session: session, state: state)
             if let span = sessionInfo.sessionSpan {
                 SessionSpanUtils.setState(span: span, state: state)
                 Embrace.client?.flush(span)
@@ -284,17 +285,11 @@ class SessionController: SessionControllable {
     }
 
     func update(appTerminated: Bool) {
-        let sessionInfo = _session.safeValue
-        lock.locked {
-            guard let session = sessionInfo.session else {
-                return
-            }
 
-            let updatedSession = storage?.updateSession(session: session, appTerminated: appTerminated)
-            _session.withLock {
-                $0.session = updatedSession
-            }
-
+        dispatchPrecondition(condition: .onQueue(.main))
+        _session.withLock { sessionInfo in
+            guard let session = sessionInfo.session else { return }
+            sessionInfo.session = storage?.updateSession(session: session, appTerminated: appTerminated)
             if let span = sessionInfo.sessionSpan {
                 SessionSpanUtils.setTerminated(span: span, terminated: appTerminated)
                 Embrace.client?.flush(span)
@@ -303,17 +298,11 @@ class SessionController: SessionControllable {
     }
 
     func update(heartbeat: Date) {
-        let sessionInfo = _session.safeValue
-        lock.locked {
-            guard let session = sessionInfo.session else {
-                return
-            }
 
-            let updatedSession = storage?.updateSession(session: session, lastHeartbeatTime: heartbeat)
-            _session.withLock {
-                $0.session = updatedSession
-            }
-
+        dispatchPrecondition(condition: .onQueue(.main))
+        _session.withLock { sessionInfo in
+            guard let session = sessionInfo.session else { return }
+            sessionInfo.session = storage?.updateSession(session: session, lastHeartbeatTime: heartbeat)
             if let span = sessionInfo.sessionSpan {
                 SessionSpanUtils.setHeartbeat(span: span, heartbeat: heartbeat)
                 Embrace.client?.flush(span)
@@ -321,7 +310,7 @@ class SessionController: SessionControllable {
         }
     }
 
-    func uploadSessionNoLock(_ session: EmbraceSession?) {
+    func _uploadSession(_ session: EmbraceSession?) {
         guard let storage = storage,
             let upload = upload,
             let session
@@ -335,8 +324,7 @@ class SessionController: SessionControllable {
     }
 
     func uploadSession() {
-        let session: EmbraceSession? = _session.withLock { $0.session }
-        lock.locked { uploadSessionNoLock(session) }
+        _uploadSession(_session.safeValue.session)
     }
 
     func increaseAttachmentCount() {
@@ -350,22 +338,20 @@ extension SessionController {
     }
 
     private func delete() {
-        let info = _session.safeValue
-        lock.locked { deleteNoLock(info.session) }
+        _delete(_session.safeValue.session, clear: true)
     }
 
-    private func deleteNoLock(_ session: EmbraceSession?) {
-        guard let session else {
-            return
-        }
-
-        if let sessionId = session.id {
+    private func _delete(_ session: EmbraceSession?, clear: Bool) {
+        dispatchPrecondition(condition: .onQueue(.main))
+        if let sessionId = session?.id {
             storage?.deleteSession(id: sessionId)
         }
 
-        _session.withLock {
-            $0.session = nil
-            $0.sessionSpan = nil
+        if clear {
+            _session.withLock {
+                $0.session = nil
+                $0.sessionSpan = nil
+            }
         }
     }
 }

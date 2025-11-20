@@ -429,26 +429,26 @@ import Foundation
     /// Forces the Embrace SDK to start a new session.
     /// - Note: If there was a session running, it will be ended before starting a new one.
     /// - Note: This method won't do anything if the SDK is stopped.
+    /// - Important: This method should be called from the main thread.
     @objc public func startNewSession() {
         guard isSDKEnabled else {
             return
         }
 
-        processingQueue.async {
-            self.sessionLifecycle.startSession()
-        }
+        dispatchPrecondition(condition: .onQueue(.main))
+        self.sessionLifecycle.startSession()
     }
 
     /// Forces the Embrace SDK to stop the current session, if any.
     /// - Note: This method won't do anything if the SDK is stopped.
+    /// - Important: This method should be called from the main thread.
     @objc public func endCurrentSession() {
         guard isSDKEnabled else {
             return
         }
 
-        processingQueue.async {
-            self.sessionLifecycle.endSession()
-        }
+        dispatchPrecondition(condition: .onQueue(.main))
+        self.sessionLifecycle.endSession()
     }
 
     /// Call this if you want the Embrace SDK to clear the upload cache data on the next launch.

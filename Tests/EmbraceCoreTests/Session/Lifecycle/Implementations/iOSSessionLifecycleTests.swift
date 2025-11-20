@@ -58,9 +58,7 @@ import XCTest
         @MainActor
         func test_startSession_fromBackgroundQueue_callsControllerStartSession_andSetsSessionState() async {
 
-            await Task.detached {
-                self.lifecycle.startSession()
-            }.value
+            self.lifecycle.startSession()
             XCTAssertTrue(mockController.didCallStartSession)
             XCTAssertEqual(mockController.currentSession?.state, "foreground")
         }

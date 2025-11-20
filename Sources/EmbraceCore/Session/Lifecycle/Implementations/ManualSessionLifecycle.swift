@@ -22,6 +22,8 @@ class ManualSessionLifecycle: SessionLifecycle {
     }
 
     func startSession() {
+        assert(Thread.isMainThread, "ManualSessionLifecycle.startSession() must be called on the main thread")
+
         guard active else {
             return
         }
@@ -30,6 +32,8 @@ class ManualSessionLifecycle: SessionLifecycle {
     }
 
     func endSession() {
+        assert(Thread.isMainThread, "ManualSessionLifecycle.endSession() must be called on the main thread")
+
         guard active else {
             return
         }

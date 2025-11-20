@@ -46,6 +46,7 @@
         }
 
         func startSession() {
+            dispatchPrecondition(condition: .onQueue(.main))
             guard active else {
                 return
             }
@@ -54,6 +55,8 @@
         }
 
         func endSession() {
+            dispatchPrecondition(condition: .onQueue(.main))
+
             guard active else {
                 return
             }
