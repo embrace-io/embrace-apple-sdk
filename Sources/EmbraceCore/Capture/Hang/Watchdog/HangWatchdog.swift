@@ -8,6 +8,13 @@ import Foundation
     import EmbraceCommonInternal
 #endif
 
+/// Names of notifications sent for hang events.
+extension Notification.Name {
+    public static let embraceHangStarted = Notification.Name("io.embrace.HangStarted")
+    public static let embraceHangUpdated = Notification.Name("io.embrace.HangUpdated")
+    public static let embraceHangEnded = Notification.Name("io.embrace.HangEnded")
+}
+
 /// Protocol for objects that observe hang detection events.
 /// Implement these methods to handle the various phases of a detected hang.
 ///
