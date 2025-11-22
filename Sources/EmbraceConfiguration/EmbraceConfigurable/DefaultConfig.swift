@@ -42,6 +42,7 @@ public class DefaultConfig: EmbraceConfigurable {
     public let networkPayloadCaptureRules = [NetworkPayloadCaptureRule]()
 
     public let useLegacyUrlSessionProxy = false
+    public let memoryCaptureEnabled = true
 
     public let useNewStorageForSpanEvents = false
 

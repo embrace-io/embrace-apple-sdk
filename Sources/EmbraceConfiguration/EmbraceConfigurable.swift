@@ -41,6 +41,8 @@ import Foundation
 
     var networkPayloadCaptureRules: [NetworkPayloadCaptureRule] { get }
 
+    var memoryCaptureEnabled: Bool { get }
+
     var hangLimits: HangLimits { get }
 
     var useLegacyUrlSessionProxy: Bool { get }
