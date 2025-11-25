@@ -4,8 +4,10 @@
 
 import Foundation
 import OpenTelemetryApi
+import OpenTelemetrySdk
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
     import EmbraceSemantics
 #endif
 
@@ -49,6 +51,27 @@ extension Span {
         }
 
         end(time: time)
+    }
+}
+
+extension ReadableSpan {
+    public var embType: SpanType {
+        if let raw = getAttributes()[SpanSemantics.keyEmbraceType] {
+            switch raw {
+            case let .string(val):
+                return SpanType(rawValue: val) ?? .performance
+            default:
+                break
+            }
+        }
+        return .performance
+    }
+
+    var errorCode: SpanErrorCode? {
+        guard let value = getAttributes()[SpanSemantics.keyErrorCode] else {
+            return nil
+        }
+        return SpanErrorCode(rawValue: value.description)
     }
 }
 

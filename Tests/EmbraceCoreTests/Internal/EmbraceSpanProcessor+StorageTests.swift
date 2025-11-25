@@ -19,10 +19,12 @@ final class EmbraceSpanProcessor_StorageTests: XCTestCase {
         defer { storage.coreData.destroy() }
 
         let processor = EmbraceSpanProcessor(
-            spanExporter: StorageSpanExporter(
-                storage: storage,
-                logger: MockLogger()
-            ),
+            spanExporters: [
+                StorageSpanExporter(
+                    storage: storage,
+                    logger: MockLogger()
+                )
+            ],
             sdkStateProvider: sdkStateProvider,
             criticalResourceGroup: DispatchGroup()
         )
