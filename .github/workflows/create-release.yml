@@ -186,6 +186,9 @@ jobs:
       - name: Select Xcode 15
         run: sudo xcode-select -switch /Applications/Xcode_15.4.app
 
+      - name: Install Ruby dependencies
+        run: bundle install
+
       - name: Build XCFrameworks
         run: |
           # Run build script to generate xcframeworks
