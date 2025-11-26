@@ -33,6 +33,8 @@ echo "XCFrameworks directory: $XCFRAMEWORKS_DIR"
 # ------------------------------------------------------------------------------
 # This header is needed by almost all modules. It defines namespace macros to
 # prevent symbol conflicts when multiple versions of KSCrash exist in the same binary.
+# This is included since KSCrash 2.4.0, so this is also needed to be copied to each
+# framework's Headers directory.
 NAMESPACE_HEADER="$KSCRASH_SOURCE_DIR/Sources/KSCrashCore/include/KSCrashNamespace.h"
 
 # Verify the file exists before proceeding

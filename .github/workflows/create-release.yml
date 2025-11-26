@@ -288,12 +288,7 @@ jobs:
         run: |
           echo "::notice::Creating Release $RC_VERSION in Github"
           if gh release view $RC_VERSION --repo embrace-io/embrace-apple-sdk > /dev/null 2>&1; then
-            if [ "$IS_PRODUCTION_READY" == "false" ]; then
-              echo "::warning::Release $RC_VERSION already exists; uploading/updating artifact..."
-              gh release upload $RC_VERSION embrace_$RC_VERSION.zip --clobber --repo embrace-io/embrace-apple-sdk
-            else
-              echo "::warning::Version '$RC_VERSION' already exists in GitHub. Cannot update a production release. Skipping and continuing"
-            fi
+            echo "::warning::Version '$RC_VERSION' already exists in GitHub. Skipping and continuing"
           else
             PRERELEASE_FLAG=""
             if [ "$IS_PRODUCTION_READY" == "false" ]; then

@@ -37,6 +37,7 @@ PRODUCTS=(
 )
 
 # SDKs to build for
+# Note: currently, this process is not working for tvOS or watchOS due to KSCrash limitations.
 SDKS="iphoneos,iphonesimulator"
 
 # ==============================================================================
