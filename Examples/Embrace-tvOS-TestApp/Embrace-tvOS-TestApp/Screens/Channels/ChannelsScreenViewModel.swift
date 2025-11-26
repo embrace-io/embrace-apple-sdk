@@ -28,7 +28,7 @@ class ChannelsScreenViewModel: ObservableObject {
         
         do {
             wwdcData = try await fetchController.fetchWWDCData()
-            await loadSessionThumbnails()
+            await loadSessionThumbnails(for: 2018)
             status = .success
         } catch {
             status = .failed(error: error)
@@ -61,24 +61,29 @@ class ChannelsScreenViewModel: ObservableObject {
         }
     }
     
-    private func loadSessionThumbnails() async {
-        yearsWithAvailableMedia.forEach { year in
-            guard year == 2018 else { return }
-            sessionsFor(year: year).forEach { session in
-                guard
-                    let media = session.media,
-                    let streaUrl = media.streamUrl,
-                    let url = URL(string: streaUrl)
-                else { return }
-                
+    private func loadSessionThumbnails(for year: Int) async {
+        let queue = OperationQueue()
+        queue.maxConcurrentOperationCount = 7
+        
+        sessionsFor(year: year).forEach { session in
+            guard
+                let media = session.media,
+                let streaUrl = media.streamUrl,
+                let url = URL(string: streaUrl)
+            else { return }
+            
+            let operation = BlockOperation {
+                let semaphore = DispatchSemaphore(value: 0)
                 let asset = AVURLAsset(url: url)
                 AVAssetImageGenerator(asset: asset).generateCGImageAsynchronously(for: .init(seconds: 360, preferredTimescale: 60)) { image, _, _ in
-                    guard let image = image else { return }
+                    semaphore.signal()
                     DispatchQueue.main.async {
-                        self.thumbnails[year, default:[:]][session.id] = image
+                        self.thumbnails[year, default:[:]][session.id] = image ?? UIImage(systemName: "icloud.slash")?.cgImage
                     }
                 }
+                semaphore.wait()
             }
+            queue.addOperation(operation)
         }
     }
 }
