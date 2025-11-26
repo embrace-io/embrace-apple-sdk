@@ -56,6 +56,9 @@ sonar-output
 *.xcodeproj
 **/Derived/
 
+## CI
+binaries/
+
 ## Examples
 Examples/AppSizeTester/*.xcodeproj
 Examples/AppSizeTester/*.xcworkspace
