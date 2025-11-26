@@ -5,6 +5,7 @@
 //
 
 import Foundation
+import CoreGraphics
 
 struct WWDCSession: Decodable {
     let id: String
