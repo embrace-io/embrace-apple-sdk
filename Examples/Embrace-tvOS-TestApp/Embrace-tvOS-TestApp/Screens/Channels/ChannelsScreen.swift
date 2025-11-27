@@ -26,6 +26,7 @@ struct ChannelsScreen: View {
                     ForEach(viewModel.sessionsFor(year: 2018), id: \.id) { session in
                         generateThumbnail(for: session)
                             .focusable(true)
+                            .padding(.bottom, 50)
                     }
                 }
             }
@@ -60,11 +61,11 @@ struct ChannelsScreen: View {
 //        }
     }
     
-    func generateThumbnail(for session: WWDCSession) -> Image {
+    func generateThumbnail(for session: WWDCSession) -> ChannelThumbnailView {
         guard let image = viewModel.thumbnails[2018]?[session.id] else {
-            return Image(systemName: "music.note")
+            return ChannelThumbnailView(systemName: viewModel.placeholderSystemImage(for: session.id, year: 2018))
         }
-        return Image(decorative: image, scale: 1.0)
+        return ChannelThumbnailView(thumbnailImage: image)
     }
 }
 
