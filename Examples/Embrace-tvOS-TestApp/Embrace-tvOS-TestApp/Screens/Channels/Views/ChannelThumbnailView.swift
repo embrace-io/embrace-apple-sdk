@@ -9,7 +9,7 @@ import SwiftUI
 struct ChannelThumbnailView: View {
     var thumbnailImage: CGImage?
     var systemName: String?
-    
+
     init(thumbnailImage: CGImage) {
         self.thumbnailImage = thumbnailImage
     }
@@ -53,11 +53,12 @@ struct ChannelThumbnailView: View {
                 .scaledToFit()
                 .padding(usingSystemImage ? 90 : -20)
                 .colorMultiply(usingSystemImage ? .embraceSilver : .white)
+            
         }
         .frame(width: 480, height: 240)
-        .clipShape(.rect(cornerRadius: 25))
-        .shadow(color: .gray, radius: 2, x: 0, y: 0)
     }
+    
+    
 }
 
 

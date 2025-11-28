@@ -17,16 +17,28 @@ struct ChannelsScreen: View {
     @StateObject var playerManager = PlayerManager()
 
     @State var thumbnails = [String: CGImage]()
-    
+    @FocusState var focusedSession: WWDCSession?
+
     var body: some View {
         switch viewModel.status {
             case .success:
+            Text("\(focusedSession?.title ?? "")")
             ScrollView(.vertical, showsIndicators: false) {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 100)), count: 3)) {
                     ForEach(viewModel.sessionsFor(year: 2018), id: \.id) { session in
-                        generateThumbnail(for: session)
-                            .focusable(true)
-                            .padding(.bottom, 50)
+                        Button {} label: {
+                            generateThumbnail(for: session)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 25)
+                                        .stroke(.embraceSilver, lineWidth: focusedSession == session ? 4:0)
+                                )
+                        }
+                        .buttonStyle(.borderless)
+                        .clipShape(.rect(cornerRadius: 25))
+                        .shadow(color: .gray, radius: 2, x: 0, y: 0)
+                        .padding(.top, 50)
+                        .focused($focusedSession, equals: session)
+                        .scaleEffect(focusedSession == session ? 1.2 : 1.0)
                     }
                 }
             }

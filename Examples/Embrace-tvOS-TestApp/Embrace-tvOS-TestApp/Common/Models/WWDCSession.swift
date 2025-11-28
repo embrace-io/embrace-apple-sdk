@@ -46,3 +46,5 @@ struct WWDCSession: Decodable {
         self.media = try container.decodeIfPresent(WWDCMedia.self, forKey: .media)
     }
 }
+
+extension WWDCSession: Hashable {}

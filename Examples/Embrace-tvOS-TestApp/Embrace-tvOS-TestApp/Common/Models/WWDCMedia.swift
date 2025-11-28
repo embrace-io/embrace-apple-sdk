@@ -28,3 +28,5 @@ struct WWDCMedia: Codable {
         self.streamState = try container.decodeIfPresent(String.self, forKey: .streamState)
     }
 }
+
+extension WWDCMedia: Hashable {}
