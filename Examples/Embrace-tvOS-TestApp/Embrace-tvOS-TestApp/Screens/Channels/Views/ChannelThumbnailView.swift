@@ -7,40 +7,18 @@
 import SwiftUI
 
 struct ChannelThumbnailView: View {
-    var thumbnailImage: CGImage?
-    var systemName: String?
-
-    init(thumbnailImage: CGImage) {
-        self.thumbnailImage = thumbnailImage
-    }
-    
-    init(systemName: String) {
-        self.systemName = systemName
-    }
-
-    init () {
-        self.systemName = nil
-        self.thumbnailImage = nil
-    }
-
-    private var image: CGImage {
-        if let thumbnailImage = thumbnailImage {
-            return thumbnailImage
-        }
-        
-        if let systemName = systemName {
-            return (UIImage(systemName: systemName)?.cgImage ?? fallbackImage)
-        }
-    
-        return fallbackImage
-    }
+    var thumbnail: ChannelThumbnail
     
     private var fallbackImage: CGImage {
         UIImage(systemName: "exclamationmark.triangle")!.cgImage!
     }
     
-    private var usingSystemImage: Bool {
-        thumbnailImage == nil
+    private var usingPlaceholder: Bool {
+        thumbnail.isPlaceholder
+    }
+    
+    private var image: CGImage {
+        return thumbnail.image ?? fallbackImage
     }
     
     var body: some View {
@@ -48,11 +26,11 @@ struct ChannelThumbnailView: View {
             Rectangle()
                 .foregroundStyle(.embraceLead)
             Image(decorative: image, scale: 1.0)
-                .renderingMode(usingSystemImage ? .template : .original)
+                .renderingMode(usingPlaceholder ? .template : .original)
                 .resizable()
                 .scaledToFit()
-                .padding(usingSystemImage ? 90 : -20)
-                .colorMultiply(usingSystemImage ? .embraceSilver : .white)
+                .padding(usingPlaceholder ? 90 : -20)
+                .colorMultiply(usingPlaceholder ? .embraceSilver : .white)
             
         }
         .frame(width: 480, height: 240)
@@ -63,5 +41,5 @@ struct ChannelThumbnailView: View {
 
 
 #Preview {
-    ChannelThumbnailView()
+    ChannelThumbnailView(thumbnail: .init(image: nil, isPlaceholder: true))
 }

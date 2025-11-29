@@ -7,7 +7,7 @@
 import Foundation
 import CoreGraphics
 
-struct WWDCSession: Decodable {
+struct WWDCSession: Decodable, Encodable {
     let id: String
     let title: String
     let description: String?
@@ -48,3 +48,24 @@ struct WWDCSession: Decodable {
 }
 
 extension WWDCSession: Hashable {}
+
+extension WWDCSession {
+    static var mockData: Data {
+        """
+        {
+          "id": "1234",
+          "title": "Mock Video Title",
+          "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
+          "eventId": "Mock_Event_Id",
+          "eventContentId": "101",
+          "year": 2025,
+          "topic": "iOS",
+          "speakers": ["John Doe", "John Appleseed"],
+          "platforms": ["iOS", "Mac OS", "tvOS"],
+          "media": {
+            "duration": 1234
+          }
+        }
+        """.data(using: .utf8, allowLossyConversion: false)!
+    }
+}

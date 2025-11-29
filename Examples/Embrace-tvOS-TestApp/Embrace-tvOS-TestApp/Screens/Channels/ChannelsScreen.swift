@@ -13,6 +13,7 @@ import Combine
 
 
 struct ChannelsScreen: View {
+    @Environment(AppNavigator.self) var navigator
     @StateObject private var viewModel = ChannelsScreenViewModel(fetchController: FetchController())
     @StateObject var playerManager = PlayerManager()
 
@@ -26,8 +27,10 @@ struct ChannelsScreen: View {
             ScrollView(.vertical, showsIndicators: false) {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 100)), count: 3)) {
                     ForEach(viewModel.sessionsFor(year: 2018), id: \.id) { session in
-                        Button {} label: {
-                            generateThumbnail(for: session)
+                        Button {
+                            viewModel.userSelectedSession(session)
+                        } label: {
+                            ChannelThumbnailView(thumbnail: viewModel.thumbnailFor(session))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 25)
                                         .stroke(.embraceSilver, lineWidth: focusedSession == session ? 4:0)
@@ -42,9 +45,13 @@ struct ChannelsScreen: View {
                     }
                 }
             }
+            .fullScreenCover(isPresented: $viewModel.showDetails) {
+                ChannelDetailViewScreen(viewModel: viewModel)
+            }
         default:
             Text("Loading...")
         }
+            
 //        VStack {
 //              // The built-in SwiftUI VideoPlayer
 //              VideoPlayer(player: playerManager.player)
@@ -72,17 +79,11 @@ struct ChannelsScreen: View {
 //            playerManager.url = session.media!.streamUrl!
 //        }
     }
-    
-    func generateThumbnail(for session: WWDCSession) -> ChannelThumbnailView {
-        guard let image = viewModel.thumbnails[2018]?[session.id] else {
-            return ChannelThumbnailView(systemName: viewModel.placeholderSystemImage(for: session.id, year: 2018))
-        }
-        return ChannelThumbnailView(thumbnailImage: image)
-    }
 }
 
 #Preview {
     ChannelsScreen()
+        .environment(AppNavigator())
 }
 
 class PlayerManager: ObservableObject {

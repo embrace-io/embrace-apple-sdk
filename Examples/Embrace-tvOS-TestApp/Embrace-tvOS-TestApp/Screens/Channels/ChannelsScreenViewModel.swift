@@ -7,6 +7,7 @@
 import Combine
 import Foundation
 import AVKit
+import SwiftUI
 
 @MainActor
 class ChannelsScreenViewModel: ObservableObject {
@@ -15,6 +16,8 @@ class ChannelsScreenViewModel: ObservableObject {
     private let fetchController: FetchController
     @Published private(set) var thumbnails: [Int: [String: CGImage]] = [:]
     private var sessionWithUnavailableThumbnails: [Int: [String]] = [:]
+    @Published var showDetails: Bool = false
+    private(set) var selectedSession: WWDCSession? = nil
     
     init(fetchController: FetchController) {
         self.fetchController = fetchController
@@ -36,6 +39,13 @@ class ChannelsScreenViewModel: ObservableObject {
         }
     }
     
+    func userSelectedSession(_ session: WWDCSession) {
+        selectedSession = session
+        withAnimation {
+            showDetails.toggle()
+        }
+    }
+    
     func sessionsFor(year: Int) -> [WWDCSession] {
         guard let wwdcData = wwdcData else { return [] }
         
@@ -50,8 +60,17 @@ class ChannelsScreenViewModel: ObservableObject {
         return onlyWithAvailableMedia.sorted { $0.eventContentId < $1.eventContentId }
     }
     
-    func placeholderSystemImage(for sessionId: String, year: Int) -> String {
-        if sessionWithUnavailableThumbnails[year]?.contains(sessionId) ?? false {
+    func thumbnailFor(_ session: WWDCSession) -> ChannelThumbnail {
+        guard let image = thumbnails[session.year]?[session.id] else {
+            let placeholder = UIImage(systemName: placeholderSystemImage(for: session))?.cgImage
+            return .init(image: placeholder, isPlaceholder: true)
+        }
+        
+        return .init(image: image, isPlaceholder: false)
+    }
+    
+    private func placeholderSystemImage(for session: WWDCSession) -> String {
+        if sessionWithUnavailableThumbnails[session.year]?.contains(session.id) ?? false {
             return "xmark.icloud"
         }
         
@@ -99,3 +118,4 @@ class ChannelsScreenViewModel: ObservableObject {
         }
     }
 }
+
