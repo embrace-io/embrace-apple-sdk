@@ -13,17 +13,20 @@ import Combine
 
 
 struct ChannelsScreen: View {
-    @Environment(AppNavigator.self) var navigator
     @StateObject private var viewModel = ChannelsScreenViewModel(fetchController: FetchController())
     @StateObject var playerManager = PlayerManager()
 
     @State var thumbnails = [String: CGImage]()
     @FocusState var focusedSession: WWDCSession?
 
+    private var currentSelected: WWDCSession? {
+        focusedSession ?? viewModel.selectedSession
+    }
+    
     var body: some View {
         switch viewModel.status {
             case .success:
-            Text("\(focusedSession?.title ?? "")")
+            Text("\(currentSelected?.title ?? "")")
             ScrollView(.vertical, showsIndicators: false) {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 100)), count: 3)) {
                     ForEach(viewModel.sessionsFor(year: 2018), id: \.id) { session in
@@ -33,7 +36,7 @@ struct ChannelsScreen: View {
                             ChannelThumbnailView(thumbnail: viewModel.thumbnailFor(session))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 25)
-                                        .stroke(.embraceSilver, lineWidth: focusedSession == session ? 4:0)
+                                        .stroke(.embraceSilver, lineWidth: currentSelected == session ? 4:0)
                                 )
                         }
                         .buttonStyle(.borderless)
@@ -41,43 +44,36 @@ struct ChannelsScreen: View {
                         .shadow(color: .gray, radius: 2, x: 0, y: 0)
                         .padding(.top, 50)
                         .focused($focusedSession, equals: session)
-                        .scaleEffect(focusedSession == session ? 1.2 : 1.0)
+                        .scaleEffect(currentSelected == session ? 1.2 : 1.0)
                     }
                 }
             }
             .fullScreenCover(isPresented: $viewModel.showDetails) {
-                ChannelDetailViewScreen(viewModel: viewModel)
+                ZStack {
+                    Color.black.opacity(0.9)
+                    ChannelDetailViewScreen(viewModel: viewModel)
+                }
+            }
+            .fullScreenCover(isPresented: $viewModel.startPlayer) {
+                VideoPlayer(player: playerManager.player)
+                    .onAppear {
+                        guard let streamUrl = viewModel.selectedSession?.media?.streamUrl
+                        else {
+                            viewModel.startPlayer.toggle()
+                            return
+                        }
+                        playerManager.url = streamUrl
+                        playerManager.initializePlayer()
+                    }
+            }
+            .onChange(of: viewModel.startPlayer) {
+                if viewModel.startPlayer == false {
+                    playerManager.player.pause()
+                }
             }
         default:
             Text("Loading...")
         }
-            
-//        VStack {
-//              // The built-in SwiftUI VideoPlayer
-//              VideoPlayer(player: playerManager.player)
-//                .frame(height: 500)
-//                
-//
-//              // Basic playback controls
-//              HStack {
-//                Button("Play") {
-//                  playerManager.playVideo()
-//                }
-//                .padding(.horizontal, 10)
-//
-//                Button("Pause") {
-//                  playerManager.pauseVideo()
-//                }
-//                .padding(.horizontal, 10)
-//              }
-//            }
-//        .onChange(of: viewModel.status) { oldValue, newValue in
-//            guard newValue == .success else { return }
-//            guard let year = viewModel.yearsWithAvailableMedia.first else { return }
-//            let session = viewModel.sessionsFor(year: 2018)!.first!
-//            
-//            playerManager.url = session.media!.streamUrl!
-//        }
     }
 }
 
@@ -127,7 +123,7 @@ class PlayerManager: ObservableObject {
       .sink { status in
         switch status {
         case .readyToPlay:
-          print("Ready to play!")
+            self.player.play()
         case .failed:
           // This can happen if the stream is invalid or the URL is blocked
           print("Something went wrong with playback.")

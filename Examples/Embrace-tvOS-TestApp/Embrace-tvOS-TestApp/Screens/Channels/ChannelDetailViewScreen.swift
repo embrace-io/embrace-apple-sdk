@@ -48,7 +48,7 @@ struct ChannelDetailViewScreen: View {
             }
             .padding(.bottom, 40)
             Button {
-                
+                viewModel.playVideo()
             } label: {
                 Image(systemName: "play.fill")
             }

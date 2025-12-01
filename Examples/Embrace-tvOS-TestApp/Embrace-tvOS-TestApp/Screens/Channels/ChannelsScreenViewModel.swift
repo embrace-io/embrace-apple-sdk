@@ -18,6 +18,7 @@ class ChannelsScreenViewModel: ObservableObject {
     private var sessionWithUnavailableThumbnails: [Int: [String]] = [:]
     @Published var showDetails: Bool = false
     private(set) var selectedSession: WWDCSession? = nil
+    @Published var startPlayer: Bool = false
     
     init(fetchController: FetchController) {
         self.fetchController = fetchController
@@ -43,6 +44,16 @@ class ChannelsScreenViewModel: ObservableObject {
         selectedSession = session
         withAnimation {
             showDetails.toggle()
+        }
+    }
+    
+    func playVideo() {
+        withAnimation {
+            showDetails = false
+        } completion: {
+            withAnimation {
+                self.startPlayer = true
+            }
         }
     }
     
