@@ -48,6 +48,7 @@ struct ChannelsScreen: View {
                     Color.black.opacity(0.9)
                     ChannelDetailViewScreen(viewModel: viewModel)
                 }
+                .ignoresSafeArea(.all)
             }
             .fullScreenCover(isPresented: $viewModel.startPlayer) {
                 VideoPlayer(player: playerManager.player)
@@ -60,6 +61,7 @@ struct ChannelsScreen: View {
                         playerManager.url = streamUrl
                         playerManager.initializePlayer()
                     }
+                    .ignoresSafeArea(.all)
             }
             .onChange(of: viewModel.startPlayer) {
                 if viewModel.startPlayer == false {
