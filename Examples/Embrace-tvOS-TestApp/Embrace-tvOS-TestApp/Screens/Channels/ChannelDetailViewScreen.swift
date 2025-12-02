@@ -5,7 +5,9 @@
 //
 
 import SwiftUI
+import EmbraceMacros
 
+@EmbraceTrace
 struct ChannelDetailViewScreen: View {
     let viewModel: ChannelsScreenViewModel
 

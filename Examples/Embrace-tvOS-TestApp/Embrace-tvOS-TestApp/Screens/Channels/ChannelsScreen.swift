@@ -5,6 +5,7 @@
 //
 
 import SwiftUI
+import EmbraceMacros
 import AVKit
 
 struct ChannelsScreen: View {
@@ -62,14 +63,17 @@ struct ChannelsScreen: View {
                         playerManager.initializePlayer()
                     }
                     .ignoresSafeArea(.all)
+                    .embraceTrace("ChannelsScreen: Playing Video")
             }
             .onChange(of: viewModel.startPlayer) {
                 if viewModel.startPlayer == false {
                     playerManager.player.pause()
                 }
             }
+            .embraceTrace("ChannelsScreen: Displaying Channels State")
         default:
             Text("Loading...")
+                .embraceTrace("ChannelsScreen: Loading State")
         }
     }
 }
