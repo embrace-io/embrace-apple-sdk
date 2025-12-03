@@ -12,7 +12,7 @@ struct WWDCData: Decodable {
     let schema: Int
     var sessions: [WWDCSession]
     var events: [WWDCEvent]
-    
+
     enum CodingKeys: CodingKey {
         case updated
         case source
@@ -20,7 +20,7 @@ struct WWDCData: Decodable {
         case sessions
         case events
     }
-    
+
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.updated = try container.decode(String.self, forKey: .updated)

@@ -17,7 +17,7 @@ enum ChannelsScreenViewModelStatus: Equatable {
             return false
         }
     }
-    
+
     case notStarted
     case fetching
     case success

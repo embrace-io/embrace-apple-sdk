@@ -4,9 +4,9 @@
 //
 //
 
-import SwiftUI
-import EmbraceMacros
 import AVKit
+import EmbraceMacros
+import SwiftUI
 
 struct ChannelsScreen: View {
     @StateObject private var viewModel = ChannelsScreenViewModel(fetchController: FetchController())
@@ -18,10 +18,10 @@ struct ChannelsScreen: View {
     private var currentSelected: WWDCSession? {
         focusedSession ?? viewModel.selectedSession
     }
-    
+
     var body: some View {
         switch viewModel.status {
-            case .success:
+        case .success:
             Text("\(currentSelected?.title ?? "")")
             ScrollView(.vertical, showsIndicators: false) {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(minimum: 100)), count: 3)) {
@@ -32,7 +32,7 @@ struct ChannelsScreen: View {
                             ChannelThumbnailView(thumbnail: viewModel.thumbnailFor(session))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 25)
-                                        .stroke(.embraceSilver, lineWidth: currentSelected == session ? 4:0)
+                                        .stroke(.embraceSilver, lineWidth: currentSelected == session ? 4 : 0)
                                 )
                         }
                         .buttonStyle(.borderless)

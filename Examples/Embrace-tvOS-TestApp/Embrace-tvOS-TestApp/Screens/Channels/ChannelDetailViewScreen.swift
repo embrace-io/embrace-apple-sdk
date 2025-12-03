@@ -4,8 +4,8 @@
 //
 //
 
-import SwiftUI
 import EmbraceMacros
+import SwiftUI
 
 @EmbraceTrace
 struct ChannelDetailViewScreen: View {
@@ -14,23 +14,23 @@ struct ChannelDetailViewScreen: View {
     private var fallbackImage: CGImage {
         UIImage(systemName: "xmark.icloud")!.cgImage!
     }
-    
+
     private var image: CGImage {
         guard let selectedSession = viewModel.selectedSession else {
             return fallbackImage
         }
-        
+
         return viewModel.thumbnailFor(selectedSession).image ?? fallbackImage
     }
-    
+
     private var usingPlaceholder: Bool {
         guard let selectedSession = viewModel.selectedSession else {
             return true
         }
-        
+
         return viewModel.thumbnailFor(selectedSession).isPlaceholder
     }
-    
+
     var body: some View {
         VStack {
             HStack {

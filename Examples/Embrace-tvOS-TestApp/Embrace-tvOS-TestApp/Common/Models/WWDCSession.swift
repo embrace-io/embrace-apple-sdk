@@ -4,8 +4,8 @@
 //
 //
 
-import Foundation
 import CoreGraphics
+import Foundation
 
 struct WWDCSession: Decodable, Encodable {
     let id: String
@@ -18,7 +18,7 @@ struct WWDCSession: Decodable, Encodable {
     let speakers: [String]?
     let platforms: [String]?
     let media: WWDCMedia?
-    
+
     enum CodingKeys: CodingKey {
         case id
         case title
@@ -31,7 +31,7 @@ struct WWDCSession: Decodable, Encodable {
         case platforms
         case media
     }
-    
+
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.id = try container.decode(String.self, forKey: .id)
