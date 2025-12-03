@@ -228,16 +228,12 @@ struct SessionTaskResumeSwizzler: URLSessionSwizzler {
                 return { [weak handler = self.handler] task in
                     let handled = handler?.create(task: task) ?? true
 
-                    // if the task was handled by this swizzler
-                    // by the time resume was called it probably means
-                    // it was an async/await task
-                    // we set a proxy delegate to get a callback when the task finishes
-                    #if os(watchOS)
-                        let ignoreIsBackground = false
-                    #else
-                        let ignoreIsBackground = true
-                    #endif
-                    if ignoreIsBackground || objc_getAssociatedObject(task, "IsBackground") is Bool {
+                    // setting task delegate on background tasks is not supported and throws an exception.
+                    if !task.isBackgroundTask {
+                        // if the task was handled by this swizzler
+                        // by the time resume was called it probably means
+                        // it was an async/await task
+                        // we set a proxy delegate to get a callback when the task finishes
                         if handled, let handler = handler, task.state == .suspended {
                             let originalDelegate = task.delegate
                             task.delegate = EmbraceMakeURLSessionDelegateProxy(originalDelegate, handler)
