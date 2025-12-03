@@ -65,4 +65,8 @@ extension URLSessionTask {
                 .OBJC_ASSOCIATION_RETAIN)
         }
     }
+
+    var isBackgroundTask: Bool {
+        String(describing: type(of: self)) == "__NSCFBackgroundDataTask"
+    }
 }
