@@ -232,11 +232,11 @@ struct SessionTaskResumeSwizzler: URLSessionSwizzler {
                     // by the time resume was called it probably means
                     // it was an async/await task
                     // we set a proxy delegate to get a callback when the task finishes
-#if os(watchOS)
-                    let ignoreIsBackground = false
-#else
-                    let ignoreIsBackground = true
-#endif
+                    #if os(watchOS)
+                        let ignoreIsBackground = false
+                    #else
+                        let ignoreIsBackground = true
+                    #endif
                     if ignoreIsBackground || objc_getAssociatedObject(task, "IsBackground") is Bool {
                         if handled, let handler = handler, task.state == .suspended {
                             let originalDelegate = task.delegate
