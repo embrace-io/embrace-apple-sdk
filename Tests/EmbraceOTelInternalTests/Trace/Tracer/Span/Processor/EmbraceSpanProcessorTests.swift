@@ -12,12 +12,25 @@ import XCTest
 
 final class EmbraceSpanProcessorTests: XCTestCase {
 
+    var processor: EmbraceSpanProcessor!
+
+    var childProcessor: InMemorySpanProcessor!
     var exporter: InMemorySpanExporter!
     var sdkStateProvider: MockEmbraceSDKStateProvider!
 
     override func setUpWithError() throws {
+        childProcessor = InMemorySpanProcessor()
         exporter = InMemorySpanExporter()
         sdkStateProvider = MockEmbraceSDKStateProvider()
+
+        processor = EmbraceSpanProcessor(
+            spanProcessors: [childProcessor],
+            spanExporters: [exporter],
+            sdkStateProvider: sdkStateProvider,
+            sessionIdProvider: {
+                TestConstants.sessionId.stringValue
+            }
+        )
     }
 
     func createSpanData(
@@ -64,7 +77,6 @@ final class EmbraceSpanProcessorTests: XCTestCase {
 
     func test_startSpan_sdkDisabled() throws {
         sdkStateProvider.isEnabled = false
-        let processor = EmbraceSpanProcessor(spanExporter: exporter, sdkStateProvider: sdkStateProvider, criticalResourceGroup: DispatchGroup())
 
         let expectation = expectation(description: "didExport onStart not called")
         expectation.isInverted = true
@@ -78,9 +90,7 @@ final class EmbraceSpanProcessorTests: XCTestCase {
         XCTAssertEqual(exporter.exportedSpans.count, 0)
     }
 
-    func test_startSpan_callsExporter() throws {
-        let processor = EmbraceSpanProcessor(spanExporter: exporter, sdkStateProvider: sdkStateProvider)
-
+    func test_startSpan_callsChilds() throws {
         let expectation = expectation(description: "didExport onStart")
         exporter.onExportComplete {
             expectation.fulfill()
@@ -89,12 +99,11 @@ final class EmbraceSpanProcessorTests: XCTestCase {
         let span = createSpanData(processor: processor)  // DEV: `startSpan` called in this method
 
         wait(for: [expectation], timeout: .defaultTimeout)
+        XCTAssertNotNil(childProcessor.startedSpans[span.context.spanId])
         XCTAssertNotNil(exporter.exportedSpans[span.context.spanId])
     }
 
     func test_startSpan_doesNotSetSpanStatus() throws {
-        let processor = EmbraceSpanProcessor(spanExporter: exporter, sdkStateProvider: sdkStateProvider)
-
         let expectation = expectation(description: "didExport onStart")
         exporter.onExportComplete {
             expectation.fulfill()
@@ -103,13 +112,54 @@ final class EmbraceSpanProcessorTests: XCTestCase {
         let span = createSpanData(processor: processor)  // DEV: `startSpan` called in this method
 
         wait(for: [expectation], timeout: .defaultTimeout)
-        let exportedSpan = try XCTUnwrap(exporter.exportedSpans[span.context.spanId])
-        XCTAssertEqual(exportedSpan.status, .unset)
+        XCTAssertEqual(childProcessor.startedSpans[span.context.spanId]!.status, .unset)
+        XCTAssertEqual(exporter.exportedSpans[span.context.spanId]!.status, .unset)
+    }
+
+    func test_startSpan_sanitizesName() throws {
+        let expectation = expectation(description: "didExport onStart")
+        exporter.onExportComplete {
+            expectation.fulfill()
+        }
+
+        let name = String(repeating: ".", count: 200)
+        XCTAssertEqual(name.count, 200)
+
+        let span = createSpanData(processor: processor, name: name)  // DEV: `startSpan` called in this method
+
+        wait(for: [expectation], timeout: .defaultTimeout)
+        XCTAssertEqual(childProcessor.startedSpans[span.context.spanId]!.name.count, 128)
+        XCTAssertEqual(exporter.exportedSpans[span.context.spanId]!.name.count, 128)
+    }
+
+    func test_startSpan_doestNotExportEmptyName() throws {
+        let expectation = expectation(description: "didExport onStart")
+        exporter.onExportComplete {
+            expectation.fulfill()
+        }
+
+        let span = createSpanData(processor: processor, name: "     ")  // DEV: `startSpan` called in this method
+
+        wait(for: [expectation], timeout: .defaultTimeout)
+        XCTAssertNotNil(childProcessor.startedSpans[span.context.spanId])
+        XCTAssertNil(exporter.exportedSpans[span.context.spanId])
+    }
+
+    func test_startSpan_addsSessionIdAttribute() throws {
+        let expectation = expectation(description: "didExport onStart")
+        exporter.onExportComplete {
+            expectation.fulfill()
+        }
+
+        let span = createSpanData(processor: processor)  // DEV: `startSpan` called in this method
+
+        wait(for: [expectation], timeout: .defaultTimeout)
+        XCTAssertEqual(childProcessor.startedSpans[span.context.spanId]!.attributes["session.id"], .string(TestConstants.sessionId.stringValue))
+        XCTAssertEqual(exporter.exportedSpans[span.context.spanId]!.attributes["session.id"], .string(TestConstants.sessionId.stringValue))
     }
 
     func test_endingSpan_sdkDisabled() throws {
         sdkStateProvider.isEnabled = false
-        let processor = EmbraceSpanProcessor(spanExporter: exporter, sdkStateProvider: sdkStateProvider)
 
         let expectation = expectation(description: "didExport onEnd not called")
         expectation.isInverted = true
@@ -123,11 +173,11 @@ final class EmbraceSpanProcessorTests: XCTestCase {
 
         wait(for: [expectation], timeout: .shortTimeout)
 
+        XCTAssertEqual(childProcessor.endedSpans.count, 0)
         XCTAssertEqual(exporter.exportedSpans.count, 0)
     }
 
-    func test_endingSpan_callsExporter() throws {
-        let processor = EmbraceSpanProcessor(spanExporter: exporter, sdkStateProvider: sdkStateProvider)
+    func test_endingSpan_callsChilds() throws {
         let expectation = expectation(description: "didExport onEnd")
         expectation.expectedFulfillmentCount = 2  // DEV: need 2 to handle start and end
         exporter.onExportComplete {
@@ -139,6 +189,10 @@ final class EmbraceSpanProcessorTests: XCTestCase {
         span.end(time: endTime)
 
         wait(for: [expectation], timeout: .defaultTimeout)
+        let processedSpan = try XCTUnwrap(childProcessor.endedSpans[span.context.spanId])
+        XCTAssertEqual(processedSpan.traceId, span.context.traceId)
+        XCTAssertEqual(processedSpan.spanId, span.context.spanId)
+        XCTAssertEqual(processedSpan.endTime, endTime)
 
         let exportedSpan = try XCTUnwrap(exporter.exportedSpans[span.context.spanId])
         XCTAssertEqual(exportedSpan.traceId, span.context.traceId)
@@ -147,7 +201,6 @@ final class EmbraceSpanProcessorTests: XCTestCase {
     }
 
     func test_endingSpan_setStatus_ifNoErrorCode_setsOk() throws {
-        let processor = EmbraceSpanProcessor(spanExporter: exporter, sdkStateProvider: sdkStateProvider)
         let expectation = expectation(description: "didExport onEnd")
         expectation.expectedFulfillmentCount = 2  // DEV: need 2 to handle start and end
         exporter.onExportComplete {
@@ -160,15 +213,10 @@ final class EmbraceSpanProcessorTests: XCTestCase {
 
         wait(for: [expectation], timeout: .defaultTimeout)
 
-        let exportedSpan = try XCTUnwrap(exporter.exportedSpans[span.context.spanId])
-        XCTAssertEqual(exportedSpan.traceId, span.context.traceId)
-        XCTAssertEqual(exportedSpan.spanId, span.context.spanId)
-        XCTAssertEqual(exportedSpan.endTime, endTime)
-        XCTAssertEqual(exportedSpan.status, .ok)
+        XCTAssertEqual(exporter.exportedSpans[span.context.spanId]!.status, .ok)
     }
 
     func test_endingSpan_setStatus_ifErrorCode_setsError() throws {
-        let processor = EmbraceSpanProcessor(spanExporter: exporter, sdkStateProvider: sdkStateProvider)
         let expectation = expectation(description: "didExport onEnd")
         expectation.expectedFulfillmentCount = 2  // DEV: need 2 to handle start and end
         exporter.onExportComplete {
@@ -183,30 +231,28 @@ final class EmbraceSpanProcessorTests: XCTestCase {
 
         wait(for: [expectation], timeout: .defaultTimeout)
 
-        let exportedSpan = try XCTUnwrap(exporter.exportedSpans[span.context.spanId])
-        XCTAssertEqual(exportedSpan.traceId, span.context.traceId)
-        XCTAssertEqual(exportedSpan.spanId, span.context.spanId)
-        XCTAssertEqual(exportedSpan.endTime, endTime)
-        XCTAssertEqual(exportedSpan.status, .error(description: "unknown"))
+        XCTAssertEqual(exporter.exportedSpans[span.context.spanId]!.status, .error(description: "unknown"))
     }
 
-    func test_shutdown_callsShutdownOnExporter() throws {
-        var processor = EmbraceSpanProcessor(spanExporter: exporter, sdkStateProvider: sdkStateProvider)
-
+    func test_shutdown_callsShutdownOnChilds() throws {
+        XCTAssertFalse(childProcessor.isShutdown)
         XCTAssertFalse(exporter.isShutdown)
         processor.shutdown()
+        XCTAssertTrue(childProcessor.isShutdown)
         XCTAssertTrue(exporter.isShutdown)
     }
 
     func test_shutdown_processesOngoingQueue() throws {
-        var processor = EmbraceSpanProcessor(spanExporter: exporter, sdkStateProvider: sdkStateProvider)
-
         let count = 100
         let spans = (0..<count).map { _ in createSpanData(processor: processor) }
         spans.forEach { span in processor.onStart(parentContext: nil, span: span) }
 
+        XCTAssertFalse(childProcessor.isShutdown)
         XCTAssertFalse(exporter.isShutdown)
         processor.shutdown()
+
+        XCTAssertEqual(childProcessor.startedSpans.count, count)
+        XCTAssertTrue(childProcessor.isShutdown)
 
         XCTAssertEqual(exporter.exportedSpans.count, count)
         XCTAssertTrue(exporter.isShutdown)
@@ -214,8 +260,6 @@ final class EmbraceSpanProcessorTests: XCTestCase {
 
     func test_autoTerminateSpans_clearsCache() throws {
         // given a processor with auto terminated spans
-        let processor = EmbraceSpanProcessor(spanExporter: exporter, sdkStateProvider: sdkStateProvider)
-
         _ = createAutoTerminatedSpan(processor: processor)
         _ = createAutoTerminatedSpan(processor: processor)
         _ = createAutoTerminatedSpan(processor: processor)
@@ -225,14 +269,12 @@ final class EmbraceSpanProcessorTests: XCTestCase {
 
         // then the cache is cleared
         wait {
-            return processor.autoTerminationSpans.count == 0
+            return self.processor.autoTerminationSpans.count == 0
         }
     }
 
     func test_autoTerminateSpans_endsSpans() throws {
         // given a processor with auto terminated spans
-        let processor = EmbraceSpanProcessor(spanExporter: exporter, sdkStateProvider: sdkStateProvider)
-
         let span = createAutoTerminatedSpan(processor: processor)
 
         // when the spans are auto terminated
@@ -240,7 +282,7 @@ final class EmbraceSpanProcessorTests: XCTestCase {
 
         // then the spans are ended correctly
         wait {
-            guard processor.autoTerminationSpans.count == 0 else {
+            guard self.processor.autoTerminationSpans.count == 0 else {
                 return false
             }
 
@@ -252,8 +294,6 @@ final class EmbraceSpanProcessorTests: XCTestCase {
 
     func test_autoTerminateSpans_endsChildSpans() throws {
         // given a processor with auto terminated spans with child spans
-        let processor = EmbraceSpanProcessor(spanExporter: exporter, sdkStateProvider: sdkStateProvider)
-
         let span = createAutoTerminatedSpan(processor: processor)
         let childSpan1 = createSpanData(processor: processor, parentContext: span.context)
         let childSpan2 = createSpanData(processor: processor, parentContext: childSpan1.context)
@@ -263,7 +303,7 @@ final class EmbraceSpanProcessorTests: XCTestCase {
 
         // then the spans are ended correctly
         wait {
-            guard processor.autoTerminationSpans.count == 0 else {
+            guard self.processor.autoTerminationSpans.count == 0 else {
                 return false
             }
 

@@ -59,6 +59,7 @@ extension Embrace {
 
         // The core processor that dispatches completed spans to all exporters.
         let baseProcessor = EmbraceSpanProcessor(
+            spanProcessors: customProcessors ?? [],
             spanExporters: combinedExporters,
             sdkStateProvider: sdkStateProvider,
             logger: Embrace.logger,
@@ -68,6 +69,6 @@ extension Embrace {
         )
 
         // Combine with any custom processors.
-        return [baseProcessor] + (customProcessors ?? [])
+        return [baseProcessor]
     }
 }
