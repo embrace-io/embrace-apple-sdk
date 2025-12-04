@@ -7,6 +7,7 @@
 import SwiftUI
 
 enum MainScreenDataModel: Int, CaseIterable {
+    case channels
     case session
     case network
     case logs
@@ -15,6 +16,7 @@ enum MainScreenDataModel: Int, CaseIterable {
 
     var title: String {
         switch self {
+        case .channels: "Channels Experience"
         case .session: "Session Tests"
         case .logs: "Custom Log Tests"
         case .network: "Network Tests"
@@ -25,6 +27,7 @@ enum MainScreenDataModel: Int, CaseIterable {
 
     var identifier: String {
         switch self {
+        case .channels: "channelsExperience"
         case .session: "sessionTests"
         case .logs: "customLogTests"
         case .network: "networkTests"
@@ -35,6 +38,8 @@ enum MainScreenDataModel: Int, CaseIterable {
 
     @ViewBuilder var screen: some View {
         switch self {
+        case .channels:
+            ChannelsScreen()
         case .session:
             SessionTestsScreen()
         case .logs:
