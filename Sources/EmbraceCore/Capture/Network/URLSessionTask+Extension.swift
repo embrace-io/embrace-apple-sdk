@@ -67,13 +67,15 @@ extension URLSessionTask {
     }
 
     var isBackgroundTask: Bool {
-        ["__NSCFBackgroundAVAggregateAssetDownloadTask",
-         "__NSCFBackgroundAVAggregateAssetDownloadTaskNoChildTask",
-         "__NSCFBackgroundAVAssetDownloadTask",
-         "__NSCFBackgroundDataTask",
-         "__NSCFBackgroundDownloadTask",
-         "__NSCFBackgroundSessionTask",
-         "__NSCFBackgroundUploadTask"]
-            .contains(String(describing: type(of: self)))
+        [
+            "__NSCFBackgroundAVAggregateAssetDownloadTask",
+            "__NSCFBackgroundAVAggregateAssetDownloadTaskNoChildTask",
+            "__NSCFBackgroundAVAssetDownloadTask",
+            "__NSCFBackgroundDataTask",
+            "__NSCFBackgroundDownloadTask",
+            "__NSCFBackgroundSessionTask",
+            "__NSCFBackgroundUploadTask"
+        ]
+        .contains(String(describing: type(of: self)))
     }
 }
