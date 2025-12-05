@@ -35,6 +35,7 @@ extension DefaultEmbraceLogSharedState {
     static func create(
         storage: EmbraceStorage,
         batcher: LogBatcher,
+        processors: [LogRecordProcessor] = [],
         exporter: LogRecordExporter? = nil,
         sdkStateProvider: EmbraceSDKStateProvider
     ) -> DefaultEmbraceLogSharedState {
@@ -50,7 +51,7 @@ extension DefaultEmbraceLogSharedState {
 
         return DefaultEmbraceLogSharedState(
             config: DefaultEmbraceLoggerConfig(),
-            processors: .default(withExporters: exporters, sdkStateProvider: sdkStateProvider),
+            processors: .default(processors: processors, exporters: exporters, sdkStateProvider: sdkStateProvider),
             resourceProvider: ResourceStorageExporter(storage: storage)
         )
     }

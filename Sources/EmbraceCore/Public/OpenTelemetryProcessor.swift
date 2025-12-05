@@ -10,8 +10,10 @@ import OpenTelemetrySdk
 public class OpenTelemetryProcessor: NSObject {
 
     public let processor: SpanProcessor
+    public let logProcessor: LogRecordProcessor?
 
-    public init(processor: SpanProcessor) {
+    public init(processor: SpanProcessor, logProcessor: LogRecordProcessor? = nil) {
         self.processor = processor
+        self.logProcessor = logProcessor
     }
 }
