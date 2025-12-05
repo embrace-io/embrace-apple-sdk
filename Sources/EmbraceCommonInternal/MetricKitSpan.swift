@@ -5,7 +5,7 @@
 import Foundation
 import os
 
-#if canImport(MetricKit) && (os(macOS) || os(iOS))
+#if canImport(MetricKit) && os(iOS)
     import MetricKit
 
     /// Represents a MetricKit signpost interval for SDK performance monitoring
