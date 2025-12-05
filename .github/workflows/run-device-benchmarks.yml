@@ -11,16 +11,6 @@ on:
       - 'Package.swift'
       - 'Sources/**'
       - 'Examples/Benchmarks/**'
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/run-device-benchmarks.yml'
-      - '.github/workflows/browserstack.yml'
-      - 'bin/perfcomp.py'
-      - 'Package.swift'
-      - 'Sources/**'
-      - 'Examples/Benchmarks/**'
 
 permissions:
   contents: read
