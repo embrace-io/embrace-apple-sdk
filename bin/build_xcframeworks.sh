@@ -1,84 +1,127 @@
 #!/bin/bash
-set -x
 
-# We could add some way to parametrize this
-OUTPUT="build"
-PLATFORM="iOS"
+set -e
 
-# Local variables
-ARCHIVE_OUTPUT="$OUTPUT/archives"
-XCFRAMEWORK_OUTPUT="$OUTPUT/xcframeworks"
+# Array of all targets to build
+PRODUCTS=(
+    # Public products
+    "EmbraceIO"
+    "EmbraceCore"
+    "EmbraceSemantics"
+    "EmbraceMacros"
+    "EmbraceCrash"
+    "EmbraceKSCrashBacktraceSupport"
+    "EmbraceCrashlyticsSupport"
 
-# Clean up previous runs
-rm -rf $OUTPUT
+    # Internal targets
+    "EmbraceCommonInternal"
+    "EmbraceAtomicsShim"
+    "EmbraceCaptureService"
+    "EmbraceConfiguration"
+    "EmbraceConfigInternal"
+    "EmbraceOTelInternal"
+    "EmbraceStorageInternal"
+    "EmbraceUploadInternal"
+    "EmbraceCoreDataInternal"
+    "EmbraceObjCUtilsInternal"
+    
+    # External dependencies - OpenTelemetry
+    "OpenTelemetrySdk"
+    "OpenTelemetryApi"
+    
+    # External dependencies - KSCrash
+    "KSCrashRecording"
+    "KSCrashRecordingCore"
+    "KSCrashCore"
+    "KSCrashDemangleFilter"
+)
 
-function archive {
-    echo "Archiving: \n- scheme: $1 \n- destination: $2;\n- Archive path: $3.xcarchive"
-    xcodebuild archive \
-        -workspace EmbraceIO.xcworkspace \
-        -scheme "$1" \
-        -destination "$2" \
-        -archivePath "$3" \
-        SKIP_INSTALL=NO \
-        BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
-        ONLY_ACTIVE_ARCH=NO \
-    | xcpretty
+# SDKs to build for
+# Note: currently, this process is not working for tvOS or watchOS due to KSCrash limitations.
+SDKS="iphoneos,iphonesimulator"
+
+# ==============================================================================
+# Prepare KSCrash source for patching
+# ==============================================================================
+
+echo "=========================================="
+echo "Preparing KSCrash source..."
+echo "=========================================="
+
+# Get KSCrash dependency info from Package.resolved
+get_dependency_info() {
+  local DEPENDENCY_NAME=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+  local INFO=$(jq -r --arg NAME "$DEPENDENCY_NAME" '.pins[] | select(.identity == $NAME) | { url: .location, version: (.state.version // .state.branch) }' Package.resolved)
+  echo "$INFO"
 }
 
-function create_xcframework {
-    PRODUCT=$1
-    xcoptions=()
+KSCRASH_INFO=$(get_dependency_info "KSCrash")
+KSCRASH_URL=$(echo "$KSCRASH_INFO" | jq -r '.url')
+KSCRASH_VERSION=$(echo "$KSCRASH_INFO" | jq -r '.version')
 
-    # This will always be true; we should improve this in the future
-    if [[ $PLATFORM == *"iOS"* ]]; then
-        echo "Archive $PRODUCT iOS"
+if [ -z "$KSCRASH_URL" ] || [ -z "$KSCRASH_VERSION" ]; then
+  echo "Error: Could not find KSCrash dependency in Package.resolved"
+  exit 1
+fi
 
-        archive "$PRODUCT" "generic/platform=iOS" "$ARCHIVE_OUTPUT/$PRODUCT/ios"
-        xcoptions+=(-archive "$ARCHIVE_OUTPUT/$PRODUCT/ios.xcarchive" -framework "$PRODUCT.framework")
+echo "KSCrash Version: $KSCRASH_VERSION"
 
-        archive "$PRODUCT" "generic/platform=iOS Simulator" "$ARCHIVE_OUTPUT/$PRODUCT/ios-simulator"
-        xcoptions+=(-archive "$ARCHIVE_OUTPUT/$PRODUCT/ios-simulator.xcarchive" -framework "$PRODUCT.framework")
-    fi
+# Create temporary directory for KSCrash source
+TEMP_KSCRASH_DIR="temp_kscrash"
+rm -rf "$TEMP_KSCRASH_DIR"
+mkdir -p "$TEMP_KSCRASH_DIR"
 
-    echo "Create $PRODUCT.xcframework"
+# Clone KSCrash at the specific version
+echo "Cloning KSCrash v${KSCRASH_VERSION}..."
+if git ls-remote --tags "$KSCRASH_URL" | grep -q "refs/tags/v${KSCRASH_VERSION}$"; then
+    git clone --branch "v${KSCRASH_VERSION}" --depth 1 "$KSCRASH_URL" "$TEMP_KSCRASH_DIR/KSCrash"
+else
+    git clone --branch "$KSCRASH_VERSION" --depth 1 "$KSCRASH_URL" "$TEMP_KSCRASH_DIR/KSCrash"
+fi
 
-    xcodebuild -create-xcframework ${xcoptions[@]} -output "$XCFRAMEWORK_OUTPUT/$PRODUCT.xcframework"
-}
+echo "✓ KSCrash source ready"
+echo ""
 
-function install_prerequisites {
-    # Ensure Tuist is already installed
-    if ! command tuist &> /dev/null; then
-        echo "Installing Tuist"
-        mise install
-    fi
+# ==============================================================================
+# Build XCFrameworks
+# ==============================================================================
 
-    # Ensure create-xcframework plugin is installed
-    swift create-xcframework --help &> /dev/null
-    if [ $? -ne 0 ]; then
-        echo "create-xcframework is not present. Installing it..."
-        brew install segment-integrations/formulae/swift-create-xcframework
-    fi
-}
+echo "Starting XCFramework build process..."
+echo "SDKs: ${SDKS}"
+echo "Products: ${PRODUCTS[@]}"
+echo ""
 
-install_prerequisites
+echo "=========================================="
+echo "Building all XCFrameworks..."
+echo "=========================================="
 
-bash "$(dirname $0)/build_dependencies.sh"
+bundle exec xccache pkg build "${PRODUCTS[@]}" --sdk="${SDKS}" --out="binaries"
 
-tuist install
-tuist generate --no-open
+if [ $? -eq 0 ]; then
+    echo ""
+    echo "=========================================="
+    echo "✓ All XCFrameworks built successfully!"
+    echo "=========================================="
+    echo ""
+else
+    echo "✗ XCFramework build failed"
+    exit 1
+fi
 
-create_xcframework EmbraceCommonInternal
-create_xcframework EmbraceObjCUtilsInternal
-create_xcframework EmbraceCoreDataInternal
-create_xcframework EmbraceStorageInternal
-create_xcframework EmbraceOTelInternal
-create_xcframework EmbraceUploadInternal
-create_xcframework EmbraceConfigInternal
+# ==============================================================================
+# Patch KSCrash XCFrameworks
+# ==============================================================================
 
-create_xcframework EmbraceConfiguration
-create_xcframework EmbraceSemantics
-create_xcframework EmbraceCrash
-create_xcframework EmbraceCrashlyticsSupport
-create_xcframework EmbraceCaptureService
-create_xcframework EmbraceCore
-create_xcframework EmbraceIO
+echo "=========================================="
+echo "Patching KSCrash XCFrameworks..."
+echo "=========================================="
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+bash "$SCRIPT_DIR/patch-kscrash-xcframeworks.sh" "$TEMP_KSCRASH_DIR/KSCrash" "binaries"
+
+# Cleanup
+rm -rf "$TEMP_KSCRASH_DIR"
+
+echo "=========================================="
+echo "Build complete!"
+echo "=========================================="
