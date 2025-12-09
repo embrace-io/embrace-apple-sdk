@@ -24,7 +24,7 @@ jobs:
     outputs:
       matrix: ${{ steps.set.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -67,7 +67,7 @@ jobs:
         env:
           MATRIX_PLATFORM: ${{ matrix.platform }}
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         timeout-minutes: 2
         with:
           persist-credentials: false

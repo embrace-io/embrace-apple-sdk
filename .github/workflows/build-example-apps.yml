@@ -24,7 +24,7 @@ jobs:
           sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app
           xcodebuild -version
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         timeout-minutes: 4
         with:
           persist-credentials: false
@@ -63,7 +63,7 @@ jobs:
           sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app
           xcodebuild -version
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         timeout-minutes: 4
         with:
           persist-credentials: false

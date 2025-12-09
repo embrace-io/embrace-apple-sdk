@@ -15,7 +15,7 @@ jobs:
     name: Formatting Checks
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       timeout-minutes: 4
       with:
         fetch-depth: 0

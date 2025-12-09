@@ -42,7 +42,7 @@ jobs:
           xcodebuild -version
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         timeout-minutes: 5
         with:
           ref: ${{ inputs.ref || github.ref }}
