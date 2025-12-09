@@ -251,7 +251,7 @@ jobs:
 
       - name: Upload Result Bundle as Artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: browserstack-result-bundle-${{ steps.execute_tests.outputs.build_id }}-${{ steps.wait_tests.outputs.session_id }}
           path: result_bundle.xcresult.zip
