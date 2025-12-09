@@ -41,7 +41,7 @@ jobs:
           xcodebuild -runFirstLaunch
 
       - name: Checkout PR
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         timeout-minutes: 2
         with:
           persist-credentials: false
