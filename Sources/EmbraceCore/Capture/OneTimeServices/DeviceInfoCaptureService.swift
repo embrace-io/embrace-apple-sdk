@@ -22,7 +22,8 @@ class DeviceInfoCaptureService: ResourceCaptureService {
             SemanticConventions.Os.type.rawValue: "darwin",
 
             // os variant
-            DeviceResourceKey.osVariant.rawValue: EMBDevice.operatingSystemType
+            DeviceResourceKey.osVariant.rawValue: EMBDevice.operatingSystemType,
+			SemanticConventions.Os.name.rawValue: EMBDevice.operatingSystemType
         ]
 
         let resourcesMap: [String: String] = [
