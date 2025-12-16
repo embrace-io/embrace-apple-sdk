@@ -10,9 +10,10 @@ import OpenTelemetrySdk
 
 extension Array where Element == any LogRecordProcessor {
     public static func `default`(
-        withExporters exporters: [LogRecordExporter],
+        processors: [LogRecordProcessor] = [],
+        exporters: [LogRecordExporter] = [],
         sdkStateProvider: EmbraceSDKStateProvider
     ) -> [LogRecordProcessor] {
-        [SingleLogRecordProcessor(exporters: exporters, sdkStateProvider: sdkStateProvider)]
+        [SingleLogRecordProcessor(processors: processors, exporters: exporters, sdkStateProvider: sdkStateProvider)]
     }
 }
