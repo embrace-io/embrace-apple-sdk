@@ -29,6 +29,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
     var metricKitInternalMetricsCaptureEnabled: Bool
 
     var breadcrumbLimit: Int
+    var tapLimit: Int
 
     var logsInfoLimit: Int
     var logsWarningLimit: Int
@@ -77,6 +78,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         case ui
         enum UICodingKeys: String, CodingKey {
             case breadcrumbs
+            case taps
         }
 
         case logLimits = "log"
@@ -198,8 +200,15 @@ public struct RemoteConfigPayload: Decodable, Equatable {
                     Int.self,
                     forKey: CodingKeys.UICodingKeys.breadcrumbs
                 ) ?? defaultPayload.breadcrumbLimit
+
+            tapLimit =
+                try uiContainer.decodeIfPresent(
+                    Int.self,
+                    forKey: CodingKeys.UICodingKeys.taps
+                ) ?? defaultPayload.tapLimit
         } else {
             breadcrumbLimit = defaultPayload.breadcrumbLimit
+            tapLimit = defaultPayload.tapLimit
         }
 
         // logs limit
@@ -382,6 +391,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         metricKitInternalMetricsCaptureEnabled = false
 
         breadcrumbLimit = 100
+        tapLimit = 80
 
         logsInfoLimit = 100
         logsWarningLimit = 200

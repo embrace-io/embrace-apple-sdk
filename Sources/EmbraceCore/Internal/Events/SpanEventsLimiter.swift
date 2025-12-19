@@ -69,12 +69,17 @@ class SpanEventsLimiter {
     #else
         private let _unlimitedBreadcrumbs: Bool = false
     #endif
+
     private func limitForEventType(_ type: String?, limits: SpanEventsLimits) -> UInt? {
         if type == SpanEventType.breadcrumb.rawValue {
             if _unlimitedBreadcrumbs {
                 return UInt.max
             }
             return limits.breadcrumb
+        }
+
+        if type == SpanEventType.tap.rawValue {
+            return limits.tap
         }
 
         return nil

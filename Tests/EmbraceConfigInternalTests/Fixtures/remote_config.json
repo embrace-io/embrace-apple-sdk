@@ -11,7 +11,8 @@
     "ui_load_instrumentation_hosting_controller_capture": true,
     "swift_ui_view_instrumentation_enabled": false,
     "ui":{
-       "breadcrumbs": 1234
+       "breadcrumbs": 1234,
+       "taps": 1234
     },
     "log": {
         "info_limit": 40,
