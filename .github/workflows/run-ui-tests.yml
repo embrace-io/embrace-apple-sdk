@@ -68,7 +68,7 @@ jobs:
 
       - name: Upload xcresult Bundle Manually
         if: failure()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: output_xcresult
           path: .build/test/output.xcresult
