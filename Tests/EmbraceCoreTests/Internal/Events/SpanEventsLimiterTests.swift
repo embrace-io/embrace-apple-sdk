@@ -5,6 +5,7 @@
 import EmbraceConfigInternal
 import EmbraceConfiguration
 import EmbraceOTelInternal
+import EmbraceSemantics
 import TestSupport
 import XCTest
 
@@ -14,7 +15,7 @@ final class SpanEventsLimiterTests: XCTestCase {
 
     func test_initialization() {
         // given a limiter initialized with specific limits
-        let limits = SpanEventsLimits(breadcrumb: 123)
+        let limits = SpanEventsLimits(breadcrumb: 123, tap: 123)
         let limiter = SpanEventsLimiter(spanEventsLimits: limits, configNotificationCenter: NotificationCenter.default)
 
         // then it has the correct limits
@@ -23,11 +24,11 @@ final class SpanEventsLimiterTests: XCTestCase {
 
     func test_configUpdated() {
         // given a limiter
-        let limits = SpanEventsLimits(breadcrumb: 123)
+        let limits = SpanEventsLimits(breadcrumb: 123, tap: 123)
         let limiter = SpanEventsLimiter(spanEventsLimits: limits, configNotificationCenter: NotificationCenter.default)
 
         // when the remote config updates the limits
-        let newLimits = SpanEventsLimits(breadcrumb: 321)
+        let newLimits = SpanEventsLimits(breadcrumb: 321, tap: 321)
         let config = EditableConfig()
         config.spanEventsLimits = newLimits
         NotificationCenter.default.post(name: .embraceConfigUpdated, object: config)
@@ -38,7 +39,7 @@ final class SpanEventsLimiterTests: XCTestCase {
 
     func test_newSession() {
         // given a limiter with a counter
-        let limits = SpanEventsLimits(breadcrumb: 123)
+        let limits = SpanEventsLimits(breadcrumb: 123, tap: 123)
         let limiter = SpanEventsLimiter(spanEventsLimits: limits, configNotificationCenter: NotificationCenter.default)
         limiter.state.withLock {
             $0.counter = ["test": 1]
@@ -51,7 +52,7 @@ final class SpanEventsLimiterTests: XCTestCase {
         XCTAssert(limiter.state.safeValue.counter.isEmpty)
     }
 
-    func test_applyLimits_doesNotReachLimit() {
+    func test_applyLimits_doesNotReachLimit_breadcrumb() {
         // given a limiter with a limit of 1 breadcrumb
         let limits = SpanEventsLimits(breadcrumb: 1)
         let limiter = SpanEventsLimiter(spanEventsLimits: limits, configNotificationCenter: NotificationCenter.default)
@@ -69,7 +70,7 @@ final class SpanEventsLimiterTests: XCTestCase {
         XCTAssertEqual(limiter.state.safeValue.counter["sys.breadcrumb"], 1)
     }
 
-    func test_applyLimits_doesReachLimit() {
+    func test_applyLimits_doesReachLimit_breadcrumb() {
         // given a limiter with a limit of 1 breadcrumb
         let limits = SpanEventsLimits(breadcrumb: 1)
         let limiter = SpanEventsLimiter(spanEventsLimits: limits, configNotificationCenter: NotificationCenter.default)
@@ -88,17 +89,54 @@ final class SpanEventsLimiterTests: XCTestCase {
         XCTAssertEqual(limiter.state.safeValue.counter["sys.breadcrumb"], 1)
     }
 
+    func test_applyLimits_doesNotReachLimit_tap() {
+        // given a limiter with a limit of 1 tap
+        let limits = SpanEventsLimits(tap: 1)
+        let limiter = SpanEventsLimiter(spanEventsLimits: limits, configNotificationCenter: NotificationCenter.default)
+
+        // when applying limits on the first breadcrumb
+        let event = tapEvent()
+        let events = limiter.applyLimits(events: [event])
+
+        // then the breadcrumb event is not discarded
+        XCTAssertEqual(events.count, 1)
+        XCTAssertEqual(events[0].name, event.name)
+        XCTAssertEqual(events[0].timestamp, event.timestamp)
+
+        // then the counter is correctly updated
+        XCTAssertEqual(limiter.state.safeValue.counter["ux.tap"], 1)
+    }
+
+    func test_applyLimits_doesReachLimit_tap() {
+        // given a limiter with a limit of 1 tap
+        let limits = SpanEventsLimits(tap: 1)
+        let limiter = SpanEventsLimiter(spanEventsLimits: limits, configNotificationCenter: NotificationCenter.default)
+
+        // when applying limits on the breadcrumbs
+        let event1 = tapEvent()
+        let event2 = tapEvent()
+        let events = limiter.applyLimits(events: [event1, event2])
+
+        // then the second breadcrumb event is discarded
+        XCTAssertEqual(events.count, 1)
+        XCTAssertEqual(events[0].name, event1.name)
+        XCTAssertEqual(events[0].timestamp, event1.timestamp)
+
+        // then the counter is correctly updated
+        XCTAssertEqual(limiter.state.safeValue.counter["ux.tap"], 1)
+    }
+
     func test_applyLimits_differentEventTypes() {
-        // given a limiter with a limit of 0 breadcrumbs
-        let limits = SpanEventsLimits(breadcrumb: 0)
+        // given a limiter with a limit of 0 breadcrumbs and 0 taps
+        let limits = SpanEventsLimits(breadcrumb: 0, tap: 0)
         let limiter = SpanEventsLimiter(spanEventsLimits: limits, configNotificationCenter: NotificationCenter.default)
 
         // when applying limits various events
         let event1 = Breadcrumb.breadcrumb("test")
-        let event2 = Breadcrumb.breadcrumb("test")
+        let event2 = tapEvent()
         let event3 = randomPushNotificationEvent()
         let event4 = Breadcrumb.breadcrumb("test")
-        let event5 = Breadcrumb.breadcrumb("test")
+        let event5 = tapEvent()
         let events = limiter.applyLimits(events: [event1, event2, event3, event4, event5])
 
         // then the breadcrumb events are dropped
@@ -122,6 +160,14 @@ final class SpanEventsLimiterTests: XCTestCase {
 
         let event = try? PushNotificationEvent(userInfo: validPayload)
         return event!
+    }
+
+    func tapEvent() -> RecordingSpanEvent {
+        return RecordingSpanEvent(
+            name: SpanEventSemantics.Tap.name,
+            timestamp: Date(),
+            attributes: ["emb.type": .string("ux.tap")]
+        )
     }
 
     // MARK: - Integration Tests with New Storage
