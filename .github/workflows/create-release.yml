@@ -115,7 +115,7 @@ jobs:
       IS_PRODUCTION_READY: ${{ needs.extractor.outputs.is_production_ready }}
     steps:
       - name: Validate access to versioning backend
-        uses: embrace-io/public-actions/upload-sdk-version@88167cd1a3fce3418e26c8c842026e6dfab99e41
+        uses: embrace-io/public-actions/upload-sdk-version@1841c9025e9640e5bbf83db6900b828df30addeb
         with:
           platform: "ios"
           version: ${{ needs.extractor.outputs.rc_version }}
@@ -348,7 +348,7 @@ jobs:
 
     steps:
       - name: Record SDK Version History
-        uses: embrace-io/public-actions/upload-sdk-version@88167cd1a3fce3418e26c8c842026e6dfab99e41
+        uses: embrace-io/public-actions/upload-sdk-version@1841c9025e9640e5bbf83db6900b828df30addeb
         with:
           platform: "ios"
           version: ${{ needs.extractor.outputs.rc_version }}
