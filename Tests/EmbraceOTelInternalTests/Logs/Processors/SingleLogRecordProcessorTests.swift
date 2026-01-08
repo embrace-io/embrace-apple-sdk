@@ -11,6 +11,7 @@ import XCTest
 
 class SingleLogRecordProcessorTests: XCTestCase {
     private var sut: SingleLogRecordProcessor!
+    private var processor: SpyLoggerProcessor!
     private var exporter: SpyEmbraceLogRecordExporter!
     private var result: ExportResult!
     private var sdkStateProvider: MockEmbraceSDKStateProvider!
@@ -59,7 +60,7 @@ class SingleLogRecordProcessorTests: XCTestCase {
 
     func testOnHavingMutlipleExportersAndAtLeastOnFailingFlush_onForceFlush_resultIsFailure() {
         givenProcessor(
-            withExporters: [
+            exporters: [
                 successfulFlushExporter(),
                 failingFlushExporter(),
                 successfulFlushExporter(),
@@ -71,9 +72,28 @@ class SingleLogRecordProcessorTests: XCTestCase {
     }
 
     func testOnHavingNoExporters_onForceFlush_resultIsAlwaysSuccess() {
-        givenProcessor(withExporters: [])
+        givenProcessor()
         whenInvokingForceFlush()
         thenExportResult(is: .success)
+    }
+
+    // MARK: Child processors
+    func test_childProcessor_onEmit() {
+        givenProcessorWithAChildProcessor()
+        whenInvokingEmit(withLog: .log(withTestId: "12345"))
+        thenChildProcessorOnEmitIsCalled(testId: "12345")
+    }
+
+    func test_childProcessor_forceFlush() {
+        givenProcessorWithAChildProcessor()
+        whenInvokingForceFlush()
+        thenChildProcessorForceFlushIsCalled()
+    }
+
+    func test_childProcessor_shutdown() {
+        givenProcessorWithAChildProcessor()
+        whenInvokingShutdown()
+        thenChildProcessorShutdownIsCalled()
     }
 }
 
@@ -82,12 +102,17 @@ extension SingleLogRecordProcessorTests {
         exporter = SpyEmbraceLogRecordExporter()
         exporter.stubbedExportResponse = .success
         exporter.stubbedForceFlushResponse = .success
-        givenProcessor(withExporters: [exporter])
+        givenProcessor(exporters: [exporter])
     }
 
-    fileprivate func givenProcessor(withExporters exporters: [LogRecordExporter]) {
+    fileprivate func givenProcessorWithAChildProcessor() {
+        processor = SpyLoggerProcessor()
+        givenProcessor(processors: [processor])
+    }
+
+    fileprivate func givenProcessor(processors: [LogRecordProcessor] = [], exporters: [LogRecordExporter] = []) {
         sdkStateProvider = MockEmbraceSDKStateProvider()
-        sut = .init(exporters: exporters, sdkStateProvider: sdkStateProvider)
+        sut = .init(processors: processors, exporters: exporters, sdkStateProvider: sdkStateProvider)
     }
 
     fileprivate func givenDisabledSDK() {
@@ -153,5 +178,18 @@ extension SingleLogRecordProcessorTests {
         let exporter = SpyEmbraceLogRecordExporter()
         exporter.stubbedForceFlushResponse = .success
         return exporter
+    }
+
+    fileprivate func thenChildProcessorOnEmitIsCalled(testId: String) {
+        XCTAssert(processor.didCallOnEmit)
+        XCTAssertEqual(try processor.receivedLogRecord!.getTestId(), testId)
+    }
+
+    fileprivate func thenChildProcessorForceFlushIsCalled() {
+        XCTAssert(processor.didCallForceFlush)
+    }
+
+    fileprivate func thenChildProcessorShutdownIsCalled() {
+        XCTAssert(processor.didCallShutdown)
     }
 }
