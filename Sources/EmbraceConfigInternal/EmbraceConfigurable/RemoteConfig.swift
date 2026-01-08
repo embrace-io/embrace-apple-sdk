@@ -132,7 +132,8 @@ extension RemoteConfig: EmbraceConfigurable {
 
     public var spanEventsLimits: SpanEventsLimits {
         SpanEventsLimits(
-            breadcrumb: UInt(max(payload.breadcrumbLimit, 0))
+            breadcrumb: UInt(max(payload.breadcrumbLimit, 0)),
+            tap: UInt(max(payload.tapLimit, 0))
         )
     }
 
