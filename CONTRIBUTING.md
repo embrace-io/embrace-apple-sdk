@@ -61,7 +61,7 @@ To run tests in Xcode, select the `EmbraceIO-Package` scheme and in the menu sel
 There is also the `bin/test` command that can be used to run tests from the command line. It is recommended to pipe this through `xcpretty`.
 
 ```sh
-bin/test | xcpretty
+bin/test | xcbeautify
 ```
 
 ## Linting, Formatting and Guidelines
