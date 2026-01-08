@@ -79,9 +79,7 @@ This will automatically apply formatting and linting to all Swift and C/Obj-C fi
 To install the tools via Homebrew:
 
 ```sh
-brew install swift-format
-brew install clang-format
-brew install swiftlint
+brew bundle
 ```
 
 You can also run individual format and lint targets:
