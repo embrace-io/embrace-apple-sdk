@@ -28,13 +28,8 @@
         init(controller: SessionControllable, launchGracePeriod: TimeInterval = 5.0) {
             self.controller = controller
             self.launchGracePeriod = launchGracePeriod
-            #if !os(watchOS)
-                listenForUIApplication()
-            #else
-                if #available(watchOS 7.0, *) {
-                    listenForUIApplication()
-                }
-            #endif
+
+            listenForUIApplication()
         }
 
         func setup() {
@@ -84,31 +79,30 @@
 
     extension iOSSessionLifecycle {
 
-        #if os(watchOS)
-            @available(watchOS 7.0, *)
-        #endif
         private func listenForUIApplication() {
             #if os(watchOS)
-                NotificationCenter.default.addObserver(
-                    self,
-                    selector: #selector(appDidBecomeActive),
-                    name: WKExtension.applicationDidBecomeActiveNotification,
-                    object: nil
-                )
+                if #available(watchOS 7.0, *) {
+                    NotificationCenter.default.addObserver(
+                        self,
+                        selector: #selector(appDidBecomeActive),
+                        name: WKExtension.applicationDidBecomeActiveNotification,
+                        object: nil
+                    )
 
-                NotificationCenter.default.addObserver(
-                    self,
-                    selector: #selector(appDidEnterBackground),
-                    name: WKExtension.applicationDidEnterBackgroundNotification,
-                    object: nil
-                )
+                    NotificationCenter.default.addObserver(
+                        self,
+                        selector: #selector(appDidEnterBackground),
+                        name: WKExtension.applicationDidEnterBackgroundNotification,
+                        object: nil
+                    )
 
-                NotificationCenter.default.addObserver(
-                    self,
-                    selector: #selector(appWillTerminate),
-                    name: WKExtension.applicationWillResignActiveNotification,
-                    object: nil
-                )
+                    NotificationCenter.default.addObserver(
+                        self,
+                        selector: #selector(appWillTerminate),
+                        name: WKExtension.applicationWillResignActiveNotification,
+                        object: nil
+                    )
+                }
             #else
                 NotificationCenter.default.addObserver(
                     self,
