@@ -10,7 +10,7 @@ import SwiftUI
 
 struct ContentView: View {
     init() {
-        _ = try? Embrace.setup(options: .init(appId: "ejqby")).start()
+        _ = try? Embrace.setup(options: .init(appId: "wby8w")).start()
     }
 
     var body: some View {
