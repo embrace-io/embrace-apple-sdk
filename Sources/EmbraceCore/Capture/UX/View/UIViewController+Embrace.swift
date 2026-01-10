@@ -51,8 +51,10 @@
             return true
         }
 
-        var className: String {
-            return String(describing: type(of: self))
-        }
+        #if !targetEnvironment(macCatalyst)
+            var className: String {
+                return String(describing: type(of: self))
+            }
+        #endif
     }
 #endif
