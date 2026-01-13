@@ -23,7 +23,7 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
     private let identifier: String
     private let data: Data
     private let payloadTypes: String?
-    fileprivate let retryCount: Int
+    private let retryCount: Int
     private let exponentialBackoffBehavior: EmbraceUpload.ExponentialBackoff
     private var attemptCount: Int
     private let logger: InternalLogger?
