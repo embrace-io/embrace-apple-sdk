@@ -23,13 +23,18 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
     private let identifier: String
     private let data: Data
     private let payloadTypes: String?
-    private let retryCount: Int
+    fileprivate let retryCount: Int
     private let exponentialBackoffBehavior: EmbraceUpload.ExponentialBackoff
     private var attemptCount: Int
     private let logger: InternalLogger?
     private let completion: EmbraceUploadOperationCompletion?
 
     private var task: URLSessionDataTask?
+    #if os(watchOS)
+        private var taskDelegate: TaskDelegate?
+        private var receivedData: Data?
+        private var receivedResponse: URLResponse?
+    #endif
 
     init(
         urlSession: URLSession,
@@ -87,51 +92,87 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
         // update request's attempt count header
         request = updateRequest(request, attemptCount: attemptCount)
 
-        task = urlSession.dataTask(
-            with: request,
-            completionHandler: { [weak self] _, response, error in
-                guard let strongSelf = self else {
-                    return
-                }
-                // retry?
-                if retryCount > 0 && strongSelf.shouldRetry(basedOn: response, error: error) {
-                    // calculates the necessary delay before retrying the request
-                    let delay = strongSelf.exponentialBackoffBehavior.calculateDelay(
-                        forRetryNumber: (strongSelf.retryCount - (retryCount - 1)),
-                        appending: strongSelf.getSuggestedDelay(fromResponse: response)
+        #if os(watchOS)
+            // Use delegate-based approach for watchOS to support background sessions
+            receivedData = Data()
+            receivedResponse = nil
+
+            taskDelegate = TaskDelegate(
+                queue: queue,
+                retryCount: retryCount,
+                onCompletion: { [weak self] data, response, error in
+                    self?.handleTaskCompletion(
+                        data: data,
+                        response: response,
+                        error: error,
+                        request: request,
+                        retryCount: retryCount
                     )
-
-                    // retry request on the same queue after `delay`
-                    strongSelf.queue.asyncAfter(
-                        deadline: .now() + .seconds(delay),
-                        execute: {
-                            strongSelf.sendRequest(request, retryCount: retryCount - 1)
-                        })
-                    return
                 }
+            )
 
-                // check success
-                if let response = response as? HTTPURLResponse {
-                    strongSelf.logger?.debug(
-                        "Upload operation complete. Status: \(response.statusCode) URL: \(String(describing: response.url))"
+            task = urlSession.dataTask(with: request)
+        #else
+            // Use completion handler approach for other platforms
+            task = urlSession.dataTask(
+                with: request,
+                completionHandler: { [weak self] data, response, error in
+                    self?.handleTaskCompletion(
+                        data: data,
+                        response: response,
+                        error: error,
+                        request: request,
+                        retryCount: retryCount
                     )
-                    if response.statusCode >= 200 && response.statusCode < 300 {
-                        strongSelf.completion?(.success, strongSelf.attemptCount)
-                    } else {
-                        let isRetriable = strongSelf.shouldRetry(basedOn: response, error: error)
-                        strongSelf.completion?(.failure(retriable: isRetriable), strongSelf.attemptCount)
-                    }
-
-                    // no retries left, send completion
-                } else {
-                    let isRetriable = strongSelf.shouldRetry(basedOn: response, error: error)
-                    strongSelf.completion?(.failure(retriable: isRetriable), strongSelf.attemptCount)
-                }
-
-                strongSelf.finish()
-            })
+                })
+        #endif
 
         task?.resume()
+    }
+
+    private func handleTaskCompletion(
+        data: Data?,
+        response: URLResponse?,
+        error: Error?,
+        request: URLRequest,
+        retryCount: Int
+    ) {
+        // retry?
+        if retryCount > 0 && shouldRetry(basedOn: response, error: error) {
+            // calculates the necessary delay before retrying the request
+            let delay = exponentialBackoffBehavior.calculateDelay(
+                forRetryNumber: (self.retryCount - (retryCount - 1)),
+                appending: getSuggestedDelay(fromResponse: response)
+            )
+
+            // retry request on the same queue after `delay`
+            queue.asyncAfter(
+                deadline: .now() + .seconds(delay),
+                execute: { [weak self] in
+                    self?.sendRequest(request, retryCount: retryCount - 1)
+                })
+            return
+        }
+
+        // check success
+        if let response = response as? HTTPURLResponse {
+            logger?.debug(
+                "Upload operation complete. Status: \(response.statusCode) URL: \(String(describing: response.url))"
+            )
+            if response.statusCode >= 200 && response.statusCode < 300 {
+                completion?(.success, attemptCount)
+            } else {
+                let isRetriable = shouldRetry(basedOn: response, error: error)
+                completion?(.failure(retriable: isRetriable), attemptCount)
+            }
+
+            // no retries left, send completion
+        } else {
+            let isRetriable = shouldRetry(basedOn: response, error: error)
+            completion?(.failure(retriable: isRetriable), attemptCount)
+        }
+
+        finish()
     }
 
     private func shouldRetry(
@@ -230,3 +271,56 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
         return request
     }
 }
+#if os(watchOS)
+    // MARK: - TaskDelegate for watchOS Background Support
+    extension EmbraceUploadOperation {
+        final class TaskDelegate: NSObject, URLSessionDataDelegate {
+            private let queue: DispatchQueue
+            private let retryCount: Int
+            private let onCompletion: (Data?, URLResponse?, Error?) -> Void
+
+            private var receivedData = Data()
+            private var receivedResponse: URLResponse?
+
+            init(
+                queue: DispatchQueue,
+                retryCount: Int,
+                onCompletion: @escaping (Data?, URLResponse?, Error?) -> Void
+            ) {
+                self.queue = queue
+                self.retryCount = retryCount
+                self.onCompletion = onCompletion
+                super.init()
+            }
+
+            func urlSession(
+                _ session: URLSession,
+                dataTask: URLSessionDataTask,
+                didReceive response: URLResponse,
+                completionHandler: @escaping (URLSession.ResponseDisposition) -> Void
+            ) {
+                receivedResponse = response
+                completionHandler(.allow)
+            }
+
+            func urlSession(
+                _ session: URLSession,
+                dataTask: URLSessionDataTask,
+                didReceive data: Data
+            ) {
+                receivedData.append(data)
+            }
+
+            func urlSession(
+                _ session: URLSession,
+                task: URLSessionTask,
+                didCompleteWithError error: Error?
+            ) {
+                queue.async { [weak self] in
+                    guard let self = self else { return }
+                    self.onCompletion(self.receivedData, self.receivedResponse ?? task.response, error)
+                }
+            }
+        }
+    }
+#endif
