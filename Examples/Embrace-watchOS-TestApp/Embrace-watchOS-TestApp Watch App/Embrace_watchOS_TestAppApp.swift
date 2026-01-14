@@ -6,9 +6,14 @@
 //
 
 import SwiftUI
+import EmbraceIO
 
 @main
 struct Embrace_watchOS_TestApp_Watch_AppApp: App {
+    init() {
+        _ = try? Embrace.setup(options: .init(appId: "wby8w")).start()
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()

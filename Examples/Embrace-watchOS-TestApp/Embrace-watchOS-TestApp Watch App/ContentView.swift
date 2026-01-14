@@ -5,14 +5,9 @@
 //  Created by Fernando Draghi on 09/01/2026.
 //
 
-import EmbraceIO
 import SwiftUI
 
 struct ContentView: View {
-    init() {
-        _ = try? Embrace.setup(options: .init(appId: "wby8w")).start()
-    }
-
     var body: some View {
         VStack {
             Image(systemName: "globe")
