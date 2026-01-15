@@ -30,11 +30,6 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
     private let completion: EmbraceUploadOperationCompletion?
 
     private var task: URLSessionDataTask?
-    #if os(watchOS)
-        private var taskDelegate: TaskDelegate?
-        private var receivedData: Data?
-        private var receivedResponse: URLResponse?
-    #endif
 
     init(
         urlSession: URLSession,
@@ -92,40 +87,18 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
         // update request's attempt count header
         request = updateRequest(request, attemptCount: attemptCount)
 
-        #if os(watchOS)
-            // Use delegate-based approach for watchOS to support background sessions
-            receivedData = Data()
-            receivedResponse = nil
-
-            taskDelegate = TaskDelegate(
-                queue: queue,
-                retryCount: retryCount,
-                onCompletion: { [weak self] data, response, error in
-                    self?.handleTaskCompletion(
-                        data: data,
-                        response: response,
-                        error: error,
-                        request: request,
-                        retryCount: retryCount
-                    )
-                }
-            )
-
-            task = urlSession.dataTask(with: request)
-        #else
-            // Use completion handler approach for other platforms
-            task = urlSession.dataTask(
-                with: request,
-                completionHandler: { [weak self] data, response, error in
-                    self?.handleTaskCompletion(
-                        data: data,
-                        response: response,
-                        error: error,
-                        request: request,
-                        retryCount: retryCount
-                    )
-                })
-        #endif
+        // Use completion handler directly on all platforms
+        task = urlSession.dataTask(
+            with: request,
+            completionHandler: { [weak self] data, response, error in
+                self?.handleTaskCompletion(
+                    data: data,
+                    response: response,
+                    error: error,
+                    request: request,
+                    retryCount: retryCount
+                )
+            })
 
         task?.resume()
     }
@@ -271,56 +244,3 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
         return request
     }
 }
-#if os(watchOS)
-    // MARK: - TaskDelegate for watchOS Background Support
-    extension EmbraceUploadOperation {
-        final class TaskDelegate: NSObject, URLSessionDataDelegate {
-            private let queue: DispatchQueue
-            private let retryCount: Int
-            private let onCompletion: (Data?, URLResponse?, Error?) -> Void
-
-            private var receivedData = Data()
-            private var receivedResponse: URLResponse?
-
-            init(
-                queue: DispatchQueue,
-                retryCount: Int,
-                onCompletion: @escaping (Data?, URLResponse?, Error?) -> Void
-            ) {
-                self.queue = queue
-                self.retryCount = retryCount
-                self.onCompletion = onCompletion
-                super.init()
-            }
-
-            func urlSession(
-                _ session: URLSession,
-                dataTask: URLSessionDataTask,
-                didReceive response: URLResponse,
-                completionHandler: @escaping (URLSession.ResponseDisposition) -> Void
-            ) {
-                receivedResponse = response
-                completionHandler(.allow)
-            }
-
-            func urlSession(
-                _ session: URLSession,
-                dataTask: URLSessionDataTask,
-                didReceive data: Data
-            ) {
-                receivedData.append(data)
-            }
-
-            func urlSession(
-                _ session: URLSession,
-                task: URLSessionTask,
-                didCompleteWithError error: Error?
-            ) {
-                queue.async { [weak self] in
-                    guard let self = self else { return }
-                    self.onCompletion(self.receivedData, self.receivedResponse ?? task.response, error)
-                }
-            }
-        }
-    }
-#endif

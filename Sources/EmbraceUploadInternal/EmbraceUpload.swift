@@ -269,6 +269,7 @@ public class EmbraceUpload: EmbraceLogUploader {
                 completion()
             }
         }
+
         operationQueue.addOperation(uploadOperation)
     }
 

@@ -5,8 +5,8 @@
 //  Created by Fernando Draghi on 09/01/2026.
 //
 
-import SwiftUI
 import EmbraceIO
+import SwiftUI
 
 @main
 struct Embrace_watchOS_TestApp_Watch_AppApp: App {

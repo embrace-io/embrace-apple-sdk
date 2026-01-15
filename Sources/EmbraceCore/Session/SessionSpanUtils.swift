@@ -29,7 +29,7 @@ struct SessionSpanUtils {
     }
 
     static func setHeartbeat(span: Span?, heartbeat: Date) {
-        span?.setAttribute(key: SpanSemantics.Session.keyHeartbeat, value: heartbeat.nanosecondsSince1970Truncated)
+        span?.setAttribute(key: SpanSemantics.Session.keyHeartbeat, value: Double(heartbeat.nanosecondsSince1970Truncated))
     }
 
     static func setTerminated(span: Span?, terminated: Bool) {

@@ -33,15 +33,8 @@ extension EmbraceUpload {
         }
 
         private class func defaultUrlSessionConfiguration() -> URLSessionConfiguration {
-            #if os(watchOS)
-                let config = URLSessionConfiguration.background(withIdentifier: "com.embraceio.sessionUpload")
-                config.isDiscretionary = false
-                config.timeoutIntervalForRequest = 30
-                config.timeoutIntervalForResource = 60
-                config.waitsForConnectivity = true
-            #else
-                let config = URLSessionConfiguration.default
-            #endif
+            let config = URLSessionConfiguration.default
+
             config.urlCache = URLCache(
                 memoryCapacity: (4 * 1024 * 1024),  // 4 MB Memory Cache
                 diskCapacity: (20 * 1024 * 1024),  // 20 MB Disk Cache

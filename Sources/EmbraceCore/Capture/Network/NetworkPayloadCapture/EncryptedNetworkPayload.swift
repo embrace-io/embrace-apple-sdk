@@ -15,10 +15,13 @@ struct EncryptedNetworkPayload: Encodable {
 
     let url: String
     let httpMethod: String
-
-    let startTime: Int?
-    let endTime: Int?
-
+    #if os(watchOS)
+        let startTime: Int64?
+        let endTime: Int64?
+    #else
+        let startTime: Int?
+        let endTime: Int?
+    #endif
     let matchedUrl: String
     let sessionId: String?
 

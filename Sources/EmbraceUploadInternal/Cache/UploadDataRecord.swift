@@ -69,7 +69,11 @@ extension UploadDataRecord {
 
         let typeAttribute = NSAttributeDescription()
         typeAttribute.name = "type"
-        typeAttribute.attributeType = .integer64AttributeType
+        #if os(watchOS)
+            typeAttribute.attributeType = .integer32AttributeType
+        #else
+            typeAttribute.attributeType = .integer64AttributeType
+        #endif
 
         let dataAttribute = NSAttributeDescription()
         dataAttribute.name = "data"
@@ -83,7 +87,11 @@ extension UploadDataRecord {
 
         let attemptCountAttribute = NSAttributeDescription()
         attemptCountAttribute.name = "attemptCount"
-        attemptCountAttribute.attributeType = .integer64AttributeType
+        #if os(watchOS)
+            attemptCountAttribute.attributeType = .integer32AttributeType
+        #else
+            attemptCountAttribute.attributeType = .integer64AttributeType
+        #endif
 
         let dateAttribute = NSAttributeDescription()
         dateAttribute.name = "date"

@@ -40,8 +40,7 @@
             }
 
             #if os(watchOS)
-                let appState = WKExtension.shared().applicationState
-                currentState = appState == .background ? .background : .foreground
+                currentState = .unknown
             #else
                 let appState = UIApplication.shared.applicationState
                 currentState = appState == .background ? .background : .foreground
