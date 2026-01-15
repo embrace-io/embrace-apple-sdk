@@ -16,7 +16,7 @@ struct Embrace_watchOS_TestApp_Watch_AppApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            WatchOSTestAppWelcomeScreen()
         }
     }
 }

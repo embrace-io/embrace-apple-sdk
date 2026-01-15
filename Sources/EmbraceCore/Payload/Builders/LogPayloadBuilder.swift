@@ -17,13 +17,22 @@ struct LogPayloadBuilder {
         }
 
         finalAttributes.append(.init(key: LogSemantics.keyId, value: log.idRaw))
-
+        print(finalAttributes)
+        #if os(watchOS)
+        return .init(
+            timeUnixNano: String(Int64(log.timestamp.nanosecondsSince1970)),
+            severityNumber: log.severity.number,
+            severityText: log.severity.text,
+            body: log.body,
+            attributes: finalAttributes)
+        #else
         return .init(
             timeUnixNano: String(Int(log.timestamp.nanosecondsSince1970)),
             severityNumber: log.severity.number,
             severityText: log.severity.text,
             body: log.body,
             attributes: finalAttributes)
+        #endif
     }
 
     static func build(
