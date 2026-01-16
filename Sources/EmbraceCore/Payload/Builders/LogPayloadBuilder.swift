@@ -17,7 +17,7 @@ struct LogPayloadBuilder {
         }
 
         finalAttributes.append(.init(key: LogSemantics.keyId, value: log.idRaw))
-        print(finalAttributes)
+
         #if os(watchOS)
         return .init(
             timeUnixNano: String(Int64(log.timestamp.nanosecondsSince1970)),
