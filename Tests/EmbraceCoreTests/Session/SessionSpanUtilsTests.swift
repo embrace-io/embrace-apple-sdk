@@ -79,10 +79,15 @@ final class SessionSpanUtilsTests: XCTestCase {
 
         // then it is updated correctly
         let spanData = spanProcessor.endedSpans[0]
-        XCTAssertEqual(
-            spanData.attributes["emb.heartbeat_time_unix_nano"],
-            .int(heartbeat.nanosecondsSince1970Truncated)
-        )
+        #if os(watchOS)
+            XCTAssertEqual(
+                spanData.attributes["emb.heartbeat_time_unix_nano"],
+                .double(Double(heartbeat.nanosecondsSince1970Truncated)))
+        #else
+            XCTAssertEqual(
+                spanData.attributes["emb.heartbeat_time_unix_nano"],
+                .int(heartbeat.nanosecondsSince1970Truncated))
+        #endif
     }
 
     func test_setTerminated() throws {

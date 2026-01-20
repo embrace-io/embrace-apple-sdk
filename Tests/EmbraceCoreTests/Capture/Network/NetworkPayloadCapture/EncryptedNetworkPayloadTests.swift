@@ -98,8 +98,13 @@ class EncryptedNetworkPayloadTests: XCTestCase {
         // then the json is correct
         XCTAssertEqual(dict!["url"] as! String, "www.test.com/user/1234?q=test")
         XCTAssertEqual(dict!["http-method"] as! String, "GET")
-        XCTAssertEqual(dict!["start-time"] as! Int, startTime.nanosecondsSince1970Truncated)
-        XCTAssertEqual(dict!["end-time"] as! Int, endTime.nanosecondsSince1970Truncated)
+        #if os(watchOS)
+            XCTAssertEqual(dict!["start-time"] as! Int64, startTime.nanosecondsSince1970Truncated)
+            XCTAssertEqual(dict!["end-time"] as! Int64, endTime.nanosecondsSince1970Truncated)
+        #else
+            XCTAssertEqual(dict!["start-time"] as! Int, startTime.nanosecondsSince1970Truncated)
+            XCTAssertEqual(dict!["end-time"] as! Int, endTime.nanosecondsSince1970Truncated)
+        #endif
         XCTAssertEqual(dict!["matched-url"] as! String, "www.test.com/user/*")
         XCTAssertEqual(dict!["session-id"] as! String, TestConstants.sessionId.stringValue)
         XCTAssertEqual(dict!["request-body"] as! String, "1234")
