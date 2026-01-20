@@ -89,7 +89,7 @@ class EmbraceLogAttributesBuilder {
     }
 
     @discardableResult
-    func addApplicationProperties(sessionId: SessionIdentifier?) -> Self {
+    func addApplicationProperties(sessionId: EmbraceIdentifier?) -> Self {
         guard let sessionId = sessionId,
             let storage = storage
         else {
@@ -195,6 +195,25 @@ class EmbraceLogAttributesBuilder {
         attributes[LogSemantics.Hang.keyPayLoadTimestamp] = String(Date().nanosecondsSince1970Truncated)
         attributes[LogSemantics.Hang.keyDiagnosticTimestampStart] = String(startTime.nanosecondsSince1970Truncated)
         attributes[LogSemantics.Hang.keyDiagnosticTimestampEnd] = String(endTime.nanosecondsSince1970Truncated)
+
+        return self
+    }
+
+    @discardableResult
+    func addMetricKitMetricsProperties(id: String?, provider: String?, payload: String?)
+        -> Self
+    {
+        guard let id = id,
+            let provider = provider,
+            let payload = payload
+        else {
+            return self
+        }
+
+        attributes[LogSemantics.MetricKitMetrics.keyId] = id
+        attributes[LogSemantics.MetricKitMetrics.keyProvider] = provider
+        attributes[LogSemantics.MetricKitMetrics.keyPayload] = payload
+        attributes[LogSemantics.MetricKitMetrics.keyPayLoadTimestamp] = String(Date().nanosecondsSince1970Truncated)
 
         return self
     }

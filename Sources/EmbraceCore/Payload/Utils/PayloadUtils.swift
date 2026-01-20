@@ -12,7 +12,7 @@ import OpenTelemetryApi
 class PayloadUtils {
     static func fetchResources(
         from fetcher: EmbraceStorageMetadataFetcher,
-        sessionId: SessionIdentifier?
+        sessionId: EmbraceIdentifier?
     ) -> [EmbraceMetadata] {
 
         guard let sessionId = sessionId else {
@@ -24,7 +24,7 @@ class PayloadUtils {
 
     static func fetchCustomProperties(
         from fetcher: EmbraceStorageMetadataFetcher,
-        sessionId: SessionIdentifier?
+        sessionId: EmbraceIdentifier?
     ) -> [EmbraceMetadata] {
 
         guard let sessionId = sessionId else {
@@ -44,6 +44,16 @@ class PayloadUtils {
             default:
                 result.append(Attribute(key: key, value: value.description))
             }
+        }
+
+        return result
+    }
+
+    static func convertSpanAttributes(_ attributes: [String: String]) -> [Attribute] {
+        var result: [Attribute] = []
+
+        for (key, value) in attributes {
+            result.append(Attribute(key: key, value: value))
         }
 
         return result

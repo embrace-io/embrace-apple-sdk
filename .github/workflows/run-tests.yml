@@ -24,9 +24,10 @@ jobs:
     outputs:
       matrix: ${{ steps.set.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
+
       - id: set
         run: |
           if [[ "${GITHUB_EVENT_NAME}" == "push" && "${GITHUB_REF}" == "refs/heads/main" ]]; then
@@ -41,7 +42,6 @@ jobs:
     name: Test ${{ matrix.platform }}, on macOS ${{ matrix.macos-version }}, with Xcode ${{ matrix.xcode_version }}, sanitizer ${{ matrix.sanitizer }}
     timeout-minutes: 30
     runs-on: macos-${{ matrix.macos-version }}
-    
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
@@ -51,19 +51,23 @@ jobs:
     steps:
       - name: Select Xcode
         run: |
-          sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app
+          sudo xcode-select -s /Applications/Xcode_${MATRIX_XCODE_VERSION}.app
           xcodebuild -version
         continue-on-error: false
+        env:
+          MATRIX_XCODE_VERSION: ${{ matrix.xcode_version }}
 
       - name: Ensure the Platform is Downloaded
         if: ${{ matrix.platform != 'macOS' && matrix.platform != 'mac-catalyst' }}
         run: |
           xcodebuild -runFirstLaunch
           xcrun simctl list
-          xcodebuild -downloadPlatform ${{ matrix.platform }}
+          xcodebuild -downloadPlatform ${MATRIX_PLATFORM}
           xcodebuild -runFirstLaunch
+        env:
+          MATRIX_PLATFORM: ${{ matrix.platform }}
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         timeout-minutes: 2
         with:
           persist-credentials: false
@@ -83,6 +87,6 @@ jobs:
           sanitizer: ${{ matrix.sanitizer }}
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24 # v5.4.3
+        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

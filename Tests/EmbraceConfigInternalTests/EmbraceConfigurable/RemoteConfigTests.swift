@@ -17,7 +17,7 @@ final class RemoteConfigTests: XCTestCase {
         apiBaseUrl: "https://localhost:8080/config",
         queue: DispatchQueue(label: "com.test.embrace.queue"),
         appId: TestConstants.appId,
-        deviceId: DeviceIdentifier(string: "00000000000000000000000000800000")!,  // %50 threshold
+        deviceId: EmbraceIdentifier(stringValue: "00000000000000000000000000800000"),  // %50 threshold
         osVersion: TestConstants.osVersion,
         sdkVersion: TestConstants.sdkVersion,
         appVersion: TestConstants.appVersion,
@@ -98,10 +98,11 @@ final class RemoteConfigTests: XCTestCase {
         let config = RemoteConfig(options: options, logger: logger)
 
         config.payload.breadcrumbLimit = 987
+        config.payload.tapLimit = 654
 
         XCTAssertEqual(
             config.spanEventsLimits,
-            SpanEventsLimits(breadcrumb: 987)
+            SpanEventsLimits(breadcrumb: 987, tap: 654)
         )
     }
 

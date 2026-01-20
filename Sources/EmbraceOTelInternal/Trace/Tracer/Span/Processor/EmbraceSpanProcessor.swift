@@ -16,8 +16,10 @@ package class EmbraceSpanProcessor: SpanProcessor {
 
     let nameLengthLimit = 128
 
+    let spanProcessors: [SpanProcessor]
+    let embraceExporter: StorageSpanExporter?
     let spanExporters: [SpanExporter]
-    internal let processorQueue = DispatchQueue(label: "io.embrace.spanprocessor", qos: .utility)
+    package let processorQueue = DispatchQueue(label: "io.embrace.spanprocessor", qos: .utility)
     let resourceProvider: (() -> Resource?)?
     private weak var logger: InternalLogger? = nil
     let sessionIdProvider: (() -> String?)?
@@ -32,38 +34,22 @@ package class EmbraceSpanProcessor: SpanProcessor {
 
     /// Returns a new EmbraceSpanProcessor that converts spans to SpanData and forwards them to
     public init(
-        spanExporters: [SpanExporter],
+        spanProcessors: [SpanProcessor] = [],
+        spanExporters: [SpanExporter] = [],
         sdkStateProvider: EmbraceSDKStateProvider,
         logger: InternalLogger? = nil,
         sessionIdProvider: (() -> String?)? = nil,
         criticalResourceGroup: DispatchGroup? = nil,
         resourceProvider: (() -> Resource?)? = nil
     ) {
+        self.spanProcessors = spanProcessors
         self.spanExporters = spanExporters
+        self.embraceExporter = spanExporters.first { $0 is StorageSpanExporter } as? StorageSpanExporter
         self.sdkStateProvider = sdkStateProvider
         self.logger = logger
         self.sessionIdProvider = sessionIdProvider
         self.resourceProvider = resourceProvider
         self.criticalResourceGroup = criticalResourceGroup
-    }
-
-    /// Returns a new EmbraceSpanProcessor that converts spans to SpanData and forwards them to
-    public convenience init(
-        spanExporter: SpanExporter,
-        sdkStateProvider: EmbraceSDKStateProvider,
-        logger: InternalLogger? = nil,
-        sessionIdProvider: (() -> String?)? = nil,
-        criticalResourceGroup: DispatchGroup? = nil,
-        resourceProvider: (() -> Resource?)? = nil
-    ) {
-        self.init(
-            spanExporters: [spanExporter],
-            sdkStateProvider: sdkStateProvider,
-            logger: logger,
-            sessionIdProvider: sessionIdProvider,
-            criticalResourceGroup: criticalResourceGroup,
-            resourceProvider: resourceProvider
-        )
     }
 
     public func autoTerminateSpans() {
@@ -90,8 +76,24 @@ package class EmbraceSpanProcessor: SpanProcessor {
             return
         }
 
+        // processors
+        let mkProcessSpan = EmbraceMetricKitSpan.begin(name: "process-start")
+        processSpan(span)
+
+        processorQueue.async { [self] in
+            criticalResourceGroup?.wait()
+            for processor in spanProcessors {
+                processor.onStart(parentContext: parentContext, span: span)
+            }
+            mkProcessSpan.end()
+        }
+
+        // exporters
+        let mkExportSpan = EmbraceMetricKitSpan.begin(name: "export-start")
         let data = span.toSpanData()
-        processIncompletedSpanData(data, span: span, sync: false)
+        processIncompletedSpanData(data, span: span, sync: false) {
+            mkExportSpan.end()
+        }
     }
 
     public func onEnd(span: OpenTelemetrySdk.ReadableSpan) {
@@ -99,8 +101,22 @@ package class EmbraceSpanProcessor: SpanProcessor {
             return
         }
 
+        // processors
+        let mkProcessSpan = EmbraceMetricKitSpan.begin(name: "process-end")
+        processorQueue.async { [self] in
+            criticalResourceGroup?.wait()
+            for var processor in spanProcessors {
+                processor.onEnd(span: span)
+            }
+            mkProcessSpan.end()
+        }
+
+        // exporters
+        let mkExportSpan = EmbraceMetricKitSpan.begin(name: "export-end")
         let data = span.toSpanData()
-        processCompletedSpanData(data)
+        processCompletedSpanData(data) {
+            mkExportSpan.end()
+        }
     }
 
     public func flush(span: OpenTelemetrySdk.ReadableSpan) {
@@ -108,8 +124,12 @@ package class EmbraceSpanProcessor: SpanProcessor {
             return
         }
 
+        // exporters
+        let mkSpan = EmbraceMetricKitSpan.begin(name: "export-flush")
         let data = span.toSpanData()
-        processIncompletedSpanData(data, span: span, sync: true)
+        processIncompletedSpanData(data, span: span, sync: true) {
+            mkSpan.end()
+        }
     }
 
     public func forceFlush(timeout: TimeInterval?) {
@@ -117,24 +137,55 @@ package class EmbraceSpanProcessor: SpanProcessor {
             return
         }
 
+        // processors
+        let mkProcessSpan = EmbraceMetricKitSpan.begin(name: "process-forceflush")
+        let processors = self.spanProcessors
+        processorQueue.sync {
+            for processor in processors {
+                processor.forceFlush(timeout: timeout)
+            }
+            mkProcessSpan.end()
+        }
+
+        // exporters
+        let mkSpan = EmbraceMetricKitSpan.begin(name: "export-forceflush")
         let exporters = self.spanExporters
         processorQueue.sync {
             for exporter in exporters {
                 _ = exporter.flush(explicitTimeout: timeout)
             }
+            mkSpan.end()
         }
     }
 
     public func shutdown(explicitTimeout: TimeInterval?) {
-        let exporters = self.spanExporters
+
+        let processors = spanProcessors
+        let exporters = spanExporters
+
         processorQueue.sync {
+            for var processor in processors {
+                processor.shutdown(explicitTimeout: explicitTimeout)
+            }
+
             for exporter in exporters {
-                exporter.shutdown()
+                exporter.shutdown(explicitTimeout: explicitTimeout)
             }
         }
     }
 
-    internal func processIncompletedSpanData(_ data: SpanData, span: ReadableSpan?, sync: Bool) {
+    func processSpan(_ span: ReadableSpan) {
+
+        // sanitize name
+        span.name = sanitizedName(span.name, type: span.embType)
+
+        // add session id attribute
+        if let sessionId = sessionIdProvider?() {
+            span.setAttribute(key: SpanSemantics.keySessionId, value: .string(sessionId))
+        }
+    }
+
+    internal func processIncompletedSpanData(_ data: SpanData, span: ReadableSpan?, sync: Bool, completion: (() -> Void)? = nil) {
 
         // cache if flagged for auto termination
         _autoTerminationSpans.withLock {
@@ -148,10 +199,10 @@ package class EmbraceSpanProcessor: SpanProcessor {
             }
         }
 
-        runExporters(data, sync: sync)
+        runExporters(data, sync: sync, completion: completion)
     }
 
-    internal func processCompletedSpanData(_ spanData: SpanData, sync: Bool = false) {
+    internal func processCompletedSpanData(_ spanData: SpanData, sync: Bool = false, completion: (() -> Void)? = nil) {
         var data = spanData
         if data.hasEnded && data.status == .unset {
             if let errorCode = data.errorCode {
@@ -161,11 +212,11 @@ package class EmbraceSpanProcessor: SpanProcessor {
             }
         }
 
-        runExporters(data, sync: sync)
+        runExporters(data, sync: sync, completion: completion)
     }
 
-    private func runExporters(_ span: SpanData, sync: Bool) {
-        runExporters([span], sync: sync)
+    private func runExporters(_ span: SpanData, sync: Bool, completion: (() -> Void)? = nil) {
+        runExporters([span], sync: sync, completion: completion)
     }
 
     private func hydrateSpan(_ span: SpanData, with resource: Resource?) -> SpanData? {
@@ -180,24 +231,13 @@ package class EmbraceSpanProcessor: SpanProcessor {
             return nil
         }
 
-        var spanData = span
-
-        // sanitize name
-        let spanName = sanitizedName(span.name, type: span.embType)
-        guard !spanName.isEmpty else {
+        // Prevent exporting if the name is empty
+        guard !span.name.isEmpty else {
             logger?.warning("Can't export span with empty name!")
             return nil
         }
-        if spanName != span.name {
-            spanData = spanData.settingName(spanName)
-        }
 
-        // add session id attribute
-        if let sessionId = sessionIdProvider?() {
-            var attributes = spanData.attributes
-            attributes[SpanSemantics.keySessionId] = .string(sessionId)
-            spanData = spanData.settingAttributes(attributes)
-        }
+        var spanData = span
 
         // add resource
         if let resource {
@@ -207,18 +247,19 @@ package class EmbraceSpanProcessor: SpanProcessor {
         return spanData
     }
 
-    private func runExporters(_ spans: [SpanData], sync: Bool) {
+    private func runExporters(_ spans: [SpanData], sync: Bool, completion: (() -> Void)? = nil) {
 
         let exporters = self.spanExporters
-        var spansToExport: [SpanData] = spans
+        let spansToExport: [SpanData] = spans
         let provider = resourceProvider
 
-        let block = { [self] in
+        let block = { [exporters, spansToExport, completion, provider, self] in
             let resource = provider?()
-            spansToExport = spansToExport.compactMap { hydrateSpan($0, with: resource) }
+            let filteredSpans = spansToExport.compactMap { hydrateSpan($0, with: resource) }
             for exporter in exporters {
-                _ = exporter.export(spans: spansToExport)
+                _ = exporter.export(spans: filteredSpans)
             }
+            completion?()
         }
 
         if sync {
@@ -231,7 +272,6 @@ package class EmbraceSpanProcessor: SpanProcessor {
                 block()
             }
         }
-
     }
 
     // finds the auto termination code from the span's attributes

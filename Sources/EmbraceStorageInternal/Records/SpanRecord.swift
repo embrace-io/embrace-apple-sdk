@@ -21,6 +21,7 @@ public class SpanRecord: NSManagedObject {
     @NSManaged public var endTime: Date?
     @NSManaged public var processIdRaw: String  // ProcessIdentifier
     @NSManaged public var sessionIdRaw: String?  // SessionIdentifier
+    @NSManaged public var events: Set<SpanEventRecord>
 
     class func create(
         context: NSManagedObjectContext,
@@ -31,8 +32,8 @@ public class SpanRecord: NSManagedObject {
         data: Data,
         startTime: Date,
         endTime: Date? = nil,
-        processId: ProcessIdentifier,
-        sessionId: SessionIdentifier? = nil
+        processId: EmbraceIdentifier,
+        sessionId: EmbraceIdentifier? = nil
     ) -> EmbraceSpan? {
         var result: EmbraceSpan?
 
@@ -49,8 +50,9 @@ public class SpanRecord: NSManagedObject {
             record.data = data
             record.startTime = startTime
             record.endTime = endTime
-            record.processIdRaw = processId.value
-            record.sessionIdRaw = sessionId?.toString
+            record.processIdRaw = processId.stringValue
+            record.sessionIdRaw = sessionId?.stringValue
+            record.events = Set()
 
             result = record.toImmutable()
         }
@@ -71,7 +73,8 @@ public class SpanRecord: NSManagedObject {
             data: data,
             startTime: startTime,
             endTime: endTime,
-            processIdRaw: processIdRaw
+            processIdRaw: processIdRaw,
+            events: events.sorted(by: { $0.timestamp < $1.timestamp }).map { $0.toImmutable() }
         )
     }
 }
@@ -79,11 +82,16 @@ public class SpanRecord: NSManagedObject {
 extension SpanRecord: EmbraceStorageRecord {
     public static var entityName = "SpanRecord"
 
-    static public var entityDescription: NSEntityDescription {
+    static public var entityDescriptions: [NSEntityDescription] {
         let entity = NSEntityDescription()
         entity.name = entityName
         entity.managedObjectClassName = NSStringFromClass(SpanRecord.self)
 
+        let child = NSEntityDescription()
+        child.name = SpanEventRecord.entityName
+        child.managedObjectClassName = NSStringFromClass(SpanEventRecord.self)
+
+        // parent attributes
         let idAttribute = NSAttributeDescription()
         idAttribute.name = "id"
         idAttribute.attributeType = .stringAttributeType
@@ -123,6 +131,36 @@ extension SpanRecord: EmbraceStorageRecord {
         sessionIdAttribute.attributeType = .stringAttributeType
         sessionIdAttribute.isOptional = true
 
+        // child attributes
+        let eventNameAttribute = NSAttributeDescription()
+        eventNameAttribute.name = "name"
+        eventNameAttribute.attributeType = .stringAttributeType
+
+        let timestampAttribute = NSAttributeDescription()
+        timestampAttribute.name = "timestamp"
+        timestampAttribute.attributeType = .dateAttributeType
+        timestampAttribute.defaultValue = Date()
+
+        let attributesDataAttribute = NSAttributeDescription()
+        attributesDataAttribute.name = "attributesData"
+        attributesDataAttribute.attributeType = .binaryDataAttributeType
+
+        // relationships
+        let parentRelationship = NSRelationshipDescription()
+        let childRelationship = NSRelationshipDescription()
+
+        parentRelationship.name = "events"
+        parentRelationship.deleteRule = .cascadeDeleteRule
+        parentRelationship.destinationEntity = child
+        parentRelationship.inverseRelationship = childRelationship
+
+        childRelationship.name = "span"
+        childRelationship.minCount = 1
+        childRelationship.maxCount = 1
+        childRelationship.destinationEntity = entity
+        childRelationship.inverseRelationship = parentRelationship
+
+        // set properties
         entity.properties = [
             idAttribute,
             nameAttribute,
@@ -132,10 +170,18 @@ extension SpanRecord: EmbraceStorageRecord {
             startTimeAttribute,
             endTimeAttribute,
             processIdAttribute,
-            sessionIdAttribute
+            sessionIdAttribute,
+            parentRelationship
         ]
 
-        return entity
+        child.properties = [
+            eventNameAttribute,
+            timestampAttribute,
+            attributesDataAttribute,
+            childRelationship
+        ]
+
+        return [entity, child]
     }
 }
 
@@ -148,4 +194,5 @@ struct ImmutableSpanRecord: EmbraceSpan {
     let startTime: Date
     let endTime: Date?
     let processIdRaw: String
+    let events: [EmbraceSpanEvent]
 }

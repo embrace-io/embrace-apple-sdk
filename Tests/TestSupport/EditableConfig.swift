@@ -5,6 +5,7 @@
 import EmbraceConfiguration
 
 public class EditableConfig: EmbraceConfigurable {
+
     public var hangLimits: HangLimits = HangLimits()
 
     public var isSDKEnabled: Bool = true
@@ -31,6 +32,8 @@ public class EditableConfig: EmbraceConfigurable {
 
     public var isMetricKitHangCaptureEnabled: Bool = false
 
+    public var isMetricKitInternalMetricsCaptureEnabled: Bool = false
+
     public var spanEventsLimits = SpanEventsLimits()
 
     public var logsLimits = LogsLimits()
@@ -40,6 +43,8 @@ public class EditableConfig: EmbraceConfigurable {
     public var networkPayloadCaptureRules = [NetworkPayloadCaptureRule]()
 
     public var useLegacyUrlSessionProxy: Bool = false
+
+    public var useNewStorageForSpanEvents: Bool = false
 
     public func update(completion: (Bool, (any Error)?) -> Void) {
         completion(false, nil)
@@ -54,11 +59,13 @@ public class EditableConfig: EmbraceConfigurable {
         isMetricKitCrashCaptureEnabled: Bool = false,
         metricKitCrashSignals: [String] = [],
         isMetricKitHangCaptureEnabled: Bool = false,
+        isMetricKitInternalMetricsCaptureEnabled: Bool = false,
         isSwiftUiViewInstrumentationEnabled: Bool = false,
         internalLogLimits: InternalLogLimits = InternalLogLimits(),
         networkPayloadCaptureRules: [NetworkPayloadCaptureRule] = [],
         hangLimits: HangLimits = HangLimits(),
-        useLegacyUrlSessionProxy: Bool = false
+        useLegacyUrlSessionProxy: Bool = false,
+        useNewStorageForSpanEvents: Bool = false
     ) {
         self.isSDKEnabled = isSdkEnabled
         self.isBackgroundSessionEnabled = isBackgroundSessionEnabled
@@ -68,11 +75,13 @@ public class EditableConfig: EmbraceConfigurable {
         self.isMetricKitCrashCaptureEnabled = isMetricKitCrashCaptureEnabled
         self.metricKitCrashSignals = metricKitCrashSignals
         self.isMetricKitHangCaptureEnabled = isMetricKitHangCaptureEnabled
+        self.isMetricKitInternalMetricsCaptureEnabled = isMetricKitInternalMetricsCaptureEnabled
         self.isSwiftUiViewInstrumentationEnabled = isSwiftUiViewInstrumentationEnabled
         self.internalLogLimits = internalLogLimits
         self.networkPayloadCaptureRules = networkPayloadCaptureRules
         self.hangLimits = hangLimits
         self.useLegacyUrlSessionProxy = useLegacyUrlSessionProxy
+        self.useNewStorageForSpanEvents = useNewStorageForSpanEvents
     }
 }
 

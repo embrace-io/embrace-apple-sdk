@@ -33,8 +33,8 @@ extension EmbraceStorage {
         data: Data,
         startTime: Date,
         endTime: Date? = nil,
-        processId: ProcessIdentifier = .current,
-        sessionId: SessionIdentifier? = nil
+        processId: EmbraceIdentifier = ProcessIdentifier.current,
+        sessionId: EmbraceIdentifier? = nil
     ) -> EmbraceSpan? {
 
         // update existing?
@@ -83,6 +83,36 @@ extension EmbraceStorage {
         return request
     }
 
+    /// Adds span events to a span
+    /// - Parameters:
+    ///   - id: Identifier of the span
+    ///   - traceId: Identifier of the trace containing this span
+    ///   - events: Array of span events to be added to the storage. These spans are all expected to be new
+    ///   spans not yet added to the store.
+    package func addEventsToSpan(id: String, traceId: String, events: [EmbraceSpanEvent]) {
+
+        guard !events.isEmpty else { return }
+
+        let request = fetchSpanRequest(id: id, traceId: traceId)
+        coreData.fetchFirstAndPerform(withRequest: request) { span in
+            guard let span else { return }
+            for event in events {
+                if let rec = SpanEventRecord.create(
+                    context: coreData.context,
+                    name: event.name,
+                    timestamp: event.timestamp,
+                    attributes: event.attributes,
+                    span: span
+                ) {
+                    span.events.insert(rec)
+                }
+
+            }
+            coreData.save()
+        }
+
+    }
+
     func updateExistingSpan(
         id: String,
         name: String,
@@ -91,8 +121,8 @@ extension EmbraceStorage {
         data: Data,
         startTime: Date,
         endTime: Date? = nil,
-        processId: ProcessIdentifier = .current,
-        sessionId: SessionIdentifier? = nil
+        processId: EmbraceIdentifier = ProcessIdentifier.current,
+        sessionId: EmbraceIdentifier? = nil
     ) -> EmbraceSpan? {
         var result: EmbraceSpan?
 
@@ -107,8 +137,8 @@ extension EmbraceStorage {
                 span.data = data
                 span.startTime = startTime
                 span.endTime = endTime
-                span.processIdRaw = processId.value
-                span.sessionIdRaw = sessionId?.toString
+                span.processIdRaw = processId.stringValue
+                span.sessionIdRaw = sessionId?.stringValue
                 coreData.save()
             }
 
@@ -166,7 +196,7 @@ extension EmbraceStorage {
         } else {
             request.predicate = NSPredicate(
                 format: "endTime != nil AND processIdRaw != %@",
-                ProcessIdentifier.current.value)
+                ProcessIdentifier.current.stringValue)
         }
 
         coreData.deleteRecords(withRequest: request)
@@ -180,7 +210,7 @@ extension EmbraceStorage {
         let request = SpanRecord.createFetchRequest()
         request.predicate = NSPredicate(
             format: "endTime = nil AND processIdRaw != %@",
-            ProcessIdentifier.current.value
+            ProcessIdentifier.current.stringValue
         )
 
         coreData.fetchAndPerform(withRequest: request) { [self] spans in

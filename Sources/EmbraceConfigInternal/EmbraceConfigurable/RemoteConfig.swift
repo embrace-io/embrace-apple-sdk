@@ -126,11 +126,14 @@ extension RemoteConfig: EmbraceConfigurable {
 
     public var isMetricKitHangCaptureEnabled: Bool { payload.metricKitHangCaptureEnabled }
 
+    public var isMetricKitInternalMetricsCaptureEnabled: Bool { payload.metricKitInternalMetricsCaptureEnabled }
+
     public var networkPayloadCaptureRules: [NetworkPayloadCaptureRule] { payload.networkPayloadCaptureRules }
 
     public var spanEventsLimits: SpanEventsLimits {
         SpanEventsLimits(
-            breadcrumb: UInt(max(payload.breadcrumbLimit, 0))
+            breadcrumb: UInt(max(payload.breadcrumbLimit, 0)),
+            tap: UInt(max(payload.tapLimit, 0))
         )
     }
 
@@ -153,6 +156,8 @@ extension RemoteConfig: EmbraceConfigurable {
     }
 
     public var useLegacyUrlSessionProxy: Bool { payload.useLegacyUrlSessionProxy }
+
+    public var useNewStorageForSpanEvents: Bool { payload.useNewStorageForSpanEvents }
 
     public func update(completion: @escaping (Bool, (any Error)?) -> Void) {
         guard updating == false else {

@@ -86,7 +86,7 @@ public class MetadataHandler: NSObject {
     }
 
     func addCriticalResource(key: String, value: String) {
-        storage?.addCriticalResources([key: value], processId: .current)
+        storage?.addCriticalResources([key: value], processId: ProcessIdentifier.current)
     }
 
     /// Adds a property with the given key, value and lifespan.
@@ -239,12 +239,12 @@ extension MetadataHandler {
 extension MetadataHandler {
     private func currentContext(for lifespan: MetadataRecordLifespan) throws -> String {
         if lifespan == .session {
-            guard let sessionId = sessionController?.currentSession?.id?.toString else {
+            guard let sessionId = sessionController?.currentSession?.id?.stringValue else {
                 throw MetadataError.invalidSession("Can't add a session property if there's no active session!")
             }
             return sessionId
         } else if lifespan == .process {
-            return ProcessIdentifier.current.value
+            return ProcessIdentifier.current.stringValue
         } else {
             // permanent
             return MetadataRecord.lifespanIdForPermanent

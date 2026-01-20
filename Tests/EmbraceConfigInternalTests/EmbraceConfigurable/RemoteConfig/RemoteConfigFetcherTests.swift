@@ -77,7 +77,7 @@ class RemoteConfigFetcherTests: XCTestCase {
                 .init(name: "appId", value: TestConstants.appId),
                 .init(name: "osVersion", value: TestConstants.osVersion),
                 .init(name: "appVersion", value: TestConstants.appVersion),
-                .init(name: "deviceId", value: TestConstants.deviceId.hex),
+                .init(name: "deviceId", value: TestConstants.deviceId.stringValue),
                 .init(name: "sdkVersion", value: TestConstants.sdkVersion)
             ])
         } else {

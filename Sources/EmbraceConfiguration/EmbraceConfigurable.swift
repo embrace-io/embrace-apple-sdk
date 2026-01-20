@@ -31,6 +31,8 @@ import Foundation
 
     var isMetricKitHangCaptureEnabled: Bool { get }
 
+    var isMetricKitInternalMetricsCaptureEnabled: Bool { get }
+
     var spanEventsLimits: SpanEventsLimits { get }
 
     var logsLimits: LogsLimits { get }
@@ -42,6 +44,8 @@ import Foundation
     var hangLimits: HangLimits { get }
 
     var useLegacyUrlSessionProxy: Bool { get }
+
+    var useNewStorageForSpanEvents: Bool { get }
 
     /// Tell the configurable implementation it should update if possible.
     /// - Parameters:

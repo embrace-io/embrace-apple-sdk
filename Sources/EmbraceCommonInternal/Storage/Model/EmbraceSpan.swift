@@ -13,6 +13,7 @@ public protocol EmbraceSpan {
     var startTime: Date { get }
     var endTime: Date? { get }
     var processIdRaw: String { get }
+    var events: [EmbraceSpanEvent] { get }
 }
 
 extension EmbraceSpan {
@@ -20,7 +21,7 @@ extension EmbraceSpan {
         return SpanType(rawValue: typeRaw)
     }
 
-    public var processId: ProcessIdentifier? {
-        return ProcessIdentifier(string: processIdRaw)
+    public var processId: EmbraceIdentifier? {
+        return EmbraceIdentifier(stringValue: processIdRaw)
     }
 }

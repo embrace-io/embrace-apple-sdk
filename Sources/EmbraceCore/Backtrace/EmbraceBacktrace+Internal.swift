@@ -186,6 +186,26 @@ extension EmbraceBacktraceFrame {
 }
 
 extension EmbraceBacktrace {
+    @discardableResult
+    static private func emb_thread_suspend(_ thread: mach_port_t) -> kern_return_t {
+        #if !os(watchOS)
+            return thread_suspend(thread)
+        #else
+            return KERN_SUCCESS
+        #endif
+    }
+
+    @discardableResult
+    static private func emb_thread_resume(_ thread: mach_port_t) -> kern_return_t {
+        #if !os(watchOS)
+            return thread_resume(thread)
+        #else
+            return KERN_SUCCESS
+        #endif
+    }
+}
+
+extension EmbraceBacktrace {
 
     static func takeSnapshot(of thread: pthread_t, threadIndex: Int = 0) -> [EmbraceBacktraceThread] {
         let snap = _takeSnapshot(of: thread, threadIndex: threadIndex)
@@ -204,7 +224,7 @@ extension EmbraceBacktrace {
 
         // suspend thread if not the current thread.
         if canSuspend {
-            guard thread_suspend(machThread) == KERN_SUCCESS else {
+            guard emb_thread_suspend(machThread) == KERN_SUCCESS else {
                 Embrace.logger.warning("[EmbraceBacktrace] error suspending thread")
                 return []
             }
@@ -215,7 +235,7 @@ extension EmbraceBacktrace {
 
         // resume thread
         if canSuspend {
-            thread_resume(machThread)
+            emb_thread_resume(machThread)
         }
 
         // remove the entries that are part of the SDK,

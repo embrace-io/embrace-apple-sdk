@@ -3,9 +3,27 @@
     "include": [
       {
         "platform": "iOS",
-        "xcode_version": "16.4",
+        "xcode_version": "26.0",
         "macos-version": "15",
-        "sanitizer": "address"
+        "sanitizer": "none"
+      },
+      {
+        "platform": "tvOS",
+        "xcode_version": "26.0",
+        "macos-version": "15",
+        "sanitizer": "none"
+      },
+      {
+        "platform": "macOS",
+        "xcode_version": "26.0",
+        "macos-version": "15",
+        "sanitizer": "none"
+      },
+      {
+        "platform": "watchOS",
+        "xcode_version": "26.0",
+        "macos-version": "15",
+        "sanitizer": "none"
       }
     ]
   },
@@ -34,6 +52,42 @@
         "xcode_version": "16.4",
         "macos-version": "15",
         "sanitizer": "none"
+      },
+      {
+        "platform": "iOS",
+        "xcode_version": "26.0",
+        "macos-version": "15",
+        "sanitizer": "none"
+      },
+      {
+        "platform": "tvOS",
+        "xcode_version": "26.0",
+        "macos-version": "15",
+        "sanitizer": "none"
+      },
+      {
+        "platform": "macOS",
+        "xcode_version": "26.0",
+        "macos-version": "15",
+        "sanitizer": "none"
+      },
+      {
+        "platform": "watchOS",
+        "xcode_version": "26.0",
+        "macos-version": "15",
+        "sanitizer": "none"
+      },
+      {
+        "platform": "iOS",
+        "xcode_version": "26.0",
+        "macos-version": "15",
+        "sanitizer": "address"
+      },
+      {
+        "platform": "iOS",
+        "xcode_version": "26.0",
+        "macos-version": "15",
+        "sanitizer": "thread"
       }
     ]
   }

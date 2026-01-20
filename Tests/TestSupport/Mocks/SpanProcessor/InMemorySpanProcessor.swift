@@ -38,7 +38,7 @@ public class InMemorySpanProcessor: SpanProcessor {
 
     public func onEnd(span: any OpenTelemetrySdk.ReadableSpan) {
         let data = span.toSpanData()
-        startedSpans[data.spanId] = data
+        endedSpans[data.spanId] = data
     }
 
     public func forceFlush(timeout: TimeInterval?) {

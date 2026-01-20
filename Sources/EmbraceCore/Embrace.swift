@@ -124,7 +124,11 @@ import Foundation
 
         let setupTime = Date()
 
+        let span = EmbraceMetricKitSpan.begin(name: "sdk-setup", force: true)
+
         return try _syncLock.lockedForWriting {
+            defer { span.end() }
+
             if let client = client {
                 Embrace.logger.warning("Embrace was already initialized!")
                 return client
@@ -164,13 +168,13 @@ import Foundation
         self.logLevel = options.logLevel
 
         // retrieve device identifier
-        self.deviceId = DeviceIdentifier.retrieve(fileURL: EmbraceFileSystem.deviceIdURL)
+        self.deviceId = EmbraceIdentifier.retrieveDeviceId(fileURL: EmbraceFileSystem.deviceIdURL)
 
         // initialize remote configuration
         self.config = Embrace.createConfig(options: options, deviceId: deviceId)
 
         // initialize upload module
-        self.upload = try Embrace.createUpload(options: options, deviceId: deviceId.hex, configuration: config.configurable)
+        self.upload = try Embrace.createUpload(options: options, deviceId: deviceId.stringValue, configuration: config.configurable)
 
         // send critical logs from previous session
         UnsentDataHandler.sendCriticalLogs(fileUrl: EmbraceFileSystem.criticalLogsURL, upload: upload)
@@ -239,7 +243,8 @@ import Foundation
                 sessionController: sessionController,
                 customExporter: options.export,
                 customProcessors: options.processors?.compactMap { $0.processor },
-                sdkStateProvider: self
+                sdkStateProvider: self,
+                useNewStorageForSpanEvents: config.useNewStorageForSpanEvents
             )
         )
 
@@ -254,6 +259,7 @@ import Foundation
         let logSharedState = DefaultEmbraceLogSharedState.create(
             storage: self.storage,
             batcher: logBatcher,
+            processors: options.processors?.compactMap { $0.logProcessor } ?? [],
             exporter: options.export?.logExporter,
             sdkStateProvider: self
         )
@@ -289,6 +295,7 @@ import Foundation
         }
 
         EMBStartupTracker.shared().sdkStartStartTime = Date()
+        let span = EmbraceMetricKitSpan.begin(name: "sdk-start", force: true)
 
         if EMBStartupTracker.shared().appDidFinishLaunchingEndTime != nil || EMBStartupTracker.shared().appFirstDidBecomeActiveTime != nil {
             Embrace.logger.error("Embrace SDK should be started before the app is launched and becomes active. This is required for the startup instrumentation to work.")
@@ -298,6 +305,9 @@ import Foundation
         sessionLifecycle.setup()
 
         return Embrace._syncLock.lockedForWriting {
+
+            defer { span.end() }
+
             guard state == .initialized else {
                 Embrace.logger.warning("The Embrace SDK can only be started once!")
                 return self
@@ -415,7 +425,7 @@ import Foundation
 
     /// Returns the current device identifier.
     @objc public func currentDeviceId() -> String? {
-        return deviceId.hex
+        return deviceId.stringValue
     }
 
     /// Forces the Embrace SDK to start a new session.

@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - "release/*"
+      - "hotfix/*"
 
   workflow_dispatch:
     inputs:
@@ -14,7 +15,11 @@ on:
         description: "The release candidate version to create"
         required: true
       is_production_ready:
-        description: "Is the release candidate production ready"
+        description: "Production ready"
+        type: boolean
+        default: false
+      is_stable_hotfix:
+        description: "Stable version hotfix"
         type: boolean
         default: false
 
@@ -30,17 +35,19 @@ jobs:
     env:
       RC_VERSION: ${{ github.event.inputs.rc_version }}
       IS_PRODUCTION_READY: ${{ github.event.inputs.is_production_ready }}
+      IS_STABLE_HOTFIX: ${{ github.event.inputs.is_stable_hotfix }}
     outputs:
       rc_version: ${{ steps.rc_version_extractor.outputs.rc_version }}
       is_production_ready: ${{ env.IS_PRODUCTION_READY }}
+      is_stable_hotfix: ${{ env.IS_STABLE_HOTFIX }}
 
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           fetch-tags: true
-          persist-credentials: true 
+          persist-credentials: true
 
       - name: Define Production Readiness
         run: |
@@ -49,6 +56,13 @@ jobs:
           fi
           echo "Production readiness determined: $IS_PRODUCTION_READY"
 
+      - name: Define Stable Hotfix
+        run: |
+          if [ -z "$IS_STABLE_HOTFIX" ]; then
+              echo "IS_STABLE_HOTFIX=false" >> $GITHUB_ENV
+          fi
+          echo "Stable hotfix: $IS_STABLE_HOTFIX"
+
       - name: Validate and Extract RC Version Number
         id: rc_version_extractor
         run: |
@@ -56,7 +70,7 @@ jobs:
           # (depending the event which triggered the workflow).
           if [ -z "$RC_VERSION" ]; then
             if [[ "${GITHUB_REF_TYPE}" == "branch" ]]; then
-              BRANCH_VERSION=${GITHUB_REF_NAME##release/}
+              BRANCH_VERSION=${GITHUB_REF_NAME##*/}
               RC_VERSION=$BRANCH_VERSION
             fi
           fi
@@ -101,9 +115,9 @@ jobs:
       IS_PRODUCTION_READY: ${{ needs.extractor.outputs.is_production_ready }}
     steps:
       - name: Validate access to versioning backend
-        uses: embrace-io/public-actions/upload-sdk-version@88167cd1a3fce3418e26c8c842026e6dfab99e41
+        uses: embrace-io/public-actions/upload-sdk-version@1841c9025e9640e5bbf83db6900b828df30addeb
         with:
-          platform: 'ios'
+          platform: "ios"
           version: ${{ needs.extractor.outputs.rc_version }}
           dryRun: true
           uploadUrl: ${{ vars.SDK_VERSION_URL }}
@@ -111,7 +125,7 @@ jobs:
           SDK_VERSION_TOKEN: ${{ secrets.SDK_VERSION_TOKEN }}
 
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           persist-credentials: true
@@ -150,15 +164,117 @@ jobs:
           git tag $RC_VERSION
           git push origin $RC_VERSION
 
+  create_xcframeworks:
+    name: Build XCFrameworks and Create Release Archive
+    runs-on: macos-14
+    timeout-minutes: 60
+    needs:
+      - extractor
+      - build_release_candidate
+    permissions:
+      contents: write
+    env:
+      RC_VERSION: ${{ needs.extractor.outputs.rc_version }}
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.extractor.outputs.rc_version }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Select Xcode 15
+        run: sudo xcode-select -switch /Applications/Xcode_15.4.app
+
+      - name: Install Ruby dependencies
+        run: bundle install
+
+      - name: Build XCFrameworks
+        run: |
+          # Run build script to generate xcframeworks
+          ./bin/build_xcframeworks.sh
+
+      - name: Determine latest embrace_support.zip version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(gh release list --repo embrace-io/action-symbol-upload --json tagName --jq '.[] | select(.tagName | startswith("embrace_support-")) | .tagName' --order desc | head -1)
+          echo "::notice::Using support tool version ${version}"
+          echo "SUPPORT_TOOL=${version}" >> $GITHUB_ENV
+
+      - name: Download embrace_support.zip
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release --repo embrace-io/action-symbol-upload download ${{ env.SUPPORT_TOOL }} --pattern 'embrace_support-*' --clobber
+
+      - name: Verify and extract embrace_support.zip
+        run: |
+          if /usr/bin/shasum -a 256 -c ${{ env.SUPPORT_TOOL }}.zip.sha256; then
+            unzip -o ${{ env.SUPPORT_TOOL }}.zip
+          else
+            echo "::error::Checksum verification failed, aborting."
+            exit 1
+          fi
+
+      - name: Create Release Archive
+        run: |
+          DIR=$(pwd -P)
+
+          # Create the release directory structure
+          mkdir -p "embrace_$RC_VERSION/xcframeworks"
+
+          # Copy embrace_support files (run.sh and embrace_symbol_upload.darwin)
+          chmod +x run.sh embrace_symbol_upload.darwin
+          cp run.sh embrace_symbol_upload.darwin "embrace_$RC_VERSION/"
+
+          # Copy xcframeworks
+          cp -r binaries/* "embrace_$RC_VERSION/xcframeworks/"
+
+          # Create the final zip
+          zip -r "embrace_$RC_VERSION.zip" "embrace_$RC_VERSION"
+
+      - name: Store Release Archive
+        uses: actions/upload-artifact@v6
+        with:
+          name: Embrace Release Archive
+          path: embrace_${{ env.RC_VERSION }}.zip
+
   create_github_release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
     needs:
       - extractor
       - build_release_candidate
+      - create_xcframeworks
     permissions:
       contents: write
+    env:
+      RC_VERSION: ${{ needs.extractor.outputs.rc_version }}
+      IS_PRODUCTION_READY: ${{ needs.extractor.outputs.is_production_ready }}
+      IS_STABLE_HOTFIX: ${{ needs.extractor.outputs.is_stable_hotfix }}
     steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+
+      - name: Download Embrace Release Archive
+        uses: actions/download-artifact@v7
+        with:
+          name: Embrace Release Archive
+
+      - name: Generate Release Notes
+        id: release_notes
+        uses: embrace-io/public-actions/release-notes-generator@1841c9025e9640e5bbf83db6900b828df30addeb
+        with:
+          github_token: ${{ github.token }}
+          current_tag: ${{ needs.extractor.outputs.rc_version }}
+          include_unmatched: true
+          create_release: false
+
       - name: Disable GitHub CLI Prompt if Enabled
         run: |
           if [ "$(gh config get prompt)" = "enabled" ]; then
@@ -168,18 +284,23 @@ jobs:
       - name: Create/Edit Release
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          RC_VERSION: ${{ needs.extractor.outputs.rc_version}}
-          IS_PRODUCTION_READY: ${{ needs.extractor.outputs.is_production_ready }}
+          RELEASE_NOTES: ${{ steps.release_notes.outputs.changelog }}
         run: |
           echo "::notice::Creating Release $RC_VERSION in Github"
           if gh release view $RC_VERSION --repo embrace-io/embrace-apple-sdk > /dev/null 2>&1; then
             echo "::warning::Version '$RC_VERSION' already exists in GitHub. Skipping and continuing"
-          else 
+          else
             PRERELEASE_FLAG=""
             if [ "$IS_PRODUCTION_READY" == "false" ]; then
               PRERELEASE_FLAG="--prerelease"
             fi
-            gh release create $RC_VERSION --title "$RC_VERSION" $PRERELEASE_FLAG --repo embrace-io/embrace-apple-sdk  --verify-tag
+
+            LATEST_FLAG=""
+            if [ "$IS_STABLE_HOTFIX" == "true" ]; then
+              LATEST_FLAG="--latest=false"
+            fi
+
+            gh release create $RC_VERSION embrace_$RC_VERSION.zip --title "$RC_VERSION" $PRERELEASE_FLAG $LATEST_FLAG --repo embrace-io/embrace-apple-sdk --verify-tag --notes "$RELEASE_NOTES"
           fi
 
   push_podspec:
@@ -195,7 +316,7 @@ jobs:
       IS_PRODUCTION_READY: ${{ needs.extractor.outputs.is_production_ready }}
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ needs.extractor.outputs.rc_version }}
           fetch-depth: 0
@@ -227,9 +348,9 @@ jobs:
 
     steps:
       - name: Record SDK Version History
-        uses: embrace-io/public-actions/upload-sdk-version@88167cd1a3fce3418e26c8c842026e6dfab99e41
+        uses: embrace-io/public-actions/upload-sdk-version@1841c9025e9640e5bbf83db6900b828df30addeb
         with:
-          platform: 'ios'
+          platform: "ios"
           version: ${{ needs.extractor.outputs.rc_version }}
           dryRun: false
           uploadUrl: ${{ vars.SDK_VERSION_URL }}

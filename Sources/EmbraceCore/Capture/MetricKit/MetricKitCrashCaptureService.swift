@@ -12,9 +12,9 @@ import Foundation
 
 class MetricKitCrashCaptureService: CaptureService, MetricKitCrashPayloadListener {
 
-    let options: MetricKitCrashCaptureService.Options
+    let options: MetricKitCaptureServiceOptions
 
-    init(options: MetricKitCrashCaptureService.Options) {
+    init(options: MetricKitCaptureServiceOptions) {
         self.options = options
     }
 
@@ -22,7 +22,7 @@ class MetricKitCrashCaptureService: CaptureService, MetricKitCrashPayloadListene
         options.payloadProvider?.add(listener: self)
     }
 
-    func didReceive(payload: Data, signal: Int, sessionId: SessionIdentifier?) {
+    func didReceive(payload: Data, signal: Int, sessionId: EmbraceIdentifier?) {
         guard isActive,
             let stateProvider = options.stateProvider,
             stateProvider.isMetricKitEnabled,
@@ -49,7 +49,7 @@ class MetricKitCrashCaptureService: CaptureService, MetricKitCrashPayloadListene
             .addLogType(.crash)
             .addApplicationProperties(sessionId: sessionId)
             .addApplicationState(SessionState.unknown.rawValue)
-            .addSessionIdentifier(sessionId?.toString)
+            .addSessionIdentifier(sessionId?.stringValue)
             .addCrashReportProperties(
                 id: UUID().withoutHyphen, provider: LogSemantics.Crash.metrickitProvider, payload: payloadString
             )

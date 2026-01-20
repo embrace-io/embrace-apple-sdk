@@ -9,6 +9,7 @@ import OpenTelemetrySdk
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceOTelInternal
     import EmbraceSemantics
+    import EmbraceCommonInternal
 #endif
 
 struct SpanPayload: Encodable {

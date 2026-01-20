@@ -30,7 +30,7 @@ class DeviceIdentifier_PersistenceTests: XCTestCase {
     }
 
     func test_retrieve_withNoFile_shouldCreateNewFile() throws {
-        let result = DeviceIdentifier.retrieve(fileURL: fileURL)
+        let result = EmbraceIdentifier.retrieveDeviceId(fileURL: fileURL)
 
         XCTAssert(FileManager.default.fileExists(atPath: fileURL.path))
 
@@ -48,7 +48,7 @@ class DeviceIdentifier_PersistenceTests: XCTestCase {
         #endif
         let keychainDeviceId = KeychainAccess.deviceId
 
-        let result = DeviceIdentifier.retrieve(fileURL: fileURL)
+        let result = EmbraceIdentifier.retrieveDeviceId(fileURL: fileURL)
         XCTAssertEqual(result, DeviceIdentifier(value: keychainDeviceId))
     }
 
@@ -59,7 +59,7 @@ class DeviceIdentifier_PersistenceTests: XCTestCase {
 
         try uuid.uuidString.write(to: fileURL, atomically: true, encoding: .utf8)
 
-        let result = DeviceIdentifier.retrieve(fileURL: fileURL)
+        let result = EmbraceIdentifier.retrieveDeviceId(fileURL: fileURL)
         XCTAssertEqual(result, deviceId)
     }
 }

@@ -31,10 +31,10 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
     func addSpanRecord(
         type: SpanType = .performance,
         name: String = "example",
-        processIdentifier: ProcessIdentifier = .current,
+        processIdentifier: EmbraceIdentifier = ProcessIdentifier.current,
         startTime: Date,
         endTime: Date? = nil,
-        sessionIdentifier: SessionIdentifier? = nil
+        sessionIdentifier: EmbraceIdentifier? = nil
     ) -> EmbraceSpan {
         return storage.upsertSpan(
             id: SpanId.random().hexString,
@@ -54,7 +54,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         endTime: Date? = nil,
         lastHeartBeat: Date? = nil,
         coldStart: Bool = false,
-        processIdentifier: ProcessIdentifier = .current,
+        processIdentifier: EmbraceIdentifier = ProcessIdentifier.current,
         traceId: TraceId = .random(),
         spanId: SpanId = .random()
     ) -> EmbraceSession {
@@ -408,7 +408,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
             name: "span-a", startTime: .relative(-28), endTime: .relative(-22), sessionIdentifier: session.id)
         let spanB = addSpanRecord(
             name: "span-b", startTime: .relative(-16), endTime: .relative(-12),
-            sessionIdentifier: SessionIdentifier.random)
+            sessionIdentifier: EmbraceIdentifier.random)
         let spanC = addSpanRecord(
             name: "span-c", startTime: .relative(-6), endTime: .relative(-2), sessionIdentifier: session.id)
         let results = storage.fetchSpans(for: session)

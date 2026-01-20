@@ -14,7 +14,7 @@ class EmbraceLogRecordProcessorArrayExtensionTests: XCTestCase {
     let sdkStateProvider = MockEmbraceSDKStateProvider()
 
     func test_onDefaultWithExporters_returnSingleLogRecordProcessorInstance() throws {
-        let processors: [LogRecordProcessor] = .default(withExporters: [], sdkStateProvider: sdkStateProvider)
+        let processors: [LogRecordProcessor] = .default(sdkStateProvider: sdkStateProvider)
         XCTAssertEqual(processors.count, 1)
         XCTAssertTrue(try XCTUnwrap(processors.first) is SingleLogRecordProcessor)
     }

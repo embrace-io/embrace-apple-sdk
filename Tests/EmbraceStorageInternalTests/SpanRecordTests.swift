@@ -237,4 +237,144 @@ class SpanRecordTests: XCTestCase {
         let span3 = spans.first(where: { $0.id == "id3" })
         XCTAssertNil(span3!.endTime)
     }
+
+    // MARK: - SpanEvent Relationship Tests
+
+    func test_spanRecord_hasEventsRelationship() throws {
+        // given a span with events
+        storage.upsertSpan(
+            id: "id",
+            name: "test_span",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: Date()
+        )
+
+        let event1 = ImmutableSpanEventRecord(
+            name: "event1",
+            timestamp: Date(),
+            attributes: ["key": "value"]
+        )
+        storage.addEventsToSpan(id: "id", traceId: TestConstants.traceId, events: [event1])
+
+        // when fetching the span
+        let span = storage.fetchSpan(id: "id", traceId: TestConstants.traceId)
+
+        // then the events relationship is populated
+        XCTAssertNotNil(span)
+        XCTAssertEqual(span?.events.count, 1)
+        XCTAssertEqual(span?.events.first?.name, "event1")
+        XCTAssertEqual(span?.events.first?.attributes["key"], "value")
+    }
+
+    func test_spanRecord_cascadeDeleteEvents() throws {
+        // given a span with events
+        storage.upsertSpan(
+            id: "id",
+            name: "test_span",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: Date(),
+            endTime: Date()
+        )
+
+        let event1 = ImmutableSpanEventRecord(
+            name: "event1",
+            timestamp: Date(),
+            attributes: ["key": "value"]
+        )
+        let event2 = ImmutableSpanEventRecord(
+            name: "event2",
+            timestamp: Date(),
+            attributes: ["key": "value"]
+        )
+        storage.addEventsToSpan(id: "id", traceId: TestConstants.traceId, events: [event1, event2])
+
+        // verify events exist
+        let spanBefore = storage.fetchSpan(id: "id", traceId: TestConstants.traceId)
+        XCTAssertEqual(spanBefore?.events.count, 2)
+
+        // when deleting the span
+        storage.cleanUpSpans(date: Date().addingTimeInterval(100))
+
+        // then the events are also deleted (cascade delete)
+        let spans: [SpanRecord] = storage.fetchAll()
+        XCTAssertEqual(spans.count, 0)
+
+        // verify there are no orphaned events
+        let eventRequest = SpanEventRecord.createFetchRequest()
+        let events: [SpanEventRecord] = storage.coreData.fetch(withRequest: eventRequest)
+        XCTAssertEqual(events.count, 0)
+    }
+
+    func test_spanRecord_toImmutable_includesEvents() throws {
+        // given a span with events added directly to storage
+        storage.upsertSpan(
+            id: "id",
+            name: "test_span",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: Date()
+        )
+
+        let now = Date()
+        let event1 = ImmutableSpanEventRecord(
+            name: "event1",
+            timestamp: now.addingTimeInterval(100),
+            attributes: ["key1": "value1"]
+        )
+        let event2 = ImmutableSpanEventRecord(
+            name: "event2",
+            timestamp: now.addingTimeInterval(50),
+            attributes: ["key2": "value2"]
+        )
+        storage.addEventsToSpan(id: "id", traceId: TestConstants.traceId, events: [event1, event2])
+
+        // when converting to immutable
+        let span = storage.fetchSpan(id: "id", traceId: TestConstants.traceId)
+
+        // then events are included and sorted by timestamp
+        XCTAssertNotNil(span)
+        XCTAssertEqual(span?.events.count, 2)
+        XCTAssertEqual(span?.events[0].name, "event2")  // earlier timestamp
+        XCTAssertEqual(span?.events[1].name, "event1")  // later timestamp
+    }
+
+    func test_spanEventRecord_getAndSetAttributes() throws {
+        // given a span
+        storage.upsertSpan(
+            id: "id",
+            name: "test_span",
+            traceId: TestConstants.traceId,
+            type: .performance,
+            data: Data(),
+            startTime: Date()
+        )
+
+        // when adding an event with complex attributes
+        let attributes = [
+            "string_key": "string_value",
+            "number_key": "123",
+            "special_chars": "test@#$%"
+        ]
+        let event = ImmutableSpanEventRecord(
+            name: "test_event",
+            timestamp: Date(),
+            attributes: attributes
+        )
+        storage.addEventsToSpan(id: "id", traceId: TestConstants.traceId, events: [event])
+
+        // then attributes are correctly encoded and decoded
+        let span = storage.fetchSpan(id: "id", traceId: TestConstants.traceId)
+        XCTAssertNotNil(span)
+        XCTAssertEqual(span?.events.count, 1)
+
+        let retrievedEvent = span?.events.first
+        XCTAssertEqual(retrievedEvent?.attributes["string_key"], "string_value")
+        XCTAssertEqual(retrievedEvent?.attributes["number_key"], "123")
+        XCTAssertEqual(retrievedEvent?.attributes["special_chars"], "test@#$%")
+    }
 }

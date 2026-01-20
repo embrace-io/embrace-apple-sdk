@@ -20,8 +20,8 @@ public class MockSession: EmbraceSession {
     public var appTerminated: Bool
 
     public init(
-        id: SessionIdentifier,
-        processId: ProcessIdentifier,
+        id: EmbraceIdentifier,
+        processId: EmbraceIdentifier,
         state: SessionState,
         traceId: String,
         spanId: String,
@@ -33,8 +33,8 @@ public class MockSession: EmbraceSession {
         cleanExit: Bool = false,
         appTerminated: Bool = false
     ) {
-        self.idRaw = id.toString
-        self.processIdRaw = processId.value
+        self.idRaw = id.stringValue
+        self.processIdRaw = processId.stringValue
         self.state = state.rawValue
         self.traceId = traceId
         self.spanId = spanId
@@ -49,7 +49,7 @@ public class MockSession: EmbraceSession {
 }
 
 extension MockSession {
-    public static func with(id: SessionIdentifier, state: SessionState) -> MockSession {
+    public static func with(id: EmbraceIdentifier, state: SessionState) -> MockSession {
         MockSession(
             id: id,
             processId: .random,

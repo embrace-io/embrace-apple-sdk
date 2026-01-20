@@ -8,8 +8,8 @@ import Foundation
     import EmbraceCommonInternal
 #endif
 
-extension DeviceIdentifier {
-    static func retrieve(fileURL: URL?) -> DeviceIdentifier {
+extension EmbraceIdentifier {
+    static func retrieveDeviceId(fileURL: URL?) -> EmbraceIdentifier {
 
         // retrieve from file
         if let fileURL = fileURL,
@@ -17,12 +17,12 @@ extension DeviceIdentifier {
             let deviceId = try? String(contentsOf: fileURL),
             let uuid = UUID(uuidString: deviceId)
         {
-            return DeviceIdentifier(value: uuid)
+            return EmbraceIdentifier(value: uuid)
         }
 
         // fallback to retrieve from Keychain
         let uuid = KeychainAccess.deviceId
-        let deviceId = DeviceIdentifier(value: uuid)
+        let deviceId = EmbraceIdentifier(value: uuid)
 
         // store in file
         if let fileURL = fileURL {

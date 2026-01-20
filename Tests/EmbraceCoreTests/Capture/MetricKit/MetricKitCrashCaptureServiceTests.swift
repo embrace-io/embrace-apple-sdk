@@ -15,8 +15,8 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
         provider: MetricKitPayloadProvider,
         fetcher: EmbraceStorageMetadataFetcher? = nil,
         stateProvider: EmbraceMetricKitStateProvider? = nil
-    ) -> MetricKitCrashCaptureService.Options {
-        return MetricKitCrashCaptureService.Options(
+    ) -> MetricKitCaptureServiceOptions {
+        return MetricKitCaptureServiceOptions(
             payloadProvider: provider,
             metadataFetcher: fetcher,
             stateProvider: stateProvider ?? MockMetricKitStateProvider()
@@ -151,14 +151,14 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
             value: "metadata",
             type: .customProperty,
             lifespan: .session,
-            lifespanId: TestConstants.sessionId.toString
+            lifespanId: TestConstants.sessionId.stringValue
         )
         storage.addMetadata(
             key: "test2",
             value: "metadata",
             type: .customProperty,
             lifespan: .process,
-            lifespanId: TestConstants.processId.value
+            lifespanId: TestConstants.processId.stringValue
         )
 
         // given a capture service
