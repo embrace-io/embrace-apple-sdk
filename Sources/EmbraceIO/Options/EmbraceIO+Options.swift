@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import OpenTelemetrySdk
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCore
@@ -22,9 +23,8 @@ extension EmbraceIO {
         public let captureServices: EmbraceIO.CaptureServicesOptions
         public let crashReporter: CrashReporter?
         public let logLevel: LogLevel
-        public let export: OpenTelemetryExport?
+        public let otel: EmbraceIO.OTelOptions?
         public let runtimeConfiguration: EmbraceConfigurable?
-        public let processors: [OpenTelemetryProcessor]?
 
         /// Default initializer for `Embrace.Options` that requires an array of `CaptureServices` to be passed.
         ///
@@ -32,63 +32,38 @@ extension EmbraceIO {
         /// initializer found in the `EmbraceIO` target.
         ///
         /// - Parameters:
-        ///   - appId: The `appId` of the project.
+        ///   - appId: The `appId` of the project, if any. Note that if no `appId` is passed you are expected to handle the data export yourself.
         ///   - platform: `Platform` in which the app will run. Defaults to `.iOS`.
         ///   - endpoints: `Embrace.Endpoints` to be used. Defaults to the normal Embrace based endpoints for the given `appId`.
         ///   - captureServices: `EmbraceIO.CaptureServicesOptions` instance to configure th
         ///   - crashReporter: The `CrashReporter` to be installed.
         ///   - logLevel: The `LogLevel` to use for console logs.
-        ///   - export: `OpenTelemetryExport` object to export telemetry using OpenTelemetry protocols
-        ///   - processors: `OpenTelemetryProcessor` objects to do extra processing
+        ///   - otel: `EmbraceIO.OTelOptions` used to setup the OpenTelemetry SDK through Embrace. Note that If no `appId` is passed, you should set up processor/exporters through this property to handle the data yourself.
         public init(
-            appId: String,
+            appId: String?,
             platform: Platform = .default,
             endpoints: Embrace.Endpoints? = nil,
             captureServices: EmbraceIO.CaptureServicesOptions = .init(),
             crashReporter: CrashReporter? = KSCrashReporter(),
             logLevel: LogLevel = .default,
-            export: OpenTelemetryExport? = nil,
-            processors: [OpenTelemetryProcessor]? = nil
+            otel: EmbraceIO.OTelOptions? = nil
         ) {
             self.appId = appId
             self.platform = platform
-            self.endpoints = endpoints ?? Embrace.Endpoints(appId: appId)
-            self.captureServices = captureServices
-            self.crashReporter = crashReporter
-            self.logLevel = logLevel
-            self.export = export
-            self.runtimeConfiguration = nil
-            self.processors = processors
-        }
 
-        /// Initializer for `Embrace.Options` that does not require an appId.
-        /// Use this initializer if you don't want the SDK to send data to Embrace's servers.
-        /// You must provide your own `OpenTelemetryExport`
-        ///
-        /// - Parameters:
-        ///   - export: `OpenTelemetryExport` object to export telemetry using OpenTelemetry protocols
-        ///   - platform: `Platform` in which the app will run. Defaults to `.iOS`.
-        ///   - captureServices: The `CaptureServices` to be installed.
-        ///   - crashReporter: The `CrashReporter` to be installed.
-        ///   - logLevel: The `LogLevel` to use for console logs.
-        ///   - runtimeConfiguration: An object to control runtime behavior of the SDK itself.
-        public init(
-            export: OpenTelemetryExport,
-            platform: Platform = .default,
-            captureServices: EmbraceIO.CaptureServicesOptions = .init(),
-            crashReporter: CrashReporter? = KSCrashReporter(),
-            logLevel: LogLevel = .default,
-            runtimeConfiguration: EmbraceConfigurable = .default
-        ) {
-            self.appId = nil
-            self.platform = platform
-            self.endpoints = nil
+            if let endpoints {
+                self.endpoints = endpoints
+            } else if let appId {
+                self.endpoints = Embrace.Endpoints(appId: appId)
+            } else {
+                self.endpoints = nil
+            }
+
             self.captureServices = captureServices
             self.crashReporter = crashReporter
             self.logLevel = logLevel
-            self.export = export
-            self.runtimeConfiguration = runtimeConfiguration
-            self.processors = nil
+            self.otel = otel
+            self.runtimeConfiguration = nil
         }
     }
 }
@@ -105,18 +80,19 @@ extension Embrace.Options {
                 captureServices: options.captureServices.list,
                 crashReporter: options.crashReporter,
                 logLevel: options.logLevel,
-                export: options.export,
-                processors: options.processors,
+                export: options.otel?.embraceOpenTelemetryExport(),
+                processors: options.otel?.embraceOpenTelemetryProcessors(),
                 backtracer: KSCrashBacktracing(),
                 symbolicator: KSCrashBacktracing()
             )
         }
 
-        if let export = options.export,
-            let config = options.runtimeConfiguration
+        if let otel = options.otel,
+           let config = options.runtimeConfiguration
         {
             return Embrace.Options(
-                export: export,
+                export: otel.embraceOpenTelemetryExport(),
+                processors: otel.embraceOpenTelemetryProcessors(),
                 platform: options.platform,
                 captureServices: options.captureServices.list,
                 crashReporter: options.crashReporter,

@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import OpenTelemetrySdk
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
@@ -114,6 +115,11 @@ import Foundation
     /// - Returns: The `Embrace` client instance.
     @discardableResult
     @objc public static func setup(options: Embrace.Options) throws -> Embrace {
+        return try setup(options: options, otelResource: nil)
+    }
+
+    package static func setup(options: Embrace.Options, otelResource: Resource?) throws -> Embrace {
+
         if !Thread.isMainThread {
             throw EmbraceSetupError.invalidThread("Embrace must be setup on the main thread")
         }
@@ -161,7 +167,8 @@ import Foundation
     init(
         options: Embrace.Options,
         logControllable: LogControllable? = nil,
-        embraceStorage: EmbraceStorage? = nil
+        embraceStorage: EmbraceStorage? = nil,
+        otelResources: Resource? = nil
     ) throws {
 
         self.options = options
@@ -244,8 +251,10 @@ import Foundation
                 customExporter: options.export,
                 customProcessors: options.processors?.compactMap { $0.processor },
                 sdkStateProvider: self,
-                useNewStorageForSpanEvents: config.useNewStorageForSpanEvents
-            )
+                useNewStorageForSpanEvents: config.useNewStorageForSpanEvents,
+                resource: otelResources
+            ),
+            resource: otelResources
         )
 
         let logBatcher = DefaultLogBatcher(
@@ -261,7 +270,8 @@ import Foundation
             batcher: logBatcher,
             processors: options.processors?.compactMap { $0.logProcessor } ?? [],
             exporter: options.export?.logExporter,
-            sdkStateProvider: self
+            sdkStateProvider: self,
+            resource: otelResources
         )
 
         EmbraceOTel.setup(logSharedState: logSharedState)
