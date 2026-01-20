@@ -29,10 +29,10 @@ struct SessionSpanUtils {
     }
 
     static func setHeartbeat(span: Span?, heartbeat: Date) {
-        #if !os(watchOS)
-            span?.setAttribute(key: SpanSemantics.Session.keyHeartbeat, value: heartbeat.nanosecondsSince1970Truncated)
-        #else
+        #if os(watchOS)
             span?.setAttribute(key: SpanSemantics.Session.keyHeartbeat, value: Double(heartbeat.nanosecondsSince1970Truncated))
+        #else
+            span?.setAttribute(key: SpanSemantics.Session.keyHeartbeat, value: heartbeat.nanosecondsSince1970Truncated)
         #endif
     }
 
