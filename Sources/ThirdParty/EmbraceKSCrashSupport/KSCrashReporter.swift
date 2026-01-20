@@ -74,21 +74,19 @@ public final class KSCrashReporter: NSObject, CrashReporter {
     }
 
     public func install(context: CrashReporterContext) throws {
-        #if !os(watchOS)
-            let config = KSCrashConfiguration()
-            config.enableSigTermMonitoring = false
-            config.enableSwapCxaThrow = false
-            config.installPath = context.filePathProvider.directoryURL(for: "embrace_crash_reporter")?.path
-            config.reportStoreConfiguration.appName = context.appId ?? "default"
-            config.didWriteReportCallback = { _, reportID in
-                KSCrashReporter.shared?.watchdogData.withLock {
-                    guard $0.inEvent else { return }
-                    $0.reportID = reportID
-                }
+        let config = KSCrashConfiguration()
+        config.enableSigTermMonitoring = false
+        config.enableSwapCxaThrow = false
+        config.installPath = context.filePathProvider.directoryURL(for: "embrace_crash_reporter")?.path
+        config.reportStoreConfiguration.appName = context.appId ?? "default"
+        config.didWriteReportCallback = { _, reportID in
+            KSCrashReporter.shared?.watchdogData.withLock {
+                guard $0.inEvent else { return }
+                $0.reportID = reportID
             }
-            try reporter.install(with: config)
-            registerForHangs()
-        #endif
+        }
+        try reporter.install(with: config)
+        registerForHangs()
     }
 
     /// Fetches all saved `EmbraceCrashReport`.
@@ -154,14 +152,25 @@ public final class KSCrashReporter: NSObject, CrashReporter {
             }
 
             // add report
-            let crashReport = EmbraceCrashReport(
-                payload: payload,
-                provider: "kscrash",  // from LogSemantics+Crash.swift
-                internalId: Int(id),
-                sessionId: sessionId?.stringValue,
-                timestamp: timestamp,
-                signal: signal
-            )
+            #if os(watchOS)
+                let crashReport = EmbraceCrashReport(
+                    payload: payload,
+                    provider: "kscrash",  // from LogSemantics+Crash.swift
+                    internalId: Int64(id),
+                    sessionId: sessionId?.stringValue,
+                    timestamp: timestamp,
+                    signal: signal
+                )
+            #else
+                let crashReport = EmbraceCrashReport(
+                    payload: payload,
+                    provider: "kscrash",  // from LogSemantics+Crash.swift
+                    internalId: Int(id),
+                    sessionId: sessionId?.stringValue,
+                    timestamp: timestamp,
+                    signal: signal
+                )
+            #endif
 
             crashReports.append(crashReport)
         }
