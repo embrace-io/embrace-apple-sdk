@@ -152,25 +152,14 @@ public final class KSCrashReporter: NSObject, CrashReporter {
             }
 
             // add report
-            #if os(watchOS)
-                let crashReport = EmbraceCrashReport(
-                    payload: payload,
-                    provider: "kscrash",  // from LogSemantics+Crash.swift
-                    internalId: Int64(id),
-                    sessionId: sessionId?.stringValue,
-                    timestamp: timestamp,
-                    signal: signal
-                )
-            #else
-                let crashReport = EmbraceCrashReport(
-                    payload: payload,
-                    provider: "kscrash",  // from LogSemantics+Crash.swift
-                    internalId: Int(id),
-                    sessionId: sessionId?.stringValue,
-                    timestamp: timestamp,
-                    signal: signal
-                )
-            #endif
+            let crashReport = EmbraceCrashReport(
+                payload: payload,
+                provider: "kscrash",  // from LogSemantics+Crash.swift
+                internalId: EMBInt(id),
+                sessionId: sessionId?.stringValue,
+                timestamp: timestamp,
+                signal: signal
+            )
 
             crashReports.append(crashReport)
         }

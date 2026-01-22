@@ -18,13 +18,8 @@ struct SpanPayload: Encodable {
     let parentSpanId: String?
     let name: String
     let status: String
-    #if os(watchOS)
-        let startTime: Int64
-        let endTime: Int64?
-    #else
-        let startTime: Int
-        let endTime: Int?
-    #endif
+    let startTime: EMBInt
+    let endTime: EMBInt?
     let attributes: [Attribute]
     let events: [SpanEventPayload]
     let links: [SpanLinkPayload]

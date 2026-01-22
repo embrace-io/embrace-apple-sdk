@@ -11,11 +11,7 @@ import Foundation
 
 struct SpanEventPayload: Encodable {
     let name: String
-    #if os(watchOS)
-        let timestamp: Int64
-    #else
-        let timestamp: Int
-    #endif
+    let timestamp: EMBInt
     let attributes: [Attribute]
 
     enum CodingKeys: String, CodingKey {
