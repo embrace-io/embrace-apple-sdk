@@ -1,7 +1,7 @@
 //
 //  Copyright © 2026 Embrace Mobile, Inc. All rights reserved.
 //
-    
+
 import Foundation
 import OpenTelemetrySdk
 

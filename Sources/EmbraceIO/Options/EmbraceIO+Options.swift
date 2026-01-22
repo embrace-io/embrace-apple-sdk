@@ -88,7 +88,7 @@ extension Embrace.Options {
         }
 
         if let otel = options.otel,
-           let config = options.runtimeConfiguration
+            let config = options.runtimeConfiguration
         {
             return Embrace.Options(
                 export: otel.embraceOpenTelemetryExport(),
