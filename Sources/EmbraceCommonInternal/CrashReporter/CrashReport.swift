@@ -28,21 +28,21 @@ import Foundation
     /// If this crash is signal based, the signal that caused the crash.
     public private(set) var signal: CrashSignal?
 
-        public init(
-            payload: String,
-            provider: String,
-            internalId: EMBInt? = nil,
-            sessionId: String? = nil,
-            timestamp: Date? = nil,
-            signal: CrashSignal? = nil
-        ) {
-            self.id = UUID()
-            self.payload = payload
-            self.provider = provider
-            self.internalId = internalId
-            self.sessionId = sessionId
-            self.timestamp = timestamp
-            self.signal = signal
-        }
-    
+    public init(
+        payload: String,
+        provider: String,
+        internalId: EMBInt? = nil,
+        sessionId: String? = nil,
+        timestamp: Date? = nil,
+        signal: CrashSignal? = nil
+    ) {
+        self.id = UUID()
+        self.payload = payload
+        self.provider = provider
+        self.internalId = internalId
+        self.sessionId = sessionId
+        self.timestamp = timestamp
+        self.signal = signal
+    }
+
 }

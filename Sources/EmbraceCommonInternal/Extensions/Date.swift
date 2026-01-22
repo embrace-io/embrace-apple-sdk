@@ -21,17 +21,17 @@ extension Date {
     public var millisecondsSince1970Truncated: EMBInt {
         EMBInt(trunc(self.millisecondsSince1970))
     }
-    
+
     public var nanosecondsSince1970Truncated: EMBInt {
         EMBInt(trunc(self.nanosecondsSince1970))
     }
-    
+
     public var serializedInterval: EMBInt {
         EMBInt(millisecondsSince1970.rounded(.down))
     }
-    
+
     init(_ millisSince1970: EMBInt) {
         self.init(Double(millisSince1970))
     }
-    
+
 }

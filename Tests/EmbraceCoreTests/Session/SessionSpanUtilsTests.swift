@@ -87,7 +87,8 @@ final class SessionSpanUtilsTests: XCTestCase {
             XCTAssertEqual(
                 spanData.attributes["emb.heartbeat_time_unix_nano"],
                 .int(heartbeat.nanosecondsSince1970Truncated))
-        
+        #endif
+
     }
 
     func test_setTerminated() throws {

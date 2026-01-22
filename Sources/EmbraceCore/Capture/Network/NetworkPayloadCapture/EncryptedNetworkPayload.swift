@@ -18,7 +18,7 @@ struct EncryptedNetworkPayload: Encodable {
 
     let startTime: EMBInt?
     let endTime: EMBInt?
-    
+
     let matchedUrl: String
     let sessionId: String?
 

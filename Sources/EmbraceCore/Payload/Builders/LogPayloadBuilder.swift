@@ -24,7 +24,7 @@ struct LogPayloadBuilder {
             severityText: log.severity.text,
             body: log.body,
             attributes: finalAttributes)
-        
+
     }
 
     static func build(
