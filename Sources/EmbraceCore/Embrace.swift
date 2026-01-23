@@ -258,6 +258,7 @@ import Foundation
         let logSharedState = DefaultEmbraceLogSharedState.create(
             storage: self.storage,
             batcher: logBatcher,
+            processors: options.processors?.compactMap { $0.logProcessor } ?? [],
             exporter: options.export?.logExporter,
             sdkStateProvider: self
         )

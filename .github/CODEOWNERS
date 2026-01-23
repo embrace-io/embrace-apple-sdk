@@ -1,3 +1,5 @@
-.github @embrace-io/opensource-devops
-
+# Apple SDK
 * @embrace-io/opensource-apple
+
+# DevOps
+.github @embrace-io/opensource-devops @embrace-io/opensource-apple
