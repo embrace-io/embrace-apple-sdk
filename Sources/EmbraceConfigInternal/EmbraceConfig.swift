@@ -95,8 +95,7 @@ extension EmbraceConfig /* EmbraceConfigurable delegation */ {
     }
 
     public var isBackgroundSessionEnabled: Bool {
-        true
-        //configurable.isBackgroundSessionEnabled
+        configurable.isBackgroundSessionEnabled
     }
 
     public var isNetworkSpansForwardingEnabled: Bool {
