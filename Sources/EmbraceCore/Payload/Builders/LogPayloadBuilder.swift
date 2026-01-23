@@ -19,11 +19,12 @@ struct LogPayloadBuilder {
         finalAttributes.append(.init(key: LogSemantics.keyId, value: log.idRaw))
 
         return .init(
-            timeUnixNano: String(Int(log.timestamp.nanosecondsSince1970)),
+            timeUnixNano: String(EMBInt(log.timestamp.nanosecondsSince1970)),
             severityNumber: log.severity.number,
             severityText: log.severity.text,
             body: log.body,
             attributes: finalAttributes)
+
     }
 
     static func build(

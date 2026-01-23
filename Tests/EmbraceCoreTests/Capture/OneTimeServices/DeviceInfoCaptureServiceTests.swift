@@ -98,15 +98,15 @@ final class DeviceInfoCaptureServiceTests: XCTestCase {
         )
         XCTAssertNotNil(osVariant)
         XCTAssertEqual(osVariant!.value, EMBDevice.operatingSystemType)
-		
-		let osName = handler.fetchMetadata(
-			key: SemanticConventions.Os.name.rawValue,
-			type: .requiredResource,
-			lifespan: .process,
-			lifespanId: processId
-		)
-		XCTAssertNotNil(osName)
-		XCTAssertEqual(osName!.value, EMBDevice.operatingSystemType)
+
+        let osName = handler.fetchMetadata(
+            key: SemanticConventions.Os.name.rawValue,
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: processId
+        )
+        XCTAssertNotNil(osName)
+        XCTAssertEqual(osName!.value, EMBDevice.operatingSystemType)
 
         // model
         let model = handler.fetchMetadata(
