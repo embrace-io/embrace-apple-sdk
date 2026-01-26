@@ -104,7 +104,7 @@ jobs:
 
   build_release_candidate:
     name: Bump Version and Build Release
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 60
     needs:
       - extractor
@@ -156,8 +156,8 @@ jobs:
           git commit -m "CI/CD: Bumps version to '$RC_VERSION'"
           git push
 
-      - name: Select Xcode 15
-        run: sudo xcode-select -switch /Applications/Xcode_15.4.app
+      - name: Select Xcode 16
+        run: sudo xcode-select -switch /Applications/Xcode_16.4.app
 
       - name: Tag the release candidate version
         run: |
@@ -166,7 +166,7 @@ jobs:
 
   create_xcframeworks:
     name: Build XCFrameworks and Create Release Archive
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 60
     needs:
       - extractor
@@ -183,8 +183,8 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Select Xcode 15
-        run: sudo xcode-select -switch /Applications/Xcode_15.4.app
+      - name: Select Xcode 16
+        run: sudo xcode-select -switch /Applications/Xcode_16.4.app
 
       - name: Install Ruby dependencies
         run: bundle install
@@ -305,7 +305,7 @@ jobs:
 
   push_podspec:
     name: Push Podspec to Cocoapods
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 30
     needs:
       - extractor
