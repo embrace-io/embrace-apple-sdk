@@ -16,7 +16,7 @@ class ResourceStorageExporter: EmbraceResourceProvider {
     private(set) weak var storage: EmbraceStorage?
     private(set) var resource: Resource?
 
-    public init(storage: EmbraceStorage, resource: Resource?) {
+    public init(storage: EmbraceStorage, resource: Resource? = nil) {
         self.storage = storage
         self.resource = resource
     }

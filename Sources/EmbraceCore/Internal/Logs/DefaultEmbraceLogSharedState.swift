@@ -38,7 +38,7 @@ extension DefaultEmbraceLogSharedState {
         processors: [LogRecordProcessor] = [],
         exporter: LogRecordExporter? = nil,
         sdkStateProvider: EmbraceSDKStateProvider,
-        resource: Resource?
+        resource: Resource? = nil
     ) -> DefaultEmbraceLogSharedState {
         var exporters: [LogRecordExporter] = [
             StorageEmbraceLogExporter(
