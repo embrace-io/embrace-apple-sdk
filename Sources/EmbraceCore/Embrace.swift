@@ -29,7 +29,6 @@ import OpenTelemetrySdk
 /// try Embrace.setup(options: options)
 /// try Embrace.client?.start()
 /// ```
-@available(*, deprecated, message: "Please use the `EmbraceIO` class instead. Note that this class will be removed in the next major version.")
 @objc public class Embrace: NSObject {
 
     /**
