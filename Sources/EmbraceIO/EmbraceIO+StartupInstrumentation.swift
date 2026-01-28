@@ -18,7 +18,7 @@ extension EmbraceIO {
     ///    - startTime: The start time of the span.
     ///    - attributes: A dictionary of attributes to set on the span.
     /// - Returns: An OpenTelemetry `SpanBuilder` or nil if the root span was not found.
-    public func buildChildSpan(
+    public func buildStartupChildSpan(
         name: String,
         type: SpanType = .startup,
         startTime: Date = Date(),
@@ -41,7 +41,7 @@ extension EmbraceIO {
     ///    - attributes: A dictionary of attributes to set on the span.
     /// - Returns: A boolean indicating if the operation was succesful.
     @discardableResult
-    public func recordCompletedChildSpan(
+    public func recordCompletedStartupChildSpan(
         name: String,
         type: SpanType = .viewLoad,
         startTime: Date,
@@ -62,7 +62,7 @@ extension EmbraceIO {
     ///   - attributes: A dictionary of attributes to add to the trace. Each key-value pair represents an attribute.
     /// - Returns: A boolean indicating if the operation was succesful.
     @discardableResult
-    public func addAttributesToTrace(_ attributes: [String: String]) -> Bool {
+    public func addAttributesToStartupTrace(_ attributes: [String: String]) -> Bool {
         return Embrace.client?.startupInstrumentation.addAttributesToTrace(attributes) ?? false
     }
 }
