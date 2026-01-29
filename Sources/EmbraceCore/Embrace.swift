@@ -92,6 +92,8 @@ import OpenTelemetrySdk
 
     let spanEventsLimiter: SpanEventsLimiter
 
+    let otelResources: Resource?
+
     let processingQueue = DispatchQueue(
         label: "com.embrace.processing",
         qos: .utility,
@@ -172,6 +174,7 @@ import OpenTelemetrySdk
 
         self.options = options
         self.logLevel = options.logLevel
+        self.otelResources = otelResources
 
         // retrieve device identifier
         self.deviceId = EmbraceIdentifier.retrieveDeviceId(fileURL: EmbraceFileSystem.deviceIdURL)
@@ -370,6 +373,9 @@ import OpenTelemetrySdk
 
                     // remove old versions data
                     self?.cleanUpOldVersionsData()
+
+                    // add otel resources as metadata
+                    self?.addOtelResources()
                 }
 
                 // retry any remaining cached upload data
