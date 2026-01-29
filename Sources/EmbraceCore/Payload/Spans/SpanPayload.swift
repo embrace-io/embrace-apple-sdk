@@ -18,8 +18,8 @@ struct SpanPayload: Encodable {
     let parentSpanId: String?
     let name: String
     let status: String
-    let startTime: Int
-    let endTime: Int?
+    let startTime: EMBInt
+    let endTime: EMBInt?
     let attributes: [Attribute]
     let events: [SpanEventPayload]
     let links: [SpanLinkPayload]

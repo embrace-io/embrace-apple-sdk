@@ -7,6 +7,7 @@ import TestSupport
 import XCTest
 
 @testable import EmbraceConfigInternal
+@testable import EmbraceCommonInternal
 @testable import EmbraceCore
 
 // swiftlint:disable force_cast
@@ -98,8 +99,8 @@ class EncryptedNetworkPayloadTests: XCTestCase {
         // then the json is correct
         XCTAssertEqual(dict!["url"] as! String, "www.test.com/user/1234?q=test")
         XCTAssertEqual(dict!["http-method"] as! String, "GET")
-        XCTAssertEqual(dict!["start-time"] as! Int, startTime.nanosecondsSince1970Truncated)
-        XCTAssertEqual(dict!["end-time"] as! Int, endTime.nanosecondsSince1970Truncated)
+        XCTAssertEqual(dict!["start-time"] as! EMBInt, startTime.nanosecondsSince1970Truncated)
+        XCTAssertEqual(dict!["end-time"] as! EMBInt, endTime.nanosecondsSince1970Truncated)
         XCTAssertEqual(dict!["matched-url"] as! String, "www.test.com/user/*")
         XCTAssertEqual(dict!["session-id"] as! String, TestConstants.sessionId.stringValue)
         XCTAssertEqual(dict!["request-body"] as! String, "1234")
