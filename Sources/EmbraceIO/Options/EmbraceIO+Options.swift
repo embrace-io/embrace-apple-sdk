@@ -40,7 +40,7 @@ extension EmbraceIO {
             _ appId: String?,
             platform: Platform = .default,
             endpoints: Embrace.Endpoints? = nil,
-            captureServices: EmbraceIO.CaptureServicesOptions = .init(),
+            captureServices: EmbraceIO.CaptureServicesOptions = .default(),
             crashReporter: CrashReporter? = KSCrashReporter(),
             logLevel: LogLevel = .default,
             otel: EmbraceIO.OTelOptions? = nil
@@ -73,7 +73,7 @@ extension EmbraceIO {
         public class func withLocalConfiguration(
             _ localConfiguration: EmbraceConfigurable = .default,
             platform: Platform = .default,
-            captureServices: EmbraceIO.CaptureServicesOptions = .init(),
+            captureServices: EmbraceIO.CaptureServicesOptions = .default(),
             crashReporter: CrashReporter? = KSCrashReporter(),
             logLevel: LogLevel = .default,
             otel: EmbraceIO.OTelOptions

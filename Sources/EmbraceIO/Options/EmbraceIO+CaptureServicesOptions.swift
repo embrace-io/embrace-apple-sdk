@@ -12,44 +12,42 @@ import Foundation
 extension EmbraceIO {
 
     /// Class used to configure which `CaptureServices` will be installed and their behavior.
+    /// Refer to `CaptureServicesOptionsBuilder` if you want a custom setup.
     public final class CaptureServicesOptions {
-        public let urlSession: URLSessionCaptureService.Options?
-        public let tapCapture: TapCaptureService.Options?
-        public let viewCapture: ViewCaptureService.Options?
-        public let webViewCapture: WebViewCaptureService.Options?
-        public let pushNotifications: PushNotificationCaptureService.Options?
-        public let lowMemoryWarning: Bool
-        public let lowPowerMode: Bool
-        public let hangWatchdog: Bool
+        let urlSession: URLSessionCaptureService.Options?
+        let tap: TapCaptureService.Options?
+        let view: ViewCaptureService.Options?
+        let webView: WebViewCaptureService.Options?
+        let pushNotification: PushNotificationCaptureService.Options?
+        let lowMemoryWarning: Bool
+        let lowPowerMode: Bool
+        let hang: Bool
+        let customServices: [CaptureService]
 
-        /// Initializes a new `EmbraceIO.CaptureServicesOptions` with the given parameters
-        /// - Parameters:
-        ///   - urlSession: Options to be used for the `URLSessionCaptureService`. If nil is passed, the capture service won't be installed.
-        ///   - tapCapture: Options to be used for the `TapCaptureService`. If nil is passed, the capture service won't be installed.
-        ///   - viewCapture: Options to be used for the `ViewCaptureService`. If nil is passed, the capture service won't be installed.
-        ///   - webViewCapture: Options to be used for the `WebViewCaptureService`. If nil is passed, the capture service won't be installed.
-        ///   - pushNotifications: Options to be used for the `PushNotificationCaptureService`. If nil is passed, the capture service won't be installed.
-        ///   - lowMemoryWarning: Determines if the `LowMemoryWarningCaptureService` should be installed.
-        ///   - lowPowerMode: Determines if the `LowPowerModeCaptureService` should be installed.
-        ///   - hangWatchdog: Determines if the `HangCaptureService` should be installed.
-        public init(
+        public class func `default`() -> EmbraceIO.CaptureServicesOptions {
+            return CaptureServicesOptions()
+        }
+
+        internal init(
             urlSession: URLSessionCaptureService.Options? = .init(),
-            tapCapture: TapCaptureService.Options? = .init(),
-            viewCapture: ViewCaptureService.Options? = .init(),
-            webViewCapture: WebViewCaptureService.Options? = .init(),
-            pushNotifications: PushNotificationCaptureService.Options? = nil,
+            tap: TapCaptureService.Options? = .init(),
+            view: ViewCaptureService.Options? = .init(),
+            webView: WebViewCaptureService.Options? = .init(),
+            pushNotification: PushNotificationCaptureService.Options? = nil,
             lowMemoryWarning: Bool = true,
             lowPowerMode: Bool = true,
-            hangWatchdog: Bool = true
+            hang: Bool = false,
+            customServices: [CaptureService] = []
         ) {
             self.urlSession = urlSession
-            self.tapCapture = tapCapture
-            self.viewCapture = viewCapture
-            self.webViewCapture = webViewCapture
-            self.pushNotifications = pushNotifications
+            self.tap = tap
+            self.view = view
+            self.webView = webView
+            self.pushNotification = pushNotification
             self.lowMemoryWarning = lowMemoryWarning
             self.lowPowerMode = lowPowerMode
-            self.hangWatchdog = hangWatchdog
+            self.hang = hang
+            self.customServices = customServices
         }
 
         var list: [CaptureService] {
@@ -61,20 +59,20 @@ extension EmbraceIO {
             }
 
             // tap
-            if let tapCaptureOptions = tapCapture {
-                services.append(TapCaptureService(options: tapCaptureOptions))
+            if let tapOptions = tap {
+                services.append(TapCaptureService(options: tapOptions))
             }
 
-            if let viewCaptureOptions = viewCapture {
-                services.append(ViewCaptureService(options: viewCaptureOptions))
+            if let viewOptions = view {
+                services.append(ViewCaptureService(options: viewOptions))
             }
 
-            if let webViewCaptureOptions = webViewCapture {
-                services.append(WebViewCaptureService(options: webViewCaptureOptions))
+            if let webViewOptions = webView {
+                services.append(WebViewCaptureService(options: webViewOptions))
             }
 
-            if let pushNotificationsOptions = pushNotifications {
-                services.append(PushNotificationCaptureService(options: pushNotificationsOptions))
+            if let pushNotificationOptions = pushNotification {
+                services.append(PushNotificationCaptureService(options: pushNotificationOptions))
             }
 
             if lowMemoryWarning {
@@ -85,9 +83,11 @@ extension EmbraceIO {
                 services.append(LowPowerModeCaptureService())
             }
 
-            if hangWatchdog {
+            if hang {
                 services.append(HangCaptureService())
             }
+
+            services.append(contentsOf: customServices)
 
             return services
         }
