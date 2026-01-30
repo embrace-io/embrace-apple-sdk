@@ -326,6 +326,9 @@ class UnsentDataHandler {
 
         // upload session spans
         guard let upload = upload else {
+            if let sessionId = session.id {
+                storage.deleteSession(id: sessionId)
+            }
             completion?()
             return
         }
