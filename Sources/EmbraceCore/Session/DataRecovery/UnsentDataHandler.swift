@@ -26,8 +26,7 @@ class UnsentDataHandler {
         completion: UnsentDataHandlerCompletion? = nil
     ) {
 
-        guard let storage = storage,
-            let upload = upload
+        guard let storage = storage
         else {
             completion?()
             return
@@ -88,7 +87,7 @@ class UnsentDataHandler {
 
     static private func sendCrashReports(
         storage: EmbraceStorage,
-        upload: EmbraceUpload,
+        upload: EmbraceUpload?,
         otel: EmbraceOpenTelemetry?,
         currentSessionId: EmbraceIdentifier?,
         crashReporter: EmbraceCrashReporter,
@@ -174,6 +173,7 @@ class UnsentDataHandler {
         )
 
         guard let upload = upload else {
+            reporter?.deleteCrashReport(report)
             completion?()
             return
         }
@@ -251,7 +251,7 @@ class UnsentDataHandler {
 
     static private func sendSessions(
         storage: EmbraceStorage,
-        upload: EmbraceUpload,
+        upload: EmbraceUpload?,
         currentSessionId: EmbraceIdentifier?,
         completion: UnsentDataHandlerCompletion? = nil
     ) {
@@ -298,7 +298,7 @@ class UnsentDataHandler {
     static public func sendSession(
         _ session: EmbraceSession,
         storage: EmbraceStorage,
-        upload: EmbraceUpload,
+        upload: EmbraceUpload?,
         performCleanUp: Bool = true,
         completion: UnsentDataHandlerCompletion? = nil
     ) {
@@ -325,6 +325,10 @@ class UnsentDataHandler {
         }
 
         // upload session spans
+        guard let upload = upload else {
+            completion?()
+            return
+        }
         upload.uploadSpans(id: session.idRaw, data: payloadData) { result in
             switch result {
             case .success:
