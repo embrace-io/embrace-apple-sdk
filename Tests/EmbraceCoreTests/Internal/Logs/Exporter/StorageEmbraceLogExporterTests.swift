@@ -324,6 +324,67 @@ class StorageEmbraceLogExporterTests: XCTestCase {
         thenBatchAdded(count: 2)
         thenResult(is: .success)
     }
+
+    func test_trace_log_no_export() {
+        let log = randomLogData(
+            body: "example1",
+            severity: Severity.trace
+        )
+
+        givenStorageEmbraceLogExporter(initialState: .active)
+        whenInvokingExport(withLogs: [log])
+        thenBatchAdded(count: 0)
+        thenResult(is: .success)
+    }
+
+    func test_debug_log_no_export() {
+        let log = randomLogData(
+            body: "example1",
+            severity: Severity.debug
+        )
+
+        givenStorageEmbraceLogExporter(initialState: .active)
+        whenInvokingExport(withLogs: [log])
+        thenBatchAdded(count: 0)
+        thenResult(is: .success)
+    }
+
+    func test_multiple_logs_export() {
+        let trace = randomLogData(
+            body: "example1",
+            severity: Severity.trace
+        )
+
+        let debug = randomLogData(
+            body: "example1",
+            severity: Severity.debug
+        )
+
+        let info = randomLogData(
+            body: "example1",
+            severity: Severity.info
+        )
+
+        let warn = randomLogData(
+            body: "example1",
+            severity: Severity.warn
+        )
+
+        let error = randomLogData(
+            body: "example1",
+            severity: Severity.error
+        )
+
+        let fatal = randomLogData(
+            body: "example1",
+            severity: Severity.fatal
+        )
+
+        givenStorageEmbraceLogExporter(initialState: .active)
+        whenInvokingExport(withLogs: [trace, debug, info, warn, error, fatal])
+        thenBatchAdded(count: 4)
+        thenResult(is: .success)
+    }
 }
 
 extension StorageEmbraceLogExporterTests {
@@ -370,7 +431,7 @@ extension StorageEmbraceLogExporterTests {
     }
 
     fileprivate func randomLogData(
-        body: String? = nil, severity: Severity? = nil, attributes: [String: AttributeValue] = [:]
+        body: String? = nil, severity: Severity? = .info, attributes: [String: AttributeValue] = [:]
     ) -> ReadableLogRecord {
         ReadableLogRecord(
             resource: .init(),
