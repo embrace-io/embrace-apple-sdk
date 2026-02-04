@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import OpenTelemetrySdk
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
@@ -91,6 +92,8 @@ import Foundation
 
     let spanEventsLimiter: SpanEventsLimiter
 
+    let otelResources: Resource?
+
     let processingQueue = DispatchQueue(
         label: "com.embrace.processing",
         qos: .utility,
@@ -113,6 +116,11 @@ import Foundation
     /// - Returns: The `Embrace` client instance.
     @discardableResult
     @objc public static func setup(options: Embrace.Options) throws -> Embrace {
+        return try setup(options: options, otelResource: nil)
+    }
+
+    package static func setup(options: Embrace.Options, otelResource: Resource?) throws -> Embrace {
+
         if !Thread.isMainThread {
             throw EmbraceSetupError.invalidThread("Embrace must be setup on the main thread")
         }
@@ -160,11 +168,13 @@ import Foundation
     init(
         options: Embrace.Options,
         logControllable: LogControllable? = nil,
-        embraceStorage: EmbraceStorage? = nil
+        embraceStorage: EmbraceStorage? = nil,
+        otelResources: Resource? = nil
     ) throws {
 
         self.options = options
         self.logLevel = options.logLevel
+        self.otelResources = otelResources
 
         // retrieve device identifier
         self.deviceId = EmbraceIdentifier.retrieveDeviceId(fileURL: EmbraceFileSystem.deviceIdURL)
@@ -243,8 +253,10 @@ import Foundation
                 customExporter: options.export,
                 customProcessors: options.processors?.compactMap { $0.processor },
                 sdkStateProvider: self,
-                useNewStorageForSpanEvents: config.useNewStorageForSpanEvents
-            )
+                useNewStorageForSpanEvents: config.useNewStorageForSpanEvents,
+                resource: otelResources
+            ),
+            resource: otelResources
         )
 
         let logBatcher = DefaultLogBatcher(
@@ -260,7 +272,8 @@ import Foundation
             batcher: logBatcher,
             processors: options.processors?.compactMap { $0.logProcessor } ?? [],
             exporter: options.export?.logExporter,
-            sdkStateProvider: self
+            sdkStateProvider: self,
+            resource: otelResources
         )
 
         EmbraceOTel.setup(logSharedState: logSharedState)
@@ -360,6 +373,9 @@ import Foundation
 
                     // remove old versions data
                     self?.cleanUpOldVersionsData()
+
+                    // add otel resources as metadata
+                    self?.addOtelResources()
                 }
 
                 // retry any remaining cached upload data

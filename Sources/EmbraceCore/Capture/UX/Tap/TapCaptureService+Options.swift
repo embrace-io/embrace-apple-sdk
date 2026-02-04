@@ -2,8 +2,9 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
+import Foundation
+
 #if canImport(UIKit) && !os(watchOS)
-    import Foundation
     import UIKit
 
     extension TapCaptureService {
@@ -67,6 +68,14 @@
                     delegate: nil
                 )
             }
+        }
+    }
+#else
+    extension TapCaptureService {
+        /// Class used to setup a TapCaptureService.
+        @objc(EMBTapCaptureServiceOptions)
+        public final class Options: NSObject {
+
         }
     }
 #endif
