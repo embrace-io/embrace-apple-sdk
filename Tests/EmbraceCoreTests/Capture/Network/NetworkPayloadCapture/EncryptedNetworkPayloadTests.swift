@@ -6,8 +6,8 @@ import EmbraceStorageInternal
 import TestSupport
 import XCTest
 
-@testable import EmbraceConfigInternal
 @testable import EmbraceCommonInternal
+@testable import EmbraceConfigInternal
 @testable import EmbraceCore
 
 // swiftlint:disable force_cast
