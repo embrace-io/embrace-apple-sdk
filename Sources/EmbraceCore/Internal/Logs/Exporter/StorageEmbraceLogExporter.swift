@@ -59,6 +59,12 @@ class StorageEmbraceLogExporter: LogRecordExporter {
 
         for var log in logRecords where validation.execute(log: &log) {
 
+            // do not export debug or trace logs
+            let severity = log.severity?.toLogSeverity() ?? .debug
+            if severity == .debug || severity == .trace {
+                continue
+            }
+
             // do not export crash logs (unless they come from metrickit)
             if log.isEmbType(LogType.crash)
                 && log.attributes[LogSemantics.Crash.keyProvider] != .string(LogSemantics.Crash.metrickitProvider)
@@ -75,7 +81,7 @@ class StorageEmbraceLogExporter: LogRecordExporter {
                     return true
                 }
 
-                let level = limitLevel(for: log.severity?.toLogSeverity())
+                let level = limitLevel(for: severity)
                 let currentCount = $0[level] ?? 0
 
                 if currentCount >= limits.limitForLevel(level) {
