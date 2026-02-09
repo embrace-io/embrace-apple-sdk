@@ -77,11 +77,6 @@ public class CaptureServiceBuilder: NSObject {
             add(.lowPowerMode())
         }
 
-        // hang
-        if !services.contains(where: { $0 is HangCaptureService }) {
-            add(.hangWatchdog())
-        }
-
         return self
     }
 }

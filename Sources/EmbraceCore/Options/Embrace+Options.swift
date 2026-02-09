@@ -82,6 +82,7 @@ extension Embrace {
         ///
         /// - Parameters:
         ///   - export: `OpenTelemetryExport` object to export telemetry using OpenTelemetry protocols
+        ///   - processors: `OpenTelemetryProcessor` objects to do extra processing
         ///   - platform: `Platform` in which the app will run. Defaults to `.iOS`.
         ///   - captureServices: The `CaptureServices` to be installed.
         ///   - crashReporter: The `CrashReporter` to be installed.
@@ -89,6 +90,7 @@ extension Embrace {
         ///   - runtimeConfiguration: An object to control runtime behavior of the SDK itself.
         @objc public init(
             export: OpenTelemetryExport,
+            processors: [OpenTelemetryProcessor]? = nil,
             platform: Platform = .default,
             captureServices: [CaptureService],
             crashReporter: CrashReporter?,
@@ -106,7 +108,7 @@ extension Embrace {
             self.logLevel = logLevel
             self.export = export
             self.runtimeConfiguration = runtimeConfiguration
-            self.processors = nil
+            self.processors = processors
             self.backtracer = backtracer
             self.symbolicator = symbolicator
         }
