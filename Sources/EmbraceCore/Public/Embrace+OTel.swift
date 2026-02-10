@@ -121,6 +121,7 @@ extension Embrace: EmbraceOpenTelemetry {
     }
 
     /// Waits synchronously for all work to be completed
+    @_spi(Private)
     public func waitForAllWork() {
 
         // This funcxtion used to use `asyncAndWait(::)`.
