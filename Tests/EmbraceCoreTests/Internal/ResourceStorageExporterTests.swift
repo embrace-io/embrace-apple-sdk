@@ -1,4 +1,5 @@
 import EmbraceStorageInternal
+import TestSupport
 import OpenTelemetryApi
 //
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
@@ -52,4 +53,31 @@ final class ResourceStorageExporterTests: XCTestCase {
             resource.attributes["service.version"],
             .string(Bundle.main.infoDictionary!["CFBundleShortVersionString"] as! String))
     }
+	
+	func test_userinfos_appear_in_resource() throws {
+		// Given
+		let storage = try EmbraceStorage.createInMemoryDb()
+		let exporter = ResourceStorageExporter(storage: storage)
+		let sessionController = MockSessionController()
+		sessionController.storage = storage
+		sessionController.startSession(state: .foreground)
+		let handler = MetadataHandler(
+			storage: storage,
+			sessionController: sessionController,
+			syncronizationQueue: MockQueue()
+		)
+		
+		// When the user sets these
+		handler.userName = "example"
+		handler.userEmail = "example@example.com"
+		handler.userIdentifier = "my-example-identifier"
+		
+		// They should appear in the output		
+		let resource = exporter.getResource()
+		XCTAssertEqual(resource.attributes.count, 6)
+		
+		XCTAssertEqual(resource.attributes[UserResourceKey.name.rawValue], .string("example"))
+		XCTAssertEqual(resource.attributes[UserResourceKey.email.rawValue], .string("example@example.com"))
+		XCTAssertEqual(resource.attributes[UserResourceKey.identifier.rawValue], .string("my-example-identifier"))
+	}
 }
