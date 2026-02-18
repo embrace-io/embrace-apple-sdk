@@ -22,4 +22,8 @@ extension Embrace: EmbraceMetricKitStateProvider {
     var isMetricKitHangCaptureEnabled: Bool {
         config.isMetricKitHangCaptureEnabled
     }
+
+    var isMetricKitInternalMetricsCaptureEnabled: Bool {
+        config.isMetricKitInternalMetricsCaptureEnabled
+    }
 }

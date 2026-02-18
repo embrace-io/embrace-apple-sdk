@@ -16,11 +16,11 @@ extension EmbraceStorage {
         return storage
     }
 
-    public static func createInDiskDb(fileName: String) throws -> EmbraceStorage {
+    public static func createInDiskDb(fileName: String, journalMode: JournalMode = .delete) throws -> EmbraceStorage {
         let url = URL(fileURLWithPath: NSTemporaryDirectory())
         let storage = try EmbraceStorage(
             options: .init(
-                storageMechanism: .onDisk(name: fileName, baseURL: url, journalMode: .delete),
+                storageMechanism: .onDisk(name: fileName, baseURL: url, journalMode: journalMode),
                 enableBackgroundTasks: false),
             logger: MockLogger()
         )

@@ -87,51 +87,65 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
         // update request's attempt count header
         request = updateRequest(request, attemptCount: attemptCount)
 
+        // Use completion handler directly on all platforms
         task = urlSession.dataTask(
             with: request,
-            completionHandler: { [weak self] _, response, error in
-                guard let strongSelf = self else {
-                    return
-                }
-                // retry?
-                if retryCount > 0 && strongSelf.shouldRetry(basedOn: response, error: error) {
-                    // calculates the necessary delay before retrying the request
-                    let delay = strongSelf.exponentialBackoffBehavior.calculateDelay(
-                        forRetryNumber: (strongSelf.retryCount - (retryCount - 1)),
-                        appending: strongSelf.getSuggestedDelay(fromResponse: response)
-                    )
-
-                    // retry request on the same queue after `delay`
-                    strongSelf.queue.asyncAfter(
-                        deadline: .now() + .seconds(delay),
-                        execute: {
-                            strongSelf.sendRequest(request, retryCount: retryCount - 1)
-                        })
-                    return
-                }
-
-                // check success
-                if let response = response as? HTTPURLResponse {
-                    strongSelf.logger?.debug(
-                        "Upload operation complete. Status: \(response.statusCode) URL: \(String(describing: response.url))"
-                    )
-                    if response.statusCode >= 200 && response.statusCode < 300 {
-                        strongSelf.completion?(.success, strongSelf.attemptCount)
-                    } else {
-                        let isRetriable = strongSelf.shouldRetry(basedOn: response, error: error)
-                        strongSelf.completion?(.failure(retriable: isRetriable), strongSelf.attemptCount)
-                    }
-
-                    // no retries left, send completion
-                } else {
-                    let isRetriable = strongSelf.shouldRetry(basedOn: response, error: error)
-                    strongSelf.completion?(.failure(retriable: isRetriable), strongSelf.attemptCount)
-                }
-
-                strongSelf.finish()
+            completionHandler: { [weak self] data, response, error in
+                self?.handleTaskCompletion(
+                    data: data,
+                    response: response,
+                    error: error,
+                    request: request,
+                    retryCount: retryCount
+                )
             })
 
         task?.resume()
+    }
+
+    private func handleTaskCompletion(
+        data: Data?,
+        response: URLResponse?,
+        error: Error?,
+        request: URLRequest,
+        retryCount: Int
+    ) {
+        // retry?
+        if retryCount > 0 && shouldRetry(basedOn: response, error: error) {
+            // calculates the necessary delay before retrying the request
+            let delay = exponentialBackoffBehavior.calculateDelay(
+                forRetryNumber: (self.retryCount - (retryCount - 1)),
+                appending: getSuggestedDelay(fromResponse: response)
+            )
+
+            // retry request on the same queue after `delay`
+            queue.asyncAfter(
+                deadline: .now() + .seconds(delay),
+                execute: { [weak self] in
+                    self?.sendRequest(request, retryCount: retryCount - 1)
+                })
+            return
+        }
+
+        // check success
+        if let response = response as? HTTPURLResponse {
+            logger?.debug(
+                "Upload operation complete. Status: \(response.statusCode) URL: \(String(describing: response.url))"
+            )
+            if response.statusCode >= 200 && response.statusCode < 300 {
+                completion?(.success, attemptCount)
+            } else {
+                let isRetriable = shouldRetry(basedOn: response, error: error)
+                completion?(.failure(retriable: isRetriable), attemptCount)
+            }
+
+            // no retries left, send completion
+        } else {
+            let isRetriable = shouldRetry(basedOn: response, error: error)
+            completion?(.failure(retriable: isRetriable), attemptCount)
+        }
+
+        finish()
     }
 
     private func shouldRetry(

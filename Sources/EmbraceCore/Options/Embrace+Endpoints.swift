@@ -30,7 +30,7 @@ extension Embrace {
 extension Embrace.Endpoints {
     /// Convenience initializer that will use the default endpoints for a given `appId`.
     /// - Parameter appId: The `appId` of the project.
-    init(appId: String) {
+    public init(appId: String) {
         self.init(
             baseURL: "https://a-\(appId).data.emb-api.com",
             configBaseURL: "https://a-\(appId).config.emb-api.com"

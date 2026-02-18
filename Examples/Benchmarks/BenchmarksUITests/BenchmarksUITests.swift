@@ -19,11 +19,30 @@ final class BenchmarksUITests: XCTestCase {
     }
 
     @MainActor
-    func testLaunchPerformanceNoop() throws {
+    func testLaunchUntilResponsivePerformance() throws {
         let app = XCUIApplication()
-        app.launchEnvironment["noop"] = "true"
-        measure(metrics: [XCTApplicationLaunchMetric()]) {
+        measure(metrics: [XCTApplicationLaunchMetric(waitUntilResponsive: true)]) {
             app.launch()
+        }
+    }
+
+    private func metrics(for app: XCUIApplication) -> [XCTMetric] {
+        [
+            XCTStorageMetric(application: app),
+            XCTMemoryMetric(application: app)
+        ]
+    }
+
+    @MainActor
+    func testSpanEventsEfficiency() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["EMBUseNewStorageForEvents"] = "1"
+        app.launchEnvironment["EMBIgnoreBreadcrumbLimits"] = "1"
+
+        app.launch()
+        let button = app.buttons["logical-writes-test-button"]
+        measure(metrics: metrics(for: app)) {
+            button.tap()
         }
     }
 }

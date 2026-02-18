@@ -136,6 +136,10 @@ extension EmbraceConfig /* EmbraceConfigurable delegation */ {
         configurable.isMetricKitHangCaptureEnabled
     }
 
+    public var isMetricKitInternalMetricsCaptureEnabled: Bool {
+        configurable.isMetricKitInternalMetricsCaptureEnabled
+    }
+
     public var spanEventTypeLimits: SpanEventTypeLimits {
         configurable.spanEventTypeLimits
     }
@@ -150,5 +154,9 @@ extension EmbraceConfig /* EmbraceConfigurable delegation */ {
 
     public var networkPayloadCaptureRules: [NetworkPayloadCaptureRule] {
         configurable.networkPayloadCaptureRules
+    }
+
+    public var useNewStorageForSpanEvents: Bool {
+        configurable.useNewStorageForSpanEvents
     }
 }

@@ -2,12 +2,18 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceCommonInternal
 import EmbraceCore
 import EmbraceCrash
+import EmbraceSemantics
+import Foundation
+import TestSupport
 import XCTest
 
 @testable import EmbraceCore
 @testable import EmbraceIO
+@testable import EmbraceStorageInternal
+@testable import EmbraceUploadInternal
 
 class PerformanceTests: XCTestCase {
 

@@ -82,6 +82,7 @@ final class HangWatchdogTests: XCTestCase {
         // Create expectations
         let hangStartedExpectation = expectation(description: "Hang should start")
         let hangUpdatedExpectation = expectation(description: "Hang should be updated")
+        hangUpdatedExpectation.assertForOverFulfill = false  // Allow multiple updates
 
         // Set up observer with callbacks
         mockObserver.onHangStarted = { _, _ in
@@ -90,7 +91,6 @@ final class HangWatchdogTests: XCTestCase {
 
         mockObserver.onHangUpdated = { _, _ in
             hangUpdatedExpectation.fulfill()
-            self.watchdog.hangObserver = nil
         }
 
         // Create watchdog with a short threashold
@@ -160,47 +160,155 @@ final class HangWatchdogTests: XCTestCase {
 // MARK: - Test Helpers
 
 class MockHangObserver: HangObserver {
+    private let lock = NSLock()
 
     // Callback handlers
-    var onHangStarted: ((UInt64, UInt64) -> Void)?
-    var onHangUpdated: ((UInt64, UInt64) -> Void)?
-    var onHangEnded: ((UInt64, UInt64) -> Void)?
+    private var _onHangStarted: ((UInt64, UInt64) -> Void)?
+    var onHangStarted: ((UInt64, UInt64) -> Void)? {
+        get {
+            lock.lock()
+            defer { lock.unlock() }
+            return _onHangStarted
+        }
+        set {
+            lock.lock()
+            defer { lock.unlock() }
+            _onHangStarted = newValue
+        }
+    }
+
+    private var _onHangUpdated: ((UInt64, UInt64) -> Void)?
+    var onHangUpdated: ((UInt64, UInt64) -> Void)? {
+        get {
+            lock.lock()
+            defer { lock.unlock() }
+            return _onHangUpdated
+        }
+        set {
+            lock.lock()
+            defer { lock.unlock() }
+            _onHangUpdated = newValue
+        }
+    }
+
+    private var _onHangEnded: ((UInt64, UInt64) -> Void)?
+    var onHangEnded: ((UInt64, UInt64) -> Void)? {
+        get {
+            lock.lock()
+            defer { lock.unlock() }
+            return _onHangEnded
+        }
+        set {
+            lock.lock()
+            defer { lock.unlock() }
+            _onHangEnded = newValue
+        }
+    }
 
     // Tracking properties
-    var hangStartedCalled = false
-    var hangUpdatedCalled = false
-    var hangEndedCalled = false
+    private var _hangStartedCalled = false
+    var hangStartedCalled: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return _hangStartedCalled
+    }
 
-    var hangStartedCallCount = 0
-    var hangUpdatedCallCount = 0
-    var hangEndedCallCount = 0
+    private var _hangUpdatedCalled = false
+    var hangUpdatedCalled: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return _hangUpdatedCalled
+    }
 
-    var lastStartTime: UInt64 = 0
-    var lastUpdateTime: UInt64 = 0
-    var lastEndTime: UInt64 = 0
-    var lastHangDuration: UInt64 = 0
+    private var _hangEndedCalled = false
+    var hangEndedCalled: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return _hangEndedCalled
+    }
+
+    private var _hangStartedCallCount = 0
+    var hangStartedCallCount: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return _hangStartedCallCount
+    }
+
+    private var _hangUpdatedCallCount = 0
+    var hangUpdatedCallCount: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return _hangUpdatedCallCount
+    }
+
+    private var _hangEndedCallCount = 0
+    var hangEndedCallCount: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return _hangEndedCallCount
+    }
+
+    private var _lastStartTime: UInt64 = 0
+    var lastStartTime: UInt64 {
+        lock.lock()
+        defer { lock.unlock() }
+        return _lastStartTime
+    }
+
+    private var _lastUpdateTime: UInt64 = 0
+    var lastUpdateTime: UInt64 {
+        lock.lock()
+        defer { lock.unlock() }
+        return _lastUpdateTime
+    }
+
+    private var _lastEndTime: UInt64 = 0
+    var lastEndTime: UInt64 {
+        lock.lock()
+        defer { lock.unlock() }
+        return _lastEndTime
+    }
+
+    private var _lastHangDuration: UInt64 = 0
+    var lastHangDuration: UInt64 {
+        lock.lock()
+        defer { lock.unlock() }
+        return _lastHangDuration
+    }
 
     func hangStarted(at: EmbraceClock, duration: EmbraceClock) {
-        hangStartedCalled = true
-        hangStartedCallCount += 1
-        lastStartTime = at.monotonic.nanosecondsValue
-        lastHangDuration = duration.monotonic.nanosecondsValue
-        onHangStarted?(at.monotonic.nanosecondsValue, duration.monotonic.nanosecondsValue)
+        lock.lock()
+        _hangStartedCalled = true
+        _hangStartedCallCount += 1
+        _lastStartTime = at.monotonic.nanosecondsValue
+        _lastHangDuration = duration.monotonic.nanosecondsValue
+        let callback = _onHangStarted
+        lock.unlock()
+
+        callback?(at.monotonic.nanosecondsValue, duration.monotonic.nanosecondsValue)
     }
 
     func hangUpdated(at: EmbraceClock, duration: EmbraceClock) {
-        hangUpdatedCalled = true
-        hangUpdatedCallCount += 1
-        lastUpdateTime = at.monotonic.nanosecondsValue
-        lastHangDuration = duration.monotonic.nanosecondsValue
-        onHangUpdated?(at.monotonic.nanosecondsValue, duration.monotonic.nanosecondsValue)
+        lock.lock()
+        _hangUpdatedCalled = true
+        _hangUpdatedCallCount += 1
+        _lastUpdateTime = at.monotonic.nanosecondsValue
+        _lastHangDuration = duration.monotonic.nanosecondsValue
+        let callback = _onHangUpdated
+        lock.unlock()
+
+        callback?(at.monotonic.nanosecondsValue, duration.monotonic.nanosecondsValue)
     }
 
     func hangEnded(at: EmbraceClock, duration: EmbraceClock) {
-        hangEndedCalled = true
-        hangEndedCallCount += 1
-        lastEndTime = at.monotonic.nanosecondsValue
-        lastHangDuration = duration.monotonic.nanosecondsValue
-        onHangEnded?(at.monotonic.nanosecondsValue, duration.monotonic.nanosecondsValue)
+        lock.lock()
+        _hangEndedCalled = true
+        _hangEndedCallCount += 1
+        _lastEndTime = at.monotonic.nanosecondsValue
+        _lastHangDuration = duration.monotonic.nanosecondsValue
+        let callback = _onHangEnded
+        lock.unlock()
+
+        callback?(at.monotonic.nanosecondsValue, duration.monotonic.nanosecondsValue)
     }
 }

@@ -27,6 +27,7 @@ public class MetadataHandler {
 
     static let maxKeyLength = 128
     static let maxValueLength = 1024
+    static let maxPersonaTagLength = 32
 
     weak var storage: EmbraceStorage?
     weak var sessionController: SessionControllable?

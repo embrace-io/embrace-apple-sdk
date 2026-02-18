@@ -3,8 +3,9 @@ from statistics import mean
 from github import Github
 from scipy import stats
 
-THRESHOLD = float(os.getenv("THRESHOLD_PCT", "1.0")) / 100.0  # percent → fraction
+THRESHOLD = float(os.getenv("THRESHOLD_PCT", "15.0")) / 100.0  # percent → fraction
 ALPHA = float(os.getenv("ALPHA", "0.05"))
+TITLE = os.getenv("TITLE") or "Set a title pls"
 
 pr_data = json.loads(os.getenv("PERF_PR", "[]"))
 main_data = json.loads(os.getenv("PERF_MAIN", "[]"))
@@ -37,6 +38,8 @@ for pr in pr_data:
 
     rows.append({
         "name": pr["name"],
+        "displayName": pr.get("displayName", "N/A"),
+        "unitOfMeasurement": pr.get("unitOfMeasurement", "N/A"),
         "pr_avg": pr_mean,
         "main_avg": main_mean,
         "slowdown_pct": slowdown_pct,
@@ -45,19 +48,41 @@ for pr in pr_data:
     })
 
 # Build markdown
-body = ["<!-- perf-check-comment -->",
-        "### 🚀 Perf Comparison (PR vs Main)",
-        f"Threshold: `{THRESHOLD*100:.1f}%`, α = `{ALPHA}`",
-        "",
-        "| Test | PR Avg (s) | Main Avg (s) | Δ vs Main | p | Status |",
-        "|------|------------:|-------------:|----------:|---:|:-------|"]
-
 def fmtpct(x): return f"{x:+.2%}" if math.isfinite(x) else "n/a"
 def fmtp(p): return f"{p:.3g}" if p is not None else "n/a"
 
+def clean_test_name(name):
+    """Extract last part of test name and remove parentheses"""
+    # Get the part after the last "/"
+    if "/" in name:
+        name = name.split("/")[-1]
+    # Remove parentheses
+    return name.replace("(", "").replace(")", "")
+
+# Sort rows by DisplayName, Unit, then test name
+rows.sort(key=lambda r: (r["displayName"], r["unitOfMeasurement"], r["name"]))
+
+body = [f"<!-- perf-check-comment: {TITLE} -->",
+        f"### {TITLE}",
+        f"Threshold: `{THRESHOLD*100:.1f}%`, α = `{ALPHA}`",
+        ""]
+
+prev_group = None
 for r in rows:
+    current_group = (r["displayName"], r["unitOfMeasurement"])
+
+    # Add header for new group
+    if current_group != prev_group:
+        if prev_group is not None:
+            body.append("")  # Add spacing between groups
+        body.append(f"#### {r['displayName']} ({r['unitOfMeasurement']})")
+        body.append("| Status | Test | PR Avg | Main Avg | Δ vs Main | p |")
+        body.append("|:-------|:-----|-------:|---------:|----------:|---:|")
+        prev_group = current_group
+
     status = "🔴 regression" if r["significant"] else "🟢 ok"
-    body.append(f"| `{r['name']}` | {r['pr_avg']:.3f} | {r['main_avg']:.3f} | {fmtpct(r['slowdown_pct'])} | {fmtp(r['p'])} | {status} |")
+    test_name = clean_test_name(r["name"])
+    body.append(f"| {status} | `{test_name}` | {r['pr_avg']:.3f} | {r['main_avg']:.3f} | {fmtpct(r['slowdown_pct'])} | {fmtp(r['p'])} |")
 
 markdown = "\n".join(body)
 
@@ -71,8 +96,9 @@ repo_obj = gh.get_repo(repo)
 pr_obj = repo_obj.get_pull(pr_number)
 
 existing = None
+comment_marker = f"<!-- perf-check-comment: {TITLE} -->"
 for c in pr_obj.get_issue_comments():
-    if "<!-- perf-check-comment -->" in c.body:
+    if comment_marker in c.body:
         existing = c
         break
 

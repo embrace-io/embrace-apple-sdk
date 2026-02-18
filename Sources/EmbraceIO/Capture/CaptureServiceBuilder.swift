@@ -76,11 +76,6 @@ public class CaptureServiceBuilder {
             add(.lowPowerMode())
         }
 
-        // hang
-        if !services.contains(where: { $0 is HangCaptureService }) {
-            add(.hangWatchdog())
-        }
-
         return self
     }
 }

@@ -504,4 +504,76 @@ final class SpansPayloadBuilderTests: XCTestCase {
         XCTAssertEqual(closed[0].name, "emb-session")  // session span always first
         XCTAssertEqual(open.count, 0)
     }
+
+    func test_startupSpans_notDropped() throws {
+
+        // given a startup root span that is not too long
+        try addSpan(
+            startTime: Date(timeIntervalSince1970: 55),
+            endTime: Date(timeIntervalSince1970: 60),
+            name: "emb-app-startup",
+            type: .startup
+        )
+        try addSpan(
+            startTime: Date(timeIntervalSince1970: 55),
+            endTime: Date(timeIntervalSince1970: 60),
+            type: .startup
+        )
+
+        // when building the spans payload
+        let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
+
+        // then the spans are not dropped correctly
+        XCTAssertEqual(closed.count, 3)
+        XCTAssertEqual(closed[0].name, "emb-session")  // session span always first
+        XCTAssertEqual(open.count, 0)
+    }
+
+    func test_startupSpans_noEndTime() throws {
+
+        // given a startup root span without end time
+        try addSpan(
+            startTime: Date(timeIntervalSince1970: 55),
+            endTime: nil,
+            name: "emb-app-startup",
+            type: .startup
+        )
+        try addSpan(
+            startTime: Date(timeIntervalSince1970: 55),
+            endTime: nil,
+            type: .startup
+        )
+
+        // when building the spans payload
+        let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
+
+        // then the spans are dropped correctly
+        XCTAssertEqual(closed.count, 1)
+        XCTAssertEqual(closed[0].name, "emb-session")  // session span always first
+        XCTAssertEqual(open.count, 0)
+    }
+
+    func test_startupSpans_tooLong() throws {
+
+        // given a startup root span that is too long
+        try addSpan(
+            startTime: Date(timeIntervalSince1970: 55),
+            endTime: Date(timeIntervalSince1970: 75),
+            name: "emb-app-startup",
+            type: .startup
+        )
+        try addSpan(
+            startTime: Date(timeIntervalSince1970: 55),
+            endTime: Date(timeIntervalSince1970: 56),
+            type: .startup
+        )
+
+        // when building the spans payload
+        let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
+
+        // then the spans are dropped correctly
+        XCTAssertEqual(closed.count, 1)
+        XCTAssertEqual(closed[0].name, "emb-session")  // session span always first
+        XCTAssertEqual(open.count, 0)
+    }
 }

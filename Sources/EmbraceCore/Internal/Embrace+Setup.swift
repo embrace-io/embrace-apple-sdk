@@ -100,7 +100,7 @@ extension Embrace {
             throw EmbraceSetupError.failedUploadModuleCreation(error.localizedDescription)
         }
     }
-    #if os(iOS) || os(tvOS)
+    #if os(iOS) || os(tvOS) || os(watchOS)
         static func createSessionLifecycle(controller: SessionControllable) -> SessionLifecycle {
             iOSSessionLifecycle(controller: controller)
         }

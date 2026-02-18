@@ -113,7 +113,7 @@ class EmbraceUploadCache {
                 if let uploadData = try context.fetch(request).first {
                     uploadData.data = data
                     uploadData.payloadTypes = payloadTypes
-                    try context.save()
+                    coreData.save()
                     return true
                 }
             } catch {
@@ -133,13 +133,12 @@ class EmbraceUploadCache {
                 attemptCount: 0,
                 date: Date()
             ) {
-
-                do {
-                    try context.save()
-                    return true
-                } catch {
-                    context.delete(record)
+                coreData.performOperation { _ in
+                    if !coreData.saveIfNeeded() {
+                        context.delete(record)
+                    }
                 }
+                return true
             }
             return false
         }
@@ -165,7 +164,7 @@ class EmbraceUploadCache {
                     context.delete(uploadData)
                 }
 
-                try context.save()
+                coreData.save()
             }
         } catch {
             logger.error("error checking count limit:\n\(error.localizedDescription)")
@@ -202,11 +201,7 @@ class EmbraceUploadCache {
 
             uploadData.attemptCount = attemptCount
 
-            do {
-                try self?.coreData.context.save()
-            } catch {
-                self?.logger.warning("Error upading attempt count:\n\(error.localizedDescription)")
-            }
+            self?.coreData.save()
         }
     }
 

@@ -133,22 +133,16 @@ final class CaptureServices {
             return
         }
 
-        _services.withLock {
-            // crashes
-            let crashOptions = MetricKitCrashCaptureService.Options(
-                payloadProvider: payloadProvider,
-                metadataFetcher: metadataFetcher,
-                stateProvider: stateProvider
-            )
-            $0.append(MetricKitCrashCaptureService(options: crashOptions))
+        let options = MetricKitCaptureServiceOptions(
+            payloadProvider: payloadProvider,
+            metadataFetcher: metadataFetcher,
+            stateProvider: stateProvider
+        )
 
-            // hangs
-            let hangOptions = MetricKitHangCaptureService.Options(
-                payloadProvider: payloadProvider,
-                metadataFetcher: metadataFetcher,
-                stateProvider: stateProvider
-            )
-            $0.append(MetricKitHangCaptureService(options: hangOptions))
+        _services.withLock {
+            $0.append(MetricKitCrashCaptureService(options: options))
+            $0.append(MetricKitHangCaptureService(options: options))
+            $0.append(MetricKitMetricsCaptureService(options: options))
         }
     }
 

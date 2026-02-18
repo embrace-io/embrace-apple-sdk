@@ -90,6 +90,12 @@ class LogController: LogBatcherDelegate {
         send: Bool = true,
         completion: ((EmbraceLog?) -> Void)? = nil
     ) {
+
+        guard severity != .critical else {
+            Embrace.logger.info("Critical logs are for internal use only!")
+            return
+        }
+
         guard let sessionController = sessionController else {
             completion?(nil)
             return

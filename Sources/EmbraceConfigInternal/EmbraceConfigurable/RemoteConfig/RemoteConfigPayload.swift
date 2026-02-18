@@ -24,8 +24,10 @@ public struct RemoteConfigPayload: Decodable, Equatable {
     var metricKitCrashCaptureEnabled: Bool
     var metricKitCrashSignals: [String]
     var metricKitHangCaptureEnabled: Bool
+    var metricKitInternalMetricsCaptureEnabled: Bool
 
     var breadcrumbLimit: Int
+    var tapLimit: Int
 
     var logsInfoLimit: Int
     var logsWarningLimit: Int
@@ -44,6 +46,8 @@ public struct RemoteConfigPayload: Decodable, Equatable {
     var networkPayloadCaptureRules: [NetworkPayloadCaptureRule]
 
     var useLegacyUrlSessionProxy: Bool
+
+    var useNewStorageForSpanEvents: Bool
 
     enum CodingKeys: String, CodingKey {
         case sdkEnabledThreshold = "threshold"
@@ -67,10 +71,12 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         case metricKitEnabledThreshold = "metrickit_v2_pct_enabled"
         case metricKitReportersEnabled = "metrickit_v2_reporters_enabled"
         case metricKitCrashSignalsEnabled = "metrickit_v2_crash_signals_enabled"
+        case metricKitInternalMetricsCaptureEnabled = "metrickit_v2_internal_metrics_enabled"
 
         case ui
         enum UICodingKeys: String, CodingKey {
             case breadcrumbs
+            case taps
         }
 
         case logLimits = "log"
@@ -98,6 +104,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
 
         case networkPayLoadCapture = "network_capture"
         case useLegacyUrlSessionProxy = "use_legacy_urlsession_proxy"
+        case useNewStorageForSpanEvents = "use_new_storage_for_span_events"
     }
 
     public init(from decoder: Decoder) throws {
@@ -191,8 +198,15 @@ public struct RemoteConfigPayload: Decodable, Equatable {
                     Int.self,
                     forKey: CodingKeys.UICodingKeys.breadcrumbs
                 ) ?? defaultPayload.breadcrumbLimit
+
+            tapLimit =
+                try uiContainer.decodeIfPresent(
+                    Int.self,
+                    forKey: CodingKeys.UICodingKeys.taps
+                ) ?? defaultPayload.tapLimit
         } else {
             breadcrumbLimit = defaultPayload.breadcrumbLimit
+            tapLimit = defaultPayload.tapLimit
         }
 
         // logs limit
@@ -315,6 +329,12 @@ public struct RemoteConfigPayload: Decodable, Equatable {
                 forKey: .metricKitEnabledThreshold
             ) ?? defaultPayload.metricKitEnabledThreshold
 
+        metricKitInternalMetricsCaptureEnabled =
+            try rootContainer.decodeIfPresent(
+                Bool.self,
+                forKey: .metricKitInternalMetricsCaptureEnabled
+            ) ?? defaultPayload.metricKitInternalMetricsCaptureEnabled
+
         if let strArray = try rootContainer.decodeIfPresent(
             String.self,
             forKey: .metricKitReportersEnabled
@@ -341,6 +361,13 @@ public struct RemoteConfigPayload: Decodable, Equatable {
                 Bool.self,
                 forKey: .useLegacyUrlSessionProxy
             ) ?? defaultPayload.useLegacyUrlSessionProxy
+
+        // use new storage for span events
+        useNewStorageForSpanEvents =
+            try rootContainer.decodeIfPresent(
+                Bool.self,
+                forKey: .useNewStorageForSpanEvents
+            ) ?? defaultPayload.useNewStorageForSpanEvents
     }
 
     // defaults
@@ -359,8 +386,10 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         metricKitCrashCaptureEnabled = false
         metricKitCrashSignals = [CrashSignal.SIGKILL.stringValue]
         metricKitHangCaptureEnabled = false
+        metricKitInternalMetricsCaptureEnabled = false
 
         breadcrumbLimit = 100
+        tapLimit = 80
 
         logsInfoLimit = 100
         logsWarningLimit = 200
@@ -378,5 +407,6 @@ public struct RemoteConfigPayload: Decodable, Equatable {
 
         networkPayloadCaptureRules = []
         useLegacyUrlSessionProxy = false
+        useNewStorageForSpanEvents = false
     }
 }

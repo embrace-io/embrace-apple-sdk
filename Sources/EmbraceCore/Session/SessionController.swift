@@ -39,14 +39,16 @@ class SessionController: SessionControllable {
     weak var sdkStateProvider: EmbraceSDKStateProvider?
     weak var otel: InternalOTelSignalsHandler?
 
-    private var _currentSession: EmbraceSession?
-    var currentSession: EmbraceSession? {
-        lock.locked { _currentSession }
+    private struct SessionInfo {
+        var session: EmbraceSession? = nil
+        var sessionSpan: EmbraceSpan? = nil
     }
-
-    private var _currentSessionSpan: EmbraceSpan?
+    private let _session: EmbraceMutex<SessionInfo> = EmbraceMutex(SessionInfo())
+    var currentSession: EmbraceSession? {
+        _session.withLock { $0.session }
+    }
     var currentSessionSpan: EmbraceSpan? {
-        lock.locked { _currentSessionSpan }
+        _session.withLock { $0.sessionSpan }
     }
 
     private var backgroundSessionsEnabled: Bool {
@@ -75,7 +77,9 @@ class SessionController: SessionControllable {
         self.queue = queue
 
         self.heartbeat.callback = { [weak self] in
+            let span = EmbraceMetricKitSpan.begin(name: "heartbeat")
             self?.update(heartbeat: Date())
+            span.end()
         }
     }
 
@@ -95,21 +99,22 @@ class SessionController: SessionControllable {
     @discardableResult
     func startSession(state: SessionState, startTime: Date = Date()) -> EmbraceSession? {
         // we lock after end session to avoid a deadlock
-        let session = lock.locked {
+        let inProgressSessionInfo = _session.safeValue
+        let sessionInfo: (session: EmbraceSession?, span: EmbraceSpan?) = lock.locked {
 
             // end current session first
-            if _currentSession != nil {
-                endSessionNoLock()
+            if inProgressSessionInfo.session != nil {
+                endSessionNoLock(inProgressSessionInfo.session, inProgressSessionInfo.sessionSpan)
             }
 
             guard sdkStateProvider?.isEnabled == true else {
-                return nil as EmbraceSession?
+                return (nil, nil)
             }
 
             guard let storage = storage,
                 let otel = otel
             else {
-                return nil
+                return (nil, nil)
             }
 
             // detect cold start
@@ -125,7 +130,7 @@ class SessionController: SessionControllable {
             //
             // +
             if isColdStart == false && state == .background && backgroundSessionsEnabled == false {
-                return nil
+                return (nil, nil)
             }
             // -
 
@@ -142,13 +147,11 @@ class SessionController: SessionControllable {
                     coldStart: isColdStart
                 )
             else {
-                return result
+                return (nil, nil)
             }
 
-            _currentSessionSpan = span
-
             // create session record and save it
-            result = storage.addSession(
+            let session = storage.addSession(
                 id: newId,
                 processId: ProcessIdentifier.current,
                 state: state,
@@ -157,7 +160,6 @@ class SessionController: SessionControllable {
                 startTime: startTime,
                 coldStart: isColdStart
             )
-            _currentSession = result
 
             // start heartbeat
             heartbeat.start()
@@ -165,22 +167,27 @@ class SessionController: SessionControllable {
             firstSession = false
             _attachmentCount.store(0)
 
-            return result
+            return (session: session, span: span)
+        }
+
+        _session.withLock {
+            $0.session = sessionInfo.session
+            $0.sessionSpan = sessionInfo.span
         }
 
         // post notification
-        if let session {
+        if let session = sessionInfo.session {
             NotificationCenter.default.post(name: .embraceSessionDidStart, object: session)
         }
 
-        return session
+        return sessionInfo.session
     }
 
     /// Ends the session session taking into account that the lock is held externally
     @discardableResult
-    private func endSessionNoLock() -> Date {
+    private func endSessionNoLock(_ inProgressSession: EmbraceSession?, _ inProgressSessionSpan: EmbraceSpan?) -> Date {
 
-        guard let session = _currentSession else {
+        guard let inProgressSession else {
             return Date()
         }
 
@@ -189,15 +196,15 @@ class SessionController: SessionControllable {
         let now = Date()
 
         guard sdkStateProvider?.isEnabled == true else {
-            deleteNoLock()
+            deleteNoLock(inProgressSession)
             return now
         }
 
         // If the session is a background session and background sessions
         // are disabled in the config, we drop the session!
         // +
-        if session.coldStart == true && session.state == SessionState.background && backgroundSessionsEnabled == false {
-            deleteNoLock()
+        if inProgressSession.coldStart == true && inProgressSession.state == SessionState.background && backgroundSessionsEnabled == false {
+            deleteNoLock(inProgressSession)
             return now
         }
         // -
@@ -207,35 +214,45 @@ class SessionController: SessionControllable {
 
         // post public notification
         // This is behind a lock, this is a problem, so we move it to the main queue so it runs after this code.
-        let mainQueueSession = _currentSession
+        let mainQueueSession = inProgressSession
         DispatchQueue.main.async {
             NotificationCenter.default.post(name: .embraceSessionWillEnd, object: mainQueueSession)
         }
 
         // end span
-        _currentSessionSpan?.end(endTime: now)
+        if let inProgressSessionSpan {
+            // Ending span for otel processors
+            // Note: our exporter wont trigger an update on the stored span
+            // to prevent race conditions.
+            inProgressSessionSpan.end(endTime: now)
 
-        // TODO: Check if needed
-        // Manually updating the span record synchronously.
-        // storage?.endSpan(
-        //    id: _currentSessionSpan.context.spanId.hexString,
-        //    traceId: _currentSessionSpan.context.traceId.hexString,
-        //    endTime: now
-        //)
+            // TODO: Check if needed
+            // Manually updating the span record synchronously.
+            // storage?.endSpan(
+            //     id: inProgressSessionSpan.context.spanId.hexString,
+            //     traceId: inProgressSessionSpan.context.traceId.hexString,
+            //     endTime: now
+            // )
+        }
 
         // update session end time and clean exit
-        _currentSession = storage?.updateSession(session: session, endTime: now, cleanExit: true)
+        var sessionToUpload: EmbraceSession? = inProgressSession
+        if inProgressSession.id != nil {
+            sessionToUpload = storage?.updateSession(session: inProgressSession, endTime: now, cleanExit: true)
+        }
 
         // post internal notification
-        if session.state == SessionState.foreground {
+        if inProgressSession.state == SessionState.foreground {
             Embrace.notificationCenter.post(name: .embraceForegroundSessionDidEnd, object: now)
         }
 
         // upload session
-        uploadSessionNoLock()
+        uploadSessionNoLock(sessionToUpload)
 
-        _currentSession = nil
-        _currentSessionSpan = nil
+        _session.withLock {
+            $0.session = nil
+            $0.sessionSpan = nil
+        }
 
         return now
     }
@@ -245,57 +262,70 @@ class SessionController: SessionControllable {
     /// - Returns: The `endTime` of the session
     @discardableResult
     func endSession() -> Date {
+        let sessionInfo = _session.safeValue
         return lock.locked {
-            endSessionNoLock()
+            endSessionNoLock(sessionInfo.session, sessionInfo.sessionSpan)
         }
     }
 
     func update(state: SessionState) {
+        let sessionInfo = _session.safeValue
         lock.locked {
-            guard let session = _currentSession else {
+            guard let session = sessionInfo.session else {
                 return
             }
 
-            _currentSession = storage?.updateSession(session: session, state: state)
+            let updatedSession = storage?.updateSession(session: session, state: state)
+            _session.withLock {
+                $0.session = updatedSession
+            }
 
-            if let span = _currentSessionSpan {
+            if let span = sessionInfo.sessionSpan {
                 SessionSpanUtils.setState(span: span, state: state)
             }
         }
     }
 
     func update(appTerminated: Bool) {
+        let sessionInfo = _session.safeValue
         lock.locked {
-            guard let session = _currentSession else {
+            guard let session = sessionInfo.session else {
                 return
             }
 
-            _currentSession = storage?.updateSession(session: session, appTerminated: appTerminated)
+            let updatedSession = storage?.updateSession(session: session, appTerminated: appTerminated)
+            _session.withLock {
+                $0.session = updatedSession
+            }
 
-            if let span = _currentSessionSpan {
+            if let span = sessionInfo.sessionSpan {
                 SessionSpanUtils.setTerminated(span: span, terminated: appTerminated)
             }
         }
     }
 
     func update(heartbeat: Date) {
+        let sessionInfo = _session.safeValue
         lock.locked {
-            guard let session = _currentSession else {
+            guard let session = sessionInfo.session else {
                 return
             }
 
-            _currentSession = storage?.updateSession(session: session, lastHeartbeatTime: heartbeat)
+            let updatedSession = storage?.updateSession(session: session, lastHeartbeatTime: heartbeat)
+            _session.withLock {
+                $0.session = updatedSession
+            }
 
-            if let span = _currentSessionSpan {
+            if let span = sessionInfo.sessionSpan {
                 SessionSpanUtils.setHeartbeat(span: span, heartbeat: heartbeat)
             }
         }
     }
 
-    func uploadSessionNoLock() {
+    func uploadSessionNoLock(_ session: EmbraceSession?) {
         guard let storage = storage,
             let upload = upload,
-            let session = _currentSession
+            let session
         else {
             return
         }
@@ -306,7 +336,8 @@ class SessionController: SessionControllable {
     }
 
     func uploadSession() {
-        lock.locked { uploadSessionNoLock() }
+        let session: EmbraceSession? = _session.withLock { $0.session }
+        lock.locked { uploadSessionNoLock(session) }
     }
 
     func increaseAttachmentCount() {
@@ -320,18 +351,21 @@ extension SessionController {
     }
 
     private func delete() {
-        lock.locked { deleteNoLock() }
+        let info = _session.safeValue
+        lock.locked { deleteNoLock(info.session) }
     }
 
-    private func deleteNoLock() {
-        guard let session = _currentSession else {
+    private func deleteNoLock(_ session: EmbraceSession?) {
+        guard let session else {
             return
         }
 
         storage?.deleteSession(id: session.id)
 
-        _currentSession = nil
-        _currentSessionSpan = nil
+        _session.withLock {
+            $0.session = nil
+            $0.sessionSpan = nil
+        }
     }
 }
 

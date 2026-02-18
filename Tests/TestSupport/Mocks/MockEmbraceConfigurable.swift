@@ -22,6 +22,7 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         isMetricKitCrashCaptureEnabled: Bool = false,
         metricKitCrashSignals: [String] = [],
         isMetricKitHangCaptureEnabled: Bool = false,
+        isMetricKitInternalMetricsCaptureEnabled: Bool = false,
         spanEventTypeLimits: SpanEventTypeLimits = SpanEventTypeLimits(),
         logSeverityLimits: LogSeverityLimits = LogSeverityLimits(),
         internalLogLimits: InternalLogLimits = InternalLogLimits(),
@@ -29,7 +30,8 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         updateCompletionParamDidUpdate: Bool = false,
         updateCompletionParamError: Error? = nil,
         hangLimits: HangLimits = HangLimits(),
-        useLegacyUrlSessionProxy: Bool = false
+        useLegacyUrlSessionProxy: Bool = false,
+        useNewStorageForSpanEvents: Bool = false
     ) {
         self._isSDKEnabled = isSDKEnabled
         self._isBackgroundSessionEnabled = isBackgroundSessionEnabled
@@ -43,12 +45,14 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         self._isMetricKitCrashCaptureEnabled = isMetricKitCrashCaptureEnabled
         self._metricKitCrashSignals = metricKitCrashSignals
         self._isMetricKitHangCaptureEnabled = isMetricKitHangCaptureEnabled
+        self._isMetricKitInternalMetricsCaptureEnabled = isMetricKitInternalMetricsCaptureEnabled
         self._spanEventTypeLimits = spanEventTypeLimits
         self._logSeverityLimits = logSeverityLimits
         self._internalLogLimits = internalLogLimits
         self._hangLimits = hangLimits
         self._networkPayloadCaptureRules = networkPayloadCaptureRules
         self._useLegacyUrlSessionProxy = useLegacyUrlSessionProxy
+        self._useNewStorageForSpanEvents = useNewStorageForSpanEvents
         self.updateCompletionParamDidUpdate = updateCompletionParamDidUpdate
         self.updateCompletionParamError = updateCompletionParamError
     }
@@ -169,6 +173,18 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         }
     }
 
+    private var _isMetricKitInternalMetricsCaptureEnabled: Bool
+    public let isMetricKitInternalMetricsCaptureEnabledExpectation = XCTestExpectation(description: "isMetricKitInternalMetricsCaptureEnabled called")
+    public var isMetricKitInternalMetricsCaptureEnabled: Bool {
+        get {
+            isMetricKitInternalMetricsCaptureEnabledExpectation.fulfill()
+            return _isMetricKitInternalMetricsCaptureEnabled
+        }
+        set {
+            _isMetricKitInternalMetricsCaptureEnabled = newValue
+        }
+    }
+
     private var _isMetricKitCrashCaptureEnabled: Bool
     public let isMetricKitCrashCaptureEnabledExpectation = XCTestExpectation(
         description: "isMetricKitCrashCaptureEnabled called")
@@ -279,6 +295,19 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         }
         set {
             _useLegacyUrlSessionProxy = newValue
+        }
+    }
+
+    private var _useNewStorageForSpanEvents: Bool
+    public let useNewStorageForSpanEventsExpectation = XCTestExpectation(
+        description: "useNewStorageForSpanEvents called")
+    public var useNewStorageForSpanEvents: Bool {
+        get {
+            useNewStorageForSpanEventsExpectation.fulfill()
+            return _useNewStorageForSpanEvents
+        }
+        set {
+            _useNewStorageForSpanEvents = newValue
         }
     }
 

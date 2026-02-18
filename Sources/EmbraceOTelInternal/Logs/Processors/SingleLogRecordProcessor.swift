@@ -11,11 +11,17 @@ import OpenTelemetrySdk
 
 class SingleLogRecordProcessor: LogRecordProcessor {
 
-    private let exporters: [LogRecordExporter]
+    let processors: [LogRecordProcessor]
+    let exporters: [LogRecordExporter]
 
     weak var sdkStateProvider: EmbraceSDKStateProvider?
 
-    init(exporters: [LogRecordExporter], sdkStateProvider: EmbraceSDKStateProvider) {
+    init(
+        processors: [LogRecordProcessor] = [],
+        exporters: [LogRecordExporter] = [],
+        sdkStateProvider: EmbraceSDKStateProvider
+    ) {
+        self.processors = processors
         self.exporters = exporters
         self.sdkStateProvider = sdkStateProvider
     }
@@ -25,6 +31,12 @@ class SingleLogRecordProcessor: LogRecordProcessor {
             return
         }
 
+        let processors = self.processors
+        processors.forEach {
+            $0.onEmit(logRecord: logRecord)
+        }
+
+        let exporters = self.exporters
         exporters.forEach {
             _ = $0.export(logRecords: [logRecord])
         }
@@ -35,6 +47,12 @@ class SingleLogRecordProcessor: LogRecordProcessor {
             return .failure
         }
 
+        let processors = self.processors
+        processors.forEach {
+            _ = $0.forceFlush(explicitTimeout: explicitTimeout)
+        }
+
+        let exporters = self.exporters
         let resultSet = Set(exporters.map { $0.forceFlush() })
         if let firstResult = resultSet.first {
             return resultSet.count > 1 ? .failure : firstResult
@@ -43,7 +61,17 @@ class SingleLogRecordProcessor: LogRecordProcessor {
     }
 
     func shutdown(explicitTimeout: TimeInterval?) -> ExportResult {
-        exporters.forEach { $0.shutdown() }
+
+        let processors = self.processors
+        processors.forEach {
+            _ = $0.shutdown(explicitTimeout: explicitTimeout)
+        }
+
+        let exporters = self.exporters
+        exporters.forEach {
+            $0.shutdown(explicitTimeout: explicitTimeout)
+        }
+
         return .success
     }
 }

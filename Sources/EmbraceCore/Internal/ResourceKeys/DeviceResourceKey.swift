@@ -13,6 +13,7 @@ enum DeviceResourceKey: String, Codable {
     case screenResolution = "emb.device.screenResolution"
     case osBuild = "emb.os.build_id"
     case osVariant = "emb.os.variant"
+    case osName = "os.name"
     case osType = "os.type"
     case osVersion = "os.version"
     case deviceModelIdentifier = "device.model.identifier"

@@ -43,7 +43,7 @@ let package = Package(
     dependencies: [
         .package(
             url: "https://github.com/kstenerud/KSCrash",
-            from: "2.4.0"
+            from: "2.5.1"
         ),
         .package(
             url: "https://github.com/open-telemetry/opentelemetry-swift-core",
@@ -65,7 +65,8 @@ let package = Package(
                 "EmbraceCommonInternal",
                 "EmbraceSemantics",
                 "EmbraceCrash",
-                "EmbraceKSCrashBacktraceSupport"
+                "EmbraceKSCrashBacktraceSupport",
+                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift-core")
             ],
             linkerSettings: linkerSettings
         ),
@@ -199,6 +200,8 @@ let package = Package(
             dependencies: [
                 "EmbraceCommonInternal",
                 "EmbraceSemantics",
+                "EmbraceCoreDataInternal",
+                "EmbraceStorageInternal",
                 .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift-core")
             ]
         ),
@@ -248,7 +251,8 @@ let package = Package(
         .target(
             name: "EmbraceCoreDataInternal",
             dependencies: [
-                "EmbraceCommonInternal"
+                "EmbraceCommonInternal",
+                "EmbraceObjCUtilsInternal"
             ]
         ),
         .testTarget(

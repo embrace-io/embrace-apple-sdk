@@ -31,6 +31,8 @@ public protocol EmbraceConfigurable: AnyObject {
 
     var isMetricKitHangCaptureEnabled: Bool { get }
 
+    var isMetricKitInternalMetricsCaptureEnabled: Bool { get }
+
     var spanEventTypeLimits: SpanEventTypeLimits { get }
 
     var logSeverityLimits: LogSeverityLimits { get }
@@ -42,6 +44,8 @@ public protocol EmbraceConfigurable: AnyObject {
     var hangLimits: HangLimits { get }
 
     var useLegacyUrlSessionProxy: Bool { get }
+
+    var useNewStorageForSpanEvents: Bool { get }
 
     /// Tell the configurable implementation it should update if possible.
     /// - Parameters:

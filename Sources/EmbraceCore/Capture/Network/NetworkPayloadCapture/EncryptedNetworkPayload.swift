@@ -9,6 +9,7 @@ import Security
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceSemantics
+    import EmbraceCommonInternal
 #endif
 
 struct EncryptedNetworkPayload: Encodable {
@@ -16,8 +17,8 @@ struct EncryptedNetworkPayload: Encodable {
     let url: String
     let httpMethod: String
 
-    let startTime: Int?
-    let endTime: Int?
+    let startTime: EMBInt?
+    let endTime: EMBInt?
 
     let matchedUrl: String
     let sessionId: String?

@@ -86,6 +86,8 @@ public class Embrace {
     let sessionController: SessionController
     let sessionLifecycle: SessionLifecycle
 
+    let otelResources: EmbraceAttributes?
+
     let processingQueue = DispatchQueue(
         label: "com.embrace.processing",
         qos: .utility,
@@ -108,6 +110,11 @@ public class Embrace {
     /// - Returns: The `Embrace` client instance.
     @discardableResult
     public static func setup(options: Embrace.Options) throws -> Embrace {
+        return try setup(options: options, otelResources: nil)
+    }
+
+    package static func setup(options: Embrace.Options, otelResources: EmbraceAttributes?) throws -> Embrace {
+
         if !Thread.isMainThread {
             throw EmbraceSetupError.invalidThread("Embrace must be setup on the main thread")
         }
@@ -118,7 +125,11 @@ public class Embrace {
 
         let setupTime = Date()
 
+        let span = EmbraceMetricKitSpan.begin(name: "sdk-setup", force: true)
+
         return try _syncLock.lockedForWriting {
+            defer { span.end() }
+
             if let client = client {
                 Embrace.logger.warning("Embrace was already initialized!")
                 return client
@@ -146,11 +157,13 @@ public class Embrace {
 
     init(
         options: Embrace.Options,
-        embraceStorage: EmbraceStorage? = nil
+        embraceStorage: EmbraceStorage? = nil,
+        otelResources: EmbraceAttributes? = nil
     ) throws {
 
         self.options = options
         self.logLevel = options.logLevel
+        self.otelResources = otelResources
 
         // retrieve device identifier
         self.deviceId = DeviceIdentifierProvider.retrieve(fileURL: EmbraceFileSystem.deviceIdURL)
@@ -254,6 +267,7 @@ public class Embrace {
         }
 
         EMBStartupTracker.shared().sdkStartStartTime = Date()
+        let span = EmbraceMetricKitSpan.begin(name: "sdk-start", force: true)
 
         if EMBStartupTracker.shared().appDidFinishLaunchingEndTime != nil || EMBStartupTracker.shared().appFirstDidBecomeActiveTime != nil {
             Embrace.logger.error("Embrace SDK should be started before the app is launched and becomes active. This is required for the startup instrumentation to work.")
@@ -263,6 +277,9 @@ public class Embrace {
         sessionLifecycle.setup()
 
         return Embrace._syncLock.lockedForWriting {
+
+            defer { span.end() }
+
             guard state == .initialized else {
                 Embrace.logger.warning("The Embrace SDK can only be started once!")
                 return self
@@ -317,6 +334,9 @@ public class Embrace {
 
                 // remove old versions data
                 self?.cleanUpOldVersionsData()
+
+                // add otel resources as metadata
+                self?.addOtelResources()
             }
 
             // retry any remaining cached upload data

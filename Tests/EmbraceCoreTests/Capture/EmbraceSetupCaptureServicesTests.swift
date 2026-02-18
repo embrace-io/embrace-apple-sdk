@@ -58,10 +58,11 @@ final class EmbraceSetupCaptureServicesTests: XCTestCase {
         try Embrace.setup(options: options)
 
         let services = Embrace.client!.captureServices.services
-        XCTAssertEqual(services.count, 5)
+        XCTAssertEqual(services.count, 6)
         XCTAssertTrue(services.contains { $0 is ExampleCaptureService })
         XCTAssertTrue(services.contains { $0 is MetricKitCrashCaptureService })
         XCTAssertTrue(services.contains { $0 is MetricKitHangCaptureService })
+        XCTAssertTrue(services.contains { $0 is MetricKitMetricsCaptureService })
     }
 
     func test_setup_do_not_include_metrickit() throws {

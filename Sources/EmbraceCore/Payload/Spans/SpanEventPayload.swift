@@ -6,11 +6,12 @@ import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceSemantics
+    import EmbraceCommonInternal
 #endif
 
 struct SpanEventPayload: Encodable {
     let name: String
-    let timestamp: Int
+    let timestamp: EMBInt
     let attributes: [Attribute]
 
     enum CodingKeys: String, CodingKey {

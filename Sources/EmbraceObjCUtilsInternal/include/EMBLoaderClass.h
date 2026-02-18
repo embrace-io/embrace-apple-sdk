@@ -11,4 +11,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 FOUNDATION_EXPORT pthread_t EmbraceGetMainThread(void);
 
+@class NSManagedObjectContext;
+FOUNDATION_EXPORT NSError *_Nullable EmbraceSaveManagedContext(NSManagedObjectContext *context);
+
 NS_ASSUME_NONNULL_END

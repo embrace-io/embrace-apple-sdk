@@ -12,9 +12,9 @@ import Foundation
 
 class MetricKitHangCaptureService: CaptureService, MetricKitHangPayloadListener {
 
-    let options: MetricKitHangCaptureService.Options
+    let options: MetricKitCaptureServiceOptions
 
-    init(options: MetricKitHangCaptureService.Options) {
+    init(options: MetricKitCaptureServiceOptions) {
         self.options = options
     }
 

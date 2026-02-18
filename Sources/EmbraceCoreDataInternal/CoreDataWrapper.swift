@@ -11,6 +11,7 @@ import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
+    import EmbraceObjCUtilsInternal
 #endif
 
 public class CoreDataWrapper {
@@ -85,6 +86,7 @@ public class CoreDataWrapper {
                 // is created synchronously in `Embrace.init`, allowing us to throw as needed and fail early.
                 description.shouldAddStoreAsynchronously = false
                 container.persistentStoreDescriptions = [description]
+
             }
         }
 
@@ -96,17 +98,34 @@ public class CoreDataWrapper {
         // Otherwise, the container would appear as "initialized", but any later attempt to hit Core Data
         // (fetch, save, etc.) would crash. Thats why we capture the error from `loadPersistentStores`
         // and rethrow it here: better to throw during `Embrace.init` than to crash much later.
-        var loadPersistentStoreError: Error?
-        container.loadPersistentStores { _, error in
-            loadPersistentStoreError = error
-        }
-
-        if let loadPersistentStoreError {
-            logger.critical("Error initializing CoreData \"\(name)\": \(loadPersistentStoreError.localizedDescription)")
+        if let loadPersistentStoreError = loadPersistentStoreIfNeeded(logIfEmpty: false) {
             throw loadPersistentStoreError
         }
 
         context = container.newBackgroundContext()
+    }
+
+    @discardableResult
+    private func loadPersistentStoreIfNeeded(logIfEmpty: Bool = true) -> Error? {
+        // if we have persistent stores just continue on
+        guard container.persistentStoreCoordinator.persistentStores.isEmpty else {
+            return nil
+        }
+
+        // If this happens, we want to know about it.
+        if logIfEmpty {
+            logger.critical("Persistent store is empty for \"\(name)\"")
+        }
+
+        // try and load the persistent stores as needed
+        var loadError: Error? = nil
+        container.loadPersistentStores { _, error in
+            loadError = error
+        }
+        if let loadError {
+            logger.critical("Error loading persistent stores for \"\(name)\": \(loadError.localizedDescription)")
+        }
+        return loadError
     }
 
     /// Synchronously performs the given block on the current context
@@ -257,19 +276,35 @@ extension CoreDataWrapper {
 // MARK: - Internal saves
 
 extension CoreDataWrapper {
-    private func saveIfNeeded() {
-        do {
-            if context.hasChanges {
-                try context.save()
-            }
-        } catch {
+
+    @discardableResult
+    package func saveIfNeeded() -> Bool {
+
+        guard context.hasChanges else {
+            return true
+        }
+
+        // For some reason, persistent stores seem to go away sometimes,
+        // let's try and load them if needed.
+        loadPersistentStoreIfNeeded()
+
+        // Call into ObjC to capture any ObjC exceptions thrown.
+        if let error = EmbraceSaveManagedContext(context) {
+
+            let nsError = error as NSError
+
+            // Log the error so we have a trace
             logger.critical(
                 """
                 CoreData save failed '\(context.name ?? "???")',
                 error: \(error.localizedDescription),
-                """
+                """,
+                attributes: nsError.userInfo.compactMapValues { "\($0)" }
             )
+            return false
         }
+        return true
+
     }
 }
 

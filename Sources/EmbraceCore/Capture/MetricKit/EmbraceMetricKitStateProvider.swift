@@ -7,4 +7,5 @@ protocol EmbraceMetricKitStateProvider: AnyObject {
     var isMetricKitCrashCaptureEnabled: Bool { get }
     var metricKitCrashSignals: [Int] { get }
     var isMetricKitHangCaptureEnabled: Bool { get }
+    var isMetricKitInternalMetricsCaptureEnabled: Bool { get }
 }

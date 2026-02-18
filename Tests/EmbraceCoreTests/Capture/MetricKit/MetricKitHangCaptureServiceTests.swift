@@ -15,8 +15,8 @@ class MetricKitHangCaptureServiceTests: XCTestCase {
         provider: MetricKitPayloadProvider,
         fetcher: EmbraceStorageMetadataFetcher? = nil,
         stateProvider: EmbraceMetricKitStateProvider? = nil
-    ) -> MetricKitHangCaptureService.Options {
-        return MetricKitHangCaptureService.Options(
+    ) -> MetricKitCaptureServiceOptions {
+        MetricKitCaptureServiceOptions(
             payloadProvider: provider,
             metadataFetcher: fetcher,
             stateProvider: stateProvider ?? MockMetricKitStateProvider()

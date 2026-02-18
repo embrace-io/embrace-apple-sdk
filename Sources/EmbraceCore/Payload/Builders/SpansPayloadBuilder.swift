@@ -7,9 +7,12 @@ import Foundation
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
     import EmbraceStorageInternal
+    import EmbraceSemantics
 #endif
 
 class SpansPayloadBuilder {
+
+    static let startupSpanMaxLength: TimeInterval = 10
 
     class func build(
         for session: EmbraceSession,
@@ -38,6 +41,15 @@ class SpansPayloadBuilder {
             spans.append(sessionSpanPayload)
         }
 
+        // check if we need to drop startup spans
+        var shouldDropStartupSpans = true
+        let startupRoot = records.first { $0.type == .startup && $0.name.contains(SpanSemantics.Startup.parentName) }
+        if let startupRoot,
+            let endTime = startupRoot.endTime
+        {
+            shouldDropStartupSpans = endTime.timeIntervalSince(startupRoot.startTime) > startupSpanMaxLength
+        }
+
         for record in records {
             /// If the session crashed, we need to flag any open span in that session as failed, and send them as closed spans.
             /// If the `SpanRecord.endTime` is the same as the `SessionRecord.endTime`
@@ -46,6 +58,12 @@ class SpansPayloadBuilder {
             /// In other words it was an open span at the time the app crashed, and thus it must be closed and flagged as failed.
             /// The nil check is just a sanity check to cover all bases.
             let failed = session.crashReportId != nil && (record.endTime == nil || record.endTime == endTime)
+
+            // drop startup span?
+            if record.type == .startup && shouldDropStartupSpans {
+                continue
+            }
+
             let payload = SpanPayload(from: record, endTime: failed ? endTime : record.endTime, failed: failed)
 
             if failed || record.endTime != nil {

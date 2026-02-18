@@ -99,10 +99,11 @@ final class RemoteConfigTests: XCTestCase {
         let config = RemoteConfig(options: options, logger: logger)
 
         config.payload.breadcrumbLimit = 987
+        config.payload.tapLimit = 654
 
         XCTAssertEqual(
             config.spanEventTypeLimits,
-            SpanEventTypeLimits(breadcrumb: 987)
+            SpanEventTypeLimits(breadcrumb: 987, tap: 654)
         )
     }
 

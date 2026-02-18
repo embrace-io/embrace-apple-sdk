@@ -13,12 +13,13 @@ Pod::Spec.new do |spec|
   spec.source                         = { :git => "https://github.com/embrace-io/embrace-apple-sdk.git", :tag => spec.version }
   spec.requires_arc                   = true
   spec.ios.deployment_target          = "13.0"
-  spec.swift_version                  = "5.7"
+  spec.swift_version                  = "5.9"
   spec.default_subspec = "EmbraceIO"
 
   ## Tell the Swift source code to not import subspecs as modules.
   spec.pod_target_xcconfig = {
-    'SWIFT_ACTIVE_COMPILATION_CONDITIONS' => 'EMBRACE_COCOAPOD_BUILDING_SDK'
+    'SWIFT_ACTIVE_COMPILATION_CONDITIONS' => 'EMBRACE_COCOAPOD_BUILDING_SDK',
+    'OTHER_SWIFT_FLAGS' => '$(inherited) -package-name EmbraceIO'
   }
 
   spec.subspec 'EmbraceIO' do |subs|
@@ -46,6 +47,12 @@ Pod::Spec.new do |spec|
   spec.subspec 'EmbraceCommonInternal' do |subs|
     subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
     subs.dependency "EmbraceIO/EmbraceSemantics"
+    subs.dependency "EmbraceIO/EmbraceAtomicsShim"
+  end
+
+  spec.subspec 'EmbraceAtomicsShim' do |subs|
+    subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
+    subs.public_header_files = "Sources/#{subs.module_name}/include/**/*.h"
   end
 
   spec.subspec 'EmbraceSemantics' do |subs|
@@ -75,6 +82,8 @@ Pod::Spec.new do |spec|
     subs.dependency "EmbraceIO/EmbraceCommonInternal"
     subs.dependency "EmbraceIO/EmbraceSemantics"
     subs.dependency "EmbraceIO/OpenTelemetrySdk"
+    subs.dependency "EmbraceIO/EmbraceCoreDataInternal"
+    subs.dependency "EmbraceIO/EmbraceStorageInternal"
   end
 
   spec.subspec 'EmbraceStorageInternal' do |subs|
@@ -87,6 +96,7 @@ Pod::Spec.new do |spec|
   spec.subspec 'EmbraceCoreDataInternal' do |subs|
     subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
     subs.dependency "EmbraceIO/EmbraceCommonInternal"
+    subs.dependency "EmbraceIO/EmbraceObjCUtilsInternal"
   end
 
   spec.subspec 'EmbraceUploadInternal' do |subs|
@@ -119,10 +129,10 @@ Pod::Spec.new do |spec|
 
   # External
   spec.subspec 'EmbraceKSCrash' do |subs|
-    subs.dependency "KSCrash", "2.4.0"
+    subs.dependency "KSCrash", "~> 2.5.1"
   end
 
   spec.subspec 'OpenTelemetrySdk' do |subs|
-    subs.dependency "OpenTelemetry-Swift-Sdk", "2.1.1"
+    subs.dependency "OpenTelemetry-Swift-Sdk", "~> 2.1"
   end
 end

@@ -5,8 +5,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/kstenerud/KSCrash",
       "state" : {
-        "revision" : "f7675440853aa7a6dc4e1606fdb2e3423e6f1757",
-        "version" : "2.4.0"
+        "revision" : "95a8895d75f3c22aa9ad9f2a15d2fbd97b0a55e2",
+        "version" : "2.5.1"
       }
     },
     {
@@ -14,8 +14,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/open-telemetry/opentelemetry-swift-core",
       "state" : {
-        "revision" : "fd787757decabfa93319cc3c04f03a49e0cf40b6",
-        "version" : "2.2.0"
+        "revision" : "240c8d5e36c3c7b774ed961325369f0b1f2c965f",
+        "version" : "2.3.0"
       }
     },
     {

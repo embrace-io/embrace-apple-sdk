@@ -1,0 +1,84 @@
+name: Cocoapod Build And Lint
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  build-and-lint-cocoapod:
+    name: Cocoapod Build And Lint
+    runs-on: macos-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: true
+
+    permissions:
+      checks: write
+      pull-requests: write
+    steps:
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.0.app
+          xcodebuild -version
+
+      - name: Ensure the Platform is Downloaded
+        run: |
+          xcodebuild -runFirstLaunch
+          xcrun simctl list
+          xcodebuild -downloadPlatform iOS
+          xcodebuild -runFirstLaunch
+
+      - name: Checkout PR
+        uses: actions/checkout@v6
+        timeout-minutes: 2
+        with:
+          persist-credentials: false
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@8d27f39a5e7ad39aebbcbd1324f7af020229645c # v1.287.0
+        with:
+          ruby-version: 3.2.2
+      
+      - name: Install Deps
+        run: |
+          gem install cocoapods
+          gem install xcpretty
+      
+      - name: Install Pods
+        working-directory: Examples/BrandGame-CocoaPods
+        run: pod install
+
+      - name: Build BrandGame-CocoaPods
+        uses: embrace-io/xcodebuild@5ec9e396576d4142d6c8ff01767765ea649e803e # acohen/test-iterations
+        with:
+          action: build
+          workspace: Examples/BrandGame-CocoaPods/BrandGame.xcworkspace
+          scheme: BrandGame
+          platform: iOS
+
+      - name: Lint Podspec
+        id: lint
+        shell: bash
+        run: |
+          set -eo pipefail
+          pod lib lint --allow-warnings --verbose --platforms=iOS 2>&1 | tee cocoapod-lint-output.log
+
+      - name: Upload Lint Output on Failure
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: cocoapod-lint-output
+          path: cocoapod-lint-output.log
+          retention-days: 2

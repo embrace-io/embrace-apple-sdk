@@ -31,6 +31,8 @@ public class DefaultConfig: EmbraceConfigurable {
 
     public var isMetricKitHangCaptureEnabled: Bool = false
 
+    public var isMetricKitInternalMetricsCaptureEnabled: Bool = false
+
     public let spanEventTypeLimits = SpanEventTypeLimits()
 
     public let logSeverityLimits = LogSeverityLimits()
@@ -40,6 +42,8 @@ public class DefaultConfig: EmbraceConfigurable {
     public let networkPayloadCaptureRules = [NetworkPayloadCaptureRule]()
 
     public let useLegacyUrlSessionProxy = false
+
+    public let useNewStorageForSpanEvents = false
 
     public func update(completion: (Bool, (any Error)?) -> Void) {
         completion(false, nil)

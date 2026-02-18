@@ -72,6 +72,7 @@ extension Embrace {
         ///
         /// - Parameters:
         ///   - export: `OpenTelemetryExport` object to export telemetry using OpenTelemetry protocols
+        ///   - processors: `OpenTelemetryProcessor` objects to do extra processing
         ///   - platform: `Platform` in which the app will run. Defaults to `.iOS`.
         ///   - captureServices: The `CaptureServices` to be installed.
         ///   - crashReporter: The `CrashReporter` to be installed.

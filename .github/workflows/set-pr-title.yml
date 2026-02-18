@@ -1,0 +1,18 @@
+name: PR Title Formatter
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  format-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Format PR Title
+        uses: embrace-io/public-actions/pr-title-formatter@1841c9025e9640e5bbf83db6900b828df30addeb # 1.3.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}

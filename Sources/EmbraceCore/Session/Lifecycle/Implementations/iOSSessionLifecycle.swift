@@ -2,12 +2,16 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS) || os(watchOS)
     import Foundation
     #if !EMBRACE_COCOAPOD_BUILDING_SDK
         import EmbraceCommonInternal
     #endif
-    import UIKit
+    #if os(watchOS)
+        import WatchKit
+    #else
+        import UIKit
+    #endif
 
     // ignoring linting rule to have a lowercase letter first on the class name
     // since we want to use 'iOS'...
@@ -33,8 +37,12 @@
                 return
             }
 
-            let appState = UIApplication.shared.applicationState
-            currentState = appState == .background ? .background : .foreground
+            #if os(watchOS)
+                currentState = .unknown
+            #else
+                let appState = UIApplication.shared.applicationState
+                currentState = appState == .background ? .background : .foreground
+            #endif
 
             active = true
         }
@@ -69,26 +77,51 @@
     extension iOSSessionLifecycle {
 
         private func listenForUIApplication() {
-            NotificationCenter.default.addObserver(
-                self,
-                selector: #selector(appDidBecomeActive),
-                name: UIApplication.didBecomeActiveNotification,
-                object: nil
-            )
+            #if os(watchOS)
+                if #available(watchOS 7.0, *) {
+                    NotificationCenter.default.addObserver(
+                        self,
+                        selector: #selector(appDidBecomeActive),
+                        name: WKExtension.applicationDidBecomeActiveNotification,
+                        object: nil
+                    )
 
-            NotificationCenter.default.addObserver(
-                self,
-                selector: #selector(appDidEnterBackground),
-                name: UIApplication.didEnterBackgroundNotification,
-                object: nil
-            )
+                    NotificationCenter.default.addObserver(
+                        self,
+                        selector: #selector(appDidEnterBackground),
+                        name: WKExtension.applicationDidEnterBackgroundNotification,
+                        object: nil
+                    )
 
-            NotificationCenter.default.addObserver(
-                self,
-                selector: #selector(appWillTerminate),
-                name: UIApplication.willTerminateNotification,
-                object: nil
-            )
+                    NotificationCenter.default.addObserver(
+                        self,
+                        selector: #selector(appWillTerminate),
+                        name: WKExtension.applicationWillResignActiveNotification,
+                        object: nil
+                    )
+                }
+            #else
+                NotificationCenter.default.addObserver(
+                    self,
+                    selector: #selector(appDidBecomeActive),
+                    name: UIApplication.didBecomeActiveNotification,
+                    object: nil
+                )
+
+                NotificationCenter.default.addObserver(
+                    self,
+                    selector: #selector(appDidEnterBackground),
+                    name: UIApplication.didEnterBackgroundNotification,
+                    object: nil
+                )
+
+                NotificationCenter.default.addObserver(
+                    self,
+                    selector: #selector(appWillTerminate),
+                    name: UIApplication.willTerminateNotification,
+                    object: nil
+                )
+            #endif
         }
 
         /// Application state is now in foreground
