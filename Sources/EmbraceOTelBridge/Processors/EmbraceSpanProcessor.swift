@@ -109,7 +109,7 @@ class EmbraceSpanProcessor: SpanProcessor {
     /// or the `EmbraceCore` delegate.
     private func injectAttributes(_ span: ReadableSpan, delegate: EmbraceSpanProcessorDelegate) {
         span.setAttribute(key: SpanSemantics.keyEmbraceType, value: .string(EmbraceType.performance.rawValue))
-        span.setAttribute(key: LogSemantics.keyState, value: .string(delegate.currentSessionState.rawValue))
+        span.setAttribute(key: SpanSemantics.Session.keyState, value: .string(delegate.currentSessionState.rawValue))
         if let sessionId = delegate.currentSessionId, !sessionId.stringValue.isEmpty {
             span.setAttribute(key: SpanSemantics.keySessionId, value: .string(sessionId.stringValue))
         }
