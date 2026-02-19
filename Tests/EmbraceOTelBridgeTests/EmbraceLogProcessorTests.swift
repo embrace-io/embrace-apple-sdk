@@ -6,7 +6,9 @@ import OpenTelemetryApi
 import OpenTelemetrySdk
 import XCTest
 
+@testable import EmbraceCommonInternal
 @testable import EmbraceOTelBridge
+@testable import EmbraceSemantics
 
 final class EmbraceLogProcessorTests: XCTestCase {
 
@@ -66,6 +68,8 @@ final class EmbraceLogProcessorTests: XCTestCase {
 class MockLogProcessorDelegate: EmbraceLogProcessorDelegate {
     var internalLogBodies: Set<String> = []
     var emittedLogs: [ReadableLogRecord] = []
+    var currentSessionState: SessionState = .foreground
+    var currentSessionId: EmbraceIdentifier? = nil
 
     func isInternalLog(_ log: ReadableLogRecord) -> Bool {
         guard case let .string(body) = log.body else { return false }

@@ -40,7 +40,7 @@ class EmbraceLogProcessor: LogRecordProcessor {
 
         var log = logRecord
 
-        if let delegate, !delegate.isInternalLog(logRecord) == false {
+        if let delegate, !delegate.isInternalLog(logRecord) {
             log.setAttribute(key: LogSemantics.keyEmbraceType, value: EmbraceType.message.rawValue)
             log.setAttribute(key: LogSemantics.keyState, value: delegate.currentSessionState.rawValue)
             log.setAttribute(key: LogSemantics.keySessionId, value: delegate.currentSessionId?.stringValue ?? "")

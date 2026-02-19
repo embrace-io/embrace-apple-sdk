@@ -8,6 +8,7 @@ import XCTest
 
 @testable import EmbraceCommonInternal
 @testable import EmbraceOTelBridge
+@testable import EmbraceSemantics
 
 final class EmbraceSpanProcessorTests: XCTestCase {
 
@@ -68,6 +69,8 @@ class MockSpanProcessorDelegate: EmbraceSpanProcessorDelegate {
     var internalSpanNames: Set<String> = []
     var startedSpans: [ReadableSpan] = []
     var endedSpans: [ReadableSpan] = []
+    var currentSessionState: SessionState = .foreground
+    var currentSessionId: EmbraceIdentifier? = nil
 
     func isInternalSpan(_ span: ReadableSpan) -> Bool {
         return internalSpanNames.contains(span.name)

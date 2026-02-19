@@ -63,7 +63,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
             attributes: [:]
         )
         // Span should have been exported since it was ended immediately.
-        XCTAssertEqual(spanProcessor.endedSpans.count, 1)
+        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 1 }
         XCTAssertEqual(spanProcessor.endedSpans.first?.name, "immediate")
     }
 
@@ -80,8 +80,8 @@ final class EmbraceOTelBridgeTests: XCTestCase {
             links: [],
             attributes: ["foo": "bar"]
         )
-        let exported = spanProcessor.endedSpans.first
-        XCTAssertEqual(exported?.attributes["foo"], .string("bar"))
+        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 1 }
+        XCTAssertEqual(spanProcessor.endedSpans.first?.attributes["foo"], .string("bar"))
     }
 
     // MARK: - endSpan
@@ -99,7 +99,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         )
         let mockSpan = MockEmbraceSpan(spanId: ctx.spanId, traceId: ctx.traceId)
         bridge.endSpan(mockSpan, endTime: Date())
-        XCTAssertEqual(spanProcessor.endedSpans.count, 1)
+        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 1 }
     }
 
     func test_endSpan_calledTwice_onlyExportsOnce() {
@@ -116,7 +116,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         let mockSpan = MockEmbraceSpan(spanId: ctx.spanId, traceId: ctx.traceId)
         bridge.endSpan(mockSpan, endTime: Date())
         bridge.endSpan(mockSpan, endTime: Date())  // second call is no-op
-        XCTAssertEqual(spanProcessor.endedSpans.count, 1)
+        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 1 }
     }
 
     // MARK: - Loop prevention
