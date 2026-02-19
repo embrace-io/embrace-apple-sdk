@@ -72,7 +72,10 @@ final package class EmbraceOTelBridge {
         )
 
         let passedResource = resource ?? Resource()
-        tracerProvider = TracerProviderSdk(idGenerator: idGenerator, resource: passedResource, spanProcessors: [embraceSpanProcessor])
+        // The default event count limit is 128. Raise it to 9999 to support breadcrumbs,
+        // which rely on span events and can easily exceed the default cap.
+        let spanLimits = SpanLimits().settingEventCountLimit(9999)
+        tracerProvider = TracerProviderSdk(idGenerator: idGenerator, resource: passedResource, spanLimits: spanLimits, spanProcessors: [embraceSpanProcessor])
         loggerProvider = LoggerProviderSdk(resource: passedResource, logRecordProcessors: [embraceLogProcessor])
 
         tracer = tracerProvider.get(instrumentationName: "EmbraceOTelBridge", instrumentationVersion: nil)
