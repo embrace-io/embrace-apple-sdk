@@ -79,7 +79,7 @@ public class Embrace {
     let storage: EmbraceStorage
     let upload: EmbraceUpload?
     let captureServices: CaptureServices
-    let captureServicesGroup: DispatchGroup
+    package let captureServicesGroup: DispatchGroup
 
     let logController: LogController
 
@@ -201,7 +201,8 @@ public class Embrace {
                 spanEventTypeLimits: config.spanEventTypeLimits,
                 logSeverityLimits: config.logSeverityLimits,
                 configNotificationCenter: Embrace.notificationCenter
-            )
+            ),
+            bridge: options.bridge ?? DefaultOTelSignalBridge()
         )
 
         // Create a group for the services, this group leaves once the services are started.

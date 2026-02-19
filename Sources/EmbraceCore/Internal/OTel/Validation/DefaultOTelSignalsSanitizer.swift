@@ -88,7 +88,22 @@ class DefaultOtelSignalsSanitizer: OTelSignalsSanitizer {
     }
 
     func sanitizeSpanAttributes(_ attributes: EmbraceAttributes) -> EmbraceAttributes {
-        return sanitizeAttributes(attributes, limit: sessionLimits.customSpans.attributeCount)
+        return sanitizeSpanAttributes(attributes, protecting: [])
+    }
+
+    func sanitizeSpanAttributes(_ attributes: EmbraceAttributes, protecting protectedKeys: Set<String>) -> EmbraceAttributes {
+        // Always include protected entries — they bypass truncation and count limits.
+        let protectedEntries = attributes.filter { protectedKeys.contains($0.key) }
+        let unprotected = attributes.filter { !protectedKeys.contains($0.key) }
+
+        var result = sanitizeAttributes(unprotected, limit: sessionLimits.customSpans.attributeCount)
+
+        // Merge protected entries back on top so they always win.
+        for (key, value) in protectedEntries {
+            result[key] = value
+        }
+
+        return result
     }
 
     func sanitizeSpanEventAttributes(_ attributes: EmbraceAttributes) -> EmbraceAttributes {
@@ -100,6 +115,19 @@ class DefaultOtelSignalsSanitizer: OTelSignalsSanitizer {
     }
 
     func sanitizeLogAttributes(_ attributes: EmbraceAttributes) -> EmbraceAttributes {
-        return sanitizeAttributes(attributes, limit: sessionLimits.logs.attributeCount)
+        return sanitizeLogAttributes(attributes, protecting: [])
+    }
+
+    func sanitizeLogAttributes(_ attributes: EmbraceAttributes, protecting protectedKeys: Set<String>) -> EmbraceAttributes {
+        let protectedEntries = attributes.filter { protectedKeys.contains($0.key) }
+        let unprotected = attributes.filter { !protectedKeys.contains($0.key) }
+
+        var result = sanitizeAttributes(unprotected, limit: sessionLimits.logs.attributeCount)
+
+        for (key, value) in protectedEntries {
+            result[key] = value
+        }
+
+        return result
     }
 }
