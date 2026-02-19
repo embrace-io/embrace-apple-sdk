@@ -47,13 +47,24 @@ class EmbraceLogProcessor: LogRecordProcessor {
             delegate.onExternalLogEmitted(log)
         }
 
+        let mkProcessSpan = EmbraceMetricKitSpan.begin(name: "log-processor-onemit")
         childProcessors.forEach { $0.onEmit(logRecord: log) }
+        mkProcessSpan.end()
+
+        let mkExportSpan = EmbraceMetricKitSpan.begin(name: "log-exporter-onemit")
         childExporters.forEach { _ = $0.export(logRecords: [log]) }
+        mkExportSpan.end()
     }
 
     func forceFlush(explicitTimeout: TimeInterval?) -> ExportResult {
+        let mkProcessSpan = EmbraceMetricKitSpan.begin(name: "log-processor-forceflush")
         let processorResults = childProcessors.map { $0.forceFlush(explicitTimeout: explicitTimeout) }
+        mkProcessSpan.end()
+
+        let mkExportSpan = EmbraceMetricKitSpan.begin(name: "log-exporter-forceflush")
         let exporterResults = childExporters.map { $0.forceFlush() }
+        mkExportSpan.end()
+
         let resultSet = Set(processorResults + exporterResults)
         if let first = resultSet.first {
             return resultSet.count > 1 ? .failure : first

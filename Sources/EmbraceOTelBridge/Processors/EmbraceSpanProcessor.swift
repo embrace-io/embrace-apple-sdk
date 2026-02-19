@@ -56,11 +56,13 @@ class EmbraceSpanProcessor: SpanProcessor {
             delegate.onExternalSpanStarted(span)
         }
 
+        let mkSpan = EmbraceMetricKitSpan.begin(name: "span-processor-onstart")
         processorQueue.async { [self] in
             criticalResourceGroup?.wait()
             for processor in childProcessors {
                 processor.onStart(parentContext: parentContext, span: span)
             }
+            mkSpan.end()
         }
     }
 
@@ -69,26 +71,36 @@ class EmbraceSpanProcessor: SpanProcessor {
             delegate.onExternalSpanEnded(span)
         }
 
+        let mkProcessSpan = EmbraceMetricKitSpan.begin(name: "span-processor-onend")
         processorQueue.async { [self] in
             criticalResourceGroup?.wait()
             for var processor in childProcessors {
                 processor.onEnd(span: span)
             }
+            mkProcessSpan.end()
+
+            let mkExportSpan = EmbraceMetricKitSpan.begin(name: "span-exporter-onend")
             let spanData = span.toSpanData()
             for exporter in childExporters {
                 _ = exporter.export(spans: [spanData])
             }
+            mkExportSpan.end()
         }
     }
 
     func forceFlush(timeout: TimeInterval?) {
+        let mkProcessSpan = EmbraceMetricKitSpan.begin(name: "span-processor-forceflush")
         processorQueue.sync {
             for processor in childProcessors {
                 processor.forceFlush(timeout: timeout)
             }
+            mkProcessSpan.end()
+
+            let mkExportSpan = EmbraceMetricKitSpan.begin(name: "span-exporter-forceflush")
             for exporter in childExporters {
                 _ = exporter.flush(explicitTimeout: timeout)
             }
+            mkExportSpan.end()
         }
     }
 
