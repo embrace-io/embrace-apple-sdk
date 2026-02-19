@@ -26,6 +26,10 @@ extension Embrace {
         public let backtracer: Backtracer?
         public let symbolicator: Symbolicator?
 
+        /// Optional OTel signal bridge. When provided, span/log lifecycle events from Core
+        /// are forwarded into the OTel SDK pipeline and external OTel signals are fed back into Core.
+        package var bridge: EmbraceOTelSignalBridge?
+
         /// Default initializer for `Embrace.Options` that requires an array of `CaptureServices` to be passed.
         ///
         /// If you wish to use the default `CaptureServices`, please refer to the `Embrace.Options`

@@ -7,6 +7,7 @@ import Foundation
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     @_exported import EmbraceCore  // so users don't have to import EmbraceIO AND EmbraceCore
     import EmbraceCommonInternal
+    import EmbraceOTelBridge
 #endif
 
 /// Main class used to interact with the Embrace SDK.
@@ -66,8 +67,31 @@ public class EmbraceIO {
     /// - Throws: `EmbraceSetupError.invalidAppId` if the provided `appId` is invalid.
     /// - Note: This method won't do anything if the Embrace SDK was already setup.
     public static func setup(options: EmbraceIO.Options) throws {
-        if let internalOptions = Embrace.Options.from(options: options) {
+
+        // Create the OTel bridge from the OTel options if provided.
+        var bridge: EmbraceOTelBridge?
+        if let otelOptions = options.otel {
+            bridge = EmbraceOTelBridge(
+                resource: otelOptions.resource,
+                spanProcessors: [otelOptions.spanProcessor],
+                spanExporters: [otelOptions.spanExporter],
+                logProcessors: [otelOptions.logProcessor],
+                logExporters: [otelOptions.logExporter]
+            )
+        }
+
+        if let internalOptions = Embrace.Options.from(options: options, bridge: bridge) {
             try Embrace.setup(options: internalOptions)
+        }
+
+        // Two-phase configuration: now that Embrace is initialized, wire the delegate, metadata
+        // provider, and the captureServicesGroup that gates child span forwarding.
+        if let bridge, let otel = Embrace.client?.otel {
+            bridge.setup(
+                delegate: otel,
+                metadataProvider: otel,
+                criticalResourceGroup: Embrace.client?.captureServicesGroup
+            )
         }
     }
 

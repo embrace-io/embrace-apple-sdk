@@ -66,7 +66,7 @@ let package = Package(
                 "EmbraceSemantics",
                 "EmbraceCrash",
                 "EmbraceKSCrashBacktraceSupport",
-                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift-core")
+                "EmbraceOTelBridge"
             ],
             linkerSettings: linkerSettings
         ),
@@ -191,6 +191,26 @@ let package = Package(
             ],
             resources: [
                 .copy("Fixtures")
+            ]
+        ),
+
+        // OTel bridge ---------------------------------------------------------------
+        .target(
+            name: "EmbraceOTelBridge",
+            dependencies: [
+                "EmbraceCommonInternal",
+                "EmbraceSemantics",
+                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift-core")
+            ]
+        ),
+        .testTarget(
+            name: "EmbraceOTelBridgeTests",
+            dependencies: [
+                "EmbraceOTelBridge",
+                "EmbraceSemantics",
+                "EmbraceCommonInternal",
+                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift-core"),
+                "TestSupport"
             ]
         ),
 

@@ -9,13 +9,16 @@ import Foundation
 #endif
 
 /// Protocol used to provide Embrace specific information to 3rd party OTel implementations
-protocol EmbraceMetadataProvider {
+package protocol EmbraceMetadataProvider: AnyObject {
 
     /// Returns the identifier for the current Embrace session, if any
     var currentSessionId: EmbraceIdentifier { get }
 
     /// Returns the identifier for the current process
     var currentProcessId: EmbraceIdentifier { get }
+
+    /// Returns the foreground/background state of the current Embrace session
+    var currentSessionState: SessionState { get }
 
     /// Returns the user properties for a given session identifier
     func userProperties(sessionId: EmbraceIdentifier) -> EmbraceAttributes

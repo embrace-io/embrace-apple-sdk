@@ -134,8 +134,6 @@ class SessionController: SessionControllable {
             }
             // -
 
-            var result: EmbraceSession?
-
             // create session span
             let newId = EmbraceIdentifier.random
             guard
@@ -236,10 +234,11 @@ class SessionController: SessionControllable {
         }
 
         // update session end time and clean exit
-        var sessionToUpload: EmbraceSession? = inProgressSession
-        if inProgressSession.id != nil {
-            sessionToUpload = storage?.updateSession(session: inProgressSession, endTime: now, cleanExit: true)
-        }
+        let sessionToUpload: EmbraceSession? = storage?.updateSession(
+            session: inProgressSession,
+            endTime: now,
+            cleanExit: true
+        )
 
         // post internal notification
         if inProgressSession.state == SessionState.foreground {

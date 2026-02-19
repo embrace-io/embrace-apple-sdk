@@ -82,3 +82,6 @@ Examples/Benchmarks/Benchmarks.xcworkspace/xcuserdata
 #Don't ignore example apps project files
 !Examples/Embrace-tvOS-TestApp/*.xcodeproj
 !Examples/Embrace-watchOS-TestApp/*.xcodeproj
+
+## Claude
+.claude/
