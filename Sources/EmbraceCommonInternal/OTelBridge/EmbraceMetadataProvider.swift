@@ -20,6 +20,4 @@ package protocol EmbraceMetadataProvider: AnyObject {
     /// Returns the foreground/background state of the current Embrace session
     var currentSessionState: SessionState { get }
 
-    /// Returns the user properties for a given session identifier
-    func userProperties(sessionId: EmbraceIdentifier) -> EmbraceAttributes
 }

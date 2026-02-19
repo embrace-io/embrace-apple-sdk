@@ -27,10 +27,4 @@ extension DefaultOTelSignalsHandler: EmbraceMetadataProvider {
     package var currentSessionState: SessionState {
         sessionController?.currentSession?.state ?? .unknown
     }
-
-    /// Returns user-defined properties for the given session.
-    /// Currently returns an empty dictionary; will be expanded when user property storage is implemented.
-    package func userProperties(sessionId: EmbraceIdentifier) -> EmbraceAttributes {
-        return [:]
-    }
 }
