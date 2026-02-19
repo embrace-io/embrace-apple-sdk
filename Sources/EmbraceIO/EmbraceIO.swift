@@ -71,8 +71,9 @@ public class EmbraceIO {
         // Create the OTel bridge from the OTel options if provided.
         var bridge: EmbraceOTelBridge?
         if let otelOptions = options.otel {
+            let resource = EmbraceDefaultResources.build(merging: otelOptions.resource)
             bridge = EmbraceOTelBridge(
-                resource: otelOptions.resource,
+                resource: resource,
                 spanProcessors: [otelOptions.spanProcessor],
                 spanExporters: [otelOptions.spanExporter],
                 logProcessors: [otelOptions.logProcessor],

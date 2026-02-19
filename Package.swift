@@ -76,7 +76,8 @@ let package = Package(
             dependencies: [
                 "EmbraceIO",
                 "EmbraceCore",
-                "TestSupport"
+                "TestSupport",
+                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift-core")
             ]
         ),
 
