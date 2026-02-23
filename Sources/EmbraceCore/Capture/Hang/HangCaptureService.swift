@@ -29,17 +29,20 @@ public final class HangCaptureService: CaptureService {
 
     public override func onInstall() {
 
-        // No watchdog when debugger is attached.
+        // No monitor when debugger is attached.
         if isDebuggerAttached() && ProcessInfo.processInfo.environment["EMBAllowWatchdogInDebugger"] != "1" {
             logger?.warning(
-                "[Watchdog] Watchdog is disabled because a debugger is attached. Set the env var EMBAllowWatchdogInDebugger=1 to enable watchdog in debug mode.")
+                "[FrameRateMonitor] Disabled because a debugger is attached. Set the env var EMBAllowWatchdogInDebugger=1 to enable in debug mode.")
             return
         }
 
-        // Since we use `limits.hangPerSession` as a gate for the watchdog,
+        // Since we use `limits.hangPerSession` as a gate for the monitor,
         // we need to wait until the remote config is actually loaded from disk
         // which happens just before this call.
-        watchdog = limits.hangPerSession > 0 ? HangWatchdog() : nil
+        let currentLimits = limits
+        watchdog = currentLimits.hangPerSession > 0
+            ? FrameRateMonitor(threshold: currentLimits.hangThreshold)
+            : nil
         watchdog?.hangObserver = self
         watchdog?.logger = logger
     }
@@ -54,16 +57,27 @@ public final class HangCaptureService: CaptureService {
     }
 
     public override func onConfigUpdated(_ config: any EmbraceConfigurable) {
-        self.limitData.withLock { $0.limits = config.hangLimits }
+        let newLimits = config.hangLimits
+        let thresholdChanged = limitData.withLock {
+            let changed = $0.limits.hangThreshold != newLimits.hangThreshold
+            $0.limits = newLimits
+            return changed
+        }
+        if thresholdChanged {
+            watchdog = newLimits.hangPerSession > 0
+                ? FrameRateMonitor(threshold: newLimits.hangThreshold)
+                : nil
+            watchdog?.hangObserver = self
+            watchdog?.logger = logger
+        }
     }
 
     private var mainThread: pthread_t
-    private var watchdog: HangWatchdog?
+    private var watchdog: FrameRateMonitor?
 
     struct MutableLimitData {
         var limits: HangLimits = HangLimits()
         var hangsInSessionCount: UInt = 0
-        var samplesInHangCount: UInt = 0
     }
     let limitData: EmbraceMutex<MutableLimitData>
 
@@ -87,7 +101,7 @@ extension HangCaptureService: HangObserver {
 
     public func hangStarted(at: EmbraceClock, duration: EmbraceClock) {
 
-        logger?.debug("[Watchdog] Hang started, at \(at.date) after waiting \(duration.uptime.millisecondsValue) ms")
+        logger?.debug("[FrameRateMonitor] Hang started, at \(at.date) after \(duration.uptime.millisecondsValue) ms")
 
         if limits.reportsWatchdogEvents {
             NotificationCenter.default.post(
@@ -96,19 +110,14 @@ extension HangCaptureService: HangObserver {
             )
         }
 
-        // Keep tabs on how many hang spans we've created
-        let sampleInfo = limitData.withLock {
-            $0.samplesInHangCount = 1
+        let canStart = limitData.withLock {
             $0.hangsInSessionCount += 1
-            return (
-                canStart: $0.hangsInSessionCount <= $0.limits.hangPerSession,
-                canSample: $0.samplesInHangCount <= $0.limits.samplesPerHang
-            )
+            return $0.hangsInSessionCount <= $0.limits.hangPerSession
         }
-        guard sampleInfo.canStart else {
+        guard canStart else {
             let limitData = limitData.withLock { $0 }
             logger?.warning(
-                "[Watchdog] Dropping hang due to surpassing limit, \(limitData.hangsInSessionCount) of \(limitData.limits.hangPerSession)")
+                "[FrameRateMonitor] Dropping hang due to surpassing limit, \(limitData.hangsInSessionCount) of \(limitData.limits.hangPerSession)")
             return
         }
 
@@ -124,61 +133,19 @@ extension HangCaptureService: HangObserver {
                 ]
             )
         else {
-            logger?.warning("[Watchdog] failed to create emb-thread-blockage span.")
+            logger?.warning("[FrameRateMonitor] failed to create emb-thread-blockage span.")
             return
         }
 
-        // Capture the stack now if we need to.
-        var backtrace: EmbraceBacktrace? = nil
-        var pre: EmbraceClock? = nil
-        var post: EmbraceClock? = nil
-        if sampleInfo.canSample {
-            pre = EmbraceClock.current
-            backtrace = EmbraceBacktrace.backtrace(of: mainThread, threadIndex: 0)
-            post = EmbraceClock.current
-        }
-
-        spanQueue.async { [self] in
-            span =
-                builder
-                .setStartTime(time: at.date)
-                .startSpan()
-            if let backtrace, let pre, let post {
-                addSamplingSpanEvent(
-                    time: at.date,
-                    backtrace: backtrace,
-                    overhead: Int((post.monotonic - pre.monotonic).nanosecondsValue)
-                )
-            }
-        }
-    }
-
-    public func hangUpdated(at: EmbraceClock, duration: EmbraceClock) {
-        logger?.debug("[Watchdog] Hang for \(duration.uptime.millisecondsValue) ms")
-
-        if limits.reportsWatchdogEvents {
-            NotificationCenter.default.post(
-                name: .hangEventUpdated,
-                object: WatchdogEvent(timestamp: at, duration: duration)
-            )
-        }
-
-        guard
-            limitData.withLock({
-                $0.samplesInHangCount += 1
-                return $0.hangsInSessionCount <= $0.limits.hangPerSession && $0.samplesInHangCount <= $0.limits.samplesPerHang
-            })
-        else {
-            return
-        }
-
-        // Capture the stack now
+        // Capture a single retroactive backtrace of the main thread.
         let pre = EmbraceClock.current
         let backtrace = EmbraceBacktrace.backtrace(of: mainThread, threadIndex: 0)
         let post = EmbraceClock.current
 
-        // process it later
         spanQueue.async { [self] in
+            span = builder
+                .setStartTime(time: at.date)
+                .startSpan()
             addSamplingSpanEvent(
                 time: at.date,
                 backtrace: backtrace,
@@ -187,8 +154,12 @@ extension HangCaptureService: HangObserver {
         }
     }
 
+    public func hangUpdated(at: EmbraceClock, duration: EmbraceClock) {
+        // Not called by FrameRateMonitor (Option A — retroactive detection only).
+    }
+
     public func hangEnded(at: EmbraceClock, duration: EmbraceClock) {
-        logger?.debug("[Watchdog] Hang ended at \(at.date) after \(duration.uptime.millisecondsValue) ms")
+        logger?.debug("[FrameRateMonitor] Hang ended at \(at.date) after \(duration.uptime.millisecondsValue) ms")
 
         if limits.reportsWatchdogEvents {
             NotificationCenter.default.post(

@@ -58,6 +58,7 @@ public class CaptureServiceBuilder: NSObject {
             if !services.contains(where: { $0 is ViewCaptureService }) {
                 add(.view())
             }
+        
         #endif
 
         #if canImport(WebKit)
@@ -75,6 +76,11 @@ public class CaptureServiceBuilder: NSObject {
         // low power
         if !services.contains(where: { $0 is LowPowerModeCaptureService }) {
             add(.lowPowerMode())
+        }
+        
+        // hangs
+        if !services.contains(where: { $0 is HangCaptureService }) {
+            add(.hangWatchdog())
         }
 
         return self
