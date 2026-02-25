@@ -71,15 +71,16 @@ final package class EmbraceOTelBridge {
             childExporters: logExporters
         )
 
-        let passedResource = resource ?? Resource()
         // The default event count limit is 128. Raise it to 9999 to support breadcrumbs,
         // which rely on span events and can easily exceed the default cap.
         let spanLimits = SpanLimits().settingEventCountLimit(9999)
+
+        let passedResource = resource ?? Resource()
         tracerProvider = TracerProviderSdk(idGenerator: idGenerator, resource: passedResource, spanLimits: spanLimits, spanProcessors: [embraceSpanProcessor])
         loggerProvider = LoggerProviderSdk(resource: passedResource, logRecordProcessors: [embraceLogProcessor])
 
-        tracer = tracerProvider.get(instrumentationName: "EmbraceOTelBridge", instrumentationVersion: nil)
-        logger = loggerProvider.loggerBuilder(instrumentationScopeName: "EmbraceOTelBridge").build()
+        tracer = tracerProvider.get(instrumentationName: "EmbraceTracer", instrumentationVersion: nil)
+        logger = loggerProvider.loggerBuilder(instrumentationScopeName: "EmbraceLogger").build()
 
         spanProcessor = embraceSpanProcessor
         logProcessor = embraceLogProcessor
@@ -143,6 +144,11 @@ extension EmbraceOTelBridge: EmbraceOTelSignalBridge {
             }
         }
 
+        // Apply attributes, status, and events after starting.
+        for (key, value) in attributes {
+            builder.setAttribute(key: key, value: value.otelAttributeValue)
+        }
+
         // Pre-reserve the span ID so isInternalSpan returns true when onStart fires synchronously
         // during startSpan(), before the span can be added to spanCache.
         let reservedId = idGenerator.reserveNextSpanId().hexString
@@ -150,12 +156,10 @@ extension EmbraceOTelBridge: EmbraceOTelSignalBridge {
         let otelSpan = builder.startSpan()
         pendingSpanIds.withLock { $0.remove(reservedId) }
 
-        // Apply attributes, status, and events after starting.
-        for (key, value) in attributes {
-            otelSpan.setAttribute(key: key, value: value.otelAttributeValue)
-        }
+        // Set status
         otelSpan.status = status.otelStatus
 
+        // Add events
         for event in events {
             otelSpan.addEvent(name: event.name, attributes: event.attributes.otelAttributes, timestamp: event.timestamp)
         }
