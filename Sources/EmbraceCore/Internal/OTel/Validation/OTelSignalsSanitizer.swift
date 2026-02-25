@@ -16,7 +16,9 @@ protocol OTelSignalsSanitizer {
     func sanitizeAttributeValue(_ value: EmbraceAttributeValue?) -> EmbraceAttributeValue?
 
     func sanitizeSpanAttributes(_ attributes: EmbraceAttributes) -> EmbraceAttributes
+    func sanitizeSpanAttributes(_ attributes: EmbraceAttributes, protecting: Set<String>) -> EmbraceAttributes
     func sanitizeSpanEventAttributes(_ attributes: EmbraceAttributes) -> EmbraceAttributes
     func sanitizeSpanLinkAttributes(_ attributes: EmbraceAttributes) -> EmbraceAttributes
     func sanitizeLogAttributes(_ attributes: EmbraceAttributes) -> EmbraceAttributes
+    func sanitizeLogAttributes(_ attributes: EmbraceAttributes, protecting: Set<String>) -> EmbraceAttributes
 }

@@ -45,6 +45,13 @@ class MockOTelSignalsSanitizer: OTelSignalsSanitizer {
         return sanitizeSpanAttributesReturnValue ?? attributes
     }
 
+    var sanitizeSpanAttributesProtectingCallCount: Int = 0
+    var sanitizeSpanAttributesProtectingReturnValue: EmbraceAttributes?
+    func sanitizeSpanAttributes(_ attributes: EmbraceAttributes, protecting: Set<String>) -> EmbraceAttributes {
+        sanitizeSpanAttributesProtectingCallCount += 1
+        return sanitizeSpanAttributesProtectingReturnValue ?? attributes
+    }
+
     var sanitizeSpanEventAttributesCallCount: Int = 0
     var sanitizeSpanEventAttributesReturnValue: EmbraceAttributes?
     func sanitizeSpanEventAttributes(_ attributes: EmbraceAttributes) -> EmbraceAttributes {
@@ -64,5 +71,12 @@ class MockOTelSignalsSanitizer: OTelSignalsSanitizer {
     func sanitizeLogAttributes(_ attributes: EmbraceAttributes) -> EmbraceAttributes {
         sanitizeLogAttributesCallCount += 1
         return sanitizeLogAttributesReturnValue ?? attributes
+    }
+
+    var sanitizeLogAttributesProtectingCallCount: Int = 0
+    var sanitizeLogAttributesProtectingReturnValue: EmbraceAttributes?
+    func sanitizeLogAttributes(_ attributes: EmbraceAttributes, protecting: Set<String>) -> EmbraceAttributes {
+        sanitizeLogAttributesProtectingCallCount += 1
+        return sanitizeLogAttributesProtectingReturnValue ?? attributes
     }
 }

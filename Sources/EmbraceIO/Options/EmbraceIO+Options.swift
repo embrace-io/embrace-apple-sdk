@@ -3,7 +3,6 @@
 //
 
 import Foundation
-import OpenTelemetrySdk
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCore
@@ -11,6 +10,7 @@ import OpenTelemetrySdk
     import EmbraceConfiguration
     import EmbraceCrash
     import EmbraceKSCrashBacktraceSupport
+    import EmbraceOTelBridge
 #endif
 
 extension EmbraceIO {
@@ -127,10 +127,10 @@ extension EmbraceIO {
 }
 
 extension Embrace.Options {
-    static func from(options: EmbraceIO.Options) -> Embrace.Options? {
+    static func from(options: EmbraceIO.Options, bridge: EmbraceOTelSignalBridge? = nil) -> Embrace.Options? {
 
         if let appId = options.appId {
-            return Embrace.Options(
+            var result = Embrace.Options(
                 appId: appId,
                 appGroupId: nil,
                 platform: options.platform,
@@ -138,19 +138,15 @@ extension Embrace.Options {
                 captureServices: options.captureServices.list,
                 crashReporter: options.crashReporter,
                 logLevel: options.logLevel,
-                //                export: options.otel?.embraceOpenTelemetryExport(),
-                //                processors: options.otel?.embraceOpenTelemetryProcessors(),
                 backtracer: KSCrashBacktracing(),
                 symbolicator: KSCrashBacktracing()
             )
+            result.bridge = bridge
+            return result
         }
 
-        if let otel = options.otel,
-            let config = options.runtimeConfiguration
-        {
-            return Embrace.Options(
-                //                export: otel.embraceOpenTelemetryExport(),
-                //                processors: otel.embraceOpenTelemetryProcessors(),
+        if let config = options.runtimeConfiguration {
+            var result = Embrace.Options(
                 platform: options.platform,
                 captureServices: options.captureServices.list,
                 crashReporter: options.crashReporter,
@@ -159,6 +155,8 @@ extension Embrace.Options {
                 backtracer: KSCrashBacktracing(),
                 symbolicator: KSCrashBacktracing()
             )
+            result.bridge = bridge
+            return result
         }
 
         return nil

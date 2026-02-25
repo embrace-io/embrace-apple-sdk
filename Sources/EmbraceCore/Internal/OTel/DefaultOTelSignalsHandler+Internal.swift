@@ -356,6 +356,16 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDataSource {
 
 // MARK: EmbraceOTelDelegate
 extension DefaultOTelSignalsHandler: EmbraceOTelDelegate {
+
+    /// Attribute keys stamped by `EmbraceSpanProcessor.injectAttributes()` before the span
+    /// reaches the delegate. These must always be preserved in storage regardless of the
+    /// attribute count limit.
+    static let bridgeProtectedKeys: Set<String> = [
+        SpanSemantics.keyEmbraceType,
+        SpanSemantics.Session.keyState,
+        SpanSemantics.keySessionId
+    ]
+
     public func onStartSpan(_ span: EmbraceSpan) {
 
         // check limits
@@ -365,13 +375,13 @@ extension DefaultOTelSignalsHandler: EmbraceOTelDelegate {
             Embrace.logger.warning("Limit reached for spans on the current Embrace session!")
         }
 
-        // update db
-        storage?.upsertSpan(span, onlyUpdate: onlyUpdate)
+        // sanitize and update db
+        storage?.upsertSpan(sanitizeExternalSpan(span), onlyUpdate: onlyUpdate)
     }
 
     public func onEndSpan(_ span: EmbraceSpan) {
-        // update db
-        storage?.upsertSpan(span, onlyUpdate: true)
+        // sanitize and update db
+        storage?.upsertSpan(sanitizeExternalSpan(span), onlyUpdate: true)
     }
 
     public func onEmitLog(_ log: EmbraceLog) {
@@ -381,7 +391,60 @@ extension DefaultOTelSignalsHandler: EmbraceOTelDelegate {
             return
         }
 
-        // add log
-        logController?.addLog(log)
+        // sanitize and add log
+        let sanitizedLog = DefaultEmbraceLog(
+            id: log.id,
+            severity: log.severity,
+            type: log.type,
+            timestamp: log.timestamp,
+            body: log.body,
+            attributes: sanitizer.sanitizeLogAttributes(log.attributes, protecting: Self.bridgeProtectedKeys),
+            sessionId: log.sessionId,
+            processId: log.processId
+        )
+        logController?.addLog(sanitizedLog)
+    }
+
+    private func sanitizeExternalSpan(_ span: EmbraceSpan) -> EmbraceSpan {
+        let name = sanitizer.sanitizeSpanName(span.name)
+
+        let events = span.events.enumerated().compactMap { index, event -> EmbraceSpanEvent? in
+            guard limiter.shouldAddSpanEvent(currentCount: index) else { return nil }
+            return EmbraceSpanEvent(
+                name: sanitizer.sanitizeSpanEventName(event.name),
+                type: event.type,
+                timestamp: event.timestamp,
+                attributes: sanitizer.sanitizeSpanEventAttributes(event.attributes)
+            )
+        }
+
+        let links = span.links.enumerated().compactMap { index, link -> EmbraceSpanLink? in
+            guard limiter.shouldAddSpanLink(currentCount: index) else { return nil }
+            return EmbraceSpanLink(
+                context: link.context,
+                attributes: sanitizer.sanitizeSpanLinkAttributes(link.attributes)
+            )
+        }
+
+        let attributes = sanitizer.sanitizeSpanAttributes(
+            span.attributes,
+            protecting: Self.bridgeProtectedKeys
+        )
+
+        return DefaultEmbraceSpan(
+            context: span.context,
+            parentSpanId: span.parentSpanId,
+            name: name,
+            type: span.type,
+            status: span.status,
+            startTime: span.startTime,
+            endTime: span.endTime,
+            events: events,
+            links: links,
+            attributes: attributes,
+            sessionId: span.sessionId,
+            processId: span.processId,
+            handler: nil
+        )
     }
 }
