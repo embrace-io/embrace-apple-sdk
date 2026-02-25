@@ -2,6 +2,8 @@
 //  Copyright © 2026 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceCommonInternal
+import EmbraceSemantics
 import OpenTelemetryApi
 import OpenTelemetrySdk
 import XCTest
@@ -136,5 +138,110 @@ final class OTelLogAdapterTests: XCTestCase {
         }
         let adapter = OTelLogAdapter(logRecord: record, metadataProvider: mockMetadataProvider)
         XCTAssertNotNil(adapter.timestamp)
+    }
+
+    // MARK: - id when LogSemantics.keyId is present
+
+    func test_id_usesExistingIdFromAttributes() {
+        guard let record = emitLog(attributes: [LogSemantics.keyId: .string("custom-log-id")]) else {
+            XCTFail("No log captured")
+            return
+        }
+        let adapter = OTelLogAdapter(logRecord: record, metadataProvider: mockMetadataProvider)
+        XCTAssertEqual(adapter.id, "custom-log-id")
+    }
+
+    // MARK: - type when emb.type attribute is set
+
+    func test_type_mapsFromEmbraceTypeAttribute() {
+        guard let record = emitLog(attributes: [LogSemantics.keyEmbraceType: .string(EmbraceType.exception.rawValue)]) else {
+            XCTFail("No log captured")
+            return
+        }
+        let adapter = OTelLogAdapter(logRecord: record, metadataProvider: mockMetadataProvider)
+        XCTAssertEqual(adapter.type, .exception)
+    }
+
+    // MARK: - body when not a string
+
+    func test_body_returnsEmptyString_whenBodyIsNotString() {
+        // Emit a log with no body set — the body will be nil / not a string
+        var builder = otelLogger.logRecordBuilder()
+        builder = builder.setSeverity(.info)
+        builder.emit()
+
+        guard let record = capturingProcessor.capturedLogs.last else {
+            XCTFail("No log captured")
+            return
+        }
+        let adapter = OTelLogAdapter(logRecord: record, metadataProvider: mockMetadataProvider)
+        XCTAssertEqual(adapter.body, "")
+    }
+
+    // MARK: - severity when nil
+
+    func test_severity_defaultsToInfo_whenSeverityIsNil() {
+        // Emit a log without setting severity
+        otelLogger.logRecordBuilder()
+            .setBody(.string("no-severity"))
+            .emit()
+
+        guard let record = capturingProcessor.capturedLogs.last else {
+            XCTFail("No log captured")
+            return
+        }
+        let adapter = OTelLogAdapter(logRecord: record, metadataProvider: mockMetadataProvider)
+        XCTAssertEqual(adapter.severity, .info)
+    }
+
+    // MARK: - processId fallback when metadataProvider is nil
+
+    func test_processId_fallsBackToProcessIdentifierCurrent_whenProviderIsNil() {
+        guard let record = emitLog() else {
+            XCTFail("No log captured")
+            return
+        }
+        let adapter = OTelLogAdapter(logRecord: record, metadataProvider: nil)
+        XCTAssertEqual(adapter.processId, ProcessIdentifier.current)
+    }
+
+    // MARK: - sessionId when metadataProvider is nil
+
+    func test_sessionId_isNil_whenMetadataProviderIsNil() {
+        guard let record = emitLog() else {
+            XCTFail("No log captured")
+            return
+        }
+        let adapter = OTelLogAdapter(logRecord: record, metadataProvider: nil)
+        XCTAssertNil(adapter.sessionId)
+    }
+
+    // MARK: - Double/Bool/Int attribute mapping
+
+    func test_attributes_mapDoubleCorrectly() {
+        guard let record = emitLog(attributes: ["temp": .double(98.6)]) else {
+            XCTFail("No log captured")
+            return
+        }
+        let adapter = OTelLogAdapter(logRecord: record, metadataProvider: mockMetadataProvider)
+        XCTAssertEqual(adapter.attributes["temp"] as? Double, 98.6)
+    }
+
+    func test_attributes_mapBoolCorrectly() {
+        guard let record = emitLog(attributes: ["flag": .bool(true)]) else {
+            XCTFail("No log captured")
+            return
+        }
+        let adapter = OTelLogAdapter(logRecord: record, metadataProvider: mockMetadataProvider)
+        XCTAssertEqual(adapter.attributes["flag"] as? Bool, true)
+    }
+
+    func test_attributes_mapIntCorrectly() {
+        guard let record = emitLog(attributes: ["count": .int(42)]) else {
+            XCTFail("No log captured")
+            return
+        }
+        let adapter = OTelLogAdapter(logRecord: record, metadataProvider: mockMetadataProvider)
+        XCTAssertEqual(adapter.attributes["count"] as? Int, 42)
     }
 }

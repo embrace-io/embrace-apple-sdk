@@ -2,6 +2,8 @@
 //  Copyright © 2026 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceCommonInternal
+import EmbraceSemantics
 import OpenTelemetryApi
 import OpenTelemetrySdk
 import XCTest
@@ -190,5 +192,132 @@ final class OTelSpanAdapterTests: XCTestCase {
         // Status remains unset since mutation is a no-op
         XCTAssertEqual(adapter.status, .unset)
         span.end()
+    }
+
+    // MARK: - type when emb.type attribute is set
+
+    func test_type_mapsFromEmbraceTypeAttribute() {
+        let span = tracer.spanBuilder(spanName: "test").startSpan()
+        span.setAttribute(key: SpanSemantics.keyEmbraceType, value: .string(EmbraceType.system.rawValue))
+        span.end()
+        guard let readable = span as? ReadableSpan else {
+            XCTFail("Span does not conform to ReadableSpan")
+            return
+        }
+        let adapter = OTelSpanAdapter(span: readable, metadataProvider: mockMetadataProvider)
+        XCTAssertEqual(adapter.type, .system)
+    }
+
+    // MARK: - Events mapping
+
+    func test_events_areMappedCorrectly() {
+        let span = tracer.spanBuilder(spanName: "test").startSpan()
+        let eventTime = Date()
+        span.addEvent(name: "my-event", attributes: ["evt.key": .string("evt-value")], timestamp: eventTime)
+        span.end()
+        guard let readable = span as? ReadableSpan else {
+            XCTFail("Span does not conform to ReadableSpan")
+            return
+        }
+        let adapter = OTelSpanAdapter(span: readable, metadataProvider: mockMetadataProvider)
+        XCTAssertEqual(adapter.events.count, 1)
+        XCTAssertEqual(adapter.events.first?.name, "my-event")
+        XCTAssertEqual(adapter.events.first?.attributes["evt.key"] as? String, "evt-value")
+    }
+
+    // MARK: - Links mapping
+
+    func test_links_areMappedCorrectly() {
+        let linkedTraceId = TraceId(fromHexString: "abcdef1234567890abcdef1234567890")
+        let linkedSpanId = SpanId(fromHexString: "abcdef1234567890")
+        let linkedContext = SpanContext.create(
+            traceId: linkedTraceId,
+            spanId: linkedSpanId,
+            traceFlags: .init(fromByte: 1),
+            traceState: .init()
+        )
+        let span = tracer.spanBuilder(spanName: "test")
+            .addLink(spanContext: linkedContext, attributes: ["link.key": .string("link-value")])
+            .startSpan()
+        span.end()
+        guard let readable = span as? ReadableSpan else {
+            XCTFail("Span does not conform to ReadableSpan")
+            return
+        }
+        let adapter = OTelSpanAdapter(span: readable, metadataProvider: mockMetadataProvider)
+        XCTAssertEqual(adapter.links.count, 1)
+        XCTAssertEqual(adapter.links.first?.context.spanId, "abcdef1234567890")
+        XCTAssertEqual(adapter.links.first?.context.traceId, "abcdef1234567890abcdef1234567890")
+        XCTAssertEqual(adapter.links.first?.attributes["link.key"] as? String, "link-value")
+    }
+
+    // MARK: - startTime mapping
+
+    func test_startTime_mapsCorrectly() {
+        let startTime = Date(timeIntervalSince1970: 1000)
+        let span = tracer.spanBuilder(spanName: "test")
+            .setStartTime(time: startTime)
+            .startSpan()
+        span.end()
+        guard let readable = span as? ReadableSpan else {
+            XCTFail("Span does not conform to ReadableSpan")
+            return
+        }
+        let adapter = OTelSpanAdapter(span: readable, metadataProvider: mockMetadataProvider)
+        XCTAssertEqual(adapter.startTime.timeIntervalSince1970, 1000, accuracy: 0.001)
+    }
+
+    // MARK: - processId fallback when metadataProvider is nil
+
+    func test_processId_fallsBackToProcessIdentifierCurrent_whenProviderIsNil() {
+        let span = tracer.spanBuilder(spanName: "test").startSpan()
+        guard let readable = span as? ReadableSpan else {
+            XCTFail("Span does not conform to ReadableSpan")
+            return
+        }
+        let adapter = OTelSpanAdapter(span: readable, metadataProvider: nil)
+        XCTAssertEqual(adapter.processId, ProcessIdentifier.current)
+        span.end()
+    }
+
+    // MARK: - sessionId when metadataProvider is nil
+
+    func test_sessionId_isNil_whenMetadataProviderIsNil() {
+        let span = tracer.spanBuilder(spanName: "test").startSpan()
+        guard let readable = span as? ReadableSpan else {
+            XCTFail("Span does not conform to ReadableSpan")
+            return
+        }
+        let adapter = OTelSpanAdapter(span: readable, metadataProvider: nil)
+        XCTAssertNil(adapter.sessionId)
+        span.end()
+    }
+
+    // MARK: - Double attribute mapping
+
+    func test_attributes_mapDoubleCorrectly() {
+        let span = tracer.spanBuilder(spanName: "test").startSpan()
+        span.setAttribute(key: "temperature", value: AttributeValue.double(36.6))
+        span.end()
+        guard let readable = span as? ReadableSpan else {
+            XCTFail("Span does not conform to ReadableSpan")
+            return
+        }
+        let adapter = OTelSpanAdapter(span: readable, metadataProvider: mockMetadataProvider)
+        XCTAssertEqual(adapter.attributes["temperature"] as? Double, 36.6)
+    }
+
+    // MARK: - Bool attribute mapping
+
+    func test_attributes_mapBoolCorrectly() {
+        let span = tracer.spanBuilder(spanName: "test").startSpan()
+        span.setAttribute(key: "enabled", value: AttributeValue.bool(true))
+        span.end()
+        guard let readable = span as? ReadableSpan else {
+            XCTFail("Span does not conform to ReadableSpan")
+            return
+        }
+        let adapter = OTelSpanAdapter(span: readable, metadataProvider: mockMetadataProvider)
+        XCTAssertEqual(adapter.attributes["enabled"] as? Bool, true)
     }
 }
