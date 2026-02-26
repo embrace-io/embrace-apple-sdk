@@ -70,10 +70,12 @@ public final class FrameRateMonitor {
     private let proxy: DisplayLinkProxy
     private var displayLink: CADisplayLink?
 
-    /// The previous frame's `targetTimestamp` (the system's promise for when
-    /// the current frame would fire) and the `EmbraceClock` snapshot taken
-    /// when that frame actually fired.
-    private var previousTick: (targetTimestamp: CFTimeInterval, clock: EmbraceClock)?
+    /// The previous frame's `targetTimestamp` — the system's promise of when
+    /// the current frame would fire.
+    private var previousTickExpectedTimestamp: CFTimeInterval?
+
+    /// The `Date` captured when the previous frame's callback actually fired.
+    private var previousTickDate: Date?
 
     /// Raw notification name to avoid a direct UIKit dependency.
     private static let willEnterForegroundNotification =
@@ -82,7 +84,8 @@ public final class FrameRateMonitor {
     /// Resets state on foreground so the first tick after a background/foreground
     /// transition is not misreported as a hang.
     @objc private func resetOnForeground() {
-        previousTick = nil
+        previousTickExpectedTimestamp = nil
+        previousTickDate = nil
     }
 }
 
@@ -90,30 +93,29 @@ public final class FrameRateMonitor {
 
 extension FrameRateMonitor {
 
-    fileprivate func tick(_ link: CADisplayLink) {
-        let now = EmbraceClock.current
-
+    fileprivate func tick(_ currentTick: CADisplayLink) {
         defer {
-            previousTick = (link.targetTimestamp, now)
+            previousTickExpectedTimestamp = currentTick.targetTimestamp
+            previousTickDate = Date(timeIntervalSince1970: currentTick.timestamp)
         }
 
-        guard let previousTick else {
+        guard let expectedTimestamp = previousTickExpectedTimestamp,
+              let previousDate = previousTickDate else {
             // First tick: arm for the next frame, nothing to compare yet.
             return
         }
 
-        let delay = link.timestamp - previousTick.targetTimestamp
-        guard delay > threshold else {
-            return
-        }
+        let delay = currentTick.timestamp - expectedTimestamp
+        guard delay > threshold else { return }
 
         // The main thread was blocked beyond `threshold`.
         // The hang is already over — report it retroactively.
-        let duration = now - previousTick.clock
+        let now = Date(timeIntervalSince1970: currentTick.timestamp)
+        let duration = now.timeIntervalSince(previousDate)
 
-        logger?.debug("[FrameRateMonitor] Hang detected: \(duration.uptime.millisecondsValue) ms")
+        logger?.debug("[FrameRateMonitor] Hang detected: \(Int(duration * 1000)) ms - Delay: \(delay)")
 
-        hangObserver?.hangStarted(at: previousTick.clock, duration: duration)
+        hangObserver?.hangStarted(at: previousDate, duration: duration)
         hangObserver?.hangEnded(at: now, duration: duration)
     }
 }

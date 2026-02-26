@@ -2,9 +2,7 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceCommonInternal
-#endif
+import Foundation
 
 /// Protocol for objects that observe hang detection events.
 ///
@@ -12,7 +10,7 @@
 /// - `hangUpdated`: Called periodically while a hang persists (not used by `FrameRateMonitor`).
 /// - `hangEnded`: Called when the hang resolves.
 public protocol HangObserver: AnyObject {
-    func hangStarted(at: EmbraceClock, duration: EmbraceClock)
-    func hangUpdated(at: EmbraceClock, duration: EmbraceClock)
-    func hangEnded(at: EmbraceClock, duration: EmbraceClock)
+    func hangStarted(at: Date, duration: TimeInterval)
+    func hangUpdated(at: Date, duration: TimeInterval)
+    func hangEnded(at: Date, duration: TimeInterval)
 }

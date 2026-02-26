@@ -29,8 +29,8 @@ class MockHangObserver: HangObserver {
     private let lock = NSLock()
 
     // Callback handlers
-    private var _onHangStarted: ((UInt64, UInt64) -> Void)?
-    var onHangStarted: ((UInt64, UInt64) -> Void)? {
+    private var _onHangStarted: ((Date, TimeInterval) -> Void)?
+    var onHangStarted: ((Date, TimeInterval) -> Void)? {
         get {
             lock.lock()
             defer { lock.unlock() }
@@ -43,8 +43,8 @@ class MockHangObserver: HangObserver {
         }
     }
 
-    private var _onHangUpdated: ((UInt64, UInt64) -> Void)?
-    var onHangUpdated: ((UInt64, UInt64) -> Void)? {
+    private var _onHangUpdated: ((Date, TimeInterval) -> Void)?
+    var onHangUpdated: ((Date, TimeInterval) -> Void)? {
         get {
             lock.lock()
             defer { lock.unlock() }
@@ -57,8 +57,8 @@ class MockHangObserver: HangObserver {
         }
     }
 
-    private var _onHangEnded: ((UInt64, UInt64) -> Void)?
-    var onHangEnded: ((UInt64, UInt64) -> Void)? {
+    private var _onHangEnded: ((Date, TimeInterval) -> Void)?
+    var onHangEnded: ((Date, TimeInterval) -> Void)? {
         get {
             lock.lock()
             defer { lock.unlock() }
@@ -114,67 +114,43 @@ class MockHangObserver: HangObserver {
         return _hangEndedCallCount
     }
 
-    private var _lastStartTime: UInt64 = 0
-    var lastStartTime: UInt64 {
-        lock.lock()
-        defer { lock.unlock() }
-        return _lastStartTime
-    }
-
-    private var _lastUpdateTime: UInt64 = 0
-    var lastUpdateTime: UInt64 {
-        lock.lock()
-        defer { lock.unlock() }
-        return _lastUpdateTime
-    }
-
-    private var _lastEndTime: UInt64 = 0
-    var lastEndTime: UInt64 {
-        lock.lock()
-        defer { lock.unlock() }
-        return _lastEndTime
-    }
-
-    private var _lastHangDuration: UInt64 = 0
-    var lastHangDuration: UInt64 {
+    private var _lastHangDuration: TimeInterval = 0
+    var lastHangDuration: TimeInterval {
         lock.lock()
         defer { lock.unlock() }
         return _lastHangDuration
     }
 
-    func hangStarted(at: EmbraceClock, duration: EmbraceClock) {
+    func hangStarted(at: Date, duration: TimeInterval) {
         lock.lock()
         _hangStartedCalled = true
         _hangStartedCallCount += 1
-        _lastStartTime = at.monotonic.nanosecondsValue
-        _lastHangDuration = duration.monotonic.nanosecondsValue
+        _lastHangDuration = duration
         let callback = _onHangStarted
         lock.unlock()
 
-        callback?(at.monotonic.nanosecondsValue, duration.monotonic.nanosecondsValue)
+        callback?(at, duration)
     }
 
-    func hangUpdated(at: EmbraceClock, duration: EmbraceClock) {
+    func hangUpdated(at: Date, duration: TimeInterval) {
         lock.lock()
         _hangUpdatedCalled = true
         _hangUpdatedCallCount += 1
-        _lastUpdateTime = at.monotonic.nanosecondsValue
-        _lastHangDuration = duration.monotonic.nanosecondsValue
+        _lastHangDuration = duration
         let callback = _onHangUpdated
         lock.unlock()
 
-        callback?(at.monotonic.nanosecondsValue, duration.monotonic.nanosecondsValue)
+        callback?(at, duration)
     }
 
-    func hangEnded(at: EmbraceClock, duration: EmbraceClock) {
+    func hangEnded(at: Date, duration: TimeInterval) {
         lock.lock()
         _hangEndedCalled = true
         _hangEndedCallCount += 1
-        _lastEndTime = at.monotonic.nanosecondsValue
-        _lastHangDuration = duration.monotonic.nanosecondsValue
+        _lastHangDuration = duration
         let callback = _onHangEnded
         lock.unlock()
 
-        callback?(at.monotonic.nanosecondsValue, duration.monotonic.nanosecondsValue)
+        callback?(at, duration)
     }
 }

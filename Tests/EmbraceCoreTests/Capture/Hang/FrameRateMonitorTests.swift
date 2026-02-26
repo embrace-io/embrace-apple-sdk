@@ -59,7 +59,7 @@ final class FrameRateMonitorTests: XCTestCase {
 
         XCTAssertTrue(mockObserver.hangStartedCalled)
         XCTAssertTrue(mockObserver.hangEndedCalled)
-        XCTAssertGreaterThan(mockObserver.lastHangDuration, UInt64(0.1 * 1_000_000_000))
+        XCTAssertGreaterThan(mockObserver.lastHangDuration, 0.1)
     }
 
     func testHangUpdatedIsNeverCalled() {

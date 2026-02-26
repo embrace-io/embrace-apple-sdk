@@ -30,11 +30,11 @@ public final class HangCaptureService: CaptureService {
     public override func onInstall() {
 
         // No monitor when debugger is attached.
-        if isDebuggerAttached() && ProcessInfo.processInfo.environment["EMBAllowWatchdogInDebugger"] != "1" {
-            logger?.warning(
-                "[FrameRateMonitor] Disabled because a debugger is attached. Set the env var EMBAllowWatchdogInDebugger=1 to enable in debug mode.")
-            return
-        }
+//        if isDebuggerAttached() && ProcessInfo.processInfo.environment["EMBAllowWatchdogInDebugger"] != "1" {
+//            logger?.warning(
+//                "[FrameRateMonitor] Disabled because a debugger is attached. Set the env var EMBAllowWatchdogInDebugger=1 to enable in debug mode.")
+//            return
+//        }
 
         // Since we use `limits.hangPerSession` as a gate for the monitor,
         // we need to wait until the remote config is actually loaded from disk
@@ -99,9 +99,9 @@ extension HangCaptureService: HangObserver {
     // Hang span documented here:
     // https://www.notion.so/embraceio/ANRs-1d77e3c9985281c58765d8c622443e2c
 
-    public func hangStarted(at: EmbraceClock, duration: EmbraceClock) {
+    public func hangStarted(at: Date, duration: TimeInterval) {
 
-        logger?.debug("[FrameRateMonitor] Hang started, at \(at.date) after \(duration.uptime.millisecondsValue) ms")
+        logger?.debug("[FrameRateMonitor] Hang started, at \(at) after \(Int(duration * 1000)) ms")
 
         if limits.reportsWatchdogEvents {
             NotificationCenter.default.post(
@@ -122,12 +122,13 @@ extension HangCaptureService: HangObserver {
         }
 
         // build the span
+        let unixNano = UInt64((at.timeIntervalSince1970 * 1_000_000_000).rounded())
         guard
             let builder = buildSpan(
                 name: SpanSemantics.Hang.name,
                 type: SpanType.hang,
                 attributes: [
-                    SpanSemantics.Hang.keyLastKnownTimeUnixNano: "\(at.realtime)",
+                    SpanSemantics.Hang.keyLastKnownTimeUnixNano: "\(unixNano)",
                     SpanSemantics.Hang.keyIntervalCode: "0",
                     SpanSemantics.Hang.keyThreadPriority: "0"
                 ]
@@ -138,28 +139,28 @@ extension HangCaptureService: HangObserver {
         }
 
         // Capture a single retroactive backtrace of the main thread.
-        let pre = EmbraceClock.current
+        let pre = Date()
         let backtrace = EmbraceBacktrace.backtrace(of: mainThread, threadIndex: 0)
-        let post = EmbraceClock.current
+        let post = Date()
 
         spanQueue.async { [self] in
             span = builder
-                .setStartTime(time: at.date)
+                .setStartTime(time: at)
                 .startSpan()
             addSamplingSpanEvent(
-                time: at.date,
+                time: at,
                 backtrace: backtrace,
-                overhead: Int((post.monotonic - pre.monotonic).nanosecondsValue)
+                overhead: Int(post.timeIntervalSince(pre) * 1_000_000_000)
             )
         }
     }
 
-    public func hangUpdated(at: EmbraceClock, duration: EmbraceClock) {
+    public func hangUpdated(at: Date, duration: TimeInterval) {
         // Not called by FrameRateMonitor (Option A — retroactive detection only).
     }
 
-    public func hangEnded(at: EmbraceClock, duration: EmbraceClock) {
-        logger?.debug("[FrameRateMonitor] Hang ended at \(at.date) after \(duration.uptime.millisecondsValue) ms")
+    public func hangEnded(at: Date, duration: TimeInterval) {
+        logger?.debug("[FrameRateMonitor] Hang ended at \(at) after \(Int(duration * 1000)) ms")
 
         if limits.reportsWatchdogEvents {
             NotificationCenter.default.post(
@@ -169,7 +170,7 @@ extension HangCaptureService: HangObserver {
         }
 
         spanQueue.async { [self] in
-            span?.end(time: at.date)
+            span?.end(time: at)
             span = nil
         }
     }

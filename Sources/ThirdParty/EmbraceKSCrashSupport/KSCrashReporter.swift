@@ -256,7 +256,7 @@ extension KSCrashReporter {
 
         reporter.reportUserException(
             KSCrashWatchdogEventKey.watchdgodEvent,
-            reason: "0x8badf00d, main thread blocked for \(event.duration.uptime.secondsValue) seconds.",
+            reason: "0x8badf00d, main thread blocked for \(event.duration) seconds.",
             language: nil,
             lineOfCode: nil,
             stackTrace: nil,

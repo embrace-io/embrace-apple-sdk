@@ -61,6 +61,11 @@ struct EmbraceInitScreen: View {
             .padding()
             .padding(.bottom, 60)
             .accessibilityIdentifier("EmbraceInitButton")
+            EmbraceLargeButton(
+                text: "HANG!!",
+                buttonAction: testHang
+            )
+            .accessibilityIdentifier("HangTestButton")
         }
     }
 }
@@ -74,6 +79,11 @@ struct EmbraceInitScreen: View {
 }
 
 extension EmbraceInitScreen {
+    fileprivate func testHang() {
+        
+        Thread.sleep(forTimeInterval: Double.random(in: 2.0...6.0))
+    }
+    
     fileprivate func startEmbrace() {
         switch viewModel.forceInitState {
         case .off:
@@ -109,9 +119,9 @@ extension EmbraceInitScreen {
                     options:
                         .init(
                             appId: viewModel.appId,
-                            endpoints: .init(
-                                baseURL: viewModel.baseURL,
-                                configBaseURL: viewModel.configBaseURL),
+//                            endpoints: .init(
+//                                baseURL: viewModel.baseURL,
+//                                configBaseURL: viewModel.configBaseURL),
                             captureServices: services,
                             crashReporter: KSCrashReporter(),
                             export: .init(
