@@ -257,17 +257,17 @@ public struct RemoteConfigPayload: Decodable, Equatable {
                     forKey: CodingKeys.HangLimitsCodingKeys.hangThreshold
                 ) ?? defaultPayload.hangLimitsHangThreshold
 
-            hangLimitsHangPerSession = 100
-                /*try hangLimitsContainer.decodeIfPresent(
+            hangLimitsHangPerSession =
+                try hangLimitsContainer.decodeIfPresent(
                     UInt.self,
                     forKey: CodingKeys.HangLimitsCodingKeys.hangPerSession
-                ) ?? 100 */
+                ) ?? defaultPayload.hangLimitsHangPerSession
 
             hangLimitsSamplesPerHang =
                 try hangLimitsContainer.decodeIfPresent(
                     UInt.self,
                     forKey: CodingKeys.HangLimitsCodingKeys.samplesPerHang
-                ) ?? 10000000
+                ) ?? defaultPayload.hangLimitsSamplesPerHang
 
             hangLimitsReportsWatchdogEvents =
                 try hangLimitsContainer.decodeIfPresent(

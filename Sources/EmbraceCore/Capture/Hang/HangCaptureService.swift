@@ -30,11 +30,11 @@ public final class HangCaptureService: CaptureService {
     public override func onInstall() {
 
         // No monitor when debugger is attached.
-//        if isDebuggerAttached() && ProcessInfo.processInfo.environment["EMBAllowWatchdogInDebugger"] != "1" {
-//            logger?.warning(
-//                "[FrameRateMonitor] Disabled because a debugger is attached. Set the env var EMBAllowWatchdogInDebugger=1 to enable in debug mode.")
-//            return
-//        }
+        if isDebuggerAttached() && ProcessInfo.processInfo.environment["EMBAllowWatchdogInDebugger"] != "1" {
+            logger?.warning(
+                "[FrameRateMonitor] Disabled because a debugger is attached. Set the env var EMBAllowWatchdogInDebugger=1 to enable in debug mode.")
+            return
+        }
 
         // Since we use `limits.hangPerSession` as a gate for the monitor,
         // we need to wait until the remote config is actually loaded from disk
