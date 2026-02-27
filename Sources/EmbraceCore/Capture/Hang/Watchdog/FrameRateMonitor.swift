@@ -74,9 +74,6 @@ public final class FrameRateMonitor {
     /// the current frame would fire.
     private var previousTickExpectedTimestamp: CFTimeInterval?
 
-    /// The `Date` captured when the previous frame's callback actually fired.
-    private var previousTickDate: Date?
-
     /// Raw notification name to avoid a direct UIKit dependency.
     private static let willEnterForegroundNotification =
         Notification.Name("UIApplicationWillEnterForegroundNotification")
@@ -85,7 +82,6 @@ public final class FrameRateMonitor {
     /// transition is not misreported as a hang.
     @objc private func resetOnForeground() {
         previousTickExpectedTimestamp = nil
-        previousTickDate = nil
     }
 }
 
@@ -96,11 +92,9 @@ extension FrameRateMonitor {
     fileprivate func tick(_ currentTick: CADisplayLink) {
         defer {
             previousTickExpectedTimestamp = currentTick.targetTimestamp
-            previousTickDate = Date(timeIntervalSince1970: currentTick.timestamp)
         }
 
-        guard let expectedTimestamp = previousTickExpectedTimestamp,
-              let previousDate = previousTickDate else {
+        guard let expectedTimestamp = previousTickExpectedTimestamp else {
             // First tick: arm for the next frame, nothing to compare yet.
             return
         }
@@ -110,13 +104,15 @@ extension FrameRateMonitor {
 
         // The main thread was blocked beyond `threshold`.
         // The hang is already over — report it retroactively.
-        let now = Date(timeIntervalSince1970: currentTick.timestamp)
-        let duration = now.timeIntervalSince(previousDate)
+        let now = Date()
+        let currentDateTimeInterval = now.timeIntervalSince1970
+        let previousTickTimeInterval = currentDateTimeInterval - delay
+        let previousTickDate = Date(timeIntervalSince1970: previousTickTimeInterval)
 
-        logger?.debug("[FrameRateMonitor] Hang detected: \(Int(duration * 1000)) ms - Delay: \(delay)")
+        logger?.debug("[FrameRateMonitor] Hang detected: \((Int(delay * 1000))) ms")
 
-        hangObserver?.hangStarted(at: previousDate, duration: duration)
-        hangObserver?.hangEnded(at: now, duration: duration)
+        hangObserver?.hangStarted(at: previousTickDate, duration: delay)
+        hangObserver?.hangEnded(at: now, duration: delay)
     }
 }
 
