@@ -477,21 +477,22 @@ import OpenTelemetrySdk
 
     private func runAfterBecomeActive(_ block: @escaping () -> Void) {
         #if canImport(UIKit) && !os(watchOS)
-        DispatchQueue.main.async {
-            if UIApplication.shared.applicationState == .active {
-                block()
-            } else {
-                var token: NSObjectProtocol?
-                token = NotificationCenter.default.addObserver(
-                    forName: UIApplication.didBecomeActiveNotification,
-                    object: nil,
-                    queue: nil
-                ) { _ in
-                    if let t = token { NotificationCenter.default.removeObserver(t) }
-                    block()
-                }
-            }
+        var notification: NSObjectProtocol?
+        var didFire = false
+        let once: () -> Void = {
+            guard !didFire else { return }
+            didFire = true
+            if let n = notification { NotificationCenter.default.removeObserver(n) }
+            block()
         }
+
+        notification = NotificationCenter.default.addObserver(
+            forName: UIApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { _ in once() }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { once() }
         #else
         block()
         #endif
