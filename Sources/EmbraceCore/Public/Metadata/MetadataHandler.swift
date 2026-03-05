@@ -69,7 +69,9 @@ public class MetadataHandler: NSObject {
 
         super.init()
 
-        cloneDataBase()
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            self?.cloneDataBase()
+        }
     }
 
     /// Adds a resource with the given key, value and lifespan.
