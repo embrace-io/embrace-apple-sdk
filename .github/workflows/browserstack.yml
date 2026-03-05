@@ -268,7 +268,7 @@ jobs:
 
     steps:
       - name: Download Result Bundle
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: browserstack-result-bundle-${{ needs.test.outputs.build_id }}-${{ needs.test.outputs.session_id }}
 
