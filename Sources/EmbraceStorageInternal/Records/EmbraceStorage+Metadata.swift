@@ -112,10 +112,10 @@ extension EmbraceStorage {
         coreData.save(allowMainQueue: allowMainQueue)
     }
 
-    /// Adds or updates all the given critical resources **synchronously**
+    /// Adds or updates all the given critical resources **asynchronously**
     public func addCriticalResources(_ map: [String: String], processId: EmbraceIdentifier = ProcessIdentifier.current) {
-        coreData.performOperation(allowMainQueue: true) { context in
-            _addResources(map, allowMainQueue: true, context: context, processId: processId)
+        coreData.performAsyncOperation { [self] context in
+            _addResources(map, allowMainQueue: false, context: context, processId: processId)
         }
     }
 
