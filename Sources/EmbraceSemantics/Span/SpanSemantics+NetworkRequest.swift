@@ -15,6 +15,7 @@ extension SpanType {
 extension SpanSemantics {
     public struct NetworkRequest {
         public static let keyUrl = SemanticConventions.Url.full.rawValue
+        public static let keyOriginalUrl = SemanticConventions.Url.original.rawValue
         public static let keyMethod = SemanticConventions.Http.requestMethod.rawValue
         public static let keyBodySize = SemanticConventions.Http.requestBodySize.rawValue
         public static let keyTracingHeader = "emb.w3c_traceparent"

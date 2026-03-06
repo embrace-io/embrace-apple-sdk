@@ -100,9 +100,24 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
             // flag as captured
             task.embraceCaptured = true
 
+            let path = NetworkSpanPathResolver.resolve(request: request, url: request.url ?? url)
+
+            // Reconstruct url.full by substituting only the path component so that
+            // scheme, host, and port are preserved (e.g. http://host:4000/graphql/ListUsers).
+            let resolvedFullUrl: String
+            if var components = request.url.flatMap({ URLComponents(url: $0, resolvingAgainstBaseURL: false) }) {
+                components.path = path
+                components.query = nil
+                components.fragment = nil
+                resolvedFullUrl = components.url?.absoluteString ?? path
+            } else {
+                resolvedFullUrl = path
+            }
+
             // Probably this could be moved to a separate class
             var attributes: [String: String] = [:]
-            attributes[SpanSemantics.NetworkRequest.keyUrl] = request.url?.absoluteString ?? "N/A"
+            attributes[SpanSemantics.NetworkRequest.keyOriginalUrl] = request.url?.absoluteString ?? "N/A"
+            attributes[SpanSemantics.NetworkRequest.keyUrl] = resolvedFullUrl
 
             let httpMethod = request.httpMethod?.uppercased() ?? ""
             if !httpMethod.isEmpty {
@@ -114,17 +129,17 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
              The `{http.route}` corresponds to the template of the path so it's necessary to understand the templating system being employed.
              For instance, a template for a request such as http://embrace.io/users/12345?hello=world
              would be reported as /users/:userId (or /users/:userId? in other templating system).
-            
+
              Until a decision is made regarding the method to convey this information and the heuristics to extract it,
              the `.path` method will be utilized temporarily. This approach may introduce higher cardinality on the backend,
              which is less than optimal.
              It will be important to address this in the near future to enhance performance for the backend.
-            
+
              Additional information can be found at:
              - HTTP Name attribute: https://opentelemetry.io/docs/specs/semconv/http/http-spans/#name
              - HTTP Attributes: https://opentelemetry.io/docs/specs/semconv/attributes-registry/http/
              */
-            let name = httpMethod.isEmpty ? url.path : "\(httpMethod) \(url.path)"
+            let name = httpMethod.isEmpty ? path : "\(httpMethod) \(path)"
             let networkSpan = otel.buildSpan(
                 name: name,
                 type: .networkRequest,

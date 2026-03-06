@@ -28,6 +28,7 @@ public class CoreDataWrapper {
     }
 
     private let isTesting: Bool
+    private var isLoadingStore = false
     static let modelCache: EmbraceMutex<[String: NSManagedObjectModel]> = EmbraceMutex([:])
 
     public init(
@@ -82,50 +83,37 @@ public class CoreDataWrapper {
                 description.type = NSSQLiteStoreType
                 description.url = options.storageMechanism.fileURL
                 description.setValue(journalMode.rawValue as NSString, forPragmaNamed: "journal_mode")
-                // This is the default value; however, we enforce it here so that the `CoreDataWrapper`
-                // is created synchronously in `Embrace.init`, allowing us to throw as needed and fail early.
-                description.shouldAddStoreAsynchronously = false
+                description.shouldAddStoreAsynchronously = true
                 container.persistentStoreDescriptions = [description]
 
             }
         }
 
-        // Even though this happens inside a block, by default it runs synchronously on the same thread
-        // (because `shouldAddStoreAsynchronously` defaults to `false`). We set it explicitly anyway to
-        // make it crystal clear and to guard against potential changes in future OS versions.
-        //
-        // If the store cant be created or opened, we want to know immediately and fail fast.
-        // Otherwise, the container would appear as "initialized", but any later attempt to hit Core Data
-        // (fetch, save, etc.) would crash. Thats why we capture the error from `loadPersistentStores`
-        // and rethrow it here: better to throw during `Embrace.init` than to crash much later.
-        if let loadPersistentStoreError = loadPersistentStoreIfNeeded(logIfEmpty: false) {
-            throw loadPersistentStoreError
-        }
+        // We load the persistent store asynchronously to avoid a main-thread deadlock during early app
+        // launch. CoreData internally may try to dispatch back to the main thread during store loading
+        // recovery; if the main thread is blocked waiting for this call, a deadlock occurs. With
+        // shouldAddStoreAsynchronously = true, the context automatically queues operations until the
+        // store is ready, so callers are unaffected. Load errors are logged in the completion callback.
+        loadPersistentStoreIfNeeded(logIfEmpty: false)
 
         context = container.newBackgroundContext()
     }
 
-    @discardableResult
-    private func loadPersistentStoreIfNeeded(logIfEmpty: Bool = true) -> Error? {
-        // if we have persistent stores just continue on
-        guard container.persistentStoreCoordinator.persistentStores.isEmpty else {
-            return nil
-        }
+    private func loadPersistentStoreIfNeeded(logIfEmpty: Bool = true) {
+        guard container.persistentStoreCoordinator.persistentStores.isEmpty,
+              !isLoadingStore else { return }
 
-        // If this happens, we want to know about it.
-        if logIfEmpty {
-            logger.critical("Persistent store is empty for \"\(name)\"")
-        }
+        if logIfEmpty { logger.critical("Persistent store is empty for \"\(name)\"") }
 
-        // try and load the persistent stores as needed
-        var loadError: Error? = nil
-        container.loadPersistentStores { _, error in
-            loadError = error
+        isLoadingStore = true
+        container.loadPersistentStores { [weak self] _, error in
+            self?.isLoadingStore = false
+            if let error = error {
+                self?.logger.critical(
+                    "Error loading persistent stores for \"\(self?.name ?? "?")\": \(error.localizedDescription)"
+                )
+            }
         }
-        if let loadError {
-            logger.critical("Error loading persistent stores for \"\(name)\": \(loadError.localizedDescription)")
-        }
-        return loadError
     }
 
     /// Synchronously performs the given block on the current context

@@ -359,27 +359,29 @@ import OpenTelemetrySdk
                 // notify anyone who cares.
                 self.captureServicesGroup.leave()
 
-                self.processingQueue.async { [weak self] in
-                    // fetch crash reports and link them to sessions
-                    // then upload them
-                    UnsentDataHandler.sendUnsentData(
-                        storage: self?.storage,
-                        upload: self?.upload,
-                        otel: self,
-                        logController: self?.logController,
-                        currentSessionId: self?.sessionController.currentSession?.id,
-                        crashReporter: self?.captureServices.crashReporter
-                    )
+                self.runAfterBecomeActive { [weak self] in
+                    self?.processingQueue.async {
+                        // fetch crash reports and link them to sessions
+                        // then upload them
+                        UnsentDataHandler.sendUnsentData(
+                            storage: self?.storage,
+                            upload: self?.upload,
+                            otel: self,
+                            logController: self?.logController,
+                            currentSessionId: self?.sessionController.currentSession?.id,
+                            crashReporter: self?.captureServices.crashReporter
+                        )
 
-                    // remove old versions data
-                    self?.cleanUpOldVersionsData()
+                        // remove old versions data
+                        self?.cleanUpOldVersionsData()
 
-                    // add otel resources as metadata
-                    self?.addOtelResources()
+                        // add otel resources as metadata
+                        self?.addOtelResources()
+                    }
+
+                    // retry any remaining cached upload data
+                    self?.upload?.retryCachedData()
                 }
-
-                // retry any remaining cached upload data
-                self.upload?.retryCachedData()
 
                 if let appId = options.appId {
                     Embrace.logger.startup("Embrace SDK started successfully with key: \(appId)")
@@ -471,6 +473,29 @@ import OpenTelemetrySdk
     /// Call this if you want the Embrace SDK to clear the upload cache data on the next launch.
     @objc public func resetUploadCache() {
         Embrace.resetUploadCache = true
+    }
+
+    private func runAfterBecomeActive(_ block: @escaping () -> Void) {
+        #if canImport(UIKit) && !os(watchOS)
+        var notification: NSObjectProtocol?
+        var didFire = false
+        let once: () -> Void = {
+            guard !didFire else { return }
+            didFire = true
+            if let n = notification { NotificationCenter.default.removeObserver(n) }
+            block()
+        }
+
+        notification = NotificationCenter.default.addObserver(
+            forName: UIApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { _ in once() }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { once() }
+        #else
+        block()
+        #endif
     }
 
     /// Called every time the remote config changes

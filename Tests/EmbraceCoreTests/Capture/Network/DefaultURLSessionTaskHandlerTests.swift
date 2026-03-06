@@ -64,11 +64,56 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
         thenSpanName(is: "/with/path")
     }
 
+    func test_modifiedRequest_changedUrl_reflectedInSpanName() {
+        givenTaskHandler()
+        givenRequestsDataSourceWithBlock { originalRequest in
+            var request = originalRequest
+            request.url = URL(string: "https://embrace.io/graphql/GetUser")
+            return request
+        }
+        givenAnURLSessionTask(urlString: "https://embrace.io/graphql", method: "POST")
+        whenInvokingCreate()
+        thenSpanName(is: "POST /graphql/GetUser")
+    }
+
+    func test_xEmbPath_validHeader_usedAsSpanPath() {
+        givenTaskHandler()
+        givenAnURLSessionTask(
+            urlString: "https://embrace.io/users/12345",
+            method: "GET",
+            headers: ["x-emb-path": "/users/:id"]
+        )
+        whenInvokingCreate()
+        thenSpanName(is: "GET /users/:id")
+        thenSpanShouldHaveURLAttribute(withValue: "https://\(testName).embrace.io/users/:id")
+        thenSpanShouldHaveOriginalURLAttribute(withValue: "https://\(testName).embrace.io/users/12345")
+    }
+
+    func test_xEmbPath_invalidHeader_fallsBackToUrlPath() {
+        givenTaskHandler()
+        givenAnURLSessionTask(
+            urlString: "https://embrace.io/users/12345",
+            method: "GET",
+            headers: ["x-emb-path": "no-leading-slash"]
+        )
+        whenInvokingCreate()
+        thenSpanName(is: "GET /users/12345")
+        thenSpanShouldHaveURLAttribute(withValue: "https://\(testName).embrace.io/users/12345")
+    }
+
+    func test_xEmbPath_missingHeader_usesUrlPath() {
+        givenTaskHandler()
+        givenAnURLSessionTask(urlString: "https://embrace.io/users/12345", method: "GET")
+        whenInvokingCreate()
+        thenSpanName(is: "GET /users/12345")
+        thenSpanShouldHaveURLAttribute(withValue: "https://\(testName).embrace.io/users/12345")
+    }
+
     func test_onCreateTask_UrlShouldBeSetOnSpanAsAttribute() {
         givenTaskHandler()
-        givenAnURLSessionTask(urlString: "https://embrace-is-great.io")
+        givenAnURLSessionTask(urlString: "https://embrace-is-great.io/some/path")
         whenInvokingCreate()
-        thenSpanShouldHaveURLAttribute(withValue: "https://\(testName).embrace-is-great.io")
+        thenSpanShouldHaveURLAttribute(withValue: "https://\(testName).embrace-is-great.io/some/path")
     }
 
     func test_onCreateTaskHavingMethod_HttpMethodShouldBeSetOnSpanAsAttribute() {
@@ -157,13 +202,13 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
         givenTaskHandler()
         givenRequestsDataSourceWithBlock { originalRequest in
             var request = originalRequest
-            request.url = URL(string: "https://www.test.com")
+            request.url = URL(string: "https://www.test.com/api/v1")
             return request
         }
         givenAnURLSessionTask(method: "GET")
         whenInvokingCreate()
         whenInvokingFinish()
-        thenSpanHasTheCorrectPath("https://www.test.com")
+        thenSpanHasTheCorrectPath("https://www.test.com/api/v1")
     }
 
     func test_requestsDataSource_method() {
@@ -297,13 +342,20 @@ extension DefaultURLSessionTaskHandlerTests {
     }
 
     fileprivate func givenAnURLSessionTask(
-        urlString: String = "https://embrace.io", method: String? = nil, body: Data? = nil, response: URLResponse? = nil
+        urlString: String = "https://embrace.io",
+        method: String? = nil,
+        body: Data? = nil,
+        response: URLResponse? = nil,
+        headers: [String: String] = [:]
     ) {
         var url = URL(string: urlString.replacingOccurrences(of: "https://", with: "https://\(testName)."))!
         var request = URLRequest(url: url)
         request.httpMethod = method
         if let body = body {
             request.httpBody = body
+        }
+        for (key, value) in headers {
+            request.setValue(value, forHTTPHeaderField: key)
         }
         let urlResponse = response ?? aValidResponse()
         url.mockResponse = .successful(withData: UUID().uuidString.data(using: .utf8)!, response: urlResponse)
@@ -369,7 +421,17 @@ extension DefaultURLSessionTaskHandlerTests {
             let savedUrl = span.attributes["url.full"]
             XCTAssertNotNil(savedUrl)
             XCTAssertEqual(savedUrl?.description, url)
+        } catch let exception {
+            XCTFail("Couldn't get span: \(exception.localizedDescription)")
+        }
+    }
 
+    fileprivate func thenSpanShouldHaveOriginalURLAttribute(withValue url: String) {
+        do {
+            let span = try XCTUnwrap(otel.spanProcessor.startedSpans.first)
+            let savedUrl = span.attributes["url.original"]
+            XCTAssertNotNil(savedUrl)
+            XCTAssertEqual(savedUrl?.description, url)
         } catch let exception {
             XCTFail("Couldn't get span: \(exception.localizedDescription)")
         }
