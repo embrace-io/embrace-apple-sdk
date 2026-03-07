@@ -2,48 +2,48 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-public class DefaultConfig: EmbraceConfigurable {
-    public var hangLimits: HangLimits = HangLimits()
+open class DefaultConfig: EmbraceConfigurable {
+	open var hangLimits: HangLimits { return HangLimits() }
 
-    public let isSDKEnabled: Bool = true
+	open var isSDKEnabled: Bool { return true }
 
-    public let isBackgroundSessionEnabled: Bool = false
+	open var isBackgroundSessionEnabled: Bool { return false }
 
-    public let isNetworkSpansForwardingEnabled: Bool = false
+	open var isNetworkSpansForwardingEnabled: Bool { return false }
 
-    public let isUiLoadInstrumentationEnabled: Bool = true
+	open var isUiLoadInstrumentationEnabled: Bool { return true }
 
-    public var isWalModeEnabled: Bool = true
+	open var isWalModeEnabled: Bool { return true }
 
-    public let viewControllerClassNameBlocklist: [String] = []
+	open var viewControllerClassNameBlocklist: [String] { return []  }
 
-    public let uiInstrumentationCaptureHostingControllers: Bool = false
+	open var uiInstrumentationCaptureHostingControllers: Bool { return false }
 
-    public let isSwiftUiViewInstrumentationEnabled: Bool = true
+	open var isSwiftUiViewInstrumentationEnabled: Bool { return true }
 
-    public let isMetricKitEnabled: Bool = false
+	open var isMetricKitEnabled: Bool { return false }
 
-    public var isMetricKitInstrumentationEnabled: Bool = false
+	open var isMetricKitInstrumentationEnabled: Bool { return false }
 
-    public var isMetricKitCrashCaptureEnabled: Bool = false
+	open var isMetricKitCrashCaptureEnabled: Bool { return false }
 
-    public var metricKitCrashSignals: [String] = []
+	open var metricKitCrashSignals: [String] { return [] }
 
-    public var isMetricKitHangCaptureEnabled: Bool = false
+	open var isMetricKitHangCaptureEnabled: Bool { return false }
 
-    public var isMetricKitInternalMetricsCaptureEnabled: Bool = false
+	open var isMetricKitInternalMetricsCaptureEnabled: Bool { return false }
 
-    public let spanEventsLimits = SpanEventsLimits()
+	open var spanEventsLimits: SpanEventsLimits { return SpanEventsLimits() }
 
-    public let logsLimits = LogsLimits()
+	open var logsLimits: LogsLimits { return LogsLimits() }
 
-    public let internalLogLimits = InternalLogLimits()
+	open var internalLogLimits: InternalLogLimits { return InternalLogLimits() }
 
-    public let networkPayloadCaptureRules = [NetworkPayloadCaptureRule]()
+	open var networkPayloadCaptureRules: [NetworkPayloadCaptureRule] { return []  }
 
-    public let useLegacyUrlSessionProxy = false
+	open var useLegacyUrlSessionProxy: Bool { return true }
 
-    public let useNewStorageForSpanEvents = false
+	open var useNewStorageForSpanEvents: Bool { return true }
 
     public func update(completion: (Bool, (any Error)?) -> Void) {
         completion(false, nil)
