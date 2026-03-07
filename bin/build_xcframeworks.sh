@@ -95,7 +95,7 @@ echo "=========================================="
 echo "Building all XCFrameworks..."
 echo "=========================================="
 
-bundle exec xccache pkg build "${PRODUCTS[@]}" --sdk="${SDKS}" --out="binaries"
+bundle exec xccache pkg build "${PRODUCTS[@]}" --sdk="${SDKS}" --library-evolution --out="binaries"
 
 if [ $? -eq 0 ]; then
     echo ""
