@@ -233,10 +233,12 @@ struct SessionTaskResumeSwizzler: URLSessionSwizzler {
                         // Set a task-level proxy delegate if:
                         // - this swizzler just created the span (`handled`), e.g. async/await tasks, OR
                         // - a span was already started by DataTaskWithURLRequestSwizzler (`embraceCaptured`)
-                        //   but no session-level Embrace proxy exists (e.g. the URLSession was created
-                        //   before Embrace was set up). Without this, the span would be orphaned.
+                        //   but no task delegate is set, meaning no session-level Embrace proxy exists
+                        //   (e.g. the URLSession was created before Embrace was set up). Without this,
+                        //   the span would be orphaned.
                         // Double-finish is safe: the second call hits spans.removeValue returning nil.
-                        if handled || task.embraceCaptured, let handler = handler, task.state == .suspended {
+                        let needsProxy = handled || (task.embraceCaptured && task.delegate == nil)
+                        if needsProxy, let handler = handler, task.state == .suspended {
                             let originalDelegate = task.delegate
                             task.delegate = EmbraceMakeURLSessionDelegateProxy(originalDelegate, handler)
                         }
