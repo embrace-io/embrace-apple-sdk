@@ -130,6 +130,16 @@ Pod::Spec.new do |spec|
     subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
   end
 
+  spec.subspec 'EmbraceProfilingSampler' do |subs|
+    subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
+    subs.public_header_files = "Sources/#{subs.module_name}/include/**/*.h"
+  end
+
+  spec.subspec 'EmbraceProfiling' do |subs|
+    subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
+    subs.dependency "EmbraceIO/EmbraceProfilingSampler"
+  end
+
   # External
   spec.subspec 'EmbraceKSCrash' do |subs|
     subs.dependency "KSCrash", "~> 2.5.1"

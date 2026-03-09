@@ -338,6 +338,19 @@ let package = Package(
             dependencies: ["EmbraceObjCUtilsInternal", "TestSupport"]
         ),
 
+        // profiling ----------------------------------------------------------------
+        .target(
+            name: "EmbraceProfilingSampler"
+        ),
+        .target(
+            name: "EmbraceProfiling",
+            dependencies: ["EmbraceProfilingSampler"]
+        ),
+        .testTarget(
+            name: "EmbraceProfilingTests",
+            dependencies: ["EmbraceProfiling"]
+        ),
+
         // test support --------------------------------------------------------------
         .target(
             name: "TestSupport",
