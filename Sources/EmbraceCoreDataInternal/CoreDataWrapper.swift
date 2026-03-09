@@ -83,17 +83,11 @@ public class CoreDataWrapper {
                 description.type = NSSQLiteStoreType
                 description.url = options.storageMechanism.fileURL
                 description.setValue(journalMode.rawValue as NSString, forPragmaNamed: "journal_mode")
-                description.shouldAddStoreAsynchronously = true
+                description.shouldAddStoreAsynchronously = false
                 container.persistentStoreDescriptions = [description]
-
             }
         }
 
-        // We load the persistent store asynchronously to avoid a main-thread deadlock during early app
-        // launch. CoreData internally may try to dispatch back to the main thread during store loading
-        // recovery; if the main thread is blocked waiting for this call, a deadlock occurs. With
-        // shouldAddStoreAsynchronously = true, the context automatically queues operations until the
-        // store is ready, so callers are unaffected. Load errors are logged in the completion callback.
         loadPersistentStoreIfNeeded(logIfEmpty: false)
 
         context = container.newBackgroundContext()
