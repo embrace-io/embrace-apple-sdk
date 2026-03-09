@@ -287,7 +287,7 @@ class UnsentDataHandler {
         }
 
         // remove old metadata
-        cleanMetadata(storage: storage, currentSessionId: currentSessionId?.stringValue)
+        cleanMetadata(storage: storage)
 
         group.leave()
         group.notify(queue: .global(qos: .utility)) {
@@ -371,9 +371,8 @@ class UnsentDataHandler {
         storage.closeOpenSpans(endTime: endTime)
     }
 
-    static private func cleanMetadata(storage: EmbraceStorage, currentSessionId: String? = nil) {
-        let sessionId = currentSessionId ?? Embrace.client?.currentSessionId()
-        storage.cleanMetadata(currentSessionId: sessionId, currentProcessId: ProcessIdentifier.current.stringValue)
+    static private func cleanMetadata(storage: EmbraceStorage) {
+        storage.cleanMetadata()
     }
 
     static func sendCriticalLogs(fileUrl: URL?, upload: EmbraceUpload?, completion: UnsentDataHandlerCompletion? = nil) {
