@@ -119,6 +119,7 @@ import OpenTelemetrySdk
         return try setup(options: options, otelResource: nil)
     }
 
+    @discardableResult
     package static func setup(options: Embrace.Options, otelResource: Resource?) throws -> Embrace {
 
         if !Thread.isMainThread {
