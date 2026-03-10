@@ -235,7 +235,7 @@ jobs:
           zip -r "embrace_$RC_VERSION.zip" "embrace_$RC_VERSION"
 
       - name: Store Release Archive
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: Embrace Release Archive
           path: embrace_${{ env.RC_VERSION }}.zip
@@ -262,7 +262,7 @@ jobs:
           persist-credentials: false
 
       - name: Download Embrace Release Archive
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: Embrace Release Archive
 
