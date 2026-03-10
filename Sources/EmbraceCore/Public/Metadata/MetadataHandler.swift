@@ -68,10 +68,6 @@ public class MetadataHandler: NSObject {
         }
 
         super.init()
-
-        DispatchQueue.global(qos: .utility).async { [weak self] in
-            self?.cloneDataBase()
-        }
     }
 
     /// Adds a resource with the given key, value and lifespan.
@@ -260,49 +256,6 @@ extension MetadataLifespan {
         case .session: return .session
         case .process: return .process
         case .permanent: return .permanent
-        }
-    }
-}
-
-// tmp core data stack
-extension MetadataHandler {
-    func cloneDataBase() {
-        guard let coreData = coreData,
-            let storage = storage
-        else {
-            return
-        }
-
-        let request = NSFetchRequest<MetadataRecordTmp>(entityName: MetadataRecordTmp.entityName)
-
-        coreData.fetchAndPerform(withRequest: request) { oldRecords in
-            for record in oldRecords {
-                guard let type = MetadataRecordType(rawValue: record.type),
-                    let lifespan = MetadataRecordLifespan(rawValue: record.lifespan)
-                else {
-                    continue
-                }
-
-                storage.addMetadata(
-                    key: record.key,
-                    value: record.value,
-                    type: type,
-                    lifespan: lifespan,
-                    lifespanId: record.lifespanId
-                )
-            }
-        }
-
-        // remove temporary db file
-        switch coreData.options.storageMechanism {
-        case .onDisk:
-            if let url = coreData.options.storageMechanism.fileURL {
-                do {
-                    try FileManager.default.removeItem(at: url)
-                } catch {}
-            }
-
-        default: return
         }
     }
 }
