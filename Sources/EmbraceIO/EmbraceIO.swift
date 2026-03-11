@@ -67,7 +67,7 @@ public class EmbraceIO {
     /// - Note: This method won't do anything if the Embrace SDK was already setup.
     public static func setup(options: EmbraceIO.Options) throws {
         if let internalOptions = Embrace.Options.from(options: options) {
-            try Embrace.setup(options: internalOptions, otelResource: options.otel?.resource)
+            try Embrace.setup(options: internalOptions, otelResources: options.otel?.resource)
         }
     }
 
