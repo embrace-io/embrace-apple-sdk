@@ -45,6 +45,11 @@ class LogController: LogControllable {
     /// For consistency, I created a constant
     static let maxLogsPerBatch: Int = 20
 
+    /// Returns the batch size to use for unsent log uploads.
+    /// Defaults to adaptive sizing based on available memory.
+    /// Can be overridden in tests to use a fixed value.
+    var maxLogsPerBatchProvider: () -> Int = { LogController.adaptiveMaxLogsPerBatch() }
+
     struct MutableState {
         var limits: LogsLimits = LogsLimits()
     }
@@ -76,7 +81,7 @@ class LogController: LogControllable {
 
         let logs: [EmbraceLog] = storage.fetchAll(excludingProcessIdentifier: ProcessIdentifier.current)
         if logs.isEmpty == false {
-            let batchSize = Self.adaptiveMaxLogsPerBatch()
+            let batchSize = maxLogsPerBatchProvider()
             send(batches: divideInBatches(logs, maxLogsPerBatch: batchSize)) {
                 completion?()
             }
