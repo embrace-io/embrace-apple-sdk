@@ -344,11 +344,41 @@ let package = Package(
         ),
         .target(
             name: "EmbraceProfiling",
-            dependencies: ["EmbraceProfilingSampler"]
+            dependencies: [
+                "EmbraceProfilingSampler",
+                .product(name: "Recording", package: "KSCrash")
+            ]
         ),
         .testTarget(
             name: "EmbraceProfilingTests",
-            dependencies: ["EmbraceProfiling"]
+            dependencies: [
+                "EmbraceProfiling",
+                "EmbraceProfilingTestSupport",
+                "EmbraceProfilingTestSupportNoFP"
+            ]
+        ),
+        .target(
+            name: "EmbraceProfilingTestSupport",
+            path: "Tests/EmbraceProfilingTestSupport"
+        ),
+        .target(
+            name: "EmbraceProfilingTestSupportNoFP",
+            path: "Tests/EmbraceProfilingTestSupportNoFP",
+            cSettings: [.unsafeFlags(["-fomit-frame-pointer"])]
+        ),
+        .testTarget(
+            name: "EmbraceProfilingSamplerTests",
+            dependencies: ["EmbraceProfilingSampler", "EmbraceProfilingTestSupport"]
+        ),
+        .executableTarget(
+            name: "ProfilingBenchmarkRunner",
+            dependencies: [
+                "EmbraceProfilingSampler",
+                "EmbraceProfilingTestSupport",
+                "EmbraceProfilingTestSupportNoFP",
+                .product(name: "Recording", package: "KSCrash")
+            ],
+            path: "Tests/ProfilingBenchmarkRunner"
         ),
 
         // test support --------------------------------------------------------------

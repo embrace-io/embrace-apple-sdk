@@ -125,11 +125,11 @@ public final class ProfilingEngine {
             return samples
         }
 
-        private func fakeSampleFrames(seed: UInt64) -> [UInt64] {
+        private func fakeSampleFrames(seed: UInt64) -> [UInt] {
             // Simulate main thread call stacks with realistic arm64 addresses.
 
             // Usually the base will look like this:
-            let runLoopBase: [UInt64] = [
+            let runLoopBase: [UInt] = [
                 0x00000001_8B6E6000,  // CoreFoundation: CFRunLoopRunSpecific
                 0x00000001_8B6E5800,  // CoreFoundation: __CFRunLoopRun
                 0x00000001_8B6E2400,  // CoreFoundation: __CFRunLoopDoSources0
@@ -144,7 +144,7 @@ public final class ProfilingEngine {
             ]
 
             // Varying stack tops
-            var top: [UInt64]
+            var top: [UInt]
             switch seed % 5 {
             case 0:
                 top = [

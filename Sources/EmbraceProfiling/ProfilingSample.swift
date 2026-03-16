@@ -8,9 +8,9 @@ public struct ProfilingSample {
     public let timestamp: UInt64
 
     /// Raw return addresses from the captured stack trace.
-    public let frames: [UInt64]
+    public let frames: [UInt]
 
-    public init(timestamp: UInt64, frames: [UInt64]) {
+    public init(timestamp: UInt64, frames: [UInt]) {
         self.timestamp = timestamp
         self.frames = frames
     }
