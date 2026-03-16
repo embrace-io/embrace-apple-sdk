@@ -1,0 +1,9 @@
+//
+//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
+//
+
+module EmbraceProfilingTestSupport {
+    umbrella header "EmbraceProfilingTestSupport.h"
+    export *
+    module * { export * }
+}
