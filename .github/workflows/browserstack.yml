@@ -47,7 +47,7 @@ jobs:
         with:
           ref: ${{ inputs.ref || github.ref }}
           persist-credentials: false
-      
+
       - name: Install dependencies
         run: |
           brew install xcbeautify
