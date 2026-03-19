@@ -320,18 +320,22 @@ extension LogController {
     }
 
     static func adaptiveMaxLogsPerBatch() -> Int {
-        let availableMemory = os_proc_available_memory()
-
-        switch availableMemory {
-        case 0..<(15 * 1024 * 1024):
-            return 1
-        case ..<(30 * 1024 * 1024):
-            return 5
-        case ..<(50 * 1024 * 1024):
-            return 10
-        default:
+        #if os(macOS)
             return maxLogsPerBatch
-        }
+        #else
+            let availableMemory = os_proc_available_memory()
+
+            switch availableMemory {
+            case 0..<(15 * 1024 * 1024):
+                return 1
+            case ..<(30 * 1024 * 1024):
+                return 5
+            case ..<(50 * 1024 * 1024):
+                return 10
+            default:
+                return maxLogsPerBatch
+            }
+        #endif
     }
 
     fileprivate func divideInBatches(_ logs: [EmbraceLog], maxLogsPerBatch: Int = LogController.maxLogsPerBatch) -> [LogsBatch] {
