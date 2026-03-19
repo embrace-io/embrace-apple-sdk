@@ -195,29 +195,44 @@ extension EmbraceStorage {
         }
     }
 
-    /// Removes all `MetadataRecords` that don't correspond to the given session and process ids.
+    /// Removes all `MetadataRecords` that don't correspond to any stored session.
     /// Permanent metadata is not removed.
-    public func cleanMetadata(currentSessionId: String?, currentProcessId: String) {
+    public func cleanMetadata() {
+        let sessions = fetchAllSessions()
+        let sessionIds = sessions.compactMap { $0.idRaw }
+        let processIds = Array(Set(sessions.map { $0.processIdRaw }))
+
         let request = MetadataRecord.createFetchRequest()
 
-        let processIdPredicate = NSPredicate(
-            format: "lifespanRaw == %@ AND lifespanId != %@",
-            MetadataRecordLifespan.process.rawValue,
-            currentProcessId
-        )
-
-        if let currentSessionId = currentSessionId {
-            let sessionIdPredicate = NSPredicate(
-                format: "lifespanRaw == %@ AND lifespanId != %@",
-                MetadataRecordLifespan.session.rawValue,
-                currentSessionId
+        let sessionPredicate: NSPredicate
+        if sessionIds.isEmpty {
+            sessionPredicate = NSPredicate(
+                format: "lifespanRaw == %@",
+                MetadataRecordLifespan.session.rawValue
             )
-
-            request.predicate = NSCompoundPredicate(type: .or, subpredicates: [sessionIdPredicate, processIdPredicate])
         } else {
-            request.predicate = processIdPredicate
+            sessionPredicate = NSPredicate(
+                format: "lifespanRaw == %@ AND NOT (lifespanId IN %@)",
+                MetadataRecordLifespan.session.rawValue,
+                sessionIds
+            )
         }
 
+        let processPredicate: NSPredicate
+        if processIds.isEmpty {
+            processPredicate = NSPredicate(
+                format: "lifespanRaw == %@",
+                MetadataRecordLifespan.process.rawValue
+            )
+        } else {
+            processPredicate = NSPredicate(
+                format: "lifespanRaw == %@ AND NOT (lifespanId IN %@)",
+                MetadataRecordLifespan.process.rawValue,
+                processIds
+            )
+        }
+
+        request.predicate = NSCompoundPredicate(type: .or, subpredicates: [sessionPredicate, processPredicate])
         coreData.deleteRecords(withRequest: request)
     }
 
