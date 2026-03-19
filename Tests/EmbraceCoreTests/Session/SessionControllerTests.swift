@@ -462,6 +462,52 @@ final class SessionControllerTests: XCTestCase {
 
     // MARK: heartbeat
 
+    func test_startSession_assignsSessionNumber() throws {
+        // when starting a session
+        let session = controller.startSession(state: .foreground)
+
+        // then the session has sessionNumber 1
+        XCTAssertEqual(session?.sessionNumber, 1)
+
+        // and the MetadataRecord counter was incremented to 1
+        let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionNumberKey)
+        XCTAssertEqual(resource?.value, "1")
+    }
+
+    func test_startSession_incrementsSessionNumberEachTime() throws {
+        // when starting and ending two sessions
+        let first = controller.startSession(state: .foreground)
+        controller.endSession()
+        let second = controller.startSession(state: .foreground)
+
+        // then each session has a distinct, incrementing sessionNumber
+        XCTAssertEqual(first?.sessionNumber, 1)
+        XCTAssertEqual(second?.sessionNumber, 2)
+
+        // and the MetadataRecord reflects the final count
+        let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionNumberKey)
+        XCTAssertEqual(resource?.value, "2")
+    }
+
+    func test_startSession_continuesFromExistingCounter() throws {
+        // given an existing counter value of 5
+        storage.addMetadata(
+            key: SessionController.sessionNumberKey,
+            value: "5",
+            type: .requiredResource,
+            lifespan: .permanent
+        )
+
+        // when starting a session
+        let session = controller.startSession(state: .foreground)
+
+        // then sessionNumber continues from 6
+        XCTAssertEqual(session?.sessionNumber, 6)
+
+        let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionNumberKey)
+        XCTAssertEqual(resource?.value, "6")
+    }
+
     func test_heartbeat() throws {
         // given a session controller
         let controller = SessionController(storage: storage, upload: nil, config: nil, heartbeatInterval: 0.1)

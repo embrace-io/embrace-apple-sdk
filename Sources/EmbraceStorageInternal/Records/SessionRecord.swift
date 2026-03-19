@@ -31,6 +31,9 @@ public class SessionRecord: NSManagedObject {
     /// Used to mark the session that is active when the application was explicitly terminated by the user and/or system
     @NSManaged public var appTerminated: Bool
 
+    /// The value of the `emb.session.upload_index` counter at the time this session was created
+    @NSManaged public var sessionNumber: Int
+
     /// Note that this must be called within a `perform` on the CoreData context.
     class func create(
         context: NSManagedObjectContext,
@@ -45,7 +48,8 @@ public class SessionRecord: NSManagedObject {
         crashReportId: String? = nil,
         coldStart: Bool = false,
         cleanExit: Bool = false,
-        appTerminated: Bool = false
+        appTerminated: Bool = false,
+        sessionNumber: Int = 0
     ) -> Bool {
         guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
             return false
@@ -64,6 +68,7 @@ public class SessionRecord: NSManagedObject {
         record.coldStart = coldStart
         record.cleanExit = cleanExit
         record.appTerminated = appTerminated
+        record.sessionNumber = sessionNumber
 
         return true
     }
@@ -85,7 +90,8 @@ public class SessionRecord: NSManagedObject {
             crashReportId: crashReportId,
             coldStart: coldStart,
             cleanExit: cleanExit,
-            appTerminated: appTerminated
+            appTerminated: appTerminated,
+            sessionNumber: sessionNumber
         )
     }
 }
@@ -149,6 +155,11 @@ extension SessionRecord: EmbraceStorageRecord {
         appTerminatedAttribute.name = "appTerminated"
         appTerminatedAttribute.attributeType = .booleanAttributeType
 
+        let sessionNumberAttribute = NSAttributeDescription()
+        sessionNumberAttribute.name = "sessionNumber"
+        sessionNumberAttribute.attributeType = .integer64AttributeType
+        sessionNumberAttribute.defaultValue = 0
+
         entity.properties = [
             idAttribute,
             processIdAttribute,
@@ -161,7 +172,8 @@ extension SessionRecord: EmbraceStorageRecord {
             crashReportIdAttribute,
             coldStartAttribute,
             cleanExitAttribute,
-            appTerminatedAttribute
+            appTerminatedAttribute,
+            sessionNumberAttribute
         ]
 
         return entity
@@ -181,4 +193,5 @@ struct ImmutableSessionRecord: EmbraceSession {
     let coldStart: Bool
     let cleanExit: Bool
     let appTerminated: Bool
+    let sessionNumber: Int
 }

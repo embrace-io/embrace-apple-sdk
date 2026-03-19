@@ -20,8 +20,7 @@ class SpansPayloadBuilder {
     class func build(
         for session: EmbraceSession,
         storage: EmbraceStorage,
-        customProperties: [EmbraceMetadata] = [],
-        sessionNumber: Int = -1
+        customProperties: [EmbraceMetadata] = []
     ) -> (spans: [SpanPayload], spanSnapshots: [SpanPayload]) {
 
         let endTime = session.endTime ?? session.lastHeartbeatTime
@@ -38,8 +37,7 @@ class SpansPayloadBuilder {
         if let sessionSpanPayload = buildSessionSpanPayload(
             for: session,
             storage: storage,
-            customProperties: customProperties,
-            sessionNumber: sessionNumber
+            customProperties: customProperties
         ) {
             spans.append(sessionSpanPayload)
         }
@@ -108,8 +106,7 @@ class SpansPayloadBuilder {
     class func buildSessionSpanPayload(
         for session: EmbraceSession,
         storage: EmbraceStorage,
-        customProperties: [EmbraceMetadata] = [],
-        sessionNumber: Int
+        customProperties: [EmbraceMetadata] = []
     ) -> SpanPayload? {
 
         let sessionSpan = storage.fetchSpan(id: session.spanId, traceId: session.traceId)
@@ -131,7 +128,7 @@ class SpansPayloadBuilder {
             from: session,
             spanData: adjustedSpanData,
             properties: customProperties,
-            sessionNumber: sessionNumber
+            sessionNumber: session.sessionNumber
         )
     }
 }
