@@ -49,7 +49,9 @@
     // We can't call `-respondsToSelector:` from here.
     if (sel == @selector(URLSession:task:didCompleteWithError:) ||
         sel == @selector(URLSession:task:didFinishCollectingMetrics:) ||
-        sel == @selector(URLSession:dataTask:didReceiveData:)) {
+        sel == @selector(URLSession:dataTask:didReceiveData:) ||
+        sel == @selector(URLSession:didBecomeInvalidWithError:)) {
+
         return nil;
     }
 
@@ -76,6 +78,17 @@
 - (BOOL)conformsToProtocol:(Protocol *)aProtocol
 {
     return [super conformsToProtocol:aProtocol] || [self.originalDelegate conformsToProtocol:aProtocol];
+}
+
+#pragma mark - NSURLSessionDelegate
+
+- (void)URLSession:(NSURLSession *)session didBecomeInvalidWithError:(NSError *)error
+{
+    if ([self.originalDelegate respondsToSelector:_cmd]) {
+        [(id<NSURLSessionDelegate>)self.originalDelegate URLSession:session didBecomeInvalidWithError:error];
+    }
+    self.originalDelegate = nil;
+    self.handler = nil;
 }
 
 #pragma mark - NSURLSessionTaskDelegate
