@@ -116,7 +116,8 @@ public final class ProfilingEngine {
                     samples.append(
                         ProfilingSample(
                             timestamp: tick,
-                            frames: fakeSampleFrames(seed: tick)
+                            frames: fakeSampleFrames(seed: tick),
+                            unwindMethod: .framePointer  // Fake samples use FP method
                         ))
                 }
                 tick += intervalNs

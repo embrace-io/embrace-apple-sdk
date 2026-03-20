@@ -30,15 +30,15 @@ private let minFPFrames = 3
 /// - Parameters:
 ///   - thread: The Mach thread port of the suspended thread.
 ///   - maxFrames: Maximum number of frames to capture.
-/// - Returns: An array of return addresses, or an empty array on failure.
-func captureStack(thread: thread_t, maxFrames: Int = 512) -> [UInt] {
+/// - Returns: A tuple containing the array of return addresses and the method used to capture them.
+func captureStack(thread: thread_t, maxFrames: Int = 512) -> (frames: [UInt], method: StackUnwindMethod) {
     // Try fast frame-pointer walking first.
     var frames = [UInt](repeating: 0, count: maxFrames)
     var count = 0
     let success = emb_stack_walk(thread, &frames, maxFrames, &count)
 
     if success && count >= minFPFrames {
-        return Array(frames[0..<count])
+        return (Array(frames[0..<count]), .framePointer)
     }
 
     // Fall back to KSCrash's unwinder.
@@ -47,12 +47,16 @@ func captureStack(thread: thread_t, maxFrames: Int = 512) -> [UInt] {
         let ksCount = captureBacktrace(thread: pthread, addresses: &ksFrames, count: Int32(maxFrames))
 
         if ksCount > 0 {
-            return Array(ksFrames[0..<Int(ksCount)])
+            return (Array(ksFrames[0..<Int(ksCount)]), .kscrash)
         }
     }
-    
+
     // Just return whatever FP walking got us.
-    return success && count > 0 ? Array(frames[0..<count]) : []
+    if success && count > 0 {
+        return (Array(frames[0..<count]), .framePointerPartial)
+    }
+
+    return ([], .framePointerPartial)
 }
 
 #endif
