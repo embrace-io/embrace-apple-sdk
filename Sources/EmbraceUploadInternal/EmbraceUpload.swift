@@ -19,6 +19,7 @@ public class EmbraceUpload: EmbraceLogUploader {
     public private(set) var options: Options
     public private(set) var logger: InternalLogger
     public private(set) var queue: DispatchQueue
+    public private(set) var retryQueue: DispatchQueue
 
     private let isRetryingCache = EmbraceAtomic(false)
 
@@ -41,6 +42,7 @@ public class EmbraceUpload: EmbraceLogUploader {
         self.options = options
         self.logger = logger
         self.queue = queue
+        self.retryQueue = DispatchQueue(label: "com.embrace.upload.retry", qos: .utility)
 
         cache = try EmbraceUploadCache(options: options.cache, logger: logger)
 
@@ -67,13 +69,8 @@ public class EmbraceUpload: EmbraceLogUploader {
         let group = DispatchGroup()
         group.enter()
 
-        queue.async { [weak self] in
+        retryQueue.async { [weak self] in
             guard let strongSelf = self else {
-                return
-            }
-
-            // in place mechanism to not retry sending cache data at the same time
-            guard strongSelf.isRetryingCache.compareExchange(expected: false, desired: true) else {
                 return
             }
 
@@ -81,6 +78,11 @@ public class EmbraceUpload: EmbraceLogUploader {
                 // on finishing everything, allow to retry cache (i.e. reconnection)
                 strongSelf.isRetryingCache.store(false)
                 group.leave()
+            }
+
+            // in place mechanism to not retry sending cache data at the same time
+            guard strongSelf.isRetryingCache.compareExchange(expected: false, desired: true) else {
+                return
             }
 
             // clear data from cache that shouldn't be retried as it's stale

@@ -4,6 +4,13 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      github:
+        patterns:
+          - "actions/*"
+      embrace-io:
+        patterns:
+          - "embrace-io/*"
   - package-ecosystem: "swift"
     directory: "/"
     schedule:

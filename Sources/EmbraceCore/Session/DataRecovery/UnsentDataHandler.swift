@@ -26,8 +26,7 @@ class UnsentDataHandler {
         completion: UnsentDataHandlerCompletion? = nil
     ) {
 
-        guard let storage = storage,
-            let upload = upload
+        guard let storage = storage
         else {
             completion?()
             return
@@ -88,7 +87,7 @@ class UnsentDataHandler {
 
     static private func sendCrashReports(
         storage: EmbraceStorage,
-        upload: EmbraceUpload,
+        upload: EmbraceUpload?,
         otel: EmbraceOpenTelemetry?,
         currentSessionId: EmbraceIdentifier?,
         crashReporter: EmbraceCrashReporter,
@@ -174,6 +173,7 @@ class UnsentDataHandler {
         )
 
         guard let upload = upload else {
+            reporter?.deleteCrashReport(report)
             completion?()
             return
         }
@@ -251,7 +251,7 @@ class UnsentDataHandler {
 
     static private func sendSessions(
         storage: EmbraceStorage,
-        upload: EmbraceUpload,
+        upload: EmbraceUpload?,
         currentSessionId: EmbraceIdentifier?,
         completion: UnsentDataHandlerCompletion? = nil
     ) {
@@ -287,7 +287,7 @@ class UnsentDataHandler {
         }
 
         // remove old metadata
-        cleanMetadata(storage: storage, currentSessionId: currentSessionId?.stringValue)
+        cleanMetadata(storage: storage)
 
         group.leave()
         group.notify(queue: .global(qos: .utility)) {
@@ -298,7 +298,7 @@ class UnsentDataHandler {
     static public func sendSession(
         _ session: EmbraceSession,
         storage: EmbraceStorage,
-        upload: EmbraceUpload,
+        upload: EmbraceUpload?,
         performCleanUp: Bool = true,
         completion: UnsentDataHandlerCompletion? = nil
     ) {
@@ -325,6 +325,13 @@ class UnsentDataHandler {
         }
 
         // upload session spans
+        guard let upload = upload else {
+            if let sessionId = session.id {
+                storage.deleteSession(id: sessionId)
+            }
+            completion?()
+            return
+        }
         upload.uploadSpans(id: session.idRaw, data: payloadData) { result in
             switch result {
             case .success:
@@ -364,9 +371,8 @@ class UnsentDataHandler {
         storage.closeOpenSpans(endTime: endTime)
     }
 
-    static private func cleanMetadata(storage: EmbraceStorage, currentSessionId: String? = nil) {
-        let sessionId = currentSessionId ?? Embrace.client?.currentSessionId()
-        storage.cleanMetadata(currentSessionId: sessionId, currentProcessId: ProcessIdentifier.current.stringValue)
+    static private func cleanMetadata(storage: EmbraceStorage) {
+        storage.cleanMetadata()
     }
 
     static func sendCriticalLogs(fileUrl: URL?, upload: EmbraceUpload?, completion: UnsentDataHandlerCompletion? = nil) {

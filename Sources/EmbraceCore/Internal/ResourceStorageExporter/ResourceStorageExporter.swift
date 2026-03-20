@@ -12,26 +12,18 @@ import OpenTelemetrySdk
     import EmbraceOTelInternal
 #endif
 
-class ConcreteEmbraceResource: EmbraceResource {
-    var key: String
-    var value: ResourceValue
-
-    init(key: String, value: ResourceValue) {
-        self.key = key
-        self.value = value
-    }
-}
-
 class ResourceStorageExporter: EmbraceResourceProvider {
     private(set) weak var storage: EmbraceStorage?
+    private(set) var resource: Resource?
 
-    public init(storage: EmbraceStorage) {
+    public init(storage: EmbraceStorage, resource: Resource? = nil) {
         self.storage = storage
+        self.resource = resource
     }
 
     func getResource() -> Resource {
         guard let storage = storage else {
-            return Resource()
+            return resource ?? Resource()
         }
 
         let records = storage.fetchAllResources()
@@ -56,6 +48,13 @@ class ResourceStorageExporter: EmbraceResourceProvider {
             attributes[SemanticConventions.Telemetry.sdkLanguage.rawValue] = .string("swift")
         }
 
-        return Resource(attributes: attributes)
+        var finalResources = Resource(attributes: attributes)
+
+        // if the user passed custom resources, those take priority
+        if let resource = resource {
+            finalResources.merge(other: resource)
+        }
+
+        return finalResources
     }
 }

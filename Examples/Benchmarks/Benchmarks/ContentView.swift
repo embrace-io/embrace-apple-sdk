@@ -3,6 +3,7 @@
 //
 
 import Darwin
+@_spi(Private) import EmbraceCore
 import EmbraceIO
 import SwiftUI
 

@@ -95,6 +95,12 @@ class LogController: LogControllable {
         stackTraceBehavior: StackTraceBehavior = .default,
         queue: DispatchQueue
     ) {
+
+        guard severity != .critical else {
+            Embrace.logger.info("Critical logs are for internal use only!")
+            return
+        }
+
         guard let sessionController = sessionController else {
             return
         }

@@ -39,7 +39,8 @@ extension Embrace {
         customExporter: OpenTelemetryExport? = nil,
         customProcessors: [any SpanProcessor]? = nil,
         sdkStateProvider: EmbraceSDKStateProvider,
-        useNewStorageForSpanEvents: Bool
+        useNewStorageForSpanEvents: Bool,
+        resource: Resource? = nil
     ) -> [any SpanProcessor] {
 
         // Base Embrace exporter used by everything.
@@ -65,7 +66,7 @@ extension Embrace {
             logger: Embrace.logger,
             sessionIdProvider: { sessionController.currentSession?.idRaw },
             criticalResourceGroup: captureServicesGroup,
-            resourceProvider: { ResourceStorageExporter(storage: storage).getResource() }
+            resourceProvider: { ResourceStorageExporter(storage: storage, resource: resource).getResource() }
         )
 
         // Combine with any custom processors.
