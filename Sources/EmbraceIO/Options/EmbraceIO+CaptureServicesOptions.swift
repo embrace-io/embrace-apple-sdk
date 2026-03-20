@@ -15,11 +15,11 @@ extension EmbraceIO {
     /// Refer to `CaptureServicesOptionsBuilder` if you want a custom setup.
     public final class CaptureServicesOptions {
         let urlSession: URLSessionCaptureService.Options?
-        #if !os(watchOS)
+        #if canImport(UIKit) && !os(watchOS)
             let tap: TapCaptureService.Options?
             let view: ViewCaptureService.Options?
         #endif
-        #if !os(tvOS) && !os(watchOS)
+        #if canImport(WebKit)
             let webView: WebViewCaptureService.Options?
         #endif
         let pushNotification: PushNotificationCaptureService.Options?
@@ -31,6 +31,70 @@ extension EmbraceIO {
         public class func `default`() -> EmbraceIO.CaptureServicesOptions {
             return CaptureServicesOptions()
         }
+        #if canImport(UIKit) && !os(watchOS)
+            #if canImport(WebKit)
+                internal init(
+                    urlSession: URLSessionCaptureService.Options? = .init(),
+                    tap: TapCaptureService.Options? = .init(),
+                    view: ViewCaptureService.Options? = .init(),
+                    webView: WebViewCaptureService.Options? = .init(),
+                    pushNotification: PushNotificationCaptureService.Options? = nil,
+                    lowMemoryWarning: Bool = true,
+                    lowPowerMode: Bool = true,
+                    hang: Bool = false,
+                    customServices: [CaptureService] = []
+                ) {
+                    self.urlSession = urlSession
+                    self.tap = tap
+                    self.view = view
+                    self.webView = webView
+                    self.pushNotification = pushNotification
+                    self.lowMemoryWarning = lowMemoryWarning
+                    self.lowPowerMode = lowPowerMode
+                    self.hang = hang
+                    self.customServices = customServices
+                }
+            #else
+                internal init(
+                    urlSession: URLSessionCaptureService.Options? = .init(),
+                    tap: TapCaptureService.Options? = .init(),
+                    view: ViewCaptureService.Options? = .init(),
+                    pushNotification: PushNotificationCaptureService.Options? = nil,
+                    lowMemoryWarning: Bool = true,
+                    lowPowerMode: Bool = true,
+                    hang: Bool = false,
+                    customServices: [CaptureService] = []
+                ) {
+                    self.urlSession = urlSession
+                    self.tap = tap
+                    self.view = view
+                    self.pushNotification = pushNotification
+                    self.lowMemoryWarning = lowMemoryWarning
+                    self.lowPowerMode = lowPowerMode
+                    self.hang = hang
+                    self.customServices = customServices
+                }
+            #endif
+        #endif
+        #if !canImport(UIKit) && canImport(WebKit)
+            internal init(
+                urlSession: URLSessionCaptureService.Options? = .init(),
+                webView: WebViewCaptureService.Options? = .init(),
+                pushNotification: PushNotificationCaptureService.Options? = nil,
+                lowMemoryWarning: Bool = true,
+                lowPowerMode: Bool = true,
+                hang: Bool = false,
+                customServices: [CaptureService] = []
+            ) {
+                self.urlSession = urlSession
+                self.webView = webView
+                self.pushNotification = pushNotification
+                self.lowMemoryWarning = lowMemoryWarning
+                self.lowPowerMode = lowPowerMode
+                self.hang = hang
+                self.customServices = customServices
+            }
+        #endif
         #if os(watchOS)
             internal init(
                 urlSession: URLSessionCaptureService.Options? = .init(),
@@ -49,49 +113,7 @@ extension EmbraceIO {
             }
 
         #endif
-        #if os(tvOS)
-            internal init(
-                urlSession: URLSessionCaptureService.Options? = .init(),
-                tap: TapCaptureService.Options? = .init(),
-                view: ViewCaptureService.Options? = .init(),
-                pushNotification: PushNotificationCaptureService.Options? = nil,
-                lowMemoryWarning: Bool = true,
-                lowPowerMode: Bool = true,
-                hang: Bool = false,
-                customServices: [CaptureService] = []
-            ) {
-                self.urlSession = urlSession
-                self.tap = tap
-                self.view = view
-                self.pushNotification = pushNotification
-                self.lowMemoryWarning = lowMemoryWarning
-                self.lowPowerMode = lowPowerMode
-                self.hang = hang
-                self.customServices = customServices
-            }
-        #else
-            internal init(
-                urlSession: URLSessionCaptureService.Options? = .init(),
-                tap: TapCaptureService.Options? = .init(),
-                view: ViewCaptureService.Options? = .init(),
-                webView: WebViewCaptureService.Options? = .init(),
-                pushNotification: PushNotificationCaptureService.Options? = nil,
-                lowMemoryWarning: Bool = true,
-                lowPowerMode: Bool = true,
-                hang: Bool = false,
-                customServices: [CaptureService] = []
-            ) {
-                self.urlSession = urlSession
-                self.tap = tap
-                self.view = view
-                self.webView = webView
-                self.pushNotification = pushNotification
-                self.lowMemoryWarning = lowMemoryWarning
-                self.lowPowerMode = lowPowerMode
-                self.hang = hang
-                self.customServices = customServices
-            }
-        #endif
+
         var list: [CaptureService] {
             var services: [CaptureService] = []
 
@@ -99,7 +121,7 @@ extension EmbraceIO {
             if let urlSessionOptions = urlSession {
                 services.append(URLSessionCaptureService(options: urlSessionOptions))
             }
-            #if !os(watchOS)
+            #if canImport(UIKit) && !os(watchOS)
                 // tap
                 if let tapOptions = tap {
                     services.append(TapCaptureService(options: tapOptions))
@@ -109,7 +131,7 @@ extension EmbraceIO {
                     services.append(ViewCaptureService(options: viewOptions))
                 }
             #endif
-            #if !os(tvOS) && !os(watchOS)
+            #if canImport(WebView)
                 if let webViewOptions = webView {
                     services.append(WebViewCaptureService(options: webViewOptions))
                 }
