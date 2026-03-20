@@ -18,25 +18,37 @@ public class CaptureServicesOptionsBuilder: NSObject {
     public func build() -> EmbraceIO.CaptureServicesOptions {
 
         let urlSession = map[.urlSession] as? URLSessionCaptureService.Options
-        let tap = map[.tap] as? TapCaptureService.Options
-        let view = map[.view] as? ViewCaptureService.Options
-        let webView = map[.webView] as? WebViewCaptureService.Options
+        #if !os(watchOS)
+            let tap = map[.tap] as? TapCaptureService.Options
+            let view = map[.view] as? ViewCaptureService.Options
+            let webView = map[.webView] as? WebViewCaptureService.Options
+        #endif
         let pushNotification = map[.pushNotification] as? PushNotificationCaptureService.Options
         let lowMemoryWarning = (map[.lowMemoryWarning] as? Bool) ?? false
         let lowPowerMode = (map[.lowPowerMode] as? Bool) ?? false
         let hang = (map[.hang] as? Bool) ?? false
-
-        return EmbraceIO.CaptureServicesOptions(
-            urlSession: urlSession,
-            tap: tap,
-            view: view,
-            webView: webView,
-            pushNotification: pushNotification,
-            lowMemoryWarning: lowMemoryWarning,
-            lowPowerMode: lowPowerMode,
-            hang: hang,
-            customServices: customServices
-        )
+        #if !os(watchOS)
+            return EmbraceIO.CaptureServicesOptions(
+                urlSession: urlSession,
+                tap: tap,
+                view: view,
+                webView: webView,
+                pushNotification: pushNotification,
+                lowMemoryWarning: lowMemoryWarning,
+                lowPowerMode: lowPowerMode,
+                hang: hang,
+                customServices: customServices
+            )
+        #else
+            return EmbraceIO.CaptureServicesOptions(
+                urlSession: urlSession,
+                pushNotification: pushNotification,
+                lowMemoryWarning: lowMemoryWarning,
+                lowPowerMode: lowPowerMode,
+                hang: hang,
+                customServices: customServices
+            )
+        #endif
     }
 
     /// Adds the default `CaptureServices` using their corresponding default options.

@@ -15,9 +15,11 @@ extension EmbraceIO {
     /// Refer to `CaptureServicesOptionsBuilder` if you want a custom setup.
     public final class CaptureServicesOptions {
         let urlSession: URLSessionCaptureService.Options?
-        let tap: TapCaptureService.Options?
-        let view: ViewCaptureService.Options?
-        let webView: WebViewCaptureService.Options?
+        #if !os(watchOS)
+            let tap: TapCaptureService.Options?
+            let view: ViewCaptureService.Options?
+            let webView: WebViewCaptureService.Options?
+        #endif
         let pushNotification: PushNotificationCaptureService.Options?
         let lowMemoryWarning: Bool
         let lowPowerMode: Bool
@@ -27,29 +29,45 @@ extension EmbraceIO {
         public class func `default`() -> EmbraceIO.CaptureServicesOptions {
             return CaptureServicesOptions()
         }
-
-        internal init(
-            urlSession: URLSessionCaptureService.Options? = .init(),
-            tap: TapCaptureService.Options? = .init(),
-            view: ViewCaptureService.Options? = .init(),
-            webView: WebViewCaptureService.Options? = .init(),
-            pushNotification: PushNotificationCaptureService.Options? = nil,
-            lowMemoryWarning: Bool = true,
-            lowPowerMode: Bool = true,
-            hang: Bool = false,
-            customServices: [CaptureService] = []
-        ) {
-            self.urlSession = urlSession
-            self.tap = tap
-            self.view = view
-            self.webView = webView
-            self.pushNotification = pushNotification
-            self.lowMemoryWarning = lowMemoryWarning
-            self.lowPowerMode = lowPowerMode
-            self.hang = hang
-            self.customServices = customServices
-        }
-
+        #if !os(watchOS)
+            internal init(
+                urlSession: URLSessionCaptureService.Options? = .init(),
+                tap: TapCaptureService.Options? = .init(),
+                view: ViewCaptureService.Options? = .init(),
+                webView: WebViewCaptureService.Options? = .init(),
+                pushNotification: PushNotificationCaptureService.Options? = nil,
+                lowMemoryWarning: Bool = true,
+                lowPowerMode: Bool = true,
+                hang: Bool = false,
+                customServices: [CaptureService] = []
+            ) {
+                self.urlSession = urlSession
+                self.tap = tap
+                self.view = view
+                self.webView = webView
+                self.pushNotification = pushNotification
+                self.lowMemoryWarning = lowMemoryWarning
+                self.lowPowerMode = lowPowerMode
+                self.hang = hang
+                self.customServices = customServices
+            }
+        #else
+            internal init(
+                urlSession: URLSessionCaptureService.Options? = .init(),
+                pushNotification: PushNotificationCaptureService.Options? = nil,
+                lowMemoryWarning: Bool = true,
+                lowPowerMode: Bool = true,
+                hang: Bool = false,
+                customServices: [CaptureService] = []
+            ) {
+                self.urlSession = urlSession
+                self.pushNotification = pushNotification
+                self.lowMemoryWarning = lowMemoryWarning
+                self.lowPowerMode = lowPowerMode
+                self.hang = hang
+                self.customServices = customServices
+            }
+        #endif
         var list: [CaptureService] {
             var services: [CaptureService] = []
 
@@ -57,20 +75,20 @@ extension EmbraceIO {
             if let urlSessionOptions = urlSession {
                 services.append(URLSessionCaptureService(options: urlSessionOptions))
             }
+            #if !os(watchOS)
+                // tap
+                if let tapOptions = tap {
+                    services.append(TapCaptureService(options: tapOptions))
+                }
 
-            // tap
-            if let tapOptions = tap {
-                services.append(TapCaptureService(options: tapOptions))
-            }
+                if let viewOptions = view {
+                    services.append(ViewCaptureService(options: viewOptions))
+                }
 
-            if let viewOptions = view {
-                services.append(ViewCaptureService(options: viewOptions))
-            }
-
-            if let webViewOptions = webView {
-                services.append(WebViewCaptureService(options: webViewOptions))
-            }
-
+                if let webViewOptions = webView {
+                    services.append(WebViewCaptureService(options: webViewOptions))
+                }
+            #endif
             if let pushNotificationOptions = pushNotification {
                 services.append(PushNotificationCaptureService(options: pushNotificationOptions))
             }
