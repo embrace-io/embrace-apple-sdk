@@ -18,6 +18,8 @@ extension EmbraceIO {
         #if !os(watchOS)
             let tap: TapCaptureService.Options?
             let view: ViewCaptureService.Options?
+        #endif
+        #if !os(tvOS) && !os(watchOS)
             let webView: WebViewCaptureService.Options?
         #endif
         let pushNotification: PushNotificationCaptureService.Options?
@@ -29,7 +31,45 @@ extension EmbraceIO {
         public class func `default`() -> EmbraceIO.CaptureServicesOptions {
             return CaptureServicesOptions()
         }
-        #if !os(watchOS)
+        #if os(watchOS)
+            internal init(
+                urlSession: URLSessionCaptureService.Options? = .init(),
+                pushNotification: PushNotificationCaptureService.Options? = nil,
+                lowMemoryWarning: Bool = true,
+                lowPowerMode: Bool = true,
+                hang: Bool = false,
+                customServices: [CaptureService] = []
+            ) {
+                self.urlSession = urlSession
+                self.pushNotification = pushNotification
+                self.lowMemoryWarning = lowMemoryWarning
+                self.lowPowerMode = lowPowerMode
+                self.hang = hang
+                self.customServices = customServices
+            }
+
+        #endif
+        #if os(tvOS)
+            internal init(
+                urlSession: URLSessionCaptureService.Options? = .init(),
+                tap: TapCaptureService.Options? = .init(),
+                view: ViewCaptureService.Options? = .init(),
+                pushNotification: PushNotificationCaptureService.Options? = nil,
+                lowMemoryWarning: Bool = true,
+                lowPowerMode: Bool = true,
+                hang: Bool = false,
+                customServices: [CaptureService] = []
+            ) {
+                self.urlSession = urlSession
+                self.tap = tap
+                self.view = view
+                self.pushNotification = pushNotification
+                self.lowMemoryWarning = lowMemoryWarning
+                self.lowPowerMode = lowPowerMode
+                self.hang = hang
+                self.customServices = customServices
+            }
+        #else
             internal init(
                 urlSession: URLSessionCaptureService.Options? = .init(),
                 tap: TapCaptureService.Options? = .init(),
@@ -45,22 +85,6 @@ extension EmbraceIO {
                 self.tap = tap
                 self.view = view
                 self.webView = webView
-                self.pushNotification = pushNotification
-                self.lowMemoryWarning = lowMemoryWarning
-                self.lowPowerMode = lowPowerMode
-                self.hang = hang
-                self.customServices = customServices
-            }
-        #else
-            internal init(
-                urlSession: URLSessionCaptureService.Options? = .init(),
-                pushNotification: PushNotificationCaptureService.Options? = nil,
-                lowMemoryWarning: Bool = true,
-                lowPowerMode: Bool = true,
-                hang: Bool = false,
-                customServices: [CaptureService] = []
-            ) {
-                self.urlSession = urlSession
                 self.pushNotification = pushNotification
                 self.lowMemoryWarning = lowMemoryWarning
                 self.lowPowerMode = lowPowerMode
@@ -84,7 +108,8 @@ extension EmbraceIO {
                 if let viewOptions = view {
                     services.append(ViewCaptureService(options: viewOptions))
                 }
-
+            #endif
+            #if !os(tvOS) && !os(watchOS)
                 if let webViewOptions = webView {
                     services.append(WebViewCaptureService(options: webViewOptions))
                 }

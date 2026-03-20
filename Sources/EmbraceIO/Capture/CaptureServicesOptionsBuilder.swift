@@ -21,18 +21,17 @@ public class CaptureServicesOptionsBuilder: NSObject {
         #if !os(watchOS)
             let tap = map[.tap] as? TapCaptureService.Options
             let view = map[.view] as? ViewCaptureService.Options
+        #endif
+        #if !os(tvOS) && !os(watchOS)
             let webView = map[.webView] as? WebViewCaptureService.Options
         #endif
         let pushNotification = map[.pushNotification] as? PushNotificationCaptureService.Options
         let lowMemoryWarning = (map[.lowMemoryWarning] as? Bool) ?? false
         let lowPowerMode = (map[.lowPowerMode] as? Bool) ?? false
         let hang = (map[.hang] as? Bool) ?? false
-        #if !os(watchOS)
+        #if os(watchOS)
             return EmbraceIO.CaptureServicesOptions(
                 urlSession: urlSession,
-                tap: tap,
-                view: view,
-                webView: webView,
                 pushNotification: pushNotification,
                 lowMemoryWarning: lowMemoryWarning,
                 lowPowerMode: lowPowerMode,
@@ -40,14 +39,30 @@ public class CaptureServicesOptionsBuilder: NSObject {
                 customServices: customServices
             )
         #else
-            return EmbraceIO.CaptureServicesOptions(
-                urlSession: urlSession,
-                pushNotification: pushNotification,
-                lowMemoryWarning: lowMemoryWarning,
-                lowPowerMode: lowPowerMode,
-                hang: hang,
-                customServices: customServices
-            )
+            #if os(tvOS)
+                return EmbraceIO.CaptureServicesOptions(
+                    urlSession: urlSession,
+                    tap: tap,
+                    view: view,
+                    pushNotification: pushNotification,
+                    lowMemoryWarning: lowMemoryWarning,
+                    lowPowerMode: lowPowerMode,
+                    hang: hang,
+                    customServices: customServices
+                )
+            #else
+                return EmbraceIO.CaptureServicesOptions(
+                    urlSession: urlSession,
+                    tap: tap,
+                    view: view,
+                    webView: webView,
+                    pushNotification: pushNotification,
+                    lowMemoryWarning: lowMemoryWarning,
+                    lowPowerMode: lowPowerMode,
+                    hang: hang,
+                    customServices: customServices
+                )
+            #endif
         #endif
     }
 
