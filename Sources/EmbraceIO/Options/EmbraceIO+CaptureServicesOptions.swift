@@ -131,7 +131,7 @@ extension EmbraceIO {
                     services.append(ViewCaptureService(options: viewOptions))
                 }
             #endif
-            #if canImport(WebView)
+            #if canImport(WebKit)
                 if let webViewOptions = webView {
                     services.append(WebViewCaptureService(options: webViewOptions))
                 }
