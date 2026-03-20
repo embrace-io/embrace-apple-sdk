@@ -10,6 +10,8 @@
 #if !TARGET_OS_WATCH
 
 #include <mach/mach_types.h>
+#include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -20,11 +22,11 @@ extern "C" {
 /// into `frames_out`. At most `max_frames` will be captured. The actual count
 /// is written to `count_out`.
 ///
-/// Returns 0 on success, -1 on failure.
-int emb_stack_walk(thread_t thread,
-                   uint64_t *frames_out,
-                   uint32_t max_frames,
-                   uint32_t *count_out);
+/// Returns true on success, false on failure.
+bool emb_stack_walk(thread_t thread,
+                    uintptr_t *frames_out,
+                    size_t max_frames,
+                    size_t *count_out);
 
 #ifdef __cplusplus
 }
