@@ -18,55 +18,19 @@ public class CaptureServicesOptionsBuilder: NSObject {
     public func build() -> EmbraceIO.CaptureServicesOptions {
 
         let urlSession = map[.urlSession] as? URLSessionCaptureService.Options
-        #if canImport(UIKit) && !os(watchOS)
-            let tap = map[.tap] as? TapCaptureService.Options
-            let view = map[.view] as? ViewCaptureService.Options
-        #endif
-        #if canImport(WebKit)
-            let webView = map[.webView] as? WebViewCaptureService.Options
+        #if !os(watchOS)
+            #if canImport(UIKit)
+                let tap = map[.tap] as? TapCaptureService.Options
+                let view = map[.view] as? ViewCaptureService.Options
+            #endif
+            #if canImport(WebKit)
+                let webView = map[.webView] as? WebViewCaptureService.Options
+            #endif
         #endif
         let pushNotification = map[.pushNotification] as? PushNotificationCaptureService.Options
         let lowMemoryWarning = (map[.lowMemoryWarning] as? Bool) ?? false
         let lowPowerMode = (map[.lowPowerMode] as? Bool) ?? false
         let hang = (map[.hang] as? Bool) ?? false
-
-        #if canImport(UIKit) && !os(watchOS)
-            #if canImport(WebKit)
-                return EmbraceIO.CaptureServicesOptions(
-                    urlSession: urlSession,
-                    tap: tap,
-                    view: view,
-                    webView: webView,
-                    pushNotification: pushNotification,
-                    lowMemoryWarning: lowMemoryWarning,
-                    lowPowerMode: lowPowerMode,
-                    hang: hang,
-                    customServices: customServices
-                )
-            #else
-                return EmbraceIO.CaptureServicesOptions(
-                    urlSession: urlSession,
-                    tap: tap,
-                    view: view,
-                    pushNotification: pushNotification,
-                    lowMemoryWarning: lowMemoryWarning,
-                    lowPowerMode: lowPowerMode,
-                    hang: hang,
-                    customServices: customServices
-                )
-            #endif
-        #endif
-        #if !canImport(UIKit) && canImport(WebKit)
-            return EmbraceIO.CaptureServicesOptions(
-                urlSession: urlSession,
-                webView: webView,
-                pushNotification: pushNotification,
-                lowMemoryWarning: lowMemoryWarning,
-                lowPowerMode: lowPowerMode,
-                hang: hang,
-                customServices: customServices
-            )
-        #endif
         #if os(watchOS)
             return EmbraceIO.CaptureServicesOptions(
                 urlSession: urlSession,
@@ -76,6 +40,45 @@ public class CaptureServicesOptionsBuilder: NSObject {
                 hang: hang,
                 customServices: customServices
             )
+        #else
+            #if canImport(UIKit)
+                #if canImport(WebKit)
+                    return EmbraceIO.CaptureServicesOptions(
+                        urlSession: urlSession,
+                        tap: tap,
+                        view: view,
+                        webView: webView,
+                        pushNotification: pushNotification,
+                        lowMemoryWarning: lowMemoryWarning,
+                        lowPowerMode: lowPowerMode,
+                        hang: hang,
+                        customServices: customServices
+                    )
+                #else
+                    return EmbraceIO.CaptureServicesOptions(
+                        urlSession: urlSession,
+                        tap: tap,
+                        view: view,
+                        pushNotification: pushNotification,
+                        lowMemoryWarning: lowMemoryWarning,
+                        lowPowerMode: lowPowerMode,
+                        hang: hang,
+                        customServices: customServices
+                    )
+                #endif
+            #endif
+            #if !canImport(UIKit) && canImport(WebKit)
+                return EmbraceIO.CaptureServicesOptions(
+                    urlSession: urlSession,
+                    webView: webView,
+                    pushNotification: pushNotification,
+                    lowMemoryWarning: lowMemoryWarning,
+                    lowPowerMode: lowPowerMode,
+                    hang: hang,
+                    customServices: customServices
+                )
+            #endif
+
         #endif
     }
 
@@ -88,26 +91,26 @@ public class CaptureServicesOptionsBuilder: NSObject {
         if map[.urlSession] == nil {
             map[.urlSession] = URLSessionCaptureService.Options()
         }
+        #if !os(watchOS)
+            #if canImport(UIKit)
+                // tap
+                if map[.tap] == nil {
+                    map[.tap] = TapCaptureService.Options()
+                }
 
-        #if canImport(UIKit) && !os(watchOS)
-            // tap
-            if map[.tap] == nil {
-                map[.tap] = TapCaptureService.Options()
-            }
+                // view
+                if map[.view] == nil {
+                    map[.view] = ViewCaptureService.Options()
+                }
+            #endif
 
-            // view
-            if map[.view] == nil {
-                map[.view] = ViewCaptureService.Options()
-            }
+            #if canImport(WebKit)
+                // web view
+                if map[.webView] == nil {
+                    map[.webView] = WebViewCaptureService.Options()
+                }
+            #endif
         #endif
-
-        #if canImport(WebKit)
-            // web view
-            if map[.webView] == nil {
-                map[.webView] = WebViewCaptureService.Options()
-            }
-        #endif
-
         // low memory warning
         if map[.lowMemoryWarning] == nil {
             map[.lowMemoryWarning] = true
