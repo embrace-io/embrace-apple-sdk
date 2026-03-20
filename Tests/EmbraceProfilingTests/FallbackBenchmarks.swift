@@ -47,8 +47,8 @@ final class FallbackBenchmarks: XCTestCase {
     }
 
     private func walkWithFallback(port: thread_t) -> Int {
-        let frames = captureStack(thread: port, maxFrames: Self.maxFrames)
-        return frames.count
+        let result = captureStack(thread: port, maxFrames: Self.maxFrames)
+        return result.frames.count
     }
 
     // MARK: - Normal stack (with frame pointers)
