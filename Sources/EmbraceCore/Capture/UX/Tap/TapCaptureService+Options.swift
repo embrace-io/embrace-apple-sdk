@@ -70,12 +70,4 @@ import Foundation
             }
         }
     }
-#else
-    extension TapCaptureService {
-        /// Class used to setup a TapCaptureService.
-        @objc(EMBTapCaptureServiceOptions)
-        public final class Options: NSObject {
-
-        }
-    }
 #endif
