@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import os
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceStorageInternal
@@ -44,6 +45,11 @@ class LogController: LogControllable {
     /// For consistency, I created a constant
     static let maxLogsPerBatch: Int = 20
 
+    /// Returns the batch size to use for unsent log uploads.
+    /// Defaults to adaptive sizing based on available memory.
+    /// Can be overridden in tests to use a fixed value.
+    var maxLogsPerBatchProvider: () -> Int = { LogController.adaptiveMaxLogsPerBatch() }
+
     struct MutableState {
         var limits: LogsLimits = LogsLimits()
     }
@@ -75,7 +81,8 @@ class LogController: LogControllable {
 
         let logs: [EmbraceLog] = storage.fetchAll(excludingProcessIdentifier: ProcessIdentifier.current)
         if logs.isEmpty == false {
-            send(batches: divideInBatches(logs)) {
+            let batchSize = maxLogsPerBatchProvider()
+            send(batches: divideInBatches(logs, maxLogsPerBatch: batchSize)) {
                 completion?()
             }
         } else {
@@ -219,26 +226,18 @@ extension LogController {
 
 extension LogController {
     fileprivate func send(batches: [LogsBatch], completion: (() -> Void)? = nil) {
-        guard sdkStateProvider?.isEnabled == true else {
+        guard sdkStateProvider?.isEnabled == true, !batches.isEmpty else {
             completion?()
             return
         }
 
-        guard batches.isEmpty == false else {
-            completion?()
-            return
-        }
-
-        let group = DispatchGroup()
-        group.enter()
+        // Process batches sequentially so each compressed payload
+        // is released before the next one is allocated.
+        let semaphore = DispatchSemaphore(value: 0)
 
         for batch in batches {
-            do {
-                guard batch.logs.isEmpty == false else {
-                    continue
-                }
-
-                guard let processId = batch.logs[0].processId else {
+            autoreleasepool {
+                guard !batch.logs.isEmpty, let processId = batch.logs[0].processId else {
                     return
                 }
 
@@ -251,35 +250,33 @@ extension LogController {
                 //
                 // If we can't find a sessionId, we use the processId instead
 
-                var sessionId: EmbraceIdentifier?
-                if let log = batch.logs.first(where: { $0.attribute(forKey: LogSemantics.keySessionId) != nil }) {
-                    if let id = log.attribute(forKey: LogSemantics.keySessionId)?.valueRaw {
-                        sessionId = EmbraceIdentifier(stringValue: id)
+                do {
+                    var sessionId: EmbraceIdentifier?
+                    if let log = batch.logs.first(where: { $0.attribute(forKey: LogSemantics.keySessionId) != nil }) {
+                        if let id = log.attribute(forKey: LogSemantics.keySessionId)?.valueRaw {
+                            sessionId = EmbraceIdentifier(stringValue: id)
+                        }
                     }
+
+                    let resourcePayload = try createResourcePayload(sessionId: sessionId, processId: processId)
+                    let metadataPayload = try createMetadataPayload(sessionId: sessionId, processId: processId)
+
+                    send(
+                        logs: batch.logs,
+                        resourcePayload: resourcePayload,
+                        metadataPayload: metadataPayload,
+                        completion: { semaphore.signal() }
+                    )
+
+                    semaphore.wait()
+
+                } catch let exception {
+                    Error.couldntCreatePayload(reason: exception.localizedDescription).log()
                 }
-
-                let resourcePayload = try createResourcePayload(sessionId: sessionId, processId: processId)
-                let metadataPayload = try createMetadataPayload(sessionId: sessionId, processId: processId)
-
-                group.enter()
-
-                send(
-                    logs: batch.logs,
-                    resourcePayload: resourcePayload,
-                    metadataPayload: metadataPayload,
-                    completion: {
-                        group.leave()
-                    }
-                )
-            } catch let exception {
-                Error.couldntCreatePayload(reason: exception.localizedDescription).log()
             }
         }
 
-        group.leave()
-        group.notify(queue: .global(qos: .default)) {
-            completion?()
-        }
+        completion?()
     }
 
     fileprivate func send(
@@ -322,16 +319,35 @@ extension LogController {
         }
     }
 
-    fileprivate func divideInBatches(_ logs: [EmbraceLog]) -> [LogsBatch] {
+    static func adaptiveMaxLogsPerBatch() -> Int {
+        #if os(macOS)
+            return maxLogsPerBatch
+        #else
+            let availableMemory = os_proc_available_memory()
+
+            switch availableMemory {
+            case 0..<(15 * 1024 * 1024):
+                return 1
+            case ..<(30 * 1024 * 1024):
+                return 5
+            case ..<(50 * 1024 * 1024):
+                return 10
+            default:
+                return maxLogsPerBatch
+            }
+        #endif
+    }
+
+    fileprivate func divideInBatches(_ logs: [EmbraceLog], maxLogsPerBatch: Int = LogController.maxLogsPerBatch) -> [LogsBatch] {
         var batches: [LogsBatch] = []
-        var batch: LogsBatch = .init(limits: .init(maxBatchAge: .infinity, maxLogsPerBatch: Self.maxLogsPerBatch))
+        var batch: LogsBatch = .init(limits: .init(maxBatchAge: .infinity, maxLogsPerBatch: maxLogsPerBatch))
         for log in logs {
             let result = batch.add(log: log)
             switch result {
             case .success(let batchState):
                 if batchState == .closed {
                     batches.append(batch)
-                    batch = LogsBatch(limits: .init(maxLogsPerBatch: Self.maxLogsPerBatch))
+                    batch = LogsBatch(limits: .init(maxLogsPerBatch: maxLogsPerBatch))
                 }
             case .failure:
                 // This shouldn't happen.

@@ -14,9 +14,7 @@ class SpyEmbraceLogUploader: EmbraceLogUploader {
         didCallUploadLogCount += 1
         didCallUploadLog = true
         logPayloadTypes = payloadTypes
-        if let result = stubbedLogCompletion {
-            completion?(result)
-        }
+        completion?(stubbedLogCompletion ?? .success(()))
     }
 
     var didCallUploadAttachment = false

@@ -311,6 +311,7 @@ extension LogControllerTests {
 
         sut.sdkStateProvider = sdkStateProvider
         sut.otel = otelBridge
+        sut.maxLogsPerBatchProvider = { LogController.maxLogsPerBatch }
     }
 
     fileprivate func givenLogController() {
@@ -322,6 +323,7 @@ extension LogControllerTests {
 
         sut.sdkStateProvider = sdkStateProvider
         sut.otel = otelBridge
+        sut.maxLogsPerBatchProvider = { LogController.maxLogsPerBatch }
     }
 
     fileprivate func givenEmbraceLogUploader() {
