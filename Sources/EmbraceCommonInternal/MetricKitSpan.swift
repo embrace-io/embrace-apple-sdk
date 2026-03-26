@@ -53,7 +53,7 @@ import os
             self.name = name
             self.signpostId = signpostId
             if let signpostId {
-                mxSignpost(.begin, log: Self.log, name: name, signpostID: signpostId)
+                os_signpost(.begin, log: Self.log, name: name, signpostID: signpostId)
             }
         }
 
