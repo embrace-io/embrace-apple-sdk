@@ -154,6 +154,7 @@ jobs:
           git diff --cached
 
           git commit -m "CI/CD: Bumps version to '$RC_VERSION'"
+          git pull --rebase
           git push
 
       - name: Select Xcode 16
