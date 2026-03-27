@@ -38,7 +38,7 @@ extension EmbraceStorage {
         coldStart: Bool = false,
         cleanExit: Bool = false,
         appTerminated: Bool = false,
-        sessionNumber: Int = 0,
+        sessionNumber: EMBInt = 0,
         completion: (() -> Void)? = nil
     ) -> EmbraceSession? {
 

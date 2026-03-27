@@ -300,19 +300,19 @@ extension EmbraceStorage {
 
     /// Increments the numeric value by 1 of a permanent resource for the given key.
     /// If no record exists it will create one with a value of 1.
-    public func incrementCountForPermanentResource(key: String) -> Int {
+    public func incrementCountForPermanentResource(key: String) -> EMBInt {
         coreData.performOperation(save: true) { context in
             // fetch existing metadata
             let request = fetchMetadataRequest(key: key, type: .requiredResource, lifespan: .permanent)
 
             // update it if it exists
             if let metadata = fetchMetadata(request: request, context: context) {
-                let val = (Int(metadata.value) ?? 0) + 1
+                let val = (EMBInt(metadata.value) ?? 0) + 1
                 metadata.value = String(val)
                 return val
                 // create it with a value of 1 if it doesn't exist
             } else {
-                let val = 1
+                let val: EMBInt = 1
                 _ = MetadataRecord.create(
                     context: context,
                     key: key,

@@ -32,7 +32,7 @@ public class SessionRecord: NSManagedObject {
     @NSManaged public var appTerminated: Bool
 
     /// The value of the `emb.session.upload_index` counter at the time this session was created
-    @NSManaged public var sessionNumber: Int
+    @NSManaged public var sessionNumber: EMBInt
 
     /// Note that this must be called within a `perform` on the CoreData context.
     class func create(
@@ -49,7 +49,7 @@ public class SessionRecord: NSManagedObject {
         coldStart: Bool = false,
         cleanExit: Bool = false,
         appTerminated: Bool = false,
-        sessionNumber: Int = 0
+        sessionNumber: EMBInt = 0
     ) -> Bool {
         guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
             return false
@@ -193,5 +193,5 @@ struct ImmutableSessionRecord: EmbraceSession {
     let coldStart: Bool
     let cleanExit: Bool
     let appTerminated: Bool
-    let sessionNumber: Int
+    let sessionNumber: EMBInt
 }
