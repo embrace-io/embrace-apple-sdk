@@ -44,7 +44,7 @@ struct SessionSpanUtils {
         from session: EmbraceSession,
         spanData: SpanData? = nil,
         properties: [EmbraceMetadata] = [],
-        sessionNumber: Int
+        sessionNumber: EMBInt
     ) -> SpanPayload {
         return SpanPayload(from: session, spanData: spanData, properties: properties, sessionNumber: sessionNumber)
     }
@@ -55,7 +55,7 @@ extension SpanPayload {
         from session: EmbraceSession,
         spanData: SpanData? = nil,
         properties: [EmbraceMetadata],
-        sessionNumber: Int
+        sessionNumber: EMBInt
     ) {
         self.traceId = session.traceId
         self.spanId = session.spanId
