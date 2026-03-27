@@ -29,7 +29,7 @@ import os
             guard let signpostId, hasEnded.compareExchange(expected: false, desired: true) else {
                 return
             }
-            mxSignpost(.end, log: Self.log, name: name, signpostID: signpostId)
+            os_signpost(.end, log: Self.log, name: name, signpostID: signpostId)
         }
 
         // MARK: - Private
