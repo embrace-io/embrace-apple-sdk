@@ -25,6 +25,11 @@
         }
 
         override func tearDownWithError() throws {
+            // Drain the queue so no pending async tasks bleed into the next test.
+            // This is needed because if a test times out the queue task may still be in-flight,
+            // and will fire (with stale KSCrash state) during the next test's execution.
+            crashReporter?.queue.sync {}
+            crashReporter = nil
             try? FileManager.default.removeItem(
                 at: context.filePathProvider.directoryURL(for: "embrace_crash_reporter")!)
         }
