@@ -340,7 +340,8 @@ let package = Package(
 
         // profiling ----------------------------------------------------------------
         .target(
-            name: "EmbraceProfilingSampler"
+            name: "EmbraceProfilingSampler",
+            publicHeadersPath: "include"
         ),
         .target(
             name: "EmbraceProfiling",
