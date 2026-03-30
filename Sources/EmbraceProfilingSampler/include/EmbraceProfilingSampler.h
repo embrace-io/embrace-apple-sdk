@@ -5,6 +5,7 @@
 #ifndef EmbraceProfilingSampler_h
 #define EmbraceProfilingSampler_h
 
+#include "emb_ring_buffer.h"
 #include "emb_stack_walker.h"
 #include "emb_sampler.h"
 
