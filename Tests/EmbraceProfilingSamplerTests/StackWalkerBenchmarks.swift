@@ -4,66 +4,66 @@
 
 #if !os(watchOS)
 
-import Darwin
-import EmbraceProfilingSampler
-import EmbraceProfilingTestSupport
-import XCTest
+    import Darwin
+    import EmbraceProfilingSampler
+    import EmbraceProfilingTestSupport
+    import XCTest
 
-final class StackWalkerBenchmarks: XCTestCase {
+    final class StackWalkerBenchmarks: XCTestCase {
 
-    // MARK: - Helpers
+        // MARK: - Helpers
 
-    /// Number of walks per measured iteration, so the total time is large
-    /// enough for XCTest to report meaningful values.
-    private static let walksPerIteration = 10_000
+        /// Number of walks per measured iteration, so the total time is large
+        /// enough for XCTest to report meaningful values.
+        private static let walksPerIteration = 10_000
 
-    private func walkSuspendedThread(port: thread_t) -> Int {
-        let maxFrames = 1024
-        var frames = [UInt](repeating: 0, count: maxFrames)
-        var count = 0
-        emb_stack_walk(port, &frames, maxFrames, &count)
-        return count
-    }
-
-    private func benchmarkWalk(stackDepth: size_t, label: String) throws {
-        guard let thread = emb_test_thread_create(stackDepth) else {
-            XCTFail("Failed to create test thread")
-            return
+        private func walkSuspendedThread(port: thread_t) -> Int {
+            let maxFrames = 1024
+            var frames = [UInt](repeating: 0, count: maxFrames)
+            var count = 0
+            emb_stack_walk(port, &frames, maxFrames, &count)
+            return count
         }
-        defer { emb_test_thread_destroy(thread) }
-        let port = emb_test_thread_get_port(thread)
 
-        let kr = thread_suspend(port)
-        XCTAssertEqual(kr, KERN_SUCCESS)
-        defer { thread_resume(port) }
+        private func benchmarkWalk(stackDepth: size_t, label: String) throws {
+            guard let thread = emb_test_thread_create(stackDepth) else {
+                XCTFail("Failed to create test thread")
+                return
+            }
+            defer { emb_test_thread_destroy(thread) }
+            let port = emb_test_thread_get_port(thread)
 
-        let frameCount = walkSuspendedThread(port: port)
-        print("\(label): \(frameCount) frames, \(Self.walksPerIteration) walks per iteration")
+            let kr = thread_suspend(port)
+            XCTAssertEqual(kr, KERN_SUCCESS)
+            defer { thread_resume(port) }
 
-        measure {
-            for _ in 0..<Self.walksPerIteration {
-                _ = self.walkSuspendedThread(port: port)
+            let frameCount = walkSuspendedThread(port: port)
+            print("\(label): \(frameCount) frames, \(Self.walksPerIteration) walks per iteration")
+
+            measure {
+                for _ in 0..<Self.walksPerIteration {
+                    _ = self.walkSuspendedThread(port: port)
+                }
             }
         }
-    }
 
-    // MARK: - Benchmarks
+        // MARK: - Benchmarks
 
-    func test_benchmark_shallowStack() throws {
-        try benchmarkWalk(stackDepth: 10, label: "Shallow stack")
-    }
+        func test_benchmark_shallowStack() throws {
+            try benchmarkWalk(stackDepth: 10, label: "Shallow stack")
+        }
 
-    func test_benchmark_averageStack() throws {
-        try benchmarkWalk(stackDepth: 30, label: "Average stack")
-    }
+        func test_benchmark_averageStack() throws {
+            try benchmarkWalk(stackDepth: 30, label: "Average stack")
+        }
 
-    func test_benchmark_deepStack() throws {
-        try benchmarkWalk(stackDepth: 100, label: "Deep stack")
-    }
+        func test_benchmark_deepStack() throws {
+            try benchmarkWalk(stackDepth: 100, label: "Deep stack")
+        }
 
-    func test_benchmark_veryDeepStack() throws {
-        try benchmarkWalk(stackDepth: 500, label: "Very deep stack")
+        func test_benchmark_veryDeepStack() throws {
+            try benchmarkWalk(stackDepth: 500, label: "Very deep stack")
+        }
     }
-}
 
 #endif
