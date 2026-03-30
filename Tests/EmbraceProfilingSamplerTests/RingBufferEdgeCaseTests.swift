@@ -263,7 +263,7 @@
         // MARK: - Eviction edge cases
 
         func test_eviction_exactFit_noEviction() {
-            // 1-frame records: 32 bytes each.  4096 / 32 = 128 fit exactly.
+            // 1-frame records: 24 bytes each (16 header + 8 frame).
             let page = Int(getpagesize())
             let buf = emb_ring_buffer_create(page)!
             defer { emb_ring_buffer_destroy(buf) }
@@ -406,7 +406,7 @@
             for i in 0..<result.count {
                 XCTAssertGreaterThan(
                     result.records[i].timestamp_ns, finalPassStart,
-                    "record \(i) should be from the last two passes")
+                    "record \(i) should be from the last pass")
             }
         }
 
@@ -478,6 +478,28 @@
             var evicted = emb_ring_buffer_read_range(buf, 1, 1)
             defer { emb_ring_read_result_free(&evicted) }
             XCTAssertEqual(evicted.count, 0, "evicted record should not appear in range query")
+        }
+
+        // MARK: - Non-monotonic timestamps
+
+        func test_readRange_nonMonotonicTimestamps_returnsContiguousBlock() {
+            // Timestamps go backwards mid-buffer: [100, 200, 50, 300].
+            // A range query starting at 100 enters the second loop at the first
+            // record (ts=100), advances through 200, then hits 50 < start_ns and
+            // stops, returning the contiguous in-range block [100, 200].
+            let buf = emb_ring_buffer_create(1024 * 1024)!
+            defer { emb_ring_buffer_destroy(buf) }
+
+            for ts: UInt64 in [100, 200, 50, 300] {
+                let f: [UInt] = [UInt(ts)]
+                emb_ring_buffer_write(buf, ts, f, 1)
+            }
+
+            var result = emb_ring_buffer_read_range(buf, 100, 300)
+            defer { emb_ring_read_result_free(&result) }
+
+            XCTAssertEqual(result.count, 2,
+                           "non-monotonic timestamps should return the contiguous in-range block")
         }
 
         // MARK: - Timestamp range edge cases

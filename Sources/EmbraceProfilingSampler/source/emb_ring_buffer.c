@@ -20,6 +20,7 @@ typedef struct {
 
 static const size_t header_size = sizeof(emb_ring_record_header_t);
 static const size_t frame_size = sizeof(((emb_ring_record_t *)0)->frames[0]);
+static const size_t unbelievable_frame_count = 1000000;
 
 /// Calculate the size of a record with the given number of frames.
 /// This will work out to the header size + 8 bytes per frame.
@@ -150,12 +151,19 @@ bool emb_ring_buffer_write(emb_ring_buffer_t *buf,
                            const uintptr_t *frames,
                            size_t frame_count)
 {
-    if (buf == NULL || frames == NULL || frame_count > UINT32_MAX) {
+    if (buf == NULL || frames == NULL || frame_count > unbelievable_frame_count) {
         return false;
     }
 
     // Record size for the requested frame count.
     size_t record_size_needed = record_size(frame_count);
+
+    // A single record must fit within the buffer capacity.
+    // Should never happen since we check against unbelievable_frame_count,
+    // but good just in case a future change allows it to slip through.
+    if (record_size_needed > buf->capacity) {
+        return false;
+    }
 
     // Current write position (monotonically increasing byte offset).
     uint64_t write_pos = atomic_load_explicit(&buf->write_pos, memory_order_relaxed);
@@ -220,7 +228,6 @@ static buffer_range find_range(const emb_ring_buffer_t *buf,
                                uint64_t end_ns)
 {
     const buffer_range not_found = {0};
-    const size_t unbelievable_frame_count = 1000000;
     const size_t capacity = buf->capacity;
     uint8_t *data = buf->data;
     buffer_range range = {0};
@@ -260,7 +267,7 @@ static buffer_range find_range(const emb_ring_buffer_t *buf,
             return not_found;
         }
         if (timestamp_ns < start_ns) {
-            return not_found;
+            break;
         }
 
         if (timestamp_ns > end_ns) {
@@ -327,14 +334,23 @@ emb_ring_read_result_t emb_ring_buffer_read_range(const emb_ring_buffer_t *buf,
 
     const uint64_t current_start_pos = atomic_load_explicit(&buf->oldest_pos, memory_order_acquire);
     uint64_t pos = 0;
-    if (current_start_pos != snapshot_start_pos) {
+    if (current_start_pos > range.start) {
         // Data at the front was evicted during the copy, so exclude it.
-        pos = (current_start_pos - snapshot_start_pos) % buf->capacity;
+        const uint64_t eviction_delta = current_start_pos - range.start;
+        if (eviction_delta >= (uint64_t)data_byte_count) {
+            // The entire copied window is stale.
+            free(allocation);
+            return result;
+        }
+        pos = (size_t)eviction_delta;
     }
 
     size_t valid_count = 0;
 
     while (pos < data_byte_count) {
+        if (pos + header_size > data_byte_count) {
+            break;
+        }
         const emb_ring_record_header_t *header = (emb_ring_record_header_t *)(data_region + pos);
         const uint64_t seq = header->seq;
         const size_t frame_count = header->frame_count;
@@ -345,13 +361,19 @@ emb_ring_read_result_t emb_ring_buffer_read_range(const emb_ring_buffer_t *buf,
             break;
         }
 
+        const size_t rsize = record_size(frame_count);
+        if (frame_count > unbelievable_frame_count || rsize > data_byte_count - pos) {
+            // Corrupt or torn frame_count; stop parsing.
+            break;
+        }
+
         records[valid_count].timestamp_ns = header->timestamp_ns;
         records[valid_count].frame_count = frame_count;
         records[valid_count].frames = (const uintptr_t *)(header + 1);
         valid_count++;
 
         // Advance to next record.
-        pos += record_size(frame_count);
+        pos += rsize;
     }
 
     result.records = records;
