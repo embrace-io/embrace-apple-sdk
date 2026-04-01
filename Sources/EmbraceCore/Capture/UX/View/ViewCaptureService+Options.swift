@@ -49,11 +49,4 @@
             }
         }
     }
-#else
-    extension ViewCaptureService {
-        /// Class used to setup a `ViewCaptureService`.
-        @objc(EMBViewCaptureServiceOptions)
-        public final class Options: NSObject {
-        }
-    }
 #endif

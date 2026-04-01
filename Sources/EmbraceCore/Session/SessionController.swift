@@ -28,6 +28,8 @@ extension Notification.Name {
 
 class SessionController: SessionControllable {
 
+    static let sessionNumberKey = "emb.session.upload_index"
+
     private let _attachmentCount = EmbraceAtomic<Int32>(0)
     internal var attachmentCount: Int { Int(_attachmentCount.load()) }
 
@@ -142,7 +144,10 @@ class SessionController: SessionControllable {
             let newId = EmbraceIdentifier.random
             let span = SessionSpanUtils.span(id: newId, startTime: startTime, state: state, coldStart: isColdStart)
 
-            // create session record and save it
+            // increment session counter and create session record
+            let sessionNumber = storage.incrementCountForPermanentResource(
+                key: SessionController.sessionNumberKey
+            )
             let session = storage.addSession(
                 id: newId,
                 processId: ProcessIdentifier.current,
@@ -150,7 +155,8 @@ class SessionController: SessionControllable {
                 traceId: span.context.traceId.hexString,
                 spanId: span.context.spanId.hexString,
                 startTime: startTime,
-                coldStart: isColdStart
+                coldStart: isColdStart,
+                sessionNumber: sessionNumber
             )
 
             // start heartbeat

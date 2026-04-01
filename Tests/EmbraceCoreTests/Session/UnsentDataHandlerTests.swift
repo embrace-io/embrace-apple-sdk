@@ -690,6 +690,7 @@ class UnsentDataHandlerTests: XCTestCase {
             controller: MockSessionController()
         )
         logController.sdkStateProvider = sdkStateProvider
+        logController.maxLogsPerBatchProvider = { LogController.maxLogsPerBatch }
         let otel = MockEmbraceOpenTelemetry()
 
         // given logs in storage

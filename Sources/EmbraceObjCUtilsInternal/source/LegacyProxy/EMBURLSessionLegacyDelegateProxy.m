@@ -99,6 +99,9 @@
     if ([self.originalDelegate respondsToSelector:@selector(URLSession:didBecomeInvalidWithError:)]) {
         [self.originalDelegate URLSession:session didBecomeInvalidWithError:error];
     }
+    
+    self.originalDelegate = nil;
+    self.handler = nil;
 }
 
 #pragma mark - NSURLSessionTaskDelegate Methods

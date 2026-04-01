@@ -116,10 +116,11 @@ import OpenTelemetrySdk
     /// - Returns: The `Embrace` client instance.
     @discardableResult
     @objc public static func setup(options: Embrace.Options) throws -> Embrace {
-        return try setup(options: options, otelResource: nil)
+        return try setup(options: options, otelResources: nil)
     }
 
-    package static func setup(options: Embrace.Options, otelResource: Resource?) throws -> Embrace {
+    @discardableResult
+    package static func setup(options: Embrace.Options, otelResources: Resource?) throws -> Embrace {
 
         if !Thread.isMainThread {
             throw EmbraceSetupError.invalidThread("Embrace must be setup on the main thread")
@@ -145,7 +146,7 @@ import OpenTelemetrySdk
 
             try options.validate()
 
-            client = try Embrace(options: options)
+            client = try Embrace(options: options, otelResources: otelResources)
             if let client = client {
                 EMBStartupTracker.shared().sdkSetupEndTime = Date()
                 Embrace.logger.startup("Embrace SDK setup finished")

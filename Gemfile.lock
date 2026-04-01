@@ -1,7 +1,7 @@
 GIT
-  remote: https://github.com/trinhngocthuyen/xccache.git
-  revision: 6e3fe288127c529a0b88c653eb02b01ad16af205
-  ref: 6e3fe288127c529a0b88c653eb02b01ad16af205
+  remote: https://github.com/embrace-io/xccache.git
+  revision: 0919370044e58b32fb19d9ff6465cad8950bc507
+  ref: 0919370
   specs:
     xccache (1.0.5)
       claide

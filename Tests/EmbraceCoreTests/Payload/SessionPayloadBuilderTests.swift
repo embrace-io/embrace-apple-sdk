@@ -33,54 +33,33 @@ final class SessionPayloadBuilderTests: XCTestCase {
         storage.coreData.destroy()
     }
 
-    func test_counterMissing() throws {
-        // given no existing counter in storage
-        var resource = storage.fetchMetadata(
-            key: SessionPayloadBuilder.resourceName,
+    func test_usesSessionNumberFromSession() throws {
+        // given a session with a pre-assigned sessionNumber
+        sessionRecord = MockSession(
+            id: TestConstants.sessionId,
+            processId: ProcessIdentifier.current,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date(timeIntervalSince1970: 0),
+            endTime: Date(timeIntervalSince1970: 60),
+            sessionNumber: 7
+        )
+
+        // when building a session payload
+        let payload = SessionPayloadBuilder.build(for: sessionRecord, storage: storage)
+
+        // then the session span contains the correct session number
+        let sessionSpan = payload?.data["spans"]?.first { $0.name == "emb-session" }
+        let sessionNumberAttr = sessionSpan?.attributes.first { $0.key == "emb.session_number" }
+        XCTAssertEqual(sessionNumberAttr?.value, "7")
+
+        // and the MetadataRecord counter was NOT touched
+        let resource = storage.fetchMetadata(
+            key: SessionController.sessionNumberKey,
             type: .requiredResource,
             lifespan: .permanent
         )
         XCTAssertNil(resource)
-
-        // when building a session payload
-        _ = SessionPayloadBuilder.build(for: sessionRecord, storage: storage)
-
-        // then a resource is created with the correct value
-        resource = storage.fetchMetadata(
-            key: SessionPayloadBuilder.resourceName,
-            type: .requiredResource,
-            lifespan: .permanent
-        )
-
-        XCTAssertEqual(resource!.value, "1")
-    }
-
-    func test_existingCounter() throws {
-        // given existing counter in storage
-        storage.addMetadata(
-            key: SessionPayloadBuilder.resourceName,
-            value: "10",
-            type: .requiredResource,
-            lifespan: .permanent
-        )
-
-        var resource = storage.fetchMetadata(
-            key: SessionPayloadBuilder.resourceName,
-            type: .requiredResource,
-            lifespan: .permanent
-        )
-        XCTAssertNotNil(resource)
-
-        // when building a session payload
-        _ = SessionPayloadBuilder.build(for: sessionRecord, storage: storage)
-
-        // then the counter is updated correctly
-        resource = storage.fetchMetadata(
-            key: SessionPayloadBuilder.resourceName,
-            type: .requiredResource,
-            lifespan: .permanent
-        )
-
-        XCTAssertEqual(resource!.value, "11")
     }
 }

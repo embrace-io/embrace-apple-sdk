@@ -43,7 +43,7 @@ jobs:
 
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
           fetch-tags: true
@@ -115,7 +115,7 @@ jobs:
       IS_PRODUCTION_READY: ${{ needs.extractor.outputs.is_production_ready }}
     steps:
       - name: Validate access to versioning backend
-        uses: embrace-io/public-actions/upload-sdk-version@1841c9025e9640e5bbf83db6900b828df30addeb
+        uses: embrace-io/public-actions/upload-sdk-version@1841c9025e9640e5bbf83db6900b828df30addeb # v1.3.0
         with:
           platform: "ios"
           version: ${{ needs.extractor.outputs.rc_version }}
@@ -125,7 +125,7 @@ jobs:
           SDK_VERSION_TOKEN: ${{ secrets.SDK_VERSION_TOKEN }}
 
       - name: Checkout Repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
           persist-credentials: true
@@ -154,6 +154,7 @@ jobs:
           git diff --cached
 
           git commit -m "CI/CD: Bumps version to '$RC_VERSION'"
+          git pull --rebase
           git push
 
       - name: Select Xcode 16
@@ -177,7 +178,7 @@ jobs:
       RC_VERSION: ${{ needs.extractor.outputs.rc_version }}
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ needs.extractor.outputs.rc_version }}
           fetch-depth: 0
@@ -206,12 +207,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release --repo embrace-io/action-symbol-upload download ${{ env.SUPPORT_TOOL }} --pattern 'embrace_support-*' --clobber
+          gh release --repo embrace-io/action-symbol-upload download ${SUPPORT_TOOL} --pattern 'embrace_support-*' --clobber
 
       - name: Verify and extract embrace_support.zip
         run: |
-          if /usr/bin/shasum -a 256 -c ${{ env.SUPPORT_TOOL }}.zip.sha256; then
-            unzip -o ${{ env.SUPPORT_TOOL }}.zip
+          if /usr/bin/shasum -a 256 -c ${SUPPORT_TOOL}.zip.sha256; then
+            unzip -o ${SUPPORT_TOOL}.zip
           else
             echo "::error::Checksum verification failed, aborting."
             exit 1
@@ -235,7 +236,7 @@ jobs:
           zip -r "embrace_$RC_VERSION.zip" "embrace_$RC_VERSION"
 
       - name: Store Release Archive
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: Embrace Release Archive
           path: embrace_${{ env.RC_VERSION }}.zip
@@ -255,20 +256,20 @@ jobs:
       IS_STABLE_HOTFIX: ${{ needs.extractor.outputs.is_stable_hotfix }}
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
           fetch-tags: true
           persist-credentials: false
 
       - name: Download Embrace Release Archive
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: Embrace Release Archive
 
       - name: Generate Release Notes
         id: release_notes
-        uses: embrace-io/public-actions/release-notes-generator@1841c9025e9640e5bbf83db6900b828df30addeb
+        uses: embrace-io/public-actions/release-notes-generator@1841c9025e9640e5bbf83db6900b828df30addeb # v1.3.0
         with:
           github_token: ${{ github.token }}
           current_tag: ${{ needs.extractor.outputs.rc_version }}
@@ -316,7 +317,7 @@ jobs:
       IS_PRODUCTION_READY: ${{ needs.extractor.outputs.is_production_ready }}
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ needs.extractor.outputs.rc_version }}
           fetch-depth: 0
@@ -348,7 +349,7 @@ jobs:
 
     steps:
       - name: Record SDK Version History
-        uses: embrace-io/public-actions/upload-sdk-version@1841c9025e9640e5bbf83db6900b828df30addeb
+        uses: embrace-io/public-actions/upload-sdk-version@1841c9025e9640e5bbf83db6900b828df30addeb # v1.3.0
         with:
           platform: "ios"
           version: ${{ needs.extractor.outputs.rc_version }}

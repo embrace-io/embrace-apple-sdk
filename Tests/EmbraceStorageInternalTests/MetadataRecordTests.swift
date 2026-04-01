@@ -209,7 +209,17 @@ class MetadataRecordTests: XCTestCase {
     }
 
     func test_cleanMetadata() throws {
-        // given inserted records
+        // given a stored session
+        storage.addSession(
+            id: TestConstants.sessionId,
+            processId: TestConstants.processId,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date()
+        )
+
+        // and inserted metadata records
         storage.addMetadata(
             key: "test1",
             value: "test",
@@ -240,10 +250,7 @@ class MetadataRecordTests: XCTestCase {
         )
 
         // when cleaning old metadata
-        storage.cleanMetadata(
-            currentSessionId: TestConstants.sessionId.stringValue,
-            currentProcessId: TestConstants.processId.stringValue
-        )
+        storage.cleanMetadata()
 
         // then only the correct records should be removed
         let records: [MetadataRecord] = storage.fetchAll()
@@ -252,6 +259,181 @@ class MetadataRecordTests: XCTestCase {
         XCTAssertNil(records.first(where: { $0.key == "test2" }))
         XCTAssertNotNil(records.first(where: { $0.key == "test3" }))
         XCTAssertNil(records.first(where: { $0.key == "test4" }))
+    }
+
+    func test_cleanMetadata_multipleSessions() throws {
+        let sessionIdA = EmbraceIdentifier.random
+        let sessionIdB = EmbraceIdentifier.random
+        let processIdA = EmbraceIdentifier.random
+        let processIdB = EmbraceIdentifier.random
+
+        // given two stored sessions (B shares processId with A)
+        storage.addSession(
+            id: sessionIdA,
+            processId: processIdA,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date()
+        )
+        storage.addSession(
+            id: sessionIdB,
+            processId: processIdA,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date()
+        )
+
+        // session-lifespan metadata for both sessions (should be kept)
+        storage.addMetadata(key: "sesA", value: "v", type: .resource, lifespan: .session, lifespanId: sessionIdA.stringValue)
+        storage.addMetadata(key: "sesB", value: "v", type: .resource, lifespan: .session, lifespanId: sessionIdB.stringValue)
+
+        // session-lifespan metadata for a non-existent session (should be deleted)
+        storage.addMetadata(key: "sesOrphan", value: "v", type: .resource, lifespan: .session, lifespanId: "nonexistent")
+
+        // process-lifespan metadata for the shared process (should be kept)
+        storage.addMetadata(key: "procA", value: "v", type: .resource, lifespan: .process, lifespanId: processIdA.stringValue)
+
+        // process-lifespan metadata for a non-existent process (should be deleted)
+        storage.addMetadata(key: "procOrphan", value: "v", type: .resource, lifespan: .process, lifespanId: processIdB.stringValue)
+
+        // permanent metadata (should always be kept)
+        storage.addMetadata(key: "perm", value: "v", type: .resource, lifespan: .permanent)
+
+        // when cleaning metadata
+        storage.cleanMetadata()
+
+        // then metadata for stored sessions and their processes is preserved
+        let records: [MetadataRecord] = storage.fetchAll()
+        XCTAssertNotNil(records.first(where: { $0.key == "sesA" }))
+        XCTAssertNotNil(records.first(where: { $0.key == "sesB" }))
+        XCTAssertNotNil(records.first(where: { $0.key == "procA" }))
+        XCTAssertNotNil(records.first(where: { $0.key == "perm" }))
+
+        // and orphaned metadata is deleted
+        XCTAssertNil(records.first(where: { $0.key == "sesOrphan" }))
+        XCTAssertNil(records.first(where: { $0.key == "procOrphan" }))
+
+        XCTAssertEqual(records.count, 4)
+    }
+
+    func test_cleanMetadata_noSessions() throws {
+        // given no stored sessions but existing metadata
+        storage.addMetadata(key: "ses", value: "v", type: .resource, lifespan: .session, lifespanId: "any")
+        storage.addMetadata(key: "proc", value: "v", type: .resource, lifespan: .process, lifespanId: "any")
+        storage.addMetadata(key: "perm", value: "v", type: .resource, lifespan: .permanent)
+
+        // when cleaning metadata
+        storage.cleanMetadata()
+
+        // then all session and process metadata is deleted, permanent is kept
+        let records: [MetadataRecord] = storage.fetchAll()
+        XCTAssertEqual(records.count, 1)
+        XCTAssertNotNil(records.first(where: { $0.key == "perm" }))
+    }
+
+    func test_cleanMetadata_preservesAllMetadataTypes() throws {
+        let sessionId = EmbraceIdentifier.random
+        let processId = EmbraceIdentifier.random
+
+        storage.addSession(
+            id: sessionId,
+            processId: processId,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date()
+        )
+
+        // metadata of various types tied to the stored session
+        storage.addMetadata(key: "res", value: "v", type: .resource, lifespan: .session, lifespanId: sessionId.stringValue)
+        storage.addMetadata(key: "cp", value: "v", type: .customProperty, lifespan: .session, lifespanId: sessionId.stringValue)
+        storage.addMetadata(key: "pt", value: "v", type: .personaTag, lifespan: .process, lifespanId: processId.stringValue)
+        storage.addMetadata(key: "rr", value: "v", type: .requiredResource, lifespan: .process, lifespanId: processId.stringValue)
+
+        // orphaned metadata of various types
+        storage.addMetadata(key: "res_orphan", value: "v", type: .resource, lifespan: .session, lifespanId: "gone")
+        storage.addMetadata(key: "cp_orphan", value: "v", type: .customProperty, lifespan: .process, lifespanId: "gone")
+        storage.addMetadata(key: "pt_orphan", value: "v", type: .personaTag, lifespan: .session, lifespanId: "gone")
+
+        storage.cleanMetadata()
+
+        let records: [MetadataRecord] = storage.fetchAll()
+        XCTAssertNotNil(records.first(where: { $0.key == "res" }))
+        XCTAssertNotNil(records.first(where: { $0.key == "cp" }))
+        XCTAssertNotNil(records.first(where: { $0.key == "pt" }))
+        XCTAssertNotNil(records.first(where: { $0.key == "rr" }))
+        XCTAssertNil(records.first(where: { $0.key == "res_orphan" }))
+        XCTAssertNil(records.first(where: { $0.key == "cp_orphan" }))
+        XCTAssertNil(records.first(where: { $0.key == "pt_orphan" }))
+        XCTAssertEqual(records.count, 4)
+    }
+
+    func test_cleanMetadata_multipleSessionsDifferentProcesses() throws {
+        let sessionIdA = EmbraceIdentifier.random
+        let sessionIdB = EmbraceIdentifier.random
+        let processIdA = EmbraceIdentifier.random
+        let processIdB = EmbraceIdentifier.random
+
+        // two sessions with different process ids
+        storage.addSession(
+            id: sessionIdA,
+            processId: processIdA,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date()
+        )
+        storage.addSession(
+            id: sessionIdB,
+            processId: processIdB,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date()
+        )
+
+        // process metadata for both processes (should be kept)
+        storage.addMetadata(key: "procA", value: "v", type: .resource, lifespan: .process, lifespanId: processIdA.stringValue)
+        storage.addMetadata(key: "procB", value: "v", type: .resource, lifespan: .process, lifespanId: processIdB.stringValue)
+
+        // process metadata for a third, non-existent process (should be deleted)
+        storage.addMetadata(key: "procC", value: "v", type: .resource, lifespan: .process, lifespanId: "unknown")
+
+        storage.cleanMetadata()
+
+        let records: [MetadataRecord] = storage.fetchAll()
+        XCTAssertNotNil(records.first(where: { $0.key == "procA" }))
+        XCTAssertNotNil(records.first(where: { $0.key == "procB" }))
+        XCTAssertNil(records.first(where: { $0.key == "procC" }))
+        XCTAssertEqual(records.count, 2)
+    }
+
+    func test_cleanMetadata_sessionDeletedThenClean() throws {
+        let sessionId = EmbraceIdentifier.random
+        let processId = EmbraceIdentifier.random
+
+        // add a session and metadata for it
+        storage.addSession(
+            id: sessionId,
+            processId: processId,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date()
+        )
+        storage.addMetadata(key: "ses", value: "v", type: .resource, lifespan: .session, lifespanId: sessionId.stringValue)
+        storage.addMetadata(key: "proc", value: "v", type: .resource, lifespan: .process, lifespanId: processId.stringValue)
+
+        // delete the session (simulating it was uploaded)
+        storage.deleteSession(id: sessionId)
+
+        // when cleaning, the metadata should now be orphaned
+        storage.cleanMetadata()
+
+        let records: [MetadataRecord] = storage.fetchAll()
+        XCTAssertEqual(records.count, 0)
     }
 
     func test_removeMetadata() throws {

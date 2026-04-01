@@ -42,12 +42,12 @@ jobs:
           xcodebuild -version
 
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         timeout-minutes: 5
         with:
           ref: ${{ inputs.ref || github.ref }}
           persist-credentials: false
-      
+
       - name: Install dependencies
         run: |
           brew install xcbeautify
@@ -251,7 +251,7 @@ jobs:
 
       - name: Upload Result Bundle as Artifact
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: browserstack-result-bundle-${{ steps.execute_tests.outputs.build_id }}-${{ steps.wait_tests.outputs.session_id }}
           path: result_bundle.xcresult.zip
@@ -268,7 +268,7 @@ jobs:
 
     steps:
       - name: Download Result Bundle
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: browserstack-result-bundle-${{ needs.test.outputs.build_id }}-${{ needs.test.outputs.session_id }}
 
