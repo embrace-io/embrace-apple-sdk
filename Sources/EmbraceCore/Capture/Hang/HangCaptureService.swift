@@ -14,6 +14,10 @@ import OpenTelemetryApi
     import EmbraceConfiguration
 #endif
 
+// CADisplayLink is not available on watchOS, so hang capture based on frame rate
+// is not supported on that platform. watchOS support will be revisited in the future.
+#if !os(watchOS)
+
 /// Service that generates OpenTelemetry span events for hangs.
 @objc(EMBHangCaptureService)
 public final class HangCaptureService: CaptureService {
@@ -40,11 +44,12 @@ public final class HangCaptureService: CaptureService {
         // we need to wait until the remote config is actually loaded from disk
         // which happens just before this call.
         let currentLimits = limits
-        watchdog = currentLimits.hangPerSession > 0
+        let monitor: FrameRateMonitor? = currentLimits.hangPerSession > 0
             ? FrameRateMonitor(threshold: currentLimits.hangThreshold)
             : nil
-        watchdog?.hangObserver = self
-        watchdog?.logger = logger
+        monitor?.hangObserver = self
+        monitor?.logger = logger
+        limitData.withLock { $0.watchdog = monitor }
     }
 
     public override func onSessionStart(_ session: any EmbraceSession) {
@@ -64,20 +69,21 @@ public final class HangCaptureService: CaptureService {
             return changed
         }
         if thresholdChanged {
-            watchdog = newLimits.hangPerSession > 0
+            let monitor: FrameRateMonitor? = newLimits.hangPerSession > 0
                 ? FrameRateMonitor(threshold: newLimits.hangThreshold)
                 : nil
-            watchdog?.hangObserver = self
-            watchdog?.logger = logger
+            monitor?.hangObserver = self
+            monitor?.logger = logger
+            limitData.withLock { $0.watchdog = monitor }
         }
     }
 
     private var mainThread: pthread_t
-    private var watchdog: FrameRateMonitor?
 
     struct MutableLimitData {
         var limits: HangLimits = HangLimits()
         var hangsInSessionCount: UInt = 0
+        var watchdog: FrameRateMonitor?
     }
     let limitData: EmbraceMutex<MutableLimitData>
 
@@ -246,3 +252,5 @@ private func isDebuggerAttached() -> Bool {
     guard result else { return false }
     return (info.kp_proc.p_flag & P_TRACED) != 0
 }
+
+#endif

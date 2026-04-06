@@ -121,6 +121,13 @@ public class CaptureServicesOptionsBuilder: NSObject {
             map[.lowPowerMode] = true
         }
 
+        // hang
+        #if !os(watchOS)
+            if map[.hang] == nil {
+                map[.hang] = true
+            }
+        #endif
+
         return self
     }
 
