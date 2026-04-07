@@ -63,12 +63,13 @@ public final class HangCaptureService: CaptureService {
 
     public override func onConfigUpdated(_ config: any EmbraceConfigurable) {
         let newLimits = config.hangLimits
-        let thresholdChanged = limitData.withLock {
+        let monitorNeedsUpdate = limitData.withLock {
             let changed = $0.limits.hangThreshold != newLimits.hangThreshold
+                || ($0.limits.hangPerSession == 0) != (newLimits.hangPerSession == 0)
             $0.limits = newLimits
             return changed
         }
-        if thresholdChanged {
+        if monitorNeedsUpdate {
             let monitor: FrameRateMonitor? = newLimits.hangPerSession > 0
                 ? FrameRateMonitor(threshold: newLimits.hangThreshold)
                 : nil
@@ -117,8 +118,11 @@ extension HangCaptureService: HangObserver {
         }
 
         let canStart = limitData.withLock {
+            guard $0.hangsInSessionCount < $0.limits.hangPerSession else {
+                return false
+            }
             $0.hangsInSessionCount += 1
-            return $0.hangsInSessionCount <= $0.limits.hangPerSession
+            return true
         }
         guard canStart else {
             let limitData = limitData.withLock { $0 }
