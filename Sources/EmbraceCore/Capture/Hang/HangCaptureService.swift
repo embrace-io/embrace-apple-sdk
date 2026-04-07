@@ -165,10 +165,6 @@ extension HangCaptureService: HangObserver {
         }
     }
 
-    public func hangUpdated(at: Date, duration: TimeInterval) {
-        // Not called by FrameRateMonitor (Option A — retroactive detection only).
-    }
-
     public func hangEnded(at: Date, duration: TimeInterval) {
         logger?.debug("[FrameRateMonitor] Hang ended at \(at) after \(Int(duration * 1000)) ms")
 
