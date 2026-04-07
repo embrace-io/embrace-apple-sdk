@@ -42,7 +42,6 @@ public final class FrameRateMonitor {
     ///
     /// Must be called on the main thread.
     public init(threshold: TimeInterval = FrameRateMonitor.defaultAppleHangThreshold) {
-        dispatchPrecondition(condition: .onQueue(.main))
         self.threshold = threshold
         self.proxy = DisplayLinkProxy()
 
