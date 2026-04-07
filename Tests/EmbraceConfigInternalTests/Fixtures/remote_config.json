@@ -53,7 +53,6 @@
     "hang_limits": {
         "hang_threshold": 0.5,
         "hang_per_session": 100,
-        "samples_per_hang": 5,
         "reports_watchdog_events": true
     }
 }

@@ -98,7 +98,6 @@ extension RemoteConfig: EmbraceConfigurable {
         HangLimits(
             hangThreshold: payload.hangLimitsHangThreshold,
             hangPerSession: payload.hangLimitsHangPerSession,
-            samplesPerHang: payload.hangLimitsSamplesPerHang,
             reportsWatchdogEvents: payload.hangLimitsReportsWatchdogEvents
         )
     }
